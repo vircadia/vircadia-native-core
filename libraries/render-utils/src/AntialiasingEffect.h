@@ -86,6 +86,7 @@ private:
 class AntialiasingConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(float blend MEMBER blend NOTIFY dirty)
+    Q_PROPERTY(float sharpen MEMBER sharpen NOTIFY dirty)
     Q_PROPERTY(float covarianceGamma MEMBER covarianceGamma NOTIFY dirty)
  
     Q_PROPERTY(bool constrainColor MEMBER constrainColor NOTIFY dirty)
@@ -106,8 +107,8 @@ class AntialiasingConfig : public render::Job::Config {
 public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
-    float blend{ 0.075f };
-
+    float blend{ 0.05f };
+    float sharpen{ 0.25f };
 
     bool constrainColor{ true };
     bool covarianceClipColor{ true };
@@ -134,7 +135,7 @@ signals:
 
 struct TAAParams {
     float nope{ 0.0f };
-    float blend{ 0.1f };
+    float blend{ 0.05f };
     float covarianceGamma{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
 
@@ -199,6 +200,8 @@ private:
     gpu::PipelinePointer _debugBlendPipeline;
 
     TAAParamsBuffer _params;
+    float _sharpen{ 0.25f };
+    int _sharpenLoc{ -1 };
 };
 
 

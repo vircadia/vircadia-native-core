@@ -137,6 +137,15 @@ Rectangle {
                     max: 1.0
                     min: 0.0
                 }
+        
+                ConfigSlider {
+                    label: qsTr("Post sharpen")
+                    integral: false
+                    config: Render.getConfig("RenderMainView.Antialiasing")
+                    property: "sharpen"
+                    max: 1.0
+                    min: 0.0
+                }
 
             }
             Separator {}                      

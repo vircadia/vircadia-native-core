@@ -246,6 +246,8 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
     
         // Good to go add the brand new pipeline
         _blendPipeline = gpu::Pipeline::create(program, state);
+        _sharpenLoc = program->getUniforms().findLocation("sharpenIntensity");
+
     }
     return _blendPipeline;
 }
@@ -280,6 +282,7 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
 }
 
 void Antialiasing::configure(const Config& config) {
+    _sharpen = config.sharpen;
     _params.edit().blend = config.blend;
     _params.edit().covarianceGamma = config.covarianceGamma;
 
@@ -363,6 +366,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
             batch.setPipeline(getDebugBlendPipeline());
         }  else {
             batch.setPipeline(getBlendPipeline());
+            batch._glUniform1f(_sharpenLoc, _sharpen);
         }
         batch.setResourceFramebufferSwapChainTexture(AntialiasingPass_NextMapSlot, _antialiasingBuffers, 1);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
