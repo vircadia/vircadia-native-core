@@ -79,6 +79,8 @@ float DEFAULT_SCRIPTED_MOTOR_TIMESCALE = 1.0e6f;
 const int SCRIPTED_MOTOR_CAMERA_FRAME = 0;
 const int SCRIPTED_MOTOR_AVATAR_FRAME = 1;
 const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
+const int SCRIPTED_MOTOR_SIMPLE_MODE = 0;
+const int SCRIPTED_MOTOR_DYNAMIC_MODE = 1;
 const QString& DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/Body_Hits_Impact.wav";
 
 const float MyAvatar::ZOOM_MIN = 0.5f;
@@ -92,6 +94,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _pitchSpeed(PITCH_SPEED_DEFAULT),
     _scriptedMotorTimescale(DEFAULT_SCRIPTED_MOTOR_TIMESCALE),
     _scriptedMotorFrame(SCRIPTED_MOTOR_CAMERA_FRAME),
+    _scriptedMotorMode(SCRIPTED_MOTOR_SIMPLE_MODE),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
     _characterController(this),
     _eyeContactTarget(LEFT_EYE),
@@ -1623,32 +1626,38 @@ controller::Pose MyAvatar::getControllerPoseInAvatarFrame(controller::Action act
 void MyAvatar::updateMotors() {
     _characterController.clearMotors();
     glm::quat motorRotation;
+    glm::quat avatarOrientation = getWorldOrientation();
+
+    const float FLYING_MOTOR_TIMESCALE = 0.05f;
+    const float WALKING_MOTOR_TIMESCALE = 0.2f;
+    const float INVALID_MOTOR_TIMESCALE = 1.0e6f;
+
+    float horizontalMotorTimescale;
+    float verticalMotorTimescale;
+
+    if (_characterController.getState() == CharacterController::State::Hover ||
+            _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+        horizontalMotorTimescale = FLYING_MOTOR_TIMESCALE;
+        verticalMotorTimescale = FLYING_MOTOR_TIMESCALE;
+    }
+    else {
+        horizontalMotorTimescale = WALKING_MOTOR_TIMESCALE;
+        verticalMotorTimescale = INVALID_MOTOR_TIMESCALE;
+    }
+
     if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
-
-        const float FLYING_MOTOR_TIMESCALE = 0.05f;
-        const float WALKING_MOTOR_TIMESCALE = 0.2f;
-        const float INVALID_MOTOR_TIMESCALE = 1.0e6f;
-
-        float horizontalMotorTimescale;
-        float verticalMotorTimescale;
-
         if (_characterController.getState() == CharacterController::State::Hover ||
                 _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
             motorRotation = getMyHead()->getHeadOrientation();
-            horizontalMotorTimescale = FLYING_MOTOR_TIMESCALE;
-            verticalMotorTimescale = FLYING_MOTOR_TIMESCALE;
         } else {
             // non-hovering = walking: follow camera twist about vertical but not lift
             // we decompose camera's rotation and store the twist part in motorRotation
             // however, we need to perform the decomposition in the avatar-frame
             // using the local UP axis and then transform back into world-frame
-            glm::quat orientation = getWorldOrientation();
-            glm::quat headOrientation = glm::inverse(orientation) * getMyHead()->getHeadOrientation(); // avatar-frame
+            glm::quat headOrientation = glm::inverse(avatarOrientation) * getMyHead()->getHeadOrientation(); // avatar-frame
             glm::quat liftRotation;
             swingTwistDecomposition(headOrientation, Vectors::UNIT_Y, liftRotation, motorRotation);
-            motorRotation = orientation * motorRotation;
-            horizontalMotorTimescale = WALKING_MOTOR_TIMESCALE;
-            verticalMotorTimescale = INVALID_MOTOR_TIMESCALE;
+            motorRotation = avatarOrientation * motorRotation;
         }
 
         if (_isPushing || _isBraking || !_isBeingPushed) {
@@ -1660,15 +1669,36 @@ void MyAvatar::updateMotors() {
         }
     }
     if (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED) {
-        if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
-            motorRotation = getMyHead()->getHeadOrientation() * glm::angleAxis(PI, Vectors::UNIT_Y);
-        } else if (_scriptedMotorFrame == SCRIPTED_MOTOR_AVATAR_FRAME) {
-            motorRotation = getWorldOrientation() * glm::angleAxis(PI, Vectors::UNIT_Y);
-        } else {
-            // world-frame
-            motorRotation = glm::quat();
+        if (_scriptedMotorMode == SCRIPTED_MOTOR_SIMPLE_MODE) {
+            if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
+                motorRotation = getMyHead()->getHeadOrientation() * glm::angleAxis(PI, Vectors::UNIT_Y);
+            }
+            else if (_scriptedMotorFrame == SCRIPTED_MOTOR_AVATAR_FRAME) {
+                motorRotation = avatarOrientation * glm::angleAxis(PI, Vectors::UNIT_Y);
+            }
+            else {
+                // world-frame
+                motorRotation = glm::quat();
+            }
+            _characterController.addMotor(_scriptedMotorVelocity, motorRotation, _scriptedMotorTimescale);
+        } else { 
+            // dynamic mode
+            glm::vec3 avatarFrameVelocity;
+            if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
+                // convert camera frame velocity to avatar frame
+                glm::quat cameraOrientation = qApp->getCamera().getOrientation();
+                avatarFrameVelocity = glm::inverse(avatarOrientation) * cameraOrientation * _scriptedMotorVelocity;
+            } else if (_scriptedMotorFrame == SCRIPTED_MOTOR_WORLD_FRAME) {
+                // convert world frame velocity to avatar frame
+                avatarFrameVelocity = glm::inverse(avatarOrientation) * _scriptedMotorVelocity;
+            } else {
+                // avatar frame
+                avatarFrameVelocity = _scriptedMotorVelocity;
+            }
+            // dynamic mode for scripted motor uses avatar frame and piggybacks off of the default action motor's timescales
+            motorRotation = avatarOrientation * glm::angleAxis(PI, Vectors::UNIT_Y);
+            _characterController.addMotor(avatarFrameVelocity, motorRotation, horizontalMotorTimescale, verticalMotorTimescale);
         }
-        _characterController.addMotor(_scriptedMotorVelocity, motorRotation, _scriptedMotorTimescale);
     }
 
     // legacy support for 'MyAvatar::applyThrust()', which has always been implemented as a
@@ -1752,6 +1782,14 @@ QString MyAvatar::getScriptedMotorFrame() const {
     return frame;
 }
 
+QString MyAvatar::getScriptedMotorMode() const {
+    QString mode = "simple";
+    if (_scriptedMotorMode == SCRIPTED_MOTOR_DYNAMIC_MODE) {
+        mode = "dynamic";
+    }
+    return mode;
+}
+
 void MyAvatar::setScriptedMotorVelocity(const glm::vec3& velocity) {
     float MAX_SCRIPTED_MOTOR_SPEED = 500.0f;
     _scriptedMotorVelocity = velocity;
@@ -1775,6 +1813,14 @@ void MyAvatar::setScriptedMotorFrame(QString frame) {
         _scriptedMotorFrame = SCRIPTED_MOTOR_AVATAR_FRAME;
     } else if (frame.toLower() == "world") {
         _scriptedMotorFrame = SCRIPTED_MOTOR_WORLD_FRAME;
+    }
+}
+
+void MyAvatar::setScriptedMotorMode(QString frame) {
+    if (frame.toLower() == "simple") {
+        _scriptedMotorMode = SCRIPTED_MOTOR_SIMPLE_MODE;
+    } else if (frame.toLower() == "dynamic") {
+        _scriptedMotorMode = SCRIPTED_MOTOR_DYNAMIC_MODE;
     }
 }
 

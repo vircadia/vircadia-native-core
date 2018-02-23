@@ -147,7 +147,7 @@ static void debugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum s
     }
     // FIXME For high severity errors, force a sync to the log, since we might crash
     // before the log file was flushed otherwise.  Performance hit here
-    qCDebug(glLogging) << "OpenGL: " << message;
+    //qCDebug(glLogging) << "OpenGL: " << message;
 }
 
 static void setupPixelFormatSimple(HDC hdc) {
