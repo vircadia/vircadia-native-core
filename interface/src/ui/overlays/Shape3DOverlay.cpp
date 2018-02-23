@@ -180,14 +180,13 @@ Transform Shape3DOverlay::evalRenderTransform() {
     return transform;
 }
 
-scriptable::ScriptableModelBase Shape3DOverlay::getScriptableModel(bool* ok) {
+scriptable::ScriptableModelBase Shape3DOverlay::getScriptableModel() {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto vertexColor = ColorUtils::toVec3(_color);
     scriptable::ScriptableModelBase result;
     result.objectID = getID();
-    result.append(geometryCache->meshFromShape(_shape, vertexColor), {{ "shape", shapeStrings[_shape] }});
-    if (ok) {
-        *ok = true;
+    if (auto mesh = geometryCache->meshFromShape(_shape, vertexColor)) {
+        result.append(mesh);
     }
     return result;
 }

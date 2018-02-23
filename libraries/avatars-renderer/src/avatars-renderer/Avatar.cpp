@@ -1795,22 +1795,11 @@ void Avatar::processMaterials() {
     }
 }
 
-scriptable::ScriptableModelBase Avatar::getScriptableModel(bool* ok) {
+scriptable::ScriptableModelBase Avatar::getScriptableModel() {
     if (!_skeletonModel || !_skeletonModel->isLoaded()) {
-        return scriptable::ModelProvider::modelUnavailableError(ok);
+        return scriptable::ScriptableModelBase();
     }
-    scriptable::ScriptableModelBase result = _skeletonModel->getScriptableModel(ok);
+    auto result = _skeletonModel->getScriptableModel();
     result.objectID = getSessionUUID();
-    result.mixin({{ "textures", _skeletonModel->getTextures() }});
-    // FIXME: for now access to attachment models are merged into the main avatar ScriptableModel set
-    for (int i = 0; i < (int)_attachmentModels.size(); i++) {
-        auto& model = _attachmentModels.at(i);
-        if (model->isLoaded()) {
-            result.append(model->getScriptableModel(ok), _attachmentData.at(i).toVariant().toMap());
-        }
-    }
-    if (ok) {
-        *ok = true;
-    }
     return result;
 }

@@ -1451,9 +1451,9 @@ bool RenderablePolyVoxEntityItem::getMeshes(MeshProxyList& result) {
     return success;
 }
 
-scriptable::ScriptableModelBase RenderablePolyVoxEntityItem::getScriptableModel(bool * ok) {
+scriptable::ScriptableModelBase RenderablePolyVoxEntityItem::getScriptableModel() {
     if (!updateDependents() || !_mesh) {
-        return scriptable::ModelProvider::modelUnavailableError(ok);
+        return scriptable::ScriptableModelBase();
     }
 
     bool success = false;
@@ -1479,9 +1479,6 @@ scriptable::ScriptableModelBase RenderablePolyVoxEntityItem::getScriptableModel(
             ));
         }
     });
-    if (ok) {
-        *ok = success;
-    }
     return result;
 }
 

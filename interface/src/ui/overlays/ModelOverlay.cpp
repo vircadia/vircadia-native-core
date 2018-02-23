@@ -665,11 +665,11 @@ void ModelOverlay::processMaterials() {
     }
 }
 
-scriptable::ScriptableModelBase ModelOverlay::getScriptableModel(bool* ok) {
+scriptable::ScriptableModelBase ModelOverlay::getScriptableModel() {
     if (!_model || !_model->isLoaded()) {
-        return Base3DOverlay::getScriptableModel(ok);
+        return Base3DOverlay::getScriptableModel();
     }
-    auto result = _model->getScriptableModel(ok);
+    auto result = _model->getScriptableModel();
     result.objectID = getID();
     return result;
 }

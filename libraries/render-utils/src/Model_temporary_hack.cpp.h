@@ -1,9 +1,9 @@
 #include <graphics/BufferViewHelpers.h>
 #include <graphics-scripting/GraphicsScriptingUtil.h>
-class MyGeometryMappingResource : public GeometryResource {
+class MyGeometryResource : public GeometryResource {
 public:
     shared_ptr<FBXGeometry> fbxGeometry;
-    MyGeometryMappingResource(const QUrl& url, Geometry::Pointer originalGeometry, std::shared_ptr<scriptable::ScriptableModelBase> newModel) : GeometryResource(url) {
+    MyGeometryResource(const QUrl& url, Geometry::Pointer originalGeometry, scriptable::ScriptableModelBasePointer newModel) : GeometryResource(url) {
         fbxGeometry = std::make_shared<FBXGeometry>();
         FBXGeometry& geometry = *fbxGeometry.get();
         const FBXGeometry* original;
@@ -15,41 +15,12 @@ public:
             original = tmpGeometry.get();
         }
         geometry.originalURL = original->originalURL;
+        geometry.bindExtents = original->bindExtents;
 
-        geometry.author = original->author;
-        geometry.applicationName = original->applicationName;
         for (const auto &j : original->joints) {
             geometry.joints << j;
         }
-        geometry.jointIndices = QHash<QString,int>{ original->jointIndices };
-
-        geometry.animationFrames = QVector<FBXAnimationFrame>{ original->animationFrames };
-        geometry.meshIndicesToModelNames = QHash<int, QString>{ original->meshIndicesToModelNames };
-        geometry.blendshapeChannelNames = QList<QString>{ original->blendshapeChannelNames };
-
-        geometry.hasSkeletonJoints = original->hasSkeletonJoints;
-        geometry.offset = original->offset;
-        geometry.leftEyeJointIndex = original->leftEyeJointIndex;
-        geometry.rightEyeJointIndex = original->rightEyeJointIndex;
-        geometry.neckJointIndex = original->neckJointIndex;
-        geometry.rootJointIndex = original->rootJointIndex;
-        geometry.leanJointIndex = original->leanJointIndex;
-        geometry.headJointIndex = original->headJointIndex;
-        geometry.leftHandJointIndex = original->leftHandJointIndex;
-        geometry.rightHandJointIndex = original->rightHandJointIndex;
-        geometry.leftToeJointIndex = original->leftToeJointIndex;
-        geometry.rightToeJointIndex = original->rightToeJointIndex;
-        geometry.leftEyeSize = original->leftEyeSize;
-        geometry.rightEyeSize = original->rightEyeSize;
-        geometry.humanIKJointIndices = original->humanIKJointIndices;
-        geometry.palmDirection = original->palmDirection;
-        geometry.neckPivot = original->neckPivot;
-        geometry.bindExtents = original->bindExtents;
-
-        // Copy materials
-        QHash<QString, size_t> materialIDAtlas;
         for (const FBXMaterial& material : original->materials) {
-            materialIDAtlas[material.materialID] = _materials.size();
             _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
         }
         std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
@@ -58,6 +29,7 @@ public:
         if (newModel) {
             geometry.meshExtents.reset();
             for (const auto& newMesh : newModel->meshes) {
+                // qDebug() << "newMesh #" << meshID;
                 FBXMesh mesh;
                 if (meshID < original->meshes.size()) {
                     mesh = original->meshes.at(meshID); // copy
@@ -73,7 +45,7 @@ public:
                 mesh.createBlendShapeTangents(false);
                 geometry.meshes << mesh;
                 // Copy mesh pointers
-                meshes->emplace_back(newMesh.getMeshPointer());//buffer_helpers::cloneMesh(ptr));
+                meshes->emplace_back(newMesh.getMeshPointer());
                 int partID = 0;
                 const auto oldParts = mesh.parts;
                 mesh.parts.clear();
@@ -83,7 +55,7 @@ public:
                     // Construct local parts
                     part.triangleIndices = buffer_helpers::toVector<int>(mesh._mesh->getIndexBuffer(), "part.triangleIndices");
                     mesh.parts << part;
-                    auto p = std::make_shared<MeshPart>(meshID, partID, (int)materialIDAtlas[part.materialID]);
+                    auto p = std::make_shared<MeshPart>(meshID, partID, 0);
                     parts->push_back(p);
                     partID++;
                 }
@@ -94,20 +66,18 @@ public:
                         glm::vec3 transformedVertex = glm::vec3(mesh.modelTransform * glm::vec4(vertex, 1.0f));
                         geometry.meshExtents.minimum = glm::min(geometry.meshExtents.minimum, transformedVertex);
                         geometry.meshExtents.maximum = glm::max(geometry.meshExtents.maximum, transformedVertex);
-                        
+
                         mesh.meshExtents.minimum = glm::min(mesh.meshExtents.minimum, transformedVertex);
                         mesh.meshExtents.maximum = glm::max(mesh.meshExtents.maximum, transformedVertex);
                     }
                 }
-                            
                 meshID++;
             }
         }
         _meshes = meshes;
         _meshParts = parts;
-        _animGraphOverrideUrl = originalGeometry ? originalGeometry->getAnimGraphOverrideUrl() : QUrl();
         _loaded = true;
         _fbxGeometry = fbxGeometry;
-    };    
+    };
 };
 

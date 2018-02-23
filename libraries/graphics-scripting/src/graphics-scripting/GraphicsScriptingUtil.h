@@ -43,23 +43,13 @@ namespace scriptable {
         return toDebugString(qobject_cast<QObject*>(tmp.get()));
     }
 
-    // C++ > QtOwned instance
-    template <typename T, class... Rest>
-    std::shared_ptr<T> make_qtowned(Rest... rest) {
-        T* tmp = new T(rest...);
-        if (tmp) {
-            tmp->metadata["__ownership__"] = QScriptEngine::QtOwnership;
-        }
-        return std::shared_ptr<T>(tmp);
-    }
-
-    // C++ > ScriptOwned JS instance
+    // Helper for creating C++ > ScriptOwned JS instances
+    // (NOTE: this also helps track in the code where we need to update later if switching to
+    //  std::shared_ptr's -- something currently non-trivial given mixed JS/C++ object ownership)
     template <typename T, class... Rest>
     QPointer<T> make_scriptowned(Rest... rest) {
-        T* tmp = new T(rest...);
-        if (tmp) {
-            tmp->metadata["__ownership__"] = QScriptEngine::ScriptOwnership;
-        }
-        return QPointer<T>(tmp);
+        auto instance = QPointer<T>(new T(rest...));
+        Q_ASSERT(instance && instance->parent());
+        return instance;
     }
 }

@@ -960,15 +960,15 @@ bool RenderableModelEntityItem::getMeshes(MeshProxyList& result) {
     return !result.isEmpty();
 }
 
-scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScriptableModel(bool* ok) {
+scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScriptableModel() {
     ModelPointer model;
     withReadLock([&] { model = _model; });
 
     if (!model || !model->isLoaded()) {
-        return scriptable::ModelProvider::modelUnavailableError(ok);
+        return scriptable::ScriptableModelBase();
     }
 
-    auto result = _model->getScriptableModel(ok);
+    auto result = _model->getScriptableModel();
     result.objectID = getEntity()->getID();
     return result;
 }
@@ -981,7 +981,7 @@ bool render::entities::ModelEntityRenderer::replaceScriptableModelMeshPart(scrip
         return false;
     }
 
-   return model->replaceScriptableModelMeshPart(newModel, meshIndex, partIndex);
+    return model->replaceScriptableModelMeshPart(newModel, meshIndex, partIndex);
 }
 
 void RenderableModelEntityItem::simulateRelayedJoints() {

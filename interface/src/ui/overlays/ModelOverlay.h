@@ -62,7 +62,7 @@ public:
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
 
-    virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override;
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
 protected:
     Transform evalRenderTransform() override;
 

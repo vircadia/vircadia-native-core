@@ -9,7 +9,6 @@
 //
 
 #include "GraphicsScriptingInterface.h"
-#include "BaseScriptEngine.h"
 #include "BufferViewScripting.h"
 #include "GraphicsScriptingUtil.h"
 #include "OBJWriter.h"
@@ -24,86 +23,119 @@
 #include <graphics/BufferViewHelpers.h>
 #include <shared/QtHelpers.h>
 
-#include "GraphicsScriptingInterface.moc"
-
 GraphicsScriptingInterface::GraphicsScriptingInterface(QObject* parent) : QObject(parent), QScriptable() {
     if (auto scriptEngine = qobject_cast<QScriptEngine*>(parent)) {
         this->registerMetaTypes(scriptEngine);
     }
 }
 
-bool GraphicsScriptingInterface::updateMeshes(QUuid uuid, const scriptable::ScriptableMeshPointer mesh, int meshIndex, int partIndex) {
-    auto model = scriptable::make_qtowned<scriptable::ScriptableModel>();
-    if (mesh) {
-        model->append(*mesh);
-    }
-    return updateMeshes(uuid, model.get());
-}
-
-bool GraphicsScriptingInterface::updateMeshes(QUuid uuid, const scriptable::ScriptableModelPointer model) {
-    auto appProvider = DependencyManager::get<scriptable::ModelProviderFactory>();
-    scriptable::ModelProviderPointer provider = appProvider ? appProvider->lookupModelProvider(uuid) : nullptr;
-    QString providerType = provider ? SpatiallyNestable::nestableTypeToString(provider->modelProviderType) : QString();
-    if (providerType.isEmpty()) {
-        providerType = "unknown";
-    }
-    bool success = false;
-    if (provider) {
-        auto scriptableMeshes = provider->getScriptableModel(&success);
-        if (success) {
-            const scriptable::ScriptableModelBasePointer base = model->operator scriptable::ScriptableModelBasePointer();
-            if (base) {
-                success = provider->replaceScriptableModelMeshPart(base, -1, -1);
-            }
-        }
-    }
-    return success;
-}
-
-QScriptValue GraphicsScriptingInterface::getMeshes(QUuid uuid) {
-    scriptable::ScriptableModel* meshes{ nullptr };
-    bool success = false;
-    QString error;
-
-    auto appProvider = DependencyManager::get<scriptable::ModelProviderFactory>();
-    qCDebug(graphics_scripting) << "appProvider" << appProvider.data();
-    scriptable::ModelProviderPointer provider = appProvider ? appProvider->lookupModelProvider(uuid) : nullptr;
-    QString providerType = provider ? SpatiallyNestable::nestableTypeToString(provider->modelProviderType) : QString();
-    if (providerType.isEmpty()) {
-        providerType = "unknown";
-    }
-    if (provider) {
-        auto scriptableMeshes = provider->getScriptableModel(&success);
-        if (success) {
-            meshes = scriptable::make_scriptowned<scriptable::ScriptableModel>(scriptableMeshes);
-            if (meshes->objectName().isEmpty()) {
-                meshes->setObjectName(providerType+"::meshes");
-            }
-            if (meshes->objectID.isNull()) {
-                meshes->objectID = uuid.toString();
-            }
-            meshes->metadata["provider"] = SpatiallyNestable::nestableTypeToString(provider->modelProviderType);
-        }
-    }
-    if (!success) {
-        error = QString("failed to get meshes from %1 provider for uuid %2").arg(providerType).arg(uuid.toString());
-    }
-
-    QPointer<BaseScriptEngine> scriptEngine = dynamic_cast<BaseScriptEngine*>(engine());    
-    QScriptValue result = error.isEmpty() ? scriptEngine->toScriptValue(meshes) : scriptEngine->makeError(error);
-    if (result.isError()) {
-        qCWarning(graphics_scripting) << "GraphicsScriptingInterface::getMeshes ERROR" << result.toString();
-        if (context()) {
-            context()->throwValue(error);
+bool GraphicsScriptingInterface::updateModelObject(QUuid uuid, const scriptable::ScriptableModelPointer model) {
+    if (auto provider = getModelProvider(uuid)) {
+        if (auto base = model->operator scriptable::ScriptableModelBasePointer()) {
+#ifdef SCRIPTABLE_MESH_DEBUG
+            qDebug() << "replaceScriptableModelMeshPart" << model->toString() << -1 << -1;
+#endif
+            return provider->replaceScriptableModelMeshPart(base, -1, -1);
         } else {
-            qCWarning(graphics_scripting) << "GraphicsScriptingInterface::getMeshes ERROR" << result.toString();
+            qDebug() << "replaceScriptableModelMeshPart -- !base" << model << base << -1 << -1;
         }
-        return QScriptValue::NullValue;
+    } else {
+        qDebug() << "replaceScriptableModelMeshPart -- !provider";
     }
-    return scriptEngine->toScriptValue(meshes);
+
+    return false;
 }
 
-QString GraphicsScriptingInterface::meshToOBJ(const scriptable::ScriptableModel& _in) {
+scriptable::ModelProviderPointer GraphicsScriptingInterface::getModelProvider(QUuid uuid) {
+    QString error;
+    if (auto appProvider = DependencyManager::get<scriptable::ModelProviderFactory>()) {
+        if (auto provider = appProvider->lookupModelProvider(uuid)) {
+            return provider;
+        } else {
+            error = "provider unavailable for " + uuid.toString();
+        }
+    } else {
+        error = "appProvider unavailable";
+    }
+    if (context()) {
+        context()->throwError(error);
+    } else {
+        qCWarning(graphics_scripting) << "GraphicsScriptingInterface::getModelProvider ERROR" << error;
+    }
+    return nullptr;
+}
+
+scriptable::ScriptableModelPointer GraphicsScriptingInterface::newModelObject(QVector<scriptable::ScriptableMeshPointer> meshes) {
+    auto modelWrapper = scriptable::make_scriptowned<scriptable::ScriptableModel>();
+    modelWrapper->setObjectName("js::model");
+    if (meshes.isEmpty()) {
+        if (context()) {
+            context()->throwError("expected [meshes] array as first argument");
+        }
+    } else {
+        int i = 0;
+        for (const auto& mesh : meshes) {
+            if (mesh) {
+                modelWrapper->append(*mesh);
+            } else if (context()) {
+                context()->throwError(QString("invalid mesh at index: %1").arg(i));
+            }
+            i++;
+        }
+    }
+    return modelWrapper;
+}
+
+scriptable::ScriptableModelPointer GraphicsScriptingInterface::getModelObject(QUuid uuid) {
+    QString error, providerType = "unknown";
+    if (auto provider = getModelProvider(uuid)) {
+        providerType = SpatiallyNestable::nestableTypeToString(provider->modelProviderType);
+        auto modelObject = provider->getScriptableModel();
+        if (modelObject.objectID == uuid) {
+            if (modelObject.meshes.size()) {
+                auto modelWrapper = scriptable::make_scriptowned<scriptable::ScriptableModel>(modelObject);
+                modelWrapper->setObjectName(providerType+"::"+uuid.toString()+"::model");
+                return modelWrapper;
+            } else {
+                error = "no meshes available: " + modelObject.objectID.toString();
+            }
+        } else {
+            error = "objectID mismatch: " + modelObject.objectID.toString();
+        }
+    } else {
+        error = "provider unavailable";
+    }
+    auto errorMessage = QString("failed to get meshes from %1 provider for uuid %2 (%3)").arg(providerType).arg(uuid.toString()).arg(error);
+    qCWarning(graphics_scripting) << "GraphicsScriptingInterface::getModelObject ERROR" << errorMessage;
+    if (context()) {
+        context()->throwError(errorMessage);
+    }
+    return nullptr;
+}
+
+#ifdef SCRIPTABLE_MESH_TODO
+bool GraphicsScriptingInterface::updateMeshPart(scriptable::ScriptableMeshPointer mesh, scriptable::ScriptableMeshPartPointer part) {
+    Q_ASSERT(mesh);
+    Q_ASSERT(part);
+    Q_ASSERT(part->parentMesh);
+    auto tmp = exportMeshPart(mesh, part->partIndex);
+    if (part->parentMesh == mesh) {
+#ifdef SCRIPTABLE_MESH_DEBUG
+        qCInfo(graphics_scripting) << "updateMeshPart -- update via clone" << mesh << part;
+#endif
+        tmp->replaceMeshData(part->cloneMeshPart());
+        return false;
+    } else {
+#ifdef SCRIPTABLE_MESH_DEBUG
+        qCInfo(graphics_scripting) << "updateMeshPart -- update via inplace" << mesh << part;
+#endif
+        tmp->replaceMeshData(part);
+        return true;
+    }
+}
+#endif
+
+QString GraphicsScriptingInterface::exportModelToOBJ(const scriptable::ScriptableModel& _in) {
     const auto& in = _in.getConstMeshes();
     if (in.size()) {
         QList<scriptable::MeshPointer> meshes;
@@ -152,3 +184,5 @@ MeshPointer GraphicsScriptingInterface::getMeshPointer(scriptable::ScriptableMes
     }
     return mesh;
 }
+
+#include "GraphicsScriptingInterface.moc"

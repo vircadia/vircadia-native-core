@@ -36,7 +36,7 @@ public:
     virtual bool is3D() const override { return true; }
 
     virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const override { subItems.push_back(getRenderItemID()); return (uint32_t) subItems.size(); }
-    virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override { return scriptable::ModelProvider::modelUnavailableError(ok); }
+    virtual scriptable::ScriptableModelBase getScriptableModel() override { return scriptable::ScriptableModelBase(); }
 
     // TODO: consider implementing registration points in this class
     glm::vec3 getCenter() const { return getWorldPosition(); }

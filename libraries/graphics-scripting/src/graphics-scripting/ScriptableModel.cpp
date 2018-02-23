@@ -13,25 +13,13 @@
 #include "ScriptableMesh.h"
 
 #include <QtScript/QScriptEngine>
-//#include "ScriptableModel.moc"
 
-void scriptable::ScriptableModelBase::mixin(const QVariantMap& modelMetaData) {
-    for (const auto& key : modelMetaData.keys()) {
-        const auto& value = modelMetaData[key];
-        if (metadata.contains(key) && metadata[key].type() == (QVariant::Type)QMetaType::QVariantList) {
-            qCDebug(graphics_scripting) << "CONCATENATING" << key << metadata[key].toList().size() << "+" << value.toList().size();
-            metadata[key] = metadata[key].toList() + value.toList();
-        } else {
-            metadata[key] = modelMetaData[key];
-        }
-    }
-}
+// #define SCRIPTABLE_MESH_DEBUG 1
 
 scriptable::ScriptableModelBase& scriptable::ScriptableModelBase::operator=(const scriptable::ScriptableModelBase& other) {
     provider = other.provider;
     objectID = other.objectID;
-    metadata = other.metadata;
-    for (auto& mesh : other.meshes) {
+    for (const auto& mesh : other.meshes) {
         append(mesh);
     }
     return *this;
@@ -43,36 +31,27 @@ scriptable::ScriptableModelBase::~ScriptableModelBase() {
 #endif
     // makes cleanup order more deterministic to help with debugging
     for (auto& m : meshes) {
-        m.ownedMesh.reset();
+        m.strongMesh.reset();
     }
     meshes.clear();
 }
 
-void scriptable::ScriptableModelBase::append(scriptable::WeakMeshPointer mesh, const QVariantMap& metadata) {
-    meshes << ScriptableMeshBase{ provider, this, mesh, metadata };
+void scriptable::ScriptableModelBase::append(scriptable::WeakMeshPointer mesh) {
+    meshes << ScriptableMeshBase{ provider, this, mesh, this /*parent*/ };
 }
 
-void scriptable::ScriptableModelBase::append(const ScriptableMeshBase& mesh, const QVariantMap& modelMetaData) {
+void scriptable::ScriptableModelBase::append(const ScriptableMeshBase& mesh) {
     if (mesh.provider.lock().get() != provider.lock().get()) {
         qCDebug(graphics_scripting) << "warning: appending mesh from different provider..." << mesh.provider.lock().get() << " != " << provider.lock().get();
     }
     meshes << mesh;
-    mixin(modelMetaData);
 }
-
-void scriptable::ScriptableModelBase::append(const ScriptableModelBase& other, const QVariantMap& modelMetaData) {
-    for (const auto& mesh : other.meshes) {
-        append(mesh);
-    }
-    mixin(other.metadata);
-    mixin(modelMetaData);
-}
-
 
 QString scriptable::ScriptableModel::toString() const {
-    return QString("[ScriptableModel%1%2]")
+    return QString("[ScriptableModel%1%2 numMeshes=%3]")
         .arg(objectID.isNull() ? "" : " objectID="+objectID.toString())
-        .arg(objectName().isEmpty() ? "" : " name=" +objectName());
+        .arg(objectName().isEmpty() ? "" : " name=" +objectName())
+        .arg(meshes.size());
 }
 
 scriptable::ScriptableModelPointer scriptable::ScriptableModel::cloneModel(const QVariantMap& options) {
@@ -131,3 +110,5 @@ quint32 scriptable::ScriptableModel::mapAttributeValues(QScriptValue callback) {
     }
     return result;
 }
+
+#include "ScriptableModel.moc"

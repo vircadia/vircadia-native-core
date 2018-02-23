@@ -1,3 +1,10 @@
+//
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 #pragma once
 
 #include "ScriptableModel.h"
@@ -26,25 +33,26 @@ namespace scriptable {
         Q_PROPERTY(uint32 numAttributes READ getNumAttributes)
         Q_PROPERTY(uint32 numVertices READ getNumVertices)
         Q_PROPERTY(uint32 numIndices READ getNumIndices)
-        Q_PROPERTY(QVariantMap metadata MEMBER metadata)
         Q_PROPERTY(QVector<QString> attributeNames READ getAttributeNames)
         Q_PROPERTY(QVector<scriptable::ScriptableMeshPartPointer> parts READ getMeshParts)
         Q_PROPERTY(bool valid READ hasValidMesh)
-        bool hasValidMesh() const { return (bool)getMeshPointer(); }
-        Q_PROPERTY(bool validOwned READ hasValidOwnedMesh)
-        bool hasValidOwnedMesh() const { return (bool)getOwnedMeshPointer(); }
+        Q_PROPERTY(bool strong READ hasValidStrongMesh)
 
         operator const ScriptableMeshBase*() const { return (qobject_cast<const scriptable::ScriptableMeshBase*>(this)); }
-        ScriptableMesh(scriptable::MeshPointer mesh) : ScriptableMeshBase(mesh), QScriptable() { ownedMesh = mesh; }
-        ScriptableMesh(WeakModelProviderPointer provider, ScriptableModelBasePointer model, MeshPointer mesh, const QVariantMap& metadata)
-            : ScriptableMeshBase(provider, model, mesh, metadata), QScriptable() { ownedMesh = mesh; }
+
+        ScriptableMesh(WeakModelProviderPointer provider, ScriptableModelBasePointer model, MeshPointer mesh, QObject* parent)
+            : ScriptableMeshBase(provider, model, mesh, parent), QScriptable() { strongMesh = mesh; }
+        ScriptableMesh(MeshPointer mesh, QObject* parent)
+            : ScriptableMeshBase(WeakModelProviderPointer(), nullptr, mesh, parent), QScriptable() { strongMesh = mesh; }
         ScriptableMesh(const ScriptableMeshBase& other);
         ScriptableMesh(const ScriptableMesh& other) : ScriptableMeshBase(other), QScriptable() {};
         virtual ~ScriptableMesh();
 
         Q_INVOKABLE const scriptable::ScriptableModelPointer getParentModel() const { return qobject_cast<scriptable::ScriptableModel*>(model); }
-        Q_INVOKABLE const scriptable::MeshPointer getOwnedMeshPointer() const { return ownedMesh; }
+        Q_INVOKABLE const scriptable::MeshPointer getOwnedMeshPointer() const { return strongMesh; }
         scriptable::ScriptableMeshPointer getSelf() const { return const_cast<scriptable::ScriptableMesh*>(this); }
+        bool hasValidMesh() const { return !weakMesh.expired(); }
+        bool hasValidStrongMesh() const { return (bool)strongMesh; }
    public slots:
         uint32 getNumParts() const;
         uint32 getNumVertices() const;
@@ -65,9 +73,9 @@ namespace scriptable {
 
         int _getSlotNumber(const QString& attributeName) const;
 
-        scriptable::ScriptableMeshPointer cloneMesh(bool recalcNormals = false);        
+        scriptable::ScriptableMeshPointer cloneMesh(bool recalcNormals = false);
     public:
-        operator bool() const { return !mesh.expired(); }
+        operator bool() const { return !weakMesh.expired(); }
 
     public slots:
         // QScriptEngine-specific wrappers
@@ -88,11 +96,9 @@ namespace scriptable {
         Q_PROPERTY(uint32 numIndices READ getNumIndices)
         Q_PROPERTY(QVector<QString> attributeNames READ getAttributeNames)
 
-        Q_PROPERTY(QVariantMap metadata MEMBER metadata)
-
         ScriptableMeshPart(scriptable::ScriptableMeshPointer parentMesh, int partIndex);
         ScriptableMeshPart& operator=(const ScriptableMeshPart& view) { parentMesh=view.parentMesh; return *this; };
-        ScriptableMeshPart(const ScriptableMeshPart& other) : QObject(), QScriptable(), parentMesh(other.parentMesh), partIndex(other.partIndex) {}
+        ScriptableMeshPart(const ScriptableMeshPart& other) : QObject(other.parent()), QScriptable(), parentMesh(other.parentMesh), partIndex(other.partIndex) {}
 
     public slots:
         scriptable::ScriptableMeshPointer getParentMesh() const { return parentMesh; }
@@ -134,23 +140,10 @@ namespace scriptable {
     public:
         scriptable::ScriptableMeshPointer parentMesh;
         uint32 partIndex;
-        QVariantMap metadata;
     protected:
         int _elementsPerFace{ 3 };
         QString _topology{ "triangles" };
-        scriptable::MeshPointer getMeshPointer() const { return parentMesh ? parentMesh->getMeshPointer() : nullptr; }    
-    };
-
-    class GraphicsScriptingInterface : public QObject, QScriptable {
-        Q_OBJECT
-    public:
-        GraphicsScriptingInterface(QObject* parent = nullptr) : QObject(parent), QScriptable() {}
-        GraphicsScriptingInterface(const GraphicsScriptingInterface& other) : QObject(), QScriptable() {}
-    public slots:
-        ScriptableMeshPartPointer exportMeshPart(ScriptableMeshPointer mesh, int part=0) {
-            return ScriptableMeshPartPointer(new ScriptableMeshPart(mesh, part));
-        }
-        bool updateMeshPart(ScriptableMeshPointer mesh, ScriptableMeshPartPointer part);
+        scriptable::MeshPointer getMeshPointer() const { return parentMesh ? parentMesh->getMeshPointer() : nullptr; }
     };
 
     // callback helper that lets C++ method signatures remain simple (ie: taking a single callback argument) while
@@ -165,26 +158,5 @@ Q_DECLARE_METATYPE(scriptable::ScriptableMeshPointer)
 Q_DECLARE_METATYPE(QVector<scriptable::ScriptableMeshPointer>)
 Q_DECLARE_METATYPE(scriptable::ScriptableMeshPartPointer)
 Q_DECLARE_METATYPE(QVector<scriptable::ScriptableMeshPartPointer>)
-Q_DECLARE_METATYPE(scriptable::GraphicsScriptingInterface)
-
-// FIXME: MESHFACES: faces were supported in the original Model.* API -- are they still needed/used/useful for anything yet?
-#include <memory>
-
-namespace mesh {
-    class MeshFace;
-    using MeshFaces = QVector<mesh::MeshFace>;
-    class MeshFace {
-    public:
-        MeshFace() {}
-        MeshFace(QVector<scriptable::uint32> vertexIndices) : vertexIndices(vertexIndices) {}
-        ~MeshFace() {}
-
-        QVector<scriptable::uint32> vertexIndices;
-        // TODO -- material...
-    };
-};
-
-Q_DECLARE_METATYPE(mesh::MeshFace)
-Q_DECLARE_METATYPE(QVector<mesh::MeshFace>)
 Q_DECLARE_METATYPE(scriptable::uint32)
 Q_DECLARE_METATYPE(QVector<scriptable::uint32>)
