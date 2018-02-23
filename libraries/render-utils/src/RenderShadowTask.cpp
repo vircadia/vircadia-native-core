@@ -120,11 +120,6 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
 
-	// Exit if current keylight does not cast shadows
-    if (!lightStage->getCurrentKeyLight() || !lightStage->getCurrentKeyLight()->getCastShadows()) {
-        return;
-    }
-
     auto shadow = lightStage->getCurrentKeyShadow();
     if (!shadow || _cascadeIndex >= shadow->getCascadeCount()) {
         return;
@@ -305,8 +300,14 @@ void RenderShadowSetup::setSlopeBias(int cascadeIndex, float value) {
 }
 
 void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {
+    // Abort all jobs if not casting shadows
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
+    if (!lightStage->getCurrentKeyLight() || !lightStage->getCurrentKeyLight()->getCastShadows()) {
+        renderContext->taskFlow.abortTask();
+        return;
+    }
+
     // Cache old render args
     RenderArgs* args = renderContext->args;
 
@@ -386,18 +387,6 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
 void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
-
-    // Exit if current keylight does not cast shadows
-    if (!lightStage->getCurrentKeyLight()) {
-        return;
-    }
-
-    bool castShadows = lightStage->getCurrentKeyLight()->getCastShadows();
-    if (!castShadows) {
-        output.edit0() = ItemFilter::Builder::nothing();
-        output.edit1() = ViewFrustumPointer();
-        return;
-    }
 
     // Cache old render args
     RenderArgs* args = renderContext->args;
