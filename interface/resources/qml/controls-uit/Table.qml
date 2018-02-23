@@ -22,6 +22,7 @@ TableView {
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property bool expandSelectedRow: false
     property bool centerHeaderText: false
+    readonly property real headerSpacing: 3 //spacing between sort indicator and table header title
 
     model: ListModel { }
 
@@ -69,20 +70,18 @@ TableView {
         height: hifi.dimensions.tableHeaderHeight
         color: isLightColorScheme ? hifi.colors.tableBackgroundLight : hifi.colors.tableBackgroundDark
 
+
         RalewayRegular {
             id: titleText
+            x: centerHeaderText ? parent.width/2 -
+                                  (paintedWidth/2 + (sortIndicatorVisible ? titleSort.paintedWidth/12 : 0)) :
+                                  hifi.dimensions.tablePadding
             text: styleData.value
             size: hifi.fontSizes.tableHeading
             font.capitalization: Font.AllUppercase
             color: hifi.colors.baseGrayHighlight
             horizontalAlignment: (centerHeaderText ? Text.AlignHCenter : Text.AlignLeft)
-            anchors {
-                left: parent.left
-                leftMargin: hifi.dimensions.tablePadding
-                right: parent.right
-                rightMargin: hifi.dimensions.tablePadding
-                verticalCenter: parent.verticalCenter
-            }
+            anchors.verticalCenter: parent.verticalCenter
         }
 
         HiFiGlyphs {
@@ -91,13 +90,9 @@ TableView {
             color: hifi.colors.darkGray
             opacity: 0.6;
             size: hifi.fontSizes.tableHeadingIcon
-            anchors {
-                left: titleText.right
-                leftMargin: -hifi.fontSizes.tableHeadingIcon / 3 - (centerHeaderText ? 15 : 10)
-                right: parent.right
-                rightMargin: hifi.dimensions.tablePadding
-                verticalCenter: titleText.verticalCenter
-            }
+            anchors.verticalCenter: titleText.verticalCenter
+            anchors.left: titleText.right
+            anchors.leftMargin: -(hifi.fontSizes.tableHeadingIcon / 3 + tableView.headerSpacing)
             visible: sortIndicatorVisible && sortIndicatorColumn === styleData.column
         }
 
@@ -152,7 +147,7 @@ TableView {
         color: styleData.selected
                ? hifi.colors.primaryHighlight
                : tableView.isLightColorScheme
-                   ? (styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd)
-                   : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
+                 ? (styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd)
+                 : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
     }
 }
