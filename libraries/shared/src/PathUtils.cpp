@@ -120,13 +120,13 @@ QUrl PathUtils::resourcesUrl(const QString& relativeUrl) {
     return QUrl(resourcesUrl() + relativeUrl);
 }
 
-QUrl PathUtils::expandToAppAbsolutePath(const QUrl& fileUrl) {
+QUrl PathUtils::expandToLocalDataAbsolutePath(const QUrl& fileUrl) {
     QUrl url = fileUrl;
     QString path = fileUrl.path();
     if (path.startsWith("/~/")) {
         path.replace(0, 3, getAppLocalDataPath());
-        url = QUrl(path);
-        qDebug() << "QQQQ expandToAppAbsolutePath: " << fileUrl << url;
+        url = QUrl::fromLocalFile(path);
+        qDebug() << "QQQQ expandToLocalDataAbsolutePath: " << fileUrl << url;
     }
     return url;
 }
