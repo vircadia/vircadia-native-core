@@ -535,7 +535,6 @@ void ScriptEngines::onScriptEngineLoaded(const QString& rawScriptURL) {
 }
 
 int ScriptEngines::runScriptInitializers(ScriptEnginePointer scriptEngine) {
-    // register our application services and set it off on its own thread
     int ii=0;
     for (auto initializer : _scriptInitializers) {
         ii++;
@@ -554,6 +553,7 @@ void ScriptEngines::launchScriptEngine(ScriptEnginePointer scriptEngine) {
         loadScript(scriptName, userLoaded, false, false, true);
     });
 
+    // register our application services and set it off on its own thread
     runScriptInitializers(scriptEngine);
 
     // FIXME disabling 'shift key' debugging for now.  If you start up the application with

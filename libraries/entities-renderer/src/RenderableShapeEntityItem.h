@@ -22,7 +22,7 @@ class ShapeEntityRenderer : public TypedEntityRenderer<ShapeEntityItem> {
 public:
     ShapeEntityRenderer(const EntityItemPointer& entity);
 
-    virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override;
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
 private:
     virtual bool needsRenderUpdate() const override;

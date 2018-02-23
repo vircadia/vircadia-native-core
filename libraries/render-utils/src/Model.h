@@ -143,7 +143,7 @@ public:
     /// Returns a reference to the shared collision geometry.
     const Geometry::Pointer& getCollisionGeometry() const { return _collisionGeometry; }
 
-    const QVariantMap getTextures() const { assert(isLoaded()); return getGeometry()->getTextures(); }
+    const QVariantMap getTextures() const { assert(isLoaded()); return _renderGeometry->getTextures(); }
     Q_INVOKABLE virtual void setTextures(const QVariantMap& textures);
 
     /// Provided as a convenience, will crash if !isLoaded()
@@ -317,12 +317,11 @@ public:
     int getResourceDownloadAttempts() { return _renderWatcher.getResourceDownloadAttempts(); }
     int getResourceDownloadAttemptsRemaining() { return _renderWatcher.getResourceDownloadAttemptsRemaining(); }
 
-    virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override;
+    Q_INVOKABLE MeshProxyList getMeshes() const;
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
     virtual bool replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer model, int meshIndex, int partIndex) override;
 
     void scaleToFit();
-
-    Q_INVOKABLE MeshProxyList getMeshes() const;
 
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);

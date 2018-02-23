@@ -24,9 +24,9 @@
 #include <PerfStat.h>
 #include <ViewFrustum.h>
 #include <GLMHelpers.h>
-#include <model-networking/SimpleMeshProxy.h>
 #include <TBBHelpers.h>
 
+#include <model-networking/SimpleMeshProxy.h>
 #include <graphics-scripting/Forward.h>
 #include <graphics/BufferViewHelpers.h>
 #include <DualQuaternion.h>
@@ -492,7 +492,6 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                     { "v2", vec3toVariant(bestModelTriangle.v2) },
                 };
             }
-            
         }
     }
 
@@ -591,38 +590,41 @@ MeshProxyList Model::getMeshes() const {
 // FIXME: temporary workaround that updates the whole FBXGeometry (to keep findRayIntersection in sync)
 #include "Model_temporary_hack.cpp.h"
 
-bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer _newModel, int meshIndex, int partIndex) {
+bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer newModel, int meshIndex, int partIndex) {
     QMutexLocker lock(&_mutex);
 
     if (!isLoaded()) {
+        qDebug() << "!isLoaded" << this;
         return false;
     }
 
-    {
-        // FIXME: temporary workaround for updating the whole FBXGeometry (to keep findRayIntersection in sync)
-        auto newRenderGeometry = new MyGeometryMappingResource(
-            _url, _renderGeometry, _newModel ? scriptable::make_qtowned<scriptable::ScriptableModelBase>(*_newModel) : nullptr
-        );
-        _visualGeometryRequestFailed = false;
-        deleteGeometry();
-        _renderGeometry.reset(newRenderGeometry);
-        _rig.destroyAnimGraph();
-        updateGeometry();
-        calculateTriangleSets();
-        _needsReload = false;
-        _needsFixupInScene = true;
-        setRenderItemsNeedUpdate();
+    if (!newModel || !newModel->meshes.size()) {
+        qDebug() << "!newModel.meshes.size()" << this;
+        return false;
     }
+
+    auto resource = new MyGeometryResource(_url, _renderGeometry, newModel);
+    _needsReload = false;
+    _needsUpdateTextures = false;
+    _visualGeometryRequestFailed = false;
+    _needsFixupInScene = true;
+
+    invalidCalculatedMeshBoxes();
+    deleteGeometry();
+    _renderGeometry.reset(resource);
+    updateGeometry();
+    calculateTriangleSets();
+    setRenderItemsNeedUpdate();
     return true;
 }
 
-scriptable::ScriptableModelBase Model::getScriptableModel(bool* ok) {
+scriptable::ScriptableModelBase Model::getScriptableModel() {
     QMutexLocker lock(&_mutex);
     scriptable::ScriptableModelBase result;
 
     if (!isLoaded()) {
         qCDebug(renderutils) << "Model::getScriptableModel -- !isLoaded";
-        return scriptable::ModelProvider::modelUnavailableError(ok);
+        return result;
     }
 
     const FBXGeometry& geometry = getFBXGeometry();
@@ -630,21 +632,8 @@ scriptable::ScriptableModelBase Model::getScriptableModel(bool* ok) {
     for (int i = 0; i < numberOfMeshes; i++) {
         const FBXMesh& fbxMesh = geometry.meshes.at(i);
         if (auto mesh = fbxMesh._mesh) {
-            auto name = geometry.getModelNameOfMesh(i);
-            result.append(std::const_pointer_cast<graphics::Mesh>(mesh), {
-                { "index", i },
-                { "name", name },
-                { "meshIndex", fbxMesh.meshIndex },
-                { "displayName", QString::fromStdString(mesh->displayName) },
-                { "modelName", QString::fromStdString(mesh->modelName) },
-                { "modelTransform", buffer_helpers::toVariant(fbxMesh.modelTransform) },
-                { "transform", buffer_helpers::toVariant(geometry.offset * fbxMesh.modelTransform) },
-                { "extents", buffer_helpers::toVariant(fbxMesh.meshExtents) },
-            });
+            result.append(mesh);
         }
-    }
-    if (ok) {
-        *ok = true;
     }
     return result;
 }
@@ -896,7 +885,7 @@ void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
 
     DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, true, true);
 
-    for(const auto& triangleSet : _modelSpaceMeshTriangleSets) {
+    for (const auto& triangleSet : _modelSpaceMeshTriangleSets) {
         auto box = triangleSet.getBounds();
 
         if (_debugMeshBoxesID == GeometryCache::UNKNOWN_ID) {

@@ -9,12 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "OBJWriter.h"
-
 #include <QFile>
 #include <QFileInfo>
-#include <graphics/BufferViewHelpers.h>
-#include <graphics/Geometry.h>
+#include "graphics/Geometry.h"
+#include "OBJWriter.h"
 #include "ModelFormatLogging.h"
 
 static QString formatFloat(double n) {
@@ -48,12 +46,9 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
     QList<int> meshNormalStartOffset;
     int currentVertexStartOffset = 0;
     int currentNormalStartOffset = 0;
-    int subMeshIndex = 0;
-    out << "# OBJWriter::writeOBJToTextStream\n";
 
     // write out vertices (and maybe colors)
     foreach (const MeshPointer& mesh, meshes) {
-        out << "# vertices::subMeshIndex " << subMeshIndex++ << "\n";
         meshVertexStartOffset.append(currentVertexStartOffset);
         const gpu::BufferView& vertexBuffer = mesh->getVertexBuffer();
 
@@ -70,10 +65,7 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
             out << formatFloat(v[1]) << " ";
             out << formatFloat(v[2]);
             if (colorIndex < numColors) {
-                glm::vec3 color = buffer_helpers::convert<glm::vec3>(colorsBufferView, colorIndex);
-                // TODO: still verifying that the above decodes properly; previous variations were:
-                // glm::vec3 color = buffer_helpers::glmVecFromVariant<glm::vec3>(buffer_helpers::toVariant(colorsBufferView, colorIndex));
-                // glm::vec3 color = colorsBufferView.get<glm::vec3>(colorIndex);
+                glm::vec3 color = colorsBufferView.get<glm::vec3>(colorIndex);
                 out << " " << formatFloat(color[0]);
                 out << " " << formatFloat(color[1]);
                 out << " " << formatFloat(color[2]);
@@ -89,17 +81,12 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
 
     // write out normals
     bool haveNormals = true;
-    subMeshIndex = 0;
     foreach (const MeshPointer& mesh, meshes) {
-        out << "# normals::subMeshIndex " << subMeshIndex++ << "\n";
         meshNormalStartOffset.append(currentNormalStartOffset);
         const gpu::BufferView& normalsBufferView = mesh->getAttributeBuffer(gpu::Stream::InputSlot::NORMAL);
         gpu::BufferView::Index numNormals = (gpu::BufferView::Index)normalsBufferView.getNumElements();
         for (gpu::BufferView::Index i = 0; i < numNormals; i++) {
-            glm::vec3 normal = buffer_helpers::convert<glm::vec3>(normalsBufferView, i);
-            // TODO: still verifying that the above decodes properly; previous variations were:
-            // glm::vec3 normal = buffer_helpers::glmVecFromVariant<glm::vec3>(buffer_helpers::toVariant(normalsBufferView, i));
-            // glm::vec3 normal = normalsBufferView.get<glm::vec3>(i);
+            glm::vec3 normal = normalsBufferView.get<glm::vec3>(i);
             out << "vn ";
             out << formatFloat(normal[0]) << " ";
             out << formatFloat(normal[1]) << " ";
@@ -111,9 +98,7 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
 
     // write out faces
     int nth = 0;
-    subMeshIndex = 0;
     foreach (const MeshPointer& mesh, meshes) {
-        out << "# faces::subMeshIndex " << subMeshIndex++ << "\n";
         currentVertexStartOffset = meshVertexStartOffset.takeFirst();
         currentNormalStartOffset = meshNormalStartOffset.takeFirst();
 
@@ -121,25 +106,35 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
         const gpu::BufferView& indexBuffer = mesh->getIndexBuffer();
 
         graphics::Index partCount = (graphics::Index)mesh->getNumParts();
-        QString name = (!mesh->displayName.size() ? QString("mesh-%1-part").arg(nth) : QString::fromStdString(mesh->displayName))
-            .replace(QRegExp("[^-_a-zA-Z0-9]"), "_");
         for (int partIndex = 0; partIndex < partCount; partIndex++) {
             const graphics::Mesh::Part& part = partBuffer.get<graphics::Mesh::Part>(partIndex);
 
-            out << QString("g %1-%2-%3\n").arg(subMeshIndex, 3, 10, QChar('0')).arg(name).arg(partIndex);
+            out << "g part-" << nth++ << "\n";
 
-            const bool shorts = indexBuffer._element == gpu::Element::INDEX_UINT16;
-            auto face = [&](uint32_t i0, uint32_t i1, uint32_t i2) {
-                uint32_t index0, index1, index2;
-                if (shorts) {
-                    index0 = indexBuffer.get<uint16_t>(i0);
-                    index1 = indexBuffer.get<uint16_t>(i1);
-                    index2 = indexBuffer.get<uint16_t>(i2);
-                } else {
-                    index0 = indexBuffer.get<uint32_t>(i0);
-                    index1 = indexBuffer.get<uint32_t>(i1);
-                    index2 = indexBuffer.get<uint32_t>(i2);
+            // graphics::Mesh::TRIANGLES
+            // TODO -- handle other formats
+            gpu::BufferView::Iterator<const uint32_t> indexItr = indexBuffer.cbegin<uint32_t>();
+            indexItr += part._startIndex;
+
+            int indexCount = 0;
+            while (indexItr != indexBuffer.cend<uint32_t>() && indexCount < part._numIndices) {
+                uint32_t index0 = *indexItr;
+                indexItr++;
+                indexCount++;
+                if (indexItr == indexBuffer.cend<uint32_t>() || indexCount >= part._numIndices) {
+                    qCDebug(modelformat) << "OBJWriter -- index buffer length isn't multiple of 3";
+                    break;
                 }
+                uint32_t index1 = *indexItr;
+                indexItr++;
+                indexCount++;
+                if (indexItr == indexBuffer.cend<uint32_t>() || indexCount >= part._numIndices) {
+                    qCDebug(modelformat) << "OBJWriter -- index buffer length isn't multiple of 3";
+                    break;
+                }
+                uint32_t index2 = *indexItr;
+                indexItr++;
+                indexCount++;
 
                 out << "f ";
                 if (haveNormals) {
@@ -150,30 +145,6 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
                     out << currentVertexStartOffset + index0 + 1 << " ";
                     out << currentVertexStartOffset + index1 + 1 << " ";
                     out << currentVertexStartOffset + index2 + 1 << "\n";
-                }
-            };
-
-            // graphics::Mesh::TRIANGLES / graphics::Mesh::QUADS
-            // TODO -- handle other formats
-            uint32_t len = part._startIndex + part._numIndices;
-            qCDebug(modelformat) << "OBJWriter -- part" << partIndex << "topo" << part._topology << "index elements" << (shorts ? "uint16_t" : "uint32_t");
-            if (part._topology == graphics::Mesh::TRIANGLES && len % 3 != 0) {
-                qCDebug(modelformat) << "OBJWriter -- index buffer length isn't a multiple of 3" << len;
-            }
-            if (part._topology == graphics::Mesh::QUADS && len % 4 != 0) {
-                qCDebug(modelformat) << "OBJWriter -- index buffer length isn't a multiple of 4" << len;
-            }
-            if (len > indexBuffer.getNumElements()) {
-                qCDebug(modelformat) << "OBJWriter -- len > index size" << len << indexBuffer.getNumElements();
-            }
-            if (part._topology == graphics::Mesh::QUADS) {
-                for (uint32_t idx = part._startIndex; idx+3 < len; idx += 4) {
-                    face(idx+0, idx+1, idx+3);
-                    face(idx+1, idx+2, idx+3);
-                }
-            } else if (part._topology == graphics::Mesh::TRIANGLES) {
-                for (uint32_t idx = part._startIndex; idx+2 < len; idx += 3) {
-                    face(idx+0, idx+1, idx+2);
                 }
             }
             out << "\n";

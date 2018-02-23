@@ -11,15 +11,6 @@
 
 #include <graphics/BufferViewHelpers.h>
 
-#ifdef DEBUG_BUFFERVIEW_SCRIPTING
-    #include "DebugNames.h"
-#endif
-
-namespace {
-    const std::array<const char*, 4> XYZW = {{ "x", "y", "z", "w" }};
-    const std::array<const char*, 4> ZERO123 = {{ "0", "1", "2", "3" }};
-}
-
 template <typename T>
 QScriptValue getBufferViewElement(QScriptEngine* js, const gpu::BufferView& view, quint32 index, bool asArray = false) {
     return glmVecToScriptValue(js, view.get<T>(index), asArray);
@@ -45,7 +36,7 @@ bool bufferViewElementFromScriptValue(const QScriptValue& v, const gpu::BufferVi
 template <typename T>
 QScriptValue glmVecToScriptValue(QScriptEngine *js, const T& v, bool asArray) {
     static const auto len = T().length();
-    const auto& components = asArray ? ZERO123 : XYZW;
+    const auto& components = asArray ? buffer_helpers::ZERO123 : buffer_helpers::XYZW;
     auto obj = asArray ? js->newArray() : js->newObject();
     for (int i = 0; i < len ; i++) {
         const auto key = components[i];
@@ -65,7 +56,7 @@ QScriptValue glmVecToScriptValue(QScriptEngine *js, const T& v, bool asArray) {
 template <typename T>
 const T glmVecFromScriptValue(const QScriptValue& v) {
     static const auto len = T().length();
-    const auto& components = v.property("x").isValid() ? XYZW : ZERO123;
+    const auto& components = v.property("x").isValid() ? buffer_helpers::XYZW : buffer_helpers::ZERO123;
     T result;
     for (int i = 0; i < len ; i++) {
         const auto key = components[i];

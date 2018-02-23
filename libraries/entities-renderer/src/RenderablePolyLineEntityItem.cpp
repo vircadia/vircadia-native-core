@@ -281,9 +281,9 @@ std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertic
     return vertices;
 }
 
-scriptable::ScriptableModelBase PolyLineEntityRenderer::getScriptableModel(bool *ok) {
+scriptable::ScriptableModelBase PolyLineEntityRenderer::getScriptableModel() {
     // TODO: adapt polyline into a triangles mesh...
-    return EntityRenderer::getScriptableModel(ok);
+    return EntityRenderer::getScriptableModel();
 }
 
 void PolyLineEntityRenderer::doRender(RenderArgs* args) {

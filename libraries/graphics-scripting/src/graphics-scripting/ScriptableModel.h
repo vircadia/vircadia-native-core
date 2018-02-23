@@ -1,14 +1,22 @@
+//
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 #pragma once
 
 #include "Forward.h"
+#include "GraphicsScriptingUtil.h"
 
 class QScriptValue;
+
 namespace scriptable {
     class ScriptableModel : public ScriptableModelBase {
         Q_OBJECT
     public:
         Q_PROPERTY(QUuid objectID MEMBER objectID CONSTANT)
-        Q_PROPERTY(QVariantMap metadata MEMBER metadata CONSTANT)
         Q_PROPERTY(uint32 numMeshes READ getNumMeshes)
         Q_PROPERTY(QVector<scriptable::ScriptableMeshPointer> meshes READ getMeshes)
 
@@ -26,11 +34,9 @@ namespace scriptable {
         QVector<scriptable::ScriptableMeshPointer> getMeshes();
         const QVector<scriptable::ScriptableMeshPointer> getConstMeshes() const;
         operator scriptable::ScriptableModelBasePointer() {
-            QPointer<scriptable::ScriptableModelBase> p;
-            p = qobject_cast<scriptable::ScriptableModelBase*>(this);
-            return p;
+            return QPointer<scriptable::ScriptableModelBase>(qobject_cast<scriptable::ScriptableModelBase*>(this));
         }
-        
+
 
         // QScriptEngine-specific wrappers
         Q_INVOKABLE uint32 mapAttributeValues(QScriptValue callback);

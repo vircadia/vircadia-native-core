@@ -28,15 +28,13 @@ namespace glm {
     using hvec4 = glm::tvec4<glm::detail::hdata>;
 }
 
-#ifdef DEBUG_BUFFERVIEW_SCRIPTING
-#include "../../graphics-scripting/src/graphics-scripting/DebugNames.h"
-#endif
-
 namespace {
     QLoggingCategory bufferhelper_logging{ "hifi.bufferview" };
-    const std::array<const char*, 4> XYZW = { { "x", "y", "z", "w" } };
-    const std::array<const char*, 4> ZERO123 = { { "0", "1", "2", "3" } };
 }
+
+
+const std::array<const char*, 4> buffer_helpers::XYZW = { { "x", "y", "z", "w" } };
+const std::array<const char*, 4> buffer_helpers::ZERO123 = { { "0", "1", "2", "3" } };
 
 gpu::BufferView buffer_helpers::getBufferView(graphics::MeshPointer mesh, gpu::Stream::Slot slot) {
     return slot == gpu::Stream::POSITION ? mesh->getVertexBuffer() : mesh->getAttributeBuffer(slot);
@@ -107,9 +105,7 @@ bool buffer_helpers::fromVariant(const gpu::BufferView& view, quint32 index, con
     const auto dataType = element.getType();
     const auto byteLength = element.getSize();
     const auto BYTES_PER_ELEMENT = byteLength / vecN;
-#ifdef DEBUG_BUFFERVIEW_SCRIPTING
-    qCDebug(bufferhelper_logging) << "bufferViewElementFromVariant" << index << DebugNames::stringFrom(dataType) << BYTES_PER_ELEMENT << vecN;
-#endif
+
     if (BYTES_PER_ELEMENT == 1) {
         switch(vecN) {
         case 2: setBufferViewElement<glm::u8vec2>(view, index, v); return true;
@@ -174,18 +170,12 @@ QVariant buffer_helpers::toVariant(const gpu::BufferView& view, quint32 index, b
         auto byteOffset = index * vecN * BYTES_PER_ELEMENT;
         auto maxByteOffset = (view._size - 1) * vecN * BYTES_PER_ELEMENT;
         if (byteOffset > maxByteOffset) {
-#ifdef DEBUG_BUFFERVIEW_SCRIPTING
-            qDebug() << "toVariant -- " << DebugNames::stringFrom(dataType)
-#endif
             qDebug() << "toVariant -- byteOffset out of range " << byteOffset << " < " << maxByteOffset;
             qDebug() << "toVariant -- index: " << index << "numElements" << view.getNumElements();
             qDebug() << "toVariant -- vecN: " << vecN << "byteLength" << byteLength << "BYTES_PER_ELEMENT" << BYTES_PER_ELEMENT;
         }
         Q_ASSERT(byteOffset <= maxByteOffset);
     }
-#ifdef DEBUG_BUFFERVIEW_SCRIPTING
-    qCDebug(bufferhelper_logging) << "toVariant -- " << index << DebugNames::stringFrom(dataType) << BYTES_PER_ELEMENT << vecN;
-#endif
     if (BYTES_PER_ELEMENT == 1) {
         switch(vecN) {
         case 2: return getBufferViewElement<glm::u8vec2>(view, index, asArray);
@@ -303,13 +293,8 @@ template <typename T> struct GpuScalarToGlm;
 
 struct GpuToGlmAdapter {
     static float error(const QString& name, const gpu::BufferView& view, quint32 index, const char *hint) {
-        QString debugName;
-#ifdef DEBUG_BUFFERVIEW_SCRIPTING
-        debugName = DebugNames::stringFrom(view._element.getType())
-#endif
-        qDebug() << QString("GpuToGlmAdapter:: unhandled type=%1(element=%2(%3)) size=%4(per=%5) vec%6 hint=%7 #%8")
+        qDebug() << QString("GpuToGlmAdapter:: unhandled type=%1(element=%2) size=%3(per=%4) vec%5 hint=%6 #%7")
             .arg(name)
-            .arg(debugName)
             .arg(view._element.getType())
             .arg(view._element.getSize())
             .arg(view._element.getSize() / view._element.getScalarCount())
@@ -402,7 +387,7 @@ struct getVec {
         }
         return result;
     }
-    static T __to_scalar__(const gpu::BufferView& view, quint32 index, const char *hint) {
+    static T __to_value__(const gpu::BufferView& view, quint32 index, const char *hint) {
         assert(boundsCheck(view, index));
         return FUNC::get(view, index, hint);
     }
@@ -423,18 +408,18 @@ template <> QVector<glm::vec4> buffer_helpers::toVector<glm::vec4>(const gpu::Bu
 }
 
 
-// indexed conversion accessors (similar to "view.convert<T>(i)" existed)
+// indexed conversion accessors (like the hypothetical "view.convert<T>(i)")
 template <> int buffer_helpers::convert<int>(const gpu::BufferView& view, quint32 index, const char *hint) {
-    return getVec<GpuScalarToGlm<int>,int>::__to_scalar__(view, index, hint);
+    return getVec<GpuScalarToGlm<int>,int>::__to_value__(view, index, hint);
 }
 template <> glm::vec2 buffer_helpers::convert<glm::vec2>(const gpu::BufferView& view, quint32 index, const char *hint) {
-    return getVec<GpuVec2ToGlm<glm::vec2>,glm::vec2>::__to_scalar__(view, index, hint);
+    return getVec<GpuVec2ToGlm<glm::vec2>,glm::vec2>::__to_value__(view, index, hint);
 }
 template <> glm::vec3 buffer_helpers::convert<glm::vec3>(const gpu::BufferView& view, quint32 index, const char *hint) {
-    return getVec<GpuVec3ToGlm<glm::vec3>,glm::vec3>::__to_scalar__(view, index, hint);
+    return getVec<GpuVec3ToGlm<glm::vec3>,glm::vec3>::__to_value__(view, index, hint);
 }
 template <> glm::vec4 buffer_helpers::convert<glm::vec4>(const gpu::BufferView& view, quint32 index, const char *hint) {
-    return getVec<GpuVec4ToGlm<glm::vec4>,glm::vec4>::__to_scalar__(view, index, hint);
+    return getVec<GpuVec4ToGlm<glm::vec4>,glm::vec4>::__to_value__(view, index, hint);
 }
 
 gpu::BufferView buffer_helpers::clone(const gpu::BufferView& input) {
@@ -490,9 +475,6 @@ namespace {
                           vsize > bufferView._size
             );
         QString hint = QString("%1").arg(slot);
-#ifdef DEBUG_BUFFERVIEW_SCRIPTING
-        hint = DebugNames::stringFrom(slot);
-#endif
 #ifdef DEV_BUILD
         auto beforeCount = bufferView.getNumElements();
         auto beforeTotal = bufferView._size;
@@ -517,9 +499,6 @@ namespace {
         auto afterTotal = bufferView._size;
         if (beforeTotal != afterTotal || beforeCount != afterCount) {
             QString typeName = QString("%1").arg(bufferView._element.getType());
-#ifdef DEBUG_BUFFERVIEW_SCRIPTING
-            typeName = DebugNames::stringFrom(bufferView._element.getType());
-#endif
             qCDebug(bufferhelper_logging, "NOTE:: _expandedAttributeBuffer.%s vec%d %s (before count=%lu bytes=%lu // after count=%lu bytes=%lu)",
                     hint.toStdString().c_str(), bufferView._element.getScalarCount(),
                     typeName.toStdString().c_str(), beforeCount, beforeTotal, afterCount, afterTotal);
@@ -555,9 +534,6 @@ std::map<QString, gpu::BufferView> buffer_helpers::gatherBufferViews(graphics::M
         if (beforeCount > 0) {
             auto element = view._element;
             QString typeName = QString("%1").arg(element.getType());
-#ifdef DEBUG_BUFFERVIEW_SCRIPTING
-            typeName = DebugNames::stringFrom(element.getType());
-#endif
 
             attributeViews[name] = getBufferView(mesh, slot);
 
