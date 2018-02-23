@@ -35,6 +35,7 @@ Item {
         visible: false;
         anchors.fill: parent;
     }
+
     // This object is always used in a popup.
     // This MouseArea is used to prevent a user from being
     //     able to click on a button/mouseArea underneath the popup.
@@ -216,39 +217,43 @@ Item {
         // "What's This?" link
         RalewayRegular {
             id: whatsThisLink;
-            text: '<font color="#FFFFFF"><a href="#">What\'s this?</a></font>';
+            text: '<font color="#FFFFFF"><a href="#whatsthis">What\'s this?</a></font>';
             // Anchors
             anchors.bottom: parent.bottom;
-            anchors.bottomMargin: 24;
-            width: parent.width;
+            anchors.bottomMargin: 48;
+            anchors.horizontalCenter: parent.horizontalCenter;
+            width: paintedWidth;
             height: paintedHeight;
             // Text size
             size: 18;
             // Style
             color: hifi.colors.white;
-            horizontalAlignment: Text.AlignHCenter;
 
-            onLinkActivated: {
-                if (root.activeView === "preexisting") {
-                    lightboxPopup.titleText = "Your wallet's private keys are not in the folder we expected";
-                    lightboxPopup.bodyText = "We see that you have created a wallet but the private keys " +
-                        "for it seem to have been moved to a different folder.<br><br>" +
-                        "To tell us where the keys are, click 'Locate My Keys'. <br><br>" +
-                        "If you'd prefer to create a new wallet (not recommended - you will lose your money and past " +
-                        "purchases), click 'Create New Wallet'.";
-                    lightboxPopup.button1text = "CLOSE";
-                    lightboxPopup.button1method = "root.visible = false;"
-                    lightboxPopup.visible = true;
-                } else {
-                    lightboxPopup.titleText = "You may have set up more than one wallet";
-                    lightboxPopup.bodyText = "We see that the private keys stored on your computer are different " +
-                        "from the ones you used last time. This may mean that you set up more than one wallet. " +
-                        "If you would like to use these keys, click 'Continue With These Keys'.<br><br>" +
-                        "If you would prefer to use another wallet, click 'Locate Other Keys' to show us where " +
-                        "you've stored the private keys for that wallet.";
-                    lightboxPopup.button1text = "CLOSE";
-                    lightboxPopup.button1method = "root.visible = false;"
-                    lightboxPopup.visible = true;
+            MouseArea {
+                anchors.fill: parent;
+
+                onClicked: {
+                    if (root.activeView === "preexisting") {
+                        lightboxPopup.titleText = "Your wallet's private keys are not in the folder we expected";
+                        lightboxPopup.bodyText = "We see that you have created a wallet but the private keys " +
+                            "for it seem to have been moved to a different folder.<br><br>" +
+                            "To tell us where the keys are, click 'Locate My Keys'. <br><br>" +
+                            "If you'd prefer to create a new wallet (not recommended - you will lose your money and past " +
+                            "purchases), click 'Create New Wallet'.";
+                        lightboxPopup.button1text = "CLOSE";
+                        lightboxPopup.button1method = "root.visible = false;"
+                        lightboxPopup.visible = true;
+                    } else {
+                        lightboxPopup.titleText = "You may have set up more than one wallet";
+                        lightboxPopup.bodyText = "We see that the private keys stored on your computer are different " +
+                            "from the ones you used last time. This may mean that you set up more than one wallet. " +
+                            "If you would like to use these keys, click 'Continue With These Keys'.<br><br>" +
+                            "If you would prefer to use another wallet, click 'Locate Other Keys' to show us where " +
+                            "you've stored the private keys for that wallet.";
+                        lightboxPopup.button1text = "CLOSE";
+                        lightboxPopup.button1method = "root.visible = false;"
+                        lightboxPopup.visible = true;
+                    }
                 }
             }
         }
