@@ -42,33 +42,33 @@ public:
      *     <tr><th>Value</th><th>Description</th><th>Properties</th></tr>
      *   </thead>
      *   <tbody>
-     *     <tr><td><code>Box</code></td><td>A rectangular prism. This is identical to the <code>Shape</code> EntityType except
+     *     <tr><td><code>"Box"</code></td><td>A rectangular prism. This is identical to the <code>Shape</code> EntityType except
      *       that it is always created with an initial <code>shape</code> property value of <code>"Cube"</code>.</td>
      *       <td>{@link Entities.EntityProperties-Box|EntityProperties-Box}</td></tr>
-     *     <tr><td><code>Light</code></td><td>A local lighting effect.</td>
+     *     <tr><td><code>"Light"</code></td><td>A local lighting effect.</td>
      *       <td>{@link Entities.EntityProperties-Light|EntityProperties-Light}</td></tr>
-     *     <tr><td><code>Line</code></td><td>A sequence of one or more simple straight lines.</td>
+     *     <tr><td><code>"Line"</code></td><td>A sequence of one or more simple straight lines.</td>
      *       <td>{@link Entities.EntityProperties-Line|EntityProperties-Line}</td></tr>
-     *     <tr><td><code>Model</code></td><td>A mesh model from an FBX or OBJ file.</td>
+     *     <tr><td><code>"Model"</code></td><td>A mesh model from an FBX or OBJ file.</td>
      *       <td>{@link Entities.EntityProperties-Model|EntityProperties-Model}</td></tr>
-     *     <tr><td><code>ParticleEffect</code></td><td>A particle system that can be used to simulate things such as fire, 
+     *     <tr><td><code>"ParticleEffect"</code></td><td>A particle system that can be used to simulate things such as fire, 
      *       smoke, snow, magic spells, etc.</td>
      *       <td>{@link Entities.EntityProperties-ParticleEffect|EntityProperties-ParticleEffect}</td></tr>
-     *     <tr><td><code>PolyLine</code></td><td>A sequence of one or more textured straight lines.</td>
+     *     <tr><td><code>"PolyLine"</code></td><td>A sequence of one or more textured straight lines.</td>
      *       <td>{@link Entities.EntityProperties-PolyLine|EntityProperties-PolyLine}</td></tr>
-     *     <tr><td><code>PolyVox</code></td><td>A set of textured voxels.</td>
+     *     <tr><td><code>"PolyVox"</code></td><td>A set of textured voxels.</td>
      *       <td>{@link Entities.EntityProperties-PolyVox|EntityProperties-PolyVox}</td></tr>
-     *     <tr><td><code>Shape</code></td><td>A basic entity such as a cube.
+     *     <tr><td><code>"Shape"</code></td><td>A basic entity such as a cube.
      *       See also, the <code>Box</code> and <code>Sphere</code> entity types.</td>
      *       <td>{@link Entities.EntityProperties-Shape|EntityProperties-Shape}</td></tr>
-     *     <tr><td><code>Sphere</code></td><td>A sphere. This is identical to the <code>Shape</code> EntityType except that it is
+     *     <tr><td><code>"Sphere"</code></td><td>A sphere. This is identical to the <code>Shape</code> EntityType except that it is
      *       always created with an initial <code>shape</code> property value of <code>"Sphere"</code>.</td>
      *       <td>{@link Entities.EntityProperties-Sphere|EntityProperties-Sphere}</td></tr>
-     *     <tr><td><code>Text</code></td><td>A pane of text oriented in space.</td>
+     *     <tr><td><code>"Text"</code></td><td>A pane of text oriented in space.</td>
      *       <td>{@link Entities.EntityProperties-Text|EntityProperties-Text}</td></tr>
-     *     <tr><td><code>Web</code></td><td>A browsable Web page.</td>
+     *     <tr><td><code>"Web"</code></td><td>A browsable Web page.</td>
      *       <td>{@link Entities.EntityProperties-Web|EntityProperties-Web}</td></tr>
-     *     <tr><td><code>Zone</code></td><td>A volume of lighting effects and avatar permissions.</td>
+     *     <tr><td><code>"Zone"</code></td><td>A volume of lighting effects and avatar permissions.</td>
      *       <td>{@link Entities.EntityProperties-Zone|EntityProperties-Zone}</td></tr>
      *   </tbody>
      * </table>

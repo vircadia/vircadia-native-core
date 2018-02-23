@@ -809,7 +809,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 
 /**jsdoc
  * The <code>"PolyVox"</code> {@link Entities.EntityType|EntityType} displays a set of textured voxels. 
- * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.<br />
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  * If you have two or more neighboring PolyVox entities of the same size abutting each other, you can display them as joined by
  * configuring their <code>voxelSurfaceStyle</code> and neighbor ID properties.<br />
  * PolyVox entities uses a library from <a href="http://www.volumesoffun.com/">Volumes of Fun</a>. Their
