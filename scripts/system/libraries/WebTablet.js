@@ -306,10 +306,6 @@ WebTablet.prototype.setScriptURL = function (scriptURL) {
     Overlays.editOverlay(this.webOverlayID, { scriptURL: scriptURL });
 };
 
-WebTablet.prototype.getOverlayObject = function () {
-    return Overlays.getOverlayObject(this.webOverlayID);
-};
-
 WebTablet.prototype.setWidth = function (width) {
     // imported from libraries/utils.js
     resizeTablet(width);
@@ -335,7 +331,7 @@ WebTablet.prototype.destroy = function () {
 };
 
 WebTablet.prototype.geometryChanged = function (geometry) {
-    if (!HMD.active) {
+    if (!HMD.active && HMD.tabletID) {
         var tabletProperties = {};
         // compute position, rotation & parentJointIndex of the tablet
         this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
@@ -463,6 +459,9 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMou
 };
 
 WebTablet.prototype.onHmdChanged = function () {
+    if (!HMD.tabletID) {
+        return;
+    }
     var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);

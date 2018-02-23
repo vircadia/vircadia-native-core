@@ -100,6 +100,10 @@ Rectangle {
             size: 20;
             verticalAlignment: Text.AlignTop;
             wrapMode: Text.WordWrap;
+
+            onLinkActivated: {
+                sendToParent({ method: 'commerceLightboxLinkClicked', linkUrl: link });
+            }
         }
 
         Item {

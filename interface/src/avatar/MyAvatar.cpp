@@ -1482,7 +1482,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     });
     saveAvatarUrl();
     emit skeletonChanged();
-
+    emit skeletonModelURLChanged();
 }
 
 void MyAvatar::removeAvatarEntities() {

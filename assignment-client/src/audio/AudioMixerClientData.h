@@ -21,6 +21,7 @@
 #include <AudioLimiter.h>
 #include <UUIDHasher.h>
 
+#include <plugins/Forward.h>
 #include <plugins/CodecPlugin.h>
 
 #include "PositionalAudioStream.h"
