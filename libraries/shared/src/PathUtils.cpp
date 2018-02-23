@@ -129,6 +129,7 @@ QUrl PathUtils::expandToAppAbsolutePath(const QUrl& fileUrl) {
     }
     return url;
 }
+
 const QString& PathUtils::qmlBaseUrl() {
     static const QString staticResourcePath = resourcesUrl() + "qml/";
     return staticResourcePath;
