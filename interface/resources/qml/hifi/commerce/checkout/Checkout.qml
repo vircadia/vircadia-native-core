@@ -319,7 +319,7 @@ Rectangle {
             z: 997;
             visible: !root.ownershipStatusReceived || !root.balanceReceived;
             anchors.fill: parent;
-            color: Qt.rgba(0.0, 0.0, 0.0, 0.7);
+            color: hifi.colors.white;
 
             // This object is always used in a popup.
             // This MouseArea is used to prevent a user from being
@@ -331,8 +331,9 @@ Rectangle {
             }
                 
             AnimatedImage {
-                source: "../common/images/loader.gif"
-                width: 96;
+                id: loadingImage;
+                source: "../common/images/loader-blue.gif"
+                width: 74;
                 height: width;
                 anchors.verticalCenter: parent.verticalCenter;
                 anchors.horizontalCenter: parent.horizontalCenter;
