@@ -103,7 +103,7 @@ public:
         return self();
     }
     Promise fail(ErrorFunction errorOnly) {
-        return fail([this, errorOnly](QString error, QVariantMap result) {
+        return fail([errorOnly](QString error, QVariantMap result) {
             errorOnly(error);
         });
     }
@@ -122,7 +122,7 @@ public:
     }
 
     Promise then(SuccessFunction successOnly) {
-        return then([this, successOnly](QString error, QVariantMap result) {
+        return then([successOnly](QString error, QVariantMap result) {
             successOnly(result);
         });
     }
