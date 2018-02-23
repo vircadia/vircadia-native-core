@@ -127,6 +127,10 @@ void TouchscreenVirtualPadDevice::debugPoints(const QTouchEvent* event, QString 
 void TouchscreenVirtualPadDevice::touchBeginEvent(const QTouchEvent* event) {
     // touch begin here is a big begin -> begins both pads? maybe it does nothing
     debugPoints(event, " BEGIN ++++++++++++++++");
+    auto& virtualPadManager = VirtualPad::Manager::instance();
+    if (!virtualPadManager.isEnabled()) {
+        return;
+    }
     KeyboardMouseDevice::enableTouch(false);
     QScreen* eventScreen = event->window()->screen();
     _screenWidthCenter = eventScreen->size().width() / 2;
@@ -138,6 +142,10 @@ void TouchscreenVirtualPadDevice::touchBeginEvent(const QTouchEvent* event) {
 }
 
 void TouchscreenVirtualPadDevice::touchEndEvent(const QTouchEvent* event) {
+    auto& virtualPadManager = VirtualPad::Manager::instance();
+    if (!virtualPadManager.isEnabled()) {
+        return;
+    }
     // touch end here is a big reset -> resets both pads
     _touchPointCount = 0;
     KeyboardMouseDevice::enableTouch(true);
@@ -148,6 +156,12 @@ void TouchscreenVirtualPadDevice::touchEndEvent(const QTouchEvent* event) {
 }
 
 void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
+    auto& virtualPadManager = VirtualPad::Manager::instance();
+    if (!virtualPadManager.isEnabled()) {
+        touchLeftEnd();
+        touchRightEnd();
+        return;
+    }
     _touchPointCount = event->touchPoints().count();
 
     const QList<QTouchEvent::TouchPoint>& tPoints = event->touchPoints();
@@ -224,6 +238,10 @@ void TouchscreenVirtualPadDevice::touchRightEnd() {
 }
 
 void TouchscreenVirtualPadDevice::touchGestureEvent(const QGestureEvent* event) {
+    auto& virtualPadManager = VirtualPad::Manager::instance();
+    if (!virtualPadManager.isEnabled()) {
+        return;
+    }
     if (QGesture* gesture = event->gesture(Qt::PinchGesture)) {
         QPinchGesture* pinch = static_cast<QPinchGesture*>(gesture);
         _pinchScale = pinch->totalScaleFactor();

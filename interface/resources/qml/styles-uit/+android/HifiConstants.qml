@@ -158,29 +158,29 @@ Item {
         readonly property real tableRowHeight: largeScreen ? 26 : 23
         readonly property real tableHeaderHeight: 29
         readonly property vector2d modalDialogMargin: Qt.vector2d(50, 30)
-        readonly property real modalDialogTitleHeight: 40
-        readonly property real controlLineHeight: 28  // Height of spinbox control on 1920 x 1080 monitor
+        readonly property real modalDialogTitleHeight: 120
+        readonly property real controlLineHeight: 84 // Height of spinbox control on 1920 x 1080 monitor
         readonly property real controlInterlineHeight: 21  // 75% of controlLineHeight
         readonly property vector2d menuPadding: Qt.vector2d(14, 102)
         readonly property real scrollbarBackgroundWidth: 20
         readonly property real scrollbarHandleWidth: scrollbarBackgroundWidth - 2
         readonly property real tabletMenuHeader: 90
-        readonly property real buttonWidth: 120
+        readonly property real buttonWidth: 360
     }
 
     Item {
         id: fontSizes  // In pixels
-        readonly property real overlayTitle: dimensions.largeScreen ? 18 : 14
+        readonly property real overlayTitle: dimensions.largeScreen ? 54 : 42
         readonly property real tabName: dimensions.largeScreen ? 12 : 10
-        readonly property real sectionName: dimensions.largeScreen ? 12 : 10
+        readonly property real sectionName: dimensions.largeScreen ? 36 : 30
         readonly property real inputLabel: dimensions.largeScreen ? 14 : 10
-        readonly property real textFieldInput: dimensions.largeScreen ? 15 : 12
+        readonly property real textFieldInput: dimensions.largeScreen ? 48 : 36
         readonly property real textFieldInputLabel: dimensions.largeScreen ? 13 : 9
         readonly property real textFieldSearchIcon: dimensions.largeScreen ? 30 : 24
         readonly property real tableHeading: dimensions.largeScreen ? 12 : 10
         readonly property real tableHeadingIcon: dimensions.largeScreen ? 60 : 33
         readonly property real tableText: dimensions.largeScreen ? 15 : 12
-        readonly property real buttonLabel: dimensions.largeScreen ? 14 : 9
+        readonly property real buttonLabel: dimensions.largeScreen ? 42 : 27
         readonly property real iconButton: dimensions.largeScreen ? 13 : 9
         readonly property real listItem: dimensions.largeScreen ? 15 : 11
         readonly property real tabularData: dimensions.largeScreen ? 15 : 11
@@ -188,8 +188,8 @@ Item {
         readonly property real code: dimensions.largeScreen ? 16 : 12
         readonly property real rootMenu: dimensions.largeScreen ? 15 : 11
         readonly property real rootMenuDisclosure: dimensions.largeScreen ? 20 : 16
-        readonly property real menuItem: dimensions.largeScreen ? 15 : 11
-        readonly property real shortcutText: dimensions.largeScreen ? 13 : 9
+        readonly property real menuItem: dimensions.largeScreen ? 45 : 33
+        readonly property real shortcutText: dimensions.largeScreen ? 39 : 27
         readonly property real carat: dimensions.largeScreen ? 38 : 30
         readonly property real disclosureButton: dimensions.largeScreen ? 30 : 22
     }
@@ -220,11 +220,10 @@ Item {
         readonly property var colorFinish: [ colors.lightGrayText, colors.blueAccent, "#94132e", colors.black, Qt.rgba(0, 0, 0, 0), Qt.rgba(0, 0, 0, 0), Qt.rgba(0, 0, 0, 0), Qt.rgba(0, 0, 0, 0) ]
         readonly property var hoveredColor: [ colorStart[white], colorStart[blue], colorStart[red], colorFinish[black], colorStart[none], colorStart[noneBorderless], colorStart[noneBorderlessWhite], colorStart[noneBorderlessGray] ]
         readonly property var pressedColor: [ colorFinish[white], colorFinish[blue], colorFinish[red], colorStart[black], colorStart[none], colorStart[noneBorderless], colorStart[noneBorderlessWhite], colorStart[noneBorderlessGray] ]
-        readonly property var focusedColor: [ colors.lightGray50, colors.blueAccent, colors.redAccent, colors.darkGray, colorStart[none], colorStart[noneBorderless], colorStart[noneBorderlessWhite], colorStart[noneBorderlessGray] ]
         readonly property var disabledColorStart: [ colorStart[white], colors.baseGrayHighlight]
         readonly property var disabledColorFinish: [ colorFinish[white], colors.baseGrayShadow]
         readonly property var disabledTextColor: [ colors.lightGrayText, colors.baseGrayShadow]
-        readonly property int radius: 5
+        readonly property int radius: 15
     }
 
     QtObject {

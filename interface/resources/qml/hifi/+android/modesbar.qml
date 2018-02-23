@@ -25,8 +25,8 @@ Item {
 	}
 
     Component.onCompleted: {
-        width = 330;
-        height = 330;
+        width = 300 + 30; // That 30 is extra regardless the qty of items shown
+        height = 300 + 30;
         x=Window.innerWidth - width;
     }
     
@@ -40,6 +40,12 @@ Item {
             var keys = Object.keys(properties).forEach(function (key) {
                 button[key] = properties[key];
             });
+            button.entered.connect(function() {
+                Controller.setVPadEnabled(false);
+            });
+            button.exited.connect(function() {
+                Controller.setVPadEnabled(true);
+            });            
             return button;
         } else if( component.status == Component.Error) {
             console.log("Load button errors " + component.errorString());
@@ -60,10 +66,10 @@ Item {
     function fromScript(message) {
         switch (message.type) {
             case "allButtonsShown":
-                modesbar.height = flowMain.children.length * 100 + 10;
+                modesbar.height = flowMain.children.length * 300 + 30; // That 30 is extra regardless the qty of items shown
             break;
             case "inactiveButtonsHidden":
-                modesbar.height = 100 + 10;
+                modesbar.height = 300 + 30;
             break;
             default:
             break;
