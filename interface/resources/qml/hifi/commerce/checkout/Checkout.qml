@@ -48,6 +48,7 @@ Rectangle {
     property bool debugCheckoutSuccess: false;
     property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
     property string referrer;
+    property bool isInstalled;
     // Style
     color: hifi.colors.white;
     Connections {
@@ -120,6 +121,12 @@ Rectangle {
                     root.alreadyOwned = false;
                 }
                 root.refreshBuyUI();
+            }
+        }
+
+        onAppInstalled: {
+            if (appHref === root.itemHref) {
+                root.isInstalled = true;
             }
         }
     }
@@ -689,7 +696,7 @@ Rectangle {
             height: 50;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            text: (root.buttonTextNormal)[itemTypesArray.indexOf(root.itemType)];
+            text: root.itemType === "app" && root.isInstalled ? "OPEN APP" : (root.buttonTextNormal)[itemTypesArray.indexOf(root.itemType)];
             onClicked: {
                 if (root.itemType === "contentSet") {
                     lightboxPopup.titleText = "Replace Content";
@@ -714,8 +721,11 @@ Rectangle {
                     lightboxPopup.button2method = "MyAvatar.useFullAvatarURL('" + root.itemHref + "'); root.visible = false;";
                     lightboxPopup.visible = true;
                 } else if (root.itemType === "app") {
-                    // "Run" button is separate.
-                    Commerce.installApp(root.itemHref);
+                    if (root.isInstalled) {
+                        Commerce.openApp(root.itemHref);
+                    } else {
+                        Commerce.installApp(root.itemHref);
+                    }
                 } else {
                     sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
                     rezzedNotifContainer.visible = true;

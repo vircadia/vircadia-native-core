@@ -39,7 +39,7 @@
             // for toolbar-mode: go back to home screen, this will close the window.
             tablet.gotoHomeScreen();
         } else {
-            tablet.loadQMLSource(MARKETPLACE_PURCHASES_QML_PATH);
+            tablet.loadQMLSource(WALLET_QML_SOURCE);
         }
     }
 

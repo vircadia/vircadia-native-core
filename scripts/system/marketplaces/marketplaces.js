@@ -553,10 +553,6 @@ var selectionDisplay = null; // for gridTool.js to ignore
             case 'purchases_rezClicked':
                 rezEntity(message.itemHref, message.itemType);
                 break;
-            case 'checkout_installClicked':
-            case 'purchases_installClicked':
-                
-                break;
             case 'header_marketplaceImageClicked':
             case 'purchases_backClicked':
                 tablet.gotoWebScreen(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
