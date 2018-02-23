@@ -89,7 +89,9 @@ float evalShadowCascadeAttenuation(int cascadeIndex, ShadowSampleOffsets offsets
 
 float evalShadowAttenuation(vec3 worldLightDir, vec4 worldPosition, float viewDepth, vec3 worldNormal) {
     ShadowSampleOffsets offsets = evalShadowFilterOffsets(worldPosition);
-    vec4 cascadeShadowCoords[2] = { vec4(0), vec4(0) };
+    vec4 cascadeShadowCoords[2];
+    cascadeShadowCoords[0] = vec4(0);
+    cascadeShadowCoords[1] = vec4(0);
     ivec2 cascadeIndices;
     float cascadeMix = determineShadowCascadesOnPixel(worldPosition, viewDepth, cascadeShadowCoords, cascadeIndices);
 	
