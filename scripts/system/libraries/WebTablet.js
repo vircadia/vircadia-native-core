@@ -47,7 +47,7 @@ function calcSpawnInfo(hand, landscape) {
     var headPos = (HMD.active && Camera.mode === "first person") ? HMD.position : Camera.position;
     var headRot = (HMD.active && Camera.mode === "first person") ? HMD.orientation : Camera.orientation;
 
-    var forward = Quat.getForward(headRot);
+    var forward = Quat.getForward(Quat.cancelOutRollAndPitch(headRot));
     var FORWARD_OFFSET = 0.5 * MyAvatar.sensorToWorldScale;
     finalPosition = Vec3.sum(headPos, Vec3.multiply(FORWARD_OFFSET, forward));
     var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, forward, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.UNIT_Y));
@@ -269,8 +269,9 @@ WebTablet.prototype.setLandscape = function(newLandscapeValue) {
     }
 
     this.landscape = newLandscapeValue;
+    var cameraOrientation = Quat.cancelOutRollAndPitch(Camera.orientation);
     Overlays.editOverlay(this.tabletEntityID,
-                         { rotation: Quat.multiply(Camera.orientation, this.landscape ? ROT_LANDSCAPE : ROT_Y_180) });
+                         { rotation: Quat.multiply(cameraOrientation, this.landscape ? ROT_LANDSCAPE : ROT_Y_180) });
 
     var tabletWidth = getTabletWidthFromSettings() * MyAvatar.sensorToWorldScale;
     var tabletScaleFactor = tabletWidth / TABLET_NATURAL_DIMENSIONS.x;
@@ -278,7 +279,7 @@ WebTablet.prototype.setLandscape = function(newLandscapeValue) {
     var screenWidth = 0.82 * tabletWidth;
     var screenHeight = 0.81 * tabletHeight;
     Overlays.editOverlay(this.webOverlayID, {
-        rotation: Quat.multiply(Camera.orientation, ROT_LANDSCAPE_WINDOW),
+        rotation: Quat.multiply(cameraOrientation, ROT_LANDSCAPE_WINDOW),
         dimensions: {x: this.landscape ? screenHeight : screenWidth, y: this.landscape ? screenWidth : screenHeight, z: 0.1}
     });
 };
@@ -303,10 +304,6 @@ WebTablet.prototype.setURL = function (url) {
 
 WebTablet.prototype.setScriptURL = function (scriptURL) {
     Overlays.editOverlay(this.webOverlayID, { scriptURL: scriptURL });
-};
-
-WebTablet.prototype.getOverlayObject = function () {
-    return Overlays.getOverlayObject(this.webOverlayID);
 };
 
 WebTablet.prototype.setWidth = function (width) {
@@ -334,7 +331,7 @@ WebTablet.prototype.destroy = function () {
 };
 
 WebTablet.prototype.geometryChanged = function (geometry) {
-    if (!HMD.active) {
+    if (!HMD.active && HMD.tabletID) {
         var tabletProperties = {};
         // compute position, rotation & parentJointIndex of the tablet
         this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
@@ -462,6 +459,9 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMou
 };
 
 WebTablet.prototype.onHmdChanged = function () {
+    if (!HMD.tabletID) {
+        return;
+    }
     var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);

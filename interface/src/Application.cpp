@@ -337,15 +337,17 @@ static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 // we will never drop below the 'min' value
 static const int MIN_PROCESSING_THREAD_POOL_SIZE = 1;
 
-static const QString SNAPSHOT_EXTENSION  = ".jpg";
-static const QString SVO_EXTENSION  = ".svo";
+static const QString SNAPSHOT_EXTENSION = ".jpg";
+static const QString JPG_EXTENSION = ".jpg";
+static const QString PNG_EXTENSION = ".png";
+static const QString SVO_EXTENSION = ".svo";
 static const QString SVO_JSON_EXTENSION = ".svo.json";
 static const QString JSON_GZ_EXTENSION = ".json.gz";
 static const QString JSON_EXTENSION = ".json";
-static const QString JS_EXTENSION  = ".js";
-static const QString FST_EXTENSION  = ".fst";
-static const QString FBX_EXTENSION  = ".fbx";
-static const QString OBJ_EXTENSION  = ".obj";
+static const QString JS_EXTENSION = ".js";
+static const QString FST_EXTENSION = ".fst";
+static const QString FBX_EXTENSION = ".fbx";
+static const QString OBJ_EXTENSION = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
 static const QString WEB_VIEW_TAG = "noDownload=true";
 static const QString ZIP_EXTENSION = ".zip";
@@ -384,7 +386,9 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { JS_EXTENSION, &Application::askToLoadScript },
     { FST_EXTENSION, &Application::askToSetAvatarUrl },
     { JSON_GZ_EXTENSION, &Application::askToReplaceDomainContent },
-    { ZIP_EXTENSION, &Application::importFromZIP }
+    { ZIP_EXTENSION, &Application::importFromZIP },
+    { JPG_EXTENSION, &Application::importImage },
+    { PNG_EXTENSION, &Application::importImage }
 };
 
 class DeadlockWatchdogThread : public QThread {
@@ -805,6 +809,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 std::shared_ptr<Cube3DOverlay> _keyboardFocusHighlight{ nullptr };
 OverlayID _keyboardFocusHighlightID{ UNKNOWN_OVERLAY_ID };
 
+
+OffscreenGLCanvas* _qmlShareContext { nullptr };
 
 // FIXME hack access to the internal share context for the Chromium helper
 // Normally we'd want to use QWebEngine::initialize(), but we can't because
@@ -1593,6 +1599,73 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
+    EntityTree::setAddMaterialToEntityOperator([&](const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+        // try to find the renderable
+        auto renderable = getEntities()->renderableForEntityId(entityID);
+        if (renderable) {
+            renderable->addMaterial(material, parentMaterialName);
+        }
+
+        // even if we don't find it, try to find the entity
+        auto entity = getEntities()->getEntity(entityID);
+        if (entity) {
+            entity->addMaterial(material, parentMaterialName);
+            return true;
+        }
+        return false;
+    });
+    EntityTree::setRemoveMaterialFromEntityOperator([&](const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+        // try to find the renderable
+        auto renderable = getEntities()->renderableForEntityId(entityID);
+        if (renderable) {
+            renderable->removeMaterial(material, parentMaterialName);
+        }
+
+        // even if we don't find it, try to find the entity
+        auto entity = getEntities()->getEntity(entityID);
+        if (entity) {
+            entity->removeMaterial(material, parentMaterialName);
+            return true;
+        }
+        return false;
+    });
+
+    EntityTree::setAddMaterialToAvatarOperator([](const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto avatar = avatarManager->getAvatarBySessionID(avatarID);
+        if (avatar) {
+            avatar->addMaterial(material, parentMaterialName);
+            return true;
+        }
+        return false;
+    });
+    EntityTree::setRemoveMaterialFromAvatarOperator([](const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto avatar = avatarManager->getAvatarBySessionID(avatarID);
+        if (avatar) {
+            avatar->removeMaterial(material, parentMaterialName);
+            return true;
+        }
+        return false;
+    });
+
+    EntityTree::setAddMaterialToOverlayOperator([&](const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+        auto overlay = _overlays.getOverlay(overlayID);
+        if (overlay) {
+            overlay->addMaterial(material, parentMaterialName);
+            return true;
+        }
+        return false;
+    });
+    EntityTree::setRemoveMaterialFromOverlayOperator([&](const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+        auto overlay = _overlays.getOverlay(overlayID);
+        if (overlay) {
+            overlay->removeMaterial(material, parentMaterialName);
+            return true;
+        }
+        return false;
+    });
+
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
     connect(overlays, &Overlays::overlayDeleted, [=](const OverlayID& overlayID) {
@@ -2271,17 +2344,36 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
+    // Build a shared canvas / context for the Chromium processes
     _glWidget->makeCurrent();
 
 #if !defined(DISABLE_QML)
+    // Chromium rendering uses some GL functions that prevent nSight from capturing
+    // frames, so we only create the shared context if nsight is NOT active.
     if (!nsightActive()) {
         _chromiumShareContext = new OffscreenGLCanvas();
         _chromiumShareContext->setObjectName("ChromiumShareContext");
         _chromiumShareContext->create(_glWidget->qglContext());
         _chromiumShareContext->makeCurrent();
+        if (!_chromiumShareContext->makeCurrent()) {
+            qCWarning(interfaceapp, "Unable to make chromium shared context current");
+        }
         qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+    } else {
+        qCWarning(interfaceapp) << "nSIGHT detected, disabling chrome rendering";
     }
 #endif
+
+    // Build a shared canvas / context for the QML rendering
+    _glWidget->makeCurrent();
+    _qmlShareContext = new OffscreenGLCanvas();
+    _qmlShareContext->setObjectName("QmlShareContext");
+    _qmlShareContext->create(_glWidget->qglContext());
+    if (!_qmlShareContext->makeCurrent()) {
+        qCWarning(interfaceapp, "Unable to make QML shared context current");
+    }
+    OffscreenQmlSurface::setSharedContext(_qmlShareContext->getContext());
+    _qmlShareContext->doneCurrent();
 
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
@@ -2318,20 +2410,24 @@ void Application::initializeGL() {
     if (!_offscreenContext->makeCurrent()) {
         qFatal("Unable to make offscreen context current");
     }
+    _offscreenContext->doneCurrent();
+    _offscreenContext->setThreadContext();
+    _renderEventHandler = new RenderEventHandler(_glWidget->qglContext());
 
     // The UI can't be created until the primary OpenGL
     // context is created, because it needs to share
     // texture resources
     // Needs to happen AFTER the render engine initialization to access its configuration
+    if (!_offscreenContext->makeCurrent()) {
+        qFatal("Unable to make offscreen context current");
+    }
+
     initializeUi();
     qCDebug(interfaceapp, "Initialized Offscreen UI.");
-    _glWidget->makeCurrent();
 
-
-    // call Menu getInstance static method to set up the menu
-    // Needs to happen AFTER the QML UI initialization
-    _window->setMenuBar(Menu::getInstance());
-
+    if (!_offscreenContext->makeCurrent()) {
+        qFatal("Unable to make offscreen context current");
+    }
     init();
     qCDebug(interfaceapp, "init() complete.");
 
@@ -2342,7 +2438,6 @@ void Application::initializeGL() {
 
     _idleLoopStdev.reset();
 
-    _renderEventHandler = new RenderEventHandler(_glWidget->qglContext());
 
     // Restore the primary GL content for the main thread
     if (!_offscreenContext->makeCurrent()) {
@@ -2408,29 +2503,73 @@ void Application::initializeUi() {
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
         tabletScriptingInterface->getTablet(SYSTEM_TABLET);
     }
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    DeadlockWatchdogThread::pause();
-    offscreenUi->create();
-    DeadlockWatchdogThread::resume();
 
-    auto surfaceContext = offscreenUi->getSurfaceContext();
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    connect(offscreenUi.data(), &hifi::qml::OffscreenSurface::rootContextCreated,
+        this, &Application::onDesktopRootContextCreated);
+    connect(offscreenUi.data(), &hifi::qml::OffscreenSurface::rootItemCreated,
+        this, &Application::onDesktopRootItemCreated);
 
     offscreenUi->setProxyWindow(_window->windowHandle());
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-    offscreenUi->createDesktop(PathUtils::qmlUrl("hifi/Desktop.qml"));
+    DeadlockWatchdogThread::withPause([&] {
+        offscreenUi->createDesktop(PathUtils::qmlUrl("hifi/Desktop.qml"));
+    });
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
 
-    auto engine = surfaceContext->engine();
-    connect(engine, &QQmlEngine::quit, [] {
-        qApp->quit();
-    });
-
-
     setupPreferences();
 
+    _glWidget->installEventFilter(offscreenUi.data());
+    offscreenUi->setMouseTranslator([=](const QPointF& pt) {
+        QPointF result = pt;
+        auto displayPlugin = getActiveDisplayPlugin();
+        if (displayPlugin->isHmd()) {
+            getApplicationCompositor().handleRealMouseMoveEvent(false);
+            auto resultVec = getApplicationCompositor().getReticlePosition();
+            result = QPointF(resultVec.x, resultVec.y);
+        }
+        return result.toPoint();
+    });
+    offscreenUi->resume();
+    connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
+        resizeGL();
+    });
+
+    // This will set up the input plugins UI
+    _activeInputPlugins.clear();
+    foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
+        if (KeyboardMouseDevice::NAME == inputPlugin->getName()) {
+            _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
+        }
+        if (TouchscreenDevice::NAME == inputPlugin->getName()) {
+            _touchscreenDevice = std::dynamic_pointer_cast<TouchscreenDevice>(inputPlugin);
+        }
+        if (TouchscreenVirtualPadDevice::NAME == inputPlugin->getName()) {
+            _touchscreenVirtualPadDevice = std::dynamic_pointer_cast<TouchscreenVirtualPadDevice>(inputPlugin);
+        }
+    }
+
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    connect(compositorHelper.data(), &CompositorHelper::allowMouseCaptureChanged, this, [=] {
+        if (isHMDMode()) {
+            showCursor(compositorHelper->getAllowMouseCapture() ?
+                       Cursor::Manager::lookupIcon(_preferredCursor.get()) :
+                       Cursor::Icon::SYSTEM);
+        }
+    });
+
+    // Pre-create a couple of Web3D overlays to speed up tablet UI
+    auto offscreenSurfaceCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+    offscreenSurfaceCache->reserve(TabletScriptingInterface::QML, 1);
+    offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
+}
+
+
+void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
+    auto engine = surfaceContext->engine();
     // in Qt 5.10.0 there is already an "Audio" object in the QML context
     // though I failed to find it (from QtMultimedia??). So..  let it be "AudioScriptingInterface"
     surfaceContext->setContextProperty("AudioScriptingInterface", DependencyManager::get<AudioScriptingInterface>().data());
@@ -2512,51 +2651,12 @@ void Application::initializeUi() {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
     }
 
-
-    _glWidget->installEventFilter(offscreenUi.data());
-    offscreenUi->setMouseTranslator([=](const QPointF& pt) {
-        QPointF result = pt;
-        auto displayPlugin = getActiveDisplayPlugin();
-        if (displayPlugin->isHmd()) {
-            getApplicationCompositor().handleRealMouseMoveEvent(false);
-            auto resultVec = getApplicationCompositor().getReticlePosition();
-            result = QPointF(resultVec.x, resultVec.y);
-        }
-        return result.toPoint();
-    });
-    offscreenUi->resume();
-    connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
-        resizeGL();
-    });
-
-    // This will set up the input plugins UI
-    _activeInputPlugins.clear();
-    foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
-        if (KeyboardMouseDevice::NAME == inputPlugin->getName()) {
-            _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
-        }
-        if (TouchscreenDevice::NAME == inputPlugin->getName()) {
-            _touchscreenDevice = std::dynamic_pointer_cast<TouchscreenDevice>(inputPlugin);
-        }
-        if (TouchscreenVirtualPadDevice::NAME == inputPlugin->getName()) {
-            _touchscreenVirtualPadDevice = std::dynamic_pointer_cast<TouchscreenVirtualPadDevice>(inputPlugin);
-        }
-    }
     _window->setMenuBar(new Menu());
+}
 
-    auto compositorHelper = DependencyManager::get<CompositorHelper>();
-    connect(compositorHelper.data(), &CompositorHelper::allowMouseCaptureChanged, this, [=] {
-        if (isHMDMode()) {
-            showCursor(compositorHelper->getAllowMouseCapture() ?
-                       Cursor::Manager::lookupIcon(_preferredCursor.get()) :
-                       Cursor::Icon::SYSTEM);
-        }
-    });
-
-    // Pre-create a couple of Web3D overlays to speed up tablet UI
-    auto offscreenSurfaceCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
-    offscreenSurfaceCache->reserve(TabletScriptingInterface::QML, 1);
-    offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
+void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
+    Stats::show();
+    AvatarInputs::show();
 }
 
 void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
@@ -2795,6 +2895,8 @@ void Application::resizeGL() {
         QMutexLocker viewLocker(&_viewMutex);
         _myCamera.loadViewFrustum(_viewFrustum);
     }
+
+    DependencyManager::get<OffscreenUi>()->resize(fromGlm(displayPlugin->getRecommendedUiSize()));
 }
 
 void Application::handleSandboxStatus(QNetworkReply* reply) {
@@ -2909,6 +3011,14 @@ bool Application::importFromZIP(const QString& filePath) {
     } else {
         qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true, false);
     }
+    return true;
+}
+
+bool Application::importImage(const QString& urlString) {
+    qCDebug(interfaceapp) << "An image file has been dropped in";
+    QString filepath(urlString);
+    filepath.remove("file:///");
+    addAssetToWorld(filepath, "", false, false);
     return true;
 }
 
@@ -4016,7 +4126,7 @@ void Application::idle() {
         // Bit of a hack since there's no device pixel ratio change event I can find.
         if (offscreenUi->size() != fromGlm(uiSize)) {
             qCDebug(interfaceapp) << "Device pixel ratio changed, triggering resize to " << uiSize;
-            offscreenUi->resize(fromGlm(uiSize), true);
+            offscreenUi->resize(fromGlm(uiSize));
             _offscreenContext->makeCurrent();
         }
     }
@@ -4741,7 +4851,6 @@ void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm
     if (_keyboardFocusHighlightID == UNKNOWN_OVERLAY_ID || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
         _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
         _keyboardFocusHighlight->setAlpha(1.0f);
-        _keyboardFocusHighlight->setBorderSize(1.0f);
         _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });
         _keyboardFocusHighlight->setIsSolid(false);
         _keyboardFocusHighlight->setPulseMin(0.5);
@@ -5883,7 +5992,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     DependencyManager::get<TabletScriptingInterface>().data()->setToolbarScriptingInterface(toolbarScriptingInterface);
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
-    qScriptRegisterMetaType(scriptEngine.data(), CustomPromptResultToScriptValue, CustomPromptResultFromScriptValue);
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                         LocationScriptingInterface::locationSetter, "Window");
     // register `location` on the global object.
@@ -6201,6 +6309,24 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
     return true;
 }
 
+void Application::replaceDomainContent(const QString& url) {
+    qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
+    QByteArray urlData(url.toUtf8());
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
+        return node->getType() == NodeType::EntityServer && node->getActiveSocket();
+    }, [&urlData, limitedNodeList](const SharedNodePointer& octreeNode) {
+        auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
+        octreeFilePacket->write(urlData);
+        limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
+    });
+    auto addressManager = DependencyManager::get<AddressManager>();
+    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
+    QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
+    qCDebug(interfaceapp) << "Setting new home bookmark to: " << newHomeAddress;
+    DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(newHomeAddress);
+}
+
 bool Application::askToReplaceDomainContent(const QString& url) {
     QString methodDetails;
     const int MAX_CHARACTERS_PER_LINE = 90;
@@ -6220,21 +6346,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                 QString details;
                 if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
                     // Given confirmation, send request to domain server to replace content
-                    qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
-                    QByteArray urlData(url.toUtf8());
-                    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-                    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
-                            return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-                        }, [&urlData, limitedNodeList](const SharedNodePointer& octreeNode) {
-                            auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
-                            octreeFilePacket->write(urlData);
-                            limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
-                        });
-                    auto addressManager = DependencyManager::get<AddressManager>();
-                    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
-                    QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
-                    qCDebug(interfaceapp) << "Setting new home bookmark to: " << newHomeAddress;
-                    DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(newHomeAddress);
+                    replaceDomainContent(url);
                     details = "SuccessfulRequestToReplaceContent";
                 } else {
                     details = "UserDeclinedToReplaceContent";
@@ -6518,7 +6630,8 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
             // to prevent files that aren't models from being loaded into world automatically
-            if (filePath.endsWith(".obj") || filePath.endsWith(".fbx")) {
+            if (filePath.endsWith(OBJ_EXTENSION) || filePath.endsWith(FBX_EXTENSION) || 
+                filePath.endsWith(JPG_EXTENSION) || filePath.endsWith(PNG_EXTENSION)) {
                 addAssetToWorldAddEntity(filePath, mapping);
             } else {
                 qCDebug(interfaceapp) << "Zipped contents are not supported entity files";
@@ -6535,8 +6648,17 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     EntityItemProperties properties;
     properties.setType(EntityTypes::Model);
     properties.setName(mapping.right(mapping.length() - 1));
-    properties.setModelURL("atp:" + mapping);
-    properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
+    if (filePath.endsWith(PNG_EXTENSION) || filePath.endsWith(JPG_EXTENSION)) {
+        QJsonObject textures {
+            {"tex.picture", QString("atp:" + mapping) }
+        };
+        properties.setModelURL("https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx");
+        properties.setTextures(QJsonDocument(textures).toJson(QJsonDocument::Compact));
+        properties.setShapeType(SHAPE_TYPE_BOX);
+    } else {
+        properties.setModelURL("atp:" + mapping);
+        properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
+    }
     properties.setCollisionless(true);  // Temporarily set so that doesn't collide with avatar.
     properties.setVisible(false);  // Temporarily set so that don't see at large unresized dimensions.
     glm::vec3 positionOffset = getMyAvatar()->getWorldOrientation() * (getMyAvatar()->getSensorToWorldScale() * glm::vec3(0.0f, 0.0f, -2.0f));
@@ -6960,10 +7082,10 @@ void Application::loadAvatarBrowser() const {
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
 }
 
-void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
-    postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
+void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
+    postLambdaEvent([notify, includeAnimated, aspectRatio, filename, this] {
         // Get a screenshot and save it
-        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
+        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio), filename);
         // If we're not doing an animated snapshot as well...
         if (!includeAnimated) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
@@ -6975,9 +7097,9 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
     });
 }
 
-void Application::takeSecondaryCameraSnapshot() {
-    postLambdaEvent([this] {
-        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot());
+void Application::takeSecondaryCameraSnapshot(const QString& filename) {
+    postLambdaEvent([filename, this] {
+        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename);
         emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
     });
 }
@@ -7351,9 +7473,7 @@ void Application::updateDisplayMode() {
             action->setChecked(true);
         }
 
-        _offscreenContext->makeCurrent();
         offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
-        _offscreenContext->makeCurrent();
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
         connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent, Qt::DirectConnection);

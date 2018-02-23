@@ -267,8 +267,10 @@ public:
 
     float getGameLoopRate() const { return _gameLoopCounter.rate(); }
 
-    void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f);
-    void takeSecondaryCameraSnapshot();
+    // Note that takeSnapshot has a default value, as this method is used internally.
+    void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
+    void takeSecondaryCameraSnapshot(const QString& filename);
+
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
     graphics::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
@@ -284,6 +286,8 @@ public:
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
     void saveNextPhysicsStats(QString filename);
+
+    void replaceDomainContent(const QString& url);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -390,6 +394,8 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
 private slots:
+    void onDesktopRootItemCreated(QQuickItem* qmlContext);
+    void onDesktopRootContextCreated(QQmlContext* qmlContext);
     void showDesktop();
     void clearDomainOctreeDetails();
     void clearDomainAvatars();
@@ -470,6 +476,7 @@ private:
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
     bool importFromZIP(const QString& filePath);
+    bool importImage(const QString& urlString);
 
     bool nearbyEntitiesAreReadyForPhysics();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);

@@ -12,6 +12,8 @@
 #ifndef hifi_BitVectorHelpers_h
 #define hifi_BitVectorHelpers_h
 
+#include "NumericalConstants.h"
+
 int calcBitVectorSize(int numBits) {
     return ((numBits - 1) >> 3) + 1;
 }

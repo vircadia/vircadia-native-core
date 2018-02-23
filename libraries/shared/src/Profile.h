@@ -32,6 +32,7 @@ Q_DECLARE_LOGGING_CATEGORY(trace_simulation_animation)
 Q_DECLARE_LOGGING_CATEGORY(trace_simulation_animation_detail)
 Q_DECLARE_LOGGING_CATEGORY(trace_simulation_physics)
 Q_DECLARE_LOGGING_CATEGORY(trace_simulation_physics_detail)
+Q_DECLARE_LOGGING_CATEGORY(trace_workload)
 
 class Duration {
 public:

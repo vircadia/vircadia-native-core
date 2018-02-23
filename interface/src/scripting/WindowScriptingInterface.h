@@ -22,17 +22,6 @@
 
 #include <DependencyManager.h>
 
-class CustomPromptResult {
-public:
-    QVariant value;
-};
-
-Q_DECLARE_METATYPE(CustomPromptResult);
-
-QScriptValue CustomPromptResultToScriptValue(QScriptEngine* engine, const CustomPromptResult& result);
-void CustomPromptResultFromScriptValue(const QScriptValue& object, CustomPromptResult& result);
-
-
 /**jsdoc
  * The Window API provides various facilities not covered elsewhere: window dimensions, window focus, normal or entity camera
  * view, clipboard, announcements, user connections, common dialog boxes, snapshots, file import, domain changes, domain 
@@ -141,15 +130,6 @@ public slots:
      * print("Script continues without waiting");
      */
     void promptAsync(const QString& message = "", const QString& defaultText = "");
-
-    /**jsdoc
-     * Prompt the user for input in a custom, modal dialog.
-     * @deprecated This function is deprecated and will soon be removed.
-     * @function Window.customPrompt
-     * @param {object} config - Configures the modal dialog.
-     * @returns {object} The user's response.
-     */
-    CustomPromptResult customPrompt(const QVariant& config);
 
     /**jsdoc
      * Prompt the user to choose a directory. Displays a modal dialog that navigates the directory tree.
@@ -334,6 +314,8 @@ public slots:
      * @param {number} aspectRatio=0 - The width/height ratio of the snapshot required. If the value is <code>0</code> the
      *     full resolution is used (window dimensions in desktop mode; HMD display dimensions in HMD mode), otherwise one of the
      *     dimensions is adjusted in order to match the aspect ratio.
+     * @param {string} filename=QString() - If this value is not null then the image will be saved to this filename, with an appended ",jpg".
+	 *      otherwise, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'
      * @example <caption>Using the snapshot function and signals.</caption>
      * function onStillSnapshotTaken(path, notify) {
      *     print("Still snapshot taken: " + path);
@@ -355,15 +337,19 @@ public slots:
      * var notify = true;
      * var animated = true;
      * var aspect = 1920 / 1080;
-     * Window.takeSnapshot(notify, animated, aspect);
+     * var filename = QString();
+     * Window.takeSnapshot(notify, animated, aspect, filename);
      */
-    void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f);
+    void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
 
     /**jsdoc
      * Takes a still snapshot of the current view from the secondary camera that can be set up through the {@link Render} API.
      * @function Window.takeSecondaryCameraSnapshot
+     * @param {string} filename=QString() - If this value is not null then the image will be saved to this filename, with an appended ".jpg"
+     *
+     * var filename = QString();
      */
-    void takeSecondaryCameraSnapshot();
+    void takeSecondaryCameraSnapshot(const QString& filename = QString());
 
     /**jsdoc
      * Emit a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that

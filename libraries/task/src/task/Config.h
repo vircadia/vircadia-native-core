@@ -20,8 +20,6 @@
 
 #include "SettingHandle.h"
 
-#include "Logging.h"
-
 namespace task {
 
 class JobConcept;
@@ -140,12 +138,12 @@ public:
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
 
-    
+
     // Get a sub job config through task.getConfig(path)
     // where path can be:
     // - <job_name> search for the first job named job_name traversing the the sub graph of task and jobs (from this task as root)
     // - <parent_name>.[<sub_parent_names>.]<job_name>
-    //    Allowing to first look for the parent_name job (from this task as root) and then search from there for the 
+    //    Allowing to first look for the parent_name job (from this task as root) and then search from there for the
     //    optional sub_parent_names and finally from there looking for the job_name (assuming every job in the path were found)
     //
     // getter for qml integration, prefer the templated getter
@@ -174,7 +172,7 @@ public:
 
     void connectChildConfig(QConfigPointer childConfig, const std::string& name);
     void transferChildrenConfigs(QConfigPointer source);
-     
+
     JobConcept* _task;
 
 public slots:
@@ -182,7 +180,7 @@ public slots:
 };
 
 using QConfigPointer = std::shared_ptr<QObject>;
-    
+
 }
 
 #endif // hifi_task_Config_h

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioMixerSlave.h"
+
 #include <algorithm>
 
 #include <glm/glm.hpp>
@@ -33,8 +35,6 @@
 #include "AvatarAudioStream.h"
 #include "InjectedAudioStream.h"
 #include "AudioHelpers.h"
-
-#include "AudioMixerSlave.h"
 
 using AudioStreamMap = AudioMixerClientData::AudioStreamMap;
 
@@ -176,7 +176,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                 auto nodeID = node->getUUID();
 
                 // compute the node's max relative volume
-                float nodeVolume;
+                float nodeVolume = 0.0f;
                 for (auto& streamPair : nodeData->getAudioStreams()) {
                     auto nodeStream = streamPair.second;
 
@@ -193,10 +193,8 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                 }
 
                 // max-heapify the nodes by relative volume
-                throttledNodes.push_back(std::make_pair(nodeVolume, node));
-                if (!throttledNodes.empty()) {
-                    std::push_heap(throttledNodes.begin(), throttledNodes.end());
-                }
+                throttledNodes.push_back({ nodeVolume, node });
+                std::push_heap(throttledNodes.begin(), throttledNodes.end());
             }
         }
     });
