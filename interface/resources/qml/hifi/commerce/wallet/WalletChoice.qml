@@ -202,10 +202,12 @@ Item {
                         "longer be able to access your money and your past purchases.<br><br>" +
                         "This step should only be used if you cannot find your keys.<br><br>" +
                         "This step cannot be undone.";
+                    lightboxPopup.button1color = hifi.buttons.red;
                     lightboxPopup.button1text = "YES, CREATE NEW WALLET";
                     lightboxPopup.button1method = "proceed(true);";
-                    lightboxPopup.button2text = "CLOSE";
+                    lightboxPopup.button2text = "CANCEL";
                     lightboxPopup.button2method = "root.visible = false;"
+                    lightboxPopup.buttonLayout = "topbottom";
                     lightboxPopup.visible = true;
 
             }
