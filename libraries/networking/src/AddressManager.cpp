@@ -302,7 +302,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 
     } else if (lookupUrl.scheme() == "http" || lookupUrl.scheme() == "https" || lookupUrl.scheme() == "file") {
         _previousLookup.clear();
-        QUrl domainUrl = PathUtils::expandToAppAbsolutePath(lookupUrl);
+        QUrl domainUrl = PathUtils::expandToLocalDataAbsolutePath(lookupUrl);
         emit setServersEnabled(false);
         setDomainInfo(domainUrl, QString(), 0, trigger);
         DependencyManager::get<NodeList>()->getDomainHandler().setIsConnected(true);
