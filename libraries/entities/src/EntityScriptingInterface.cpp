@@ -1004,6 +1004,25 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
 
     QString faceName = "";
     // handle BoxFace
+    /**jsdoc
+     * <p>A <code>BoxFace</code> specifies the face of an axis-aligned (AA) box.
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>"MIN_X_FACE"</code></td><td>The minimum x-axis face.</td></tr>
+     *     <tr><td><code>"MAX_X_FACE"</code></td><td>The maximum x-axis face.</td></tr>
+     *     <tr><td><code>"MIN_Y_FACE"</code></td><td>The minimum y-axis face.</td></tr>
+     *     <tr><td><code>"MAX_Y_FACE"</code></td><td>The maximum y-axis face.</td></tr>
+     *     <tr><td><code>"MIN_Z_FACE"</code></td><td>The minimum z-axis face.</td></tr>
+     *     <tr><td><code>"MAX_Z_FACE"</code></td><td>The maximum z-axis face.</td></tr>
+     *     <tr><td><code>"UNKNOWN_FACE"</code></td><td>Unknown value.</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {string} BoxFace
+     */
+    //  FIXME: Move enum to string function to BoxBase.cpp.
     switch (value.face) {
         case MIN_X_FACE:
             faceName = "MIN_X_FACE";
