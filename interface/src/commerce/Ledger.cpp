@@ -22,6 +22,8 @@
 // inventory answers {status: 'success', data: {assets: [{id: "guid", title: "name", preview: "url"}....]}}
 // balance answers {status: 'success', data: {balance: integer}}
 // buy and receive_at answer {status: 'success'}
+// account synthesizes a result {status: 'success', data: {keyStatus: "preexisting"|"conflicting"|"ok"}}
+
 
 QJsonObject Ledger::apiResponse(const QString& label, QNetworkReply& reply) {
     QByteArray response = reply.readAll();
@@ -178,7 +180,7 @@ QString transactionString(const QJsonObject& valueObject) {
     } else {
         result += valueObject["message"].toString();
     }
-    
+
     // no matter what we append a smaller date to the bottom of this...
     result += QString("<br><font size='-2' color='#1080B8'>%1").arg(createdAt.toLocalTime().toString(Qt::DefaultLocaleShortDate));
     return result;
@@ -250,13 +252,26 @@ void Ledger::accountSuccess(QNetworkReply& reply) {
     wallet->setIv(iv);
     wallet->setCKey(ckey);
 
+    QString keyStatus = "ok";
     QStringList localPublicKeys = wallet->listPublicKeys();
-    if (remotePublicKey.isEmpty() && !localPublicKeys.isEmpty()) {
-        receiveAt(localPublicKeys.first(), "");
+    if (remotePublicKey.isEmpty()) {
+        if (!localPublicKeys.isEmpty()) {
+            receiveAt(localPublicKeys.first(), "");
+        }
+    } else {
+        if (localPublicKeys.isEmpty()) {
+            keyStatus = "preexisting";
+        } else if (localPublicKeys.first() != remotePublicKey) {
+            keyStatus = "conflicting";
+        }
     }
 
     // none of the hfc account info should be emitted
-    emit accountResult(QJsonObject{ {"status", "success"} });
+    QJsonObject json;
+    QJsonObject responseData{ { "status", "success"} };
+    json["keyStatus"] = keyStatus;
+    responseData["data"] = json;
+    emit accountResult(responseData);
 }
 
 void Ledger::accountFailure(QNetworkReply& reply) {

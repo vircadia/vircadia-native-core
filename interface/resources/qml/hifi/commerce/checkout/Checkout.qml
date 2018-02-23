@@ -59,11 +59,19 @@ Rectangle {
                     notSetUpTimer.start();
                 }
             } else if (walletStatus === 2) {
+                if (root.activeView != "preexisting") {
+                    root.activeView = "preexisting";
+                }
+            } else if (walletStatus === 3) {
+                if (root.activeView != "conflicting") {
+                    root.activeView = "conflicting";
+                }
+            } else if (walletStatus === 4) {
                 if (root.activeView !== "passphraseModal") {
                     root.activeView = "passphraseModal";
                     UserActivityLogger.commercePassphraseEntry("marketplace checkout");
                 }
-            } else if (walletStatus === 3) {
+            } else if (walletStatus === 5) {
                 authSuccessStep();
             } else {
                 console.log("ERROR in Checkout.qml: Unknown wallet status: " + walletStatus);

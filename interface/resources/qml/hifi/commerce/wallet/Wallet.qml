@@ -56,11 +56,19 @@ Rectangle {
                         (AddressManager.placename || AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : ''));
                 }
             } else if (walletStatus === 2) {
+                if (root.activeView != "preexisting") {
+                    root.activeView = "preexisting";
+                }
+            } else if (walletStatus === 3) {
+                if (root.activeView != "conflicting") {
+                    root.activeView = "conflicting";
+                }
+            } else if (walletStatus === 4) {
                 if (root.activeView !== "passphraseModal") {
                     root.activeView = "passphraseModal";
                     UserActivityLogger.commercePassphraseEntry("wallet app");
                 }
-            } else if (walletStatus === 3) {
+            } else if (walletStatus === 5) {
                 if (root.activeView !== "walletSetup") {
                     root.activeView = "walletHome";
                     Commerce.getSecurityImage();
@@ -168,6 +176,10 @@ Rectangle {
     //
     // TITLE BAR END
     //
+    WalletChoice {
+        visible: (root.activeView === "preexisiting") || (root.activeView === "conflicting");
+        activeView: root.activeView;
+    }
 
     WalletSetup {
         id: walletSetup;

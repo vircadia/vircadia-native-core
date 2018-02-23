@@ -300,17 +300,24 @@ Wallet::Wallet() {
     packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnershipPacket");
     packetReceiver.registerListener(PacketType::ChallengeOwnershipRequest, this, "handleChallengeOwnershipPacket");
 
-    connect(ledger.data(), &Ledger::accountResult, this, [&]() {
+    connect(ledger.data(), &Ledger::accountResult, this, [&](QJsonObject result) {
         auto wallet = DependencyManager::get<Wallet>();
         auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
         uint status;
+        QString keyStatus = result.contains("data") ? result["data"].toObject()["keyStatus"].toString() : "";
 
         if (wallet->getKeyFilePath() == "" || !wallet->getSecurityImage()) {
-            status = (uint)WalletStatus::WALLET_STATUS_NOT_SET_UP;
+            if (keyStatus == "preexisting") {
+                status = (uint) WalletStatus::WALLET_STATUS_PREEXISTING;
+            } else{
+                status = (uint) WalletStatus::WALLET_STATUS_NOT_SET_UP;
+            }
         } else if (!wallet->walletIsAuthenticatedWithPassphrase()) {
-            status = (uint)WalletStatus::WALLET_STATUS_NOT_AUTHENTICATED;
+            status = (uint) WalletStatus::WALLET_STATUS_NOT_AUTHENTICATED;
+        } else if (keyStatus == "conflicting") {
+            status = (uint) WalletStatus::WALLET_STATUS_CONFLICTING;
         } else {
-            status = (uint)WalletStatus::WALLET_STATUS_READY;
+            status = (uint) WalletStatus::WALLET_STATUS_READY;
         }
 
         walletScriptingInterface->setWalletStatus(status);

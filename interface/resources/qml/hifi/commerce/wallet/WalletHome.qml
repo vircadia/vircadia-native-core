@@ -318,8 +318,8 @@ Item {
 
                 RalewayRegular {
                     id: noActivityText;
-                text: "<b>The Wallet app is in closed Beta.</b><br><br>To request entry and <b>receive free HFC</b>, please contact " +
-                "<b>info@highfidelity.com</b> with your High Fidelity account username and the email address registered to that account.";
+                text: "To <b>receive free HFC</b>, please go to " +
+                '<a href="hifi://BankOfHighFidelity/415.049,5.55924,-254.583/0,0.995213,0,0.0977305">BankOfHighFidelity</a>';
                 // Text size
                 size: 24;
                 // Style
