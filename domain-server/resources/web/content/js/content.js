@@ -67,6 +67,10 @@ $(document).ready(function(){
           data: fileFormData
         }).done(function(data, textStatus, jqXHR) {
           isRestoring = true;
+
+          // immediately reload backup information since one should be restoring now
+          reloadBackupInformation();
+
           swal.close();
         }).fail(function(jqXHR, textStatus, errorThrown) {
           showErrorMessage(
@@ -297,6 +301,10 @@ $(document).ready(function(){
         // setup an AJAX POST to request content restore
         $.post('/api/backups/recover/' + backupID).done(function(data, textStatus, jqXHR) {
           isRestoring = true;
+
+          // immediately reload our backup information since one should be restoring now
+          reloadBackupInformation();
+
           swal.close();
         }).fail(function(jqXHR, textStatus, errorThrown) {
           showErrorMessage(

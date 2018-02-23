@@ -250,6 +250,7 @@ bool DomainContentBackupManager::recoverFromBackupZip(const QString& backupName,
         return false;
     } else {
         _isRecovering = true;
+        _recoveryFilename = backupName;
 
         for (auto& handler : _backupHandlers) {
             handler->recoverBackup(backupName, zip);
