@@ -217,8 +217,11 @@ void AssetsBackupHandler::loadBackup(const QString& backupName, QuaZip& zip) {
         backup.mappings[assetPath] = assetHash;
         _assetsInBackups.insert(assetHash);
     }
+}
 
+void AssetsBackupHandler::loadingComplete() {
     checkForMissingAssets();
+    checkForAssetsToDelete();
 }
 
 void AssetsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {

@@ -470,6 +470,10 @@ void DomainContentBackupManager::load() {
 
         zip.close();
     }
+
+    for (auto& handler : _backupHandlers) {
+        handler->loadingComplete();
+    }
 }
 
 void DomainContentBackupManager::backup() {

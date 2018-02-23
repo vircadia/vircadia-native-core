@@ -23,6 +23,8 @@ public:
 
     void loadBackup(const QString& backupName, QuaZip& zip) override {}
 
+    void loadingComplete() override {}
+
     // Create a skeleton backup
     void createBackup(const QString& backupName, QuaZip& zip) override;
 
