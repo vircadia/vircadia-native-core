@@ -108,8 +108,10 @@ namespace scriptable {
         uint32 getNumFaces() const { return parentMesh ? parentMesh->getNumIndices() / _elementsPerFace : 0; }
         QVector<QString> getAttributeNames() const { return parentMesh ? parentMesh->getAttributeNames() : QVector<QString>(); }
         QVector<uint32> getFace(uint32 faceIndex) const {
-            auto inds = parentMesh ? parentMesh->getIndices() : QVector<uint32>();
-            return faceIndex+2 < (uint32)inds.size() ? inds.mid(faceIndex*3, 3) : QVector<uint32>();
+            if (parentMesh && faceIndex + 2 < parentMesh->getNumIndices()) {
+                return parentMesh->getIndices().mid(faceIndex*3, 3);
+            }
+            return QVector<uint32>();
         }
         QVariantMap scaleToFit(float unitScale);
         QVariantMap translate(const glm::vec3& translation);
@@ -118,7 +120,6 @@ namespace scriptable {
         QVariantMap rotate(const glm::quat& rotation, const glm::vec3& origin = glm::vec3(NAN));
         QVariantMap transform(const glm::mat4& transform);
 
-        bool unrollVertices(bool recalcNormals = false);
         bool dedupeVertices(float epsilon = 1e-6);
         bool recalculateNormals() { return buffer_helpers::recalculateNormals(getMeshPointer()); }
 

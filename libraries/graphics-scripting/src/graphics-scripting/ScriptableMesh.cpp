@@ -305,65 +305,6 @@ quint32 scriptable::ScriptableMeshPart::mapAttributeValues(QScriptValue callback
     return parentMesh ? parentMesh->mapAttributeValues(callback) : 0;
 }
 
-bool scriptable::ScriptableMeshPart::unrollVertices(bool recalcNormals) {
-    auto mesh = getMeshPointer();
-#ifdef SCRIPTABLE_MESH_DEBUG
-    qCInfo(graphics_scripting) << "ScriptableMeshPart::unrollVertices" << !!mesh<< !!parentMesh;
-#endif
-    if (!mesh) {
-        return false;
-    }
-
-    auto positions = mesh->getVertexBuffer();
-    auto indices = mesh->getIndexBuffer();
-    quint32 numPoints = (quint32)indices.getNumElements();
-    auto buffer = new gpu::Buffer();
-    buffer->resize(numPoints * sizeof(uint32_t));
-    auto newindices = gpu::BufferView(buffer, { gpu::SCALAR, gpu::UINT32, gpu::INDEX });
-#ifdef SCRIPTABLE_MESH_DEBUG
-    qCInfo(graphics_scripting) << "ScriptableMeshPart::unrollVertices numPoints" << numPoints;
-#endif
-    auto attributeViews = buffer_helpers::gatherBufferViews(mesh);
-    for (const auto& a : attributeViews) {
-        auto& view = a.second;
-        auto sz = view._element.getSize();
-        auto buffer = new gpu::Buffer();
-        buffer->resize(numPoints * sz);
-        auto points = gpu::BufferView(buffer, view._element);
-        auto slot = buffer_helpers::ATTRIBUTES[a.first];
-#ifdef SCRIPTABLE_MESH_DEBUG
-        if (0) {
-            auto src = (uint8_t*)view._buffer->getData();
-            auto dest = (uint8_t*)points._buffer->getData();
-            qCInfo(graphics_scripting) << "ScriptableMeshPart::unrollVertices buffer" << a.first;
-            qCInfo(graphics_scripting) << "ScriptableMeshPart::unrollVertices source" << view.getNumElements();
-            qCInfo(graphics_scripting) << "ScriptableMeshPart::unrollVertices dest" << points.getNumElements();
-            qCInfo(graphics_scripting) << "ScriptableMeshPart::unrollVertices sz" << sz << src << dest << slot;
-        }
-#endif
-        auto esize = indices._element.getSize();
-        const char* hint= a.first.toStdString().c_str();
-        for(quint32 i = 0; i < numPoints; i++) {
-            quint32 index = esize == 4 ? indices.get<quint32>(i) : indices.get<quint16>(i);
-            newindices.edit<uint32_t>(i) = i;
-            buffer_helpers::fromVariant(
-                points, i,
-                buffer_helpers::toVariant(view, index, false, hint)
-                    );
-        }
-        if (slot == gpu::Stream::POSITION) {
-            mesh->setVertexBuffer(points);
-        } else {
-            mesh->addAttribute(slot, points);
-        }
-    }
-    mesh->setIndexBuffer(newindices);
-    if (recalcNormals) {
-        recalculateNormals();
-    }
-    return true;
-}
-
 bool scriptable::ScriptableMeshPart::replaceMeshData(scriptable::ScriptableMeshPartPointer src, const QVector<QString>& attributeNames) {
     auto target = getMeshPointer();
     auto source = src ? src->getMeshPointer() : nullptr;
@@ -389,7 +330,9 @@ bool scriptable::ScriptableMeshPart::replaceMeshData(scriptable::ScriptableMeshP
         for (const auto& a : attributeViews) {
             auto slot = buffer_helpers::ATTRIBUTES[a.first];
             if (!attributes.contains(a.first)) {
+#ifdef SCRIPTABLE_MESH_DEBUG
                 qCInfo(graphics_scripting) << "ScriptableMesh::replaceMeshData -- pruning target attribute" << a.first << slot;
+#endif
                 target->removeAttribute(slot);
             }
         }
@@ -404,21 +347,29 @@ bool scriptable::ScriptableMeshPart::replaceMeshData(scriptable::ScriptableMeshP
         if (slot == gpu::Stream::POSITION) {
             continue;
         }
+#ifdef SCRIPTABLE_MESH_DEBUG
         auto& before = target->getAttributeBuffer(slot);
+#endif
         auto& input = source->getAttributeBuffer(slot);
         if (input.getNumElements() == 0) {
+#ifdef SCRIPTABLE_MESH_DEBUG
             qCInfo(graphics_scripting) << "ScriptableMeshPart::replaceMeshData buffer is empty -- pruning" << a << slot;
+#endif
             target->removeAttribute(slot);
         } else {
+#ifdef SCRIPTABLE_MESH_DEBUG
             if (before.getNumElements() == 0) {
                 qCInfo(graphics_scripting) << "ScriptableMeshPart::replaceMeshData target buffer is empty -- adding" << a << slot;
             } else {
                 qCInfo(graphics_scripting) << "ScriptableMeshPart::replaceMeshData target buffer exists -- updating" << a << slot;
             }
+#endif
             target->addAttribute(slot, buffer_helpers::clone(input));
         }
+#ifdef SCRIPTABLE_MESH_DEBUG
         auto& after = target->getAttributeBuffer(slot);
         qCInfo(graphics_scripting) << "ScriptableMeshPart::replaceMeshData" << a << slot << before.getNumElements() << " -> " << after.getNumElements();
+#endif
     }
 
 
@@ -465,7 +416,6 @@ bool scriptable::ScriptableMeshPart::dedupeVertices(float epsilon) {
     for (quint32 i = 0; i < numIndices; i++) {
         quint32 index = esize == 4 ? indices.get<quint32>(i) : indices.get<quint16>(i);
         if (remapIndices.contains(index)) {
-            //qCInfo(graphics_scripting) << i << index << "->" << remapIndices[index];
             newIndices << remapIndices[index];
         } else {
             qCInfo(graphics_scripting) << i << index << "!remapIndices[index]";
@@ -483,9 +433,11 @@ bool scriptable::ScriptableMeshPart::dedupeVertices(float epsilon) {
         if (slot == gpu::Stream::POSITION) {
             continue;
         }
-        qCInfo(graphics_scripting) << "ScriptableMeshPart::dedupeVertices" << a.first << slot << view.getNumElements();
         auto newView = buffer_helpers::resize(view, numUniqueVerts);
+#ifdef SCRIPTABLE_MESH_DEBUG
+        qCInfo(graphics_scripting) << "ScriptableMeshPart::dedupeVertices" << a.first << slot << view.getNumElements();
         qCInfo(graphics_scripting) << a.first << "before: #" << view.getNumElements() << "after: #" << newView.getNumElements();
+#endif
         quint32 numElements = (quint32)view.getNumElements();
         for (quint32 i = 0; i < numElements; i++) {
             quint32 fromVertexIndex = i;
@@ -493,7 +445,7 @@ bool scriptable::ScriptableMeshPart::dedupeVertices(float epsilon) {
             buffer_helpers::fromVariant(
                 newView, toVertexIndex,
                 buffer_helpers::toVariant(view, fromVertexIndex, false, "dedupe")
-                );
+            );
         }
         mesh->addAttribute(slot, newView);
     }
@@ -515,10 +467,7 @@ scriptable::ScriptableMeshPointer scriptable::ScriptableMesh::cloneMesh(bool rec
     return scriptable::ScriptableMeshPointer(meshPointer);
 }
 
-
-
-// note: we don't always want the JS side to prevent mesh data from being freed
-
+// note: we don't always want the JS side to prevent mesh data from being freed (hence weak pointers unless parented QObject)
 scriptable::ScriptableMeshBase::ScriptableMeshBase(
     scriptable::WeakModelProviderPointer provider, scriptable::ScriptableModelBasePointer model, scriptable::WeakMeshPointer weakMesh, QObject* parent
     ) : QObject(parent), provider(provider), model(model), weakMesh(weakMesh) {
