@@ -219,8 +219,6 @@ void AssetsBackupHandler::loadBackup(const QString& backupName, QuaZip& zip) {
     }
 
     checkForMissingAssets();
-    checkForAssetsToDelete();
-    return;
 }
 
 void AssetsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
