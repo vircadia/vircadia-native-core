@@ -713,6 +713,7 @@ Menu::Menu() {
     MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
 
     addActionToQMenuAndActionHash(crashMenu, MenuOption::DeadlockInterface, 0, qApp, SLOT(deadlockApplication()));
+    addActionToQMenuAndActionHash(crashMenu, MenuOption::UnresponsiveInterface, 0, qApp, SLOT(unresponsiveApplication()));
 
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashPureVirtualFunction);
     connect(action, &QAction::triggered, qApp, []() { crash::pureVirtualCall(); });

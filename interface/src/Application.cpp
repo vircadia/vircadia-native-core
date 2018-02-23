@@ -7542,6 +7542,18 @@ void Application::deadlockApplication() {
     }
 }
 
+// cause main thread to be unresponsive for 35 seconds
+void Application::unresponsiveApplication() {
+    // to avoid compiler warnings about a loop that will never exit
+    uint64_t start = usecTimestampNow();
+    uint64_t UNRESPONSIVE_FOR_SECONDS = 35;
+    uint64_t UNRESPONSIVE_FOR_USECS = UNRESPONSIVE_FOR_SECONDS * USECS_PER_SECOND;
+    qCDebug(interfaceapp) << "Intentionally cause Interface to be unresponsive for " << UNRESPONSIVE_FOR_SECONDS << " seconds";
+    while (usecTimestampNow() - start < UNRESPONSIVE_FOR_USECS) {
+        QThread::sleep(1);
+    }
+}
+
 void Application::setActiveDisplayPlugin(const QString& pluginName) {
     auto menu = Menu::getInstance();
     foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
