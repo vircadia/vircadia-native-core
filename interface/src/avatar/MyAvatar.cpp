@@ -1164,6 +1164,7 @@ void MyAvatar::loadData() {
         updateAvatarEntity(entityID, properties);
     }
     settings.endArray();
+    qDebug() << "QQQQ saved " << avatarEntityCount << " avatar entities";
     if (avatarEntityCount == 0) {
         // HACK: manually remove empty 'avatarEntityData' else legacy data may persist in settings file
         settings.remove("avatarEntityData");

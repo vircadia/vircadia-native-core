@@ -81,7 +81,7 @@ const QString& PathUtils::resourcesPath() {
 #else
         staticResourcePath = ":/";
 #endif
-        
+
 #if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
         if (USE_SOURCE_TREE_RESOURCES()) {
             // For dev builds, optionally load content from the Git source tree
@@ -124,8 +124,9 @@ QUrl PathUtils::expandToAppAbsolutePath(const QUrl& fileUrl) {
     QUrl url = fileUrl;
     QString path = fileUrl.path();
     if (path.startsWith("/~/")) {
-        path.replace(0, 3, resourcesUrl());
+        path.replace(0, 3, getAppLocalDataPath());
         url = QUrl(path);
+        qDebug() << "QQQQ expandToAppAbsolutePath: " << fileUrl << url;
     }
     return url;
 }
