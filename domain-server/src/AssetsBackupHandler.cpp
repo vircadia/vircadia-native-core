@@ -339,13 +339,15 @@ void AssetsBackupHandler::deleteBackup(const QString& backupName) {
         return;
     }
 
-    const auto it = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& backup) {
+    const auto it = remove_if(begin(_backups), end(_backups), [&](const AssetServerBackup& backup) {
         return backup.name == backupName;
     });
     if (it == end(_backups)) {
         qCDebug(asset_backup) << "Could not find backup" << backupName << "to delete.";
         return;
     }
+
+    _backups.erase(it, end(_backups));
 
     refreshAssetsInBackups();
     checkForAssetsToDelete();
