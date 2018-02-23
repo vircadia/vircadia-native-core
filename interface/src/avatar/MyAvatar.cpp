@@ -1638,8 +1638,7 @@ void MyAvatar::updateMotors() {
             _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
         horizontalMotorTimescale = FLYING_MOTOR_TIMESCALE;
         verticalMotorTimescale = FLYING_MOTOR_TIMESCALE;
-    }
-    else {
+    } else {
         horizontalMotorTimescale = WALKING_MOTOR_TIMESCALE;
         verticalMotorTimescale = INVALID_MOTOR_TIMESCALE;
     }
@@ -1671,11 +1670,9 @@ void MyAvatar::updateMotors() {
     if (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED) {
         if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
             motorRotation = getMyHead()->getHeadOrientation() * glm::angleAxis(PI, Vectors::UNIT_Y);
-        }
-        else if (_scriptedMotorFrame == SCRIPTED_MOTOR_AVATAR_FRAME) {
+        } else if (_scriptedMotorFrame == SCRIPTED_MOTOR_AVATAR_FRAME) {
             motorRotation = getWorldOrientation() * glm::angleAxis(PI, Vectors::UNIT_Y);
-        }
-        else {
+        } else {
             // world-frame
             motorRotation = glm::quat();
         }
