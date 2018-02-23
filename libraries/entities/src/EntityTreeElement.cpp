@@ -643,25 +643,25 @@ EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& ori
     int entityNumber = 0;
     EntityItemID entityID;
     forEachEntity([&](EntityItemPointer entity) {
-        if ( (visibleOnly && !entity->isVisible()) || (collidableOnly && (entity->getCollisionless() || entity->getShapeType() == SHAPE_TYPE_NONE))
-            || (entityIdsToInclude.size() > 0 && !entityIdsToInclude.contains(entity->getID()))
-            || (entityIDsToDiscard.size() > 0 && entityIDsToDiscard.contains(entity->getID())) ) {
-            return;
-        }
-
+        // use simple line-sphere for broadphase check
+        // (this is faster and more likely to cull results than the filter check below so we do it first)
         bool success;
         AABox entityBox = entity->getAABox(success);
         if (!success) {
             return;
         }
+        glm::vec3 sphereCenter = entityBox.calcCenter() - origin;
+        float r2 = 0.25f * glm::length2(entityBox.getScale());
+        float d = glm::dot(sphereCenter, direction);
+        if (glm::length2(sphereCenter) > r2 && (glm::abs(d) > 0.0f && glm::distance2(d * direction, sphereCenter) > r2)) {
+            return;
+        }
 
-        float localDistance;
-        BoxFace localFace;
-        glm::vec3 localSurfaceNormal;
-        QVariantMap localExtraInfo;
-
-        // if the ray doesn't intersect with our cube, we can stop searching!
-        if (!entityBox.findRayIntersection(origin, direction, localDistance, localFace, localSurfaceNormal)) {
+        // check RayPick filter settings
+        if ((visibleOnly && !entity->isVisible())
+                || (collidableOnly && (entity->getCollisionless() || entity->getShapeType() == SHAPE_TYPE_NONE))
+                || (entityIdsToInclude.size() > 0 && !entityIdsToInclude.contains(entity->getID()))
+                || (entityIDsToDiscard.size() > 0 && entityIDsToDiscard.contains(entity->getID())) ) {
             return;
         }
 
@@ -682,14 +682,17 @@ EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& ori
 
         // we can use the AABox's ray intersection by mapping our origin and direction into the entity frame
         // and testing intersection there.
+        float localDistance;
+        BoxFace localFace;
+        glm::vec3 localSurfaceNormal;
         if (entityFrameBox.findRayIntersection(entityFrameOrigin, entityFrameDirection, localDistance,
                                                 localFace, localSurfaceNormal)) {
             if (entityFrameBox.contains(entityFrameOrigin) || localDistance < distance) {
                 // now ask the entity if we actually intersect
                 if (entity->supportsDetailedRayIntersection()) {
+                    QVariantMap localExtraInfo;
                     if (entity->findDetailedRayIntersection(origin, direction, keepSearching, element, localDistance,
-                        localFace, localSurfaceNormal, localExtraInfo, precisionPicking)) {
-
+                            localFace, localSurfaceNormal, localExtraInfo, precisionPicking)) {
                         if (localDistance < distance) {
                             distance = localDistance;
                             face = localFace;
