@@ -189,9 +189,6 @@ public:
 
 private:
 
-    // Uniforms for AA
-    gpu::int32 _texcoordOffsetLoc;
-
     gpu::FramebufferSwapChainPointer _antialiasingBuffers;
     gpu::TexturePointer _antialiasingTextures[2];
 

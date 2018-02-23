@@ -18,7 +18,6 @@
 
 const int VelocityBufferPass_FrameTransformSlot = 0;
 const int VelocityBufferPass_DepthMapSlot = 0;
-const int VelocityBufferPass_NormalMapSlot = 1;
 
 
 #include "velocityBuffer_cameraMotion_frag.h"

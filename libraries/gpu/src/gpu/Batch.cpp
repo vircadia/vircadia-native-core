@@ -42,8 +42,6 @@ Batch::Batch(const char* name) {
     if (name) {
         _name = name;
     }
-#else
-    (void*)name;
 #endif
     _commands.reserve(_commandsMax);
     _commandOffsets.reserve(_commandOffsetsMax);
