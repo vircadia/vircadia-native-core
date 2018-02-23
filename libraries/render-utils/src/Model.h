@@ -143,7 +143,7 @@ public:
     /// Returns a reference to the shared collision geometry.
     const Geometry::Pointer& getCollisionGeometry() const { return _collisionGeometry; }
 
-    const QVariantMap getTextures() const { assert(isLoaded()); return getGeometry()->getTextures(); }
+    const QVariantMap getTextures() const { assert(isLoaded()); return _renderGeometry->getTextures(); }
     Q_INVOKABLE virtual void setTextures(const QVariantMap& textures);
 
     /// Provided as a convenience, will crash if !isLoaded()
