@@ -106,7 +106,12 @@ void AssetsBackupHandler::checkForAssetsToDelete() {
         });
         if (noCorruptedBackups) {
             for (const auto& hash : deprecatedAssets) {
-                QFile::remove(_assetsDirectory + hash);
+                auto success = QFile::remove(_assetsDirectory + hash);
+                if (success) {
+                    _assetsOnDisk.erase(hash);
+                } else {
+                    qCWarning(asset_backup) << "Could not delete asset:" << hash;
+                }
             }
         } else {
             qCWarning(asset_backup) << "Some backups did not load properly, aborting delete operation for safety.";
