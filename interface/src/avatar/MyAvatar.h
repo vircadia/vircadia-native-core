@@ -69,7 +69,7 @@ class MyAvatar : public Avatar {
      * @property motorTimescale {float} Specifies how quickly the avatar should accelerate to meet the motorVelocity,
      *   smaller values will result in higher acceleration.
      * @property motorReferenceFrame {string} Reference frame of the motorVelocity, must be one of the following: "avatar", "camera", "world"
-     * @property motorMode {string} Type of scripted motor behavior, "simple" = unmodified legacy behavior and "dynamic" = same as default motor
+     * @property motorMode {string} Type of scripted motor behavior, "simple" = use motorTimescale property (default mode) and "dynamic" = use action motor's timescales
      * @property collisionSoundURL {string} Specifies the sound to play when the avatar experiences a collision.
      *   You can provide a mono or stereo 16-bit WAV file running at either 24 Khz or 48 Khz.
      *   The latter is downsampled by the audio mixer, so all audio effectively plays back at a 24 Khz sample rate.
@@ -668,7 +668,7 @@ private:
     void setScriptedMotorVelocity(const glm::vec3& velocity);
     void setScriptedMotorTimescale(float timescale);
     void setScriptedMotorFrame(QString frame);
-    void setScriptedMotorMode(QString frame);
+    void setScriptedMotorMode(QString mode);
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
                         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(),
                         float scale = 1.0f, bool isSoft = false,

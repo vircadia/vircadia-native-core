@@ -1626,7 +1626,6 @@ controller::Pose MyAvatar::getControllerPoseInAvatarFrame(controller::Action act
 void MyAvatar::updateMotors() {
     _characterController.clearMotors();
     glm::quat motorRotation;
-    glm::quat avatarOrientation = getWorldOrientation();
 
     const float FLYING_MOTOR_TIMESCALE = 0.05f;
     const float WALKING_MOTOR_TIMESCALE = 0.2f;
@@ -1654,10 +1653,11 @@ void MyAvatar::updateMotors() {
             // we decompose camera's rotation and store the twist part in motorRotation
             // however, we need to perform the decomposition in the avatar-frame
             // using the local UP axis and then transform back into world-frame
-            glm::quat headOrientation = glm::inverse(avatarOrientation) * getMyHead()->getHeadOrientation(); // avatar-frame
+            glm::quat orientation = getWorldOrientation();
+            glm::quat headOrientation = glm::inverse(orientation) * getMyHead()->getHeadOrientation(); // avatar-frame
             glm::quat liftRotation;
             swingTwistDecomposition(headOrientation, Vectors::UNIT_Y, liftRotation, motorRotation);
-            motorRotation = avatarOrientation * motorRotation;
+            motorRotation = orientation * motorRotation;
         }
 
         if (_isPushing || _isBraking || !_isBeingPushed) {
@@ -1669,35 +1669,21 @@ void MyAvatar::updateMotors() {
         }
     }
     if (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED) {
+        if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
+            motorRotation = getMyHead()->getHeadOrientation() * glm::angleAxis(PI, Vectors::UNIT_Y);
+        }
+        else if (_scriptedMotorFrame == SCRIPTED_MOTOR_AVATAR_FRAME) {
+            motorRotation = getWorldOrientation() * glm::angleAxis(PI, Vectors::UNIT_Y);
+        }
+        else {
+            // world-frame
+            motorRotation = glm::quat();
+        }
         if (_scriptedMotorMode == SCRIPTED_MOTOR_SIMPLE_MODE) {
-            if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
-                motorRotation = getMyHead()->getHeadOrientation() * glm::angleAxis(PI, Vectors::UNIT_Y);
-            }
-            else if (_scriptedMotorFrame == SCRIPTED_MOTOR_AVATAR_FRAME) {
-                motorRotation = avatarOrientation * glm::angleAxis(PI, Vectors::UNIT_Y);
-            }
-            else {
-                // world-frame
-                motorRotation = glm::quat();
-            }
             _characterController.addMotor(_scriptedMotorVelocity, motorRotation, _scriptedMotorTimescale);
-        } else { 
+        } else {
             // dynamic mode
-            glm::vec3 avatarFrameVelocity;
-            if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
-                // convert camera frame velocity to avatar frame
-                glm::quat cameraOrientation = qApp->getCamera().getOrientation();
-                avatarFrameVelocity = glm::inverse(avatarOrientation) * cameraOrientation * _scriptedMotorVelocity;
-            } else if (_scriptedMotorFrame == SCRIPTED_MOTOR_WORLD_FRAME) {
-                // convert world frame velocity to avatar frame
-                avatarFrameVelocity = glm::inverse(avatarOrientation) * _scriptedMotorVelocity;
-            } else {
-                // avatar frame
-                avatarFrameVelocity = _scriptedMotorVelocity;
-            }
-            // dynamic mode for scripted motor uses avatar frame and piggybacks off of the default action motor's timescales
-            motorRotation = avatarOrientation * glm::angleAxis(PI, Vectors::UNIT_Y);
-            _characterController.addMotor(avatarFrameVelocity, motorRotation, horizontalMotorTimescale, verticalMotorTimescale);
+            _characterController.addMotor(_scriptedMotorVelocity, motorRotation, horizontalMotorTimescale, verticalMotorTimescale);
         }
     }
 
