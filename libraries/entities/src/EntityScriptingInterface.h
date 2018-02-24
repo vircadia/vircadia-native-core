@@ -165,7 +165,7 @@ public slots:
     /// temporary method until addEntity can be used from QJSEngine
     /// Deliberately not adding jsdoc, only used internally.
     Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const QString& textures, const QString& shapeType, bool dynamic,
-                                     const glm::vec3& position, const glm::vec3& gravity);
+                                     bool collisionless, const glm::vec3& position, const glm::vec3& gravity);
 
     /**jsdoc
      * Return the properties for the specified {EntityID}.
