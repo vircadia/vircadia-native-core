@@ -688,6 +688,9 @@
                 updateSendMoneyParticleEffect();
                 sendMoneyParticleEffectUpdateTimer = Script.setInterval(updateSendMoneyParticleEffect, SEND_MONEY_PARTICLE_TIMER_UPDATE);
                 break;
+            case 'transactionHistory_goToBank':
+                Window.location = "hifi://BankOfHighFidelity";
+                break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));
         }
