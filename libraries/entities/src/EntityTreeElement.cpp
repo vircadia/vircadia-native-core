@@ -598,13 +598,13 @@ EntityItemID EntityTreeElement::findRayIntersection(const glm::vec3& origin, con
 
     EntityItemID result;
     float distanceToElementCube = std::numeric_limits<float>::max();
-    float distanceToElementDetails = distance;
     BoxFace localFace;
     glm::vec3 localSurfaceNormal;
-    QVariantMap localExtraInfo;
 
-    // if the ray doesn't intersect with our cube, we can stop searching!
-    if (!_cube.findRayIntersection(origin, direction, distanceToElementCube, localFace, localSurfaceNormal)) {
+    // if the ray doesn't intersect with our cube OR the distance to element is less than current best distance
+    // we can stop searching!
+    if (!_cube.findRayIntersection(origin, direction, distanceToElementCube, localFace, localSurfaceNormal)
+            || (!_cube.contains(origin) && distanceToElementCube > distance)) {
         keepSearching = false; // no point in continuing to search
         return result; // we did not intersect
     }
@@ -616,20 +616,17 @@ EntityItemID EntityTreeElement::findRayIntersection(const glm::vec3& origin, con
 
     // if the distance to the element cube is not less than the current best distance, then it's not possible
     // for any details inside the cube to be closer so we don't need to consider them.
-    if (_cube.contains(origin) || distanceToElementCube < distance) {
-
-        EntityItemID entityID = findDetailedRayIntersection(origin, direction, keepSearching, element, distanceToElementDetails,
-                face, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
-                localExtraInfo, precisionPicking, distanceToElementCube);
-        if (!entityID.isNull()) {
-            if (distanceToElementDetails < distance) {
-                distance = distanceToElementDetails;
-                face = localFace;
-                surfaceNormal = localSurfaceNormal;
-                extraInfo = localExtraInfo;
-                result = entityID;
-            }
-        }
+    QVariantMap localExtraInfo;
+    float distanceToElementDetails = distance;
+    EntityItemID entityID = findDetailedRayIntersection(origin, direction, keepSearching, element, distanceToElementDetails,
+            face, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
+            localExtraInfo, precisionPicking);
+    if (!entityID.isNull() && distanceToElementDetails < distance) {
+        distance = distanceToElementDetails;
+        face = localFace;
+        surfaceNormal = localSurfaceNormal;
+        extraInfo = localExtraInfo;
+        result = entityID;
     }
     return result;
 }
@@ -637,7 +634,7 @@ EntityItemID EntityTreeElement::findRayIntersection(const glm::vec3& origin, con
 EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction, bool& keepSearching,
                                     OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                                     const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIDsToDiscard,
-                                    bool visibleOnly, bool collidableOnly, QVariantMap& extraInfo, bool precisionPicking, float distanceToElementCube) {
+                                    bool visibleOnly, bool collidableOnly, QVariantMap& extraInfo, bool precisionPicking) {
 
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     int entityNumber = 0;
@@ -650,10 +647,7 @@ EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& ori
         if (!success) {
             return;
         }
-        glm::vec3 sphereCenter = entityBox.calcCenter() - origin;
-        float r2 = 0.25f * glm::length2(entityBox.getScale());
-        float d = glm::dot(sphereCenter, direction);
-        if (glm::length2(sphereCenter) > r2 && (glm::abs(d) > 0.0f && glm::distance2(d * direction, sphereCenter) > r2)) {
+        if (!rayHitsSphere(origin, direction, entityBox.calcCenter(), 0.25f * glm::length2(entityBox.getScale()))) {
             return;
         }
 
