@@ -3052,8 +3052,6 @@ void Application::loadServerlessDomain(QUrl domainURL) {
         return;
     }
 
-    qDebug() << "QQQQ loadServerlessDomain" << domainURL.toString();
-
     clearDomainOctreeDetails();
     _entityClipboard->eraseAllOctreeElements();
 
@@ -5731,7 +5729,7 @@ void Application::updateWindowTitle() const {
 
     QString currentPlaceName;
     if (isServerlessMode()) {
-        currentPlaceName = "serverless"; // XXX filename?
+        currentPlaceName = "serverless: " + DependencyManager::get<AddressManager>()->getServerlessDomainURL().toString();
     } else {
         currentPlaceName = DependencyManager::get<AddressManager>()->getHost();
         if (currentPlaceName.isEmpty()) {
@@ -5789,7 +5787,6 @@ void Application::clearDomainAvatars() {
 }
 
 void Application::domainChanged(const QString& domainHostname) {
-    qDebug() << "QQQQ Application::domainChanged" << domainHostname;
     clearDomainOctreeDetails();
     getEntities()->getTree()->setIsServerlessMode(isServerlessMode());
     updateWindowTitle();
