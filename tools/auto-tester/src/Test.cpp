@@ -319,11 +319,12 @@ void Test::createRecursiveScript() {
         return;
     }
 
-    QFile allTestsFilename(topLevelDirectory + "/" + "allTests.js");
+    const QString recursiveTestsFilename("testRecursive.js");
+    QFile allTestsFilename(topLevelDirectory + "/" + recursiveTestsFilename);
     if (!allTestsFilename.open(QIODevice::WriteOnly | QIODevice::Text)) {
         messageBox.critical(0,
             "Internal Error",
-            "Failed to create \"allTests.js\" in directory \"" + topLevelDirectory + "\""
+            "Failed to create \"" + recursiveTestsFilename + "\" in directory \"" + topLevelDirectory + "\""
         );
 
         exit(-1);
@@ -335,9 +336,6 @@ void Test::createRecursiveScript() {
     textStream << "var autoTester = Script.require(\"https://github.com/highfidelity/hifi_tests/blob/master/tests/utils/autoTester.js?raw=true\");" << endl;
     textStream << "autoTester.enableRecursive();" << endl << endl;
 
-    // The main will call each test after the previous test is completed
-    // This is implemented with an interval timer that periodically tests if a
-    // running test has increment a testNumber variable that it received as an input.
     QVector<QString> testPathnames;
 
     // First test if top-level folder has a test.js file
@@ -371,7 +369,7 @@ void Test::createRecursiveScript() {
     }
 
     if (testPathnames.length() <= 0) {
-        messageBox.information(0, "Failure", "No \"test.js\" files found");
+        messageBox.information(0, "Failure", "No \"" + TEST_FILENAME + "\" files found");
         allTestsFilename.close();
         return;
     }
@@ -381,6 +379,9 @@ void Test::createRecursiveScript() {
 
     allTestsFilename.close();
     messageBox.information(0, "Success", "Script has been created");
+}
+
+void Test::createRecursiveScriptsRecursively() {
 }
 
 void Test::createTest() {

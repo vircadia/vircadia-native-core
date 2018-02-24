@@ -26,6 +26,7 @@ public:
     void evaluateTests(bool interactiveMode, QProgressBar* progressBar);
     void evaluateTestsRecursively(bool interactiveMode, QProgressBar* progressBar);
     void createRecursiveScript();
+    void createRecursiveScriptsRecursively();
     void createTest();
     void deleteOldSnapshots();
 

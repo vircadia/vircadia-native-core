@@ -30,6 +30,10 @@ void AutoTester::on_createRecursiveScriptButton_clicked() {
     test.createRecursiveScript();
 }
 
+void AutoTester::on_createRecursiveScriptsRecursivelyButton_clicked() {
+    test.createRecursiveScriptsRecursively();
+}
+
 void AutoTester::on_createTestButton_clicked() {
     test.createTest();
 }
