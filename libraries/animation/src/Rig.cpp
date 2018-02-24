@@ -434,9 +434,13 @@ void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, flo
 
 bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm::vec3 translation, glm::quat rotation) const {
     bool success { false };
-    if (QThread::currentThread() == thread()) {
+    glm::vec3 originalPosition = position;
+    bool onOwnerThread = (QThread::currentThread() == thread());
+    glm::vec3 poseSetTrans;
+    if (onOwnerThread) {
         if (isIndexValid(jointIndex)) {
-            position = (rotation * _internalPoseSet._absolutePoses[jointIndex].trans()) + translation;
+            poseSetTrans = _internalPoseSet._absolutePoses[jointIndex].trans();
+            position = (rotation * poseSetTrans) + translation;
             success = true;
         } else {
             success = false;
@@ -444,7 +448,8 @@ bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm:
     } else {
         QReadLocker readLock(&_externalPoseSetLock);
         if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
-            position = (rotation * _externalPoseSet._absolutePoses[jointIndex].trans()) + translation;
+            poseSetTrans = _externalPoseSet._absolutePoses[jointIndex].trans();
+            position = (rotation * poseSetTrans) + translation;
             success = true;
         } else {
             success = false;
@@ -452,7 +457,14 @@ bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm:
     }
 
     if (isNaN(position)) {
-        qCWarning(animation) << "Rig::getJointPositionInWorldFrame produces NaN";
+        qCWarning(animation) << "Rig::getJointPositionInWorldFrame produced NaN."
+                             << " is owner thread = " << onOwnerThread
+                             << " position = " << originalPosition
+                             << " translation = " << translation
+                             << " rotation = " << rotation
+                             << " poseSetTrans = " <<  poseSetTrans
+                             << " success = " << success
+                             << " jointIndex = " << jointIndex;
         success = false;
         position = glm::vec3(0.0f);
     }

@@ -42,11 +42,14 @@ signals:
     void historyResult(QJsonObject result);
     void accountResult(QJsonObject result);
     void certificateInfoResult(QJsonObject result);
+    void alreadyOwnedResult(QJsonObject result);
 
     void updateCertificateStatus(const QString& certID, uint certStatus);
 
     void transferHfcToNodeResult(QJsonObject result);
     void transferHfcToUsernameResult(QJsonObject result);
+
+    void contentSetChanged(const QString& contentSetHref);
 
 protected:
     Q_INVOKABLE void getWalletStatus();
@@ -69,9 +72,13 @@ protected:
     Q_INVOKABLE void account();
 
     Q_INVOKABLE void certificateInfo(const QString& certificateId);
+    Q_INVOKABLE void alreadyOwned(const QString& marketplaceId);
 
     Q_INVOKABLE void transferHfcToNode(const QString& nodeID, const int& amount, const QString& optionalMessage);
     Q_INVOKABLE void transferHfcToUsername(const QString& username, const int& amount, const QString& optionalMessage);
+
+
+    Q_INVOKABLE void replaceContentSet(const QString& itemHref);
 };
 
 #endif // hifi_QmlCommerce_h

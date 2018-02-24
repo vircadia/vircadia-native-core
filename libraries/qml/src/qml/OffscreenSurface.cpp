@@ -331,9 +331,9 @@ void OffscreenSurface::finishQmlLoad(QQmlComponent* qmlComponent,
     qmlComponent->deleteLater();
 
     onItemCreated(qmlContext, newItem);
-    connect(newItem, SIGNAL(sendToScript(QVariant)), this, SIGNAL(fromQml(QVariant)));
 
     if (!rootCreated) {
+        connect(newItem, SIGNAL(sendToScript(QVariant)), this, SIGNAL(fromQml(QVariant)));
         onRootCreated();
         emit rootItemCreated(newItem);
         // Call this callback after rootitem is set, otherwise VrMenu wont work

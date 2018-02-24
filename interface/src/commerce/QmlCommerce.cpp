@@ -15,6 +15,8 @@
 #include "Ledger.h"
 #include "Wallet.h"
 #include <AccountManager.h>
+#include <Application.h>
+#include <UserActivityLogger.h>
 
 QmlCommerce::QmlCommerce() {
     auto ledger = DependencyManager::get<Ledger>();
@@ -28,8 +30,10 @@ QmlCommerce::QmlCommerce() {
     connect(ledger.data(), &Ledger::accountResult, this, &QmlCommerce::accountResult);
     connect(wallet.data(), &Wallet::walletStatusResult, this, &QmlCommerce::walletStatusResult);
     connect(ledger.data(), &Ledger::certificateInfoResult, this, &QmlCommerce::certificateInfoResult);
+    connect(ledger.data(), &Ledger::alreadyOwnedResult, this, &QmlCommerce::alreadyOwnedResult);
     connect(ledger.data(), &Ledger::updateCertificateStatus, this, &QmlCommerce::updateCertificateStatus);
     connect(ledger.data(), &Ledger::transferHfcToNodeResult, this, &QmlCommerce::transferHfcToNodeResult);
+    connect(ledger.data(), &Ledger::transferHfcToUsernameResult, this, &QmlCommerce::transferHfcToUsernameResult);
     connect(ledger.data(), &Ledger::transferHfcToUsernameResult, this, &QmlCommerce::transferHfcToUsernameResult);
     
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -167,4 +171,20 @@ void QmlCommerce::transferHfcToUsername(const QString& username, const int& amou
     }
     QString key = keys[0];
     ledger->transferHfcToUsername(key, username, amount, optionalMessage);
+}
+
+void QmlCommerce::replaceContentSet(const QString& itemHref) {
+    qApp->replaceDomainContent(itemHref);
+    QJsonObject messageProperties = {
+        { "status", "SuccessfulRequestToReplaceContent" },
+        { "content_set_url", itemHref }
+    };
+    UserActivityLogger::getInstance().logAction("replace_domain_content", messageProperties);
+
+    emit contentSetChanged(itemHref);
+}
+
+void QmlCommerce::alreadyOwned(const QString& marketplaceId) {
+    auto ledger = DependencyManager::get<Ledger>();
+    ledger->alreadyOwned(marketplaceId);
 }
