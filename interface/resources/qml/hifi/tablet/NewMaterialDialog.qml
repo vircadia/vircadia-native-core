@@ -131,7 +131,7 @@ Rectangle {
                     spacing: 5
 
                     anchors.horizontalCenter: column3.horizontalCenter
-                    anchors.horizontalCenterOffset: -20
+                    anchors.horizontalCenterOffset: 0
 
                     Button {
                         id: button1

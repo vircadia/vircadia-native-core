@@ -32,11 +32,12 @@ TextField {
     property string leftPermanentGlyph: "";
     property string centerPlaceholderGlyph: "";
 
-    FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+    placeholderText: textField.placeholderText
+
+    FontLoader { id: firaSansRegular; source: "../../fonts/FiraSans-Regular.ttf"; }
     FontLoader { id: hifiGlyphs; source: "../../fonts/hifi-glyphs.ttf"; }
-    font.family: firaSansSemiBold.name
+    font.family: firaSansRegular.name
     font.pixelSize: hifi.fontSizes.textFieldInput
-    font.italic: textField.text == ""
     height: implicitHeight + 3  // Make surrounding box higher so that highlight is vertically centered.
     property alias textFieldLabel: textFieldLabel
 

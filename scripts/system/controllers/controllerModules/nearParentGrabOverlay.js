@@ -117,7 +117,7 @@ Script.include("/~/system/libraries/utils.js");
             Overlays.editOverlay(this.grabbedThingID, reparentProps);
 
             // resizeTablet to counter adjust offsets to account for change of scale from sensorToWorldMatrix
-            if (this.grabbedThingID === HMD.tabletID) {
+            if (HMD.tabletID && this.grabbedThingID === HMD.tabletID) {
                 resizeTablet(getTabletWidthFromSettings(), reparentProps.parentJointIndex);
             }
 
@@ -143,7 +143,7 @@ Script.include("/~/system/libraries/utils.js");
                 });
 
                 // resizeTablet to counter adjust offsets to account for change of scale from sensorToWorldMatrix
-                if (this.grabbedThingID === HMD.tabletID) {
+                if (HMD.tabletID && this.grabbedThingID === HMD.tabletID) {
                     resizeTablet(getTabletWidthFromSettings(), this.previousParentJointIndex[this.grabbedThingID]);
                 }
             }

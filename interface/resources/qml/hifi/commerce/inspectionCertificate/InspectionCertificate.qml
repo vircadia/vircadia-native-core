@@ -207,6 +207,7 @@ Rectangle {
         //     able to click on a button/mouseArea underneath the popup/section.
         MouseArea {
             anchors.fill: parent;
+            hoverEnabled: true;
             propagateComposedEvents: false;
         }
                 

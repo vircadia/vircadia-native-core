@@ -252,16 +252,17 @@ function onFinishOnOpenClicked() {
 }
 
 function signalBodyLoaded() {
-    EventBridge.emitWebEvent(JSON.stringify({
-        type: EVENT_BRIDGE_TYPE,
-        action: BODY_LOADED_ACTION
-    }));
+    var EVENTBRIDGE_OPEN_DELAY = 500; // Delay required to ensure EventBridge is ready for use.
+    setTimeout(function () {
+        EventBridge.scriptEventReceived.connect(onScriptEventReceived);
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: EVENT_BRIDGE_TYPE,
+            action: BODY_LOADED_ACTION
+        }));
+    }, EVENTBRIDGE_OPEN_DELAY);
 }
 
 function onBodyLoaded() {
-
-    EventBridge.scriptEventReceived.connect(onScriptEventReceived);
-
     elRecordings = document.getElementById("recordings");
 
     elRecordingsTable = document.getElementById("recordings-table");

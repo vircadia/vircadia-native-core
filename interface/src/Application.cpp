@@ -4829,7 +4829,6 @@ void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm
     if (_keyboardFocusHighlightID == UNKNOWN_OVERLAY_ID || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
         _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
         _keyboardFocusHighlight->setAlpha(1.0f);
-        _keyboardFocusHighlight->setBorderSize(1.0f);
         _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });
         _keyboardFocusHighlight->setIsSolid(false);
         _keyboardFocusHighlight->setPulseMin(0.5);
@@ -5969,7 +5968,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     DependencyManager::get<TabletScriptingInterface>().data()->setToolbarScriptingInterface(toolbarScriptingInterface);
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
-    qScriptRegisterMetaType(scriptEngine.data(), CustomPromptResultToScriptValue, CustomPromptResultFromScriptValue);
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                         LocationScriptingInterface::locationSetter, "Window");
     // register `location` on the global object.
@@ -6286,6 +6284,24 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
     return true;
 }
 
+void Application::replaceDomainContent(const QString& url) {
+    qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
+    QByteArray urlData(url.toUtf8());
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
+        return node->getType() == NodeType::EntityServer && node->getActiveSocket();
+    }, [&urlData, limitedNodeList](const SharedNodePointer& octreeNode) {
+        auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
+        octreeFilePacket->write(urlData);
+        limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
+    });
+    auto addressManager = DependencyManager::get<AddressManager>();
+    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
+    QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
+    qCDebug(interfaceapp) << "Setting new home bookmark to: " << newHomeAddress;
+    DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(newHomeAddress);
+}
+
 bool Application::askToReplaceDomainContent(const QString& url) {
     QString methodDetails;
     const int MAX_CHARACTERS_PER_LINE = 90;
@@ -6305,21 +6321,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                 QString details;
                 if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
                     // Given confirmation, send request to domain server to replace content
-                    qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
-                    QByteArray urlData(url.toUtf8());
-                    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-                    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
-                            return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-                        }, [&urlData, limitedNodeList](const SharedNodePointer& octreeNode) {
-                            auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
-                            octreeFilePacket->write(urlData);
-                            limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
-                        });
-                    auto addressManager = DependencyManager::get<AddressManager>();
-                    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
-                    QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
-                    qCDebug(interfaceapp) << "Setting new home bookmark to: " << newHomeAddress;
-                    DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(newHomeAddress);
+                    replaceDomainContent(url);
                     details = "SuccessfulRequestToReplaceContent";
                 } else {
                     details = "UserDeclinedToReplaceContent";
