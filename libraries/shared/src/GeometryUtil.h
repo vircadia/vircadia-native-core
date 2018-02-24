@@ -19,6 +19,9 @@ class Plane;
 
 glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end);
 
+bool rayHitsSphere(const glm::vec3& rayStart, const glm::vec3& rayDirection,
+        const glm::vec3& sphereCenter, float sphereRadiusSquared);
+
 /// Computes the penetration between a point and a sphere (centered at the origin)
 /// \param point the point location relative to sphere center (origin)
 /// \param defaultDirection the direction of the pentration when the point is near the origin

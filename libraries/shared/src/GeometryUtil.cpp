@@ -40,6 +40,14 @@ glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec
     }
 }
 
+bool rayHitsSphere(const glm::vec3& rayStart, const glm::vec3& rayDirection,
+        const glm::vec3& sphereCenter, float sphereRadiusSquared) {
+    glm::vec3 center = sphereCenter - rayStart;
+    float distance = glm::dot(center, rayDirection);
+    return (glm::length2(center) < sphereRadiusSquared
+            || (glm::abs(distance) > 0.0f && glm::distance2(distance * rayDirection, center) < sphereRadiusSquared));
+}
+
 // Computes the penetration between a point and a sphere (centered at the origin)
 // if point is inside sphere: returns true and stores the result in 'penetration'
 // (the vector that would move the point outside the sphere)
