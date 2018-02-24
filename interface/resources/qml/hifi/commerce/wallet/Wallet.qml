@@ -792,7 +792,6 @@ Rectangle {
 
     function walletResetSetup() {
         root.activeView = "walletSetup";
-        Commerce.resetLocalWalletOnly();
         var timestamp = new Date();
         walletSetup.startingTimestamp = timestamp;
         walletSetup.setupAttemptID = generateUUID();

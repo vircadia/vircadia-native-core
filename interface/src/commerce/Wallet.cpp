@@ -541,7 +541,6 @@ bool Wallet::generateKeyPair() {
 
     // TODO: redo this soon -- need error checking and so on
     writeSecurityImage(_securityImage, keyFilePath());
-    QString oldKey = _publicKeys.count() == 0 ? "" : _publicKeys.last();
     QString key = keyPair.first->toBase64();
     _publicKeys.push_back(key);
     qCDebug(commerce) << "public key:" << key;
@@ -551,7 +550,7 @@ bool Wallet::generateKeyPair() {
     // 2. It is maximally private, and we can step back from that later if desired.
     // 3. It maximally exercises all the machinery, so we are most likely to surface issues now.
     auto ledger = DependencyManager::get<Ledger>();
-    return ledger->receiveAt(key, oldKey);
+    return ledger->receiveAt(key, "");
 }
 
 QStringList Wallet::listPublicKeys() {
