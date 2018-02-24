@@ -24,6 +24,7 @@ Item {
     id: root;
     property string activeView: "conflict";
     property var proceedFunction: nil;
+    property var copyFunction: nil;
 
     Image {
         anchors.fill: parent;
@@ -272,8 +273,11 @@ Item {
             console.log('WalletChoice.qml ignoring', e);
         }
         if (filename) {
-            console.log("FIXME copy file to the right place");
-            proceed(false);
+            if (copyFunction && copyFunction(filename)) {
+                proceed(false);
+             } else {
+                console.log("WalletChoice.qml copyFunction", copyFunction, "failed.");
+             }
         } // Else we're still at WalletChoice
     }
     function walletChooser() {

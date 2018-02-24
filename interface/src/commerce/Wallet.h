@@ -35,6 +35,7 @@ public:
     void chooseSecurityImage(const QString& imageFile);
     bool getSecurityImage();
     QString getKeyFilePath();
+    bool copyKeyFileFrom(const QString& pathname);
 
     void setSalt(const QByteArray& salt) { _salt = salt; }
     QByteArray getSalt() { return _salt; }

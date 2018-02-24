@@ -52,6 +52,11 @@ void QmlCommerce::getKeyFilePathIfExists() {
     emit keyFilePathIfExistsResult(wallet->getKeyFilePath());
 }
 
+bool QmlCommerce::copyKeyFileFrom(const QString& pathname) {
+    auto wallet = DependencyManager::get<Wallet>();
+    return wallet->copyKeyFileFrom(pathname);
+}
+
 void QmlCommerce::getWalletAuthenticatedStatus() {
     auto wallet = DependencyManager::get<Wallet>();
     emit walletAuthenticatedStatusResult(wallet->walletIsAuthenticatedWithPassphrase());

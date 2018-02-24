@@ -47,7 +47,7 @@ Rectangle {
                 }
             } else if (walletStatus === 1) {
                 if (root.activeView !== "walletSetup") {
-                    walletSetup();
+                    walletResetSetup();
                 }
             } else if (walletStatus === 2) {
                 if (root.activeView != "preexisting") {
@@ -177,12 +177,13 @@ Rectangle {
         proceedFunction: function (isReset) {
             console.log(isReset ? "Reset wallet." : "Trying again with new wallet.");
             if (isReset) {
-                walletSetup();
+                walletResetSetup();
             } else {
                 root.activeView = "initialize";
                 Commerce.getWalletStatus();
             }
         }
+        copyFunction: Commerce.copyKeyFileFrom;
         z: 997;
         visible: (root.activeView === "preexisting") || (root.activeView === "conflicting");
         activeView: root.activeView;
@@ -789,7 +790,7 @@ Rectangle {
         });
     }
 
-    function walletSetup() {
+    function walletResetSetup() {
         root.activeView = "walletSetup";
         Commerce.resetLocalWalletOnly();
         var timestamp = new Date();

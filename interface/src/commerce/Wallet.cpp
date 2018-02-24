@@ -59,6 +59,16 @@ QString keyFilePath() {
     auto accountManager = DependencyManager::get<AccountManager>();
     return PathUtils::getAppDataFilePath(QString("%1.%2").arg(accountManager->getAccountInfo().getUsername(), KEY_FILE));
 }
+bool Wallet::copyKeyFileFrom(const QString& pathname) {
+    QString existing = getKeyFilePath();
+    if (!existing.isEmpty()) {
+        if (!QFile::rename(existing, existing + ".backup" + QDateTime::currentDateTime().toString(Qt::ISODate))) {
+            qCCritical(commerce) << "Unable to backup" << existing;
+            return false;
+        }
+    }
+    return QFile::copy(pathname, keyFilePath());
+}
 
 // use the cached _passphrase if it exists, otherwise we need to prompt
 int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
