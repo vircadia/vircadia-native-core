@@ -256,9 +256,6 @@ void Ledger::accountSuccess(QNetworkReply& reply) {
 
     QString keyStatus = "ok";
     QStringList localPublicKeys = wallet->listPublicKeys();
-    qDebug() << "FIXME isOverride:" << isOverride;
-    qDebug() << "remote:" << remotePublicKey;
-    qDebug() << " local:" << (localPublicKeys.isEmpty() ? "" : localPublicKeys.first());
     if (remotePublicKey.isEmpty() || isOverride) {
         if (!localPublicKeys.isEmpty()) {
             QString key = localPublicKeys.first();
