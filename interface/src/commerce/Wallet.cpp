@@ -61,13 +61,20 @@ QString keyFilePath() {
 }
 bool Wallet::copyKeyFileFrom(const QString& pathname) {
     QString existing = getKeyFilePath();
+    qCDebug(commerce) << "Old keyfile" << existing;
     if (!existing.isEmpty()) {
-        if (!QFile::rename(existing, existing + ".backup" + QDateTime::currentDateTime().toString(Qt::ISODate))) {
-            qCCritical(commerce) << "Unable to backup" << existing;
+        QString backup = QString(existing).insert(existing.indexOf(KEY_FILE) - 1,
+            QDateTime::currentDateTime().toString(Qt::ISODate).replace(":", ""));
+        qCDebug(commerce) << "Renaming old keyfile to" << backup;
+        if (!QFile::rename(existing, backup)) {
+            qCCritical(commerce) << "Unable to backup" << existing << "to" << backup;
             return false;
         }
     }
-    return QFile::copy(pathname, keyFilePath());
+    QString destination = keyFilePath();
+    bool result = QFile::copy(pathname, destination);
+    qCDebug(commerce) << "copy" << pathname << "to" << destination << "=>" << result;
+    return result;
 }
 
 // use the cached _passphrase if it exists, otherwise we need to prompt
@@ -544,13 +551,14 @@ bool Wallet::generateKeyPair() {
     QString key = keyPair.first->toBase64();
     _publicKeys.push_back(key);
     qCDebug(commerce) << "public key:" << key;
+    _isOverridingServer = false;
 
     // It's arguable whether we want to change the receiveAt every time, but:
     // 1. It's certainly needed the first time, when createIfNeeded answers true.
     // 2. It is maximally private, and we can step back from that later if desired.
     // 3. It maximally exercises all the machinery, so we are most likely to surface issues now.
     auto ledger = DependencyManager::get<Ledger>();
-    return ledger->receiveAt(key, "");
+    return ledger->receiveAt(key, key);
 }
 
 QStringList Wallet::listPublicKeys() {

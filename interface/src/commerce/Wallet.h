@@ -49,6 +49,8 @@ public:
     bool getPassphraseIsCached() { return !(_passphrase->isEmpty()); }
     bool walletIsAuthenticatedWithPassphrase();
     bool changePassphrase(const QString& newPassphrase);
+    void setSoftReset() { _isOverridingServer = true;  }
+    bool wasSoftReset() { bool was = _isOverridingServer; _isOverridingServer = false; return was; }
 
     void getWalletStatus();
     enum WalletStatus {
@@ -76,6 +78,7 @@ private:
     QByteArray _iv;
     QByteArray _ckey;
     QString* _passphrase { new QString("") };
+    bool _isOverridingServer { false };
 
     bool writeWallet(const QString& newPassphrase = QString(""));
     void updateImageProvider();

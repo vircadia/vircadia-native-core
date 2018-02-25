@@ -176,6 +176,7 @@ Rectangle {
         id: walletChoice;
         proceedFunction: function (isReset) {
             console.log(isReset ? "Reset wallet." : "Trying again with new wallet.");
+            Commerce.setSoftReset();
             if (isReset) {
                 walletResetSetup();
             } else {
@@ -795,7 +796,7 @@ Rectangle {
         var timestamp = new Date();
         walletSetup.startingTimestamp = timestamp;
         walletSetup.setupAttemptID = generateUUID();
-        UserActivityLogger.commerceWalletSetupStarted(timestamp, setupAttemptID, walletSetup.setupFlowVersion, walletSetup.referrer ? walletSetup.referrer : "wallet app",
+        UserActivityLogger.commerceWalletSetupStarted(timestamp, walletSetup.setupAttemptID, walletSetup.setupFlowVersion, walletSetup.referrer ? walletSetup.referrer : "wallet app",
             (AddressManager.placename || AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : ''));
     }
     //

@@ -101,7 +101,7 @@ void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     signedSend("transaction", transactionString, hfc_key, "buy", "buySuccess", "buyFailure", controlled_failure);
 }
 
-bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key) {
+bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key) {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (!accountManager->isLoggedIn()) {
         qCWarning(commerce) << "Cannot set receiveAt when not logged in.";
@@ -110,7 +110,7 @@ bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key) {
         return false; // We know right away that we will fail, so tell the caller.
     }
 
-    signedSend("public_key", hfc_key.toUtf8(), old_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
+    signedSend("public_key", hfc_key.toUtf8(), signing_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
     return true; // Note that there may still be an asynchronous signal of failure that callers might be interested in.
 }
 
@@ -248,6 +248,7 @@ void Ledger::accountSuccess(QNetworkReply& reply) {
     auto iv = QByteArray::fromBase64(data["iv"].toString().toUtf8());
     auto ckey = QByteArray::fromBase64(data["ckey"].toString().toUtf8());
     QString remotePublicKey = data["public_key"].toString();
+    bool isOverride = wallet->wasSoftReset();
 
     wallet->setSalt(salt);
     wallet->setIv(iv);
@@ -255,9 +256,13 @@ void Ledger::accountSuccess(QNetworkReply& reply) {
 
     QString keyStatus = "ok";
     QStringList localPublicKeys = wallet->listPublicKeys();
-    if (remotePublicKey.isEmpty()) {
+    qDebug() << "FIXME isOverride:" << isOverride;
+    qDebug() << "remote:" << remotePublicKey;
+    qDebug() << " local:" << (localPublicKeys.isEmpty() ? "" : localPublicKeys.first());
+    if (remotePublicKey.isEmpty() || isOverride) {
         if (!localPublicKeys.isEmpty()) {
-            receiveAt(localPublicKeys.first(), "");
+            QString key = localPublicKeys.first();
+            receiveAt(key, key);
         }
     } else {
         if (localPublicKeys.isEmpty()) {
