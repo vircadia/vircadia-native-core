@@ -689,7 +689,11 @@
                 sendMoneyParticleEffectUpdateTimer = Script.setInterval(updateSendMoneyParticleEffect, SEND_MONEY_PARTICLE_TIMER_UPDATE);
                 break;
             case 'transactionHistory_goToBank':
-                Window.location = "hifi://BankOfHighFidelity";
+                if (Account.metaverseServerURL.indexOf("staging") >= 0) {
+                    Window.location = "hifi://hifiqa-master-metaverse-staging"; // So that we can test in staging.
+                } else {
+                    Window.location = "hifi://BankOfHighFidelity";
+                }
                 break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));
