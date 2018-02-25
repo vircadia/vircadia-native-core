@@ -38,14 +38,14 @@ Window {
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
+
     // Scrollable window content.
     // FIXME this should not define any visual content in this type.  The base window
     // type should only consist of logic sized areas, with nothing drawn (although the
     // default value for the frame property does include visual decorations)
     property var pane: Item {
-        property bool isScrolling: scrollView.contentChildren.length > 0 ?
-                                       (scrollView.height < scrollView.contentChildren[0].height) :
-                                       false
+        property bool isScrolling: scrollView.height < scrollView.contentItem.height
+
         property int contentWidth: scrollView.width - (isScrolling ? 10 : 0)
         property int scrollHeight: scrollView.height
 
@@ -59,7 +59,6 @@ Window {
             color: hifi.colors.baseGray
             visible: !window.hideBackground && modality != Qt.ApplicationModal
         }
-
 
         LinearGradient {
             visible: !window.hideBackground && gradientsSupported && modality != Qt.ApplicationModal
@@ -78,9 +77,9 @@ Window {
 
         ScrollView {
             id: scrollView
-            contentChildren: content
-            clip: true
+            contentItem: content
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
             anchors.fill: parent
             anchors.rightMargin: parent.isScrolling ? 1 : 0
             anchors.bottomMargin: footerPane.height
@@ -120,8 +119,6 @@ Window {
                     }
                 }
             }
-
-
         }
 
         function scrollBy(delta) {
