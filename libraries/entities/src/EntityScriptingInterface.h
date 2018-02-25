@@ -1100,18 +1100,87 @@ public slots:
      */
     Q_INVOKABLE void setKeyboardFocusEntity(const EntityItemID& id);
 
+
+    /**jsdoc
+     * Emit a {@link Entities.mousePressOnEntity|mousePressOnEntity} event.
+     * @function Entities.sendMousePressOnEntity
+     * @param {Uuid} entityID - The ID of the entity to emit the event for.
+     * @param {PointerEvent} event - The event details.
+     */
     Q_INVOKABLE void sendMousePressOnEntity(const EntityItemID& id, const PointerEvent& event);
+
+    /**jsdoc
+     * Emit a {@link Entities.mouseMoveOnEntity|mouseMoveOnEntity} event.
+     * @function Entities.sendMouseMoveOnEntity
+     * @param {Uuid} entityID - The ID of the entity to emit the event for.
+     * @param {PointerEvent} event - The event details.
+     */
     Q_INVOKABLE void sendMouseMoveOnEntity(const EntityItemID& id, const PointerEvent& event);
+
+    /**jsdoc
+     * Emit a {@link Entities.mouseReleaseOnEntity|mouseReleaseOnEntity} event.
+     * @function Entities.sendMouseReleaseOnEntity
+     * @param {Uuid} entityID - The ID of the entity to emit the event for.
+     * @param {PointerEvent} event - The event details.
+     */
     Q_INVOKABLE void sendMouseReleaseOnEntity(const EntityItemID& id, const PointerEvent& event);
 
+    /**jsdoc
+     * Emit a {@link Entities.clickDownOnEntity|clickDownOnEntity} event.
+     * @function Entities.sendClickDownOnEntity
+     * @param {Uuid} entityID - The ID of the entity to emit the event for.
+     * @param {PointerEvent} event - The event details.
+     */
     Q_INVOKABLE void sendClickDownOnEntity(const EntityItemID& id, const PointerEvent& event);
+
+    /**jsdoc
+     * Emit a {@link Entities.holdingClickOnEntity|holdingClickOnEntity} event.
+     * @function Entities.sendHoldingClickOnEntity
+     * @param {Uuid} entityID - The ID of the entity to emit the event for.
+     * @param {PointerEvent} event - The event details.
+     */
     Q_INVOKABLE void sendHoldingClickOnEntity(const EntityItemID& id, const PointerEvent& event);
+
+    /**jsdoc
+     * Emit a {@link Entities.clickReleaseOnEntity|clickReleaseOnEntity} event.
+     * @function Entities.sendClickReleaseOnEntity
+     * @param {Uuid} entityID - The ID of the entity to emit the event for.
+     * @param {PointerEvent} event - The event details.
+     */
     Q_INVOKABLE void sendClickReleaseOnEntity(const EntityItemID& id, const PointerEvent& event);
 
+    /**jsdoc
+     * Emit a {@link Entities.hoverEnterEntity|hoverEnterEntity} event.
+     * @function Entities.sendHoverEnterEntity
+     * @param {Uuid} entityID - The ID of the entity to emit the event for.
+     * @param {PointerEvent} event - The event details.
+     */
     Q_INVOKABLE void sendHoverEnterEntity(const EntityItemID& id, const PointerEvent& event);
+
+    /**jsdoc
+     * Emit a {@link Entities.hoverOverEntity|hoverOverEntity} event.
+     * @function Entities.sendHoverOverEntity
+     * @param {Uuid} entityID - The ID of the entity to emit the event for.
+     * @param {PointerEvent} event - The event details.
+     */
     Q_INVOKABLE void sendHoverOverEntity(const EntityItemID& id, const PointerEvent& event);
+
+    /**jsdoc
+     * Emit a {@link Entities.hoverLeaveEntity|hoverLeaveEntity} event.
+     * @function Entities.sendHoverLeaveEntity
+     * @param {Uuid} entityID - The ID of the entity to emit the event for.
+     * @param {PointerEvent} event - The event details.
+     */
     Q_INVOKABLE void sendHoverLeaveEntity(const EntityItemID& id, const PointerEvent& event);
 
+    /**jsdoc
+     * Check whether an entity wants hand controller pointer events. For example, a <code>"Web"</code> 
+     * {@link Entities.EntityType|EntityType} does but a <code>"Shape"</code> {@link Entities.EntityType|EntityType} doesn't.
+     * @function Entities.wantsHandControllerPointerEvents
+     * @param {Uuid} entityID -  The ID of the entity.
+     * @returns {boolean} <code>true</code> if the entity wants hand controller pointer events, <code>false</code> otherwise or 
+     *     if the entity cannot be found.
+     */
     Q_INVOKABLE bool wantsHandControllerPointerEvents(QUuid id);
 
     Q_INVOKABLE void emitScriptEvent(const EntityItemID& entityID, const QVariant& message);
@@ -1289,20 +1358,122 @@ signals:
      */
     void canWriteAssetsChanged(bool canWriteAssets);
 
-    // TODO
+
+    /**jsdoc
+     * Triggered when a mouse button is clicked while the mouse cursor is on an entity, or a controller trigger is fully 
+     * pressed while its laser is on an entity.
+     * @function Entities.mousePressOnEntity
+     * @param {Uuid} entityID - The ID of the entity that was pressed.
+     * @param {PointerEvent} event - Details of the event.
+     * @returns {Signal}
+     * @example <caption>Report when an entity is clicked with the mouse or laser.</caption>
+     * function onMousePressOnEntity(entityID, event) {
+     *     print("Clicked on entity: " + entityID);
+     * }
+     *
+     * Entities.mousePressOnEntity.connect(onMousePressOnEntity);
+     */
     void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+
+    /**jsdoc
+     * Triggered when a mouse button is double-clicked while the mouse cursor is on an entity.
+     * @function Entities.mousePressOnEntity
+     * @param {Uuid} entityID - The ID of the entity that was double-pressed.
+     * @param {PointerEvent} event - Details of the event.
+     * @returns {Signal}
+     */
     void mouseDoublePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+
+    /**jsdoc
+     * Repeatedly triggered while the mouse cursor or controller laser moves on an entity.
+     * @function Entities.mouseMoveOnEntity
+     * @param {Uuid} entityID - The ID of the entity that was moved on.
+     * @param {PointerEvent} event - Details of the event.
+     * @returns {Signal}
+     */
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+
+    /**jsdoc
+     * Triggered when a mouse button is released after clicking on an entity or the controller trigger is partly or fully 
+     * released after pressing on an entity, even if the mouse pointer or controller laser has moved off the entity.
+     * @function Entities.mouseReleaseOnEntity
+     * @param {Uuid} entityID - The ID of the entity that was originally pressed.
+     * @param {PointerEvent} event - Details of the event.
+     * @returns {Signal}
+     */
     void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+
+    /**jsdoc
+     * Triggered when a mouse button is clicked while the mouse cursor is not on an entity.
+     * @function Entities.mousePressOffEntity
+     * @param {PointerEvent} event - Details of the event.
+     * @returns {Signal}
+     */
     void mousePressOffEntity();
+
+    /**jsdoc
+     * Triggered when a mouse button is double-clicked while the mouse cursor is not on an entity.
+     * @function Entities.mouseDoublePressOffEntity
+     * @param {PointerEvent} event - Details of the event.
+     * @returns {Signal}
+     */
     void mouseDoublePressOffEntity();
 
+
+    /**jsdoc
+     * Triggered when a mouse button is clicked while the mouse cursor is on an entity. Note: Not triggered by controller.
+     * @function Entities.clickDownOnEntity
+     * @param {Uuid} entityID - The ID of the entity that was clicked.
+     * @param {PointerEvent} event - Details of the event.
+     * @returns {Signal}
+     */
     void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+
+    /**jsdoc
+     * Repeatedly triggered while a mouse button continues to be held after clicking an entity, even if the mouse cursor has 
+     * moved off the entity. Note: Not triggered by controller.
+     * @function Entities.holdingClickOnEntity
+     * @param {Uuid} entityID - The ID of the entity that was originally clicked.
+     * @param {PointerEvent} event - Details of the event.
+     * @returns {Signal}
+     */
     void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+
+    /**jsdoc
+     * Triggered when a mouse button is released after clicking on an entity, even if the mouse cursor has moved off the 
+     * entity. Note: Not triggered by controller.
+     * @function Entities.clickReleaseOnEntity
+     * @param {Uuid} entityID - The ID of the entity that was originally clicked.
+     * @param {PointerEvent} event - Details of the event.
+     * @returns {Signal}
+     */
     void clickReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
+    /**jsdoc
+     * Triggered when the mouse cursor or controller laser starts hovering on an entity.
+     * @function Entities.hoverEnterEntity
+     * @param {Uuid} entityID - The ID of the entity that is being hovered.
+     * @param {PointerEvent} event - Details of the event.
+     * @returns {Signal}
+     */
     void hoverEnterEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+
+    /**jsdoc
+     * Repeatedly triggered when the mouse cursor or controller laser moves while hovering over an entity.
+     * @function Entities.hoverOverEntity
+     * @param {Uuid} entityID - The ID of the entity that is being hovered.
+     * @param {PointerEvent} event - Details of the event.
+     * @returns {Signal}
+     */
     void hoverOverEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+
+    /**jsdoc
+     * Triggered when the mouse cursor or controller laser stops hovering over an entity.
+     * @function Entities.hoverLeaveEntity
+     * @param {Uuid} entityID - The ID of the entity that was being hovered.
+     * @param {PointerEvent} event - Details of the event.
+     * @returns {Signal}
+     */
     void hoverLeaveEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
     void enterEntity(const EntityItemID& entityItemID);
