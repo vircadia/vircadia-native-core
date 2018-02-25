@@ -70,7 +70,6 @@ Rectangle {
             } else {
                 console.log("ERROR in Wallet.qml: Unknown wallet status: " + walletStatus);
             }
-            console.log("FIXME wallet status:", walletStatus, "activeView:", root.activeView);
         }
 
         onLoginStatusResult: {
