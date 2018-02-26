@@ -35,7 +35,12 @@ void EntitiesBackupHandler::createBackup(const QString& backupName, QuaZip& zip)
             qCritical().nospace() << "Failed to open " << ENTITIES_BACKUP_FILENAME << " for writing in zip";
             return;
         }
-        zipFile.write(entitiesFile.readAll());
+        auto entityData = entitiesFile.readAll();
+        if (zipFile.write(entityData) != entityData.size()) {
+            qCritical() << "Failed to write entities file to backup";
+            zipFile.close();
+            return;
+        }
         zipFile.close();
         if (zipFile.getZipError() != UNZ_OK) {
             qCritical().nospace() << "Failed to zip " << ENTITIES_BACKUP_FILENAME << ": " << zipFile.getZipError();
