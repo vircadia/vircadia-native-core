@@ -48,6 +48,7 @@ Rectangle {
     property bool debugCheckoutSuccess: false;
     property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
     property string referrer;
+    property bool isInstalled;
     // Style
     color: hifi.colors.white;
     Connections {
@@ -122,6 +123,12 @@ Rectangle {
                 root.refreshBuyUI();
             }
         }
+
+        onAppInstalled: {
+            if (appHref === root.itemHref) {
+                root.isInstalled = true;
+            }
+        }
     }
 
     onItemIdChanged: {
@@ -146,7 +153,8 @@ Rectangle {
     }
 
     onItemTypeChanged: {
-        if (root.itemType === "entity" || root.itemType === "wearable" || root.itemType === "contentSet" || root.itemType === "avatar") {
+        if (root.itemType === "entity" || root.itemType === "wearable" ||
+            root.itemType === "contentSet" || root.itemType === "avatar" || root.itemType === "app") {
             root.isCertified = true;
         } else {
             root.isCertified = false;
@@ -311,7 +319,7 @@ Rectangle {
             z: 997;
             visible: !root.ownershipStatusReceived || !root.balanceReceived;
             anchors.fill: parent;
-            color: Qt.rgba(0.0, 0.0, 0.0, 0.7);
+            color: hifi.colors.white;
 
             // This object is always used in a popup.
             // This MouseArea is used to prevent a user from being
@@ -323,8 +331,9 @@ Rectangle {
             }
                 
             AnimatedImage {
-                source: "../common/images/loader.gif"
-                width: 96;
+                id: loadingImage;
+                source: "../common/images/loader-blue.gif"
+                width: 74;
                 height: width;
                 anchors.verticalCenter: parent.verticalCenter;
                 anchors.horizontalCenter: parent.horizontalCenter;
@@ -679,7 +688,7 @@ Rectangle {
             id: rezNowButton;
             enabled: (root.itemType === "entity" && root.canRezCertifiedItems) ||
                 (root.itemType === "contentSet" && Entities.canReplaceContent()) ||
-                root.itemType === "wearable" || root.itemType === "avatar";
+                root.itemType === "wearable" || root.itemType === "avatar" || root.itemType === "app";
             buttonGlyph: (root.buttonGlyph)[itemTypesArray.indexOf(root.itemType)];
             color: hifi.buttons.red;
             colorScheme: hifi.colorSchemes.light;
@@ -688,7 +697,7 @@ Rectangle {
             height: 50;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            text: (root.buttonTextNormal)[itemTypesArray.indexOf(root.itemType)];
+            text: root.itemType === "app" && root.isInstalled ? "OPEN APP" : (root.buttonTextNormal)[itemTypesArray.indexOf(root.itemType)];
             onClicked: {
                 if (root.itemType === "contentSet") {
                     lightboxPopup.titleText = "Replace Content";
@@ -712,6 +721,12 @@ Rectangle {
                     lightboxPopup.button2text = "CONFIRM";
                     lightboxPopup.button2method = "MyAvatar.useFullAvatarURL('" + root.itemHref + "'); root.visible = false;";
                     lightboxPopup.visible = true;
+                } else if (root.itemType === "app") {
+                    if (root.isInstalled) {
+                        Commerce.openApp(root.itemHref);
+                    } else {
+                        Commerce.installApp(root.itemHref);
+                    }
                 } else {
                     sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
                     rezzedNotifContainer.visible = true;
