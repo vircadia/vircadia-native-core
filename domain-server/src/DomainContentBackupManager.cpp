@@ -74,7 +74,9 @@ void DomainContentBackupManager::parseBackupRules(const QVariantList& backupRule
         int interval = map["backupInterval"].toInt();
         int count = map["maxBackupVersions"].toInt();
         auto name = map["Name"].toString();
-        auto format = name.replace(" ", "_").toLower();
+        auto format = name.toLower();
+        QRegExp matchDisallowedCharacters { "[^a-zA-Z0-9\\-_]+" };
+        format.replace(matchDisallowedCharacters, "_");
 
         qCDebug(domain_server) << "    Name:" << name;
         qCDebug(domain_server) << "        format:" << format;
