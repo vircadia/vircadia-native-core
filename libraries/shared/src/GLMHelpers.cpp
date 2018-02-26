@@ -602,5 +602,5 @@ glm::vec3 randVector() {
 }
 
 bool isNonUniformScale(const glm::vec3& scale) {
-    return fabsf(scale.x - scale.y) > EPSILON || fabsf(scale.y - scale.z) > EPSILON || fabsf(scale.z - scale.x);
+    return fabsf(scale.x - scale.y) > EPSILON || fabsf(scale.y - scale.z) > EPSILON || fabsf(scale.z - scale.x) > EPSILON;
 }
