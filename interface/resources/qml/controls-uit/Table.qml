@@ -22,6 +22,10 @@ TableView {
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property bool expandSelectedRow: false
     property bool centerHeaderText: false
+    readonly property real headerSpacing: 3 //spacing between sort indicator and table header title
+    property var titlePaintedPos: [] // storing extra data position behind painted
+                                     // title text and sort indicatorin table's header
+    signal titlePaintedPosSignal(int column) //signal that extradata position gets changed
 
     model: ListModel { }
 
@@ -69,36 +73,39 @@ TableView {
         height: hifi.dimensions.tableHeaderHeight
         color: isLightColorScheme ? hifi.colors.tableBackgroundLight : hifi.colors.tableBackgroundDark
 
+
         RalewayRegular {
             id: titleText
+            x: centerHeaderText ? (parent.width - paintedWidth -
+                                  ((sortIndicatorVisible &&
+                                    sortIndicatorColumn === styleData.column) ?
+                                       (titleSort.paintedWidth / 5 + tableView.headerSpacing) : 0)) / 2 :
+                                  hifi.dimensions.tablePadding
             text: styleData.value
             size: hifi.fontSizes.tableHeading
             font.capitalization: Font.AllUppercase
             color: hifi.colors.baseGrayHighlight
             horizontalAlignment: (centerHeaderText ? Text.AlignHCenter : Text.AlignLeft)
-            anchors {
-                left: parent.left
-                leftMargin: hifi.dimensions.tablePadding
-                right: parent.right
-                rightMargin: hifi.dimensions.tablePadding
-                verticalCenter: parent.verticalCenter
-            }
+            anchors.verticalCenter: parent.verticalCenter
         }
 
+        //actual image of sort indicator in glyph font only 20% of real font size
+        //i.e. if the charachter size set to 60 pixels, actual image is 12 pixels
         HiFiGlyphs {
             id: titleSort
             text:  sortIndicatorOrder == Qt.AscendingOrder ? hifi.glyphs.caratUp : hifi.glyphs.caratDn
             color: hifi.colors.darkGray
             opacity: 0.6;
             size: hifi.fontSizes.tableHeadingIcon
-            anchors {
-                left: titleText.right
-                leftMargin: -hifi.fontSizes.tableHeadingIcon / 3 - (centerHeaderText ? 15 : 10)
-                right: parent.right
-                rightMargin: hifi.dimensions.tablePadding
-                verticalCenter: titleText.verticalCenter
-            }
+            anchors.verticalCenter: titleText.verticalCenter
+            anchors.left: titleText.right
+            anchors.leftMargin: -(hifi.fontSizes.tableHeadingIcon / 2.5) + tableView.headerSpacing
             visible: sortIndicatorVisible && sortIndicatorColumn === styleData.column
+            onXChanged: {
+                titlePaintedPos[styleData.column] = titleText.x + titleText.paintedWidth +
+                        paintedWidth / 5 + tableView.headerSpacing*2
+                titlePaintedPosSignal(styleData.column)
+            }
         }
 
         Rectangle {
@@ -152,7 +159,7 @@ TableView {
         color: styleData.selected
                ? hifi.colors.primaryHighlight
                : tableView.isLightColorScheme
-                   ? (styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd)
-                   : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
+                 ? (styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd)
+                 : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
     }
 }
