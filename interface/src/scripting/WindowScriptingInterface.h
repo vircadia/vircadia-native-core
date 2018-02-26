@@ -305,6 +305,7 @@ public slots:
      * {@link Window.stillSnapshotTaken|stillSnapshotTaken} is emitted; when a still image plus moving images are captured, 
      * {@link Window.processingGifStarted|processingGifStarted} and {@link Window.processingGifCompleted|processingGifCompleted}
      * are emitted. The path to store the snapshots and the length of the animated GIF to capture are specified in Settings >
+     * NOTE:  to provide a non-default value - all previous parameters must be provided.
      * General > Snapshots.
      * @function Window.takeSnapshot
      * @param {boolean} notify=true - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
@@ -314,8 +315,10 @@ public slots:
      * @param {number} aspectRatio=0 - The width/height ratio of the snapshot required. If the value is <code>0</code> the
      *     full resolution is used (window dimensions in desktop mode; HMD display dimensions in HMD mode), otherwise one of the
      *     dimensions is adjusted in order to match the aspect ratio.
-     * @param {string} filename=QString() - If this value is not null then the image will be saved to this filename, with an appended ",jpg".
-	 *      otherwise, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'
+     * @param {string} filename="" - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
+     *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
+     *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
+     *
      * @example <caption>Using the snapshot function and signals.</caption>
      * function onStillSnapshotTaken(path, notify) {
      *     print("Still snapshot taken: " + path);
@@ -337,15 +340,18 @@ public slots:
      * var notify = true;
      * var animated = true;
      * var aspect = 1920 / 1080;
-     * var filename = QString();
+     * var filename = "";
      * Window.takeSnapshot(notify, animated, aspect, filename);
      */
     void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
 
     /**jsdoc
      * Takes a still snapshot of the current view from the secondary camera that can be set up through the {@link Render} API.
+     * NOTE:  to provide a non-default value - all previous parameters must be provided.
      * @function Window.takeSecondaryCameraSnapshot
-     * @param {string} filename=QString() - If this value is not null then the image will be saved to this filename, with an appended ".jpg"
+     * @param {string} filename="" - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
+     *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
+     *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
      *
      * var filename = QString();
      */

@@ -20,6 +20,7 @@ enum EntityPropertyList {
 
     // these properties are supported by the EntityItem base class
     PROP_VISIBLE,
+    PROP_CAN_CAST_SHADOW,
     PROP_POSITION,
     PROP_DIMENSIONS,
     PROP_ROTATION,
@@ -205,6 +206,11 @@ enum EntityPropertyList {
 
     PROP_HAZE_MODE,
 
+    PROP_KEYLIGHT_COLOR,
+    PROP_KEYLIGHT_INTENSITY,
+    PROP_KEYLIGHT_DIRECTION,
+    PROP_KEYLIGHT_CAST_SHADOW,
+
     PROP_HAZE_RANGE,
     PROP_HAZE_COLOR,
     PROP_HAZE_GLARE_COLOR,
@@ -254,10 +260,6 @@ enum EntityPropertyList {
     // Aliases/Piggyback properties for Zones. These properties intentionally reuse the enum values for
     // other properties which will never overlap with each other. We do this so that we don't have to expand
     // the size of the properties bitflags mask
-    PROP_KEYLIGHT_COLOR = PROP_COLOR,
-    PROP_KEYLIGHT_INTENSITY = PROP_INTENSITY,
-    PROP_KEYLIGHT_DIRECTION = PROP_EXPONENT,
-
     PROP_SKYBOX_COLOR = PROP_ANIMATION_URL,
     PROP_SKYBOX_URL = PROP_ANIMATION_FPS,
 
