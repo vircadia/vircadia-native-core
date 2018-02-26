@@ -90,8 +90,6 @@ class AntialiasingConfig : public render::Job::Config {
     Q_PROPERTY(float covarianceGamma MEMBER covarianceGamma NOTIFY dirty)
  
     Q_PROPERTY(bool constrainColor MEMBER constrainColor NOTIFY dirty)
-    Q_PROPERTY(bool covarianceClipColor MEMBER covarianceClipColor NOTIFY dirty)
-    Q_PROPERTY(bool clipExactColor MEMBER clipExactColor NOTIFY dirty)
     Q_PROPERTY(bool feedbackColor MEMBER feedbackColor NOTIFY dirty)
 
     Q_PROPERTY(bool debug MEMBER debug NOTIFY dirty)
@@ -111,9 +109,7 @@ public:
     float sharpen{ 0.15f };
 
     bool constrainColor{ true };
-    bool covarianceClipColor{ true };
     float covarianceGamma{ 0.9f };
-    bool clipExactColor{ false };
     bool feedbackColor{ false };
 
     float debugX{ 0.0f };
@@ -145,12 +141,6 @@ struct TAAParams {
 
     void setConstrainColor(bool enabled) { SET_BIT(flags.y, 1, enabled); }
     bool isConstrainColor() const { return (bool)GET_BIT(flags.y, 1); }
-
-    void setCovarianceClipColor(bool enabled) { SET_BIT(flags.y, 2, enabled); }
-    bool isCovarianceClipColor() const { return (bool)GET_BIT(flags.y, 2); }
-
-    void setClipExactColor(bool enabled) { SET_BIT(flags.y, 3, enabled); }
-    bool isClipExactColor() const { return (bool)GET_BIT(flags.y, 3); }
 
     void setFeedbackColor(bool enabled) { SET_BIT(flags.y, 4, enabled); }
     bool isFeedbackColor() const { return (bool)GET_BIT(flags.y, 4); }

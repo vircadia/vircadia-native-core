@@ -28,9 +28,7 @@ void main() {
         return;
     }
 
-    vec3 fragVelAndZ = taa_fetchVelocityMapBest(fragUV);
-    vec2 fragVel = fragVelAndZ.xy;
-    float fragDepth = fragVelAndZ.z;
+    vec2 fragVel = taa_fetchVelocityMapBest(fragUV).xy;
 
     vec3 sourceColor;
     vec3 historyColor;
@@ -40,7 +38,7 @@ void main() {
  
     if (taa_constrainColor()) {
         // clamp history to neighbourhood of current sample
-        historyColor = taa_evalConstrainColor(sourceColor, fragUV, fragVel, fragDepth, historyColor);
+        historyColor = taa_evalConstrainColor(sourceColor, fragUV, fragVel, historyColor);
     }
     
     if (taa_feedbackColor()) {

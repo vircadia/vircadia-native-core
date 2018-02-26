@@ -31,12 +31,11 @@ Rectangle {
         padding: 10
 
         Column{
-                spacing: 10
-
+            spacing: 10
            
             Row {
                 spacing: 10
-                 id: fxaaOnOff
+                id: fxaaOnOff
                 property bool debugFXAA: false
                 HifiControls.Button {
                     text: {
@@ -86,67 +85,44 @@ Rectangle {
                 }
             }
             Separator {}          
-            Column {
-                spacing: 10
-                Row {
-                    spacing: 10
-                    HifiControls.CheckBox {
-                        boxSize: 20
-                        text: "Constrain color"
-                        checked: Render.getConfig("RenderMainView.Antialiasing")["constrainColor"]
-                        onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["constrainColor"] = checked }
-                    }
-
-                    Column {
-                        spacing: 10
-                        HifiControls.CheckBox {
-                            boxSize: 20
-                            text: "Covariance Min Max"
-                            checked: Render.getConfig("RenderMainView.Antialiasing")["covarianceClipColor"]
-                            onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["covarianceClipColor"] = checked }
-                        }
-                        HifiControls.CheckBox {
-                            boxSize: 20
-                            text: "Clip exact color"
-                            checked: Render.getConfig("RenderMainView.Antialiasing")["clipExactColor"]
-                            onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["clipExactColor"] = checked }
-                        }
-                    }
-                }  
-                ConfigSlider {
-                    label: qsTr("Covariance gamma")
-                    integral: false
-                    config: Render.getConfig("RenderMainView.Antialiasing")
-                    property: "covarianceGamma"
-                    max: 1.5
-                    min: 0.5
-                }                          
-                Separator {}          
-                HifiControls.CheckBox {
-                    boxSize: 20
-                    text: "Feedback history color"
-                    checked: Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"]
-                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"] = checked }
-                }
-        
-                ConfigSlider {
-                    label: qsTr("Source blend")
-                    integral: false
-                    config: Render.getConfig("RenderMainView.Antialiasing")
-                    property: "blend"
-                    max: 1.0
-                    min: 0.0
-                }
-        
-                ConfigSlider {
-                    label: qsTr("Post sharpen")
-                    integral: false
-                    config: Render.getConfig("RenderMainView.Antialiasing")
-                    property: "sharpen"
-                    max: 1.0
-                    min: 0.0
-                }
-
+            HifiControls.CheckBox {
+                boxSize: 20
+                text: "Constrain color"
+                checked: Render.getConfig("RenderMainView.Antialiasing")["constrainColor"]
+                onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["constrainColor"] = checked }
+            }
+            ConfigSlider {
+                label: qsTr("Covariance gamma")
+                integral: false
+                config: Render.getConfig("RenderMainView.Antialiasing")
+                property: "covarianceGamma"
+                max: 1.5
+                min: 0.5
+            }                          
+            Separator {}          
+            HifiControls.CheckBox {
+                boxSize: 20
+                text: "Feedback history color"
+                checked: Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"]
+                onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"] = checked }
+            }
+    
+            ConfigSlider {
+                label: qsTr("Source blend")
+                integral: false
+                config: Render.getConfig("RenderMainView.Antialiasing")
+                property: "blend"
+                max: 1.0
+                min: 0.0
+            }
+    
+            ConfigSlider {
+                label: qsTr("Post sharpen")
+                integral: false
+                config: Render.getConfig("RenderMainView.Antialiasing")
+                property: "sharpen"
+                max: 1.0
+                min: 0.0
             }
             Separator {}                      
             Row {

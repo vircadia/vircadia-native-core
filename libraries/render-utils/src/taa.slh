@@ -54,14 +54,6 @@ bool taa_constrainColor() {
     return GET_BIT(params.flags.y, 1);
 }
 
-bool taa_covarianceClipColor() {
-    return GET_BIT(params.flags.y, 2);
-}
-
-bool taa_clipExactColor() {
-    return GET_BIT(params.flags.y, 3);
-}
-
 bool taa_feedbackColor() {
     return GET_BIT(params.flags.y, 4);
 }
@@ -187,7 +179,7 @@ vec3 taa_findClosestFragment3x3(vec2 uv)
 	return vec3(uv + dd.xy * dmin.xy, dmin.z);
 }
 
-vec3 taa_fetchVelocityMapBest(vec2 uv) {
+vec2 taa_fetchVelocityMapBest(vec2 uv) {
     vec2 dd = abs(taa_getTexelSize());
     vec2 du = vec2(dd.x, 0.0);
     vec2 dv = vec2(0.0, dd.y);
@@ -225,8 +217,7 @@ vec3 taa_fetchVelocityMapBest(vec2 uv) {
     testSpeed = dot(dbr,dbr);
     if (testSpeed > best.z) { best = vec3(dbr, testSpeed); }
 
-
-    return vec3(best.xy, taa_fetchDepth(uv));
+    return best.xy;
 }
 
 vec2 taa_fromFragUVToEyeUVAndSide(vec2 fragUV, out int stereoSide) {
@@ -276,7 +267,7 @@ float Luminance(vec3 rgb) {
 
 #define MINMAX_3X3_ROUNDED 1
 
-mat3 taa_evalNeighbourColorVariance(vec3 sourceColor, vec2 fragUV, vec2 fragVelocity, float fragZe) {
+mat3 taa_evalNeighbourColorVariance(vec3 sourceColor, vec2 fragUV, vec2 fragVelocity) {
     vec2 texelSize = taa_getTexelSize();
  
 
@@ -412,69 +403,25 @@ vec3 taa_clampColor(vec3 colorMin, vec3 colorMax, vec3 colorSource, vec3 color) 
 	const float eps = 0.00001;
     vec3 p = colorSource;
     vec3 q = color;
-    if (taa_clipExactColor()) {
-        vec3 r = q - p;
-		vec3 rmax = colorMax - p.xyz;
-		vec3 rmin = colorMin - p.xyz;
+	// note: only clips towards aabb center (but fast!)
+	vec3 p_clip = 0.5 * (colorMax + colorMin);
+	vec3 e_clip = 0.5 * (colorMax - colorMin) + vec3(eps);
 
- /*       bvec3 over = (greaterThan(r, rmax + vec3(eps)));
-        bvec3 under = (lessThan(r, rmin - vec3(eps)));
+	vec3 v_clip = q - p_clip;
+	vec3 v_unit = v_clip.xyz / e_clip;
+	vec3 a_unit = abs(v_unit);
+	float ma_unit = max(a_unit.x, max(a_unit.y, a_unit.z));
 
-        float minScale = 1.0;
-		if (over.x || under.x)
-			minScale = (float(over.x) * rmax.x + float(under.x) * rmin.x) / r.x;
-		if (over.y || under.y)
-			minScale = min(minScale, (float(over.y) * rmax.y + float(under.y) * rmin.y) / r.y);
-		if (over.z || under.z)
-			minScale = min(minScale, (float(over.z) * rmax.z + float(under.z) * rmin.z) / r.z);
-
-        r *= minScale;
-
-*/
-	    if (r.x > rmax.x + eps)
-			r *= (rmax.x / r.x);
-		if (r.y > rmax.y + eps)
-			r *= (rmax.y / r.y);
-		if (r.z > rmax.z + eps)
-			r *= (rmax.z / r.z);
-
-		if (r.x < rmin.x - eps)
-			r *= (rmin.x / r.x);
-		if (r.y < rmin.y - eps)
-			r *= (rmin.y / r.y);
-		if (r.z < rmin.z - eps)
-			r *= (rmin.z / r.z);
-
-		return clamp(p + r, vec3(0.0), vec3(1.0));
-    } else {
-		// note: only clips towards aabb center (but fast!)
-		vec3 p_clip = 0.5 * (colorMax + colorMin);
-		vec3 e_clip = 0.5 * (colorMax - colorMin) + vec3(eps);
-
-		vec3 v_clip = q - p_clip;
-		vec3 v_unit = v_clip.xyz / e_clip;
-		vec3 a_unit = abs(v_unit);
-		float ma_unit = max(a_unit.x, max(a_unit.y, a_unit.z));
-
-		if (ma_unit > 1.0)
-			return p_clip + v_clip / ma_unit;
-		else
-			return q;// point inside aabb		
-	}
-    // Not using clamp at all
-    // else {
-	//	return clamp(color, colorMin, colorMax);
-	//}
+	if (ma_unit > 1.0)
+		return p_clip + v_clip / ma_unit;
+	else
+		return q;// point inside aabb		
 }
 
-vec3 taa_evalConstrainColor(vec3 sourceColor, vec2 sourceUV, vec2 sourceVel, float sourceZe, vec3 candidateColor) {
+vec3 taa_evalConstrainColor(vec3 sourceColor, vec2 sourceUV, vec2 sourceVel, vec3 candidateColor) {
     mat3 colorMinMaxAvg;
 
-    if (taa_covarianceClipColor()) {
-        colorMinMaxAvg = taa_evalNeighbourColorVariance(sourceColor, sourceUV, sourceVel, sourceZe);
-    } else {
-        colorMinMaxAvg = taa_evalNeighbourColorRegion(sourceColor, sourceUV, sourceVel, sourceZe);
-    }
+    colorMinMaxAvg = taa_evalNeighbourColorVariance(sourceColor, sourceUV, sourceVel);
      
 	// clamp history to neighbourhood of current sample
     return taa_clampColor(colorMinMaxAvg[0], colorMinMaxAvg[1], sourceColor, candidateColor);
