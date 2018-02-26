@@ -36,6 +36,7 @@ Rectangle {
     property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
     property int pendingItemCount: 0;
+    property string installedApps;
     // Style
     color: hifi.colors.white;
     Connections {
@@ -69,6 +70,7 @@ Rectangle {
                     root.activeView = "firstUseTutorial";
                 } else if (!Settings.getValue("isFirstUseOfPurchases", true) && root.activeView === "initialize") {
                     root.activeView = "purchasesMain";
+                    root.installedApps = Commerce.getInstalledApps();
                     Commerce.inventory();
                 }
             } else {
@@ -277,6 +279,7 @@ Rectangle {
                     case 'tutorial_finished':
                         Settings.setValue("isFirstUseOfPurchases", false);
                         root.activeView = "purchasesMain";
+                        root.installedApps = Commerce.getInstalledApps();
                         Commerce.inventory();
                     break;
                 }
@@ -402,6 +405,7 @@ Rectangle {
                 limitedRun: model.limited_run;
                 displayedItemCount: model.displayedItemCount;
                 permissionExplanationCardVisible: model.permissionExplanationCardVisible;
+                isInstalled: model.isInstalled;
                 itemType: {
                     if (model.root_file_url.indexOf(".fst") > -1) {
                         "avatar";
@@ -688,9 +692,13 @@ Rectangle {
 
         if (sameItemCount !== tempPurchasesModel.count || filterBar.text !== filterBar.previousText) {
             filteredPurchasesModel.clear();
+            var currentId;
             for (var i = 0; i < tempPurchasesModel.count; i++) {
+                currentId = tempPurchasesModel.get(i).id;
+
                 filteredPurchasesModel.append(tempPurchasesModel.get(i));
                 filteredPurchasesModel.setProperty(i, 'permissionExplanationCardVisible', false);
+                filteredPurchasesModel.setProperty(i, 'isInstalled', ((root.installedApps).indexOf(currentId) > -1));
             }
 
             populateDisplayedItemCounts();
