@@ -132,6 +132,8 @@ function setupBottomBar() {
         text: "BUBBLE"
     });
 
+    bubbleBtn.editProperties({isActive: Users.getIgnoreRadiusEnabled()});
+
     bubbleBtn.clicked.connect(function() {
         Users.toggleIgnoreRadius();
         bubbleBtn.editProperties({isActive: Users.getIgnoreRadiusEnabled()});
