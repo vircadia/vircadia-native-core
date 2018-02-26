@@ -133,6 +133,9 @@ void RenderableModelEntityItem::doInitialModelSimulation() {
     model->setRotation(getWorldOrientation());
     model->setTranslation(getWorldPosition());
 
+    glm::vec3 scale = model->getScale();
+    model->setUseDualQuaternionSkinning(!isNonUniformScale(scale));
+
     if (_needsInitialSimulation) {
         model->simulate(0.0f);
         _needsInitialSimulation = false;
@@ -243,6 +246,8 @@ void RenderableModelEntityItem::updateModelBounds() {
     }
 
     if (updateRenderItems) {
+        glm::vec3 scale = model->getScale();
+        model->setUseDualQuaternionSkinning(!isNonUniformScale(scale));
         model->updateRenderItems();
     }
 }
@@ -1355,6 +1360,10 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         model->setVisibleInScene(_visible, scene, viewTaskBits, false);
     }
     // TODO? early exit here when not visible?
+
+    if (model->canCastShadow() != _canCastShadow) {
+        model->setCanCastShadow(_canCastShadow, scene, viewTaskBits, false);
+    }
 
     if (_needsCollisionGeometryUpdate) {
         setCollisionMeshKey(entity->getCollisionMeshKey());

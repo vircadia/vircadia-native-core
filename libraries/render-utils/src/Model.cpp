@@ -102,6 +102,7 @@ Model::Model(QObject* parent, SpatiallyNestable* spatiallyNestableOverride) :
     _snappedToRegistrationPoint(false),
     _url(HTTP_INVALID_COM),
     _isVisible(true),
+    _canCastShadow(false),
     _blendNumber(0),
     _appliedBlendNumber(0),
     _isWireframe(false)
@@ -268,6 +269,7 @@ void Model::updateRenderItems() {
 
         bool isWireframe = self->isWireframe();
         bool isVisible = self->isVisible();
+        bool canCastShadow = self->canCastShadow();
         uint8_t viewTagBits = self->getViewTagBits();
         bool isLayeredInFront = self->isLayeredInFront();
         bool isLayeredInHUD = self->isLayeredInHUD();
@@ -278,32 +280,42 @@ void Model::updateRenderItems() {
 
             auto itemID = self->_modelMeshRenderItemIDs[i];
             auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
-            auto clusterTransforms(self->getMeshState(meshIndex).clusterTransforms);
+
+            const auto& meshState = self->getMeshState(meshIndex);
 
             bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
+            bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterTransforms,
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
                                                                   invalidatePayloadShapeKey, isWireframe, isVisible,
-                                                                  viewTagBits, isLayeredInFront,
+                                                                  canCastShadow, viewTagBits, isLayeredInFront,
                                                                   isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
-                data.updateClusterBuffer(clusterTransforms);
+                if (useDualQuaternionSkinning) {
+                    data.updateClusterBuffer(meshState.clusterDualQuaternions);
+                } else {
+                    data.updateClusterBuffer(meshState.clusterMatrices);
+                }
 
                 Transform renderTransform = modelTransform;
-                if (clusterTransforms.size() == 1) {
-#if defined(SKIN_DQ)
-                    Transform transform(clusterTransforms[0].getRotation(),
-                                        clusterTransforms[0].getScale(),
-                                        clusterTransforms[0].getTranslation());
-                    renderTransform = modelTransform.worldTransform(Transform(transform));
-#else
-                    renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0]));
-#endif
+
+                if (useDualQuaternionSkinning) {
+                    if (meshState.clusterDualQuaternions.size() == 1) {
+                        const auto& dq = meshState.clusterDualQuaternions[0];
+                        Transform transform(dq.getRotation(),
+                                            dq.getScale(),
+                                            dq.getTranslation());
+                        renderTransform = modelTransform.worldTransform(Transform(transform));
+                    }
+                } else {
+                    if (meshState.clusterMatrices.size() == 1) {
+                        renderTransform = modelTransform.worldTransform(Transform(meshState.clusterMatrices[0]));
+                    }
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
-                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, canCastShadow, viewTagBits, isGroupCulled);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
-                data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
+                data.setShapeKey(invalidatePayloadShapeKey, isWireframe, useDualQuaternionSkinning);
             });
         }
 
@@ -378,7 +390,8 @@ bool Model::updateGeometry() {
         const FBXGeometry& fbxGeometry = getFBXGeometry();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
-            state.clusterTransforms.resize(mesh.clusters.size());
+            state.clusterDualQuaternions.resize(mesh.clusters.size());
+            state.clusterMatrices.resize(mesh.clusters.size());
             _meshStates.push_back(state);
 
             // Note: we add empty buffers for meshes that lack blendshapes so we can access the buffers by index
@@ -693,46 +706,66 @@ void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene,
 
         bool isLayeredInFront = _isLayeredInFront;
         bool isLayeredInHUD = _isLayeredInHUD;
-
+        bool canCastShadow = _canCastShadow;
         render::Transaction transaction;
         foreach (auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront, canCastShadow,
                                                                 isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
-                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, canCastShadow, viewTagBits, isGroupCulled);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront, canCastShadow,
                                                                 isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
-                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, canCastShadow, viewTagBits, isGroupCulled);
             });
         }
         scene->enqueueTransaction(transaction);
     }
 }
 
+void Model::setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled) {
+    if (_canCastShadow != canCastShadow) {
+        _canCastShadow = canCastShadow;
+
+        bool isVisible = _isVisible;
+        bool isLayeredInFront = _isLayeredInFront;
+        bool isLayeredInHUD = _isLayeredInHUD;
+
+        render::Transaction transaction;
+        foreach (auto item, _modelMeshRenderItemsMap.keys()) {
+            transaction.updateItem<ModelMeshPartPayload>(item, 
+                [isVisible, viewTagBits, canCastShadow, isLayeredInFront, isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                    data.updateKey(isVisible, viewTagBits, canCastShadow, isLayeredInFront || isLayeredInHUD, isGroupCulled);
+                });
+        }
+
+        scene->enqueueTransaction(transaction);
+    }
+}
 
 void Model::setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene) {
     if (_isLayeredInFront != isLayeredInFront) {
         _isLayeredInFront = isLayeredInFront;
 
         bool isVisible = _isVisible;
+        bool canCastShadow = _canCastShadow;
         uint8_t viewTagBits = _viewTagBits;
         bool isLayeredInHUD = _isLayeredInHUD;
         bool isGroupCulled = _isGroupCulled;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront, canCastShadow,
                                                                 isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
-                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, canCastShadow, viewTagBits, isGroupCulled);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront, canCastShadow,
                                                                 isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
-                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, canCastShadow, viewTagBits, isGroupCulled);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
@@ -745,22 +778,23 @@ void Model::setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& sce
         _isLayeredInHUD = isLayeredInHUD;
 
         bool isVisible = _isVisible;
+        bool canCastShadow = _canCastShadow;
         uint8_t viewTagBits = _viewTagBits;
         bool isLayeredInFront = _isLayeredInFront;
         bool isGroupCulled = _isGroupCulled;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront, canCastShadow,
                                                                 isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
-                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, canCastShadow, viewTagBits, isGroupCulled);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront, canCastShadow,
                                                                 isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
-                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, canCastShadow, viewTagBits, isGroupCulled);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
@@ -1234,6 +1268,10 @@ void Model::snapToRegistrationPoint() {
     _snappedToRegistrationPoint = true;
 }
 
+void Model::setUseDualQuaternionSkinning(bool value) {
+    _useDualQuaternionSkinning = value;
+}
+
 void Model::simulate(float deltaTime, bool fullUpdate) {
     DETAILED_PROFILE_RANGE(simulation_detail, __FUNCTION__);
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
@@ -1267,7 +1305,11 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 void Model::computeMeshPartLocalBounds() {
     for (auto& part : _modelMeshRenderItems) {
         const Model::MeshState& state = _meshStates.at(part->_meshIndex);
-        part->computeAdjustedLocalBound(state.clusterTransforms);
+        if (_useDualQuaternionSkinning) {
+            part->computeAdjustedLocalBound(state.clusterDualQuaternions);
+        } else {
+            part->computeAdjustedLocalBound(state.clusterMatrices);
+        }
     }
 }
 
@@ -1286,16 +1328,16 @@ void Model::updateClusterMatrices() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
-#if defined(SKIN_DQ)
-            auto jointPose = _rig.getJointPose(cluster.jointIndex);
-            Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
-            Transform clusterTransform;
-            Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
-            state.clusterTransforms[j] = Model::TransformDualQuaternion(clusterTransform);
-#else
-            auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
-#endif
+            if (_useDualQuaternionSkinning) {
+                auto jointPose = _rig.getJointPose(cluster.jointIndex);
+                Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
+                Transform clusterTransform;
+                Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+                state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(clusterTransform);
+            } else {
+                auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
+                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+            }
         }
     }
 
@@ -1562,15 +1604,17 @@ void Model::addMaterial(graphics::MaterialLayer material, const std::string& par
             uint8_t viewTagBits = getViewTagBits();
             bool layeredInFront = isLayeredInFront();
             bool layeredInHUD = isLayeredInHUD();
+            bool canCastShadow = _canCastShadow;
             bool wireframe = isWireframe();
             auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
             bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, layeredInFront, layeredInHUD, viewTagBits,
-                invalidatePayloadShapeKey, wireframe](ModelMeshPartPayload& data) {
+            bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, layeredInFront, layeredInHUD, viewTagBits, canCastShadow,
+                invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                 data.addMaterial(material);
                 // if the material changed, we might need to update our item key or shape key
-                data.updateKey(visible, layeredInFront || layeredInHUD, viewTagBits);
-                data.setShapeKey(invalidatePayloadShapeKey, wireframe);
+                data.updateKey(visible, layeredInFront || layeredInHUD, canCastShadow, viewTagBits);
+                data.setShapeKey(invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning);
             });
         }
     }
@@ -1587,15 +1631,17 @@ void Model::removeMaterial(graphics::MaterialPointer material, const std::string
             uint8_t viewTagBits = getViewTagBits();
             bool layeredInFront = isLayeredInFront();
             bool layeredInHUD = isLayeredInHUD();
+            bool canCastShadow = _canCastShadow;
             bool wireframe = isWireframe();
             auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
             bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, layeredInFront, layeredInHUD, viewTagBits,
-                invalidatePayloadShapeKey, wireframe](ModelMeshPartPayload& data) {
+            bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, layeredInFront, layeredInHUD, viewTagBits, canCastShadow,
+                invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                 data.removeMaterial(material);
                 // if the material changed, we might need to update our item key or shape key
-                data.updateKey(visible, layeredInFront || layeredInHUD, viewTagBits);
-                data.setShapeKey(invalidatePayloadShapeKey, wireframe);
+                data.updateKey(visible, layeredInFront || layeredInHUD, canCastShadow, viewTagBits);
+                data.setShapeKey(invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning);
             });
         }
     }

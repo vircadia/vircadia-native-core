@@ -316,6 +316,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
     CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE, visible);
+    CHECK_PROPERTY_CHANGE(PROP_CAN_CAST_SHADOW, canCastShadow);
     CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_VELOCITY, angularVelocity);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_DAMPING, angularDamping);
@@ -490,6 +491,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_VELOCITY, angularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_DAMPING, angularDamping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE, visible);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISIONLESS, collisionless);
     COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_COLLISIONLESS, collisionless, ignoreForCollisions, getCollisionless()); // legacy support
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_MASK, collisionMask);
@@ -751,6 +753,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, glmVec3, setAngularVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularDamping, float, setAngularDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(visible, bool, setVisible);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(canCastShadow, bool, setCanCastShadow);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(color, xColor, setColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(colorSpread, xColor, setColorSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, xColor, setColorStart);
@@ -922,6 +925,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(angularVelocity);
     COPY_PROPERTY_IF_CHANGED(angularDamping);
     COPY_PROPERTY_IF_CHANGED(visible);
+    COPY_PROPERTY_IF_CHANGED(canCastShadow);
     COPY_PROPERTY_IF_CHANGED(color);
     COPY_PROPERTY_IF_CHANGED(colorSpread);
     COPY_PROPERTY_IF_CHANGED(colorStart);
@@ -1094,6 +1098,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 
     std::call_once(initMap, [](){
         ADD_PROPERTY_TO_MAP(PROP_VISIBLE, Visible, visible, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool);
         ADD_PROPERTY_TO_MAP(PROP_POSITION, Position, position, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_DIMENSIONS, Dimensions, dimensions, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ROTATION, Rotation, rotation, glm::quat);
@@ -1187,6 +1192,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor);
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3);
+        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_CAST_SHADOW, KeyLightCastShadows, keyLightCastShadows, bool);
+
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray);
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t);
@@ -1412,6 +1419,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, properties.getAngularVelocity());
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, properties.getAngularDamping());
             APPEND_ENTITY_PROPERTY(PROP_VISIBLE, properties.getVisible());
+            APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, properties.getCanCastShadow());
             APPEND_ENTITY_PROPERTY(PROP_COLLISIONLESS, properties.getCollisionless());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_MASK, properties.getCollisionMask());
             APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, properties.getDynamic());
@@ -1784,6 +1792,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, glm::vec3, setAngularVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_DAMPING, float, setAngularDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONLESS, bool, setCollisionless);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_MASK, uint8_t, setCollisionMask);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DYNAMIC, bool, setDynamic);
@@ -2053,6 +2062,7 @@ void EntityItemProperties::markAllChanged() {
     _angularDampingChanged = true;
     _nameChanged = true;
     _visibleChanged = true;
+    _canCastShadowChanged = true;
     _colorChanged = true;
     _alphaChanged = true;
     _modelURLChanged = true;
@@ -2249,6 +2259,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (visibleChanged()) {
         out += "visible";
+    }
+    if (canCastShadowChanged()) {
+        out += "canCastShadow";
     }
     if (rotationChanged()) {
         out += "rotation";

@@ -26,12 +26,16 @@
 #include "model_lightmap_normal_map_vert.h"
 #include "skin_model_vert.h"
 #include "skin_model_normal_map_vert.h"
+#include "skin_model_dq_vert.h"
+#include "skin_model_normal_map_dq_vert.h"
 
 #include "model_lightmap_fade_vert.h"
 #include "model_lightmap_normal_map_fade_vert.h"
 #include "model_translucent_vert.h"
 #include "skin_model_fade_vert.h"
 #include "skin_model_normal_map_fade_vert.h"
+#include "skin_model_fade_dq_vert.h"
+#include "skin_model_normal_map_fade_dq_vert.h"
 
 #include "simple_vert.h"
 #include "simple_textured_frag.h"
@@ -82,6 +86,7 @@
 
 #include "model_shadow_vert.h"
 #include "skin_model_shadow_vert.h"
+#include "skin_model_shadow_dq_vert.h"
 
 #include "model_shadow_frag.h"
 #include "skin_model_shadow_frag.h"
@@ -182,15 +187,27 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     auto modelLightmapNormalMapVertex = model_lightmap_normal_map_vert::getShader();
     auto modelTranslucentVertex = model_translucent_vert::getShader();
     auto modelShadowVertex = model_shadow_vert::getShader();
+
+    auto modelLightmapFadeVertex = model_lightmap_fade_vert::getShader();
+    auto modelLightmapNormalMapFadeVertex = model_lightmap_normal_map_fade_vert::getShader();
+
+    // matrix palette skinned
     auto skinModelVertex = skin_model_vert::getShader();
     auto skinModelNormalMapVertex = skin_model_normal_map_vert::getShader();
     auto skinModelShadowVertex = skin_model_shadow_vert::getShader();
-    auto modelLightmapFadeVertex = model_lightmap_fade_vert::getShader();
-    auto modelLightmapNormalMapFadeVertex = model_lightmap_normal_map_fade_vert::getShader();
     auto skinModelFadeVertex = skin_model_fade_vert::getShader();
     auto skinModelNormalMapFadeVertex = skin_model_normal_map_fade_vert::getShader();
     auto skinModelTranslucentVertex = skinModelFadeVertex;  // We use the same because it ouputs world position per vertex
     auto skinModelNormalMapTranslucentVertex = skinModelNormalMapFadeVertex;  // We use the same because it ouputs world position per vertex
+
+    // dual quaternion skinned
+    auto skinModelDualQuatVertex = skin_model_dq_vert::getShader();
+    auto skinModelNormalMapDualQuatVertex = skin_model_normal_map_dq_vert::getShader();
+    auto skinModelShadowDualQuatVertex = skin_model_shadow_dq_vert::getShader();
+    auto skinModelFadeDualQuatVertex = skin_model_fade_dq_vert::getShader();
+    auto skinModelNormalMapFadeDualQuatVertex = skin_model_normal_map_fade_dq_vert::getShader();
+    auto skinModelTranslucentDualQuatVertex = skinModelFadeDualQuatVertex;  // We use the same because it ouputs world position per vertex
+    auto skinModelNormalMapTranslucentDualQuatVertex = skinModelNormalMapFadeDualQuatVertex;  // We use the same because it ouputs world position per vertex
 
     auto modelFadeVertex = model_fade_vert::getShader();
     auto modelNormalMapFadeVertex = model_normal_map_fade_vert::getShader();
@@ -318,7 +335,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         Key::Builder().withMaterial().withLightmap().withTangents().withFade(),
         modelLightmapNormalMapFadeVertex, modelLightmapNormalMapFadePixel, batchSetter, itemSetter);
 
-    // Skinned
+    // matrix palette skinned
     addPipeline(
         Key::Builder().withMaterial().withSkinned(),
         skinModelVertex, modelPixel, nullptr, nullptr);
@@ -333,7 +350,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         Key::Builder().withMaterial().withSkinned().withTangents().withFade(),
         skinModelNormalMapFadeVertex, modelNormalMapFadePixel, batchSetter, itemSetter);
 
-    // Skinned and Translucent
+    // matrix palette skinned and translucent
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTranslucent(),
         skinModelTranslucentVertex, modelTranslucentPixel, nullptr, nullptr);
@@ -347,6 +364,60 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents().withFade(),
         skinModelNormalMapFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+
+    // dual quaternion skinned
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned(),
+        skinModelDualQuatVertex, modelPixel, nullptr, nullptr);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTangents(),
+        skinModelNormalMapDualQuatVertex, modelNormalMapPixel, nullptr, nullptr);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withSpecular(),
+        skinModelDualQuatVertex, modelSpecularMapPixel, nullptr, nullptr);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTangents().withSpecular(),
+        skinModelNormalMapDualQuatVertex, modelNormalSpecularMapPixel, nullptr, nullptr);
+    // Same thing but with Fade on
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withFade(),
+        skinModelFadeDualQuatVertex, modelFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTangents().withFade(),
+        skinModelNormalMapFadeDualQuatVertex, modelNormalMapFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withSpecular().withFade(),
+        skinModelFadeDualQuatVertex, modelSpecularMapFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTangents().withSpecular().withFade(),
+        skinModelNormalMapFadeDualQuatVertex, modelNormalSpecularMapFadePixel, batchSetter, itemSetter);
+
+    // dual quaternion skinned and translucent
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent(),
+        skinModelTranslucentDualQuatVertex, modelTranslucentPixel, nullptr, nullptr);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withTangents(),
+        skinModelNormalMapTranslucentDualQuatVertex, modelTranslucentNormalMapPixel, nullptr, nullptr);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withSpecular(),
+        skinModelTranslucentDualQuatVertex, modelTranslucentPixel, nullptr, nullptr);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withTangents().withSpecular(),
+        skinModelNormalMapTranslucentDualQuatVertex, modelTranslucentNormalMapPixel, nullptr, nullptr);
+    // Same thing but with Fade on
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withFade(),
+        skinModelFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withTangents().withFade(),
+        skinModelNormalMapFadeDualQuatVertex, modelTranslucentNormalMapFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withSpecular().withFade(),
+        skinModelFadeDualQuatVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withTangents().withSpecular().withFade(),
+        skinModelNormalMapFadeDualQuatVertex, modelTranslucentNormalMapFadePixel, batchSetter, itemSetter);
 
     // Depth-only
     addPipeline(
