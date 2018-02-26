@@ -655,6 +655,9 @@
             case 'goToPurchases':
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
                 break;
+            case 'goToMarketplaceMainPage':
+                tablet.gotoWebScreen(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+                break;
             case 'goToMarketplaceItemPage':
                 tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;

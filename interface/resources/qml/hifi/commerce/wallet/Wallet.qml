@@ -799,6 +799,8 @@ Rectangle {
             Commerce.getWalletStatus();
         } else if (msg.referrer === 'purchases') {
             sendToScript({method: 'goToPurchases'});
+        } else if (msg.referrer === 'marketplace cta' || msg.referrer === 'mainPage') {
+            sendToScript({method: 'goToMarketplaceMainPage', itemId: msg.referrer});
         } else {
             sendToScript({method: 'goToMarketplaceItemPage', itemId: msg.referrer});
         }
