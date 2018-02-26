@@ -146,6 +146,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto ambientOcclusionFramebuffer = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(0);
     const auto ambientOcclusionUniforms = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(1);
 
+    // Velocity
+    const auto velocityBufferInputs = VelocityBufferPass::Inputs(deferredFrameTransform, deferredFramebuffer).asVarying();
+    const auto velocityBufferOutputs = task.addJob<VelocityBufferPass>("VelocityBuffer", velocityBufferInputs);
+    const auto velocityBuffer = velocityBufferOutputs.getN<VelocityBufferPass::Outputs>(0);
+
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     task.addJob<DrawLight>("DrawLight", lights);
 
@@ -240,11 +245,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DrawBounds>("DrawOverlayInFrontOpaqueBounds", overlaysInFrontOpaque);
         task.addJob<DrawBounds>("DrawOverlayInFrontTransparentBounds", overlaysInFrontTransparent);
     }
-
-    // Velocity
-    const auto velocityBufferInputs = VelocityBufferPass::Inputs(deferredFrameTransform, deferredFramebuffer).asVarying();
-    const auto velocityBufferOutputs = task.addJob<VelocityBufferPass>("VelocityBuffer", velocityBufferInputs);
-    const auto velocityBuffer = velocityBufferOutputs.getN<VelocityBufferPass::Outputs>(0);
 
     // AA job to be revisited
     const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, primaryFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
