@@ -187,7 +187,8 @@ const int AntialiasingPass_DepthMapSlot = 3;
 const int AntialiasingPass_NextMapSlot = 4;
 
 
-Antialiasing::Antialiasing() {
+Antialiasing::Antialiasing(bool isSharpenEnabled) : 
+    _isSharpenEnabled{ isSharpenEnabled } {
     _antialiasingBuffers = std::make_shared<gpu::FramebufferSwapChain>(2U);
 }
 
@@ -283,6 +284,9 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
 
 void Antialiasing::configure(const Config& config) {
     _sharpen = config.sharpen;
+    if (!_isSharpenEnabled) {
+        _sharpen = 0.0f;
+    }
     _params.edit().blend = config.blend * config.blend;
     _params.edit().covarianceGamma = config.covarianceGamma;
 

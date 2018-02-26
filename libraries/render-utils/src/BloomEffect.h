@@ -74,7 +74,7 @@ class BloomApplyConfig : public render::Job::Config {
 
 public:
 
-    float intensity{ 0.15f };
+    float intensity{ 0.2f };
 
 signals:
     void dirty();

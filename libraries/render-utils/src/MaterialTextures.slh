@@ -51,14 +51,14 @@ TexMapArray getTexMapArray() {
 <@if withAlbedo@>
 uniform sampler2D albedoMap;
 vec4 fetchAlbedoMap(vec2 uv) {
-    return texture(albedoMap, uv);
+    return texture(albedoMap, uv, -1.0);
 }
 <@endif@>
 
 <@if withRoughness@>
 uniform sampler2D roughnessMap;
 float fetchRoughnessMap(vec2 uv) {
-    return (texture(roughnessMap, uv).r);
+    return (texture(roughnessMap, uv, -1.0).r);
 }
 <@endif@>
 
@@ -66,7 +66,7 @@ float fetchRoughnessMap(vec2 uv) {
 uniform sampler2D normalMap;
 vec3 fetchNormalMap(vec2 uv) {
     // unpack normal, swizzle to get into hifi tangent space with Y axis pointing out
-    vec2 t = 2.0 * (texture(normalMap, uv).rg - vec2(0.5, 0.5));
+    vec2 t = 2.0 * (texture(normalMap, uv, -1.0).rg - vec2(0.5, 0.5));
     vec2 t2 = t*t;
     return vec3(t.x, sqrt(1.0 - t2.x - t2.y), t.y);
 }
@@ -75,7 +75,7 @@ vec3 fetchNormalMap(vec2 uv) {
 <@if withMetallic@>
 uniform sampler2D metallicMap;
 float fetchMetallicMap(vec2 uv) {
-    return (texture(metallicMap, uv).r);
+    return (texture(metallicMap, uv, -1.0).r);
 }
 <@endif@>
 
@@ -164,8 +164,8 @@ vec3 fetchLightmapMap(vec2 uv) {
     vec3 normalizedTangent = normalize(<$interpolatedTangent$>.xyz);
     vec3 normalizedBitangent = normalize(cross(normalizedNormal, normalizedTangent));
     // attenuate the normal map divergence from the mesh normal based on distance
-    // THe attenuation range [20,100] meters from the eye is arbitrary for now
-    vec3 localNormal = mix(<$fetchedNormal$>, vec3(0.0, 1.0, 0.0), smoothstep(20.0, 100.0, (-<$fragPos$>).z));
+    // THe attenuation range [100,300] meters from the eye is arbitrary for now
+    vec3 localNormal = mix(<$fetchedNormal$>, vec3(0.0, 1.0, 0.0), smoothstep(100.0, 300.0, (-<$fragPos$>).z));
     <$normal$> = vec3(normalizedTangent * localNormal.x + normalizedNormal * localNormal.y + normalizedBitangent * localNormal.z);
 }
 <@endfunc@>

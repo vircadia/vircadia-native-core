@@ -190,7 +190,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
 
-    // AA job to be revisited
+    // AA job
     const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, lightingFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
     task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 

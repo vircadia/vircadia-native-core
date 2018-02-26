@@ -107,7 +107,7 @@ class AntialiasingConfig : public render::Job::Config {
 public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
-    float blend{ 0.05f };
+    float blend{ 0.1f };
     float sharpen{ 0.15f };
 
     bool constrainColor{ true };
@@ -178,7 +178,7 @@ public:
     using Config = AntialiasingConfig;
     using JobModel = render::Job::ModelI<Antialiasing, Inputs, Config>;
 
-    Antialiasing();
+    Antialiasing(bool isSharpenEnabled = true);
     ~Antialiasing();
     void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
@@ -199,6 +199,7 @@ private:
     TAAParamsBuffer _params;
     float _sharpen{ 0.15f };
     int _sharpenLoc{ -1 };
+    bool _isSharpenEnabled{ true };
 };
 
 
