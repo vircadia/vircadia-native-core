@@ -10,7 +10,6 @@
 #include "ScriptableMesh.h"
 #include "ScriptableMeshPart.h"
 
-#include "BufferViewScripting.h"
 #include "GraphicsScriptingUtil.h"
 #include "OBJWriter.h"
 #include <BaseScriptEngine.h>
