@@ -108,7 +108,7 @@ public:
     void render(RenderArgs* args) override;
 
     void setLayer(bool isLayeredInFront, bool isLayeredInHUD);
-    void setShapeKey(bool invalidateShapeKey, bool isWireframe);
+    void setShapeKey(bool invalidateShapeKey, bool isWireframe, bool useDualQuaternionSkinning);
 
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
@@ -120,9 +120,10 @@ public:
     // dual quaternion skinning
     void computeAdjustedLocalBound(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions);
 
-    void setUseDualQuaternionSkinning(bool value);
-
     gpu::BufferPointer _clusterBuffer;
+
+    enum class ClusterBufferType { Matrices, DualQuaternions };
+    ClusterBufferType _clusterBufferType { ClusterBufferType::Matrices };
 
     int _meshIndex;
     int _shapeID;
@@ -130,7 +131,6 @@ public:
     bool _isSkinned{ false };
     bool _isBlendShaped { false };
     bool _hasTangents { false };
-    bool _useDualQuaternionSkinning { false };
 
 private:
     void initCache(const ModelPointer& model);

@@ -288,7 +288,6 @@ void Model::updateRenderItems() {
                                                                   invalidatePayloadShapeKey, isWireframe, isVisible,
                                                                   viewTagBits, isLayeredInFront,
                                                                   isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
-                data.setUseDualQuaternionSkinning(useDualQuaternionSkinning);
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
                 } else {
@@ -314,7 +313,7 @@ void Model::updateRenderItems() {
 
                 data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
-                data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
+                data.setShapeKey(invalidatePayloadShapeKey, isWireframe, useDualQuaternionSkinning);
             });
         }
 
@@ -1591,8 +1590,7 @@ void Model::addMaterial(graphics::MaterialLayer material, const std::string& par
                 data.addMaterial(material);
                 // if the material changed, we might need to update our item key or shape key
                 data.updateKey(visible, layeredInFront || layeredInHUD, viewTagBits);
-                data.setUseDualQuaternionSkinning(useDualQuaternionSkinning);
-                data.setShapeKey(invalidatePayloadShapeKey, wireframe);
+                data.setShapeKey(invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning);
             });
         }
     }
@@ -1618,8 +1616,7 @@ void Model::removeMaterial(graphics::MaterialPointer material, const std::string
                 data.removeMaterial(material);
                 // if the material changed, we might need to update our item key or shape key
                 data.updateKey(visible, layeredInFront || layeredInHUD, viewTagBits);
-                data.setUseDualQuaternionSkinning(useDualQuaternionSkinning);
-                data.setShapeKey(invalidatePayloadShapeKey, wireframe);
+                data.setShapeKey(invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning);
             });
         }
     }

@@ -223,7 +223,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     assert(model && model->isLoaded());
 
-    _useDualQuaternionSkinning = model->getUseDualQuaternionSkinning();
+    bool useDualQuaternionSkinning = model->getUseDualQuaternionSkinning();
 
     _blendedVertexBuffer = model->_blendedVertexBuffers[_meshIndex];
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
@@ -231,7 +231,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     updateMeshPart(modelMesh, partIndex);
 
-    if (_useDualQuaternionSkinning) {
+    if (useDualQuaternionSkinning) {
         computeAdjustedLocalBound(state.clusterDualQuaternions);
     } else {
         computeAdjustedLocalBound(state.clusterMatrices);
@@ -239,7 +239,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     updateTransform(transform, offsetTransform);
     Transform renderTransform = transform;
-    if (_useDualQuaternionSkinning) {
+    if (useDualQuaternionSkinning) {
         if (state.clusterDualQuaternions.size() == 1) {
             const auto& dq = state.clusterDualQuaternions[0];
             Transform transform(dq.getRotation(),
@@ -281,6 +281,13 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 }
 
 void ModelMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices) {
+
+    // reset cluster buffer if we change the cluster buffer type
+    if (_clusterBufferType != ClusterBufferType::Matrices) {
+        _clusterBuffer.reset();
+    }
+    _clusterBufferType = ClusterBufferType::Matrices;
+
     // Once computed the cluster matrices, update the buffer(s)
     if (clusterMatrices.size() > 1) {
         if (!_clusterBuffer) {
@@ -295,6 +302,13 @@ void ModelMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clu
 }
 
 void ModelMeshPartPayload::updateClusterBuffer(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions) {
+
+    // reset cluster buffer if we change the cluster buffer type
+    if (_clusterBufferType != ClusterBufferType::DualQuaternions) {
+        _clusterBuffer.reset();
+    }
+    _clusterBufferType = ClusterBufferType::DualQuaternions;
+
     // Once computed the cluster matrices, update the buffer(s)
     if (clusterDualQuaternions.size() > 1) {
         if (!_clusterBuffer) {
@@ -360,7 +374,7 @@ int ModelMeshPartPayload::getLayer() const {
     return _layer;
 }
 
-void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe) {
+void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe, bool useDualQuaternionSkinning) {
     if (invalidateShapeKey) {
         _shapeKey = ShapeKey::Builder::invalid();
         return;
@@ -407,7 +421,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     if (isWireframe) {
         builder.withWireframe();
     }
-    if (_useDualQuaternionSkinning && isSkinned) {
+    if (isSkinned && useDualQuaternionSkinning) {
         builder.withDualQuatSkinned();
     }
 
@@ -496,11 +510,4 @@ void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<Model::Tr
             _adjustedLocalBound += clusterBound;
         }
     }
-}
-
-void ModelMeshPartPayload::setUseDualQuaternionSkinning(bool value) {
-    if (value != _useDualQuaternionSkinning) {
-        _clusterBuffer.reset();
-    }
-    _useDualQuaternionSkinning = value;
 }
