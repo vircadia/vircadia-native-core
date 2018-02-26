@@ -1295,6 +1295,45 @@ public slots:
     Q_INVOKABLE bool verifyStaticCertificateProperties(const QUuid& entityID);
 
 signals:
+    /**jsdoc
+     * Triggered on the client that is the physics simulation owner during the collision of two entities. Note: Isn't triggered 
+     * for a collision with an avatar.
+     * @function Entities.collisionWithEntity
+     * @param {Uuid} idA - The ID of one entity in the collision. For an entity script, this is the ID of the entity containing 
+     *     the script.
+     * @param {Uuid} idB - The ID of the other entity in the collision.
+     * @param {Collision} collision - The details of the collision.
+     * @returns {Signal}
+     * @example <caption>Change the color of an entity when it collides with another entity.</caption>
+     * var entityScript = (function () {
+     *     function randomInteger(min, max) {
+     *         return Math.floor(Math.random() * (max - min + 1)) + min;
+     *     }
+     *
+     *     this.collisionWithEntity = function (myID, otherID, collision) {
+     *         Entities.editEntity(myID, {
+     *             color: {
+     *                 red: randomInteger(128, 255),
+     *                 green: randomInteger(128, 255),
+     *                 blue: randomInteger(128, 255)
+     *             }
+     *         });
+     *     };
+     * });
+     *
+     * var entityID = Entities.addEntity({
+     *     type: "Box",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+     *     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+     *     color: { red: 128, green: 128, blue: 128 },
+     *     gravity: { x: 0, y: -9.8, z: 0 },
+     *     velocity: { x: 0, y: 0.1, z: 0 },  // Kick off physics.
+     *     dynamic: true,
+     *     collisionless: false,  // So that collision events are generated.
+     *     script: "(" + entityScript + ")",  // Could host the script on a Web server instead.
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     */
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
     /**jsdoc
@@ -1476,8 +1515,48 @@ signals:
      */
     void hoverLeaveEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
+
+    /**jsdoc
+     * Triggered when an avatar enters an entity.
+     * @function Entities.enterEntity
+     * @param {Uuid} entityID - The ID of the entity that the avatar entered.
+     * @returns {Signal}
+     * @example <caption>Change the color of an entity when an avatar enters or leaves.</caption>
+     * var entityScript = (function () {
+     *     this.enterEntity = function (entityID) {
+     *         print("Enter entity");
+     *         Entities.editEntity(entityID, {
+     *             color: { red: 255, green: 64, blue: 64 },
+     *         });
+     *     };
+     *     this.leaveEntity = function (entityID) {
+     *         print("Leave entity");
+     *         Entities.editEntity(entityID, {
+     *             color: { red: 128, green: 128, blue: 128 },
+     *         });
+     *     };
+     * });
+     *
+     * var entityID = Entities.addEntity({
+     *     type: "Sphere",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+     *     dimensions: { x: 3, y: 3, z: 3 },
+     *     color: { red: 128, green: 128, blue: 128 },
+     *     collisionless: true,  // So that avatar can walk through entity.
+     *     script: "(" + entityScript + ")",  // Could host the script on a Web server instead.
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     */
     void enterEntity(const EntityItemID& entityItemID);
+
+    /**jsdoc
+     * Triggered when an avatar leaves an entity.
+     * @function Entities.enterEntity
+     * @param {Uuid} entityID - The ID of the entity that the avatar left.
+     * @returns {Signal}
+     */
     void leaveEntity(const EntityItemID& entityItemID);
+
 
     /**jsdoc
      * Triggered when an entity is deleted.

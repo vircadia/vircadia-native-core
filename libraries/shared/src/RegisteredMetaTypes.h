@@ -258,6 +258,20 @@ namespace std {
     };
 }
 
+/**jsdoc
+ * <p>The type of a collision contact event.
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>0</code></td><td>Start of the collision.</td></tr>
+ *     <tr><td><code>1</code></td><td>Continuation of the collision.</td></tr>
+ *     <tr><td><code>2</code></td><td>End of the collision.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {number} ContactEventType
+ */
 enum ContactEventType {
     CONTACT_EVENT_TYPE_START,
     CONTACT_EVENT_TYPE_CONTINUE,
