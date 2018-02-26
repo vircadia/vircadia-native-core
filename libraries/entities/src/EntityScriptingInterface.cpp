@@ -1264,10 +1264,10 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
         }
 
         doTransmit = actor(simulation, entity);
+        _entityTree->entityChanged(entity);
         if (doTransmit) {
             properties.setClientOnly(entity->getClientOnly());
             properties.setOwningAvatarID(entity->getOwningAvatarID());
-            _entityTree->entityChanged(entity);
         }
     });
 
@@ -1313,7 +1313,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
         action->setIsMine(true);
         success = entity->addAction(simulation, action);
         entity->flagForOwnershipBid(SCRIPT_GRAB_SIMULATION_PRIORITY);
-        return success;
+        return false; // Physics will cause a packet to be sent, so don't send from here
     });
     if (success) {
         return actionID;
@@ -1344,7 +1344,7 @@ bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& 
             // reduce from grab to poke
             entity->flagForOwnershipBid(SCRIPT_POKE_SIMULATION_PRIORITY);
         }
-        return success;
+        return false; // Physics will cause a packet to be sent, so don't send from here
     });
     return success;
 }
