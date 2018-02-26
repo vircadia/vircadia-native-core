@@ -110,9 +110,6 @@ public slots:
     void removeSeparator(const QString& menuName, const QString& separatorName);
     void removeMenuItem(const QString& menuName, const QString& menuitem);
     bool menuItemExists(const QString& menuName, const QString& menuitem);
-    void addActionGroup(const QString& groupName, const QStringList& actionList, const QString& selected = QString(), 
-        QObject* receiver = nullptr, const char* slot = nullptr);
-    void removeActionGroup(const QString& groupName);
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
 
@@ -125,9 +122,6 @@ public slots:
     void toggleDeveloperMenus();
     void toggleAdvancedMenus();
 
-    bool isInfoViewVisible(const QString& path);
-    void closeInfoView(const QString& path);
-    
     void triggerOption(const QString& menuOption);
 
     static bool isSomeSubmenuShown() { return _isSomeSubmenuShown; }

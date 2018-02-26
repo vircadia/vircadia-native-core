@@ -34,6 +34,7 @@ private:
     const QString AVATARBOOKMARKS_FILENAME = "avatarbookmarks.json";
     const QString ENTRY_AVATAR_URL = "avatarUrl";
     const QString ENTRY_AVATAR_ATTACHMENTS = "attachments";
+    const QString ENTRY_AVATAR_ENTITIES = "avatarEntites";
     const QString ENTRY_AVATAR_SCALE = "avatarScale";
     const QString ENTRY_VERSION = "version";
 

@@ -98,6 +98,11 @@ public:
     OverlayID addOverlay(Overlay* overlay) { return addOverlay(Overlay::Pointer(overlay)); }
     OverlayID addOverlay(const Overlay::Pointer& overlay);
 
+    RayToOverlayIntersectionResult findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
+        const QVector<OverlayID>& overlaysToInclude,
+        const QVector<OverlayID>& overlaysToDiscard,
+        bool visibleOnly = false, bool collidableOnly = false);
+
     bool mousePressEvent(QMouseEvent* event);
     bool mouseDoublePressEvent(QMouseEvent* event);
     bool mouseReleaseEvent(QMouseEvent* event);
@@ -228,15 +233,6 @@ public slots:
     QString getOverlayType(OverlayID overlayId);
 
     /**jsdoc
-     * Get the overlay script object.
-     * @function Overlays.getOverlayObject
-     * @deprecated This function is deprecated and will soon be removed.
-     * @param {Uuid} overlayID - The ID of the overlay to get the script object of.
-     * @returns {object} The script object for the overlay if found.
-     */
-    QObject* getOverlayObject(OverlayID id);
-
-    /**jsdoc
      * Get the ID of the 2D overlay at a particular point on the screen or HUD.
      * @function Overlays.getOverlayAtPoint
      * @param {Vec2} point - The point to check for an overlay.
@@ -355,28 +351,6 @@ public slots:
                                                        const QScriptValue& overlayIDsToDiscard = QScriptValue(),
                                                        bool visibleOnly = false,
                                                        bool collidableOnly = false);
-
-    // TODO: Apart from the name, this function signature on JavaScript is identical to that of findRayIntersection() and should
-    // probably be removed from the JavaScript API so as not to cause confusion.
-    /**jsdoc
-     * Find the closest 3D overlay intersected by a {@link PickRay}.
-     * @function Overlays.findRayIntersectionVector
-     * @deprecated Use {@link Overlays.findRayIntersection} instead; it has identical parameters and results.
-     * @param {PickRay} pickRay - The PickRay to use for finding overlays.
-     * @param {boolean} [precisionPicking=false] - <em>Unused</em>; exists to match Entity API.
-     * @param {Array.<Uuid>} [overlayIDsToInclude=[]] - Whitelist for intersection test. If empty then the result isn't limited
-     *     to overlays in the list.
-     * @param {Array.<Uuid>} [overlayIDsToExclude=[]] - Blacklist for intersection test. If empty then the result doesn't
-     *     exclude overlays in the list.
-     * @param {boolean} [visibleOnly=false] - <em>Unused</em>; exists to match Entity API.
-     * @param {boolean} [collidableOnly=false] - <em>Unused</em>; exists to match Entity API.
-     * @returns {Overlays.RayToOverlayIntersectionResult} The closest 3D overlay intersected by <code>pickRay</code>, taking
-     *     into account <code>overlayIDsToInclude</code> and <code>overlayIDsToExclude</code> if they're not empty.
-     */
-    RayToOverlayIntersectionResult findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
-                                                             const QVector<OverlayID>& overlaysToInclude,
-                                                             const QVector<OverlayID>& overlaysToDiscard,
-                                                             bool visibleOnly = false, bool collidableOnly = false);
 
     /**jsdoc
      * Return a list of 3D overlays with bounding boxes that touch a search sphere.
