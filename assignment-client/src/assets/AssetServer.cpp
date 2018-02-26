@@ -447,7 +447,7 @@ void AssetServer::replayRequests() {
     RequestQueue queue;
     {
         QMutexLocker lock { &_queuedRequestsMutex };
-        qSwap(queue, _queuedRequests);
+        std::swap(queue, _queuedRequests);
         _isQueueingRequests = false;
     }
 

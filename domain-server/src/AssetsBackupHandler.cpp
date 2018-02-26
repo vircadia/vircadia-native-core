@@ -24,11 +24,12 @@
 #include <MappingRequest.h>
 #include <PathUtils.h>
 
-static const QString ASSETS_DIR = "/assets/";
-static const QString MAPPINGS_FILE = "mappings.json";
-static const QString ZIP_ASSETS_FOLDER = "files";
-
 using namespace std;
+
+static const QString ASSETS_DIR { "/assets/" };
+static const QString MAPPINGS_FILE { "mappings.json" };
+static const QString ZIP_ASSETS_FOLDER { "files" };
+static const chrono::minutes MAX_REFRESH_TIME { 15 };
 
 Q_DECLARE_LOGGING_CATEGORY(asset_backup)
 Q_LOGGING_CATEGORY(asset_backup, "hifi.asset-backup");
@@ -50,7 +51,7 @@ void AssetsBackupHandler::setupRefreshTimer() {
     QObject::connect(&_mappingsRefreshTimer, &QTimer::timeout, this, &AssetsBackupHandler::refreshMappings);
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
-    QObject::connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, [this](SharedNodePointer node) {
+    QObject::connect(nodeList.data(), &LimitedNodeList::nodeActivated, this, [this](SharedNodePointer node) {
         if (node->getType() == NodeType::AssetServer) {
             // run immediately for the first time.
             _mappingsRefreshTimer.start(0);
@@ -188,7 +189,7 @@ void AssetsBackupHandler::loadBackup(const QString& backupName, QuaZip& zip) {
 
     QuaZipFile zipFile { &zip };
     if (!zipFile.open(QFile::ReadOnly)) {
-        qCCritical(asset_backup) << "Could not unzip backup file for load:" << backupName;
+        qCCritical(asset_backup) << "Could not unzip backup file for load:" << MAPPINGS_FILE;
         qCCritical(asset_backup) << "    Error:" << zip.getZipError();
         backup.corruptedBackup = true;
         return;
@@ -197,7 +198,7 @@ void AssetsBackupHandler::loadBackup(const QString& backupName, QuaZip& zip) {
     QJsonParseError error;
     auto document = QJsonDocument::fromJson(zipFile.readAll(), &error);
     if (document.isNull() || !document.isObject()) {
-        qCCritical(asset_backup) << "Could not parse backup file to JSON object for load:" << backupName;
+        qCCritical(asset_backup) << "Could not parse backup file to JSON object for load:" << MAPPINGS_FILE;
         qCCritical(asset_backup) << "    Error:" << error.errorString();
         backup.corruptedBackup = true;
         return;
@@ -232,13 +233,12 @@ void AssetsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
         return;
     }
 
-    if (_lastMappingsRefresh == 0) {
+    if (_lastMappingsRefresh.time_since_epoch().count() == 0) {
         qCWarning(asset_backup) << "Current mappings not yet loaded.";
         return;
     }
 
-    static constexpr quint64 MAX_REFRESH_TIME = 15 * 60 * 1000 * 1000;
-    if (usecTimestampNow() - _lastMappingsRefresh > MAX_REFRESH_TIME) {
+    if ((p_high_resolution_clock::now() - _lastMappingsRefresh) > MAX_REFRESH_TIME) {
         qCWarning(asset_backup) << "Backing up asset mappings that might be stale.";
     }
 
@@ -275,14 +275,13 @@ void AssetsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) 
         return;
     }
 
-    if (_lastMappingsRefresh == 0) {
+    if (_lastMappingsRefresh.time_since_epoch().count() == 0) {
         qCWarning(asset_backup) << "Current mappings not yet loaded.";
         return;
     }
 
-    static constexpr quint64 MAX_REFRESH_TIME = 15 * 60 * 1000 * 1000;
-    if (usecTimestampNow() - _lastMappingsRefresh > MAX_REFRESH_TIME) {
-        qCWarning(asset_backup) << "Current asset mappings that might be stale.";
+    if ((p_high_resolution_clock::now() - _lastMappingsRefresh) > MAX_REFRESH_TIME) {
+        qCWarning(asset_backup) << "Recovering while current asset mappings might be stale.";
     }
 
     auto it = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& backup) {
@@ -412,7 +411,7 @@ void AssetsBackupHandler::refreshMappings() {
                     _currentMappings.insert({ mapping.first, mapping.second.hash });
                 }
             }
-            _lastMappingsRefresh = usecTimestampNow();
+            _lastMappingsRefresh = p_high_resolution_clock::now();
 
             downloadMissingFiles(_currentMappings);
         } else {

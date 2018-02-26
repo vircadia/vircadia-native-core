@@ -22,6 +22,7 @@
 
 #include <AssetUtils.h>
 #include <ReceivedMessage.h>
+#include <PortableHighResolutionClock.h>
 
 #include "BackupHandler.h"
 
@@ -66,7 +67,7 @@ private:
     QString _assetsDirectory;
 
     QTimer _mappingsRefreshTimer;
-    quint64 _lastMappingsRefresh { 0 };
+    p_high_resolution_clock::time_point _lastMappingsRefresh;
     AssetUtils::Mappings _currentMappings;
 
     struct AssetServerBackup {
