@@ -131,10 +131,10 @@ QVariantMap scriptable::ScriptableMesh::getBufferFormats() const {
         auto bufferView = buffer_helpers::mesh::getBufferView(getMeshPointer(), a.second);
         result[a.first] = QVariantMap{
             { "slot", a.second },
-            { "length", (quint32)bufferView.getNumElements() },
-            { "byteLength", (quint32)bufferView._size },
-            { "offset", (quint32) bufferView._offset },
-            { "stride", (quint32)bufferView._stride },
+            { "length", (glm::uint32)bufferView.getNumElements() },
+            { "byteLength", (glm::uint32)bufferView._size },
+            { "offset", (glm::uint32) bufferView._offset },
+            { "stride", (glm::uint32)bufferView._stride },
             { "element", scriptable::toVariant(bufferView._element) },
         };
     }
@@ -171,7 +171,7 @@ glm::uint32 scriptable::ScriptableMesh::addAttribute(const QString& attributeNam
         return values.size();
     } else {
         auto bufferView = buffer_helpers::mesh::getBufferView(mesh, slot);
-        auto current = bufferView.getNumElements();
+        auto current = (glm::uint32)bufferView.getNumElements();
         if (current < numVertices) {
             bufferView = buffer_helpers::resized(bufferView, numVertices);
             for (glm::uint32 i = current; i < numVertices; i++) {
@@ -220,7 +220,7 @@ QVariantList scriptable::ScriptableMesh::queryVertexAttributes(QVariant selector
     }
     auto slotNum = _getSlotNumber(attributeName);
     const auto& bufferView = buffer_helpers::mesh::getBufferView(getMeshPointer(), static_cast<gpu::Stream::Slot>(slotNum));
-    glm::uint32 numElements = bufferView.getNumElements();
+    glm::uint32 numElements = (glm::uint32)bufferView.getNumElements();
     for (glm::uint32 i = 0; i < numElements; i++) {
         result << buffer_helpers::getValue<QVariant>(bufferView, i, qUtf8Printable(attributeName));
     }
@@ -339,7 +339,7 @@ bool scriptable::ScriptableMesh::isValidIndex(glm::uint32 vertexIndex, const QSt
             return false;
         }
         auto view = buffer_helpers::mesh::getBufferView(getMeshPointer(), static_cast<gpu::Stream::Slot>(slotNum));
-        if (vertexIndex >= view.getNumElements()) {
+        if (vertexIndex >= (glm::uint32)view.getNumElements()) {
             if (context()) {
                 context()->throwError(QString("vertexIndex=%1 out of range (attribute=%2, numElements=%3)").arg(vertexIndex).arg(attributeName).arg(view.getNumElements()));
             }

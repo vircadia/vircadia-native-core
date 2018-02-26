@@ -635,7 +635,7 @@ bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointe
             FBXMesh mesh;
             mesh._mesh = newMesh.getMeshPointer();
             mesh.vertices = buffer_helpers::mesh::attributeToVector<glm::vec3>(mesh._mesh, gpu::Stream::POSITION);
-            int numParts = newMesh.getMeshPointer()->getNumParts();
+            int numParts = (int)newMesh.getMeshPointer()->getNumParts();
             for (int partID = 0; partID < numParts; partID++) {
                 FBXMeshPart part;
                 part.triangleIndices = buffer_helpers::bufferToVector<int>(mesh._mesh->getIndexBuffer(), "part.triangleIndices");
