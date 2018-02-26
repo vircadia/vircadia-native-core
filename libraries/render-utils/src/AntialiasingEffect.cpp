@@ -283,7 +283,7 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
 
 void Antialiasing::configure(const Config& config) {
     _sharpen = config.sharpen;
-    _params.edit().blend = config.blend;
+    _params.edit().blend = config.blend * config.blend;
     _params.edit().covarianceGamma = config.covarianceGamma;
 
     _params.edit().setConstrainColor(config.constrainColor);

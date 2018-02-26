@@ -25,7 +25,7 @@ public:
 
     BloomConfig() : render::Task::Config(false) {}
 
-    float size{ 0.8f };
+    float size{ 0.3f };
 
     void setIntensity(float value);
     float getIntensity() const;
@@ -41,7 +41,7 @@ class BloomThresholdConfig : public render::Job::Config {
 
 public:
 
-    float threshold{ 1.25f };
+    float threshold{ 0.3f };
 
 signals:
     void dirty();
@@ -74,7 +74,7 @@ class BloomApplyConfig : public render::Job::Config {
 
 public:
 
-    float intensity{ 0.8f };
+    float intensity{ 0.15f };
 
 signals:
     void dirty();
