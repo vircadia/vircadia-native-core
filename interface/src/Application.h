@@ -266,9 +266,8 @@ public:
 
     float getGameLoopRate() const { return _gameLoopCounter.rate(); }
 
-    // Note that takeSnapshot has a default value, as this method is used internally.
     void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
-    void takeSecondaryCameraSnapshot(const QString& filename);
+    void takeSecondaryCameraSnapshot(const QString& filename = QString());
 
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
@@ -285,6 +284,8 @@ public:
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
     void saveNextPhysicsStats(QString filename);
+
+    void replaceDomainContent(const QString& url);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -367,6 +368,7 @@ public slots:
     void updateHeartbeat() const;
 
     static void deadlockApplication();
+    static void unresponsiveApplication(); // cause main thread to be unresponsive for 35 seconds
 
     void rotationModeChanged() const;
 
