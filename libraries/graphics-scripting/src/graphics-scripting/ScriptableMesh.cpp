@@ -8,8 +8,8 @@
 #include "Forward.h"
 
 #include "ScriptableMesh.h"
+#include "ScriptableMeshPart.h"
 
-#include "BufferViewScripting.h"
 #include "GraphicsScriptingUtil.h"
 #include "OBJWriter.h"
 #include <BaseScriptEngine.h>
@@ -19,14 +19,10 @@
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <graphics/BufferViewHelpers.h>
+#include <graphics/GpuHelpers.h>
 #include <graphics/Geometry.h>
 
 // #define SCRIPTABLE_MESH_DEBUG 1
-
-scriptable::ScriptableMeshPart::ScriptableMeshPart(scriptable::ScriptableMeshPointer parentMesh, int partIndex)
-    : QObject(), parentMesh(parentMesh), partIndex(partIndex)  {
-    setObjectName(QString("%1.part[%2]").arg(parentMesh ? parentMesh->objectName() : "").arg(partIndex));
-}
 
 scriptable::ScriptableMesh::ScriptableMesh(const ScriptableMeshBase& other)
     : ScriptableMeshBase(other), QScriptable() {
@@ -41,74 +37,55 @@ scriptable::ScriptableMesh::ScriptableMesh(const ScriptableMeshBase& other)
 
 QVector<scriptable::ScriptableMeshPartPointer> scriptable::ScriptableMesh::getMeshParts() const {
     QVector<scriptable::ScriptableMeshPartPointer> out;
-    for (quint32 i = 0; i < getNumParts(); i++) {
+    for (glm::uint32 i = 0; i < getNumParts(); i++) {
         out << scriptable::make_scriptowned<scriptable::ScriptableMeshPart>(getSelf(), i);
     }
     return out;
 }
 
-quint32 scriptable::ScriptableMesh::getNumIndices() const {
+glm::uint32 scriptable::ScriptableMesh::getNumIndices() const {
     if (auto mesh = getMeshPointer()) {
-        return (quint32)mesh->getNumIndices();
+        return (glm::uint32)mesh->getNumIndices();
     }
     return 0;
 }
 
-quint32 scriptable::ScriptableMesh::getNumVertices() const {
+glm::uint32 scriptable::ScriptableMesh::getNumVertices() const {
     if (auto mesh = getMeshPointer()) {
-        return (quint32)mesh->getNumVertices();
+        return (glm::uint32)mesh->getNumVertices();
     }
     return 0;
 }
 
-QVector<quint32> scriptable::ScriptableMesh::findNearbyIndices(const glm::vec3& origin, float epsilon) const {
-    QVector<quint32> result;
-    if (auto mesh = getMeshPointer()) {
-        const auto& pos = buffer_helpers::getBufferView(mesh, gpu::Stream::POSITION);
-        const uint32_t num = (uint32_t)pos.getNumElements();
-        for (uint32_t i = 0; i < num; i++) {
-            const auto& position = pos.get<glm::vec3>(i);
-            if (glm::distance(position, origin) <= epsilon) {
-                result << i;
-            }
+QVector<glm::uint32> scriptable::ScriptableMesh::findNearbyVertexIndices(const glm::vec3& origin, float epsilon) const {
+    QVector<glm::uint32> result;
+    if (!isValid()) {
+        return result;
+    }
+    const auto epsilon2 = epsilon*epsilon;
+    buffer_helpers::forEach<glm::vec3>(buffer_helpers::mesh::getBufferView(getMeshPointer(), gpu::Stream::POSITION), [&](glm::uint32 index, const glm::vec3& position) {
+        if (glm::length2(position - origin) <= epsilon2) {
+            result << index;
         }
-    }
+        return true;
+    });
     return result;
 }
 
-QVector<quint32> scriptable::ScriptableMesh::getIndices() const {
-    QVector<quint32> result;
+QVector<glm::uint32> scriptable::ScriptableMesh::getIndices() const {
     if (auto mesh = getMeshPointer()) {
 #ifdef SCRIPTABLE_MESH_DEBUG
-        qCDebug(graphics_scripting, "getTriangleIndices mesh %p", mesh.get());
+        qCDebug(graphics_scripting, "getIndices mesh %p", mesh.get());
 #endif
-        gpu::BufferView indexBufferView = mesh->getIndexBuffer();
-        if (quint32 count = (quint32)indexBufferView.getNumElements()) {
-            result.resize(count);
-            switch(indexBufferView._element.getType()) {
-            case gpu::UINT32:
-                // memcpy(result.data(), buffer->getData(), result.size()*sizeof(quint32));
-                for (quint32 i = 0; i < count; i++) {
-                    result[i] = indexBufferView.get<quint32>(i);
-                }
-                break;
-            case gpu::UINT16:
-                for (quint32 i = 0; i < count; i++) {
-                    result[i] = indexBufferView.get<quint16>(i);
-                }
-                break;
-            default:
-                assert(false);
-                Q_ASSERT(false);
-            }
-        }
+        return buffer_helpers::bufferToVector<glm::uint32>(mesh->getIndexBuffer());
     }
-    return result;
+    return QVector<glm::uint32>();
 }
 
-quint32 scriptable::ScriptableMesh::getNumAttributes() const {
+
+glm::uint32 scriptable::ScriptableMesh::getNumAttributes() const {
     if (auto mesh = getMeshPointer()) {
-        return (quint32)mesh->getNumAttributes();
+        return (glm::uint32)mesh->getNumAttributes() + 1;
     }
     return 0;
 }
@@ -116,7 +93,7 @@ QVector<QString> scriptable::ScriptableMesh::getAttributeNames() const {
     QVector<QString> result;
     if (auto mesh = getMeshPointer()) {
         for (const auto& a : buffer_helpers::ATTRIBUTES.toStdMap()) {
-            auto bufferView = buffer_helpers::getBufferView(mesh, a.second);
+            auto bufferView = buffer_helpers::mesh::getBufferView(mesh, a.second);
             if (bufferView.getNumElements() > 0) {
                 result << a.first;
             }
@@ -125,22 +102,20 @@ QVector<QString> scriptable::ScriptableMesh::getAttributeNames() const {
     return result;
 }
 
-QVariantMap scriptable::ScriptableMesh::getVertexAttributes(quint32 vertexIndex) const {
-    return getVertexAttributes(vertexIndex, getAttributeNames());
+QVariantMap scriptable::ScriptableMesh::getVertexAttributes(glm::uint32 vertexIndex) const {
+    if (!isValidIndex(vertexIndex)) {
+        return QVariantMap();
+    }
+    return buffer_helpers::mesh::getVertexAttributes(getMeshPointer(), vertexIndex).toMap();
 }
 
-bool scriptable::ScriptableMesh::setVertexAttributes(quint32 vertexIndex, QVariantMap attributes) {
-    for (auto& a : buffer_helpers::gatherBufferViews(getMeshPointer())) {
-        const auto& name = a.first;
-        const auto& value = attributes.value(name);
-        if (value.isValid()) {
-            auto& view = a.second;
-            buffer_helpers::fromVariant(view, vertexIndex, value);
-        } else {
-            //qCDebug(graphics_scripting) << "(skipping) setVertexAttributes" << vertexIndex << name;
+bool scriptable::ScriptableMesh::setVertexAttributes(glm::uint32 vertexIndex, const QVariantMap& attributes) {
+    for (const auto& name : attributes.keys()) {
+        if (!isValidIndex(vertexIndex, name)) {
+            return false;
         }
     }
-    return true;
+    return buffer_helpers::mesh::setVertexAttributes(getMeshPointer(), vertexIndex, attributes);
 }
 
 int scriptable::ScriptableMesh::_getSlotNumber(const QString& attributeName) const {
@@ -150,111 +125,132 @@ int scriptable::ScriptableMesh::_getSlotNumber(const QString& attributeName) con
     return -1;
 }
 
-
-QVariantMap scriptable::ScriptableMesh::getMeshExtents() const {
-    auto mesh = getMeshPointer();
-    auto box = mesh ? mesh->evalPartsBound(0, (int)mesh->getNumParts()) : AABox();
-    return buffer_helpers::toVariant(box).toMap();
+QVariantMap scriptable::ScriptableMesh::getBufferFormats() const {
+    QVariantMap result;
+    for (const auto& a : buffer_helpers::ATTRIBUTES.toStdMap()) {
+        auto bufferView = buffer_helpers::mesh::getBufferView(getMeshPointer(), a.second);
+        result[a.first] = QVariantMap{
+            { "slot", a.second },
+            { "length", (glm::uint32)bufferView.getNumElements() },
+            { "byteLength", (glm::uint32)bufferView._size },
+            { "offset", (glm::uint32) bufferView._offset },
+            { "stride", (glm::uint32)bufferView._stride },
+            { "element", scriptable::toVariant(bufferView._element) },
+        };
+    }
+    return result;
 }
 
-quint32 scriptable::ScriptableMesh::getNumParts() const {
-    if (auto mesh = getMeshPointer()) {
-        return (quint32)mesh->getNumParts();
+bool scriptable::ScriptableMesh::removeAttribute(const QString& attributeName) {
+    auto slot = isValid() ? _getSlotNumber(attributeName) : -1;
+    if (slot < 0) {
+        return 0;
+    }
+    if (slot == gpu::Stream::POSITION) {
+        context()->throwError("cannot remove .position attribute");
+        return false;
+    }
+    if (buffer_helpers::mesh::getBufferView(getMeshPointer(), slot).getNumElements()) {
+        getMeshPointer()->removeAttribute(slot);
+        return true;
+    }
+    return false;
+}
+
+glm::uint32 scriptable::ScriptableMesh::addAttribute(const QString& attributeName, const QVariant& defaultValue) {
+    auto slot = isValid() ? _getSlotNumber(attributeName) : -1;
+    if (slot < 0) {
+        return 0;
+    }
+    auto mesh = getMeshPointer();
+    auto numVertices = getNumVertices();
+    if (!getAttributeNames().contains(attributeName)) {
+        QVector<QVariant> values;
+        values.fill(defaultValue, numVertices);
+        mesh->addAttribute(slot, buffer_helpers::newFromVector(values, gpu::Stream::getDefaultElements()[slot]));
+        return values.size();
+    } else {
+        auto bufferView = buffer_helpers::mesh::getBufferView(mesh, slot);
+        auto current = (glm::uint32)bufferView.getNumElements();
+        if (current < numVertices) {
+            bufferView = buffer_helpers::resized(bufferView, numVertices);
+            for (glm::uint32 i = current; i < numVertices; i++) {
+                buffer_helpers::setValue<QVariant>(bufferView, i, defaultValue);
+            }
+            return numVertices - current;
+        } else if (current > numVertices) {
+            qCDebug(graphics_scripting) << QString("current=%1 > numVertices=%2").arg(current).arg(numVertices);
+            return 0;
+        }
     }
     return 0;
 }
 
-QVariantMap scriptable::ScriptableMeshPart::scaleToFit(float unitScale) {
-    if (auto mesh = getMeshPointer()) {
-        auto box = mesh->evalPartsBound(0, (int)mesh->getNumParts());
-        auto center = box.calcCenter();
-        float maxDimension = glm::distance(box.getMaximumPoint(), box.getMinimumPoint());
-        return scale(glm::vec3(unitScale / maxDimension), center);
+glm::uint32 scriptable::ScriptableMesh::fillAttribute(const QString& attributeName, const QVariant& value) {
+    auto slot = isValid() ? _getSlotNumber(attributeName) : -1;
+    if (slot < 0) {
+        return 0;
     }
-    return {};
-}
-QVariantMap scriptable::ScriptableMeshPart::translate(const glm::vec3& translation) {
-    return transform(glm::translate(translation));
-}
-QVariantMap scriptable::ScriptableMeshPart::scale(const glm::vec3& scale, const glm::vec3& origin) {
-    if (auto mesh = getMeshPointer()) {
-        auto box = mesh->evalPartsBound(0, (int)mesh->getNumParts());
-        glm::vec3 center = glm::isnan(origin.x) ? box.calcCenter() : origin;
-        return transform(glm::translate(center) * glm::scale(scale));
-    }
-    return {};
-}
-QVariantMap scriptable::ScriptableMeshPart::rotateDegrees(const glm::vec3& eulerAngles, const glm::vec3& origin) {
-    return rotate(glm::quat(glm::radians(eulerAngles)), origin);
-}
-QVariantMap scriptable::ScriptableMeshPart::rotate(const glm::quat& rotation, const glm::vec3& origin) {
-    if (auto mesh = getMeshPointer()) {
-        auto box = mesh->evalPartsBound(0, (int)mesh->getNumParts());
-        glm::vec3 center = glm::isnan(origin.x) ? box.calcCenter() : origin;
-        return transform(glm::translate(center) * glm::toMat4(rotation));
-    }
-    return {};
-}
-QVariantMap scriptable::ScriptableMeshPart::transform(const glm::mat4& transform) {
-    if (auto mesh = getMeshPointer()) {
-        const auto& pos = buffer_helpers::getBufferView(mesh, gpu::Stream::POSITION);
-        const uint32_t num = (uint32_t)pos.getNumElements();
-        for (uint32_t i = 0; i < num; i++) {
-            auto& position = pos.edit<glm::vec3>(i);
-            position = transform * glm::vec4(position, 1.0f);
-        }
-        return parentMesh->getMeshExtents();
-    }
-    return {};
+    auto mesh = getMeshPointer();
+    auto numVertices = getNumVertices();
+    QVector<QVariant> values;
+    values.fill(value, numVertices);
+    mesh->addAttribute(slot, buffer_helpers::newFromVector(values, gpu::Stream::getDefaultElements()[slot]));
+    return true;
 }
 
-QVariantList scriptable::ScriptableMesh::getAttributeValues(const QString& attributeName) const {
-    QVariantList result;
-    auto slotNum = _getSlotNumber(attributeName);
-    if (slotNum >= 0) {
-        auto slot = (gpu::Stream::Slot)slotNum;
-        const auto& bufferView = buffer_helpers::getBufferView(getMeshPointer(), slot);
-        if (auto len = bufferView.getNumElements()) {
-            bool asArray = bufferView._element.getType() != gpu::FLOAT;
-            for (quint32 i = 0; i < len; i++) {
-                result << buffer_helpers::toVariant(bufferView, i, asArray, attributeName.toStdString().c_str());
-            }
-        }
-    }
-    return result;
-}
-QVariantMap scriptable::ScriptableMesh::getVertexAttributes(quint32 vertexIndex, QVector<QString> names) const {
-    QVariantMap result;
+QVariantMap scriptable::ScriptableMesh::getMeshExtents() const {
     auto mesh = getMeshPointer();
-    if (!mesh || vertexIndex >= getNumVertices()) {
+    auto box = mesh ? mesh->evalPartsBound(0, (int)mesh->getNumParts()) : AABox();
+    return scriptable::toVariant(box).toMap();
+}
+
+glm::uint32 scriptable::ScriptableMesh::getNumParts() const {
+    if (auto mesh = getMeshPointer()) {
+        return (glm::uint32)mesh->getNumParts();
+    }
+    return 0;
+}
+
+QVariantList scriptable::ScriptableMesh::queryVertexAttributes(QVariant selector) const {
+    QVariantList result;
+    const auto& attributeName = selector.toString();
+    if (!isValidIndex(0, attributeName)) {
         return result;
     }
-    for (const auto& a : buffer_helpers::ATTRIBUTES.toStdMap()) {
-        auto name = a.first;
-        if (!names.contains(name)) {
-            continue;
-        }
-        auto slot = a.second;
-        const gpu::BufferView& bufferView = buffer_helpers::getBufferView(mesh, slot);
-        if (vertexIndex < bufferView.getNumElements()) {
-            bool asArray = bufferView._element.getType() != gpu::FLOAT;
-            result[name] = buffer_helpers::toVariant(bufferView, vertexIndex, asArray, name.toStdString().c_str());
-        }
+    auto slotNum = _getSlotNumber(attributeName);
+    const auto& bufferView = buffer_helpers::mesh::getBufferView(getMeshPointer(), static_cast<gpu::Stream::Slot>(slotNum));
+    glm::uint32 numElements = (glm::uint32)bufferView.getNumElements();
+    for (glm::uint32 i = 0; i < numElements; i++) {
+        result << buffer_helpers::getValue<QVariant>(bufferView, i, qUtf8Printable(attributeName));
     }
     return result;
 }
 
-quint32 scriptable::ScriptableMesh::mapAttributeValues(QScriptValue _callback) {
+QVariant scriptable::ScriptableMesh::getVertexProperty(glm::uint32 vertexIndex, const QString& attributeName) const {
+    if (!isValidIndex(vertexIndex, attributeName)) {
+        return QVariant();
+    }
+    auto slotNum = _getSlotNumber(attributeName);
+    const auto& bufferView = buffer_helpers::mesh::getBufferView(getMeshPointer(), static_cast<gpu::Stream::Slot>(slotNum));
+    return buffer_helpers::getValue<QVariant>(bufferView, vertexIndex, qUtf8Printable(attributeName));
+}
+
+bool scriptable::ScriptableMesh::setVertexProperty(glm::uint32 vertexIndex, const QString& attributeName, const QVariant& value) {
+    if (!isValidIndex(vertexIndex, attributeName)) {
+        return false;
+    }
+    auto slotNum = _getSlotNumber(attributeName);
+    const auto& bufferView = buffer_helpers::mesh::getBufferView(getMeshPointer(), static_cast<gpu::Stream::Slot>(slotNum));
+    return buffer_helpers::setValue(bufferView, vertexIndex, value);
+}
+
+glm::uint32 scriptable::ScriptableMesh::forEachVertex(QScriptValue _callback) {
     auto mesh = getMeshPointer();
     if (!mesh) {
         return 0;
     }
     auto scopedHandler = jsBindCallback(_callback);
-
-    // input buffers
-    gpu::BufferView positions = mesh->getVertexBuffer();
-
-    const auto nPositions = positions.getNumElements();
 
     // destructure so we can still invoke callback scoped, but with a custom signature (obj, i, jsMesh)
     auto scope = scopedHandler.property("scope");
@@ -264,205 +260,104 @@ quint32 scriptable::ScriptableMesh::mapAttributeValues(QScriptValue _callback) {
         return 0;
     }
     auto meshPart = js ? js->toScriptValue(getSelf()) : QScriptValue::NullValue;
-#ifdef SCRIPTABLE_MESH_DEBUG
-    qCInfo(graphics_scripting) << "mapAttributeValues" << mesh.get() << js->currentContext()->thisObject().toQObject();
-#endif
-    auto obj = js->newObject();
-    auto attributeViews = buffer_helpers::gatherBufferViews(mesh, { "normal", "color" });
-    uint32_t i = 0;
-    for (; i < nPositions; i++) {
-        for (const auto& a : attributeViews) {
-            bool asArray = a.second._element.getType() != gpu::FLOAT;
-            obj.setProperty(a.first, bufferViewElementToScriptValue(js, a.second, i, asArray, a.first.toStdString().c_str()));
-        }
-        auto result = callback.call(scope, { obj, i, meshPart });
+    int numProcessed = 0;
+    buffer_helpers::mesh::forEachVertex(mesh, [&](glm::uint32 index, const QVariantMap& values) {
+        auto result = callback.call(scope, { js->toScriptValue(values), index, meshPart });
         if (js->hasUncaughtException()) {
             js->currentContext()->throwValue(js->uncaughtException());
-            return i;
+            return false;
         }
+        numProcessed++;
+        return true;
+    });
+    return numProcessed;
+}
 
+
+glm::uint32 scriptable::ScriptableMesh::updateVertexAttributes(QScriptValue _callback) {
+    auto mesh = getMeshPointer();
+    if (!mesh) {
+        return 0;
+    }
+    auto scopedHandler = jsBindCallback(_callback);
+
+    // destructure so we can still invoke callback scoped, but with a custom signature (obj, i, jsMesh)
+    auto scope = scopedHandler.property("scope");
+    auto callback = scopedHandler.property("callback");
+    auto js = engine() ? engine() : scopedHandler.engine(); // cache value to avoid resolving each iteration
+    if (!js) {
+        return 0;
+    }
+    auto meshPart = js ? js->toScriptValue(getSelf()) : QScriptValue::NullValue;
+    int numProcessed = 0;
+    auto attributeViews = buffer_helpers::mesh::getAllBufferViews(mesh);
+    buffer_helpers::mesh::forEachVertex(mesh, [&](glm::uint32 index, const QVariantMap& values) {
+        auto obj = js->toScriptValue(values);
+        auto result = callback.call(scope, { obj, index, meshPart });
+        if (js->hasUncaughtException()) {
+            js->currentContext()->throwValue(js->uncaughtException());
+            return false;
+        }
         if (result.isBool() && !result.toBool()) {
             // bail without modifying data if user explicitly returns false
-            continue;
+            return true;
         }
         if (result.isObject() && !result.strictlyEquals(obj)) {
             // user returned a new object (ie: instead of modifying input properties)
             obj = result;
         }
-
         for (const auto& a : attributeViews) {
             const auto& attribute = obj.property(a.first);
-            auto& view = a.second;
             if (attribute.isValid()) {
-                bufferViewElementFromScriptValue(attribute, view, i);
+                buffer_helpers::setValue(a.second, index, attribute.toVariant());
             }
         }
+        numProcessed++;
+        return true;
+    });
+    return numProcessed;
+}
+
+// protect against user scripts sending bogus values
+bool scriptable::ScriptableMesh::isValidIndex(glm::uint32 vertexIndex, const QString& attributeName) const {
+    if (!isValid()) {
+        return false;
     }
-    return i;
-}
-
-quint32 scriptable::ScriptableMeshPart::mapAttributeValues(QScriptValue callback) {
-    return parentMesh ? parentMesh->mapAttributeValues(callback) : 0;
-}
-
-bool scriptable::ScriptableMeshPart::replaceMeshData(scriptable::ScriptableMeshPartPointer src, const QVector<QString>& attributeNames) {
-    auto target = getMeshPointer();
-    auto source = src ? src->getMeshPointer() : nullptr;
-    if (!target || !source) {
+    const auto last = getNumVertices() - 1;
+    if (vertexIndex > last) {
         if (context()) {
-            context()->throwError("ScriptableMeshPart::replaceMeshData -- expected dest and src to be valid mesh proxy pointers");
-        } else {
-            qCWarning(graphics_scripting) << "ScriptableMeshPart::replaceMeshData -- expected dest and src to be valid mesh proxy pointers";
+            context()->throwError(QString("vertexIndex=%1 out of range (firstVertexIndex=%2, lastVertexIndex=%3)").arg(vertexIndex).arg(0).arg(last));
         }
         return false;
     }
-
-    QVector<QString> attributes = attributeNames.isEmpty() ? src->parentMesh->getAttributeNames() : attributeNames;
-
-    qCInfo(graphics_scripting) << "ScriptableMeshPart::replaceMeshData -- " <<
-        "source:" << QString::fromStdString(source->displayName) <<
-        "target:" << QString::fromStdString(target->displayName) <<
-        "attributes:" << attributes;
-
-    // remove attributes only found on target mesh, unless user has explicitly specified the relevant attribute names
-    if (attributeNames.isEmpty()) {
-        auto attributeViews = buffer_helpers::gatherBufferViews(target);
-        for (const auto& a : attributeViews) {
-            auto slot = buffer_helpers::ATTRIBUTES[a.first];
-            if (!attributes.contains(a.first)) {
-#ifdef SCRIPTABLE_MESH_DEBUG
-                qCInfo(graphics_scripting) << "ScriptableMesh::replaceMeshData -- pruning target attribute" << a.first << slot;
-#endif
-                target->removeAttribute(slot);
+    if (!attributeName.isEmpty()) {
+        auto slotNum = _getSlotNumber(attributeName);
+        if (slotNum < 0) {
+            if (context()) {
+                context()->throwError(QString("invalid attributeName=%1").arg(attributeName));
             }
+            return false;
         }
-    }
-
-    target->setVertexBuffer(buffer_helpers::clone(source->getVertexBuffer()));
-    target->setIndexBuffer(buffer_helpers::clone(source->getIndexBuffer()));
-    target->setPartBuffer(buffer_helpers::clone(source->getPartBuffer()));
-
-    for (const auto& a : attributes) {
-        auto slot = buffer_helpers::ATTRIBUTES[a];
-        if (slot == gpu::Stream::POSITION) {
-            continue;
-        }
-#ifdef SCRIPTABLE_MESH_DEBUG
-        auto& before = target->getAttributeBuffer(slot);
-#endif
-        auto& input = source->getAttributeBuffer(slot);
-        if (input.getNumElements() == 0) {
-#ifdef SCRIPTABLE_MESH_DEBUG
-            qCInfo(graphics_scripting) << "ScriptableMeshPart::replaceMeshData buffer is empty -- pruning" << a << slot;
-#endif
-            target->removeAttribute(slot);
-        } else {
-#ifdef SCRIPTABLE_MESH_DEBUG
-            if (before.getNumElements() == 0) {
-                qCInfo(graphics_scripting) << "ScriptableMeshPart::replaceMeshData target buffer is empty -- adding" << a << slot;
-            } else {
-                qCInfo(graphics_scripting) << "ScriptableMeshPart::replaceMeshData target buffer exists -- updating" << a << slot;
+        auto view = buffer_helpers::mesh::getBufferView(getMeshPointer(), static_cast<gpu::Stream::Slot>(slotNum));
+        if (vertexIndex >= (glm::uint32)view.getNumElements()) {
+            if (context()) {
+                context()->throwError(QString("vertexIndex=%1 out of range (attribute=%2, numElements=%3)").arg(vertexIndex).arg(attributeName).arg(view.getNumElements()));
             }
-#endif
-            target->addAttribute(slot, buffer_helpers::clone(input));
+            return false;
         }
-#ifdef SCRIPTABLE_MESH_DEBUG
-        auto& after = target->getAttributeBuffer(slot);
-        qCInfo(graphics_scripting) << "ScriptableMeshPart::replaceMeshData" << a << slot << before.getNumElements() << " -> " << after.getNumElements();
-#endif
-    }
-
-
-    return true;
-}
-
-bool scriptable::ScriptableMeshPart::dedupeVertices(float epsilon) {
-    auto mesh = getMeshPointer();
-    if (!mesh) {
-        return false;
-    }
-    auto positions = mesh->getVertexBuffer();
-    auto numPositions = positions.getNumElements();
-    const auto epsilon2 = epsilon*epsilon;
-
-    QVector<glm::vec3> uniqueVerts;
-    uniqueVerts.reserve((int)numPositions);
-    QMap<quint32,quint32> remapIndices;
-
-    for (quint32 i = 0; i < numPositions; i++) {
-        const quint32 numUnique = uniqueVerts.size();
-        const auto& position = positions.get<glm::vec3>(i);
-        bool unique = true;
-        for (quint32 j = 0; j < numUnique; j++) {
-            if (glm::length2(uniqueVerts[j] - position) <= epsilon2) {
-                remapIndices[i] = j;
-                unique = false;
-                break;
-            }
-        }
-        if (unique) {
-            uniqueVerts << position;
-            remapIndices[i] = numUnique;
-        }
-    }
-
-    qCInfo(graphics_scripting) << "//VERTS before" << numPositions << "after" << uniqueVerts.size();
-
-    auto indices = mesh->getIndexBuffer();
-    auto numIndices = indices.getNumElements();
-    auto esize = indices._element.getSize();
-    QVector<quint32> newIndices;
-    newIndices.reserve((int)numIndices);
-    for (quint32 i = 0; i < numIndices; i++) {
-        quint32 index = esize == 4 ? indices.get<quint32>(i) : indices.get<quint16>(i);
-        if (remapIndices.contains(index)) {
-            newIndices << remapIndices[index];
-        } else {
-            qCInfo(graphics_scripting) << i << index << "!remapIndices[index]";
-        }
-    }
-
-    mesh->setIndexBuffer(buffer_helpers::fromVector(newIndices, { gpu::SCALAR, gpu::UINT32, gpu::INDEX }));
-    mesh->setVertexBuffer(buffer_helpers::fromVector(uniqueVerts, { gpu::VEC3, gpu::FLOAT, gpu::XYZ }));
-
-    auto attributeViews = buffer_helpers::gatherBufferViews(mesh);
-    quint32 numUniqueVerts = uniqueVerts.size();
-    for (const auto& a : attributeViews) {
-        auto& view = a.second;
-        auto slot = buffer_helpers::ATTRIBUTES[a.first];
-        if (slot == gpu::Stream::POSITION) {
-            continue;
-        }
-        auto newView = buffer_helpers::resize(view, numUniqueVerts);
-#ifdef SCRIPTABLE_MESH_DEBUG
-        qCInfo(graphics_scripting) << "ScriptableMeshPart::dedupeVertices" << a.first << slot << view.getNumElements();
-        qCInfo(graphics_scripting) << a.first << "before: #" << view.getNumElements() << "after: #" << newView.getNumElements();
-#endif
-        quint32 numElements = (quint32)view.getNumElements();
-        for (quint32 i = 0; i < numElements; i++) {
-            quint32 fromVertexIndex = i;
-            quint32 toVertexIndex = remapIndices.contains(fromVertexIndex) ? remapIndices[fromVertexIndex] : fromVertexIndex;
-            buffer_helpers::fromVariant(
-                newView, toVertexIndex,
-                buffer_helpers::toVariant(view, fromVertexIndex, false, "dedupe")
-            );
-        }
-        mesh->addAttribute(slot, newView);
     }
     return true;
 }
 
-scriptable::ScriptableMeshPointer scriptable::ScriptableMesh::cloneMesh(bool recalcNormals) {
+
+scriptable::ScriptableMeshPointer scriptable::ScriptableMesh::cloneMesh() {
     auto mesh = getMeshPointer();
     if (!mesh) {
         qCInfo(graphics_scripting) << "ScriptableMesh::cloneMesh -- !meshPointer";
         return nullptr;
     }
-    auto clone = buffer_helpers::cloneMesh(mesh);
+    auto clone = buffer_helpers::mesh::clone(mesh);
 
-    if (recalcNormals) {
-        buffer_helpers::recalculateNormals(clone);
-    }
     auto meshPointer = scriptable::make_scriptowned<scriptable::ScriptableMesh>(provider, model, clone, nullptr);
     return scriptable::ScriptableMeshPointer(meshPointer);
 }
@@ -505,172 +400,5 @@ scriptable::ScriptableMesh::~ScriptableMesh() {
     strongMesh.reset();
 }
 
-QString scriptable::ScriptableMeshPart::toOBJ() {
-    if (!getMeshPointer()) {
-        if (context()) {
-            context()->throwError(QString("null mesh"));
-        } else {
-            qCWarning(graphics_scripting) << "null mesh";
-        }
-        return QString();
-    }
-    return writeOBJToString({ getMeshPointer() });
-}
-
-namespace {
-    template <typename T>
-    QScriptValue qObjectToScriptValue(QScriptEngine* engine, const T& object) {
-        if (!object) {
-            return QScriptValue::NullValue;
-        }
-        return engine->newQObject(object, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater);
-    }
-
-    QScriptValue meshPointerToScriptValue(QScriptEngine* engine, const scriptable::ScriptableMeshPointer& in) {
-        return qObjectToScriptValue(engine, in);
-    }
-    QScriptValue meshPartPointerToScriptValue(QScriptEngine* engine, const scriptable::ScriptableMeshPartPointer& in) {
-        return qObjectToScriptValue(engine, in);
-    }
-    QScriptValue modelPointerToScriptValue(QScriptEngine* engine, const scriptable::ScriptableModelPointer& in) {
-        return qObjectToScriptValue(engine, in);
-    }
-
-    void meshPointerFromScriptValue(const QScriptValue& value, scriptable::ScriptableMeshPointer &out) {
-        out = scriptable::qpointer_qobject_cast<scriptable::ScriptableMesh>(value);
-    }
-    void modelPointerFromScriptValue(const QScriptValue& value, scriptable::ScriptableModelPointer &out) {
-        out = scriptable::qpointer_qobject_cast<scriptable::ScriptableModel>(value);
-    }
-    void meshPartPointerFromScriptValue(const QScriptValue& value, scriptable::ScriptableMeshPartPointer &out) {
-        out = scriptable::qpointer_qobject_cast<scriptable::ScriptableMeshPart>(value);
-    }
-
-    QScriptValue qVectorUInt32ToScriptValue(QScriptEngine* engine, const QVector<scriptable::uint32>& vector) {
-        return qScriptValueFromSequence(engine, vector);
-    }
-
-    void qVectorUInt32FromScriptValue(const QScriptValue& array, QVector<scriptable::uint32>& result) {
-        qScriptValueToSequence(array, result);
-    }
-
-    QScriptValue qVectorScriptableMaterialToScriptValue(QScriptEngine* engine, const QVector<scriptable::ScriptableMaterial>& vector) {
-        return qScriptValueFromSequence(engine, vector);
-    }
-
-    void qVectorScriptableMaterialFromScriptValue(const QScriptValue& array, QVector<scriptable::ScriptableMaterial>& result) {
-        qScriptValueToSequence(array, result);
-    }
-
-    QScriptValue scriptableMaterialToScriptValue(QScriptEngine* engine, const scriptable::ScriptableMaterial &material) {
-        QScriptValue obj = engine->newObject();
-        obj.setProperty("name", material.name);
-        obj.setProperty("model", material.model);
-        obj.setProperty("opacity", material.opacity);
-        obj.setProperty("roughness", material.roughness);
-        obj.setProperty("metallic", material.metallic);
-        obj.setProperty("scattering", material.scattering);
-        obj.setProperty("unlit", material.unlit);
-        obj.setProperty("emissive", vec3toScriptValue(engine, material.emissive));
-        obj.setProperty("albedo", vec3toScriptValue(engine, material.albedo));
-        obj.setProperty("emissiveMap", material.emissiveMap);
-        obj.setProperty("albedoMap", material.albedoMap);
-        obj.setProperty("opacityMap", material.opacityMap);
-        obj.setProperty("metallicMap", material.metallicMap);
-        obj.setProperty("specularMap", material.specularMap);
-        obj.setProperty("roughnessMap", material.roughnessMap);
-        obj.setProperty("glossMap", material.glossMap);
-        obj.setProperty("normalMap", material.normalMap);
-        obj.setProperty("bumpMap", material.bumpMap);
-        obj.setProperty("occlusionMap", material.occlusionMap);
-        obj.setProperty("lightmapMap", material.lightmapMap);
-        obj.setProperty("scatteringMap", material.scatteringMap);
-        obj.setProperty("priority", material.priority);
-        return obj;
-    }
-
-    void scriptableMaterialFromScriptValue(const QScriptValue &object, scriptable::ScriptableMaterial& material) {
-        // No need to convert from QScriptValue to ScriptableMaterial
-    }
-
-    QScriptValue multiMaterialMapToScriptValue(QScriptEngine* engine, const scriptable::MultiMaterialMap& map) {
-        QScriptValue obj = engine->newObject();
-        for (auto key : map.keys()) {
-            obj.setProperty(key, qVectorScriptableMaterialToScriptValue(engine, map[key]));
-        }
-        return obj;
-    }
-
-    void multiMaterialMapFromScriptValue(const QScriptValue& map, scriptable::MultiMaterialMap& result) {
-        // No need to convert from QScriptValue to MultiMaterialMap
-    }
-
-    QVector<int> metaTypeIds{
-        qRegisterMetaType<scriptable::uint32>("uint32"),
-        qRegisterMetaType<scriptable::uint32>("scriptable::uint32"),
-        qRegisterMetaType<QVector<scriptable::uint32>>(),
-        qRegisterMetaType<QVector<scriptable::uint32>>("QVector<uint32>"),
-        qRegisterMetaType<scriptable::ScriptableMeshPointer>(),
-        qRegisterMetaType<scriptable::ScriptableModelPointer>(),
-        qRegisterMetaType<scriptable::ScriptableMeshPartPointer>(),
-        qRegisterMetaType<scriptable::ScriptableMaterial>(),
-        qRegisterMetaType<QVector<scriptable::ScriptableMaterial>>(),
-        qRegisterMetaType<scriptable::MultiMaterialMap>()
-    };
-}
-
-namespace scriptable {
-    bool registerMetaTypes(QScriptEngine* engine) {
-        qScriptRegisterSequenceMetaType<QVector<scriptable::ScriptableMeshPartPointer>>(engine);
-        qScriptRegisterSequenceMetaType<QVector<scriptable::ScriptableMeshPointer>>(engine);
-        qScriptRegisterSequenceMetaType<QVector<scriptable::uint32>>(engine);
-        qScriptRegisterSequenceMetaType<QVector<scriptable::ScriptableMaterial>>(engine);
-
-        qScriptRegisterMetaType(engine, qVectorUInt32ToScriptValue, qVectorUInt32FromScriptValue);
-        qScriptRegisterMetaType(engine, modelPointerToScriptValue, modelPointerFromScriptValue);
-        qScriptRegisterMetaType(engine, meshPointerToScriptValue, meshPointerFromScriptValue);
-        qScriptRegisterMetaType(engine, meshPartPointerToScriptValue, meshPartPointerFromScriptValue);
-        qScriptRegisterMetaType(engine, scriptableMaterialToScriptValue, scriptableMaterialFromScriptValue);
-        qScriptRegisterMetaType(engine, qVectorScriptableMaterialToScriptValue, qVectorScriptableMaterialFromScriptValue);
-        qScriptRegisterMetaType(engine, multiMaterialMapToScriptValue, multiMaterialMapFromScriptValue);
-
-        return metaTypeIds.size();
-    }
-
-    // callback helper that lets C++ method signatures remain simple (ie: taking a single callback argument) while
-    // still supporting extended Qt signal-like (scope, "methodName") and (scope, function(){}) "this" binding conventions
-    QScriptValue jsBindCallback(QScriptValue value) {
-        if (value.isObject() && value.property("callback").isFunction()) {
-            // value is already a bound callback
-            return value;
-        }
-        auto engine = value.engine();
-        auto context = engine ? engine->currentContext() : nullptr;
-        auto length = context ? context->argumentCount() : 0;
-        QScriptValue scope = context ? context->thisObject() : QScriptValue::NullValue;
-        QScriptValue method;
-#ifdef SCRIPTABLE_MESH_DEBUG
-        qCInfo(graphics_scripting) << "jsBindCallback" << engine << length << scope.toQObject() << method.toString();
-#endif
-
-        // find position in the incoming JS Function.arguments array (so we can test for the two-argument case)
-        for (int i = 0; context && i < length; i++) {
-            if (context->argument(i).strictlyEquals(value)) {
-                method = context->argument(i+1);
-            }
-        }
-        if (method.isFunction() || method.isString()) {
-            // interpret as `API.func(..., scope, function callback(){})` or `API.func(..., scope, "methodName")`
-            scope = value;
-        } else {
-            // interpret as `API.func(..., function callback(){})`
-            method = value;
-        }
-#ifdef SCRIPTABLE_MESH_DEBUG
-        qCInfo(graphics_scripting) << "scope:" << scope.toQObject() << "method:" << method.toString();
-#endif
-        return ::makeScopedHandlerObject(scope,  method);
-    }
-}
-
 #include "ScriptableMesh.moc"
+

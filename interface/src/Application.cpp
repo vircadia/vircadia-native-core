@@ -608,22 +608,25 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 class ApplicationMeshProvider : public scriptable::ModelProviderFactory  {
 public:
     virtual scriptable::ModelProviderPointer lookupModelProvider(const QUuid& uuid) override {
-        QString error;
-
-        scriptable::ModelProviderPointer provider;
-        if (uuid.isNull()) {
-            provider = nullptr;
-        } else if (auto entityInterface = getEntityModelProvider(static_cast<EntityItemID>(uuid))) {
-            provider = entityInterface;
-        } else if (auto overlayInterface = getOverlayModelProvider(static_cast<OverlayID>(uuid))) {
-            provider = overlayInterface;
-        } else if (auto avatarInterface = getAvatarModelProvider(uuid)) {
-            provider = avatarInterface;
+        bool success;
+        if (auto nestable = DependencyManager::get<SpatialParentFinder>()->find(uuid, success).lock()) {
+            auto type = nestable->getNestableType();
+#ifdef SCRIPTABLE_MESH_DEBUG
+            qCDebug(interfaceapp) << "ApplicationMeshProvider::lookupModelProvider" << uuid << SpatiallyNestable::nestableTypeToString(type);
+#endif
+            switch (type) {
+            case NestableType::Entity:
+                return getEntityModelProvider(static_cast<EntityItemID>(uuid));
+            case NestableType::Overlay:
+                return getOverlayModelProvider(static_cast<OverlayID>(uuid));
+            case NestableType::Avatar:
+                return getAvatarModelProvider(uuid);
+            }
         }
-
-        return provider;
+        return nullptr;
     }
 
+private:
     scriptable::ModelProviderPointer getEntityModelProvider(EntityItemID entityID) {
         scriptable::ModelProviderPointer provider;
         auto entityTreeRenderer = qApp->getEntities();
@@ -649,6 +652,8 @@ public:
             } else {
                 qCWarning(interfaceapp) << "no renderer for overlay ID" << overlayID.toString();
             }
+        } else {
+            qCWarning(interfaceapp) << "overlay not found" << overlayID.toString();
         }
         return provider;
     }

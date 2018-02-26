@@ -665,6 +665,16 @@ void ModelOverlay::processMaterials() {
     }
 }
 
+bool ModelOverlay::canReplaceModelMeshPart(int meshIndex, int partIndex) {
+    // TODO: bounds checking; for now just used to indicate provider generally supports mesh updates
+    return _model && _model->isLoaded();
+}
+
+bool ModelOverlay::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer newModel, int meshIndex, int partIndex) {
+    return canReplaceModelMeshPart(meshIndex, partIndex) &&
+        _model->replaceScriptableModelMeshPart(newModel, meshIndex, partIndex);
+}
+
 scriptable::ScriptableModelBase ModelOverlay::getScriptableModel() {
     if (!_model || !_model->isLoaded()) {
         return Base3DOverlay::getScriptableModel();

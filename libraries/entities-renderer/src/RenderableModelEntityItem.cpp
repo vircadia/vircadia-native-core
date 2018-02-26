@@ -961,8 +961,7 @@ bool RenderableModelEntityItem::getMeshes(MeshProxyList& result) {
 }
 
 scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScriptableModel() {
-    ModelPointer model;
-    withReadLock([&] { model = _model; });
+    auto model = resultWithReadLock<ModelPointer>([this]{ return _model; });
 
     if (!model || !model->isLoaded()) {
         return scriptable::ScriptableModelBase();
@@ -977,9 +976,14 @@ scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScript
     return result;
 }
 
+bool render::entities::ModelEntityRenderer::canReplaceModelMeshPart(int meshIndex, int partIndex) {
+    // TODO: for now this method is just used to indicate that this provider generally supports mesh updates
+    auto model = resultWithReadLock<ModelPointer>([this]{ return _model; });
+    return model && model->isLoaded();
+}
+
 bool render::entities::ModelEntityRenderer::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer newModel, int meshIndex, int partIndex) {
-    ModelPointer model;
-    withReadLock([&] { model = _model; });
+    auto model = resultWithReadLock<ModelPointer>([this]{ return _model; });
 
     if (!model || !model->isLoaded()) {
         return false;

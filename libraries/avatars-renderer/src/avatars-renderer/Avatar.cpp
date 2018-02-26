@@ -1800,7 +1800,7 @@ scriptable::ScriptableModelBase Avatar::getScriptableModel() {
         return scriptable::ScriptableModelBase();
     }
     auto result = _skeletonModel->getScriptableModel();
-    result.objectID = getSessionUUID();
+    result.objectID = getSessionUUID().isNull() ? AVATAR_SELF_ID : getSessionUUID();
     {
         std::lock_guard<std::mutex> lock(_materialsLock);
         result.appendMaterials(_materials);
