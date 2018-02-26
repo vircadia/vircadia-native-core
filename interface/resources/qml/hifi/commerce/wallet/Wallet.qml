@@ -179,8 +179,8 @@ Rectangle {
             if (isReset) {
                 walletResetSetup();
             } else {
-                root.activeView = "initialize";
-                Commerce.getWalletStatus();
+                var msg = { referrer: walletChoice.referrer }
+                followReferrer(msg);
             }
         }
         copyFunction: Commerce.copyKeyFileFrom;
@@ -199,14 +199,7 @@ Rectangle {
         Connections {
             onSendSignalToWallet: {
                 if (msg.method === 'walletSetup_finished') {
-                    if (msg.referrer === '' || msg.referrer === 'marketplace cta') {
-                        root.activeView = "initialize";
-                        Commerce.getWalletStatus();
-                    } else if (msg.referrer === 'purchases') {
-                        sendToScript({method: 'goToPurchases'});
-                    } else {
-                        sendToScript({method: 'goToMarketplaceItemPage', itemId: msg.referrer});
-                    }
+                    followReferrer(msg);
                 } else if (msg.method === 'walletSetup_raiseKeyboard') {
                     root.keyboardRaised = true;
                     root.isPassword = msg.isPasswordField;
@@ -759,6 +752,7 @@ Rectangle {
         switch (message.method) {
             case 'updateWalletReferrer':
                 walletSetup.referrer = message.referrer;
+                walletChoice.referrer = message.referrer;
             break;
             case 'inspectionCertificate_resetCert':
                 // NOP
@@ -797,6 +791,17 @@ Rectangle {
         walletSetup.setupAttemptID = generateUUID();
         UserActivityLogger.commerceWalletSetupStarted(timestamp, walletSetup.setupAttemptID, walletSetup.setupFlowVersion, walletSetup.referrer ? walletSetup.referrer : "wallet app",
             (AddressManager.placename || AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : ''));
+    }
+
+    function followReferrer(msg) {
+        if (msg.referrer === '' || msg.referrer === 'marketplace cta') {
+            root.activeView = "initialize";
+            Commerce.getWalletStatus();
+        } else if (msg.referrer === 'purchases') {
+            sendToScript({method: 'goToPurchases'});
+        } else {
+            sendToScript({method: 'goToMarketplaceItemPage', itemId: msg.referrer});
+        }
     }
     //
     // FUNCTION DEFINITIONS END

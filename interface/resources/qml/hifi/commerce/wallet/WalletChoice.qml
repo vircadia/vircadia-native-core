@@ -25,6 +25,7 @@ Item {
     property string activeView: "conflict";
     property var proceedFunction: nil;
     property var copyFunction: nil;
+    property string referrer: "";
 
     Image {
         anchors.fill: parent;
