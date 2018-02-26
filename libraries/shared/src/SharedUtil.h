@@ -36,7 +36,12 @@ std::unique_ptr<T>& globalInstancePointer() {
     return instancePtr;
 }
 
+// Sets up the global instances for use
+// This NEEDS to be called on startup
+// for any binary planing on using global instances
+// More details in cpp file
 void setupGlobalInstances();
+
 std::mutex& globalInstancesMutex();
 QVariant getGlobalInstance(const char* propertyName);
 void setGlobalInstance(const char* propertyName, const QVariant& variant);

@@ -192,6 +192,7 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
 
     fprintf(stdout, "%s", qPrintable(logMessage));
 #ifdef Q_OS_WIN
+    // On windows, this will output log lines into the Visual Studio "output" tab
     OutputDebugStringA(qPrintable(logMessage));
 #endif
     return logMessage;

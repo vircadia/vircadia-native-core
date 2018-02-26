@@ -50,8 +50,8 @@ namespace Setting {
         QHash<QString, QVariant> _pendingChanges;
 
         friend class Interface;
-        friend void cleanupPrivateInstance();
-        friend void setupPrivateInstance();
+        friend void cleanupSettingsSaveThread();
+        friend void setupSettingsSaveThread();
     };
 }
 
