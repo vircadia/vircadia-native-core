@@ -286,6 +286,8 @@ public:
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
     void saveNextPhysicsStats(QString filename);
 
+    void replaceDomainContent(const QString& url);
+
 signals:
     void svoImportRequested(const QString& url);
 
@@ -367,6 +369,7 @@ public slots:
     void updateHeartbeat() const;
 
     static void deadlockApplication();
+    static void unresponsiveApplication(); // cause main thread to be unresponsive for 35 seconds
 
     void rotationModeChanged() const;
 

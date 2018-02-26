@@ -15,6 +15,7 @@
 (function() { // BEGIN LOCAL_SCOPE
     
     var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
+    var HELP_URL = Script.resourcesPath() + "html/tabletHelp.html";
     var buttonName = "HELP";
     var onHelpScreen = false;
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -39,7 +40,7 @@
     }
 
     function onScreenChanged(type, url) {
-        onHelpScreen = type === "Web" && url.startsWith("../../../html/tabletHelp.html");
+        onHelpScreen = type === "Web" && url.startsWith(HELP_URL);
         button.editProperties({ isActive: onHelpScreen });
     }
 
