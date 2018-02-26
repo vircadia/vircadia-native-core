@@ -333,7 +333,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         for (int i = 0; i < 2; i++) {
             auto& antiAliasingBuffer = _antialiasingBuffers->edit(i);
             antiAliasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("antialiasing"));
-            auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
+            auto format = sourceBuffer->getRenderBuffer(0)->getTexelFormat();
             auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
             _antialiasingTextures[i] = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, defaultSampler);
             antiAliasingBuffer->setRenderBuffer(0, _antialiasingTextures[i]);

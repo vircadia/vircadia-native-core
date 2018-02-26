@@ -94,7 +94,7 @@ vec4 taa_fetchColor(sampler2D map, vec2 uv) {
 
 vec3 taa_resolveColor(vec3 color) {
 #if USE_YCOCG
-		return color_YCoCgToLinear(color);
+		return max(vec3(0), color_YCoCgToUnclampedLinear(color));
 #else
 		return color;
 #endif

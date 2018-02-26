@@ -190,6 +190,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
 
+    // AA job to be revisited
+    const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, lightingFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
+    task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
+
     // Add bloom
     const auto bloomInputs = Bloom::Inputs(deferredFrameTransform, lightingFramebuffer).asVarying();
     task.addJob<Bloom>("Bloom", bloomInputs);
@@ -245,10 +249,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DrawBounds>("DrawOverlayInFrontOpaqueBounds", overlaysInFrontOpaque);
         task.addJob<DrawBounds>("DrawOverlayInFrontTransparentBounds", overlaysInFrontTransparent);
     }
-
-    // AA job to be revisited
-    const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, primaryFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
-    task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 
     // Debugging stages
     {
