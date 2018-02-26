@@ -28,6 +28,15 @@
 #include <graphics/Geometry.h>
 
 namespace scriptable {
+    /**jsdoc
+     * @typedef {object} Graphics.Mesh
+     * @property {Graphics.MeshPart[]} parts - Array of submesh part references.
+     * @property {string[]} attributeNames - Vertex attribute names (color, normal, etc.)
+     * @property {number} numParts - The number of parts contained in the mesh.
+     * @property {number} numIndices - Total number of vertex indices in the mesh.
+     * @property {number} numVertices - Total number of vertices in the Mesh.
+     * @property {number} numAttributes - Number of currently defined vertex attributes.
+     */
     class ScriptableMesh : public ScriptableMeshBase, QScriptable {
         Q_OBJECT
     public:
@@ -97,5 +106,3 @@ namespace scriptable {
 
 Q_DECLARE_METATYPE(scriptable::ScriptableMeshPointer)
 Q_DECLARE_METATYPE(QVector<scriptable::ScriptableMeshPointer>)
-Q_DECLARE_METATYPE(glm::uint32)
-Q_DECLARE_METATYPE(QVector<glm::uint32>)

@@ -21,6 +21,7 @@
 #include <graphics/GpuHelpers.h>
 #include <graphics/Geometry.h>
 
+
 QString scriptable::ScriptableMeshPart::toOBJ() {
     if (!getMeshPointer()) {
         if (context()) {
@@ -371,6 +372,7 @@ bool scriptable::ScriptableMeshPart::setIndices(const QVector<glm::uint32>& indi
     if (len != getNumVertices()) {
         context()->throwError(QString("setIndices: currently new indicies must be assign 1:1 across old indicies (indicies.size()=%1, numIndices=%2)")
                               .arg(len).arg(getNumIndices()));
+        return false;
     }
     auto mesh = getMeshPointer();
     auto indexBuffer = mesh->getIndexBuffer();
@@ -397,18 +399,24 @@ const graphics::Mesh::Part& scriptable::ScriptableMeshPart::getMeshPart() const 
     return getMeshPointer()->getPartBuffer().get<graphics::Mesh::Part>(partIndex);
 }
 
+// FIXME: how we handle topology will need to be reworked if wanting to support TRIANGLE_STRIP, QUADS and QUAD_STRIP
 bool scriptable::ScriptableMeshPart::setTopology(graphics::Mesh::Topology topology) {
     if (!isValid()) {
         return false;
     }
     auto& part = getMeshPointer()->getPartBuffer().edit<graphics::Mesh::Part>(partIndex);
-    if (topology == graphics::Mesh::Topology::POINTS ||
-        topology == graphics::Mesh::Topology::LINES ||
-        topology == graphics::Mesh::Topology::TRIANGLES) {
+    switch (topology) {
+#ifdef DEV_BUILD
+    case graphics::Mesh::Topology::POINTS:
+    case graphics::Mesh::Topology::LINES:
+#endif
+    case graphics::Mesh::Topology::TRIANGLES:
         part._topology = topology;
         return true;
+    default:
+        context()->throwError("changing topology to " + graphics::toString(topology) + " is not yet supported");
+        return false;
     }
-    return false;
 }
 
 glm::uint32 scriptable::ScriptableMeshPart::getTopologyLength() const {
@@ -416,16 +424,23 @@ glm::uint32 scriptable::ScriptableMeshPart::getTopologyLength() const {
     case graphics::Mesh::Topology::POINTS: return 1;
     case graphics::Mesh::Topology::LINES: return 2;
     case graphics::Mesh::Topology::TRIANGLES: return 3;
+    case graphics::Mesh::Topology::QUADS: return 4;
     default: qCDebug(graphics_scripting) << "getTopologyLength -- unrecognized topology" << getTopology();
     }
     return 0;
 }
 
 QVector<glm::uint32> scriptable::ScriptableMeshPart::getFace(glm::uint32 faceIndex) const {
-    if (faceIndex < getNumFaces()) {
-        return getIndices().mid(faceIndex * getTopologyLength(), getTopologyLength());
+    switch (getTopology()) {
+    case graphics::Mesh::Topology::POINTS:
+    case graphics::Mesh::Topology::LINES:
+    case graphics::Mesh::Topology::TRIANGLES:
+    case graphics::Mesh::Topology::QUADS:
+        if (faceIndex < getNumFaces()) {
+            return getIndices().mid(faceIndex * getTopologyLength(), getTopologyLength());
+        }
+    default: return QVector<glm::uint32>();
     }
-    return QVector<glm::uint32>();
 }
 
 QVariantMap scriptable::ScriptableMeshPart::getPartExtents() const {

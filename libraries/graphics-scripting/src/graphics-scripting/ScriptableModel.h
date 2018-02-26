@@ -15,6 +15,14 @@ class QScriptValue;
 namespace scriptable {
 
     using ScriptableMeshes = QVector<scriptable::ScriptableMeshPointer>;
+
+    /**jsdoc
+     * @typedef {object} Graphics.Model
+     * @property {Uuid} objectID - UUID of corresponding inworld object (if model is associated)
+     * @property {number} numMeshes - The number of submeshes contained in the model.
+     * @property {Graphics.Mesh[]} meshes - Array of submesh references.
+     */
+
     class ScriptableModel : public ScriptableModelBase {
         Q_OBJECT
         Q_PROPERTY(QUuid objectID MEMBER objectID CONSTANT)
@@ -45,8 +53,6 @@ namespace scriptable {
 
 }
 
-Q_DECLARE_METATYPE(scriptable::MeshPointer)
-Q_DECLARE_METATYPE(scriptable::WeakMeshPointer)
 Q_DECLARE_METATYPE(scriptable::ScriptableModelPointer)
 Q_DECLARE_METATYPE(scriptable::ScriptableModelBase)
 Q_DECLARE_METATYPE(scriptable::ScriptableModelBasePointer)
