@@ -33,7 +33,6 @@
 #include <SettingHelpers.h>
 #include <AvatarData.h> //for KillAvatarReason
 #include <FingerprintUtils.h>
-#include <shared/QtHelpers.h>
 
 #include "DomainServerNodeData.h"
 
@@ -686,12 +685,12 @@ void DomainServerSettingsManager::unpackPermissions() {
 
 #ifdef WANT_DEBUG
     qDebug() << "--------------- permissions ---------------------";
-    std::list<NodePermissionsMap*> permissionsSets {
+    std::array<NodePermissionsMap*, 7> permissionsSets {{
         &_standardAgentPermissions, &_agentPermissions,
         &_groupPermissions, &_groupForbiddens,
         &_ipPermissions, &_macPermissions,
         &_machineFingerprintPermissions
-    };
+    }};
 
     foreach (auto permissionSet, permissionsSets) {
         auto& permissionKeyMap = permissionSet->get();
@@ -1169,17 +1168,20 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
 
             QJsonObject rootObject;
 
-            bool forDomainSettings = (url.path() == SETTINGS_PATH_JSON);
-            bool forContentSettings = (url.path() == CONTENT_SETTINGS_PATH_JSON);;
+            DomainSettingsInclusion domainSettingsInclusion = (url.path() == SETTINGS_PATH_JSON)
+                ? IncludeDomainSettings : NoDomainSettings;
+            ContentSettingsInclusion contentSettingsInclusion = (url.path() == CONTENT_SETTINGS_PATH_JSON)
+                ? IncludeContentSettings : NoContentSettings;
 
-            rootObject[SETTINGS_RESPONSE_DESCRIPTION_KEY] = forDomainSettings
+            rootObject[SETTINGS_RESPONSE_DESCRIPTION_KEY] = (url.path() == SETTINGS_PATH_JSON)
                 ? _domainSettingsDescription : _contentSettingsDescription;
 
             // grab a domain settings object for all types, filtered for the right class of settings
             // and exclude default values
-            rootObject[SETTINGS_RESPONSE_VALUE_KEY] = settingsResponseObjectForType("", true,
-                                                                                    forDomainSettings, forContentSettings,
-                                                                                    true);
+            rootObject[SETTINGS_RESPONSE_VALUE_KEY] = settingsResponseObjectForType("", Authenticated,
+                                                                                    domainSettingsInclusion,
+                                                                                    contentSettingsInclusion,
+                                                                                    IncludeDefaultSettings);
 
             connection->respond(HTTPConnection::StatusCode200, QJsonDocument(rootObject).toJson(), "application/json");
 
@@ -1191,7 +1193,8 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         } else if (url.path() == SETTINGS_BACKUP_PATH) {
             // grab the settings backup as an authenticated user
             // for the domain settings type only, excluding hidden and default values
-            auto currentDomainSettingsJSON = settingsResponseObjectForType("", true, true, false, false, true);
+            auto currentDomainSettingsJSON = settingsResponseObjectForType("", Authenticated, IncludeDomainSettings,
+                                                                           NoContentSettings, NoDefaultSettings, ForBackup);
 
             // setup headers that tell the client to download the file wth a special name
             Headers downloadHeaders;
@@ -1343,13 +1346,15 @@ bool DomainServerSettingsManager::restoreSettingsFromObject(QJsonObject settings
     }
 }
 
-QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QString& typeValue, bool isAuthenticated,
-                                                                       bool includeDomainSettings,
-                                                                       bool includeContentSettings,
-                                                                       bool includeDefaults, bool isForBackup) {
+QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QString& typeValue,
+                                                                       SettingsRequestAuthentication authentication,
+                                                                       DomainSettingsInclusion domainSettingsInclusion,
+                                                                       ContentSettingsInclusion contentSettingsInclusion,
+                                                                       DefaultSettingsInclusion defaultSettingsInclusion,
+                                                                       SettingsBackupFlag settingsBackupFlag) {
     QJsonObject responseObject;
 
-    if (!typeValue.isEmpty() || isAuthenticated) {
+    if (!typeValue.isEmpty() || authentication == Authenticated) {
         // convert the string type value to a QJsonValue
         QJsonValue queryType = typeValue.isEmpty() ? QJsonValue() : QJsonValue(typeValue.toInt());
 
@@ -1358,9 +1363,9 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
         // only enumerate the requested settings type (domain setting or content setting)
         QJsonArray* filteredDescriptionArray = &_descriptionArray;
 
-        if (includeDomainSettings && !includeContentSettings) {
+        if (domainSettingsInclusion == IncludeDomainSettings && contentSettingsInclusion != IncludeContentSettings) {
             filteredDescriptionArray = &_domainSettingsDescription;
-        } else if (includeContentSettings && !includeDomainSettings) {
+        } else if (contentSettingsInclusion == IncludeContentSettings && domainSettingsInclusion != IncludeDomainSettings) {
             filteredDescriptionArray = &_contentSettingsDescription;
         }
 
@@ -1383,14 +1388,14 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
                 bool includedInBackups = !settingObject.contains(DESCRIPTION_BACKUP_FLAG_KEY)
                     || settingObject[DESCRIPTION_BACKUP_FLAG_KEY].toBool();
 
-                if (!settingObject[VALUE_HIDDEN_FLAG_KEY].toBool() && (!isForBackup || includedInBackups)) {
+                if (!settingObject[VALUE_HIDDEN_FLAG_KEY].toBool() && (settingsBackupFlag != ForBackup || includedInBackups)) {
                     QJsonArray affectedTypesArray = settingObject[AFFECTED_TYPES_JSON_KEY].toArray();
                     if (affectedTypesArray.isEmpty()) {
                         affectedTypesArray = groupObject[AFFECTED_TYPES_JSON_KEY].toArray();
                     }
 
                     if (affectedTypesArray.contains(queryType) ||
-                        (queryType.isNull() && isAuthenticated)) {
+                        (queryType.isNull() && authentication == Authenticated)) {
                         QString settingName = settingObject[DESCRIPTION_NAME_KEY].toString();
 
                         // we need to check if the settings map has a value for this setting
@@ -1408,7 +1413,7 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
 
                         // final check for inclusion
                         // either we include default values or we don't but this isn't a default value
-                        if (includeDefaults || variantValue.isValid()) {
+                        if ((defaultSettingsInclusion == IncludeDefaultSettings) || variantValue.isValid()) {
                             QJsonValue result;
 
                             if (!variantValue.isValid()) {

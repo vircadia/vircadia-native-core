@@ -751,7 +751,7 @@ bool DomainServer::resetAccountManagerAccessToken() {
         if (accessToken.isEmpty()) {
             QVariant accessTokenVariant = _settingsManager.valueForKeyPath(ACCESS_TOKEN_KEY_PATH);
 
-            if (accessTokenVariant.isValid() && accessTokenVariant.canConvert(QMetaType::QString)) {
+            if (accessTokenVariant.canConvert(QMetaType::QString)) {
                 accessToken = accessTokenVariant.toString();
             } else {
                 qWarning() << "No access token is present. Some operations that use the metaverse API will fail.";
@@ -1637,7 +1637,6 @@ void DomainServer::sendHeartbeatToIceServer() {
             qWarning() << "Waiting for keypair generation to complete before sending ICE heartbeat.";
 
             if (!limitedNodeList->getSessionUUID().isNull()) {
-                qDebug() << "generating keypair";
                 accountManager->generateNewDomainKeypair(limitedNodeList->getSessionUUID());
             } else {
                 qWarning() << "Attempting to send ICE server heartbeat with no domain ID. This is not supported";

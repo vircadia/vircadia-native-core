@@ -613,7 +613,7 @@ bool DomainGatekeeper::isWithinMaxCapacity() {
     // find out what our maximum capacity is
     QVariant maximumUserCapacityVariant =
         _server->_settingsManager.valueForKeyPath(MAXIMUM_USER_CAPACITY);
-    unsigned int maximumUserCapacity = !maximumUserCapacityVariant.isValid() ? maximumUserCapacityVariant.toUInt() : 0;
+    unsigned int maximumUserCapacity = maximumUserCapacityVariant.isValid() ? maximumUserCapacityVariant.toUInt() : 0;
 
     if (maximumUserCapacity > 0) {
         unsigned int connectedUsers = _server->countConnectedUsers();

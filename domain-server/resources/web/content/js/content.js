@@ -36,9 +36,7 @@ $(document).ready(function(){
 
   // when the selected file is changed, enable the button if there's a selected file
   $('body').on('change', '#' + RESTORE_SETTINGS_FILE_ID, function() {
-    if ($(this).val()) {
-        $('#' + RESTORE_SETTINGS_UPLOAD_ID).attr('disabled', false);
-    }
+    $('#' + RESTORE_SETTINGS_UPLOAD_ID).attr('disabled', $(this).val().length == 0);
   });
 
   // when the upload button is clicked, send the file to the DS
@@ -48,7 +46,7 @@ $(document).ready(function(){
     e.preventDefault();
 
     swalAreYouSure(
-      "Your domain content will be replaced by the uploaded Content Archive or entity file",
+      "Your domain content will be replaced by the uploaded content archive or entity file",
       "Restore content",
       function() {
         var files = $('#' + RESTORE_SETTINGS_FILE_ID).prop('files');
@@ -100,7 +98,7 @@ $(document).ready(function(){
     // construct the HTML needed for the content archives panel
     var html = "<div id='" + CONTENT_ARCHIVES_NORMAL_ID + "'><div class='form-group'>";
     html += "<label class='control-label'>Automatic Content Archives</label>";
-    html += "<span class='help-block'>Your domain server makes regular archives of the content in your domain. In the list below, you can see and download all of your domain content and settings backups. "
+    html += "<span class='help-block'>Your domain server makes regular archives of the content in your domain. In the list below, you can see and download all of your backups of domain content and content settings."
     html += "<a href='/settings/#automatic_content_archives' id='" + AUTO_ARCHIVES_SETTINGS_LINK_ID + "'>Click here to manage automatic content archive intervals.</a></span>";
     html += "</div>";
     html += "<table class='table sortable' id='" + AUTOMATIC_ARCHIVES_TABLE_ID + "'>";
@@ -149,6 +147,7 @@ $(document).ready(function(){
       if (isRestoring && !data.status.isRecovering) {
         // we were recovering and we finished - the DS is going to restart so show the restart modal
         showRestartModal();
+        return;
       }
 
       isRestoring = data.status.isRecovering;
@@ -171,7 +170,7 @@ $(document).ready(function(){
 
       function updateProgressBars($progressBar, value) {
         $progressBar.attr('aria-valuenow', value).attr('style', 'width: ' + value + '%');
-        $progressBar.find('.sr-only').html(data.status.recoveryProgress + "% Complete");
+        $progressBar.find('.sr-only').html(value + "% Complete");
       }
 
       // before we add any new rows and update existing ones
@@ -218,12 +217,9 @@ $(document).ready(function(){
         $backupRow.addClass(ACTIVE_BACKUP_ROW_CLASS);
       }
 
-      var automaticRows = "";
-
       if (automaticBackups.length > 0) {
         for (var backupIndex in automaticBackups) {
           updateOrAddTableRow(automaticBackups[backupIndex], AUTOMATIC_ARCHIVES_TBODY_ID);
-
         }
       }
 
@@ -382,7 +378,7 @@ $(document).ready(function(){
 
     // show a sweet alert to ask the user to provide a name for their content archive
     swal({
-      title: "Generate a Content Archive",
+      title: "Generate a content archive",
       type: "input",
       text: "This will capture the state of all the content in your domain right now, which you can save as a backup and restore from later.",
       confirmButtonText: "Generate Archive",
