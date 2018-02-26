@@ -1816,8 +1816,6 @@ bool Octree::toGzippedJSON(QByteArray* data, const OctreeElementPointer& element
     if (!gzip(jsonData, *data, -1)) {
         qCritical("Unable to gzip data while saving to json.");
         return false;
-    } else {
-        qDebug() <<"Did gzip!";
     }
 
     return true;

@@ -17,6 +17,7 @@
 
 #include <AABox.h>
 #include <Gzip.h>
+#include <udt/PacketHeaders.h>
 
 #include <QJsonObject>
 #include <QJsonDocument>
@@ -140,10 +141,11 @@ bool OctreeUtils::readOctreeDataInfoFromFile(QString path, OctreeUtils::RawOctre
 }
 
 QByteArray OctreeUtils::RawOctreeData::toByteArray() {
+    const auto protocolVersion = (int)versionForPacketType(PacketType::EntityData);
     QJsonObject obj {
         { "DataVersion", QJsonValue((qint64)version) },
         { "Id", QJsonValue(id.toString()) },
-        { "Version", QJsonValue(5) },
+        { "Version", protocolVersion },
         { "Entities", octreeData }
     };
 

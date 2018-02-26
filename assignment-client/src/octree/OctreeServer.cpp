@@ -1041,8 +1041,6 @@ void OctreeServer::readConfiguration() {
             _persistFilePath = getMyDefaultPersistFilename();
         }
 
-        // If persist filename does not exist, let's see if there is one beside the application binary
-        // If there is, let's copy it over to our target persist directory
         QDir persistPath { _persistFilePath };
 
         if (persistPath.isRelative()) {

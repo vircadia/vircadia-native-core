@@ -3354,8 +3354,7 @@ void DomainServer::maybeHandleReplacementEntityFile() {
         if (!replacementFile.remove()) {
             // If we can't remove the replacement file, we are at risk of getting into a state where
             // we continually replace the primary entity file with the replacement entity file.
-            qCWarning(domain_server)
-                << "Unable to remove replacement file, bailing";
+            qCWarning(domain_server) << "Unable to remove replacement file, bailing";
         } else {
             data.resetIdAndVersion();
             auto gzippedData = data.toGzippedByteArray();

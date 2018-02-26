@@ -31,7 +31,10 @@ void EntitiesBackupHandler::createBackup(const QString& backupName, QuaZip& zip)
 
     if (entitiesFile.open(QIODevice::ReadOnly)) {
         QuaZipFile zipFile { &zip };
-        zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(ENTITIES_BACKUP_FILENAME, _entitiesFilePath));
+        if (!zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(ENTITIES_BACKUP_FILENAME, _entitiesFilePath))) {
+            qCritical().nospace() << "Failed to open " << ENTITIES_BACKUP_FILENAME << " for writing in zip";
+            return;
+        }
         zipFile.write(entitiesFile.readAll());
         zipFile.close();
         if (zipFile.getZipError() != UNZ_OK) {
