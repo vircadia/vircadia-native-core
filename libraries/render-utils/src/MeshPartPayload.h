@@ -32,7 +32,7 @@ public:
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    virtual void updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled = false);
+    virtual void updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled = false);
 
     virtual void updateMeshPart(const std::shared_ptr<const graphics::Mesh>& drawMesh, int partIndex);
 
@@ -98,7 +98,7 @@ public:
     using TransformType = glm::mat4;
 #endif
 
-    void updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled = false) override;
+    void updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled = false) override;
     void updateClusterBuffer(const std::vector<TransformType>& clusterTransforms);
     void updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform);
 
