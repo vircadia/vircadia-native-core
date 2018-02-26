@@ -173,8 +173,8 @@ bool OffscreenSurface::eventFilter(QObject* originalDestination, QEvent* event) 
                 auto &newPoint = newTouchPoints[i];
                 newPoint.setPos(originalPoint.pos());
             }
-            fakeEvent->setTouchPoints(newTouchPoints);
-            if (QCoreApplication::sendEvent(_quickWindow, &fakeEvent)) {
+            fakeEvent.setTouchPoints(newTouchPoints);
+            if (QCoreApplication::sendEvent(_sharedObject->getWindow(), &fakeEvent)) {
                 qInfo() << __FUNCTION__ << "sent fake touch event:" << fakeEvent.type()
                         << "_quickWindow handled it... accepted:" << fakeEvent.isAccepted();
                 return false; //event->isAccepted();
@@ -183,9 +183,9 @@ bool OffscreenSurface::eventFilter(QObject* originalDestination, QEvent* event) 
         }
         case QEvent::InputMethod:
         case QEvent::InputMethodQuery: {
-            if (_quickWindow && _quickWindow->activeFocusItem()) {
+            if (_sharedObject->getWindow() && _sharedObject->getWindow()->activeFocusItem()) {
                 event->ignore();
-                if (QCoreApplication::sendEvent(_quickWindow->activeFocusItem(), event)) {
+                if (QCoreApplication::sendEvent(_sharedObject->getWindow()->activeFocusItem(), event)) {
                     return event->isAccepted();
                 }
                 return false;
