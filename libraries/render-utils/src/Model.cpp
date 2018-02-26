@@ -280,32 +280,42 @@ void Model::updateRenderItems() {
 
             auto itemID = self->_modelMeshRenderItemIDs[i];
             auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
-            auto clusterTransforms(self->getMeshState(meshIndex).clusterTransforms);
+
+            const auto& meshState = self->getMeshState(meshIndex);
 
             bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
+            bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterTransforms,
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
                                                                   invalidatePayloadShapeKey, isWireframe, isVisible,
                                                                   canCastShadow, viewTagBits, isLayeredInFront,
                                                                   isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
-                data.updateClusterBuffer(clusterTransforms);
+                if (useDualQuaternionSkinning) {
+                    data.updateClusterBuffer(meshState.clusterDualQuaternions);
+                } else {
+                    data.updateClusterBuffer(meshState.clusterMatrices);
+                }
 
                 Transform renderTransform = modelTransform;
-                if (clusterTransforms.size() == 1) {
-#if defined(SKIN_DQ)
-                    Transform transform(clusterTransforms[0].getRotation(),
-                                        clusterTransforms[0].getScale(),
-                                        clusterTransforms[0].getTranslation());
-                    renderTransform = modelTransform.worldTransform(Transform(transform));
-#else
-                    renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0]));
-#endif
+
+                if (useDualQuaternionSkinning) {
+                    if (meshState.clusterDualQuaternions.size() == 1) {
+                        const auto& dq = meshState.clusterDualQuaternions[0];
+                        Transform transform(dq.getRotation(),
+                                            dq.getScale(),
+                                            dq.getTranslation());
+                        renderTransform = modelTransform.worldTransform(Transform(transform));
+                    }
+                } else {
+                    if (meshState.clusterMatrices.size() == 1) {
+                        renderTransform = modelTransform.worldTransform(Transform(meshState.clusterMatrices[0]));
+                    }
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
                 data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, canCastShadow, viewTagBits, isGroupCulled);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
-                data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
+                data.setShapeKey(invalidatePayloadShapeKey, isWireframe, useDualQuaternionSkinning);
             });
         }
 
@@ -380,7 +390,8 @@ bool Model::updateGeometry() {
         const FBXGeometry& fbxGeometry = getFBXGeometry();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
-            state.clusterTransforms.resize(mesh.clusters.size());
+            state.clusterDualQuaternions.resize(mesh.clusters.size());
+            state.clusterMatrices.resize(mesh.clusters.size());
             _meshStates.push_back(state);
 
             // Note: we add empty buffers for meshes that lack blendshapes so we can access the buffers by index
@@ -1257,6 +1268,10 @@ void Model::snapToRegistrationPoint() {
     _snappedToRegistrationPoint = true;
 }
 
+void Model::setUseDualQuaternionSkinning(bool value) {
+    _useDualQuaternionSkinning = value;
+}
+
 void Model::simulate(float deltaTime, bool fullUpdate) {
     DETAILED_PROFILE_RANGE(simulation_detail, __FUNCTION__);
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
@@ -1290,7 +1305,11 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 void Model::computeMeshPartLocalBounds() {
     for (auto& part : _modelMeshRenderItems) {
         const Model::MeshState& state = _meshStates.at(part->_meshIndex);
-        part->computeAdjustedLocalBound(state.clusterTransforms);
+        if (_useDualQuaternionSkinning) {
+            part->computeAdjustedLocalBound(state.clusterDualQuaternions);
+        } else {
+            part->computeAdjustedLocalBound(state.clusterMatrices);
+        }
     }
 }
 
@@ -1309,16 +1328,16 @@ void Model::updateClusterMatrices() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
-#if defined(SKIN_DQ)
-            auto jointPose = _rig.getJointPose(cluster.jointIndex);
-            Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
-            Transform clusterTransform;
-            Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
-            state.clusterTransforms[j] = Model::TransformDualQuaternion(clusterTransform);
-#else
-            auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
-#endif
+            if (_useDualQuaternionSkinning) {
+                auto jointPose = _rig.getJointPose(cluster.jointIndex);
+                Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
+                Transform clusterTransform;
+                Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+                state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(clusterTransform);
+            } else {
+                auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
+                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+            }
         }
     }
 
@@ -1589,12 +1608,13 @@ void Model::addMaterial(graphics::MaterialLayer material, const std::string& par
             bool wireframe = isWireframe();
             auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
             bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+            bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
             transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, layeredInFront, layeredInHUD, viewTagBits, canCastShadow,
-                invalidatePayloadShapeKey, wireframe](ModelMeshPartPayload& data) {
+                invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                 data.addMaterial(material);
                 // if the material changed, we might need to update our item key or shape key
                 data.updateKey(visible, layeredInFront || layeredInHUD, canCastShadow, viewTagBits);
-                data.setShapeKey(invalidatePayloadShapeKey, wireframe);
+                data.setShapeKey(invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning);
             });
         }
     }
@@ -1615,12 +1635,13 @@ void Model::removeMaterial(graphics::MaterialPointer material, const std::string
             bool wireframe = isWireframe();
             auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
             bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+            bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
             transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, layeredInFront, layeredInHUD, viewTagBits, canCastShadow,
-                invalidatePayloadShapeKey, wireframe](ModelMeshPartPayload& data) {
+                invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                 data.removeMaterial(material);
                 // if the material changed, we might need to update our item key or shape key
                 data.updateKey(visible, layeredInFront || layeredInHUD, canCastShadow, viewTagBits);
-                data.setShapeKey(invalidatePayloadShapeKey, wireframe);
+                data.setShapeKey(invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning);
             });
         }
     }
