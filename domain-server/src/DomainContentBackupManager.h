@@ -50,7 +50,7 @@ public:
         qint64 lastBackupSeconds;
     };
 
-    static const std::chrono::milliseconds DEFAULT_PERSIST_INTERVAL;
+    static const std::chrono::seconds DEFAULT_PERSIST_INTERVAL;
 
     DomainContentBackupManager(const QString& rootBackupDirectory,
                                const QVariantList& settings,
@@ -99,7 +99,7 @@ private:
     std::atomic<bool> _isRecovering { false };
     QString _recoveryFilename { };
 
-    std::chrono::time_point<std::chrono::high_resolution_clock> _lastCheck;
+    p_high_resolution_clock::time_point _lastCheck;
     std::vector<BackupRule> _backupRules;
 };
 
