@@ -1800,6 +1800,6 @@ scriptable::ScriptableModelBase Avatar::getScriptableModel() {
         return scriptable::ScriptableModelBase();
     }
     auto result = _skeletonModel->getScriptableModel();
-    result.objectID = getSessionUUID();
+    result.objectID = getSessionUUID().isNull() ? AVATAR_SELF_ID : getSessionUUID();
     return result;
 }

@@ -74,7 +74,7 @@ namespace scriptable {
     public:
         NestableType modelProviderType;
         virtual scriptable::ScriptableModelBase getScriptableModel() = 0;
-
+        virtual bool canReplaceModelMeshPart(int meshIndex, int partIndex) { return false; }
         virtual bool replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer model, int meshIndex, int partIndex) { return false; }
     };
 
@@ -88,7 +88,6 @@ namespace scriptable {
         void modelRemovedFromScene(const QUuid& objectID, NestableType nestableType, const ModelPointer& sender);
     };
 
-    using uint32 = quint32;
     class ScriptableModel;
     using ScriptableModelPointer = QPointer<ScriptableModel>;
     class ScriptableMesh;

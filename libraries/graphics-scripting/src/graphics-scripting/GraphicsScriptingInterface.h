@@ -34,13 +34,14 @@ public slots:
      * @function GraphicsScriptingInterface.getModel
      * @param {UUID} The objectID of the model whose meshes are to be retrieve
      */
-    scriptable::ModelProviderPointer getModelProvider(QUuid uuid);
-    scriptable::ScriptableModelPointer getModelObject(QUuid uuid);
-    bool updateModelObject(QUuid uuid, const scriptable::ScriptableModelPointer model);
-    scriptable::ScriptableModelPointer newModelObject(QVector<scriptable::ScriptableMeshPointer> meshes);
+    scriptable::ScriptableModelPointer getModel(QUuid uuid);
+    bool updateModel(QUuid uuid, const scriptable::ScriptableModelPointer& model);
+    bool canUpdateModel(QUuid uuid, int meshIndex = -1, int partNumber = -1);
+    scriptable::ScriptableModelPointer newModel(const scriptable::ScriptableMeshes& meshes);
+    scriptable::ScriptableMeshPointer newMesh(const QVariantMap& ifsMeshData);
 
 #ifdef SCRIPTABLE_MESH_TODO
-    scriptable::ScriptableMeshPartPointer exportMeshPart(scriptable::ScriptableMeshPointer mesh, int part=0) {
+    scriptable::ScriptableMeshPartPointer exportMeshPart(scriptable::ScriptableMeshPointer mesh, int partNumber = -1) {
         return scriptable::make_scriptowned<scriptable::ScriptableMeshPart>(mesh, part);
     }
     bool updateMeshPart(scriptable::ScriptableMeshPointer mesh, scriptable::ScriptableMeshPartPointer part);
@@ -49,10 +50,14 @@ public slots:
     QString exportModelToOBJ(const scriptable::ScriptableModel& in);
 
 private:
+    scriptable::ModelProviderPointer getModelProvider(QUuid uuid);
+    void jsThrowError(const QString& error);
     scriptable::MeshPointer getMeshPointer(scriptable::ScriptableMeshPointer meshProxy);
     scriptable::MeshPointer getMeshPointer(scriptable::ScriptableMesh& meshProxy);
     scriptable::MeshPointer getMeshPointer(const scriptable::ScriptableMesh& meshProxy);
 
 };
+
+Q_DECLARE_METATYPE(scriptable::ModelProviderPointer)
 
 #endif // hifi_GraphicsScriptingInterface_h

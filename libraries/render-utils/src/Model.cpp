@@ -440,7 +440,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         const FBXGeometry& geometry = getFBXGeometry();
 
         if (!_triangleSetsValid) {
-            calculateTriangleSets();
+            calculateTriangleSets(geometry);
         }
 
         glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
@@ -525,7 +525,7 @@ bool Model::convexHullContains(glm::vec3 point) {
         QMutexLocker locker(&_mutex);
 
         if (!_triangleSetsValid) {
-            calculateTriangleSets();
+            calculateTriangleSets(getFBXGeometry());
         }
 
         // If we are inside the models box, then consider the submeshes...
@@ -587,9 +587,6 @@ MeshProxyList Model::getMeshes() const {
     return result;
 }
 
-// FIXME: temporary workaround that updates the whole FBXGeometry (to keep findRayIntersection in sync)
-#include "Model_temporary_hack.cpp.h"
-
 bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer newModel, int meshIndex, int partIndex) {
     QMutexLocker lock(&_mutex);
 
@@ -603,18 +600,60 @@ bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointe
         return false;
     }
 
-    auto resource = new MyGeometryResource(_url, _renderGeometry, newModel);
-    _needsReload = false;
-    _needsUpdateTextures = false;
-    _visualGeometryRequestFailed = false;
-    _needsFixupInScene = true;
+    const auto& meshes = newModel->meshes;
+    render::Transaction transaction;
+    const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
-    invalidCalculatedMeshBoxes();
-    deleteGeometry();
-    _renderGeometry.reset(resource);
-    updateGeometry();
-    calculateTriangleSets();
-    setRenderItemsNeedUpdate();
+    meshIndex = meshIndex >= 0 ? meshIndex : 0;
+    partIndex = partIndex >= 0 ? partIndex : 0;
+
+    if (meshIndex >= meshes.size()) {
+        qDebug() << meshIndex << "meshIndex >= newModel.meshes.size()" << meshes.size();
+        return false;
+    }
+
+    auto mesh = meshes[meshIndex].getMeshPointer();
+    {
+        // update visual geometry
+        render::Transaction transaction;
+        for (int i = 0; i < (int) _modelMeshRenderItemIDs.size(); i++) {
+            auto itemID = _modelMeshRenderItemIDs[i];
+            auto shape = _modelMeshRenderItemShapes[i];
+            // TODO: check to see if .partIndex matches too
+            if (shape.meshIndex == meshIndex) {
+                transaction.updateItem<ModelMeshPartPayload>(itemID, [=](ModelMeshPartPayload& data) {
+                    data.updateMeshPart(mesh, partIndex);
+                });
+            }
+        }
+        scene->enqueueTransaction(transaction);
+    }
+    // update triangles for ray picking
+    {
+        FBXGeometry geometry;
+        for (const auto& newMesh : meshes) {
+            FBXMesh mesh;
+            mesh._mesh = newMesh.getMeshPointer();
+            mesh.vertices = buffer_helpers::mesh::attributeToVector<glm::vec3>(mesh._mesh, gpu::Stream::POSITION);
+            int numParts = newMesh.getMeshPointer()->getNumParts();
+            for (int partID = 0; partID < numParts; partID++) {
+                FBXMeshPart part;
+                part.triangleIndices = buffer_helpers::bufferToVector<int>(mesh._mesh->getIndexBuffer(), "part.triangleIndices");
+                mesh.parts << part;
+            }
+            {
+                foreach (const glm::vec3& vertex, mesh.vertices) {
+                    glm::vec3 transformedVertex = glm::vec3(mesh.modelTransform * glm::vec4(vertex, 1.0f));
+                    geometry.meshExtents.minimum = glm::min(geometry.meshExtents.minimum, transformedVertex);
+                    geometry.meshExtents.maximum = glm::max(geometry.meshExtents.maximum, transformedVertex);
+                    mesh.meshExtents.minimum = glm::min(mesh.meshExtents.minimum, transformedVertex);
+                    mesh.meshExtents.maximum = glm::max(mesh.meshExtents.maximum, transformedVertex);
+                }
+            }
+            geometry.meshes << mesh;
+        }
+        calculateTriangleSets(geometry);
+    }
     return true;
 }
 
@@ -638,10 +677,9 @@ scriptable::ScriptableModelBase Model::getScriptableModel() {
     return result;
 }
 
-void Model::calculateTriangleSets() {
+void Model::calculateTriangleSets(const FBXGeometry& geometry) {
     PROFILE_RANGE(render, __FUNCTION__);
 
-    const FBXGeometry& geometry = getFBXGeometry();
     int numberOfMeshes = geometry.meshes.size();
 
     _triangleSetsValid = true;
@@ -664,7 +702,7 @@ void Model::calculateTriangleSets() {
             int totalTriangles = (numberOfQuads * TRIANGLES_PER_QUAD) + numberOfTris;
             _modelSpaceMeshTriangleSets[i].reserve(totalTriangles);
 
-            auto meshTransform = getFBXGeometry().offset * mesh.modelTransform;
+            auto meshTransform = geometry.offset * mesh.modelTransform;
 
             if (part.quadIndices.size() > 0) {
                 int vIndex = 0;

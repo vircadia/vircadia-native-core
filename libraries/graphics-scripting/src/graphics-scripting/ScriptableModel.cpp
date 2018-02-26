@@ -58,7 +58,7 @@ scriptable::ScriptableModelPointer scriptable::ScriptableModel::cloneModel(const
     scriptable::ScriptableModelPointer clone = scriptable::ScriptableModelPointer(new scriptable::ScriptableModel(*this));
     clone->meshes.clear();
     for (const auto &mesh : getConstMeshes()) {
-        auto cloned = mesh->cloneMesh(options.value("recalculateNormals").toBool());
+        auto cloned = mesh->cloneMesh();
         if (auto tmp = qobject_cast<scriptable::ScriptableMeshBase*>(cloned)) {
             clone->meshes << *tmp;
             tmp->deleteLater(); // schedule our copy for cleanup
@@ -70,8 +70,8 @@ scriptable::ScriptableModelPointer scriptable::ScriptableModel::cloneModel(const
 }
 
 
-const QVector<scriptable::ScriptableMeshPointer> scriptable::ScriptableModel::getConstMeshes() const {
-    QVector<scriptable::ScriptableMeshPointer> out;
+const scriptable::ScriptableMeshes scriptable::ScriptableModel::getConstMeshes() const {
+    scriptable::ScriptableMeshes out;
     for (const auto& mesh : meshes) {
         const scriptable::ScriptableMesh* m = qobject_cast<const scriptable::ScriptableMesh*>(&mesh);
         if (!m) {
@@ -85,8 +85,8 @@ const QVector<scriptable::ScriptableMeshPointer> scriptable::ScriptableModel::ge
     return out;
 }
 
-QVector<scriptable::ScriptableMeshPointer> scriptable::ScriptableModel::getMeshes() {
-    QVector<scriptable::ScriptableMeshPointer> out;
+scriptable::ScriptableMeshes scriptable::ScriptableModel::getMeshes() {
+    scriptable::ScriptableMeshes out;
     for (auto& mesh : meshes) {
         scriptable::ScriptableMesh* m = qobject_cast<scriptable::ScriptableMesh*>(&mesh);
         if (!m) {
@@ -100,9 +100,10 @@ QVector<scriptable::ScriptableMeshPointer> scriptable::ScriptableModel::getMeshe
     return out;
 }
 
-quint32 scriptable::ScriptableModel::mapAttributeValues(QScriptValue callback) {
-    quint32 result = 0;
-    QVector<scriptable::ScriptableMeshPointer> in = getMeshes();
+#if 0
+glm::uint32 scriptable::ScriptableModel::forEachVertexAttribute(QScriptValue callback) {
+    glm::uint32 result = 0;
+    scriptable::ScriptableMeshes in = getMeshes();
     if (in.size()) {
         foreach (scriptable::ScriptableMeshPointer meshProxy, in) {
             result += meshProxy->mapAttributeValues(callback);
@@ -110,5 +111,6 @@ quint32 scriptable::ScriptableModel::mapAttributeValues(QScriptValue callback) {
     }
     return result;
 }
+#endif
 
 #include "ScriptableModel.moc"

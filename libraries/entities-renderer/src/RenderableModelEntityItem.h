@@ -143,6 +143,7 @@ class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem
 public:
     ModelEntityRenderer(const EntityItemPointer& entity);
     virtual scriptable::ScriptableModelBase getScriptableModel() override;
+    virtual bool canReplaceModelMeshPart(int meshIndex, int partIndex) override;
     virtual bool replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer model, int meshIndex, int partIndex) override;
 
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
