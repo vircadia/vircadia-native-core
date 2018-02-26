@@ -91,7 +91,7 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
         return;
     }
 
-    if (entityTree->isServerlessMode()) {
+    if (entityTree && entityTree->isServerlessMode()) {
         // if we are in a serverless domain, don't send edit packets
         return;
     }

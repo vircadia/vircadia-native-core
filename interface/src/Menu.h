@@ -46,7 +46,6 @@ namespace MenuOption {
     const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";
     const QString AvatarBookmarks = "Avatar Bookmarks";
-    const QString AvatarEntitiesBookmarks = "Avatar Entities  Bookmarks";
     const QString Back = "Back";
     const QString BinaryEyelidControl = "Binary Eyelid Control";
     const QString BookmarkAvatar = "Bookmark Avatar";
@@ -77,6 +76,7 @@ namespace MenuOption {
     const QString CrashNewFault = "New Fault";
     const QString CrashNewFaultThreaded = "New Fault (threaded)";
     const QString DeadlockInterface = "Deadlock Interface";
+    const QString UnresponsiveInterface = "Unresponsive Interface";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DefaultSkybox = "Default Skybox";
     const QString DeleteAvatarBookmark = "Delete Avatar Bookmark...";
@@ -204,6 +204,8 @@ namespace MenuOption {
     const QString WorldAxes = "World Axes";
     const QString DesktopTabletToToolbar = "Desktop Tablet Becomes Toolbar";
     const QString HMDTabletToToolbar = "HMD Tablet Becomes Toolbar";
+    const QString Shadows = "Shadows";
+    const QString AmbientOcclusion = "AmbientOcclusion";
 }
 
 #endif // hifi_Menu_h

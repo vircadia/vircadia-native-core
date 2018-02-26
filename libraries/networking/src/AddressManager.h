@@ -179,6 +179,8 @@ public:
     const QStack<QUrl>& getBackStack() const { return _backStack; }
     const QStack<QUrl>& getForwardStack() const { return _forwardStack; }
 
+    QUrl getServerlessDomainURL() { return _serverlessDomainURL; }
+
 public slots:
     /**jsdoc
      * Go to a specified metaverse address.

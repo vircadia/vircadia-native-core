@@ -404,8 +404,6 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();
                 QUuid domainID(domainIDString);
 
-                qDebug() << "QQQQ AddressManager::goToAddressFromObject";
-
                 if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
                     QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
 

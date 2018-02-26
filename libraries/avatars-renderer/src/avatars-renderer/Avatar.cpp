@@ -219,8 +219,10 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
-    if (getID() == QUuid() || getID() == AVATAR_SELF_ID) {
-        return; // wait until MyAvatar gets an ID before doing this.
+    if (getID() == QUuid() ||
+        getID() == AVATAR_SELF_ID ||
+        DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
+        return; // wait until MyAvatar and this Node gets an ID before doing this.
     }
 
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();

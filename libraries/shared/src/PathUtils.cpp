@@ -126,7 +126,6 @@ QUrl PathUtils::expandToLocalDataAbsolutePath(const QUrl& fileUrl) {
     if (path.startsWith("/~/")) {
         path.replace(0, 3, getAppLocalDataPath());
         url = QUrl::fromLocalFile(path);
-        qDebug() << "QQQQ expandToLocalDataAbsolutePath: " << fileUrl << url;
     }
     return url;
 }
