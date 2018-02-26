@@ -59,18 +59,10 @@ Rectangle {
                 if (root.activeView !== "needsLogIn") {
                     root.activeView = "needsLogIn";
                 }
-            } else if (walletStatus === 1) {
+            } else if ((walletStatus === 1) || (walletStatus === 2) || (walletStatus === 3)) {
                 if (root.activeView !== "notSetUp") {
                     root.activeView = "notSetUp";
                     notSetUpTimer.start();
-                }
-            } else if (walletStatus === 2) {
-                if (root.activeView != "preexisting") {
-                    root.activeView = "preexisting";
-                }
-            } else if (walletStatus === 3) {
-                if (root.activeView != "conflicting") {
-                    root.activeView = "conflicting";
                 }
             } else if (walletStatus === 4) {
                 if (root.activeView !== "passphraseModal") {
