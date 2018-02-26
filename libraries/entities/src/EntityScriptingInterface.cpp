@@ -1264,10 +1264,10 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
         }
 
         doTransmit = actor(simulation, entity);
+        _entityTree->entityChanged(entity);
         if (doTransmit) {
             properties.setClientOnly(entity->getClientOnly());
             properties.setOwningAvatarID(entity->getOwningAvatarID());
-            _entityTree->entityChanged(entity);
         }
     });
 
