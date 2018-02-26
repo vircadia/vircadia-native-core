@@ -3038,6 +3038,7 @@ bool Application::importFromZIP(const QString& filePath) {
 void Application::setServersEnabled(bool serversEnabled) {
     if (_serversEnabled != serversEnabled) {
         _serversEnabled = serversEnabled;
+        getEntities()->getTree()->setIsServerlessMode(!_serversEnabled);
     }
 }
 
@@ -3071,7 +3072,6 @@ void Application::loadServerlessDomain(QUrl domainURL) {
     permissions.setAll(true);
     DependencyManager::get<NodeList>()->setPermissions(permissions);
 
-    getEntities()->getTree()->setIsServerlessMode(true);
     getEntities()->getTree()->eraseAllOctreeElements();
     if (importEntities(domainURL.toString())) {
         pasteEntities(0.0f, 0.0f, 0.0f);
@@ -5789,7 +5789,6 @@ void Application::clearDomainAvatars() {
 void Application::domainChanged(const QString& domainHostname) {
     qDebug() << "QQQQ Application::domainChanged" << domainHostname;
     clearDomainOctreeDetails();
-    getEntities()->getTree()->setIsServerlessMode(isServerlessMode());
     updateWindowTitle();
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
