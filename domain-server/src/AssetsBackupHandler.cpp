@@ -29,7 +29,7 @@ using namespace std;
 static const QString ASSETS_DIR { "/assets/" };
 static const QString MAPPINGS_FILE { "mappings.json" };
 static const QString ZIP_ASSETS_FOLDER { "files" };
-static const chrono::minutes MAX_REFRESH_TIME { 15 };
+static const chrono::minutes MAX_REFRESH_TIME { 5 };
 
 Q_DECLARE_LOGGING_CATEGORY(asset_backup)
 Q_LOGGING_CATEGORY(asset_backup, "hifi.asset-backup");
