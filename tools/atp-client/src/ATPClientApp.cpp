@@ -197,7 +197,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
     }
 
     auto assetClient = DependencyManager::set<AssetClient>();
-    assetClient->init();
+    assetClient->initCaching();
 
     if (_verbose) {
         qDebug() << "domain-server address is" << _domainServerAddress;

@@ -77,7 +77,7 @@ void MeshPartPayload::removeMaterial(graphics::MaterialPointer material) {
     _drawMaterials.remove(material);
 }
 
-void MeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled) {
+void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled) {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
@@ -89,10 +89,6 @@ void MeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCastShad
 
     if (isLayered) {
         builder.withLayered();
-    }
-
-    if (canCastShadow) {
-        builder.withShadowCaster();
     }
 
     if (isGroupCulled) {
@@ -329,8 +325,7 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& render
     _worldBound.transform(boundTransform);
 }
 
-// Note that this method is called for models but not for shapes
-void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled) {
+void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled) {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
@@ -342,10 +337,6 @@ void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCas
 
     if (isLayered) {
         builder.withLayered();
-    }
-
-    if (canCastShadow) {
-        builder.withShadowCaster();
     }
 
     if (isGroupCulled) {

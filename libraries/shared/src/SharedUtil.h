@@ -25,23 +25,6 @@
 #include <QtCore/QCoreApplication>
 #include <QUuid>
 
-// Workaround for https://bugreports.qt.io/browse/QTBUG-54479
-// Wrap target function inside another function that holds
-// a unique string identifier and uses it to ensure it only runs once
-// by storing a state within the qApp
-// We cannot used std::call_once with a static once_flag because
-// this is used in shared libraries that are linked by several DLLs
-// (ie. plugins), meaning the static will be useless in that case
-#define FIXED_Q_COREAPP_STARTUP_FUNCTION(AFUNC)                        \
-    static void AFUNC ## _fixed() {                                    \
-        const auto propertyName = std::string(Q_FUNC_INFO) + __FILE__; \
-        if (!qApp->property(propertyName.c_str()).toBool()) {          \
-            AFUNC();                                                   \
-            qApp->setProperty(propertyName.c_str(), QVariant(true));   \
-        }                                                              \
-    }                                                                  \
-    Q_COREAPP_STARTUP_FUNCTION(AFUNC ## _fixed)
-
 // When writing out avatarEntities to a QByteArray, if the parentID is the ID of MyAvatar, use this ID instead.  This allows
 // the value to be reset when the sessionID changes.
 const QUuid AVATAR_SELF_ID = QUuid("{00000000-0000-0000-0000-000000000001}");
@@ -53,20 +36,11 @@ std::unique_ptr<T>& globalInstancePointer() {
     return instancePtr;
 }
 
-template <typename T>
-void setGlobalInstance(const char* propertyName, T* instance) {
-    globalInstancePointer<T>().reset(instance);
-}
-
-template <typename T>
-bool destroyGlobalInstance() {
-    std::unique_ptr<T>& instancePtr = globalInstancePointer<T>();
-    if (instancePtr.get()) {
-        instancePtr.reset();
-        return true;
-    }
-    return false;
-}
+// Sets up the global instances for use
+// This NEEDS to be called on startup
+// for any binary planing on using global instances
+// More details in cpp file
+void setupGlobalInstances();
 
 std::mutex& globalInstancesMutex();
 QVariant getGlobalInstance(const char* propertyName);
@@ -78,7 +52,6 @@ void setGlobalInstance(const char* propertyName, const QVariant& variant);
 template <typename T, typename... Args>
 T* globalInstance(const char* propertyName, Args&&... args) {
     static T* resultInstance { nullptr };
-    static std::mutex mutex;
     if (!resultInstance) {
         std::unique_lock<std::mutex> lock(globalInstancesMutex());
         if (!resultInstance) {
@@ -216,6 +189,7 @@ QString formatUsecTime(float usecs);
 QString formatUsecTime(double usecs);
 QString formatUsecTime(quint64 usecs);
 QString formatUsecTime(qint64 usecs);
+QString formatSecTime(qint64 secs);
 
 QString formatSecondsElapsed(float seconds);
 bool similarStrings(const QString& stringA, const QString& stringB);
@@ -260,6 +234,7 @@ void watchParentProcess(int parentPID);
 
 bool processIsRunning(int64_t pid);
 
+void setupHifiApplication(QString applicationName);
 
 #ifdef Q_OS_WIN
 void* createProcessGroup();
