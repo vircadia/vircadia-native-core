@@ -17,6 +17,10 @@
 #include <QUuid>
 #include <QJsonArray>
 
+#include <udt/PacketHeaders.h>
+
+#include <QJsonObject>
+
 class AABox;
 class QJsonDocument;
 
@@ -31,18 +35,30 @@ public:
     QUuid id { QUuid() };
     Version version { -1 };
 
-    QJsonArray octreeData;
+    virtual PacketType dataPacketType() const;
+
+    virtual void readSubclassData(QJsonObject root) { }
+    virtual void writeSubclassData(QJsonObject root) const { }
 
     void resetIdAndVersion();
     QByteArray toByteArray();
     QByteArray toGzippedByteArray();
+
+    bool readOctreeDataInfoFromData(QByteArray data);
+    bool readOctreeDataInfoFromFile(QString path);
+    bool readOctreeDataInfoFromJSON(QJsonObject root);
 };
 
-bool readOctreeFile(QString path, QJsonDocument* doc);
-bool readOctreeDataInfoFromData(QByteArray data, RawOctreeData* octreeData);
-bool readOctreeDataInfoFromFile(QString path, RawOctreeData* octreeData);
+class RawEntityData : public RawOctreeData {
+    PacketType dataPacketType() const override { return PacketType::EntityData; }
+    void readSubclassData(QJsonObject root) override;
+    void writeSubclassData(QJsonObject root) const override;
+
+    QJsonArray entityData;
+};
 
 }
+
 
 /// renderAccuracy represents a floating point "visibility" of an object based on it's view from the camera. At a simple
 /// level it returns 0.0f for things that are so small for the current settings that they could not be visible.

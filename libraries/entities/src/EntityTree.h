@@ -115,6 +115,8 @@ public:
 
     virtual void update() override { update(true); }
 
+    std::unique_ptr<OctreeUtils::RawOctreeData> getRawOctreeData();
+
     void update(bool simulate);
 
     // The newer API...

@@ -328,7 +328,7 @@ void Socket::checkForReadyReadBackup() {
 void Socket::readPendingDatagrams() {
     int packetSizeWithHeader = -1;
 
-    while ((packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+    while ((packetSizeWithHeader = _udpSocket.pendingDatagramSize()) > 0) {
 
         // we're reading a packet so re-start the readyRead backup timer
         _readyReadBackupTimer->start();

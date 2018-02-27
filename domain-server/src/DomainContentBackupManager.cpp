@@ -39,6 +39,7 @@
 #include "DomainServer.h"
 
 const std::chrono::seconds DomainContentBackupManager::DEFAULT_PERSIST_INTERVAL { 30 };
+
 // Backup format looks like: daily_backup-TIMESTAMP.zip
 static const QString DATETIME_FORMAT { "yyyy-MM-dd_HH-mm-ss" };
 static const QString DATETIME_FORMAT_RE { "\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}" };

@@ -176,9 +176,9 @@ bool OctreePersistThread::process() {
         }
 
         OctreeUtils::RawOctreeData data;
-        if (OctreeUtils::readOctreeDataInfoFromFile(_filename, &data)) {
+        if (data.readOctreeDataInfoFromFile(_filename)) {
             qDebug() << "Setting entity version info to: " << data.id << data.version;
-            _tree->setEntityVersionInfo(data.id, data.version);
+            _tree->setOctreeVersionInfo(data.id, data.version);
         }
 
         bool persistentFileRead;

@@ -28,6 +28,7 @@
 #include "OctreeElementBag.h"
 #include "OctreePacketData.h"
 #include "OctreeSceneStats.h"
+#include "OctreeUtils.h"
 
 class ReadBitstreamToTreeParams;
 class Octree;
@@ -328,7 +329,7 @@ public:
     virtual void dumpTree() { }
     virtual void pruneTree() { }
 
-    void setEntityVersionInfo(QUuid id, int64_t dataVersion) {
+    void setOctreeVersionInfo(QUuid id, int64_t dataVersion) {
         _persistID = id;
         _persistDataVersion = dataVersion;
     }

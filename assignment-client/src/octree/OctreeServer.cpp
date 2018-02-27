@@ -1157,7 +1157,7 @@ void OctreeServer::domainSettingsRequestComplete() {
 
     OctreeUtils::RawOctreeData data;
     qCDebug(octree_server) << "Reading octree data from" << _persistAbsoluteFilePath;
-    if (OctreeUtils::readOctreeDataInfoFromFile(_persistAbsoluteFilePath, &data)) {
+    if (data.readOctreeDataInfoFromFile(_persistAbsoluteFilePath)) {
         qCDebug(octree_server) << "Current octree data: ID(" << data.id << ") DataVersion(" << data.version << ")";
         packet->writePrimitive(true);
         auto id = data.id.toRfc4122();
@@ -1189,7 +1189,7 @@ void OctreeServer::handleOctreeDataFileReply(QSharedPointer<ReceivedMessage> mes
         
         OctreeUtils::RawOctreeData data;
         qCDebug(octree_server) << "Reading octree data from" << _persistAbsoluteFilePath;
-        if (OctreeUtils::readOctreeDataInfoFromFile(_persistAbsoluteFilePath, &data)) {
+        if (data.readOctreeDataInfoFromFile(_persistAbsoluteFilePath)) {
             if (data.id.isNull()) {
                 qCDebug(octree_server) << "Current octree data has a null id, updating";
                 data.resetIdAndVersion();

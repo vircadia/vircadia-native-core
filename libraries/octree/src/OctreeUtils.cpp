@@ -84,7 +84,7 @@ float getOrthographicAccuracySize(float octreeSizeScale, int boundaryLevelAdjust
 // Reads octree file and parses it into a QJsonDocument. Handles both gzipped and non-gzipped files.
 // Returns true if the file was successfully opened and parsed, otherwise false.
 // Example failures: file does not exist, gzipped file cannot be unzipped, invalid JSON.
-bool OctreeUtils::readOctreeFile(QString path, QJsonDocument* doc) {
+bool readOctreeFile(QString path, QJsonDocument* doc) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
         qCritical() << "Cannot open json file for reading: " << path;
@@ -102,18 +102,16 @@ bool OctreeUtils::readOctreeFile(QString path, QJsonDocument* doc) {
     return !doc->isNull();
 }
 
-bool readOctreeDataInfoFromJSON(QJsonObject root, OctreeUtils::RawOctreeData* octreeData) {
+bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromJSON(QJsonObject root) {
     if (root.contains("Id") && root.contains("DataVersion")) {
-        octreeData->id = root["Id"].toVariant().toUuid();
-        octreeData->version = root["DataVersion"].toInt();
+        id = root["Id"].toVariant().toUuid();
+        version = root["DataVersion"].toInt();
     }
-    if (root.contains("Entities")) {
-        octreeData->octreeData = root["Entities"].toArray();
-    }
+    readSubclassData(root);
     return true;
 }
 
-bool OctreeUtils::readOctreeDataInfoFromData(QByteArray data, OctreeUtils::RawOctreeData* octreeData) {
+bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromData(QByteArray data) {
     QByteArray jsonData;
     if (gunzip(data, jsonData)) {
         data = jsonData;
@@ -125,29 +123,30 @@ bool OctreeUtils::readOctreeDataInfoFromData(QByteArray data, OctreeUtils::RawOc
     }
 
     auto root = doc.object();
-    return readOctreeDataInfoFromJSON(root, octreeData);
+    return readOctreeDataInfoFromJSON(root);
 }
 
 // Reads octree file and parses it into a RawOctreeData object.
 // Returns false if readOctreeFile fails.
-bool OctreeUtils::readOctreeDataInfoFromFile(QString path, OctreeUtils::RawOctreeData* octreeData) {
+bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromFile(QString path) {
     QJsonDocument doc;
-    if (!OctreeUtils::readOctreeFile(path, &doc)) {
+    if (!readOctreeFile(path, &doc)) {
         return false;
     }
 
     auto root = doc.object();
-    return readOctreeDataInfoFromJSON(root, octreeData);
+    return readOctreeDataInfoFromJSON(root);
 }
 
 QByteArray OctreeUtils::RawOctreeData::toByteArray() {
-    const auto protocolVersion = (int)versionForPacketType(PacketType::EntityData);
+    const auto protocolVersion = (int)versionForPacketType(dataPacketType());
     QJsonObject obj {
         { "DataVersion", QJsonValue((qint64)version) },
         { "Id", QJsonValue(id.toString()) },
         { "Version", protocolVersion },
-        { "Entities", octreeData }
     };
+
+    writeSubclassData(obj);
 
     QJsonDocument doc;
     doc.setObject(obj);
@@ -167,8 +166,24 @@ QByteArray OctreeUtils::RawOctreeData::toGzippedByteArray() {
     return gzData;
 }
 
+PacketType OctreeUtils::RawOctreeData::dataPacketType() const {
+    Q_ASSERT(false);
+    qCritical() << "Attemping to read packet type for incomplete base type 'RawOctreeData'";
+    return (PacketType)0;
+}
+
 void OctreeUtils::RawOctreeData::resetIdAndVersion() {
     id = QUuid::createUuid();
     version = OctreeUtils::INITIAL_VERSION;
     qDebug() << "Reset octree data to: " << id << version;
+}
+
+void OctreeUtils::RawEntityData::readSubclassData(QJsonObject root) {
+    if (root.contains("Entities")) {
+        entityData = root["Entities"].toArray();
+    }
+}
+
+void OctreeUtils::RawEntityData::writeSubclassData(QJsonObject root) const {
+    root["Entities"] = entityData;
 }
