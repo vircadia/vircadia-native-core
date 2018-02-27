@@ -69,6 +69,7 @@ class MyAvatar : public Avatar {
      * @property motorTimescale {float} Specifies how quickly the avatar should accelerate to meet the motorVelocity,
      *   smaller values will result in higher acceleration.
      * @property motorReferenceFrame {string} Reference frame of the motorVelocity, must be one of the following: "avatar", "camera", "world"
+     * @property motorMode {string} Type of scripted motor behavior, "simple" = use motorTimescale property (default mode) and "dynamic" = use action motor's timescales
      * @property collisionSoundURL {string} Specifies the sound to play when the avatar experiences a collision.
      *   You can provide a mono or stereo 16-bit WAV file running at either 24 Khz or 48 Khz.
      *   The latter is downsampled by the audio mixer, so all audio effectively plays back at a 24 Khz sample rate.
@@ -124,6 +125,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
     Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)
     Q_PROPERTY(QString motorReferenceFrame READ getScriptedMotorFrame WRITE setScriptedMotorFrame)
+    Q_PROPERTY(QString motorMode READ getScriptedMotorMode WRITE setScriptedMotorMode)
     Q_PROPERTY(QString collisionSoundURL READ getCollisionSoundURL WRITE setCollisionSoundURL)
     Q_PROPERTY(AudioListenerMode audioListenerMode READ getAudioListenerMode WRITE setAudioListenerMode)
     Q_PROPERTY(glm::vec3 customListenPosition READ getCustomListenPosition WRITE setCustomListenPosition)
@@ -662,9 +664,11 @@ private:
     glm::vec3 getScriptedMotorVelocity() const { return _scriptedMotorVelocity; }
     float getScriptedMotorTimescale() const { return _scriptedMotorTimescale; }
     QString getScriptedMotorFrame() const;
+    QString getScriptedMotorMode() const;
     void setScriptedMotorVelocity(const glm::vec3& velocity);
     void setScriptedMotorTimescale(float timescale);
     void setScriptedMotorFrame(QString frame);
+    void setScriptedMotorMode(QString mode);
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
                         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(),
                         float scale = 1.0f, bool isSoft = false,
@@ -676,8 +680,6 @@ private:
 
     // These are made private for MyAvatar so that you will use the "use" methods instead
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
-
-    void setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visiblity);
 
     virtual void updatePalms() override {}
     void lateUpdatePalms();
@@ -706,6 +708,7 @@ private:
     glm::vec3 _scriptedMotorVelocity; // target local-frame velocity of avatar (analog script)
     float _scriptedMotorTimescale; // timescale for avatar to achieve its target velocity
     int _scriptedMotorFrame;
+    int _scriptedMotorMode;
     quint32 _motionBehaviors;
     QString _collisionSoundURL;
 

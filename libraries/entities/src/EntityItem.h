@@ -274,6 +274,10 @@ public:
 
     bool getVisible() const;
     void setVisible(bool value);
+
+    bool getCanCastShadow() const;
+    void setCanCastShadow(bool value);
+
     inline bool isVisible() const { return getVisible(); }
     inline bool isInvisible() const { return !getVisible(); }
 
@@ -551,6 +555,7 @@ protected:
     glm::vec3 _registrationPoint { ENTITY_ITEM_DEFAULT_REGISTRATION_POINT };
     float _angularDamping { ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING };
     bool _visible { ENTITY_ITEM_DEFAULT_VISIBLE };
+    bool _canCastShadow{ ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
     bool _collisionless { ENTITY_ITEM_DEFAULT_COLLISIONLESS };
     uint8_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
     bool _dynamic { ENTITY_ITEM_DEFAULT_DYNAMIC };
