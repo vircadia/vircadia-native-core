@@ -482,7 +482,7 @@ void Stats::updateStats(bool force) {
             float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
             _gameUpdateStats = QString("/idle/update = %1 ms").arg(dt);
 
-            QVector<QString> categories = { "devices", "physics", "otherAvatars", "MyAvatar", "misc" };
+            QVector<QString> categories = { "devices", "physics", "otherAvatars", "MyAvatar", "pickManager", "postUpdateLambdas", "misc" };
             for (int32_t j = 0; j < categories.size(); ++j) {
                 QString recordKey = "/idle/update/" + categories[j];
                 itr = allRecords.find(recordKey);
