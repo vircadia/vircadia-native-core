@@ -139,7 +139,8 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
         ListElement {
             isExpanded: false;
             question: "Who can I reach out to for additional questions?";
-            answer: "Please email us if you have any issues or questions: support@highfidelity.com";
+            answer: "Please email us if you have any issues or questions: \
+<b><font color='#0093C5'><a href='#support'>support@highfidelity.com</a></font></b>";
         }
     }
 
@@ -250,7 +251,9 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
                             Qt.openUrlExternally("file:///" + root.keyFilePath.substring(0, root.keyFilePath.lastIndexOf('/')));
                         } else if (link === "#blockchain") {
                             Qt.openUrlExternally("https://docs.highfidelity.com/high-fidelity-commerce");
-                        }
+                        } else if (link === "#support") {
+			    Qt.openUrlExternally("mailto:support@highfidelity.com");
+			}
                     }
                 }
             }
