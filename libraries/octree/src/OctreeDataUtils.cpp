@@ -115,13 +115,13 @@ void OctreeUtils::RawOctreeData::resetIdAndVersion() {
     qDebug() << "Reset octree data to: " << id << version;
 }
 
-void OctreeUtils::RawEntityData::readSubclassData(QJsonObject root) {
+void OctreeUtils::RawEntityData::readSubclassData(const QJsonObject& root) {
     if (root.contains("Entities")) {
         entityData = root["Entities"].toArray();
     }
 }
 
-void OctreeUtils::RawEntityData::writeSubclassData(QJsonObject root) const {
+void OctreeUtils::RawEntityData::writeSubclassData(QJsonObject& root) const {
     root["Entities"] = entityData;
 }
 

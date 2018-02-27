@@ -32,8 +32,8 @@ public:
 
     virtual PacketType dataPacketType() const;
 
-    virtual void readSubclassData(QJsonObject root) { }
-    virtual void writeSubclassData(QJsonObject root) const { }
+    virtual void readSubclassData(const QJsonObject& root) { }
+    virtual void writeSubclassData(QJsonObject& root) const { }
 
     void resetIdAndVersion();
     QByteArray toByteArray();
@@ -46,8 +46,8 @@ public:
 
 class RawEntityData : public RawOctreeData {
     PacketType dataPacketType() const override;
-    void readSubclassData(QJsonObject root) override;
-    void writeSubclassData(QJsonObject root) const override;
+    void readSubclassData(const QJsonObject& root) override;
+    void writeSubclassData(QJsonObject& root) const override;
 
     QJsonArray entityData;
 };
