@@ -61,7 +61,8 @@ Item {
         ListElement {
             isExpanded: false;
             question: "How can I get HFC?";
-            answer: "High Fidelity commerce is in open beta right now. Want more HFC? Get it by going to BankOfHighFidelity and meeting with the banker!";
+            answer: "High Fidelity commerce is in open beta right now. Want more HFC? \
+Get it by going to <br><br><b><font color='#0093C5'><a href='#bank'>BankOfHighFidelity.</a></font></b> and meeting with the banker!";
         }
         ListElement {
             isExpanded: false;
@@ -251,9 +252,11 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
                             Qt.openUrlExternally("file:///" + root.keyFilePath.substring(0, root.keyFilePath.lastIndexOf('/')));
                         } else if (link === "#blockchain") {
                             Qt.openUrlExternally("https://docs.highfidelity.com/high-fidelity-commerce");
+                        } else if (link === "#bank") {
+                            Qt.openUrlExternally("hifi://BankOfHighFidelity";)
                         } else if (link === "#support") {
-			    Qt.openUrlExternally("mailto:support@highfidelity.com");
-			}
+                            Qt.openUrlExternally("mailto:support@highfidelity.com");
+                        }
                     }
                 }
             }
