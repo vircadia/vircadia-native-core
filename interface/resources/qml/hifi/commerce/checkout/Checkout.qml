@@ -59,17 +59,17 @@ Rectangle {
                 if (root.activeView !== "needsLogIn") {
                     root.activeView = "needsLogIn";
                 }
-            } else if (walletStatus === 1) {
+            } else if ((walletStatus === 1) || (walletStatus === 2) || (walletStatus === 3)) {
                 if (root.activeView !== "notSetUp") {
                     root.activeView = "notSetUp";
                     notSetUpTimer.start();
                 }
-            } else if (walletStatus === 2) {
+            } else if (walletStatus === 4) {
                 if (root.activeView !== "passphraseModal") {
                     root.activeView = "passphraseModal";
                     UserActivityLogger.commercePassphraseEntry("marketplace checkout");
                 }
-            } else if (walletStatus === 3) {
+            } else if (walletStatus === 5) {
                 authSuccessStep();
             } else {
                 console.log("ERROR in Checkout.qml: Unknown wallet status: " + walletStatus);

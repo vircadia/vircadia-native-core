@@ -1778,10 +1778,8 @@ bool Octree::writeToFile(const char* fileName, const OctreeElementPointer& eleme
     return success;
 }
 
-bool Octree::writeToJSONFile(const char* fileName, const OctreeElementPointer& element, bool doGzip) {
+bool Octree::toJSON(QJsonDocument* doc, const OctreeElementPointer& element) {
     QVariantMap entityDescription;
-
-    qCDebug(octree, "Saving JSON SVO to file %s...", fileName);
 
     OctreeElementPointer top;
     if (element) {
@@ -1802,17 +1800,33 @@ bool Octree::writeToJSONFile(const char* fileName, const OctreeElementPointer& e
         return false;
     }
 
-    // convert the QVariantMap to JSON
-    QByteArray jsonData = QJsonDocument::fromVariant(entityDescription).toJson();
-    QByteArray jsonDataForFile;
+    *doc = QJsonDocument::fromVariant(entityDescription);
+    return true;
+}
 
-    if (doGzip) {
-        if (!gzip(jsonData, jsonDataForFile, -1)) {
-            qCritical("unable to gzip data while saving to json.");
-            return false;
-        }
-    } else {
-        jsonDataForFile = jsonData;
+bool Octree::toGzippedJSON(QByteArray* data, const OctreeElementPointer& element) {
+    QJsonDocument doc;
+    if (!toJSON(&doc, element)) {
+        qCritical("Failed to convert Entities to QVariantMap while converting to json.");
+        return false;
+    }
+
+    QByteArray jsonData = doc.toJson();
+
+    if (!gzip(jsonData, *data, -1)) {
+        qCritical("Unable to gzip data while saving to json.");
+        return false;
+    }
+
+    return true;
+}
+
+bool Octree::writeToJSONFile(const char* fileName, const OctreeElementPointer& element, bool doGzip) {
+    qCDebug(octree, "Saving JSON SVO to file %s...", fileName);
+
+    QByteArray jsonDataForFile;
+    if (!toGzippedJSON(&jsonDataForFile)) {
+        return false;
     }
 
     QFile persistFile(fileName);
@@ -1822,6 +1836,7 @@ bool Octree::writeToJSONFile(const char* fileName, const OctreeElementPointer& e
     } else {
         qCritical("Could not write to JSON description of entities.");
     }
+
 
     return success;
 }

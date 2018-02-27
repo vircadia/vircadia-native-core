@@ -218,10 +218,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup");
     const auto queryResolution = setupOutput.getN<RenderShadowSetup::Outputs>(2);
     // Fetch and cull the items from the scene
-
-    // Enable models to not cast shadows (otherwise, models will always cast shadows)
-    static const auto shadowCasterFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(tagBits, tagMask).withShadowCaster();
-
+    static const auto shadowCasterFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(tagBits, tagMask);
     const auto fetchInput = FetchSpatialTree::Inputs(shadowCasterFilter, queryResolution).asVarying();
     const auto shadowSelection = task.addJob<FetchSpatialTree>("FetchShadowTree", fetchInput);
     const auto selectionInputs = FetchSpatialSelection::Inputs(shadowSelection, shadowCasterFilter).asVarying();
@@ -300,14 +297,8 @@ void RenderShadowSetup::setSlopeBias(int cascadeIndex, float value) {
 }
 
 void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {
-    // Abort all jobs if not casting shadows
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
-    if (!lightStage->getCurrentKeyLight() || !lightStage->getCurrentKeyLight()->getCastShadows()) {
-        renderContext->taskFlow.abortTask();
-        return;
-    }
-
     // Cache old render args
     RenderArgs* args = renderContext->args;
 
@@ -387,13 +378,12 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
 void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
-
     // Cache old render args
     RenderArgs* args = renderContext->args;
 
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow && _cascadeIndex<globalShadow->getCascadeCount()) {
-        output.edit0() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(_tagBits, _tagMask).withShadowCaster();
+        output.edit0() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(_tagBits, _tagMask);
 
         // Set the keylight render args
         auto& cascade = globalShadow->getCascade(_cascadeIndex);

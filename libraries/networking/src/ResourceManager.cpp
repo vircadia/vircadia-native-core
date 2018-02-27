@@ -31,7 +31,7 @@ ResourceManager::ResourceManager() {
 
     auto assetClient = DependencyManager::set<AssetClient>();
     assetClient->moveToThread(&_thread);
-    QObject::connect(&_thread, &QThread::started, assetClient.data(), &AssetClient::init);
+    QObject::connect(&_thread, &QThread::started, assetClient.data(), &AssetClient::initCaching);
 
     _thread.start();
 }
