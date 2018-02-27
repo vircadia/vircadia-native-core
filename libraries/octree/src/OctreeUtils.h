@@ -14,51 +14,8 @@
 
 #include "OctreeConstants.h"
 
-#include <QUuid>
-#include <QJsonArray>
-
-#include <udt/PacketHeaders.h>
-
-#include <QJsonObject>
-
 class AABox;
 class QJsonDocument;
-
-namespace OctreeUtils {
-
-using Version = int64_t;
-constexpr Version INITIAL_VERSION = 0;
-
-// RawOctreeData is an intermediate format between JSON and a fully deserialized Octree.
-class RawOctreeData {
-public:
-    QUuid id { QUuid() };
-    Version version { -1 };
-
-    virtual PacketType dataPacketType() const;
-
-    virtual void readSubclassData(QJsonObject root) { }
-    virtual void writeSubclassData(QJsonObject root) const { }
-
-    void resetIdAndVersion();
-    QByteArray toByteArray();
-    QByteArray toGzippedByteArray();
-
-    bool readOctreeDataInfoFromData(QByteArray data);
-    bool readOctreeDataInfoFromFile(QString path);
-    bool readOctreeDataInfoFromJSON(QJsonObject root);
-};
-
-class RawEntityData : public RawOctreeData {
-    PacketType dataPacketType() const override { return PacketType::EntityData; }
-    void readSubclassData(QJsonObject root) override;
-    void writeSubclassData(QJsonObject root) const override;
-
-    QJsonArray entityData;
-};
-
-}
-
 
 /// renderAccuracy represents a floating point "visibility" of an object based on it's view from the camera. At a simple
 /// level it returns 0.0f for things that are so small for the current settings that they could not be visible.

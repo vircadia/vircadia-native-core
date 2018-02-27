@@ -53,7 +53,7 @@
 
 #include <Gzip.h>
 
-#include <OctreeUtils.h>
+#include <OctreeDataUtils.h>
 
 Q_LOGGING_CATEGORY(domain_server, "hifi.domain_server")
 

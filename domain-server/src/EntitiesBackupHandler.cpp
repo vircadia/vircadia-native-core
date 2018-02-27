@@ -16,7 +16,7 @@
 #include <quazip5/quazip.h>
 #include <quazip5/quazipfile.h>
 
-#include <OctreeUtils.h>
+#include <OctreeDataUtils.h>
 
 EntitiesBackupHandler::EntitiesBackupHandler(QString entitiesFilePath, QString entitiesReplacementFilePath) :
     _entitiesFilePath(entitiesFilePath),

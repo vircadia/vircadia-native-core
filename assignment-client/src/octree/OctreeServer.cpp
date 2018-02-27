@@ -33,7 +33,7 @@
 #include <PathUtils.h>
 #include <QtCore/QDir>
 
-#include <OctreeUtils.h>
+#include <OctreeDataUtils.h>
 
 Q_LOGGING_CATEGORY(octree_server, "hifi.octree-server")
 

@@ -32,6 +32,7 @@
 #include "OctreeLogging.h"
 #include "OctreePersistThread.h"
 #include "OctreeUtils.h"
+#include "OctreeDataUtils.h"
 
 const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
