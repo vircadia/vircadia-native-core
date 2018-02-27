@@ -14,6 +14,10 @@
 
 #include <mutex>
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
 #include <QtCore/QDebug>
@@ -184,8 +188,13 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
         }
     }
 
-    QString logMessage = QString("%1 %2").arg(prefixString, message.split('\n').join('\n' + prefixString + " "));
-    fprintf(stdout, "%s\n", qPrintable(logMessage));
+    QString logMessage = QString("%1 %2\n").arg(prefixString, message.split('\n').join('\n' + prefixString + " "));
+
+    fprintf(stdout, "%s", qPrintable(logMessage));
+#ifdef Q_OS_WIN
+    // On windows, this will output log lines into the Visual Studio "output" tab
+    OutputDebugStringA(qPrintable(logMessage));
+#endif
     return logMessage;
 }
 

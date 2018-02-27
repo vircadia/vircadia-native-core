@@ -27,6 +27,7 @@
 #include <gpu/Batch.h>
 #include <render/Forward.h>
 #include <render/Scene.h>
+#include <graphics-scripting/Forward.h>
 #include <Transform.h>
 #include <SpatiallyNestable.h>
 #include <TriangleSet.h>
@@ -64,7 +65,7 @@ using ModelWeakPointer = std::weak_ptr<Model>;
 
 
 /// A generic 3D model displaying geometry loaded from a URL.
-class Model : public QObject, public std::enable_shared_from_this<Model> {
+class Model : public QObject, public std::enable_shared_from_this<Model>, public scriptable::ModelProvider {
     Q_OBJECT
 
 public:
@@ -315,6 +316,8 @@ public:
     int getResourceDownloadAttemptsRemaining() { return _renderWatcher.getResourceDownloadAttemptsRemaining(); }
 
     Q_INVOKABLE MeshProxyList getMeshes() const;
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
+    virtual bool replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer model, int meshIndex, int partIndex) override;
 
     void scaleToFit();
     bool getUseDualQuaternionSkinning() const { return _useDualQuaternionSkinning; }
@@ -414,11 +417,11 @@ protected:
     int _blendNumber;
     int _appliedBlendNumber;
 
-    QMutex _mutex;
+    mutable QMutex _mutex{ QMutex::Recursive };
 
     bool _overrideModelTransform { false };
     bool _triangleSetsValid { false };
-    void calculateTriangleSets();
+    void calculateTriangleSets(const FBXGeometry& geometry);
     QVector<TriangleSet> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
 
 

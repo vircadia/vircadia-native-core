@@ -32,6 +32,7 @@
 #include "gpu/StandardShaderLib.h"
 
 #include "graphics/TextureMap.h"
+#include "graphics/BufferViewHelpers.h"
 #include "render/Args.h"
 
 #include "standardTransformPNTC_vert.h"
@@ -2402,4 +2403,39 @@ void GeometryCache::renderWireCubeInstance(RenderArgs* args, gpu::Batch& batch, 
     static const std::string INSTANCE_NAME = __FUNCTION__;
     assert(pipeline != nullptr);
     renderInstances(args, batch, color, true, pipeline, GeometryCache::Cube);
+}
+
+graphics::MeshPointer GeometryCache::meshFromShape(Shape geometryShape, glm::vec3 color) {
+    auto shapeData = getShapeData(geometryShape);
+
+    qDebug() << "GeometryCache::getMeshProxyListFromShape" << shapeData << stringFromShape(geometryShape);
+
+    auto positionsBufferView = buffer_helpers::clone(shapeData->_positionView);
+    auto normalsBufferView = buffer_helpers::clone(shapeData->_normalView);
+    auto indexBufferView = buffer_helpers::clone(shapeData->_indicesView);
+
+    gpu::BufferView::Size numVertices = positionsBufferView.getNumElements();
+    Q_ASSERT(numVertices == normalsBufferView.getNumElements());
+
+    // apply input color across all vertices
+    auto colorsBufferView = buffer_helpers::clone(shapeData->_normalView);
+    for (gpu::BufferView::Size i = 0; i < numVertices; i++) {
+        colorsBufferView.edit<glm::vec3>((gpu::BufferView::Index)i) = color;
+    }
+
+    graphics::MeshPointer mesh(new graphics::Mesh());
+    mesh->setVertexBuffer(positionsBufferView);
+    mesh->setIndexBuffer(indexBufferView);
+    mesh->addAttribute(gpu::Stream::NORMAL, normalsBufferView);
+    mesh->addAttribute(gpu::Stream::COLOR, colorsBufferView);
+
+    const auto startIndex = 0, baseVertex = 0;
+    graphics::Mesh::Part part(startIndex, (graphics::Index)indexBufferView.getNumElements(), baseVertex, graphics::Mesh::TRIANGLES);
+    auto partBuffer = new gpu::Buffer(sizeof(graphics::Mesh::Part), (gpu::Byte*)&part);
+    mesh->setPartBuffer(gpu::BufferView(partBuffer, gpu::Element::PART_DRAWCALL));
+
+    mesh->modelName = GeometryCache::stringFromShape(geometryShape).toStdString();
+    mesh->displayName = QString("GeometryCache/shape::%1").arg(GeometryCache::stringFromShape(geometryShape)).toStdString();
+
+    return mesh;
 }
