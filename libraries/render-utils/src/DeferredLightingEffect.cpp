@@ -492,7 +492,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, deferredFramebuffer->getPrimaryDepthTexture());
         
         // FIXME: Different render modes should have different tasks
-        if (args->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && deferredLightingEffect->isAmbientOcclusionEnabled()) {
+        if (args->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && deferredLightingEffect->isAmbientOcclusionEnabled() && ambientOcclusionFramebuffer) {
             batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, ambientOcclusionFramebuffer->getOcclusionTexture());
         } else {
             // need to assign the white texture if ao is off
@@ -537,15 +537,25 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         auto keyLight = lightAndShadow.first;
 
-        graphics::LightPointer keyAmbientLight;
+        graphics::LightPointer ambientLight;
         if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
-            keyAmbientLight = lightStage->getLight(lightStage->_currentFrame._ambientLights.front());
+            ambientLight = lightStage->getLight(lightStage->_currentFrame._ambientLights.front());
         }
-        bool hasAmbientMap = (keyAmbientLight != nullptr);
+        bool hasAmbientMap = (ambientLight != nullptr);
 
         // Setup the global directional pass pipeline
         {
-            if (deferredLightingEffect->_shadowMapEnabled) {
+            // Check if keylight casts shadows
+            bool keyLightCastShadows { false };
+
+            if (lightStage && lightStage->_currentFrame._sunLights.size()) {
+                graphics::LightPointer keyLight = lightStage->getLight(lightStage->_currentFrame._sunLights.front());
+                if (keyLight) {
+                    keyLightCastShadows = keyLight->getCastShadows();
+                }
+            }
+
+            if (deferredLightingEffect->_shadowMapEnabled && keyLightCastShadows) {
 
                 // If the keylight has an ambient Map then use the Skybox version of the pass
                 // otherwise use the ambient sphere version

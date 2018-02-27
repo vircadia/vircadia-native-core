@@ -92,6 +92,7 @@ EntityItemProperties ShapeEntityItem::getProperties(EntityPropertyFlags desiredP
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     properties.setColor(getXColor());
     properties.setShape(entity::stringFromShape(getShape()));
+    
     return properties;
 }
 
@@ -166,6 +167,7 @@ EntityPropertyFlags ShapeEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_SHAPE;
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_ALPHA;
+
     return requestedProperties;
 }
 
@@ -368,4 +370,3 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
 ShapeType ShapeEntityItem::getShapeType() const {
     return _collisionShapeType;
 }
-

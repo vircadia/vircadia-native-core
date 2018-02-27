@@ -2,11 +2,11 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  skin_model_shadow.vert
+//  skin_model_shadow_fade.vert
 //  vertex shader
 //
-//  Created by Andrzej Kapolka on 3/24/14.
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Olivier Prat on 06/045/17.
+//  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -17,7 +17,9 @@
 <$declareStandardTransform()$>
 
 <@include Skinning.slh@>
-<$declareUseDualQuaternionSkinning()$>
+<$declareUseDualQuaternionSkinning(1)$>
+
+out vec4 _worldPosition;
 
 void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
@@ -27,4 +29,5 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, position, gl_Position)$>
+    <$transformModelToWorldPos(obj, position, _worldPosition)$>
 }
