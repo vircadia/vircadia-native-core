@@ -1157,7 +1157,14 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
             if (_quickWindow && _quickWindow->activeFocusItem()) {
                 event->ignore();
                 if (QCoreApplication::sendEvent(_quickWindow->activeFocusItem(), event)) {
-                    return event->isAccepted();
+                    bool eventAccepted = event->isAccepted();
+                    QInputMethodQueryEvent* imqEvent = static_cast<QInputMethodQueryEvent*>(event);
+                    // this block disables the selection cursor in android which appears in 
+                    // the top-left corner of the screen
+                    if (imqEvent->queries() & Qt::ImEnabled) {
+                        imqEvent->setValue(Qt::ImEnabled, QVariant(false));
+                    }
+                    return eventAccepted;
                 }
                 return false;
             }
