@@ -218,9 +218,9 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         
         gpu::Shader::makeProgram(*program, slotBindings);
         
-       gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         
-        PrepareStencil::testMask(*state);
+        PrepareStencil::testNoAA(*state);
 
         // Good to go add the brand new pipeline
         _antialiasingPipeline = gpu::Pipeline::create(program, state);
@@ -241,7 +241,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
         gpu::Shader::makeProgram(*program, slotBindings);
         
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        PrepareStencil::testMask(*state);
+        PrepareStencil::testNoAA(*state);
 
     
         // Good to go add the brand new pipeline
@@ -272,7 +272,7 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        PrepareStencil::testMask(*state);
+        PrepareStencil::testNoAA(*state);
 
 
         // Good to go add the brand new pipeline
