@@ -101,6 +101,11 @@ bool EntityScriptingInterface::canWriteAssets() {
     return nodeList->getThisNodeCanWriteAssets();
 }
 
+bool EntityScriptingInterface::canReplaceContent() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanReplaceContent();
+}
+
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
     if (_entityTree) {
         disconnect(_entityTree.get(), &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
@@ -299,7 +304,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     }
 }
 
-QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& shapeType,
+QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& textures, const QString& shapeType,
                                                bool dynamic, const glm::vec3& position, const glm::vec3& gravity) {
     _activityTracking.addedEntityCount++;
 
@@ -311,6 +316,9 @@ QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QStrin
     properties.setDynamic(dynamic);
     properties.setPosition(position);
     properties.setGravity(gravity);
+    if (!textures.isEmpty()) {
+        properties.setTextures(textures);
+    }
     return addEntity(properties);
 }
 
@@ -585,7 +593,10 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                 if (entity->getLocked()) {
                     shouldDelete = false;
                 } else {
-                    _entityTree->deleteEntity(entityID);
+                    // only delete local entities, server entities will round trip through the server filters
+                    if (entity->getClientOnly()) {
+                        _entityTree->deleteEntity(entityID);
+                    }
                 }
             }
         });

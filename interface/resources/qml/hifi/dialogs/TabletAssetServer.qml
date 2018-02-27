@@ -39,7 +39,7 @@ Rectangle {
     property var assetProxyModel: Assets.proxyModel;
     property var assetMappingsModel: Assets.mappingModel;
     property var currentDirectory;
-    property var selectedItems: treeView.selection.selectedIndexes.length;
+    property var selectedItemCount: treeView.selection.selectedIndexes.length;
 
     Settings {
         category: "Overlay.AssetServer"
@@ -76,17 +76,17 @@ Rectangle {
         });
     }
 
-    function doDeleteFile(path) {
-        console.log("Deleting " + path);
+    function doDeleteFile(paths) {
+        console.log("Deleting " + paths);
 
-        Assets.deleteMappings(path, function(err) {
+        Assets.deleteMappings(paths, function(err) {
             if (err) {
-                console.log("Asset browser - error deleting path: ", path, err);
+                console.log("Asset browser - error deleting paths: ", paths, err);
 
-                box = errorMessageBox("There was an error deleting:\n" + path + "\n" + err);
+                box = errorMessageBox("There was an error deleting:\n" + paths + "\n" + err);
                 box.selected.connect(reload);
             } else {
-                console.log("Asset browser - finished deleting path: ", path);
+                console.log("Asset browser - finished deleting paths: ", paths);
                 reload();
             }
         });
@@ -146,7 +146,7 @@ Rectangle {
     function canAddToWorld(path) {
         var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i];
         
-        if (selectedItems > 1) {
+        if (selectedItemCount > 1) {
             return false;
         }
 
@@ -156,7 +156,7 @@ Rectangle {
     }
     
     function canRename() {    
-        if (treeView.selection.hasSelection && selectedItems == 1) {
+        if (treeView.selection.hasSelection && selectedItemCount == 1) {
             return true;
         } else {
             return false;
@@ -182,92 +182,103 @@ Rectangle {
             return;
         }
 
-        var SHAPE_TYPE_NONE = 0;
-        var SHAPE_TYPE_SIMPLE_HULL = 1;
-        var SHAPE_TYPE_SIMPLE_COMPOUND = 2;
-        var SHAPE_TYPE_STATIC_MESH = 3;
-        var SHAPE_TYPE_BOX = 4;
-        var SHAPE_TYPE_SPHERE = 5;
+        if (defaultURL.endsWith(".jpg") || defaultURL.endsWith(".png")) {
+            var name = assetProxyModel.data(treeView.selection.currentIndex);
+            var modelURL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
+            var textures = JSON.stringify({ "tex.picture": defaultURL});
+            var shapeType = "box";
+            var dynamic = false;
+            var position = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getForward(MyAvatar.orientation)));
+            var gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 0);
+            Entities.addModelEntity(name, modelURL, textures, shapeType, dynamic, position, gravity);
+        } else {
+            var SHAPE_TYPE_NONE = 0;
+            var SHAPE_TYPE_SIMPLE_HULL = 1;
+            var SHAPE_TYPE_SIMPLE_COMPOUND = 2;
+            var SHAPE_TYPE_STATIC_MESH = 3;
+            var SHAPE_TYPE_BOX = 4;
+            var SHAPE_TYPE_SPHERE = 5;
         
-        var SHAPE_TYPES = [];
-        SHAPE_TYPES[SHAPE_TYPE_NONE] = "No Collision";
-        SHAPE_TYPES[SHAPE_TYPE_SIMPLE_HULL] = "Basic - Whole model";
-        SHAPE_TYPES[SHAPE_TYPE_SIMPLE_COMPOUND] = "Good - Sub-meshes";
-        SHAPE_TYPES[SHAPE_TYPE_STATIC_MESH] = "Exact - All polygons";
-        SHAPE_TYPES[SHAPE_TYPE_BOX] = "Box";
-        SHAPE_TYPES[SHAPE_TYPE_SPHERE] = "Sphere";
+            var SHAPE_TYPES = [];
+            SHAPE_TYPES[SHAPE_TYPE_NONE] = "No Collision";
+            SHAPE_TYPES[SHAPE_TYPE_SIMPLE_HULL] = "Basic - Whole model";
+            SHAPE_TYPES[SHAPE_TYPE_SIMPLE_COMPOUND] = "Good - Sub-meshes";
+            SHAPE_TYPES[SHAPE_TYPE_STATIC_MESH] = "Exact - All polygons";
+            SHAPE_TYPES[SHAPE_TYPE_BOX] = "Box";
+            SHAPE_TYPES[SHAPE_TYPE_SPHERE] = "Sphere";
         
-        var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_STATIC_MESH;
-        var DYNAMIC_DEFAULT = false;
-        var prompt = tabletRoot.customInputDialog({
-            textInput: {
-                label: "Model URL",
-                text: defaultURL
-            },
-            comboBox: {
-                label: "Automatic Collisions",
-                index: SHAPE_TYPE_DEFAULT,
-                items: SHAPE_TYPES
-            },
-            checkBox: {
-                label: "Dynamic",
-                checked: DYNAMIC_DEFAULT,
-                disableForItems: [
-                    SHAPE_TYPE_STATIC_MESH
-                ],
-                checkStateOnDisable: false,
-                warningOnDisable: "Models with 'Exact' automatic collisions cannot be dynamic, and should not be used as floors"
-            }
-        });
-
-        prompt.selected.connect(function (jsonResult) {
-            if (jsonResult) {
-                var result = JSON.parse(jsonResult);
-                var url = result.textInput.trim();
-                var shapeType;
-                switch (result.comboBox) {
-                    case SHAPE_TYPE_SIMPLE_HULL:
-                        shapeType = "simple-hull";
-                        break;
-                    case SHAPE_TYPE_SIMPLE_COMPOUND:
-                        shapeType = "simple-compound";
-                        break;
-                    case SHAPE_TYPE_STATIC_MESH:
-                        shapeType = "static-mesh";
-                        break;
-                    case SHAPE_TYPE_BOX:
-                        shapeType = "box";
-                        break;
-                    case SHAPE_TYPE_SPHERE:
-                        shapeType = "sphere";
-                        break;
-                    default:
-                        shapeType = "none";
+            var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_SIMPLE_COMPOUND;
+            var DYNAMIC_DEFAULT = false;
+            var prompt = tabletRoot.customInputDialog({
+                textInput: {
+                    label: "Model URL",
+                    text: defaultURL
+                },
+                comboBox: {
+                    label: "Automatic Collisions",
+                    index: SHAPE_TYPE_DEFAULT,
+                    items: SHAPE_TYPES
+                },
+                checkBox: {
+                    label: "Dynamic",
+                    checked: DYNAMIC_DEFAULT,
+                    disableForItems: [
+                        SHAPE_TYPE_STATIC_MESH
+                    ],
+                    checkStateOnDisable: false,
+                    warningOnDisable: "Models with 'Exact' automatic collisions cannot be dynamic, and should not be used as floors"
                 }
+            });
 
-                var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
-                if (shapeType === "static-mesh" && dynamic) {
-                    // The prompt should prevent this case
-                    print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
-                } else if (url) {
-                    var name = assetProxyModel.data(treeView.selection.currentIndex);
-                    var addPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getForward(MyAvatar.orientation)));
-                    var gravity;
-                    if (dynamic) {
-                        // Create a vector <0, -10, 0>.  { x: 0, y: -10, z: 0 } won't work because Qt is dumb and this is a
-                        // different scripting engine from QTScript.
-                        gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 10);
-                    } else {
-                        gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 0);
+            prompt.selected.connect(function (jsonResult) {
+                if (jsonResult) {
+                    var result = JSON.parse(jsonResult);
+                    var url = result.textInput.trim();
+                    var shapeType;
+                    switch (result.comboBox) {
+                        case SHAPE_TYPE_SIMPLE_HULL:
+                            shapeType = "simple-hull";
+                            break;
+                        case SHAPE_TYPE_SIMPLE_COMPOUND:
+                            shapeType = "simple-compound";
+                            break;
+                        case SHAPE_TYPE_STATIC_MESH:
+                            shapeType = "static-mesh";
+                            break;
+                        case SHAPE_TYPE_BOX:
+                            shapeType = "box";
+                            break;
+                        case SHAPE_TYPE_SPHERE:
+                            shapeType = "sphere";
+                            break;
+                        default:
+                            shapeType = "none";
                     }
 
-                    print("Asset browser - adding asset " + url + " (" + name + ") to world.");
+                    var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
+                    if (shapeType === "static-mesh" && dynamic) {
+                        // The prompt should prevent this case
+                        print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
+                    } else if (url) {
+                        var name = assetProxyModel.data(treeView.selection.currentIndex);
+                        var addPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getForward(MyAvatar.orientation)));
+                        var gravity;
+                        if (dynamic) {
+                            // Create a vector <0, -10, 0>.  { x: 0, y: -10, z: 0 } won't work because Qt is dumb and this is a
+                            // different scripting engine from QTScript.
+                            gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 10);
+                        } else {
+                            gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 0);
+                        }
 
-                    // Entities.addEntity doesn't work from QML, so we use this.
-                    Entities.addModelEntity(name, url, shapeType, dynamic, addPosition, gravity);
+                        print("Asset browser - adding asset " + url + " (" + name + ") to world.");
+
+                        // Entities.addEntity doesn't work from QML, so we use this.
+                        Entities.addModelEntity(name, url, "", shapeType, dynamic, addPosition, gravity);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     function copyURLToClipboard(index) {
@@ -334,29 +345,28 @@ Rectangle {
         });
     }
     function deleteFile(index) {
-        var path = [];
+        var paths = [];
         
         if (!index) {
-            for (var i = 0; i < selectedItems; i++) {
-                 treeView.selection.setCurrentIndex(treeView.selection.selectedIndexes[i], 0x100);
-                 index = treeView.selection.currentIndex;
-                 path[i] = assetProxyModel.data(index, 0x100);                  
+            for (var i = 0; i < selectedItemCount; ++i) {
+                 index = treeView.selection.selectedIndexes[i];
+                 paths[i] = assetProxyModel.data(index, 0x100);
             }
         }
         
-        if (!path) {
+        if (!paths) {
             return;
         }
 
         var modalMessage = "";
-        var items = selectedItems.toString();
+        var items = selectedItemCount.toString();
         var isFolder = assetProxyModel.data(treeView.selection.currentIndex, 0x101);
         var typeString = isFolder ? 'folder' : 'file';
         
-        if (selectedItems > 1) {
+        if (selectedItemCount > 1) {
             modalMessage = "You are about to delete " + items + " items \nDo you want to continue?";
         } else {
-            modalMessage = "You are about to delete the following " + typeString + ":\n" + path + "\nDo you want to continue?";
+            modalMessage = "You are about to delete the following " + typeString + ":\n" + paths + "\nDo you want to continue?";
         }
 
         var object = tabletRoot.messageBox({
@@ -368,7 +378,7 @@ Rectangle {
         });
         object.selected.connect(function(button) {
             if (button === OriginalDialogs.StandardButton.Yes) {
-                doDeleteFile(path);
+                doDeleteFile(paths);
             }
         });
     }
@@ -693,7 +703,7 @@ Rectangle {
                         }
                     }
                 }
-            }
+            }// End_OF( itemLoader )
 
             Rectangle {
                 id: treeLabelToolTip
@@ -730,50 +740,59 @@ Rectangle {
                     showTimer.stop();
                     treeLabelToolTip.visible = false;
                 }
-            }
+            }// End_OF( treeLabelToolTip )
             
             MouseArea {
                 propagateComposedEvents: true
                 anchors.fill: parent
                 acceptedButtons: Qt.RightButton
                 onClicked: {
-                    if (!HMD.active) {  // Popup only displays properly on desktop
-                        var index = treeView.indexAt(mouse.x, mouse.y);
-                        treeView.selection.setCurrentIndex(index, 0x0002);
-                        contextMenu.currentIndex = index;
-                        contextMenu.popup();
+                    if (treeView.selection.hasSelection && !HMD.active) {  // Popup only displays properly on desktop
+                        // Only display the popup if the click triggered within
+                        // the selection.
+                        var clickedIndex = treeView.indexAt(mouse.x, mouse.y);
+                        var displayContextMenu = false;
+                        for ( var i = 0; i < selectedItemCount; ++i) {
+                            var currentSelectedIndex = treeView.selection.selectedIndexes[i];
+                            if (clickedIndex === currentSelectedIndex) {
+                                contextMenu.popup();
+                                break;
+                            }
+                        }
                     }
                 }
             }
-                
+
             Menu {
                 id: contextMenu
                 title: "Edit"
                 property var url: ""
-                property var currentIndex: null
 
                 MenuItem {
                     text: "Copy URL"
+                    enabled: (selectedItemCount == 1)
                     onTriggered: {
-                        copyURLToClipboard(contextMenu.currentIndex);
+                        copyURLToClipboard(treeView.selection.currentIndex);
                     }
                 }
 
                 MenuItem {
                     text: "Rename"
+                    enabled: (selectedItemCount == 1)
                     onTriggered: {
-                        renameFile(contextMenu.currentIndex);
+                        renameFile(treeView.selection.currentIndex);
                     }
                 }
 
                 MenuItem {
                     text: "Delete"
+                    enabled: (selectedItemCount > 0)
                     onTriggered: {
-                        deleteFile(contextMenu.currentIndex);
+                        deleteFile();
                     }
                 }
-            }
-        }
+            }// End_OF( contextMenu )
+        }// End_OF( treeView )
 
         Row {
             id: infoRow
@@ -786,8 +805,8 @@ Rectangle {
 
                 function makeText() {
                     var numPendingBakes = assetMappingsModel.numPendingBakes;
-                    if (selectedItems > 1 || numPendingBakes === 0) {
-                        return selectedItems + " items selected";
+                    if (selectedItemCount > 1 || numPendingBakes === 0) {
+                        return selectedItemCount + " items selected";
                     } else {
                         return numPendingBakes + " bakes pending"
                     }
@@ -884,7 +903,7 @@ Rectangle {
                                             "Baking compresses and optimizes files for faster network transfer and display. We recommend you bake your content to reduce initial load times for your visitors.");
                     }
             } 
-        }
+        }// End_OF( infoRow )
 
         HifiControls.TabletContentSection {
             id: uploadSection
@@ -961,7 +980,7 @@ Rectangle {
                     }
                 }
             }
-        }
+        }// End_OF( uploadSection )
     }
 }
 

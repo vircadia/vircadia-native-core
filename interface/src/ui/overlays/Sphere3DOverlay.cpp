@@ -123,3 +123,15 @@ Transform Sphere3DOverlay::evalRenderTransform() {
 
     return transform;
 }
+
+
+scriptable::ScriptableModelBase Sphere3DOverlay::getScriptableModel() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto vertexColor = ColorUtils::toVec3(_color);
+    scriptable::ScriptableModelBase result;
+    if (auto mesh = geometryCache->meshFromShape(GeometryCache::Sphere, vertexColor)) {
+        result.objectID = getID();
+        result.append(mesh);
+    }
+    return result;
+}

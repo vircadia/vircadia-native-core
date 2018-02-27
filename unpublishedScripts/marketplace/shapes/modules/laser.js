@@ -173,8 +173,18 @@ Laser = function (side) {
             // Normal laser operation with trigger.
             intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
                 VISIBLE_ONLY);
+            var tabletIDs = [];
+            if (HMD.tabletID) {
+                tabletIDs.push(HMD.tabletID);
+            }
+            if (HMD.tabletScreenID) {
+                tabletIDs.push(HMD.tabletScreenID);
+            }
+            if (HMD.homeButtonID) {
+                tabletIDs.push(HMD.homeButtonID);
+            }
             if (Reticle.pointingAtSystemOverlay || (intersection.overlayID
-                    && [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID].indexOf(intersection.overlayID) !== -1)) {
+                    && tabletIDs.indexOf(intersection.overlayID) !== -1)) {
                 // No laser if pointing at HUD overlay or tablet; system provides lasers for these cases.
                 if (isLaserOn) {
                     isLaserOn = false;

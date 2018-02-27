@@ -227,6 +227,14 @@ enum EntityPropertyList {
 
     PROP_LOCAL_DIMENSIONS, // only used to convert values to and from scripts
 
+    PROP_MATERIAL_URL,
+    PROP_MATERIAL_MAPPING_MODE,
+    PROP_MATERIAL_PRIORITY,
+    PROP_PARENT_MATERIAL_NAME,
+    PROP_MATERIAL_MAPPING_POS,
+    PROP_MATERIAL_MAPPING_SCALE,
+    PROP_MATERIAL_MAPPING_ROT,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,

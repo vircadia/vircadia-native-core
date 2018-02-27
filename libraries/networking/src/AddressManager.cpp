@@ -666,7 +666,7 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
             }
             
             emit locationChangeRequired(newPosition, orientationChanged, 
-                LookupTrigger::VisitUserFromPAL ? cancelOutRollAndPitch(newOrientation): newOrientation,
+                trigger == LookupTrigger::VisitUserFromPAL ? cancelOutRollAndPitch(newOrientation): newOrientation,
                 shouldFace
             );
 

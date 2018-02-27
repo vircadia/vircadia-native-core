@@ -27,12 +27,14 @@ class BakeAssetTask : public QObject, public QRunnable {
 public:
     BakeAssetTask(const AssetUtils::AssetHash& assetHash, const AssetUtils::AssetPath& assetPath, const QString& filePath);
 
+    // Thread-safe inspection methods
     bool isBaking() { return _isBaking.load(); }
+    bool wasAborted() const { return _wasAborted.load(); }
 
     void run() override;
 
+public slots:
     void abort();
-    bool wasAborted() const { return _wasAborted.load(); }
 
 signals:
     void bakeComplete(QString assetHash, QString assetPath, QString tempOutputDir, QVector<QString> outputFiles);

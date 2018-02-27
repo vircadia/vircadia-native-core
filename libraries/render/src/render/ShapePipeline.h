@@ -32,6 +32,7 @@ public:
         SPECULAR,
         UNLIT,
         SKINNED,
+        DUAL_QUAT_SKINNED,
         DEPTH_ONLY,
         DEPTH_BIAS,
         WIREFRAME,
@@ -80,6 +81,7 @@ public:
         Builder& withSpecular() { _flags.set(SPECULAR); return (*this); }
         Builder& withUnlit() { _flags.set(UNLIT); return (*this); }
         Builder& withSkinned() { _flags.set(SKINNED); return (*this); }
+        Builder& withDualQuatSkinned() { _flags.set(DUAL_QUAT_SKINNED); return (*this); }
         Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); return (*this); }
         Builder& withDepthBias() { _flags.set(DEPTH_BIAS); return (*this); }
         Builder& withWireframe() { _flags.set(WIREFRAME); return (*this); }
@@ -132,6 +134,9 @@ public:
 
             Builder& withSkinned() { _flags.set(SKINNED); _mask.set(SKINNED); return (*this); }
             Builder& withoutSkinned() { _flags.reset(SKINNED); _mask.set(SKINNED); return (*this); }
+
+            Builder& withDualQuatSkinned() { _flags.set(DUAL_QUAT_SKINNED); _mask.set(SKINNED); return (*this); }
+            Builder& withoutDualQuatSkinned() { _flags.reset(DUAL_QUAT_SKINNED); _mask.set(SKINNED); return (*this); }
 
             Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
             Builder& withoutDepthOnly() { _flags.reset(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }

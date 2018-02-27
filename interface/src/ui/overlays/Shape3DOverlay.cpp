@@ -125,13 +125,6 @@ void Shape3DOverlay::setProperties(const QVariantMap& properties) {
             }
         }
     }
-
-    auto borderSize = properties["borderSize"];
-
-    if (borderSize.isValid()) {
-        float value = borderSize.toFloat();
-        setBorderSize(value);
-    }
 }
 
 /**jsdoc
@@ -179,13 +172,8 @@ void Shape3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
  *
  * @property {Overlays.Shape} shape=Hexagon - The geometrical shape of the overlay.
- * @property {number} borderSize - Not used.
  */
 QVariant Shape3DOverlay::getProperty(const QString& property) {
-    if (property == "borderSize") {
-        return _borderSize;
-    }
-
     if (property == "shape") {
         return shapeStrings[_shape];
     }
@@ -204,4 +192,15 @@ Transform Shape3DOverlay::evalRenderTransform() {
     transform.setTranslation(position);
     transform.setRotation(rotation);
     return transform;
+}
+
+scriptable::ScriptableModelBase Shape3DOverlay::getScriptableModel() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto vertexColor = ColorUtils::toVec3(_color);
+    scriptable::ScriptableModelBase result;
+    result.objectID = getID();
+    if (auto mesh = geometryCache->meshFromShape(_shape, vertexColor)) {
+        result.append(mesh);
+    }
+    return result;
 }

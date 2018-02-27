@@ -130,6 +130,7 @@ Item {
                         flickableDirection: Flickable.AutoFlickIfNeeded
                         keyNavigationEnabled: false
                         highlightFollowsCurrentItem: false
+                        interactive: false
 
                         property int previousGridIndex: -1
 

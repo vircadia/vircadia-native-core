@@ -268,16 +268,6 @@ bool Menu::isOptionChecked(const QString& menuOption) const {
     return false;
 }
 
-void Menu::closeInfoView(const QString& path) {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->hide(path);
-}
-
-bool Menu::isInfoViewVisible(const QString& path) {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    return offscreenUi->isVisible(path);
-}
-
 void Menu::triggerOption(const QString& menuOption) {
     QAction* action = _actionHash.value(menuOption);
     if (action) {
@@ -300,7 +290,6 @@ QAction* Menu::getActionFromName(const QString& menuName, MenuWrapper* menu) {
     }
 
     foreach (QAction* menuAction, menuActions) {
-        QString actionText = menuAction->text();
         if (menuName == menuAction->text()) {
             return menuAction;
         }
@@ -537,24 +526,6 @@ void Menu::setGroupingIsVisible(const QString& grouping, bool isVisible) {
     }
 
     QMenuBar::repaint();
-}
-
-void Menu::addActionGroup(const QString& groupName, const QStringList& actionList, const QString& selected, QObject* receiver, const char* slot) {
-    auto menu = addMenu(groupName);
-
-    QActionGroup* actionGroup = new QActionGroup(menu);
-    actionGroup->setExclusive(true);
-
-    for (auto action : actionList) {
-        auto item = addCheckableActionToQMenuAndActionHash(menu, action, 0, action == selected, receiver, slot);
-        actionGroup->addAction(item);
-    }
-
-    QMenuBar::repaint();
-}
-
-void Menu::removeActionGroup(const QString& groupName) {
-    removeMenu(groupName);
 }
 
 MenuWrapper::MenuWrapper(ui::Menu& rootMenu, QMenu* menu) : _rootMenu(rootMenu), _realMenu(menu) {

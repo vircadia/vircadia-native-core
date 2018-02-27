@@ -16,6 +16,7 @@
 
 #include <QtCore/QProcessEnvironment>
 #include <QtCore/QDebug>
+#include <QtCore/QThread>
 #include <QtGui/QOffscreenSurface>
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QOpenGLDebugLogger>
@@ -118,4 +119,30 @@ QObject* OffscreenGLCanvas::getContextObject() {
 void OffscreenGLCanvas::moveToThreadWithContext(QThread* thread) {
     moveToThread(thread);
     _context->moveToThread(thread);
+}
+
+static const char* THREAD_CONTEXT_PROPERTY = "offscreenGlCanvas";
+
+void OffscreenGLCanvas::setThreadContext() {
+    QThread::currentThread()->setProperty(THREAD_CONTEXT_PROPERTY, QVariant::fromValue<QObject*>(this));
+}
+
+bool OffscreenGLCanvas::restoreThreadContext() {
+    // Restore the rendering context for this thread
+    auto threadCanvasVariant = QThread::currentThread()->property(THREAD_CONTEXT_PROPERTY);
+    if (!threadCanvasVariant.isValid()) {
+        return false;
+    }
+
+    auto threadCanvasObject = qvariant_cast<QObject*>(threadCanvasVariant);
+    auto threadCanvas = static_cast<OffscreenGLCanvas*>(threadCanvasObject);
+    if (!threadCanvas) {
+        return false;
+    }
+
+    if (!threadCanvas->makeCurrent()) {
+        qFatal("Unable to restore Offscreen rendering context");
+    }
+
+    return true;
 }

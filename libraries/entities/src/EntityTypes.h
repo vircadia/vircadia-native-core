@@ -88,7 +88,8 @@ public:
         PolyVox,
         PolyLine,
         Shape,
-        LAST = Shape
+        Material,
+        LAST = Material
     } EntityType;
 
     static const QString& getEntityTypeName(EntityType entityType);

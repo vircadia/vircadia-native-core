@@ -56,6 +56,7 @@ public:
     // Attribute Buffers
     size_t getNumAttributes() const { return _attributeBuffers.size(); }
     void addAttribute(Slot slot, const BufferView& buffer);
+    void removeAttribute(Slot slot);
     const BufferView getAttributeBuffer(int attrib) const;
 
     // Stream format
@@ -135,7 +136,8 @@ public:
 
     static MeshPointer createIndexedTriangles_P3F(uint32_t numVertices, uint32_t numTriangles, const glm::vec3* vertices = nullptr, const uint32_t* indices = nullptr);
 
-    QString displayName;
+    std::string modelName;
+    std::string displayName;
 
 protected:
 

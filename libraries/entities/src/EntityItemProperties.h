@@ -44,6 +44,8 @@
 #include "TextEntityItem.h"
 #include "ZoneEntityItem.h"
 
+#include "MaterialMappingMode.h"
+
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
 using ComponentPair = std::pair<const ComponentMode, const QString>;
@@ -58,19 +60,21 @@ const std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT> COMPONENT_MODES = { {
 /// set of entity item properties via JavaScript hashes/QScriptValues
 /// all units for SI units (meter, second, radian, etc) 
 class EntityItemProperties {
-    friend class EntityItem; // TODO: consider removing this friend relationship and use public methods
-    friend class ModelEntityItem; // TODO: consider removing this friend relationship and use public methods
-    friend class BoxEntityItem; // TODO: consider removing this friend relationship and use public methods
-    friend class SphereEntityItem; // TODO: consider removing this friend relationship and use public methods
-    friend class LightEntityItem; // TODO: consider removing this friend relationship and use public methods
-    friend class TextEntityItem; // TODO: consider removing this friend relationship and use public methods
-    friend class ParticleEffectEntityItem; // TODO: consider removing this friend relationship and use public methods
-    friend class ZoneEntityItem; // TODO: consider removing this friend relationship and use public methods
-    friend class WebEntityItem; // TODO: consider removing this friend relationship and use public methods
-    friend class LineEntityItem; // TODO: consider removing this friend relationship and use public methods
-    friend class PolyVoxEntityItem; // TODO: consider removing this friend relationship and use public methods
-    friend class PolyLineEntityItem; // TODO: consider removing this friend relationship and use public methods
-    friend class ShapeEntityItem; // TODO: consider removing this friend relationship and use public methods
+    // TODO: consider removing these friend relationship and use public methods
+    friend class EntityItem;
+    friend class ModelEntityItem;
+    friend class BoxEntityItem;
+    friend class SphereEntityItem;
+    friend class LightEntityItem;
+    friend class TextEntityItem;
+    friend class ParticleEffectEntityItem;
+    friend class ZoneEntityItem;
+    friend class WebEntityItem;
+    friend class LineEntityItem;
+    friend class PolyVoxEntityItem;
+    friend class PolyLineEntityItem;
+    friend class ShapeEntityItem;
+    friend class MaterialEntityItem;
 public:
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
     virtual ~EntityItemProperties() = default;
@@ -217,6 +221,14 @@ public:
     DEFINE_PROPERTY_REF(PROP_PARENT_JOINT_INDEX, ParentJointIndex, parentJointIndex, quint16, -1);
     DEFINE_PROPERTY_REF(PROP_QUERY_AA_CUBE, QueryAACube, queryAACube, AACube, AACube());
     DEFINE_PROPERTY_REF(PROP_SHAPE, Shape, shape, QString, "Sphere");
+
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_URL, MaterialURL, materialURL, QString, "");
+    DEFINE_PROPERTY_REF_ENUM(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, materialMappingMode, MaterialMappingMode, UV);
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_PRIORITY, Priority, priority, quint16, 0);
+    DEFINE_PROPERTY_REF(PROP_PARENT_MATERIAL_NAME, ParentMaterialName, parentMaterialName, QString, "0");
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, glmVec2, glm::vec2(0, 0));
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, glmVec2, glm::vec2(1, 1));
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float, 0);
 
     // Certifiable Properties - related to Proof of Purchase certificates
     DEFINE_PROPERTY_REF(PROP_ITEM_NAME, ItemName, itemName, QString, ENTITY_ITEM_DEFAULT_ITEM_NAME);
