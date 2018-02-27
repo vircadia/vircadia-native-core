@@ -13,10 +13,10 @@
 
 #include <Transform.h>
 #include <SpatiallyNestable.h>
-
+#include <graphics-scripting/Forward.h>
 #include "Overlay.h"
 
-class Base3DOverlay : public Overlay, public SpatiallyNestable {
+class Base3DOverlay : public Overlay, public SpatiallyNestable, public scriptable::ModelProvider {
     Q_OBJECT
     using Parent = Overlay;
 
@@ -36,6 +36,7 @@ public:
     virtual bool is3D() const override { return true; }
 
     virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const override { subItems.push_back(getRenderItemID()); return (uint32_t) subItems.size(); }
+    virtual scriptable::ScriptableModelBase getScriptableModel() override { return scriptable::ScriptableModelBase(); }
 
     // TODO: consider implementing registration points in this class
     glm::vec3 getCenter() const { return getWorldPosition(); }
