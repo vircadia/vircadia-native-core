@@ -45,6 +45,7 @@
 #include <TextureCache.h>
 #include <PerfStat.h>
 #include <PathUtils.h>
+#include <SharedUtil.h>
 #include <ViewFrustum.h>
 
 #include <gpu/Pipeline.h>
@@ -192,7 +193,9 @@ void testSparseRectify() {
     }
 }
 
-int main(int argc, char** argv) {   
+int main(int argc, char** argv) {
+    setupHifiApplication("GPU Test");
+
     testSparseRectify();
 
     // FIXME this test appears to be broken

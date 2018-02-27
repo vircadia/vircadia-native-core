@@ -20,14 +20,10 @@
 using namespace std;
 
 int main(int argc, char * argv[]) {
-    QCoreApplication::setApplicationName(BuildInfo::AC_CLIENT_SERVER_NAME);
-    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
-    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
-
+    setupHifiApplication("ATP Client");
+    
     Setting::init();
 
     ATPClientApp app(argc, argv);
-
     return app.exec();
 }
