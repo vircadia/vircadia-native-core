@@ -804,10 +804,69 @@ public slots:
      */
     Q_INVOKABLE void dumpTree() const;
 
+
+    /**jsdoc
+     * Add an action to an entity. An action is registered with the physics engine and is applied every physics simulation 
+     * step. Any entity may have more than one action associated with it, but only as many as will fit in an entity's 
+     * <code>actionData</code> property.
+     * @function Entities.addAction
+     * @param {Entities.ActionType} actionType - The type of action.
+     * @param {Uuid} entityID - The ID of the entity to add the action to.
+     * @param {Entities.ActionArguments} arguments - Configure the action.
+     * @returns {Uuid} The ID of the action added if successful, otherwise <code>null</code>.
+     * @example <caption>Constrain a cube to move along a vertical line.</caption>
+     * var entityID = Entities.addEntity({
+     *     type: "Box",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -5 })),
+     *     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+     *     dynamic: true,
+     *     collisionless: false,
+     *     userData: "{ \"grabbableKey\": { \"grabbable\": true, \"kinematic\": false } }",
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     *
+     * var actionID = Entities.addAction("slider", entityID, {
+     *     axis: { x: 0, y: 1, z: 0 },
+     *     linearLow: 0,
+     *     linearHigh: 0.6
+     * });
+     */
     Q_INVOKABLE QUuid addAction(const QString& actionTypeString, const QUuid& entityID, const QVariantMap& arguments);
+
+    /**jsdoc
+     * Update an entity action.
+     * @function Entities.updateAction
+     * @param (Uuid} entityID - The ID of the entity with the action to update.
+     * @param {Uuid} actionID - The ID of the action to update.
+     * @param {Entities.ActionArguments} arguments - The arguments to update.
+     * @returns {boolean} <code>true</code> if the update was successful, otherwise <code>false</code>.
+     */
     Q_INVOKABLE bool updateAction(const QUuid& entityID, const QUuid& actionID, const QVariantMap& arguments);
+
+    /**jsdoc
+     * Delete an action from an entity.
+     * @function Entities.deleteAction
+     * @param (Uuid} entityID - The ID of entity to delete the action from.
+     * @param {Uuid} actionID - The ID of the action to delete.
+     * @returns {boolean} <code>true</code> if the update was successful, otherwise <code>false</code>.
+     */
     Q_INVOKABLE bool deleteAction(const QUuid& entityID, const QUuid& actionID);
+
+    /**jsdoc
+     * Get the IDs of the actions that  are associated with an entity.
+     * @function Entities.getActionIDs
+     * @param {Uuid} entityID - The entity to get the action IDs for.
+     * @returns {Uuid[]} An array of action IDs if any are found, otherwise an empty array.
+     */
     Q_INVOKABLE QVector<QUuid> getActionIDs(const QUuid& entityID);
+
+    /**jsdoc
+     * Get the arguments of an action.
+     * @function Entities.getActionArguments
+     * @param (Uuid} entityID - The ID of the entity with the action.
+     * @param {Uuid} actionID - The ID of the action to get the arguments of.
+     * @returns {Entities.ActionArguments} The arguments of the requested action if found, otherwise an empty object.
+     */
     Q_INVOKABLE QVariantMap getActionArguments(const QUuid& entityID, const QUuid& actionID);
 
 

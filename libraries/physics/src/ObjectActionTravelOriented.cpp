@@ -146,6 +146,17 @@ bool ObjectActionTravelOriented::updateArguments(QVariantMap arguments) {
     return true;
 }
 
+/**jsdoc
+ * The <code>"travel-oriented"</code> {@link Entities.ActionType|ActionType} orients an entity to align with its direction of 
+ * travel.
+ * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}.
+ *
+ * @typedef {object} Entities.ActionArguments-TravelOriented
+ * @property {Vec3} forward=0,0,0 - The axis of the entity to align with the entity's direction of travel.
+ * @property {number} angularTimeScale=0.1 - Controls how long it takes for the entity's orientation to catch up with the 
+ *     direction of travel. The value is the time for the action to catch up to 1/e = 0.368 of the target value, where the 
+ *     action is applied using an exponential decay.
+ */
 QVariantMap ObjectActionTravelOriented::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {

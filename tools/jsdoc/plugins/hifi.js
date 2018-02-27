@@ -27,10 +27,11 @@ exports.handlers = {
             '../../libraries/entities/src',
             '../../libraries/octree/src',
             '../../libraries/networking/src',
+            '../../libraries/physics/src',
             '../../libraries/pointers/src',
+            '../../libraries/script-engine/src',
             '../../libraries/shared/src',
             '../../libraries/shared/src/shared',
-            '../../libraries/script-engine/src',
         ];
         var exts = ['.h', '.cpp'];
 
