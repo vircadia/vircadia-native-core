@@ -21,8 +21,7 @@ namespace graphics {
     };
 }
 namespace gpu {
-
-     DebugEnums<Type> TYPES{
+    DebugEnums<Type> TYPES{
         { Type::FLOAT, "float" },
         { Type::INT32, "int32" },
         { Type::UINT32, "uint32" },

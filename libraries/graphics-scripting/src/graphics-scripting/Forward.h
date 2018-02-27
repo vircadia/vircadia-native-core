@@ -135,7 +135,4 @@ namespace scriptable {
     using ScriptableMeshPointer = QPointer<ScriptableMesh>;
     class ScriptableMeshPart;
     using ScriptableMeshPartPointer = QPointer<ScriptableMeshPart>;
-    bool registerMetaTypes(QScriptEngine* engine);
 }
-
-Q_DECLARE_METATYPE(NestableType)

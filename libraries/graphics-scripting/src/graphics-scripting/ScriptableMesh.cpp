@@ -118,7 +118,7 @@ bool scriptable::ScriptableMesh::setVertexAttributes(glm::uint32 vertexIndex, co
     return buffer_helpers::mesh::setVertexAttributes(getMeshPointer(), vertexIndex, attributes);
 }
 
-int scriptable::ScriptableMesh::_getSlotNumber(const QString& attributeName) const {
+int scriptable::ScriptableMesh::getSlotNumber(const QString& attributeName) const {
     if (auto mesh = getMeshPointer()) {
         return buffer_helpers::ATTRIBUTES.value(attributeName, -1);
     }
@@ -142,9 +142,9 @@ QVariantMap scriptable::ScriptableMesh::getBufferFormats() const {
 }
 
 bool scriptable::ScriptableMesh::removeAttribute(const QString& attributeName) {
-    auto slot = isValid() ? _getSlotNumber(attributeName) : -1;
+    auto slot = isValid() ? getSlotNumber(attributeName) : -1;
     if (slot < 0) {
-        return 0;
+        return false;
     }
     if (slot == gpu::Stream::POSITION) {
         context()->throwError("cannot remove .position attribute");
@@ -158,7 +158,7 @@ bool scriptable::ScriptableMesh::removeAttribute(const QString& attributeName) {
 }
 
 glm::uint32 scriptable::ScriptableMesh::addAttribute(const QString& attributeName, const QVariant& defaultValue) {
-    auto slot = isValid() ? _getSlotNumber(attributeName) : -1;
+    auto slot = isValid() ? getSlotNumber(attributeName) : -1;
     if (slot < 0) {
         return 0;
     }
@@ -187,7 +187,7 @@ glm::uint32 scriptable::ScriptableMesh::addAttribute(const QString& attributeNam
 }
 
 glm::uint32 scriptable::ScriptableMesh::fillAttribute(const QString& attributeName, const QVariant& value) {
-    auto slot = isValid() ? _getSlotNumber(attributeName) : -1;
+    auto slot = isValid() ? getSlotNumber(attributeName) : -1;
     if (slot < 0) {
         return 0;
     }
@@ -218,7 +218,7 @@ QVariantList scriptable::ScriptableMesh::queryVertexAttributes(QVariant selector
     if (!isValidIndex(0, attributeName)) {
         return result;
     }
-    auto slotNum = _getSlotNumber(attributeName);
+    auto slotNum = getSlotNumber(attributeName);
     const auto& bufferView = buffer_helpers::mesh::getBufferView(getMeshPointer(), static_cast<gpu::Stream::Slot>(slotNum));
     glm::uint32 numElements = (glm::uint32)bufferView.getNumElements();
     for (glm::uint32 i = 0; i < numElements; i++) {
@@ -231,7 +231,7 @@ QVariant scriptable::ScriptableMesh::getVertexProperty(glm::uint32 vertexIndex, 
     if (!isValidIndex(vertexIndex, attributeName)) {
         return QVariant();
     }
-    auto slotNum = _getSlotNumber(attributeName);
+    auto slotNum = getSlotNumber(attributeName);
     const auto& bufferView = buffer_helpers::mesh::getBufferView(getMeshPointer(), static_cast<gpu::Stream::Slot>(slotNum));
     return buffer_helpers::getValue<QVariant>(bufferView, vertexIndex, qUtf8Printable(attributeName));
 }
@@ -240,7 +240,7 @@ bool scriptable::ScriptableMesh::setVertexProperty(glm::uint32 vertexIndex, cons
     if (!isValidIndex(vertexIndex, attributeName)) {
         return false;
     }
-    auto slotNum = _getSlotNumber(attributeName);
+    auto slotNum = getSlotNumber(attributeName);
     const auto& bufferView = buffer_helpers::mesh::getBufferView(getMeshPointer(), static_cast<gpu::Stream::Slot>(slotNum));
     return buffer_helpers::setValue(bufferView, vertexIndex, value);
 }
@@ -331,7 +331,7 @@ bool scriptable::ScriptableMesh::isValidIndex(glm::uint32 vertexIndex, const QSt
         return false;
     }
     if (!attributeName.isEmpty()) {
-        auto slotNum = _getSlotNumber(attributeName);
+        auto slotNum = getSlotNumber(attributeName);
         if (slotNum < 0) {
             if (context()) {
                 context()->throwError(QString("invalid attributeName=%1").arg(attributeName));

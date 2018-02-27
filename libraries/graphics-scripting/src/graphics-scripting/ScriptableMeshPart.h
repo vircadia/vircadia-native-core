@@ -10,6 +10,18 @@
 #include "ScriptableMesh.h"
 
 namespace scriptable {
+    /**jsdoc
+     * @typedef {object} Graphics.MeshPart
+     * @property {number} partIndex - The part index (within the containing Mesh).
+     * @property {Graphics.Topology} topology - element interpretation (currently only 'triangles' is supported).
+     * @property {string[]} attributeNames - Vertex attribute names (color, normal, etc.)
+     * @property {number} numIndices - Number of vertex indices that this mesh part refers to.
+     * @property {number} numVerticesPerFace - Number of vertices per face (eg: 3 when topology is 'triangles').
+     * @property {number} numFaces - Number of faces represented by the mesh part (numIndices / numVerticesPerFace).
+     * @property {number} numVertices - Total number of vertices in the containing Mesh.
+     * @property {number} numAttributes - Number of currently defined vertex attributes.
+     */
+
     class ScriptableMeshPart : public QObject, QScriptable {
         Q_OBJECT
         Q_PROPERTY(bool valid READ isValid)
@@ -18,7 +30,8 @@ namespace scriptable {
         Q_PROPERTY(glm::uint32 baseVertexIndex READ getBaseVertexIndex WRITE setBaseVertexIndex)
         Q_PROPERTY(glm::uint32 lastVertexIndex READ getLastVertexIndex WRITE setLastVertexIndex)
         Q_PROPERTY(int numVerticesPerFace READ getTopologyLength)
-        Q_PROPERTY(graphics::Mesh::Topology topology READ getTopology WRITE setTopology)
+        // NOTE: making read-only for now (see also GraphicsScriptingInterface::newMesh and MeshPartPayload::drawCall)
+        Q_PROPERTY(graphics::Mesh::Topology topology READ getTopology)
 
         Q_PROPERTY(glm::uint32 numFaces READ getNumFaces)
         Q_PROPERTY(glm::uint32 numAttributes READ getNumAttributes)

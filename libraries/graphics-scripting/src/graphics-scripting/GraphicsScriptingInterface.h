@@ -20,6 +20,12 @@
 #include "ScriptableMesh.h"
 #include <DependencyManager.h>
 
+
+/**jsdoc
+ * The experimental Graphics API <em>(experimental)</em> lets you query and manage certain graphics-related structures (like underlying meshes and textures) from scripting.
+ * @namespace Graphics
+ */
+
 class GraphicsScriptingInterface : public QObject, public QScriptable, public Dependency {
     Q_OBJECT
 
@@ -29,15 +35,36 @@ public:
 
 public slots:
     /**jsdoc
-     * Returns the model/meshes associated with a UUID (entityID, overlayID, or avatarID)
+     * Returns a model reference object associated with the specified UUID ({@link EntityID}, {@link OverlayID}, or {@link AvatarID}).
      *
-     * @function GraphicsScriptingInterface.getModel
-     * @param {UUID} The objectID of the model whose meshes are to be retrieve
+     * @function Graphics.getModel
+     * @param {UUID} The objectID of the model whose meshes are to be retrieved.
+     * @return {Graphics.Model} the resulting Model object
      */
     scriptable::ScriptableModelPointer getModel(QUuid uuid);
+
     bool updateModel(QUuid uuid, const scriptable::ScriptableModelPointer& model);
+
     bool canUpdateModel(QUuid uuid, int meshIndex = -1, int partNumber = -1);
+
     scriptable::ScriptableModelPointer newModel(const scriptable::ScriptableMeshes& meshes);
+
+    /**jsdoc
+     * Create a new Mesh / Mesh Part with the specified data buffers.
+     *
+     * @function Graphics.newMesh
+     * @param {Graphics.IFSData} ifsMeshData Index-Faced Set (IFS) arrays used to create the new mesh.
+     * @return {Graphics.Mesh} the resulting Mesh / Mesh Part object
+     */
+    /**jsdoc
+    * @typedef {object} Graphics.IFSData
+    * @property {string} [name] - mesh name (useful for debugging / debug prints).
+    * @property {number[]} indices - vertex indices to use for the mesh faces.
+    * @property {Vec3[]} vertices - vertex positions (model space)
+    * @property {Vec3[]} [normals] - vertex normals (normalized)
+    * @property {Vec3[]} [colors] - vertex colors (normalized)
+    * @property {Vec2[]} [texCoords0] - vertex texture coordinates (normalized)
+    */
     scriptable::ScriptableMeshPointer newMesh(const QVariantMap& ifsMeshData);
 
 #ifdef SCRIPTABLE_MESH_TODO
@@ -58,6 +85,8 @@ private:
 
 };
 
-Q_DECLARE_METATYPE(scriptable::ModelProviderPointer)
+Q_DECLARE_METATYPE(glm::uint32)
+Q_DECLARE_METATYPE(QVector<glm::uint32>)
+Q_DECLARE_METATYPE(NestableType)
 
 #endif // hifi_GraphicsScriptingInterface_h
