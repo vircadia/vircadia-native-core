@@ -105,6 +105,7 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec2& v) { r
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec3& v) { return vec3toScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, float v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, int v) { return QScriptValue(v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, bool v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, quint16 v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, quint32 v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, quint64 v) { return QScriptValue((qsreal)v); }

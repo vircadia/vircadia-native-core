@@ -13,11 +13,15 @@
 #include <string>
 #include <vector>
 
+#include <SharedUtil.h>
+
 #include "ICEClientApp.h"
 
 using namespace std;
 
 int main(int argc, char * argv[]) {
+    setupHifiApplication("ICE Client");
+
     ICEClientApp app(argc, argv);
     return app.exec();
 }

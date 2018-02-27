@@ -68,7 +68,6 @@
 #include <Midi.h>
 #include <AudioInjectorManager.h>
 #include <AvatarBookmarks.h>
-#include <AvatarEntitiesBookmarks.h>
 #include <CursorManager.h>
 #include <DebugDraw.h>
 #include <DeferredLightingEffect.h>
@@ -393,7 +392,7 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
 class DeadlockWatchdogThread : public QThread {
 public:
     static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
-    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 30 * USECS_PER_SECOND;
+    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 120 * USECS_PER_SECOND; // 2 mins with no checkin probably a deadlock
     static const int WARNING_ELAPSED_HEARTBEAT = 500 * USECS_PER_MSEC; // warn if elapsed heartbeat average is large
     static const int HEARTBEAT_SAMPLES = 100000; // ~5 seconds worth of samples
 
@@ -576,10 +575,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
 
     if (!logMessage.isEmpty()) {
-#ifdef Q_OS_WIN
-        OutputDebugStringA(logMessage.toLocal8Bit().constData());
-        OutputDebugStringA("\n");
-#elif defined Q_OS_ANDROID
+#ifdef Q_OS_ANDROID
         const char * local=logMessage.toStdString().c_str();
         switch (type) {
             case QtDebugMsg:
@@ -600,7 +596,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
                 abort();
         }
 #endif
-        qApp->getLogger()->addMessage(qPrintable(logMessage + "\n"));
+        qApp->getLogger()->addMessage(qPrintable(logMessage));
     }
 }
 
@@ -855,7 +851,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<GooglePolyScriptingInterface>();
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     DependencyManager::set<AvatarBookmarks>();
-    DependencyManager::set<AvatarEntitiesBookmarks>();
     DependencyManager::set<LocationBookmarks>();
     DependencyManager::set<Snapshot>();
     DependencyManager::set<CloseEventSender>();
@@ -1585,6 +1580,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         settingsTimer->setSingleShot(false);
         settingsTimer->setInterval(SAVE_SETTINGS_INTERVAL); // 10s, Qt::CoarseTimer acceptable
         QObject::connect(settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
+        settingsTimer->start();
     }, QThread::LowestPriority);
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
@@ -1788,6 +1784,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["game_rate"] = getGameLoopRate();
         properties["has_async_reprojection"] = displayPlugin->hasAsyncReprojection();
         properties["hardware_stats"] = displayPlugin->getHardwareStats();
+
+        // deadlock watchdog related stats
+        properties["deadlock_watchdog_maxElapsed"] = (int)DeadlockWatchdogThread::_maxElapsed;
+        properties["deadlock_watchdog_maxElapsedAverage"] = (int)DeadlockWatchdogThread::_maxElapsedAverage;
 
         auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
         properties["packet_rate_in"] = bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond();
@@ -2676,7 +2676,6 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     surfaceContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     surfaceContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
-    surfaceContext->setContextProperty("AvatarEntitiesBookmarks", DependencyManager::get<AvatarEntitiesBookmarks>().data());
     surfaceContext->setContextProperty("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
     // Caches
@@ -4899,7 +4898,6 @@ void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm
     if (_keyboardFocusHighlightID == UNKNOWN_OVERLAY_ID || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
         _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
         _keyboardFocusHighlight->setAlpha(1.0f);
-        _keyboardFocusHighlight->setBorderSize(1.0f);
         _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });
         _keyboardFocusHighlight->setIsSolid(false);
         _keyboardFocusHighlight->setPulseMin(0.5);
@@ -6039,7 +6037,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     DependencyManager::get<TabletScriptingInterface>().data()->setToolbarScriptingInterface(toolbarScriptingInterface);
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
-    qScriptRegisterMetaType(scriptEngine.data(), CustomPromptResultToScriptValue, CustomPromptResultFromScriptValue);
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                         LocationScriptingInterface::locationSetter, "Window");
     // register `location` on the global object.
@@ -6059,7 +6056,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
     scriptEngine->registerGlobalObject("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
-    scriptEngine->registerGlobalObject("AvatarEntitiesBookmarks", DependencyManager::get<AvatarEntitiesBookmarks>().data());
     scriptEngine->registerGlobalObject("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
     scriptEngine->registerGlobalObject("RayPick", DependencyManager::get<RayPickScriptingInterface>().data());
@@ -6359,6 +6355,24 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
     return true;
 }
 
+void Application::replaceDomainContent(const QString& url) {
+    qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
+    QByteArray urlData(url.toUtf8());
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
+        return node->getType() == NodeType::EntityServer && node->getActiveSocket();
+    }, [&urlData, limitedNodeList](const SharedNodePointer& octreeNode) {
+        auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
+        octreeFilePacket->write(urlData);
+        limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
+    });
+    auto addressManager = DependencyManager::get<AddressManager>();
+    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
+    QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
+    qCDebug(interfaceapp) << "Setting new home bookmark to: " << newHomeAddress;
+    DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(newHomeAddress);
+}
+
 bool Application::askToReplaceDomainContent(const QString& url) {
     QString methodDetails;
     const int MAX_CHARACTERS_PER_LINE = 90;
@@ -6378,21 +6392,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                 QString details;
                 if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
                     // Given confirmation, send request to domain server to replace content
-                    qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
-                    QByteArray urlData(url.toUtf8());
-                    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-                    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
-                            return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-                        }, [&urlData, limitedNodeList](const SharedNodePointer& octreeNode) {
-                            auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
-                            octreeFilePacket->write(urlData);
-                            limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
-                        });
-                    auto addressManager = DependencyManager::get<AddressManager>();
-                    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
-                    QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
-                    qCDebug(interfaceapp) << "Setting new home bookmark to: " << newHomeAddress;
-                    DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(newHomeAddress);
+                    replaceDomainContent(url);
                     details = "SuccessfulRequestToReplaceContent";
                 } else {
                     details = "UserDeclinedToReplaceContent";
@@ -7609,6 +7609,18 @@ void Application::deadlockApplication() {
     // Using a loop that will *technically* eventually exit (in ~600 billion years)
     // to avoid compiler warnings about a loop that will never exit
     for (uint64_t i = 1; i != 0; ++i) {
+        QThread::sleep(1);
+    }
+}
+
+// cause main thread to be unresponsive for 35 seconds
+void Application::unresponsiveApplication() {
+    // to avoid compiler warnings about a loop that will never exit
+    uint64_t start = usecTimestampNow();
+    uint64_t UNRESPONSIVE_FOR_SECONDS = 35;
+    uint64_t UNRESPONSIVE_FOR_USECS = UNRESPONSIVE_FOR_SECONDS * USECS_PER_SECOND;
+    qCDebug(interfaceapp) << "Intentionally cause Interface to be unresponsive for " << UNRESPONSIVE_FOR_SECONDS << " seconds";
+    while (usecTimestampNow() - start < UNRESPONSIVE_FOR_USECS) {
         QThread::sleep(1);
     }
 }

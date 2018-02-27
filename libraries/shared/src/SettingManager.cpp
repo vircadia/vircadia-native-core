@@ -23,11 +23,7 @@ namespace Setting {
         // Cleanup timer
         stopTimer();
         delete _saveTimer;
-
-        // Save all settings before exit
-        saveAll();
-
-        // sync will be called in the QSettings destructor
+        _saveTimer = nullptr;
     }
 
     // Custom deleter does nothing, because we need to shutdown later than the dependency manager

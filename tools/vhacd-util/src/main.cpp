@@ -15,6 +15,8 @@
 #include <string>
 #include <vector>
 
+#include <SharedUtil.h>
+
 #include "VHACDUtilApp.h"
 
 using namespace std;
@@ -22,6 +24,8 @@ using namespace VHACD;
 
 
 int main(int argc, char * argv[]) {
+    setupHifiApplication("VHACD Util");
+
     VHACDUtilApp app(argc, argv);
     return app.getReturnCode();
 }

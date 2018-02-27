@@ -42,8 +42,6 @@ private:
     int _domainStatusBorder;
     int _magnifierBorder;
 
-    ivec2 _previousBorderSize{ -1 };
-
     gpu::TexturePointer _uiTexture;
     gpu::TexturePointer _overlayDepthTexture;
     gpu::TexturePointer _overlayColorTexture;
