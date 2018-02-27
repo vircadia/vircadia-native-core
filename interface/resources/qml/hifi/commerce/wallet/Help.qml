@@ -78,31 +78,31 @@ Your hifikey file contains your private key and is protected by your wallet pass
         ListElement {
             isExpanded: false;
             question: "How do I back up my private keys?";
-            answer: "You can back up your hifikey file (which contains your private key) by copying it to a USB flash drive, or to a service like Dropbox or Google Drive. \
+            answer: "You can back up your hifikey file (which contains your private key and is encrypted using your wallet passphrase) by copying it to a USB flash drive, or to a service like Dropbox or Google Drive. \
 Restore your hifikey file by replacing the file in Interface's AppData directory with your backup copy. \
-(The file is encrypted using your passphrase, so if your passphrase is good, someone with access to your back up should not be able to spend your HFC.) \
+Others with access to your back up should not be able to spend your HFC without your passphrase. \
 <b><font color='#0093C5'><a href='#privateKeyPath'>Tap here to open the folder where your HifiKeys are stored on your main display.</a></font></b>";
         }
         ListElement {
             isExpanded: false;
             question: "What happens if I lose my private keys?";
-            answer: "We cannot stress enough that you should keep a backup of your private keys! For security reasons, High Fidelity does not keep a copy, and cannot restore it for you. \
+            answer: "We cannot stress enough that you should keep a backup! For security reasons, High Fidelity does not keep a copy, and cannot restore it for you. \
 If you lose your private key, you will no longer have access to the contents of your Wallet or My Purchases. \
 Here are some things to try:<ul>\
 <li>If you have backed up your hifikey file before, search your backup location</li>\
 <li>Search your AppData directory in the last machine you used to set up the Wallet</li>\
-<li>If you are a developer and have installed multiple builds of High Fidelity, your hifikey file might be in a previous developer build AppData folder</li>\
-</ul><br><br>If you still cannot find your original hifikey file after trying all of the above, you can set up your Wallet again and generate a new hifikey file, which contains new private key. \
+<li>If you are a developer and have installed multiple builds of High Fidelity, your hifikey file might be in another folder</li>\
+</ul><br><br>As a last resort, you can set up your Wallet again and generate a new hifikey file. \
 Unfortunately, this means you will start with 0 HFC and your purchased items will not be transferred over.";
         }
         ListElement {
             isExpanded: false;
-            question: "What happens if I forget my wallet passphrase?";
+            question: "What if I forget my wallet passphrase?";
             answer: "Your wallet passphrase is used to encrypt your private keys. Please write it down and store it securely! \
 <br><br>If you forget your passphrase, you will no longer be able to decrypt the hifikey file that the passphrase protects. \
 You will also no longer have access to the contents of your Wallet or My Purchases. \
 For security reasons, High Fidelity does not keep a copy of your passphrase, and can't restore it for you. \
-<br><br>If you still cannot remember your wallet passphrase, you can set up your Wallet again and generate a new hifikey file, which contains a new private key. \
+<br><br>If you still cannot remember your wallet passphrase, you can set up your Wallet again and generate a new hifikey file. \
 Unfortunately, this means you will start with 0 HFC and your purchased items will not be transferred over.";
         }
         ListElement {
@@ -122,8 +122,8 @@ If you don't see your Security Pic on a page that requests your Wallet passphras
         }
         ListElement {
             isExpanded: false;
-            question: "My HFC balance doesn't update instantly. Why?";
-            answer: "HFC transactions sometimes takes a few seconds to update as they are backed by a blockchain. \
+            question: "Why does my HFC balance not update instantly?";
+            answer: "HFC transations sometimes takes a few seconds to update as they are backed by a blockchain. \
 <br><br><b><font color='#0093C5'><a href='#blockchain'>Tap here to learn more about the blockchain.</a></font></b>";
         }
         ListElement {
@@ -139,7 +139,7 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
         }
         ListElement {
             isExpanded: false;
-            question: "Who can I reach out to for additional questions?";
+            question: "Who can I reach out to with questions?";
             answer: "Please email us if you have any issues or questions: \
 <b><font color='#0093C5'><a href='#support'>support@highfidelity.com</a></font></b>";
         }
