@@ -95,11 +95,3 @@ namespace scriptable {
     class ScriptableMeshPart;
     using ScriptableMeshPartPointer = QPointer<ScriptableMeshPart>;
 }
-
-Q_DECLARE_METATYPE(glm::uint32)
-Q_DECLARE_METATYPE(QVector<glm::uint32>)
-Q_DECLARE_METATYPE(NestableType)
-Q_DECLARE_METATYPE(scriptable::MeshPointer)
-Q_DECLARE_METATYPE(scriptable::WeakMeshPointer)
-Q_DECLARE_METATYPE(scriptable::ModelProviderPointer)
-

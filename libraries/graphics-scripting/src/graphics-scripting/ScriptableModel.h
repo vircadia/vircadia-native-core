@@ -44,8 +44,6 @@ namespace scriptable {
         scriptable::ScriptableModelPointer cloneModel(const QVariantMap& options = QVariantMap());
         QString toString() const;
 
-        // QScriptEngine-specific wrappers
-        //glm::uint32 forEachMeshVertexAttribute(QScriptValue callback);
     protected:
         glm::uint32 getNumMeshes() { return meshes.size(); }
 
@@ -54,5 +52,4 @@ namespace scriptable {
 }
 
 Q_DECLARE_METATYPE(scriptable::ScriptableModelPointer)
-Q_DECLARE_METATYPE(scriptable::ScriptableModelBase)
-Q_DECLARE_METATYPE(scriptable::ScriptableModelBasePointer)
+Q_DECLARE_METATYPE(QVector<scriptable::ScriptableModelPointer>)

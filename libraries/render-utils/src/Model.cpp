@@ -604,15 +604,20 @@ bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointe
     render::Transaction transaction;
     const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
-    meshIndex = meshIndex >= 0 ? meshIndex : 0;
-    partIndex = partIndex >= 0 ? partIndex : 0;
+    meshIndex = max(meshIndex, 0);
+    partIndex = max(partIndex, 0);
 
-    if (meshIndex >= meshes.size()) {
+    if (meshIndex >= (int)meshes.size()) {
         qDebug() << meshIndex << "meshIndex >= newModel.meshes.size()" << meshes.size();
         return false;
     }
 
     auto mesh = meshes[meshIndex].getMeshPointer();
+
+    if (partIndex >= (int)mesh->getNumParts()) {
+        qDebug() << partIndex << "partIndex >= mesh->getNumParts()" << mesh->getNumParts();
+        return false;
+    }
     {
         // update visual geometry
         render::Transaction transaction;

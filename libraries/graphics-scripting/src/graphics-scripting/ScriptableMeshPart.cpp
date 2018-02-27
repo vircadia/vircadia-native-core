@@ -57,7 +57,7 @@ bool scriptable::ScriptableMeshPart::setVertexProperty(glm::uint32 vertexIndex, 
     if (!isValidIndex(vertexIndex, attributeName)) {
         return false;
     }
-    auto slotNum = parentMesh->_getSlotNumber(attributeName);
+    auto slotNum = parentMesh->getSlotNumber(attributeName);
     const auto& bufferView = buffer_helpers::mesh::getBufferView(getMeshPointer(), static_cast<gpu::Stream::Slot>(slotNum));
     return buffer_helpers::setValue(bufferView, vertexIndex, value);
 }
@@ -369,7 +369,7 @@ bool scriptable::ScriptableMeshPart::setIndices(const QVector<glm::uint32>& indi
         return false;
     }
     glm::uint32 len = indices.size();
-    if (len != getNumVertices()) {
+    if (len != getNumIndices()) {
         context()->throwError(QString("setIndices: currently new indicies must be assign 1:1 across old indicies (indicies.size()=%1, numIndices=%2)")
                               .arg(len).arg(getNumIndices()));
         return false;

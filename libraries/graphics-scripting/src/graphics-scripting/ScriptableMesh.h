@@ -74,9 +74,8 @@ namespace scriptable {
         QVector<scriptable::ScriptableMeshPartPointer> getMeshParts() const;
         QVariantMap getMeshExtents() const;
 
-        // TODO: remove Q_INVOKABLE (curently exposed for debugging )
-        Q_INVOKABLE int _getSlotNumber(const QString& attributeName) const;
         operator bool() const { return !weakMesh.expired(); }
+        int getSlotNumber(const QString& attributeName) const;
 
     public slots:
         const scriptable::ScriptableModelPointer getParentModel() const { return qobject_cast<scriptable::ScriptableModel*>(model); }
