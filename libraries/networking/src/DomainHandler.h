@@ -139,8 +139,6 @@ public:
         TooManyUsers
     };
 
-    void setAPIRefreshTimerEnabled(bool enabled);
-
 public slots:
     void setSocketAndID(const QUrl& serverlessDomainURL,
                         const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT, const QUuid& id = QUuid());
