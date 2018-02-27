@@ -775,20 +775,28 @@ static void distanceBiquad(float distance, float& b0, float& b1, float& b2, floa
 // Geometric correction of the azimuth, to the angle at each ear.
 // D. Brungart, "Auditory parallax effects in the HRTF for nearby sources," IEEE WASPAA (1999).
 //
-static void nearFieldAzimuth(float azimuth, float distance, float& azimuthL, float& azimuthR) {
+static void nearFieldAzimuthCorrection(float azimuth, float distance, float& azimuthL, float& azimuthR) {
 
-    // FIXME: optimize
     float dx = distance * cosf(azimuth);
     float dy = distance * sinf(azimuth);
 
-    azimuthL = atan2f(dy + HRTF_HEAD_RADIUS, dx);
-    azimuthR = atan2f(dy - HRTF_HEAD_RADIUS, dx);
+    // at reference distance, the azimuth parallax is correct
+    float dx0 = HRTF_AZIMUTH_REF * cosf(azimuth);
+    float dy0 = HRTF_AZIMUTH_REF * sinf(azimuth);
+
+    float deltaL = atan2f(dy + HRTF_HEAD_RADIUS, dx) - atan2f(dy0 + HRTF_HEAD_RADIUS, dx0);
+    float deltaR = atan2f(dy - HRTF_HEAD_RADIUS, dx) - atan2f(dy0 - HRTF_HEAD_RADIUS, dx0);
+
+    // add the azimuth correction
+    // NOTE: must converge to 0 when distance = HRTF_AZIMUTH_REF
+    azimuthL += deltaL;
+    azimuthR += deltaR;
 }
 
 //
 // Approximate the near-field DC gain correction at each ear.
 //
-static void nearFieldGain(float azimuth, float distance, float& gainL, float& gainR) {
+static void nearFieldGainCorrection(float azimuth, float distance, float& gainL, float& gainR) {
 
     // normalized distance factor = [0,1] as distance = [HRTF_NEARFIELD_MAX,HRTF_HEAD_RADIUS]
     assert(distance < HRTF_NEARFIELD_MAX);
@@ -816,9 +824,9 @@ static void nearFieldGain(float azimuth, float distance, float& gainL, float& ga
     float cR = ((-0.000452339132f * angleR - 0.00173192444f) * angleR + 0.162476536f) * angleR;
 
     // approximate the gain correction
-    // NOTE: this must converge to 1.0 when distance = HRTF_NEARFIELD_MAX at all azimuth
-    gainL = 1.0f - d * cL;
-    gainR = 1.0f - d * cR;
+    // NOTE: must converge to 0 when distance = HRTF_NEARFIELD_MAX
+    gainL -= d * cL;
+    gainR -= d * cR;
 }
 
 //
@@ -894,14 +902,17 @@ static void setFilters(float firCoef[4][HRTF_TAPS], float bqCoef[5][8], int dela
     distance = MAX(distance, HRTF_NEARFIELD_MIN);
 
     // compute the azimuth correction at each ear
-    float azimuthL, azimuthR;
-    nearFieldAzimuth(azimuth, distance, azimuthL, azimuthR);
+    float azimuthL = azimuth;
+    float azimuthR = azimuth;
+    if (distance < HRTF_AZIMUTH_REF) {
+        nearFieldAzimuthCorrection(azimuth, distance, azimuthL, azimuthR);
+    }
 
     // compute the DC gain correction at each ear
     float gainL = 1.0f;
     float gainR = 1.0f;
     if (distance < HRTF_NEARFIELD_MAX) {
-        nearFieldGain(azimuth, distance, gainL, gainR);
+        nearFieldGainCorrection(azimuth, distance, gainL, gainR);
     }
 
     // parameters for table interpolation
@@ -976,7 +987,8 @@ static void setFilters(float firCoef[4][HRTF_TAPS], float bqCoef[5][8], int dela
     //
     // Second biquad implements the near-field or distance filter.
     //
-    if (distance < 1.0f) {
+    if (distance < HRTF_NEARFIELD_MAX) {
+
         nearFieldFilter(gainL, b0, b1, a1);
 
         bqCoef[0][channel+4] = b0;
@@ -994,6 +1006,7 @@ static void setFilters(float firCoef[4][HRTF_TAPS], float bqCoef[5][8], int dela
         bqCoef[4][channel+5] = 0.0f;
 
     } else {
+
         distanceBiquad(distance, b0, b1, b2, a1, a2);
 
         bqCoef[0][channel+4] = b0;
