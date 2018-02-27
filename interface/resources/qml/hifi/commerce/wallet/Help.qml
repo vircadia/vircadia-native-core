@@ -253,7 +253,7 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
                         } else if (link === "#blockchain") {
                             Qt.openUrlExternally("https://docs.highfidelity.com/high-fidelity-commerce");
                         } else if (link === "#bank") {
-                            Qt.openUrlExternally("hifi://BankOfHighFidelity";)
+                            Qt.openUrlExternally("hifi://BankOfHighFidelity");
                         } else if (link === "#support") {
                             Qt.openUrlExternally("mailto:support@highfidelity.com");
                         }
