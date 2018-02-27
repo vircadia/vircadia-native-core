@@ -278,53 +278,41 @@ public slots:
      */
     Q_INVOKABLE void deleteEntity(QUuid entityID);
 
+
     /**jsdoc
-     * Call a method on an entity in the same context as this function is called. Allows a script 
-     * to call a method on an entity's script. The method will execute in the entity script engine. 
-     * If the entity does not have an  entity script or the method does not exist, this call will 
-     * have no effect. If it is running an entity script (specified by the `script` property)
-     * and it exposes a property with the specified name `method`, it will be called
-     * using `params` as the list of arguments. If this is called within an entity script, the
-     * method will be executed on the client in the entity script engine in which it was called. If
-     * this is called in an entity server script, the method will be executed on the entity server 
-     * script engine.
-     *
+     * Call a method in a client entity script from a client script or client entity script. The entity script method must be 
+     * exposed as a property in the target client entity script.
      * @function Entities.callEntityMethod
-     * @param {EntityID} entityID The ID of the entity to call the method on.
-     * @param {string} method The name of the method to call.
-     * @param {string[]} params The list of parameters to call the specified method with.
+     * @param {Uuid} entityID - The ID of the entity to call the method in.
+     * @param {string} method - The name of the method to call.
+     * @param [{string[]} parameters=[]] - The parameters to call the specified method with.
      */
     Q_INVOKABLE void callEntityMethod(QUuid entityID, const QString& method, const QStringList& params = QStringList());
 
     /**jsdoc
-    * Call a server method on an entity. Allows a client entity script to call a method on an 
-    * entity's server script. The method will execute in the entity server script engine. If 
-    * the entity does not have an entity server script or the method does not exist, this call will 
-    * have no effect. If the entity is running an entity script (specified by the `serverScripts` property)
-    * and it exposes a property with the specified name `method`, it will be called using `params` as 
-    * the list of arguments.
-    *
-    * @function Entities.callEntityServerMethod
-    * @param {EntityID} entityID The ID of the entity to call the method on.
-    * @param {string} method The name of the method to call.
-    * @param {string[]} params The list of parameters to call the specified method with.
-    */
+     * Call a method in a server entity script from a client script or client entity script. The entity script method must be 
+     * exposed as a property in the target client entity script. Additionally, the target client entity script must include the 
+     * method's name in an exposed property called <code>remotelyCallable</code> that is an array of method names that can be 
+     * called.
+     * @function Entities.callEntityServerMethod
+     * @param {Uuid} entityID - The ID of the entity to call the method in.
+     * @param {string} method - The name of the method to call.
+     * @param [{string[]} parameters=[]] - The parameters to call the specified method with.
+     */
     Q_INVOKABLE void callEntityServerMethod(QUuid entityID, const QString& method, const QStringList& params = QStringList());
 
     /**jsdoc
-    * Call a client method on an entity on a specific client node. Allows a server entity script to call a 
-    * method on an entity's client script for a particular client. The method will execute in the entity script 
-    * engine on that single client. If the entity does not have an entity script or the method does not exist, or
-    * the client is not connected to the domain, or you attempt to make this call outside of the entity server 
-    * script, this call will have no effect.
-    *
-    * @function Entities.callEntityClientMethod
-    * @param {SessionID} clientSessionID The session ID of the client to call the method on.
-    * @param {EntityID} entityID The ID of the entity to call the method on.
-    * @param {string} method The name of the method to call.
-    * @param {string[]} params The list of parameters to call the specified method with.
-    */
-    Q_INVOKABLE void callEntityClientMethod(QUuid clientSessionID, QUuid entityID, const QString& method, const QStringList& params = QStringList());
+     * Call a method in a specific user's client entity script from a server entity script. The entity script method must be 
+     * exposed as a property in the target client entity script.
+     * @function Entities.callEntityClientMethod
+     * @param {Uuid} clientSessionID - The session ID of the user to call the method in.
+     * @param {Uuid} entityID - The ID of the entity to call the method in.
+     * @param {string} method - The name of the method to call.
+     * @param [{string[]} parameters=[]] - The parameters to call the specified method with.
+     */
+    Q_INVOKABLE void callEntityClientMethod(QUuid clientSessionID, QUuid entityID, const QString& method, 
+        const QStringList& params = QStringList());
+
 
     /**jsdoc
      * Find the entity with a position closest to a specified point and within a specified radius.
@@ -452,29 +440,66 @@ public slots:
     Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking = false, 
         const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue());
 
+
+    /**jsdoc
+     * Reloads an entity's server entity script such that the latest version re-downloaded.
+     * @function Entities.reloadServerScripts
+     * @param {Uuid} entityID - The ID of the entity to reload the server entity script of.
+     * @returns {boolean} <code>true</code> if the reload request was successfully sent to the server, <code>false</code> 
+     *     otherwise.
+     */
     Q_INVOKABLE bool reloadServerScripts(QUuid entityID);
 
     /**jsdoc
-     * Query additional metadata for "magic" Entity properties like `script` and `serverScripts`.
-     *
-     * @function Entities.queryPropertyMetadata
-     * @param {EntityID} entityID The ID of the entity.
-     * @param {string} property The name of the property extended metadata is wanted for.
-     * @param {ResultCallback} callback Executes callback(err, result) with the query results.
+     * Gets the status of server entity script attached to an entity
+     * @function Entities.getServerScriptStatus
+     * @property {Uuid} entityID - The ID of the entity to get the server entity script status for.
+     * @property {Entities~getServerScriptStatusCallback} callback - The function to call upon completion.
+     * @returns {boolean} <code>true</code> always.
      */
     /**jsdoc
-     * Query additional metadata for "magic" Entity properties like `script` and `serverScripts`.
-     *
-     * @function Entities.queryPropertyMetadata
-     * @param {EntityID} entityID The ID of the entity.
-     * @param {string} property The name of the property extended metadata is wanted for.
-     * @param {Object} thisObject The scoping "this" context that callback will be executed within.
-     * @param {ResultCallback} callbackOrMethodName Executes thisObject[callbackOrMethodName](err, result) with the query results.
+     * Called when {@link Entities.getServerScriptStatus} is complete.
+     * @callback Entities~getServerScriptStatusCallback
+     * @param {boolean} success - <code>true</code> if the server entity script status could be obtained, otherwise 
+     *     <code>false</code>.
+     * @param {boolean} isRunning - <code>true</code> if there is a server entity script running, otherwise <code>false</code>.
+     * @param {string} status - <code>"running"</code> if there is a server entity script running, otherwise an error string.
+     * @param {string} errorInfo - <code>""</code> if there is a server entity script running, otherwise it may contain extra 
+     *     information on the error.
      */
-    Q_INVOKABLE bool queryPropertyMetadata(QUuid entityID, QScriptValue property, QScriptValue scopeOrCallback, 
+    Q_INVOKABLE bool getServerScriptStatus(QUuid entityID, QScriptValue callback);
+
+    /**jsdoc
+    * Get metadata for "magic" entity properties such as <code>script</code> and <code>serverScripts</code>.
+    * @function Entities.queryPropertyMetadata
+    * @param {Uuid} entityID - The ID of the entity to get the metadata for.
+    * @param {string} property - The property name to get the metadata for.
+    * @param {Entities~queryPropertyMetadataCallback} callback - The function to call upon completion.
+    * @returns {boolean} <code>true</code> if the request for metadata was successfully sent to the server, <code>false</code>
+    *     otherwise.
+    * @throws Throws an error if <code>property</code> is not handled yet or <code>callback</code> is not a function.
+    */
+    /**jsdoc
+    * Get metadata for "magic" entity properties such as <code>script</code> and <code>serverScripts</code>.
+    * @function Entities.queryPropertyMetadata
+    * @param {Uuid} entityID - The ID of the entity to get the metadata for.
+    * @param {string} property - The property name to get the metadata for.
+    * @param {object} scope - The "<code>this</code>" context that the callback will be executed within.
+    * @param {Entities~queryPropertyMetadataCallback} callback - The function to call upon completion.
+    * @returns {boolean} <code>true</code> if the request for metadata was successfully sent to the server, <code>false</code>
+    *     otherwise.
+    * @throws Throws an error if <code>property</code> is not handled yet or <code>callback</code> is not a function.
+    */
+    /**jsdoc
+    * Called when {@link Entities.queryPropertyMetadata} is complete.
+    * @callback Entities~queryPropertyMetadataCallback
+    * @param {string} error - <code>undefined</code> if there was no error, otherwise an error message.
+    * @param {object} result - The metadata for the requested entity property if there was no error, otherwise
+    *     <code>undefined</code>.
+    */
+    Q_INVOKABLE bool queryPropertyMetadata(QUuid entityID, QScriptValue property, QScriptValue scopeOrCallback,
         QScriptValue methodOrName = QScriptValue());
 
-    Q_INVOKABLE bool getServerScriptStatus(QUuid entityID, QScriptValue callback);
 
     /**jsdoc
      * Set whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Light} entities. Ray picks are 

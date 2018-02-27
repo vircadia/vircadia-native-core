@@ -499,7 +499,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *
  * @property {string} script="" - The URL of the client entity script, if any, that is attached to the entity.
  * @property {number} scriptTimestamp=0 - Intended to be used to indicate when the client entity script was loaded. Should be 
- *     an integer number of milliseconds since midnight GMT on January 1, 1970.
+ *     an integer number of milliseconds since midnight GMT on January 1, 1970 (e.g., as supplied by <code>Date.now()</code>. 
+ *     If you update the property's value, the <code>script</code> is re-downloaded and reloaded.
  * @property {string} serverScripts="" - The URL of the server entity script, if any, that is attached to the entity.
  *
  * @property {Uuid} parentID=Uuid.NULL - The ID of the entity or avatar that this entity is parented to. {@link Uuid|Uuid.NULL} 
