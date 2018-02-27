@@ -16,7 +16,7 @@
 #include <quazip5/quazip.h>
 #include <quazip5/quazipfile.h>
 
-#include <OctreeUtils.h>
+#include <OctreeDataUtils.h>
 
 EntitiesBackupHandler::EntitiesBackupHandler(QString entitiesFilePath, QString entitiesReplacementFilePath) :
     _entitiesFilePath(entitiesFilePath),
@@ -31,8 +31,16 @@ void EntitiesBackupHandler::createBackup(const QString& backupName, QuaZip& zip)
 
     if (entitiesFile.open(QIODevice::ReadOnly)) {
         QuaZipFile zipFile { &zip };
-        zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(ENTITIES_BACKUP_FILENAME, _entitiesFilePath));
-        zipFile.write(entitiesFile.readAll());
+        if (!zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(ENTITIES_BACKUP_FILENAME, _entitiesFilePath))) {
+            qCritical().nospace() << "Failed to open " << ENTITIES_BACKUP_FILENAME << " for writing in zip";
+            return;
+        }
+        auto entityData = entitiesFile.readAll();
+        if (zipFile.write(entityData) != entityData.size()) {
+            qCritical() << "Failed to write entities file to backup";
+            zipFile.close();
+            return;
+        }
         zipFile.close();
         if (zipFile.getZipError() != UNZ_OK) {
             qCritical().nospace() << "Failed to zip " << ENTITIES_BACKUP_FILENAME << ": " << zipFile.getZipError();
@@ -54,8 +62,8 @@ void EntitiesBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip
 
     zipFile.close();
 
-    OctreeUtils::RawOctreeData data;
-    if (!OctreeUtils::readOctreeDataInfoFromData(rawData, &data)) {
+    OctreeUtils::RawEntityData data;
+    if (!data.readOctreeDataInfoFromData(rawData)) {
         qCritical() << "Unable to parse octree data during backup recovery";
         return;
     }

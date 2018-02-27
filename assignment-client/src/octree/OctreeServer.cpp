@@ -33,7 +33,7 @@
 #include <PathUtils.h>
 #include <QtCore/QDir>
 
-#include <OctreeUtils.h>
+#include <OctreeDataUtils.h>
 
 Q_LOGGING_CATEGORY(octree_server, "hifi.octree-server")
 
@@ -1041,8 +1041,6 @@ void OctreeServer::readConfiguration() {
             _persistFilePath = getMyDefaultPersistFilename();
         }
 
-        // If persist filename does not exist, let's see if there is one beside the application binary
-        // If there is, let's copy it over to our target persist directory
         QDir persistPath { _persistFilePath };
 
         if (persistPath.isRelative()) {
@@ -1159,7 +1157,7 @@ void OctreeServer::domainSettingsRequestComplete() {
 
     OctreeUtils::RawOctreeData data;
     qCDebug(octree_server) << "Reading octree data from" << _persistAbsoluteFilePath;
-    if (OctreeUtils::readOctreeDataInfoFromFile(_persistAbsoluteFilePath, &data)) {
+    if (data.readOctreeDataInfoFromFile(_persistAbsoluteFilePath)) {
         qCDebug(octree_server) << "Current octree data: ID(" << data.id << ") DataVersion(" << data.version << ")";
         packet->writePrimitive(true);
         auto id = data.id.toRfc4122();
@@ -1191,7 +1189,7 @@ void OctreeServer::handleOctreeDataFileReply(QSharedPointer<ReceivedMessage> mes
         
         OctreeUtils::RawOctreeData data;
         qCDebug(octree_server) << "Reading octree data from" << _persistAbsoluteFilePath;
-        if (OctreeUtils::readOctreeDataInfoFromFile(_persistAbsoluteFilePath, &data)) {
+        if (data.readOctreeDataInfoFromFile(_persistAbsoluteFilePath)) {
             if (data.id.isNull()) {
                 qCDebug(octree_server) << "Current octree data has a null id, updating";
                 data.resetIdAndVersion();

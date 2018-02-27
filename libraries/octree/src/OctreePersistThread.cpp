@@ -32,6 +32,7 @@
 #include "OctreeLogging.h"
 #include "OctreePersistThread.h"
 #include "OctreeUtils.h"
+#include "OctreeDataUtils.h"
 
 const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
@@ -176,9 +177,9 @@ bool OctreePersistThread::process() {
         }
 
         OctreeUtils::RawOctreeData data;
-        if (OctreeUtils::readOctreeDataInfoFromFile(_filename, &data)) {
+        if (data.readOctreeDataInfoFromFile(_filename)) {
             qDebug() << "Setting entity version info to: " << data.id << data.version;
-            _tree->setEntityVersionInfo(data.id, data.version);
+            _tree->setOctreeVersionInfo(data.id, data.version);
         }
 
         bool persistentFileRead;

@@ -53,7 +53,7 @@
 
 #include <Gzip.h>
 
-#include <OctreeUtils.h>
+#include <OctreeDataUtils.h>
 
 Q_LOGGING_CATEGORY(domain_server, "hifi.domain_server")
 
@@ -1744,9 +1744,9 @@ void DomainServer::processOctreeDataPersistMessage(QSharedPointer<ReceivedMessag
     QFile f(filePath);
     if (f.open(QIODevice::WriteOnly)) {
         f.write(data);
-        OctreeUtils::RawOctreeData octreeData;
-        if (OctreeUtils::readOctreeDataInfoFromData(data, &octreeData)) {
-            qCDebug(domain_server) << "Wrote new entities file" << octreeData.id << octreeData.version;
+        OctreeUtils::RawEntityData entityData;
+        if (entityData.readOctreeDataInfoFromData(data)) {
+            qCDebug(domain_server) << "Wrote new entities file" << entityData.id << entityData.version;
         } else {
             qCDebug(domain_server) << "Failed to read new octree data info";
         }
@@ -1792,8 +1792,8 @@ void DomainServer::processOctreeDataRequestMessage(QSharedPointer<ReceivedMessag
     auto entityFilePath = getEntitiesFilePath();
 
     auto reply = NLPacketList::create(PacketType::OctreeDataFileReply, QByteArray(), true, true);
-    OctreeUtils::RawOctreeData data;
-    if (OctreeUtils::readOctreeDataInfoFromFile(entityFilePath, &data)) {
+    OctreeUtils::RawEntityData data;
+    if (data.readOctreeDataInfoFromFile(entityFilePath)) {
         if (data.id == id && data.version <= version) {
             qCDebug(domain_server) << "ES has sufficient octree data, not sending data";
             reply->writePrimitive(false);
@@ -3343,8 +3343,8 @@ void DomainServer::setupGroupCacheRefresh() {
 
 void DomainServer::maybeHandleReplacementEntityFile() {
     const auto replacementFilePath = getEntitiesReplacementFilePath();
-    OctreeUtils::RawOctreeData data;
-    if (!OctreeUtils::readOctreeDataInfoFromFile(replacementFilePath, &data)) {
+    OctreeUtils::RawEntityData data;
+    if (!data.readOctreeDataInfoFromFile(replacementFilePath)) {
         qCWarning(domain_server) << "Replacement file could not be read, it either doesn't exist or is invalid.";
     } else {
         qCDebug(domain_server) << "Replacing existing entity date with replacement file";
@@ -3353,8 +3353,7 @@ void DomainServer::maybeHandleReplacementEntityFile() {
         if (!replacementFile.remove()) {
             // If we can't remove the replacement file, we are at risk of getting into a state where
             // we continually replace the primary entity file with the replacement entity file.
-            qCWarning(domain_server)
-                << "Unable to remove replacement file, bailing";
+            qCWarning(domain_server) << "Unable to remove replacement file, bailing";
         } else {
             data.resetIdAndVersion();
             auto gzippedData = data.toGzippedByteArray();
@@ -3381,8 +3380,8 @@ void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
         jsonOctree = compressedOctree;
     }
 
-    OctreeUtils::RawOctreeData data;
-    if (OctreeUtils::readOctreeDataInfoFromData(jsonOctree, &data)) {
+    OctreeUtils::RawEntityData data;
+    if (data.readOctreeDataInfoFromData(jsonOctree)) {
         data.resetIdAndVersion();
 
         gzip(data.toByteArray(), compressedOctree);

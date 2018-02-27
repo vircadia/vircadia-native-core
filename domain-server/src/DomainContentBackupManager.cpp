@@ -38,7 +38,7 @@
 
 #include "DomainServer.h"
 
-const int DomainContentBackupManager::DEFAULT_PERSIST_INTERVAL = 1000 * 30;  // every 30 seconds
+const std::chrono::seconds DomainContentBackupManager::DEFAULT_PERSIST_INTERVAL { 30 };
 
 // Backup format looks like: daily_backup-TIMESTAMP.zip
 static const QString DATETIME_FORMAT { "yyyy-MM-dd_HH-mm-ss" };
@@ -53,12 +53,11 @@ void DomainContentBackupManager::addBackupHandler(BackupHandlerPointer handler) 
 
 DomainContentBackupManager::DomainContentBackupManager(const QString& backupDirectory,
                                                        const QVariantList& backupRules,
-                                                       int persistInterval,
-                                                       bool debugTimestampNow)
-    : _backupDirectory(backupDirectory),
-    _persistInterval(persistInterval),
-    _lastCheck(usecTimestampNow())
+                                                       std::chrono::milliseconds persistInterval,
+                                                       bool debugTimestampNow) :
+    _backupDirectory(backupDirectory), _persistInterval(persistInterval), _lastCheck(p_high_resolution_clock::now())
 {
+
     setObjectName("DomainContentBackupManager");
 
     // Make sure the backup directory exists.
@@ -76,7 +75,9 @@ void DomainContentBackupManager::parseBackupRules(const QVariantList& backupRule
         int interval = map["backupInterval"].toInt();
         int count = map["maxBackupVersions"].toInt();
         auto name = map["Name"].toString();
-        auto format = name.replace(" ", "_").toLower();
+        auto format = name.toLower();
+        QRegExp matchDisallowedCharacters { "[^a-zA-Z0-9\\-_]+" };
+        format.replace(matchDisallowedCharacters, "_");
 
         qCDebug(domain_server) << "    Name:" << name;
         qCDebug(domain_server) << "        format:" << format;
@@ -121,7 +122,32 @@ int64_t DomainContentBackupManager::getMostRecentBackupTimeInSecs(const QString&
 }
 
 void DomainContentBackupManager::setup() {
-    load();
+    auto backups = getAllBackups();
+    for (auto& backup : backups) {
+        QFile backupFile { backup.absolutePath };
+        if (!backupFile.open(QIODevice::ReadOnly)) {
+            qCritical() << "Could not open file:" << backup.absolutePath;
+            qCritical() << "    ERROR:" << backupFile.errorString();
+            continue;
+        }
+
+        QuaZip zip { &backupFile };
+        if (!zip.open(QuaZip::mdUnzip)) {
+            qCritical() << "Could not open backup archive:" << backup.absolutePath;
+            qCritical() << "    ERROR:" << zip.getZipError();
+            continue;
+        }
+
+        for (auto& handler : _backupHandlers) {
+            handler->loadBackup(backup.id, zip);
+        }
+
+        zip.close();
+    }
+
+    for (auto& handler : _backupHandlers) {
+        handler->loadingComplete();
+    }
 }
 
 bool DomainContentBackupManager::process() {
@@ -129,10 +155,6 @@ bool DomainContentBackupManager::process() {
         constexpr int64_t MSECS_TO_USECS = 1000;
         constexpr int64_t USECS_TO_SLEEP = 10 * MSECS_TO_USECS;  // every 10ms
         std::this_thread::sleep_for(std::chrono::microseconds(USECS_TO_SLEEP));
-
-        int64_t now = usecTimestampNow();
-        int64_t sinceLastSave = now - _lastCheck;
-        int64_t intervalToCheck = _persistInterval * MSECS_TO_USECS;
 
         if (_isRecovering) {
             bool isStillRecovering = any_of(begin(_backupHandlers), end(_backupHandlers), [](const BackupHandlerPointer& handler) {
@@ -146,7 +168,9 @@ bool DomainContentBackupManager::process() {
             }
         }
 
-        if (sinceLastSave > intervalToCheck) {
+        auto now = p_high_resolution_clock::now();
+        auto sinceLastSave = now - _lastCheck;
+        if (sinceLastSave > _persistInterval) {
             _lastCheck = now;
 
             if (!_isRecovering) {
@@ -279,7 +303,8 @@ void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise,
 
     bool success { false };
     QDir backupDir { _backupDirectory };
-    QFile backupFile { backupDir.filePath(backupName) };
+    auto backupFilePath { backupDir.filePath(backupName) };
+    QFile backupFile { backupFilePath };
     if (backupFile.open(QIODevice::ReadOnly)) {
         QuaZip zip { &backupFile };
 
@@ -288,7 +313,7 @@ void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise,
         backupFile.close();
     } else {
         success = false;
-        qWarning() << "Invalid id: " << backupName;
+        qWarning() << "Failed to open backup file for reading: " << backupFilePath;
     }
 
     promise->resolve({
@@ -339,17 +364,8 @@ std::vector<BackupItemInfo> DomainContentBackupManager::getAllBackups() {
             auto dateTime = backupNameFormat.cap(3);
             auto createdAt = QDateTime::fromString(dateTime, DATETIME_FORMAT);
             if (!createdAt.isValid()) {
+                qDebug().nospace() << "Skipping backup (" << fileName << ") with invalid timestamp: " << dateTime;
                 continue;
-            }
-
-            bool isAvailable { true };
-            float availabilityProgress { 0.0f };
-            for (auto& handler : _backupHandlers) {
-                bool handlerIsAvailable { true };
-                float progress { 0.0f };
-                std::tie(handlerIsAvailable, progress) = handler->isAvailable(fileName);
-                isAvailable &= handlerIsAvailable;
-                availabilityProgress += progress / _backupHandlers.size();
             }
 
             backups.emplace_back(fileInfo.fileName(), name, fileInfo.absoluteFilePath(), createdAt,
@@ -445,35 +461,6 @@ void DomainContentBackupManager::removeOldBackupVersions(const BackupRule& rule)
         qCDebug(domain_server) << "Rolling backups for rule" << rule.name << "."
                                 << " Max Rolled Backup Versions less than 1 [" << rule.maxBackupVersions << "]."
                                 << " No need to roll backups";
-    }
-}
-
-void DomainContentBackupManager::load() {
-    auto backups = getAllBackups();
-    for (auto& backup : backups) {
-        QFile backupFile { backup.absolutePath };
-        if (!backupFile.open(QIODevice::ReadOnly)) {
-            qCritical() << "Could not open file:" << backup.absolutePath;
-            qCritical() << "    ERROR:" << backupFile.errorString();
-            continue;
-        }
-
-        QuaZip zip { &backupFile };
-        if (!zip.open(QuaZip::mdUnzip)) {
-            qCritical() << "Could not open backup archive:" << backup.absolutePath;
-            qCritical() << "    ERROR:" << zip.getZipError();
-            continue;
-        }
-
-        for (auto& handler : _backupHandlers) {
-            handler->loadBackup(backup.id, zip);
-        }
-
-        zip.close();
-    }
-
-    for (auto& handler : _backupHandlers) {
-        handler->loadingComplete();
     }
 }
 

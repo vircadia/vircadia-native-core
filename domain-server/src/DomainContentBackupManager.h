@@ -25,6 +25,8 @@
 
 #include <shared/MiniPromises.h>
 
+#include <PortableHighResolutionClock.h>
+
 struct BackupItemInfo {
     BackupItemInfo(QString pId, QString pName, QString pAbsolutePath, QDateTime pCreatedAt, bool pIsManualBackup) :
         id(pId), name(pName), absolutePath(pAbsolutePath), createdAt(pCreatedAt), isManualBackup(pIsManualBackup) { };
@@ -48,11 +50,11 @@ public:
         qint64 lastBackupSeconds;
     };
 
-    static const int DEFAULT_PERSIST_INTERVAL;
+    static const std::chrono::seconds DEFAULT_PERSIST_INTERVAL;
 
     DomainContentBackupManager(const QString& rootBackupDirectory,
                                const QVariantList& settings,
-                               int persistInterval = DEFAULT_PERSIST_INTERVAL,
+                               std::chrono::milliseconds persistInterval = DEFAULT_PERSIST_INTERVAL,
                                bool debugTimestampNow = false);
 
     std::vector<BackupItemInfo> getAllBackups();
@@ -78,7 +80,6 @@ protected:
     virtual bool process() override;
     virtual void shutdown() override;
 
-    void load();
     void backup();
     void removeOldBackupVersions(const BackupRule& rule);
     void refreshBackupRules();
@@ -93,12 +94,12 @@ protected:
 private:
     const QString _backupDirectory;
     std::vector<BackupHandlerPointer> _backupHandlers;
-    int _persistInterval { 0 };
+    std::chrono::milliseconds _persistInterval { 0 };
 
     std::atomic<bool> _isRecovering { false };
     QString _recoveryFilename { };
 
-    int64_t _lastCheck { 0 };
+    p_high_resolution_clock::time_point _lastCheck;
     std::vector<BackupRule> _backupRules;
 };
 
