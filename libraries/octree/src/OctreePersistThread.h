@@ -18,7 +18,6 @@
 #include <GenericThread.h>
 #include "Octree.h"
 
-/// Generalized threaded processor for handling received inbound packets.
 class OctreePersistThread : public GenericThread {
     Q_OBJECT
 public:
@@ -32,11 +31,11 @@ public:
     };
 
     static const int DEFAULT_PERSIST_INTERVAL;
-    static const QString REPLACEMENT_FILE_EXTENSION;
 
     OctreePersistThread(OctreePointer tree, const QString& filename, const QString& backupDirectory,
                         int persistInterval = DEFAULT_PERSIST_INTERVAL, bool wantBackup = false,
-                        const QJsonObject& settings = QJsonObject(), bool debugTimestampNow = false, QString persistAsFileType="json.gz");
+                        const QJsonObject& settings = QJsonObject(), bool debugTimestampNow = false,
+                        QString persistAsFileType = "json.gz", const QByteArray& replacementData = QByteArray());
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
     quint64 getLoadElapsedTime() const { return _loadTimeUSecs; }
@@ -61,7 +60,10 @@ protected:
     bool getMostRecentBackup(const QString& format, QString& mostRecentBackupFileName, QDateTime& mostRecentBackupTime);
     quint64 getMostRecentBackupTimeInUsecs(const QString& format);
     void parseSettings(const QJsonObject& settings);
-    void possiblyReplaceContent();
+    bool backupCurrentFile();
+
+    void replaceData(QByteArray data);
+    void sendLatestEntityDataToDS();
 
 private:
     OctreePointer _tree;
@@ -69,6 +71,7 @@ private:
     QString _backupDirectory;
     int _persistInterval;
     bool _initialLoadComplete;
+    QByteArray _replacementData;
 
     quint64 _loadTimeUSecs;
 

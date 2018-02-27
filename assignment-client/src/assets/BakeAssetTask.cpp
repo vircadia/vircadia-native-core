@@ -69,8 +69,10 @@ void BakeAssetTask::run() {
 
     _ovenProcess.reset(new QProcess());
 
+    QEventLoop loop;
+
     connect(_ovenProcess.get(), static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-            this, [this, tempOutputDir](int exitCode, QProcess::ExitStatus exitStatus) {
+            this, [&loop, this, tempOutputDir](int exitCode, QProcess::ExitStatus exitStatus) {
         qDebug() << "Baking process finished: " << exitCode << exitStatus;
 
         if (exitStatus == QProcess::CrashExit) {
@@ -108,6 +110,7 @@ void BakeAssetTask::run() {
             emit bakeFailed(_assetHash, _assetPath, errors);
         }
 
+        loop.quit();
     });
 
     qDebug() << "Starting oven for " << _assetPath;
@@ -117,11 +120,21 @@ void BakeAssetTask::run() {
         emit bakeFailed(_assetHash, _assetPath, errors);
         return;
     }
-    _ovenProcess->waitForFinished();
+
+    _isBaking = true;
+
+    loop.exec();
 }
 
 void BakeAssetTask::abort() {
-    if (!_wasAborted.exchange(true)) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "abort");
+        return;
+    }
+    qDebug() << "Aborting BakeAssetTask for" << _assetHash;
+    if (_ovenProcess->state() != QProcess::NotRunning) {
+        qDebug() << "Teminating oven process for" << _assetHash;
+        _wasAborted = true;
         _ovenProcess->terminate();
     }
 }
