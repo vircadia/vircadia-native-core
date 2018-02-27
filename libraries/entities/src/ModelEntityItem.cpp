@@ -53,6 +53,7 @@ void ModelEntityItem::setTextures(const QString& textures) {
 
 EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelURL, getModelURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
@@ -64,6 +65,7 @@ EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredP
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslations, getJointTranslations);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(relayParentJoints, getRelayParentJoints);
     _animationProperties.getProperties(properties);
+
     return properties;
 }
 
@@ -190,8 +192,6 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, getJointTranslationsSet());
     APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, getJointTranslations());
 }
-
-
 
 // added update function back for property fix
 void ModelEntityItem::update(const quint64& now) {
@@ -571,15 +571,16 @@ QVector<bool> ModelEntityItem::getJointTranslationsSet() const {
     return result;
 }
 
-
 xColor ModelEntityItem::getXColor() const { 
     xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; 
 }
+
 bool ModelEntityItem::hasModel() const { 
     return resultWithReadLock<bool>([&] {
         return !_modelURL.isEmpty();
     });
 }
+
 bool ModelEntityItem::hasCompoundShapeURL() const {
     return !_compoundShapeURL.get().isEmpty();
 }
@@ -658,7 +659,6 @@ bool ModelEntityItem::getAnimationLoop() const {
         return _animationProperties.getLoop();
     });
 }
-
 
 void ModelEntityItem::setAnimationHold(bool hold) { 
     withWriteLock([&] {

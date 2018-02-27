@@ -34,7 +34,6 @@
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
 #include "AvatarBookmarks.h"
-#include "AvatarEntitiesBookmarks.h"
 #include "devices/DdeFaceTracker.h"
 #include "MainWindow.h"
 #include "render/DrawStatus.h"
@@ -44,6 +43,7 @@
 #include "ui/StandAloneJSConsole.h"
 #include "InterfaceLogging.h"
 #include "LocationBookmarks.h"
+#include "DeferredLightingEffect.h"
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
@@ -207,10 +207,6 @@ Menu::Menu() {
     auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
     avatarBookmarks->setupMenus(this, avatarMenu);
 
-    auto avatarEntitiesBookmarks = DependencyManager::get<AvatarEntitiesBookmarks>();
-    avatarEntitiesBookmarks->setupMenus(this, avatarMenu);
-
-
     // Display menu ----------------------------------
     // FIXME - this is not yet matching Alan's spec because it doesn't have
     // menus for "2D"/"3D" - we need to add support for detecting the appropriate
@@ -366,10 +362,15 @@ Menu::Menu() {
     MenuWrapper* developerMenu = addMenu("Developer", "Developer");
 
     // Developer > Graphics...
-    action = addActionToQMenuAndActionHash(developerMenu, "Graphics...");
-    connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/GraphicsPreferencesDialog.qml"),
-            QString("hifi/tablet/TabletGraphicsPreferences.qml"), "GraphicsPreferencesDialog");
+    MenuWrapper* graphicsOptionsMenu = developerMenu->addMenu("Render");
+    action = addCheckableActionToQMenuAndActionHash(graphicsOptionsMenu, MenuOption::Shadows, 0, true);
+    connect(action, &QAction::triggered, [action] {
+        DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(action->isChecked());
+    });
+
+    action = addCheckableActionToQMenuAndActionHash(graphicsOptionsMenu, MenuOption::AmbientOcclusion, 0, false);
+    connect(action, &QAction::triggered, [action] {
+        DependencyManager::get<DeferredLightingEffect>()->setAmbientOcclusionEnabled(action->isChecked());
     });
 
     // Developer > UI >>>
@@ -713,6 +714,7 @@ Menu::Menu() {
     MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
 
     addActionToQMenuAndActionHash(crashMenu, MenuOption::DeadlockInterface, 0, qApp, SLOT(deadlockApplication()));
+    addActionToQMenuAndActionHash(crashMenu, MenuOption::UnresponsiveInterface, 0, qApp, SLOT(unresponsiveApplication()));
 
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashPureVirtualFunction);
     connect(action, &QAction::triggered, qApp, []() { crash::pureVirtualCall(); });
