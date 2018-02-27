@@ -1138,31 +1138,17 @@ private:
 
 bool QTestWindow::_cullingEnabled = true;
 
-void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    QString logMessage = LogHandler::getInstance().printMessage((LogMsgType)type, context, message);
-
-    if (!logMessage.isEmpty()) {
-#ifdef Q_OS_WIN
-        OutputDebugStringA(logMessage.toLocal8Bit().constData());
-        OutputDebugStringA("\n");
-#endif
-        logger->addMessage(qPrintable(logMessage + "\n"));
-    }
-}
-
 const char * LOG_FILTER_RULES = R"V0G0N(
 hifi.gpu=true
 )V0G0N";
 
 
 int main(int argc, char** argv) {
+    setupHifiApplication("RenderPerf");
+
     QApplication app(argc, argv);
-    QCoreApplication::setApplicationName("RenderPerf");
-    QCoreApplication::setOrganizationName("High Fidelity");
-    QCoreApplication::setOrganizationDomain("highfidelity.com");
     logger.reset(new FileLogger());
 
-    qInstallMessageHandler(messageHandler);
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow::setup();
     QTestWindow window;

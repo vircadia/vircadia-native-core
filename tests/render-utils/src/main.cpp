@@ -179,25 +179,14 @@ void QTestWindow::draw() {
     }
 }
 
-void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    if (!message.isEmpty()) {
-#ifdef Q_OS_WIN
-        OutputDebugStringA(message.toLocal8Bit().constData());
-        OutputDebugStringA("\n");
-#else 
-        std::cout << message.toLocal8Bit().constData() << std::endl;
-#endif
-    }
-}
-
-
 const char * LOG_FILTER_RULES = R"V0G0N(
 hifi.gpu=true
 )V0G0N";
 
-int main(int argc, char** argv) {    
+int main(int argc, char** argv) {
+    setupHifiApplication("Render Utils Test");
+
     QGuiApplication app(argc, argv);
-    qInstallMessageHandler(messageHandler);
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow window;
     QTimer timer;
