@@ -574,10 +574,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
 
     if (!logMessage.isEmpty()) {
-#ifdef Q_OS_WIN
-        OutputDebugStringA(logMessage.toLocal8Bit().constData());
-        OutputDebugStringA("\n");
-#elif defined Q_OS_ANDROID
+#ifdef Q_OS_ANDROID
         const char * local=logMessage.toStdString().c_str();
         switch (type) {
             case QtDebugMsg:
@@ -598,7 +595,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
                 abort();
         }
 #endif
-        qApp->getLogger()->addMessage(qPrintable(logMessage + "\n"));
+        qApp->getLogger()->addMessage(qPrintable(logMessage));
     }
 }
 
@@ -1513,6 +1510,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         settingsTimer->setSingleShot(false);
         settingsTimer->setInterval(SAVE_SETTINGS_INTERVAL); // 10s, Qt::CoarseTimer acceptable
         QObject::connect(settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
+        settingsTimer->start();
     }, QThread::LowestPriority);
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
