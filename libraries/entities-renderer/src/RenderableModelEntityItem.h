@@ -111,7 +111,7 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
-    bool getMeshes(MeshProxyList& result) override;
+    bool getMeshes(MeshProxyList& result) override; // deprecated
     const void* getCollisionMeshKey() const { return _collisionMeshKey; }
 
 signals:
@@ -142,6 +142,9 @@ class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem
 
 public:
     ModelEntityRenderer(const EntityItemPointer& entity);
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
+    virtual bool canReplaceModelMeshPart(int meshIndex, int partIndex) override;
+    virtual bool replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer model, int meshIndex, int partIndex) override;
 
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;

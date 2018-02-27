@@ -28,6 +28,7 @@ public:
 
     virtual Sphere3DOverlay* createClone() const override;
 
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
 protected:
     Transform evalRenderTransform() override;
 };

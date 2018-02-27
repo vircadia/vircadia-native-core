@@ -42,6 +42,11 @@ void Mesh::addAttribute(Slot slot, const BufferView& buffer) {
     evalVertexFormat();
 }
 
+void Mesh::removeAttribute(Slot slot) {
+    _attributeBuffers.erase(slot);
+    evalVertexFormat();
+}
+
 const BufferView Mesh::getAttributeBuffer(int attrib) const {
     auto attribBuffer = _attributeBuffers.find(attrib);
     if (attribBuffer != _attributeBuffers.end()) {
@@ -224,6 +229,7 @@ graphics::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
     }
 
     graphics::MeshPointer result(new graphics::Mesh());
+    result->displayName = displayName;
 
     gpu::Element vertexElement = gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ);
     gpu::Buffer* resultVertexBuffer = new gpu::Buffer(vertexSize, resultVertexData.get());

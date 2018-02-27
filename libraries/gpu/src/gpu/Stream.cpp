@@ -19,7 +19,7 @@ using namespace gpu;
 
 using ElementArray = std::array<Element, Stream::NUM_INPUT_SLOTS>;
 
-const ElementArray& getDefaultElements() {
+const ElementArray& Stream::getDefaultElements() {
     static ElementArray defaultElements{{
         //POSITION = 0,
         Element::VEC3F_XYZ,
