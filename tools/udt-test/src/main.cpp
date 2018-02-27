@@ -10,9 +10,13 @@
 
 #include <QtCore/QCoreApplication>
 
+#include <SharedUtil.h>
+
 #include "UDTTest.h"
 
 int main(int argc, char* argv[]) {
+    setupHifiApplication("UDT Test);
+
     UDTTest app(argc, argv);
     return app.exec();
 }

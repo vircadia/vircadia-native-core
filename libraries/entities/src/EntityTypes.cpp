@@ -97,6 +97,7 @@ EntityItemPointer EntityTypes::constructEntityItem(EntityType entityType, const 
         auto mutableProperties = properties;
         mutableProperties.markAllChanged();
         newEntityItem = factory(entityID, mutableProperties);
+        newEntityItem->moveToThread(qApp->thread());
     }
     return newEntityItem;
 }

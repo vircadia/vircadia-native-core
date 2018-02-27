@@ -179,18 +179,10 @@ void TestWindow::resizeEvent(QResizeEvent* ev) {
     resizeWindow(ev->size());
 }
 
-void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    if (!message.isEmpty()) {
-#ifdef Q_OS_WIN
-        OutputDebugStringA(message.toLocal8Bit().constData());
-        OutputDebugStringA("\n");
-#endif
-    }
-}
+int main(int argc, char** argv) {
+    setupHifiApplication("QML Test");
 
-int main(int argc, char** argv) {   
     QGuiApplication app(argc, argv);
-    qInstallMessageHandler(messageHandler);
     TestWindow window;
     app.exec();
     return 0;

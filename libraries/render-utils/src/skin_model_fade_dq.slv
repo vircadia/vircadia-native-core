@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  skin_model_normal_map_fade.vert
+//  skin_model_fade.vert
 //  vertex shader
 //
 //  Created by Olivier Prat on 06/045/17.
@@ -18,7 +18,7 @@
 <$declareStandardTransform()$>
 
 <@include Skinning.slh@>
-<$declareUseDualQuaternionSkinning()$>
+<$declareUseDualQuaternionSkinning(1)$>
 
 <@include MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>
@@ -27,37 +27,28 @@ out vec4 _position;
 out vec2 _texCoord0;
 out vec2 _texCoord1;
 out vec3 _normal;
-out vec3 _tangent;
 out vec3 _color;
 out float _alpha;
 out vec4 _worldPosition;
 
 void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 interpolatedNormal = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 interpolatedTangent = vec4(0.0, 0.0, 0.0, 0.0);
+    vec3 interpolatedNormal = vec3(0.0, 0.0, 0.0);
 
-    skinPositionNormalTangent(inSkinClusterIndex, inSkinClusterWeight, inPosition, inNormal.xyz, inTangent.xyz, position, interpolatedNormal.xyz, interpolatedTangent.xyz);
+    skinPositionNormal(inSkinClusterIndex, inSkinClusterWeight, inPosition, inNormal.xyz, position, interpolatedNormal);
 
     // pass along the color
-    _color = color_sRGBToLinear(inColor.rgb);
+    _color = colorToLinearRGB(inColor.rgb);
     _alpha = inColor.a;
 
     TexMapArray texMapArray = getTexMapArray();
     <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord0)$>
     <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord0, _texCoord1)$>
 
-    interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
-    interpolatedTangent = vec4(normalize(interpolatedTangent.xyz), 0.0);
-
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, position, _position, gl_Position)$>
     <$transformModelToWorldPos(obj, position, _worldPosition)$>
-    <$transformModelToWorldDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
-    <$transformModelToWorldDir(cam, obj, interpolatedTangent.xyz, interpolatedTangent.xyz)$>
-
-    _normal = interpolatedNormal.xyz;
-    _tangent = interpolatedTangent.xyz;
+    <$transformModelToWorldDir(cam, obj, interpolatedNormal.xyz, _normal.xyz)$>
 }
