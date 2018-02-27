@@ -1187,7 +1187,7 @@ void OctreeServer::handleOctreeDataFileReply(QSharedPointer<ReceivedMessage> mes
     } else {
         qDebug() << "Got reply to octree data file request, current entity data is sufficient";
         
-        OctreeUtils::RawOctreeData data;
+        OctreeUtils::RawEntityData data;
         qCDebug(octree_server) << "Reading octree data from" << _persistAbsoluteFilePath;
         if (data.readOctreeDataInfoFromFile(_persistAbsoluteFilePath)) {
             if (data.id.isNull()) {
