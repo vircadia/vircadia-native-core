@@ -127,7 +127,7 @@ void usecTimestampNowForceClockSkew(qint64 clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
-static qint64 TIME_REFERENCE = 0; // in usec
+static std::atomic<qint64> TIME_REFERENCE { 0 }; // in usec
 static std::once_flag usecTimestampNowIsInitialized;
 static QElapsedTimer timestampTimer;
 
@@ -791,6 +791,10 @@ QString formatUsecTime(float usecs) {
 
 QString formatUsecTime(double usecs) {
     return formatUsecTime<double>(usecs);
+}
+
+QString formatSecTime(qint64 secs) {
+    return formatUsecTime(secs * 1000000);
 }
 
 

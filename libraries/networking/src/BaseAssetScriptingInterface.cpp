@@ -47,7 +47,7 @@ bool BaseAssetScriptingInterface::initializeCache() {
     }
 
     // attempt to initialize the cache
-    QMetaObject::invokeMethod(assetClient().data(), "init");
+    QMetaObject::invokeMethod(assetClient().data(), "initCaching");
 
     Promise deferred = makePromise("BaseAssetScriptingInterface--queryCacheStatus");
     deferred->then([this](QVariantMap result) {

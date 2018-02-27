@@ -28,7 +28,7 @@ function settingsGroupAnchor(base, html_id) {
 }
 
 $(document).ready(function(){
-  var url = window.location;
+  var url = location.protocol + '//' + location.host+location.pathname;
 
   // Will only work if string in href matches with location
   $('ul.nav a[href="'+ url +'"]').parent().addClass('active');
@@ -39,21 +39,48 @@ $(document).ready(function(){
   }).parent().addClass('active');
 
   $('body').on('click', '#restart-server', function(e) {
-    swal( {
-      title: "Are you sure?",
-      text: "This will restart your domain server, causing your domain to be briefly offline.",
-      type: "warning",
-      html: true,
-      showCancelButton: true
-    }, function() {
-      $.get("/restart");
-      showRestartModal();
-    });
+    swalAreYouSure(
+      "This will restart your domain server, causing your domain to be briefly offline.",
+      "Restart",
+      function() {
+        swal.close();
+        $.get("/restart");
+        showRestartModal();
+      }
+    )
     return false;
   });
 
   var $contentDropdown = $('#content-settings-nav-dropdown');
   var $settingsDropdown = $('#domain-settings-nav-dropdown');
+
+  // define extra groups to add to setting panels, with their splice index
+  Settings.extraContentGroupsAtIndex = {
+    0: {
+      html_id: Settings.CONTENT_ARCHIVES_PANEL_ID,
+      label: 'Content Archives'
+    },
+    1: {
+      html_id: Settings.UPLOAD_CONTENT_BACKUP_PANEL_ID,
+      label: 'Upload Content'
+    }
+  };
+
+  Settings.extraContentGroupsAtEnd = [];
+
+  Settings.extraDomainGroupsAtIndex = {
+    1: {
+      html_id: 'places',
+      label: 'Places'
+    }
+  }
+
+  Settings.extraDomainGroupsAtEnd = [
+    {
+      html_id: 'settings_backup',
+      label: 'Settings Backup / Restore'
+    }
+  ]
 
   // for pages that have the settings dropdowns
   if ($contentDropdown.length && $settingsDropdown.length) {
@@ -65,6 +92,15 @@ $(document).ready(function(){
         return "<li class='setting-group'><a href='" + settingsGroupAnchor(base, html_id) + "'>" + group.label + "<span class='badge'></span></a></li>";
       }
 
+      // add the dummy settings groups that get populated via JS
+      for (var spliceIndex in Settings.extraContentGroupsAtIndex) {
+        data.content_settings.splice(spliceIndex, 0, Settings.extraContentGroupsAtIndex[spliceIndex]);
+      }
+
+      for (var endIndex in Settings.extraContentGroupsAtEnd) {
+        data.content_settings.push(Settings.extraContentGroupsAtEnd[endIndex]);
+      }
+
       $.each(data.content_settings, function(index, group){
         if (index > 0) {
           $contentDropdown.append("<li role='separator' class='divider'></li>");
@@ -73,25 +109,22 @@ $(document).ready(function(){
         $contentDropdown.append(makeGroupDropdownElement(group, "/content/"));
       });
 
+      // add the dummy settings groups that get populated via JS
+      for (var spliceIndex in Settings.extraDomainGroupsAtIndex) {
+        data.domain_settings.splice(spliceIndex, 0, Settings.extraDomainGroupsAtIndex[spliceIndex]);
+      }
+
+      for (var endIndex in Settings.extraDomainGroupsAtEnd) {
+        data.domain_settings.push(Settings.extraDomainGroupsAtEnd[endIndex]);
+      }
+
       $.each(data.domain_settings, function(index, group){
         if (index > 0) {
           $settingsDropdown.append("<li role='separator' class='divider'></li>");
         }
 
         $settingsDropdown.append(makeGroupDropdownElement(group, "/settings/"));
-
-        // for domain settings, we add a dummy "Places" group that we fill
-        // via the API - add it to the dropdown menu in the right spot
-        // which is after "Metaverse / Networking"
-        if (group.name == "metaverse") {
-          $settingsDropdown.append("<li role='separator' class='divider'></li>");
-          $settingsDropdown.append(makeGroupDropdownElement({ html_id: 'places', label: 'Places' }, "/settings/"));
-        }
       });
-
-      // append a link for the "Settings Backup" panel
-      $settingsDropdown.append("<li role='separator' class='divider'></li>");
-      $settingsDropdown.append(makeGroupDropdownElement({ html_id: 'settings_backup', label: 'Settings Backup'}, "/settings"));
     });
   }
 });
