@@ -61,7 +61,7 @@ public:
 private:
     DeferredLightingEffect() = default;
 
-    bool _shadowMapEnabled{ true };  // note that this value is overwritten in the ::configure method
+    bool _shadowMapEnabled{ false };
     bool _ambientOcclusionEnabled{ false };
 
     graphics::MeshPointer _pointLightMesh;
