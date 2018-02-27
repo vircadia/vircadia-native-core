@@ -79,6 +79,7 @@ Window {
             id: scrollView
             contentItem: content
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+            clip: true
 
             anchors.fill: parent
             anchors.rightMargin: parent.isScrolling ? 1 : 0
