@@ -70,13 +70,6 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     std::cout << message.toStdString() << std::endl;
 }
 
-static inline glm::uvec2 evalMipDimension(uint32_t mipLevel, const glm::uvec2& dims) {
-    return glm::uvec2{
-        std::max(dims.x >> mipLevel, 1U),
-        std::max(dims.y >> mipLevel, 1U),
-    };
-}
-
 void processKtxFile(const QFileInfo& inputFileInfo) {
     const QString inputFileName = inputFileInfo.absoluteFilePath();
     const QString compressedFileName = DEST_FOLDER.absoluteFilePath(inputFileInfo.fileName());

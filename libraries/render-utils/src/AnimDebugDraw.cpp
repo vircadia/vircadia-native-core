@@ -9,7 +9,6 @@
 
 #include "AnimDebugDraw.h"
 
-#include <gpu/Shader.h>
 #include <gpu/Batch.h>
 #include <GLMHelpers.h>
 
