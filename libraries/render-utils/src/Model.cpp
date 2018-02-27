@@ -27,6 +27,8 @@
 #include <TBBHelpers.h>
 
 #include <model-networking/SimpleMeshProxy.h>
+#include <graphics-scripting/Forward.h>
+#include <graphics/BufferViewHelpers.h>
 #include <DualQuaternion.h>
 
 #include <glm/gtc/packing.hpp>
@@ -75,7 +77,7 @@ void initCollisionMaterials() {
             graphics::MaterialPointer material;
             material = std::make_shared<graphics::Material>();
             int index = j * sectionWidth + i;
-            float red = component[index];
+            float red = component[index % NUM_COLLISION_HULL_COLORS];
             float green = component[(index + greenPhase) % NUM_COLLISION_HULL_COLORS];
             float blue = component[(index + bluePhase) % NUM_COLLISION_HULL_COLORS];
             material->setAlbedo(glm::vec3(red, green, blue));
@@ -345,34 +347,6 @@ void Model::reset() {
     }
 }
 
-#if FBX_PACK_NORMALS
-static void packNormalAndTangent(glm::vec3 normal, glm::vec3 tangent, glm::uint32& packedNormal, glm::uint32& packedTangent) {
-    auto absNormal = glm::abs(normal);
-    auto absTangent = glm::abs(tangent);
-    normal /= glm::max(1e-6f, glm::max(glm::max(absNormal.x, absNormal.y), absNormal.z));
-    tangent /= glm::max(1e-6f, glm::max(glm::max(absTangent.x, absTangent.y), absTangent.z));
-    normal = glm::clamp(normal, -1.0f, 1.0f);
-    tangent = glm::clamp(tangent, -1.0f, 1.0f);
-    normal *= 511.0f;
-    tangent *= 511.0f;
-    normal = glm::round(normal);
-    tangent = glm::round(tangent);
-
-    glm::detail::i10i10i10i2 normalStruct;
-    glm::detail::i10i10i10i2 tangentStruct;
-    normalStruct.data.x = int(normal.x);
-    normalStruct.data.y = int(normal.y);
-    normalStruct.data.z = int(normal.z);
-    normalStruct.data.w = 0;
-    tangentStruct.data.x = int(tangent.x);
-    tangentStruct.data.y = int(tangent.y);
-    tangentStruct.data.z = int(tangent.z);
-    tangentStruct.data.w = 0;
-    packedNormal = normalStruct.pack;
-    packedTangent = tangentStruct.pack;
-}
-#endif
-
 bool Model::updateGeometry() {
     bool needFullUpdate = false;
 
@@ -408,7 +382,7 @@ bool Model::updateGeometry() {
 #if FBX_PACK_NORMALS
                     glm::uint32 finalNormal;
                     glm::uint32 finalTangent;
-                    packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
+                    buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
 #else
                     const auto finalNormal = *normalIt;
                     const auto finalTangent = *tangentIt;
@@ -479,7 +453,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         const FBXGeometry& geometry = getFBXGeometry();
 
         if (!_triangleSetsValid) {
-            calculateTriangleSets();
+            calculateTriangleSets(geometry);
         }
 
         glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
@@ -531,7 +505,6 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                     { "v2", vec3toVariant(bestModelTriangle.v2) },
                 };
             }
-            
         }
     }
 
@@ -565,7 +538,7 @@ bool Model::convexHullContains(glm::vec3 point) {
         QMutexLocker locker(&_mutex);
 
         if (!_triangleSetsValid) {
-            calculateTriangleSets();
+            calculateTriangleSets(getFBXGeometry());
         }
 
         // If we are inside the models box, then consider the submeshes...
@@ -590,6 +563,7 @@ bool Model::convexHullContains(glm::vec3 point) {
     return false;
 }
 
+// TODO: deprecate and remove
 MeshProxyList Model::getMeshes() const {
     MeshProxyList result;
     const Geometry::Pointer& renderGeometry = getGeometry();
@@ -619,16 +593,111 @@ MeshProxyList Model::getMeshes() const {
                     return glm::normalize(glm::vec3(offsetMat * glm::vec4(normal, 0.0f)));
                 },
                 [&](uint32_t index) { return index; }));
+        meshProxy->setObjectName(mesh->displayName.c_str());
         result << meshProxy;
     }
 
     return result;
 }
 
-void Model::calculateTriangleSets() {
-    PROFILE_RANGE(render, __FUNCTION__);
+bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer newModel, int meshIndex, int partIndex) {
+    QMutexLocker lock(&_mutex);
+
+    if (!isLoaded()) {
+        qDebug() << "!isLoaded" << this;
+        return false;
+    }
+
+    if (!newModel || !newModel->meshes.size()) {
+        qDebug() << "!newModel.meshes.size()" << this;
+        return false;
+    }
+
+    const auto& meshes = newModel->meshes;
+    render::Transaction transaction;
+    const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
+
+    meshIndex = max(meshIndex, 0);
+    partIndex = max(partIndex, 0);
+
+    if (meshIndex >= (int)meshes.size()) {
+        qDebug() << meshIndex << "meshIndex >= newModel.meshes.size()" << meshes.size();
+        return false;
+    }
+
+    auto mesh = meshes[meshIndex].getMeshPointer();
+
+    if (partIndex >= (int)mesh->getNumParts()) {
+        qDebug() << partIndex << "partIndex >= mesh->getNumParts()" << mesh->getNumParts();
+        return false;
+    }
+    {
+        // update visual geometry
+        render::Transaction transaction;
+        for (int i = 0; i < (int) _modelMeshRenderItemIDs.size(); i++) {
+            auto itemID = _modelMeshRenderItemIDs[i];
+            auto shape = _modelMeshRenderItemShapes[i];
+            // TODO: check to see if .partIndex matches too
+            if (shape.meshIndex == meshIndex) {
+                transaction.updateItem<ModelMeshPartPayload>(itemID, [=](ModelMeshPartPayload& data) {
+                    data.updateMeshPart(mesh, partIndex);
+                });
+            }
+        }
+        scene->enqueueTransaction(transaction);
+    }
+    // update triangles for ray picking
+    {
+        FBXGeometry geometry;
+        for (const auto& newMesh : meshes) {
+            FBXMesh mesh;
+            mesh._mesh = newMesh.getMeshPointer();
+            mesh.vertices = buffer_helpers::mesh::attributeToVector<glm::vec3>(mesh._mesh, gpu::Stream::POSITION);
+            int numParts = (int)newMesh.getMeshPointer()->getNumParts();
+            for (int partID = 0; partID < numParts; partID++) {
+                FBXMeshPart part;
+                part.triangleIndices = buffer_helpers::bufferToVector<int>(mesh._mesh->getIndexBuffer(), "part.triangleIndices");
+                mesh.parts << part;
+            }
+            {
+                foreach (const glm::vec3& vertex, mesh.vertices) {
+                    glm::vec3 transformedVertex = glm::vec3(mesh.modelTransform * glm::vec4(vertex, 1.0f));
+                    geometry.meshExtents.minimum = glm::min(geometry.meshExtents.minimum, transformedVertex);
+                    geometry.meshExtents.maximum = glm::max(geometry.meshExtents.maximum, transformedVertex);
+                    mesh.meshExtents.minimum = glm::min(mesh.meshExtents.minimum, transformedVertex);
+                    mesh.meshExtents.maximum = glm::max(mesh.meshExtents.maximum, transformedVertex);
+                }
+            }
+            geometry.meshes << mesh;
+        }
+        calculateTriangleSets(geometry);
+    }
+    return true;
+}
+
+scriptable::ScriptableModelBase Model::getScriptableModel() {
+    QMutexLocker lock(&_mutex);
+    scriptable::ScriptableModelBase result;
+
+    if (!isLoaded()) {
+        qCDebug(renderutils) << "Model::getScriptableModel -- !isLoaded";
+        return result;
+    }
 
     const FBXGeometry& geometry = getFBXGeometry();
+    int numberOfMeshes = geometry.meshes.size();
+    for (int i = 0; i < numberOfMeshes; i++) {
+        const FBXMesh& fbxMesh = geometry.meshes.at(i);
+        if (auto mesh = fbxMesh._mesh) {
+            result.append(mesh);
+        }
+    }
+    return result;
+}
+
+void Model::calculateTriangleSets(const FBXGeometry& geometry) {
+    PROFILE_RANGE(render, __FUNCTION__);
+
     int numberOfMeshes = geometry.meshes.size();
 
     _triangleSetsValid = true;
@@ -651,7 +720,7 @@ void Model::calculateTriangleSets() {
             int totalTriangles = (numberOfQuads * TRIANGLES_PER_QUAD) + numberOfTris;
             _modelSpaceMeshTriangleSets[i].reserve(totalTriangles);
 
-            auto meshTransform = getFBXGeometry().offset * mesh.modelTransform;
+            auto meshTransform = geometry.offset * mesh.modelTransform;
 
             if (part.quadIndices.size() > 0) {
                 int vIndex = 0;
@@ -893,7 +962,7 @@ void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
 
     DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, true, true);
 
-    for(const auto& triangleSet : _modelSpaceMeshTriangleSets) {
+    for (const auto& triangleSet : _modelSpaceMeshTriangleSets) {
         auto box = triangleSet.getBounds();
 
         if (_debugMeshBoxesID == GeometryCache::UNKNOWN_ID) {
@@ -1398,7 +1467,7 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
 #if FBX_PACK_NORMALS
             glm::uint32 finalNormal;
             glm::uint32 finalTangent;
-            packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
+            buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
 #else
             const auto finalNormal = *normalIt;
             const auto finalTangent = *tangentIt;
@@ -1421,7 +1490,7 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
 #if FBX_PACK_NORMALS
                 glm::uint32 finalNormal;
                 glm::uint32 finalTangent;
-                packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
+                buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
 #else
                 const auto finalNormal = *normalIt;
                 const auto finalTangent = *tangentIt;
@@ -1495,7 +1564,7 @@ void Model::createVisibleRenderItemSet() {
 
     // all of our mesh vectors must match in size
     if (meshes.size() != _meshStates.size()) {
-        qCDebug(renderutils) << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
+        qCDebug(renderutils) << "WARNING!!!! Mesh Sizes don't match! " << meshes.size() << _meshStates.size() << " We will not segregate mesh groups yet.";
         return;
     }
 

@@ -35,6 +35,8 @@
 #include "ModelEntityItem.h"
 #include "RenderableModelEntityItem.h"
 
+#include <graphics-scripting/Forward.h>
+
 #include "Logging.h"
 
 using namespace std;
@@ -576,6 +578,7 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     }
 
     _mustFadeIn = true;
+    emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(getSessionUUID(), NestableType::Avatar, _skeletonModel);
 }
 
 void Avatar::fadeIn(render::ScenePointer scene) {
@@ -625,6 +628,7 @@ void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointe
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->removeFromScene(scene, transaction);
     }
+    emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(getSessionUUID(), NestableType::Avatar, _skeletonModel);
 }
 
 void Avatar::updateRenderItem(render::Transaction& transaction) {
@@ -1789,4 +1793,13 @@ void Avatar::processMaterials() {
             material.pop();
         }
     }
+}
+
+scriptable::ScriptableModelBase Avatar::getScriptableModel() {
+    if (!_skeletonModel || !_skeletonModel->isLoaded()) {
+        return scriptable::ScriptableModelBase();
+    }
+    auto result = _skeletonModel->getScriptableModel();
+    result.objectID = getSessionUUID().isNull() ? AVATAR_SELF_ID : getSessionUUID();
+    return result;
 }

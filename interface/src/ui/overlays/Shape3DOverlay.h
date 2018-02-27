@@ -33,6 +33,7 @@ public:
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
 
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
 protected:
     Transform evalRenderTransform() override;
 
