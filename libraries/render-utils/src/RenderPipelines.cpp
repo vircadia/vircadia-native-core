@@ -490,7 +490,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withFade(),
-        skinModelFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+        skinModelFadeDualQuatVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withTangents().withFade(),
         skinModelNormalMapFadeDualQuatVertex, modelTranslucentNormalMapFadePixel, batchSetter, itemSetter);
@@ -521,9 +521,14 @@ void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::Ba
     // Vertex shaders
     auto modelVertex = model_vert::getShader();
     auto modelNormalMapVertex = model_normal_map_vert::getShader();
+
     auto skinModelVertex = skin_model_vert::getShader();
     auto skinModelNormalMapVertex = skin_model_normal_map_vert::getShader();
     auto skinModelNormalMapFadeVertex = skin_model_normal_map_fade_vert::getShader();
+
+    auto skinModelDualQuatVertex = skin_model_dq_vert::getShader();
+    auto skinModelNormalMapDualQuatVertex = skin_model_normal_map_dq_vert::getShader();
+    auto skinModelNormalMapFadeDualQuatVertex = skin_model_normal_map_fade_dq_vert::getShader();
 
     // Pixel shaders
     auto modelPixel = forward_model_frag::getShader();
@@ -568,6 +573,22 @@ void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::Ba
             Key::Builder().withMaterial().withSkinned().withTangents().withFade(),
             skinModelNormalMapFadeVertex, modelNormalMapFadePixel, batchSetter, itemSetter, nullptr, nullptr);
 
+    // Dual Quaternion
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned(),
+        skinModelDualQuatVertex, modelPixel, nullptr, nullptr);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withTangents(),
+        skinModelNormalMapDualQuatVertex, modelNormalMapPixel, nullptr, nullptr);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned(),
+        skinModelDualQuatVertex, modelSpecularMapPixel, nullptr, nullptr);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withTangents().withSpecular(),
+        skinModelNormalMapDualQuatVertex, modelNormalSpecularMapPixel, nullptr, nullptr);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withTangents().withFade(),
+        skinModelNormalMapFadeDualQuatVertex, modelNormalMapFadePixel, batchSetter, itemSetter, nullptr, nullptr);
 }
 
 void addPlumberPipeline(ShapePlumber& plumber,
