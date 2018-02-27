@@ -1242,6 +1242,14 @@ public slots:
      */
     Q_INVOKABLE bool wantsHandControllerPointerEvents(QUuid id);
 
+    /**jsdoc
+     * Send a script event over a <code>{@link Entities.EntityType|"Web"}</code> entity's <code>EventBridge</code> to the Web 
+     * page's scripts.
+     * @function Entities.emitScriptEvent
+     * @param {Uuid} entityID - The ID of the <code>{@link Entities.EntityType|"Web"}</code> entity.
+     * @param {string} message - The message to send.
+     * @todo This function is currently not implemented.
+     */
     Q_INVOKABLE void emitScriptEvent(const EntityItemID& entityID, const QVariant& message);
 
     /**jsdoc
@@ -1663,6 +1671,14 @@ signals:
      */
     void debitEnergySource(float value);
 
+    /**jsdoc
+     * Triggered in when a script in a <code>{@link Entities.EntityType|"Web"}</code> entity's Web page script sends an event 
+     * over the script's <code>EventBridge</code>.
+     * @function Entities.webEventReceived
+     * @param {Uuid} entityID - The ID of the entity that event was received from.
+     * @param {string} message - The message received.
+     * @returns {Signal}
+     */
     void webEventReceived(const EntityItemID& entityItemID, const QVariant& message);
 
 protected:
