@@ -87,6 +87,10 @@ public:
 
     // new Scene/Engine rendering support
     void setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
+
+    bool canCastShadow() const { return _canCastShadow; }
+    void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
+
     void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
     void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
@@ -256,8 +260,6 @@ public:
     int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
     bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
 
-
-#if defined(SKIN_DQ)
     class TransformDualQuaternion {
     public:
         TransformDualQuaternion() {}
@@ -295,15 +297,11 @@ public:
         DualQuaternion _dq;
         glm::vec4 _cauterizedPosition { 0.0f, 0.0f, 0.0f, 1.0f };
     };
-#endif
 
     class MeshState {
     public:
-#if defined(SKIN_DQ)
-        std::vector<TransformDualQuaternion> clusterTransforms;
-#else
-        std::vector<glm::mat4> clusterTransforms;
-#endif
+        std::vector<TransformDualQuaternion> clusterDualQuaternions;
+        std::vector<glm::mat4> clusterMatrices;
     };
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
@@ -319,6 +317,8 @@ public:
     Q_INVOKABLE MeshProxyList getMeshes() const;
 
     void scaleToFit();
+    bool getUseDualQuaternionSkinning() const { return _useDualQuaternionSkinning; }
+    void setUseDualQuaternionSkinning(bool value);
 
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
@@ -404,6 +404,8 @@ protected:
     bool _isVisible;
     uint8_t _viewTagBits{ render::ItemKey::TAG_BITS_ALL };
 
+    bool _canCastShadow;
+
     gpu::Buffers _blendedVertexBuffers;
 
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
@@ -425,6 +427,7 @@ protected:
     virtual void createCollisionRenderItemSet();
 
     bool _isWireframe;
+    bool _useDualQuaternionSkinning { false };
 
     // debug rendering support
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
