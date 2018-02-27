@@ -329,7 +329,11 @@ void AddressManager::handleLookupString(const QString& lookupString, bool fromSu
         QString sanitizedString = lookupString.trimmed();
         QUrl lookupURL;
 
-        if (lookupString.toLower().startsWith(HIFI_URL_SCHEME + ":/") || isPossiblePlaceName(sanitizedString)) {
+        if (lookupString.toLower().startsWith(HIFI_URL_SCHEME + ":/") ||
+            isPossiblePlaceName(sanitizedString) ||
+            // "localhost" isn't a valid placename, but we treat it specially here, to mean
+            // "try to find an connect to the DS on the host running interface".
+            lookupString.toLower() == "localhost") {
             // sometimes we need to handle lookupStrings like hifi:/somewhere
             const QRegExp HIFI_SCHEME_REGEX = QRegExp(HIFI_URL_SCHEME + ":\\/{1,2}", Qt::CaseInsensitive);
             sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
