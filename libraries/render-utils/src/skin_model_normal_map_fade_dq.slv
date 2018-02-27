@@ -2,11 +2,11 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  skin_model_normal_map_fade.vert
+//  skin_model_normal_map_fade_dq.vert
 //  vertex shader
 //
-//  Created by Olivier Prat on 06/045/17.
-//  Copyright 2017 High Fidelity, Inc.
+//  Created by Andrzej Kapolka on 10/29/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -18,7 +18,7 @@
 <$declareStandardTransform()$>
 
 <@include Skinning.slh@>
-<$declareUseDualQuaternionSkinning()$>
+<$declareUseDualQuaternionSkinning(1)$>
 
 <@include MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>

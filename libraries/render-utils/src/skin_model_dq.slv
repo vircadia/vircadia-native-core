@@ -2,11 +2,11 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  skin_model_normal_map_fade.vert
+//  skin_model.vert
 //  vertex shader
 //
-//  Created by Olivier Prat on 06/045/17.
-//  Copyright 2017 High Fidelity, Inc.
+//  Created by Andrzej Kapolka on 10/14/13.
+//  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -18,7 +18,7 @@
 <$declareStandardTransform()$>
 
 <@include Skinning.slh@>
-<$declareUseDualQuaternionSkinning()$>
+<$declareUseDualQuaternionSkinning(1)$>
 
 <@include MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>
@@ -27,17 +27,14 @@ out vec4 _position;
 out vec2 _texCoord0;
 out vec2 _texCoord1;
 out vec3 _normal;
-out vec3 _tangent;
 out vec3 _color;
 out float _alpha;
-out vec4 _worldPosition;
 
 void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 interpolatedNormal = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 interpolatedTangent = vec4(0.0, 0.0, 0.0, 0.0);
+    vec3 interpolatedNormal = vec3(0.0, 0.0, 0.0);
 
-    skinPositionNormalTangent(inSkinClusterIndex, inSkinClusterWeight, inPosition, inNormal.xyz, inTangent.xyz, position, interpolatedNormal.xyz, interpolatedTangent.xyz);
+    skinPositionNormal(inSkinClusterIndex, inSkinClusterWeight, inPosition, inNormal.xyz, position, interpolatedNormal);
 
     // pass along the color
     _color = color_sRGBToLinear(inColor.rgb);
@@ -47,17 +44,9 @@ void main(void) {
     <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord0)$>
     <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord0, _texCoord1)$>
 
-    interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
-    interpolatedTangent = vec4(normalize(interpolatedTangent.xyz), 0.0);
-
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, position, _position, gl_Position)$>
-    <$transformModelToWorldPos(obj, position, _worldPosition)$>
-    <$transformModelToWorldDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
-    <$transformModelToWorldDir(cam, obj, interpolatedTangent.xyz, interpolatedTangent.xyz)$>
-
-    _normal = interpolatedNormal.xyz;
-    _tangent = interpolatedTangent.xyz;
+    <$transformModelToWorldDir(cam, obj, interpolatedNormal.xyz, _normal.xyz)$>
 }

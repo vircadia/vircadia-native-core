@@ -38,6 +38,7 @@ extern "C" {
 #endif
 
 int main(int argc, const char* argv[]) {
+    setupHifiApplication(BuildInfo::INTERFACE_NAME);
 
 #ifdef Q_OS_LINUX
     QApplication::setAttribute(Qt::AA_DontUseNativeMenuBar);
@@ -51,16 +52,8 @@ int main(int argc, const char* argv[]) {
     QCoreApplication::setAttribute(Qt::AA_UseOpenGLES);
 #endif
 
-    disableQtBearerPoll(); // Fixes wifi ping spikes
-
     QElapsedTimer startupTime;
     startupTime.start();
-
-    // Set application infos
-    QCoreApplication::setApplicationName(BuildInfo::INTERFACE_NAME);
-    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
-    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
     Setting::init();
 

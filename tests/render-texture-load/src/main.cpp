@@ -610,16 +610,6 @@ private:
     bool _ready { false };
 };
 
-void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    if (!message.isEmpty()) {
-#ifdef Q_OS_WIN
-        OutputDebugStringA(message.toLocal8Bit().constData());
-        OutputDebugStringA("\n");
-#endif
-        std::cout << message.toLocal8Bit().constData() << std::endl;
-    }
-}
-
 const char * LOG_FILTER_RULES = R"V0G0N(
 hifi.gpu=true
 )V0G0N";
@@ -645,11 +635,9 @@ void unzipTestData(const QByteArray& zipData) {
 }
 
 int main(int argc, char** argv) {
+    setupHifiApplication("RenderPerf");
+
     QApplication app(argc, argv);
-    QCoreApplication::setApplicationName("RenderPerf");
-    QCoreApplication::setOrganizationName("High Fidelity");
-    QCoreApplication::setOrganizationDomain("highfidelity.com");
-    qInstallMessageHandler(messageHandler);
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
 
     if (!DATA_DIR.exists()) {

@@ -219,9 +219,9 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         
         gpu::Shader::makeProgram(*program, slotBindings);
         
-       gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         
-        PrepareStencil::testMask(*state);
+        PrepareStencil::testNoAA(*state);
 
         // Good to go add the brand new pipeline
         _antialiasingPipeline = gpu::Pipeline::create(program, state);
@@ -242,7 +242,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
         gpu::Shader::makeProgram(*program, slotBindings);
         
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        PrepareStencil::testMask(*state);
+        PrepareStencil::testNoAA(*state);
 
     
         // Good to go add the brand new pipeline
@@ -273,7 +273,7 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        PrepareStencil::testMask(*state);
+        PrepareStencil::testNoAA(*state);
 
 
         // Good to go add the brand new pipeline
@@ -291,8 +291,6 @@ void Antialiasing::configure(const Config& config) {
     _params.edit().covarianceGamma = config.covarianceGamma;
 
     _params.edit().setConstrainColor(config.constrainColor);
-    _params.edit().setCovarianceClipColor(config.covarianceClipColor);
-    _params.edit().setClipExactColor(config.clipExactColor);
     _params.edit().setFeedbackColor(config.feedbackColor);
 
     _params.edit().debugShowVelocityThreshold = config.debugShowVelocityThreshold;
@@ -353,6 +351,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setResourceFramebufferSwapChainTexture(AntialiasingPass_HistoryMapSlot, _antialiasingBuffers, 0);
         batch.setResourceTexture(AntialiasingPass_SourceMapSlot, sourceBuffer->getRenderBuffer(0));
         batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, velocityBuffer->getVelocityTexture());
+        // This is only used during debug
         batch.setResourceTexture(AntialiasingPass_DepthMapSlot, linearDepthBuffer->getLinearDepthTexture());
 
         batch.setUniformBuffer(AntialiasingPass_ParamsSlot, _params);

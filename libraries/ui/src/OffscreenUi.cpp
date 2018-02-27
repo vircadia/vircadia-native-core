@@ -625,8 +625,7 @@ private:
         auto windows = qApp->topLevelWindows();
         QWindow* result = nullptr;
         for (auto window : windows) {
-            QVariant isMainWindow = window->property("MainWindow");
-            if (!qobject_cast<QQuickWindow*>(window)) {
+            if (window->objectName().contains("MainWindow")) {
                 result = window;
                 break;
             }
