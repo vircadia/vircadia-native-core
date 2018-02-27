@@ -23,20 +23,31 @@ static const QString CONTENT_SETTINGS_BACKUP_FILENAME = "content-settings.json";
 
 void ContentSettingsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
 
-    // grab the content settings as JSON,excluding default values and values hidden from backup
-    QJsonObject contentSettingsJSON = _settingsManager.settingsResponseObjectForType("", true, false, true, false, true);
+    // grab the content settings as JSON, excluding default values and values hidden from backup
+    QJsonObject contentSettingsJSON = _settingsManager.settingsResponseObjectForType(
+        "", // include all settings types
+        DomainServerSettingsManager::Authenticated, DomainServerSettingsManager::NoDomainSettings,
+        DomainServerSettingsManager::IncludeContentSettings, DomainServerSettingsManager::NoDefaultSettings,
+        DomainServerSettingsManager::ForBackup
+    );
 
-    // make a QJSonDocument using the object
+    // make a QJsonDocument using the object
     QJsonDocument contentSettingsDocument { contentSettingsJSON };
 
     QuaZipFile zipFile { &zip };
 
-    zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(CONTENT_SETTINGS_BACKUP_FILENAME));
-    zipFile.write(contentSettingsDocument.toJson());
-    zipFile.close();
+    if (zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(CONTENT_SETTINGS_BACKUP_FILENAME))) {
+        if (zipFile.write(contentSettingsDocument.toJson()) == -1) {
+            qCritical().nospace() << "Failed to write to " << CONTENT_SETTINGS_BACKUP_FILENAME << ": " << zipFile.getZipError();
+        }
 
-    if (zipFile.getZipError() != UNZ_OK) {
-        qCritical().nospace() << "Failed to zip " << CONTENT_SETTINGS_BACKUP_FILENAME << ": " << zipFile.getZipError();
+        zipFile.close();
+
+        if (zipFile.getZipError() != UNZ_OK) {
+            qCritical().nospace() << "Failed to zip " << CONTENT_SETTINGS_BACKUP_FILENAME << ": " << zipFile.getZipError();
+        }
+    } else {
+        qCritical().nospace() << "Failed to open " << CONTENT_SETTINGS_BACKUP_FILENAME << ": " << zipFile.getZipError();
     }
 }
 
@@ -59,7 +70,5 @@ void ContentSettingsBackupHandler::recoverBackup(const QString& backupName, QuaZ
 
     if (!_settingsManager.restoreSettingsFromObject(jsonDocument.object(), ContentSettings)) {
         qCritical() << "Failed to restore settings from" << CONTENT_SETTINGS_BACKUP_FILENAME << "in content archive";
-        return;
     }
-
 }

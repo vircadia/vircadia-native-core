@@ -110,10 +110,19 @@ public:
 
     void debugDumpGroupsState();
 
+    enum SettingsRequestAuthentication { NotAuthenticated, Authenticated };
+    enum DomainSettingsInclusion { NoDomainSettings, IncludeDomainSettings };
+    enum ContentSettingsInclusion { NoContentSettings, IncludeContentSettings };
+    enum DefaultSettingsInclusion { NoDefaultSettings, IncludeDefaultSettings };
+    enum SettingsBackupFlag { NotForBackup, ForBackup };
+
     /// thread safe method to retrieve a JSON representation of settings
-    Q_INVOKABLE QJsonObject settingsResponseObjectForType(const QString& typeValue, bool isAuthenticated = false,
-                                              bool includeDomainSettings = true, bool includeContentSettings = true,
-                                              bool includeDefaults = true, bool isForBackup = false);
+    QJsonObject settingsResponseObjectForType(const QString& typeValue,
+                                              SettingsRequestAuthentication authentication = NotAuthenticated,
+                                              DomainSettingsInclusion domainSettingsInclusion = IncludeDomainSettings,
+                                              ContentSettingsInclusion contentSettingsInclusion = IncludeContentSettings,
+                                              DefaultSettingsInclusion defaultSettingsInclusion = IncludeDefaultSettings,
+                                              SettingsBackupFlag settingsBackupFlag = NotForBackup);
     /// thread safe method to restore settings from a JSON object
     Q_INVOKABLE bool restoreSettingsFromObject(QJsonObject settingsToRestore, SettingsType settingsType);
 
@@ -156,7 +165,7 @@ private:
     QJsonArray _contentSettingsDescription;
     QJsonObject _settingsMenuGroups;
 
-    // any method that calls _valueForKeyPath on this _configMap must get a write lock it keeps until it
+    // any method that calls valueForKeyPath on this _configMap must get a write lock it keeps until it
     // is done with the returned QVariant*
     HifiConfigVariantMap _configMap;
 
