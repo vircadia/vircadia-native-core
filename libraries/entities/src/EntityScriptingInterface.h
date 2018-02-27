@@ -285,8 +285,10 @@ public slots:
 
 
     /**jsdoc
-     * Call a method in a client entity script from a client script or client entity script. The entity script method must be 
-     * exposed as a property in the target client entity script.
+     * Call a method in a client entity script from a client script or client entity script, or call a method in a server 
+     * entity script from a server entity script. The entity script method must be exposed as a property in the target client 
+     * entity script. Additionally, if calling a server entity script, the server entity script must include the method's name 
+     * in an exposed property called <code>remotelyCallable</code> that is an array of method names that can be called.
      * @function Entities.callEntityMethod
      * @param {Uuid} entityID - The ID of the entity to call the method in.
      * @param {string} method - The name of the method to call.
@@ -296,7 +298,7 @@ public slots:
 
     /**jsdoc
      * Call a method in a server entity script from a client script or client entity script. The entity script method must be 
-     * exposed as a property in the target client entity script. Additionally, the target client entity script must include the 
+     * exposed as a property in the target server entity script. Additionally, the target server entity script must include the 
      * method's name in an exposed property called <code>remotelyCallable</code> that is an array of method names that can be 
      * called.
      * @function Entities.callEntityServerMethod
