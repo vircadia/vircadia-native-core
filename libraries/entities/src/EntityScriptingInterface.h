@@ -221,8 +221,7 @@ public slots:
      * @param {Uuid} entityID - The ID of the entity to get the properties of.
      * @param {string[]} [desiredProperties=[]] - Array of the names of the properties to get. If the array is empty,
      *     all properties are returned.
-     * @returns {Entities.EntityProperties} The properties of the entity; <code>{}</code> if <code>entityID</code> is not the 
-     *     ID of an entity.
+     * @returns {Entities.EntityProperties} The properties of the entity if the entity can be found, otherwise an empty object.
      * @example <caption>Report the color of a new box entity.</caption>
      * var entityID = Entities.addEntity({
      *     type: "Box",
@@ -285,7 +284,7 @@ public slots:
      * @function Entities.callEntityMethod
      * @param {Uuid} entityID - The ID of the entity to call the method in.
      * @param {string} method - The name of the method to call.
-     * @param [{string[]} parameters=[]] - The parameters to call the specified method with.
+     * @param {string[]} [parameters=[]] - The parameters to call the specified method with.
      */
     Q_INVOKABLE void callEntityMethod(QUuid entityID, const QString& method, const QStringList& params = QStringList());
 
@@ -297,7 +296,7 @@ public slots:
      * @function Entities.callEntityServerMethod
      * @param {Uuid} entityID - The ID of the entity to call the method in.
      * @param {string} method - The name of the method to call.
-     * @param [{string[]} parameters=[]] - The parameters to call the specified method with.
+     * @param {string[]} [parameters=[]] - The parameters to call the specified method with.
      */
     Q_INVOKABLE void callEntityServerMethod(QUuid entityID, const QString& method, const QStringList& params = QStringList());
 
@@ -308,7 +307,7 @@ public slots:
      * @param {Uuid} clientSessionID - The session ID of the user to call the method in.
      * @param {Uuid} entityID - The ID of the entity to call the method in.
      * @param {string} method - The name of the method to call.
-     * @param [{string[]} parameters=[]] - The parameters to call the specified method with.
+     * @param {string[]} [parameters=[]] - The parameters to call the specified method with.
      */
     Q_INVOKABLE void callEntityClientMethod(QUuid clientSessionID, QUuid entityID, const QString& method, 
         const QStringList& params = QStringList());
@@ -333,7 +332,8 @@ public slots:
      * @function Entities.findEntities
      * @param {Vec3} center - The point about which to search.
      * @param {number} radius - The radius within which to search.
-     * @returns {Uuid[]} An array of entity IDs that were found that intersect the search sphere.
+     * @returns {Uuid[]} An array of entity IDs that were found that intersect the search sphere. The array is empty if no 
+     *     entities could be found.
      * @example <caption>Report how many entities are within 10m of your avatar.</caption>
      * var entityIDs = Entities.findEntities(MyAvatar.position, 10);
      * print("Number of entities within 10m: " + entityIDs.length);
@@ -347,7 +347,8 @@ public slots:
      * @function Entities.findEntitiesInBox
      * @param {Vec3} corner - The corner of the search AA box with minimum co-ordinate values.
      * @param {Vec3} dimensions - The dimensions of the search AA box.
-     * @returns {Uuid[]} An array of entity IDs whose AA boxes intersect the search AA box.
+     * @returns {Uuid[]} An array of entity IDs whose AA boxes intersect the search AA box. The array is empty if no entities 
+     *     could be found.
      */
     /// this function will not find any models in script engine contexts which don't have access to models
     Q_INVOKABLE QVector<QUuid> findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const;
@@ -357,7 +358,8 @@ public slots:
      * @function Entities.findEntitiesInFrustum
      * @param {ViewFrustum} frustum - The frustum to search in. The <code>position</code>, <code>orientation</code>, 
      *     <code>projection</code>, and <code>centerRadius</code> properties must be specified.
-     * @returns {Uuid[]} An array of entity IDs axis-aligned boxes intersect the frustum.
+     * @returns {Uuid[]} An array of entity IDs axis-aligned boxes intersect the frustum. The array is empty if no entities 
+     *     could be found.
      * @example <caption>Report the number of entities in view.</caption>
      * var entityIDs = Entities.findEntitiesInFrustum(Camera.frustum);
      * print("Number of entities in view: " + entityIDs.length);
@@ -371,7 +373,8 @@ public slots:
      * @param {Entities.EntityType} entityType - The type of entity to search for.
      * @param {Vec3} center - The point about which to search.
      * @param {number} radius - The radius within which to search.
-     * @returns {Uuid[]} An array of entity IDs of the specified type that intersect the search sphere.
+     * @returns {Uuid[]} An array of entity IDs of the specified type that intersect the search sphere. The array is empty if 
+     *     no entities could be found.
      * @example <caption>Report the number of Model entities within 10m of your avatar.</caption>
      * var entityIDs = Entities.findEntitiesByType("Model", MyAvatar.position, 10);
      * print("Number of Model entities within 10m: " + entityIDs.length);
@@ -430,8 +433,6 @@ public slots:
      *     entity, the result's <code>extraInfo</code> property includes more information than it otherwise would.
      * @param {Uuid[]} [entitiesToInclude=[]] - If not empty then the search is restricted to these entities.
      * @param {Uuid[]} [entitiesToDiscard=[]] - Entities to ignore during the search.
-     * @param {boolean} [visibleOnly=false] - If <code>true</code> then only entities that are
-     *     <code>{@link Entities.EntityProperties|visible}<code> are searched.
      * @deprecated This function is deprecated and will soon be removed. Use 
      *    {@link Entities.findRayIntersection|findRayIntersection} instead; it blocks and performs the same function.
      */
@@ -445,8 +446,8 @@ public slots:
      * Reloads an entity's server entity script such that the latest version re-downloaded.
      * @function Entities.reloadServerScripts
      * @param {Uuid} entityID - The ID of the entity to reload the server entity script of.
-     * @returns {boolean} <code>true</code> if the reload request was successfully sent to the server, <code>false</code> 
-     *     otherwise.
+     * @returns {boolean} <code>true</code> if the reload request was successfully sent to the server, otherwise 
+     *     <code>false</code>.
      */
     Q_INVOKABLE bool reloadServerScripts(QUuid entityID);
 
@@ -475,8 +476,8 @@ public slots:
     * @param {Uuid} entityID - The ID of the entity to get the metadata for.
     * @param {string} property - The property name to get the metadata for.
     * @param {Entities~queryPropertyMetadataCallback} callback - The function to call upon completion.
-    * @returns {boolean} <code>true</code> if the request for metadata was successfully sent to the server, <code>false</code>
-    *     otherwise.
+    * @returns {boolean} <code>true</code> if the request for metadata was successfully sent to the server, otherwise 
+    *     <code>false</code>.
     * @throws Throws an error if <code>property</code> is not handled yet or <code>callback</code> is not a function.
     */
     /**jsdoc
@@ -486,8 +487,8 @@ public slots:
     * @param {string} property - The property name to get the metadata for.
     * @param {object} scope - The "<code>this</code>" context that the callback will be executed within.
     * @param {Entities~queryPropertyMetadataCallback} callback - The function to call upon completion.
-    * @returns {boolean} <code>true</code> if the request for metadata was successfully sent to the server, <code>false</code>
-    *     otherwise.
+    * @returns {boolean} <code>true</code> if the request for metadata was successfully sent to the server, otherwise 
+    *     <code>false</code>.
     * @throws Throws an error if <code>property</code> is not handled yet or <code>callback</code> is not a function.
     */
     /**jsdoc
@@ -553,7 +554,7 @@ public slots:
      * Set whether or not {@link Entities.EntityType|Zone} entities' boundaries should be drawn. <em>Currently not used.</em>
      * @function Entities.setDrawZoneBoundaries
      * @param {boolean} value - Set to <code>true</code> if {@link Entities.EntityType|Zone} entities' boundaries should be 
-     *     drawn, <code>false</code> otherwise.
+     *     drawn, otherwise <code>false</code>.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE void setDrawZoneBoundaries(bool value);
@@ -562,7 +563,7 @@ public slots:
     * Get whether or not {@link Entities.EntityType|Zone} entities' boundaries should be drawn. <em>Currently not used.</em>
     * @function Entities.getDrawZoneBoundaries
     * @returns {boolean} <code>true</code> if {@link Entities.EntityType|Zone} entities' boundaries should be drawn, 
-    *    <code>false</code> otherwise.
+    *    otherwise <code>false</code>.
     */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE bool getDrawZoneBoundaries() const;
@@ -765,7 +766,7 @@ public slots:
      * @function Entities.setAllPoints
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|Line} entity.
      * @param {Vec3[]} points - The array of points to set the entity's <code>linePoints</code> property to.
-     * @returns {boolean} <code>true</code> if the entity's property was updated, <code>false</code> otherwise. The property 
+     * @returns {boolean} <code>true</code> if the entity's property was updated, otherwise <code>false</code>. The property 
      *     may fail to be updated if the entity does not exist, the entity is not a {@link Entities.EntityType|Line} entity, 
      *     one of the points is outside the entity's dimensions, or the number of points is greater than the maximum allowed.
      * @example <caption>Change the shape of a Line entity.</caption>
@@ -799,7 +800,7 @@ public slots:
      * @function Entities.appendPoint
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|Line} entity.
      * @param {Vec3} point - The point to add to the line. The coordinates are relative to the entity's position.
-     * @returns {boolean} <code>true</code> if the point was added to the line, <code>false</code> otherwise. The point may 
+     * @returns {boolean} <code>true</code> if the point was added to the line, otherwise <code>false</code>. The point may 
      *     fail to be added if the entity does not exist, the entity is not a {@link Entities.EntityType|Line} entity, the 
      *     point is outside the entity's dimensions, or the maximum number of points has been reached.
      * @example <caption>Append a point to a Line entity.</caption>
@@ -861,7 +862,7 @@ public slots:
     /**jsdoc
      * Update an entity action.
      * @function Entities.updateAction
-     * @param (Uuid} entityID - The ID of the entity with the action to update.
+     * @param {Uuid} entityID - The ID of the entity with the action to update.
      * @param {Uuid} actionID - The ID of the action to update.
      * @param {Entities.ActionArguments} arguments - The arguments to update.
      * @returns {boolean} <code>true</code> if the update was successful, otherwise <code>false</code>.
@@ -871,7 +872,7 @@ public slots:
     /**jsdoc
      * Delete an action from an entity.
      * @function Entities.deleteAction
-     * @param (Uuid} entityID - The ID of entity to delete the action from.
+     * @param {Uuid} entityID - The ID of entity to delete the action from.
      * @param {Uuid} actionID - The ID of the action to delete.
      * @returns {boolean} <code>true</code> if the update was successful, otherwise <code>false</code>.
      */
@@ -888,7 +889,7 @@ public slots:
     /**jsdoc
      * Get the arguments of an action.
      * @function Entities.getActionArguments
-     * @param (Uuid} entityID - The ID of the entity with the action.
+     * @param {Uuid} entityID - The ID of the entity with the action.
      * @param {Uuid} actionID - The ID of the action to get the arguments of.
      * @returns {Entities.ActionArguments} The arguments of the requested action if found, otherwise an empty object.
      */
@@ -1050,7 +1051,7 @@ public slots:
      * @function Entities.getJointNames
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|Model} entity.
      * @returns {string[]} The names of all the joints in the entity if it is a {@link Entities.EntityType|Model} entity and 
-     *     is loaded, otherwise <code>[]</code>. The joint names are in order per {@link Entities.getJointIndex|getJointIndex}.
+     *     is loaded, otherwise an empty array. The joint names are in order per {@link Entities.getJointIndex|getJointIndex}.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE QStringList getJointNames(const QUuid& entityID);
@@ -1061,8 +1062,8 @@ public slots:
      * @function Entities.getChildrenIDs
      * @param {Uuid} parentID - The ID of the entity to get the children IDs of.
      * @returns {Uuid[]} An array of entity, overlay, and avatar IDs that are parented directly to the <code>parentID</code> 
-     *     entity. Does not include children's children, etc. The array is empty if no children can be found, 
-     *     <code>parentID</code> cannot be found, or <code>parentID</code> is not an entity.
+     *     entity. Does not include children's children, etc. The array is empty if no children can be found or 
+     *     <code>parentID</code> cannot be found.
      * @example <caption>Report the children of an entity.</caption>
      * function createEntity(description, position, parent) {
      *     var entity = Entities.addEntity({
@@ -1127,7 +1128,7 @@ public slots:
      * @param {Uuid} childID - The ID of the child entity or overlay to test for being a child, grandchild, etc.
      * @param {Uuid} parentID - The ID of the parent entity to test for being a parent, grandparent, etc.
      * @returns {boolean} <code>true</code> if the <code>childID></code> entity or overlay has the <code>parentID</code> entity 
-     *     as a parent or grandparent etc.
+     *     as a parent or grandparent etc., otherwise <code>false</code>.
      * @example <caption>Check that a grandchild entity is a child of its grandparent.</caption>
      * function createEntity(description, position, parent) {
      *     var entity = Entities.addEntity({
@@ -1153,7 +1154,7 @@ public slots:
     /**jsdoc
      * Get the type &mdash; entity, overlay, or avatar &mdash; of an in-world item.
      * @function Entities.getNestableType
-     * @param {Uuid} id - The ID of the item to get the type of.
+     * @param {Uuid} entityID - The ID of the item to get the type of.
      * @returns {string} The type of the item: <code>"entity"</code> if the item is an entity, <code>"overlay"</code> if the 
      *    the item is an overlay, <code>"avatar"</code> if the item is an avatar; otherwise <code>"unknown"</code> if the item 
      *    cannot be found.
@@ -1167,7 +1168,7 @@ public slots:
      * print(Entities.getNestableType(entity));  // "entity"
      * print(Entities.getNestableType(Uuid.generate()));  // "unknown"
      */
-    Q_INVOKABLE QString getNestableType(QUuid id);
+    Q_INVOKABLE QString getNestableType(QUuid entityID);
 
     /**jsdoc
      * Get the ID of the {@link Entities.EntityType|Web} entity that has keyboard focus.
@@ -1258,22 +1259,21 @@ public slots:
     Q_INVOKABLE void sendHoverLeaveEntity(const EntityItemID& id, const PointerEvent& event);
 
     /**jsdoc
-     * Check whether an entity wants hand controller pointer events. For example, a <code>"Web"</code> 
-     * {@link Entities.EntityType|EntityType} does but a <code>"Shape"</code> {@link Entities.EntityType|EntityType} doesn't.
+     * Check whether an entity wants hand controller pointer events. For example, a {@link Entities.EntityType|Web} entity does 
+     * but a {@link Entities.EntityType|Shape} entity doesn't.
      * @function Entities.wantsHandControllerPointerEvents
      * @param {Uuid} entityID -  The ID of the entity.
-     * @returns {boolean} <code>true</code> if the entity wants hand controller pointer events, <code>false</code> otherwise or 
-     *     if the entity cannot be found.
+     * @returns {boolean} <code>true</code> if the entity entity can be found and it wants hand controller pointer events, 
+     *     otherwise <code>false</code>.
      */
     Q_INVOKABLE bool wantsHandControllerPointerEvents(QUuid id);
 
     /**jsdoc
-     * Send a script event over a <code>{@link Entities.EntityType|"Web"}</code> entity's <code>EventBridge</code> to the Web 
-     * page's scripts.
+     * Send a script event over a {@link Entities.EntityType|Web} entity's <code>EventBridge</code> to the Web page's scripts.
      * @function Entities.emitScriptEvent
-     * @param {Uuid} entityID - The ID of the <code>{@link Entities.EntityType|"Web"}</code> entity.
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|Web} entity.
      * @param {string} message - The message to send.
-     * @todo This function is currently not implemented.
+     * @todo <em>This function is currently not implemented.</em>
      */
     Q_INVOKABLE void emitScriptEvent(const EntityItemID& entityID, const QVariant& message);
 
@@ -1311,7 +1311,8 @@ public slots:
      * Get the object to world transform, excluding scale, of an entity.
      * @function Entities.getEntityTransform
      * @param {Uuid} entityID - The ID of the entity.
-     * @returns {Mat4} The entity's object to world transform excluding scale; i.e., translation and rotation, with scale of 1.
+     * @returns {Mat4} The entity's object to world transform excluding scale (i.e., translation and rotation, with scale of 1) 
+     *    if the entity can be found, otherwise a transform with zero translation and rotation and a scale of 1.
      * @example <caption>Position and rotation in an entity's world transform.</caption>
      * var position = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 1, z: -2 }));
      * var orientation = MyAvatar.orientation;
@@ -1338,7 +1339,8 @@ public slots:
      * Get the object to parent transform, excluding scale, of an entity.
      * @function Entities.getEntityLocalTransform
      * @param {Uuid} entityID - The ID of the entity.
-     * @returns {Mat4} The entity's object to parent transform excluding scale; i.e., translation and rotation, with scale of 1. 
+     * @returns {Mat4} The entity's object to parent transform excluding scale (i.e., translation and rotation, with scale of 
+     *     1) if the entity can be found, otherwise a transform with zero translation and rotation and a scale of 1.
      * @example <caption>Position and rotation in an entity's local transform.</caption>
      * function createEntity(position, rotation, parent) {
      *     var entity = Entities.addEntity({
@@ -1372,7 +1374,7 @@ public slots:
     * be altered.
     * @function Entities.getStaticCertificateJSON
     * @param {Uuid} entityID - The ID of the entity to get the static certificate for.
-    * @returns {string} The entity's static certificate as a JSON string.
+    * @returns {string} The entity's static certificate as a JSON string if the entity can be found, otherwise an empty string.
     */
     Q_INVOKABLE QString getStaticCertificateJSON(const QUuid& entityID);
 
@@ -1381,8 +1383,8 @@ public slots:
      * High Fidelity signing the entity's static certificate JSON.
      * @function Entities.verifyStaticCertificateProperties
      * @param {Uuid} entityID - The ID of the entity to verify.
-     * @returns {boolean} <code>true</code> if the entity's <code>certificateID</code> property is present and its value 
-     *     matches the entity's static certificate JSON, otherwise <code>false</code>.
+     * @returns {boolean} <code>true</code> if the entity can be found an its <code>certificateID</code> property is present 
+     *     and its value matches the entity's static certificate JSON; otherwise <code>false</code>.
      */
     Q_INVOKABLE bool verifyStaticCertificateProperties(const QUuid& entityID);
 
@@ -1690,15 +1692,15 @@ signals:
     
     /**jsdoc
      * @function Entities.debitEnergySource
-     * @param {number} value
+     * @param {number} value - The amount to debit.
      * @returns {Signal}
      * @deprecated This function is deprecated and will soon be removed.
      */
     void debitEnergySource(float value);
 
     /**jsdoc
-     * Triggered in when a script in a <code>{@link Entities.EntityType|"Web"}</code> entity's Web page script sends an event 
-     * over the script's <code>EventBridge</code>.
+     * Triggered in when a script in a {@link Entities.EntityType|Web} entity's Web page script sends an event over the 
+     * script's <code>EventBridge</code>.
      * @function Entities.webEventReceived
      * @param {Uuid} entityID - The ID of the entity that event was received from.
      * @param {string} message - The message received.

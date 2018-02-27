@@ -407,8 +407,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 }
 
 /**jsdoc
- * Different entity types have different properties: some common to all entities (listed below) and some specific to the type 
- * of entity (listed separately). The properties are accessed as an object of property names and values.
+ * Different entity types have different properties: some common to all entities (listed below) and some specific to each 
+ * {@link Entities.EntityType|EntityType} (linked to below). The properties are accessed as an object of property names and 
+ * values.
  *
  * @typedef {object} Entities.EntityProperties
  * @property {Uuid} id - The ID of the entity. <em>Read-only.</em>
@@ -529,6 +530,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *
  * @property {string} actionData="" - Base-64 encoded compressed dump of the actions associated with the entity. This property
  *     is typically not used in scripts directly; rather, functions that manipulate an entity's actions update it.
+ *     The size of this property increases with the number of actions. Because this property value has to fit within a High 
+ *     Fidelity datagram packet there is a limit to the number of actions that an entity can have.
  *     <em>Read-only.</em>
  * @property {Entities.RenderInfo} renderInfo - Information on the cost of rendering the entity. Currently information is only 
  *     provided for <code>Model</code> entities. <em>Read-only.</em>
@@ -550,18 +553,18 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} staticCertificateVersion=0 - The version of the method used to generate the <code>certificateID</code>.
  *
  * @see The different entity types have additional properties as follows:
- * @see Entities.EntityProperties-Box
- * @see Entities.EntityProperties-Light
- * @see Entities.EntityProperties-Line
- * @see Entities.EntityProperties-Model
- * @see Entities.EntityProperties-ParticleEffect
- * @see Entities.EntityProperties-PolyLine
- * @see Entities.EntityProperties-PolyVox
- * @see Entities.EntityProperties-Shape
- * @see Entities.EntityProperties-Sphere
- * @see Entities.EntityProperties-Text
- * @see Entities.EntityProperties-Web
- * @see Entities.EntityProperties-Zone
+ * @see {@link Entities.EntityProperties-Box|EntityProperties-Box}
+ * @see {@link Entities.EntityProperties-Light|EntityProperties-Light}
+ * @see {@link Entities.EntityProperties-Line|EntityProperties-Line}
+ * @see {@link Entities.EntityProperties-Model|EntityProperties-Model}
+ * @see {@link Entities.EntityProperties-ParticleEffect|EntityProperties-ParticleEffect}
+ * @see {@link Entities.EntityProperties-PolyLine|EntityProperties-PolyLine}
+ * @see {@link Entities.EntityProperties-PolyVox|EntityProperties-PolyVox}
+ * @see {@link Entities.EntityProperties-Shape|EntityProperties-Shape}
+ * @see {@link Entities.EntityProperties-Sphere|EntityProperties-Sphere}
+ * @see {@link Entities.EntityProperties-Text|EntityProperties-Text}
+ * @see {@link Entities.EntityProperties-Web|EntityProperties-Web}
+ * @see {@link Entities.EntityProperties-Zone|EntityProperties-Zone}
  */
 
 /**jsdoc

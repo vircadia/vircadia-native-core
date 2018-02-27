@@ -55,8 +55,8 @@ public slots:
     /**jsdoc
      * Check whether servers exist for the client to send entity packets to.
      * @function Entities.serversExist
-     * @returns {boolean} <code>true</code> if servers exist for the client to send entity packets to, <code>false</code> 
-     *     otherwise.
+     * @returns {boolean} <code>true</code> if servers exist for the client to send entity packets to, otherwise 
+     *     <code>false</code>.
      */
     /// does a server exist to send to
     bool serversExist() const { return _packetSender->serversExist(); }
@@ -64,7 +64,7 @@ public slots:
     /**jsdoc
      * Check whether the client has entity packets waiting to be sent.
      * @function Entities.hasPacketsToSend
-     * @returns {boolean} <code>true</code> if the client has entity packets waiting to be sent, <code>false</code> otherwise.
+     * @returns {boolean} <code>true</code> if the client has entity packets waiting to be sent, otherwise <code>false</code>.
      */
     /// are there packets waiting in the send queue to be sent
     bool hasPacketsToSend() const { return _packetSender->hasPacketsToSend(); }
