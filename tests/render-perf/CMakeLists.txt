@@ -16,7 +16,7 @@ link_hifi_libraries(
     shared task networking animation 
     ktx image octree gl gpu gpu-gl  
     render render-utils 
-    graphics fbx model-networking 
+    graphics fbx model-networking graphics-scripting
     entities entities-renderer audio avatars script-engine 
     physics procedural midi qml ui
     ${PLATFORM_GL_BACKEND}
