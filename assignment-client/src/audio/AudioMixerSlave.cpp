@@ -540,8 +540,8 @@ float computeGain(const AudioMixerClientData& listenerNodeData, const AvatarAudi
 
     // calculate the attenuation using the distance to this node
     // reference attenuation of 0dB at distance = 1.0m
-    gain *= exp2f(log2f(g) * log2f(std::max(distance, HRTF_DISTANCE_MIN)));
-    gain = std::min(gain, 1.0f / HRTF_DISTANCE_MIN);
+    gain *= exp2f(log2f(g) * log2f(std::max(distance, HRTF_NEARFIELD_MIN)));
+    gain = std::min(gain, 1.0f / HRTF_NEARFIELD_MIN);
 
     return gain;
 }

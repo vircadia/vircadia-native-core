@@ -790,10 +790,10 @@ static void nearFieldAzimuth(float azimuth, float distance, float& azimuthL, flo
 //
 static void nearFieldGain(float azimuth, float distance, float& gainL, float& gainR) {
 
-    // normalized distance factor = [0,1] as distance = [1,HRTF_HEAD_RADIUS]
-    assert(distance < 1.0f);
+    // normalized distance factor = [0,1] as distance = [HRTF_NEARFIELD_MAX,HRTF_HEAD_RADIUS]
+    assert(distance < HRTF_NEARFIELD_MAX);
     assert(distance > HRTF_HEAD_RADIUS);
-	float d = (1.0f - distance) * ( 1.0f / (1.0f - HRTF_HEAD_RADIUS));
+	float d = (HRTF_NEARFIELD_MAX - distance) * ( 1.0f / (HRTF_NEARFIELD_MAX - HRTF_HEAD_RADIUS));
 
     // angle of incidence at each ear
     float angleL = azimuth + HALFPI;
@@ -816,7 +816,7 @@ static void nearFieldGain(float azimuth, float distance, float& gainL, float& ga
     float cR = ((-0.000452339132f * angleR - 0.00173192444f) * angleR + 0.162476536f) * angleR;
 
     // approximate the gain correction
-    // NOTE: this must converge to 1.0 when distance = 1.0m at all azimuth
+    // NOTE: this must converge to 1.0 when distance = HRTF_NEARFIELD_MAX at all azimuth
     gainL = 1.0f - d * cL;
     gainR = 1.0f - d * cR;
 }
@@ -891,7 +891,7 @@ static void setFilters(float firCoef[4][HRTF_TAPS], float bqCoef[5][8], int dela
     assert(azimuth >= -PI);
     assert(azimuth <= +PI);
 
-    distance = MAX(distance, HRTF_DISTANCE_MIN);
+    distance = MAX(distance, HRTF_NEARFIELD_MIN);
 
     // compute the azimuth correction at each ear
     float azimuthL, azimuthR;
@@ -900,7 +900,7 @@ static void setFilters(float firCoef[4][HRTF_TAPS], float bqCoef[5][8], int dela
     // compute the DC gain correction at each ear
     float gainL = 1.0f;
     float gainR = 1.0f;
-    if (distance < 1.0f) {
+    if (distance < HRTF_NEARFIELD_MAX) {
         nearFieldGain(azimuth, distance, gainL, gainR);
     }
 
