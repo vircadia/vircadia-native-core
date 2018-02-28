@@ -814,13 +814,16 @@ function findClickedEntity(event) {
 // Handles selections on overlays while in edit mode by querying entities from
 // entityIconOverlayManager.
 function handleOverlaySelectionToolUpdates(channel, message, sender) {
+    var wantDebug = false;
     if (sender !== MyAvatar.sessionUUID || channel !== 'entityToolUpdates')
         return;
 
     var data = JSON.parse(message);
 
     if (data.method === "selectOverlay") {
-        print("setting selection to overlay " + data.overlayID);
+        if (wantDebug) {
+            print("setting selection to overlay " + data.overlayID);
+        }
         var entity = entityIconOverlayManager.findEntity(data.overlayID);
 
         if (entity !== null) {

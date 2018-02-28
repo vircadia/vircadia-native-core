@@ -17,7 +17,6 @@
 
 #include <AABox.h>
 
-
 float calculateRenderAccuracy(const glm::vec3& position,
         const AABox& bounds,
         float octreeSizeScale,

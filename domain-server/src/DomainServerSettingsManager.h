@@ -27,9 +27,6 @@
 
 const QString SETTINGS_PATHS_KEY = "paths";
 
-const QString SETTINGS_PATH = "/settings";
-const QString SETTINGS_PATH_JSON = SETTINGS_PATH + ".json";
-const QString CONTENT_SETTINGS_PATH_JSON = "/content-settings.json";
 const QString AGENT_STANDARD_PERMISSIONS_KEYPATH = "security.standard_permissions";
 const QString AGENT_PERMISSIONS_KEYPATH = "security.permissions";
 const QString IP_PERMISSIONS_KEYPATH = "security.ip_permissions";
@@ -37,6 +34,7 @@ const QString MAC_PERMISSIONS_KEYPATH = "security.mac_permissions";
 const QString MACHINE_FINGERPRINT_PERMISSIONS_KEYPATH = "security.machine_fingerprint_permissions";
 const QString GROUP_PERMISSIONS_KEYPATH = "security.group_permissions";
 const QString GROUP_FORBIDDENS_KEYPATH = "security.group_forbiddens";
+const QString AUTOMATIC_CONTENT_ARCHIVES_GROUP = "automatic_content_archives";
 
 using GroupByUUIDKey = QPair<QUuid, QUuid>; // groupID, rankID
 
@@ -52,11 +50,12 @@ public:
     bool handleAuthenticatedHTTPRequest(HTTPConnection* connection, const QUrl& url);
 
     void setupConfigMap(const QStringList& argumentList);
+
+    // each of the three methods in this group takes a read lock of _settingsLock
+    // and cannot be called when the a write lock is held by the same thread
     QVariant valueOrDefaultValueForKeyPath(const QString& keyPath);
-
-    QVariantMap& getSettingsMap() { return _configMap.getConfig(); }
-
-    QVariantMap& getDescriptorsMap();
+    QVariant valueForKeyPath(const QString& keyPath);
+    bool containsKeyPath(const QString& keyPath) { return valueForKeyPath(keyPath).isValid(); }
 
     // these give access to anonymous/localhost/logged-in settings from the domain-server settings page
     bool haveStandardPermissionsForName(const QString& name) const { return _standardAgentPermissions.contains(name, 0); }
@@ -111,6 +110,24 @@ public:
 
     void debugDumpGroupsState();
 
+    enum SettingsRequestAuthentication { NotAuthenticated, Authenticated };
+    enum DomainSettingsInclusion { NoDomainSettings, IncludeDomainSettings };
+    enum ContentSettingsInclusion { NoContentSettings, IncludeContentSettings };
+    enum DefaultSettingsInclusion { NoDefaultSettings, IncludeDefaultSettings };
+    enum SettingsBackupFlag { NotForBackup, ForBackup };
+
+    /// thread safe method to retrieve a JSON representation of settings
+    QJsonObject settingsResponseObjectForType(const QString& typeValue,
+                                              SettingsRequestAuthentication authentication = NotAuthenticated,
+                                              DomainSettingsInclusion domainSettingsInclusion = IncludeDomainSettings,
+                                              ContentSettingsInclusion contentSettingsInclusion = IncludeContentSettings,
+                                              DefaultSettingsInclusion defaultSettingsInclusion = IncludeDefaultSettings,
+                                              SettingsBackupFlag settingsBackupFlag = NotForBackup);
+    /// thread safe method to restore settings from a JSON object
+    Q_INVOKABLE bool restoreSettingsFromObject(QJsonObject settingsToRestore, SettingsType settingsType);
+
+    bool recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, SettingsType settingsType);
+
 signals:
     void updateNodePermissions();
     void settingsUpdated();
@@ -130,20 +147,16 @@ private:
     QStringList _argumentList;
 
     QJsonArray filteredDescriptionArray(bool isContentSettings);
-    QJsonObject settingsResponseObjectForType(const QString& typeValue, bool isAuthenticated = false,
-                                              bool includeDomainSettings = true, bool includeContentSettings = true,
-                                              bool includeDefaults = true, bool isForBackup = false);
-    bool recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, SettingsType settingsType);
-
     void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
                        const QJsonObject& settingDescription);
     QJsonObject settingDescriptionFromGroup(const QJsonObject& groupObject, const QString& settingName);
     void sortPermissions();
+
+    // you cannot be holding the _settingsLock when persisting to file from the same thread
+    // since it may take either a read lock or write lock and recursive locking doesn't allow a change in type
     void persistToFile();
 
     void splitSettingsDescription();
-
-    bool restoreSettingsFromObject(QJsonObject settingsToRestore, SettingsType settingsType);
 
     double _descriptionVersion;
 
@@ -152,9 +165,9 @@ private:
     QJsonArray _contentSettingsDescription;
     QJsonObject _settingsMenuGroups;
 
+    // any method that calls valueForKeyPath on this _configMap must get a write lock it keeps until it
+    // is done with the returned QVariant*
     HifiConfigVariantMap _configMap;
-
-    friend class DomainServer;
 
     // these cause calls to metaverse's group api
     void apiGetGroupID(const QString& groupName);
@@ -189,6 +202,9 @@ private:
 
     // keep track of answers to api queries about which users are in which groups
     QHash<QString, QHash<QUuid, QUuid>> _groupMembership; // QHash<user-name, QHash<group-id, rank-id>>
+
+    /// guard read/write access from multiple threads to settings 
+    QReadWriteLock _settingsLock { QReadWriteLock::Recursive };
 };
 
 #endif // hifi_DomainServerSettingsManager_h

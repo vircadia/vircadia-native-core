@@ -53,7 +53,7 @@ AssetClient::AssetClient() {
             this, &AssetClient::handleNodeClientConnectionReset);
 }
 
-void AssetClient::init() {
+void AssetClient::initCaching() {
     Q_ASSERT(QThread::currentThread() == thread());
 
     // Setup disk cache if not already

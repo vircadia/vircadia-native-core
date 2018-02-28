@@ -14,17 +14,8 @@ $(document).ready(function(){
       return b;
   })(window.location.search.substr(1).split('&'));
 
-  // define extra groups to add to description, with their splice index
-  Settings.extraGroups = {
-    1: {
-      html_id: 'places',
-      label: 'Places'
-    },
-    "-1": {
-      html_id: 'settings_backup',
-      label: 'Settings Backup'
-    }
-  }
+  Settings.extraGroupsAtEnd = Settings.extraDomainGroupsAtEnd;
+  Settings.extraGroupsAtIndex = Settings.extraDomainGroupsAtIndex;
 
   Settings.afterReloadActions = function() {
     // append the domain selection modal
@@ -103,20 +94,17 @@ $(document).ready(function(){
       var password = formJSON["security"]["http_password"];
 
       if ((password == sha256_digest("")) && (username == undefined || (username && username.length != 0))) {
-        swal({
-          title: "Are you sure?",
-          text: "You have entered a blank password with a non-blank username. Are you sure you want to require a blank password?",
-          type: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "#5cb85c",
-          confirmButtonText: "Yes!",
-          closeOnConfirm: true
-        },
-        function () {
+        swalAreYouSure(
+          "You have entered a blank password with a non-blank username. Are you sure you want to require a blank password?",
+          "Use blank password",
+          function() {
+            swal.close();
+            
             formJSON["security"]["http_password"] = "";
 
             postSettings(formJSON);
-        });
+          }
+        );
 
         return;
       }
@@ -643,7 +631,6 @@ $(document).ready(function(){
     autoNetworkingEl.after(form);
   }
 
-
   function setupPlacesTable() {
     // create a dummy table using our view helper
     var placesTableSetting = {
@@ -1043,32 +1030,38 @@ $(document).ready(function(){
   $('body').on('click', '#' + RESTORE_SETTINGS_UPLOAD_ID, function(e){
     e.preventDefault();
 
-    var files = $('#' + RESTORE_SETTINGS_FILE_ID).prop('files');
+    swalAreYouSure(
+      "Your domain settings will be replaced by the uploaded settings",
+      "Restore settings",
+      function() {
+        var files = $('#' + RESTORE_SETTINGS_FILE_ID).prop('files');
 
-    var fileFormData = new FormData();
-    fileFormData.append('restore-file', files[0]);
+        var fileFormData = new FormData();
+        fileFormData.append('restore-file', files[0]);
 
-    showSpinnerAlert("Restoring Settings");
+        showSpinnerAlert("Restoring Settings");
 
-    $.ajax({
-      url: '/settings/restore',
-      type: 'POST',
-      processData: false,
-      contentType: false,
-      dataType: 'json',
-      data: fileFormData
-    }).done(function(data, textStatus, jqXHR) {
-      swal.close();
-      showRestartModal();
-    }).fail(function(jqXHR, textStatus, errorThrown) {
-      showErrorMessage(
-        "Error",
-        "There was a problem restoring domain settings.\n"
-        + "Please ensure that your current domain settings are valid and try again."
-      );
+        $.ajax({
+          url: '/settings/restore',
+          type: 'POST',
+          processData: false,
+          contentType: false,
+          dataType: 'json',
+          data: fileFormData
+        }).done(function(data, textStatus, jqXHR) {
+          swal.close();
+          showRestartModal();
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+          showErrorMessage(
+            "Error",
+            "There was a problem restoring domain settings.\n"
+            + "Please ensure that your current domain settings are valid and try again."
+          );
 
-      reloadSettings();
-    });
+          reloadSettings();
+        });
+      }
+    );
   });
 
   $('body').on('change', '#' + RESTORE_SETTINGS_FILE_ID, function() {
@@ -1089,7 +1082,7 @@ $(document).ready(function(){
     html += "<div class='form-group'>";
     html += "<label class='control-label'>Upload a Settings Configuration</label>";
     html += "<span class='help-block'>Upload a settings configuration to quickly configure this domain";
-    html += "<br/>Note: Your domain's settings will be replaced by the settings you upload</span>";
+    html += "<br/>Note: Your domain settings will be replaced by the settings you upload</span>";
 
     html += "<input id='restore-settings-file' name='restore-settings' type='file'>";
     html += "<button type='button' id='" + RESTORE_SETTINGS_UPLOAD_ID + "' disabled='true' class='btn btn-primary'>Upload Domain Settings</button>";
@@ -1097,8 +1090,5 @@ $(document).ready(function(){
     html += "</div>";
 
     $('#settings_backup .panel-body').html(html);
-
-    // add an upload button to the footer to kick off the upload form
-
   }
 });

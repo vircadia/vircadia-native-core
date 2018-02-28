@@ -61,10 +61,12 @@ protected:
     Q_INVOKABLE void getKeyFilePathIfExists();
     Q_INVOKABLE void getSecurityImage();
     Q_INVOKABLE void getWalletAuthenticatedStatus();
+    Q_INVOKABLE bool copyKeyFileFrom(const QString& pathname);
 
     Q_INVOKABLE void chooseSecurityImage(const QString& imageFile);
     Q_INVOKABLE void setPassphrase(const QString& passphrase);
     Q_INVOKABLE void changePassphrase(const QString& oldPassphrase, const QString& newPassphrase);
+    Q_INVOKABLE void setSoftReset();
 
     Q_INVOKABLE void buy(const QString& assetId, int cost, const bool controlledFailure = false);
     Q_INVOKABLE void balance();

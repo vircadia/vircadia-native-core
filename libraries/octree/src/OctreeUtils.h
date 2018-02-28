@@ -15,6 +15,7 @@
 #include "OctreeConstants.h"
 
 class AABox;
+class QJsonDocument;
 
 /// renderAccuracy represents a floating point "visibility" of an object based on it's view from the camera. At a simple
 /// level it returns 0.0f for things that are so small for the current settings that they could not be visible.

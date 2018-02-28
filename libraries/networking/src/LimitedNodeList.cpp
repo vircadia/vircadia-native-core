@@ -315,8 +315,10 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
         }
 
         if (sourceNode) {
-            if (!PacketTypeEnum::getNonVerifiedPackets().contains(headerType) &&
-                !isDomainServer()) {
+            bool verifiedPacket = !PacketTypeEnum::getNonVerifiedPackets().contains(headerType);
+            bool ignoreVerification = isDomainServer() && PacketTypeEnum::getDomainIgnoredVerificationPackets().contains(headerType);
+
+            if (verifiedPacket && !ignoreVerification) {
 
                 QByteArray packetHeaderHash = NLPacket::verificationHashInHeader(packet);
                 QByteArray expectedHash = NLPacket::hashForPacketAndSecret(packet, sourceNode->getConnectionSecret());
@@ -326,6 +328,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
                     static QMultiMap<QUuid, PacketType> hashDebugSuppressMap;
 
                     if (!hashDebugSuppressMap.contains(sourceID, headerType)) {
+                        qCDebug(networking) << packetHeaderHash << expectedHash;
                         qCDebug(networking) << "Packet hash mismatch on" << headerType << "- Sender" << sourceID;
 
                         hashDebugSuppressMap.insert(sourceID, headerType);
