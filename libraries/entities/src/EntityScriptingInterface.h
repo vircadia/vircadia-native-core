@@ -151,7 +151,7 @@ public slots:
     /**jsdoc
      * Check whether or not you can rez (create) new entities in the domain.
      * @function Entities.canRez
-     * @returns {boolean} <code>true</code> if the domain server will allow this script to rez (create) new entities, 
+     * @returns {boolean} <code>true</code> if the domain server will allow the script to rez (create) new entities, 
      *     otherwise <code>false</code>.
      */
     Q_INVOKABLE bool canRez();
@@ -160,7 +160,7 @@ public slots:
      * Check whether or not you can rez (create) new temporary entities in the domain. Temporary entities are entities with a
      * finite <code>lifetime</code> property value set.
      * @function Entities.canRezTmp
-     * @returns {boolean} <code>true</code> if the domain server will allow this script to rez (create) new temporary
+     * @returns {boolean} <code>true</code> if the domain server will allow the script to rez (create) new temporary
      *     entities, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool canRezTmp();
@@ -169,7 +169,7 @@ public slots:
      * Check whether or not you can rez (create) new certified entities in the domain. Certified entities are entities that have
      * PoP certificates.
      * @function Entities.canRezCertified
-     * @returns {boolean} <code>true</code> if the domain server will allow this script to rez (create) new certified
+     * @returns {boolean} <code>true</code> if the domain server will allow the script to rez (create) new certified
      *     entities, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool canRezCertified();
@@ -178,7 +178,7 @@ public slots:
      * Check whether or not you can rez (create) new temporary certified entities in the domain. Temporary entities are entities
      * with a finite  <code>lifetime</code> property value set. Certified entities are entities that have PoP certificates.
      * @function Entities.canRezTmpCertified
-     * @returns {boolean} <code>true</code> if the domain server will allow this script to rez (create) new temporary 
+     * @returns {boolean} <code>true</code> if the domain server will allow the script to rez (create) new temporary 
      *     certified entities, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool canRezTmpCertified();
@@ -186,15 +186,17 @@ public slots:
     /**jsdoc
      * Check whether or not you can make changes to the asset server's assets.
      * @function Entities.canWriteAssets
-     * @returns {boolean} <code>true</code> if the domain server will allow this script to make changes to the to the asset 
+     * @returns {boolean} <code>true</code> if the domain server will allow the script to make changes to the to the asset 
      *     server's assets, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool canWriteAssets();
 
     /**jsdoc
-    * @function Entities.canReplaceContent
-    * @return {bool} `true` if the DomainServer will allow this Node/Avatar to replace the domain's content set
-    */
+     * Check whether or not you can replace the domain's content set.
+     * @function Entities.canReplaceContent
+     * @returns {boolean} <code>true</code> if the domain server will allow the script to replace the domain's content set, 
+     *     otherwise <code>false</code>.
+     */
     Q_INVOKABLE bool canReplaceContent();
 
     /**jsdoc

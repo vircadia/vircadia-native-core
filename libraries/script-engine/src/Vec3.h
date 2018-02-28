@@ -25,27 +25,27 @@
  * A 2-dimensional vector.
  *
  * @typedef {object} Vec2
- * @property {float} x X-coordinate of the vector.
- * @property {float} y Y-coordinate of the vector.
+ * @property {number} x - X-coordinate of the vector.
+ * @property {number} y - Y-coordinate of the vector.
  */
 
 /**jsdoc
  * A 3-dimensional vector.
  *
  * @typedef {object} Vec3
- * @property {float} x X-coordinate of the vector.
- * @property {float} y Y-coordinate of the vector.
- * @property {float} z Z-coordinate of the vector.
+ * @property {number} x - X-coordinate of the vector.
+ * @property {number} y - Y-coordinate of the vector.
+ * @property {number} z - Z-coordinate of the vector.
  */
 
 /**jsdoc
  * A 4-dimensional vector.
  *
  * @typedef {object} Vec4
- * @property {float} x X-coordinate of the vector.
- * @property {float} y Y-coordinate of the vector.
- * @property {float} z Z-coordinate of the vector.
- * @property {float} w W-coordinate of the vector.
+ * @property {number} x - X-coordinate of the vector.
+ * @property {number} y - Y-coordinate of the vector.
+ * @property {number} z - Z-coordinate of the vector.
+ * @property {number} w - W-coordinate of the vector.
  */
 
 /**jsdoc
