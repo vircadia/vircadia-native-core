@@ -14,9 +14,13 @@
 #include <vector>
 #include <QDebug>
 
+#include <SharedUtil.h>
+
 #include "SkeletonDumpApp.h"
 
 int main(int argc, char * argv[]) {
+    setupHifiApplication("Skeleton Dump App");
+
     SkeletonDumpApp app(argc, argv);
     return app.getReturnCode();
 }

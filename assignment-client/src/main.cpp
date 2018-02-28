@@ -9,22 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <LogHandler.h>
+#include <BuildInfo.h>
 #include <SharedUtil.h>
 
 #include "AssignmentClientApp.h"
-#include <BuildInfo.h>
 
 int main(int argc, char* argv[]) {
-    disableQtBearerPoll(); // Fixes wifi ping spikes
-
-    QCoreApplication::setApplicationName(BuildInfo::ASSIGNMENT_CLIENT_NAME);
-    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
-    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
-
-    qInstallMessageHandler(LogHandler::verboseMessageHandler);
-    qInfo() << "Starting.";
+    setupHifiApplication(BuildInfo::ASSIGNMENT_CLIENT_NAME);
 
     AssignmentClientApp app(argc, argv);
     
