@@ -119,16 +119,16 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  * @property {string} albedoMap - URL of albedo texture image.
  * @property {string} opacityMap - URL of opacity texture image. Set value the same as the <code>albedoMap</code> value for 
  *     transparency.
- * @property {string} roughnessMap - URL of roughness texture image.
- * @property {string} glossMap - Synonym for <code>roughnessMap</code>.
- * @property {string} metallicMap - URL of metallic texture image.
- * @property {string} specularMap - Synonym for <code>metallicMap</code>.
- * @property {string} normalMap - URL of normal texture image.
- * @property {string} bumpMap - Synonym for <code>normalMap</code>.
+ * @property {string} roughnessMap - URL of roughness texture image. Can use this or <code>glossMap</code>, but not both.
+ * @property {string} glossMap - URL of gloss texture image. Can use this or <code>roughnessMap</code>, but not both.
+ * @property {string} metallicMap - URL of metallic texture image. Can use this or <code>specularMap</code>, but not both.
+ * @property {string} specularMap - URL of specular texture image. Can use this or <code>metallicMap</code>, but not both.
+ * @property {string} normalMap - URL of normal texture image. Can use this or <code>bumpMap</code>, but not both.
+ * @property {string} bumpMap - URL of bump texture image. Can use this or <code>normalMap</code>, but not both.
  * @property {string} occlusionMap - URL of occlusion texture image.
  * @property {string} scatteringMap - URL of scattering texture image. Only used if <code>normalMap</code> or 
  *     <code>bumpMap</code> is specified.
- * @property {string} lightMap - URL of light texture image. <em>Currently not used.</em>
+ * @property {string} lightMap - URL of light map texture image. <em>Currently not used.</em>
  */
 // Note: See MaterialEntityItem.h for default values used in practice.
 std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::parseJSONMaterial(const QJsonObject& materialJSON) {
