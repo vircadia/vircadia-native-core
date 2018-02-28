@@ -345,6 +345,7 @@ using MeshPointer = std::shared_ptr<graphics::Mesh>;
 /**jsdoc
  * A handle for a mesh in an entity, such as returned by {@link Entities.getMeshes}.
  * @class MeshProxy
+ * @deprecated Use the {@link Graphics} API instead.
  */
 class MeshProxy : public QObject {
     Q_OBJECT
@@ -356,6 +357,7 @@ public:
      * Get the number of vertices in the mesh.
      * @function MeshProxy#getNumVertices
      * @returns {number} Integer number of vertices in the mesh.
+     * @deprecated Use the {@link Graphics} API instead.
      */
     Q_INVOKABLE virtual int getNumVertices() const = 0;
 
@@ -364,6 +366,7 @@ public:
      * @function MeshProxy#getPos3
      * @param {number} index - Integer index of the mesh vertex.
      * @returns {Vec3} Local position of the vertex relative to the mesh.
+     * @deprecated Use the {@link Graphics} API instead.
      */
     Q_INVOKABLE virtual glm::vec3 getPos3(int index) const = 0;
 };

@@ -24,6 +24,7 @@ exports.handlers = {
             '../../libraries/animation/src',
             '../../libraries/avatars/src',
             '../../libraries/controllers/src/controllers/',
+            '../../libraries/graphics-scripting/src/graphics-scripting/',
             '../../libraries/entities/src',
             '../../libraries/model-networking/src/model-networking/',
             '../../libraries/octree/src',
