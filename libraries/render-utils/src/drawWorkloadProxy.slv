@@ -25,7 +25,7 @@ struct WorkloadProxy {
     vec4 sphere;
     vec4 region;
 };
-/*
+
 #if defined(GPU_GL410)
 uniform samplerBuffer ssbo0Buffer;
 WorkloadProxy getWorkloadProxy(int i) {
@@ -44,13 +44,13 @@ WorkloadProxy getWorkloadProxy(int i) {
     return proxy;
 }
 #endif
-*/
+/*
 uniform ssbo0Buffer {
     WorkloadProxy proxies[1024];
 };
 WorkloadProxy getWorkloadProxy(int index) {
     return proxies[index];
-}
+}*/
 
 
 out vec4 varColor;

@@ -125,14 +125,14 @@ void GameWorkloadRenderItem::render(RenderArgs* args) {
     // Bind program
     batch.setPipeline(getPipeline());
 
-   // batch.setResourceBuffer(11, _allProxiesBuffer);
-    batch.setUniformBuffer(11, _allProxiesBuffer);
+    batch.setResourceBuffer(11, _allProxiesBuffer);
+  //  batch.setUniformBuffer(11, _allProxiesBuffer);
 
     static const int NUM_VERTICES_PER_QUAD = 3;
     batch.draw(gpu::TRIANGLES, NUM_VERTICES_PER_QUAD * _numAllProxies, 0);
 
- //   batch.setResourceBuffer(11, nullptr);
-    batch.setUniformBuffer(11, nullptr);
+    batch.setResourceBuffer(11, nullptr);
+ //   batch.setUniformBuffer(11, nullptr);
 
 /*
     auto geometryCache = DependencyManager::get<GeometryCache>();
