@@ -29,7 +29,7 @@ namespace workload {
     class ClassificationTracker {
     public:
         using Config = ClassificationTrackerConfig;
-        using Outputs = Classifications;
+        using Outputs = SortedChanges;
         using JobModel = workload::Job::ModelO<ClassificationTracker, Outputs, Config>;
 
         ClassificationTracker() {}
