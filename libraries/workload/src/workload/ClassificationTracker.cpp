@@ -18,7 +18,17 @@ using namespace workload;
 void ClassificationTracker::configure(const Config& config) {
 }
 
-void ClassificationTracker::run(const workload::WorkloadContextPointer& renderContext, Outputs& outputs) {
-
+void ClassificationTracker::run(const WorkloadContextPointer& context, Outputs& outputs) {
+    auto space = context->_space;
+    if (space) {
+        Changes changes;
+        space->categorizeAndGetChanges(changes);
+        outputs.resize(workload::Space::NUM_TRANSITIONS);
+        for (uint32_t i = 0; i < changes.size(); ++i) {
+            int32_t j = Space::computeTransitionIndex(changes[i].prevRegion, changes[i].region);
+            assert(j >= 0 && j < workload::Space::NUM_TRANSITIONS);
+            outputs[j].push_back(changes[i].proxyId);
+        }
+    }
 }
 
