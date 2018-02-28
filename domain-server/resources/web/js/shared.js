@@ -42,7 +42,9 @@ Object.assign(Settings, {
   ADD_PLACE_BTN_ID: 'add-place-btn',
   FORM_ID: 'settings-form',
   INVALID_ROW_CLASS: 'invalid-input',
-  DATA_ROW_INDEX: 'data-row-index'
+  DATA_ROW_INDEX: 'data-row-index',
+  CONTENT_ARCHIVES_PANEL_ID: 'content_archives',
+  UPLOAD_CONTENT_BACKUP_PANEL_ID: 'upload_content'
 });
 
 var URLs = {
@@ -95,6 +97,17 @@ var DOMAIN_ID_TYPE_NONE = 0;
 var DOMAIN_ID_TYPE_TEMP = 1;
 var DOMAIN_ID_TYPE_FULL = 2;
 var DOMAIN_ID_TYPE_UNKNOWN = 3;
+
+function swalAreYouSure(text, confirmButtonText, callback) {
+  swal({
+    title: "Are you sure?",
+    text: text,
+    type: "warning",
+    showCancelButton: true,
+    confirmButtonText: confirmButtonText,
+    closeOnConfirm: false
+  }, callback);
+}
 
 function domainIDIsSet() {
   if (typeof Settings.data.values.metaverse !== 'undefined' &&
@@ -164,7 +177,7 @@ function getDomainFromAPI(callback) {
   if (callback === undefined) {
     callback = function() {};
   }
-  
+
   if (!domainIDIsSet()) {
     callback({ status: 'fail' });
     return null;

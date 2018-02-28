@@ -187,3 +187,14 @@ Transform Cube3DOverlay::evalRenderTransform() {
     transform.setRotation(rotation);
     return transform;
 }
+
+scriptable::ScriptableModelBase Cube3DOverlay::getScriptableModel() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto vertexColor = ColorUtils::toVec3(_color);
+    scriptable::ScriptableModelBase result;
+    if (auto mesh = geometryCache->meshFromShape(GeometryCache::Cube, vertexColor)) {
+        result.objectID = getID();
+        result.append(mesh);
+    }
+    return result;
+}

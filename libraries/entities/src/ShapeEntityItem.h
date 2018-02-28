@@ -114,8 +114,6 @@ protected:
     //! ellipsoids.
     ShapeType _collisionShapeType{ ShapeType::SHAPE_TYPE_ELLIPSOID };
 
-    bool _canCastShadow { ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
-
     std::shared_ptr<graphics::Material> _material;
 };
 

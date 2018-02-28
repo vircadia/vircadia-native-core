@@ -22,6 +22,8 @@ class ShapeEntityRenderer : public TypedEntityRenderer<ShapeEntityItem> {
 public:
     ShapeEntityRenderer(const EntityItemPointer& entity);
 
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
+
 private:
     virtual bool needsRenderUpdate() const override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;

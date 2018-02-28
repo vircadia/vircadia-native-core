@@ -163,3 +163,18 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     const auto triCount = geometryCache->getShapeTriangleCount(geometryShape);
     args->_details._trianglesRendered += (int)triCount;
 }
+
+scriptable::ScriptableModelBase ShapeEntityRenderer::getScriptableModel()  {
+    scriptable::ScriptableModelBase result;
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryShape = geometryCache->getShapeForEntityShape(_shape);
+    glm::vec3 vertexColor;
+    if (_materials["0"].top().material) {
+        vertexColor = _materials["0"].top().material->getAlbedo();
+    }
+    if (auto mesh = geometryCache->meshFromShape(geometryShape, vertexColor)) {
+        result.objectID = getEntity()->getID();
+        result.append(mesh);
+    }
+    return result;
+}
