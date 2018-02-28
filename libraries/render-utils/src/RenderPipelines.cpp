@@ -515,13 +515,22 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     addPipeline(
         Key::Builder().withSkinned().withDepthOnly().withFade(),
         skinModelShadowFadeVertex, modelShadowFadePixel, batchSetter, itemSetter);
+
+    // Now repeat for dual quaternion
+    // Depth-only
+    addPipeline(
+        Key::Builder().withSkinned().withDepthOnly().withDualQuatSkinned(),
+        skinModelShadowDualQuatVertex, modelShadowPixel, nullptr, nullptr);
+    // Same thing but with Fade on
+    addPipeline(
+        Key::Builder().withSkinned().withDepthOnly().withFade().withDualQuatSkinned(),
+        skinModelShadowDualQuatVertex, modelShadowFadePixel, batchSetter, itemSetter);
 }
 
 void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter) {
     // Vertex shaders
     auto modelVertex = model_vert::getShader();
     auto modelNormalMapVertex = model_normal_map_vert::getShader();
-
     auto skinModelVertex = skin_model_vert::getShader();
     auto skinModelNormalMapVertex = skin_model_normal_map_vert::getShader();
     auto skinModelNormalMapFadeVertex = skin_model_normal_map_fade_vert::getShader();
@@ -575,19 +584,19 @@ void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::Ba
 
     // Dual Quaternion
     addPipeline(
-        Key::Builder().withMaterial().withSkinned(),
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned(),
         skinModelDualQuatVertex, modelPixel, nullptr, nullptr);
     addPipeline(
-        Key::Builder().withMaterial().withSkinned().withTangents(),
+        Key::Builder().withMaterial().withSkinned().withTangents().withDualQuatSkinned(),
         skinModelNormalMapDualQuatVertex, modelNormalMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned(),
         skinModelDualQuatVertex, modelSpecularMapPixel, nullptr, nullptr);
     addPipeline(
-        Key::Builder().withMaterial().withSkinned().withTangents().withSpecular(),
+        Key::Builder().withMaterial().withSkinned().withTangents().withSpecular().withDualQuatSkinned(),
         skinModelNormalMapDualQuatVertex, modelNormalSpecularMapPixel, nullptr, nullptr);
     addPipeline(
-        Key::Builder().withMaterial().withSkinned().withTangents().withFade(),
+        Key::Builder().withMaterial().withSkinned().withTangents().withFade().withDualQuatSkinned(),
         skinModelNormalMapFadeDualQuatVertex, modelNormalMapFadePixel, batchSetter, itemSetter, nullptr, nullptr);
 }
 
