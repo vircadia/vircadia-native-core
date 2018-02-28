@@ -125,13 +125,6 @@ Cube3DOverlay* Cube3DOverlay::createClone() const {
 
 void Cube3DOverlay::setProperties(const QVariantMap& properties) {
     Volume3DOverlay::setProperties(properties);
-
-    auto borderSize = properties["borderSize"];
-
-    if (borderSize.isValid()) {
-        float value = borderSize.toFloat();
-        setBorderSize(value);
-    }
 }
 
 /**jsdoc
@@ -177,14 +170,8 @@ void Cube3DOverlay::setProperties(const QVariantMap& properties) {
  *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
  *
  * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
- *
- * @property {number} borderSize - Not used.
  */
 QVariant Cube3DOverlay::getProperty(const QString& property) {
-    if (property == "borderSize") {
-        return _borderSize;
-    }
-
     return Volume3DOverlay::getProperty(property);
 }
 
@@ -199,4 +186,15 @@ Transform Cube3DOverlay::evalRenderTransform() {
     transform.setTranslation(position);
     transform.setRotation(rotation);
     return transform;
+}
+
+scriptable::ScriptableModelBase Cube3DOverlay::getScriptableModel() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto vertexColor = ColorUtils::toVec3(_color);
+    scriptable::ScriptableModelBase result;
+    if (auto mesh = geometryCache->meshFromShape(GeometryCache::Cube, vertexColor)) {
+        result.objectID = getID();
+        result.append(mesh);
+    }
+    return result;
 }

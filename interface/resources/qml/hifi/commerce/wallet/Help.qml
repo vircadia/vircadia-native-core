@@ -60,48 +60,88 @@ Item {
 
         ListElement {
             isExpanded: false;
-            question: "How can I get HFC?"
-            answer: qsTr("High Fidelity commerce is in closed beta right now.<br><br>To request entry and get free HFC, <b>please contact info@highfidelity.com with your High Fidelity account username and the email address registered to that account.</b>");
+            question: "How can I get HFC?";
+            answer: "High Fidelity commerce is in open beta right now. Want more HFC? \
+Get it by going to <br><br><b><font color='#0093C5'><a href='#bank'>BankOfHighFidelity.</a></font></b> and meeting with the banker!";
         }
         ListElement {
             isExpanded: false;
-            question: "What are private keys?"
-            answer: qsTr("A private key is a secret piece of text that is used to prove ownership, unlock confidential information, and sign transactions.<br><br>In High Fidelity, <b>your private keys are used to securely access the contents of your Wallet and Purchases.</b>");
+            question: "What are private keys and where are they stored?";
+            answer: 
+                "A private key is a secret piece of text that is used to prove ownership, unlock confidential information, and sign transactions. \
+In High Fidelity, your private key is used to securely access the contents of your Wallet and Purchases. \
+After wallet setup, a hifikey file is stored on your computer in High Fidelity Interface's AppData directory. \
+Your hifikey file contains your private key and is protected by your wallet passphrase. \
+<br><br>It is very important to back up your hifikey file! \
+<b><font color='#0093C5'><a href='#privateKeyPath'>Tap here to open the folder where your HifiKeys are stored on your main display.</a></font></b>"
         }
         ListElement {
             isExpanded: false;
-            question: "Where are my private keys stored?"
-            answer: qsTr('By default, your private keys are <b>only stored on your hard drive</b> in High Fidelity Interface\'s AppData directory.<br><br><b><font color="#0093C5"><a href="#privateKeyPath">Tap here to open the folder where your HifiKeys are stored on your main display.</a></font></b>');
+            question: "How do I back up my private keys?";
+            answer: "You can back up your hifikey file (which contains your private key and is encrypted using your wallet passphrase) by copying it to a USB flash drive, or to a service like Dropbox or Google Drive. \
+Restore your hifikey file by replacing the file in Interface's AppData directory with your backup copy. \
+Others with access to your back up should not be able to spend your HFC without your passphrase. \
+<b><font color='#0093C5'><a href='#privateKeyPath'>Tap here to open the folder where your HifiKeys are stored on your main display.</a></font></b>";
         }
         ListElement {
             isExpanded: false;
-            question: "How can I backup my private keys?"
-            answer: qsTr('You may backup the file containing your private keys by copying it to a USB flash drive, or to a service like Dropbox or Google Drive.<br><br>Restore your backup by replacing the file in Interface\'s AppData directory with your backed-up copy.<br><br><b><font color="#0093C5"><a href="#privateKeyPath">Tap here to open the folder where your HifiKeys are stored on your main display.</a></font></b>');
+            question: "What happens if I lose my private keys?";
+            answer: "We cannot stress enough that you should keep a backup! For security reasons, High Fidelity does not keep a copy, and cannot restore it for you. \
+If you lose your private key, you will no longer have access to the contents of your Wallet or My Purchases. \
+Here are some things to try:<ul>\
+<li>If you have backed up your hifikey file before, search your backup location</li>\
+<li>Search your AppData directory in the last machine you used to set up the Wallet</li>\
+<li>If you are a developer and have installed multiple builds of High Fidelity, your hifikey file might be in another folder</li>\
+</ul><br><br>As a last resort, you can set up your Wallet again and generate a new hifikey file. \
+Unfortunately, this means you will start with 0 HFC and your purchased items will not be transferred over.";
         }
         ListElement {
             isExpanded: false;
-            question: "What happens if I lose my passphrase?"
-            answer: qsTr("Your passphrase is used to encrypt your private keys. If you lose your passphrase, you will no longer be able to decrypt your private key file. You will also no longer have access to the contents of your Wallet or My Purchases.<br><br><b>Nobody can help you recover your passphrase, including High Fidelity.</b> Please write it down and store it securely.");
+            question: "What if I forget my wallet passphrase?";
+            answer: "Your wallet passphrase is used to encrypt your private keys. Please write it down and store it securely! \
+<br><br>If you forget your passphrase, you will no longer be able to decrypt the hifikey file that the passphrase protects. \
+You will also no longer have access to the contents of your Wallet or My Purchases. \
+For security reasons, High Fidelity does not keep a copy of your passphrase, and can't restore it for you. \
+<br><br>If you still cannot remember your wallet passphrase, you can set up your Wallet again and generate a new hifikey file. \
+Unfortunately, this means you will start with 0 HFC and your purchased items will not be transferred over.";
         }
         ListElement {
             isExpanded: false;
-            question: "What is a 'Security Pic'?"
-            answer: qsTr("Your Security Pic is an encrypted image that you selected during Wallet Setup. <b>It acts as an extra layer of Wallet security.</b><br><br>When you see your Security Pic, you know that your actions and data are securely making use of your private keys.<br><br><b>If you don't see your Security Pic on a page that is asking you for your Wallet passphrase, someone untrustworthy may be trying to gain access to your Wallet.</b><br><br>The encrypted Pic is stored on your hard drive inside the same file as your private keys.");
+            question: "How do I send HFC to other people?";
+            answer: "You can send HFC to a High Fidelity connection (someone you've shaken hands with in-world) or somebody Nearby (currently in the same domain as you). \
+In your Wallet's Send Money tab, choose from your list of connections, or choose Nearby and select the glowing sphere of the person's avatar.";
         }
         ListElement {
             isExpanded: false;
-            question: "My HFC balance isn't what I expect it to be. Why?"
-            answer: qsTr('High Fidelity Coin (HFC) transactions are backed by a <b>blockchain</b>, which takes time to update. The status of a transaction usually updates within a few seconds.<br><br><b><font color="#0093C5"><a href="#blockchain">Tap here to learn more about the blockchain.</a></font></b>');
+            question: "What is a Security Pic?"
+            answer: "Your Security Pic is an encrypted image that you select during Wallet Setup. \
+It acts as an extra layer of Wallet security. \
+When you see your Security Pic, you know that your actions and data are securely making use of your private keys.\
+<br><br>Don't enter your passphrase anywhere that doesn't display your Security Pic! \
+If you don't see your Security Pic on a page that requests your Wallet passphrase, someone untrustworthy may be trying to access your Wallet.";
         }
         ListElement {
             isExpanded: false;
-            question: "Do I get charged money if a transaction fails?"
-            answer: qsTr("<b>No.</b> Your HFC balance only changes after a transaction is confirmed.");
+            question: "Why does my HFC balance not update instantly?";
+            answer: "HFC transations sometimes takes a few seconds to update as they are backed by a blockchain. \
+<br><br><b><font color='#0093C5'><a href='#blockchain'>Tap here to learn more about the blockchain.</a></font></b>";
+        }
+        ListElement {
+            isExpanded: false;
+            question: "Do I get charged money if a transaction fails?";
+            answer: "<b>No.</b> Your HFC balance only changes after a transaction is confirmed.";
         }
         ListElement {
             isExpanded: false;
             question: "How do I convert HFC to other currencies?"
-            answer: qsTr("We are still building the tools needed to support a vibrant economy in High Fidelity. <b>There is currently no way to convert HFC to other currencies.</b>");
+            answer: "We are hard at work building the tools needed to support a vibrant economy in High Fidelity. \
+At the moment, there is currently no way to convert HFC to other currencies. Stay tuned...";
+        }
+        ListElement {
+            isExpanded: false;
+            question: "Who can I reach out to with questions?";
+            answer: "Please email us if you have any issues or questions: \
+<b><font color='#0093C5'><a href='#support'>support@highfidelity.com</a></font></b>";
         }
     }
 
@@ -212,6 +252,10 @@ Item {
                             Qt.openUrlExternally("file:///" + root.keyFilePath.substring(0, root.keyFilePath.lastIndexOf('/')));
                         } else if (link === "#blockchain") {
                             Qt.openUrlExternally("https://docs.highfidelity.com/high-fidelity-commerce");
+                        } else if (link === "#bank") {
+                            Qt.openUrlExternally("hifi://BankOfHighFidelity");
+                        } else if (link === "#support") {
+                            Qt.openUrlExternally("mailto:support@highfidelity.com");
                         }
                     }
                 }

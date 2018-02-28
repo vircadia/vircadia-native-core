@@ -242,6 +242,9 @@ public:
 
     graphics::MeshPointer _mesh;
     bool wasCompressed { false };
+
+    void createMeshTangents(bool generateFromTexCoords);
+    void createBlendShapeTangents(bool generateTangents);
 };
 
 class ExtractedMesh {

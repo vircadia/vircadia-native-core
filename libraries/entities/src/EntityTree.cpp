@@ -1111,7 +1111,7 @@ bool EntityTree::filterProperties(EntityItemPointer& existingEntity, EntityItemP
     if (entityEditFilters) {
         auto position = existingEntity ? existingEntity->getWorldPosition() : propertiesIn.getPosition();
         auto entityID = existingEntity ? existingEntity->getEntityItemID() : EntityItemID();
-        accepted = entityEditFilters->filter(position, propertiesIn, propertiesOut, wasChanged, filterType, entityID);
+        accepted = entityEditFilters->filter(position, propertiesIn, propertiesOut, wasChanged, filterType, entityID, existingEntity);
     }
 
     return accepted;
@@ -1874,6 +1874,36 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 }
 
 
+bool EntityTree::shouldEraseEntity(EntityItemID entityID, const SharedNodePointer& sourceNode) {
+    EntityItemPointer existingEntity;
+
+    auto startLookup = usecTimestampNow();
+    existingEntity = findEntityByEntityItemID(entityID);
+    auto endLookup = usecTimestampNow();
+    _totalLookupTime += endLookup - startLookup;
+
+    auto startFilter = usecTimestampNow();
+    FilterType filterType = FilterType::Delete;
+    EntityItemProperties dummyProperties;
+    bool wasChanged = false;
+
+    bool allowed = (sourceNode->isAllowedEditor()) || filterProperties(existingEntity, dummyProperties, dummyProperties, wasChanged, filterType);
+    auto endFilter = usecTimestampNow();
+
+    _totalFilterTime += endFilter - startFilter;
+
+    if (allowed) {
+        if (wantEditLogging() || wantTerseEditLogging()) {
+            qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityID;
+        }
+    } else if (wantEditLogging() || wantTerseEditLogging()) {
+        qCDebug(entities) << "User [" << sourceNode->getUUID() << "] attempted to deleteentity. ID:" << entityID << " Filter rejected erase.";
+    }
+
+    return allowed;
+}
+
+
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     #ifdef EXTRA_ERASE_DEBUGGING
@@ -1901,12 +1931,10 @@ int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePo
                 #endif
 
                 EntityItemID entityItemID(entityID);
-                entityItemIDsToDelete << entityItemID;
 
-                if (wantEditLogging() || wantTerseEditLogging()) {
-                    qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
+                if (shouldEraseEntity(entityID, sourceNode)) {
+                    entityItemIDsToDelete << entityItemID;
                 }
-
             }
             deleteEntities(entityItemIDsToDelete, true, true);
         }
@@ -1952,10 +1980,9 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             #endif
 
             EntityItemID entityItemID(entityID);
-            entityItemIDsToDelete << entityItemID;
 
-            if (wantEditLogging() || wantTerseEditLogging()) {
-                qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
+            if (shouldEraseEntity(entityID, sourceNode)) {
+                entityItemIDsToDelete << entityItemID;
             }
 
         }
@@ -2251,6 +2278,8 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer
     if (! entityDescription.contains("Entities")) {
         entityDescription["Entities"] = QVariantList();
     }
+    entityDescription["DataVersion"] = _persistDataVersion;
+    entityDescription["Id"] = _persistID;
     QScriptEngine scriptEngine;
     RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues,
                                             skipThoseWithBadParents, _myAvatar);
@@ -2262,6 +2291,14 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     // These are needed to deal with older content (before adding inheritance modes)
     int contentVersion = map["Version"].toInt();
     bool needsConversion = (contentVersion < (int)EntityVersion::ZoneLightInheritModes);
+
+    if (map.contains("Id")) {
+        _persistID = map["Id"].toUuid();
+    }
+
+    if (map.contains("DataVersion")) {
+        _persistDataVersion = map["DataVersion"].toInt();
+    }
 
     // map will have a top-level list keyed as "Entities".  This will be extracted
     // and iterated over.  Each member of this list is converted to a QVariantMap, then

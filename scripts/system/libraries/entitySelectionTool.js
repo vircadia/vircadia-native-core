@@ -21,7 +21,10 @@ SPACE_LOCAL = "local";
 SPACE_WORLD = "world";
 HIGHLIGHT_LIST_NAME = "editHandleHighlightList";
 
-Script.include("./controllers.js");
+Script.include([
+    "./controllers.js",
+    "./utils.js"
+]);
 
 SelectionManager = (function() {
     var that = {};
@@ -668,7 +671,7 @@ SelectionDisplay = (function() {
 
         var pickRay = generalComputePickRay(event.x, event.y);
         // TODO_Case6491:  Move this out to setup just to make it once
-        var interactiveOverlays = [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID];
+        var interactiveOverlays = getMainTabletIDs();
         for (var key in handleTools) {
             if (handleTools.hasOwnProperty(key)) {
                 interactiveOverlays.push(key);
@@ -681,8 +684,8 @@ SelectionDisplay = (function() {
         var results = testRayIntersect(pickRay, interactiveOverlays);
         if (results.intersects) {
             var hitOverlayID = results.overlayID;
-            if ((hitOverlayID === HMD.tabletID) || (hitOverlayID === HMD.tabletScreenID) || 
-                (hitOverlayID === HMD.homeButtonID)) {
+            if ((HMD.tabletID && hitOverlayID === HMD.tabletID) || (HMD.tabletScreenID && hitOverlayID === HMD.tabletScreenID)
+                || (HMD.homeButtonID && hitOverlayID === HMD.homeButtonID)) {
                 // EARLY EXIT-(mouse clicks on the tablet should override the edit affordances)
                 return false;
             }
@@ -1319,8 +1322,9 @@ SelectionDisplay = (function() {
                                        isActiveTool(handleScaleRTFCube) || isActiveTool(handleStretchXSphere) || 
                                        isActiveTool(handleStretchYSphere) || isActiveTool(handleStretchZSphere));
 
-        var showOutlineForZone = (SelectionManager.selections.length === 1 &&
-                                  SelectionManager.savedProperties[SelectionManager.selections[0]].type === "Zone");
+        var showOutlineForZone = (SelectionManager.selections.length === 1 && 
+                                    typeof SelectionManager.savedProperties[SelectionManager.selections[0]] !== "undefined" &&
+                                    SelectionManager.savedProperties[SelectionManager.selections[0]].type === "Zone");
         that.setHandleScaleEdgeVisible(showOutlineForZone || (!isActiveTool(handleRotatePitchRing) &&
                                                               !isActiveTool(handleRotateYawRing) &&
                                                               !isActiveTool(handleRotateRollRing)));

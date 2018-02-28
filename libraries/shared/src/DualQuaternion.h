@@ -55,7 +55,7 @@ protected:
 
 
 inline QDebug operator<<(QDebug debug, const DualQuaternion& dq) {
-    debug << "AnimPose, real = (" << dq._real.x << dq._real.y << dq._real.z << dq._real.w << "), dual = (" << dq._dual.x << dq._dual.y << dq._dual.z << dq._dual.w << ")";
+    debug << "DualQuaternion, real = (" << dq._real.x << dq._real.y << dq._real.z << dq._real.w << "), dual = (" << dq._dual.x << dq._dual.y << dq._dual.z << dq._dual.w << ")";
     return debug;
 }
 

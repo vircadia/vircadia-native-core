@@ -305,7 +305,6 @@ void OffscreenQmlSurface::onItemCreated(QQmlContext* qmlContext, QQuickItem* new
         qmlContext->setContextProperty("eventBridgeWrapper", new EventBridgeWrapper(eventBridge, qmlContext));
     }
 
-    connect(newItem, SIGNAL(sendToScript(QVariant)), this, SIGNAL(fromQml(QVariant)));
 }
 
 void OffscreenQmlSurface::onRootCreated() {

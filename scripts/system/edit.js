@@ -31,6 +31,7 @@ Script.include([
     "libraries/entityCameraTool.js",
     "libraries/gridTool.js",
     "libraries/entityList.js",
+    "libraries/utils.js",
     "particle_explorer/particleExplorerTool.js",
     "libraries/entityIconOverlayManager.js"
 ]);
@@ -775,8 +776,7 @@ function findClickedEntity(event) {
     }
 
     var pickRay = Camera.computePickRay(event.x, event.y);
-
-    var overlayResult = Overlays.findRayIntersection(pickRay, true, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+    var overlayResult = Overlays.findRayIntersection(pickRay, true, getMainTabletIDs());
     if (overlayResult.intersects) {
         return null;
     }
@@ -814,13 +814,16 @@ function findClickedEntity(event) {
 // Handles selections on overlays while in edit mode by querying entities from
 // entityIconOverlayManager.
 function handleOverlaySelectionToolUpdates(channel, message, sender) {
+    var wantDebug = false;
     if (sender !== MyAvatar.sessionUUID || channel !== 'entityToolUpdates')
         return;
 
     var data = JSON.parse(message);
 
     if (data.method === "selectOverlay") {
-        print("setting selection to overlay " + data.overlayID);
+        if (wantDebug) {
+            print("setting selection to overlay " + data.overlayID);
+        }
         var entity = entityIconOverlayManager.findEntity(data.overlayID);
 
         if (entity !== null) {
@@ -964,7 +967,7 @@ function mouseReleaseEvent(event) {
 
 function wasTabletClicked(event) {
     var rayPick = Camera.computePickRay(event.x, event.y);
-    var result = Overlays.findRayIntersection(rayPick, true, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+    var result = Overlays.findRayIntersection(rayPick, true, getMainTabletIDs());
     return result.intersects;
 }
 
@@ -987,7 +990,7 @@ function mouseClickEvent(event) {
         toolBar.setActive(true);
         var pickRay = result.pickRay;
         var foundEntity = result.entityID;
-        if (foundEntity === HMD.tabletID) {
+        if (HMD.tabletID && foundEntity === HMD.tabletID) {
             return;
         }
         properties = Entities.getEntityProperties(foundEntity);
