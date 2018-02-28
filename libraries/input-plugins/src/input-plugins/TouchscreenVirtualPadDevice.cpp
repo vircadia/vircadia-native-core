@@ -22,6 +22,8 @@
 #include <NumericalConstants.h>
 #include "VirtualPadManager.h"
 
+#include <cmath>
+
 const char* TouchscreenVirtualPadDevice::NAME = "TouchscreenVirtualPad";
 
 bool TouchscreenVirtualPadDevice::isSupported() const {
@@ -35,6 +37,21 @@ bool TouchscreenVirtualPadDevice::isSupported() const {
     return true;
 #endif
     return false;
+}
+
+void TouchscreenVirtualPadDevice::initFromEvent(const QTouchEvent* event) {
+    QScreen* eventScreen = event->window()->screen();
+    if (_screenDPI != eventScreen->physicalDotsPerInch()) {
+        _screenWidthCenter = eventScreen->size().width() / 2;
+        _screenDPIScale.x = (float)eventScreen->physicalDotsPerInchX();
+        _screenDPIScale.y = (float)eventScreen->physicalDotsPerInchY();
+        _screenDPI = eventScreen->physicalDotsPerInch();
+
+        _fixedPosition = true; // This should be config
+        _fixedRadius = _screenDPI * 256 / 534;
+        qreal margin = _screenDPI * 59 / 534; // 59px is for our 'base' of 534dpi (Pixel XL or Huawei Mate 9 Pro)
+        _fixedCenterPosition = glm::vec2( _fixedRadius + margin, eventScreen->size().height() - margin - _fixedRadius );
+    }
 }
 
 float clip(float n, float lower, float upper) {
@@ -132,13 +149,7 @@ void TouchscreenVirtualPadDevice::touchBeginEvent(const QTouchEvent* event) {
         return;
     }
     KeyboardMouseDevice::enableTouch(false);
-    QScreen* eventScreen = event->window()->screen();
-    _screenWidthCenter = eventScreen->size().width() / 2;
-    if (_screenDPI != eventScreen->physicalDotsPerInch()) {
-        _screenDPIScale.x = (float)eventScreen->physicalDotsPerInchX();
-        _screenDPIScale.y = (float)eventScreen->physicalDotsPerInchY();
-        _screenDPI = eventScreen->physicalDotsPerInch();
-    }
+    initFromEvent(event);
 }
 
 void TouchscreenVirtualPadDevice::touchEndEvent(const QTouchEvent* event) {
@@ -169,14 +180,13 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
     bool rightTouchFound = false;
     for (int i = 0; i < _touchPointCount; ++i) {
         glm::vec2 thisPoint(tPoints[i].pos().x(), tPoints[i].pos().y());
-        if (thisPoint.x < _screenWidthCenter) {
+        if (_validTouchLeft) {
+            leftTouchFound = true;
+            touchLeftUpdate(thisPoint);
+        } else if (touchLeftBeginPointIsValid(thisPoint)) {
             if (!leftTouchFound) {
                 leftTouchFound = true;
-                if (!_validTouchLeft) {
-                    touchLeftBegin(thisPoint);
-                } else {
-                    touchLeftUpdate(thisPoint);
-                }
+                touchLeftBegin(thisPoint);
             }
         } else {
             if (!rightTouchFound) {
@@ -197,10 +207,24 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
     }
 }
 
+bool TouchscreenVirtualPadDevice::touchLeftBeginPointIsValid(glm::vec2 touchPoint) {
+    if (_fixedPosition) {
+        // inside circle
+        return pow(touchPoint.x - _fixedCenterPosition.x,2.0) + pow(touchPoint.y - _fixedCenterPosition.y, 2.0) < pow(_fixedRadius, 2.0);
+    } else {
+        // left side
+        return touchPoint.x < _screenWidthCenter;
+    }
+}
+
 void TouchscreenVirtualPadDevice::touchLeftBegin(glm::vec2 touchPoint) {
     auto& virtualPadManager = VirtualPad::Manager::instance();
     if (virtualPadManager.isEnabled()) {
-        _firstTouchLeftPoint = touchPoint;
+        if (_fixedPosition) {
+            _firstTouchLeftPoint = _fixedCenterPosition;
+        } else {
+            _firstTouchLeftPoint = touchPoint;
+        }
         _validTouchLeft = true;
     }
 }

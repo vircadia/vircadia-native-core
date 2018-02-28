@@ -74,15 +74,21 @@ protected:
     int _screenWidthCenter;
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
 
+    bool _fixedPosition;
+    glm::vec2 _fixedCenterPosition;
+    qreal _fixedRadius;
+
     void touchLeftBegin(glm::vec2 touchPoint);
     void touchLeftUpdate(glm::vec2 touchPoint);
     void touchLeftEnd();
+    bool touchLeftBeginPointIsValid(glm::vec2 touchPoint);
     void touchRightBegin(glm::vec2 touchPoint);
     void touchRightUpdate(glm::vec2 touchPoint);
     void touchRightEnd();
 // just for debug
 private:
     void debugPoints(const QTouchEvent* event, QString who);
+    void initFromEvent(const QTouchEvent* event);
 
 };
 

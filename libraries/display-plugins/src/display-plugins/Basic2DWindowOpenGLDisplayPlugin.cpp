@@ -11,6 +11,7 @@
 
 #include <mutex>
 
+#include <QScreen>
 #include <QtGui/QWindow>
 #include <QtGui/QGuiApplication>
 #include <QtWidgets/QAction>
@@ -25,10 +26,14 @@ static const QString FULLSCREEN = "Fullscreen";
 void Basic2DWindowOpenGLDisplayPlugin::customizeContext() {
     auto iconPath = PathUtils::resourcesPath() + "images/analog_stick.png";
     auto image = QImage(iconPath);
+    qreal dpi = getFullscreenTarget()->physicalDotsPerInch();
+    _virtualPadPixelSize = dpi * 512 / 534; // 534 dpi for Pixel XL and Mate 9 Pro
+
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }
     if ((image.width() > 0) && (image.height() > 0)) {
+        image = image.scaled(_virtualPadPixelSize, _virtualPadPixelSize, Qt::KeepAspectRatio);
 
         _virtualPadStickTexture = gpu::Texture::createStrict(
                 gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
@@ -49,6 +54,8 @@ void Basic2DWindowOpenGLDisplayPlugin::customizeContext() {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }
     if ((image.width() > 0) && (image.height() > 0)) {
+        image = image.scaled(_virtualPadPixelSize, _virtualPadPixelSize, Qt::KeepAspectRatio);
+
         _virtualPadStickBaseTexture = gpu::Texture::createStrict(
                 gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
                 image.width(), image.height(),
@@ -91,7 +98,8 @@ void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
     auto& virtualPadManager = VirtualPad::Manager::instance();
     if(virtualPadManager.getLeftVirtualPad()->isBeingTouched()) {
         // render stick base
-        auto stickBaseTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getLeftVirtualPad()->getFirstTouch());
+        auto stickBaseTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getLeftVirtualPad()->getFirstTouch(),
+                                                                                                    _virtualPadPixelSize, _virtualPadPixelSize);
         render([&](gpu::Batch& batch) {
             batch.enableStereo(false);
             batch.setProjectionTransform(mat4());
@@ -103,7 +111,8 @@ void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         });
         // render stick head
-        auto stickTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getLeftVirtualPad()->getCurrentTouch());
+        auto stickTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getLeftVirtualPad()->getCurrentTouch(),
+                                                                                                    _virtualPadPixelSize, _virtualPadPixelSize);
         render([&](gpu::Batch& batch) {
             batch.enableStereo(false);
             batch.setProjectionTransform(mat4());
