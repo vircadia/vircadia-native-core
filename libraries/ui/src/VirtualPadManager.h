@@ -42,10 +42,13 @@ namespace VirtualPad {
         void enable(bool enable);
         bool isHidden();
         void hide(bool hide);
+        int extraBottomMargin();
+        void setExtraBottomMargin(int margin);
     private:
         Instance _leftVPadInstance;
         bool _enabled;
         bool _hidden;
+        int _extraBottomMargin {0};
     };
 }
 

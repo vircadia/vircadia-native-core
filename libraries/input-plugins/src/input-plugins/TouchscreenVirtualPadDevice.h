@@ -15,6 +15,7 @@
 #include <controllers/InputDevice.h>
 #include "InputPlugin.h"
 #include <QtGui/qtouchdevice.h>
+#include "VirtualPadManager.h"
 
 class QTouchEvent;
 class QGestureEvent;
@@ -78,6 +79,7 @@ protected:
     bool _fixedPosition;
     glm::vec2 _fixedCenterPosition;
     qreal _fixedRadius;
+    int _extraBottomMargin {0};
 
     void touchLeftBegin(glm::vec2 touchPoint);
     void touchLeftUpdate(glm::vec2 touchPoint);
@@ -86,6 +88,7 @@ protected:
     void touchRightBegin(glm::vec2 touchPoint);
     void touchRightUpdate(glm::vec2 touchPoint);
     void touchRightEnd();
+    void setupFixedCenter(VirtualPad::Manager& virtualPadManager, bool force = false);
 // just for debug
 private:
     void debugPoints(const QTouchEvent* event, QString who);

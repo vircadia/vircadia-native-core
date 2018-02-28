@@ -43,12 +43,6 @@ Item {
     HifiConstants { id: android }
     MouseArea {
         anchors.fill: parent
-        onEntered: {
-            Controller.setVPadEnabled(false);
-        }
-        onExited: {
-            Controller.setVPadEnabled(true);
-        }
     }
 
 	Rectangle {

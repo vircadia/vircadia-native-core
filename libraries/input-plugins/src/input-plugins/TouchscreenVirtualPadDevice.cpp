@@ -42,7 +42,6 @@ bool TouchscreenVirtualPadDevice::isSupported() const {
 void TouchscreenVirtualPadDevice::init() {
     _fixedPosition = true; // This should be config
 
-
     QScreen* eventScreen = qApp->primaryScreen();
     if (_screenDPI != eventScreen->physicalDotsPerInch()) {
         _screenWidthCenter = eventScreen->size().width() / 2;
@@ -51,16 +50,29 @@ void TouchscreenVirtualPadDevice::init() {
         _screenDPI = eventScreen->physicalDotsPerInch();
 
         _fixedRadius = _screenDPI * 256 / 534;
-        qreal margin = _screenDPI * 59 / 534; // 59px is for our 'base' of 534dpi (Pixel XL or Huawei Mate 9 Pro)
-        _fixedCenterPosition = glm::vec2( _fixedRadius + margin, eventScreen->size().height() - margin - _fixedRadius );
     }
 
+    auto& virtualPadManager = VirtualPad::Manager::instance();
+    setupFixedCenter(virtualPadManager, true);
+
     if (_fixedPosition) {
-        _firstTouchLeftPoint = _fixedCenterPosition;
-        auto& virtualPadManager = VirtualPad::Manager::instance();
         virtualPadManager.getLeftVirtualPad()->setShown(virtualPadManager.isEnabled() && !virtualPadManager.isHidden()); // Show whenever it's enabled
-        virtualPadManager.getLeftVirtualPad()->setFirstTouch(_firstTouchLeftPoint);
     }
+}
+
+void TouchscreenVirtualPadDevice::setupFixedCenter(VirtualPad::Manager& virtualPadManager, bool force) {
+    if (!_fixedPosition) return;
+
+    //auto& virtualPadManager = VirtualPad::Manager::instance();
+    if (_extraBottomMargin == virtualPadManager.extraBottomMargin() && !force) return; // Our only criteria to decide a center change is the bottom margin
+
+    _extraBottomMargin = virtualPadManager.extraBottomMargin();
+    qreal margin = _screenDPI * 59 / 534; // 59px is for our 'base' of 534dpi (Pixel XL or Huawei Mate 9 Pro)
+    QScreen* eventScreen = qApp->primaryScreen(); // do not call every time
+    _fixedCenterPosition = glm::vec2( _fixedRadius + margin, eventScreen->size().height() - margin - _fixedRadius - _extraBottomMargin);
+
+    _firstTouchLeftPoint = _fixedCenterPosition;
+    virtualPadManager.getLeftVirtualPad()->setFirstTouch(_firstTouchLeftPoint);
 }
 
 float clip(float n, float lower, float upper) {
@@ -74,6 +86,8 @@ void TouchscreenVirtualPadDevice::pluginUpdate(float deltaTime, const controller
     });
 
     auto& virtualPadManager = VirtualPad::Manager::instance();
+    setupFixedCenter(virtualPadManager);
+
     if (_validTouchLeft) {
         float leftDistanceScaleX, leftDistanceScaleY;
         leftDistanceScaleX = (_currentTouchLeftPoint.x - _firstTouchLeftPoint.x) / _screenDPIScale.x;

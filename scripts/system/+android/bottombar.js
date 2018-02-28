@@ -196,6 +196,7 @@ function lowerBottomBar() {
     if (bottomHudOptionsBar) {
         bottomHudOptionsBar.show();
     }
+    Controller.setVPadExtraBottomMargin(0);
 }
 
 function raiseBottomBar() {
@@ -206,6 +207,7 @@ function raiseBottomBar() {
     if (bottomHudOptionsBar) {
         bottomHudOptionsBar.hide();
     }
+    Controller.setVPadExtraBottomMargin(255); // Height in bottombar.qml
     print('[bottombar.js] raiseBottomBar end');
 }
 

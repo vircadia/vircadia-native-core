@@ -59,6 +59,14 @@ namespace VirtualPad {
         return _hidden;
     }
 
+    int Manager::extraBottomMargin() {
+        return _extraBottomMargin;
+    }
+
+    void Manager::setExtraBottomMargin(int margin) {
+        _extraBottomMargin = margin;
+    }
+
     Instance* Manager::getLeftVirtualPad() {
         return &_leftVPadInstance;
     }
