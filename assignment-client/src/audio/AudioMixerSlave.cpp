@@ -49,7 +49,7 @@ void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& 
 inline float approximateGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition);
 inline float computeGain(const AudioMixerClientData& listenerNodeData, const AvatarAudioStream& listeningNodeStream,
-        const PositionalAudioStream& streamToAdd, const glm::vec3& relativePosition, bool isEcho);
+        const PositionalAudioStream& streamToAdd, const glm::vec3& relativePosition, float distance, bool isEcho);
 inline float computeAzimuth(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition);
 
@@ -276,7 +276,7 @@ void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QU
     glm::vec3 relativePosition = streamToAdd.getPosition() - listeningNodeStream.getPosition();
 
     float distance = glm::max(glm::length(relativePosition), EPSILON);
-    float gain = computeGain(listenerNodeData, listeningNodeStream, streamToAdd, relativePosition, isEcho);
+    float gain = computeGain(listenerNodeData, listeningNodeStream, streamToAdd, relativePosition, distance, isEcho);
     float azimuth = isEcho ? 0.0f : computeAzimuth(listeningNodeStream, listeningNodeStream, relativePosition);
     const int HRTF_DATASET_INDEX = 1;
 
@@ -489,9 +489,6 @@ float approximateGain(const AvatarAudioStream& listeningNodeStream, const Positi
     // avatar: skip attenuation - it is too costly to approximate
 
     // distance attenuation: approximate, ignore zone-specific attenuations
-    // this is a good approximation for streams further than ATTENUATION_START_DISTANCE
-    // those streams closer will be amplified; amplifying close streams is acceptable
-    // when throttling, as close streams are expected to be heard by a user
     float distance = glm::length(relativePosition);
     return gain / distance;
 
@@ -499,7 +496,7 @@ float approximateGain(const AvatarAudioStream& listeningNodeStream, const Positi
 }
 
 float computeGain(const AudioMixerClientData& listenerNodeData, const AvatarAudioStream& listeningNodeStream,
-        const PositionalAudioStream& streamToAdd, const glm::vec3& relativePosition, bool isEcho) {
+        const PositionalAudioStream& streamToAdd, const glm::vec3& relativePosition, float distance, bool isEcho) {
     float gain = 1.0f;
 
     // injector: apply attenuation
@@ -536,23 +533,13 @@ float computeGain(const AudioMixerClientData& listenerNodeData, const AvatarAudi
             break;
         }
     }
+    // translate the zone setting to gain per log2(distance)
+    float g = glm::clamp(1.0f - attenuationPerDoublingInDistance, EPSILON, 1.0f);
 
-    // distance attenuation
-    const float ATTENUATION_START_DISTANCE = 1.0f;
-    float distance = glm::length(relativePosition);
-    assert(ATTENUATION_START_DISTANCE > EPSILON);
-    if (distance >= ATTENUATION_START_DISTANCE) {
-
-        // translate the zone setting to gain per log2(distance)
-        float g = 1.0f - attenuationPerDoublingInDistance;
-        g = glm::clamp(g, EPSILON, 1.0f);
-
-        // calculate the distance coefficient using the distance to this node
-        float distanceCoefficient = fastExp2f(fastLog2f(g) * fastLog2f(distance/ATTENUATION_START_DISTANCE));
-
-        // multiply the current attenuation coefficient by the distance coefficient
-        gain *= distanceCoefficient;
-    }
+    // calculate the attenuation using the distance to this node
+    // reference attenuation of 0dB at distance = 1.0m
+    gain *= fastExp2f(fastLog2f(g) * fastLog2f(std::max(distance, HRTF_NEARFIELD_MIN)));
+    gain = std::min(gain, 1.0f / HRTF_NEARFIELD_MIN);
 
     return gain;
 }
