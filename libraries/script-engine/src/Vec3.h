@@ -48,6 +48,15 @@
  * @property {float} w W-coordinate of the vector.
  */
 
+/**jsdoc
+ * A color vector.
+ *
+ * @typedef {object} Vec3Color
+ * @property {number} x - Red component value. Integer in the range <code>0</code> - <code>255</code>.
+ * @property {number} y - Green component value. Integer in the range <code>0</code> - <code>255</code>.
+ * @property {number} z - Blue component value. Integer in the range <code>0</code> - <code>255</code>.
+ */
+
 /// Scriptable interface a Vec3ernion helper class object. Used exclusively in the JavaScript API
 class Vec3 : public QObject, protected QScriptable {
     Q_OBJECT

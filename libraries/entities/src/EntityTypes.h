@@ -49,6 +49,9 @@ public:
      *       <td>{@link Entities.EntityProperties-Light|EntityProperties-Light}</td></tr>
      *     <tr><td><code>"Line"</code></td><td>A sequence of one or more simple straight lines.</td>
      *       <td>{@link Entities.EntityProperties-Line|EntityProperties-Line}</td></tr>
+     *     <tr><td><code>"Material"</code></td><td>Modifies the existing materials on Model entities, Shape entities (albedo 
+     *       only), {@link Overlays.OverlayType|model overlays}, and avatars.</td>
+     *       <td>{@link Entities.EntityProperties-Material|EntityProperties-Material}</td></tr>
      *     <tr><td><code>"Model"</code></td><td>A mesh model from an FBX or OBJ file.</td>
      *       <td>{@link Entities.EntityProperties-Model|EntityProperties-Model}</td></tr>
      *     <tr><td><code>"ParticleEffect"</code></td><td>A particle system that can be used to simulate things such as fire, 

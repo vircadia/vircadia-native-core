@@ -589,6 +589,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @see {@link Entities.EntityProperties-Box|EntityProperties-Box}
  * @see {@link Entities.EntityProperties-Light|EntityProperties-Light}
  * @see {@link Entities.EntityProperties-Line|EntityProperties-Line}
+ * @see {@link Entities.EntityProperties-Material|EntityProperties-Material}
  * @see {@link Entities.EntityProperties-Model|EntityProperties-Model}
  * @see {@link Entities.EntityProperties-ParticleEffect|EntityProperties-ParticleEffect}
  * @see {@link Entities.EntityProperties-PolyLine|EntityProperties-PolyLine}
@@ -661,6 +662,59 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     ],
  *     color: { red: 255, green: 0, blue: 0 },
  *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Material"</code> {@link Entities.EntityType|EntityType} modifies the existing materials on
+ * {@link Entities.EntityType|Model} entities, {@link Entities.EntityType|Shape} entities (albedo only), 
+ * {@link Overlays.OverlayType|model overlays}, and avatars.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.<br />
+ * To apply a material to an entity or overlay, set the material entity's <code>parentID</code> property to the entity or 
+ * overlay's ID.
+ * To apply a material to an avatar, set the material entity's <code>parentID</code> property to the avatar's session UUID.
+ * To apply a material to your avatar such that it persists across domains and log-ins, create the material as an avatar entity 
+ * by setting the <code>clientOnly</code> parameter in {@link Entities.addEntity} to <code>true</code>.
+ * Material entities render as non-scalable spheres if they don't have their parent set.
+ * @typedef {object} Entities.EntityProperties-Material
+ * @property {string} materialURL="" - URL to a {@link MaterialResource}. If you append <code>?name</code> to the URL, the 
+ *     material with that name in the {@link MaterialResource} will be applied to the entity. <br />
+ *     Alternatively, set the property value to <code>"userData"</code> to use the {@link Entities.EntityProperties|userData} 
+ *     entity property to live edit the material resource values.
+ * @property {number} priority=0 - The priority for applying the material to its parent. Only the highest priority material is 
+ *     applied, with materials of the same priority randomly assigned. Materials that come with the model have a priority of 
+ *     <code>0</code>.
+ * @property {string|number} parentMaterialName="0" - Selects the submesh or submeshes within the parent to apply the material 
+ *     to. If in the format <code>"mat::string"</code>, all submeshes with material name <code>"string"</code> are replaced. 
+ *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh index to modify. Invalid values are 
+ *     parsed to <code>0</code>.
+ * @property {string} materialMappingMode="uv" - How the material is mapped to the entity. Either <code>"uv"</code> or 
+ *     <code>"projected"</code>. <em>Currently, only <code>"uv"</code> is supported.
+ * @property {Vec2} materialMappingPos=0,0 - Offset position in UV-space of the top left of the material, range 
+ *     <code>{ x: 0, y: 0 }</code> &ndash; <code>{ x: 1, y: 1 }</code>.
+ * @property {Vec2} materialMappingScale=1,1 - How much to scale the material within the parent's UV-space.
+ * @property {number} materialMappingRot=0 - How much to rotate the material within the parent's UV-space, in degrees.
+ * @example <caption>Color a sphere using a Material entity.</caption>
+ * var entityID = Entities.addEntity({
+ *     type: "Sphere",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+ *     dimensions: { x: 1, y: 1, z: 1 },
+ *     color: { red: 128, green: 128, blue: 128 },
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ *
+ * var materialID = Entities.addEntity({
+ *     type: "Material",
+ *     parentID: entityID,
+ *     materialURL: "userData",
+ *     priority: 1,
+ *     userData: JSON.stringify({
+ *         materials: {
+ *             // Can only set albedo on a Shape entity.
+ *             // Value overrides entity's "color" property.
+ *             albedo: [1.0, 0, 0]
+ *         }
+ *     }),
  * });
  */
 

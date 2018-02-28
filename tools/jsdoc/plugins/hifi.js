@@ -25,6 +25,7 @@ exports.handlers = {
             '../../libraries/avatars/src',
             '../../libraries/controllers/src/controllers/',
             '../../libraries/entities/src',
+            '../../libraries/model-networking/src/model-networking/',
             '../../libraries/octree/src',
             '../../libraries/networking/src',
             '../../libraries/physics/src',
