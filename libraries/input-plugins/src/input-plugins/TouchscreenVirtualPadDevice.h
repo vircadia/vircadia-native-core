@@ -26,6 +26,7 @@ Q_OBJECT
 public:
 
     // Plugin functions
+    virtual void init() override;
     virtual bool isSupported() const override;
     virtual const QString getName() const override { return NAME; }
 
@@ -88,7 +89,6 @@ protected:
 // just for debug
 private:
     void debugPoints(const QTouchEvent* event, QString who);
-    void initFromEvent(const QTouchEvent* event);
 
 };
 

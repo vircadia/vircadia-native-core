@@ -39,18 +39,27 @@ bool TouchscreenVirtualPadDevice::isSupported() const {
     return false;
 }
 
-void TouchscreenVirtualPadDevice::initFromEvent(const QTouchEvent* event) {
-    QScreen* eventScreen = event->window()->screen();
+void TouchscreenVirtualPadDevice::init() {
+    _fixedPosition = true; // This should be config
+
+
+    QScreen* eventScreen = qApp->primaryScreen();
     if (_screenDPI != eventScreen->physicalDotsPerInch()) {
         _screenWidthCenter = eventScreen->size().width() / 2;
         _screenDPIScale.x = (float)eventScreen->physicalDotsPerInchX();
         _screenDPIScale.y = (float)eventScreen->physicalDotsPerInchY();
         _screenDPI = eventScreen->physicalDotsPerInch();
 
-        _fixedPosition = true; // This should be config
         _fixedRadius = _screenDPI * 256 / 534;
         qreal margin = _screenDPI * 59 / 534; // 59px is for our 'base' of 534dpi (Pixel XL or Huawei Mate 9 Pro)
         _fixedCenterPosition = glm::vec2( _fixedRadius + margin, eventScreen->size().height() - margin - _fixedRadius );
+    }
+
+    if (_fixedPosition) {
+        _firstTouchLeftPoint = _fixedCenterPosition;
+        auto& virtualPadManager = VirtualPad::Manager::instance();
+        virtualPadManager.getLeftVirtualPad()->setShown(virtualPadManager.isEnabled() && !virtualPadManager.isHidden()); // Show whenever it's enabled
+        virtualPadManager.getLeftVirtualPad()->setFirstTouch(_firstTouchLeftPoint);
     }
 }
 
@@ -82,14 +91,21 @@ void TouchscreenVirtualPadDevice::pluginUpdate(float deltaTime, const controller
 
         /* Shared variables for stick rendering (clipped to the stick radius)*/
         // Prevent this for being done when not in first person view
-        virtualPadManager.getLeftVirtualPad()->setBeingTouched(true);
         virtualPadManager.getLeftVirtualPad()->setFirstTouch(_firstTouchLeftPoint);
         virtualPadManager.getLeftVirtualPad()->setCurrentTouch(
                 glm::vec2(clip(_currentTouchLeftPoint.x, -STICK_RADIUS_INCHES * _screenDPIScale.x + _firstTouchLeftPoint.x, STICK_RADIUS_INCHES * _screenDPIScale.x + _firstTouchLeftPoint.x),
                 clip(_currentTouchLeftPoint.y, -STICK_RADIUS_INCHES * _screenDPIScale.y + _firstTouchLeftPoint.y, STICK_RADIUS_INCHES * _screenDPIScale.y + _firstTouchLeftPoint.y))
         );
+        virtualPadManager.getLeftVirtualPad()->setBeingTouched(true);
+        virtualPadManager.getLeftVirtualPad()->setShown(true); // If touched, show in any mode (fixed joystick position or non-fixed)
     } else {
         virtualPadManager.getLeftVirtualPad()->setBeingTouched(false);
+        if (_fixedPosition) {
+            virtualPadManager.getLeftVirtualPad()->setCurrentTouch(_fixedCenterPosition); // reset to the center
+            virtualPadManager.getLeftVirtualPad()->setShown(virtualPadManager.isEnabled() && !virtualPadManager.isHidden()); // Show whenever it's enabled
+        } else {
+            virtualPadManager.getLeftVirtualPad()->setShown(false);
+        }
     }
 
     if (_validTouchRight) {
@@ -149,12 +165,13 @@ void TouchscreenVirtualPadDevice::touchBeginEvent(const QTouchEvent* event) {
         return;
     }
     KeyboardMouseDevice::enableTouch(false);
-    initFromEvent(event);
 }
 
 void TouchscreenVirtualPadDevice::touchEndEvent(const QTouchEvent* event) {
     auto& virtualPadManager = VirtualPad::Manager::instance();
     if (!virtualPadManager.isEnabled()) {
+        touchLeftEnd();
+        touchRightEnd();
         return;
     }
     // touch end here is a big reset -> resets both pads

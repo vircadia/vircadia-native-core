@@ -96,7 +96,7 @@ bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
 
 void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
     auto& virtualPadManager = VirtualPad::Manager::instance();
-    if(virtualPadManager.getLeftVirtualPad()->isBeingTouched()) {
+    if(virtualPadManager.getLeftVirtualPad()->isShown()) {
         // render stick base
         auto stickBaseTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getLeftVirtualPad()->getFirstTouch(),
                                                                                                     _virtualPadPixelSize, _virtualPadPixelSize);
