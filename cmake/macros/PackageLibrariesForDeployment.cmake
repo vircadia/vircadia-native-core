@@ -39,7 +39,7 @@ macro(PACKAGE_LIBRARIES_FOR_DEPLOYMENT)
     add_custom_command(
       TARGET ${TARGET_NAME}
       POST_BUILD
-      COMMAND CMD /C "SET PATH=%PATH%;${QT_DIR}/bin && ${WINDEPLOYQT_COMMAND} ${EXTRA_DEPLOY_OPTIONS} $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>,$<CONFIG:RelWithDebInfo>>:--release> \"$<TARGET_FILE:${TARGET_NAME}>\""
+      COMMAND CMD /C "SET PATH=%PATH%;${QT_DIR}/bin && ${WINDEPLOYQT_COMMAND} ${EXTRA_DEPLOY_OPTIONS} $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>,$<CONFIG:RelWithDebInfo>>:--release> --no-compiler-runtime \"$<TARGET_FILE:${TARGET_NAME}>\""
     )
 
     set(QTAUDIO_PATH "$<TARGET_FILE_DIR:${TARGET_NAME}>/audio")
