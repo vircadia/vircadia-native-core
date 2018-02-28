@@ -64,7 +64,7 @@ public:
     Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data);
 
 public slots:
-    void init();
+    void initCaching();
 
     void cacheInfoRequest(QObject* reciever, QString slot);
     MiniPromise::Promise cacheInfoRequestAsync(MiniPromise::Promise deferred = nullptr);

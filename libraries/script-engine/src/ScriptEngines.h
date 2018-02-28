@@ -19,12 +19,19 @@
 
 #include <SettingHandle.h>
 #include <DependencyManager.h>
+#include <shared/ScriptInitializerMixin.h>
 
 #include "ScriptEngine.h"
 #include "ScriptsModel.h"
 #include "ScriptsModelFilter.h"
 
 class ScriptEngine;
+
+class NativeScriptInitializers : public ScriptInitializerMixin {
+public:
+    bool registerNativeScriptInitializer(NativeScriptInitializer initializer) override;
+    bool registerScriptInitializer(ScriptInitializer initializer) override;
+};
 
 class ScriptEngines : public QObject, public Dependency {
     Q_OBJECT
@@ -34,11 +41,11 @@ class ScriptEngines : public QObject, public Dependency {
     Q_PROPERTY(QString debugScriptUrl READ getDebugScriptUrl WRITE setDebugScriptUrl)
 
 public:
-    using ScriptInitializer = std::function<void(ScriptEnginePointer)>;
+    using ScriptInitializer = ScriptInitializerMixin::ScriptInitializer;
 
     ScriptEngines(ScriptEngine::Context context);
     void registerScriptInitializer(ScriptInitializer initializer);
-
+    int runScriptInitializers(ScriptEnginePointer engine);
     void loadScripts();
     void saveScripts();
 

@@ -22,6 +22,8 @@
 // inventory answers {status: 'success', data: {assets: [{id: "guid", title: "name", preview: "url"}....]}}
 // balance answers {status: 'success', data: {balance: integer}}
 // buy and receive_at answer {status: 'success'}
+// account synthesizes a result {status: 'success', data: {keyStatus: "preexisting"|"conflicting"|"ok"}}
+
 
 QJsonObject Ledger::apiResponse(const QString& label, QNetworkReply& reply) {
     QByteArray response = reply.readAll();
@@ -99,7 +101,7 @@ void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     signedSend("transaction", transactionString, hfc_key, "buy", "buySuccess", "buyFailure", controlled_failure);
 }
 
-bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key) {
+bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key) {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (!accountManager->isLoggedIn()) {
         qCWarning(commerce) << "Cannot set receiveAt when not logged in.";
@@ -108,7 +110,7 @@ bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key) {
         return false; // We know right away that we will fail, so tell the caller.
     }
 
-    signedSend("public_key", hfc_key.toUtf8(), old_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
+    signedSend("public_key", hfc_key.toUtf8(), signing_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
     return true; // Note that there may still be an asynchronous signal of failure that callers might be interested in.
 }
 
@@ -179,7 +181,7 @@ QString transactionString(const QJsonObject& valueObject) {
     } else {
         result += valueObject["message"].toString();
     }
-    
+
     // no matter what we append a smaller date to the bottom of this...
     result += QString("<br><font size='-2' color='#1080B8'>%1").arg(createdAt.toLocalTime().toString(Qt::DefaultLocaleShortDate));
     return result;
@@ -246,18 +248,33 @@ void Ledger::accountSuccess(QNetworkReply& reply) {
     auto iv = QByteArray::fromBase64(data["iv"].toString().toUtf8());
     auto ckey = QByteArray::fromBase64(data["ckey"].toString().toUtf8());
     QString remotePublicKey = data["public_key"].toString();
+    bool isOverride = wallet->wasSoftReset();
 
     wallet->setSalt(salt);
     wallet->setIv(iv);
     wallet->setCKey(ckey);
 
+    QString keyStatus = "ok";
     QStringList localPublicKeys = wallet->listPublicKeys();
-    if (remotePublicKey.isEmpty() && !localPublicKeys.isEmpty()) {
-        receiveAt(localPublicKeys.first(), "");
+    if (remotePublicKey.isEmpty() || isOverride) {
+        if (!localPublicKeys.isEmpty()) {
+            QString key = localPublicKeys.first();
+            receiveAt(key, key);
+        }
+    } else {
+        if (localPublicKeys.isEmpty()) {
+            keyStatus = "preexisting";
+        } else if (localPublicKeys.first() != remotePublicKey) {
+            keyStatus = "conflicting";
+        }
     }
 
     // none of the hfc account info should be emitted
-    emit accountResult(QJsonObject{ {"status", "success"} });
+    QJsonObject json;
+    QJsonObject responseData{ { "status", "success"} };
+    json["keyStatus"] = keyStatus;
+    responseData["data"] = json;
+    emit accountResult(responseData);
 }
 
 void Ledger::accountFailure(QNetworkReply& reply) {

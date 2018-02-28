@@ -65,14 +65,6 @@ const Vec3& Light::getDirection() const {
     return _lightSchemaBuffer->volume.direction;
 }
 
-void Light::setCastShadows(const bool castShadows) {
-    _castShadows = castShadows;
-}
-
-bool Light::getCastShadows() const {
-    return _castShadows;
-}
-
 void Light::setColor(const Color& color) {
     _lightSchemaBuffer.edit().irradiance.color = color;
     updateLightRadius();
@@ -139,6 +131,7 @@ void Light::setSpotExponent(float exponent) {
     }
     _lightSchemaBuffer.edit().irradiance.falloffSpot = exponent;
 }
+
 
 void Light::setAmbientIntensity(float intensity) {
     _ambientSchemaBuffer.edit().intensity = intensity;

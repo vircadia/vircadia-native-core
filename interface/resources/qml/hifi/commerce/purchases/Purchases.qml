@@ -46,17 +46,17 @@ Rectangle {
                 if (root.activeView !== "needsLogIn") {
                     root.activeView = "needsLogIn";
                 }
-            } else if (walletStatus === 1) {
+            } else if ((walletStatus === 1) || (walletStatus === 2) || (walletStatus === 3)) {
                 if (root.activeView !== "notSetUp") {
                     root.activeView = "notSetUp";
                     notSetUpTimer.start();
                 }
-            } else if (walletStatus === 2) {
+            } else if (walletStatus === 4) {
                 if (root.activeView !== "passphraseModal") {
                     root.activeView = "passphraseModal";
                     UserActivityLogger.commercePassphraseEntry("marketplace purchases");
                 }
-            } else if (walletStatus === 3) {
+            } else if (walletStatus === 5) {
                 if ((Settings.getValue("isFirstUseOfPurchases", true) || root.isDebuggingFirstUseTutorial) && root.activeView !== "firstUseTutorial") {
                     root.activeView = "firstUseTutorial";
                 } else if (!Settings.getValue("isFirstUseOfPurchases", true) && root.activeView === "initialize") {

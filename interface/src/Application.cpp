@@ -165,6 +165,7 @@
 #include "scripting/AccountServicesScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
+#include "graphics-scripting/GraphicsScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
@@ -599,6 +600,71 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     }
 }
 
+
+class ApplicationMeshProvider : public scriptable::ModelProviderFactory  {
+public:
+    virtual scriptable::ModelProviderPointer lookupModelProvider(const QUuid& uuid) override {
+        bool success;
+        if (auto nestable = DependencyManager::get<SpatialParentFinder>()->find(uuid, success).lock()) {
+            auto type = nestable->getNestableType();
+#ifdef SCRIPTABLE_MESH_DEBUG
+            qCDebug(interfaceapp) << "ApplicationMeshProvider::lookupModelProvider" << uuid << SpatiallyNestable::nestableTypeToString(type);
+#endif
+            switch (type) {
+            case NestableType::Entity:
+                return getEntityModelProvider(static_cast<EntityItemID>(uuid));
+            case NestableType::Overlay:
+                return getOverlayModelProvider(static_cast<OverlayID>(uuid));
+            case NestableType::Avatar:
+                return getAvatarModelProvider(uuid);
+            }
+        }
+        return nullptr;
+    }
+
+private:
+    scriptable::ModelProviderPointer getEntityModelProvider(EntityItemID entityID) {
+        scriptable::ModelProviderPointer provider;
+        auto entityTreeRenderer = qApp->getEntities();
+        auto entityTree = entityTreeRenderer->getTree();
+        if (auto entity = entityTree->findEntityByID(entityID)) {
+            if (auto renderer = entityTreeRenderer->renderableForEntityId(entityID)) {
+                provider = std::dynamic_pointer_cast<scriptable::ModelProvider>(renderer);
+                provider->modelProviderType = NestableType::Entity;
+            } else {
+                qCWarning(interfaceapp) << "no renderer for entity ID" << entityID.toString();
+            }
+        }
+        return provider;
+    }
+
+    scriptable::ModelProviderPointer getOverlayModelProvider(OverlayID overlayID) {
+        scriptable::ModelProviderPointer provider;
+        auto &overlays = qApp->getOverlays();
+        if (auto overlay = overlays.getOverlay(overlayID)) {
+            if (auto base3d = std::dynamic_pointer_cast<Base3DOverlay>(overlay)) {
+                provider = std::dynamic_pointer_cast<scriptable::ModelProvider>(base3d);
+                provider->modelProviderType = NestableType::Overlay;
+            } else {
+                qCWarning(interfaceapp) << "no renderer for overlay ID" << overlayID.toString();
+            }
+        } else {
+            qCWarning(interfaceapp) << "overlay not found" << overlayID.toString();
+        }
+        return provider;
+    }
+
+    scriptable::ModelProviderPointer getAvatarModelProvider(QUuid sessionUUID) {
+        scriptable::ModelProviderPointer provider;
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        if (auto avatar = avatarManager->getAvatarBySessionID(sessionUUID)) {
+            provider = std::dynamic_pointer_cast<scriptable::ModelProvider>(avatar);
+            provider->modelProviderType = NestableType::Avatar;
+        }
+        return provider;
+    }
+};
+
 static const QString STATE_IN_HMD = "InHMD";
 static const QString STATE_CAMERA_FULL_SCREEN_MIRROR = "CameraFSM";
 static const QString STATE_CAMERA_FIRST_PERSON = "CameraFirstPerson";
@@ -715,6 +781,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
+    DependencyManager::set<ScriptInitializerMixin, NativeScriptInitializers>();
     DependencyManager::set<Preferences>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
@@ -743,6 +810,9 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<DesktopScriptingInterface>();
     DependencyManager::set<EntityScriptingInterface>(true);
+    DependencyManager::set<GraphicsScriptingInterface>();
+    DependencyManager::registerInheritance<scriptable::ModelProviderFactory, ApplicationMeshProvider>();
+    DependencyManager::set<ApplicationMeshProvider>();
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
@@ -6023,6 +6093,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Render", _renderEngine->getConfiguration().get());
 
+    GraphicsScriptingInterface::registerMetaTypes(scriptEngine.data());
+    scriptEngine->registerGlobalObject("Graphics", DependencyManager::get<GraphicsScriptingInterface>().data());
+
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     scriptEngine->registerGlobalObject("Reticle", getApplicationCompositor().getReticleInterface());
 
@@ -6285,13 +6358,14 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
 void Application::replaceDomainContent(const QString& url) {
     qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
     QByteArray urlData(url.toUtf8());
-    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    auto limitedNodeList = DependencyManager::get<NodeList>();
+    const auto& domainHandler = limitedNodeList->getDomainHandler();
     limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
         return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-    }, [&urlData, limitedNodeList](const SharedNodePointer& octreeNode) {
+    }, [&urlData, limitedNodeList, &domainHandler](const SharedNodePointer& octreeNode) {
         auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
         octreeFilePacket->write(urlData);
-        limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
+        limitedNodeList->sendPacket(std::move(octreeFilePacket), domainHandler.getSockAddr());
     });
     auto addressManager = DependencyManager::get<AddressManager>();
     addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);

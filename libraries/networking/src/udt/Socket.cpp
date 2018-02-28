@@ -517,7 +517,7 @@ void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
     static QString repeatedMessage
         = LogHandler::getInstance().addRepeatedMessageRegex(SOCKET_REGEX);
 
-    qCDebug(networking) << "udt::Socket error - " << socketError;
+    qCDebug(networking) << "udt::Socket error - " << socketError << _udpSocket.errorString();
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
