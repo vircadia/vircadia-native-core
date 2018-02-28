@@ -1508,6 +1508,11 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 }
             }
 
+            if (isAdd && properties.getLocked() && !senderNode->isAllowedEditor()) {
+                // if a node can't change locks, don't allow them to create an already-locked entity
+                properties.setLocked(false);
+            }
+
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
             if (validEditPacket) {
