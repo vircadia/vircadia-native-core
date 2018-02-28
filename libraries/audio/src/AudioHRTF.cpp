@@ -72,6 +72,25 @@ ALIGN32 static const float crossfadeTable[HRTF_BLOCK] = {
 };
 
 //
+// Fast approximation of the azimuth parallax correction,
+// for azimuth = [-pi,pi] and distance = [0.125,2].
+//
+// Correction becomes 0 at distance = 2.
+// Correction is continuous and smooth.
+//
+static const int NAZIMUTH = 8;
+static const float azimuthTable[NAZIMUTH][3] = {
+    {  0.018719007f,  0.097263971f, 0.080748954f },     // [-4pi/4,-3pi/4]
+    {  0.066995833f,  0.319754290f, 0.336963269f },     // [-3pi/4,-2pi/4]
+    { -0.066989851f, -0.101178847f, 0.006359474f },     // [-2pi/4,-1pi/4]
+    { -0.018727343f, -0.020357568f, 0.040065626f },     // [-1pi/4,-0pi/4]
+    { -0.005519051f, -0.018744412f, 0.040065629f },     // [ 0pi/4, 1pi/4]
+    { -0.001201296f, -0.025103593f, 0.042396711f },     // [ 1pi/4, 2pi/4]
+    {  0.001198959f, -0.032642381f, 0.048316220f },     // [ 2pi/4, 3pi/4]
+    {  0.005519640f, -0.053424870f, 0.073296888f },     // [ 3pi/4, 4pi/4]
+};
+
+//
 // Model the normalized near-field Distance Variation Filter.
 //
 // This version is parameterized by the DC gain correction, instead of directly by azimuth and distance.
@@ -777,20 +796,39 @@ static void distanceBiquad(float distance, float& b0, float& b1, float& b2, floa
 //
 static void nearFieldAzimuthCorrection(float azimuth, float distance, float& azimuthL, float& azimuthR) {
 
+#ifdef HRTF_AZIMUTH_EXACT
     float dx = distance * cosf(azimuth);
     float dy = distance * sinf(azimuth);
 
-    // at reference distance, the azimuth parallax is correct
     float dx0 = HRTF_AZIMUTH_REF * cosf(azimuth);
     float dy0 = HRTF_AZIMUTH_REF * sinf(azimuth);
 
-    float deltaL = atan2f(dy + HRTF_HEAD_RADIUS, dx) - atan2f(dy0 + HRTF_HEAD_RADIUS, dx0);
-    float deltaR = atan2f(dy - HRTF_HEAD_RADIUS, dx) - atan2f(dy0 - HRTF_HEAD_RADIUS, dx0);
+    azimuthL += atan2f(dy + HRTF_HEAD_RADIUS, dx) - atan2f(dy0 + HRTF_HEAD_RADIUS, dx0);
+    azimuthR += atan2f(dy - HRTF_HEAD_RADIUS, dx) - atan2f(dy0 - HRTF_HEAD_RADIUS, dx0);
+#else
+    // at reference distance, the azimuth parallax is correct
+    float fy = (HRTF_AZIMUTH_REF - distance) / distance;
 
-    // add the azimuth correction
+    float x0 = +azimuth;
+    float x1 = -azimuth;    // compute using symmetry
+
+    const float RAD_TO_INDEX = 1.2732394f;  // 8/(2*pi), rounded down
+    int k0 = (int)(RAD_TO_INDEX * x0 + 4.0f);
+    int k1 = (NAZIMUTH-1) - k0;
+    assert(k0 >= 0);
+    assert(k1 >= 0);
+    assert(k0 < NAZIMUTH);
+    assert(k1 < NAZIMUTH);
+
+    // piecewise polynomial approximation over azimuth=[-pi,pi]
+    float fx0 = (azimuthTable[k0][0] * x0 + azimuthTable[k0][1]) * x0 + azimuthTable[k0][2];
+    float fx1 = (azimuthTable[k1][0] * x1 + azimuthTable[k1][1]) * x1 + azimuthTable[k1][2];
+
+    // approximate the azimuth correction
     // NOTE: must converge to 0 when distance = HRTF_AZIMUTH_REF
-    azimuthL += deltaL;
-    azimuthR += deltaR;
+    azimuthL += fx0 * fy;
+    azimuthR -= fx1 * fy;
+#endif
 }
 
 //
