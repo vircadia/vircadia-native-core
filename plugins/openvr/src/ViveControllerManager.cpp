@@ -11,6 +11,7 @@
 
 #include "ViveControllerManager.h"
 #include <algorithm>
+#include <string>
 
 #include <PerfStat.h>
 #include <PathUtils.h>
@@ -333,12 +334,33 @@ ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) :
     _configStringMap[Config::FeetHipsChestAndShoulders] = QString("FeetHipsChestAndShoulders");
 }
 
+std::string ViveControllerManager::InputDevice::getTrackingSystemName() {
+    std::string trackingSystemName = "";
+    if (_system) {
+        uint32_t HmdTrackingIndex = 0;
+        uint32_t bufferLength = _system->GetStringTrackedDeviceProperty(HmdTrackingIndex, vr::Prop_TrackingSystemName_String, NULL, 0, NULL);
+        if (bufferLength > 0) {
+            char* stringBuffer = new char[bufferLength];
+            _system->GetStringTrackedDeviceProperty(HmdTrackingIndex, vr::Prop_ManufacturerName_String, stringBuffer, bufferLength, NULL);
+            trackingSystemName = stringBuffer;
+            delete[] stringBuffer;
+        }
+    }
+    return trackingSystemName;
+}
+
 void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     _poseStateMap.clear();
     _buttonPressedMap.clear();
     _validTrackedObjects.clear();
     _trackedControllers = 0;
 
+    if (_headsetName == "") {
+        _headsetName = getTrackingSystemName();
+        if (_headsetName == "HTC") {
+            _headsetName += " Vive";
+        }
+    }
     // While the keyboard is open, we defer strictly to the keyboard values
     if (isOpenVrKeyboardShown()) {
         _axisStateMap.clear();

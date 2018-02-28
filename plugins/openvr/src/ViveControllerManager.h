@@ -52,6 +52,8 @@ public:
     bool activate() override;
     void deactivate() override;
 
+    QString getDeviceName() { return QString::fromStdString(_inputDevice->_headsetName); }
+
     void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
@@ -76,6 +78,7 @@ private:
         void calibrateOrUncalibrate(const controller::InputCalibrationData& inputCalibration);
         void calibrate(const controller::InputCalibrationData& inputCalibration);
         void uncalibrate();
+        std::string getTrackingSystemName();
         void sendUserActivityData(QString activity);
         void configureCalibrationSettings(const QJsonObject configurationSettings);
         QJsonObject configurationSettings();
@@ -161,6 +164,7 @@ private:
         HandConfig _handConfig { HandConfig::HandController };
         FilteredStick _filteredLeftStick;
         FilteredStick _filteredRightStick;
+        std::string _headsetName {""};
 
         std::vector<PuckPosePair> _validTrackedObjects;
         std::map<uint32_t, glm::mat4> _pucksPostOffset;
