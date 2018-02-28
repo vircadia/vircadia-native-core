@@ -25,7 +25,7 @@ struct WorkloadProxy {
     vec4 sphere;
     vec4 region;
 };
-
+/*
 #if defined(GPU_GL410)
 uniform samplerBuffer ssbo0Buffer;
 WorkloadProxy getWorkloadProxy(int i) {
@@ -44,7 +44,13 @@ WorkloadProxy getWorkloadProxy(int i) {
     return proxy;
 }
 #endif
-
+*/
+uniform ssbo0Buffer {
+    WorkloadProxy proxies[1024];
+};
+WorkloadProxy getWorkloadProxy(int index) {
+    return proxies[index];
+}
 
 
 out vec4 varColor;
@@ -84,8 +90,8 @@ void main(void) {
         2, 1, 3
     );
 
-    int proxyID = gl_VertexID / 6;
-    int vertexID = gl_VertexID - proxyID * 6;
+    int proxyID = gl_VertexID / 3;
+    int vertexID = gl_VertexID - proxyID * 3;
 
     vec4 cubeVec = UNIT_BOX[UNIT_BOX_LINE_INDICES[vertexID]];
 

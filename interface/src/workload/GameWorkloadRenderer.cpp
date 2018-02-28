@@ -94,7 +94,7 @@ const gpu::PipelinePointer GameWorkloadRenderItem::getPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding("ssbo0Buffer", 0));
+        slotBindings.insert(gpu::Shader::Binding("ssbo0Buffer", 11));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         auto state = std::make_shared<gpu::State>();
@@ -121,17 +121,18 @@ void GameWorkloadRenderItem::render(RenderArgs* args) {
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
     batch.setModelTransform(Transform());
-        
+
     // Bind program
     batch.setPipeline(getPipeline());
 
-    batch.setResourceBuffer(0, _allProxiesBuffer);
+   // batch.setResourceBuffer(11, _allProxiesBuffer);
+    batch.setUniformBuffer(11, _allProxiesBuffer);
 
-    static const int NUM_VERTICES_PER_QUAD = 6;
+    static const int NUM_VERTICES_PER_QUAD = 3;
     batch.draw(gpu::TRIANGLES, NUM_VERTICES_PER_QUAD * _numAllProxies, 0);
 
-    batch.setResourceBuffer(0, nullptr);
-    
+ //   batch.setResourceBuffer(11, nullptr);
+    batch.setUniformBuffer(11, nullptr);
 
 /*
     auto geometryCache = DependencyManager::get<GeometryCache>();
