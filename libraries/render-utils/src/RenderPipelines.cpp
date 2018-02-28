@@ -718,6 +718,17 @@ void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state) {
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withSkinned().withFade(),
         skinFadeProgram, state);
+
+    //Added for dual quaternions
+    auto skinDualQuatVertex = skin_model_shadow_dq_vert::getShader();
+    gpu::ShaderPointer skinFadeDualQuatProgram = gpu::Shader::createProgram(skinFadeVertex, skinFadePixel);
+    shapePlumber.addPipeline(
+        ShapeKey::Filter::Builder().withSkinned().withDualQuatSkinned().withFade(),
+        skinDualQuatVertex, state);
+    
+    shapePlumber.addPipeline(
+        ShapeKey::Filter::Builder().withSkinned().withDualQuatSkinned().withoutFade(),
+        skinDualQuatVertex, state);
 }
 
 #include "RenderPipelines.h"
