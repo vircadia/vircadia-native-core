@@ -754,7 +754,7 @@ bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger)
     quint16 port = domainURL.port();
     bool emitHostChanged { false };
 
-    if (domainURL.host() != _domainURL.host() || domainURL.port() != _domainURL.port()) {
+    if (domainURL != _domainURL) {
         addCurrentAddressToHistory(trigger);
         emitHostChanged = true;
     }
