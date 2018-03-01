@@ -70,6 +70,7 @@ public:
 
     Space() {}
 
+    void clear();
     int32_t createProxy(const Sphere& sphere);
     void deleteProxies(const std::vector<int32_t>& deadIndices);
     void updateProxies(const std::vector<ProxyUpdate>& changedProxies);
@@ -79,7 +80,6 @@ public:
     uint32_t getNumAllocatedProxies() const { return (uint32_t)(_proxies.size()); }
 
     void categorizeAndGetChanges(std::vector<Change>& changes);
-
     uint32_t copyProxyValues(Proxy* proxies, uint32_t numDestProxies);
 
 private:
