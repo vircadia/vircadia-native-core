@@ -17,8 +17,6 @@
 #include <quazip5/JlCompress.h>
 
 Test::Test() {
-    snapshotFilenameFormat = QRegularExpression("hifi-snap-by-.*-on-\\d\\d\\d\\d-\\d\\d-\\d\\d_\\d\\d-\\d\\d-\\d\\d.jpg");
-
     expectedImageFilenameFormat = QRegularExpression("ExpectedImage_\\d+.jpg");
 
     mismatchWindow.setModal(true);
@@ -387,16 +385,16 @@ void Test::createRecursiveScriptsRecursively() {
 void Test::createTest() {
     // Rename files sequentially, as ExpectedResult_1.jpeg, ExpectedResult_2.jpg and so on
     // Any existing expected result images will be deleted
-    QString pathToImageDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
-    if (pathToImageDirectory == "") {
+    QString imageSourceDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
+    if (imageSourceDirectory == "") {
         return;
     }
 
-    QStringList sortedImageFilenames = createListOfAllJPEGimagesInDirectory(pathToImageDirectory);
+    QStringList sortedImageFilenames = createListOfAllJPEGimagesInDirectory(imageSourceDirectory);
 
     int i = 1;
     foreach (QString currentFilename, sortedImageFilenames) {
-        QString fullCurrentFilename = pathToImageDirectory + "/" + currentFilename;
+        QString fullCurrentFilename = imageSourceDirectory + "/" + currentFilename;
         if (isInExpectedImageFilenameFormat(currentFilename)) {
             if (!QFile::remove(fullCurrentFilename)) {
                 messageBox.critical(0, "Error", "Could not delete existing file: " + currentFilename + "\nTest creation aborted");
@@ -408,22 +406,15 @@ void Test::createTest() {
                 messageBox.critical(0, "Error", "More than 100,000 images not supported");
                 exit(-1);
             }
-            QString newFilename = "ExpectedImage_" + QString::number(i-1).rightJustified(5, '0') + ".jpg";
-            QString fullNewFileName = pathToImageDirectory + "/" + newFilename;
+            QString newFilename = "ExpectedImage_" + QString::number(i - 1).rightJustified(5, '0') + ".jpg";
+            QString imageDestinationDirectory = getImageDestinationDirectory(currentFilename);
+            QString fullNewFileName = imageDestinationDirectory + "/" + newFilename;
 
-            if (!imageDirectory.rename(fullCurrentFilename, newFilename)) {
-                if (!QFile::exists(fullCurrentFilename)) {
-                    messageBox.critical(0, "Error", "Could not rename file: " + fullCurrentFilename + " to: " + newFilename + "\n"
-                        + fullCurrentFilename + " not found"
-                        + "\nTest creation aborted"
-                    );
-                    exit(-1);
-                } else {
-                    messageBox.critical(0, "Error", "Could not rename file: " + fullCurrentFilename + " to: " + newFilename + "\n"
-                        + "unknown error" + "\nTest creation aborted"
-                    );
-                    exit(-1);
-                }
+            try {
+                QFile::copy(fullCurrentFilename, fullNewFileName);
+            } catch (...) {
+                messageBox.critical(0, "Error", "Could not delete existing file: " + currentFilename + "\nTest creation aborted");
+                exit(-1);
             }
             ++i;
         }
@@ -475,9 +466,40 @@ QStringList Test::createListOfAllJPEGimagesInDirectory(QString pathToImageDirect
     return imageDirectory.entryList(nameFilters, QDir::Files, QDir::Name);
 }
 
-// Use regular expressions to check if files are in specific format
+// Snapshots are files in the following format:
+//      Filename contains no periods (excluding period before exception
+//      Filename (i.e. without extension) contains _tests_ (this is based on all test scripts being within the tests folder
+//      Last 5 characters in filename are digits
+//      Extension is jpg
 bool Test::isInSnapshotFilenameFormat(QString filename) {
-    return (snapshotFilenameFormat.match(filename).hasMatch());
+    QStringList filenameParts = filename.split(".");
+
+    bool filnameHasNoPeriods = (filenameParts.size() == 2);
+    bool contains_tests = filenameParts[0].contains("_tests_");
+
+    bool last5CharactersAreDigits;
+    filenameParts[0].right(5).toInt(&last5CharactersAreDigits, 10);
+
+    bool extensionIsJPG = filenameParts[1] == "jpg";
+
+    return (filnameHasNoPeriods && contains_tests && last5CharactersAreDigits && extensionIsJPG);
+}
+
+// For a file named "D_GitHub_hifi-tests_tests_content_entity_zone_create_0.jpg", the test directory is
+// D:/GitHub/hifi-tests/tests/content/entity/zone/create
+// This method assumes the filename is in the correct format
+// The final part of the filename is the image number.  This is checked for sanity
+QString Test::getImageDestinationDirectory(QString filename) {
+    QString filenameWithoutExtension = filename.split(".")[0];
+    QStringList filenameParts = filenameWithoutExtension.split("_");
+
+    QString result = filenameParts[0] + ":";
+
+    for (int i = 1; i < filenameParts.length() - 1; ++i) {
+        result += "/" + filenameParts[i];
+    }
+
+    return result;
 }
 
 bool Test::isInExpectedImageFilenameFormat(QString filename) {

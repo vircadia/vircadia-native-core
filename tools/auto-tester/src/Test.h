@@ -46,6 +46,8 @@ public:
 
     bool isAValidDirectory(QString pathname);
 
+    QString getImageDestinationDirectory(QString filename);
+
 private:
     const QString TEST_FILENAME { "test.js" };
     const QString TEST_RESULTS_FOLDER { "TestResults" };
@@ -55,13 +57,11 @@ private:
 
     QDir imageDirectory;
 
-    QRegularExpression snapshotFilenameFormat;
     QRegularExpression expectedImageFilenameFormat;
 
     MismatchWindow mismatchWindow;
 
     ImageComparer imageComparer;
-
 
     QString testResultsFolderPath { "" };
     int index { 1 };
