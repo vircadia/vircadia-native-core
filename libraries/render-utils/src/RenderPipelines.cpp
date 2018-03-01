@@ -592,8 +592,8 @@ void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::Ba
         Key::Builder().withMaterial().withSkinned().withTangents().withDualQuatSkinned(),
         skinModelNormalMapDualQuatVertex, modelNormalMapPixel, nullptr, nullptr);
     addPipeline(
-        Key::Builder().withMaterial().withSkinned(),
-        skinModelDualQuatVertex, modelSpecularMapPixel, nullptr, nullptr);
+        Key::Builder().withMaterial().withSkinned().withSpecular().withDualQuatSkinned(),
+       skinModelDualQuatVertex, modelSpecularMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTangents().withSpecular().withDualQuatSkinned(),
         skinModelNormalMapDualQuatVertex, modelNormalSpecularMapPixel, nullptr, nullptr);
