@@ -100,6 +100,7 @@
 #include "model_shadow_vert.h"
 #include "skin_model_shadow_vert.h"
 #include "skin_model_shadow_dq_vert.h"
+#include "skin_model_shadow_fade_dq_vert.h"
 
 #include "model_shadow_frag.h"
 #include "skin_model_shadow_frag.h"
@@ -217,6 +218,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     auto skinModelDualQuatVertex = skin_model_dq_vert::getShader();
     auto skinModelNormalMapDualQuatVertex = skin_model_normal_map_dq_vert::getShader();
     auto skinModelShadowDualQuatVertex = skin_model_shadow_dq_vert::getShader();
+    auto skinModelShadowFadeDualQuatVertex = skin_model_shadow_fade_dq_vert::getShader();
     auto skinModelFadeDualQuatVertex = skin_model_fade_dq_vert::getShader();
     auto skinModelNormalMapFadeDualQuatVertex = skin_model_normal_map_fade_dq_vert::getShader();
     auto skinModelTranslucentDualQuatVertex = skinModelFadeDualQuatVertex;  // We use the same because it ouputs world position per vertex
@@ -490,7 +492,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withFade(),
-        skinModelFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+        skinModelFadeDualQuatVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withTangents().withFade(),
         skinModelNormalMapFadeDualQuatVertex, modelTranslucentNormalMapFadePixel, batchSetter, itemSetter);
@@ -515,6 +517,16 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     addPipeline(
         Key::Builder().withSkinned().withDepthOnly().withFade(),
         skinModelShadowFadeVertex, modelShadowFadePixel, batchSetter, itemSetter);
+
+    // Now repeat for dual quaternion
+    // Depth-only
+    addPipeline(
+        Key::Builder().withSkinned().withDualQuatSkinned().withDepthOnly(),
+        skinModelShadowDualQuatVertex, modelShadowPixel, nullptr, nullptr);
+    // Same thing but with Fade on
+    addPipeline(
+        Key::Builder().withSkinned().withDualQuatSkinned().withDepthOnly().withFade(),
+        skinModelShadowFadeDualQuatVertex, modelShadowFadePixel, batchSetter, itemSetter);
 }
 
 void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter) {
@@ -524,6 +536,10 @@ void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::Ba
     auto skinModelVertex = skin_model_vert::getShader();
     auto skinModelNormalMapVertex = skin_model_normal_map_vert::getShader();
     auto skinModelNormalMapFadeVertex = skin_model_normal_map_fade_vert::getShader();
+
+    auto skinModelDualQuatVertex = skin_model_dq_vert::getShader();
+    auto skinModelNormalMapDualQuatVertex = skin_model_normal_map_dq_vert::getShader();
+    auto skinModelNormalMapFadeDualQuatVertex = skin_model_normal_map_fade_dq_vert::getShader();
 
     // Pixel shaders
     auto modelPixel = forward_model_frag::getShader();
@@ -568,6 +584,22 @@ void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::Ba
             Key::Builder().withMaterial().withSkinned().withTangents().withFade(),
             skinModelNormalMapFadeVertex, modelNormalMapFadePixel, batchSetter, itemSetter, nullptr, nullptr);
 
+    // Dual Quaternion
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withDualQuatSkinned(),
+        skinModelDualQuatVertex, modelPixel, nullptr, nullptr);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withTangents().withDualQuatSkinned(),
+        skinModelNormalMapDualQuatVertex, modelNormalMapPixel, nullptr, nullptr);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned(),
+        skinModelDualQuatVertex, modelSpecularMapPixel, nullptr, nullptr);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withTangents().withSpecular().withDualQuatSkinned(),
+        skinModelNormalMapDualQuatVertex, modelNormalSpecularMapPixel, nullptr, nullptr);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withTangents().withFade().withDualQuatSkinned(),
+        skinModelNormalMapFadeDualQuatVertex, modelNormalMapFadePixel, batchSetter, itemSetter, nullptr, nullptr);
 }
 
 void addPlumberPipeline(ShapePlumber& plumber,
@@ -695,12 +727,12 @@ void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state) {
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withSkinned().withDualQuatSkinned().withoutFade(),
         skinModelShadowDualQuatProgram, state);
-/*
+
     auto skinModelShadowFadeDualQuatVertex = skin_model_shadow_fade_dq_vert::getShader();
     gpu::ShaderPointer skinModelShadowFadeDualQuatProgram = gpu::Shader::createProgram(skinModelShadowFadeDualQuatVertex, skinFadePixel);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withSkinned().withDualQuatSkinned().withFade(),
-        skinModelShadowFadeDualQuatProgram, state);*/
+        skinModelShadowFadeDualQuatProgram, state);
 }
 
 #include "RenderPipelines.h"
