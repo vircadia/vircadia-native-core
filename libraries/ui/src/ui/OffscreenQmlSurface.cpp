@@ -248,7 +248,6 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     rootContext->setContextProperty("GL", ::getGLContextData());
     rootContext->setContextProperty("urlHandler", new UrlHandler());
     rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
-    rootContext->setContextProperty("pathToFonts", "../../");
     rootContext->setContextProperty("ApplicationInterface", qApp);
     auto javaScriptToInject = getEventBridgeJavascript();
     if (!javaScriptToInject.isEmpty()) {

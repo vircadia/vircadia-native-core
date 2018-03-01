@@ -125,7 +125,7 @@ Rectangle {
         TextInput {
             id: mirrorText
             visible: showMirrorText
-            FontLoader { id: font; source: "../../fonts/FiraSans-Regular.ttf"; }
+            FontLoader { id: font; source: "qrc:/fonts/FiraSans-Regular.ttf"; }
             font.family: font.name
             font.pixelSize: 20
             verticalAlignment: Text.AlignVCenter
@@ -165,7 +165,7 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 0
 
-        FontLoader { id: hiFiGlyphs; source: pathToFonts + "fonts/hifi-glyphs.ttf"; }
+        FontLoader { id: hiFiGlyphs; source: "qrc:/fonts/hifi-glyphs.ttf"; }
 
         Column {
             id: columnAlpha
