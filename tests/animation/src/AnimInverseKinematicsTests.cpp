@@ -155,13 +155,11 @@ void AnimInverseKinematicsTests::testSingleChain() {
 
         // iterate several times
         float dt = 1.0f;
-        ikDoll.overlay(varMap, context, dt, triggers, poses);
-        ikDoll.overlay(varMap, context, dt, triggers, poses);
-        ikDoll.overlay(varMap, context, dt, triggers, poses);
 
-        ikDoll.overlay(varMap, context, dt, triggers, poses);
-        ikDoll.overlay(varMap, context, dt, triggers, poses);
-        ikDoll.overlay(varMap, context, dt, triggers, poses);
+        const int NUM_FRAMES = 10;
+        for (int i = 0; i < NUM_FRAMES; i++) {
+            poses = ikDoll.overlay(varMap, context, dt, triggers, poses);
+        }
         const AnimPoseVec& relativePoses = ikDoll.overlay(varMap, context, dt, triggers, poses);
 
         // verify absolute results
@@ -172,6 +170,7 @@ void AnimInverseKinematicsTests::testSingleChain() {
             absolutePoses.push_back(pose);
         }
         ikDoll.computeAbsolutePoses(absolutePoses);
+
         const float acceptableAngleError = 0.001f;
         QCOMPARE_QUATS(absolutePoses[0].rot(), identity, acceptableAngleError);
         QCOMPARE_QUATS(absolutePoses[1].rot(), identity, acceptableAngleError);
@@ -194,6 +193,7 @@ void AnimInverseKinematicsTests::testSingleChain() {
         QCOMPARE_WITH_ABS_ERROR(relativePoses[1].trans(), xAxis, acceptableTranslationError);
         QCOMPARE_WITH_ABS_ERROR(relativePoses[2].trans(), xAxis, acceptableTranslationError);
         QCOMPARE_WITH_ABS_ERROR(relativePoses[3].trans(), xAxis, acceptableTranslationError);
+
     }
     { // hard test IK of joint C
         // load intial poses that look like this:
@@ -245,14 +245,10 @@ void AnimInverseKinematicsTests::testSingleChain() {
 
         // iterate several times
         float dt = 1.0f;
-        ikDoll.overlay(varMap, context, dt, triggers, poses);
-        ikDoll.overlay(varMap, context, dt, triggers, poses);
-        ikDoll.overlay(varMap, context, dt, triggers, poses);
-        ikDoll.overlay(varMap, context, dt, triggers, poses);
-        ikDoll.overlay(varMap, context, dt, triggers, poses);
-        ikDoll.overlay(varMap, context, dt, triggers, poses);
-        ikDoll.overlay(varMap, context, dt, triggers, poses);
-        ikDoll.overlay(varMap, context, dt, triggers, poses);
+        const int NUM_FRAMES = 50;
+        for (int i = 0; i < NUM_FRAMES; i++) {
+            poses = ikDoll.overlay(varMap, context, dt, triggers, poses);
+        }
         const AnimPoseVec& relativePoses = ikDoll.overlay(varMap, context, dt, triggers, poses);
 
         // verify absolute results
@@ -267,13 +263,14 @@ void AnimInverseKinematicsTests::testSingleChain() {
             absolutePoses.push_back(pose);
         }
         ikDoll.computeAbsolutePoses(absolutePoses);
+
         float acceptableAngle = 0.01f; // radians
         QCOMPARE_QUATS(absolutePoses[0].rot(), identity, acceptableAngle);
         QCOMPARE_QUATS(absolutePoses[1].rot(), identity, acceptableAngle);
         QCOMPARE_QUATS(absolutePoses[2].rot(), identity, acceptableAngle);
         QCOMPARE_QUATS(absolutePoses[3].rot(), identity, acceptableAngle);
 
-        float acceptableDistance = 0.03f;
+        float acceptableDistance = 0.1f;
         QCOMPARE_WITH_ABS_ERROR(absolutePoses[0].trans(), origin, acceptableDistance);
         QCOMPARE_WITH_ABS_ERROR(absolutePoses[1].trans(), xAxis, acceptableDistance);
         QCOMPARE_WITH_ABS_ERROR(absolutePoses[2].trans(), 2.0f * xAxis, acceptableDistance);
