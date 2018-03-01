@@ -194,6 +194,7 @@ void EntityTreeRenderer::clear() {
     }
 
     // remove all entities from the scene
+    _space->clear();
     auto scene = _viewState->getMain3DScene();
     if (scene) {
         render::Transaction transaction;
