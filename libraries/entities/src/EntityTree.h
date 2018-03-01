@@ -283,7 +283,7 @@ public:
 
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
 
-    void swapRemovedEntities(std::vector<EntityItemPointer>& entities) { entities.swap(_removedEntities); }
+    void swapStaleProxies(std::vector<int>& proxies) { proxies.swap(_staleProxies); }
 
     static void setAddMaterialToEntityOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToEntityOperator) { _addMaterialToEntityOperator = addMaterialToEntityOperator; }
     static void setRemoveMaterialFromEntityOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromEntityOperator) { _removeMaterialFromEntityOperator = removeMaterialFromEntityOperator; }
@@ -415,7 +415,7 @@ private:
     static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToOverlayOperator;
     static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromOverlayOperator;
 
-    std::vector<EntityItemPointer> _removedEntities;
+    std::vector<int32_t> _staleProxies;
 };
 
 #endif // hifi_EntityTree_h

@@ -697,10 +697,11 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             _simulation->prepareEntityForDelete(theEntity);
         }
 
-        // We save a pointer to theEntity for external contexts that need it
-        // but this means: external contexts that remove entities from the tree
-        // must occasionally swapRemovedEntities() to flush these references.
-        _removedEntities.push_back(theEntity);
+        // keep a record of valid stale spaceIndices so they can be removed from the Space
+        int32_t spaceIndex = theEntity->getSpaceIndex();
+        if (spaceIndex != -1) {
+            _staleProxies.push_back(spaceIndex);
+        }
     }
 }
 
