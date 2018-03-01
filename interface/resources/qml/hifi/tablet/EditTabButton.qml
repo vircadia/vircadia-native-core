@@ -1,6 +1,6 @@
 //
-//  AudioTabButton.qml
-//  qml/hifi/audio
+//  EditTabButton.qml
+//  qml/hifi/tablet
 //
 //  Created by Vlad Stelmahovsky on 8/16/2017
 //  Copyright 2017 High Fidelity, Inc.
@@ -16,6 +16,9 @@ import "../../styles-uit"
 
 TabButton {
     id: control
+    property alias title: control.text
+    property alias active: control.checkable
+    height: 40
     font.pixelSize: height / 2
     padding: 0
     spacing: 0
@@ -26,7 +29,7 @@ TabButton {
         text: control.text
         font.pixelSize: 14
         font.bold: true
-        color: control.checked ? "white" : "white"
+        color: "white"
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         property string glyphtext: ""
