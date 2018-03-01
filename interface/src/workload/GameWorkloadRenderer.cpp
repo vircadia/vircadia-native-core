@@ -18,6 +18,11 @@
 #include "render-utils/drawWorkloadProxy_vert.h"
 #include "render-utils/drawWorkloadProxy_frag.h"
 
+
+void GameSpaceToRender::configure(const Config& config) {
+    _showAllWorkspace = config.showAllWorkspace;
+}
+
 void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, Outputs& outputs) {
     auto gameWorkloadContext = std::dynamic_pointer_cast<GameWorkloadContext>(runContext);
     if (!gameWorkloadContext) {
@@ -28,6 +33,19 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
         return;
     }
 
+    auto visible = _showAllWorkspace;
+    render::Transaction transaction;
+
+    // Nothing really needed, early exit
+    if (!visible) {
+        if (render::Item::isValidID(_spaceRenderItemID)) {
+            transaction.updateItem<GameWorkloadRenderItem>(_spaceRenderItemID, [](GameWorkloadRenderItem& item) {
+                item.setVisible(false);
+            });
+        }
+        return;
+    }
+
     std::vector<workload::Space::Proxy> proxies(space->getNumAllocatedProxies());
     space->copyProxyValues(proxies.data(), (uint32_t)proxies.size());
 
@@ -35,15 +53,16 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
     auto scene = gameWorkloadContext->_scene;
 
     // Valid space, let's display its content
-    render::Transaction transaction;
     if (!render::Item::isValidID(_spaceRenderItemID)) {
         _spaceRenderItemID = scene->allocateID();
         auto renderItem = std::make_shared<GameWorkloadRenderItem>();
         renderItem->editBound().setBox(glm::vec3(-100.0f), 200.0f);
+        renderItem->setVisible(visible);
         renderItem->setAllProxies(proxies);
         transaction.resetItem(_spaceRenderItemID, std::make_shared<GameWorkloadRenderItem::Payload>(renderItem));
     } else {
-        transaction.updateItem<GameWorkloadRenderItem>(_spaceRenderItemID, [proxies](GameWorkloadRenderItem& item) {
+        transaction.updateItem<GameWorkloadRenderItem>(_spaceRenderItemID, [visible, proxies](GameWorkloadRenderItem& item) {
+            item.setVisible(visible);
             item.setAllProxies(proxies);
         });
     }
@@ -52,7 +71,11 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
 
 namespace render {
     template <> const ItemKey payloadGetKey(const GameWorkloadRenderItem::Pointer& payload) {
-        return ItemKey::Builder::opaqueShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+        auto key = ItemKey::Builder::opaqueShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+        if (!payload->isVisible()) {
+            key.withInvisible();
+        }
+        return key;
     }
     template <> const Item::Bound payloadGetBound(const GameWorkloadRenderItem::Pointer& payload) {
         if (payload) {
@@ -74,8 +97,6 @@ namespace render {
 
 }
 
-
-
 void GameWorkloadRenderItem::setAllProxies(const std::vector<workload::Space::Proxy>& proxies) {
     _myOwnProxies = proxies;
     static const uint32_t sizeOfProxy = sizeof(workload::Space::Proxy);
@@ -94,11 +115,11 @@ const gpu::PipelinePointer GameWorkloadRenderItem::getPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding("ssbo0Buffer", 11));
+        slotBindings.insert(gpu::Shader::Binding("workloadProxiesBuffer", 0));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        state->setDepthTest(true, true, gpu::LESS_EQUAL);
       /*  state->setBlendFunction(true,
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::DEST_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ZERO);*/
@@ -125,30 +146,12 @@ void GameWorkloadRenderItem::render(RenderArgs* args) {
     // Bind program
     batch.setPipeline(getPipeline());
 
-    batch.setResourceBuffer(11, _allProxiesBuffer);
-  //  batch.setUniformBuffer(11, _allProxiesBuffer);
+    batch.setResourceBuffer(0, _allProxiesBuffer);
 
     static const int NUM_VERTICES_PER_QUAD = 3;
     batch.draw(gpu::TRIANGLES, NUM_VERTICES_PER_QUAD * _numAllProxies, 0);
 
     batch.setResourceBuffer(11, nullptr);
- //   batch.setUniformBuffer(11, nullptr);
-
-/*
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    GeometryCache::Shape geometryShape;
-    glm::vec4 outColor;
-    geometryShape = GeometryCache::Sphere;
-//   geometryCache->renderShape(batch, geometryShape, outColor);
-
-    auto pipeline = geometryCache->getOpaqueShapePipeline();
-  
-    for (int i = 0; i < _numAllProxies; i++) {
-        auto sphere = _myOwnProxies[i].sphere;
-        batch.setModelTransform(Transform(glm::quat(), glm::vec3(1.0), glm::vec3(sphere.x, sphere.y, sphere.z)));
-        geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);
-    }*/
-
 }
 
 

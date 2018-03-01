@@ -12,16 +12,32 @@
 
 #include "GameWorkload.h"
 
+class GameSpaceToRenderConfig : public workload::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(bool showAllWorkspace MEMBER showAllWorkspace NOTIFY dirty)
+public:
+
+    bool showAllWorkspace{ false };
+signals:
+    void dirty();
+
+protected:
+};
+
 class GameSpaceToRender {
 public:
+    using Config = GameSpaceToRenderConfig;
     using Outputs = render::Transaction;
-    using JobModel = workload::Job::ModelO<GameSpaceToRender, Outputs>;
+    using JobModel = workload::Job::ModelO<GameSpaceToRender, Outputs, Config>;
 
     GameSpaceToRender() {}
+
+    void configure(const Config& config);
     void run(const workload::WorkloadContextPointer& renderContext, Outputs& outputs);
 
 protected:
     render::ItemID _spaceRenderItemID{ render::Item::INVALID_ITEM_ID };
+    bool _showAllWorkspace{ false };
 };
 
 

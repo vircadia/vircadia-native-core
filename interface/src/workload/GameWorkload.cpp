@@ -28,6 +28,8 @@ void GameWorkload::startup(const workload::SpacePointer& space, const render::Sc
     _engine.reset(new workload::Engine(std::make_shared<GameWorkloadContext>(space, scene)));
 
     _engine->addJob<GameSpaceToRender>("SpaceToRender");
+
+
 }
 
 void GameWorkload::shutdown() {

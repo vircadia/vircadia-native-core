@@ -2701,6 +2701,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     surfaceContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     surfaceContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
+    surfaceContext->setContextProperty("Workload", _gameWorkload._engine->getConfiguration().get());
     surfaceContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
     surfaceContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
 
@@ -6109,6 +6110,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Render", _renderEngine->getConfiguration().get());
+    scriptEngine->registerGlobalObject("Workload", _gameWorkload._engine->getConfiguration().get());
 
     GraphicsScriptingInterface::registerMetaTypes(scriptEngine.data());
     scriptEngine->registerGlobalObject("Graphics", DependencyManager::get<GraphicsScriptingInterface>().data());
