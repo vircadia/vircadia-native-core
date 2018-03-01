@@ -135,8 +135,8 @@ public:
             Builder& withSkinned() { _flags.set(SKINNED); _mask.set(SKINNED); return (*this); }
             Builder& withoutSkinned() { _flags.reset(SKINNED); _mask.set(SKINNED); return (*this); }
 
-            Builder& withDualQuatSkinned() { _flags.set(DUAL_QUAT_SKINNED); _mask.set(SKINNED); return (*this); }
-            Builder& withoutDualQuatSkinned() { _flags.reset(DUAL_QUAT_SKINNED); _mask.set(SKINNED); return (*this); }
+            Builder& withDualQuatSkinned() { _flags.set(DUAL_QUAT_SKINNED); _mask.set(DUAL_QUAT_SKINNED); return (*this); }
+            Builder& withoutDualQuatSkinned() { _flags.reset(DUAL_QUAT_SKINNED); _mask.set(DUAL_QUAT_SKINNED); return (*this); }
 
             Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
             Builder& withoutDepthOnly() { _flags.reset(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
@@ -176,6 +176,7 @@ public:
     bool isUnlit() const { return _flags[UNLIT]; }
     bool isTranslucent() const { return _flags[TRANSLUCENT]; }
     bool isSkinned() const { return _flags[SKINNED]; }
+    bool isDualQuatSkinned() const { return _flags[DUAL_QUAT_SKINNED]; }
     bool isDepthOnly() const { return _flags[DEPTH_ONLY]; }
     bool isDepthBiased() const { return _flags[DEPTH_BIAS]; }
     bool isWireframe() const { return _flags[WIREFRAME]; }
@@ -216,6 +217,7 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
                 << "isUnlit:" << key.isUnlit()
                 << "isTranslucent:" << key.isTranslucent()
                 << "isSkinned:" << key.isSkinned()
+                << "isDualQuatSkinned:" << key.isDualQuatSkinned()
                 << "isDepthOnly:" << key.isDepthOnly()
                 << "isDepthBiased:" << key.isDepthBiased()
                 << "isWireframe:" << key.isWireframe()

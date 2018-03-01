@@ -672,7 +672,7 @@ void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state) {
     auto skinPixel = skin_model_shadow_frag::getShader();
     gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(skinVertex, skinPixel);
     shapePlumber.addPipeline(
-        ShapeKey::Filter::Builder().withSkinned().withoutFade(),
+        ShapeKey::Filter::Builder().withSkinned().withoutDualQuatSkinned().withoutFade(),
         skinProgram, state);
 
     auto modelFadeVertex = model_shadow_fade_vert::getShader();
@@ -686,8 +686,21 @@ void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state) {
     auto skinFadePixel = skin_model_shadow_fade_frag::getShader();
     gpu::ShaderPointer skinFadeProgram = gpu::Shader::createProgram(skinFadeVertex, skinFadePixel);
     shapePlumber.addPipeline(
-        ShapeKey::Filter::Builder().withSkinned().withFade(),
+        ShapeKey::Filter::Builder().withSkinned().withoutDualQuatSkinned().withFade(),
         skinFadeProgram, state);
+
+    //Added for dual quaternions
+    auto skinModelShadowDualQuatVertex = skin_model_shadow_dq_vert::getShader();
+    gpu::ShaderPointer skinModelShadowDualQuatProgram = gpu::Shader::createProgram(skinModelShadowDualQuatVertex, skinPixel);
+    shapePlumber.addPipeline(
+        ShapeKey::Filter::Builder().withSkinned().withDualQuatSkinned().withoutFade(),
+        skinModelShadowDualQuatProgram, state);
+/*
+    auto skinModelShadowFadeDualQuatVertex = skin_model_shadow_fade_dq_vert::getShader();
+    gpu::ShaderPointer skinModelShadowFadeDualQuatProgram = gpu::Shader::createProgram(skinModelShadowFadeDualQuatVertex, skinFadePixel);
+    shapePlumber.addPipeline(
+        ShapeKey::Filter::Builder().withSkinned().withDualQuatSkinned().withFade(),
+        skinModelShadowFadeDualQuatProgram, state);*/
 }
 
 #include "RenderPipelines.h"
