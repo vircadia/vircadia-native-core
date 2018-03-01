@@ -103,6 +103,9 @@ public:
     void setDirection(const Vec3& direction);
     const Vec3& getDirection() const;
 
+    void setCastShadows(const bool castShadows);
+    bool getCastShadows() const;
+
     void setOrientation(const Quat& orientation);
     const glm::quat& getOrientation() const { return _transform.getRotation(); }
 
@@ -190,6 +193,8 @@ protected:
     float _spotCos { -1.0f }; // stored here to be able to reset the spot angle when turning the type spot on/off
 
     void updateLightRadius();
+
+    bool _castShadows{ false };
 
 };
 typedef std::shared_ptr< Light > LightPointer;
