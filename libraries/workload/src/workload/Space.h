@@ -45,6 +45,8 @@ public:
         Sphere sphere;
         uint8_t region { REGION_UNKNOWN };
         uint8_t prevRegion { REGION_UNKNOWN };
+        uint16_t _padding;
+        uint32_t _paddings[3];
     };
 
     class View {

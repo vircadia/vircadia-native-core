@@ -70,7 +70,7 @@ int GL45Backend::makeResourceBufferSlots(GLuint glprogram, const Shader::Binding
         auto requestedBinding = slotBindings.find(info.name);
         if (requestedBinding != slotBindings.end()) {
             info.binding = (*requestedBinding)._location;
-            glUniformBlockBinding(glprogram, info.index, info.binding);
+            glShaderStorageBlockBinding(glprogram, info.index, info.binding);
             resourceBufferSlotMap[info.binding] = info.index;
         }
     }
@@ -86,7 +86,7 @@ int GL45Backend::makeResourceBufferSlots(GLuint glprogram, const Shader::Binding
             auto slotIt = std::find_if(resourceBufferSlotMap.begin(), resourceBufferSlotMap.end(), GLBackend::isUnusedSlot);
             if (slotIt != resourceBufferSlotMap.end()) {
                 info.binding = slotIt - resourceBufferSlotMap.begin();
-                glUniformBlockBinding(glprogram, info.index, info.binding);
+                glShaderStorageBlockBinding(glprogram, info.index, info.binding);
             } else {
                 // This should never happen, an active ssbo cannot find an available slot among the max available?!
                 info.binding = -1;

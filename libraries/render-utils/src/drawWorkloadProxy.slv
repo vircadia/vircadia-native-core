@@ -21,27 +21,27 @@
 uniform vec4 inColor;
 
 
-struct ItemBound {
-    vec4 id_boundPos;
-    vec4 boundDim_s;
+struct WorkloadProxy {
+    vec4 sphere;
+    vec4 region;
 };
 
 #if defined(GPU_GL410)
-uniform samplerBuffer ssbo0Buffer;
-ItemBound getItemBound(int i) {
+uniform samplerBuffer workloadProxiesBuffer;
+WorkloadProxy getWorkloadProxy(int i) {
     int offset = 2 * i;
-    ItemBound bound;
-    bound.id_boundPos = texelFetch(ssbo0Buffer, offset);
-    bound.boundDim_s = texelFetch(ssbo0Buffer, offset + 1);
-    return bound;
+    WorkloadProxy proxy;
+    proxy.sphere = texelFetch(workloadProxiesBuffer, offset);
+    proxy.region = texelFetch(workloadProxiesBuffer, offset + 1);
+    return proxy;
 }
 #else
-layout(std140) buffer ssbo0Buffer {
-    ItemBound bounds[];
+layout(std140) buffer workloadProxiesBuffer {
+    WorkloadProxy _proxies[];
 };
-ItemBound getItemBound(int i) {
-    ItemBound bound = bounds[i];
-    return bound;
+WorkloadProxy getWorkloadProxy(int i) {
+    WorkloadProxy proxy = _proxies[i];
+    return proxy;
 }
 #endif
 
@@ -51,52 +51,41 @@ out vec4 varColor;
 out vec2 varTexcoord;
 
 void main(void) {
-    const vec4 UNIT_BOX[8] = vec4[8](
-        vec4(0.0, 0.0, 0.0, 0.0),
-        vec4(1.0, 0.0, 0.0, 1.0),
-        vec4(0.0, 1.0, 0.0, 1.0),
-        vec4(1.0, 1.0, 0.0, 2.0),
-        vec4(0.0, 0.0, 1.0, 1.0),
-        vec4(1.0, 0.0, 1.0, 2.0),
-        vec4(0.0, 1.0, 1.0, 2.0),
-        vec4(1.0, 1.0, 1.0, 3.0)
+    const vec4 UNIT_SPRITE[3] = vec4[3](
+        vec4(-1.0, -1.0, 0.0, 1.0),
+        vec4(3.0, -1.0, 0.0, 1.0),
+        vec4(-1.0, 3.0, 0.0, 1.0)
     );
-    const int UNIT_BOX_LINE_INDICES[24] = int[24](
-        0, 1,
-        1, 3,
-        3, 2,
-        2, 0,
-        4, 5,
-        5, 7,
-        7, 6,
-        6, 4,
-        2, 6,
-        3, 7,
-        0, 4,
-        1, 5
+     const int UNIT_SPRITE_INDICES[3] = int[3](
+        0, 1, 2
     );
+    int proxyID = gl_VertexID / 3;
+    int vertexID = gl_VertexID - proxyID * 3;
 
-    int boundID = gl_VertexID / 24;
-    int vertexID = gl_VertexID - boundID * 24;
+    vec4 spriteVert = UNIT_SPRITE[UNIT_SPRITE_INDICES[vertexID]];
 
-    vec4 cubeVec = UNIT_BOX[UNIT_BOX_LINE_INDICES[vertexID]];
+    WorkloadProxy proxy = getWorkloadProxy(proxyID);
+    vec4 proxyPosWorld = vec4(proxy.sphere.xyz, 1.0);
 
-    ItemBound bound = getItemBound(boundID);
-    vec3 boundPos = bound.id_boundPos.yzw;
-    vec3 boundDim = bound.boundDim_s.xyz;
-
-    vec4 pos = vec4(boundPos + boundDim * cubeVec.xyz, 1.0);
-
-    // standard transform
+    // standard transform, bring proxy in view space
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
+    vec4 proxyPosEye;
+    <$transformModelToEyePos(cam, obj, proxyPosWorld, proxyPosEye)$>
 
-    if (inColor.w < 0.0) {
-        varColor = vec4(colorWheel(float(boundID)/(-inColor.w)), 1.0);
-    } else {
-        varColor = vec4(colorWheel(float(inColor.w)), 1.0);
-    }
-    varTexcoord = vec2(cubeVec.w, length(boundDim));
+    // Define the billboarded space
+    vec3 dirZ = -normalize(proxyPosEye.xyz);
+    vec3 dirX = normalize(cross(vec3(0.0, 1.0, 0.0), dirZ));
+    vec3 dirY = vec3(0.0, 1.0, 0.0);
+   // vec3 dirY = normalize(cross(dirZ, vec3(1.0, 0.0, 0.0)));
 
+    vec4 pos = vec4(proxyPosEye.xyz + proxy.sphere.w * ( dirX * spriteVert.x + dirY * spriteVert.y /* + dirZ * spriteVert.z*/), 1.0);
+    varTexcoord = spriteVert.xy;
+    <$transformEyeToClipPos(cam, pos, gl_Position)$>
+
+    // Convert region to color
+    int region = floatBitsToInt(proxy.region.x);
+    region = (0x000000FF & region);
+
+    varColor = vec4(colorWheel(float(region) / 4.0), proxy.sphere.w);
 }

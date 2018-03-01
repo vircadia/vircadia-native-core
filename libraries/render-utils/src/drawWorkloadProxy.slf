@@ -10,19 +10,21 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+<@include DeferredBufferWrite.slh@>
+<@include gpu/Paint.slh@>
 
 in vec4 varColor;
 in vec2 varTexcoord;
-out vec4 outFragColor;
 
 void main(void) {
-    float var = step(fract(varTexcoord.x * varTexcoord.y * 1.0), 0.5);
-
-    if (varColor.a == 0.0) {
-        outFragColor = vec4(mix(vec3(0.0), varColor.xyz, var), mix(0.0, 1.0, var));
-        
-    } else {
-        outFragColor = vec4(mix(vec3(1.0), varColor.xyz, var), varColor.a);
+    float r = sqrt(dot(varTexcoord.xy,varTexcoord.xy));
+    float a = paintStripe(r * varColor.w, 0.0, 1.0 / varColor.w, 0.05 / varColor.w);
+    if (a <= 0.1 || r > 1.1) {
+        discard;
     }
 
+    packDeferredFragmentUnlit(
+        vec3(0.0, 1.0, 0.0), 
+        1.0,
+        varColor.rgb);
 }
