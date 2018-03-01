@@ -726,7 +726,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     value is specified then the model is automatically sized to its 
  *     <code>{@link Entityes.EntityProperties|naturalDimensions}</code>.
  * @property {Color} color=255,255,255 - <em>Currently not used.</em>
- * @property {string} modelURL="" - The URL of the FBX of OBJ model. Baked FBX models' URLs end in ".baked.fbx".
+ * @property {string} modelURL="" - The URL of the FBX of OBJ model. Baked FBX models' URLs end in ".baked.fbx".<br />
+ *     Note: If the name ends with <code>"default-image-model.fbx"</code> then the entity is considered to be an "Image" 
+ *     entity, in which case the <code>textures</code> property should be set per the example.
  * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
  *     model's original textures. Only the texture names and URLs to be overridden need be specified; original textures are 
  *     used where there are no overrides. You can use <code>JSON.stringify()</code> to convert a JavaScript object of name, URL 
@@ -770,6 +772,24 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     modelURL: "http://content.highfidelity.com/seefo/production/puck-attach/vive_tracker_puck.obj",
  *     dimensions: { x: 0.0945, y: 0.0921, z: 0.0423 },
  *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ * @example <caption>Crate an "Image" entity like the Create app.</caption>
+ * var IMAGE_MODEL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
+ * var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
+ * var entity = Entities.addEntity({
+ *     type: "Model",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -3 })),
+ *     rotation: MyAvatar.orientation,
+ *     dimensions: {
+ *         x: 0.5385,
+ *         y: 0.2819,
+ *         z: 0.0092
+ *     },
+ *     shapeType: "box",
+ *     collisionless: true,
+ *     modelURL: IMAGE_MODEL,
+ *     textures: JSON.stringify({ "tex.picture": DEFAULT_IMAGE }),
+ *     lifetime: 300  // Delete after 5 minutes
  * });
  */
 
