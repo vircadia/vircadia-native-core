@@ -7,11 +7,11 @@
 
 /* jslint bitwise: true */
 
-/* global Script, Entities, Overlays, Controller, Vec3, Quat, getControllerWorldLocation, RayPick,
+/* global Script, Entities, Overlays, Controller, Vec3, Quat, getControllerWorldLocation, 
    controllerDispatcherPlugins:true, controllerDispatcherPluginsNeedSort:true,
    LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES,
-   getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Pointers, PickType, COLORS_GRAB_SEARCHING_HALF_SQUEEZE
-   COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, Picks, TRIGGER_ON_VALUE, PointerManager
+   getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Picks, PickType, Pointers, COLORS_GRAB_SEARCHING_HALF_SQUEEZE
+   COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, TRIGGER_ON_VALUE, PointerManager
 */
 
 controllerDispatcherPlugins = {};
@@ -378,8 +378,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.setBlacklist = function() {
-            RayPick.setIgnoreItems(_this.leftControllerRayPick, this.blacklist);
-            RayPick.setIgnoreItems(_this.rightControllerRayPick, this.blacklist);
+            Pointers.setIgnoreItems(_this.leftPointer, this.blacklist);
+            Pointers.setIgnoreItems(_this.rightPointer, this.blacklist);
         };
 
         var MAPPING_NAME = "com.highfidelity.controllerDispatcher";
@@ -451,7 +451,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         data = JSON.parse(message);
                         var action = data.action;
                         var id = data.id;
-                        var index = _this.blacklis.indexOf(id);
+                        var index = _this.blacklist.indexOf(id);
 
                         if (action === 'add' && index === -1) {
                             _this.blacklist.push(id);
