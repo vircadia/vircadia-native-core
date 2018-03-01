@@ -35,6 +35,7 @@ public:
     void chooseSecurityImage(const QString& imageFile);
     bool getSecurityImage();
     QString getKeyFilePath();
+    bool copyKeyFileFrom(const QString& pathname);
 
     void setSalt(const QByteArray& salt) { _salt = salt; }
     QByteArray getSalt() { return _salt; }
@@ -48,11 +49,15 @@ public:
     bool getPassphraseIsCached() { return !(_passphrase->isEmpty()); }
     bool walletIsAuthenticatedWithPassphrase();
     bool changePassphrase(const QString& newPassphrase);
+    void setSoftReset() { _isOverridingServer = true;  }
+    bool wasSoftReset() { bool was = _isOverridingServer; _isOverridingServer = false; return was; }
 
     void getWalletStatus();
     enum WalletStatus {
         WALLET_STATUS_NOT_LOGGED_IN = 0,
         WALLET_STATUS_NOT_SET_UP,
+        WALLET_STATUS_PREEXISTING,
+        WALLET_STATUS_CONFLICTING,
         WALLET_STATUS_NOT_AUTHENTICATED,
         WALLET_STATUS_READY
     };
@@ -73,6 +78,7 @@ private:
     QByteArray _iv;
     QByteArray _ckey;
     QString* _passphrase { new QString("") };
+    bool _isOverridingServer { false };
 
     bool writeWallet(const QString& newPassphrase = QString(""));
     void updateImageProvider();

@@ -36,6 +36,7 @@ Rectangle {
     property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
     property int pendingItemCount: 0;
+    property string installedApps;
     // Style
     color: hifi.colors.white;
     Connections {
@@ -46,21 +47,22 @@ Rectangle {
                 if (root.activeView !== "needsLogIn") {
                     root.activeView = "needsLogIn";
                 }
-            } else if (walletStatus === 1) {
+            } else if ((walletStatus === 1) || (walletStatus === 2) || (walletStatus === 3)) {
                 if (root.activeView !== "notSetUp") {
                     root.activeView = "notSetUp";
                     notSetUpTimer.start();
                 }
-            } else if (walletStatus === 2) {
+            } else if (walletStatus === 4) {
                 if (root.activeView !== "passphraseModal") {
                     root.activeView = "passphraseModal";
                     UserActivityLogger.commercePassphraseEntry("marketplace purchases");
                 }
-            } else if (walletStatus === 3) {
+            } else if (walletStatus === 5) {
                 if ((Settings.getValue("isFirstUseOfPurchases", true) || root.isDebuggingFirstUseTutorial) && root.activeView !== "firstUseTutorial") {
                     root.activeView = "firstUseTutorial";
                 } else if (!Settings.getValue("isFirstUseOfPurchases", true) && root.activeView === "initialize") {
                     root.activeView = "purchasesMain";
+                    root.installedApps = Commerce.getInstalledApps();
                     Commerce.inventory();
                 }
             } else {
@@ -269,6 +271,7 @@ Rectangle {
                     case 'tutorial_finished':
                         Settings.setValue("isFirstUseOfPurchases", false);
                         root.activeView = "purchasesMain";
+                        root.installedApps = Commerce.getInstalledApps();
                         Commerce.inventory();
                     break;
                 }
@@ -394,6 +397,7 @@ Rectangle {
                 limitedRun: model.limited_run;
                 displayedItemCount: model.displayedItemCount;
                 permissionExplanationCardVisible: model.permissionExplanationCardVisible;
+                isInstalled: model.isInstalled;
                 itemType: {
                     if (model.root_file_url.indexOf(".fst") > -1) {
                         "avatar";
@@ -680,9 +684,13 @@ Rectangle {
 
         if (sameItemCount !== tempPurchasesModel.count || filterBar.text !== filterBar.previousText) {
             filteredPurchasesModel.clear();
+            var currentId;
             for (var i = 0; i < tempPurchasesModel.count; i++) {
+                currentId = tempPurchasesModel.get(i).id;
+
                 filteredPurchasesModel.append(tempPurchasesModel.get(i));
                 filteredPurchasesModel.setProperty(i, 'permissionExplanationCardVisible', false);
+                filteredPurchasesModel.setProperty(i, 'isInstalled', ((root.installedApps).indexOf(currentId) > -1));
             }
 
             populateDisplayedItemCounts();

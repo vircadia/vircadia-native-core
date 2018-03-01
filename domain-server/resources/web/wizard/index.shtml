@@ -261,6 +261,5 @@
 <script src='/js/underscore-min.js'></script>
 <script src='/js/bootbox.min.js'></script>
 <script src='/js/sha256.js'></script>
-<script src='/js/shared.js'></script>
 <script src='js/wizard.js'></script>
 <!--#include virtual="page-end.html"-->

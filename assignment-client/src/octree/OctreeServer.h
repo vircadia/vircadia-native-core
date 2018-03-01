@@ -27,7 +27,17 @@
 #include "OctreeServerConsts.h"
 #include "OctreeInboundPacketProcessor.h"
 
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(octree_server)
+
 const int DEFAULT_PACKETS_PER_INTERVAL = 2000; // some 120,000 packets per second total
+
+enum class OctreeServerState {
+    WaitingForDomainSettings,
+    WaitingForOctreeDataNegotation,
+    Running
+};
 
 /// Handles assignments of type OctreeServer - sending octrees to various clients.
 class OctreeServer : public ThreadedAssignment, public HTTPRequestHandler {
@@ -35,6 +45,8 @@ class OctreeServer : public ThreadedAssignment, public HTTPRequestHandler {
 public:
     OctreeServer(ReceivedMessage& message);
     ~OctreeServer();
+
+    OctreeServerState _state { OctreeServerState::WaitingForDomainSettings };
 
     /// allows setting of run arguments
     void setArguments(int argc, char** argv);
@@ -137,8 +149,7 @@ private slots:
     void domainSettingsRequestComplete();
     void handleOctreeQueryPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleOctreeDataNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-    void handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> message);
-    void handleOctreeFileReplacementFromURL(QSharedPointer<ReceivedMessage> message);
+    void handleOctreeDataFileReply(QSharedPointer<ReceivedMessage> message);
     void removeSendThread();
 
 protected:
@@ -159,11 +170,11 @@ protected:
     QString getFileLoadTime();
     QString getConfiguration();
     QString getStatusLink();
+
+    void beginRunning(QByteArray replaceData);
     
     UniqueSendThread createSendThread(const SharedNodePointer& node);
     virtual UniqueSendThread newSendThread(const SharedNodePointer& node);
-
-    void replaceContentFromMessageData(QByteArray content);
 
     int _argc;
     const char** _argv;

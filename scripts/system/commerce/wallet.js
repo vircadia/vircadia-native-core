@@ -655,6 +655,9 @@
             case 'goToPurchases':
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
                 break;
+            case 'goToMarketplaceMainPage':
+                tablet.gotoWebScreen(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+                break;
             case 'goToMarketplaceItemPage':
                 tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
@@ -687,6 +690,13 @@
                 particleEffectTimestamp = Date.now();
                 updateSendMoneyParticleEffect();
                 sendMoneyParticleEffectUpdateTimer = Script.setInterval(updateSendMoneyParticleEffect, SEND_MONEY_PARTICLE_TIMER_UPDATE);
+                break;
+            case 'transactionHistory_goToBank':
+                if (Account.metaverseServerURL.indexOf("staging") >= 0) {
+                    Window.location = "hifi://hifiqa-master-metaverse-staging"; // So that we can test in staging.
+                } else {
+                    Window.location = "hifi://BankOfHighFidelity";
+                }
                 break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));

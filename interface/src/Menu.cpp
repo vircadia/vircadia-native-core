@@ -34,7 +34,6 @@
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
 #include "AvatarBookmarks.h"
-#include "AvatarEntitiesBookmarks.h"
 #include "devices/DdeFaceTracker.h"
 #include "MainWindow.h"
 #include "render/DrawStatus.h"
@@ -206,10 +205,6 @@ Menu::Menu() {
     // Avatar > AvatarBookmarks related menus -- Note: the AvatarBookmarks class adds its own submenus here.
     auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
     avatarBookmarks->setupMenus(this, avatarMenu);
-
-    auto avatarEntitiesBookmarks = DependencyManager::get<AvatarEntitiesBookmarks>();
-    avatarEntitiesBookmarks->setupMenus(this, avatarMenu);
-
 
     // Display menu ----------------------------------
     // FIXME - this is not yet matching Alan's spec because it doesn't have
@@ -713,6 +708,7 @@ Menu::Menu() {
     MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
 
     addActionToQMenuAndActionHash(crashMenu, MenuOption::DeadlockInterface, 0, qApp, SLOT(deadlockApplication()));
+    addActionToQMenuAndActionHash(crashMenu, MenuOption::UnresponsiveInterface, 0, qApp, SLOT(unresponsiveApplication()));
 
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashPureVirtualFunction);
     connect(action, &QAction::triggered, qApp, []() { crash::pureVirtualCall(); });

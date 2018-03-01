@@ -47,6 +47,7 @@ Item {
     property bool showConfirmation: false;
     property bool hasPermissionToRezThis;
     property bool permissionExplanationCardVisible;
+    property bool isInstalled;
 
     property string originalStatusText;
     property string originalStatusColor;
@@ -60,6 +61,18 @@ Item {
         onContentSetChanged: {
             if (contentSetHref === root.itemHref) {
                 showConfirmation = true;
+            }
+        }
+
+        onAppInstalled: {
+            if (appHref === root.itemHref) {
+                root.isInstalled = true;
+            }
+        }
+
+        onAppUninstalled: {
+            if (appHref === root.itemHref) {
+                root.isInstalled = false;
             }
         }
     }
@@ -472,6 +485,43 @@ Item {
                 }
         }
 
+        Rectangle {
+            id: appButtonContainer;
+            color: hifi.colors.white;
+            z: 994;
+            visible: root.isInstalled;
+            anchors.fill: buttonContainer;
+
+            HifiControlsUit.Button {
+                id: openAppButton;
+                color: hifi.buttons.blue;
+                colorScheme: hifi.colorSchemes.light;
+                anchors.top: parent.top;
+                anchors.right: parent.right;
+                anchors.left: parent.left;
+                width: 92;
+                height: 44;
+                text: "OPEN"
+                onClicked: {
+                    Commerce.openApp(root.itemHref);
+                }
+            }
+
+            HifiControlsUit.Button {
+                id: uninstallAppButton;
+                color: hifi.buttons.noneBorderless;
+                colorScheme: hifi.colorSchemes.light;
+                anchors.bottom: parent.bottom;
+                anchors.right: parent.right;
+                anchors.left: parent.left;
+                height: 44;
+                text: "UNINSTALL"
+                onClicked: {
+                    Commerce.uninstallApp(root.itemHref);
+                }
+            }
+        }
+
         Button {
             id: buttonContainer;
             property int color: hifi.buttons.blue;
@@ -506,6 +556,9 @@ Item {
                     sendToPurchases({method: 'showReplaceContentLightbox', itemHref: root.itemHref});
                 } else if (root.itemType === "avatar") {
                     sendToPurchases({method: 'showChangeAvatarLightbox', itemName: root.itemName, itemHref: root.itemHref});
+                } else if (root.itemType === "app") {
+                    // "Run" and "Uninstall" buttons are separate.
+                    Commerce.installApp(root.itemHref);
                 } else {
                     sendToPurchases({method: 'purchases_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
                     root.showConfirmation = true;

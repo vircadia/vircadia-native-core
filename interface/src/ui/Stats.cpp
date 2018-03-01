@@ -482,7 +482,7 @@ void Stats::updateStats(bool force) {
             float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
             _gameUpdateStats = QString("/idle/update = %1 ms").arg(dt);
 
-            QVector<QString> categories = { "devices", "physics", "otherAvatars", "MyAvatar", "misc" };
+            QVector<QString> categories = { "devices", "physics", "otherAvatars", "MyAvatar", "pickManager", "postUpdateLambdas", "misc" };
             for (int32_t j = 0; j < categories.size(); ++j) {
                 QString recordKey = "/idle/update/" + categories[j];
                 itr = allRecords.find(recordKey);
@@ -502,10 +502,39 @@ void Stats::updateStats(bool force) {
             _gameUpdateStats = "";
             emit gameUpdateStatsChanged();
         }
+
+        itr = allRecords.find("/paintGL/display/EngineRun/Engine");
+        std::priority_queue<SortableStat> renderEngineStats;
+        if (itr != allRecords.end()) {
+            float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
+            _renderEngineStats = QString("/render = %1 ms").arg(dt);
+
+            QVector<QString> categories = { "RenderMainView", "SecondaryCameraJob", "UpdateScene"};
+            for (int32_t j = 0; j < categories.size(); ++j) {
+                QString recordKey = "/paintGL/display/EngineRun/Engine/" + categories[j];
+                itr = allRecords.find(recordKey);
+                if (itr != allRecords.end()) {
+                    float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
+                    QString message = QString("\n    %1 = %2").arg(categories[j]).arg(dt);
+                    renderEngineStats.push(SortableStat(message, dt));
+                }
+            }
+            while (!renderEngineStats.empty()) {
+                SortableStat stat = renderEngineStats.top();
+                _renderEngineStats += stat.message;
+                renderEngineStats.pop();
+            }
+            emit renderEngineStatsChanged();
+        } else if (_renderEngineStats != "") {
+            _renderEngineStats = "";
+            emit renderEngineStatsChanged();
+        }
     } else if (_showGameUpdateStats) {
         _showGameUpdateStats = false;
         _gameUpdateStats = "";
+        _renderEngineStats = "";
         emit gameUpdateStatsChanged();
+        emit renderEngineStatsChanged();
     }
 }
 
