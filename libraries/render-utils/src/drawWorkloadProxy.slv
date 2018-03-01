@@ -84,6 +84,8 @@ void main(void) {
     <$transformEyeToClipPos(cam, pos, gl_Position)$>
 
     // Convert region to color
+    int region = floatBitsToInt(proxy.region.x);
+    region = (0x000000FF & region);
 
-    varColor = vec4(colorWheel(proxy.region.x), proxy.sphere.w);
+    varColor = vec4(float(region) / 4.0, proxy.sphere.w);
 }
