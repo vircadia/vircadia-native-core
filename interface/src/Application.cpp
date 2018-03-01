@@ -6754,8 +6754,8 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
             // to prevent files that aren't models from being loaded into world automatically
-            if (filePath.endsWith(OBJ_EXTENSION) || filePath.endsWith(FBX_EXTENSION) || 
-                filePath.endsWith(JPG_EXTENSION) || filePath.endsWith(PNG_EXTENSION)) {
+            if (filePath.toLower().endsWith(OBJ_EXTENSION) || filePath.toLower().endsWith(FBX_EXTENSION) || 
+                filePath.toLower().endsWith(JPG_EXTENSION) || filePath.toLower().endsWith(PNG_EXTENSION)) {
                 addAssetToWorldAddEntity(filePath, mapping);
             } else {
                 qCDebug(interfaceapp) << "Zipped contents are not supported entity files";
@@ -6772,7 +6772,7 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     EntityItemProperties properties;
     properties.setType(EntityTypes::Model);
     properties.setName(mapping.right(mapping.length() - 1));
-    if (filePath.endsWith(PNG_EXTENSION) || filePath.endsWith(JPG_EXTENSION)) {
+    if (filePath.toLower().endsWith(PNG_EXTENSION) || filePath.toLower().endsWith(JPG_EXTENSION)) {
         QJsonObject textures {
             {"tex.picture", QString("atp:" + mapping) }
         };
@@ -6868,7 +6868,9 @@ void Application::addAssetToWorldCheckModelSize() {
             EntityItemProperties properties;
             properties.setDimensions(dimensions);
             properties.setVisible(true);
-            properties.setCollisionless(false);
+            if (!name.toLower().endsWith(PNG_EXTENSION) && !name.toLower().endsWith(JPG_EXTENSION)) {
+                properties.setCollisionless(false);
+            }
             properties.setUserData(GRABBABLE_USER_DATA);
             properties.setLastEdited(usecTimestampNow());
             entityScriptingInterface->editEntity(entityID, properties);

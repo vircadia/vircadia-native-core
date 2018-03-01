@@ -257,7 +257,11 @@ Item {
                     id: octreeCol
                     spacing: 4; x: 4; y: 4;
                     StatText {
-                        text: "Engine: " + root.engineFrameTime.toFixed(1) + " ms"
+                        text: "Render Engine: " + root.engineFrameTime.toFixed(1) + " ms"
+                    }
+                    StatText {
+                        visible: root.expanded
+                        text: root.renderEngineStats
                     }
                     StatText {
                         text: "Batch: " + root.batchFrameTime.toFixed(1) + " ms"
