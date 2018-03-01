@@ -3113,7 +3113,6 @@ void Application::loadServerlessDomain(QUrl domainURL) {
     }
 
     clearDomainOctreeDetails();
-    _entityClipboard->eraseAllOctreeElements();
 
     if (domainURL.isEmpty()) {
         return;
@@ -3131,10 +3130,17 @@ void Application::loadServerlessDomain(QUrl domainURL) {
     permissions.setAll(true);
     DependencyManager::get<NodeList>()->setPermissions(permissions);
 
-    getEntities()->getTree()->eraseAllOctreeElements();
-    if (importEntities(domainURL.toString())) {
-        pasteEntities(0.0f, 0.0f, 0.0f);
+    EntityTreePointer tmpTree(new EntityTree());
+    tmpTree->setIsServerlessMode(true);
+    tmpTree->createRootElement();
+    auto myAvatar = getMyAvatar();
+    tmpTree->setMyAvatar(myAvatar);
+    bool success = tmpTree->readFromURL(domainURL.toString());
+    if (success) {
+        tmpTree->reaverageOctreeElements();
+        tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), 0, 0, 0);
     }
+
     _fullSceneReceivedCounter++;
 }
 
