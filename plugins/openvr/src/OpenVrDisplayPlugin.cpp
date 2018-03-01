@@ -410,6 +410,15 @@ void OpenVrDisplayPlugin::init() {
     emit deviceConnected(getName());
 }
 
+const QString OpenVrDisplayPlugin::getName() const {
+    std::string headsetName = getOpenVrDeviceName();
+    if (headsetName == "HTC") {
+        headsetName += " Vive";
+    }
+
+    return QString::fromStdString(headsetName);
+}
+
 bool OpenVrDisplayPlugin::internalActivate() {
     if (!_system) {
         _system = acquireOpenVrSystem();
@@ -444,7 +453,6 @@ bool OpenVrDisplayPlugin::internalActivate() {
 
     _openVrDisplayActive = true;
     _container->setIsOptionChecked(StandingHMDSensorMode, true);
-
     _system->GetRecommendedRenderTargetSize(&_renderTargetSize.x, &_renderTargetSize.y);
     // Recommended render target size is per-eye, so double the X size for 
     // left + right eyes
