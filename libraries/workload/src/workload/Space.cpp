@@ -20,6 +20,11 @@
 
 using namespace workload;
 
+void Space::clear() {
+    _proxies.clear();
+    _freeIndices.clear();
+}
+
 int32_t Space::createProxy(const Space::Sphere& newSphere) {
     if (_freeIndices.empty()) {
         _proxies.emplace_back(Space::Proxy(newSphere));
