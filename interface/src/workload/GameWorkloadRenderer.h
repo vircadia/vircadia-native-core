@@ -14,10 +14,10 @@
 
 class GameSpaceToRenderConfig : public workload::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(bool showAllWorkspace MEMBER showAllWorkspace NOTIFY dirty)
+    Q_PROPERTY(bool showAllProxies MEMBER showAllProxies NOTIFY dirty)
 public:
 
-    bool showAllWorkspace{ false };
+    bool showAllProxies{ false };
 signals:
     void dirty();
 
@@ -37,7 +37,7 @@ public:
 
 protected:
     render::ItemID _spaceRenderItemID{ render::Item::INVALID_ITEM_ID };
-    bool _showAllWorkspace{ false };
+    bool _showAllProxies{ false };
 };
 
 
@@ -46,17 +46,18 @@ public:
     using Payload = render::Payload<GameWorkloadRenderItem>;
     using Pointer = Payload::DataPointer;
 
-    GameWorkloadRenderItem() {}
+    GameWorkloadRenderItem();
     ~GameWorkloadRenderItem() {}
     void render(RenderArgs* args);
 
     render::Item::Bound& editBound() { _needUpdate = true; return _bound; }
     const render::Item::Bound& getBound() { return _bound; }
 
-    void setVisible(bool visible) { _isVisible = visible; }
-    bool isVisible() const { return _isVisible; }
+    void setVisible(bool visible);
 
     void setAllProxies(const std::vector<workload::Space::Proxy>& proxies);
+
+    render::ItemKey getKey() const;
 
 protected:
     render::Item::Bound _bound;
@@ -68,6 +69,7 @@ protected:
     gpu::PipelinePointer _drawAllProxiesPipeline;
     const gpu::PipelinePointer getPipeline();
 
+    render::ItemKey _key;
     bool _needUpdate{ true };
     bool _isVisible{ true };
 };

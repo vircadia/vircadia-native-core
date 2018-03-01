@@ -20,7 +20,7 @@
 
 
 void GameSpaceToRender::configure(const Config& config) {
-    _showAllWorkspace = config.showAllWorkspace;
+    _showAllProxies = config.showAllProxies;
 }
 
 void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, Outputs& outputs) {
@@ -33,8 +33,9 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
         return;
     }
 
-    auto visible = _showAllWorkspace;
+    auto visible = _showAllProxies;
     render::Transaction transaction;
+    auto scene = gameWorkloadContext->_scene;
 
     // Nothing really needed, early exit
     if (!visible) {
@@ -42,6 +43,7 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
             transaction.updateItem<GameWorkloadRenderItem>(_spaceRenderItemID, [](GameWorkloadRenderItem& item) {
                 item.setVisible(false);
             });
+            scene->enqueueTransaction(transaction);
         }
         return;
     }
@@ -50,7 +52,6 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
     space->copyProxyValues(proxies.data(), (uint32_t)proxies.size());
 
 
-    auto scene = gameWorkloadContext->_scene;
 
     // Valid space, let's display its content
     if (!render::Item::isValidID(_spaceRenderItemID)) {
@@ -71,11 +72,7 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
 
 namespace render {
     template <> const ItemKey payloadGetKey(const GameWorkloadRenderItem::Pointer& payload) {
-        auto key = ItemKey::Builder::opaqueShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
-        if (!payload->isVisible()) {
-            key.withInvisible();
-        }
-        return key;
+        return payload->getKey();
     }
     template <> const Item::Bound payloadGetBound(const GameWorkloadRenderItem::Pointer& payload) {
         if (payload) {
@@ -95,6 +92,21 @@ namespace render {
         return render::Item::LAYER_3D_FRONT;
     }
 
+}
+
+GameWorkloadRenderItem::GameWorkloadRenderItem() : _key(render::ItemKey::Builder::opaqueShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1)) {
+}
+
+render::ItemKey GameWorkloadRenderItem::getKey() const {
+    return _key;
+}
+
+void GameWorkloadRenderItem::setVisible(bool isVisible) {
+    if (isVisible) {
+        _key = render::ItemKey::Builder(_key).withVisible();
+    } else {
+        _key = render::ItemKey::Builder(_key).withInvisible();
+    }
 }
 
 void GameWorkloadRenderItem::setAllProxies(const std::vector<workload::Space::Proxy>& proxies) {
