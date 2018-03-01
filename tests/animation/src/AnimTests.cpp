@@ -15,7 +15,11 @@
 #include <AnimVariant.h>
 #include <AnimExpression.h>
 #include <AnimUtil.h>
-
+#include <NodeList.h>
+#include <AddressManager.h>
+#include <AccountManager.h>
+#include <ResourceManager.h>
+#include <StatTracker.h>
 #include <../QTestExtensions.h>
 
 QTEST_MAIN(AnimTests)
@@ -23,12 +27,18 @@ QTEST_MAIN(AnimTests)
 const float EPSILON = 0.001f;
 
 void AnimTests::initTestCase() {
-    auto animationCache = DependencyManager::set<AnimationCache>();
-    auto resourceCacheSharedItems = DependencyManager::set<ResourceCacheSharedItems>();
+    DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
+    DependencyManager::set<AccountManager>();
+    DependencyManager::set<AddressManager>();
+    DependencyManager::set<NodeList>(NodeType::Agent);
+    DependencyManager::set<ResourceManager>();
+    DependencyManager::set<AnimationCache>();
+    DependencyManager::set<ResourceCacheSharedItems>();
+    DependencyManager::set<StatTracker>();
 }
 
 void AnimTests::cleanupTestCase() {
-    DependencyManager::destroy<AnimationCache>();
+    //DependencyManager::destroy<AnimationCache>();
 }
 
 void AnimTests::testClipInternalState() {
@@ -134,7 +144,7 @@ void AnimTests::testClipEvaulateWithVars() {
 }
 
 void AnimTests::testLoader() {
-    auto url = QUrl("https://gist.githubusercontent.com/hyperlogic/857129fe04567cbe670f/raw/0c54500f480fd7314a5aeb147c45a8a707edcc2e/test.json");
+    auto url = QUrl("https://gist.githubusercontent.com/hyperlogic/756e6b7018c96c9778dba4ffb959c3c7/raw/4b37f10c9d2636608916208ba7b415c1a3f842ff/test.json");
     // NOTE: This will warn about missing "test01.fbx", "test02.fbx", etc. if the resource loading code doesn't handle relative pathnames!
     // However, the test will proceed.
     AnimNodeLoader loader(url);
@@ -175,14 +185,22 @@ void AnimTests::testLoader() {
     QVERIFY(nodes[2]->getChildCount() == 0);
 
     auto test01 = std::static_pointer_cast<AnimClip>(nodes[0]);
-    QVERIFY(test01->_url == "test01.fbx");
+
+    QUrl relativeUrl01("test01.fbx");
+    QString url01 = url.resolved(relativeUrl01).toString();
+
+    QVERIFY(test01->_url == url01);
     QVERIFY(test01->_startFrame == 1.0f);
     QVERIFY(test01->_endFrame == 20.0f);
     QVERIFY(test01->_timeScale == 1.0f);
     QVERIFY(test01->_loopFlag == false);
 
     auto test02 = std::static_pointer_cast<AnimClip>(nodes[1]);
-    QVERIFY(test02->_url == "test02.fbx");
+
+    QUrl relativeUrl02("test02.fbx");
+    QString url02 = url.resolved(relativeUrl02).toString();
+
+    QVERIFY(test02->_url == url02);
     QVERIFY(test02->_startFrame == 2.0f);
     QVERIFY(test02->_endFrame == 21.0f);
     QVERIFY(test02->_timeScale == 0.9f);
