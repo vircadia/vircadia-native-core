@@ -194,6 +194,7 @@ void EntityTreeRenderer::clear() {
     }
 
     // remove all entities from the scene
+    _space->clear();
     auto scene = _viewState->getMain3DScene();
     if (scene) {
         render::Transaction transaction;
@@ -431,18 +432,12 @@ void EntityTreeRenderer::update(bool simulate) {
             _space->updateProxies(_spaceUpdates);
             _spaceUpdates.clear();
         }
-        {   // flush final EntityTree references to removed entities
-            std::vector<EntityItemPointer> deletedEntities;
-            tree->swapRemovedEntities(deletedEntities);
-            {   // delete proxies from workload::Space
-                std::vector<int32_t> deadProxies;
+        {
+            std::vector<int32_t> staleProxies;
+            tree->swapStaleProxies(staleProxies);
+            {
                 std::unique_lock<std::mutex> lock(_spaceLock);
-                for (auto entity : deletedEntities) {
-                    int32_t spaceIndex = entity->getSpaceIndex();
-                    disconnect(entity.get(), &EntityItem::spaceUpdate, this, &EntityTreeRenderer::handleSpaceUpdate);
-                    deadProxies.push_back(spaceIndex);
-                }
-                _space->deleteProxies(deadProxies);
+                _space->deleteProxies(staleProxies);
             }
         }
 
