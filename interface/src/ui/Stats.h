@@ -106,6 +106,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(QString, lodStatus, QString())
     STATS_PROPERTY(QString, timingStats, QString())
     STATS_PROPERTY(QString, gameUpdateStats, QString())
+    STATS_PROPERTY(QString, renderEngineStats, QString())
     STATS_PROPERTY(int, serverElements, 0)
     STATS_PROPERTY(int, serverInternal, 0)
     STATS_PROPERTY(int, serverLeaves, 0)
@@ -239,6 +240,7 @@ signals:
     void localLeavesChanged();
     void timingStatsChanged();
     void gameUpdateStatsChanged();
+    void renderEngineStatsChanged();
     void glContextSwapchainMemoryChanged();
     void qmlTextureMemoryChanged();
     void texturePendingTransfersChanged();
