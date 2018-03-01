@@ -36,7 +36,7 @@ Rectangle {
     readonly property bool hmdHead: headBox.checked
     readonly property bool headPuck: headPuckBox.checked
     readonly property bool handController: handBox.checked
-    
+
     readonly property bool handPuck: handPuckBox.checked
     readonly property bool hmdDesktop: hmdInDesktop.checked
 
@@ -107,7 +107,7 @@ Rectangle {
 
         RalewayBold {
             size: 12
-            text: "Vive HMD"
+            text: stack.selectedPlugin + " HMD"
             color: hifi.colors.lightGrayText
         }
 
@@ -145,7 +145,7 @@ Rectangle {
             anchors.topMargin: 5
             anchors.left: openVrConfiguration.left
             anchors.leftMargin: leftMargin + 10
-        
+
             onClicked: {
                 if (checked) {
                     headBox.checked = false;
@@ -778,12 +778,12 @@ Rectangle {
 
     RalewayBold {
         id: advanceSettings
-        
+
         text: "Advanced Settings"
         size: 12
-        
+
         color: hifi.colors.white
-        
+
         anchors.top: advanceSeperator.bottom
         anchors.topMargin: 10
         anchors.left: parent.left
@@ -801,7 +801,7 @@ Rectangle {
         anchors.topMargin: 5
         anchors.left: openVrConfiguration.left
         anchors.leftMargin: leftMargin + 10
-        
+
         onClicked: {
             if (!checked & hmdInDesktop.checked) {
                 headBox.checked = true;
@@ -815,9 +815,9 @@ Rectangle {
     RalewayBold {
         id: viveDesktopText
         size: 10
-        text: "Use Vive devices in desktop mode"
+        text: "Use " + stack.selectedPlugin + " devices in desktop mode"
         color: hifi.colors.white
-        
+
         anchors {
             left: viveInDesktop.right
             leftMargin: 5
@@ -825,7 +825,7 @@ Rectangle {
         }
     }
 
-    
+
     NumberAnimation {
         id: numberAnimation
         target: openVrConfiguration
