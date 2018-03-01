@@ -19,7 +19,6 @@ TabButton {
     property alias title: control.text
     property alias active: control.checkable
     height: 40
-    font.pixelSize: height / 2
     padding: 0
     spacing: 0
     HifiConstants { id: hifi; }
@@ -32,6 +31,7 @@ TabButton {
         color: "white"
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
+        fontSizeMode: Text.HorizontalFit
         property string glyphtext: ""
         HiFiGlyphs {
             anchors.centerIn: parent
@@ -49,7 +49,8 @@ TabButton {
 
     background: Rectangle {
         color: control.checked ? "#404040" :"black"
-        implicitWidth: control.contentItem.width + 42
+        implicitWidth: control.contentItem.width + 42 > text.paintedWidth ? control.contentItem.width + 42 :
+                                                        text.paintedWidth + 10
         implicitHeight: 40
     }
 }
