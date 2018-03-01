@@ -2175,7 +2175,7 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
         localTree->recurseTreeWithOperator(&moveOperator);
     }
 
-    if (_serversEnabled) {
+    if (!_serverlessDomain) {
         // send add-entity packets to the server
         i = map.begin();
         while (i != map.end()) {

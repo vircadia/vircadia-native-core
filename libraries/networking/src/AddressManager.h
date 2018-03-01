@@ -22,8 +22,6 @@
 
 #include "AccountManager.h"
 
-const QString HIFI_URL_SCHEME = "hifi";
-
 extern const QString DEFAULT_HIFI_ADDRESS;
 
 const QString SANDBOX_HIFI_ADDRESS = "hifi://localhost";
@@ -166,10 +164,10 @@ public:
     QString currentFacingPath() const;
 
     const QUuid& getRootPlaceID() const { return _rootPlaceID; }
-    const QString& getPlaceName() const { return _shareablePlaceName.isEmpty() ? _placeName : _shareablePlaceName; }
+    QString getPlaceName() const;
     QString getDomainID() const;
 
-    const QString& getHost() const { return _host; }
+    QString getHost() const;
 
     void setPositionGetter(PositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(OrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
@@ -179,7 +177,7 @@ public:
     const QStack<QUrl>& getBackStack() const { return _backStack; }
     const QStack<QUrl>& getForwardStack() const { return _forwardStack; }
 
-    QUrl getServerlessDomainURL() { return _serverlessDomainURL; }
+    QUrl getDomainURL() { return _domainURL; }
 
 public slots:
     /**jsdoc
@@ -313,15 +311,12 @@ signals:
     /**jsdoc
      * Triggered when a request is made to go to an IP address.
      * @function location.possibleDomainChangeRequired
-     * @param {string} serverlessDomainURL - URL for a file-based domain
-     * @param {string} hostName - The name of the domain to go do.
-     * @param {number} port - The integer number of the network port to connect to.
+     * @param {Url} domainURL - URL for domain
      * @param {Uuid} domainID - The UUID of the domain to go to.
      * @returns {Signal}
      */
     // No example because this function isn't typically used in scripts.
-    void possibleDomainChangeRequired(const QUrl& serverlessDomainURL,
-                                      const QString& newHostname, quint16 newPort, const QUuid& domainID);
+    void possibleDomainChangeRequired(QUrl domainURL, QUuid domainID);
 
     /**jsdoc
      * Triggered when a request is made to go to a named domain or user.
@@ -420,11 +415,9 @@ signals:
      */
     void goForwardPossible(bool isPossible);
 
-    void setServersEnabled(bool serversEnabled);
+    void setServerlessDomain(bool serverlessDomain);
     void loadServerlessDomain(QUrl domainURL);
 
-protected:
-    AddressManager();
 private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
@@ -436,7 +429,7 @@ private:
 
     // Set host and port, and return `true` if it was changed.
     bool setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);
-    bool setDomainInfo(const QUrl& serverlessDomainURL, const QString& hostname, quint16 port, LookupTrigger trigger);
+    bool setDomainInfo(const QUrl& domainURL, LookupTrigger trigger);
 
     const JSONCallbackParameters& apiCallbackParameters();
 
@@ -454,10 +447,8 @@ private:
 
     void addCurrentAddressToHistory(LookupTrigger trigger);
 
-    QString _host;
-    quint16 _port;
-    QString _placeName;
-    QUrl _serverlessDomainURL; // for file-based domains
+    QUrl _domainURL;
+
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;

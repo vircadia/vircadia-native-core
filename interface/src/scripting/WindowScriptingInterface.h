@@ -524,7 +524,7 @@ signals:
      * Triggered when you change the domain you're visiting. <strong>Warning:</strong> Is not emitted if you go to domain that 
      * isn't running.
      * @function Window.domainChanged
-     * @param {string} domain - The domain's IP address.
+     * @param {string} domainURL - The domain's URL.
      * @returns {Signal}
      * @example <caption>Report when you change domains.</caption>
      * function onDomainChanged(domain) {
@@ -533,7 +533,7 @@ signals:
      *
      * Window.domainChanged.connect(onDomainChanged);
      */
-    void domainChanged(const QString& domain, const QUrl& serverlessDomainURL);
+    void domainChanged(QUrl domainURL);
 
     /**jsdoc
      * Triggered when you try to navigate to a *.json, *.svo, or *.svo.json URL in a Web browser within Interface.

@@ -283,8 +283,8 @@ public:
 
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
 
-    void setIsServerlessMode(bool value) { _serversEnabled = !value; }
-    bool isServerlessMode() const { return !_serversEnabled; }
+    void setIsServerlessMode(bool value) { _serverlessDomain = value; }
+    bool isServerlessMode() const { return _serverlessDomain; }
 
     static void setAddMaterialToEntityOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToEntityOperator) { _addMaterialToEntityOperator = addMaterialToEntityOperator; }
     static void setRemoveMaterialFromEntityOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromEntityOperator) { _removeMaterialFromEntityOperator = removeMaterialFromEntityOperator; }
@@ -416,7 +416,7 @@ private:
     static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToOverlayOperator;
     static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromOverlayOperator;
 
-    bool _serversEnabled { true };
+    bool _serverlessDomain { false };
 };
 
 #endif // hifi_EntityTree_h

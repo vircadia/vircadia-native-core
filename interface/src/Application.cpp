@@ -339,8 +339,6 @@ static const QString SNAPSHOT_EXTENSION = ".jpg";
 static const QString JPG_EXTENSION = ".jpg";
 static const QString PNG_EXTENSION = ".png";
 static const QString SVO_EXTENSION = ".svo";
-static const QString SERVERLESS_DOMAIN_EXTENSION = ".domain.json";
-static const QString SERVERLESS_DOMAIN_GZ_EXTENSION = ".domain.json.gz";
 static const QString SVO_JSON_EXTENSION = ".svo.json";
 static const QString JSON_GZ_EXTENSION = ".json.gz";
 static const QString JSON_EXTENSION = ".json";
@@ -382,8 +380,6 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
     { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl },
-    { SERVERLESS_DOMAIN_EXTENSION, &Application::visitServerlessDomain },
-    { SERVERLESS_DOMAIN_GZ_EXTENSION, &Application::visitServerlessDomain },
     { JSON_EXTENSION, &Application::importJSONFromURL },
     { JS_EXTENSION, &Application::askToLoadScript },
     { FST_EXTENSION, &Application::askToSetAvatarUrl },
@@ -1112,10 +1108,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
-    connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
-    connect(&domainHandler, SIGNAL(serverlessDomainChanged(QUrl)), SLOT(loadServerlessDomain(QUrl)));
+    connect(&domainHandler, SIGNAL(domainURLChanged(QUrl)), SLOT(domainURLChanged(QUrl)));
     connect(&domainHandler, SIGNAL(resetting()), SLOT(resettingDomain()));
-    connect(&domainHandler, SIGNAL(connectedToDomain(const QString&, const QUrl&)), SLOT(updateWindowTitle()));
+    connect(&domainHandler, SIGNAL(connectedToDomain(QUrl)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &Application::clearDomainAvatars);
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this]() {
@@ -1173,7 +1168,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
-    connect(addressManager.data(), &AddressManager::setServersEnabled, this, &Application::setServersEnabled);
+    connect(addressManager.data(), &AddressManager::setServerlessDomain, this, &Application::setServerlessDomain);
 
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
     connect(this, &Application::activeDisplayPluginChanged, this, [](){
@@ -2075,7 +2070,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&_addAssetToWorldErrorTimer, &QTimer::timeout, this, &Application::addAssetToWorldErrorTimeout);
 
     connect(this, &QCoreApplication::aboutToQuit, this, &Application::addAssetToWorldMessageClose);
-    connect(&domainHandler, &DomainHandler::hostnameChanged, this, &Application::addAssetToWorldMessageClose);
+    connect(&domainHandler, &DomainHandler::domainURLChanged, this, &Application::addAssetToWorldMessageClose);
 
     updateSystemTabletMode();
 
@@ -3104,16 +3099,11 @@ bool Application::importFromZIP(const QString& filePath) {
     return true;
 }
 
-void Application::setServersEnabled(bool serversEnabled) {
-    if (_serversEnabled != serversEnabled) {
-        _serversEnabled = serversEnabled;
-        getEntities()->getTree()->setIsServerlessMode(!_serversEnabled);
+void Application::setServerlessDomain(bool serverlessDomain) {
+    if (_serverlessDomain != serverlessDomain) {
+        _serverlessDomain = serverlessDomain;
+        getEntities()->getTree()->setIsServerlessMode(_serverlessDomain);
     }
-}
-
-bool Application::visitServerlessDomain(const QString& urlString) {
-    DependencyManager::get<AddressManager>()->handleLookupString(urlString);
-    return true;
 }
 
 void Application::loadServerlessDomain(QUrl domainURL) {
@@ -5798,7 +5788,7 @@ void Application::updateWindowTitle() const {
 
     QString currentPlaceName;
     if (isServerlessMode()) {
-        currentPlaceName = "serverless: " + DependencyManager::get<AddressManager>()->getServerlessDomainURL().toString();
+        currentPlaceName = "serverless: " + DependencyManager::get<AddressManager>()->getDomainURL().toString();
     } else {
         currentPlaceName = DependencyManager::get<AddressManager>()->getHost();
         if (currentPlaceName.isEmpty()) {
@@ -5816,7 +5806,7 @@ void Application::updateWindowTitle() const {
     _window->setWindowTitle(title);
 
     // updateTitleWindow gets called whenever there's a change regarding the domain, so rather
-    // than placing this within domainChanged, it's placed here to cover the other potential cases.
+    // than placing this within domainURLChanged, it's placed here to cover the other potential cases.
     DependencyManager::get< MessagesClient >()->sendLocalMessage("Toolbar-DomainChanged", "");
 }
 
@@ -5855,11 +5845,14 @@ void Application::clearDomainAvatars() {
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
 }
 
-void Application::domainChanged(const QString& domainHostname) {
+void Application::domainURLChanged(QUrl domainURL) {
     clearDomainOctreeDetails();
     updateWindowTitle();
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
+    if (domainURL.scheme() != HIFI_URL_SCHEME) {
+        loadServerlessDomain(domainURL);
+    }
 }
 
 

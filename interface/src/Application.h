@@ -285,7 +285,7 @@ public:
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
     void saveNextPhysicsStats(QString filename);
 
-    bool isServerlessMode() const { return !_serversEnabled; }
+    bool isServerlessMode() const { return _serverlessDomain; }
 
     void replaceDomainContent(const QString& url);
 
@@ -394,7 +394,7 @@ public slots:
     const QString getPreferredCursor() const { return _preferredCursor.get(); }
     void setPreferredCursor(const QString& cursor);
 
-    void setServersEnabled(bool enableServers);
+    void setServerlessDomain(bool serverlessDomain);
     void loadServerlessDomain(QUrl domainURL);
 
 private slots:
@@ -429,7 +429,7 @@ private slots:
 
     void setSessionUUID(const QUuid& sessionUUID) const;
 
-    void domainChanged(const QString& domainHostname);
+    void domainURLChanged(QUrl domainURL);
     void updateWindowTitle() const;
     void nodeAdded(SharedNodePointer node) const;
     void nodeActivated(SharedNodePointer node);
@@ -480,7 +480,6 @@ private:
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
     bool importFromZIP(const QString& filePath);
-    bool visitServerlessDomain(const QString& urlString);
     bool importImage(const QString& urlString);
 
     bool nearbyEntitiesAreReadyForPhysics();
@@ -721,6 +720,6 @@ private:
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
 
-    bool _serversEnabled { true };
+    bool _serverlessDomain { true };
 };
 #endif // hifi_Application_h
