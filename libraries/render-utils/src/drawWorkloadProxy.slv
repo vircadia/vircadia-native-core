@@ -87,5 +87,5 @@ void main(void) {
     int region = floatBitsToInt(proxy.region.x);
     region = (0x000000FF & region);
 
-    varColor = vec4(float(region) / 4.0, proxy.sphere.w);
+    varColor = vec4(colorWheel(float(region) / 4.0), proxy.sphere.w);
 }
