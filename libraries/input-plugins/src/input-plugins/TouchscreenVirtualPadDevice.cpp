@@ -50,6 +50,7 @@ void TouchscreenVirtualPadDevice::init() {
         _screenDPI = eventScreen->physicalDotsPerInch();
 
         _fixedRadius = _screenDPI * 256 / 534;
+        _fixedRadiusForCalc = _fixedRadius - _screenDPI * 105 / 534; // 105 is the radius of the stick circle
     }
 
     auto& virtualPadManager = VirtualPad::Manager::instance();
@@ -79,6 +80,79 @@ float clip(float n, float lower, float upper) {
     return std::max(lower, std::min(n, upper));
 }
 
+glm::vec2 TouchscreenVirtualPadDevice::clippedPointInCircle(float radius, glm::vec2 origin, glm::vec2 touchPoint) {
+    float deltaX = touchPoint.x-origin.x;
+    float deltaY = touchPoint.y-origin.y;
+
+    float distance = sqrt(pow(deltaX,2)+pow(deltaY,2));
+
+    // First case, inside the boundaires, just use the distance
+    if (distance <= radius) {
+        return touchPoint;
+    }
+
+    // Second case, purely vertical (avoid division by zero)
+    if (deltaX == 0.0f) {
+        return vec2(touchPoint.x, clip(touchPoint.y, origin.y-radius, origin.y+radius) );
+    }
+
+    // Third case, calculate point in circumference
+    // line formula
+    float m = deltaY/deltaX;
+    float b = touchPoint.y - m * touchPoint.x;
+
+    // quadtratic coefs of circumference and line intersection
+    float qa = pow(m,2)+1;
+    float qb = 2 * ( m * b - origin.x - origin.y * m );
+    float qc = pow(origin.x, 2) - pow(radius,2) + b * b - 2 * b * origin.y + pow(origin.y, 2);
+
+    float discr = qb * qb - 4 * qa * qc;
+    float discrSign = deltaX>0?1.0:-1.0;
+
+    float finalX = (- qb + discrSign * sqrt(discr)) / (2 * qa);
+    float finalY = m * finalX + b;
+
+    return vec2(finalX, finalY);
+}
+
+void TouchscreenVirtualPadDevice::processInputUseCircleMethod(VirtualPad::Manager& virtualPadManager) {
+    vec2 clippedPoint = clippedPointInCircle(_fixedRadiusForCalc, _firstTouchLeftPoint, _currentTouchLeftPoint);
+
+    _inputDevice->_axisStateMap[controller::LX] = (clippedPoint.x - _firstTouchLeftPoint.x) / _fixedRadiusForCalc;
+    _inputDevice->_axisStateMap[controller::LY] = (clippedPoint.y - _firstTouchLeftPoint.y) / _fixedRadiusForCalc;
+
+    virtualPadManager.getLeftVirtualPad()->setFirstTouch(_firstTouchLeftPoint);
+    virtualPadManager.getLeftVirtualPad()->setCurrentTouch(clippedPoint);
+    virtualPadManager.getLeftVirtualPad()->setBeingTouched(true);
+    virtualPadManager.getLeftVirtualPad()->setShown(true); // If touched, show in any mode (fixed joystick position or non-fixed)
+}
+
+void TouchscreenVirtualPadDevice::processInputUseSquareMethod(VirtualPad::Manager& virtualPadManager) {
+    float leftDistanceScaleX, leftDistanceScaleY;
+    leftDistanceScaleX = (_currentTouchLeftPoint.x - _firstTouchLeftPoint.x) / _screenDPIScale.x;
+    leftDistanceScaleY = (_currentTouchLeftPoint.y - _firstTouchLeftPoint.y) / _screenDPIScale.y;
+
+    leftDistanceScaleX = clip(leftDistanceScaleX, -STICK_RADIUS_INCHES, STICK_RADIUS_INCHES);
+    leftDistanceScaleY = clip(leftDistanceScaleY, -STICK_RADIUS_INCHES, STICK_RADIUS_INCHES);
+
+    // NOW BETWEEN -1 1
+    leftDistanceScaleX /= STICK_RADIUS_INCHES;
+    leftDistanceScaleY /= STICK_RADIUS_INCHES;
+
+    _inputDevice->_axisStateMap[controller::LX] = leftDistanceScaleX;
+    _inputDevice->_axisStateMap[controller::LY] = leftDistanceScaleY;
+
+    /* Shared variables for stick rendering (clipped to the stick radius)*/
+    // Prevent this for being done when not in first person view
+    virtualPadManager.getLeftVirtualPad()->setFirstTouch(_firstTouchLeftPoint);
+    virtualPadManager.getLeftVirtualPad()->setCurrentTouch(
+            glm::vec2(clip(_currentTouchLeftPoint.x, -STICK_RADIUS_INCHES * _screenDPIScale.x + _firstTouchLeftPoint.x, STICK_RADIUS_INCHES * _screenDPIScale.x + _firstTouchLeftPoint.x),
+            clip(_currentTouchLeftPoint.y, -STICK_RADIUS_INCHES * _screenDPIScale.y + _firstTouchLeftPoint.y, STICK_RADIUS_INCHES * _screenDPIScale.y + _firstTouchLeftPoint.y))
+    );
+    virtualPadManager.getLeftVirtualPad()->setBeingTouched(true);
+    virtualPadManager.getLeftVirtualPad()->setShown(true); // If touched, show in any mode (fixed joystick position or non-fixed)
+}
+
 void TouchscreenVirtualPadDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->withLock([&, this]() {
@@ -89,29 +163,7 @@ void TouchscreenVirtualPadDevice::pluginUpdate(float deltaTime, const controller
     setupFixedCenter(virtualPadManager);
 
     if (_validTouchLeft) {
-        float leftDistanceScaleX, leftDistanceScaleY;
-        leftDistanceScaleX = (_currentTouchLeftPoint.x - _firstTouchLeftPoint.x) / _screenDPIScale.x;
-        leftDistanceScaleY = (_currentTouchLeftPoint.y - _firstTouchLeftPoint.y) / _screenDPIScale.y;
-
-        leftDistanceScaleX = clip(leftDistanceScaleX, -STICK_RADIUS_INCHES, STICK_RADIUS_INCHES);
-        leftDistanceScaleY = clip(leftDistanceScaleY, -STICK_RADIUS_INCHES, STICK_RADIUS_INCHES);
-
-        // NOW BETWEEN -1 1
-        leftDistanceScaleX /= STICK_RADIUS_INCHES;
-        leftDistanceScaleY /= STICK_RADIUS_INCHES;
-
-        _inputDevice->_axisStateMap[controller::LX] = leftDistanceScaleX;
-        _inputDevice->_axisStateMap[controller::LY] = leftDistanceScaleY;
-
-        /* Shared variables for stick rendering (clipped to the stick radius)*/
-        // Prevent this for being done when not in first person view
-        virtualPadManager.getLeftVirtualPad()->setFirstTouch(_firstTouchLeftPoint);
-        virtualPadManager.getLeftVirtualPad()->setCurrentTouch(
-                glm::vec2(clip(_currentTouchLeftPoint.x, -STICK_RADIUS_INCHES * _screenDPIScale.x + _firstTouchLeftPoint.x, STICK_RADIUS_INCHES * _screenDPIScale.x + _firstTouchLeftPoint.x),
-                clip(_currentTouchLeftPoint.y, -STICK_RADIUS_INCHES * _screenDPIScale.y + _firstTouchLeftPoint.y, STICK_RADIUS_INCHES * _screenDPIScale.y + _firstTouchLeftPoint.y))
-        );
-        virtualPadManager.getLeftVirtualPad()->setBeingTouched(true);
-        virtualPadManager.getLeftVirtualPad()->setShown(true); // If touched, show in any mode (fixed joystick position or non-fixed)
+        processInputUseCircleMethod(virtualPadManager);
     } else {
         virtualPadManager.getLeftVirtualPad()->setBeingTouched(false);
         if (_fixedPosition) {

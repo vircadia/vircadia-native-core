@@ -79,6 +79,7 @@ protected:
     bool _fixedPosition;
     glm::vec2 _fixedCenterPosition;
     qreal _fixedRadius;
+    qreal _fixedRadiusForCalc;
     int _extraBottomMargin {0};
 
     void touchLeftBegin(glm::vec2 touchPoint);
@@ -89,6 +90,10 @@ protected:
     void touchRightUpdate(glm::vec2 touchPoint);
     void touchRightEnd();
     void setupFixedCenter(VirtualPad::Manager& virtualPadManager, bool force = false);
+
+    void processInputUseCircleMethod(VirtualPad::Manager& virtualPadManager);
+    void processInputUseSquareMethod(VirtualPad::Manager& virtualPadManager);
+    glm::vec2 clippedPointInCircle(float radius, glm::vec2 origin, glm::vec2 touchPoint);
 // just for debug
 private:
     void debugPoints(const QTouchEvent* event, QString who);
