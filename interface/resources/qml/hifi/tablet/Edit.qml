@@ -9,7 +9,9 @@ import "../toolbars"
 StackView {
     id: editRoot
     objectName: "stack"
-    //anchors.fill: parent
+
+    signal sendToScript(var message);
+
     topPadding: 40
 
     property var itemProperties: {"y": editRoot.topPadding,
@@ -32,8 +34,6 @@ StackView {
         }
     }
 
-    signal sendToScript(var message);
-
     function pushSource(path) {
         editRoot.push(Qt.resolvedUrl("../../" + path), itemProperties,
                       StackView.Immediate);
@@ -42,6 +42,13 @@ StackView {
 
     function popSource() {
         editRoot.pop(StackView.Immediate);
+    }
+
+    // Passes script messages to the item on the top of the stack
+    function fromScript(message) {
+        var currentItem = editRoot.currentItem;
+        if (currentItem && currentItem.fromScript)
+            currentItem.fromScript(message);
     }
 }
 
