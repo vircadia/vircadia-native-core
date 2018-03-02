@@ -286,7 +286,7 @@ public:
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
     void saveNextPhysicsStats(QString filename);
 
-    bool isServerlessMode() const { return getEntities()->getTree()->isServerlessMode(); }
+    bool isServerlessMode() const;
 
     void replaceDomainContent(const QString& url);
 

@@ -3108,8 +3108,20 @@ bool Application::importFromZIP(const QString& filePath) {
     return true;
 }
 
+bool Application::isServerlessMode() const {
+    auto& tree = getEntities()->getTree();
+    if (tree) {
+        return tree->isServerlessMode();
+    } else {
+        return false;
+    }
+}
+
 void Application::setServerlessDomain(bool serverlessDomain) {
-    getEntities()->getTree()->setIsServerlessMode(serverlessDomain);
+    auto& tree = getEntities()->getTree();
+    if (tree) {
+        tree->setIsServerlessMode(serverlessDomain);
+    }
 }
 
 void Application::loadServerlessDomain(QUrl domainURL) {
