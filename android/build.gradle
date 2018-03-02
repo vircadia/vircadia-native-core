@@ -77,8 +77,8 @@ if (Os.isFamily(Os.FAMILY_MAC)) {
     qtVersionId='HygCmtMLPYioyil0DfXckGVzhw2SXZA9'
 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
     qtFile = 'qt-5.9.3_win_armv8-libcpp_openssl.tgz'
-    qtChecksum='a93d22c0c59aa112fda18c4c6d157d17'
-    qtVersionId='0Bl9NSUWb5CBKLT_NXaxTt75SNBBZ9sB'
+    qtChecksum='c3e25db64002d0f43cf565e0ef708911'
+    qtVersionId='HeVObSVLCBoc7yY7He1oBMvPIH0VkClT'
 }
 
 def packages = [
@@ -111,6 +111,13 @@ def packages = [
         file: 'gvrsdk_v1.101.0.tgz',
         versionId: 'UTberAIFraEfF9IVjoV66u1DTPTopgeY',
         checksum: '57fd02baa069176ba18597a29b6b4fc7',
+    ],
+    nvtt: [
+        file: 'nvtt_armv8-libcpp.zip',
+        versionId: 'vLqrqThvpq4gp75BHMAqO6HhfTXaa0An',
+        checksum: 'eb46d0b683e66987190ed124aabf8910',
+        sharedLibFolder: 'lib',
+        includeLibs: ['libnvtt.so', 'libnvmath.so', 'libnvimage.so', 'libnvcore.so'],
     ],
     openssl: [
         file: 'openssl-1.1.0g_armv8.tgz',

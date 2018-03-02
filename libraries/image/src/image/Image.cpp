@@ -28,12 +28,8 @@
 
 using namespace gpu;
 
-#if defined(Q_OS_ANDROID)
-#define CPU_MIPMAPS 1
-#else
 #define CPU_MIPMAPS 1
 #include <nvtt/nvtt.h>
-#endif
 
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
 static const glm::uvec2 MAX_TEXTURE_SIZE(4096);
@@ -679,7 +675,6 @@ void generateLDRMips(gpu::Texture* texture, QImage&& image, const std::atomic<bo
 
 void generateMips(gpu::Texture* texture, QImage&& image, const std::atomic<bool>& abortProcessing = false, int face = -1) {
 #if CPU_MIPMAPS
-#if !defined(Q_OS_ANDROID)
     PROFILE_RANGE(resource_parse, "generateMips");
 
     if (image.format() == QIMAGE_HDR_FORMAT) {
@@ -687,16 +682,6 @@ void generateMips(gpu::Texture* texture, QImage&& image, const std::atomic<bool>
     } else  {
         generateLDRMips(texture, std::move(image), abortProcessing, face);
     }
-
-#else
-    //texture->setAutoGenerateMips(false);
-    texture->assignStoredMip(0, image.byteCount(), image.constBits());
-    for (uint16 level = 1; level < texture->getNumMips(); ++level) {
-        QSize mipSize(texture->evalMipWidth(level), texture->evalMipHeight(level));
-        QImage mipImage = image.scaled(mipSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        texture->assignStoredMip(level, mipImage.byteCount(), mipImage.constBits());
-    }
-#endif
 #else
     texture->setAutoGenerateMips(true);
 #endif
@@ -737,15 +722,9 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
     bool validAlpha = image.hasAlphaChannel();
     bool alphaAsMask = false;
 
-#if !defined(Q_OS_ANDROID)
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }
-#else
-    if (image.format() != QImage::Format_RGBA8888) {
-        image = image.convertToFormat(QImage::Format_RGBA8888);
-    }
-#endif
 
     if (validAlpha) {
         processTextureAlpha(image, validAlpha, alphaAsMask);
@@ -766,7 +745,12 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
             }
             formatMip = formatGPU;
         } else {
+#ifdef USE_GLES
+            // GLES does not support GL_BGRA
+            formatMip = gpu::Element::COLOR_SRGBA_32;
+#else
             formatMip = gpu::Element::COLOR_SBGRA_32;
+#endif
             formatGPU = gpu::Element::COLOR_SRGBA_32;
         }
 

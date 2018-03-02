@@ -90,6 +90,7 @@ public:
     glm::vec2 getReticleMaximumPosition() const;
 
     glm::mat4 getReticleTransform(const glm::mat4& eyePose = glm::mat4(), const glm::vec3& headPosition = glm::vec3()) const;
+    glm::mat4 getPoint2DTransform(const glm::vec2& point = glm::vec2()) const;
 
     ReticleInterface* getReticleInterface() { return _reticleInterface; }
 

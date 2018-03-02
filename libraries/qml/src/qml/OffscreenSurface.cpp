@@ -154,17 +154,45 @@ bool OffscreenSurface::eventFilter(QObject* originalDestination, QEvent* event) 
             QPointF transformedPos = mapToVirtualScreen(mouseEvent->localPos());
             QMouseEvent mappedEvent(mouseEvent->type(), transformedPos, mouseEvent->screenPos(), mouseEvent->button(),
                                     mouseEvent->buttons(), mouseEvent->modifiers());
-            if (event->type() == QEvent::MouseMove) {
-                // TODO - this line necessary for the QML Tooltop to work (which is not currently being used), but it causes interface to crash on launch on a fresh install
-                // need to investigate into why this crash is happening.
-                //_qmlContext->setContextProperty("lastMousePosition", transformedPos);
-            }
             mappedEvent.ignore();
             if (QCoreApplication::sendEvent(_sharedObject->getWindow(), &mappedEvent)) {
                 return mappedEvent.isAccepted();
             }
             break;
         }
+
+#if defined(Q_OS_ANDROID)
+        case QEvent::TouchBegin:
+        case QEvent::TouchUpdate:
+        case QEvent::TouchEnd: {
+            QTouchEvent *originalEvent = static_cast<QTouchEvent *>(event);
+            QTouchEvent fakeEvent(*originalEvent);
+            auto newTouchPoints = fakeEvent.touchPoints();
+            for (size_t i = 0; i < newTouchPoints.size(); ++i) {
+                const auto &originalPoint = originalEvent->touchPoints()[i];
+                auto &newPoint = newTouchPoints[i];
+                newPoint.setPos(originalPoint.pos());
+            }
+            fakeEvent.setTouchPoints(newTouchPoints);
+            if (QCoreApplication::sendEvent(_sharedObject->getWindow(), &fakeEvent)) {
+                qInfo() << __FUNCTION__ << "sent fake touch event:" << fakeEvent.type()
+                        << "_quickWindow handled it... accepted:" << fakeEvent.isAccepted();
+                return false; //event->isAccepted();
+            }
+            break;
+        }
+        case QEvent::InputMethod:
+        case QEvent::InputMethodQuery: {
+            if (_sharedObject->getWindow() && _sharedObject->getWindow()->activeFocusItem()) {
+                event->ignore();
+                if (QCoreApplication::sendEvent(_sharedObject->getWindow()->activeFocusItem(), event)) {
+                    return event->isAccepted();
+                }
+                return false;
+            }
+            break;
+        }
+#endif
         default:
             break;
     }
