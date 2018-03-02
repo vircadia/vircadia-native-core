@@ -1,6 +1,8 @@
 "use strict";
 
-//  nearActionGrabEntity.js
+//  nearGrabHyperLinkEntity.js
+//
+//  Created by Dante Ruiz on 03/02/2018
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
