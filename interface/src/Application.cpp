@@ -3109,10 +3109,7 @@ bool Application::importFromZIP(const QString& filePath) {
 }
 
 void Application::setServerlessDomain(bool serverlessDomain) {
-    if (_serverlessDomain != serverlessDomain) {
-        _serverlessDomain = serverlessDomain;
-        getEntities()->getTree()->setIsServerlessMode(_serverlessDomain);
-    }
+    getEntities()->getTree()->setIsServerlessMode(serverlessDomain);
 }
 
 void Application::loadServerlessDomain(QUrl domainURL) {
@@ -3136,6 +3133,8 @@ void Application::loadServerlessDomain(QUrl domainURL) {
     permissions.setAll(true);
     DependencyManager::get<NodeList>()->setPermissions(permissions);
 
+    // we can't import directly into the main tree because we would need to lock it, and
+    // Octree::readFromURL calls loop.exec which can run code which will also attempt to lock the tree.
     EntityTreePointer tmpTree(new EntityTree());
     tmpTree->setIsServerlessMode(true);
     tmpTree->createRootElement();

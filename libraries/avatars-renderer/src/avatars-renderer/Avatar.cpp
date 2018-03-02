@@ -221,10 +221,12 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
-    if (getID() == QUuid() ||
+    if (getID().isNull() ||
         getID() == AVATAR_SELF_ID ||
         DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
-        return; // wait until MyAvatar and this Node gets an ID before doing this.
+        // wait until MyAvatar and this Node gets an ID before doing this.  Otherwise, various things go wrong --
+        // things get their parent fixed up from AVATAR_SELF_ID to a null uuid which means "no parent".
+        return;
     }
 
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();

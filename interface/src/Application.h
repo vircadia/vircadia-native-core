@@ -286,7 +286,7 @@ public:
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
     void saveNextPhysicsStats(QString filename);
 
-    bool isServerlessMode() const { return _serverlessDomain; }
+    bool isServerlessMode() const { return getEntities()->getTree()->isServerlessMode(); }
 
     void replaceDomainContent(const QString& url);
 
@@ -720,7 +720,5 @@ private:
 
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
-
-    bool _serverlessDomain { true };
 };
 #endif // hifi_Application_h
