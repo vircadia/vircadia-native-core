@@ -28,7 +28,7 @@ namespace scriptable {
         Q_PROPERTY(QUuid objectID MEMBER objectID CONSTANT)
         Q_PROPERTY(glm::uint32 numMeshes READ getNumMeshes)
         Q_PROPERTY(ScriptableMeshes meshes READ getMeshes)
-        Q_PROPERTY(scriptable::MultiMaterialMap materials READ getMaterials)
+        Q_PROPERTY(scriptable::MultiMaterialMap materialLayers READ getMaterialLayers)
         Q_PROPERTY(QVector<QString> materialNames READ getMaterialNames)
 
     public:
@@ -43,7 +43,7 @@ namespace scriptable {
         ScriptableMeshes getMeshes();
         const ScriptableMeshes getConstMeshes() const;
 
-        scriptable::MultiMaterialMap getMaterials() { return materials; }
+        scriptable::MultiMaterialMap getMaterialLayers() { return materialLayers; }
         QVector<QString> getMaterialNames() { return materialNames; }
 
     public slots:
@@ -60,4 +60,5 @@ namespace scriptable {
 Q_DECLARE_METATYPE(scriptable::ScriptableModelPointer)
 Q_DECLARE_METATYPE(QVector<scriptable::ScriptableModelPointer>)
 Q_DECLARE_METATYPE(scriptable::ScriptableMaterial)
+Q_DECLARE_METATYPE(scriptable::ScriptableMaterialLayer)
 Q_DECLARE_METATYPE(scriptable::MultiMaterialMap)

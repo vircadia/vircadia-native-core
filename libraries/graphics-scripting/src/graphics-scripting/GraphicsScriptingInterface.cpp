@@ -298,7 +298,8 @@ namespace {
         qRegisterMetaType<scriptable::ScriptableModelPointer>(),
         qRegisterMetaType<scriptable::ScriptableMeshPartPointer>(),
         qRegisterMetaType<scriptable::ScriptableMaterial>(),
-        qRegisterMetaType<QVector<scriptable::ScriptableMaterial>>(),
+        qRegisterMetaType<scriptable::ScriptableMaterialLayer>(),
+        qRegisterMetaType<QVector<scriptable::ScriptableMaterialLayer>>(),
         qRegisterMetaType<scriptable::MultiMaterialMap>(),
         qRegisterMetaType<graphics::Mesh::Topology>(),
     };
@@ -338,11 +339,11 @@ namespace scriptable {
         );
     }
 
-    QScriptValue qVectorScriptableMaterialToScriptValue(QScriptEngine* engine, const QVector<scriptable::ScriptableMaterial>& vector) {
+    QScriptValue qVectorScriptableMaterialLayerToScriptValue(QScriptEngine* engine, const QVector<scriptable::ScriptableMaterialLayer>& vector) {
         return qScriptValueFromSequence(engine, vector);
     }
 
-    void qVectorScriptableMaterialFromScriptValue(const QScriptValue& array, QVector<scriptable::ScriptableMaterial>& result) {
+    void qVectorScriptableMaterialLayerFromScriptValue(const QScriptValue& array, QVector<scriptable::ScriptableMaterialLayer>& result) {
         qScriptValueToSequence(array, result);
     }
 
@@ -369,7 +370,6 @@ namespace scriptable {
         obj.setProperty("occlusionMap", material.occlusionMap);
         obj.setProperty("lightmapMap", material.lightmapMap);
         obj.setProperty("scatteringMap", material.scatteringMap);
-        obj.setProperty("priority", material.priority);
         return obj;
     }
 
@@ -377,10 +377,21 @@ namespace scriptable {
         // No need to convert from QScriptValue to ScriptableMaterial
     }
 
+    QScriptValue scriptableMaterialLayerToScriptValue(QScriptEngine* engine, const scriptable::ScriptableMaterialLayer &materialLayer) {
+        QScriptValue obj = engine->newObject();
+        obj.setProperty("material", scriptableMaterialToScriptValue(engine, materialLayer.material));
+        obj.setProperty("priority", materialLayer.priority);
+        return obj;
+    }
+
+    void scriptableMaterialLayerFromScriptValue(const QScriptValue &object, scriptable::ScriptableMaterialLayer& materialLayer) {
+        // No need to convert from QScriptValue to ScriptableMaterialLayer
+    }
+
     QScriptValue multiMaterialMapToScriptValue(QScriptEngine* engine, const scriptable::MultiMaterialMap& map) {
         QScriptValue obj = engine->newObject();
         for (auto key : map.keys()) {
-            obj.setProperty(key, qVectorScriptableMaterialToScriptValue(engine, map[key]));
+            obj.setProperty(key, qVectorScriptableMaterialLayerToScriptValue(engine, map[key]));
         }
         return obj;
     }
@@ -405,7 +416,7 @@ namespace scriptable {
 
 void GraphicsScriptingInterface::registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterSequenceMetaType<QVector<glm::uint32>>(engine);
-    qScriptRegisterSequenceMetaType<QVector<scriptable::ScriptableMaterial>>(engine);
+    qScriptRegisterSequenceMetaType<QVector<scriptable::ScriptableMaterialLayer>>(engine);
 
     scriptable::registerQPointerMetaType<scriptable::ScriptableModel>(engine);
     scriptable::registerQPointerMetaType<scriptable::ScriptableMesh>(engine);
@@ -417,7 +428,8 @@ void GraphicsScriptingInterface::registerMetaTypes(QScriptEngine* engine) {
     scriptable::registerDebugEnum<gpu::Dimension>(engine, gpu::DIMENSIONS);
 
     qScriptRegisterMetaType(engine, scriptable::scriptableMaterialToScriptValue, scriptable::scriptableMaterialFromScriptValue);
-    qScriptRegisterMetaType(engine, scriptable::qVectorScriptableMaterialToScriptValue, scriptable::qVectorScriptableMaterialFromScriptValue);
+    qScriptRegisterMetaType(engine, scriptable::scriptableMaterialLayerToScriptValue, scriptable::scriptableMaterialLayerFromScriptValue);
+    qScriptRegisterMetaType(engine, scriptable::qVectorScriptableMaterialLayerToScriptValue, scriptable::qVectorScriptableMaterialLayerFromScriptValue);
     qScriptRegisterMetaType(engine, scriptable::multiMaterialMapToScriptValue, scriptable::multiMaterialMapFromScriptValue);
 
     Q_UNUSED(metaTypeIds);
