@@ -1509,7 +1509,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             }
 
             if (isAdd && properties.getLocked() && !senderNode->isAllowedEditor()) {
-                // if a node can't change locks, don't allow them to create an already-locked entity
+                // if a node can't change locks, don't allow it to create an already-locked entity -- automatically
+                // clear the locked property and allow the unlocked entity to be created.
                 properties.setLocked(false);
                 bumpTimestamp(properties);
             }

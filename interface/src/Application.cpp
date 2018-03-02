@@ -513,18 +513,18 @@ bool isDomainURL(QUrl url) {
     if (!url.isValid()) {
         return false;
     }
-    if (url.scheme() != HIFI_URL_SCHEME &&
-        url.scheme() != "file" &&
+    if (url.scheme() == HIFI_URL_SCHEME) {
+        return true;
+    }
+    if (url.scheme() != "file" &&
         url.scheme() != "http" &&
         url.scheme() != "https") {
         return false;
     }
-
-    if (url.path().endsWith(".domain.json", Qt::CaseInsensitive) ||
-        url.path().endsWith(".domain.json.gz", Qt::CaseInsensitive)) {
+    if (url.path().endsWith(".json", Qt::CaseInsensitive) ||
+        url.path().endsWith(".json.gz", Qt::CaseInsensitive)) {
         return true;
     }
-
     return false;
 }
 
@@ -6264,8 +6264,7 @@ bool Application::canAcceptURL(const QString& urlString) const {
 bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     QUrl url(urlString);
     if (isDomainURL(url)) {
-        // this is a hifi URL - have the AddressManager handle it
-        emit receivedHifiSchemeURL(urlString);
+        // this is a URL for a domain, either hifi:// or serverless - have the AddressManager handle it
         QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
                                   Qt::AutoConnection, Q_ARG(const QString&, urlString));
         return true;

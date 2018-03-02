@@ -299,7 +299,6 @@ signals:
     void activeDisplayPluginChanged();
 
     void uploadRequest(QString path);
-    void receivedHifiSchemeURL(const QString& url);
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
