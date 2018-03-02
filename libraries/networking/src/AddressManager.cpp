@@ -46,10 +46,6 @@ AddressManager::AddressManager() :
 
 }
 
-QString AddressManager::protocolVersion() {
-    return protocolVersionsSignatureBase64();
-}
-
 bool AddressManager::isConnected() {
     return DependencyManager::get<NodeList>()->getDomainHandler().isConnected();
 }
