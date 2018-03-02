@@ -202,4 +202,7 @@ private:
     QTimer _apiRefreshTimer;
 };
 
+QString DOMAIN_SPAWNING_POINT();
+
+
 #endif // hifi_DomainHandler_h

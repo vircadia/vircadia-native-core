@@ -199,13 +199,11 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
     static QString URL_TYPE_DOMAIN_ID = "domain_id";
     static QString URL_TYPE_PLACE = "place";
     static QString URL_TYPE_NETWORK_ADDRESS = "network_address";
-
     if (lookupUrl.scheme() == HIFI_URL_SCHEME) {
-
-        emit setServerlessDomain(false);
 
         qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
 
+        emit setServerlessDomain(false);
         DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::LookupAddress);
 
         // there are 4 possible lookup strings
@@ -228,9 +226,8 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
             // we're assuming this is either a network address or global place name
             // check if it is a network address first
             bool hostChanged;
-            if (handleNetworkAddress(lookupUrl.host() +
-                                     (lookupUrl.port() == -1 ? "" : ":" + QString::number(lookupUrl.port())),
-                                     trigger, hostChanged)) {
+            if (handleNetworkAddress(lookupUrl.host()
+                                     + (lookupUrl.port() == -1 ? "" : ":" + QString::number(lookupUrl.port())), trigger, hostChanged)) {
 
                 UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_NETWORK_ADDRESS, lookupUrl.toString());
 
@@ -270,19 +267,20 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
                 attemptPlaceNameLookup(lookupUrl.host(), lookupUrl.path(), trigger);
             }
         }
+
         return true;
 
     } else if (lookupUrl.toString().startsWith('/')) {
-
         qCDebug(networking) << "Going to relative path" << lookupUrl.path();
+
         // a path lookup clears the previous lookup since we don't expect to re-attempt it
         _previousLookup.clear();
 
         // if this is a relative path then handle it as a relative viewpoint
-        handlePath(lookupUrl.path(), trigger, false);
+        handlePath(lookupUrl.path(), trigger, true);
         emit lookupResultsFinished();
-        return true;
 
+        return true;
     } else if (lookupUrl.scheme() == "http" || lookupUrl.scheme() == "https" || lookupUrl.scheme() == "file") {
         _previousLookup.clear();
         QUrl domainUrl = PathUtils::expandToLocalDataAbsolutePath(lookupUrl);
@@ -290,6 +288,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         setDomainInfo(domainUrl, trigger);
         DependencyManager::get<NodeList>()->getDomainHandler().setIsConnected(true);
         emit lookupResultsFinished();
+        handlePath(DOMAIN_SPAWNING_POINT(), trigger, false);
         return true;
     }
 
@@ -312,18 +311,18 @@ void AddressManager::handleLookupString(const QString& lookupString, bool fromSu
         QString sanitizedString = lookupString.trimmed();
         QUrl lookupURL;
 
-        if (lookupString.toLower().startsWith(HIFI_URL_SCHEME + ":/") ||
-            isPossiblePlaceName(sanitizedString) ||
-            // "localhost" isn't a valid placename, but we treat it specially here, to mean
-            // "try to find an connect to the DS on the host running interface".
-            lookupString.toLower() == "localhost") {
+        if (!lookupString.startsWith('/')) {
             // sometimes we need to handle lookupStrings like hifi:/somewhere
             const QRegExp HIFI_SCHEME_REGEX = QRegExp(HIFI_URL_SCHEME + ":\\/{1,2}", Qt::CaseInsensitive);
             sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
-            sanitizedString = HIFI_URL_SCHEME + "://" + sanitizedString;
-        }
 
-        lookupURL = QUrl(sanitizedString);
+            lookupURL = QUrl(sanitizedString);
+            if (lookupURL.scheme().isEmpty()) {
+                lookupURL = QUrl("hifi://" + sanitizedString);
+            }
+        } else {
+            lookupURL = QUrl(sanitizedString);
+        }
 
         handleUrl(lookupURL, fromSuggestions ? Suggestions : UserInput);
     }
@@ -724,6 +723,7 @@ bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16
         addCurrentAddressToHistory(trigger);
 
         bool emitHostChanged = host != _domainURL.host();
+        _domainURL = QUrl();
         _domainURL.setScheme(HIFI_URL_SCHEME);
         _domainURL.setHost(host);
         _domainURL.setPort(port);

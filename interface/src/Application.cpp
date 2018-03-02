@@ -374,8 +374,6 @@ static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 
-static const QString DOMAIN_SPAWNING_POINT = "/0, -10, 0";
-
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
@@ -3122,9 +3120,6 @@ void Application::loadServerlessDomain(QUrl domainURL) {
     getMyAvatar()->setSessionUUID(serverlessSessionID);
     DependencyManager::get<NodeList>()->setSessionUUID(serverlessSessionID);
 
-    auto addressManager = DependencyManager::get<AddressManager>();
-    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
-
     // there is no domain-server to tell us our permissions, so enable all
     NodePermissions permissions;
     permissions.setAll(true);
@@ -5796,7 +5791,7 @@ void Application::updateWindowTitle() const {
     if (isServerlessMode()) {
         currentPlaceName = "serverless: " + DependencyManager::get<AddressManager>()->getDomainURL().toString();
     } else {
-        currentPlaceName = DependencyManager::get<AddressManager>()->getHost();
+        currentPlaceName = DependencyManager::get<AddressManager>()->getDomainURL().host();
         if (currentPlaceName.isEmpty()) {
             currentPlaceName = nodeList->getDomainHandler().getHostname();
         }
@@ -6451,8 +6446,8 @@ void Application::replaceDomainContent(const QString& url) {
         limitedNodeList->sendPacket(std::move(octreeFilePacket), domainHandler.getSockAddr());
     });
     auto addressManager = DependencyManager::get<AddressManager>();
-    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
-    QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
+    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT());
+    QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT();
     qCDebug(interfaceapp) << "Setting new home bookmark to: " << newHomeAddress;
     DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(newHomeAddress);
 }
