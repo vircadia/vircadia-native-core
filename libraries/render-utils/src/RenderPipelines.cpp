@@ -432,7 +432,6 @@ void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::Ba
 
     auto skinModelDualQuatVertex = skin_model_dq_vert::getShader();
     auto skinModelNormalMapDualQuatVertex = skin_model_normal_map_dq_vert::getShader();
-    auto skinModelNormalMapFadeDualQuatVertex = skin_model_normal_map_fade_dq_vert::getShader();
 
     // Pixel shaders
     auto modelPixel = forward_model_frag::getShader();
@@ -472,7 +471,7 @@ void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::Ba
     addPipeline(Key::Builder().withMaterial().withSkinned().withTranslucent(), skinModelVertex, modelTranslucentPixel);
     addPipeline(Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents(), skinModelNormalMapVertex, modelTranslucentPixel);
     addPipeline(Key::Builder().withMaterial().withSkinned().withTranslucent().withDualQuatSkinned(), skinModelDualQuatVertex, modelTranslucentPixel);
-    addPipeline(Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents().withDualQuatSkinned(), skinModelNormalMapFadeDualQuatVertex, modelTranslucentPixel);
+    addPipeline(Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents().withDualQuatSkinned(), skinModelNormalMapDualQuatVertex, modelTranslucentPixel);
 
     forceLightBatchSetter = false;
 }
