@@ -141,7 +141,6 @@ void PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<
         }
         nextToUpdate = itr->first;
         ++numUpdates;
-        uint64_t now = usecTimestampNow();
         if (usecTimestampNow() > expiry) {
             break;
         }
