@@ -69,6 +69,7 @@
 #include <AudioInjectorManager.h>
 #include <AvatarBookmarks.h>
 #include <CursorManager.h>
+#include <VirtualPadManager.h>
 #include <DebugDraw.h>
 #include <DeferredLightingEffect.h>
 #include <EntityScriptClient.h>
@@ -137,6 +138,7 @@
 #include <recording/Recorder.h>
 #include <shared/StringHelpers.h>
 #include <QmlWebWindowClass.h>
+#include <QmlFragmentClass.h>
 #include <Preferences.h>
 #include <display-plugins/CompositorHelper.h>
 #include <trackers/EyeTracker.h>
@@ -794,6 +796,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<PointerScriptingInterface>();
     DependencyManager::set<PickScriptingInterface>();
     DependencyManager::set<Cursor::Manager>();
+    DependencyManager::set<VirtualPad::Manager>();
     DependencyManager::set<DesktopPreviewProvider>();
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
     DependencyManager::set<StatTracker>();
@@ -1547,11 +1550,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return DependencyManager::get<OffscreenUi>()->navigationFocused() ? 1 : 0;
     });
 
-    // Setup the _keyboardMouseDevice, _touchscreenDevice and the user input mapper with the default bindings
+    // Setup the _keyboardMouseDevice, _touchscreenDevice, _touchscreenVirtualPadDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
     // if the _touchscreenDevice is not supported it will not be registered
     if (_touchscreenDevice) {
         userInputMapper->registerDevice(_touchscreenDevice->getInputDevice());
+    }
+    if (_touchscreenVirtualPadDevice) {
+        userInputMapper->registerDevice(_touchscreenVirtualPadDevice->getInputDevice());
     }
 
     // this will force the model the look at the correct directory (weird order of operations issue)
@@ -2636,6 +2642,9 @@ void Application::initializeUi() {
         if (TouchscreenDevice::NAME == inputPlugin->getName()) {
             _touchscreenDevice = std::dynamic_pointer_cast<TouchscreenDevice>(inputPlugin);
         }
+        if (TouchscreenVirtualPadDevice::NAME == inputPlugin->getName()) {
+            _touchscreenVirtualPadDevice = std::dynamic_pointer_cast<TouchscreenVirtualPadDevice>(inputPlugin);
+        }
     }
 
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
@@ -3041,7 +3050,9 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // If this is a first run we short-circuit the address passed in
     if (firstRun.get()) {
+#if !defined(Q_OS_ANDROID)
         showHelp();
+#endif
         if (sandboxIsRunning) {
             qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
             DependencyManager::get<AddressManager>()->goToLocalSandbox();
@@ -3867,6 +3878,9 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
     if (_touchscreenDevice && _touchscreenDevice->isActive()) {
         _touchscreenDevice->touchUpdateEvent(event);
     }
+    if (_touchscreenVirtualPadDevice && _touchscreenVirtualPadDevice->isActive()) {
+        _touchscreenVirtualPadDevice->touchUpdateEvent(event);
+    }
 }
 
 void Application::touchBeginEvent(QTouchEvent* event) {
@@ -3888,6 +3902,9 @@ void Application::touchBeginEvent(QTouchEvent* event) {
     if (_touchscreenDevice && _touchscreenDevice->isActive()) {
         _touchscreenDevice->touchBeginEvent(event);
     }
+    if (_touchscreenVirtualPadDevice && _touchscreenVirtualPadDevice->isActive()) {
+        _touchscreenVirtualPadDevice->touchBeginEvent(event);
+    }
 
 }
 
@@ -3908,13 +3925,18 @@ void Application::touchEndEvent(QTouchEvent* event) {
     if (_touchscreenDevice && _touchscreenDevice->isActive()) {
         _touchscreenDevice->touchEndEvent(event);
     }
-
+    if (_touchscreenVirtualPadDevice && _touchscreenVirtualPadDevice->isActive()) {
+        _touchscreenVirtualPadDevice->touchEndEvent(event);
+    }
     // put any application specific touch behavior below here..
 }
 
 void Application::touchGestureEvent(QGestureEvent* event) {
     if (_touchscreenDevice && _touchscreenDevice->isActive()) {
         _touchscreenDevice->touchGestureEvent(event);
+    }
+    if (_touchscreenVirtualPadDevice && _touchscreenVirtualPadDevice->isActive()) {
+        _touchscreenVirtualPadDevice->touchGestureEvent(event);
     }
 }
 
@@ -5387,7 +5409,9 @@ void Application::update(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
+#if !defined(Q_OS_ANDROID)
     updateLOD(deltaTime);
+#endif
 
     // TODO: break these out into distinct perfTimers when they prove interesting
     {
@@ -6125,6 +6149,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
 #endif
     scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
+    scriptEngine->registerFunction("QmlFragment", QmlFragmentClass::constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("DesktopPreviewProvider", DependencyManager::get<DesktopPreviewProvider>().data());

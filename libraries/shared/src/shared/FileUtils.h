@@ -18,7 +18,8 @@ class FileUtils {
 
 public:
     static const QStringList& getFileSelectors();
-    static void locateFile(QString fileName);
+    static QString selectFile(const QString& fileName);
+    static void locateFile(const QString& fileName);
     static QString standardPath(QString subfolder);
     static QString readFile(const QString& filename);
     static QStringList readLines(const QString& filename, QString::SplitBehavior splitBehavior = QString::KeepEmptyParts);

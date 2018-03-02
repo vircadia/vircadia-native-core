@@ -19,6 +19,7 @@
 #include <shared/FileUtils.h>
 #include <PathUtils.h>
 
+#include "NetworkLogging.h"
 #include "ResourceManager.h"
 
 void FileResourceRequest::doSend() {
@@ -39,9 +40,15 @@ void FileResourceRequest::doSend() {
 
 
     // Allow platform specific versions of files loaded out of a resource cache via file://
-    QFileSelector fileSelector;
-    fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
-    filename = fileSelector.select(filename);
+    {
+        QString originalFilename = filename;
+        QFileSelector fileSelector;
+        fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
+        filename = fileSelector.select(filename);
+        if (filename != originalFilename) {
+            qCDebug(resourceLog) << "Using" << filename << "instead of" << originalFilename;
+        }
+    }
 
     if (!_byteRange.isValid()) {
         _result = ResourceRequest::InvalidByteRange;
