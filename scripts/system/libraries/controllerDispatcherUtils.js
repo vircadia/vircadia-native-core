@@ -105,7 +105,8 @@ DISPATCHER_PROPERTIES = [
     "density",
     "dimensions",
     "userData",
-    "type"
+    "type",
+    "href"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
