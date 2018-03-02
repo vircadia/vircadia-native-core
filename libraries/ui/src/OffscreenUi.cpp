@@ -658,10 +658,8 @@ void OffscreenUi::createDesktop(const QUrl& url) {
 
 #ifdef DEBUG
     getSurfaceContext()->setContextProperty("DebugQML", QVariant(true));
-    getSurfaceContext()->setContextProperty("DebugQMLFile", QVariant(url.toString()));
-#else 
+#else
     getSurfaceContext()->setContextProperty("DebugQML", QVariant(false));
-    getSurfaceContext()->setContextProperty("DebugQMLFile", QVariant(""));
 #endif
 
     load(url, [=](QQmlContext* context, QObject* newObject) {

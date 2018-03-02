@@ -909,6 +909,12 @@ void OffscreenQmlSurface::loadInternal(const QUrl& qmlSource, bool createNewCont
         finalQmlSource = _qmlContext->resolvedUrl(qmlSource);
     }
 
+#ifdef DEBUG
+    getSurfaceContext()->setContextProperty("DebugQMLFile", QVariant(finalQmlSource.toString()));
+#else
+    getSurfaceContext()->setContextProperty("DebugQMLFile", QVariant(""));
+#endif
+
     auto targetContext = contextForUrl(finalQmlSource, parent, createNewContext);
     auto qmlComponent = new QQmlComponent(_qmlContext->engine(), finalQmlSource, QQmlComponent::PreferSynchronous);
     if (qmlComponent->isLoading()) {
