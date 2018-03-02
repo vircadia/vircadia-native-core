@@ -645,7 +645,7 @@ EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& ori
         if (!success) {
             return;
         }
-        if (!rayHitsSphere(origin, direction, entityBox.calcCenter(), 0.25f * glm::length2(entityBox.getScale()))) {
+        if (!entityBox.rayHitsBoundingSphere(origin, direction)) {
             return;
         }
 
