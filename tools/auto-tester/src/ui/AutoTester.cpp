@@ -60,5 +60,5 @@ void AutoTester::saveImage() {
     image.loadFromData(downloader->downloadedData());
     int er = image.width();
     int df = image.height();
-    image.save("D:/Dicom/lll.png");
+    image.save("D:/Dicom/lll.jpg");
 }

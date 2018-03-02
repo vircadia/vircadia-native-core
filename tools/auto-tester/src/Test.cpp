@@ -214,7 +214,9 @@ void Test::evaluateTests(bool interactiveMode, QProgressBar* progressBar) {
         }
     }
 
-    autoTester->downloadImage(QUrl("http://ribafreixo.com/wp-content/uploads/2017/03/Order-Now-Button-300x113.png"));
+    ////autoTester->downloadImage(QUrl("http://ribafreixo.com/wp-content/uploads/2017/03/Order-Now-Button-300x113.png"));
+    ////autoTester->downloadImage(QUrl("https://github.com/NissimHadar/hifi_tests/blob/addRecursionToAutotester/tests/content/entity/zone/ambientLightInheritance/ExpectedImage_00000.jpg?raw=true"));
+    autoTester->downloadImage(QUrl("https://hifi-content.s3.amazonaws.com/nissim/autoTester/resources/ColourBox.jpg"));
     ////bool success = compareImageLists(expectedImages, resultImages, pathToImageDirectory, interactiveMode, progressBar);
 
     ////if (success) {
