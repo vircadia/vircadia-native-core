@@ -23,15 +23,6 @@
 
 #include "RegisteredMetaTypes.h"
 
-#include <BakingVersion.h>
-
-namespace std {
-    template <>
-    struct hash<QString> {
-        size_t operator()(const QString& v) const { return qHash(v); }
-    };
-}
-
 using BakeVersion = int;
 static const BakeVersion INITIAL_BAKE_VERSION = 0;
 static const BakeVersion NEEDS_BAKING_BAKE_VERSION = -1;
@@ -48,18 +39,24 @@ enum BakedAssetType : int {
 // ATTENTION! If you change the current version for an asset type, you will also
 // need to update the function currentBakeVersionForAssetType() inside of AssetServer.cpp.
 enum class ModelBakeVersion : BakeVersion {
-    Initial = INITIAL_BAKE_VERSION
+    Initial = INITIAL_BAKE_VERSION,
+
+    COUNT
 };
 
 // ATTENTION! See above.
 enum class TextureBakeVersion : BakeVersion {
     Initial = INITIAL_BAKE_VERSION,
+
+    COUNT
 };
 
 // ATTENTION! See above.
 enum class ScriptBakeVersion : BakeVersion {
     Initial = INITIAL_BAKE_VERSION,
     FixEmptyScripts,
+
+    COUNT
 };
 
 struct AssetMeta {

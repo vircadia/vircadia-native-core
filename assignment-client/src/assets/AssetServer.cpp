@@ -33,8 +33,6 @@
 #include <SharedUtil.h>
 #include <PathUtils.h>
 #include <image/Image.h>
-void AssetServer::bakeAsset(const AssetUtils::AssetHash& assetHash, const AssetUtils::AssetPath& assetPath, const QString& filePath) {
-void AssetServer::bakeAsset(const AssetUtils::AssetHash& assetHash, const AssetUtils::AssetPath& assetPath, const QString& filePath) {
 
 #include "AssetServerLogging.h"
 #include "BakeAssetTask.h"
@@ -56,9 +54,9 @@ static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
 static const QString BAKED_TEXTURE_SIMPLE_NAME = "texture.ktx";
 static const QString BAKED_SCRIPT_SIMPLE_NAME = "asset.js";
 
-static const ModelBakeVersion CURRENT_MODEL_BAKE_VERSION = ModelBakeVersion::BetterModelBaking;
-static const TextureBakeVersion CURRENT_TEXTURE_BAKE_VERSION = TextureBakeVersion::Initial;
-static const ScriptBakeVersion CURRENT_SCRIPT_BAKE_VERSION = ScriptBakeVersion::Initial;
+static const ModelBakeVersion CURRENT_MODEL_BAKE_VERSION = (ModelBakeVersion)((BakeVersion)ModelBakeVersion::COUNT - 1);
+static const TextureBakeVersion CURRENT_TEXTURE_BAKE_VERSION = (TextureBakeVersion)((BakeVersion)TextureBakeVersion::COUNT - 1);
+static const ScriptBakeVersion CURRENT_SCRIPT_BAKE_VERSION = (ScriptBakeVersion)((BakeVersion)ScriptBakeVersion::COUNT - 1);
 
 BakedAssetType assetTypeForExtension(const QString& extension) {
     auto extensionLower = extension.toLower();
@@ -98,11 +96,11 @@ QString bakedFilenameForAssetType(BakedAssetType type) {
 BakeVersion currentBakeVersionForAssetType(BakedAssetType type) {
     switch (type) {
         case Model:
-            return (BakeVersion)ModelBakeVersion::Initial;
+            return (BakeVersion)CURRENT_MODEL_BAKE_VERSION;
         case Texture:
-            return (BakeVersion)TextureBakeVersion::Initial;
+            return (BakeVersion)CURRENT_TEXTURE_BAKE_VERSION;
         case Script:
-            return (BakeVersion)ScriptBakeVersion::FixEmptyScripts;
+            return (BakeVersion)CURRENT_SCRIPT_BAKE_VERSION;
         default:
             return 0;
     }
@@ -229,7 +227,7 @@ bool AssetServer::needsToBeBaked(const AssetUtils::AssetPath& path, const AssetU
     }
 
     QString bakedFilename = bakedFilenameForAssetType(type);
-    auto bakedPath = HIDDEN_BAKED_CONTENT_FOLDER + assetHash + "/" + bakedFilename;
+    auto bakedPath = AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER + assetHash + "/" + bakedFilename;
     auto mappingIt = _fileMappings.find(bakedPath);
     bool bakedMappingExists = mappingIt != _fileMappings.end();
 
@@ -257,10 +255,6 @@ bool AssetServer::needsToBeBaked(const AssetUtils::AssetPath& path, const AssetU
         return true;
     }
 
-    QString bakedFilename = bakedFilenameForAssetType(type);
-    auto bakedPath = HIDDEN_BAKED_CONTENT_FOLDER + assetHash + "/" + bakedFilename;
-    auto bakedPath = AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER + assetHash + "/" + bakedFilename;
-    bool bakedMappingExists = _fileMappings.find(bakedPath) == _fileMappings.end();
     return !bakedMappingExists || (meta.bakeVersion < currentVersion);
 }
 
