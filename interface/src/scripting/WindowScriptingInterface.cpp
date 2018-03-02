@@ -74,9 +74,7 @@ QScriptValue WindowScriptingInterface::hasFocus() {
 void WindowScriptingInterface::setFocus() {
     // It's forbidden to call focus() from another thread.
     qApp->postLambdaEvent([] {
-        auto window = qApp->getWindow();
-        window->activateWindow();
-        window->setFocus();
+        qApp->setFocus();
     });
 }
 

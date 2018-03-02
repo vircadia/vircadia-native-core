@@ -7329,6 +7329,16 @@ bool Application::hasFocus() const {
     return (QApplication::activeWindow() != nullptr);
 }
 
+void Application::setFocus() {
+    // Note: Windows doesn't allow a user focus to be taken away from another application. Instead, it changes the color of and 
+    // flashes the taskbar icon.
+    auto window = qApp->getWindow();
+    window->activateWindow();
+    
+    // Do NOT do the following because it takes focus away from the _displayPlugin.
+    //window->setFocus();
+}
+
 void Application::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
     if (maxOctreePPS != _maxOctreePPS) {
         _maxOctreePPS = maxOctreePPS;
