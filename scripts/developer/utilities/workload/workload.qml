@@ -30,11 +30,25 @@ Rectangle {
         anchors.margins: hifi.dimensions.contentMargin.x  
         //padding: hifi.dimensions.contentMargin.x
 
+        HifiControls.Label {
+            text: "Workload"       
+        }
+        Separator {}
+        HifiControls.Label {
+            text: "Display"       
+        }
         HifiControls.CheckBox {
             boxSize: 20
-            text: "Show All Proxies"
-            checked: workload.spaceToRender["showAllProxies"]
-            onCheckedChanged: { workload.spaceToRender["showAllProxies"] = checked }
+            text: "Show Proxies"
+            checked: workload.spaceToRender["showProxies"]
+            onCheckedChanged: { workload.spaceToRender["showProxies"] = checked }
         }
+        HifiControls.CheckBox {
+            boxSize: 20
+            text: "Show Views"
+            checked: workload.spaceToRender["showViews"]
+            onCheckedChanged: { workload.spaceToRender["showViews"] = checked }
+        }
+        Separator {}
     }
 }

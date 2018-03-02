@@ -58,6 +58,10 @@ void Space::setViews(const std::vector<Space::View>& views) {
     _views = views;
 }
 
+void Space::copyViews(std::vector<View>& copy) const {
+    copy = _views;
+}
+
 // TODO?: move this to an algorithm/job?
 void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
     uint32_t numProxies = (uint32_t)_proxies.size();
@@ -106,7 +110,7 @@ void Space::deleteProxy(int32_t proxyId) {
     }
 }
 
-uint32_t Space::copyProxyValues(Proxy* proxies, uint32_t numDestProxies) {
+uint32_t Space::copyProxyValues(Proxy* proxies, uint32_t numDestProxies) const {
 
     auto numCopied = std::min(numDestProxies, (uint32_t)_proxies.size());
     memcpy(proxies, _proxies.data(), numCopied * sizeof(Proxy));

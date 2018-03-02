@@ -14,10 +14,12 @@
 
 class GameSpaceToRenderConfig : public workload::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(bool showAllProxies MEMBER showAllProxies NOTIFY dirty)
+    Q_PROPERTY(bool showProxies MEMBER showProxies NOTIFY dirty)
+    Q_PROPERTY(bool showViews MEMBER showViews NOTIFY dirty)
 public:
 
-    bool showAllProxies{ false };
+    bool showProxies{ false };
+    bool showViews{ false };
 signals:
     void dirty();
 
@@ -38,6 +40,7 @@ public:
 protected:
     render::ItemID _spaceRenderItemID{ render::Item::INVALID_ITEM_ID };
     bool _showAllProxies{ false };
+    bool _showAllViews{ false };
 };
 
 
@@ -50,12 +53,15 @@ public:
     ~GameWorkloadRenderItem() {}
     void render(RenderArgs* args);
 
-    render::Item::Bound& editBound() { _needUpdate = true; return _bound; }
+    render::Item::Bound& editBound() { return _bound; }
     const render::Item::Bound& getBound() { return _bound; }
 
     void setVisible(bool visible);
+    void showProxies(bool show);
+    void showViews(bool show);
 
     void setAllProxies(const std::vector<workload::Space::Proxy>& proxies);
+    void setAllViews(const std::vector<workload::Space::View>& views);
 
     render::ItemKey getKey() const;
 
@@ -66,12 +72,19 @@ protected:
     gpu::BufferPointer _allProxiesBuffer;
     uint32_t _numAllProxies{ 0 };
 
+    std::vector<workload::Space::View> _myOwnViews;
+    gpu::BufferPointer _allViewsBuffer;
+    uint32_t _numAllViews{ 0 };
+
     gpu::PipelinePointer _drawAllProxiesPipeline;
-    const gpu::PipelinePointer getPipeline();
+    const gpu::PipelinePointer getProxiesPipeline();
+
+    gpu::PipelinePointer _drawAllViewsPipeline;
+    const gpu::PipelinePointer getViewsPipeline();
 
     render::ItemKey _key;
-    bool _needUpdate{ true };
-    bool _isVisible{ true };
+    bool _showProxies{ true };
+    bool _showViews{ true };
 };
 
 namespace render {

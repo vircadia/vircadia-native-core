@@ -51,13 +51,16 @@ public:
 
     class View {
     public:
+        View() = default;
         View(const glm::vec3& pos, float nearRadius, float midRadius, float farRadius) : center(pos) {
             radiuses[REGION_NEAR] = nearRadius;
             radiuses[REGION_MIDDLE] = midRadius;
             radiuses[REGION_FAR] = farRadius;
         }
-        glm::vec3 center;
+        glm::vec3 center; 
+        float _padding0;
         float radiuses[NUM_CLASSIFICATIONS - 1];
+        float _padding1;
     };
 
     class Change {
@@ -76,11 +79,15 @@ public:
     void updateProxies(const std::vector<ProxyUpdate>& changedProxies);
     void setViews(const std::vector<View>& views);
 
+    uint32_t getNumViews() const { return (uint32_t)(_views.size()); }
+    void copyViews(std::vector<View>& copy) const;
+
+
     uint32_t getNumObjects() const { return (uint32_t)(_proxies.size() - _freeIndices.size()); }
     uint32_t getNumAllocatedProxies() const { return (uint32_t)(_proxies.size()); }
 
     void categorizeAndGetChanges(std::vector<Change>& changes);
-    uint32_t copyProxyValues(Proxy* proxies, uint32_t numDestProxies);
+    uint32_t copyProxyValues(Proxy* proxies, uint32_t numDestProxies) const;
 
 private:
     void deleteProxy(int32_t proxyId);
