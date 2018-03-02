@@ -219,6 +219,7 @@ Rectangle {
                     onPressed: {
                         if (!checked) {
                             stereoMic.checked = false;
+                            Audio.setIsStereoInput(false); // the next selected audio device might not support stereo
                             AudioScriptingInterface.setInputDevice(info, bar.currentIndex === 1);
                         }
                     }
