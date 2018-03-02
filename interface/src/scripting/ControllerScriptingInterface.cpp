@@ -16,6 +16,7 @@
 #include <plugins/PluginManager.h>
 
 #include "Application.h"
+#include "VirtualPadManager.h"
 
 bool ControllerScriptingInterface::isKeyCaptured(QKeyEvent* event) const {
     return isKeyCaptured(KeyEvent(*event));
@@ -81,6 +82,11 @@ glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
 QVariant ControllerScriptingInterface::getRecommendedHUDRect() const {
     auto rect = qApp->getRecommendedHUDRect();
     return qRectToVariant(rect);
+}
+
+void ControllerScriptingInterface::setVPadEnabled(const bool enable) {
+    auto& virtualPadManager = VirtualPad::Manager::instance();
+    virtualPadManager.enable(enable);
 }
 
 void ControllerScriptingInterface::emitKeyPressEvent(QKeyEvent* event) { emit keyPressEvent(KeyEvent(*event)); }
