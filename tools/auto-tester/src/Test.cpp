@@ -16,8 +16,13 @@
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
 
+#include "ui/AutoTester.h"
+extern AutoTester* autoTester;
+
 Test::Test() {
-    expectedImageFilenameFormat = QRegularExpression("ExpectedImage_\\d+.jpg");
+    QString regex(EXPECTED_IMAGE_PREFIX + QString("\\\\d").repeated(NUM_DIGITS) + EXPECTED_IMAGE_TYPE);
+    
+    expectedImageFilenameFormat = QRegularExpression(regex);
 
     mismatchWindow.setModal(true);
 }
@@ -178,49 +183,45 @@ void Test::appendTestResultsToFile(QString testResultsFolderPath, TestFailure te
 
 void Test::evaluateTests(bool interactiveMode, QProgressBar* progressBar) {
     // Get list of JPEG images in folder, sorted by name
-    QString pathToImageDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
-    if (pathToImageDirectory == "") {
+    QString pathToTestResultsDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
+    if (pathToTestResultsDirectory == "") {
         return;
     }
 
     // Leave if test results folder could not be created
-    if (!createTestResultsFolderPathIfNeeded(pathToImageDirectory)) {
+    if (!createTestResultsFolderPathIfNeeded(pathToTestResultsDirectory)) {
         return;
     }
 
-    QStringList sortedImageFilenames = createListOfAllJPEGimagesInDirectory(pathToImageDirectory);
-
-    // Separate images into two lists.  The first is the expected images, the second is the test results
+    // Create two lists.  The first is the test results,  the second is the expected images
     // Images that are in the wrong format are ignored.
+
+    QStringList sortedTestResultsFilenames = createListOfAllJPEGimagesInDirectory(pathToTestResultsDirectory);
     QStringList expectedImages;
     QStringList resultImages;
-    foreach(QString currentFilename, sortedImageFilenames) {
-        QString fullCurrentFilename = pathToImageDirectory + "/" + currentFilename;
-        if (isInExpectedImageFilenameFormat(currentFilename)) {
-            expectedImages << fullCurrentFilename;
-        } else if (isInSnapshotFilenameFormat(currentFilename)) {
+    foreach(QString currentFilename, sortedTestResultsFilenames) {
+        QString fullCurrentFilename = pathToTestResultsDirectory + "/" + currentFilename;
+        if (isInSnapshotFilenameFormat(currentFilename)) {
             resultImages << fullCurrentFilename;
+
+            QString expectedImageDirectory = getExpectedImageDestinationDirectory(currentFilename);
+            
+            // extract the digits at the end of the filename (exluding the file extension)
+            QString expectedImageFilenameTail = currentFilename.left(currentFilename.length() - 4).right(NUM_DIGITS);
+
+            QString expectedImageFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + EXPECTED_IMAGE_TYPE;
+            expectedImages << (expectedImageDirectory + "/" + expectedImageFilename);
         }
     }
 
-    // The number of images in each list should be identical
-    if (expectedImages.length() != resultImages.length()) {
-        messageBox.critical(0, 
-            "Test failed", 
-            "Found " + QString::number(resultImages.length()) + " images in directory" +
-            "\nExpected to find " + QString::number(expectedImages.length()) + " images"
-        );
+    autoTester->downloadImage(QUrl("http://ribafreixo.com/wp-content/uploads/2017/03/Order-Now-Button-300x113.png"));
+    ////bool success = compareImageLists(expectedImages, resultImages, pathToImageDirectory, interactiveMode, progressBar);
 
-        exit(-1);
-    }
-
-    bool success = compareImageLists(expectedImages, resultImages, pathToImageDirectory, interactiveMode, progressBar);
-
-    if (success) {
-        messageBox.information(0, "Success", "All images are as expected");
-    } else {
-        messageBox.information(0, "Failure", "One or more images are not as expected");
-    }
+    ////if (success) {
+    ////    messageBox.information(0, "Success", "All images are as expected");
+    ////} else {
+    ////    messageBox.information(0, "Failure", "One or more images are not as expected");
+    ////}
 
     zipAndDeleteTestResultsFolder();
 }
@@ -407,7 +408,7 @@ void Test::createTest() {
                 exit(-1);
             }
             QString newFilename = "ExpectedImage_" + QString::number(i - 1).rightJustified(5, '0') + ".jpg";
-            QString imageDestinationDirectory = getImageDestinationDirectory(currentFilename);
+            QString imageDestinationDirectory = getExpectedImageDestinationDirectory(currentFilename);
             QString fullNewFileName = imageDestinationDirectory + "/" + newFilename;
 
             try {
@@ -489,7 +490,7 @@ bool Test::isInSnapshotFilenameFormat(QString filename) {
 // D:/GitHub/hifi-tests/tests/content/entity/zone/create
 // This method assumes the filename is in the correct format
 // The final part of the filename is the image number.  This is checked for sanity
-QString Test::getImageDestinationDirectory(QString filename) {
+QString Test::getExpectedImageDestinationDirectory(QString filename) {
     QString filenameWithoutExtension = filename.split(".")[0];
     QStringList filenameParts = filenameWithoutExtension.split("_");
 

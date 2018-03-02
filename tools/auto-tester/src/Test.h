@@ -46,7 +46,7 @@ public:
 
     bool isAValidDirectory(QString pathname);
 
-    QString getImageDestinationDirectory(QString filename);
+    QString getExpectedImageDestinationDirectory(QString filename);
 
 private:
     const QString TEST_FILENAME { "test.js" };
@@ -65,6 +65,11 @@ private:
 
     QString testResultsFolderPath { "" };
     int index { 1 };
+
+    // Expected images are in the format ExpectedImage_dddd.jpg (d == decimal digit)
+    const int NUM_DIGITS { 5 };
+    const QString EXPECTED_IMAGE_PREFIX { "ExpectedImage_" };
+    const QString EXPECTED_IMAGE_TYPE { ".jpg" };
 };
 
 #endif // hifi_test_h

@@ -12,6 +12,8 @@
 
 #include <QtWidgets/QMainWindow>
 #include "ui_AutoTester.h"
+
+#include "../Downloader.h"
 #include "../Test.h"
 
 class AutoTester : public QMainWindow {
@@ -19,6 +21,7 @@ class AutoTester : public QMainWindow {
 
 public:
     AutoTester(QWidget *parent = Q_NULLPTR);
+    void downloadImage(QUrl url);
 
 private slots:
     void on_evaluateTestsButton_clicked();
@@ -29,10 +32,13 @@ private slots:
     void on_deleteOldSnapshotsButton_clicked();
     void on_closeButton_clicked();
 
+    void saveImage();
+
 private:
     Ui::AutoTesterClass ui;
 
-    Test test;
+    Test* test;
+    Downloader* downloader;
 };
 
 #endif // hifi_AutoTester_h
