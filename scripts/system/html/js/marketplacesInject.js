@@ -246,6 +246,7 @@
     function buyButtonClicked(id, name, author, price, href, referrer) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
+            isUpdating: false,
             itemId: id,
             itemName: name,
             itemPrice: price ? parseInt(price, 10) : 0,
@@ -253,6 +254,29 @@
             referrer: referrer,
             itemAuthor: author
         }));
+    }
+
+    function updateButtonClicked(id, name, author, href, referrer) {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "UPDATE",
+            isUpdating: true,
+            itemId: id,
+            itemName: name,
+            itemHref: href,
+            referrer: referrer,
+            itemAuthor: author
+        }));
+    }
+
+    // From https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
+    function getParameterByName(name, url) {
+        if (!url) url = window.location.href;
+        name = name.replace(/[\[\]]/g, "\\$&");
+        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+            results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, " "));
     }
 
     function injectBuyButtonOnMainPage() {
@@ -412,13 +436,25 @@
                 var cost = $('.item-cost').text();
                 if (availability !== 'available') {
                     purchaseButton.html('UNAVAILABLE (' + availability + ')');
+                } else if (url.indexOf('edition=' != -1)) {
+                    purchaseButton.html('UPDATE FOR FREE');
                 } else if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
                     purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
                         'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
                 }
 
                 purchaseButton.on('click', function () {
-                    if ('available' === availability) {
+                    if (url.indexOf('edition=' != -1)) {
+                        if (url.indexOf('upgradeUrl=' === -1)) {
+                            console.log("ERROR! Item is an upgrade, but no upgradeUrl was specified.");
+                        } else {
+                            updateButtonClicked(window.location.pathname.split("/")[3],
+                                $('#top-center').find('h1').text(),
+                                $('#creator').find('.value').text(),
+                                getParameterByName('upgradeUrl'),
+                                "itemPage");
+                        }
+                    } else if ('available' === availability) {
                         buyButtonClicked(window.location.pathname.split("/")[3],
                             $('#top-center').find('h1').text(),
                             $('#creator').find('.value').text(),

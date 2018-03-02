@@ -417,7 +417,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
             isDownloadBeingCancelled = false;
         } else {
             var parsedJsonMessage = JSON.parse(message);
-            if (parsedJsonMessage.type === "CHECKOUT") {
+            if (parsedJsonMessage.type === "CHECKOUT" || parsedJsonMessage.type === "UPDATE") {
                 wireEventBridge(true);
                 tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
                 tablet.sendToQml({
@@ -559,6 +559,10 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 break;
             case 'purchases_goToMarketplaceClicked':
                 tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
+                break;
+            case 'updateItemClicked':
+                tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId + "?edition=" + message.itemEdition + "&upgradeUrl=" + message.upgradeUrl,
+                    MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'passphrasePopup_cancelClicked':
             case 'needsLogIn_cancelClicked':

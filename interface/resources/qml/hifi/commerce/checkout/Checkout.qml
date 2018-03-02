@@ -49,6 +49,7 @@ Rectangle {
     property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
     property string referrer;
     property bool isInstalled;
+    property bool isUpdating;
     // Style
     color: hifi.colors.white;
     Connections {
@@ -413,6 +414,7 @@ Rectangle {
                 // "HFC" balance label
                 HiFiGlyphs {
                     id: itemPriceTextLabel;
+                    visible: !root.isUpdating;
                     text: hifi.glyphs.hfc;
                     // Size
                     size: 30;
@@ -428,7 +430,7 @@ Rectangle {
                 }
                 FiraSansSemiBold {
                     id: itemPriceText;
-                    text: (root.itemPrice === -1) ? "--" : root.itemPrice;
+                    text: root.isUpdating ? "FREE\nUPGRADE" : ((root.itemPrice === -1) ? "--" : root.itemPrice);
                     // Text size
                     size: 26;
                     // Anchors
@@ -549,8 +551,8 @@ Rectangle {
                 height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                text: ((root.isCertified) ? ((ownershipStatusReceived && balanceReceived) ?
-                    (viewInMyPurchasesButton.visible ? "Buy It Again" : "Confirm Purchase") : "--") : "Get Item");
+                text: root.isUpdating ? "CONFIRM UPDATE" : (((root.isCertified) ? ((ownershipStatusReceived && balanceReceived) ?
+                    (viewInMyPurchasesButton.visible ? "Buy It Again" : "Confirm Purchase") : "--") : "Get Item"));
                 onClicked: {
                     if (root.isCertified) {
                         if (!root.shouldBuyWithControlledFailure) {
@@ -1002,6 +1004,7 @@ Rectangle {
     function fromScript(message) {
         switch (message.method) {
             case 'updateCheckoutQML':
+                root.isUpdating = message.params.isUpdating;
                 itemId = message.params.itemId;
                 itemName = message.params.itemName;
                 root.itemPrice = message.params.itemPrice;
@@ -1019,7 +1022,7 @@ Rectangle {
     function refreshBuyUI() {
         if (root.isCertified) {
             if (root.ownershipStatusReceived && root.balanceReceived) {
-                if (root.balanceAfterPurchase < 0) {
+                if (root.balanceAfterPurchase < 0 && !root.isUpdating) {
                     if (root.alreadyOwned) {
                         buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item again.</b>";
                         viewInMyPurchasesButton.visible = true;
@@ -1031,13 +1034,19 @@ Rectangle {
                     buyGlyph.text = hifi.glyphs.alert;
                     buyGlyph.size = 54;
                 } else {
-                    if (root.alreadyOwned) {
+                    if (root.alreadyOwned && !root.isUpdating) {
                         viewInMyPurchasesButton.visible = true;
                     } else {
                         buyText.text = "";
                     }
 
-                    if (root.itemType === "contentSet" && !Entities.canReplaceContent()) {
+                    if (root.isUpdating) {
+                        buyText.text = "By agreeing to update, you agree to trade in your old item for the update that replaces it.";
+                        buyTextContainer.color = "#FFC3CD";
+                        buyTextContainer.border.color = "#F3808F";
+                        buyGlyph.text = hifi.glyphs.alert;
+                        buyGlyph.size = 54;
+                    } else if (root.itemType === "contentSet" && !Entities.canReplaceContent()) {
                         buyText.text = "The domain owner must enable 'Replace Content' permissions for you in this " +
                             "<b>domain's server settings</b> before you can replace this domain's content with <b>" + root.itemName + "</b>";
                         buyTextContainer.color = "#FFC3CD";

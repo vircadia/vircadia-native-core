@@ -398,6 +398,8 @@ Rectangle {
                 displayedItemCount: model.displayedItemCount;
                 permissionExplanationCardVisible: model.permissionExplanationCardVisible;
                 isInstalled: model.isInstalled;
+                upgradeUrl: model.upgrade_url;
+                upgradeTitle: model.upgrade_title;
                 itemType: {
                     if (model.root_file_url.indexOf(".fst") > -1) {
                         "avatar";
@@ -485,6 +487,8 @@ Rectangle {
                                     filteredPurchasesModel.setProperty(i, "permissionExplanationCardVisible", true);
                                 }
                             }
+                        } else if (msg.method === "updateItemClicked") {
+                            sendToScript(msg);
                         }
                     }
                 }
