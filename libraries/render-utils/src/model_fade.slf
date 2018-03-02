@@ -1,10 +1,11 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
+//
 //  model_fade.frag
 //  fragment shader
 //
-//  Created by Olivier Prat on 04/19/17.
+//  Created by Olivier Prat on 06/05/17.
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -16,18 +17,17 @@
 <@include graphics/Material.slh@>
 
 <@include MaterialTextures.slh@>
-<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC, EMISSIVE, OCCLUSION)$>
 
 <@include Fade.slh@>
 <$declareFadeFragment()$>
 
 in vec4 _position;
-in vec4 _worldPosition;
-in vec3 _normal;
-in vec3 _color;
 in vec2 _texCoord0;
 in vec2 _texCoord1;
-
+in vec3 _normal;
+in vec3 _color;
+in vec4 _worldPosition;
 
 void main(void) {
     vec3 fadeEmissive;
@@ -37,8 +37,8 @@ void main(void) {
     applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
 
     Material mat = getMaterial();
-    int matKey = getMaterialKey(mat);
-    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, _SCRIBE_NULL, emissiveTex)$>
+    BITFIELD matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, metallicTex, emissiveTex)$>
     <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
 
     float opacity = 1.0;
@@ -54,17 +54,19 @@ void main(void) {
 
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
-    emissive += fadeEmissive;
+
+    float metallic = getMaterialMetallic(mat);
+    <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
 
     float scattering = getMaterialScattering(mat);
 
     packDeferredFragment(
-        normalize(_normal.xyz), 
+        normalize(_normal), 
         opacity,
         albedo,
         roughness,
-        getMaterialMetallic(mat),
-        emissive,
+        metallic,
+        emissive+fadeEmissive,
         occlusionTex,
         scattering);
 }
