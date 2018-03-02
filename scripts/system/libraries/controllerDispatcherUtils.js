@@ -233,6 +233,16 @@ entityIsDistanceGrabbable = function(props) {
     return true;
 };
 
+entityHasHyperlink = function(entityID) {
+    var hasHyperlink = false;
+    var desiredProperties = ["href"];
+    var entityProperties = Entities.getEntityProperties(entityID, desiredProperties);
+    print(entityProperties.href);
+    if (entityProperties.href !== "") {
+        hasHyperlink = true;
+    }
+    return hasHyperlink;
+}
 
 getControllerJointIndex = function (hand) {
     if (HMD.isHandControllerAvailable()) {
@@ -398,6 +408,7 @@ if (typeof module !== 'undefined') {
         entityIsGrabbable: entityIsGrabbable,
         NEAR_GRAB_RADIUS: NEAR_GRAB_RADIUS,
         projectOntoOverlayXYPlane: projectOntoOverlayXYPlane,
+        entityHasHyperlink: entityHasHyperlink,
         projectOntoEntityXYPlane: projectOntoEntityXYPlane,
         TRIGGER_OFF_VALUE: TRIGGER_OFF_VALUE,
         TRIGGER_ON_VALUE: TRIGGER_ON_VALUE
