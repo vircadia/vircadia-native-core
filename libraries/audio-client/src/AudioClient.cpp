@@ -1372,9 +1372,11 @@ void AudioClient::setNoiseReduction(bool enable) {
 }
 
 
-void AudioClient::setIsStereoInput(bool isStereoInput) {
-    if (isStereoInput != _isStereoInput) {
+bool AudioClient::setIsStereoInput(bool isStereoInput) {
+    bool stereoInputChanged = false;
+    if (isStereoInput != _isStereoInput && _inputDeviceInfo.supportedChannelCounts().contains(2)) {
         _isStereoInput = isStereoInput;
+        stereoInputChanged = true;
 
         if (_isStereoInput) {
             _desiredInputFormat.setChannelCount(2);
@@ -1394,6 +1396,8 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
         // restart the input device
         switchInputToAudioDevice(_inputDeviceInfo);
     }
+
+    return stereoInputChanged;
 }
 
 bool AudioClient::outputLocalInjector(const AudioInjectorPointer& injector) {
