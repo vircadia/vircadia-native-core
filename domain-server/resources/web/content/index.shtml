@@ -14,6 +14,8 @@
 
 <!--#include virtual="base-settings-scripts.html"-->
 
+<script src="js/moment-locale.min.js"></script>
+<script src="js/bootstrap-sortable.min.js"></script>
 <script src="js/content.js"></script>
 
 <!--#include virtual="page-end.html"-->

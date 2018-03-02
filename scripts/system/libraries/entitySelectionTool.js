@@ -1322,8 +1322,9 @@ SelectionDisplay = (function() {
                                        isActiveTool(handleScaleRTFCube) || isActiveTool(handleStretchXSphere) || 
                                        isActiveTool(handleStretchYSphere) || isActiveTool(handleStretchZSphere));
 
-        var showOutlineForZone = (SelectionManager.selections.length === 1 &&
-                                  SelectionManager.savedProperties[SelectionManager.selections[0]].type === "Zone");
+        var showOutlineForZone = (SelectionManager.selections.length === 1 && 
+                                    typeof SelectionManager.savedProperties[SelectionManager.selections[0]] !== "undefined" &&
+                                    SelectionManager.savedProperties[SelectionManager.selections[0]].type === "Zone");
         that.setHandleScaleEdgeVisible(showOutlineForZone || (!isActiveTool(handleRotatePitchRing) &&
                                                               !isActiveTool(handleRotateYawRing) &&
                                                               !isActiveTool(handleRotateRollRing)));

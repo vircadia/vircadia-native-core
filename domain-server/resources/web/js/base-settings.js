@@ -106,8 +106,12 @@ function reloadSettings(callback) {
   $.getJSON(Settings.endpoint, function(data){
     _.extend(data, viewHelpers);
 
-    for (var spliceIndex in Settings.extraGroups) {
-      data.descriptions.splice(spliceIndex, 0, Settings.extraGroups[spliceIndex]);
+    for (var spliceIndex in Settings.extraGroupsAtIndex) {
+      data.descriptions.splice(spliceIndex, 0, Settings.extraGroupsAtIndex[spliceIndex]);
+    }
+
+    for (var endGroupIndex in Settings.extraGroupsAtEnd) {
+      data.descriptions.push(Settings.extraGroupsAtEnd[endGroupIndex]);
     }
 
     $('#panels').html(Settings.panelsTemplate(data));
@@ -121,6 +125,8 @@ function reloadSettings(callback) {
     $('.toggle-checkbox').bootstrapSwitch();
 
     $('[data-toggle="tooltip"]').tooltip();
+
+    Settings.pendingChanges = 0;
 
     // call the callback now that settings are loaded
     callback(true);
@@ -257,7 +263,7 @@ $(document).ready(function(){
     }
   });
 
-  $('#' + Settings.FORM_ID).on('change keyup paste', '.' + Settings.TRIGGER_CHANGE_CLASS , function(e){
+  $('#' + Settings.FORM_ID).on('change input propertychange', '.' + Settings.TRIGGER_CHANGE_CLASS , function(e){
     // this input was changed, add the changed data attribute to it
     $(this).attr('data-changed', true);
 
@@ -676,11 +682,11 @@ function makeTableHiddenInputs(setting, initialValues, categoryValue) {
     } else {
       html +=
         "<td " + (col.hidden ? "style='display: none;'" : "") + " class='" + Settings.DATA_COL_CLASS + "' " +
-            "name='" + col.name + "'>" +
-          "<input type='text' style='display: none;' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "' " +
-                 "value='" + (defaultValue || "") + "' data-default='" + (defaultValue || "") + "'" +
-                 (col.readonly ? " readonly" : "") + ">" +
-        "</td>";
+          "name='" + col.name + "'>" +
+          "<input type='text' style='display: none;' class='form-control " + Settings.TRIGGER_CHANGE_CLASS +
+          "' placeholder='" + (col.placeholder ? col.placeholder : "") + "' " +
+          "value='" + (defaultValue || "") + "' data-default='" + (defaultValue || "") + "'" +
+          (col.readonly ? " readonly" : "") + ">" + "</td>";
     }
   })
 
@@ -801,6 +807,8 @@ function badgeForDifferences(changedElement) {
     }
   });
 
+  Settings.pendingChanges = totalChanges;
+
   if (totalChanges == 0) {
     totalChanges = ""
   }
@@ -830,7 +838,7 @@ function addTableRow(row) {
     var keyInput = row.children(".key").children("input");
 
     // whenever the keyInput changes, re-badge for differences
-    keyInput.on('change keyup paste', function(e){
+    keyInput.on('change input propertychange', function(e){
       // update siblings in the row to have the correct name
       var currentKey = $(this).val();
 
