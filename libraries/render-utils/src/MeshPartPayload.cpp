@@ -128,9 +128,6 @@ ShapeKey MeshPartPayload::getShapeKey() const {
     if (drawMaterialKey.isNormalMap()) {
         builder.withTangents();
     }
-    if (drawMaterialKey.isMetallicMap()) {
-        builder.withSpecular();
-    }
     if (drawMaterialKey.isLightmapMap()) {
         builder.withLightmap();
     }
@@ -387,14 +384,13 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
 
     bool isTranslucent = drawMaterialKey.isTranslucent();
     bool hasTangents = drawMaterialKey.isNormalMap() && _hasTangents;
-    bool hasSpecular = drawMaterialKey.isMetallicMap();
     bool hasLightmap = drawMaterialKey.isLightmapMap();
     bool isUnlit = drawMaterialKey.isUnlit();
 
     bool isSkinned = _isSkinned;
 
     if (isWireframe) {
-        isTranslucent = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
+        isTranslucent = hasTangents = hasLightmap = isSkinned = false;
     }
 
     ShapeKey::Builder builder;
@@ -405,9 +401,6 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     }
     if (hasTangents) {
         builder.withTangents();
-    }
-    if (hasSpecular) {
-        builder.withSpecular();
     }
     if (hasLightmap) {
         builder.withLightmap();
