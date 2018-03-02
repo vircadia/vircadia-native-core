@@ -12,11 +12,17 @@
 
 
 #define LightIrradianceConstRef LightIrradiance
-
+#ifndef PRECISIONQ
+#ifdef GL_ES
+#define PRECISIONQ highp
+#else
+#define PRECISIONQ
+#endif
+#endif
 struct LightIrradiance {
-    vec4 colorIntensity;
+    PRECISIONQ vec4 colorIntensity;
     // falloffRadius, cutoffRadius, falloffSpot, spare
-    vec4 attenuation;
+    PRECISIONQ vec4 attenuation;
 };
 
 
