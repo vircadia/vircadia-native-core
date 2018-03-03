@@ -188,36 +188,43 @@ void Test::evaluateTests(bool interactiveMode, QProgressBar* progressBar) {
         return;
     }
 
-    // Leave if test results folder could not be created
+    // Quit if test results folder could not be created
     if (!createTestResultsFolderPathIfNeeded(pathToTestResultsDirectory)) {
         return;
     }
 
     // Create two lists.  The first is the test results,  the second is the expected images
+    // The expected images are represented as a URL to enabel download from GitHub
     // Images that are in the wrong format are ignored.
 
     QStringList sortedTestResultsFilenames = createListOfAllJPEGimagesInDirectory(pathToTestResultsDirectory);
     QStringList expectedImages;
     QStringList resultImages;
+
+    const QString URLPrefix("https://raw.githubusercontent.com");
+    const QString githubUser("NissimHadar");
+    const QString testsRepo("hifi_tests");
+    const QString branch("addRecursionToAutotester");
+
     foreach(QString currentFilename, sortedTestResultsFilenames) {
         QString fullCurrentFilename = pathToTestResultsDirectory + "/" + currentFilename;
         if (isInSnapshotFilenameFormat(currentFilename)) {
             resultImages << fullCurrentFilename;
 
-            QString expectedImageDirectory = getExpectedImageDestinationDirectory(currentFilename);
+            QString expectedImagePartialSourceDirectory = getExpectedImagePartialSourceDirectory(currentFilename);
             
             // extract the digits at the end of the filename (exluding the file extension)
             QString expectedImageFilenameTail = currentFilename.left(currentFilename.length() - 4).right(NUM_DIGITS);
-
             QString expectedImageFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + EXPECTED_IMAGE_TYPE;
-            expectedImages << (expectedImageDirectory + "/" + expectedImageFilename);
+
+            QString imageURLString(URLPrefix + "/" + githubUser + "/" + testsRepo + "/" + branch + "/" + expectedImagePartialSourceDirectory + "/" + expectedImageFilename);
+            expectedImages << imageURLString;
         }
     }
 
-    ////autoTester->downloadImage(QUrl("http://ribafreixo.com/wp-content/uploads/2017/03/Order-Now-Button-300x113.png"));
-    ////autoTester->downloadImage(QUrl("https://github.com/NissimHadar/hifi_tests/blob/addRecursionToAutotester/tests/content/entity/zone/ambientLightInheritance/ExpectedImage_00000.jpg?raw=true"));
-    autoTester->downloadImage(QUrl("https://hifi-content.s3.amazonaws.com/nissim/autoTester/resources/ColourBox.jpg"));
-    ////bool success = compareImageLists(expectedImages, resultImages, pathToImageDirectory, interactiveMode, progressBar);
+    //autoTester->downloadImage(QUrl("https://raw.githubusercontent.com/NissimHadar/hifi_tests/addRecursionToAutotester/tests/content/entity/zone/ambientLightInheritance/ExpectedImage_00000.jpg"));
+
+    autoTester->downloadImages(expectedImages);
 
     ////if (success) {
     ////    messageBox.information(0, "Success", "All images are as expected");
@@ -386,7 +393,7 @@ void Test::createRecursiveScriptsRecursively() {
 }
 
 void Test::createTest() {
-    // Rename files sequentially, as ExpectedResult_1.jpeg, ExpectedResult_2.jpg and so on
+    // Rename files sequentially, as ExpectedResult_00000.jpeg, ExpectedResult_00001.jpg and so on
     // Any existing expected result images will be deleted
     QString imageSourceDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
     if (imageSourceDirectory == "") {
@@ -404,9 +411,9 @@ void Test::createTest() {
                 exit(-1);
             }
         } else if (isInSnapshotFilenameFormat(currentFilename)) {
-            const int MAX_IMAGES = 100000;
-            if (i >= MAX_IMAGES) {
-                messageBox.critical(0, "Error", "More than 100,000 images not supported");
+            const int maxImages = pow(10, NUM_DIGITS);
+            if (i >= maxImages) {
+                messageBox.critical(0, "Error", "More than " + QString::number(maxImages) + " images not supported");
                 exit(-1);
             }
             QString newFilename = "ExpectedImage_" + QString::number(i - 1).rightJustified(5, '0') + ".jpg";
@@ -491,7 +498,6 @@ bool Test::isInSnapshotFilenameFormat(QString filename) {
 // For a file named "D_GitHub_hifi-tests_tests_content_entity_zone_create_0.jpg", the test directory is
 // D:/GitHub/hifi-tests/tests/content/entity/zone/create
 // This method assumes the filename is in the correct format
-// The final part of the filename is the image number.  This is checked for sanity
 QString Test::getExpectedImageDestinationDirectory(QString filename) {
     QString filenameWithoutExtension = filename.split(".")[0];
     QStringList filenameParts = filenameWithoutExtension.split("_");
@@ -500,6 +506,28 @@ QString Test::getExpectedImageDestinationDirectory(QString filename) {
 
     for (int i = 1; i < filenameParts.length() - 1; ++i) {
         result += "/" + filenameParts[i];
+    }
+
+    return result;
+}
+
+// For a file named "D_GitHub_hifi-tests_tests_content_entity_zone_create_0.jpg", the source directory on GitHub
+// is ...tests/content/entity/zone/create
+// This is used to create the full URL
+// This method assumes the filename is in the correct format
+QString Test::getExpectedImagePartialSourceDirectory(QString filename) {
+    QString filenameWithoutExtension = filename.split(".")[0];
+    QStringList filenameParts = filenameWithoutExtension.split("_");
+
+    int i { 0 };
+    while (filenameParts[i] != "tests") {
+        ++i;
+    }
+
+    QString result = filenameParts[i];
+
+    for (int j = i + 1; j < filenameParts.length() - 1; ++j) {
+        result += "/" + filenameParts[j];
     }
 
     return result;

@@ -47,6 +47,7 @@ public:
     bool isAValidDirectory(QString pathname);
 
     QString getExpectedImageDestinationDirectory(QString filename);
+    QString getExpectedImagePartialSourceDirectory(QString filename);
 
 private:
     const QString TEST_FILENAME { "test.js" };

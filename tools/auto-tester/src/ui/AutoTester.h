@@ -11,6 +11,7 @@
 #define hifi_AutoTester_h
 
 #include <QtWidgets/QMainWindow>
+#include <QSignalMapper>
 #include "ui_AutoTester.h"
 
 #include "../Downloader.h"
@@ -22,6 +23,7 @@ class AutoTester : public QMainWindow {
 public:
     AutoTester(QWidget *parent = Q_NULLPTR);
     void downloadImage(QUrl url);
+    void downloadImages(QStringList listOfURLs);
 
 private slots:
     void on_evaluateTestsButton_clicked();
@@ -32,13 +34,19 @@ private slots:
     void on_deleteOldSnapshotsButton_clicked();
     void on_closeButton_clicked();
 
-    void saveImage();
+    void saveImage(int index);
 
 private:
     Ui::AutoTesterClass ui;
 
     Test* test;
-    Downloader* downloader;
+    std::vector<Downloader*> downloaders;
+
+    QSignalMapper* signalMapper;
+
+    int _numberOfImagesToDownload;
+    int _numberOfImagesDownloaded;
+    int _index;
 };
 
 #endif // hifi_AutoTester_h

@@ -16,6 +16,8 @@ AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
     ui.progressBar->setVisible(false);
 
     test = new Test();
+
+    signalMapper = new QSignalMapper();
 }
 
 void AutoTester::on_evaluateTestsButton_clicked() {
@@ -50,15 +52,35 @@ void AutoTester::on_closeButton_clicked() {
 }
 
 void AutoTester::downloadImage(QUrl url) {
-    downloader = new Downloader(url, this);
+    downloaders.emplace_back(new Downloader(url, this));
+    connect(downloaders[_index], SIGNAL (downloaded()), signalMapper, SLOT (map()));
 
-    connect(downloader, SIGNAL (downloaded()), this, SLOT (saveImage()));
+    signalMapper->setMapping(downloaders[_index], _index);
+
+    ++_index;
 }
 
-void AutoTester::saveImage() {
+void AutoTester::downloadImages(QStringList listOfURLs) {
+    _numberOfImagesToDownload = listOfURLs.size();
+    _numberOfImagesDownloaded = 0;
+    _index = 0;
+
+    for (int i = 0; i < _numberOfImagesToDownload; ++i) {
+        QUrl imageURL(listOfURLs[i]);
+        downloadImage(imageURL);
+    }
+
+    connect(signalMapper, SIGNAL (mapped(int)), this, SLOT (saveImage(int)));
+}
+
+void AutoTester::saveImage(int index) {
     QPixmap image;
-    image.loadFromData(downloader->downloadedData());
-    int er = image.width();
-    int df = image.height();
-    image.save("D:/Dicom/lll.jpg");
+    image.loadFromData(downloaders[index]->downloadedData());
+
+    int w = image.width();
+    int h = image.height();
+
+    ++_numberOfImagesDownloaded;
+
+    image.save("D:/Dicom/lll_" + QString::number(index) + ".jpg");
 }
