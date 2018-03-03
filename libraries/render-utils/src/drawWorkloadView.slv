@@ -48,23 +48,37 @@ WorkloadView getWorkloadView(int i) {
 
 
 out vec4 varColor;
-out vec2 varTexcoord;
+out vec3 varTexcoord;
+
+const int NUM_VERTICES_PER_VIEW = 27;
+const int NUM_REGIONS_PER_VIEW = 3;
+const int NUM_VERTICES_PER_VIEW_REGION = NUM_VERTICES_PER_VIEW / NUM_REGIONS_PER_VIEW;
 
 void main(void) {
-    const vec4 UNIT_SPRITE[3] = vec4[3](
+    const vec4 UNIT_SPRITE[NUM_VERTICES_PER_VIEW_REGION] = vec4[NUM_VERTICES_PER_VIEW_REGION](
         vec4(-1.0, -1.0, 0.0, 1.0),
         vec4(3.0, -1.0, 0.0, 1.0),
-        vec4(-1.0, 3.0, 0.0, 1.0)
+        vec4(-1.0, 3.0, 0.0, 1.0),
+
+        vec4(-1.0, 0.0, -1.0, 1.0),
+        vec4(3.0, 0.0, -1.0, 1.0),
+        vec4(-1.0, 0.0, 3.0, 1.0),
+
+        vec4(0.0, -1.0, -1.0, 1.0),
+        vec4(0.0, 3.0, -1.0, 1.0),
+        vec4(0.0, -1.0, 3.0, 1.0)
     );
-     const int UNIT_SPRITE_INDICES[3] = int[3](
-        0, 1, 2
+     const int UNIT_SPRITE_INDICES[NUM_VERTICES_PER_VIEW_REGION] = int[NUM_VERTICES_PER_VIEW_REGION](
+        0, 1, 2, 3, 4, 5, 6, 7, 8
     );
 
-    int viewID = gl_VertexID / 9;
-    int reminder = gl_VertexID - viewID * 9;
-    int regionID = reminder / 3;
-    reminder = reminder - regionID * 3;
-    int vertexID = reminder;
+    int viewID = gl_VertexID / NUM_VERTICES_PER_VIEW;
+    int viewVertexID = gl_VertexID - viewID * NUM_VERTICES_PER_VIEW;
+
+    int regionID = viewVertexID / NUM_VERTICES_PER_VIEW_REGION;
+    int regionVertexID = viewVertexID - regionID * NUM_VERTICES_PER_VIEW_REGION;
+
+    int vertexID = regionVertexID;
 
     vec4 spriteVert = UNIT_SPRITE[UNIT_SPRITE_INDICES[vertexID]];
 
@@ -78,15 +92,23 @@ void main(void) {
     <$transformModelToEyePos(cam, obj, proxyPosWorld, proxyPosEye)$>
 
     // Define the billboarded space
-    vec3 dirZ = -normalize(proxyPosEye.xyz);
-    vec3 dirX = normalize(cross(vec3(0.0, 1.0, 0.0), dirZ));
+    vec3 dirZ = vec3(0.0, 0.0, 1.0);
+    vec3 dirX = vec3(1.0, 0.0, 0.0);
     vec3 dirY = vec3(0.0, 1.0, 0.0);
-   // vec3 dirY = normalize(cross(dirZ, vec3(1.0, 0.0, 0.0)));
 
+    /*normalize(cross(vec3(0.0, 1.0, 0.0), dirZ));
+    if (dot(proxyPosEye.xyz, proxyPosEye.xyz) > 0.01) {
+        dirZ = -normalize(proxyPosEye.xyz);
+    }
+    vec3 dirX = normalize(cross(vec3(0.0, 1.0, 0.0), dirZ));
+    vec3 dirY = normalize(cross(dirZ, dirX));
+    */
    float regionRadius = view.radiuses[regionID];
 
-    vec4 pos = vec4(proxyPosEye.xyz + regionRadius * ( dirX * spriteVert.x + dirY * spriteVert.y /* + dirZ * spriteVert.z*/), 1.0);
-    varTexcoord = spriteVert.xy;
+    vec3 originSpaceVert =  dirY * (-0.02) + regionRadius * ( dirX * spriteVert.x + dirY * spriteVert.y + dirZ * spriteVert.z);
+
+    vec4 pos = vec4(proxyPosEye.xyz + originSpaceVert, 1.0);
+    varTexcoord = spriteVert.xyz;
     <$transformEyeToClipPos(cam, pos, gl_Position)$>
 
     // Convert region to color

@@ -14,10 +14,12 @@
 
 class GameSpaceToRenderConfig : public workload::Job::Config {
     Q_OBJECT
+    Q_PROPERTY(bool freezeViews MEMBER freezeViews NOTIFY dirty)
     Q_PROPERTY(bool showProxies MEMBER showProxies NOTIFY dirty)
     Q_PROPERTY(bool showViews MEMBER showViews NOTIFY dirty)
 public:
 
+    bool freezeViews{ false };
     bool showProxies{ false };
     bool showViews{ false };
 signals:
@@ -39,6 +41,7 @@ public:
 
 protected:
     render::ItemID _spaceRenderItemID{ render::Item::INVALID_ITEM_ID };
+    bool _freezeViews{ false };
     bool _showAllProxies{ false };
     bool _showAllViews{ false };
 };

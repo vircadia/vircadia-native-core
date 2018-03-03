@@ -14,10 +14,10 @@
 <@include gpu/Paint.slh@>
 
 in vec4 varColor;
-in vec2 varTexcoord;
+in vec3 varTexcoord;
 
 void main(void) {
-    float r = sqrt(dot(varTexcoord.xy,varTexcoord.xy));
+    float r = sqrt(dot(varTexcoord.xyz,varTexcoord.xyz));
     float a = paintStripe(r * varColor.w, 0.0, 1.0 / varColor.w, 0.05 / varColor.w);
     if (a <= 0.1 || r > 1.1) {
         discard;

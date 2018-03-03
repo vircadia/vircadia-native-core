@@ -33,6 +33,12 @@ Rectangle {
         HifiControls.Label {
             text: "Workload"       
         }
+        HifiControls.CheckBox {
+            boxSize: 20
+            text: "Freeze Views"
+            checked: workload.spaceToRender["freezeViews"]
+            onCheckedChanged: { workload.spaceToRender["freezeViews"] = checked }
+        }
         Separator {}
         HifiControls.Label {
             text: "Display"       

@@ -21,6 +21,7 @@
 
 
 void GameSpaceToRender::configure(const Config& config) {
+    _freezeViews = config.freezeViews;
     _showAllProxies = config.showProxies;
     _showAllViews = config.showViews;
 }
@@ -38,6 +39,7 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
     auto visible = _showAllProxies || _showAllViews;
     auto showProxies = _showAllProxies;
     auto showViews = _showAllViews;
+    auto freezeViews = _freezeViews;
 
     render::Transaction transaction;
     auto scene = gameWorkloadContext->_scene;
@@ -57,7 +59,9 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
     space->copyProxyValues(proxies.data(), (uint32_t)proxies.size());
 
     std::vector<workload::Space::View> views(space->getNumViews());
-    space->copyViews(views);
+    if (!freezeViews) {
+        space->copyViews(views);
+    }
 
     // Valid space, let's display its content
     if (!render::Item::isValidID(_spaceRenderItemID)) {
@@ -68,12 +72,14 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
         transaction.resetItem(_spaceRenderItemID, std::make_shared<GameWorkloadRenderItem::Payload>(renderItem));
     }
     
-    transaction.updateItem<GameWorkloadRenderItem>(_spaceRenderItemID, [visible, showProxies, proxies, showViews, views](GameWorkloadRenderItem& item) {
+    transaction.updateItem<GameWorkloadRenderItem>(_spaceRenderItemID, [visible, showProxies, proxies, freezeViews, showViews, views](GameWorkloadRenderItem& item) {
         item.setVisible(visible);
         item.showProxies(showProxies);
         item.setAllProxies(proxies);
         item.showViews(showViews);
-        item.setAllViews(views);
+        if (!freezeViews) {
+            item.setAllViews(views);
+        }
     });
     
     scene->enqueueTransaction(transaction);
@@ -198,13 +204,6 @@ const gpu::PipelinePointer GameWorkloadRenderItem::getViewsPipeline() {
 void GameWorkloadRenderItem::render(RenderArgs* args) {
     gpu::Batch& batch = *(args->_batch);
 
-    // Setup projection
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->getViewFrustum().evalProjectionMatrix(projMat);
-    args->getViewFrustum().evalViewTransform(viewMat);
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat);
     batch.setModelTransform(Transform());
 
     batch.setResourceBuffer(0, _allProxiesBuffer);
@@ -214,16 +213,16 @@ void GameWorkloadRenderItem::render(RenderArgs* args) {
     if (_showProxies) {
         batch.setPipeline(getProxiesPipeline());
 
-        static const int NUM_VERTICES_PER_QUAD = 3;
-        batch.draw(gpu::TRIANGLES, NUM_VERTICES_PER_QUAD * _numAllProxies, 0);
+        static const int NUM_VERTICES_PER_PROXY = 3;
+        batch.draw(gpu::TRIANGLES, NUM_VERTICES_PER_PROXY * _numAllProxies, 0);
     }
 
     // Show Views
     if (_showViews) {
         batch.setPipeline(getViewsPipeline());
 
-        static const int NUM_VERTICES_PER_QUAD = 3;
-        batch.draw(gpu::TRIANGLES, NUM_VERTICES_PER_QUAD * 3 * _numAllViews, 0);
+        static const int NUM_VERTICES_PER_VIEW = 27;
+        batch.draw(gpu::TRIANGLES, NUM_VERTICES_PER_VIEW * _numAllViews, 0);
     }
 
     batch.setResourceBuffer(0, nullptr);
