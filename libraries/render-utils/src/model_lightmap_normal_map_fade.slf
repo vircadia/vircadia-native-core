@@ -17,7 +17,7 @@
 <@include graphics/Material.slh@>
 
 <@include MaterialTextures.slh@>
-<$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL)$>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL, METALLIC)$>
 <$declareMaterialLightmap()$>
 
 <@include Fade.slh@>
@@ -39,10 +39,10 @@ void main(void) {
     applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
 
     Material mat = getMaterial();
-    int matKey = getMaterialKey(mat);
-    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedo, roughness, normalTexel)$>
+    BITFIELD matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedo, roughness, normalTexel, metallicTex)$>
     <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmapVal)$>
-
+    
     vec3 viewNormal;
     <$tangentToViewSpaceLOD(_position, normalTexel, _normal, _tangent, viewNormal)$>
 
@@ -50,8 +50,8 @@ void main(void) {
         normalize(viewNormal.xyz), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
         getMaterialAlbedo(mat) * albedo.rgb * _color,
-        getMaterialRoughness(mat),
-        getMaterialMetallic(mat),
-        getMaterialFresnel(mat),
+        getMaterialRoughness(mat) * roughness,
+        getMaterialMetallic(mat) * metallicTex,
+        /*specular, // no use of */ getMaterialFresnel(mat),
         lightmapVal+fadeEmissive);
 }

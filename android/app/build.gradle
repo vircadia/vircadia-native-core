@@ -23,8 +23,8 @@ android {
                     '-DRELEASE_NUMBER=' + RELEASE_NUMBER,
                     '-DRELEASE_TYPE=' + RELEASE_TYPE,
                     '-DBUILD_BRANCH=' + BUILD_BRANCH,
-                    '-DDISABLE_QML=ON',
-                    '-DDISABLE_KTX_CACHE=ON'
+                    '-DDISABLE_QML=OFF',
+                    '-DDISABLE_KTX_CACHE=OFF'
             }
         }
     }

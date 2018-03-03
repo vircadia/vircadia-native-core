@@ -104,11 +104,17 @@ QUrl AddressManager::currentFacingShareableAddress() const {
 }
 
 void AddressManager::loadSettings(const QString& lookupString) {
+#if defined(USE_GLES) && defined(Q_OS_WIN)
+    handleUrl(QUrl("hifi://127.0.0.0"), LookupTrigger::StartupFromSettings);
+#elif defined(Q_OS_ANDROID)
+    handleUrl(QUrl("hifi://pikachu/167.11,0.745735,181.529/0,0.887027,0,-0.461717"), LookupTrigger::StartupFromSettings);
+#else
     if (lookupString.isEmpty()) {
         handleUrl(currentAddressHandle.get(), LookupTrigger::StartupFromSettings);
     } else {
         handleUrl(lookupString, LookupTrigger::StartupFromSettings);
     }
+#endif
 }
 
 void AddressManager::goBack() {

@@ -236,8 +236,6 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("Web3DOverlay", this);
         _webSurface->getSurfaceContext()->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
 
-        _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
-
         // Override min fps for tablet UI, for silky smooth scrolling
         setMaxFPS(90);
     }
