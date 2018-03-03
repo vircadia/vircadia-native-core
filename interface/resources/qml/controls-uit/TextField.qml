@@ -34,8 +34,8 @@ TextField {
 
     placeholderText: textField.placeholderText
 
-    FontLoader { id: firaSansRegular; source: "../../fonts/FiraSans-Regular.ttf"; }
-    FontLoader { id: hifiGlyphs; source: "../../fonts/hifi-glyphs.ttf"; }
+    FontLoader { id: firaSansRegular; source: "qrc:/fonts/FiraSans-Regular.ttf"; }
+    FontLoader { id: hifiGlyphs; source: "qrc:/fonts/hifi-glyphs.ttf"; }
     font.family: firaSansRegular.name
     font.pixelSize: hifi.fontSizes.textFieldInput
     height: implicitHeight + 3  // Make surrounding box higher so that highlight is vertically centered.
