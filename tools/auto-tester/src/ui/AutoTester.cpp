@@ -51,7 +51,7 @@ void AutoTester::on_closeButton_clicked() {
     exit(0);
 }
 
-void AutoTester::downloadImage(QUrl url) {
+void AutoTester::downloadImage(const QUrl& url) {
     downloaders.emplace_back(new Downloader(url, this));
     connect(downloaders[_index], SIGNAL (downloaded()), signalMapper, SLOT (map()));
 
@@ -60,13 +60,16 @@ void AutoTester::downloadImage(QUrl url) {
     ++_index;
 }
 
-void AutoTester::downloadImages(QStringList listOfURLs) {
-    _numberOfImagesToDownload = listOfURLs.size();
+void AutoTester::downloadImages(const QStringList& URLs, const QString& directoryName, const QStringList& filenames) {
+    _directoryName = directoryName;
+    _filenames = filenames;
+
+    _numberOfImagesToDownload = URLs.size();
     _numberOfImagesDownloaded = 0;
     _index = 0;
 
     for (int i = 0; i < _numberOfImagesToDownload; ++i) {
-        QUrl imageURL(listOfURLs[i]);
+        QUrl imageURL(URLs[i]);
         downloadImage(imageURL);
     }
 
@@ -77,10 +80,8 @@ void AutoTester::saveImage(int index) {
     QPixmap image;
     image.loadFromData(downloaders[index]->downloadedData());
 
-    int w = image.width();
-    int h = image.height();
+
+    image.save(_directoryName + "/" + _filenames[index]);
 
     ++_numberOfImagesDownloaded;
-
-    image.save("D:/Dicom/lll_" + QString::number(index) + ".jpg");
 }

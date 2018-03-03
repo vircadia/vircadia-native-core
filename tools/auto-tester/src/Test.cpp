@@ -198,7 +198,8 @@ void Test::evaluateTests(bool interactiveMode, QProgressBar* progressBar) {
     // Images that are in the wrong format are ignored.
 
     QStringList sortedTestResultsFilenames = createListOfAllJPEGimagesInDirectory(pathToTestResultsDirectory);
-    QStringList expectedImages;
+    QStringList expectedImagesURLs;
+    QStringList expectedImagesFilenames;
     QStringList resultImages;
 
     const QString URLPrefix("https://raw.githubusercontent.com");
@@ -217,14 +218,16 @@ void Test::evaluateTests(bool interactiveMode, QProgressBar* progressBar) {
             QString expectedImageFilenameTail = currentFilename.left(currentFilename.length() - 4).right(NUM_DIGITS);
             QString expectedImageFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + EXPECTED_IMAGE_TYPE;
 
+            expectedImagesFilenames << expectedImageFilename;
+
             QString imageURLString(URLPrefix + "/" + githubUser + "/" + testsRepo + "/" + branch + "/" + expectedImagePartialSourceDirectory + "/" + expectedImageFilename);
-            expectedImages << imageURLString;
+            expectedImagesURLs << imageURLString;
         }
     }
 
-    //autoTester->downloadImage(QUrl("https://raw.githubusercontent.com/NissimHadar/hifi_tests/addRecursionToAutotester/tests/content/entity/zone/ambientLightInheritance/ExpectedImage_00000.jpg"));
+    autoTester->downloadImages(expectedImagesURLs, pathToTestResultsDirectory, expectedImagesFilenames);
 
-    autoTester->downloadImages(expectedImages);
+    // Wait for do
 
     ////if (success) {
     ////    messageBox.information(0, "Success", "All images are as expected");

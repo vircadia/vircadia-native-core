@@ -22,8 +22,8 @@ class AutoTester : public QMainWindow {
 
 public:
     AutoTester(QWidget *parent = Q_NULLPTR);
-    void downloadImage(QUrl url);
-    void downloadImages(QStringList listOfURLs);
+    void downloadImage(const QUrl& url);
+    void downloadImages(const QStringList& URLs, const QString& directoryName, const QStringList& filenames);
 
 private slots:
     void on_evaluateTestsButton_clicked();
@@ -38,10 +38,15 @@ private slots:
 
 private:
     Ui::AutoTesterClass ui;
-
     Test* test;
+
     std::vector<Downloader*> downloaders;
 
+    // local storage for parameters - folder to store downloaded files in, and a list of their names
+    QString _directoryName;
+    QStringList _filenames;
+
+    // Used to enable passing a parameter to slots
     QSignalMapper* signalMapper;
 
     int _numberOfImagesToDownload;
