@@ -43,6 +43,7 @@
 
 #include "NetworkLogging.h"
 #include "ModelNetworkingLogging.h"
+#include "NetworkingConstants.h"
 #include <Trace.h>
 #include <StatTracker.h>
 

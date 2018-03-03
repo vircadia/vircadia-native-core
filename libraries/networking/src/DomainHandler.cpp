@@ -165,7 +165,7 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
 
         _domainURL = domainURL;
 
-        if (domainURL.scheme() != HIFI_URL_SCHEME) {
+        if (domainURL.scheme() != URL_SCHEME_HIFI) {
             setIsConnected(true);
         } else if (hostname != _domainURL.host()) {
             qCDebug(networking) << "Updated domain hostname to" << hostname;
@@ -233,7 +233,7 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
 void DomainHandler::activateICELocalSocket() {
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetDomainSocket);
     _sockAddr = _icePeer.getLocalSocket();
-    _domainURL.setScheme(HIFI_URL_SCHEME);
+    _domainURL.setScheme(URL_SCHEME_HIFI);
     _domainURL.setHost(_sockAddr.getAddress().toString());
     emit completedSocketDiscovery();
 }
@@ -241,7 +241,7 @@ void DomainHandler::activateICELocalSocket() {
 void DomainHandler::activateICEPublicSocket() {
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetDomainSocket);
     _sockAddr = _icePeer.getPublicSocket();
-    _domainURL.setScheme(HIFI_URL_SCHEME);
+    _domainURL.setScheme(URL_SCHEME_HIFI);
     _domainURL.setHost(_sockAddr.getAddress().toString());
     emit completedSocketDiscovery();
 }
@@ -282,7 +282,7 @@ void DomainHandler::setIsConnected(bool isConnected) {
         if (_isConnected) {
             emit connectedToDomain(_domainURL);
 
-            if (_domainURL.scheme() == HIFI_URL_SCHEME && !_domainURL.host().isEmpty()) {
+            if (_domainURL.scheme() == URL_SCHEME_HIFI && !_domainURL.host().isEmpty()) {
                 // we've connected to new domain - time to ask it for global settings
                 requestDomainSettings();
             }

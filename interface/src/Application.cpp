@@ -513,12 +513,12 @@ bool isDomainURL(QUrl url) {
     if (!url.isValid()) {
         return false;
     }
-    if (url.scheme() == HIFI_URL_SCHEME) {
+    if (url.scheme() == URL_SCHEME_HIFI) {
         return true;
     }
-    if (url.scheme() != "file" &&
-        url.scheme() != "http" &&
-        url.scheme() != "https") {
+    if (url.scheme() != URL_SCHEME_FILE &&
+        url.scheme() != URL_SCHEME_HTTP &&
+        url.scheme() != URL_SCHEME_HTTPS) {
         return false;
     }
     if (url.path().endsWith(".json", Qt::CaseInsensitive) ||
@@ -3109,16 +3109,15 @@ bool Application::importFromZIP(const QString& filePath) {
 }
 
 bool Application::isServerlessMode() const {
-    auto& tree = getEntities()->getTree();
+    auto tree = getEntities()->getTree();
     if (tree) {
         return tree->isServerlessMode();
-    } else {
-        return false;
     }
+    return false;
 }
 
 void Application::setServerlessDomain(bool serverlessDomain) {
-    auto& tree = getEntities()->getTree();
+    auto tree = getEntities()->getTree();
     if (tree) {
         tree->setIsServerlessMode(serverlessDomain);
     }
@@ -5885,7 +5884,7 @@ void Application::domainURLChanged(QUrl domainURL) {
     updateWindowTitle();
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
-    if (domainURL.scheme() != HIFI_URL_SCHEME) {
+    if (domainURL.scheme() != URL_SCHEME_HIFI) {
         loadServerlessDomain(domainURL);
     }
 }
@@ -6257,7 +6256,7 @@ bool Application::canAcceptURL(const QString& urlString) const {
     QUrl url(urlString);
     if (url.query().contains(WEB_VIEW_TAG)) {
         return false;
-    } else if (urlString.startsWith(HIFI_URL_SCHEME)) {
+    } else if (urlString.startsWith(URL_SCHEME_HIFI)) {
         return true;
     }
     QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);

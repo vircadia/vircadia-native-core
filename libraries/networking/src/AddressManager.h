@@ -154,7 +154,7 @@ public:
     };
 
     bool isConnected();
-    const QString& getProtocol() { return HIFI_URL_SCHEME; };
+    const QString& getProtocol() { return URL_SCHEME_HIFI; };
 
     QUrl currentAddress(bool domainOnly = false) const;
     QUrl currentFacingAddress() const;

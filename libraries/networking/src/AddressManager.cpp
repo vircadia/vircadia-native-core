@@ -52,7 +52,7 @@ bool AddressManager::isConnected() {
 QUrl AddressManager::currentAddress(bool domainOnly) const {
     QUrl hifiURL = _domainURL;
 
-    if (!domainOnly && hifiURL.scheme() == HIFI_URL_SCHEME) {
+    if (!domainOnly && hifiURL.scheme() == URL_SCHEME_HIFI) {
         hifiURL.setPath(currentPath());
     }
 
@@ -61,7 +61,7 @@ QUrl AddressManager::currentAddress(bool domainOnly) const {
 
 QUrl AddressManager::currentFacingAddress() const {
     auto hifiURL = currentAddress();
-    if (hifiURL.scheme() == HIFI_URL_SCHEME) {
+    if (hifiURL.scheme() == URL_SCHEME_HIFI) {
         hifiURL.setPath(currentFacingPath());
     }
 
@@ -73,7 +73,7 @@ QUrl AddressManager::currentShareableAddress(bool domainOnly) const {
         // if we have a shareable place name use that instead of whatever the current host is
         QUrl hifiURL;
 
-        hifiURL.setScheme(HIFI_URL_SCHEME);
+        hifiURL.setScheme(URL_SCHEME_HIFI);
         hifiURL.setHost(_shareablePlaceName);
 
         if (!domainOnly) {
@@ -88,7 +88,7 @@ QUrl AddressManager::currentShareableAddress(bool domainOnly) const {
 
 QUrl AddressManager::currentFacingShareableAddress() const {
     auto hifiURL = currentShareableAddress();
-    if (hifiURL.scheme() == HIFI_URL_SCHEME) {
+    if (hifiURL.scheme() == URL_SCHEME_HIFI) {
         hifiURL.setPath(currentFacingPath());
     }
 
@@ -136,7 +136,10 @@ void AddressManager::goForward() {
 void AddressManager::storeCurrentAddress() {
     auto url = currentAddress();
 
-    if (url.scheme() == "file" || url.scheme() == "http" || url.scheme() == "https" || !url.host().isEmpty()) {
+    if (url.scheme() == URL_SCHEME_FILE ||
+        url.scheme() == URL_SCHEME_HTTP ||
+        url.scheme() == URL_SCHEME_HTTPS ||
+        !url.host().isEmpty()) {
         currentAddressHandle.set(url);
     } else {
         qCWarning(networking) << "Ignoring attempt to save current address with an empty host" << url;
@@ -205,7 +208,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
     static QString URL_TYPE_DOMAIN_ID = "domain_id";
     static QString URL_TYPE_PLACE = "place";
     static QString URL_TYPE_NETWORK_ADDRESS = "network_address";
-    if (lookupUrl.scheme() == HIFI_URL_SCHEME) {
+    if (lookupUrl.scheme() == URL_SCHEME_HIFI) {
 
         qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
 
@@ -287,7 +290,9 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         emit lookupResultsFinished();
 
         return true;
-    } else if (lookupUrl.scheme() == "http" || lookupUrl.scheme() == "https" || lookupUrl.scheme() == "file") {
+    } else if (lookupUrl.scheme() == URL_SCHEME_HTTP ||
+               lookupUrl.scheme() == URL_SCHEME_HTTPS ||
+               lookupUrl.scheme() == URL_SCHEME_FILE) {
         _previousLookup.clear();
         QUrl domainUrl = PathUtils::expandToLocalDataAbsolutePath(lookupUrl);
         emit setServerlessDomain(true);
@@ -321,7 +326,7 @@ void AddressManager::handleLookupString(const QString& lookupString, bool fromSu
 
         if (!lookupString.startsWith('/')) {
             // sometimes we need to handle lookupStrings like hifi:/somewhere
-            const QRegExp HIFI_SCHEME_REGEX = QRegExp(HIFI_URL_SCHEME + ":\\/{1,2}", Qt::CaseInsensitive);
+            const QRegExp HIFI_SCHEME_REGEX = QRegExp(URL_SCHEME_HIFI + ":\\/{1,2}", Qt::CaseInsensitive);
             sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
 
             lookupURL = QUrl(sanitizedString);
@@ -408,7 +413,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                     qCDebug(networking) << "Possible domain change required to connect to" << domainHostname
                         << "on" << domainPort;
                     QUrl domainURL;
-                    domainURL.setScheme(HIFI_URL_SCHEME);
+                    domainURL.setScheme(URL_SCHEME_HIFI);
                     domainURL.setHost(domainHostname);
                     domainURL.setPort(domainPort);
                     emit possibleDomainChangeRequired(domainURL, domainID);
@@ -579,7 +584,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
 
         emit lookupResultsFinished();
         QUrl domainURL;
-        domainURL.setScheme(HIFI_URL_SCHEME);
+        domainURL.setScheme(URL_SCHEME_HIFI);
         domainURL.setHost(domainIPString);
         domainURL.setPort(domainPort);
         hostChanged = setDomainInfo(domainURL, trigger);
@@ -600,7 +605,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
 
         emit lookupResultsFinished();
         QUrl domainURL;
-        domainURL.setScheme(HIFI_URL_SCHEME);
+        domainURL.setScheme(URL_SCHEME_HIFI);
         domainURL.setHost(domainHostname);
         domainURL.setPort(domainPort);
         hostChanged = setDomainInfo(domainURL, trigger);
@@ -732,7 +737,7 @@ bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16
 
         bool emitHostChanged = host != _domainURL.host();
         _domainURL = QUrl();
-        _domainURL.setScheme(HIFI_URL_SCHEME);
+        _domainURL.setScheme(URL_SCHEME_HIFI);
         _domainURL.setHost(host);
         _domainURL.setPort(port);
 
@@ -772,7 +777,7 @@ bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger)
     // clear any current place information
     _rootPlaceID = QUuid();
 
-    if (_domainURL.scheme() == HIFI_URL_SCHEME) {
+    if (_domainURL.scheme() == URL_SCHEME_HIFI) {
         qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;
     } else {
         qCDebug(networking) << "Possible domain change required to serverless domain: " << domainURL.toString();

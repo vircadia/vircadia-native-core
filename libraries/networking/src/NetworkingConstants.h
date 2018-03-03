@@ -30,6 +30,12 @@ namespace NetworkingConstants {
     QUrl METAVERSE_SERVER_URL();
 }
 
-const QString HIFI_URL_SCHEME = "hifi";
+const QString URL_SCHEME_HIFI = "hifi";
+const QString URL_SCHEME_QRC = "qrc";
+const QString URL_SCHEME_FILE = "file";
+const QString URL_SCHEME_HTTP = "http";
+const QString URL_SCHEME_HTTPS = "https";
+const QString URL_SCHEME_FTP = "ftp";
+const QString URL_SCHEME_ATP = "atp";
 
 #endif // hifi_NetworkingConstants_h

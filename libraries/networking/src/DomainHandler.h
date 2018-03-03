@@ -74,7 +74,7 @@ public:
 
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
-    bool isServerless() const { return _domainURL.scheme() != HIFI_URL_SCHEME; }
+    bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_HIFI; }
 
     bool hasSettings() const { return !_settingsObject.isEmpty(); }
     void requestDomainSettings();
