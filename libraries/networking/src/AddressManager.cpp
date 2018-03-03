@@ -299,7 +299,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         setDomainInfo(domainUrl, trigger);
         DependencyManager::get<NodeList>()->getDomainHandler().setIsConnected(true);
         emit lookupResultsFinished();
-        handlePath(DOMAIN_SPAWNING_POINT(), trigger, false);
+        handlePath(DOMAIN_SPAWNING_POINT(), LookupTrigger::Internal, false);
         return true;
     }
 
@@ -677,7 +677,7 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
             addCurrentAddressToHistory(trigger);
         }
 
-        if (!isNaN(newPosition.x) && !isNaN(newPosition.y) && !isNaN(newPosition.z)) {
+        if (!isNaN(newPosition)) {
             glm::quat newOrientation;
 
             QRegExp orientationRegex(QUAT_REGEX_STRING);
@@ -697,7 +697,7 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
                     && !isNaN(newOrientation.w)) {
                     orientationChanged = true;
                 } else {
-                    qCDebug(networking) << "Orientation parsed from lookup string is invalid. Will not use for location change.";
+                    qCDebug(networking) << "Orientation parsed from lookup string is invalid. Won't use for location change.";
                 }
             }
 
