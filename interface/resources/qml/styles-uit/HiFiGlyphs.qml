@@ -12,7 +12,7 @@ import QtQuick 2.5
 
 Text {
     id: root
-    FontLoader { id: hiFiGlyphs; source: pathToFonts + "fonts/hifi-glyphs.ttf"; }
+    FontLoader { id: hiFiGlyphs; source: "qrc:/fonts/hifi-glyphs.ttf"; }
     property int size: 32
     font.pixelSize: size
     width: size

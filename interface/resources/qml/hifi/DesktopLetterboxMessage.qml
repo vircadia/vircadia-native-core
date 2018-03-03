@@ -24,8 +24,8 @@ Item {
     property real headerTextMargin: -5
     property real headerGlyphMargin: -15
     property bool isDesktop: false
-    FontLoader { id: ralewayRegular; source: "../../fonts/Raleway-Regular.ttf"; }
-    FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
+    FontLoader { id: ralewayRegular; source: "qrc:/fonts/Raleway-Regular.ttf"; }
+    FontLoader { id: ralewaySemiBold; source: "qrc:/fonts/Raleway-SemiBold.ttf"; }
     visible: false
     id: letterbox
     anchors.fill: parent

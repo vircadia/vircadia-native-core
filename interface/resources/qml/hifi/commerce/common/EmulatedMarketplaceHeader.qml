@@ -141,7 +141,7 @@ Item {
                 }
             }
 
-            FontLoader { id: ralewayRegular; source: "../../../../fonts/Raleway-Regular.ttf"; }
+            FontLoader { id: ralewayRegular; source: "qrc:/fonts/Raleway-Regular.ttf"; }
             TextMetrics {
                 id: textMetrics;
                 font.family: ralewayRegular.name

@@ -4,7 +4,7 @@ import QtQuick.Controls.Styles 1.3
 
 Text {
     id: root
-    FontLoader { id: iconFont; source: "../../fonts/fontawesome-webfont.ttf"; }
+    FontLoader { id: iconFont; source: "qrc:/fonts/fontawesome-webfont.ttf"; }
     property int size: 32
     width: size
     height: size
