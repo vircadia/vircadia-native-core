@@ -33,7 +33,7 @@ public:
 
     bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
 
-    QStringList createListOfAllJPEGimagesInDirectory(QString pathToImageDirectory);
+    QStringList createListOfAll_IMAGE_FORMAT_imagesInDirectory(QString pathToImageDirectory);
 
     bool isInSnapshotFilenameFormat(QString filename);
     bool isInExpectedImageFilenameFormat(QString filename);
@@ -71,11 +71,12 @@ private:
     // Expected images are in the format ExpectedImage_dddd.jpg (d == decimal digit)
     const int NUM_DIGITS { 5 };
     const QString EXPECTED_IMAGE_PREFIX { "ExpectedImage_" };
-    const QString EXPECTED_IMAGE_TYPE { ".jpg" };
+    const QString IMAGE_FORMAT { ".png" };
 
     QString pathToTestResultsDirectory;
     QStringList expectedImagesFilenames;
-    QStringList resultImagesFilenames;
+    QStringList expectedImagesFullFilenames;
+    QStringList resultImagesFullFilenames;
 };
 
 #endif // hifi_test_h

@@ -75,8 +75,11 @@ void AutoTester::downloadImages(const QStringList& URLs, const QString& director
 }
 
 void AutoTester::saveImage(int index) {
-    QPixmap image;
-    image.loadFromData(downloaders[index]->downloadedData());
+    QPixmap pixmap;
+    pixmap.loadFromData(downloaders[index]->downloadedData());
+
+    QImage image = pixmap.toImage();
+    image = image.convertToFormat(QImage::Format_ARGB32);
 
     image.save(_directoryName + "/" + _filenames[index], 0, 100);
 

@@ -20,7 +20,7 @@
 extern AutoTester* autoTester;
 
 Test::Test() {
-    QString regex(EXPECTED_IMAGE_PREFIX + QString("\\\\d").repeated(NUM_DIGITS) + EXPECTED_IMAGE_TYPE);
+    QString regex(EXPECTED_IMAGE_PREFIX + QString("\\\\d").repeated(NUM_DIGITS) + IMAGE_FORMAT);
     
     expectedImageFilenameFormat = QRegularExpression(regex);
 
@@ -65,7 +65,7 @@ void Test::zipAndDeleteTestResultsFolder() {
 
 bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) {
     progressBar->setMinimum(0);
-    progressBar->setMaximum(expectedImagesFilenames.length() - 1);
+    progressBar->setMaximum(expectedImagesFullFilenames.length() - 1);
     progressBar->setValue(0);
     progressBar->setVisible(true);
 
@@ -74,10 +74,11 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
     const double THRESHOLD { 0.999 };
     bool success{ true };
     bool keepOn{ true };
-    for (int i = 0; keepOn && i < expectedImagesFilenames.length(); ++i) {
+    for (int i = 0; keepOn && i < expectedImagesFullFilenames.length(); ++i) {
         // First check that images are the same size
-        QImage resultImage(resultImagesFilenames[i]);
-        QImage expectedImage(expectedImagesFilenames[i]);
+        QImage resultImage(resultImagesFullFilenames[i]);
+        QImage expectedImage(expectedImagesFullFilenames[i]);
+
         if (resultImage.width() != expectedImage.width() || resultImage.height() != expectedImage.height()) {
             messageBox.critical(0, "Internal error", "Images are not the same size");
             exit(-1);
@@ -94,9 +95,9 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
         if (similarityIndex < THRESHOLD) {
             TestFailure testFailure = TestFailure{
                 (float)similarityIndex,
-                expectedImagesFilenames[i].left(expectedImagesFilenames[i].lastIndexOf("/") + 1), // path to the test (including trailing /)
-                QFileInfo(expectedImagesFilenames[i].toStdString().c_str()).fileName(),  // filename of expected image
-                QFileInfo(resultImagesFilenames[i].toStdString().c_str()).fileName()     // filename of result image
+                expectedImagesFullFilenames[i].left(expectedImagesFullFilenames[i].lastIndexOf("/") + 1), // path to the test (including trailing /)
+                QFileInfo(expectedImagesFullFilenames[i].toStdString().c_str()).fileName(),  // filename of expected image
+                QFileInfo(resultImagesFullFilenames[i].toStdString().c_str()).fileName()     // filename of result image
             };
 
             mismatchWindow.setTestFailure(testFailure);
@@ -197,7 +198,7 @@ void Test::startTestsEvaluation() {
     // The expected images are represented as a URL to enabel download from GitHub
     // Images that are in the wrong format are ignored.
 
-    QStringList sortedTestResultsFilenames = createListOfAllJPEGimagesInDirectory(pathToTestResultsDirectory);
+    QStringList sortedTestResultsFilenames = createListOfAll_IMAGE_FORMAT_imagesInDirectory(pathToTestResultsDirectory);
     QStringList expectedImagesURLs;
 
     const QString URLPrefix("https://raw.githubusercontent.com");
@@ -205,18 +206,23 @@ void Test::startTestsEvaluation() {
     const QString testsRepo("hifi_tests");
     const QString branch("addRecursionToAutotester");
 
+    resultImagesFullFilenames.clear();
+    expectedImagesFilenames.clear();
+    expectedImagesFullFilenames.clear();
+
     foreach(QString currentFilename, sortedTestResultsFilenames) {
         QString fullCurrentFilename = pathToTestResultsDirectory + "/" + currentFilename;
         if (isInSnapshotFilenameFormat(currentFilename)) {
-            resultImagesFilenames << fullCurrentFilename;
+            resultImagesFullFilenames << fullCurrentFilename;
 
             QString expectedImagePartialSourceDirectory = getExpectedImagePartialSourceDirectory(currentFilename);
             
             // extract the digits at the end of the filename (exluding the file extension)
             QString expectedImageFilenameTail = currentFilename.left(currentFilename.length() - 4).right(NUM_DIGITS);
-            QString expectedImageFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + EXPECTED_IMAGE_TYPE;
+            QString expectedImageFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + IMAGE_FORMAT;
 
             expectedImagesFilenames << expectedImageFilename;
+            expectedImagesFullFilenames << pathToTestResultsDirectory + "/" + expectedImageFilename;
 
             QString imageURLString(URLPrefix + "/" + githubUser + "/" + testsRepo + "/" + branch + "/" + expectedImagePartialSourceDirectory + "/" + expectedImageFilename);
             expectedImagesURLs << imageURLString;
@@ -332,9 +338,10 @@ void Test::createTest() {
         return;
     }
 
-    QStringList sortedImageFilenames = createListOfAllJPEGimagesInDirectory(imageSourceDirectory);
+    QStringList sortedImageFilenames = createListOfAll_IMAGE_FORMAT_imagesInDirectory(imageSourceDirectory);
 
-    int i = 1;
+    int i = 1; 
+    const int maxImages = pow(10, NUM_DIGITS);
     foreach (QString currentFilename, sortedImageFilenames) {
         QString fullCurrentFilename = imageSourceDirectory + "/" + currentFilename;
         if (isInExpectedImageFilenameFormat(currentFilename)) {
@@ -343,12 +350,12 @@ void Test::createTest() {
                 exit(-1);
             }
         } else if (isInSnapshotFilenameFormat(currentFilename)) {
-            const int maxImages = pow(10, NUM_DIGITS);
+           
             if (i >= maxImages) {
                 messageBox.critical(0, "Error", "More than " + QString::number(maxImages) + " images not supported");
                 exit(-1);
             }
-            QString newFilename = "ExpectedImage_" + QString::number(i - 1).rightJustified(5, '0') + ".jpg";
+            QString newFilename = "ExpectedImage_" + QString::number(i - 1).rightJustified(5, '0') + IMAGE_FORMAT;
             QString imageDestinationDirectory = getExpectedImageDestinationDirectory(currentFilename);
             QString fullNewFileName = imageDestinationDirectory + "/" + newFilename;
 
@@ -383,7 +390,7 @@ void Test::deleteOldSnapshots() {
             continue;
         }
 
-        QStringList sortedImageFilenames = createListOfAllJPEGimagesInDirectory(directory);
+        QStringList sortedImageFilenames = createListOfAll_IMAGE_FORMAT_imagesInDirectory(directory);
 
         // Delete any file that is a snapshot (NOT the Expected Images)
         QStringList expectedImages;
@@ -400,10 +407,10 @@ void Test::deleteOldSnapshots() {
     }
 }
 
-QStringList Test::createListOfAllJPEGimagesInDirectory(QString pathToImageDirectory) {
+QStringList Test::createListOfAll_IMAGE_FORMAT_imagesInDirectory(QString pathToImageDirectory) {
     imageDirectory = QDir(pathToImageDirectory);
     QStringList nameFilters;
-    nameFilters << "*.jpg";
+    nameFilters << "*" + IMAGE_FORMAT;
 
     return imageDirectory.entryList(nameFilters, QDir::Files, QDir::Name);
 }
@@ -422,9 +429,9 @@ bool Test::isInSnapshotFilenameFormat(QString filename) {
     bool last5CharactersAreDigits;
     filenameParts[0].right(5).toInt(&last5CharactersAreDigits, 10);
 
-    bool extensionIsJPG = filenameParts[1] == "jpg";
+    bool extensionIsIMAGE_FORMAT = filenameParts[1] == IMAGE_FORMAT.right(3); // without the period
 
-    return (filnameHasNoPeriods && contains_tests && last5CharactersAreDigits && extensionIsJPG);
+    return (filnameHasNoPeriods && contains_tests && last5CharactersAreDigits && extensionIsIMAGE_FORMAT);
 }
 
 // For a file named "D_GitHub_hifi-tests_tests_content_entity_zone_create_0.jpg", the test directory is
