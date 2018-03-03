@@ -5882,7 +5882,6 @@ void Application::clearDomainAvatars() {
 }
 
 void Application::domainURLChanged(QUrl domainURL) {
-    clearDomainOctreeDetails();
     updateWindowTitle();
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
