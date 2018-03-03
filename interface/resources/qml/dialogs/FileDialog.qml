@@ -532,8 +532,8 @@ ModalWindow {
             itemDelegate: Item {
                 clip: true
 
-                FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
-                FontLoader { id: firaSansRegular; source: "../../fonts/FiraSans-Regular.ttf"; }
+                FontLoader { id: firaSansSemiBold; source: "qrc:/fonts/FiraSans-SemiBold.ttf"; }
+                FontLoader { id: firaSansRegular; source: "qrc:/fonts/FiraSans-Regular.ttf"; }
 
                 FiraSansSemiBold {
                     text: getText();

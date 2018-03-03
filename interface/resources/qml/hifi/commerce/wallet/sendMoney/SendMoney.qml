@@ -925,7 +925,7 @@ Item {
             anchors.rightMargin: 20;
             height: 95;
                 
-            FontLoader { id: firaSansSemiBold; source: "../../../../../fonts/FiraSans-SemiBold.ttf"; }
+            FontLoader { id: firaSansSemiBold; source: "qrc:/fonts/FiraSans-SemiBold.ttf"; }
             TextArea {
                 id: optionalMessage;
                 property int maximumLength: 72;
