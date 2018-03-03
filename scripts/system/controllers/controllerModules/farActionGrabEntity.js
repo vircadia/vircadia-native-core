@@ -7,7 +7,7 @@
 
 /* jslint bitwise: true */
 
-/* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
+/* global Script, Controller, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
    getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities,
    enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable, entityIsGrabbable,
    makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
