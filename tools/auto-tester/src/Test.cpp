@@ -63,9 +63,9 @@ void Test::zipAndDeleteTestResultsFolder() {
     index = 1;
 }
 
-bool Test::compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory, bool interactiveMode, QProgressBar* progressBar) {
+bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) {
     progressBar->setMinimum(0);
-    progressBar->setMaximum(expectedImages.length() - 1);
+    progressBar->setMaximum(expectedImagesFilenames.length() - 1);
     progressBar->setValue(0);
     progressBar->setVisible(true);
 
@@ -74,10 +74,10 @@ bool Test::compareImageLists(QStringList expectedImages, QStringList resultImage
     const double THRESHOLD { 0.999 };
     bool success{ true };
     bool keepOn{ true };
-    for (int i = 0; keepOn && i < expectedImages.length(); ++i) {
+    for (int i = 0; keepOn && i < expectedImagesFilenames.length(); ++i) {
         // First check that images are the same size
-        QImage resultImage(resultImages[i]);
-        QImage expectedImage(expectedImages[i]);
+        QImage resultImage(resultImagesFilenames[i]);
+        QImage expectedImage(expectedImagesFilenames[i]);
         if (resultImage.width() != expectedImage.width() || resultImage.height() != expectedImage.height()) {
             messageBox.critical(0, "Internal error", "Images are not the same size");
             exit(-1);
@@ -94,14 +94,14 @@ bool Test::compareImageLists(QStringList expectedImages, QStringList resultImage
         if (similarityIndex < THRESHOLD) {
             TestFailure testFailure = TestFailure{
                 (float)similarityIndex,
-                expectedImages[i].left(expectedImages[i].lastIndexOf("/") + 1), // path to the test (including trailing /)
-                QFileInfo(expectedImages[i].toStdString().c_str()).fileName(),  // filename of expected image
-                QFileInfo(resultImages[i].toStdString().c_str()).fileName()     // filename of result image
+                expectedImagesFilenames[i].left(expectedImagesFilenames[i].lastIndexOf("/") + 1), // path to the test (including trailing /)
+                QFileInfo(expectedImagesFilenames[i].toStdString().c_str()).fileName(),  // filename of expected image
+                QFileInfo(resultImagesFilenames[i].toStdString().c_str()).fileName()     // filename of result image
             };
 
             mismatchWindow.setTestFailure(testFailure);
 
-            if (!interactiveMode) {
+            if (!isInteractiveMode) {
                 appendTestResultsToFile(testResultsFolderPath, testFailure, mismatchWindow.getComparisonImage());
                 success = false;
             } else {
@@ -181,9 +181,9 @@ void Test::appendTestResultsToFile(QString testResultsFolderPath, TestFailure te
     comparisonImage.save(failureFolderPath + "/" + "Difference Image.jpg");
 }
 
-void Test::evaluateTests(bool interactiveMode, QProgressBar* progressBar) {
+void Test::startTestsEvaluation() {
     // Get list of JPEG images in folder, sorted by name
-    QString pathToTestResultsDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
+    pathToTestResultsDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
     if (pathToTestResultsDirectory == "") {
         return;
     }
@@ -199,8 +199,6 @@ void Test::evaluateTests(bool interactiveMode, QProgressBar* progressBar) {
 
     QStringList sortedTestResultsFilenames = createListOfAllJPEGimagesInDirectory(pathToTestResultsDirectory);
     QStringList expectedImagesURLs;
-    QStringList expectedImagesFilenames;
-    QStringList resultImages;
 
     const QString URLPrefix("https://raw.githubusercontent.com");
     const QString githubUser("NissimHadar");
@@ -210,7 +208,7 @@ void Test::evaluateTests(bool interactiveMode, QProgressBar* progressBar) {
     foreach(QString currentFilename, sortedTestResultsFilenames) {
         QString fullCurrentFilename = pathToTestResultsDirectory + "/" + currentFilename;
         if (isInSnapshotFilenameFormat(currentFilename)) {
-            resultImages << fullCurrentFilename;
+            resultImagesFilenames << fullCurrentFilename;
 
             QString expectedImagePartialSourceDirectory = getExpectedImagePartialSourceDirectory(currentFilename);
             
@@ -226,15 +224,10 @@ void Test::evaluateTests(bool interactiveMode, QProgressBar* progressBar) {
     }
 
     autoTester->downloadImages(expectedImagesURLs, pathToTestResultsDirectory, expectedImagesFilenames);
+}
 
-    // Wait for do
-
-    ////if (success) {
-    ////    messageBox.information(0, "Success", "All images are as expected");
-    ////} else {
-    ////    messageBox.information(0, "Failure", "One or more images are not as expected");
-    ////}
-
+void Test::finishTestsEvaluation(bool interactiveMode, QProgressBar* progressBar) {
+    bool success = compareImageLists(interactiveMode, progressBar);
     zipAndDeleteTestResultsFolder();
 }
 
@@ -251,70 +244,6 @@ bool Test::isAValidDirectory(QString pathname) {
     }
 
     return true;
-}
-
-// Two criteria are used to decide if a folder contains valid test results.
-//      1) a 'test'js' file exists in the folder
-//      2) the folder has the same number of actual and expected images
-void Test::evaluateTestsRecursively(bool interactiveMode, QProgressBar* progressBar) {
-    // Select folder to start recursing from
-    QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder that will contain the top level test script", ".", QFileDialog::ShowDirsOnly);
-    if (topLevelDirectory == "") {
-        return;
-    }
-
-    // Leave if test results folder could not be created
-    if (!createTestResultsFolderPathIfNeeded(topLevelDirectory)) {
-        return;
-    }
-
-    bool success{ true };
-    QDirIterator it(topLevelDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-        QString directory = it.next();
-
-        if (!isAValidDirectory(directory)) {
-            continue;
-        }
-
-        const QString testPathname{ directory + "/" + TEST_FILENAME };
-        QFileInfo fileInfo(testPathname);
-        if (!fileInfo.exists()) {
-            // Folder does not contain 'test.js'
-            continue;
-        }
-
-        QStringList sortedImageFilenames = createListOfAllJPEGimagesInDirectory(directory);
-
-        // Separate images into two lists.  The first is the expected images, the second is the test results
-        // Images that are in the wrong format are ignored.
-        QStringList expectedImages;
-        QStringList resultImages;
-        foreach(QString currentFilename, sortedImageFilenames) {
-            QString fullCurrentFilename = directory + "/" + currentFilename;
-            if (isInExpectedImageFilenameFormat(currentFilename)) {
-                expectedImages << fullCurrentFilename;
-            } else if (isInSnapshotFilenameFormat(currentFilename)) {
-                resultImages << fullCurrentFilename;
-            }
-        }
-
-        if (expectedImages.length() != resultImages.length()) {
-            // Number of images doesn't match
-            continue;
-        }
-
-        // Set success to false if any test has failed
-        success &= compareImageLists(expectedImages, resultImages, directory, interactiveMode, progressBar);
-    }
-
-    if (success) {
-        messageBox.information(0, "Success", "All images are as expected");
-    } else {
-        messageBox.information(0, "Failure", "One or more images are not as expected");
-    }
-
-    zipAndDeleteTestResultsFolder();
 }
 
 void Test::importTest(QTextStream& textStream, const QString& testPathname) {

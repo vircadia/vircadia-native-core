@@ -27,7 +27,6 @@ public:
 
 private slots:
     void on_evaluateTestsButton_clicked();
-    void on_evaluateTestsRecursivelyButton_clicked();
     void on_createRecursiveScriptButton_clicked();
     void on_createRecursiveScriptsRecursivelyButton_clicked();
     void on_createTestButton_clicked();

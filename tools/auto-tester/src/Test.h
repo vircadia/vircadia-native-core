@@ -23,14 +23,15 @@ class Test {
 public: 
     Test();
 
-    void evaluateTests(bool interactiveMode, QProgressBar* progressBar);
-    void evaluateTestsRecursively(bool interactiveMode, QProgressBar* progressBar);
+    void startTestsEvaluation();
+    void finishTestsEvaluation(bool interactiveMode, QProgressBar* progressBar);
+
     void createRecursiveScript();
     void createRecursiveScriptsRecursively();
     void createTest();
     void deleteOldSnapshots();
 
-    bool compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory, bool interactiveMode, QProgressBar* progressBar);
+    bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
 
     QStringList createListOfAllJPEGimagesInDirectory(QString pathToImageDirectory);
 
@@ -71,6 +72,10 @@ private:
     const int NUM_DIGITS { 5 };
     const QString EXPECTED_IMAGE_PREFIX { "ExpectedImage_" };
     const QString EXPECTED_IMAGE_TYPE { ".jpg" };
+
+    QString pathToTestResultsDirectory;
+    QStringList expectedImagesFilenames;
+    QStringList resultImagesFilenames;
 };
 
 #endif // hifi_test_h

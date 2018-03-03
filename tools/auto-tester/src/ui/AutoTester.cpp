@@ -21,14 +21,7 @@ AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
 }
 
 void AutoTester::on_evaluateTestsButton_clicked() {
-    ////QUrl imageUrl("http://ribafreixo.com/wp-content/uploads/2017/03/Order-Now-Button-300x113.png");
-    ////downloader = new Downloader(imageUrl, this);
-    ////connect(downloader, SIGNAL (downloaded()), this, SLOT (saveImage()));
-    test->evaluateTests(ui.checkBoxInteractiveMode->isChecked(), ui.progressBar);
-}
-
-void AutoTester::on_evaluateTestsRecursivelyButton_clicked() {
-    test->evaluateTestsRecursively(ui.checkBoxInteractiveMode->isChecked(), ui.progressBar);
+    test->startTestsEvaluation();
 }
 
 void AutoTester::on_createRecursiveScriptButton_clicked() {
@@ -68,6 +61,11 @@ void AutoTester::downloadImages(const QStringList& URLs, const QString& director
     _numberOfImagesDownloaded = 0;
     _index = 0;
 
+    ui.progressBar->setMinimum(0);
+    ui.progressBar->setMaximum(_numberOfImagesToDownload - 1);
+    ui.progressBar->setValue(0);
+    ui.progressBar->setVisible(true);
+
     for (int i = 0; i < _numberOfImagesToDownload; ++i) {
         QUrl imageURL(URLs[i]);
         downloadImage(imageURL);
@@ -80,8 +78,13 @@ void AutoTester::saveImage(int index) {
     QPixmap image;
     image.loadFromData(downloaders[index]->downloadedData());
 
-
-    image.save(_directoryName + "/" + _filenames[index]);
+    image.save(_directoryName + "/" + _filenames[index], 0, 100);
 
     ++_numberOfImagesDownloaded;
+
+    if (_numberOfImagesDownloaded == _numberOfImagesToDownload) {
+        test->finishTestsEvaluation(ui.checkBoxInteractiveMode->isChecked(), ui.progressBar);
+    } else {
+        ui.progressBar->setValue(_numberOfImagesDownloaded);
+    }
 }
