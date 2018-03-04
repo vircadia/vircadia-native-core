@@ -38,13 +38,13 @@ Original.CheckBox {
 //    onHovered: {
 //        Tablet.playSound(TabletEnums.ButtonHover);
 //    }
-/*
+
     style: CheckBoxStyle {
         indicator: Rectangle {
             id: box
-            y: (checkBox.height - height) / 2
-            width: boxSize
-            height: boxSize
+            //y: (checkBox.height - height) / 2
+            implicitWidth: boxSize
+            implicitHeight: boxSize
             radius: boxRadius
             border.width: 1
             border.color: pressed || hovered
@@ -109,5 +109,5 @@ Original.CheckBox {
             elide: checkBox.wrap ? Text.ElideNone : Text.ElideRight
             enabled: checkBox.enabled
         }
-    }*/
+    }
 }
