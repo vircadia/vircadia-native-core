@@ -12,7 +12,7 @@ import QtQuick 2.5
 
 Text {
     id: root
-    FontLoader { id: ralewayLight; source: "../../fonts/Raleway-Light.ttf"; }
+    FontLoader { id: ralewayLight; source: "qrc:/fonts/Raleway-Light.ttf"; }
     property real size: 32
     font.pixelSize: size
     verticalAlignment: Text.AlignVCenter

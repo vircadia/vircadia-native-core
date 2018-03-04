@@ -53,7 +53,7 @@ SpinBox {
     to : realTo*factor
     from : realFrom*factor
 
-    FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+    FontLoader { id: firaSansSemiBold; source: "qrc:/fonts/FiraSans-SemiBold.ttf"; }
     font.family: firaSansSemiBold.name
     font.pixelSize: hifi.fontSizes.textFieldInput
     height: hifi.fontSizes.textFieldInput + 13  // Match height of TextField control.

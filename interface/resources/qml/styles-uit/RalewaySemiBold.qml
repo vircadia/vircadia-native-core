@@ -12,7 +12,7 @@ import QtQuick 2.7
 
 Text {
     id: root
-    FontLoader { id: ralewaySemiBold; source: pathToFonts + "fonts/Raleway-SemiBold.ttf"; }
+    FontLoader { id: ralewaySemiBold; source: "qrc:/fonts/Raleway-SemiBold.ttf"; }
     property real size: 32
     font.pixelSize: size
     verticalAlignment: Text.AlignVCenter
