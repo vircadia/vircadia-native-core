@@ -42,7 +42,6 @@ Original.CheckBox {
     style: CheckBoxStyle {
         indicator: Rectangle {
             id: box
-            //y: (checkBox.height - height) / 2
             implicitWidth: boxSize
             implicitHeight: boxSize
             radius: boxRadius
