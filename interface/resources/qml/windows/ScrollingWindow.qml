@@ -44,7 +44,7 @@ Window {
     // type should only consist of logic sized areas, with nothing drawn (although the
     // default value for the frame property does include visual decorations)
     property var pane: Item {
-        property bool isScrolling: scrollView.height < scrollView.contentItem.height
+        property bool isScrolling: scrollView.contentHeight > scrollView.availableHeight
 
         property int contentWidth: scrollView.width - (isScrolling ? 10 : 0)
         property int scrollHeight: scrollView.height
@@ -86,14 +86,11 @@ Window {
             anchors.bottomMargin: footerPane.height
 
             ScrollBar.vertical: ScrollBar {
-                id: control
                 policy: ScrollBar.AsNeeded
-                parent: scrollView
                 x: scrollView.width - width
                 y: scrollView.topPadding
                 height: scrollView.availableHeight
-                active: scrollView.ScrollBar.vertical.active
-                visible: control.size < 1.0
+                visible: scrollView.contentHeight > scrollView.availableHeight
                 background: Item {
                     implicitWidth: 10
                     Rectangle {
