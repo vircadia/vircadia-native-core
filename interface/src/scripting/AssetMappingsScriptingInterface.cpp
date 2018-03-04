@@ -69,7 +69,7 @@ void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback
 
 void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, QJSValue startedCallback, QJSValue completedCallback, bool dropEvent) {
     static const QString helpText =
-        "Upload your asset to a specific folder by entering the full path. Specifying"
+        "Upload your asset to a specific folder by entering the full path. Specifying "
         "a new folder name will automatically create that folder for you.";
     static const QString dropHelpText =
         "This file will be added to your Asset Server.\n"
