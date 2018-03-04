@@ -344,13 +344,7 @@ void Test::createTest() {
     const int maxImages = pow(10, NUM_DIGITS);
     foreach (QString currentFilename, sortedImageFilenames) {
         QString fullCurrentFilename = imageSourceDirectory + "/" + currentFilename;
-        if (isInExpectedImageFilenameFormat(currentFilename)) {
-            if (!QFile::remove(fullCurrentFilename)) {
-                messageBox.critical(0, "Error", "Could not delete existing file: " + currentFilename + "\nTest creation aborted");
-                exit(-1);
-            }
-        } else if (isInSnapshotFilenameFormat(currentFilename)) {
-           
+        if (isInSnapshotFilenameFormat(currentFilename)) {
             if (i >= maxImages) {
                 messageBox.critical(0, "Error", "More than " + QString::number(maxImages) + " images not supported");
                 exit(-1);
@@ -360,6 +354,7 @@ void Test::createTest() {
             QString fullNewFileName = imageDestinationDirectory + "/" + newFilename;
 
             try {
+                QFile::remove(fullNewFileName);
                 QFile::copy(fullCurrentFilename, fullNewFileName);
             } catch (...) {
                 messageBox.critical(0, "Error", "Could not delete existing file: " + currentFilename + "\nTest creation aborted");
@@ -470,8 +465,4 @@ QString Test::getExpectedImagePartialSourceDirectory(QString filename) {
     }
 
     return result;
-}
-
-bool Test::isInExpectedImageFilenameFormat(QString filename) {
-    return (expectedImageFilenameFormat.match(filename).hasMatch());
 }

@@ -36,7 +36,6 @@ public:
     QStringList createListOfAll_IMAGE_FORMAT_imagesInDirectory(QString pathToImageDirectory);
 
     bool isInSnapshotFilenameFormat(QString filename);
-    bool isInExpectedImageFilenameFormat(QString filename);
 
     void importTest(QTextStream& textStream, const QString& testPathname);
 
