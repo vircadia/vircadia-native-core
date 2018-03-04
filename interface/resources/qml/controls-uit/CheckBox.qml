@@ -42,6 +42,7 @@ Original.CheckBox {
     style: CheckBoxStyle {
         indicator: Rectangle {
             id: box
+            y: (checkBox.height - height) / 2
             width: boxSize
             height: boxSize
             radius: boxRadius
@@ -101,8 +102,8 @@ Original.CheckBox {
         }
 
         label: Label {
-            text: control.text
-            color: control.color
+            text: checkBox.text
+            color: checkBox.color
             x: 2
             wrapMode: checkBox.wrap ? Text.Wrap : Text.NoWrap
             elide: checkBox.wrap ? Text.ElideNone : Text.ElideRight
