@@ -105,8 +105,8 @@ Original.CheckBox {
             text: checkBox.text
             color: checkBox.color
             x: 2
-            wrapMode: checkBox.wrap ? Text.Wrap : Text.NoWrap
-            elide: checkBox.wrap ? Text.ElideNone : Text.ElideRight
+            //wrapMode: checkBox.wrap ? Text.Wrap : Text.NoWrap
+            //elide: checkBox.wrap ? Text.ElideNone : Text.ElideRight
             enabled: checkBox.enabled
         }
     }
