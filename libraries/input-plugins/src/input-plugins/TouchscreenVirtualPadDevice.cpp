@@ -68,7 +68,7 @@ void TouchscreenVirtualPadDevice::setupFixedCenter(VirtualPad::Manager& virtualP
     if (_extraBottomMargin == virtualPadManager.extraBottomMargin() && !force) return; // Our only criteria to decide a center change is the bottom margin
 
     _extraBottomMargin = virtualPadManager.extraBottomMargin();
-    qreal margin = _screenDPI * 59 / 534; // 59px is for our 'base' of 534dpi (Pixel XL or Huawei Mate 9 Pro)
+    float margin = _screenDPI * 59 / 534; // 59px is for our 'base' of 534dpi (Pixel XL or Huawei Mate 9 Pro)
     QScreen* eventScreen = qApp->primaryScreen(); // do not call every time
     _fixedCenterPosition = glm::vec2( _fixedRadius + margin, eventScreen->size().height() - margin - _fixedRadius - _extraBottomMargin);
 
@@ -104,12 +104,12 @@ glm::vec2 TouchscreenVirtualPadDevice::clippedPointInCircle(float radius, glm::v
     // quadtratic coefs of circumference and line intersection
     float qa = pow(m,2)+1;
     float qb = 2 * ( m * b - origin.x - origin.y * m );
-    float qc = pow(origin.x, 2) - pow(radius,2) + b * b - 2 * b * origin.y + pow(origin.y, 2);
+    float qc = powf(origin.x, 2) - powf(radius,2) + b * b - 2 * b * origin.y + powf(origin.y, 2);
 
     float discr = qb * qb - 4 * qa * qc;
     float discrSign = deltaX>0?1.0:-1.0;
 
-    float finalX = (- qb + discrSign * sqrt(discr)) / (2 * qa);
+    float finalX = (- qb + discrSign * sqrtf(discr)) / (2 * qa);
     float finalY = m * finalX + b;
 
     return vec2(finalX, finalY);

@@ -62,9 +62,9 @@ public:
     const std::shared_ptr<InputDevice>& getInputDevice() const { return _inputDevice; }
 
 protected:
-    qreal _lastPinchScale;
-    qreal _pinchScale;
-    qreal _screenDPI;
+    float _lastPinchScale;
+    float _pinchScale;
+    float _screenDPI;
     glm::vec2 _screenDPIScale;
     bool _validTouchLeft;
     glm::vec2 _firstTouchLeftPoint;
@@ -78,8 +78,8 @@ protected:
 
     bool _fixedPosition;
     glm::vec2 _fixedCenterPosition;
-    qreal _fixedRadius;
-    qreal _fixedRadiusForCalc;
+    float _fixedRadius;
+    float _fixedRadiusForCalc;
     int _extraBottomMargin {0};
 
     void touchLeftBegin(glm::vec2 touchPoint);
