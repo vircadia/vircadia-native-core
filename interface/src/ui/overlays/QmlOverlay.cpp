@@ -53,6 +53,7 @@ QmlOverlay::~QmlOverlay() {
     _qmlElement.reset();
 }
 
+// QmlOverlay replaces Overlay's properties with those defined in the QML file used but keeps Overlay2D's properties.
 void QmlOverlay::setProperties(const QVariantMap& properties) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setProperties", Q_ARG(QVariantMap, properties));

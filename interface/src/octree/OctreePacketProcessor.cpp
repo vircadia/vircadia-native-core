@@ -17,6 +17,8 @@
 #include "SceneScriptingInterface.h"
 
 OctreePacketProcessor::OctreePacketProcessor() {
+    setObjectName("Octree Packet Processor");
+
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     
     packetReceiver.registerDirectListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },

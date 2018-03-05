@@ -151,7 +151,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 glm::vec3 normal;
                 boundingBox.findRayIntersection(cameraPosition, direction, distance, face, normal);
                 float offsetAngle = -CONTEXT_OVERLAY_OFFSET_ANGLE;
-                if (DependencyManager::get<PointerManager>()->isLeftHand(event.getID())) {
+                if (event.getID() == 1) { // "1" is left hand
                     offsetAngle *= -1.0f;
                 }
                 contextOverlayPosition = cameraPosition +
@@ -168,7 +168,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _contextOverlay->setColorPulse(CONTEXT_OVERLAY_UNHOVERED_COLORPULSE);
                 _contextOverlay->setIgnoreRayIntersection(false);
                 _contextOverlay->setDrawInFront(true);
-                _contextOverlay->setURL(PathUtils::resourcesPath() + "images/inspect-icon.png");
+                _contextOverlay->setURL(PathUtils::resourcesUrl() + "images/inspect-icon.png");
                 _contextOverlay->setIsFacingAvatar(true);
                 _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
             }
@@ -266,22 +266,16 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemI
     }
 }
 
-static const QString INSPECTION_CERTIFICATE_QML_PATH = qApp->applicationDirPath() + "../../../qml/hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
-void ContextOverlayInterface::openInspectionCertificate() {
-    // lets open the tablet to the inspection certificate QML
-    if (!_currentEntityWithContextOverlay.isNull() && _entityMarketplaceID.length() > 0) {
-        auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
-        tablet->loadQMLSource(INSPECTION_CERTIFICATE_QML_PATH);
-        _hmdScriptingInterface->openTablet();
+void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID) {
 
-        setLastInspectedEntity(_currentEntityWithContextOverlay);
+    setLastInspectedEntity(entityID);
 
-        EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
+    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
 
-        auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeList = DependencyManager::get<NodeList>();
 
+    if (entityProperties.verifyStaticCertificateProperties()) {
         if (entityProperties.getClientOnly()) {
-            if (entityProperties.verifyStaticCertificateProperties()) {
                 SharedNodePointer entityServer = nodeList->soloNodeOfType(NodeType::EntityServer);
 
                 if (entityServer) {
@@ -289,7 +283,7 @@ void ContextOverlayInterface::openInspectionCertificate() {
                     QNetworkRequest networkRequest;
                     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
                     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+                    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
                     requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
                     QJsonObject request;
                     request["certificate_id"] = entityProperties.getCertificateID();
@@ -349,17 +343,34 @@ void ContextOverlayInterface::openInspectionCertificate() {
                 } else {
                     qCWarning(context_overlay) << "Couldn't get Entity Server!";
                 }
-            } else {
-                auto ledger = DependencyManager::get<Ledger>();
-                _challengeOwnershipTimeoutTimer.stop();
-                emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
-                qCDebug(context_overlay) << "Entity" << _lastInspectedEntity << "failed static certificate verification!";
-            }
+        } else {
+            // We don't currently verify ownership of entities that aren't Avatar Entities,
+            // so they always pass Ownership Verification. It's necessary to emit this signal
+            // so that the Inspection Certificate can continue its information-grabbing process.
+            auto ledger = DependencyManager::get<Ledger>();
+            emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
         }
+    } else {
+        auto ledger = DependencyManager::get<Ledger>();
+        _challengeOwnershipTimeoutTimer.stop();
+        emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
+        qCDebug(context_overlay) << "Entity" << _lastInspectedEntity << "failed static certificate verification!";
     }
 }
 
-static const QString MARKETPLACE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace/items/";
+static const QString INSPECTION_CERTIFICATE_QML_PATH = "hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
+void ContextOverlayInterface::openInspectionCertificate() {
+    // lets open the tablet to the inspection certificate QML
+    if (!_currentEntityWithContextOverlay.isNull() && _entityMarketplaceID.length() > 0) {
+        setLastInspectedEntity(_currentEntityWithContextOverlay);
+        auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+        tablet->loadQMLSource(INSPECTION_CERTIFICATE_QML_PATH);
+        _hmdScriptingInterface->openTablet();
+    }
+}
+
+static const QString MARKETPLACE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace/items/";
 
 void ContextOverlayInterface::openMarketplace() {
     // lets open the tablet and go to the current item in
@@ -397,6 +408,7 @@ void ContextOverlayInterface::startChallengeOwnershipTimer() {
     connect(&_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
         qCDebug(entities) << "Ownership challenge timed out for" << _lastInspectedEntity;
         emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_TIMEOUT));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
     });
 
     _challengeOwnershipTimeoutTimer.start(5000);
@@ -421,7 +433,9 @@ void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer
 
     if (verificationSuccess) {
         emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationSuccess(_lastInspectedEntity);
     } else {
         emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
     }
 }

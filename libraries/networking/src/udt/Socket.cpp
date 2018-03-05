@@ -257,9 +257,6 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
             congestionControl->setMaxBandwidth(_maxBandwidth);
             auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, std::move(congestionControl)));
 
-            // we queue the connection to cleanup connection in case it asks for it during its own rate control sync
-            QObject::connect(connection.get(), &Connection::connectionInactive, this, &Socket::cleanupConnection);
-
             // allow higher-level classes to find out when connections have completed a handshake
             QObject::connect(connection.get(), &Connection::receiverHandshakeRequestComplete,
                              this, &Socket::clientHandshakeRequestComplete);
@@ -331,14 +328,14 @@ void Socket::checkForReadyReadBackup() {
 void Socket::readPendingDatagrams() {
     int packetSizeWithHeader = -1;
 
-    while ((packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+    while (_udpSocket.hasPendingDatagrams() && (packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
 
         // we're reading a packet so re-start the readyRead backup timer
         _readyReadBackupTimer->start();
 
         // grab a time point we can mark as the receive time of this packet
         auto receiveTime = p_high_resolution_clock::now();
-        
+
         // setup a HifiSockAddr to read into
         HifiSockAddr senderSockAddr;
 
@@ -520,7 +517,7 @@ void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
     static QString repeatedMessage
         = LogHandler::getInstance().addRepeatedMessageRegex(SOCKET_REGEX);
 
-    qCDebug(networking) << "udt::Socket error - " << socketError;
+    qCDebug(networking) << "udt::Socket error - " << socketError << _udpSocket.errorString();
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {

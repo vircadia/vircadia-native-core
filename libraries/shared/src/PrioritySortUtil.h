@@ -28,7 +28,7 @@
         glm::vec3 getPosition() const override { return _thing->getPosition(); }
         float getRadius() const override { return 0.5f * _thing->getBoundingRadius(); }
         uint64_t getTimestamp() const override { return _thing->getLastTime(); }
-        const Thing& getThing() const { return _thing; }
+        Thing getThing() const { return _thing; }
     private:
         Thing _thing;
     };
@@ -42,6 +42,13 @@
     }
 
 (3) Loop over your priority queue and do timeboxed work:
+
+    NOTE: Be careful using references to members of instances of T from std::priority_queue<T>.
+          Under the hood std::priority_queue<T> may re-use instances of T.
+          For example, after a pop() or a push() the top T may have the same memory address
+          as the top T before the pop() or push() (but point to a swapped instance of T).
+          This causes a reference to member variable of T to point to a different value
+          when operations taken on std::priority_queue<T> shuffle around the instances of T.
 
     uint64_t cutoffTime = usecTimestampNow() + TIME_BUDGET;
     while (!sortedThings.empty()) {

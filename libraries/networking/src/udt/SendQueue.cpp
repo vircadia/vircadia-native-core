@@ -12,7 +12,6 @@
 #include "SendQueue.h"
 
 #include <algorithm>
-#include <random>
 #include <thread>
 
 #include <QtCore/QCoreApplication>
@@ -62,10 +61,12 @@ private:
     Mutex2& _mutex2;
 };
 
-std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination) {
+std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination, SequenceNumber currentSequenceNumber,
+                                             MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK) {
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
     
-    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination));
+    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination, currentSequenceNumber,
+                                                          currentMessageNumber, hasReceivedHandshakeACK));
 
     // Setup queue private thread
     QThread* thread = new QThread;
@@ -84,25 +85,18 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destin
     return queue;
 }
     
-SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
+SendQueue::SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber,
+                     MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK) :
+    _packets(currentMessageNumber),
     _socket(socket),
     _destination(dest)
 {
-    // setup psuedo-random number generation for all instances of SendQueue
-    static std::random_device rd;
-    static std::mt19937 generator(rd());
-    static std::uniform_int_distribution<> distribution(0, SequenceNumber::MAX);
-
-    // randomize the intial sequence number
-    _initialSequenceNumber = SequenceNumber(distribution(generator));
-
-    // set our member variables from randomized initial number
-    _currentSequenceNumber = _initialSequenceNumber - 1;
+    // set our member variables from current sequence number
+    _currentSequenceNumber = currentSequenceNumber;
     _atomicCurrentSequenceNumber = uint32_t(_currentSequenceNumber);
-    _lastACKSequenceNumber = uint32_t(_currentSequenceNumber) - 1;
+    _lastACKSequenceNumber = uint32_t(_currentSequenceNumber);
 
-    // default the last receiver response to the current time
-    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
+    _hasReceivedHandshakeACK = hasReceivedHandshakeACK;
 }
 
 SendQueue::~SendQueue() {
@@ -114,8 +108,8 @@ void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
     // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for packets
     _emptyCondition.notify_one();
     
-    if (!this->thread()->isRunning() && _state == State::NotStarted) {
-        this->thread()->start();
+    if (!thread()->isRunning() && _state == State::NotStarted) {
+        thread()->start();
     }
 }
 
@@ -125,8 +119,8 @@ void SendQueue::queuePacketList(std::unique_ptr<PacketList> packetList) {
     // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for packets
     _emptyCondition.notify_one();
     
-    if (!this->thread()->isRunning() && _state == State::NotStarted) {
-        this->thread()->start();
+    if (!thread()->isRunning() && _state == State::NotStarted) {
+        thread()->start();
     }
 }
 
@@ -144,9 +138,6 @@ int SendQueue::sendPacket(const Packet& packet) {
 }
     
 void SendQueue::ack(SequenceNumber ack) {
-    // this is a response from the client, re-set our timeout expiry and our last response time
-    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
-    
     if (_lastACKSequenceNumber == (uint32_t) ack) {
         return;
     }
@@ -173,10 +164,7 @@ void SendQueue::ack(SequenceNumber ack) {
     _emptyCondition.notify_one();
 }
 
-void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
-    // this is a response from the client, re-set our timeout expiry
-    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch(); 
-    
+void SendQueue::nak(SequenceNumber start, SequenceNumber end) {    
     {
         std::lock_guard<std::mutex> nakLocker(_naksLock);
         _naks.insert(start, end);
@@ -197,9 +185,6 @@ void SendQueue::fastRetransmit(udt::SequenceNumber ack) {
 }
 
 void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
-    // this is a response from the client, re-set our timeout expiry
-    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
-
     {
         std::lock_guard<std::mutex> nakLocker(_naksLock);
         _naks.clear();
@@ -225,8 +210,11 @@ void SendQueue::sendHandshake() {
     std::unique_lock<std::mutex> handshakeLock { _handshakeMutex };
     if (!_hasReceivedHandshakeACK) {
         // we haven't received a handshake ACK from the client, send another now
+        // if the handshake hasn't been completed, then the initial sequence number
+        // should be the current sequence number + 1
+        SequenceNumber initialSequenceNumber = _currentSequenceNumber + 1;
         auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, sizeof(SequenceNumber));
-        handshakePacket->writePrimitive(_initialSequenceNumber);
+        handshakePacket->writePrimitive(initialSequenceNumber);
         _socket->writeBasePacket(*handshakePacket, _destination);
         
         // we wait for the ACK or the re-send interval to expire
@@ -235,18 +223,14 @@ void SendQueue::sendHandshake() {
     }
 }
 
-void SendQueue::handshakeACK(SequenceNumber initialSequenceNumber) {
-    if (initialSequenceNumber == _initialSequenceNumber) {
-        {
-            std::lock_guard<std::mutex> locker { _handshakeMutex };
-            _hasReceivedHandshakeACK = true;
-        }
-
-        _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
-
-        // Notify on the handshake ACK condition
-        _handshakeACKCondition.notify_one();
+void SendQueue::handshakeACK() {
+    {
+        std::lock_guard<std::mutex> locker { _handshakeMutex };
+        _hasReceivedHandshakeACK = true;
     }
+
+    // Notify on the handshake ACK condition
+    _handshakeACKCondition.notify_one();
 }
 
 SequenceNumber SendQueue::getNextSequenceNumber() {
@@ -539,28 +523,6 @@ bool SendQueue::maybeResendPacket() {
 
 bool SendQueue::isInactive(bool attemptedToSendPacket) {
     // check for connection timeout first
-
-    // that will be the case if we have had 16 timeouts since hearing back from the client, and it has been
-    // at least 5 seconds
-    static const int NUM_TIMEOUTS_BEFORE_INACTIVE = 16;
-    static const int MIN_MS_BEFORE_INACTIVE = 5 * 1000;
-
-    auto sinceLastResponse = (QDateTime::currentMSecsSinceEpoch() - _lastReceiverResponse);
-
-    if (sinceLastResponse > 0 &&
-        sinceLastResponse >= int64_t(NUM_TIMEOUTS_BEFORE_INACTIVE * (_estimatedTimeout / USECS_PER_MSEC)) &&
-        sinceLastResponse > MIN_MS_BEFORE_INACTIVE) {
-        // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
-        // then signal the queue is inactive and return so it can be cleaned up
-
-#ifdef UDT_CONNECTION_DEBUG
-        qCDebug(networking) << "SendQueue to" << _destination << "reached" << NUM_TIMEOUTS_BEFORE_INACTIVE << "timeouts"
-            << "and" << MIN_MS_BEFORE_INACTIVE << "milliseconds before receiving any ACK/NAK and is now inactive. Stopping.";
-#endif
-
-        deactivate();
-        return true;
-    }
 
     if (!attemptedToSendPacket) {
         // During our processing above we didn't send any packets

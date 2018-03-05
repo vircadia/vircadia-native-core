@@ -11,6 +11,12 @@
 #include "PickManager.h"
 #include "PointerManager.h"
 
+#include "NumericalConstants.h"
+
+const float Pointer::POINTER_MOVE_DELAY = 0.33f * USECS_PER_SECOND;
+const float TOUCH_PRESS_TO_MOVE_DEADSPOT = 0.0481f;
+const float Pointer::TOUCH_PRESS_TO_MOVE_DEADSPOT_SQUARED = TOUCH_PRESS_TO_MOVE_DEADSPOT * TOUCH_PRESS_TO_MOVE_DEADSPOT;
+
 Pointer::~Pointer() {
     DependencyManager::get<PickManager>()->removePick(_pickUID);
 }
@@ -77,7 +83,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
     Buttons newButtons;
     Buttons sameButtons;
     if (_enabled && shouldTrigger(pickResult)) {
-        buttons = getPressedButtons();
+        buttons = getPressedButtons(pickResult);
         for (const std::string& button : buttons) {
             if (_prevButtons.find(button) == _prevButtons.end()) {
                 newButtons.insert(button);
@@ -175,17 +181,6 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
         }
     }
 
-    // send hoverEnd events if we disable the pointer or disable hovering
-    if (_hover && ((!_enabled && _prevEnabled) || (!doHover && _prevDoHover))) {
-        if (_prevHoveredObject.type == ENTITY) {
-            emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, hoveredEvent);
-        } else if (_prevHoveredObject.type == OVERLAY) {
-            emit pointerManager->hoverEndOverlay(_prevHoveredObject.objectID, hoveredEvent);
-        } else if (_prevHoveredObject.type == HUD) {
-            emit pointerManager->hoverEndHUD(hoveredEvent);
-        }
-    }
-
     // Trigger begin
     const std::string SHOULD_FOCUS_BUTTON = "Focus";
     for (const std::string& button : newButtons) {
@@ -204,7 +199,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
 
     // Trigger continue
     for (const std::string& button : sameButtons) {
-        PointerEvent triggeredEvent = buildPointerEvent(_triggeredObjects[button], pickResult, false);
+        PointerEvent triggeredEvent = buildPointerEvent(_triggeredObjects[button], pickResult, button, false);
         triggeredEvent.setID(pointerID);
         triggeredEvent.setType(PointerEvent::Move);
         triggeredEvent.setButton(chooseButton(button));
@@ -219,7 +214,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
 
     // Trigger end
     for (const std::string& button : _prevButtons) {
-        PointerEvent triggeredEvent = buildPointerEvent(_triggeredObjects[button], pickResult, false);
+        PointerEvent triggeredEvent = buildPointerEvent(_triggeredObjects[button], pickResult, button, false);
         triggeredEvent.setID(pointerID);
         triggeredEvent.setType(PointerEvent::Release);
         triggeredEvent.setButton(chooseButton(button));
@@ -231,6 +226,17 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
             emit pointerManager->triggerEndHUD(triggeredEvent);
         }
         _triggeredObjects.erase(button);
+    }
+
+    // if we disable the pointer or disable hovering, send hoverEnd events after triggerEnd
+    if (_hover && ((!_enabled && _prevEnabled) || (!doHover && _prevDoHover))) {
+        if (_prevHoveredObject.type == ENTITY) {
+            emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, hoveredEvent);
+        } else if (_prevHoveredObject.type == OVERLAY) {
+            emit pointerManager->hoverEndOverlay(_prevHoveredObject.objectID, hoveredEvent);
+        } else if (_prevHoveredObject.type == HUD) {
+            emit pointerManager->hoverEndHUD(hoveredEvent);
+        }
     }
 
     _prevHoveredObject = hoveredObject;

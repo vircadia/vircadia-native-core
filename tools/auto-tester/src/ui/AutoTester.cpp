@@ -12,14 +12,18 @@
 
 AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
     ui.setupUi(this);
+
+    ui.checkBoxInteractiveMode->setChecked(true);
+
+    ui.progressBar->setVisible(false);
 }
 
 void AutoTester::on_evaluateTestsButton_clicked() {
-    test.evaluateTests();
+    test.evaluateTests(ui.checkBoxInteractiveMode->isChecked(), ui.progressBar);
 }
 
 void AutoTester::on_evaluateTestsRecursivelyButton_clicked() {
-    test.evaluateTestsRecursively();
+    test.evaluateTestsRecursively(ui.checkBoxInteractiveMode->isChecked(), ui.progressBar);
 }
 
 void AutoTester::on_createRecursiveScriptButton_clicked() {
@@ -28,6 +32,10 @@ void AutoTester::on_createRecursiveScriptButton_clicked() {
 
 void AutoTester::on_createTestButton_clicked() {
     test.createTest();
+}
+
+void AutoTester::on_deleteOldSnapshotsButton_clicked() {
+    test.deleteOldSnapshots();
 }
 
 void AutoTester::on_closeButton_clicked() {

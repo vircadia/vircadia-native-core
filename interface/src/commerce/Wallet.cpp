@@ -59,6 +59,23 @@ QString keyFilePath() {
     auto accountManager = DependencyManager::get<AccountManager>();
     return PathUtils::getAppDataFilePath(QString("%1.%2").arg(accountManager->getAccountInfo().getUsername(), KEY_FILE));
 }
+bool Wallet::copyKeyFileFrom(const QString& pathname) {
+    QString existing = getKeyFilePath();
+    qCDebug(commerce) << "Old keyfile" << existing;
+    if (!existing.isEmpty()) {
+        QString backup = QString(existing).insert(existing.indexOf(KEY_FILE) - 1,
+            QDateTime::currentDateTime().toString(Qt::ISODate).replace(":", ""));
+        qCDebug(commerce) << "Renaming old keyfile to" << backup;
+        if (!QFile::rename(existing, backup)) {
+            qCCritical(commerce) << "Unable to backup" << existing << "to" << backup;
+            return false;
+        }
+    }
+    QString destination = keyFilePath();
+    bool result = QFile::copy(pathname, destination);
+    qCDebug(commerce) << "copy" << pathname << "to" << destination << "=>" << result;
+    return result;
+}
 
 // use the cached _passphrase if it exists, otherwise we need to prompt
 int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
@@ -144,15 +161,13 @@ bool writeKeys(const char* filename, EC_KEY* keys) {
     if ((fp = fopen(filename, "wt"))) {
         if (!PEM_write_EC_PUBKEY(fp, keys)) {
             fclose(fp);
-            qCDebug(commerce) << "failed to write public key";
-            QFile(QString(filename)).remove();
+            qCCritical(commerce) << "failed to write public key";
             return retval;
         }
 
         if (!PEM_write_ECPrivateKey(fp, keys, EVP_des_ede3_cbc(), NULL, 0, passwordCallback, NULL)) {
             fclose(fp);
-            qCDebug(commerce) << "failed to write private key";
-            QFile(QString(filename)).remove();
+            qCCritical(commerce) << "failed to write private key";
             return retval;
         }
 
@@ -168,7 +183,8 @@ bool writeKeys(const char* filename, EC_KEY* keys) {
 QPair<QByteArray*, QByteArray*> generateECKeypair() {
 
     EC_KEY* keyPair = EC_KEY_new_by_curve_name(NID_secp256k1);
-    QPair<QByteArray*, QByteArray*> retval;
+    QPair<QByteArray*, QByteArray*> retval{};
+
     EC_KEY_set_asn1_flag(keyPair, OPENSSL_EC_NAMED_CURVE);
     if (!EC_KEY_generate_key(keyPair)) {
         qCDebug(commerce) << "Error generating EC Keypair -" << ERR_get_error();
@@ -301,21 +317,27 @@ Wallet::Wallet() {
     packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnershipPacket");
     packetReceiver.registerListener(PacketType::ChallengeOwnershipRequest, this, "handleChallengeOwnershipPacket");
 
-    connect(ledger.data(), &Ledger::accountResult, this, [&]() {
+    connect(ledger.data(), &Ledger::accountResult, this, [&](QJsonObject result) {
         auto wallet = DependencyManager::get<Wallet>();
         auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
         uint status;
+        QString keyStatus = result.contains("data") ? result["data"].toObject()["keyStatus"].toString() : "";
 
         if (wallet->getKeyFilePath() == "" || !wallet->getSecurityImage()) {
-            status = (uint)WalletStatus::WALLET_STATUS_NOT_SET_UP;
+            if (keyStatus == "preexisting") {
+                status = (uint) WalletStatus::WALLET_STATUS_PREEXISTING;
+            } else{
+                status = (uint) WalletStatus::WALLET_STATUS_NOT_SET_UP;
+            }
         } else if (!wallet->walletIsAuthenticatedWithPassphrase()) {
-            status = (uint)WalletStatus::WALLET_STATUS_NOT_AUTHENTICATED;
+            status = (uint) WalletStatus::WALLET_STATUS_NOT_AUTHENTICATED;
+        } else if (keyStatus == "conflicting") {
+            status = (uint) WalletStatus::WALLET_STATUS_CONFLICTING;
         } else {
-            status = (uint)WalletStatus::WALLET_STATUS_READY;
+            status = (uint) WalletStatus::WALLET_STATUS_READY;
         }
 
         walletScriptingInterface->setWalletStatus(status);
-        emit walletStatusResult(status);
     });
 
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -491,6 +513,7 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
     }
     if (_publicKeys.count() > 0) {
         // we _must_ be authenticated if the publicKeys are there
+        DependencyManager::get<WalletScriptingInterface>()->setWalletStatus((uint)WalletStatus::WALLET_STATUS_READY);
         return true;
     }
 
@@ -503,6 +526,7 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
 
             // be sure to add the public key so we don't do this over and over
             _publicKeys.push_back(publicKey.toBase64());
+            DependencyManager::get<WalletScriptingInterface>()->setWalletStatus((uint)WalletStatus::WALLET_STATUS_READY);
             return true;
         }
     }
@@ -516,22 +540,25 @@ bool Wallet::generateKeyPair() {
 
     qCInfo(commerce) << "Generating keypair.";
     auto keyPair = generateECKeypair();
+    if (!keyPair.first) {
+        return false;
+    }
 
     writeBackupInstructions();
 
     // TODO: redo this soon -- need error checking and so on
     writeSecurityImage(_securityImage, keyFilePath());
-    QString oldKey = _publicKeys.count() == 0 ? "" : _publicKeys.last();
     QString key = keyPair.first->toBase64();
     _publicKeys.push_back(key);
     qCDebug(commerce) << "public key:" << key;
+    _isOverridingServer = false;
 
     // It's arguable whether we want to change the receiveAt every time, but:
     // 1. It's certainly needed the first time, when createIfNeeded answers true.
     // 2. It is maximally private, and we can step back from that later if desired.
     // 3. It maximally exercises all the machinery, so we are most likely to surface issues now.
     auto ledger = DependencyManager::get<Ledger>();
-    return ledger->receiveAt(key, oldKey);
+    return ledger->receiveAt(key, key);
 }
 
 QStringList Wallet::listPublicKeys() {
@@ -547,12 +574,15 @@ QStringList Wallet::listPublicKeys() {
 // the horror of code pages and so on (changing the bytes) by just returning a base64
 // encoded string representing the signature (suitable for http, etc...)
 QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
-    qCInfo(commerce) << "Signing text" << text << "with key" << key;
     EC_KEY* ecPrivateKey = NULL;
+
+    auto keyFilePathString = keyFilePath().toStdString();
     if ((ecPrivateKey = readPrivateKey(keyFilePath().toStdString().c_str()))) {
         unsigned char* sig = new unsigned char[ECDSA_size(ecPrivateKey)];
 
         unsigned int signatureBytes = 0;
+
+        qCInfo(commerce) << "Hashing and signing plaintext" << text << "with key at address" << ecPrivateKey;
 
         QByteArray hashedPlaintext = QCryptographicHash::hash(text, QCryptographicHash::Sha256);
 
@@ -585,8 +615,8 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     if (_securityImage) {
         delete _securityImage;
     }
-    QString path = qApp->applicationDirPath();
-    path.append("/resources/qml/hifi/commerce/wallet/");
+    QString path = PathUtils::resourcesPath();
+    path.append("/qml/hifi/commerce/wallet/");
     path.append(filename);
 
     // now create a new security image pixmap
@@ -649,20 +679,6 @@ QString Wallet::getKeyFilePath() {
     }
 }
 
-void Wallet::reset() {
-    _publicKeys.clear();
-
-    delete _securityImage;
-    _securityImage = nullptr;
-
-    // tell the provider we got nothing
-    updateImageProvider();
-    _passphrase->clear();
-
-
-    QFile keyFile(keyFilePath());
-    keyFile.remove();
-}
 bool Wallet::writeWallet(const QString& newPassphrase) {
     EC_KEY* keys = readKeys(keyFilePath().toStdString().c_str());
     if (keys) {
@@ -746,12 +762,10 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
     }
 
     EC_KEY_free(ec);
-    QByteArray ba = sig.toLocal8Bit();
-    const char *sigChar = ba.data();
 
     QByteArray textByteArray;
     if (status > -1) {
-        textByteArray = QByteArray(sigChar, (int) strlen(sigChar));
+        textByteArray = sig.toUtf8();
     }
     textByteArraySize = textByteArray.size();
     int certIDSize = certID.size();
@@ -801,15 +815,12 @@ void Wallet::account() {
 
 void Wallet::getWalletStatus() {
     auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
-    uint status;
 
     if (DependencyManager::get<AccountManager>()->isLoggedIn()) {
         // This will set account info for the wallet, allowing us to decrypt and display the security image.
         account();
     } else {
-        status = (uint)WalletStatus::WALLET_STATUS_NOT_LOGGED_IN;
-        emit walletStatusResult(status);
-        walletScriptingInterface->setWalletStatus(status);
+        walletScriptingInterface->setWalletStatus((uint)WalletStatus::WALLET_STATUS_NOT_LOGGED_IN);
         return;
     }
 }

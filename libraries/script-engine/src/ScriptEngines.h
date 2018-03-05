@@ -19,6 +19,7 @@
 
 #include <SettingHandle.h>
 #include <DependencyManager.h>
+#include <shared/ScriptInitializerMixin.h>
 
 #include "ScriptEngine.h"
 #include "ScriptsModel.h"
@@ -26,24 +27,34 @@
 
 class ScriptEngine;
 
+class NativeScriptInitializers : public ScriptInitializerMixin {
+public:
+    bool registerNativeScriptInitializer(NativeScriptInitializer initializer) override;
+    bool registerScriptInitializer(ScriptInitializer initializer) override;
+};
+
 class ScriptEngines : public QObject, public Dependency {
     Q_OBJECT
 
     Q_PROPERTY(ScriptsModel* scriptsModel READ scriptsModel CONSTANT)
     Q_PROPERTY(ScriptsModelFilter* scriptsModelFilter READ scriptsModelFilter CONSTANT)
+    Q_PROPERTY(QString debugScriptUrl READ getDebugScriptUrl WRITE setDebugScriptUrl)
 
 public:
-    using ScriptInitializer = std::function<void(ScriptEnginePointer)>;
+    using ScriptInitializer = ScriptInitializerMixin::ScriptInitializer;
 
     ScriptEngines(ScriptEngine::Context context);
     void registerScriptInitializer(ScriptInitializer initializer);
-
+    int runScriptInitializers(ScriptEnginePointer engine);
     void loadScripts();
     void saveScripts();
 
-    QString getScriptsLocation() const;
+    QString getDebugScriptUrl() { return _debugScriptUrl; };
+    void setDebugScriptUrl(const QString& url) { _debugScriptUrl = url; };
+
     void loadDefaultScripts();
-    void setScriptsLocation(const QString& scriptsLocation);
+    void reloadLocalFiles();
+
     QStringList getRunningScripts();
     ScriptEnginePointer getScriptEngine(const QUrl& scriptHash);
 
@@ -111,12 +122,12 @@ protected:
     QSet<ScriptEnginePointer> _allKnownScriptEngines;
     QMutex _allScriptsMutex;
     std::list<ScriptInitializer> _scriptInitializers;
-    mutable Setting::Handle<QString> _scriptsLocationHandle;
     ScriptsModel _scriptsModel;
     ScriptsModelFilter _scriptsModelFilter;
     std::atomic<bool> _isStopped { false };
     std::atomic<bool> _isReloading { false };
     bool _defaultScriptsLocationOverridden { false };
+    QString _debugScriptUrl;
 };
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL);

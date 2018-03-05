@@ -41,7 +41,7 @@ public:
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                         BoxFace& face, glm::vec3& surfaceNormal) override;
     virtual bool findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
-        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QString& extraInfo) override;
+        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo) override;
 
     virtual ModelOverlay* createClone() const override;
 
@@ -58,6 +58,13 @@ public:
     void setVisible(bool visible) override;
     void setDrawInFront(bool drawInFront) override;
     void setDrawHUDLayer(bool drawHUDLayer) override;
+
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
+
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
+    virtual bool canReplaceModelMeshPart(int meshIndex, int partIndex) override;
+    virtual bool replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer model, int meshIndex, int partIndex) override;
 
 protected:
     Transform evalRenderTransform() override;
@@ -79,6 +86,7 @@ private:
 
     ModelPointer _model;
     QVariantMap _modelTextures;
+    bool _texturesLoaded { false };
 
     render::ItemIDs _subRenderItemIDs;
 
@@ -105,9 +113,11 @@ private:
     bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
 
-    bool _visibleDirty { false };
+    bool _visibleDirty { true };
     bool _drawInFrontDirty { false };
     bool _drawInHUDDirty { false };
+
+    void processMaterials();
 
 };
 

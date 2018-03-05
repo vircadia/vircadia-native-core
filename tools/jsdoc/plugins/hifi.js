@@ -10,6 +10,8 @@ function endsWith(path, exts) {
 
 exports.handlers = {
     beforeParse: function(e) {
+        const pathTools = require('path');
+        var rootFolder = pathTools.dirname(e.filename);
         console.log("Scanning hifi source for jsdoc comments...");
 
         // directories to scan for jsdoc comments
@@ -25,16 +27,19 @@ exports.handlers = {
             '../../libraries/entities/src',
             '../../libraries/networking/src',
             '../../libraries/pointers/src',
+            '../../libraries/render-utils/src',
             '../../libraries/shared/src',
+            '../../libraries/shared/src/shared',
             '../../libraries/script-engine/src',
         ];
         var exts = ['.h', '.cpp'];
 
         const fs = require('fs');
         dirList.forEach(function (dir) {
-            var files = fs.readdirSync(dir)
+            var joinedDir = pathTools.join(rootFolder, dir);
+            var files = fs.readdirSync(joinedDir)
             files.forEach(function (file) {
-                var path = dir + "/" + file;
+                var path = pathTools.join(joinedDir, file);
                 if (fs.lstatSync(path).isFile() && endsWith(path, exts)) {
                     var data = fs.readFileSync(path, "utf8");
                     var reg = /(\/\*\*jsdoc(.|[\r\n])*?\*\/)/gm;

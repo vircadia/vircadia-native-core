@@ -41,19 +41,7 @@ Item {
 
         onContainsMouseChanged: {
             if (containsMouse) {
-                tabletInterface.playSound(TabletEnums.ButtonHover);
-            }
-        }
-
-        onClicked: {
-            mouse.accepted = true;
-            tabletInterface.playSound(TabletEnums.ButtonClick);
-
-            webEntity.synthesizeKeyPress(glyph);
-            webEntity.synthesizeKeyPress(glyph, mirrorText);
-
-            if (toggle) {
-                toggled = !toggled;
+                Tablet.playSound(TabletEnums.ButtonHover);
             }
         }
 
@@ -94,6 +82,14 @@ Item {
 
         onReleased: {
             if (containsMouse) {
+                Tablet.playSound(TabletEnums.ButtonClick);
+
+                webEntity.synthesizeKeyPress(glyph);
+                webEntity.synthesizeKeyPress(glyph, mirrorText);
+
+                if (toggle) {
+                    toggled = !toggled;
+                }
                 keyItem.state = "mouseOver";
             } else {
                 if (toggled) {

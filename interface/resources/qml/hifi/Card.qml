@@ -246,12 +246,12 @@ Item {
         anchors.fill: parent;
         acceptedButtons: Qt.LeftButton;
         onClicked: {
-            tabletInterface.playSound(TabletEnums.ButtonClick);
+            Tablet.playSound(TabletEnums.ButtonClick);
             goFunction("hifi://" + hifiUrl);
         }
         hoverEnabled: true;
         onEntered:  {
-            tabletInterface.playSound(TabletEnums.ButtonHover);
+            Tablet.playSound(TabletEnums.ButtonHover);
             hoverThunk();
         }
         onExited: unhoverThunk();
@@ -269,7 +269,7 @@ Item {
         }
     }
     function go() {
-        tabletInterface.playSound(TabletEnums.ButtonClick);
+        Tablet.playSound(TabletEnums.ButtonClick);
         goFunction(drillDownToPlace ? ("/places/" + placeName) : ("/user_stories/" + storyId));
     }
     MouseArea {

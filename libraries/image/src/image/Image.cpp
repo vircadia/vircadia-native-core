@@ -19,15 +19,6 @@
 #include <QBuffer>
 #include <QImageReader>
 
-
-#if defined(Q_OS_ANDROID)
-#define CPU_MIPMAPS 0
-#else
-#define CPU_MIPMAPS 1
-#include <nvtt/nvtt.h>
-#endif
-
-
 #include <Finally.h>
 #include <Profile.h>
 #include <StatTracker.h>
@@ -37,6 +28,8 @@
 
 using namespace gpu;
 
+#define CPU_MIPMAPS 1
+#include <nvtt/nvtt.h>
 
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
 static const glm::uvec2 MAX_TEXTURE_SIZE(4096);
@@ -51,25 +44,24 @@ static std::atomic<bool> compressNormalTextures { false };
 static std::atomic<bool> compressGrayscaleTextures { false };
 static std::atomic<bool> compressCubeTextures { false };
 
-bool needsSparseRectification(const glm::uvec2& size) {
-    // Don't attempt to rectify small textures (textures less than the sparse page size in any dimension)
-    if (glm::any(glm::lessThan(size, SPARSE_PAGE_SIZE))) {
-        return false;
+uint rectifyDimension(const uint& dimension) {
+    if (dimension == 0) {
+        return 0;
     }
-
-    // Don't rectify textures that are already an exact multiple of sparse page size
-    if (glm::uvec2(0) == (size % SPARSE_PAGE_SIZE)) {
-        return false;
+    if (dimension < SPARSE_PAGE_SIZE.x) {
+        uint newSize = SPARSE_PAGE_SIZE.x;
+        while (dimension <= newSize / 2) {
+            newSize /= 2;
+        }
+        return newSize;
+    } else {
+        uint pages = (dimension / SPARSE_PAGE_SIZE.x) + (dimension % SPARSE_PAGE_SIZE.x == 0 ? 0 : 1);
+        return pages * SPARSE_PAGE_SIZE.x;
     }
-
-    // Texture is not sparse compatible, but is bigger than the sparse page size in both dimensions, rectify!
-    return true;
 }
 
-glm::uvec2 rectifyToSparseSize(const glm::uvec2& size) {
-    glm::uvec2 pages = ((size / SPARSE_PAGE_SIZE) + glm::clamp(size % SPARSE_PAGE_SIZE, glm::uvec2(0), glm::uvec2(1)));
-    glm::uvec2 result = pages * SPARSE_PAGE_SIZE;
-    return result;
+glm::uvec2 rectifySize(const glm::uvec2& size) {
+    return { rectifyDimension(size.x), rectifyDimension(size.y) };
 }
 
 
@@ -329,9 +321,12 @@ QImage processSourceImage(QImage&& srcImage, bool cubemap) {
         ++DECIMATED_TEXTURE_COUNT;
     }
 
-    if (!cubemap && needsSparseRectification(targetSize)) {
-        ++RECTIFIED_TEXTURE_COUNT;
-        targetSize = rectifyToSparseSize(targetSize);
+    if (!cubemap) {
+        auto rectifiedSize = rectifySize(targetSize);
+        if (rectifiedSize != targetSize) {
+            ++RECTIFIED_TEXTURE_COUNT;
+            targetSize = rectifiedSize;
+        }
     }
 
     if (DEV_DECIMATE_TEXTURES && glm::all(glm::greaterThanEqual(targetSize / SPARSE_PAGE_SIZE, glm::uvec2(2)))) {
@@ -750,7 +745,12 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
             }
             formatMip = formatGPU;
         } else {
+#ifdef USE_GLES
+            // GLES does not support GL_BGRA
+            formatMip = gpu::Element::COLOR_SRGBA_32;
+#else
             formatMip = gpu::Element::COLOR_SBGRA_32;
+#endif
             formatGPU = gpu::Element::COLOR_SRGBA_32;
         }
 
@@ -769,6 +769,7 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
         }
         theTexture->setUsage(usage.build());
         theTexture->setStoredMipFormat(formatMip);
+        theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture.get(), std::move(image), abortProcessing);
     }
 
@@ -875,6 +876,7 @@ gpu::TexturePointer TextureUsage::process2DTextureNormalMapFromImage(QImage&& sr
         theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
+        theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture.get(), std::move(image), abortProcessing);
     }
 
@@ -911,6 +913,7 @@ gpu::TexturePointer TextureUsage::process2DTextureGrayscaleFromImage(QImage&& sr
         theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
+        theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture.get(), std::move(image), abortProcessing);
     }
 
@@ -981,7 +984,7 @@ public:
     static QImage extractEquirectangularFace(const QImage& source, gpu::Texture::CubeFace face, int faceWidth) {
         QImage image(faceWidth, faceWidth, source.format());
 
-        glm::vec2 dstInvSize(1.0f / (float)source.width(), 1.0f / (float)source.height());
+        glm::vec2 dstInvSize(1.0f / faceWidth);
 
         struct CubeToXYZ {
             gpu::Texture::CubeFace _face;

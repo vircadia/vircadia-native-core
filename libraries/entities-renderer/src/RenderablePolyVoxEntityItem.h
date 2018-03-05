@@ -21,8 +21,8 @@
 
 #include <gpu/Forward.h>
 #include <gpu/Context.h>
-#include <model/Forward.h>
-#include <model/Geometry.h>
+#include <graphics/Forward.h>
+#include <graphics/Geometry.h>
 #include <TextureCache.h>
 #include <PolyVoxEntityItem.h>
 
@@ -32,7 +32,7 @@ namespace render { namespace entities {
 class PolyVoxEntityRenderer;
 } } 
 
-class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
+class RenderablePolyVoxEntityItem : public PolyVoxEntityItem, public scriptable::ModelProvider {
     friend class render::entities::PolyVoxEntityRenderer;
 
 public:
@@ -55,7 +55,7 @@ public:
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
-                        void** intersectedObject, bool precisionPicking) const override;
+                        QVariantMap& extraInfo, bool precisionPicking) const override;
 
     virtual void setVoxelData(const QByteArray& voxelData) override;
     virtual void setVoxelVolumeSize(const glm::vec3& voxelVolumeSize) override;
@@ -104,7 +104,7 @@ public:
     void forEachVoxelValue(const ivec3& voxelSize, std::function<void(const ivec3&, uint8_t)> thunk);
     QByteArray volDataToArray(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) const;
 
-    void setMesh(model::MeshPointer mesh);
+    void setMesh(graphics::MeshPointer mesh);
     void setCollisionPoints(ShapeInfo::PointCollection points, AABox box);
     PolyVox::SimpleVolume<uint8_t>* getVolData() { return _volData.get(); }
 
@@ -113,7 +113,8 @@ public:
 
     void setVolDataDirty() { withWriteLock([&] { _volDataDirty = true; _meshReady = false; }); }
 
-    bool getMeshes(MeshProxyList& result) override;
+    bool getMeshes(MeshProxyList& result) override; // deprecated
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
 private:
     bool updateOnCount(const ivec3& v, uint8_t toValue);
@@ -134,7 +135,7 @@ private:
     // may not match _voxelVolumeSize.
     bool _meshDirty { true }; // does collision-shape need to be recomputed?
     bool _meshReady{ false };
-    model::MeshPointer _mesh;
+    graphics::MeshPointer _mesh;
 
     ShapeInfo _shapeInfo;
 
@@ -163,9 +164,12 @@ class PolyVoxEntityRenderer : public TypedEntityRenderer<RenderablePolyVoxEntity
 
 public:
     PolyVoxEntityRenderer(const EntityItemPointer& entity);
+    virtual scriptable::ScriptableModelBase getScriptableModel() override {
+        return asTypedEntity<RenderablePolyVoxEntityItem>()->getScriptableModel();
+    }
     
 protected:
-    virtual ItemKey getKey() override { return ItemKey::Builder::opaqueShape(); }
+    virtual ItemKey getKey() override { return ItemKey::Builder::opaqueShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1); }
     virtual ShapeKey getShapeKey() override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
@@ -178,7 +182,7 @@ private:
     bool _hasTransitioned{ false };
 #endif
 
-    model::MeshPointer _mesh;
+    graphics::MeshPointer _mesh;
     std::array<NetworkTexturePointer, 3> _xyzTextures;
     glm::vec3 _lastVoxelVolumeSize;
     glm::mat4 _lastVoxelToWorldMatrix;

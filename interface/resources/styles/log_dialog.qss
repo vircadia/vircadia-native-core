@@ -22,7 +22,7 @@ QLineEdit {
 }
 
 QPushButton#searchButton {
-    background: url(styles/search.svg);
+    background: url(:/styles/search.svg);
     background-repeat: none;
     background-position: left center;
     background-origin: content;
@@ -55,7 +55,7 @@ QPushButton#searchPrevButton {
 
 QPushButton#revealLogButton {
     font-family: Helvetica, Arial, sans-serif;
-    background: url(styles/txt-file.svg);
+    background: url(:/styles/txt-file.svg);
     background-repeat: none;
     background-position: left center;
     background-origin: content;
@@ -67,14 +67,56 @@ QPushButton#revealLogButton {
     font-size: 11px;
 }
 
+QPushButton#allLogsButton {
+    font-family: Helvetica, Arial, sans-serif;
+    background-color: #333333;
+    color: #BBBBBB;
+    border-width: 0;
+    border-radius: 9px;
+    font-size: 11px;
+}
+
 QCheckBox {
     font-family: Helvetica, Arial, sans-serif;
+    text-align: center;
+    color: #3d3d3d;
+    border-width: 0;
+    border-radius: 9px;
+    font-size: 11px;
 }
 
 QCheckBox::indicator:unchecked {
-    image: url(styles/unchecked.svg);
+    image: url(:/styles/unchecked.svg);
 }
 
 QCheckBox::indicator:checked {
-    image: url(styles/checked.svg);
+    image: url(:/styles/checked.svg);
+}
+
+QComboBox {
+    font-family: Helvetica, Arial, sans-serif;
+    text-align: center;
+    background-color: #CCCCCC;
+    color: #3d3d3d;
+    border-width: 0;
+    border-radius: 9px;
+    font-size: 11px;
+    padding-left: 7px;
+}
+
+QComboBox::drop-down {
+    border-width: 0px;
+    padding-right: 7px;
+}
+
+QComboBox::down-arrow {
+    image: url(:/styles/filter.png);
+    border-width: 0px;
+}
+
+QLabel#messageCount {
+    font-family: Helvetica, Arial, sans-serif;
+    text-align: center;
+    color: #3d3d3d;
+    font-size: 11px;
 }

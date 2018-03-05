@@ -9,10 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef _WIN32
-#define _USE_MATH_DEFINES
-#endif
-
 #include <cstring>
 #include <cstdio>
 #include <cmath>
@@ -1024,16 +1020,6 @@ int Octree::encodeTreeBitstreamRecursion(const OctreeElementPointer& element,
         return bytesAtThisLevel;
     }
 
-    // If we've been provided a jurisdiction map, then we need to honor it.
-    if (params.jurisdictionMap) {
-        // here's how it works... if we're currently above our root jurisdiction, then we proceed normally.
-        // but once we're in our own jurisdiction, then we need to make sure we're not below it.
-        if (JurisdictionMap::BELOW == params.jurisdictionMap->isMyJurisdiction(element->getOctalCode(), CHECK_NODE_ONLY)) {
-            params.stopReason = EncodeBitstreamParams::OUT_OF_JURISDICTION;
-            return bytesAtThisLevel;
-        }
-    }
-
     ViewFrustum::intersection nodeLocationThisView = ViewFrustum::INSIDE; // assume we're inside
     if (octreeQueryNode->getUsesFrustum() && !params.recurseEverything) {
         float boundaryDistance = boundaryDistanceForRenderLevel(element->getLevel() + params.boundaryLevelAdjust,
@@ -1156,18 +1142,9 @@ int Octree::encodeTreeBitstreamRecursion(const OctreeElementPointer& element,
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         OctreeElementPointer childElement = element->getChildAtIndex(i);
 
-        // if the caller wants to include childExistsBits, then include them even if not in view, if however,
-        // we're in a portion of the tree that's not our responsibility, then we assume the child nodes exist
-        // even if they don't in our local tree
-        bool notMyJurisdiction = false;
-        if (params.jurisdictionMap) {
-            notMyJurisdiction = JurisdictionMap::WITHIN != params.jurisdictionMap->isMyJurisdiction(element->getOctalCode(), i);
-        }
-        if (params.includeExistsBits) {
-            // If the child is known to exist, OR, it's not my jurisdiction, then we mark the bit as existing
-            if (childElement || notMyJurisdiction) {
-                childrenExistInTreeBits += (1 << (7 - i));
-            }
+        // if the caller wants to include childExistsBits, then include them
+        if (params.includeExistsBits && childElement) {
+            childrenExistInTreeBits += (1 << (7 - i));
         }
 
         sortedChildren[i] = childElement;
@@ -1801,10 +1778,8 @@ bool Octree::writeToFile(const char* fileName, const OctreeElementPointer& eleme
     return success;
 }
 
-bool Octree::writeToJSONFile(const char* fileName, const OctreeElementPointer& element, bool doGzip) {
+bool Octree::toJSON(QJsonDocument* doc, const OctreeElementPointer& element) {
     QVariantMap entityDescription;
-
-    qCDebug(octree, "Saving JSON SVO to file %s...", fileName);
 
     OctreeElementPointer top;
     if (element) {
@@ -1825,17 +1800,33 @@ bool Octree::writeToJSONFile(const char* fileName, const OctreeElementPointer& e
         return false;
     }
 
-    // convert the QVariantMap to JSON
-    QByteArray jsonData = QJsonDocument::fromVariant(entityDescription).toJson();
-    QByteArray jsonDataForFile;
+    *doc = QJsonDocument::fromVariant(entityDescription);
+    return true;
+}
 
-    if (doGzip) {
-        if (!gzip(jsonData, jsonDataForFile, -1)) {
-            qCritical("unable to gzip data while saving to json.");
-            return false;
-        }
-    } else {
-        jsonDataForFile = jsonData;
+bool Octree::toGzippedJSON(QByteArray* data, const OctreeElementPointer& element) {
+    QJsonDocument doc;
+    if (!toJSON(&doc, element)) {
+        qCritical("Failed to convert Entities to QVariantMap while converting to json.");
+        return false;
+    }
+
+    QByteArray jsonData = doc.toJson();
+
+    if (!gzip(jsonData, *data, -1)) {
+        qCritical("Unable to gzip data while saving to json.");
+        return false;
+    }
+
+    return true;
+}
+
+bool Octree::writeToJSONFile(const char* fileName, const OctreeElementPointer& element, bool doGzip) {
+    qCDebug(octree, "Saving JSON SVO to file %s...", fileName);
+
+    QByteArray jsonDataForFile;
+    if (!toGzippedJSON(&jsonDataForFile)) {
+        return false;
     }
 
     QFile persistFile(fileName);
@@ -1845,6 +1836,7 @@ bool Octree::writeToJSONFile(const char* fileName, const OctreeElementPointer& e
     } else {
         qCritical("Could not write to JSON description of entities.");
     }
+
 
     return success;
 }

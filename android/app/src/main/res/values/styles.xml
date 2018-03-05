@@ -11,5 +11,15 @@
         <!--item name="android:background">@color/white_opaque</item-->
     </style>
 
-    
+    <!-- Overriding text size so it's not so big in portrait -->
+    <style name="ActionBarTitleStyle"
+        parent="@android:style/TextAppearance.Material.Widget.ActionBar.Title">
+        <item name="android:textSize">@dimen/text_size_title_material_toolbar</item>
+    </style>
+    <style name="ActionBarSubtitleStyle"
+        parent="@android:style/TextAppearance.Material.Widget.ActionBar.Subtitle">
+        <item name="android:textSize">@dimen/text_size_subtitle_material_toolbar</item>
+    </style>
+
+
 </resources>

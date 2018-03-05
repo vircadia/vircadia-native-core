@@ -112,17 +112,17 @@ bool SceneScripting::Stage::isSunModelEnabled() const {
 
 void SceneScripting::Stage::setBackgroundMode(const QString& mode) {
     if (mode == QString("inherit")) {
-        _skyStage->setBackgroundMode(model::SunSkyStage::NO_BACKGROUND);
+        _skyStage->setBackgroundMode(graphics::SunSkyStage::NO_BACKGROUND);
     } else if (mode == QString("skybox")) {
-        _skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
+        _skyStage->setBackgroundMode(graphics::SunSkyStage::SKY_BOX);
     }
 }
 
 QString SceneScripting::Stage::getBackgroundMode() const {
     switch (_skyStage->getBackgroundMode()) {
-    case model::SunSkyStage::NO_BACKGROUND:
+    case graphics::SunSkyStage::NO_BACKGROUND:
         return QString("inherit");
-    case model::SunSkyStage::SKY_BOX:
+    case graphics::SunSkyStage::SKY_BOX:
         return QString("skybox");
     default:
         return QString("inherit");
@@ -131,7 +131,7 @@ QString SceneScripting::Stage::getBackgroundMode() const {
 
 SceneScriptingInterface::SceneScriptingInterface() : _stage{ new SceneScripting::Stage{ _skyStage } } {
     // Let's make sure the sunSkyStage is using a proceduralSkybox
-    _skyStage->setSkybox(model::SkyboxPointer(new ProceduralSkybox()));
+    _skyStage->setSkybox(graphics::SkyboxPointer(new ProceduralSkybox()));
 }
 
 void SceneScriptingInterface::setShouldRenderAvatars(bool shouldRenderAvatars) {
@@ -148,6 +148,6 @@ void SceneScriptingInterface::setShouldRenderEntities(bool shouldRenderEntities)
     }
 }
 
-model::SunSkyStagePointer SceneScriptingInterface::getSkyStage() const {
+graphics::SunSkyStagePointer SceneScriptingInterface::getSkyStage() const {
     return _skyStage;
 }

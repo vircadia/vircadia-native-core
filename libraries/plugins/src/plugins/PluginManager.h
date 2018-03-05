@@ -44,4 +44,6 @@ private:
     CodecPluginProvider _codecPluginProvider { []()->CodecPluginList { return {}; } };
     InputPluginSettingsPersister _inputSettingsPersister { [](const InputPluginList& list) {} };
     PluginContainer* _container { nullptr };
+    DisplayPluginList _displayPlugins;
+    InputPluginList _inputPlugins;
 };

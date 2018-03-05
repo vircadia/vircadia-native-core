@@ -40,7 +40,7 @@ Rectangle {
             verticalCenter: parent.verticalCenter;
         }
 
-        visible: Audio.muted;
+        visible: AudioScriptingInterface.muted;
         color: colors.muted;
 
         text: "MUTED";

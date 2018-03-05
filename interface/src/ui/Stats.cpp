@@ -42,12 +42,12 @@ using namespace std;
 
 static Stats* INSTANCE{ nullptr };
 
+#if !defined (Q_OS_ANDROID)
 QString getTextureMemoryPressureModeString();
-
+#endif
 Stats* Stats::getInstance() {
     if (!INSTANCE) {
         Stats::registerType();
-        Stats::show();
         Q_ASSERT(INSTANCE);
     }
     return INSTANCE;
@@ -78,6 +78,8 @@ bool Stats::includeTimingRecord(const QString& name) {
             return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
         } else if (name.startsWith("/paintGL/")) {
             return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
+        } else if (name.startsWith("step/")) {
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming);
         }
         return true;
     }
@@ -357,7 +359,9 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(gpuTextureResourceMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourceGPUMemSize()));
     STAT_UPDATE(gpuTextureResourcePopulatedMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourcePopulatedGPUMemSize()));
     STAT_UPDATE(gpuTextureExternalMemory, (int)BYTES_TO_MB(gpu::Context::getTextureExternalGPUMemSize()));
+#if !defined(Q_OS_ANDROID)
     STAT_UPDATE(gpuTextureMemoryPressureState, getTextureMemoryPressureModeString());
+#endif
     STAT_UPDATE(gpuFreeMemory, (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemSize()));
     STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());
     STAT_UPDATE(decimatedTextureCount, (int)DECIMATED_TEXTURE_COUNT.load());
@@ -478,7 +482,7 @@ void Stats::updateStats(bool force) {
             float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
             _gameUpdateStats = QString("/idle/update = %1 ms").arg(dt);
 
-            QVector<QString> categories = { "devices", "physics", "otherAvatars", "MyAvatar", "misc" };
+            QVector<QString> categories = { "devices", "physics", "otherAvatars", "MyAvatar", "pickManager", "postUpdateLambdas", "misc" };
             for (int32_t j = 0; j < categories.size(); ++j) {
                 QString recordKey = "/idle/update/" + categories[j];
                 itr = allRecords.find(recordKey);
@@ -498,10 +502,39 @@ void Stats::updateStats(bool force) {
             _gameUpdateStats = "";
             emit gameUpdateStatsChanged();
         }
+
+        itr = allRecords.find("/paintGL/display/EngineRun/Engine");
+        std::priority_queue<SortableStat> renderEngineStats;
+        if (itr != allRecords.end()) {
+            float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
+            _renderEngineStats = QString("/render = %1 ms").arg(dt);
+
+            QVector<QString> categories = { "RenderMainView", "SecondaryCameraJob", "UpdateScene"};
+            for (int32_t j = 0; j < categories.size(); ++j) {
+                QString recordKey = "/paintGL/display/EngineRun/Engine/" + categories[j];
+                itr = allRecords.find(recordKey);
+                if (itr != allRecords.end()) {
+                    float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
+                    QString message = QString("\n    %1 = %2").arg(categories[j]).arg(dt);
+                    renderEngineStats.push(SortableStat(message, dt));
+                }
+            }
+            while (!renderEngineStats.empty()) {
+                SortableStat stat = renderEngineStats.top();
+                _renderEngineStats += stat.message;
+                renderEngineStats.pop();
+            }
+            emit renderEngineStatsChanged();
+        } else if (_renderEngineStats != "") {
+            _renderEngineStats = "";
+            emit renderEngineStatsChanged();
+        }
     } else if (_showGameUpdateStats) {
         _showGameUpdateStats = false;
         _gameUpdateStats = "";
+        _renderEngineStats = "";
         emit gameUpdateStatsChanged();
+        emit renderEngineStatsChanged();
     }
 }
 

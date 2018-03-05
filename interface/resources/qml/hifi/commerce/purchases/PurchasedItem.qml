@@ -20,6 +20,7 @@ import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../wallet" as HifiWallet
+import TabletScriptingInterface 1.0
 
 // references XXX from root context
 
@@ -29,7 +30,6 @@ Item {
     id: root;
     property string purchaseStatus;
     property bool purchaseStatusChanged;
-    property bool canRezCertifiedItems: false;
     property string itemName;
     property string itemId;
     property string itemPreviewImageUrl;
@@ -39,13 +39,62 @@ Item {
     property int itemEdition;
     property int numberSold;
     property int limitedRun;
-    property bool isWearable;
+    property string itemType;
+    property var itemTypesArray: ["entity", "wearable", "contentSet", "app", "avatar"];
+    property var buttonTextNormal: ["REZ", "WEAR", "REPLACE", "INSTALL", "WEAR"];
+    property var buttonTextClicked: ["REZZED", "WORN", "REPLACED", "INSTALLED", "WORN"]
+    property var buttonGlyph: [hifi.glyphs.wand, hifi.glyphs.hat, hifi.glyphs.globe, hifi.glyphs.install, hifi.glyphs.avatar];
+    property bool showConfirmation: false;
+    property bool hasPermissionToRezThis;
+    property bool permissionExplanationCardVisible;
+    property bool isInstalled;
 
     property string originalStatusText;
     property string originalStatusColor;
 
     height: 110;
     width: parent.width;
+
+    Connections {
+        target: Commerce;
+        
+        onContentSetChanged: {
+            if (contentSetHref === root.itemHref) {
+                showConfirmation = true;
+            }
+        }
+
+        onAppInstalled: {
+            if (appHref === root.itemHref) {
+                root.isInstalled = true;
+            }
+        }
+
+        onAppUninstalled: {
+            if (appHref === root.itemHref) {
+                root.isInstalled = false;
+            }
+        }
+    }
+
+    Connections {
+        target: MyAvatar;
+
+        onSkeletonModelURLChanged: {
+            if (skeletonModelURL === root.itemHref) {
+                showConfirmation = true;
+            }
+        }
+    }
+
+    onItemTypeChanged: {
+        if ((itemType === "entity" && (!Entities.canRezCertified() && !Entities.canRezTmpCertified())) ||
+            (itemType === "contentSet" && !Entities.canReplaceContent())) {
+            root.hasPermissionToRezThis = false;
+        } else {
+            root.hasPermissionToRezThis = true;
+        }
+    }
 
     onPurchaseStatusChangedChanged: {
         if (root.purchaseStatusChanged === true && root.purchaseStatus === "confirmed") {
@@ -54,6 +103,15 @@ Item {
             statusText.text = "CONFIRMED!";
             statusText.color = hifi.colors.blueAccent;
             confirmedTimer.start();
+        }
+    }
+
+    onShowConfirmationChanged: {
+        if (root.showConfirmation) {
+            rezzedNotifContainer.visible = true;
+            rezzedNotifContainerTimer.start();
+            UserActivityLogger.commerceEntityRezzed(root.itemId, "purchases", root.itemType);
+            root.showConfirmation = false;
         }
     }
 
@@ -73,10 +131,10 @@ Item {
         color: hifi.colors.white;
         // Size
         anchors.left: parent.left;
-        anchors.leftMargin: 8;
+        anchors.leftMargin: 16;
         anchors.right: parent.right;
-        anchors.rightMargin: 8;
-        anchors.top: parent.top;
+        anchors.rightMargin: 16;
+        anchors.verticalCenter: parent.verticalCenter;
         height: root.height - 10;
 
         Image {
@@ -96,15 +154,20 @@ Item {
             }
         }
 
-    
+        TextMetrics {
+            id:     itemNameTextMetrics;
+            font:   itemName.font;
+            text:   itemName.text;
+        }
         RalewaySemiBold {
             id: itemName;
             anchors.top: itemPreviewImage.top;
             anchors.topMargin: 4;
             anchors.left: itemPreviewImage.right;
             anchors.leftMargin: 8;
-            anchors.right: buttonContainer.left;
-            anchors.rightMargin: 8;
+            width: !noPermissionGlyph.visible ? (buttonContainer.x - itemPreviewImage.x - itemPreviewImage.width - anchors.leftMargin) :
+                Math.min(itemNameTextMetrics.tightBoundingRect.width + 2,
+                buttonContainer.x - itemPreviewImage.x - itemPreviewImage.width - anchors.leftMargin - noPermissionGlyph.width + 2);
             height: paintedHeight;
             // Text size
             size: 24;
@@ -130,6 +193,93 @@ Item {
                 }
             }
         }
+        HiFiGlyphs {
+            id: noPermissionGlyph;
+            visible: !root.hasPermissionToRezThis;
+            anchors.verticalCenter: itemName.verticalCenter;
+            anchors.left: itemName.right;
+            anchors.leftMargin: itemName.truncated ? -10 : -2;
+            text: hifi.glyphs.info;
+            // Size
+            size: 40;
+            width: 32;
+            // Style
+            color: hifi.colors.redAccent;
+            
+            MouseArea {
+                anchors.fill: parent;
+                hoverEnabled: true;
+
+                onEntered: {
+                    noPermissionGlyph.color = hifi.colors.redHighlight;
+                }
+                onExited: {
+                    noPermissionGlyph.color = hifi.colors.redAccent;
+                }
+                onClicked: {
+                    root.sendToPurchases({ method: 'openPermissionExplanationCard' });
+                }
+            }
+        }
+        Rectangle {
+            id: permissionExplanationCard;
+            z: 995;
+            visible: root.permissionExplanationCardVisible;
+            anchors.fill: parent;
+            color: hifi.colors.white;
+
+            RalewayRegular {
+                id: permissionExplanationText;
+                text: {
+                    if (root.itemType === "contentSet") {
+                        "You do not have 'Replace Content' permissions in this domain. <a href='#replaceContentPermission'>Learn more</a>";
+                    } else if (root.itemType === "entity") {
+                        "You do not have 'Rez Certified' permissions in this domain. <a href='#rezCertifiedPermission'>Learn more</a>";
+                    } else {
+                        ""
+                    }
+                }
+                size: 16;
+                anchors.left: parent.left;
+                anchors.leftMargin: 30;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                anchors.right: permissionExplanationGlyph.left;
+                color: hifi.colors.baseGray;
+                wrapMode: Text.WordWrap;
+                verticalAlignment: Text.AlignVCenter;
+
+                onLinkActivated: {
+                    sendToPurchases({method: 'showPermissionsExplanation', itemType: root.itemType});
+                }
+            }
+            // "Close" button
+            HiFiGlyphs {
+                id: permissionExplanationGlyph;
+                text: hifi.glyphs.close;
+                color: hifi.colors.baseGray;
+                size: 26;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                anchors.right: parent.right;
+                width: 77;
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignVCenter;
+                MouseArea {
+                    anchors.fill: parent;
+                    hoverEnabled: true;
+                    onEntered: {
+                        parent.text = hifi.glyphs.closeInverted;
+                    }
+                    onExited: {
+                        parent.text = hifi.glyphs.close;
+                    }
+                    onClicked: {
+                        root.sendToPurchases({ method: 'openPermissionExplanationCard', closeAll: true });
+                    }
+                }
+            }
+        }
 
         Item {
             id: certificateContainer;
@@ -151,19 +301,19 @@ Item {
                 anchors.bottom: parent.bottom;
                 width: 32;
                 // Style
-                color: hifi.colors.lightGray;
+                color: hifi.colors.black;
             }
 
             RalewayRegular {
                 id: viewCertificateText;
                 text: "VIEW CERTIFICATE";
-                size: 14;
+                size: 13;
                 anchors.left: certificateIcon.right;
                 anchors.leftMargin: 4;
                 anchors.top: parent.top;
                 anchors.bottom: parent.bottom;
                 anchors.right: parent.right;
-                color: hifi.colors.lightGray;
+                color: hifi.colors.black;
             }
 
             MouseArea {
@@ -173,12 +323,12 @@ Item {
                     sendToPurchases({method: 'purchases_itemCertificateClicked', itemCertificateId: root.certificateId});
                 }
                 onEntered: {
-                    certificateIcon.color = hifi.colors.black;
-                    viewCertificateText.color = hifi.colors.black;
-                }
-                onExited: {
                     certificateIcon.color = hifi.colors.lightGray;
                     viewCertificateText.color = hifi.colors.lightGray;
+                }
+                onExited: {
+                    certificateIcon.color = hifi.colors.black;
+                    viewCertificateText.color = hifi.colors.black;
                 }
             }
         }
@@ -193,14 +343,14 @@ Item {
             anchors.right: buttonContainer.left;
             anchors.rightMargin: 2;
 
-            FiraSansRegular {
+            RalewayRegular {
                 anchors.left: parent.left;
                 anchors.top: parent.top;
                 anchors.bottom: parent.bottom;
                 width: paintedWidth;
                 text: "#" + root.itemEdition;
-                size: 15;
-                color: "#cc6a6a6a";
+                size: 13;
+                color: hifi.colors.black;
                 verticalAlignment: Text.AlignTop;
             }
         }
@@ -311,17 +461,18 @@ Item {
             id: rezzedNotifContainer;
             z: 998;
             visible: false;
-            color: hifi.colors.blueHighlight;
+            color: "#1FC6A6";
             anchors.fill: buttonContainer;
             MouseArea {
                 anchors.fill: parent;
                 propagateComposedEvents: false;
+                hoverEnabled: true;
             }
 
             RalewayBold {
                 anchors.fill: parent;
-                text: "REZZED";
-                size: 18;
+                text: (root.buttonTextClicked)[itemTypesArray.indexOf(root.itemType)];
+                size: 15;
                 color: hifi.colors.white;
                 verticalAlignment: Text.AlignVCenter;
                 horizontalAlignment: Text.AlignHCenter;
@@ -334,27 +485,89 @@ Item {
                 }
         }
 
+        Rectangle {
+            id: appButtonContainer;
+            color: hifi.colors.white;
+            z: 994;
+            visible: root.isInstalled;
+            anchors.fill: buttonContainer;
+
+            HifiControlsUit.Button {
+                id: openAppButton;
+                color: hifi.buttons.blue;
+                colorScheme: hifi.colorSchemes.light;
+                anchors.top: parent.top;
+                anchors.right: parent.right;
+                anchors.left: parent.left;
+                width: 92;
+                height: 44;
+                text: "OPEN"
+                onClicked: {
+                    Commerce.openApp(root.itemHref);
+                }
+            }
+
+            HifiControlsUit.Button {
+                id: uninstallAppButton;
+                color: hifi.buttons.noneBorderless;
+                colorScheme: hifi.colorSchemes.light;
+                anchors.bottom: parent.bottom;
+                anchors.right: parent.right;
+                anchors.left: parent.left;
+                height: 44;
+                text: "UNINSTALL"
+                onClicked: {
+                    Commerce.uninstallApp(root.itemHref);
+                }
+            }
+        }
+
         Button {
             id: buttonContainer;
-            property int color: hifi.buttons.red;
+            property int color: hifi.buttons.blue;
             property int colorScheme: hifi.colorSchemes.light;
 
             anchors.top: parent.top;
+            anchors.topMargin: 4;
             anchors.bottom: parent.bottom;
+            anchors.bottomMargin: 4;
             anchors.right: parent.right;
+            anchors.rightMargin: 4;
             width: height;
-            enabled: (root.canRezCertifiedItems || root.isWearable) && root.purchaseStatus !== "invalidated";
+            enabled: root.hasPermissionToRezThis &&
+                root.purchaseStatus !== "invalidated" &&
+                MyAvatar.skeletonModelURL !== root.itemHref;
+
+            onHoveredChanged: {
+                if (hovered) {
+                    Tablet.playSound(TabletEnums.ButtonHover);
+                }
+            }
+    
+            onFocusChanged: {
+                if (focus) {
+                    Tablet.playSound(TabletEnums.ButtonHover);
+                }
+            }
             
             onClicked: {
-                sendToPurchases({method: 'purchases_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
-                rezzedNotifContainer.visible = true;
-                rezzedNotifContainerTimer.start();
-                UserActivityLogger.commerceEntityRezzed(root.itemId, "purchases", root.isWearable ? "rez" : "wear");
+                Tablet.playSound(TabletEnums.ButtonClick);
+                if (root.itemType === "contentSet") {
+                    sendToPurchases({method: 'showReplaceContentLightbox', itemHref: root.itemHref});
+                } else if (root.itemType === "avatar") {
+                    sendToPurchases({method: 'showChangeAvatarLightbox', itemName: root.itemName, itemHref: root.itemHref});
+                } else if (root.itemType === "app") {
+                    // "Run" and "Uninstall" buttons are separate.
+                    Commerce.installApp(root.itemHref);
+                } else {
+                    sendToPurchases({method: 'purchases_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
+                    root.showConfirmation = true;
+                }
             }
 
             style: ButtonStyle {
-
                 background: Rectangle {
+                    radius: 4;
                     gradient: Gradient {
                         GradientStop {
                             position: 0.2
@@ -389,13 +602,13 @@ Item {
 
                 label: Item {
                     HiFiGlyphs {
-                        id: lightningIcon;
-                        text: hifi.glyphs.lightning;
+                        id: rezIcon;
+                        text: (root.buttonGlyph)[itemTypesArray.indexOf(root.itemType)];
                         // Size
-                        size: 32;
+                        size: 60;
                         // Anchors
                         anchors.top: parent.top;
-                        anchors.topMargin: 12;
+                        anchors.topMargin: 0;
                         anchors.left: parent.left;
                         anchors.right: parent.right;
                         horizontalAlignment: Text.AlignHCenter;
@@ -404,18 +617,19 @@ Item {
                                        : hifi.buttons.disabledTextColor[control.colorScheme]
                     }
                     RalewayBold {
-                        anchors.top: lightningIcon.bottom;
-                        anchors.topMargin: -20;
+                        id: rezIconLabel;
+                        anchors.top: rezIcon.bottom;
+                        anchors.topMargin: -4;
                         anchors.right: parent.right;
                         anchors.left: parent.left;
                         anchors.bottom: parent.bottom;
                         font.capitalization: Font.AllUppercase
                         color: enabled ? hifi.buttons.textColor[control.color]
                                        : hifi.buttons.disabledTextColor[control.colorScheme]
-                        size: 16;
+                        size: 15;
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignHCenter
-                        text: root.isWearable ? "Wear It" : "Rez It"
+                        text: MyAvatar.skeletonModelURL === root.itemHref ? "CURRENT" : (root.buttonTextNormal)[itemTypesArray.indexOf(root.itemType)];
                     }
                 }
             }
@@ -424,11 +638,11 @@ Item {
 
     DropShadow {
         anchors.fill: mainContainer;
-        horizontalOffset: 3;
-        verticalOffset: 3;
-        radius: 8.0;
-        samples: 17;
-        color: "#80000000";
+        horizontalOffset: 0;
+        verticalOffset: 4;
+        radius: 4.0;
+        samples: 9
+        color: Qt.rgba(0, 0, 0, 0.25);
         source: mainContainer;
     }
 

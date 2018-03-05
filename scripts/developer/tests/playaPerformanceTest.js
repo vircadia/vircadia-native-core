@@ -4,7 +4,6 @@ qmlWindow = new OverlayWindow({
     source: qml, 
     height: 320, 
     width: 640, 
-    toolWindow: false,
     visible: true
 });
 

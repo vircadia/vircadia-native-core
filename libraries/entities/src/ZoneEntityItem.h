@@ -13,11 +13,11 @@
 #define hifi_ZoneEntityItem_h
 
 #include "KeyLightPropertyGroup.h"
+#include "AmbientLightPropertyGroup.h"
 #include "EntityItem.h"
 #include "EntityTree.h"
 #include "SkyboxPropertyGroup.h"
 #include "HazePropertyGroup.h"
-#include "StagePropertyGroup.h"
 #include <ComponentMode.h>
 
 class ZoneEntityItem : public EntityItem {
@@ -66,18 +66,23 @@ public:
     virtual void setCompoundShapeURL(const QString& url);
 
     KeyLightPropertyGroup getKeyLightProperties() const { return resultWithReadLock<KeyLightPropertyGroup>([&] { return _keyLightProperties; }); }
-
-    void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; _backgroundPropertiesChanged = true; }
-    BackgroundMode getBackgroundMode() const { return _backgroundMode; }
+    AmbientLightPropertyGroup getAmbientLightProperties() const { return resultWithReadLock<AmbientLightPropertyGroup>([&] { return _ambientLightProperties; }); }
 
     void setHazeMode(const uint32_t value);
     uint32_t getHazeMode() const;
 
+    void setKeyLightMode(uint32_t value);
+    uint32_t getKeyLightMode() const;
+
+    void setAmbientLightMode(uint32_t value);
+    uint32_t getAmbientLightMode() const;
+
+    void setSkyboxMode(uint32_t value);
+    uint32_t getSkyboxMode() const;
+
     SkyboxPropertyGroup getSkyboxProperties() const { return resultWithReadLock<SkyboxPropertyGroup>([&] { return _skyboxProperties; }); }
     
     const HazePropertyGroup& getHazeProperties() const { return _hazeProperties; }
-
-    const StagePropertyGroup& getStageProperties() const { return _stageProperties; }
 
     bool getFlyingAllowed() const { return _flyingAllowed; }
     void setFlyingAllowed(bool value) { _flyingAllowed = value; }
@@ -87,7 +92,7 @@ public:
     void setFilterURL(const QString url); 
 
     bool keyLightPropertiesChanged() const { return _keyLightPropertiesChanged; }
-    bool backgroundPropertiesChanged() const { return _backgroundPropertiesChanged; }
+    bool ambientLightPropertiesChanged() const { return _ambientLightPropertiesChanged; }
     bool skyboxPropertiesChanged() const { return _skyboxPropertiesChanged; }
 
     bool hazePropertiesChanged() const { 
@@ -102,7 +107,7 @@ public:
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
-                         void** intersectedObject, bool precisionPicking) const override;
+                         QVariantMap& extraInfo, bool precisionPicking) const override;
 
     virtual void debugDump() const override;
 
@@ -112,21 +117,22 @@ public:
     static const bool DEFAULT_GHOSTING_ALLOWED;
     static const QString DEFAULT_FILTER_URL;
 
-    static const uint32_t DEFAULT_HAZE_MODE{ (uint32_t)COMPONENT_MODE_INHERIT };
-
 protected:
     KeyLightPropertyGroup _keyLightProperties;
+    AmbientLightPropertyGroup _ambientLightProperties;
 
     ShapeType _shapeType = DEFAULT_SHAPE_TYPE;
     QString _compoundShapeURL;
 
-    BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
+    // The following 3 values are the defaults for zone creation
+    uint32_t _keyLightMode { COMPONENT_MODE_INHERIT };
+    uint32_t _skyboxMode { COMPONENT_MODE_INHERIT };
+    uint32_t _ambientLightMode { COMPONENT_MODE_INHERIT };
 
-    uint32_t _hazeMode{ DEFAULT_HAZE_MODE };
+    uint32_t _hazeMode { COMPONENT_MODE_INHERIT };
 
     SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;
-    StagePropertyGroup _stageProperties;
 
     bool _flyingAllowed { DEFAULT_FLYING_ALLOWED };
     bool _ghostingAllowed { DEFAULT_GHOSTING_ALLOWED };
@@ -134,7 +140,7 @@ protected:
 
     // Dirty flags turn true when either keylight properties is changing values.
     bool _keyLightPropertiesChanged { false };
-    bool _backgroundPropertiesChanged{ false };
+    bool _ambientLightPropertiesChanged { false };
     bool _skyboxPropertiesChanged { false };
     bool _hazePropertiesChanged{ false };
     bool _stagePropertiesChanged { false };

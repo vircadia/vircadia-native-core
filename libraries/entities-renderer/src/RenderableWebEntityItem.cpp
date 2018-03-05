@@ -30,6 +30,8 @@
 using namespace render;
 using namespace render::entities;
 
+static const QString WEB_ENTITY_QML = "controls/WebEntityView.qml";
+
 const float METERS_TO_INCHES = 39.3701f;
 static uint32_t _currentWebCount{ 0 };
 // Don't allow more than 100 concurrent web views
@@ -124,7 +126,10 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
     withWriteLock([&] {
         // This work must be done on the main thread
         if (!hasWebSurface()) {
-            buildWebSurface(entity);
+            // If we couldn't create a new web surface, exit
+            if (!buildWebSurface(entity)) {
+                return;
+            }
         }
 
         if (_contextPosition != entity->getWorldPosition()) {
@@ -144,7 +149,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         glm::vec2 windowSize = getWindowSize(entity);
         _webSurface->resize(QSize(windowSize.x, windowSize.y));
         _renderTransform = getModelTransform();
-        _renderTransform.postScale(entity->getDimensions());
+        _renderTransform.postScale(entity->getScaledDimensions());
     });
 }
 
@@ -188,7 +193,6 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     });
     batch.setResourceTexture(0, _texture);
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-    batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
 
     DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, fadeRatio < OPAQUE_ALPHA_THRESHOLD);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio), _geometryId);
@@ -217,18 +221,17 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
         });
     };
 
-    {
-        _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
-        _webSurface->create();
-    }
-
+    // FIXME use the surface cache instead of explicit creation
+    _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
     // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
     // and the current rendering load)
     _webSurface->setMaxFps(DEFAULT_MAX_FPS);
-    // FIXME - Keyboard HMD only: Possibly add "HMDinfo" object to context for WebView.qml.
-    _webSurface->getSurfaceContext()->setContextProperty("desktop", QVariant());
-    // Let us interact with the keyboard
-    _webSurface->getSurfaceContext()->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
+    QObject::connect(_webSurface.data(), &OffscreenQmlSurface::rootContextCreated, [this](QQmlContext* surfaceContext) {
+        // FIXME - Keyboard HMD only: Possibly add "HMDinfo" object to context for WebView.qml.
+        surfaceContext->setContextProperty("desktop", QVariant());
+        // Let us interact with the keyboard
+        surfaceContext->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
+    });
     _fadeStartTime = usecTimestampNow();
     loadSourceURL();
     _webSurface->resume();
@@ -274,7 +277,7 @@ void WebEntityRenderer::destroyWebSurface() {
 }
 
 glm::vec2 WebEntityRenderer::getWindowSize(const TypedEntityPointer& entity) const {
-    glm::vec2 dims = glm::vec2(entity->getDimensions());
+    glm::vec2 dims = glm::vec2(entity->getScaledDimensions());
     dims *= METERS_TO_INCHES * _lastDPI;
 
     // ensure no side is never larger then MAX_WINDOW_SIZE
@@ -291,7 +294,6 @@ void WebEntityRenderer::loadSourceURL() {
     if (sourceUrl.scheme() == "http" || sourceUrl.scheme() == "https" ||
         _lastSourceUrl.toLower().endsWith(".htm") || _lastSourceUrl.toLower().endsWith(".html")) {
         _contentType = htmlContent;
-        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "qml/controls/"));
 
         // We special case YouTube URLs since we know they are videos that we should play with at least 30 FPS.
         if (sourceUrl.host().endsWith("youtube.com", Qt::CaseInsensitive)) {
@@ -300,12 +302,11 @@ void WebEntityRenderer::loadSourceURL() {
             _webSurface->setMaxFps(DEFAULT_MAX_FPS);
         }
 
-        _webSurface->load("WebEntityView.qml", [this](QQmlContext* context, QObject* item) {
+        _webSurface->load("controls/WebEntityView.qml", [this](QQmlContext* context, QObject* item) {
             item->setProperty("url", _lastSourceUrl);
         });
     } else {
         _contentType = qmlContent;
-        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath()));
         _webSurface->load(_lastSourceUrl);
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();

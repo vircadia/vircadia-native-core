@@ -31,6 +31,9 @@ public:
     SkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr);
     ~SkeletonModel();
 
+    Q_INVOKABLE void setURL(const QUrl& url) override;
+    Q_INVOKABLE void setTextures(const QVariantMap& textures) override;
+
     void initJointStates() override;
 
     void simulate(float deltaTime, bool fullUpdate = true) override;
@@ -54,11 +57,6 @@ public:
     /// \return true whether or not the position was found
     bool getRightHandPosition(glm::vec3& position) const;
 
-    /// Restores some fraction of the default position of the left hand.
-    /// \param fraction the fraction of the default position to restore
-    /// \return whether or not the left hand joint was found
-    bool restoreLeftHandPosition(float fraction = 1.0f, float priority = 1.0f);
-
     /// Gets the position of the left shoulder.
     /// \return whether or not the left shoulder joint was found
     bool getLeftShoulderPosition(glm::vec3& position) const;
@@ -66,17 +64,9 @@ public:
     /// Returns the extended length from the left hand to its last free ancestor.
     float getLeftArmLength() const;
 
-    /// Restores some fraction of the default position of the right hand.
-    /// \param fraction the fraction of the default position to restore
-    /// \return whether or not the right hand joint was found
-    bool restoreRightHandPosition(float fraction = 1.0f, float priority = 1.0f);
-
     /// Gets the position of the right shoulder.
     /// \return whether or not the right shoulder joint was found
     bool getRightShoulderPosition(glm::vec3& position) const;
-
-    /// Returns the extended length from the right hand to its first free ancestor.
-    float getRightArmLength() const;
 
     /// Returns the position of the head joint.
     /// \return whether or not the head was found
@@ -115,8 +105,6 @@ protected:
 
     void computeBoundingShape();
 
-protected:
-
     bool getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
 
     Avatar* _owningAvatar;
@@ -128,6 +116,9 @@ protected:
     glm::vec3 _defaultEyeModelPosition;
 
     float _headClipDistance;  // Near clip distance to use if no separate head model
+
+private:
+    bool _texturesLoaded { false };
 };
 
 #endif // hifi_SkeletonModel_h

@@ -39,6 +39,7 @@
 #include <AudioHelpers.h>
 #include <Profile.h>
 #include <VariantMapToScriptValue.h>
+#include <BitVectorHelpers.h>
 
 #include "AvatarLogging.h"
 
@@ -77,6 +78,16 @@ size_t AvatarDataPacket::maxJointDataSize(size_t numJoints) {
     return totalSize;
 }
 
+size_t AvatarDataPacket::maxJointDefaultPoseFlagsSize(size_t numJoints) {
+    const size_t bitVectorSize = calcBitVectorSize((int)numJoints);
+    size_t totalSize = sizeof(uint8_t); // numJoints
+
+    // one set of bits for rotation and one for translation
+    const size_t NUM_BIT_VECTORS_IN_DEFAULT_POSE_FLAGS_SECTION = 2;
+    totalSize += NUM_BIT_VECTORS_IN_DEFAULT_POSE_FLAGS_SECTION * bitVectorSize;
+
+    return totalSize;
+}
 
 AvatarData::AvatarData() :
     SpatiallyNestable(NestableType::Avatar, QUuid()),
@@ -103,7 +114,7 @@ AvatarData::~AvatarData() {
 QUrl AvatarData::_defaultFullAvatarModelUrl = {}; // In C++, if this initialization were in the AvatarInfo, every file would have it's own copy, even for class vars.
 const QUrl& AvatarData::defaultFullAvatarModelUrl() {
     if (_defaultFullAvatarModelUrl.isEmpty()) {
-        _defaultFullAvatarModelUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "/meshes/defaultAvatar_full.fst");
+        _defaultFullAvatarModelUrl = PathUtils::resourcesUrl("/meshes/defaultAvatar_full.fst");
     }
     return _defaultFullAvatarModelUrl;
 }
@@ -272,6 +283,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     bool hasFaceTrackerInfo = false;
     bool hasJointData = false;
+    bool hasJointDefaultPoseFlags = false;
 
     if (sendPALMinimum) {
         hasAudioLoudness = true;
@@ -290,12 +302,14 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
         hasFaceTrackerInfo = !dropFaceTracking && hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
         hasJointData = sendAll || !sendMinimum;
+        hasJointDefaultPoseFlags = hasJointData;
     }
 
 
     const size_t byteArraySize = AvatarDataPacket::MAX_CONSTANT_HEADER_SIZE +
         (hasFaceTrackerInfo ? AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getNumSummedBlendshapeCoefficients()) : 0) +
-        (hasJointData ? AvatarDataPacket::maxJointDataSize(_jointData.size()) : 0);
+        (hasJointData ? AvatarDataPacket::maxJointDataSize(_jointData.size()) : 0) +
+        (hasJointDefaultPoseFlags ? AvatarDataPacket::maxJointDefaultPoseFlagsSize(_jointData.size()) : 0);
 
     QByteArray avatarDataByteArray((int)byteArraySize, 0);
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
@@ -314,7 +328,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         | (hasParentInfo ? AvatarDataPacket::PACKET_HAS_PARENT_INFO : 0)
         | (hasAvatarLocalPosition ? AvatarDataPacket::PACKET_HAS_AVATAR_LOCAL_POSITION : 0)
         | (hasFaceTrackerInfo ? AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO : 0)
-        | (hasJointData ? AvatarDataPacket::PACKET_HAS_JOINT_DATA : 0);
+        | (hasJointData ? AvatarDataPacket::PACKET_HAS_JOINT_DATA : 0)
+        | (hasJointDefaultPoseFlags ? AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS : 0);
 
     memcpy(destinationBuffer, &packetStateFlags, sizeof(packetStateFlags));
     destinationBuffer += sizeof(packetStateFlags);
@@ -530,21 +545,30 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
         destinationBuffer += numValidityBytes; // Move pointer past the validity bytes
 
+        // sentJointDataOut and lastSentJointData might be the same vector
+        // build sentJointDataOut locally and then swap it at the end.
+        QVector<JointData> localSentJointDataOut;
         if (sentJointDataOut) {
-            sentJointDataOut->resize(_jointData.size()); // Make sure the destination is resized before using it
+            localSentJointDataOut.resize(numJoints); // Make sure the destination is resized before using it
         }
+
         float minRotationDOT = !distanceAdjust ? AVATAR_MIN_ROTATION_DOT : getDistanceBasedMinRotationDOT(viewerPosition);
 
         for (int i = 0; i < _jointData.size(); i++) {
             const JointData& data = _jointData[i];
+            const JointData& last = lastSentJointData[i];
 
-            // The dot product for smaller rotations is a smaller number.
-            // So if the dot() is less than the value, then the rotation is a larger angle of rotation
-            bool largeEnoughRotation = fabsf(glm::dot(data.rotation, lastSentJointData[i].rotation)) < minRotationDOT;
+            if (!data.rotationIsDefaultPose) {
+                if (sendAll || last.rotationIsDefaultPose || last.rotation != data.rotation) {
 
-            if (sendAll || lastSentJointData[i].rotation != data.rotation) {
-                if (sendAll || !cullSmallChanges || largeEnoughRotation) {
-                    if (data.rotationSet) {
+                    bool largeEnoughRotation = true;
+                    if (cullSmallChanges) {
+                        // The dot product for smaller rotations is a smaller number.
+                        // So if the dot() is less than the value, then the rotation is a larger angle of rotation
+                        largeEnoughRotation = fabsf(glm::dot(last.rotation, data.rotation)) < minRotationDOT;
+                    }
+
+                    if (sendAll || !cullSmallChanges || largeEnoughRotation) {
                         validity |= (1 << validityBit);
 #ifdef WANT_DEBUG
                         rotationSentCount++;
@@ -552,10 +576,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
 
                         if (sentJointDataOut) {
-                            auto jointDataOut = *sentJointDataOut;
-                            jointDataOut[i].rotation = data.rotation;
+                            localSentJointDataOut[i].rotation = data.rotation;
+                            localSentJointDataOut[i].rotationIsDefaultPose = false;
                         }
-
                     }
                 }
             }
@@ -585,11 +608,10 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         float maxTranslationDimension = 0.0;
         for (int i = 0; i < _jointData.size(); i++) {
             const JointData& data = _jointData[i];
-            if (sendAll || lastSentJointData[i].translation != data.translation) {
-                if (sendAll ||
-                    !cullSmallChanges ||
-                    glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation) {
-                    if (data.translationSet) {
+
+            if (!data.translationIsDefaultPose) {
+                if (sendAll || lastSentJointData[i].translation != data.translation) {
+                    if (sendAll || !cullSmallChanges || glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation) {
                         validity |= (1 << validityBit);
 #ifdef WANT_DEBUG
                         translationSentCount++;
@@ -602,10 +624,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                             packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
 
                         if (sentJointDataOut) {
-                            auto jointDataOut = *sentJointDataOut;
-                            jointDataOut[i].translation = data.translation;
+                            localSentJointDataOut[i].translation = data.translation;
+                            localSentJointDataOut[i].translationIsDefaultPose = false;
                         }
-
                     }
                 }
             }
@@ -646,6 +667,35 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         if (outboundDataRateOut) {
             outboundDataRateOut->jointDataRate.increment(numBytes);
         }
+
+        if (sentJointDataOut) {
+            // Push new sent joint data to sentJointDataOut
+            sentJointDataOut->swap(localSentJointDataOut);
+        }
+    }
+
+    if (hasJointDefaultPoseFlags) {
+        auto startSection = destinationBuffer;
+        QReadLocker readLock(&_jointDataLock);
+
+        // write numJoints
+        int numJoints = _jointData.size();
+        *destinationBuffer++ = (uint8_t)numJoints;
+
+        // write rotationIsDefaultPose bits
+        destinationBuffer += writeBitVector(destinationBuffer, numJoints, [&](int i) {
+            return _jointData[i].rotationIsDefaultPose;
+        });
+
+        // write translationIsDefaultPose bits
+        destinationBuffer += writeBitVector(destinationBuffer, numJoints, [&](int i) {
+            return _jointData[i].translationIsDefaultPose;
+        });
+
+        if (outboundDataRateOut) {
+            size_t numBytes = destinationBuffer - startSection;
+            outboundDataRateOut->jointDefaultPoseFlagsRate.increment(numBytes);
+        }
     }
 
     int avatarDataSize = destinationBuffer - startPosition;
@@ -657,6 +707,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     return avatarDataByteArray.left(avatarDataSize);
 }
+
 // NOTE: This is never used in a "distanceAdjust" mode, so it's ok that it doesn't use a variable minimum rotation/translation
 void AvatarData::doneEncoding(bool cullSmallChanges) {
     // The server has finished sending this version of the joint-data to other nodes.  Update _lastSentJointData.
@@ -667,7 +718,7 @@ void AvatarData::doneEncoding(bool cullSmallChanges) {
         if (_lastSentJointData[i].rotation != data.rotation) {
             if (!cullSmallChanges ||
                 fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= AVATAR_MIN_ROTATION_DOT) {
-                if (data.rotationSet) {
+                if (!data.rotationIsDefaultPose) {
                     _lastSentJointData[i].rotation = data.rotation;
                 }
             }
@@ -675,7 +726,7 @@ void AvatarData::doneEncoding(bool cullSmallChanges) {
         if (_lastSentJointData[i].translation != data.translation) {
             if (!cullSmallChanges ||
                 glm::distance(data.translation, _lastSentJointData[i].translation) > AVATAR_MIN_TRANSLATION) {
-                if (data.translationSet) {
+                if (!data.translationIsDefaultPose) {
                     _lastSentJointData[i].translation = data.translation;
                 }
             }
@@ -723,6 +774,7 @@ const unsigned char* unpackFauxJoint(const unsigned char* sourceBuffer, ThreadSa
 
 // read data in packet starting at byte offset and return number of bytes parsed
 int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
+
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     lazyInitHeadData();
 
@@ -738,18 +790,19 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     #define HAS_FLAG(B,F) ((B & F) == F)
 
-    bool hasAvatarGlobalPosition = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_GLOBAL_POSITION);
-    bool hasAvatarBoundingBox    = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_BOUNDING_BOX);
-    bool hasAvatarOrientation    = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_ORIENTATION);
-    bool hasAvatarScale          = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_SCALE);
-    bool hasLookAtPosition       = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_LOOK_AT_POSITION);
-    bool hasAudioLoudness        = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AUDIO_LOUDNESS);
-    bool hasSensorToWorldMatrix  = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_SENSOR_TO_WORLD_MATRIX);
-    bool hasAdditionalFlags      = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_ADDITIONAL_FLAGS);
-    bool hasParentInfo           = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_PARENT_INFO);
-    bool hasAvatarLocalPosition  = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_LOCAL_POSITION);
-    bool hasFaceTrackerInfo      = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO);
-    bool hasJointData            = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_JOINT_DATA);
+    bool hasAvatarGlobalPosition  = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_GLOBAL_POSITION);
+    bool hasAvatarBoundingBox     = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_BOUNDING_BOX);
+    bool hasAvatarOrientation     = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_ORIENTATION);
+    bool hasAvatarScale           = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_SCALE);
+    bool hasLookAtPosition        = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_LOOK_AT_POSITION);
+    bool hasAudioLoudness         = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AUDIO_LOUDNESS);
+    bool hasSensorToWorldMatrix   = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_SENSOR_TO_WORLD_MATRIX);
+    bool hasAdditionalFlags       = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_ADDITIONAL_FLAGS);
+    bool hasParentInfo            = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_PARENT_INFO);
+    bool hasAvatarLocalPosition   = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_AVATAR_LOCAL_POSITION);
+    bool hasFaceTrackerInfo       = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO);
+    bool hasJointData             = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_JOINT_DATA);
+    bool hasJointDefaultPoseFlags = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS);
 
     quint64 now = usecTimestampNow();
 
@@ -1048,7 +1101,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             if (validRotations[i]) {
                 sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, data.rotation);
                 _hasNewJointData = true;
-                data.rotationSet = true;
+                data.rotationIsDefaultPose = false;
             }
         }
 
@@ -1083,7 +1136,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             if (validTranslations[i]) {
                 sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
                 _hasNewJointData = true;
-                data.translationSet = true;
+                data.translationIsDefaultPose = false;
             }
         }
 
@@ -1101,6 +1154,32 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         int numBytesRead = sourceBuffer - startSection;
         _jointDataRate.increment(numBytesRead);
         _jointDataUpdateRate.increment();
+    }
+
+    if (hasJointDefaultPoseFlags) {
+        auto startSection = sourceBuffer;
+
+        QWriteLocker writeLock(&_jointDataLock);
+
+        PACKET_READ_CHECK(JointDefaultPoseFlagsNumJoints, sizeof(uint8_t));
+        int numJoints = (int)*sourceBuffer++;
+
+        _jointData.resize(numJoints);
+
+        size_t bitVectorSize = calcBitVectorSize(numJoints);
+        PACKET_READ_CHECK(JointDefaultPoseFlagsRotationFlags, bitVectorSize);
+        sourceBuffer += readBitVector(sourceBuffer, numJoints, [&](int i, bool value) {
+            _jointData[i].rotationIsDefaultPose = value;
+        });
+
+        PACKET_READ_CHECK(JointDefaultPoseFlagsTranslationFlags, bitVectorSize);
+        sourceBuffer += readBitVector(sourceBuffer, numJoints, [&](int i, bool value) {
+            _jointData[i].translationIsDefaultPose = value;
+        });
+
+        int numBytesRead = sourceBuffer - startSection;
+        _jointDefaultPoseFlagsRate.increment(numBytesRead);
+        _jointDefaultPoseFlagsUpdateRate.increment();
     }
 
     int numBytesRead = sourceBuffer - startPosition;
@@ -1139,6 +1218,8 @@ float AvatarData::getDataRate(const QString& rateName) const {
         return _faceTrackerRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "jointData") {
         return _jointDataRate.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "jointDefaultPoseFlagsRate") {
+        return _jointDefaultPoseFlagsRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "globalPositionOutbound") {
         return _outboundDataRate.globalPositionRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "localPositionOutbound") {
@@ -1163,6 +1244,8 @@ float AvatarData::getDataRate(const QString& rateName) const {
         return _outboundDataRate.faceTrackerRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "jointDataOutbound") {
         return _outboundDataRate.jointDataRate.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "jointDefaultPoseFlagsOutbound") {
+        return _outboundDataRate.jointDefaultPoseFlagsRate.rate() / BYTES_PER_KILOBIT;
     }
     return 0.0f;
 }
@@ -1229,9 +1312,9 @@ void AvatarData::setJointData(int index, const glm::quat& rotation, const glm::v
     }
     JointData& data = _jointData[index];
     data.rotation = rotation;
-    data.rotationSet = true;
+    data.rotationIsDefaultPose = false;
     data.translation = translation;
-    data.translationSet = true;
+    data.translationIsDefaultPose = false;
 }
 
 void AvatarData::clearJointData(int index) {
@@ -1287,7 +1370,8 @@ void AvatarData::setJointData(const QString& name, const glm::quat& rotation, co
         auto& jointData = _jointData[index];
         jointData.rotation = rotation;
         jointData.translation = translation;
-        jointData.rotationSet = jointData.translationSet = true;
+        jointData.rotationIsDefaultPose = false;
+        jointData.translationIsDefaultPose = false;
     });
 }
 
@@ -1297,7 +1381,7 @@ void AvatarData::setJointRotation(const QString& name, const glm::quat& rotation
     writeLockWithNamedJointIndex(name, [&](int index) {
         auto& data = _jointData[index];
         data.rotation = rotation;
-        data.rotationSet = true;
+        data.rotationIsDefaultPose = false;
     });
 }
 
@@ -1307,7 +1391,7 @@ void AvatarData::setJointTranslation(const QString& name, const glm::vec3& trans
     writeLockWithNamedJointIndex(name, [&](int index) {
         auto& data = _jointData[index];
         data.translation = translation;
-        data.translationSet = true;
+        data.translationIsDefaultPose = false;
     });
 }
 
@@ -1321,7 +1405,7 @@ void AvatarData::setJointRotation(int index, const glm::quat& rotation) {
     }
     JointData& data = _jointData[index];
     data.rotation = rotation;
-    data.rotationSet = true;
+    data.rotationIsDefaultPose = false;
 }
 
 void AvatarData::setJointTranslation(int index, const glm::vec3& translation) {
@@ -1334,7 +1418,7 @@ void AvatarData::setJointTranslation(int index, const glm::vec3& translation) {
     }
     JointData& data = _jointData[index];
     data.translation = translation;
-    data.translationSet = true;
+    data.translationIsDefaultPose = false;
 }
 
 void AvatarData::clearJointData(const QString& name) {
@@ -1390,7 +1474,7 @@ void AvatarData::setJointRotations(const QVector<glm::quat>& jointRotations) {
     for (int i = 0; i < size; ++i) {
         auto& data = _jointData[i];
         data.rotation = jointRotations[i];
-        data.rotationSet = true;
+        data.rotationIsDefaultPose = false;
     }
 }
 
@@ -1412,7 +1496,7 @@ void AvatarData::setJointTranslations(const QVector<glm::vec3>& jointTranslation
     for (int i = 0; i < size; ++i) {
         auto& data = _jointData[i];
         data.translation = jointTranslations[i];
-        data.translationSet = true;
+        data.translationIsDefaultPose = false;
     }
 }
 
@@ -1989,9 +2073,9 @@ JointData jointDataFromJsonValue(const QJsonValue& json) {
     if (json.isArray()) {
         QJsonArray array = json.toArray();
         result.rotation = quatFromJsonValue(array[0]);
-        result.rotationSet = true;
+        result.rotationIsDefaultPose = false;
         result.translation = vec3FromJsonValue(array[1]);
-        result.translationSet = true;
+        result.translationIsDefaultPose = false;
     }
     return result;
 }
@@ -2420,6 +2504,7 @@ QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, c
     obj.setProperty("distance", value.distance);
     QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
+    obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
 }
 
@@ -2432,6 +2517,7 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     if (intersection.isValid()) {
         vec3FromScriptValue(intersection, value.intersection);
     }
+    value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }
 
 const float AvatarData::OUT_OF_VIEW_PENALTY = -10.0f;

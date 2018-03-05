@@ -19,7 +19,7 @@
 
 #include "AudioConstants.h"
 
-void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes, quint16& sequenceNumber,
+void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes, quint16& sequenceNumber, bool isStereo,
                                              const Transform& transform, glm::vec3 avatarBoundingBoxCorner, glm::vec3 avatarBoundingBoxScale,
                                              PacketType packetType, QString codecName) {
     static std::mutex _mutex;
@@ -29,9 +29,6 @@ void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes
     if (audioMixer && audioMixer->getActiveSocket()) {
         Locker lock(_mutex);
         auto audioPacket = NLPacket::create(packetType);
-
-        // FIXME - this is not a good way to determine stereoness with codecs.... 
-        quint8 isStereo = bytes == AudioConstants::NETWORK_FRAME_BYTES_STEREO ? 1 : 0;
 
         // write sequence number
         auto sequence = sequenceNumber++;
@@ -48,8 +45,12 @@ void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes
             audioPacket->writePrimitive(numSilentSamples);
         } else {
             // set the mono/stereo byte
-            audioPacket->writePrimitive(isStereo);
+            quint8 channelFlag = isStereo ? 1 : 0;
+            audioPacket->writePrimitive(channelFlag);
         }
+
+        // at this point we'd better be sending the mixer a valid position, or it won't consider us for mixing
+        assert(!isNaN(transform.getTranslation()));
 
         // pack the three float positions
         audioPacket->writePrimitive(transform.getTranslation());

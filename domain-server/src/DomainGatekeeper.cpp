@@ -161,7 +161,7 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
         } else if (_server->_settingsManager.hasPermissionsForMachineFingerprint(machineFingerprint)) {
             userPerms = _server->_settingsManager.getPermissionsForMachineFingerprint(machineFingerprint);
 #ifdef WANT_DEBUG
-            qDebug(() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
+            qDebug() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
 #endif
         } else if (_server->_settingsManager.hasPermissionsForIP(senderAddress)) {
             // this user comes from an IP we have in our permissions table, apply those permissions
@@ -187,7 +187,7 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
         } else if (_server->_settingsManager.hasPermissionsForMachineFingerprint(machineFingerprint)) {
             userPerms = _server->_settingsManager.getPermissionsForMachineFingerprint(machineFingerprint);
 #ifdef WANT_DEBUG
-            qDebug(() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
+            qDebug() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
 #endif
         } else if (_server->_settingsManager.hasPermissionsForIP(senderAddress)) {
             // this user comes from an IP we have in our permissions table, apply those permissions
@@ -393,9 +393,12 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     QString verifiedUsername; // if this remains empty, consider this an anonymous connection attempt
     if (!username.isEmpty()) {
-        if (usernameSignature.isEmpty()) {
+        const QUuid& connectionToken = _connectionTokenHash.value(username.toLower());
+
+        if (usernameSignature.isEmpty() || connectionToken.isNull()) {
             // user is attempting to prove their identity to us, but we don't have enough information
             sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
+
             // ask for their public key right now to make sure we have it
             requestUserPublicKey(username, true);
             getGroupMemberships(username); // optimistically get started on group memberships
@@ -432,10 +435,11 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     if (!userPerms.can(NodePermissions::Permission::canConnectPastMaxCapacity) && !isWithinMaxCapacity()) {
         // we can't allow this user to connect because we are at max capacity
         QString redirectOnMaxCapacity;
-        const QVariant* redirectOnMaxCapacityVariant =
-            valueForKeyPath(_server->_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION);
-        if (redirectOnMaxCapacityVariant && redirectOnMaxCapacityVariant->canConvert<QString>()) {
-            redirectOnMaxCapacity = redirectOnMaxCapacityVariant->toString();
+
+        QVariant redirectOnMaxCapacityVariant =
+            _server->_settingsManager.valueForKeyPath(MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION);
+        if (redirectOnMaxCapacityVariant.canConvert<QString>()) {
+            redirectOnMaxCapacity = redirectOnMaxCapacityVariant.toString();
             qDebug() << "Redirection domain:" << redirectOnMaxCapacity;
         }
 
@@ -607,9 +611,9 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
 
 bool DomainGatekeeper::isWithinMaxCapacity() {
     // find out what our maximum capacity is
-    const QVariant* maximumUserCapacityVariant =
-        valueForKeyPath(_server->_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY);
-    unsigned int maximumUserCapacity = maximumUserCapacityVariant ? maximumUserCapacityVariant->toUInt() : 0;
+    QVariant maximumUserCapacityVariant =
+        _server->_settingsManager.valueForKeyPath(MAXIMUM_USER_CAPACITY);
+    unsigned int maximumUserCapacity = maximumUserCapacityVariant.isValid() ? maximumUserCapacityVariant.toUInt() : 0;
 
     if (maximumUserCapacity > 0) {
         unsigned int connectedUsers = _server->countConnectedUsers();

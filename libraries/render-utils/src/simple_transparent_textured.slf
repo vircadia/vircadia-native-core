@@ -16,7 +16,7 @@
 
 <@include DeferredBufferWrite.slh@>
 <@include DeferredGlobalLight.slh@>
-<$declareEvalGlobalLightingAlphaBlended()$>
+<$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
 
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
@@ -45,7 +45,7 @@ void main(void) {
 
     TransformCamera cam = getTransformCamera();
 
-    _fragColor0 = vec4(evalGlobalLightingAlphaBlended(
+    _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
         cam._viewInverse,
         1.0,
         1.0,

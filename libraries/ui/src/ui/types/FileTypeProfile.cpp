@@ -13,6 +13,7 @@
 
 #include "FileTypeRequestInterceptor.h"
 
+#if !defined(Q_OS_ANDROID)
 static const QString QML_WEB_ENGINE_STORAGE_NAME = "qmlWebEngine";
 
 FileTypeProfile::FileTypeProfile(QObject* parent) :
@@ -24,3 +25,4 @@ FileTypeProfile::FileTypeProfile(QObject* parent) :
     auto requestInterceptor = new FileTypeRequestInterceptor(this);
     setRequestInterceptor(requestInterceptor);
 }
+#endif

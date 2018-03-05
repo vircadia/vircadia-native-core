@@ -26,14 +26,16 @@ class Ledger : public QObject, public Dependency {
 
 public:
     void buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const bool controlled_failure = false);
-    bool receiveAt(const QString& hfc_key, const QString& old_key);
+    bool receiveAt(const QString& hfc_key, const QString& signing_key);
     void balance(const QStringList& keys);
     void inventory(const QStringList& keys);
-    void history(const QStringList& keys);
+    void history(const QStringList& keys, const int& pageNumber);
     void account();
-    void reset();
     void updateLocation(const QString& asset_id, const QString location, const bool controlledFailure = false);
     void certificateInfo(const QString& certificateId);
+    void transferHfcToNode(const QString& hfc_key, const QString& nodeID, const int& amount, const QString& optionalMessage);
+    void transferHfcToUsername(const QString& hfc_key, const QString& username, const int& amount, const QString& optionalMessage);
+    void alreadyOwned(const QString& marketplaceId);
 
     enum CertificateStatus {
         CERTIFICATE_STATUS_UNKNOWN = 0,
@@ -52,6 +54,9 @@ signals:
     void accountResult(QJsonObject result);
     void locationUpdateResult(QJsonObject result);
     void certificateInfoResult(QJsonObject result);
+    void transferHfcToNodeResult(QJsonObject result);
+    void transferHfcToUsernameResult(QJsonObject result);
+    void alreadyOwnedResult(QJsonObject result);
 
     void updateCertificateStatus(const QString& certID, uint certStatus);
 
@@ -66,19 +71,24 @@ public slots:
     void inventoryFailure(QNetworkReply& reply);
     void historySuccess(QNetworkReply& reply);
     void historyFailure(QNetworkReply& reply);
-    void resetSuccess(QNetworkReply& reply);
-    void resetFailure(QNetworkReply& reply);
     void accountSuccess(QNetworkReply& reply);
     void accountFailure(QNetworkReply& reply);
     void updateLocationSuccess(QNetworkReply& reply);
     void updateLocationFailure(QNetworkReply& reply);
     void certificateInfoSuccess(QNetworkReply& reply);
     void certificateInfoFailure(QNetworkReply& reply);
+    void transferHfcToNodeSuccess(QNetworkReply& reply);
+    void transferHfcToNodeFailure(QNetworkReply& reply);
+    void transferHfcToUsernameSuccess(QNetworkReply& reply);
+    void transferHfcToUsernameFailure(QNetworkReply& reply);
+    void alreadyOwnedSuccess(QNetworkReply& reply);
+    void alreadyOwnedFailure(QNetworkReply& reply);
 
 private:
     QJsonObject apiResponse(const QString& label, QNetworkReply& reply);
     QJsonObject failResponse(const QString& label, QNetworkReply& reply);
     void send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request);
+    void keysQuery(const QString& endpoint, const QString& success, const QString& fail, QJsonObject& extraRequestParams);
     void keysQuery(const QString& endpoint, const QString& success, const QString& fail);
     void signedSend(const QString& propertyName, const QByteArray& text, const QString& key, const QString& endpoint, const QString& success, const QString& fail, const bool controlled_failure = false);
 };

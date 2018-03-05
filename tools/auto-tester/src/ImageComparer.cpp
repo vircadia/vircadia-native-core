@@ -8,6 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "ImageComparer.h"
+#include "common.h"
 
 #include <cmath>
 
@@ -25,11 +26,6 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
     const double K2{ 0.03 };
     const double c1 = pow((K1 * L), 2);
     const double c2 = pow((K2 * L), 2);
-
-    // Coefficients for luminosity calculation
-    const double R_Y = 0.212655f;
-    const double G_Y = 0.715158f;
-    const double B_Y = 0.072187f;
 
     // First go over all full 8x8 blocks
     // This is done in 3 loops

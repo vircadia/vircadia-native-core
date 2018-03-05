@@ -20,6 +20,7 @@
 #include <AvatarData.h>
 #include <ShapeInfo.h>
 #include <render/Scene.h>
+#include <graphics-scripting/Forward.h>
 #include <GLMHelpers.h>
 
 
@@ -53,7 +54,7 @@ class Texture;
 
 using AvatarPhysicsCallback = std::function<void(uint32_t)>;
 
-class Avatar : public AvatarData {
+class Avatar : public AvatarData, public scriptable::ModelProvider {
     Q_OBJECT
 
     /**jsdoc
@@ -268,8 +269,14 @@ public:
 
     virtual float getModelScale() const { return _modelScale; }
     virtual void setModelScale(float scale) { _modelScale = scale; }
+    virtual glm::vec3 scaleForChildren() const override { return glm::vec3(getModelScale()); }
 
     virtual void setAvatarEntityDataChanged(bool value) override;
+
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
+
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
 public slots:
 
@@ -305,6 +312,7 @@ protected:
 
     glm::vec3 _skeletonOffset;
     std::vector<std::shared_ptr<Model>> _attachmentModels;
+    std::vector<bool> _attachmentModelsTexturesLoaded;
     std::vector<std::shared_ptr<Model>> _attachmentsToRemove;
     std::vector<std::shared_ptr<Model>> _attachmentsToDelete;
 
@@ -329,6 +337,7 @@ protected:
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
+    void relayJointDataToChildren();
 
     void fade(render::Transaction& transaction, render::Transition::Type type);
 
@@ -381,6 +390,7 @@ protected:
     bool _isAnimatingScale { false };
     bool _mustFadeIn { false };
     bool _isFading { false };
+    bool _reconstructSoftEntitiesJointMap { false };
     float _modelScale { 1.0f };
 
     static int _jointConesID;
@@ -393,6 +403,11 @@ protected:
     float _displayNameAlpha { 1.0f };
 
     ThreadSafeValueCache<float> _unscaledEyeHeightCache { DEFAULT_AVATAR_EYE_HEIGHT };
+
+    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
+    std::mutex _materialsLock;
+
+    void processMaterials();
 };
 
 #endif // hifi_Avatar_h

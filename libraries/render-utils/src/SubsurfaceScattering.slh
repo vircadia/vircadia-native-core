@@ -63,38 +63,6 @@ vec3 scatter(float r) {
 <@endfunc@>
 
 
-<@func declareSkinSpecularLighting()@>
-
-uniform sampler2D scatteringSpecularBeckmann;
-
-float fetchSpecularBeckmann(float ndoth, float roughness) {
-    return pow( 2.0 * texture(scatteringSpecularBeckmann, vec2(ndoth, roughness)).r, 10.0);
-}
-
-float fresnelReflectance(vec3 H, vec3 V, float Fo) {
-    float base = 1.0 - dot(V, H);
-    float exponential = pow(base, 5.0);
-    return exponential + Fo * (1.0 - exponential);
-}
-
-float skinSpecular(vec3 N, vec3 L, vec3 V, float roughness, float intensity) {
-    float result = 0.0;
-    float ndotl = dot(N, L);
-    if (ndotl > 0.0) {
-        vec3 h = L + V;
-        vec3 H = normalize(h);
-        float ndoth = dot(N, H);
-        float PH = fetchSpecularBeckmann(ndoth, roughness);
-        float F = fresnelReflectance(H, V, 0.028);
-        float frSpec = max(PH * F / dot(h, h), 0.0);
-        result = ndotl * intensity * frSpec;
-    }
-
-    return result;
-}
-
-<@endfunc@>
-
 <@func declareSubsurfaceScatteringIntegrate(NumIntegrationSteps)@>
 
 

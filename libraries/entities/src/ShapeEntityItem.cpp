@@ -85,6 +85,7 @@ EntityItemPointer ShapeEntityItem::sphereFactory(const EntityItemID& entityID, c
 ShapeEntityItem::ShapeEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Shape;
     _volumeMultiplier *= PI / 6.0f;
+    _material = std::make_shared<graphics::Material>();
 }
 
 EntityItemProperties ShapeEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
@@ -106,11 +107,11 @@ void ShapeEntityItem::setShape(const entity::Shape& shape) {
             break;
         case entity::Shape::Circle:
             // Circle is implicitly flat so we enforce flat dimensions
-            setDimensions(getDimensions());
+            setUnscaledDimensions(getUnscaledDimensions());
             break;
         case entity::Shape::Quad:
             // Quad is implicitly flat so we enforce flat dimensions
-            setDimensions(getDimensions());
+            setUnscaledDimensions(getUnscaledDimensions());
             break;
         default:
             _type = EntityTypes::Shape;
@@ -184,6 +185,7 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
 void ShapeEntityItem::setColor(const rgbColor& value) {
     memcpy(_color, value, sizeof(rgbColor));
+    _material->setAlbedo(glm::vec3(_color[0], _color[1], _color[2]) / 255.0f);
 }
 
 xColor ShapeEntityItem::getXColor() const {
@@ -204,15 +206,20 @@ void ShapeEntityItem::setColor(const QColor& value) {
     setAlpha(value.alpha());
 }
 
-void ShapeEntityItem::setDimensions(const glm::vec3& value) {
+void ShapeEntityItem::setAlpha(float alpha) {
+    _alpha = alpha;
+    _material->setOpacity(alpha);
+}
+
+void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     const float MAX_FLAT_DIMENSION = 0.0001f;
-	if ((_shape == entity::Shape::Circle || _shape == entity::Shape::Quad) && value.y > MAX_FLAT_DIMENSION) {
+    if ((_shape == entity::Shape::Circle || _shape == entity::Shape::Quad) && value.y > MAX_FLAT_DIMENSION) {
         // enforce flatness in Y
         glm::vec3 newDimensions = value;
         newDimensions.y = MAX_FLAT_DIMENSION;
-        EntityItem::setDimensions(newDimensions);
-	} else {
-        EntityItem::setDimensions(value);
+        EntityItem::setUnscaledDimensions(newDimensions);
+    } else {
+        EntityItem::setUnscaledDimensions(value);
     }
 }
 
@@ -223,7 +230,7 @@ bool ShapeEntityItem::supportsDetailedRayIntersection() const {
 bool ShapeEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                    bool& keepSearching, OctreeElementPointer& element,
                                                    float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-                                                   void** intersectedObject, bool precisionPicking) const {
+                                                   QVariantMap& extraInfo, bool precisionPicking) const {
     // determine the ray in the frame of the entity transformed from a unit sphere
     glm::mat4 entityToWorldMatrix = getEntityToWorldMatrix();
     glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
@@ -256,7 +263,7 @@ void ShapeEntityItem::debugDump() const {
     qCDebug(entities) << " collisionShapeType:" << ShapeInfo::getNameForShapeType(getShapeType());
     qCDebug(entities) << "              color:" << _color[0] << "," << _color[1] << "," << _color[2];
     qCDebug(entities) << "           position:" << debugTreeVector(getWorldPosition());
-    qCDebug(entities) << "         dimensions:" << debugTreeVector(getDimensions());
+    qCDebug(entities) << "         dimensions:" << debugTreeVector(getScaledDimensions());
     qCDebug(entities) << "      getLastEdited:" << debugTime(getLastEdited(), now);
     qCDebug(entities) << "SHAPE EntityItem Ptr:" << this;
 }
@@ -266,7 +273,7 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
     // This will be called whenever DIRTY_SHAPE flag (set by dimension change, etc)
     // is set.
 
-    const glm::vec3 entityDimensions = getDimensions();
+    const glm::vec3 entityDimensions = getScaledDimensions();
 
     switch (_shape){
         case entity::Shape::Quad:

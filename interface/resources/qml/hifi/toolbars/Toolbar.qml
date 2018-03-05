@@ -11,6 +11,8 @@ Window {
         horizontalSpacers: horizontal
         verticalSpacers: !horizontal
     }
+    property var tabletProxy;
+    property var buttonModel: ListModel {}
     hideBackground: true
     resizable: false
     destroyOnCloseButton: false
@@ -23,24 +25,32 @@ Window {
     activator: Item {}
     property bool horizontal: true
     property real buttonSize: 50;
-    property var buttons: []
-    property var container: horizontal ? row : column
 
     Settings {
         category: "toolbar/" + window.objectName
         property alias x: window.x
         property alias y: window.y
     }
+    
+    Component {
+        id: buttonComponent
+        ToolbarButton {
+            id: toolbarButton 
+            property var proxy: modelData;
+            onClicked: proxy.clicked()
+            Component.onCompleted: updateProperties()
 
-    onHorizontalChanged: {
-        var newParent = horizontal ? row : column;
-        for (var i in buttons) {
-            var child = buttons[i];
-            child.parent = newParent;
-            if (horizontal) {
-                child.y = 0
-            } else {
-                child.x = 0
+            Connections {
+                target: proxy;
+                onPropertiesChanged: updateProperties();
+            }
+            
+            function updateProperties() {
+                Object.keys(proxy.properties).forEach(function (key) {
+                    if (toolbarButton[key] !== proxy.properties[key]) {
+                        toolbarButton[key] = proxy.properties[key];
+                    }
+                });
             }
         }
     }
@@ -52,97 +62,22 @@ Window {
 
         Row {
             id: row
+            visible: window.horizontal
             spacing: 6
+            Repeater {
+                model: buttonModel
+                delegate: buttonComponent
+            }
         }
-
+        
         Column {
             id: column
+            visible: !window.horizontal 
             spacing: 6
-        }
-
-        Component { id: toolbarButtonBuilder; ToolbarButton { } }
-    }
-
-
-    function findButtonIndex(name) {
-        if (!name) {
-            return -1;
-        }
-
-        for (var i in buttons) {
-            var child = buttons[i];
-            if (child.objectName === name) {
-                return i;
+            Repeater {
+                model: buttonModel
+                delegate: buttonComponent
             }
-        }
-        return -1;
-    }
-
-    function findButton(name) {
-        var index = findButtonIndex(name);
-        if (index < 0) {
-            return;
-        }
-        return buttons[index];
-    }
-
-    function sortButtons() {
-        var children = [];
-        for (var i = 0; i < container.children.length; i++) {
-            children[i] = container.children[i];
-        }
-
-        children.sort(function (a, b) {
-            if (a.sortOrder === b.sortOrder) {
-                // subsort by stableOrder, because JS sort is not stable in qml.
-                return a.stableOrder - b.stableOrder;
-            } else {
-                return a.sortOrder - b.sortOrder;
-            }
-        });
-
-        container.children = children;
-    }
-
-    function addButton(properties) {
-        properties = properties || {}
-
-        // If a name is specified, then check if there's an existing button with that name
-        // and return it if so.  This will allow multiple clients to listen to a single button,
-        // and allow scripts to be idempotent so they don't duplicate buttons if they're reloaded
-        var result = findButton(properties.objectName);
-        if (result) {
-            for (var property in properties) {
-                result[property] = properties[property];
-            }
-            return result;
-        }
-        properties.toolbar = this;
-        properties.opacity = 0;
-        result = toolbarButtonBuilder.createObject(container, properties);
-        buttons.push(result);
-
-        result.opacity = 1;
-
-        sortButtons();
-
-        fadeIn(null);
-
-        return result;
-    }
-
-    function removeButton(name) {
-        var index = findButtonIndex(name);
-        if (index < -1) {
-            console.warn("Tried to remove non-existent button " + name);
-            return;
-        }
-
-        buttons[index].destroy();
-        buttons.splice(index, 1);
-
-        if (buttons.length === 0) {
-            fadeOut(null);
         }
     }
 }

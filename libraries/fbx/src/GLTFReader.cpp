@@ -748,7 +748,7 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
         QString& matid = materialIDs[i];
         geometry.materials[matid] = FBXMaterial();
         FBXMaterial& fbxMaterial = geometry.materials[matid];
-        fbxMaterial._material = std::make_shared<model::Material>();
+        fbxMaterial._material = std::make_shared<graphics::Material>();
         setFBXMaterial(fbxMaterial, _file.materials[i]);
     }
 

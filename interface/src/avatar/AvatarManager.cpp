@@ -150,7 +150,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         glm::vec3 getPosition() const override { return _avatar->getWorldPosition(); }
         float getRadius() const override { return std::static_pointer_cast<Avatar>(_avatar)->getBoundingRadius(); }
         uint64_t getTimestamp() const override { return std::static_pointer_cast<Avatar>(_avatar)->getLastRenderUpdateTime(); }
-        const AvatarSharedPointer& getAvatar() const { return _avatar; }
+        AvatarSharedPointer getAvatar() const { return _avatar; }
     private:
         AvatarSharedPointer _avatar;
     };
@@ -185,7 +185,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     render::Transaction transaction;
     while (!sortedAvatars.empty()) {
         const SortableAvatar& sortData = sortedAvatars.top();
-        const auto& avatar = std::static_pointer_cast<Avatar>(sortData.getAvatar());
+        const auto avatar = std::static_pointer_cast<Avatar>(sortData.getAvatar());
 
         bool ignoring = DependencyManager::get<NodeList>()->isPersonalMutingNode(avatar->getID());
         if (ignoring) {
@@ -239,7 +239,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             sortedAvatars.pop();
             while (inView && !sortedAvatars.empty()) {
                 const SortableAvatar& newSortData = sortedAvatars.top();
-                const auto& newAvatar = std::static_pointer_cast<Avatar>(newSortData.getAvatar());
+                const auto newAvatar = std::static_pointer_cast<Avatar>(newSortData.getAvatar());
                 inView = newSortData.getPriority() > OUT_OF_VIEW_THRESHOLD;
                 if (inView && newAvatar->hasNewJointData()) {
                     numAVatarsNotUpdated++;
@@ -546,7 +546,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
             continue;
         }
 
-        QString extraInfo;
+        QVariantMap extraInfo;
         intersects = avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, normDirection,
                                                                       distance, face, surfaceNormal, extraInfo, true);
 
@@ -554,6 +554,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
             result.intersects = true;
             result.avatarID = avatar->getID();
             result.distance = distance;
+            result.extraInfo = extraInfo;
         }
     }
 

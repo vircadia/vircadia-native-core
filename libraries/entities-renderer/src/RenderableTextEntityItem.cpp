@@ -54,7 +54,7 @@ bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
         return true;
     }
 
-    if (_dimensions != entity->getDimensions()) {
+    if (_dimensions != entity->getScaledDimensions()) {
         return true;
     }
 
@@ -67,7 +67,7 @@ bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
 void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     _textColor = toGlm(entity->getTextColorX());
     _backgroundColor = toGlm(entity->getBackgroundColorX());
-    _dimensions = entity->getDimensions();
+    _dimensions = entity->getScaledDimensions();
     _faceCamera = entity->getFaceCamera();
     _lineHeight = entity->getLineHeight();
     _text = entity->getText();

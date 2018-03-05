@@ -65,22 +65,22 @@ protected:
     float _outerRadius { 1 };
     float _innerRadius { 0 };
 
-    xColor _innerStartColor;
-    xColor _innerEndColor;
-    xColor _outerStartColor;
-    xColor _outerEndColor;
-    float _innerStartAlpha;
-    float _innerEndAlpha;
-    float _outerStartAlpha;
-    float _outerEndAlpha;
+    xColor _innerStartColor { DEFAULT_OVERLAY_COLOR };
+    xColor _innerEndColor { DEFAULT_OVERLAY_COLOR };
+    xColor _outerStartColor { DEFAULT_OVERLAY_COLOR };
+    xColor _outerEndColor { DEFAULT_OVERLAY_COLOR };
+    float _innerStartAlpha { DEFAULT_ALPHA };
+    float _innerEndAlpha { DEFAULT_ALPHA };
+    float _outerStartAlpha { DEFAULT_ALPHA };
+    float _outerEndAlpha { DEFAULT_ALPHA };
 
     bool _hasTickMarks { false };
     float _majorTickMarksAngle { 0 };
     float _minorTickMarksAngle { 0 };
     float _majorTickMarksLength { 0 };
     float _minorTickMarksLength { 0 };
-    xColor _majorTickMarksColor;
-    xColor _minorTickMarksColor;
+    xColor _majorTickMarksColor { DEFAULT_OVERLAY_COLOR };
+    xColor _minorTickMarksColor { DEFAULT_OVERLAY_COLOR };
     gpu::Primitive _solidPrimitive { gpu::TRIANGLE_FAN };
     int _quadVerticesID { 0 };
     int _lineVerticesID { 0 };

@@ -272,7 +272,7 @@ function actionStartEvent(event) {
     var result = Overlays.findRayIntersection(event.actionRay);
     if (result.intersects && result.overlayID == panelWall) {
 
-      var panelName = result.extraInfo;
+      var panelName = result.extraInfo.subMeshName + '';
 
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
@@ -321,7 +321,7 @@ function handleLookAt(pickRay) {
     // check if we hit a panel and if we should jump there
     var result = Overlays.findRayIntersection(pickRay);
     if (result.intersects && result.overlayID == panelWall) {
-      var panelName = result.extraInfo;
+      var panelName = result.extraInfo.subMeshName + '';
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
         var panelIndex = parseInt(panelName.slice(5));

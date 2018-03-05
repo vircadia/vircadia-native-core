@@ -40,10 +40,6 @@ static bool disableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(
 static GLBackend* INSTANCE{ nullptr };
 
 BackendPointer GLBackend::createBackend() {
-    // The ATI memory info extension only exposes 'free memory' so we want to force it to 
-    // cache the value as early as possible
-    getDedicatedMemory();
-
     // FIXME provide a mechanism to override the backend for testing
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     auto version = QOpenGLContextWrapper::currentContextVersion();
@@ -72,8 +68,8 @@ GLBackend& getBackend() {
     return *INSTANCE;
 }
 
-bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindings) {
-    return GLShader::makeProgram(getBackend(), shader, slotBindings);
+bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindings, const Shader::CompilationHandler& handler) {
+    return GLShader::makeProgram(getBackend(), shader, slotBindings, handler);
 }
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
@@ -157,30 +153,7 @@ void GLBackend::init() {
         qCDebug(gpugllogging) << "\tcard:" << gpu->getName();
         qCDebug(gpugllogging) << "\tdriver:" << gpu->getDriver();
         qCDebug(gpugllogging) << "\tdedicated memory:" << gpu->getMemory() << "MB";
-
-        glewExperimental = true;
-        GLenum err = glewInit();
-        glGetError(); // clear the potential error from glewExperimental
-        if (GLEW_OK != err) {
-            // glewInit failed, something is seriously wrong.
-            qCDebug(gpugllogging, "Error: %s\n", glewGetErrorString(err));
-        }
-        qCDebug(gpugllogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-
-#if defined(Q_OS_WIN)
-        if (wglewGetExtension("WGL_EXT_swap_control")) {
-            int swapInterval = wglGetSwapIntervalEXT();
-            qCDebug(gpugllogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-        }
-#endif
-
-#if defined(Q_OS_LINUX)
-        // TODO: Write the correct  code for Linux...
-        /* if (wglewGetExtension("WGL_EXT_swap_control")) {
-            int swapInterval = wglGetSwapIntervalEXT();
-            qCDebug(gpugllogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-        }*/
-#endif
+        qCDebug(gpugllogging, "V-Sync is %s\n", (::gl::getSwapInterval() > 0 ? "ON" : "OFF"));
 #if THREADED_TEXTURE_BUFFERING
         // This has to happen on the main thread in order to give the thread 
         // pool a reasonable parent object
@@ -609,6 +582,10 @@ void GLBackend::do_glColor4f(const Batch& batch, size_t paramOffset) {
     if (_input._colorAttribute != newColor) {
         _input._colorAttribute = newColor;
         glVertexAttrib4fv(gpu::Stream::COLOR, &_input._colorAttribute.r);
+        // Color has been changed and is not white. To prevent colors from bleeding
+        // between different objects, we need to set the _hadColorAttribute flag
+        // as if a previous render call had potential colors
+        _input._hadColorAttribute = (newColor != glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
     (void)CHECK_GL_ERROR();
 }
@@ -776,7 +753,7 @@ void GLBackend::recycle() const {
 
     GLVariableAllocationSupport::manageMemory();
     GLVariableAllocationSupport::_frameTexturesCreated = 0;
-
+    Texture::KtxStorage::releaseOpenKtxFiles();
 }
 
 void GLBackend::setCameraCorrection(const Mat4& correction) {

@@ -591,18 +591,30 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                 glm::vec3 d = basePose.trans() - topPose.trans();
                 float dLen = glm::length(d);
                 if (dLen > EPSILON) {
+
                     glm::vec3 dUnit = d / dLen;
                     glm::vec3 e = midPose.xformVector(target.getPoleReferenceVector());
+
+                    // if mid joint is straight use the reference vector to compute eProj, otherwise use reference vector.
+                    // however if mid joint angle is in between the two blend between both solutions.
+                    vec3 u = normalize(basePose.trans() - midPose.trans());
+                    vec3 v = normalize(topPose.trans() - midPose.trans());
+
+                    const float LERP_THRESHOLD = 3.05433f;  // 175 deg
+                    const float BENT_THRESHOLD = 2.96706f;  // 170 deg
+
+                    float jointAngle = acos(dot(u, v));
+                    if (jointAngle < BENT_THRESHOLD) {
+                        glm::vec3 midPoint = topPose.trans() + d * 0.5f;
+                        e = normalize(midPose.trans() - midPoint);
+                    } else if (jointAngle < LERP_THRESHOLD) {
+                        glm::vec3 midPoint = topPose.trans() + d * 0.5f;
+                        float alpha = (jointAngle - LERP_THRESHOLD) / (BENT_THRESHOLD - LERP_THRESHOLD);
+                        e = lerp(e, normalize(midPose.trans() - midPoint), alpha);
+                    }
+
                     glm::vec3 eProj = e - glm::dot(e, dUnit) * dUnit;
                     float eProjLen = glm::length(eProj);
-
-                    const float MIN_EPROJ_LEN = 0.5f;
-                    if (eProjLen < MIN_EPROJ_LEN) {
-                        glm::vec3 midPoint = topPose.trans() + d * 0.5f;
-                        e = midPose.trans() - midPoint;
-                        eProj = e - glm::dot(e, dUnit) * dUnit;
-                        eProjLen = glm::length(eProj);
-                    }
 
                     glm::vec3 p = target.getPoleVector();
                     glm::vec3 pProj = p - glm::dot(p, dUnit) * dUnit;
@@ -634,16 +646,27 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
 
                     AnimPose geomToWorldPose = AnimPose(context.getRigToWorldMatrix() * context.getGeometryToRigMatrix());
 
-                    glm::vec3 dUnit = d / dLen;
                     glm::vec3 e = midPose.xformVector(target.getPoleReferenceVector());
-                    glm::vec3 eProj = e - glm::dot(e, dUnit) * dUnit;
-                    float eProjLen = glm::length(eProj);
-                    const float MIN_EPROJ_LEN = 0.5f;
-                    if (eProjLen < MIN_EPROJ_LEN) {
+
+                    // if mid joint is straight use the reference vector to compute eProj, otherwise use reference vector.
+                    // however if mid joint angle is in between the two blend between both solutions.
+                    vec3 u = normalize(basePose.trans() - midPose.trans());
+                    vec3 v = normalize(topPose.trans() - midPose.trans());
+
+                    const float LERP_THRESHOLD = 3.05433f;  // 175 deg
+                    const float BENT_THRESHOLD = 2.96706f;  // 170 deg
+
+                    float jointAngle = acos(dot(u, v));
+                    glm::vec4 eColor = RED;
+                    if (jointAngle < BENT_THRESHOLD) {
                         glm::vec3 midPoint = topPose.trans() + d * 0.5f;
-                        e = midPose.trans() - midPoint;
-                        eProj = e - glm::dot(e, dUnit) * dUnit;
-                        eProjLen = glm::length(eProj);
+                        e = normalize(midPose.trans() - midPoint);
+                        eColor = GREEN;
+                    } else if (jointAngle < LERP_THRESHOLD) {
+                        glm::vec3 midPoint = topPose.trans() + d * 0.5f;
+                        float alpha = (jointAngle - LERP_THRESHOLD) / (BENT_THRESHOLD - LERP_THRESHOLD);
+                        e = lerp(e, normalize(midPose.trans() - midPoint), alpha);
+                        eColor = YELLOW;
                     }
 
                     glm::vec3 p = target.getPoleVector();
@@ -655,7 +678,7 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                                                      YELLOW);
                     DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(midPoint),
                                                      geomToWorldPose.xformPoint(midPoint + PROJ_VECTOR_LEN * glm::normalize(e)),
-                                                     RED);
+                                                     eColor);
                     DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(midPoint),
                                                      geomToWorldPose.xformPoint(midPoint + POLE_VECTOR_LEN * glm::normalize(p)),
                                                      BLUE);
@@ -857,25 +880,6 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
     return _relativePoses;
 }
 
-AnimPose AnimInverseKinematics::applyHipsOffset() const {
-    glm::vec3 hipsOffset = _hipsOffset;
-    AnimPose relHipsPose = _relativePoses[_hipsIndex];
-    float offsetLength = glm::length(hipsOffset);
-    const float MIN_HIPS_OFFSET_LENGTH = 0.03f;
-    if (offsetLength > MIN_HIPS_OFFSET_LENGTH) {
-        float scaleFactor = ((offsetLength - MIN_HIPS_OFFSET_LENGTH) / offsetLength);
-        glm::vec3 scaledHipsOffset = scaleFactor * hipsOffset;
-        if (_hipsParentIndex == -1) {
-            relHipsPose.trans() = _relativePoses[_hipsIndex].trans() + scaledHipsOffset;
-        } else {
-            AnimPose absHipsPose = _skeleton->getAbsolutePose(_hipsIndex, _relativePoses);
-            absHipsPose.trans() += scaledHipsOffset;
-            relHipsPose = _skeleton->getAbsolutePose(_hipsParentIndex, _relativePoses).inverse() * absHipsPose;
-        }
-    }
-    return relHipsPose;
-}
-
 //virtual
 const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
     // allows solutionSource to be overridden by an animVar
@@ -973,27 +977,6 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
                     _relativePoses[_hipsIndex] = parentAbsPose.inverse() * absPose;
                     _relativePoses[_hipsIndex].scale() = glm::vec3(1.0f);
-                    _hipsOffset = Vectors::ZERO;
-
-                } else if (_hipsIndex >= 0) {
-
-                    // if there is no hips target, shift hips according to the _hipsOffset from the previous frame
-                    AnimPose relHipsPose = applyHipsOffset();
-
-                    // determine if we should begin interpolating the hips.
-                    for (size_t i = 0; i < targets.size(); i++) {
-                        if (_prevJointChainInfoVec[i].target.getIndex() == _hipsIndex) {
-                            if (_prevJointChainInfoVec[i].timer > 0.0f) {
-                                // smoothly lerp in hipsOffset
-                                float alpha = (JOINT_CHAIN_INTERP_TIME - _prevJointChainInfoVec[i].timer) / JOINT_CHAIN_INTERP_TIME;
-                                AnimPose prevRelHipsPose(_prevJointChainInfoVec[i].jointInfoVec[0].rot, _prevJointChainInfoVec[i].jointInfoVec[0].trans);
-                                ::blend(1, &prevRelHipsPose, &relHipsPose, alpha, &relHipsPose);
-                            }
-                            break;
-                        }
-                    }
-
-                    _relativePoses[_hipsIndex] = relHipsPose;
                 }
 
                 // if there is an active jointChainInfo for the hips store the post shifted hips into it.
@@ -1061,11 +1044,6 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
                 solve(context, targets, dt, jointChainInfoVec);
             }
-
-            if (_hipsTargetIndex < 0) {
-                PROFILE_RANGE_EX(simulation_animation, "ik/measureHipsOffset", 0xffff00ff, 0);
-                _hipsOffset = computeHipsOffset(targets, underPoses, dt, _hipsOffset);
-            }
         }
 
         if (context.getEnableDebugDrawIKConstraints()) {
@@ -1074,69 +1052,6 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
     }
 
     return _relativePoses;
-}
-
-glm::vec3 AnimInverseKinematics::computeHipsOffset(const std::vector<IKTarget>& targets, const AnimPoseVec& underPoses, float dt, glm::vec3 prevHipsOffset) const {
-
-    // measure new _hipsOffset for next frame
-    // by looking for discrepancies between where a targeted endEffector is
-    // and where it wants to be (after IK solutions are done)
-    glm::vec3 hipsOffset = prevHipsOffset;
-    glm::vec3 newHipsOffset = Vectors::ZERO;
-    for (auto& target: targets) {
-        int targetIndex = target.getIndex();
-        if (targetIndex == _headIndex && _headIndex != -1) {
-            // special handling for headTarget
-            if (target.getType() == IKTarget::Type::RotationOnly) {
-                // we want to shift the hips to bring the underPose closer
-                // to where the head happens to be (overpose)
-                glm::vec3 under = _skeleton->getAbsolutePose(_headIndex, underPoses).trans();
-                glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans();
-                const float HEAD_OFFSET_SLAVE_FACTOR = 0.65f;
-                newHipsOffset += HEAD_OFFSET_SLAVE_FACTOR * (actual - under);
-            } else if (target.getType() == IKTarget::Type::HmdHead) {
-                // we want to shift the hips to bring the head to its designated position
-                glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans();
-                hipsOffset += target.getTranslation() - actual;
-                // and ignore all other targets
-                newHipsOffset = hipsOffset;
-                break;
-            } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
-                glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans();
-                glm::vec3 targetPosition = target.getTranslation();
-                newHipsOffset += targetPosition - actualPosition;
-
-                // Add downward pressure on the hips
-                const float PRESSURE_SCALE_FACTOR = 0.95f;
-                const float PRESSURE_TRANSLATION_OFFSET = 1.0f;
-                newHipsOffset *= PRESSURE_SCALE_FACTOR;
-                newHipsOffset -= PRESSURE_TRANSLATION_OFFSET;
-            }
-        } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
-            glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans();
-            glm::vec3 targetPosition = target.getTranslation();
-            newHipsOffset += targetPosition - actualPosition;
-        }
-    }
-
-    // smooth transitions by relaxing hipsOffset toward the new value
-    const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.10f;
-    float tau = dt < HIPS_OFFSET_SLAVE_TIMESCALE ?  dt / HIPS_OFFSET_SLAVE_TIMESCALE : 1.0f;
-    hipsOffset += (newHipsOffset - hipsOffset) * tau;
-
-    // clamp the hips offset
-    float hipsOffsetLength = glm::length(hipsOffset);
-    if (hipsOffsetLength > _maxHipsOffsetLength) {
-        hipsOffset *= _maxHipsOffsetLength / hipsOffsetLength;
-    }
-
-    return hipsOffset;
-}
-
-void AnimInverseKinematics::setMaxHipsOffsetLength(float maxLength) {
-    // manually adjust scale here
-    const float METERS_TO_CENTIMETERS = 100.0f;
-    _maxHipsOffsetLength = METERS_TO_CENTIMETERS * maxLength;
 }
 
 void AnimInverseKinematics::clearIKJointLimitHistory() {
@@ -1232,7 +1147,7 @@ void AnimInverseKinematics::initConstraints() {
     //                     /       /
     //                 O--O    O--O
 
-    loadDefaultPoses(_skeleton->getRelativeBindPoses());
+    loadDefaultPoses(_skeleton->getRelativeDefaultPoses());
 
     int numJoints = (int)_defaultRelativePoses.size();
 

@@ -10,7 +10,7 @@
 /* global Script, Controller, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule, makeRunningValues,
    Messages, makeDispatcherModuleParameters, HMD, getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
    COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE,
-   getEnabledModuleByName, PICK_MAX_DISTANCE, isInEditMode, LaserPointers, RayPick, Picks
+   getEnabledModuleByName, PICK_MAX_DISTANCE, isInEditMode, Picks, makeLaserParams
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -28,11 +28,11 @@ Script.include("/~/system/libraries/utils.js");
             this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip", "rightHandTrigger"] : ["leftHand", "leftHandEquip", "leftHandTrigger"],
             [],
             100,
-            this.hand);
+            makeLaserParams(this.hand, false));
 
         this.nearTablet = function(overlays) {
             for (var i = 0; i < overlays.length; i++) {
-                if (overlays[i] === HMD.tabletID) {
+                if (HMD.tabletID && overlays[i] === HMD.tabletID) {
                     return true;
                 }
             }
@@ -44,10 +44,8 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.pointingAtTablet = function(objectID) {
-            if (objectID === HMD.tabletScreenID || objectID === HMD.homeButtonID) {
-                return true;
-            }
-            return false;
+            return (HMD.tabletScreenID && objectID === HMD.tabletScreenID)
+                || (HMD.homeButtonID && objectID === HMD.homeButtonID);
         };
 
         this.sendPickData = function(controllerData) {
@@ -99,8 +97,8 @@ Script.include("/~/system/libraries/utils.js");
             var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightWebSurfaceLaserInput" : "LeftWebSurfaceLaserInput");
             if (overlayLaser) {
                 var overlayLaserReady = overlayLaser.isReady(controllerData);
-
-                if (overlayLaserReady.active && this.pointingAtTablet(overlayLaser.target)) {
+                var target = controllerData.rayPicks[this.hand].objectID;
+                if (overlayLaserReady.active && this.pointingAtTablet(target)) {
                     return this.exitModule();
                 }
             }
@@ -109,7 +107,7 @@ Script.include("/~/system/libraries/utils.js");
             if (nearOverlay) {
                 var nearOverlayReady = nearOverlay.isReady(controllerData);
 
-                if (nearOverlayReady.active && nearOverlay.grabbedThingID === HMD.tabletID) {
+                if (nearOverlayReady.active && HMD.tabletID && nearOverlay.grabbedThingID === HMD.tabletID) {
                     return this.exitModule();
                 }
             }

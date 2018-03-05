@@ -45,6 +45,7 @@
    BUMPER_ON_VALUE:true,
    getEntityParents:true,
    findHandChildEntities:true,
+   makeLaserParams:true,
    TEAR_AWAY_DISTANCE:true,
    TEAR_AWAY_COUNT:true,
    TEAR_AWAY_CHECK_TIME:true,
@@ -104,7 +105,8 @@ DISPATCHER_PROPERTIES = [
     "density",
     "dimensions",
     "userData",
-    "type"
+    "type",
+    "href"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
@@ -131,6 +133,17 @@ makeLaserLockInfo = function(targetID, isOverlay, hand, offset) {
         isOverlay: isOverlay,
         hand: hand,
         offset: offset
+    };
+};
+
+makeLaserParams = function(hand, allwaysOn) {
+    if (allwaysOn === undefined) {
+        allwaysOn = false;
+    }
+
+    return {
+        hand: hand,
+        allwaysOn: allwaysOn
     };
 };
 
@@ -220,7 +233,6 @@ entityIsDistanceGrabbable = function(props) {
 
     return true;
 };
-
 
 getControllerJointIndex = function (hand) {
     if (HMD.isHandControllerAvailable()) {

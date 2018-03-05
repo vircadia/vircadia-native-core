@@ -14,7 +14,7 @@
 
 <@include gpu/Color.slh@>
 <@include DeferredBufferWrite.slh@>
-<@include model/Material.slh@>
+<@include graphics/Material.slh@>
 
 // the albedo texture
 uniform sampler2D originalTexture;

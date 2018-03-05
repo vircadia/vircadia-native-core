@@ -31,10 +31,22 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
     _defaultEyeModelPosition(glm::vec3(0.0f, 0.0f, 0.0f)),
     _headClipDistance(DEFAULT_NEAR_CLIP)
 {
+    // SkeletonModels, and by extention Avatars, use Dual Quaternion skinning.
+    _useDualQuaternionSkinning = true;
     assert(_owningAvatar);
 }
 
 SkeletonModel::~SkeletonModel() {
+}
+
+void SkeletonModel::setURL(const QUrl& url) {
+    _texturesLoaded = false;
+    Model::setURL(url);
+}
+
+void SkeletonModel::setTextures(const QVariantMap& textures) {
+    _texturesLoaded = false;
+    Model::setTextures(textures);
 }
 
 void SkeletonModel::initJointStates() {
@@ -142,6 +154,13 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         Parent::simulate(deltaTime, fullUpdate);
     }
 
+    // FIXME: This texture loading logic should probably live in Avatar, to mirror RenderableModelEntityItem and ModelOverlay,
+    // but Avatars don't get updates in the same way
+    if (!_texturesLoaded && getGeometry() && getGeometry()->areTexturesLoaded()) {
+        _texturesLoaded = true;
+        updateRenderItems();
+    }
+
     if (!isActive() || !_owningAvatar->isMyAvatar()) {
         return; // only simulate for own avatar
     }
@@ -220,28 +239,12 @@ bool SkeletonModel::getRightHandPosition(glm::vec3& position) const {
     return getJointPositionInWorldFrame(getRightHandJointIndex(), position);
 }
 
-bool SkeletonModel::restoreLeftHandPosition(float fraction, float priority) {
-    return restoreJointPosition(getLeftHandJointIndex(), fraction, priority);
-}
-
 bool SkeletonModel::getLeftShoulderPosition(glm::vec3& position) const {
     return getJointPositionInWorldFrame(getLastFreeJointIndex(getLeftHandJointIndex()), position);
 }
 
-float SkeletonModel::getLeftArmLength() const {
-    return getLimbLength(getLeftHandJointIndex());
-}
-
-bool SkeletonModel::restoreRightHandPosition(float fraction, float priority) {
-    return restoreJointPosition(getRightHandJointIndex(), fraction, priority);
-}
-
 bool SkeletonModel::getRightShoulderPosition(glm::vec3& position) const {
     return getJointPositionInWorldFrame(getLastFreeJointIndex(getRightHandJointIndex()), position);
-}
-
-float SkeletonModel::getRightArmLength() const {
-    return getLimbLength(getRightHandJointIndex());
 }
 
 bool SkeletonModel::getHeadPosition(glm::vec3& headPosition) const {

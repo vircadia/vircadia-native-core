@@ -44,7 +44,6 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
     _domainHandler(this),
-    _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(),
     _keepAlivePingTimer(this)
 {
@@ -75,7 +74,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(this, &LimitedNodeList::publicSockAddrChanged, this, &NodeList::sendDomainServerCheckIn);
 
     // clear our NodeList when the domain changes
-    connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, this, &NodeList::reset);
+    connect(&_domainHandler, SIGNAL(disconnectedFromDomain()), this, SLOT(resetFromDomainHandler()));
 
     // send an ICE heartbeat as soon as we get ice server information
     connect(&_domainHandler, &DomainHandler::iceSocketAndIDReceived, this, &NodeList::handleICEConnectionToDomainServer);
@@ -92,10 +91,10 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(accountManager.data(), &AccountManager::newKeypair, this, &NodeList::sendDomainServerCheckIn);
 
     // clear out NodeList when login is finished
-    connect(accountManager.data(), &AccountManager::loginComplete , this, &NodeList::reset);
+    connect(accountManager.data(), SIGNAL(loginComplete()) , this, SLOT(reset()));
 
     // clear our NodeList when logout is requested
-    connect(accountManager.data(), &AccountManager::logoutComplete , this, &NodeList::reset);
+    connect(accountManager.data(), SIGNAL(logoutComplete()) , this, SLOT(reset()));
 
     // anytime we get a new node we will want to attempt to punch to it
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
@@ -231,15 +230,13 @@ void NodeList::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
     sendPacket(std::move(replyPacket), message->getSenderSockAddr());
 }
 
-void NodeList::reset() {
+void NodeList::reset(bool skipDomainHandlerReset) {
     if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "reset");
+        QMetaObject::invokeMethod(this, "reset", Q_ARG(bool, skipDomainHandlerReset));
         return;
     }
 
     LimitedNodeList::reset();
-
-    _numNoReplyDomainCheckIns = 0;
 
     // lock and clear our set of ignored IDs
     _ignoredSetLock.lockForWrite();
@@ -255,7 +252,7 @@ void NodeList::reset() {
     _avatarGainMap.clear();
     _avatarGainMapLock.unlock();
 
-    if (sender() != &_domainHandler) {
+    if (!skipDomainHandlerReset) {
         // clear the domain connection information, unless they're the ones that asked us to reset
         _domainHandler.softReset();
     }
@@ -410,15 +407,8 @@ void NodeList::sendDomainServerCheckIn() {
 
         sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
 
-        if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-            // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
-            // so emit our signal that says that
-            qCDebug(networking) << "Limit of silent domain checkins reached";
-            emit limitOfSilentDomainCheckInsReached();
-        }
-
-        // increment the count of un-replied check-ins
-        _numNoReplyDomainCheckIns++;
+        // let the domain handler know we sent another check in or connect packet
+        _domainHandler.sentCheckInPacket();
     }
 }
 
@@ -437,7 +427,7 @@ void NodeList::sendPendingDSPathQuery() {
     QString pendingPath = _domainHandler.getPendingPath();
 
     if (!pendingPath.isEmpty()) {
-        qCDebug(networking) << "Attemping to send pending query to DS for path" << pendingPath;
+        qCDebug(networking) << "Attempting to send pending query to DS for path" << pendingPath;
 
         // this is a slot triggered if we just established a network link with a DS and want to send a path query
         sendDSPathQuery(_domainHandler.getPendingPath());
@@ -585,7 +575,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     }
 
     // this is a packet from the domain server, reset the count of un-replied check-ins
-    _numNoReplyDomainCheckIns = 0;
+    _domainHandler.domainListReceived();
 
     // emit our signal so listeners know we just heard from the DS
     emit receivedDomainServerList();
@@ -808,7 +798,7 @@ void NodeList::sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationN
 
 void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
     // enumerate the nodes to send a reliable ignore packet to each that can leverage it
-    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID) {
         eachMatchingNode([](const SharedNodePointer& node)->bool {
             if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
                 return true;
@@ -861,7 +851,7 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
 
 void NodeList::removeFromIgnoreMuteSets(const QUuid& nodeID) {
     // don't remove yourself, or nobody
-    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID) {
         {
             QWriteLocker ignoredSetLocker{ &_ignoredSetLock };
             _ignoredNodeIDs.unsafe_erase(nodeID);
@@ -880,7 +870,7 @@ bool NodeList::isIgnoringNode(const QUuid& nodeID) const {
 
 void NodeList::personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled) {
     // cannot personal mute yourself, or nobody
-    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID) {
         auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
         if (audioMixer) {
             if (isIgnoringNode(nodeID)) {
@@ -980,7 +970,7 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
 
 void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
     // cannot set gain of yourself
-    if (_sessionUUID != nodeID) {
+    if (getSessionUUID() != nodeID) {
         auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
         if (audioMixer) {
             // setup the packet
@@ -999,7 +989,7 @@ void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
             }
 
             sendPacket(std::move(setAvatarGainPacket), *audioMixer);
-            QWriteLocker{ &_avatarGainMapLock };
+            QWriteLocker lock{ &_avatarGainMapLock };
             _avatarGainMap[nodeID] = gain;
 
         } else {
@@ -1011,7 +1001,7 @@ void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
 }
 
 float NodeList::getAvatarGain(const QUuid& nodeID) {
-    QReadLocker{ &_avatarGainMapLock };
+    QReadLocker lock{ &_avatarGainMapLock };
     auto it = _avatarGainMap.find(nodeID);
     if (it != _avatarGainMap.cend()) {
         return it->second;
@@ -1023,7 +1013,7 @@ void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
     // send a request to domain-server to kick the node with the given session ID
     // the domain-server will handle the persistence of the kick (via username or IP)
 
-    if (!nodeID.isNull() && _sessionUUID != nodeID ) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID ) {
         if (getThisNodeCanKick()) {
             // setup the packet
             auto kickPacket = NLPacket::create(PacketType::NodeKickRequest, NUM_BYTES_RFC4122_UUID, true);
@@ -1046,7 +1036,7 @@ void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
 
 void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
     // cannot mute yourself, or nobody
-    if (!nodeID.isNull() && _sessionUUID != nodeID ) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID ) {
         if (getThisNodeCanKick()) {
             auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
             if (audioMixer) {

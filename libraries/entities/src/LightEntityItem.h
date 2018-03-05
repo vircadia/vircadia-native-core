@@ -29,7 +29,7 @@ public:
     ALLOW_INSTANTIATION // This class can be instantiated
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    virtual void setDimensions(const glm::vec3& value) override;
+    virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
     virtual bool setProperties(const EntityItemProperties& properties) override;
     virtual bool setSubClassProperties(const EntityItemProperties& properties) override;
@@ -88,7 +88,7 @@ public:
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                             bool& keepSearching, OctreeElementPointer& element, float& distance,
                             BoxFace& face, glm::vec3& surfaceNormal,
-                            void** intersectedObject, bool precisionPicking) const override;
+                            QVariantMap& extraInfo, bool precisionPicking) const override;
 
 private:
     // properties of a light

@@ -110,7 +110,7 @@ Item {
     }
         
     function pullFreshValues() {
-        if (Audio.getRecording()) {
+        if (AudioScriptingInterface.getRecording()) {
             updateRecordingLabel();
         }
 
@@ -129,14 +129,14 @@ Item {
         _wavFilePath = _wavFilePath.replace(/[\-:]|\.\d*Z$/g, "").replace("T", "-") + ".wav";
         // Using controller recording default directory
         _wavFilePath = Recording.getDefaultRecordingSaveDirectory() + _wavFilePath;
-        if (!Audio.startRecording(_wavFilePath)) {
+        if (!AudioScriptingInterface.startRecording(_wavFilePath)) {
             Messages.sendMessage("Hifi-Notifications", JSON.stringify({message:"Error creating: "+_wavFilePath}));
             updateRecordingUI(false);
         }
     }
 
     function stopRecording() {
-        Audio.stopRecording();
+        AudioScriptingInterface.stopRecording();
         setRecordingLabelOpacity(0.0);
         Messages.sendMessage("Hifi-Notifications", JSON.stringify({message:"Saved: "+_wavFilePath}));
     }
@@ -158,7 +158,7 @@ Item {
     }
     
     function toggleRecording() {
-        if (Audio.getRecording()) {
+        if (AudioScriptingInterface.getRecording()) {
             updateRecordingUI(false);
             stopRecording();
         } else {

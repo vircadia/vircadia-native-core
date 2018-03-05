@@ -36,8 +36,8 @@ Item {
         source: "images/wallet-bg.jpg";
     }
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onSecurityImageResult: {
             titleBarSecurityImage.source = "";
@@ -50,8 +50,12 @@ Item {
             submitPassphraseInputButton.enabled = true;
             if (!isAuthenticated) {
                 errorText.text = "Authentication failed - please try again.";
+                passphraseField.error = true;
+                UserActivityLogger.commercePassphraseAuthenticationStatus("auth failure");
             } else {
-                sendSignalToParent({method: 'authSuccess'});;
+                sendSignalToParent({method: 'authSuccess'});
+                passphraseField.error = false;
+                UserActivityLogger.commercePassphraseAuthenticationStatus("auth success");
             }
         }
     }
@@ -62,6 +66,7 @@ Item {
     MouseArea {
         anchors.fill: parent;
         propagateComposedEvents: false;
+        hoverEnabled: true;
     }
     
     // This will cause a bug -- if you bring up passphrase selection in HUD mode while
@@ -70,7 +75,6 @@ Item {
     // TODO: Fix this unlikely bug
     onVisibleChanged: {
         if (visible) {
-            passphraseField.focus = true;
             sendSignalToParent({method: 'disableHmdPreview'});
         } else {
             sendSignalToParent({method: 'maybeEnableHmdPreview'});
@@ -200,6 +204,14 @@ Item {
             placeholderText: "passphrase";
             activeFocusOnPress: true;
             activeFocusOnTab: true;
+            
+            onVisibleChanged: {
+                if (visible) {
+                    error = false;
+                    focus = true;
+                    forceActiveFocus();
+                }
+            }
 
             onFocusChanged: {
                 root.keyboardRaised = focus;
@@ -208,7 +220,7 @@ Item {
 
             onAccepted: {
                 submitPassphraseInputButton.enabled = false;
-                commerce.setPassphrase(passphraseField.text);
+                Commerce.setPassphrase(passphraseField.text);
             }
         }
 
@@ -248,7 +260,7 @@ Item {
                 source: "image://security/securityImage";
                 cache: false;
                 onVisibleChanged: {
-                    commerce.getSecurityImage();
+                    Commerce.getSecurityImage();
                 }
             }
             Item {
@@ -316,7 +328,7 @@ Item {
                 text: "Submit"
                 onClicked: {
                     submitPassphraseInputButton.enabled = false;
-                    commerce.setPassphrase(passphraseField.text);
+                    Commerce.setPassphrase(passphraseField.text);
                 }
             }
 
@@ -336,6 +348,7 @@ Item {
                 text: "Cancel"
                 onClicked: {
                     sendSignalToParent({method: 'passphrasePopup_cancelClicked'});
+                    UserActivityLogger.commercePassphraseAuthenticationStatus("passphrase modal cancelled");
                 }
             }
         }

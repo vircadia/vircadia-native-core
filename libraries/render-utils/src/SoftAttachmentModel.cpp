@@ -52,13 +52,27 @@ void SoftAttachmentModel::updateClusterMatrices() {
 
             // TODO: cache these look-ups as an optimization
             int jointIndexOverride = getJointIndexOverride(cluster.jointIndex);
-            glm::mat4 jointMatrix;
-            if (jointIndexOverride >= 0 && jointIndexOverride < _rigOverride.getJointStateCount()) {
-                jointMatrix = _rigOverride.getJointTransform(jointIndexOverride);
+            if (_useDualQuaternionSkinning) {
+                glm::mat4 jointMatrix;
+                if (jointIndexOverride >= 0 && jointIndexOverride < _rigOverride.getJointStateCount()) {
+                    jointMatrix = _rigOverride.getJointTransform(jointIndexOverride);
+                } else {
+                    jointMatrix = _rig.getJointTransform(cluster.jointIndex);
+                }
+
+                glm::mat4 m;
+                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
+                state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(m);
             } else {
-                jointMatrix = _rig.getJointTransform(cluster.jointIndex);
+                glm::mat4 jointMatrix;
+                if (jointIndexOverride >= 0 && jointIndexOverride < _rigOverride.getJointStateCount()) {
+                    jointMatrix = _rigOverride.getJointTransform(jointIndexOverride);
+                } else {
+                    jointMatrix = _rig.getJointTransform(cluster.jointIndex);
+                }
+
+                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
             }
-            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
         }
     }
 

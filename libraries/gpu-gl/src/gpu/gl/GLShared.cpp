@@ -8,59 +8,19 @@
 #include "GLShared.h"
 
 #include <mutex>
+#include <fstream>
 
 #include <QtCore/QThread>
 
+#include <gl/GLHelpers.h>
 #include <GPUIdent.h>
 #include <NumericalConstants.h>
-#include <fstream>
 
 Q_LOGGING_CATEGORY(gpugllogging, "hifi.gpu.gl")
 Q_LOGGING_CATEGORY(trace_render_gpu_gl, "trace.render.gpu.gl")
 Q_LOGGING_CATEGORY(trace_render_gpu_gl_detail, "trace.render.gpu.gl.detail")
 
 namespace gpu { namespace gl {
-
-bool checkGLError(const char* name) {
-    GLenum error = glGetError();
-    if (!error) {
-        return false;
-    } else {
-        switch (error) {
-        case GL_INVALID_ENUM:
-            qCWarning(gpugllogging) << "GLBackend::" << name << ": An unacceptable value is specified for an enumerated argument.The offending command is ignored and has no other side effect than to set the error flag.";
-            break;
-        case GL_INVALID_VALUE:
-            qCWarning(gpugllogging) << "GLBackend" << name << ": A numeric argument is out of range.The offending command is ignored and has no other side effect than to set the error flag";
-            break;
-        case GL_INVALID_OPERATION:
-            qCWarning(gpugllogging) << "GLBackend" << name << ": The specified operation is not allowed in the current state.The offending command is ignored and has no other side effect than to set the error flag..";
-            break;
-        case GL_INVALID_FRAMEBUFFER_OPERATION:
-            qCWarning(gpugllogging) << "GLBackend" << name << ": The framebuffer object is not complete.The offending command is ignored and has no other side effect than to set the error flag.";
-            break;
-        case GL_OUT_OF_MEMORY:
-            qCWarning(gpugllogging) << "GLBackend" << name << ": There is not enough memory left to execute the command.The state of the GL is undefined, except for the state of the error flags, after this error is recorded.";
-            break;
-        case GL_STACK_UNDERFLOW:
-            qCWarning(gpugllogging) << "GLBackend" << name << ": An attempt has been made to perform an operation that would cause an internal stack to underflow.";
-            break;
-        case GL_STACK_OVERFLOW:
-            qCWarning(gpugllogging) << "GLBackend" << name << ": An attempt has been made to perform an operation that would cause an internal stack to overflow.";
-            break;
-        }
-        return true;
-    }
-}
-
-bool checkGLErrorDebug(const char* name) {
-#ifdef DEBUG
-    return checkGLError(name);
-#else
-    Q_UNUSED(name);
-    return false;
-#endif
-}
 
 gpu::Size getFreeDedicatedMemory() {
     Size result { 0 };
@@ -87,53 +47,6 @@ gpu::Size getFreeDedicatedMemory() {
     }
     return result;
 }
-
-gpu::Size getDedicatedMemory() {
-    static Size dedicatedMemory { 0 };
-    static std::once_flag once;
-    std::call_once(once, [&] {
-#ifdef Q_OS_WIN
-        if (!dedicatedMemory && wglGetGPUIDsAMD && wglGetGPUInfoAMD) {
-            UINT maxCount = wglGetGPUIDsAMD(0, 0);
-            std::vector<UINT> ids;
-            ids.resize(maxCount);
-            wglGetGPUIDsAMD(maxCount, &ids[0]);
-            GLuint memTotal;
-            wglGetGPUInfoAMD(ids[0], WGL_GPU_RAM_AMD, GL_UNSIGNED_INT, sizeof(GLuint), &memTotal);
-            dedicatedMemory = MB_TO_BYTES(memTotal);
-        }
-#endif
-
-        if (!dedicatedMemory) {
-            GLint atiGpuMemory[4];
-            // not really total memory, but close enough if called early enough in the application lifecycle
-            glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, atiGpuMemory);
-            if (GL_NO_ERROR == glGetError()) {
-                dedicatedMemory = KB_TO_BYTES(atiGpuMemory[0]);
-            }
-        }
-
-        if (!dedicatedMemory) {
-            GLint nvGpuMemory { 0 };
-            glGetIntegerv(GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX, &nvGpuMemory);
-            if (GL_NO_ERROR == glGetError()) {
-                dedicatedMemory = KB_TO_BYTES(nvGpuMemory);
-            }
-        }
-
-        if (!dedicatedMemory) {
-            auto gpuIdent = GPUIdent::getInstance();
-            if (gpuIdent && gpuIdent->isValid()) {
-                dedicatedMemory = MB_TO_BYTES(gpuIdent->getMemory());
-            }
-        }
-    });
-
-    return dedicatedMemory;
-}
-
-
-
 
 ComparisonFunction comparisonFuncFromGL(GLenum func) {
     if (func == GL_NEVER) {

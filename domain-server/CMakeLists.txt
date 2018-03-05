@@ -22,7 +22,21 @@ setup_memory_debugger()
 symlink_or_copy_directory_beside_target(${_SHOULD_SYMLINK_RESOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/resources" "resources")
 
 # link the shared hifi libraries
-link_hifi_libraries(embedded-webserver networking shared avatars)
+include_hifi_library_headers(gpu)
+include_hifi_library_headers(graphics)
+link_hifi_libraries(embedded-webserver networking shared avatars octree)
+
+target_zlib()
+
+add_dependency_external_projects(quazip)
+
+find_package(QuaZip REQUIRED)
+target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${QUAZIP_INCLUDE_DIRS})
+target_link_libraries(${TARGET_NAME} ${QUAZIP_LIBRARIES})
+
+if (WIN32)
+  add_paths_to_fixup_libs(${QUAZIP_DLL_PATH})
+endif ()
 
 # find OpenSSL
 find_package(OpenSSL REQUIRED)

@@ -234,7 +234,7 @@
 
         Recorder.setUp();
 
-        // Tablet/toolbar button.
+        // tablet/toolbar button.
         button = tablet.addButton({
             icon: APP_ICON_INACTIVE,
             activeIcon: APP_ICON_ACTIVE,

@@ -31,6 +31,8 @@ const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT = 40103;
 const quint16 DOMAIN_SERVER_HTTP_PORT = 40100;
 const quint16 DOMAIN_SERVER_HTTPS_PORT = 40101;
 
+const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
+
 class DomainHandler : public QObject {
     Q_OBJECT
 public:
@@ -47,7 +49,7 @@ public:
     const QHostAddress& getIP() const { return _sockAddr.getAddress(); }
     void setIPToLocalhost() { _sockAddr.setAddress(QHostAddress(QHostAddress::LocalHost)); }
 
-    const HifiSockAddr& getSockAddr() { return _sockAddr; }
+    const HifiSockAddr& getSockAddr() const { return _sockAddr; }
     void setSockAddr(const HifiSockAddr& sockAddr, const QString& hostname);
 
     unsigned short getPort() const { return _sockAddr.getPort(); }
@@ -84,6 +86,50 @@ public:
 
     void softReset();
 
+    int getCheckInPacketsSinceLastReply() const { return _checkInPacketsSinceLastReply; }
+    void sentCheckInPacket();
+    void domainListReceived() { _checkInPacketsSinceLastReply = 0; }
+
+    /**jsdoc
+     * <p>The reasons that you may be refused connection to a domain are defined by numeric values:</p>
+     * <table>
+     *   <thead>
+     *     <tr>
+     *       <th>Reason</th>
+     *       <th>Value</th>
+     *       <th>Description</th>
+     *     </tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr>
+     *       <td><strong>Unknown</strong></td>
+     *       <td><code>0</code></td>
+     *       <td>Some unknown reason.</td>
+     *     </tr>
+     *     <tr>
+     *       <td><strong>ProtocolMismatch</strong></td>
+     *       <td><code>1</code></td>
+     *       <td>The communications protocols of the domain and your Interface are not the same.</td>
+     *     </tr>
+     *     <tr>
+     *       <td><strong>LoginError</strong></td>
+     *       <td><code>2</code></td>
+     *       <td>You could not be logged into the domain.</td>
+     *     </tr>
+     *     <tr>
+     *       <td><strong>NotAuthorized</strong></td>
+     *       <td><code>3</code></td>
+     *       <td>You are not authorized to connect to the domain.</td>
+     *     </tr>
+     *     <tr>
+     *       <td><strong>TooManyUsers</strong></td>
+     *       <td><code>4</code></td>
+     *       <td>The domain already has its maximum number of users.</td>
+     *     </tr>
+     *   </tbody>
+     * </table>
+     * @typedef Window.ConnectionRefusedReason
+     */
     enum class ConnectionRefusedReason : uint8_t {
         Unknown,
         ProtocolMismatch,
@@ -125,6 +171,8 @@ signals:
 
     void domainConnectionRefused(QString reasonMessage, int reason, const QString& extraInfo);
 
+    void limitOfSilentDomainCheckInsReached();
+
 private:
     bool reasonSuggestsLogin(ConnectionRefusedReason reasonCode);
     void sendDisconnectPacket();
@@ -147,6 +195,7 @@ private:
     QSet<QString> _domainConnectionRefusals;
     bool _hasCheckedForAccessToken { false };
     int _connectionDenialsSinceKeypairRegen { 0 };
+    int _checkInPacketsSinceLastReply { 0 };
 
     QTimer _apiRefreshTimer;
 };

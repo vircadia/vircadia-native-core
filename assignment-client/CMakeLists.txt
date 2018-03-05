@@ -1,6 +1,6 @@
 set(TARGET_NAME assignment-client)
 
-setup_hifi_project(Core Gui Network Script Quick Widgets WebSockets)
+setup_hifi_project(Core Gui Network Script Quick WebSockets)
 
 # Fix up the rpath so macdeployqt works
 if (APPLE)
@@ -11,7 +11,7 @@ setup_memory_debugger()
 
 # link in the shared libraries
 link_hifi_libraries(
-  audio avatars octree gpu model fbx entities
+  audio avatars octree gpu graphics fbx entities
   networking animation recording shared script-engine embedded-webserver
   controllers physics plugins midi image
 )

@@ -53,8 +53,6 @@ public:
 
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
 
-    float getHmdUIAngularSize() const { return _hmdUIAngularSize; }
-    void setHmdUIAngularSize(float hmdUIAngularSize) { _hmdUIAngularSize = hmdUIAngularSize; }
     bool isHMD() const;
     bool fakeEventActive() const { return _fakeMouseEvent; }
 
@@ -92,6 +90,7 @@ public:
     glm::vec2 getReticleMaximumPosition() const;
 
     glm::mat4 getReticleTransform(const glm::mat4& eyePose = glm::mat4(), const glm::vec3& headPosition = glm::vec3()) const;
+    glm::mat4 getPoint2DTransform(const glm::vec2& point = glm::vec2()) const;
 
     ReticleInterface* getReticleInterface() { return _reticleInterface; }
 
@@ -139,7 +138,6 @@ private:
     //quint64 _hoverItemEnterUsecs { 0 };
 
     bool _isOverDesktop { true };
-    float _hmdUIAngularSize { glm::degrees(VIRTUAL_UI_TARGET_FOV.y) };
     float _textureFov { VIRTUAL_UI_TARGET_FOV.y };
     float _textureAspectRatio { VIRTUAL_UI_ASPECT_RATIO };
 

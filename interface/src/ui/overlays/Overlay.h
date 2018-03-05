@@ -26,11 +26,6 @@ class Overlay : public QObject {
     Q_OBJECT
 
 public:
-    enum Anchor {
-        NO_ANCHOR,
-        MY_AVATAR
-    };
-
     typedef std::shared_ptr<Overlay> Pointer;
     typedef render::Payload<Overlay> Payload;
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
@@ -63,7 +58,6 @@ public:
     virtual bool isTransparent() { return getAlphaPulse() != 0.0f || getAlpha() != 1.0f; };
     xColor getColor();
     float getAlpha();
-    Anchor getAnchor() const { return _anchor; }
 
     float getPulseMax() const { return _pulseMax; }
     float getPulseMin() const { return _pulseMin; }
@@ -78,7 +72,6 @@ public:
     void setDrawHUDLayer(bool drawHUDLayer);
     void setColor(const xColor& color) { _color = color; }
     void setAlpha(float alpha) { _alpha = alpha; }
-    void setAnchor(Anchor anchor) { _anchor = anchor; }
 
     void setPulseMax(float value) { _pulseMax = value; }
     void setPulseMin(float value) { _pulseMin = value; }
@@ -97,6 +90,9 @@ public:
 
     unsigned int getStackOrder() const { return _stackOrder; }
     void setStackOrder(unsigned int stackOrder) { _stackOrder = stackOrder; }
+
+    virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
+    virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
 protected:
     float updatePulse();
@@ -118,9 +114,14 @@ protected:
 
     xColor _color;
     bool _visible; // should the overlay be drawn at all
-    Anchor _anchor;
 
     unsigned int _stackOrder { 0 };
+
+    static const xColor DEFAULT_OVERLAY_COLOR;
+    static const float DEFAULT_ALPHA;
+
+    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
+    std::mutex _materialsLock;
 
 private:
     OverlayID _overlayID; // only used for non-3d overlays

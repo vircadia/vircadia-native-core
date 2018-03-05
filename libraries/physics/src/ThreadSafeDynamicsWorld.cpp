@@ -18,6 +18,7 @@
 #include <LinearMath/btQuickprof.h>
 
 #include "ThreadSafeDynamicsWorld.h"
+#include "Profile.h"
 
 ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(
         btDispatcher* dispatcher,
@@ -29,6 +30,7 @@ ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(
 
 int ThreadSafeDynamicsWorld::stepSimulationWithSubstepCallback(btScalar timeStep, int maxSubSteps,
                                                                btScalar fixedTimeStep, SubStepCallback onSubStep) {
+    DETAILED_PROFILE_RANGE(simulation_physics, "stepWithCB");
     BT_PROFILE("stepSimulationWithSubstepCallback");
     int subSteps = 0;
     if (maxSubSteps) {
@@ -68,11 +70,13 @@ int ThreadSafeDynamicsWorld::stepSimulationWithSubstepCallback(btScalar timeStep
         saveKinematicState(fixedTimeStep*clampedSimulationSteps);
 
         {
+            DETAILED_PROFILE_RANGE(simulation_physics, "applyGravity");
             BT_PROFILE("applyGravity");
             applyGravity();
         }
 
         for (int i=0;i<clampedSimulationSteps;i++) {
+            DETAILED_PROFILE_RANGE(simulation_physics, "substep");
             internalSingleStepSimulation(fixedTimeStep);
             onSubStep();
         }
@@ -118,7 +122,8 @@ void ThreadSafeDynamicsWorld::synchronizeMotionState(btRigidBody* body) {
 }
 
 void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
-    BT_PROFILE("synchronizeMotionStates");
+    PROFILE_RANGE(simulation_physics, "SyncMotionStates");
+    BT_PROFILE("syncMotionStates");
     _changedMotionStates.clear();
 
     // NOTE: m_synchronizeAllMotionStates is 'false' by default for optimization.
@@ -161,6 +166,7 @@ void ThreadSafeDynamicsWorld::saveKinematicState(btScalar timeStep) {
 ///would like to iterate over m_nonStaticRigidBodies, but unfortunately old API allows
 ///to switch status _after_ adding kinematic objects to the world
 ///fix it for Bullet 3.x release
+    DETAILED_PROFILE_RANGE(simulation_physics, "saveKinematicState");
     BT_PROFILE("saveKinematicState");
     for (int i=0;i<m_collisionObjects.size();i++)
     {

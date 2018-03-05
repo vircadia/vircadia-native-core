@@ -15,7 +15,7 @@
 //
 
 /* global MyAvatar, Entities, Script, Camera, Vec3, Reticle, Overlays, getEntityCustomData, Messages, Quat, Controller,
-   isInEditMode, HMD entityIsGrabbable, Pointers, PickType RayPick*/
+   isInEditMode, HMD entityIsGrabbable, Picks, PickType, Pointers*/
 
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -258,17 +258,21 @@ function Grabber() {
     this.liftKey = false; // SHIFT
     this.rotateKey = false; // CONTROL
 
-    this.mouseRayOverlays = RayPick.createRayPick({
+    this.mouseRayOverlays = Picks.createPick(PickType.Ray, {
         joint: "Mouse",
         filter: Picks.PICK_OVERLAYS,
         enabled: true
     });
-    RayPick.setIncludeItems(this.mouseRayOverlays, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+    var tabletItems = getMainTabletIDs();
+    if (tabletItems.length > 0) {
+        Picks.setIncludeItems(this.mouseRayOverlays, tabletItems);
+    }
     var renderStates = [{name: "grabbed", end: beacon}];
     this.mouseRayEntities = Pointers.createPointer(PickType.Ray, {
         joint: "Mouse",
         filter: Picks.PICK_ENTITIES,
         faceAvatar: true,
+        scaleWithAvatar: true,
         enabled: true,
         renderStates: renderStates
     });
@@ -324,7 +328,7 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    var overlayResult = RayPick.getPrevRayPickResult(this.mouseRayOverlays);
+    var overlayResult = Picks.getPrevPickResult(this.mouseRayOverlays);
     if (overlayResult.type != Picks.INTERSECTED_NONE) {
         return;
     }
@@ -595,7 +599,7 @@ Grabber.prototype.keyPressEvent = function(event) {
 
 Grabber.prototype.cleanup = function() {
     Pointers.removePointer(this.mouseRayEntities);
-    RayPick.removeRayPick(this.mouseRayOverlays);
+    Picks.removePick(this.mouseRayOverlays);
 };
 
 var grabber = new Grabber();

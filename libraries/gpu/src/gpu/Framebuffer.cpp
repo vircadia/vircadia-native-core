@@ -62,7 +62,7 @@ Framebuffer* Framebuffer::createShadowmap(uint16 width) {
     samplerDesc._wrapModeU = Sampler::WRAP_BORDER;
     samplerDesc._wrapModeV = Sampler::WRAP_BORDER;
     samplerDesc._filter = Sampler::FILTER_MIN_MAG_LINEAR;
-    samplerDesc._comparisonFunc = LESS_EQUAL;
+    samplerDesc._comparisonFunc = LESS;
 
     depthTexture->setSampler(Sampler(samplerDesc));
     framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);

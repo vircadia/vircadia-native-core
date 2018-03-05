@@ -29,28 +29,25 @@ int NodePtrMetaTypeId = qRegisterMetaType<Node*>("Node*");
 int sharedPtrNodeMetaTypeId = qRegisterMetaType<QSharedPointer<Node>>("QSharedPointer<Node>");
 int sharedNodePtrMetaTypeId = qRegisterMetaType<SharedNodePointer>("SharedNodePointer");
 
-void NodeType::init() {
-    QHash<NodeType_t, QString>& TypeNameHash = Node::getTypeNameHash();
-
-    TypeNameHash.insert(NodeType::DomainServer, "Domain Server");
-    TypeNameHash.insert(NodeType::EntityServer, "Entity Server");
-    TypeNameHash.insert(NodeType::Agent, "Agent");
-    TypeNameHash.insert(NodeType::AudioMixer, "Audio Mixer");
-    TypeNameHash.insert(NodeType::AvatarMixer, "Avatar Mixer");
-    TypeNameHash.insert(NodeType::MessagesMixer, "Messages Mixer");
-    TypeNameHash.insert(NodeType::AssetServer, "Asset Server");
-    TypeNameHash.insert(NodeType::EntityScriptServer, "Entity Script Server");
-    TypeNameHash.insert(NodeType::UpstreamAudioMixer, "Upstream Audio Mixer");
-    TypeNameHash.insert(NodeType::UpstreamAvatarMixer, "Upstream Avatar Mixer");
-    TypeNameHash.insert(NodeType::DownstreamAudioMixer, "Downstream Audio Mixer");
-    TypeNameHash.insert(NodeType::DownstreamAvatarMixer, "Downstream Avatar Mixer");
-    TypeNameHash.insert(NodeType::Unassigned, "Unassigned");
-}
+static const QHash<NodeType_t, QString> TYPE_NAME_HASH {
+    { NodeType::DomainServer, "Domain Server" },
+    { NodeType::EntityServer, "Entity Server" },
+    { NodeType::Agent, "Agent" },
+    { NodeType::AudioMixer, "Audio Mixer" },
+    { NodeType::AvatarMixer, "Avatar Mixer" },
+    { NodeType::MessagesMixer, "Messages Mixer" },
+    { NodeType::AssetServer, "Asset Server" },
+    { NodeType::EntityScriptServer, "Entity Script Server" },
+    { NodeType::UpstreamAudioMixer, "Upstream Audio Mixer" },
+    { NodeType::UpstreamAvatarMixer, "Upstream Avatar Mixer" },
+    { NodeType::DownstreamAudioMixer, "Downstream Audio Mixer" },
+    { NodeType::DownstreamAvatarMixer, "Downstream Avatar Mixer" },
+    { NodeType::Unassigned, "Unassigned" }
+};
 
 const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
-    QHash<NodeType_t, QString>& TypeNameHash = Node::getTypeNameHash();
-    QHash<NodeType_t, QString>::iterator matchedTypeName = TypeNameHash.find(nodeType);
-    return matchedTypeName != TypeNameHash.end() ? matchedTypeName.value() : UNKNOWN_NodeType_t_NAME;
+    const auto matchedTypeName = TYPE_NAME_HASH.find(nodeType);
+    return matchedTypeName != TYPE_NAME_HASH.end() ? matchedTypeName.value() : UNKNOWN_NodeType_t_NAME;
 }
 
 bool NodeType::isUpstream(NodeType_t nodeType) {
@@ -84,8 +81,7 @@ NodeType_t NodeType::downstreamType(NodeType_t primaryType) {
 }
 
 NodeType_t NodeType::fromString(QString type) {
-    QHash<NodeType_t, QString>& TypeNameHash = Node::getTypeNameHash();
-    return TypeNameHash.key(type, NodeType::Unassigned);
+    return TYPE_NAME_HASH.key(type, NodeType::Unassigned);
 }
 
 

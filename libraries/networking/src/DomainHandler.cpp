@@ -98,6 +98,7 @@ void DomainHandler::softReset() {
     clearSettings();
 
     _connectionDenialsSinceKeypairRegen = 0;
+    _checkInPacketsSinceLastReply = 0;
 
     // cancel the failure timeout for any pending requests for settings
     QMetaObject::invokeMethod(&_settingsTimer, "stop");
@@ -382,6 +383,9 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
     // we're hearing from this domain-server, don't need to refresh API info
     _apiRefreshTimer.stop();
 
+    // this counts as a reply from the DS after a check in or connect packet, so reset that counter now
+    _checkInPacketsSinceLastReply = 0;
+
     // Read deny reason from packet
     uint8_t reasonCodeWire;
 
@@ -424,5 +428,16 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
             accountManager->generateNewUserKeypair();
             _connectionDenialsSinceKeypairRegen = 0;
         }
+    }
+}
+
+void DomainHandler::sentCheckInPacket() {
+    ++_checkInPacketsSinceLastReply;
+
+    if (_checkInPacketsSinceLastReply >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+        // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
+        // so emit our signal that says that
+        qCDebug(networking) << "Limit of silent domain checkins reached";
+        emit limitOfSilentDomainCheckInsReached();
     }
 }

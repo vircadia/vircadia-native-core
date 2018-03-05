@@ -25,10 +25,13 @@ Rectangle {
     property string titleText;
     property string bodyImageSource;
     property string bodyText;
+    property string button1color: hifi.buttons.noneBorderlessGray;
     property string button1text;
     property string button1method;
+    property string button2color: hifi.buttons.noneBorderless;
     property string button2text;
     property string button2method;
+    property string buttonLayout: "leftright";
 
     readonly property string securityPicBodyText: "When you see your Security Pic, your actions and data are securely making use of your " +
         "Wallet's private keys.<br><br>You can change your Security Pic in your Wallet.";
@@ -39,12 +42,19 @@ Rectangle {
     color: Qt.rgba(0, 0, 0, 0.5);
     z: 999;
 
+    onVisibleChanged: {
+        if (!visible) {
+            resetLightbox();
+        }
+    }
+
     // This object is always used in a popup.
     // This MouseArea is used to prevent a user from being
     //     able to click on a button/mouseArea underneath the popup.
     MouseArea {
         anchors.fill: parent;
         propagateComposedEvents: false;
+        hoverEnabled: true;
     }
 
     Rectangle {
@@ -99,6 +109,10 @@ Rectangle {
             size: 20;
             verticalAlignment: Text.AlignTop;
             wrapMode: Text.WordWrap;
+
+            onLinkActivated: {
+                sendToParent({ method: 'commerceLightboxLinkClicked', linkUrl: link });
+            }
         }
 
         Item {
@@ -107,18 +121,21 @@ Rectangle {
             anchors.topMargin: 30;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            height: 70;
+            height: root.buttonLayout === "leftright" ? 70 : 150;
 
             // Button 1
             HifiControlsUit.Button {
-                color: hifi.buttons.noneBorderlessGray;
+                id: button1;
+                color: root.button1color;
                 colorScheme: hifi.colorSchemes.light;
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 20;
+                anchors.top: root.buttonLayout === "leftright" ? parent.top : parent.top;
                 anchors.left: parent.left;
                 anchors.leftMargin: 10;
-                width: root.button2text ? parent.width/2 - anchors.leftMargin*2 : parent.width - anchors.leftMargin * 2;
+                anchors.right: root.buttonLayout === "leftright" ? undefined : parent.right;
+                anchors.rightMargin: root.buttonLayout === "leftright" ? undefined : 10;
+                width: root.buttonLayout === "leftright" ? (root.button2text ? parent.width/2 - anchors.leftMargin*2 : parent.width - anchors.leftMargin * 2) :
+                    (undefined);
+                height: 50;
                 text: root.button1text;
                 onClicked: {
                     eval(button1method);
@@ -127,15 +144,18 @@ Rectangle {
 
             // Button 2
             HifiControlsUit.Button {
+                id: button2;
                 visible: root.button2text;
-                color: hifi.buttons.noneBorderless;
+                color: root.button2color;
                 colorScheme: hifi.colorSchemes.light;
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 20;
+                anchors.top: root.buttonLayout === "leftright" ? parent.top : button1.bottom;
+                anchors.topMargin: root.buttonLayout === "leftright" ? undefined : 20;
+                anchors.left: root.buttonLayout === "leftright" ? undefined : parent.left;
+                anchors.leftMargin: root.buttonLayout === "leftright" ? undefined : 10;
                 anchors.right: parent.right;
                 anchors.rightMargin: 10;
-                width: parent.width/2 - anchors.rightMargin*2;
+                width: root.buttonLayout === "leftright" ? parent.width/2 - anchors.rightMargin*2 : undefined;
+                height: 50;
                 text: root.button2text;
                 onClicked: {
                     eval(button2method);
@@ -148,6 +168,19 @@ Rectangle {
     // FUNCTION DEFINITIONS START
     //
     signal sendToParent(var msg);
+
+    function resetLightbox() {
+        root.titleText = "";
+        root.bodyImageSource = "";
+        root.bodyText = "";
+        root.button1color = hifi.buttons.noneBorderlessGray;
+        root.button1text = "";
+        root.button1method = "";
+        root.button2color = hifi.buttons.noneBorderless;
+        root.button2text = "";
+        root.button2method = "";
+        root.buttonLayout = "leftright";
+    }
     //
     // FUNCTION DEFINITIONS END
     //

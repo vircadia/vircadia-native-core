@@ -208,7 +208,7 @@ void IceServer::requestDomainPublicKey(const QUuid& domainID) {
     // send a request to the metaverse API for the public key for this domain
     auto& networkAccessManager = NetworkAccessManager::getInstance();
 
-    QUrl publicKeyURL { NetworkingConstants::METAVERSE_SERVER_URL };
+    QUrl publicKeyURL { NetworkingConstants::METAVERSE_SERVER_URL() };
     QString publicKeyPath = QString("/api/v1/domains/%1/public_key").arg(uuidStringWithoutCurlyBraces(domainID));
     publicKeyURL.setPath(publicKeyPath);
 

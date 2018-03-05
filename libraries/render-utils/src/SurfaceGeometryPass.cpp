@@ -212,7 +212,7 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
 const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline() {
     if (!_linearDepthPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(surfaceGeometry_makeLinearDepth_frag));
+        auto ps = surfaceGeometry_makeLinearDepth_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -239,7 +239,7 @@ const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline() {
 const gpu::PipelinePointer& LinearDepthPass::getDownsamplePipeline() {
     if (!_downsamplePipeline) {
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(surfaceGeometry_downsampleDepthNormal_frag));
+        auto ps = surfaceGeometry_downsampleDepthNormal_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -540,7 +540,7 @@ void SurfaceGeometryPass::run(const render::RenderContextPointer& renderContext,
 const gpu::PipelinePointer& SurfaceGeometryPass::getCurvaturePipeline() {
     if (!_curvaturePipeline) {
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(surfaceGeometry_makeCurvature_frag));
+        auto ps = surfaceGeometry_makeCurvature_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;

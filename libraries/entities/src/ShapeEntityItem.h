@@ -75,12 +75,12 @@ public:
     void setShape(const QString& shape) { setShape(entity::shapeFromString(shape)); }
 
     float getAlpha() const { return _alpha; };
-    void setAlpha(float alpha) { _alpha = alpha; }
+    void setAlpha(float alpha);
 
     const rgbColor& getColor() const { return _color; }
     void setColor(const rgbColor& value);
 
-	void setDimensions(const glm::vec3& value) override;
+    void setUnscaledDimensions(const glm::vec3& value) override;
 
     xColor getXColor() const;
     void setColor(const xColor& value);
@@ -94,12 +94,14 @@ public:
     bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                 bool& keepSearching, OctreeElementPointer& element, float& distance,
                                                 BoxFace& face, glm::vec3& surfaceNormal,
-                                                void** intersectedObject, bool precisionPicking) const override;
+                                                QVariantMap& extraInfo, bool precisionPicking) const override;
 
     void debugDump() const override;
 
     virtual void computeShapeInfo(ShapeInfo& info) override;
     virtual ShapeType getShapeType() const override;
+
+    std::shared_ptr<graphics::Material> getMaterial() { return _material; }
 
 protected:
 
@@ -111,6 +113,8 @@ protected:
     //! prior functionality where new or unsupported shapes are treated as
     //! ellipsoids.
     ShapeType _collisionShapeType{ ShapeType::SHAPE_TYPE_ELLIPSOID };
+
+    std::shared_ptr<graphics::Material> _material;
 };
 
 #endif // hifi_ShapeEntityItem_h

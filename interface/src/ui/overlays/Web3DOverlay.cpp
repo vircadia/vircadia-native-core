@@ -26,6 +26,7 @@
 #include <GeometryUtil.h>
 #include <gl/GLHelpers.h>
 #include <scripting/HMDScriptingInterface.h>
+#include <scripting/WindowScriptingInterface.h>
 #include <ui/OffscreenQmlSurface.h>
 #include <ui/OffscreenQmlSurfaceCache.h>
 #include <ui/TabletScriptingInterface.h>
@@ -36,7 +37,6 @@
 #include <UserActivityLoggerScriptingInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <AddressManager.h>
-#include "scripting/AccountScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -51,7 +51,7 @@
 #include "ui/DomainConnectionModel.h"
 #include "ui/AvatarInputs.h"
 #include "avatar/AvatarManager.h"
-#include "scripting/GlobalServicesScriptingInterface.h"
+#include "scripting/AccountServicesScriptingInterface.h"
 #include <plugins/InputConfiguration.h>
 #include "ui/Snapshot.h"
 #include "SoundCache.h"
@@ -73,6 +73,14 @@ Web3DOverlay::Web3DOverlay() {
     connect(this, &Web3DOverlay::requestWebSurface, this, &Web3DOverlay::buildWebSurface);
     connect(this, &Web3DOverlay::releaseWebSurface, this, &Web3DOverlay::destroyWebSurface);
     connect(this, &Web3DOverlay::resizeWebSurface, this, &Web3DOverlay::onResizeWebSurface);
+
+    //need to be intialized before Tablet 1st open
+    _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(_url);
+    _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+    _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    _webSurface->getSurfaceContext()->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
+    _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
 }
 
 Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
@@ -127,7 +135,11 @@ void Web3DOverlay::destroyWebSurface() {
 
     QObject::disconnect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
     QObject::disconnect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
-    DependencyManager::get<OffscreenQmlSurfaceCache>()->release(QML, _webSurface);
+    auto offscreenCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+    // FIXME prevents crash on shutdown, but we shoudln't have to do this check
+    if (offscreenCache) {
+        offscreenCache->release(QML, _webSurface);
+    }
     _webSurface.reset();
 }
 
@@ -193,20 +205,25 @@ void Web3DOverlay::setupQmlSurface() {
 
         _webSurface->getSurfaceContext()->setContextProperty("offscreenFlags", flags);
         _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
-        _webSurface->getSurfaceContext()->setContextProperty("Account", AccountScriptingInterface::getInstance());
-        _webSurface->getSurfaceContext()->setContextProperty("Audio", DependencyManager::get<AudioScriptingInterface>().data());
+
+        _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+        _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+        _webSurface->getSurfaceContext()->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
+
+        // in Qt 5.10.0 there is already an "Audio" object in the QML context
+        // though I failed to find it (from QtMultimedia??). So..  let it be "AudioScriptingInterface"
+        _webSurface->getSurfaceContext()->setContextProperty("AudioScriptingInterface", DependencyManager::get<AudioScriptingInterface>().data());
+
         _webSurface->getSurfaceContext()->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
         _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
         _webSurface->getSurfaceContext()->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
         _webSurface->getSurfaceContext()->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
-        _webSurface->getSurfaceContext()->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Assets", DependencyManager::get<AssetMappingsScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
         _webSurface->getSurfaceContext()->setContextProperty("OctreeStats", DependencyManager::get<OctreeStatsProvider>().data());
         _webSurface->getSurfaceContext()->setContextProperty("DCModel", DependencyManager::get<DomainConnectionModel>().data());
         _webSurface->getSurfaceContext()->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
-        _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
         _webSurface->getSurfaceContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
@@ -217,16 +234,8 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Pointers", DependencyManager::get<PointerScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Web3DOverlay", this);
+        _webSurface->getSurfaceContext()->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
 
-        _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
-
-        // Tablet inteference with Tablet.qml. Need to avoid this in QML space
-        _webSurface->getSurfaceContext()->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
-
-        tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface.data());
-        // mark the TabletProxy object as cpp ownership.
-        QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
-        _webSurface->getSurfaceContext()->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
         // Override min fps for tablet UI, for silky smooth scrolling
         setMaxFPS(90);
     }
@@ -466,6 +475,62 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
     }
 }
 
+// Web3DOverlay overrides the meaning of Planar3DOverlay's dimensions property.
+/**jsdoc
+ * These are the properties of a <code>web3d</code> {@link Overlays.OverlayType|OverlayType}.
+ * @typedef {object} Overlays.Web3DProperties
+ *
+ * @property {string} type=web3d - Has the value <code>"web3d"</code>. <em>Read-only.</em>
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+ * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
+ *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+ * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
+ *
+ * @property {string} name="" - A friendly name for the overlay.
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and 
+ *     <code>start</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
+ * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
+ *     <code>dashed</code>.
+ * @property {boolean} ignoreRayIntersection=false - If <code>true</code>, 
+ *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
+ *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ * @property {boolean} isFacingAvatar - If <code>true</code>, the overlay is rotated to face the user's camera about an axis
+ *     parallel to the user's avatar's "up" direction.
+ *
+ * @property {string} url - The URL of the Web page to display.
+ * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the Web page.
+ * @property {number} dpi=30 - The dots per inch to display the Web page at, on the overlay.
+ * @property {Vec2} dimensions=1,1 - The size of the overlay to display the Web page on, in meters. Synonyms: 
+ *     <code>scale</code>, <code>size</code>.
+ * @property {number} maxFPS=10 - The maximum update rate for the Web overlay content, in frames/second.
+ * @property {boolean} showKeyboardFocusHighlight=true - If <code>true</code>, the Web overlay is highlighted when it has
+ *     keyboard focus.
+ * @property {string} inputMode=Touch - The user input mode to use - either <code>"Touch"</code> or <code>"Mouse"</code>.
+ */
 QVariant Web3DOverlay::getProperty(const QString& property) {
     if (property == "url") {
         return _url;

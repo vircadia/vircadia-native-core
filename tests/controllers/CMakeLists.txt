@@ -1,4 +1,5 @@
-
+# FIXME Disabling test on OSX because of unexpected link error 
+if (NOT APPLE)
 set(TARGET_NAME controllers-test)
  
 # This is not a testcase -- just set it up as a regular hifi project
@@ -23,3 +24,4 @@ if (WIN32)
 endif()
 
 package_libraries_for_deployment()
+endif()

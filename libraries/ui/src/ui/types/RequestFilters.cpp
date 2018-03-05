@@ -17,10 +17,12 @@
 
 #include "AccountManager.h"
 
+#if !defined(Q_OS_ANDROID)
+
 namespace {
 
     bool isAuthableHighFidelityURL(const QUrl& url) {
-        auto metaverseServerURL = NetworkingConstants::METAVERSE_SERVER_URL;
+        auto metaverseServerURL = NetworkingConstants::METAVERSE_SERVER_URL();
         static const QStringList HF_HOSTS = {
             "highfidelity.com", "highfidelity.io",
             metaverseServerURL.toString(), "metaverse.highfidelity.io"
@@ -77,3 +79,4 @@ void RequestFilters::interceptFileType(QWebEngineUrlRequestInfo& info) {
         info.setHttpHeader(CONTENT_HEADER.toLocal8Bit(), TYPE_VALUE.toLocal8Bit());
     }
 }
+#endif

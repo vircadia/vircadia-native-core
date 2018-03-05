@@ -25,7 +25,6 @@
 #include <QtCore/QCoreApplication>
 #include <QUuid>
 
-
 // When writing out avatarEntities to a QByteArray, if the parentID is the ID of MyAvatar, use this ID instead.  This allows
 // the value to be reset when the sessionID changes.
 const QUuid AVATAR_SELF_ID = QUuid("{00000000-0000-0000-0000-000000000001}");
@@ -37,20 +36,15 @@ std::unique_ptr<T>& globalInstancePointer() {
     return instancePtr;
 }
 
-template <typename T>
-void setGlobalInstance(const char* propertyName, T* instance) {
-    globalInstancePointer<T>().reset(instance);
-}
+// Sets up the global instances for use
+// This NEEDS to be called on startup
+// for any binary planing on using global instances
+// More details in cpp file
+void setupGlobalInstances();
 
-template <typename T>
-bool destroyGlobalInstance() {
-    std::unique_ptr<T>& instancePtr = globalInstancePointer<T>();
-    if (instancePtr.get()) {
-        instancePtr.reset();
-        return true;
-    }
-    return false;
-}
+std::mutex& globalInstancesMutex();
+QVariant getGlobalInstance(const char* propertyName);
+void setGlobalInstance(const char* propertyName, const QVariant& variant);
 
 // Provides efficient access to a named global type.  By storing the value
 // in the QApplication by name we can implement the singleton pattern and 
@@ -58,11 +52,10 @@ bool destroyGlobalInstance() {
 template <typename T, typename... Args>
 T* globalInstance(const char* propertyName, Args&&... args) {
     static T* resultInstance { nullptr };
-    static std::mutex mutex;
     if (!resultInstance) {
-        std::unique_lock<std::mutex> lock(mutex);
+        std::unique_lock<std::mutex> lock(globalInstancesMutex());
         if (!resultInstance) {
-            auto variant = qApp->property(propertyName);
+            auto variant = getGlobalInstance(propertyName);
             if (variant.isNull()) {
                 std::unique_ptr<T>& instancePtr = globalInstancePointer<T>();
                 if (!instancePtr.get()) {
@@ -72,7 +65,7 @@ T* globalInstance(const char* propertyName, Args&&... args) {
                 }
                 void* voidInstance = &(*instancePtr);
                 variant = QVariant::fromValue(voidInstance);
-                qApp->setProperty(propertyName, variant);
+                setGlobalInstance(propertyName, variant);
             }
             void* returnedVoidInstance = variant.value<void*>();
             resultInstance = static_cast<T*>(returnedVoidInstance);
@@ -196,6 +189,7 @@ QString formatUsecTime(float usecs);
 QString formatUsecTime(double usecs);
 QString formatUsecTime(quint64 usecs);
 QString formatUsecTime(qint64 usecs);
+QString formatSecTime(qint64 secs);
 
 QString formatSecondsElapsed(float seconds);
 bool similarStrings(const QString& stringA, const QString& stringB);
@@ -240,6 +234,7 @@ void watchParentProcess(int parentPID);
 
 bool processIsRunning(int64_t pid);
 
+void setupHifiApplication(QString applicationName);
 
 #ifdef Q_OS_WIN
 void* createProcessGroup();

@@ -11,6 +11,8 @@
 #include <vector>
 #include <sstream>
 
+#include <gl/Config.h>
+
 #include <QtCore/QDir>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QLoggingCategory>
@@ -147,9 +149,7 @@ public:
         }
 
         _context.makeCurrent();
-        glewExperimental = true;
-        glewInit();
-        glGetError();
+        gl::initModuleGl();
 
         //wglSwapIntervalEXT(0);
         _frameTimes.resize(FRAME_TIME_BUFFER_SIZE, 0);
@@ -441,6 +441,7 @@ protected:
     }
 
     void reportMemory() {
+#if !defined(USE_GLES)
         static GLint lastMemory = 0;
         GLint availableMem;
         glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &availableMem);
@@ -449,6 +450,7 @@ protected:
             qDebug() << "Delta " << availableMem - lastMemory;
         }
         lastMemory = availableMem;
+#endif
     }
 
     void derezTexture() {
@@ -608,16 +610,6 @@ private:
     bool _ready { false };
 };
 
-void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    if (!message.isEmpty()) {
-#ifdef Q_OS_WIN
-        OutputDebugStringA(message.toLocal8Bit().constData());
-        OutputDebugStringA("\n");
-#endif
-        std::cout << message.toLocal8Bit().constData() << std::endl;
-    }
-}
-
 const char * LOG_FILTER_RULES = R"V0G0N(
 hifi.gpu=true
 )V0G0N";
@@ -643,11 +635,9 @@ void unzipTestData(const QByteArray& zipData) {
 }
 
 int main(int argc, char** argv) {
+    setupHifiApplication("RenderPerf");
+
     QApplication app(argc, argv);
-    QCoreApplication::setApplicationName("RenderPerf");
-    QCoreApplication::setOrganizationName("High Fidelity");
-    QCoreApplication::setOrganizationDomain("highfidelity.com");
-    qInstallMessageHandler(messageHandler);
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
 
     if (!DATA_DIR.exists()) {

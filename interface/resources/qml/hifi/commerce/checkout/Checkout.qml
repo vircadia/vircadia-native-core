@@ -28,39 +28,48 @@ Rectangle {
     id: root;
     objectName: "checkout"
     property string activeView: "initialize";
-    property bool purchasesReceived: false;
+    property bool ownershipStatusReceived: false;
     property bool balanceReceived: false;
     property string itemName;
     property string itemId;
     property string itemHref;
+    property string itemAuthor;
     property double balanceAfterPurchase;
     property bool alreadyOwned: false;
     property int itemPrice: -1;
-    property bool itemIsJson: true;
+    property bool isCertified;
+    property string itemType;
+    property var itemTypesArray: ["entity", "wearable", "contentSet", "app", "avatar"];
+    property var itemTypesText: ["entity", "wearable", "content set", "app", "avatar"];
+    property var buttonTextNormal: ["REZ", "WEAR", "REPLACE CONTENT SET", "INSTALL", "WEAR"];
+    property var buttonTextClicked: ["REZZED!", "WORN!", "CONTENT SET REPLACED!", "INSTALLED!", "AVATAR CHANGED!"]
+    property var buttonGlyph: [hifi.glyphs.wand, hifi.glyphs.hat, hifi.glyphs.globe, hifi.glyphs.install, hifi.glyphs.avatar];
     property bool shouldBuyWithControlledFailure: false;
     property bool debugCheckoutSuccess: false;
     property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
-    property bool isWearable;
+    property string referrer;
+    property bool isInstalled;
     // Style
     color: hifi.colors.white;
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onWalletStatusResult: {
             if (walletStatus === 0) {
                 if (root.activeView !== "needsLogIn") {
                     root.activeView = "needsLogIn";
                 }
-            } else if (walletStatus === 1) {
+            } else if ((walletStatus === 1) || (walletStatus === 2) || (walletStatus === 3)) {
                 if (root.activeView !== "notSetUp") {
                     root.activeView = "notSetUp";
                     notSetUpTimer.start();
                 }
-            } else if (walletStatus === 2) {
+            } else if (walletStatus === 4) {
                 if (root.activeView !== "passphraseModal") {
                     root.activeView = "passphraseModal";
+                    UserActivityLogger.commercePassphraseEntry("marketplace checkout");
                 }
-            } else if (walletStatus === 3) {
+            } else if (walletStatus === 5) {
                 authSuccessStep();
             } else {
                 console.log("ERROR in Checkout.qml: Unknown wallet status: " + walletStatus);
@@ -71,7 +80,7 @@ Rectangle {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
             } else {
-                commerce.getWalletStatus();
+                Commerce.getWalletStatus();
             }
         }
 
@@ -79,12 +88,14 @@ Rectangle {
             if (result.status !== 'success') {
                 failureErrorText.text = result.message;
                 root.activeView = "checkoutFailure";
-                UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemPrice, !root.alreadyOwned, result.message);
+                UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned, result.message);
             } else {
                 root.itemHref = result.data.download_url;
-                root.isWearable = result.data.categories.indexOf("Wearables") > -1;
+                if (result.data.categories.indexOf("Wearables") > -1) {
+                    root.itemType = "wearable";
+                }
                 root.activeView = "checkoutSuccess";
-                UserActivityLogger.commercePurchaseSuccess(root.itemId, root.itemPrice, !root.alreadyOwned);
+                UserActivityLogger.commercePurchaseSuccess(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned);
             }
         }
 
@@ -94,43 +105,71 @@ Rectangle {
             } else {
                 root.balanceReceived = true;
                 root.balanceAfterPurchase = result.data.balance - root.itemPrice;
-                root.setBuyText();
+                root.refreshBuyUI();
             }
         }
 
-        onInventoryResult: {
+        onAlreadyOwnedResult: {
             if (result.status !== 'success') {
-                console.log("Failed to get purchases", result.data.message);
+                console.log("Failed to get Already Owned status", result.data.message);
             } else {
-                root.purchasesReceived = true;
-                if (purchasesContains(result.data.assets, itemId)) {
-                    root.alreadyOwned = true;
+                root.ownershipStatusReceived = true;
+                if (result.data.marketplace_item_id === root.itemId) {
+                    root.alreadyOwned = result.data.already_owned;
                 } else {
+                    console.log("WARNING - Received 'Already Owned' status about different Marketplace ID!");
                     root.alreadyOwned = false;
                 }
-                root.setBuyText();
+                root.refreshBuyUI();
+            }
+        }
+
+        onAppInstalled: {
+            if (appHref === root.itemHref) {
+                root.isInstalled = true;
             }
         }
     }
 
     onItemIdChanged: {
-        commerce.inventory();
+        root.ownershipStatusReceived = false;
+        Commerce.alreadyOwned(root.itemId);
         itemPreviewImage.source = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/" + itemId + "/thumbnail/hifi-mp-" + itemId + ".jpg";
     }
 
     onItemHrefChanged: {
-        itemIsJson = root.itemHref.endsWith('.json');
+        if (root.itemHref.indexOf(".fst") > -1) {
+            root.itemType = "avatar";
+        } else if (root.itemHref.indexOf('.json.gz') > -1) {
+            root.itemType = "contentSet";
+        } else if (root.itemHref.indexOf('.app.json') > -1) {
+            root.itemType = "app";
+        } else if (root.itemHref.indexOf('.json') > -1) {
+            root.itemType = "entity"; // "wearable" type handled later
+        } else {
+            console.log("WARNING - Item type is UNKNOWN!");
+            root.itemType = "entity";
+        }
+    }
+
+    onItemTypeChanged: {
+        if (root.itemType === "entity" || root.itemType === "wearable" ||
+            root.itemType === "contentSet" || root.itemType === "avatar" || root.itemType === "app") {
+            root.isCertified = true;
+        } else {
+            root.isCertified = false;
+        }
     }
 
     onItemPriceChanged: {
-        commerce.balance();
+        Commerce.balance();
     }
 
     Timer {
         id: notSetUpTimer;
         interval: 200;
         onTriggered: {
-            sendToScript({method: 'checkout_walletNotSetUp', itemId: itemId});
+            sendToScript({method: 'checkout_walletNotSetUp', itemId: itemId, referrer: referrer});
         }
     }
 
@@ -200,9 +239,9 @@ Rectangle {
         color: hifi.colors.white;
 
         Component.onCompleted: {
-            purchasesReceived = false;
+            ownershipStatusReceived = false;
             balanceReceived = false;
-            commerce.getWalletStatus();
+            Commerce.getWalletStatus();
         }
     }
 
@@ -223,7 +262,7 @@ Rectangle {
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
-            commerce.getLoginStatus();
+            Commerce.getLoginStatus();
         }
     }
 
@@ -275,6 +314,32 @@ Rectangle {
         anchors.left: parent.left;
         anchors.right: parent.right;
 
+        Rectangle {
+            id: loading;
+            z: 997;
+            visible: !root.ownershipStatusReceived || !root.balanceReceived;
+            anchors.fill: parent;
+            color: hifi.colors.white;
+
+            // This object is always used in a popup.
+            // This MouseArea is used to prevent a user from being
+            //     able to click on a button/mouseArea underneath the popup/section.
+            MouseArea {
+                anchors.fill: parent;
+                hoverEnabled: true;
+                propagateComposedEvents: false;
+            }
+                
+            AnimatedImage {
+                id: loadingImage;
+                source: "../common/images/loader-blue.gif"
+                width: 74;
+                height: width;
+                anchors.verticalCenter: parent.verticalCenter;
+                anchors.horizontalCenter: parent.horizontalCenter;
+            }
+        }
+
         RalewayRegular {
             id: confirmPurchaseText;
             anchors.top: parent.top;
@@ -283,8 +348,8 @@ Rectangle {
             anchors.leftMargin: 16;
             width: paintedWidth;
             height: paintedHeight;
-            text: "Confirm Purchase:";
-            color: hifi.colors.baseGray;
+            text: "Review Purchase:";
+            color: hifi.colors.black;
             size: 28;
         }
         
@@ -397,7 +462,7 @@ Rectangle {
             width: root.width;
             // Anchors
             anchors.top: separator2.bottom;
-            anchors.topMargin: 16;
+            anchors.topMargin: 0;
             anchors.left: parent.left;
             anchors.leftMargin: 16;
             anchors.right: parent.right;
@@ -409,6 +474,7 @@ Rectangle {
                 id: buyTextContainer;
                 visible: buyText.text !== "";
                 anchors.top: parent.top;
+                anchors.topMargin: 10;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
                 height: buyText.height + 30;
@@ -450,32 +516,63 @@ Rectangle {
                     // Alignment
                     horizontalAlignment: Text.AlignLeft;
                     verticalAlignment: Text.AlignVCenter;
+                }
+            }
 
-                    onLinkActivated: {
-                        sendToScript({method: 'checkout_goToPurchases', filterText: root.itemName});
-                    }
+            // "View in My Purchases" button
+            HifiControlsUit.Button {
+                id: viewInMyPurchasesButton;
+                visible: false;
+                color: hifi.buttons.blue;
+                colorScheme: hifi.colorSchemes.light;
+                anchors.top: buyTextContainer.visible ? buyTextContainer.bottom : checkoutActionButtonsContainer.top;
+                anchors.topMargin: 10;
+                height: 50;
+                anchors.left: parent.left;
+                anchors.right: parent.right;
+                text: "VIEW THIS ITEM IN MY PURCHASES";
+                onClicked: {
+                    sendToScript({method: 'checkout_goToPurchases', filterText: root.itemName});
                 }
             }
 
             // "Buy" button
             HifiControlsUit.Button {
                 id: buyButton;
-                enabled: (root.balanceAfterPurchase >= 0 && purchasesReceived && balanceReceived) || !itemIsJson;
-                color: hifi.buttons.blue;
+                visible: !((root.itemType === "avatar" || root.itemType === "app") && viewInMyPurchasesButton.visible)
+                enabled: (root.balanceAfterPurchase >= 0 && ownershipStatusReceived && balanceReceived) || (!root.isCertified);
+                color: viewInMyPurchasesButton.visible ? hifi.buttons.white : hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
-                anchors.top: buyTextContainer.visible ? buyTextContainer.bottom : checkoutActionButtonsContainer.top;
-                anchors.topMargin: buyTextContainer.visible ? 12 : 16;
-                height: 40;
+                anchors.top: viewInMyPurchasesButton.visible ? viewInMyPurchasesButton.bottom :
+                    (buyTextContainer.visible ? buyTextContainer.bottom : checkoutActionButtonsContainer.top);
+                anchors.topMargin: 10;
+                height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                text: (itemIsJson ? ((purchasesReceived && balanceReceived) ? "Confirm Purchase" : "--") : "Get Item");
+                text: ((root.isCertified) ? ((ownershipStatusReceived && balanceReceived) ?
+                    (viewInMyPurchasesButton.visible ? "Buy It Again" : "Confirm Purchase") : "--") : "Get Item");
                 onClicked: {
-                    if (itemIsJson) {
-                        buyButton.enabled = false;
+                    if (root.isCertified) {
                         if (!root.shouldBuyWithControlledFailure) {
-                            commerce.buy(itemId, itemPrice);
+                            if (root.itemType === "contentSet" && !Entities.canReplaceContent()) {
+                                lightboxPopup.titleText = "Purchase Content Set";
+                                lightboxPopup.bodyText = "You will not be able to replace this domain's content with <b>" + root.itemName +
+                                    " </b>until the server owner gives you 'Replace Content' permissions.<br><br>Are you sure you want to purchase this content set?";
+                                lightboxPopup.button1text = "CANCEL";
+                                lightboxPopup.button1method = "root.visible = false;"
+                                lightboxPopup.button2text = "CONFIRM";
+                                lightboxPopup.button2method = "Commerce.buy('" + root.itemId + "', " + root.itemPrice + ");" +
+                                    "root.visible = false; buyButton.enabled = false; loading.visible = true;";
+                                lightboxPopup.visible = true;
+                            } else {
+                                buyButton.enabled = false;
+                                loading.visible = true;
+                                Commerce.buy(root.itemId, root.itemPrice);
+                            }
                         } else {
-                            commerce.buy(itemId, itemPrice, true);
+                            buyButton.enabled = false;
+                            loading.visible = true;
+                            Commerce.buy(root.itemId, root.itemPrice, true);
                         }
                     } else {
                         if (urlHandler.canHandleUrl(itemHref)) {
@@ -490,9 +587,9 @@ Rectangle {
                 id: cancelPurchaseButton;
                 color: hifi.buttons.noneBorderlessGray;
                 colorScheme: hifi.colorSchemes.light;
-                anchors.top: buyButton.bottom;
-                anchors.topMargin: 16;
-                height: 40;
+                anchors.top: buyButton.visible ? buyButton.bottom : viewInMyPurchasesButton.bottom;
+                anchors.topMargin: 10;
+                height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
                 text: "Cancel"
@@ -518,31 +615,32 @@ Rectangle {
         anchors.top: titleBarContainer.bottom;
         anchors.bottom: root.bottom;
         anchors.left: parent.left;
-        anchors.leftMargin: 16;
+        anchors.leftMargin: 20;
         anchors.right: parent.right;
-        anchors.rightMargin: 16;
+        anchors.rightMargin: 20;
 
         RalewayRegular {
             id: completeText;
             anchors.top: parent.top;
-            anchors.topMargin: 30;
+            anchors.topMargin: 18;
             anchors.left: parent.left;
             width: paintedWidth;
             height: paintedHeight;
             text: "Thank you for your order!";
             color: hifi.colors.baseGray;
-            size: 28;
+            size: 36;
         }
 
         RalewaySemiBold {
             id: completeText2;
-            text: "The item " + '<font color="' + hifi.colors.blueAccent + '"><a href="#">' + root.itemName + '</a></font>' +
-            " has been added to your Purchases and a receipt will appear in your Wallet's transaction history.";
+            text: "The " + (root.itemTypesText)[itemTypesArray.indexOf(root.itemType)] +
+                ' <font color="' + hifi.colors.blueAccent + '"><a href="#">' + root.itemName + '</a></font>' +
+                " has been added to your Purchases and a receipt will appear in your Wallet's transaction history.";
             // Text size
-            size: 20;
+            size: 18;
             // Anchors
             anchors.top: completeText.bottom;
-            anchors.topMargin: 10;
+            anchors.topMargin: 15;
             height: paintedHeight;
             anchors.left: parent.left;
             anchors.right: parent.right;
@@ -567,11 +665,12 @@ Rectangle {
             MouseArea {
                 anchors.fill: parent;
                 propagateComposedEvents: false;
+                hoverEnabled: true;
             }
 
             RalewayBold {
                 anchors.fill: parent;
-                text: "REZZED";
+                text: (root.buttonTextClicked)[itemTypesArray.indexOf(root.itemType)];
                 size: 18;
                 color: hifi.colors.white;
                 verticalAlignment: Text.AlignVCenter;
@@ -587,26 +686,58 @@ Rectangle {
         // "Rez" button
         HifiControlsUit.Button {
             id: rezNowButton;
-            enabled: root.canRezCertifiedItems || root.isWearable;
-            buttonGlyph: hifi.glyphs.lightning;
+            enabled: (root.itemType === "entity" && root.canRezCertifiedItems) ||
+                (root.itemType === "contentSet" && Entities.canReplaceContent()) ||
+                root.itemType === "wearable" || root.itemType === "avatar" || root.itemType === "app";
+            buttonGlyph: (root.buttonGlyph)[itemTypesArray.indexOf(root.itemType)];
             color: hifi.buttons.red;
             colorScheme: hifi.colorSchemes.light;
             anchors.top: completeText2.bottom;
-            anchors.topMargin: 30;
+            anchors.topMargin: 27;
             height: 50;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            text: root.isWearable ? "Wear It" : "Rez It"
+            text: root.itemType === "app" && root.isInstalled ? "OPEN APP" : (root.buttonTextNormal)[itemTypesArray.indexOf(root.itemType)];
             onClicked: {
-                sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
-                rezzedNotifContainer.visible = true;
-                rezzedNotifContainerTimer.start();
-                UserActivityLogger.commerceEntityRezzed(root.itemId, "checkout", root.isWearable ? "rez" : "wear");
+                if (root.itemType === "contentSet") {
+                    lightboxPopup.titleText = "Replace Content";
+                    lightboxPopup.bodyText = "Rezzing this content set will replace the existing environment and all of the items in this domain. " +
+                        "If you want to save the state of the content in this domain, create a backup before proceeding.<br><br>" +
+                        "For more information about backing up and restoring content, " +
+                        "<a href='https://docs.highfidelity.com/create-and-explore/start-working-in-your-sandbox/restoring-sandbox-content'>" +
+                        "click here to open info on your desktop browser.";
+                    lightboxPopup.button1text = "CANCEL";
+                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button2text = "CONFIRM";
+                    lightboxPopup.button2method = "Commerce.replaceContentSet('" + root.itemHref + "');" + 
+                    "root.visible = false;rezzedNotifContainer.visible = true; rezzedNotifContainerTimer.start();" + 
+                    "UserActivityLogger.commerceEntityRezzed('" + root.itemId + "', 'checkout', '" + root.itemType + "');";
+                    lightboxPopup.visible = true;
+                } else if (root.itemType === "avatar") {
+                    lightboxPopup.titleText = "Change Avatar";
+                    lightboxPopup.bodyText = "This will change your current avatar to " + root.itemName + " while retaining your wearables.";
+                    lightboxPopup.button1text = "CANCEL";
+                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button2text = "CONFIRM";
+                    lightboxPopup.button2method = "MyAvatar.useFullAvatarURL('" + root.itemHref + "'); root.visible = false;";
+                    lightboxPopup.visible = true;
+                } else if (root.itemType === "app") {
+                    if (root.isInstalled) {
+                        Commerce.openApp(root.itemHref);
+                    } else {
+                        Commerce.installApp(root.itemHref);
+                    }
+                } else {
+                    sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
+                    rezzedNotifContainer.visible = true;
+                    rezzedNotifContainerTimer.start();
+                    UserActivityLogger.commerceEntityRezzed(root.itemId, "checkout", root.itemType);
+                }
             }
         }
         RalewaySemiBold {
             id: noPermissionText;
-            visible: !root.canRezCertifiedItems && !root.isWearable;
+            visible: !root.canRezCertifiedItems && root.itemType === "entity";
             text: '<font color="' + hifi.colors.redAccent + '"><a href="#">You do not have Certified Rez permissions in this domain.</a></font>'
             // Text size
             size: 16;
@@ -635,7 +766,7 @@ Rectangle {
         }
         RalewaySemiBold {
             id: explainRezText;
-            visible: !root.isWearable;
+            visible: root.itemType === "entity";
             text: '<font color="' + hifi.colors.redAccent + '"><a href="#">What does "Rez" mean?</a></font>'
             // Text size
             size: 16;
@@ -658,9 +789,9 @@ Rectangle {
 
         RalewaySemiBold {
             id: myPurchasesLink;
-            text: '<font color="' + hifi.colors.blueAccent + '"><a href="#">View this item in My Purchases</a></font>';
+            text: '<font color="' + hifi.colors.primaryHighlight + '"><a href="#">View this item in My Purchases</a></font>';
             // Text size
-            size: 20;
+            size: 18;
             // Anchors
             anchors.top: explainRezText.visible ? explainRezText.bottom : (noPermissionText.visible ? noPermissionText.bottom : rezNowButton.bottom);
             anchors.topMargin: 40;
@@ -680,12 +811,12 @@ Rectangle {
 
         RalewaySemiBold {
             id: walletLink;
-            text: '<font color="' + hifi.colors.blueAccent + '"><a href="#">View receipt in Wallet</a></font>';
+            text: '<font color="' + hifi.colors.primaryHighlight + '"><a href="#">View receipt in Wallet</a></font>';
             // Text size
-            size: 20;
+            size: 18;
             // Anchors
             anchors.top: myPurchasesLink.bottom;
-            anchors.topMargin: 20;
+            anchors.topMargin: 16;
             height: paintedHeight;
             anchors.left: parent.left;
             anchors.right: parent.right;
@@ -703,12 +834,12 @@ Rectangle {
         RalewayRegular {
             id: pendingText;
             text: 'Your item is marked "pending" while your purchase is being confirmed. ' +
-            '<font color="' + hifi.colors.blueAccent + '"><a href="#">Learn More</a></font>';
+            '<b><font color="' + hifi.colors.primaryHighlight + '"><a href="#">Learn More</a></font></b>';
             // Text size
-            size: 20;
+            size: 18;
             // Anchors
             anchors.top: walletLink.bottom;
-            anchors.topMargin: 60;
+            anchors.topMargin: 32;
             height: paintedHeight;
             anchors.left: parent.left;
             anchors.right: parent.right;
@@ -734,11 +865,10 @@ Rectangle {
             color: hifi.buttons.noneBorderlessGray;
             colorScheme: hifi.colorSchemes.light;
             anchors.bottom: parent.bottom;
-            anchors.bottomMargin: 20;
+            anchors.bottomMargin: 54;
             anchors.right: parent.right;
-            anchors.rightMargin: 14;
-            width: parent.width/2 - anchors.rightMargin;
-            height: 60;
+            width: 193;
+            height: 44;
             text: "Continue Shopping";
             onClicked: {
                 sendToScript({method: 'checkout_continueShopping', itemId: itemId});
@@ -846,7 +976,7 @@ Rectangle {
                 buyButton.color = hifi.buttons.red;
                 root.shouldBuyWithControlledFailure = true;
             } else {
-                buyButton.text = (itemIsJson ? ((purchasesReceived && balanceReceived) ? (root.alreadyOwned ? "Buy Another" : "Buy"): "--") : "Get Item");
+                buyButton.text = (root.isCertified ? ((ownershipStatusReceived && balanceReceived) ? (root.alreadyOwned ? "Buy Another" : "Buy"): "--") : "Get Item");
                 buyButton.color = hifi.buttons.blue;
                 root.shouldBuyWithControlledFailure = false;
             }
@@ -876,7 +1006,9 @@ Rectangle {
                 itemName = message.params.itemName;
                 root.itemPrice = message.params.itemPrice;
                 itemHref = message.params.itemHref;
-                setBuyText();
+                referrer = message.params.referrer;
+                itemAuthor = message.params.itemAuthor;
+                refreshBuyUI();
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
@@ -884,22 +1016,13 @@ Rectangle {
     }
     signal sendToScript(var message);
 
-    function purchasesContains(purchasesJson, id) {
-        for (var idx = 0; idx < purchasesJson.length; idx++) {
-            if(purchasesJson[idx].id === id) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function setBuyText() {
-        if (root.itemIsJson) {
-            if (root.purchasesReceived && root.balanceReceived) {
+    function refreshBuyUI() {
+        if (root.isCertified) {
+            if (root.ownershipStatusReceived && root.balanceReceived) {
                 if (root.balanceAfterPurchase < 0) {
                     if (root.alreadyOwned) {
-                        buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item again.<br>" +
-                        '<font color="' + hifi.colors.blueAccent + '"><a href="#">View the copy you own in My Purchases</a></font></b>';
+                        buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item again.</b>";
+                        viewInMyPurchasesButton.visible = true;
                     } else {
                         buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item.</b>";
                     }
@@ -909,25 +1032,29 @@ Rectangle {
                     buyGlyph.size = 54;
                 } else {
                     if (root.alreadyOwned) {
-                        buyText.text = '<b>You already own this item.<br>Purchasing it will buy another copy.<br><font color="'
-                        + hifi.colors.blueAccent + '"><a href="#">View this item in My Purchases</a></font></b>';
-                        buyTextContainer.color = "#FFD6AD";
-                        buyTextContainer.border.color = "#FAC07D";
-                        buyGlyph.text = hifi.glyphs.alert;
-                        buyGlyph.size = 46;
+                        viewInMyPurchasesButton.visible = true;
                     } else {
                         buyText.text = "";
+                    }
+
+                    if (root.itemType === "contentSet" && !Entities.canReplaceContent()) {
+                        buyText.text = "The domain owner must enable 'Replace Content' permissions for you in this " +
+                            "<b>domain's server settings</b> before you can replace this domain's content with <b>" + root.itemName + "</b>";
+                        buyTextContainer.color = "#FFC3CD";
+                        buyTextContainer.border.color = "#F3808F";
+                        buyGlyph.text = hifi.glyphs.alert;
+                        buyGlyph.size = 54;
                     }
                 }
             } else {
                 buyText.text = "";
             }
         } else {
-            buyText.text = "This free item <b>will not</b> be added to your <b>Purchases</b>. Non-entities can't yet be purchased for HFC.";
-            buyTextContainer.color = "#FFD6AD";
-            buyTextContainer.border.color = "#FAC07D";
-            buyGlyph.text = hifi.glyphs.alert;
-            buyGlyph.size = 46;
+            buyText.text = '<i>This type of item cannot currently be certified, so it will not show up in "My Purchases". You can access it again for free from the Marketplace.</i>';
+            buyTextContainer.color = hifi.colors.white;
+            buyTextContainer.border.color = hifi.colors.white;
+            buyGlyph.text = "";
+            buyGlyph.size = 0;
         }
     }
 
@@ -938,9 +1065,9 @@ Rectangle {
             root.activeView = "checkoutSuccess";
         }
         root.balanceReceived = false;
-        root.purchasesReceived = false;
-        commerce.inventory();
-        commerce.balance();
+        root.ownershipStatusReceived = false;
+        Commerce.alreadyOwned(root.itemId);
+        Commerce.balance();
     }
 
     //

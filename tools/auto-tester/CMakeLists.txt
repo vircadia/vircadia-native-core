@@ -1,47 +1,41 @@
-set(TARGET_NAME auto-tester)
+set (TARGET_NAME auto-tester)
 project(${TARGET_NAME})
 
 # Automatically run UIC and MOC.  This replaces the older WRAP macros
-SET(CMAKE_AUTOUIC ON) 
-SET(CMAKE_AUTOMOC ON) 
+SET (CMAKE_AUTOUIC ON) 
+SET (CMAKE_AUTOMOC ON) 
 
-setup_hifi_project(Core Widgets)
-link_hifi_libraries()
+setup_hifi_project (Core Widgets)
+link_hifi_libraries ()
 
 # FIX: Qt was built with -reduce-relocations
 if (Qt5_POSITION_INDEPENDENT_CODE)
-    SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
+    SET (CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
 # Qt includes
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${Qt5Core_INCLUDE_DIRS})
-include_directories(${Qt5Widgets_INCLUDE_DIRS})
+include_directories (${CMAKE_CURRENT_SOURCE_DIR})
+include_directories (${Qt5Core_INCLUDE_DIRS})
+include_directories (${Qt5Widgets_INCLUDE_DIRS})
 
-set(QT_LIBRARIES Qt5::Core Qt5::Widgets)
-
-# Find all sources files
-file (GLOB_RECURSE SOURCES src/*.cpp)
-file (GLOB_RECURSE HEADERS src/*.h)
-file (GLOB_RECURSE UIS src/ui/*.ui)
+set (QT_LIBRARIES Qt5::Core Qt5::Widgets)
 
 if (WIN32)
     # Do not show Console
-    set_property(TARGET auto-tester PROPERTY WIN32_EXECUTABLE true)
+    set_property (TARGET auto-tester PROPERTY WIN32_EXECUTABLE true)
 endif()
 
-add_executable(PROJECT_NAME ${SOURCES} ${HEADERS} ${UIS})
+target_zlib()
+add_dependency_external_projects (quazip)
+find_package (QuaZip REQUIRED)
+target_include_directories( ${TARGET_NAME} SYSTEM PUBLIC ${QUAZIP_INCLUDE_DIRS})
+target_link_libraries(${TARGET_NAME} ${QUAZIP_LIBRARIES})
  
-target_link_libraries(PROJECT_NAME ${QT_LIBRARIES})
-
-# Copy required dll's.
-add_custom_command(TARGET auto-tester POST_BUILD 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Core> $<TARGET_FILE_DIR:auto-tester>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Gui> $<TARGET_FILE_DIR:auto-tester>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Widgets> $<TARGET_FILE_DIR:auto-tester>
-)
+package_libraries_for_deployment()
 
 if (WIN32)
+    add_paths_to_fixup_libs (${QUAZIP_DLL_PATH})
+
     find_program(WINDEPLOYQT_COMMAND windeployqt PATHS ${QT_DIR}/bin NO_DEFAULT_PATH)
     
     if (NOT WINDEPLOYQT_COMMAND)

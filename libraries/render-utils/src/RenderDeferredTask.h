@@ -15,44 +15,19 @@
 #include <gpu/Pipeline.h>
 #include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
+#include "LightClusters.h"
 
-
-class BeginGPURangeTimer {
-public:
-    using JobModel = render::Job::ModelO<BeginGPURangeTimer, gpu::RangeTimerPointer>;
-
-    BeginGPURangeTimer(const std::string& name) : _gpuTimer(std::make_shared<gpu::RangeTimer>(name)) {}
-
-    void run(const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer);
-
-protected:
-    gpu::RangeTimerPointer _gpuTimer;
-};
-
-using GPURangeTimerConfig = render::GPUJobConfig;
-
-class EndGPURangeTimer {
-public:
-    using Config = GPURangeTimerConfig;
-    using JobModel = render::Job::ModelI<EndGPURangeTimer, gpu::RangeTimerPointer, Config>;
-
-    EndGPURangeTimer() {}
-
-    void configure(const Config& config) {}
-    void run(const render::RenderContextPointer& renderContext, const gpu::RangeTimerPointer& timer);
-
-protected:
-};
-
-class DrawConfig : public render::Job::Config {
+class DrawDeferredConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY newStats)
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
 
 public:
-
     int getNumDrawn() { return _numDrawn; }
-    void setNumDrawn(int numDrawn) { _numDrawn = numDrawn;  emit newStats(); }
+    void setNumDrawn(int numDrawn) {
+        _numDrawn = numDrawn;
+        emit newStats();
+    }
 
     int maxDrawn{ -1 };
 
@@ -66,29 +41,32 @@ protected:
 
 class DrawDeferred {
 public:
-    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
-    using Config = DrawConfig;
+    using Inputs = render::VaryingSet3 <render::ItemBounds, LightingModelPointer, LightClustersPointer>;
+    using Config = DrawDeferredConfig;
     using JobModel = render::Job::ModelI<DrawDeferred, Inputs, Config>;
 
-    DrawDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+    DrawDeferred(render::ShapePlumberPointer shapePlumber)
+        : _shapePlumber{ shapePlumber } {}
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
-    int _maxDrawn; // initialized by Config
+    int _maxDrawn;  // initialized by Config
 };
 
 class DrawStateSortConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
-        Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
-        Q_PROPERTY(bool stateSort MEMBER stateSort NOTIFY dirty)
+    Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
+    Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+    Q_PROPERTY(bool stateSort MEMBER stateSort NOTIFY dirty)
 public:
-
     int getNumDrawn() { return numDrawn; }
-    void setNumDrawn(int num) { numDrawn = num; emit numDrawnChanged(); }
+    void setNumDrawn(int num) {
+        numDrawn = num;
+        emit numDrawnChanged();
+    }
 
     int maxDrawn{ -1 };
     bool stateSort{ true };
@@ -103,95 +81,32 @@ protected:
 
 class DrawStateSortDeferred {
 public:
-    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
+    using Inputs = render::VaryingSet2<render::ItemBounds, LightingModelPointer>;
 
     using Config = DrawStateSortConfig;
     using JobModel = render::Job::ModelI<DrawStateSortDeferred, Inputs, Config>;
 
-    DrawStateSortDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+    DrawStateSortDeferred(render::ShapePlumberPointer shapePlumber)
+        : _shapePlumber{ shapePlumber } {}
 
-    void configure(const Config& config) { _maxDrawn = config.maxDrawn; _stateSort = config.stateSort; }
+    void configure(const Config& config) {
+        _maxDrawn = config.maxDrawn;
+        _stateSort = config.stateSort;
+    }
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
-    int _maxDrawn; // initialized by Config
+    int _maxDrawn;  // initialized by Config
     bool _stateSort;
-};
-
-class DrawOverlay3DConfig : public render::Job::Config {
-    Q_OBJECT
-    Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
-    Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
-public:
-    int getNumDrawn() { return numDrawn; }
-    void setNumDrawn(int num) { numDrawn = num; emit numDrawnChanged(); }
-
-    int maxDrawn{ -1 };
-
-signals:
-    void numDrawnChanged();
-    void dirty();
-
-protected:
-    int numDrawn{ 0 };
-};
-
-class DrawOverlay3D {
-public:
-    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
-
-    using Config = DrawOverlay3DConfig;
-    using JobModel = render::Job::ModelI<DrawOverlay3D, Inputs, Config>;
-
-    DrawOverlay3D(bool opaque);
-
-    void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
-    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
-
-protected:
-    render::ShapePlumberPointer _shapePlumber;
-    int _maxDrawn; // initialized by Config
-    bool _opaquePass { true };
-};
-
-class CompositeHUD {
-public:
-    using JobModel = render::Job::Model<CompositeHUD>;
-
-    CompositeHUD() {}
-    void run(const render::RenderContextPointer& renderContext);
-};
-
-class Blit {
-public:
-    using JobModel = render::Job::ModelI<Blit, gpu::FramebufferPointer>;
-
-    void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
-};
-
-class ExtractFrustums {
-public:
-
-    enum Frustum {
-        VIEW_FRUSTUM,
-        SHADOW_FRUSTUM,
-
-        FRUSTUM_COUNT
-    };
-
-    using Output = render::VaryingArray<ViewFrustumPointer, FRUSTUM_COUNT>;
-    using JobModel = render::Job::ModelO<ExtractFrustums, Output>;
-
-    void run(const render::RenderContextPointer& renderContext, Output& output);
 };
 
 class RenderDeferredTaskConfig : public render::Task::Config {
     Q_OBJECT
-        Q_PROPERTY(float fadeScale MEMBER fadeScale NOTIFY dirty)
-        Q_PROPERTY(float fadeDuration MEMBER fadeDuration NOTIFY dirty)
-        Q_PROPERTY(bool debugFade MEMBER debugFade NOTIFY dirty)
-        Q_PROPERTY(float debugFadePercent MEMBER debugFadePercent NOTIFY dirty)
+    Q_PROPERTY(float fadeScale MEMBER fadeScale NOTIFY dirty)
+    Q_PROPERTY(float fadeDuration MEMBER fadeDuration NOTIFY dirty)
+    Q_PROPERTY(bool debugFade MEMBER debugFade NOTIFY dirty)
+    Q_PROPERTY(float debugFadePercent MEMBER debugFadePercent NOTIFY dirty)
 public:
     float fadeScale{ 0.5f };
     float fadeDuration{ 3.0f };
@@ -200,7 +115,6 @@ public:
 
 signals:
     void dirty();
-
 };
 
 class RenderDeferredTask {
@@ -215,9 +129,11 @@ public:
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
 
 private:
-
-    static const render::Varying addSelectItemJobs(JobModel& task, const char* selectionName, 
-                                                   const render::Varying& metas, const render::Varying& opaques, const render::Varying& transparents);
+    static const render::Varying addSelectItemJobs(JobModel& task,
+                                                   const char* selectionName,
+                                                   const render::Varying& metas,
+                                                   const render::Varying& opaques,
+                                                   const render::Varying& transparents);
 };
 
-#endif // hifi_RenderDeferredTask_h
+#endif  // hifi_RenderDeferredTask_h

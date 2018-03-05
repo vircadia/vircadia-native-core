@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ApplicationOverlay.h"
+
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
@@ -17,12 +19,10 @@
 #include <OffscreenUi.h>
 #include <CursorManager.h>
 #include <PerfStat.h>
-#include <gl/Config.h>
 
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
 #include "Application.h"
-#include "ApplicationOverlay.h"
 
 #include "Util.h"
 #include "ui/Stats.h"

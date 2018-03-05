@@ -15,6 +15,7 @@
 #include <QFileInfo>
 
 #include <render/DrawTask.h>
+#include "DeferredFrameTransform.h"
 #include "DeferredFramebuffer.h"
 #include "SurfaceGeometryPass.h"
 #include "AmbientOcclusionEffect.h"
@@ -37,7 +38,7 @@ signals:
 
 class DebugDeferredBuffer {
 public:
-    using Inputs = render::VaryingSet4<DeferredFramebufferPointer, LinearDepthFramebufferPointer, SurfaceGeometryFramebufferPointer, AmbientOcclusionFramebufferPointer>;
+    using Inputs = render::VaryingSet5<DeferredFramebufferPointer, LinearDepthFramebufferPointer, SurfaceGeometryFramebufferPointer, AmbientOcclusionFramebufferPointer, DeferredFrameTransformPointer>;
     using Config = DebugDeferredBufferConfig;
     using JobModel = render::Job::ModelI<DebugDeferredBuffer, Inputs, Config>;
     
@@ -64,7 +65,11 @@ protected:
         LightmapMode,
         ScatteringMode,
         LightingMode,
-        ShadowMode,
+        ShadowCascade0Mode,
+        ShadowCascade1Mode,
+        ShadowCascade2Mode,
+        ShadowCascade3Mode,
+        ShadowCascadeIndicesMode,
         LinearDepthMode,
         HalfLinearDepthMode,
         HalfNormalMode,

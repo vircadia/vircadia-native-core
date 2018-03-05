@@ -69,6 +69,7 @@ class MyAvatar : public Avatar {
      * @property motorTimescale {float} Specifies how quickly the avatar should accelerate to meet the motorVelocity,
      *   smaller values will result in higher acceleration.
      * @property motorReferenceFrame {string} Reference frame of the motorVelocity, must be one of the following: "avatar", "camera", "world"
+     * @property motorMode {string} Type of scripted motor behavior, "simple" = use motorTimescale property (default mode) and "dynamic" = use action motor's timescales
      * @property collisionSoundURL {string} Specifies the sound to play when the avatar experiences a collision.
      *   You can provide a mono or stereo 16-bit WAV file running at either 24 Khz or 48 Khz.
      *   The latter is downsampled by the audio mixer, so all audio effectively plays back at a 24 Khz sample rate.
@@ -81,7 +82,7 @@ class MyAvatar : public Avatar {
      *   and MyAvatar.customListenOrientation properties.
      * @property customListenPosition {Vec3} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the position
      *   of audio spatialization listener.
-     * @property customListenOreintation {Quat} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the orientation
+     * @property customListenOrientation {Quat} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the orientation
      *   of the audio spatialization listener.
      * @property audioListenerModeHead {number} READ-ONLY. When passed to MyAvatar.audioListenerMode, it will set the audio listener
      *   around the avatar's head.
@@ -124,6 +125,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
     Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)
     Q_PROPERTY(QString motorReferenceFrame READ getScriptedMotorFrame WRITE setScriptedMotorFrame)
+    Q_PROPERTY(QString motorMode READ getScriptedMotorMode WRITE setScriptedMotorMode)
     Q_PROPERTY(QString collisionSoundURL READ getCollisionSoundURL WRITE setCollisionSoundURL)
     Q_PROPERTY(AudioListenerMode audioListenerMode READ getAudioListenerMode WRITE setAudioListenerMode)
     Q_PROPERTY(glm::vec3 customListenPosition READ getCustomListenPosition WRITE setCustomListenPosition)
@@ -162,6 +164,8 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float userEyeHeight READ getUserEyeHeight)
 
     Q_PROPERTY(QUuid SELF_ID READ getSelfID CONSTANT)
+
+    Q_PROPERTY(float walkSpeed READ getWalkSpeed WRITE setWalkSpeed);
 
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
@@ -448,9 +452,8 @@ public:
     virtual void clearJointData(const QString& name) override;
     virtual void clearJointsData() override;
 
-
-
     Q_INVOKABLE bool pinJoint(int index, const glm::vec3& position, const glm::quat& orientation);
+    bool isJointPinned(int index);
     Q_INVOKABLE bool clearPinOnJoint(int index);
 
     Q_INVOKABLE float getIKErrorOnLastSolve() const;
@@ -511,6 +514,9 @@ public:
 
     bool hasDriveInput() const;
 
+    QVariantList getAvatarEntitiesVariant();
+    void removeAvatarEntities();
+
     Q_INVOKABLE bool isFlying();
     Q_INVOKABLE bool isInAir();
     Q_INVOKABLE void setFlyingEnabled(bool enabled);
@@ -558,10 +564,14 @@ public:
 
     const QUuid& getSelfID() const { return AVATAR_SELF_ID; }
 
+    void setWalkSpeed(float value);
+    float getWalkSpeed() const;
+
 public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
+    void animGraphLoaded();
 
     void setGravity(float gravity);
     float getGravity();
@@ -595,7 +605,6 @@ public slots:
 
     bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
-    void setUseAnimPreAndPostRotations(bool isEnabled);
     void setEnableInverseKinematics(bool isEnabled);
 
     QUrl getAnimGraphOverrideUrl() const;  // thread-safe
@@ -627,6 +636,11 @@ signals:
 private slots:
     void leaveDomain();
 
+
+protected:
+    virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
+    virtual void forgetChild(SpatiallyNestablePointer newChild) const override;
+
 private:
 
     bool requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& positionOut);
@@ -635,6 +649,7 @@ private:
 
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
+    void saveAvatarUrl();
     virtual void render(RenderArgs* renderArgs) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
@@ -642,15 +657,18 @@ private:
     bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
+    int _skeletonModelChangeCount { 0 };
 
     void saveAvatarScale();
 
     glm::vec3 getScriptedMotorVelocity() const { return _scriptedMotorVelocity; }
     float getScriptedMotorTimescale() const { return _scriptedMotorTimescale; }
     QString getScriptedMotorFrame() const;
+    QString getScriptedMotorMode() const;
     void setScriptedMotorVelocity(const glm::vec3& velocity);
     void setScriptedMotorTimescale(float timescale);
     void setScriptedMotorFrame(QString frame);
+    void setScriptedMotorMode(QString mode);
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
                         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(),
                         float scale = 1.0f, bool isSoft = false,
@@ -692,6 +710,7 @@ private:
     glm::vec3 _scriptedMotorVelocity; // target local-frame velocity of avatar (analog script)
     float _scriptedMotorTimescale; // timescale for avatar to achieve its target velocity
     int _scriptedMotorFrame;
+    int _scriptedMotorMode;
     quint32 _motionBehaviors;
     QString _collisionSoundURL;
 
@@ -806,6 +825,8 @@ private:
     bool _enableDebugDrawIKChains { false };
     bool _enableDebugDrawDetailedCollision { false };
 
+    mutable bool _cauterizationNeedsUpdate; // do we need to scan children and update their "cauterized" state?
+
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;
@@ -837,10 +858,16 @@ private:
     bool getIsAway() const { return _isAway; }
     void setAway(bool value);
 
+    std::mutex _pinnedJointsMutex;
     std::vector<int> _pinnedJoints;
 
     // height of user in sensor space, when standing erect.
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
+
+    void updateChildCauterization(SpatiallyNestablePointer object);
+
+    // max unscaled forward movement speed
+    ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

@@ -13,6 +13,7 @@
 #define hifi_ApplicationOverlay_h
 
 #include <gpu/Texture.h>
+#include <render/Args.h>
 
 
 // Handles the drawing of the overlays to the screen
@@ -40,8 +41,6 @@ private:
 
     int _domainStatusBorder;
     int _magnifierBorder;
-
-    ivec2 _previousBorderSize{ -1 };
 
     gpu::TexturePointer _uiTexture;
     gpu::TexturePointer _overlayDepthTexture;

@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include model/Material.slh@>
+<@include graphics/Material.slh@>
 
 <@include MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
@@ -26,7 +26,7 @@ out vec4 _fragColor;
 
 void main(void) {
     Material mat = getMaterial();
-    int matKey = getMaterialKey(mat);
+    BITFIELD matKey = getMaterialKey(mat);
     <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex)$>
 
     float opacity = getMaterialOpacity(mat) * _alpha;

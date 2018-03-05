@@ -116,7 +116,6 @@ void EntityServer::beforeRun() {
 void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
 }
 
-
 // EntityServer will use the "special packets" to send list of recently deleted entities
 bool EntityServer::hasSpecialPacketsToSend(const SharedNodePointer& node) {
     bool shouldSendDeletedEntities = false;
@@ -276,7 +275,6 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
     // TODO: caller is expecting a packetLength, what if we send more than one packet??
     return totalBytes;
 }
-
 
 void EntityServer::pruneDeletedEntities() {
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
@@ -453,7 +451,7 @@ void EntityServer::domainSettingsRequestFailed() {
 void EntityServer::startDynamicDomainVerification() {
     qCDebug(entities) << "Starting Dynamic Domain Verification...";
 
-    QString thisDomainID = DependencyManager::get<AddressManager>()->getDomainId().remove(QRegExp("\\{|\\}"));
+    QString thisDomainID = DependencyManager::get<AddressManager>()->getDomainID().remove(QRegExp("\\{|\\}"));
 
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     QHash<QString, EntityItemID> localMap(tree->getEntityCertificateIDMap());
@@ -477,7 +475,7 @@ void EntityServer::startDynamicDomainVerification() {
                 QNetworkRequest networkRequest;
                 networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
                 networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+                QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
                 requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/location");
                 QJsonObject request;
                 request["certificate_id"] = i.key();

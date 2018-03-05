@@ -17,9 +17,9 @@ if (ANDROID)
   set(BUILD_SHARED_LIBS ON)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}")
 
-  setup_hifi_library(Gui Widgets AndroidExtras)
+  setup_hifi_library(Gui AndroidExtras)
 else ()
-  setup_hifi_project(Gui Widgets)
+  setup_hifi_project(Gui)
 endif ()
 
 include_directories(${Qt5Gui_PRIVATE_INCLUDE_DIRS})

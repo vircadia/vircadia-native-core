@@ -30,7 +30,6 @@ Pointer = function(hudLayer, pickType, pointerData) {
         ignoreRayIntersection: true, // always ignore this
         drawInFront: !hudLayer, // Even when burried inside of something, show it.
         drawHUDLayer: hudLayer,
-        parentID: MyAvatar.SELF_ID
     };
     this.halfEnd = {
         type: "sphere",
@@ -53,7 +52,6 @@ Pointer = function(hudLayer, pickType, pointerData) {
         ignoreRayIntersection: true, // always ignore this
         drawInFront: !hudLayer, // Even when burried inside of something, show it.
         drawHUDLayer: hudLayer,
-        parentID: MyAvatar.SELF_ID
     };
     this.fullEnd = {
         type: "sphere",
@@ -76,7 +74,6 @@ Pointer = function(hudLayer, pickType, pointerData) {
         ignoreRayIntersection: true, // always ignore this
         drawInFront: !hudLayer, // Even when burried inside of something, show it.
         drawHUDLayer: hudLayer,
-        parentID: MyAvatar.SELF_ID
     };
 
     this.renderStates = [
@@ -95,6 +92,7 @@ Pointer = function(hudLayer, pickType, pointerData) {
     this.pointerID = null;
     this.visible = false;
     this.locked = false;
+    this.allwaysOn = false;
     this.hand = pointerData.hand;
     delete pointerData.hand;
 
@@ -150,7 +148,7 @@ Pointer = function(hudLayer, pickType, pointerData) {
                 mode = "hold";
             } else if (triggerClicks[this.hand]) {
                 mode = "full";
-            } else if (triggerValues[this.hand] > TRIGGER_ON_VALUE) {
+            } else if (triggerValues[this.hand] > TRIGGER_ON_VALUE || this.allwaysOn) {
                 mode = "half";
             }
         }
@@ -172,19 +170,23 @@ PointerManager = function() {
         return pointer.pointerID;
     };
 
-    this.makePointerVisible = function(index) {
+    this.makePointerVisible = function(laserParams) {
+        var index = laserParams.hand;
         if (index < this.pointers.length && index >= 0) {
             this.pointers[index].makeVisible();
+            this.pointers[index].allwaysOn = laserParams.allwaysOn;
         }
     };
 
-    this.makePointerInvisible = function(index) {
+    this.makePointerInvisible = function(laserParams) {
+        var index = laserParams.hand;
         if (index < this.pointers.length && index >= 0) {
             this.pointers[index].makeInvisible();
         }
     };
 
-    this.lockPointerEnd = function(index, lockData) {
+    this.lockPointerEnd = function(laserParams, lockData) {
+        var index = laserParams.hand;
         if (index < this.pointers.length && index >= 0) {
             this.pointers[index].lockEnd(lockData);
         }

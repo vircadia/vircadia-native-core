@@ -73,7 +73,6 @@ private slots:
 
     void handleAudioPacket(QSharedPointer<ReceivedMessage> message);
     void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-    void handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message);
 
     void nodeActivated(SharedNodePointer activatedNode);

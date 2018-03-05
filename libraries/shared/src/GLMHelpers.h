@@ -253,11 +253,14 @@ glm::vec2 getFacingDir2D(const glm::mat4& m);
 
 inline bool isNaN(const glm::vec3& value) { return isNaN(value.x) || isNaN(value.y) || isNaN(value.z); }
 inline bool isNaN(const glm::quat& value) { return isNaN(value.w) || isNaN(value.x) || isNaN(value.y) || isNaN(value.z); }
+inline bool isNaN(const glm::mat3& value) { return isNaN(value * glm::vec3(1.0f)); }
 
 glm::mat4 orthoInverse(const glm::mat4& m);
 
 //  Return a random vector of average length 1
 glm::vec3 randVector();
+
+bool isNonUniformScale(const glm::vec3& scale);
 
 //
 // Safe replacement of glm_mat4_mul() for unaligned arguments instead of __m128

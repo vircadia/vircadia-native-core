@@ -9,6 +9,7 @@
 #define hifi_gpu_GLShared_h
 
 #include <gl/Config.h>
+#include <gl/GLHelpers.h>
 #include <gpu/Forward.h>
 #include <gpu/Format.h>
 #include <gpu/Context.h>
@@ -28,7 +29,6 @@ void serverWait();
 // Create a fence and synchronously wait on the fence
 void clientWait();
 
-gpu::Size getDedicatedMemory();
 gpu::Size getFreeDedicatedMemory();
 ComparisonFunction comparisonFuncFromGL(GLenum func);
 State::StencilOp stencilOpFromGL(GLenum stencilOp);
@@ -111,11 +111,9 @@ static const GLenum ELEMENT_TYPE_TO_GL[gpu::NUM_TYPES] = {
     GL_UNSIGNED_SHORT,
     GL_BYTE,
     GL_UNSIGNED_BYTE,
-    GL_UNSIGNED_BYTE
+    GL_UNSIGNED_BYTE,
+    GL_INT_2_10_10_10_REV,
 };
-
-bool checkGLError(const char* name = nullptr);
-bool checkGLErrorDebug(const char* name = nullptr);
 
 class GLBackend;
 
@@ -141,10 +139,7 @@ class GLShader;
 class GLTexture;
 struct ShaderObject;
 
-
 } } // namespace gpu::gl 
-
-#define CHECK_GL_ERROR() gpu::gl::checkGLErrorDebug(__FUNCTION__)
 
 #endif
 

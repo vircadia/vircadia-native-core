@@ -15,29 +15,28 @@ import QtQuick 2.5
 
 ListModel {
     id: root;
-    ListElement{
-        sourcePath: "images/01.jpg"
-        securityImageEnumValue: 1;
+
+    function initModel() {
+        var array = [];
+        while (array.length < 6) {
+            // We currently have 34 security images to choose from
+            var randomNumber = Math.floor(Math.random() * 34) + 1;
+            if (array.indexOf(randomNumber) > -1) {
+                continue;
+            }
+            array[array.length] = randomNumber;
+        }
+
+        var modelElement;
+
+        for (var i = 0; i < 6; i++) {
+            modelElement = { "sourcePath":"images/" + addLeadingZero(array[i]) + ".jpg", "securityImageEnumValue": (i + 1) }
+            root.insert(i, modelElement);
+        }
     }
-    ListElement{
-        sourcePath: "images/02.jpg"
-        securityImageEnumValue: 2;
-    }
-    ListElement{
-        sourcePath: "images/03.jpg"
-        securityImageEnumValue: 3;
-    }
-    ListElement{
-        sourcePath: "images/04.jpg"
-        securityImageEnumValue: 4;
-    }
-    ListElement{
-        sourcePath: "images/05.jpg"
-        securityImageEnumValue: 5;
-    }
-    ListElement{
-        sourcePath: "images/06.jpg"
-        securityImageEnumValue: 6;
+
+    function addLeadingZero(n) {
+        return n < 10 ? '0' + n : '' + n;
     }
 
     function getImagePathFromImageID(imageID) {

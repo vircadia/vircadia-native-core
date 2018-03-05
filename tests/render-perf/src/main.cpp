@@ -59,7 +59,7 @@
 #include <OctreeUtils.h>
 #include <render/Engine.h>
 #include <Model.h>
-#include <model/Stage.h>
+#include <graphics/Stage.h>
 #include <TextureCache.h>
 #include <FramebufferCache.h>
 #include <model-networking/ModelCache.h>
@@ -226,9 +226,7 @@ public:
         _context.makeCurrent();
         window->setSurfaceType(QSurface::OpenGLSurface);
         _context.makeCurrent(_context.qglContext(), window);
-#ifdef Q_OS_WIN
-        wglSwapIntervalEXT(0);
-#endif
+        gl::setSwapInterval(0);
         // GPU library init
         gpu::Context::init<gpu::gl::GLBackend>();
         _gpuContext = std::make_shared<gpu::Context>();
@@ -416,7 +414,7 @@ namespace render {
         auto backgroundMode = skyStage->getBackgroundMode();
 
         switch (backgroundMode) {
-            case model::SunSkyStage::SKY_BOX: {
+            case graphics::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
                 if (skybox) {
                     PerformanceTimer perfTimer("skybox");
@@ -1114,8 +1112,8 @@ private:
     RenderThread _renderThread;
     QWindowCamera _camera;
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
-    model::SunSkyStage _sunSkyStage;
-    model::LightPointer _globalLight { std::make_shared<model::Light>() };
+    graphics::SunSkyStage _sunSkyStage;
+    graphics::LightPointer _globalLight { std::make_shared<graphics::Light>() };
     bool _ready { false };
     EntitySimulationPointer _entitySimulation;
 
@@ -1140,31 +1138,17 @@ private:
 
 bool QTestWindow::_cullingEnabled = true;
 
-void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    QString logMessage = LogHandler::getInstance().printMessage((LogMsgType)type, context, message);
-
-    if (!logMessage.isEmpty()) {
-#ifdef Q_OS_WIN
-        OutputDebugStringA(logMessage.toLocal8Bit().constData());
-        OutputDebugStringA("\n");
-#endif
-        logger->addMessage(qPrintable(logMessage + "\n"));
-    }
-}
-
 const char * LOG_FILTER_RULES = R"V0G0N(
 hifi.gpu=true
 )V0G0N";
 
 
 int main(int argc, char** argv) {
+    setupHifiApplication("RenderPerf");
+
     QApplication app(argc, argv);
-    QCoreApplication::setApplicationName("RenderPerf");
-    QCoreApplication::setOrganizationName("High Fidelity");
-    QCoreApplication::setOrganizationDomain("highfidelity.com");
     logger.reset(new FileLogger());
 
-    qInstallMessageHandler(messageHandler);
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow::setup();
     QTestWindow window;

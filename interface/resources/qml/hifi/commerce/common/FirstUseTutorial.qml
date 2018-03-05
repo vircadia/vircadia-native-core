@@ -44,6 +44,7 @@ Rectangle {
     MouseArea {
         anchors.fill: parent;
         propagateComposedEvents: false;
+        hoverEnabled: true;
     }
 
     Item {
@@ -89,11 +90,11 @@ Rectangle {
             id: introText2;
             text: "My Purchases";
             // Text size
-            size: 28;
+            size: 22;
             // Anchors
             anchors.top: introText1.bottom;
             anchors.left: parent.left;
-            anchors.leftMargin: 12;
+            anchors.leftMargin: 24;
             anchors.right: parent.right;
             height: paintedHeight;
             // Style

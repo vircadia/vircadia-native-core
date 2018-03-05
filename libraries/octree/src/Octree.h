@@ -24,11 +24,11 @@
 #include <SimpleMovingAverage.h>
 #include <ViewFrustum.h>
 
-#include "JurisdictionMap.h"
 #include "OctreeElement.h"
 #include "OctreeElementBag.h"
 #include "OctreePacketData.h"
 #include "OctreeSceneStats.h"
+#include "OctreeUtils.h"
 
 class ReadBitstreamToTreeParams;
 class Octree;
@@ -62,7 +62,6 @@ const int NO_BOUNDARY_ADJUST     = 0;
 const int LOW_RES_MOVING_ADJUST  = 1;
 
 #define IGNORE_COVERAGE_MAP      NULL
-#define IGNORE_JURISDICTION_MAP  NULL
 
 class EncodeBitstreamParams {
 public:
@@ -77,7 +76,6 @@ public:
     int boundaryLevelAdjust;
     float octreeElementSizeScale;
     bool forceSendScene;
-    JurisdictionMap* jurisdictionMap;
     NodeData* nodeData;
 
     // output hints from the encode process
@@ -87,7 +85,6 @@ public:
         NULL_NODE,
         NULL_NODE_DATA,
         TOO_DEEP,
-        OUT_OF_JURISDICTION,
         LOD_SKIP,
         OUT_OF_VIEW,
         WAS_IN_VIEW,
@@ -105,7 +102,6 @@ public:
         int boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
         float octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE,
         bool forceSendScene = true,
-        JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP,
         NodeData* nodeData = nullptr) :
             maxEncodeLevel(maxEncodeLevel),
             maxLevelReached(0),
@@ -115,7 +111,6 @@ public:
             boundaryLevelAdjust(boundaryLevelAdjust),
             octreeElementSizeScale(octreeElementSizeScale),
             forceSendScene(forceSendScene),
-            jurisdictionMap(jurisdictionMap),
             nodeData(nodeData),
             stopReason(UNKNOWN)
     {
@@ -131,7 +126,6 @@ public:
             case DIDNT_FIT: qDebug("DIDNT_FIT"); break;
             case NULL_NODE: qDebug("NULL_NODE"); break;
             case TOO_DEEP: qDebug("TOO_DEEP"); break;
-            case OUT_OF_JURISDICTION: qDebug("OUT_OF_JURISDICTION"); break;
             case LOD_SKIP: qDebug("LOD_SKIP"); break;
             case OUT_OF_VIEW: qDebug("OUT_OF_VIEW"); break;
             case WAS_IN_VIEW: qDebug("WAS_IN_VIEW"); break;
@@ -148,7 +142,6 @@ public:
             case DIDNT_FIT: return QString("DIDNT_FIT"); break;
             case NULL_NODE: return QString("NULL_NODE"); break;
             case TOO_DEEP: return QString("TOO_DEEP"); break;
-            case OUT_OF_JURISDICTION: return QString("OUT_OF_JURISDICTION"); break;
             case LOD_SKIP: return QString("LOD_SKIP"); break;
             case OUT_OF_VIEW: return QString("OUT_OF_VIEW"); break;
             case WAS_IN_VIEW: return QString("WAS_IN_VIEW"); break;
@@ -291,8 +284,10 @@ public:
     void loadOctreeFile(const char* fileName);
 
     // Octree exporters
-    bool writeToFile(const char* filename, const OctreeElementPointer& element = NULL, QString persistAsFileType = "json.gz");
-    bool writeToJSONFile(const char* filename, const OctreeElementPointer& element = NULL, bool doGzip = false);
+    bool toJSON(QJsonDocument* doc, const OctreeElementPointer& element = nullptr);
+    bool toGzippedJSON(QByteArray* data, const OctreeElementPointer& element = nullptr);
+    bool writeToFile(const char* filename, const OctreeElementPointer& element = nullptr, QString persistAsFileType = "json.gz");
+    bool writeToJSONFile(const char* filename, const OctreeElementPointer& element = nullptr, bool doGzip = false);
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
                             bool skipThoseWithBadParents) = 0;
 
@@ -334,6 +329,11 @@ public:
     virtual void dumpTree() { }
     virtual void pruneTree() { }
 
+    void setOctreeVersionInfo(QUuid id, int64_t dataVersion) {
+        _persistID = id;
+        _persistDataVersion = dataVersion;
+    }
+
     virtual void resetEditStats() { }
     virtual quint64 getAverageDecodeTime() const { return 0; }
     virtual quint64 getAverageLookupTime() const { return 0;  }
@@ -341,6 +341,8 @@ public:
     virtual quint64 getAverageCreateTime() const { return 0;  }
     virtual quint64 getAverageLoggingTime() const { return 0;  }
     virtual quint64 getAverageFilterTime() const { return 0; }
+
+    void incrementPersistDataVersion() { _persistDataVersion++; }
 
 signals:
     void importSize(float x, float y, float z);
@@ -366,6 +368,9 @@ protected:
                 int bufferSizeBytes, ReadBitstreamToTreeParams& args);
 
     OctreeElementPointer _rootElement = nullptr;
+
+    QUuid _persistID { QUuid::createUuid() };
+    int _persistDataVersion { 0 };
 
     bool _isDirty;
     bool _shouldReaverage;

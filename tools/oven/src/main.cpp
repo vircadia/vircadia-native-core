@@ -10,7 +10,16 @@
 
 #include "Oven.h"
 
+#include <BuildInfo.h>
+#include <SettingInterface.h>
+#include <SharedUtil.h>
+
 int main (int argc, char** argv) {
+    setupHifiApplication("Oven");
+
+    // init the settings interface so we can save and load settings
+    Setting::init();
+
     Oven app(argc, argv);
     return app.exec();
 }

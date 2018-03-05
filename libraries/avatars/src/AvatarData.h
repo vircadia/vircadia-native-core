@@ -54,6 +54,8 @@
 #include "HeadData.h"
 #include "PathUtils.h"
 
+#include <graphics/Material.h>
+
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
 using AvatarHash = QHash<QUuid, AvatarSharedPointer>;
@@ -113,18 +115,19 @@ namespace AvatarDataPacket {
     // Packet State Flags - we store the details about the existence of other records in this bitset:
     // AvatarGlobalPosition, Avatar face tracker, eye tracking, and existence of
     using HasFlags = uint16_t;
-    const HasFlags PACKET_HAS_AVATAR_GLOBAL_POSITION = 1U << 0;
-    const HasFlags PACKET_HAS_AVATAR_BOUNDING_BOX    = 1U << 1;
-    const HasFlags PACKET_HAS_AVATAR_ORIENTATION     = 1U << 2;
-    const HasFlags PACKET_HAS_AVATAR_SCALE           = 1U << 3;
-    const HasFlags PACKET_HAS_LOOK_AT_POSITION       = 1U << 4;
-    const HasFlags PACKET_HAS_AUDIO_LOUDNESS         = 1U << 5;
-    const HasFlags PACKET_HAS_SENSOR_TO_WORLD_MATRIX = 1U << 6;
-    const HasFlags PACKET_HAS_ADDITIONAL_FLAGS       = 1U << 7;
-    const HasFlags PACKET_HAS_PARENT_INFO            = 1U << 8;
-    const HasFlags PACKET_HAS_AVATAR_LOCAL_POSITION  = 1U << 9;
-    const HasFlags PACKET_HAS_FACE_TRACKER_INFO      = 1U << 10;
-    const HasFlags PACKET_HAS_JOINT_DATA             = 1U << 11;
+    const HasFlags PACKET_HAS_AVATAR_GLOBAL_POSITION   = 1U << 0;
+    const HasFlags PACKET_HAS_AVATAR_BOUNDING_BOX      = 1U << 1;
+    const HasFlags PACKET_HAS_AVATAR_ORIENTATION       = 1U << 2;
+    const HasFlags PACKET_HAS_AVATAR_SCALE             = 1U << 3;
+    const HasFlags PACKET_HAS_LOOK_AT_POSITION         = 1U << 4;
+    const HasFlags PACKET_HAS_AUDIO_LOUDNESS           = 1U << 5;
+    const HasFlags PACKET_HAS_SENSOR_TO_WORLD_MATRIX   = 1U << 6;
+    const HasFlags PACKET_HAS_ADDITIONAL_FLAGS         = 1U << 7;
+    const HasFlags PACKET_HAS_PARENT_INFO              = 1U << 8;
+    const HasFlags PACKET_HAS_AVATAR_LOCAL_POSITION    = 1U << 9;
+    const HasFlags PACKET_HAS_FACE_TRACKER_INFO        = 1U << 10;
+    const HasFlags PACKET_HAS_JOINT_DATA               = 1U << 11;
+    const HasFlags PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS = 1U << 12;
     const size_t AVATAR_HAS_FLAGS_SIZE = 2;
 
     using SixByteQuat = uint8_t[6];
@@ -256,6 +259,15 @@ namespace AvatarDataPacket {
     };
     */
     size_t maxJointDataSize(size_t numJoints);
+
+    /*
+    struct JointDefaultPoseFlags {
+       uint8_t numJoints;
+       uint8_t rotationIsDefaultPoseBits[ceil(numJoints / 8)];
+       uint8_t translationIsDefaultPoseBits[ceil(numJoints / 8)];
+    };
+    */
+    size_t maxJointDefaultPoseFlagsSize(size_t numJoints);
 }
 
 const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
@@ -321,6 +333,7 @@ public:
     RateCounter<> parentInfoRate;
     RateCounter<> faceTrackerRate;
     RateCounter<> jointDataRate;
+    RateCounter<> jointDefaultPoseFlagsRate;
 };
 
 class AvatarPriority {
@@ -358,9 +371,9 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(QString displayName READ getDisplayName WRITE setDisplayName NOTIFY displayNameChanged)
     // sessionDisplayName is sanitized, defaulted version displayName that is defined by the AvatarMixer rather than by Interface clients.
     // The result is unique among all avatars present at the time.
-    Q_PROPERTY(QString sessionDisplayName READ getSessionDisplayName WRITE setSessionDisplayName)
+    Q_PROPERTY(QString sessionDisplayName READ getSessionDisplayName WRITE setSessionDisplayName NOTIFY sessionDisplayNameChanged)
     Q_PROPERTY(bool lookAtSnappingEnabled MEMBER _lookAtSnappingEnabled NOTIFY lookAtSnappingChanged)
-    Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
+    Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript NOTIFY skeletonModelURLChanged)
     Q_PROPERTY(QVector<AttachmentData> attachmentData READ getAttachmentData WRITE setAttachmentData)
 
     Q_PROPERTY(QStringList jointNames READ getJointNames)
@@ -683,8 +696,13 @@ public:
 
     bool getIsReplicated() const { return _isReplicated; }
 
+    virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {}
+    virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
+
 signals:
     void displayNameChanged();
+    void sessionDisplayNameChanged();
+    void skeletonModelURLChanged();
     void lookAtSnappingChanged(bool enabled);
     void sessionUUIDChanged();
 
@@ -695,7 +713,11 @@ public slots:
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& sessionUUID) {
         if (sessionUUID != getID()) {
-            setID(sessionUUID);
+            if (sessionUUID == QUuid()) {
+                setID(AVATAR_SELF_ID);
+            } else {
+                setID(sessionUUID);
+            }
             emit sessionUUIDChanged();
         }
     }
@@ -809,6 +831,7 @@ protected:
     RateCounter<> _parentInfoRate;
     RateCounter<> _faceTrackerRate;
     RateCounter<> _jointDataRate;
+    RateCounter<> _jointDefaultPoseFlagsRate;
 
     // Some rate data for incoming data updates
     RateCounter<> _parseBufferUpdateRate;
@@ -824,6 +847,7 @@ protected:
     RateCounter<> _parentInfoUpdateRate;
     RateCounter<> _faceTrackerUpdateRate;
     RateCounter<> _jointDataUpdateRate;
+    RateCounter<> _jointDefaultPoseFlagsUpdateRate;
 
     // Some rate data for outgoing data
     AvatarDataRate _outboundDataRate;
@@ -968,6 +992,7 @@ RayToAvatarIntersectionResult() : intersects(false), avatarID(), distance(0) {}
     QUuid avatarID;
     float distance;
     glm::vec3 intersection;
+    QVariantMap extraInfo;
 };
 
 Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)

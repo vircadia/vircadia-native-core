@@ -42,31 +42,16 @@ static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.Loc
 const std::set<NodeType_t> SOLO_NODE_TYPES = {
     NodeType::AvatarMixer,
     NodeType::AudioMixer,
-    NodeType::AssetServer
+    NodeType::AssetServer,
+    NodeType::EntityServer,
+    NodeType::MessagesMixer,
+    NodeType::EntityScriptServer
 };
 
 LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
-    _sessionUUID(),
-    _nodeHash(),
-    _nodeMutex(QReadWriteLock::Recursive),
     _nodeSocket(this),
-    _dtlsSocket(NULL),
-    _localSockAddr(),
-    _publicSockAddr(),
-    _stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT),
-    _packetReceiver(new PacketReceiver(this)),
-    _numCollectedPackets(0),
-    _numCollectedBytes(0),
-    _packetStatTimer(),
-    _permissions(NodePermissions())
+    _packetReceiver(new PacketReceiver(this))
 {
-    static bool firstCall = true;
-    if (firstCall) {
-        NodeType::init();
-
-        firstCall = false;
-    }
-
     qRegisterMetaType<ConnectionStep>("ConnectionStep");
     auto port = (socketListenPort != INVALID_PORT) ? socketListenPort : LIMITED_NODELIST_LOCAL_PORT.get();
     _nodeSocket.bind(QHostAddress::AnyIPv4, port);
@@ -94,21 +79,16 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     updateLocalSocket();
 
     // set &PacketReceiver::handleVerifiedPacket as the verified packet callback for the udt::Socket
-    _nodeSocket.setPacketHandler(
-        [this](std::unique_ptr<udt::Packet> packet) {
+    _nodeSocket.setPacketHandler([this](std::unique_ptr<udt::Packet> packet) {
             _packetReceiver->handleVerifiedPacket(std::move(packet));
-        }
-    );
-    _nodeSocket.setMessageHandler(
-        [this](std::unique_ptr<udt::Packet> packet) {
+    });
+    _nodeSocket.setMessageHandler([this](std::unique_ptr<udt::Packet> packet) {
             _packetReceiver->handleVerifiedMessagePacket(std::move(packet));
-        }
-    );
-    _nodeSocket.setMessageFailureHandler(
-        [this](HifiSockAddr from, udt::Packet::MessageNumber messageNumber) {
+    });
+    _nodeSocket.setMessageFailureHandler([this](HifiSockAddr from,
+                                                udt::Packet::MessageNumber messageNumber) {
             _packetReceiver->handleMessageFailure(from, messageNumber);
-        }
-    );
+    });
 
     // set our isPacketVerified method as the verify operator for the udt::Socket
     using std::placeholders::_1;
@@ -131,13 +111,22 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     }
 }
 
+QUuid LimitedNodeList::getSessionUUID() const {
+    QReadLocker lock { &_sessionUUIDLock };
+    return _sessionUUID;
+}
+
 void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
-    QUuid oldUUID = _sessionUUID;
-    _sessionUUID = sessionUUID;
+    QUuid oldUUID;
+    {
+        QWriteLocker lock { &_sessionUUIDLock };
+        oldUUID = _sessionUUID;
+        _sessionUUID = sessionUUID;
+    }
 
     if (sessionUUID != oldUUID) {
         qCDebug(networking) << "NodeList UUID changed from" <<  uuidStringWithoutCurlyBraces(oldUUID)
-        << "to" << uuidStringWithoutCurlyBraces(_sessionUUID);
+        << "to" << uuidStringWithoutCurlyBraces(sessionUUID);
         emit uuidChanged(sessionUUID, oldUUID);
     }
 }
@@ -313,8 +302,21 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             sourceNode = matchingNode.data();
         }
 
+        if (!sourceNode &&
+            sourceID == getDomainUUID() &&
+            packet.getSenderSockAddr() == getDomainSockAddr() &&
+            PacketTypeEnum::getDomainSourcedPackets().contains(headerType)) {
+            // This is a packet sourced by the domain server
+
+            emit dataReceived(NodeType::Unassigned, packet.getPayloadSize());
+            return true;
+        }
+
         if (sourceNode) {
-            if (!PacketTypeEnum::getNonVerifiedPackets().contains(headerType)) {
+            bool verifiedPacket = !PacketTypeEnum::getNonVerifiedPackets().contains(headerType);
+            bool ignoreVerification = isDomainServer() && PacketTypeEnum::getDomainIgnoredVerificationPackets().contains(headerType);
+
+            if (verifiedPacket && !ignoreVerification) {
 
                 QByteArray packetHeaderHash = NLPacket::verificationHashInHeader(packet);
                 QByteArray expectedHash = NLPacket::hashForPacketAndSecret(packet, sourceNode->getConnectionSecret());
@@ -324,6 +326,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
                     static QMultiMap<QUuid, PacketType> hashDebugSuppressMap;
 
                     if (!hashDebugSuppressMap.contains(sourceID, headerType)) {
+                        qCDebug(networking) << packetHeaderHash << expectedHash;
                         qCDebug(networking) << "Packet hash mismatch on" << headerType << "- Sender" << sourceID;
 
                         hashDebugSuppressMap.insert(sourceID, headerType);

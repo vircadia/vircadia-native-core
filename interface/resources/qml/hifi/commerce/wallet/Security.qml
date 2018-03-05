@@ -27,8 +27,8 @@ Item {
     id: root;
     property string keyFilePath;
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onKeyFilePathIfExistsResult: {
             root.keyFilePath = path;
@@ -193,7 +193,7 @@ Item {
                 color: hifi.colors.white;
             }
 
-            // "Change Passphrase" button
+            // "Change Security Pic" button
             HifiControlsUit.Button {
                 id: changeSecurityImageButton;
                 color: hifi.buttons.blue;
@@ -234,7 +234,7 @@ Item {
 
             onVisibleChanged: {
                 if (visible) {
-                    commerce.getKeyFilePathIfExists();
+                    Commerce.getKeyFilePathIfExists();
                 }
             }
 
@@ -306,6 +306,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent;
                     propagateComposedEvents: false;
+                    hoverEnabled: true;
                 }
 
                 RalewayBold {

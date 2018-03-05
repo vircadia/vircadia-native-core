@@ -21,7 +21,7 @@
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
-#include <model/TextureMap.h>
+#include <graphics/TextureMap.h>
 #include <image/Image.h>
 #include <ktx/KTX.h>
 
@@ -70,6 +70,7 @@ public slots:
 
 protected:
     void makeRequest() override;
+    void makeLocalRequest();
 
     virtual bool isCacheable() const override { return _loaded; }
 
@@ -163,7 +164,6 @@ public:
     NetworkTexturePointer getTexture(const QUrl& url, image::TextureUsage::Type type = image::TextureUsage::DEFAULT_TEXTURE,
         const QByteArray& content = QByteArray(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
-
     gpu::TexturePointer getTextureByHash(const std::string& hash);
     gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
 
@@ -198,6 +198,7 @@ private:
     static const std::string KTX_EXT;
 
     std::shared_ptr<cache::FileCache> _ktxCache { std::make_shared<KTXCache>(KTX_DIRNAME, KTX_EXT) };
+
     // Map from image hashes to texture weak pointers
     std::unordered_map<std::string, std::weak_ptr<gpu::Texture>> _texturesByHashes;
     std::mutex _texturesByHashesMutex;

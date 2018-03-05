@@ -22,10 +22,6 @@ OriginalDesktop.Desktop {
         acceptedButtons: Qt.NoButton
     }
 
-    // The tool window, one instance
-    property alias toolWindow: toolWindow
-    ToolWindow { id: toolWindow }
-
     Action {
         text: "Open Browser"
         shortcut: "Ctrl+B"
@@ -45,11 +41,13 @@ OriginalDesktop.Desktop {
     Toolbar {
         id: sysToolbar;
         objectName: "com.highfidelity.interface.toolbar.system";
+        property var tablet: Tablet.getTablet("com.highfidelity.interface.tablet.system");
         anchors.horizontalCenter: settings.constrainToolbarToCenterX ? desktop.horizontalCenter : undefined;
         // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings when not constrained.
         x: sysToolbar.x
         y: 50
-        shown: true
+        buttonModel: tablet.buttons;
+        shown: tablet.toolbarMode;
     }
 
     Settings {

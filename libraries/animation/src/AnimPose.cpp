@@ -76,3 +76,5 @@ AnimPose::operator glm::mat4() const {
     return glm::mat4(glm::vec4(xAxis, 0.0f), glm::vec4(yAxis, 0.0f),
         glm::vec4(zAxis, 0.0f), glm::vec4(_trans, 1.0f));
 }
+
+

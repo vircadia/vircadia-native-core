@@ -34,4 +34,9 @@ enum UserResponse {
     USER_RESPONSE_ABORT
 };
 
+// Coefficients for luminosity calculation
+const double R_Y = 0.212655f;
+const double G_Y = 0.715158f;
+const double B_Y = 0.072187f;
+
 #endif // hifi_common_h

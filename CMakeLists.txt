@@ -13,6 +13,11 @@ include("cmake/init.cmake")
 
 include("cmake/compiler.cmake")
 
+if (BUILD_SCRIBE_ONLY)
+    add_subdirectory(tools/scribe)
+    return()
+endif()
+
 if (NOT DEFINED SERVER_ONLY)
   set(SERVER_ONLY 0)
 endif()
@@ -26,9 +31,11 @@ endif()
 if (ANDROID OR UWP)
     option(BUILD_SERVER "Build server components" OFF)
     option(BUILD_TOOLS "Build tools" OFF)
+    option(BUILD_INSTALLER "Build installer" OFF)
 else()
     option(BUILD_SERVER "Build server components" ON)
     option(BUILD_TOOLS "Build tools" ON)
+    option(BUILD_INSTALLER "Build installer" ON)
 endif()
 
 if (SERVER_ONLY)
@@ -39,13 +46,54 @@ else()
     option(BUILD_TESTS "Build tests" ON)
 endif()
 
-option(BUILD_INSTALLER "Build installer" ON)
+if (ANDROID)
+    option(USE_GLES "Use OpenGL ES" ON)
+    set(PLATFORM_QT_COMPONENTS AndroidExtras WebView)
+else ()
+    option(USE_GLES "Use OpenGL ES" OFF)
+    set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
+endif ()
+
+if (USE_GLES AND (NOT ANDROID))
+    option(DISABLE_QML "Disable QML" ON)
+else()
+    option(DISABLE_QML "Disable QML" OFF)
+endif()
+option(DISABLE_KTX_CACHE "Disable KTX Cache" OFF)
+
+
+
+set(PLATFORM_QT_GL OpenGL)
+
+if (USE_GLES)
+  add_definitions(-DUSE_GLES)
+  set(PLATFORM_GL_BACKEND gpu-gles)
+else()
+  set(PLATFORM_GL_BACKEND gpu-gl)
+endif()
+
+
+foreach(PLATFORM_QT_COMPONENT ${PLATFORM_QT_COMPONENTS})
+  list(APPEND PLATFORM_QT_LIBRARIES "Qt5::${PLATFORM_QT_COMPONENT}")
+endforeach()
+
 
 MESSAGE(STATUS "Build server:    " ${BUILD_SERVER})
 MESSAGE(STATUS "Build client:    " ${BUILD_CLIENT})
 MESSAGE(STATUS "Build tests:     " ${BUILD_TESTS})
 MESSAGE(STATUS "Build tools:     " ${BUILD_TOOLS})
 MESSAGE(STATUS "Build installer: " ${BUILD_INSTALLER})
+MESSAGE(STATUS "GL ES:           " ${USE_GLES})
+
+if (DISABLE_QML)
+MESSAGE(STATUS "QML disabled!")
+add_definitions(-DDISABLE_QML)
+endif()
+
+if (DISABLE_KTX_CACHE)
+MESSAGE(STATUS "KTX cache disabled!")
+add_definitions(-DDISABLE_KTX_CACHE)
+endif()
 
 if (UNIX AND DEFINED ENV{HIFI_MEMORY_DEBUGGING})
     MESSAGE(STATUS "Memory debugging is enabled")
