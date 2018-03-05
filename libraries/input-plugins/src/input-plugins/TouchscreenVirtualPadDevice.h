@@ -65,6 +65,7 @@ protected:
     float _lastPinchScale;
     float _pinchScale;
     float _screenDPI;
+    qreal _screenDPIProvided;
     glm::vec2 _screenDPIScale;
     bool _validTouchLeft;
     glm::vec2 _firstTouchLeftPoint;

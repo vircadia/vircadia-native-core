@@ -43,10 +43,11 @@ void TouchscreenVirtualPadDevice::init() {
     _fixedPosition = true; // This should be config
 
     QScreen* eventScreen = qApp->primaryScreen();
-    if (_screenDPI != eventScreen->physicalDotsPerInch()) {
+    if (_screenDPIProvided != eventScreen->physicalDotsPerInch()) {
         _screenWidthCenter = eventScreen->size().width() / 2;
         _screenDPIScale.x = (float)eventScreen->physicalDotsPerInchX();
         _screenDPIScale.y = (float)eventScreen->physicalDotsPerInchY();
+        _screenDPIProvided = eventScreen->physicalDotsPerInch();
         _screenDPI = eventScreen->physicalDotsPerInch();
 
         _fixedRadius = _screenDPI * 256 / 534;
