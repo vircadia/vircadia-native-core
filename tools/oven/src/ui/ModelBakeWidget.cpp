@@ -218,7 +218,7 @@ void ModelBakeWidget::bakeButtonClicked() {
             baker.reset(new OBJBaker(modelToBakeURL, getWorkerThreadCallback, bakedOutputDirectory.absolutePath(),
                         originalOutputDirectory.absolutePath()));
         } else {
-            qWarning() << "Unknown model type: " << modelToBakeURL.fileName());
+            qWarning() << "Unknown model type: " << modelToBakeURL.fileName();
             continue;
         }
 
