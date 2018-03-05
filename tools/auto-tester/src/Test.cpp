@@ -216,16 +216,22 @@ void Test::startTestsEvaluation() {
             resultImagesFullFilenames << fullCurrentFilename;
 
             QString expectedImagePartialSourceDirectory = getExpectedImagePartialSourceDirectory(currentFilename);
-            
-            // extract the digits at the end of the filename (exluding the file extension)
+
+            // Images are stored on GitHub as ExpectedImage_ddddd.png
+            // Extract the digits at the end of the filename (exluding the file extension)
             QString expectedImageFilenameTail = currentFilename.left(currentFilename.length() - 4).right(NUM_DIGITS);
-            QString expectedImageFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + IMAGE_FORMAT;
+            QString expectedImageStoredFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + IMAGE_FORMAT;
+
+            QString imageURLString(URLPrefix + "/" + githubUser + "/" + testsRepo + "/" + branch + "/" + 
+                expectedImagePartialSourceDirectory + "/" + expectedImageStoredFilename);
+
+            expectedImagesURLs << imageURLString;
+
+            // The image retrieved from Github needs a unique name
+            QString expectedImageFilename = currentFilename.replace("/", "_").replace(".", "_EI.");
 
             expectedImagesFilenames << expectedImageFilename;
             expectedImagesFullFilenames << pathToTestResultsDirectory + "/" + expectedImageFilename;
-
-            QString imageURLString(URLPrefix + "/" + githubUser + "/" + testsRepo + "/" + branch + "/" + expectedImagePartialSourceDirectory + "/" + expectedImageFilename);
-            expectedImagesURLs << imageURLString;
         }
     }
 

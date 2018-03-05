@@ -81,7 +81,8 @@ void AutoTester::saveImage(int index) {
     QImage image = pixmap.toImage();
     image = image.convertToFormat(QImage::Format_ARGB32);
 
-    image.save(_directoryName + "/" + _filenames[index], 0, 100);
+    QString fullPathname = _directoryName + "/" + _filenames[index];
+    image.save(fullPathname, 0, 100);
 
     ++_numberOfImagesDownloaded;
 
