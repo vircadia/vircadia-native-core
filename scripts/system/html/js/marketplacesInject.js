@@ -262,6 +262,7 @@
             isUpdating: true,
             itemId: id,
             itemName: name,
+            itemPrice: 0,
             itemHref: href,
             referrer: referrer,
             itemAuthor: author
@@ -436,7 +437,7 @@
                 var cost = $('.item-cost').text();
                 if (availability !== 'available') {
                     purchaseButton.html('UNAVAILABLE (' + availability + ')');
-                } else if (url.indexOf('edition=' != -1)) {
+                } else if (window.location.href.indexOf('edition=' != -1)) {
                     purchaseButton.html('UPDATE FOR FREE');
                 } else if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
                     purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
@@ -444,7 +445,7 @@
                 }
 
                 purchaseButton.on('click', function () {
-                    if (url.indexOf('edition=' != -1)) {
+                    if (window.location.href.indexOf('edition=' != -1)) {
                         updateButtonClicked(window.location.pathname.split("/")[3],
                             $('#top-center').find('h1').text(),
                             $('#creator').find('.value').text(),

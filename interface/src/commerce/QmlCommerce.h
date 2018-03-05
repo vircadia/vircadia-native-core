@@ -44,6 +44,7 @@ signals:
     void certificateInfoResult(QJsonObject result);
     void alreadyOwnedResult(QJsonObject result);
     void availableUpdatesResult(QJsonObject result);
+    void updateItemResult(QJsonObject result);
 
     void updateCertificateStatus(const QString& certID, uint certStatus);
 
@@ -90,6 +91,7 @@ protected:
     Q_INVOKABLE bool openApp(const QString& appHref);
 
     Q_INVOKABLE void getAvailableUpdates();
+    Q_INVOKABLE void updateItem(const QString& marketplaceId);
 
 private:
     QString _appsPath;

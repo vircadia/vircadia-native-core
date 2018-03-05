@@ -50,11 +50,12 @@ Item {
     property bool isInstalled;
     property string upgradeUrl;
     property string upgradeTitle;
+    property bool isShowingMyItems;
 
     property string originalStatusText;
     property string originalStatusColor;
 
-    height: root.upgradeUrl === "" ? 110 : 150;
+    height: (root.upgradeUrl === "" || root.isShowingMyItems) ? 110 : 150;
     width: parent.width;
 
     Connections {
@@ -647,7 +648,7 @@ Item {
 
         Rectangle {
             id: upgradeAvailableContainer;
-            visible: root.upgradeUrl !== "";
+            visible: root.upgradeUrl !== "" && !root.isShowingMyItems;
             anchors.top: itemContainer.bottom;
             anchors.bottom: parent.bottom;
             anchors.left: parent.left;

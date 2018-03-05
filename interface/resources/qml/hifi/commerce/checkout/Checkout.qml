@@ -137,9 +137,25 @@ Rectangle {
                 console.log("Failed to get Available Updates", result.data.message);
             } else {
                 root.availableUpdatesReceived = true;
-                if (result.data.updates.indexOf(root.itemId) > -1) {
-                    root.isUpdating = true;
+                for (var i = 0; i < result.data.updates.length; i++) {
+                    if (result.data.updates[i].item_id === root.itemId) {
+                        root.isUpdating = true;
+                        break;
+                    }
                 }
+            }
+        }
+
+        onUpdateItemResult: {
+            if (result.status !== 'success') {
+                failureErrorText.text = result.message;
+                root.activeView = "checkoutFailure";
+            } else {
+                root.itemHref = result.data.download_url;
+                if (result.data.categories.indexOf("Wearables") > -1) {
+                    root.itemType = "wearable";
+                }
+                root.activeView = "checkoutSuccess";
             }
         }
     }
@@ -447,7 +463,7 @@ Rectangle {
                     id: itemPriceText;
                     text: root.isUpdating ? "FREE\nUPGRADE" : ((root.itemPrice === -1) ? "--" : root.itemPrice);
                     // Text size
-                    size: 26;
+                    size: root.isUpdating ? 20 : 26;
                     // Anchors
                     anchors.top: parent.top;
                     anchors.right: parent.right;
@@ -569,7 +585,9 @@ Rectangle {
                 text: root.isUpdating ? "CONFIRM UPDATE" : (((root.isCertified) ? ((ownershipStatusReceived && balanceReceived && availableUpdatesReceived) ?
                     (viewInMyPurchasesButton.visible ? "Buy It Again" : "Confirm Purchase") : "--") : "Get Item"));
                 onClicked: {
-                    if (root.isCertified) {
+                    if (root.isUpdating) {
+                        Commerce.updateItem(root.itemId);
+                    } else if (root.isCertified) {
                         if (!root.shouldBuyWithControlledFailure) {
                             if (root.itemType === "contentSet" && !Entities.canReplaceContent()) {
                                 lightboxPopup.titleText = "Purchase Content Set";
@@ -1020,12 +1038,12 @@ Rectangle {
         switch (message.method) {
             case 'updateCheckoutQML':
                 root.isUpdating = message.params.isUpdating;
-                itemId = message.params.itemId;
-                itemName = message.params.itemName;
+                root.itemId = message.params.itemId;
+                root.itemName = message.params.itemName.trim();
                 root.itemPrice = message.params.itemPrice;
-                itemHref = message.params.itemHref;
-                referrer = message.params.referrer;
-                itemAuthor = message.params.itemAuthor;
+                root.itemHref = message.params.itemHref;
+                root.referrer = message.params.referrer;
+                root.itemAuthor = message.params.itemAuthor;
                 refreshBuyUI();
             break;
             default:
@@ -1056,11 +1074,9 @@ Rectangle {
                     }
 
                     if (root.isUpdating) {
-                        buyText.text = "By agreeing to update, you agree to trade in your old item for the update that replaces it.";
-                        buyTextContainer.color = "#FFC3CD";
-                        buyTextContainer.border.color = "#F3808F";
-                        buyGlyph.text = hifi.glyphs.alert;
-                        buyGlyph.size = 54;
+                        buyText.text = "By pressing \"Confirm Update\", you agree to trade in your old item for the updated item that replaces it.";
+                        buyTextContainer.color = "#FFFFFF";
+                        buyTextContainer.border.color = "#FFFFFF";
                     } else if (root.itemType === "contentSet" && !Entities.canReplaceContent()) {
                         buyText.text = "The domain owner must enable 'Replace Content' permissions for you in this " +
                             "<b>domain's server settings</b> before you can replace this domain's content with <b>" + root.itemName + "</b>";

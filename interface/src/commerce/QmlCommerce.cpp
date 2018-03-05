@@ -39,6 +39,7 @@ QmlCommerce::QmlCommerce() {
     connect(ledger.data(), &Ledger::transferHfcToNodeResult, this, &QmlCommerce::transferHfcToNodeResult);
     connect(ledger.data(), &Ledger::transferHfcToUsernameResult, this, &QmlCommerce::transferHfcToUsernameResult);
     connect(ledger.data(), &Ledger::availableUpdatesResult, this, &QmlCommerce::availableUpdatesResult);
+    connect(ledger.data(), &Ledger::updateItemResult, this, &QmlCommerce::updateItemResult);
     
     auto accountManager = DependencyManager::get<AccountManager>();
     connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
@@ -348,4 +349,17 @@ bool QmlCommerce::openApp(const QString& itemHref) {
 void QmlCommerce::getAvailableUpdates() {
     auto ledger = DependencyManager::get<Ledger>();
     ledger->getAvailableUpdates();
+}
+
+void QmlCommerce::updateItem(const QString& marketplaceId) {
+    auto ledger = DependencyManager::get<Ledger>();
+    auto wallet = DependencyManager::get<Wallet>();
+    QStringList keys = wallet->listPublicKeys();
+    if (keys.count() == 0) {
+        QJsonObject result{ { "status", "fail" },{ "message", "Uninitialized Wallet." } };
+        return emit updateItemResult(result);
+    }
+    QString key = keys[0];
+    // For now, we receive at the same key that pays for it.
+    ledger->updateItem(key, marketplaceId, key);
 }

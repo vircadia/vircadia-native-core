@@ -400,6 +400,7 @@ Rectangle {
                 isInstalled: model.isInstalled;
                 upgradeUrl: model.upgrade_url;
                 upgradeTitle: model.upgrade_title;
+                isShowingMyItems: root.isShowingMyItems;
                 itemType: {
                     if (model.root_file_url.indexOf(".fst") > -1) {
                         "avatar";
