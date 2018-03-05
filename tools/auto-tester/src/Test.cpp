@@ -234,6 +234,13 @@ void Test::startTestsEvaluation() {
 
 void Test::finishTestsEvaluation(bool interactiveMode, QProgressBar* progressBar) {
     bool success = compareImageLists(interactiveMode, progressBar);
+    
+    if (success) {
+        messageBox.information(0, "Success", "All images are as expected");
+    } else {
+        messageBox.information(0, "Failure", "One or more images are not as expected");
+    }
+
     zipAndDeleteTestResultsFolder();
 }
 
