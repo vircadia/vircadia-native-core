@@ -104,7 +104,7 @@ public:
     };
 
     Q_ENUM(ConnectionStep);
-    const QUuid& getSessionUUID() const { return _sessionUUID; }
+    QUuid getSessionUUID() const;
     void setSessionUUID(const QUuid& sessionUUID);
 
     void setPermissions(const NodePermissions& newPermissions);
@@ -380,20 +380,19 @@ protected:
 
     bool sockAddrBelongsToNode(const HifiSockAddr& sockAddr) { return findNodeWithAddr(sockAddr) != SharedNodePointer(); }
 
-    QUuid _sessionUUID;
     NodeHash _nodeHash;
-    mutable QReadWriteLock _nodeMutex;
+    mutable QReadWriteLock _nodeMutex { QReadWriteLock::Recursive };
     udt::Socket _nodeSocket;
-    QUdpSocket* _dtlsSocket;
+    QUdpSocket* _dtlsSocket { nullptr };
     HifiSockAddr _localSockAddr;
     HifiSockAddr _publicSockAddr;
-    HifiSockAddr _stunSockAddr;
+    HifiSockAddr _stunSockAddr { STUN_SERVER_HOSTNAME, STUN_SERVER_PORT };
     bool _hasTCPCheckedLocalSocket { false };
 
     PacketReceiver* _packetReceiver;
 
-    std::atomic<int> _numCollectedPackets;
-    std::atomic<int> _numCollectedBytes;
+    std::atomic<int> _numCollectedPackets { 0 };
+    std::atomic<int> _numCollectedBytes { 0 };
 
     QElapsedTimer _packetStatTimer;
     NodePermissions _permissions;
@@ -424,6 +423,10 @@ private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);
     void possiblyTimeoutSTUNAddressLookup();
     void addSTUNHandlerToUnfiltered(); // called once STUN socket known
+
+private:
+    mutable QReadWriteLock _sessionUUIDLock;
+    QUuid _sessionUUID;
 };
 
 #endif // hifi_LimitedNodeList_h
