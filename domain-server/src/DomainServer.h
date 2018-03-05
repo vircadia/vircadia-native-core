@@ -135,7 +135,7 @@ signals:
     void userDisconnected();
 
 private:
-    const QUuid& getID();
+    QUuid getID();
     void parseCommandLine();
 
     QString getContentBackupDir();
