@@ -405,7 +405,7 @@ void DomainServer::restart() {
     exit(DomainServer::EXIT_CODE_REBOOT);
 }
 
-const QUuid& DomainServer::getID() {
+QUuid DomainServer::getID() {
     return DependencyManager::get<LimitedNodeList>()->getSessionUUID();
 }
 
