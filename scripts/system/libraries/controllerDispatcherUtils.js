@@ -105,7 +105,8 @@ DISPATCHER_PROPERTIES = [
     "density",
     "dimensions",
     "userData",
-    "type"
+    "type",
+    "href"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
@@ -232,7 +233,6 @@ entityIsDistanceGrabbable = function(props) {
 
     return true;
 };
-
 
 getControllerJointIndex = function (hand) {
     if (HMD.isHandControllerAvailable()) {

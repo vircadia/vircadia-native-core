@@ -49,19 +49,8 @@ const std::set<NodeType_t> SOLO_NODE_TYPES = {
 };
 
 LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
-    _sessionUUID(),
-    _nodeHash(),
-    _nodeMutex(QReadWriteLock::Recursive),
     _nodeSocket(this),
-    _dtlsSocket(NULL),
-    _localSockAddr(),
-    _publicSockAddr(),
-    _stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT),
-    _packetReceiver(new PacketReceiver(this)),
-    _numCollectedPackets(0),
-    _numCollectedBytes(0),
-    _packetStatTimer(),
-    _permissions(NodePermissions())
+    _packetReceiver(new PacketReceiver(this))
 {
     qRegisterMetaType<ConnectionStep>("ConnectionStep");
     auto port = (socketListenPort != INVALID_PORT) ? socketListenPort : LIMITED_NODELIST_LOCAL_PORT.get();
@@ -122,13 +111,22 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     }
 }
 
+QUuid LimitedNodeList::getSessionUUID() const {
+    QReadLocker lock { &_sessionUUIDLock };
+    return _sessionUUID;
+}
+
 void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
-    QUuid oldUUID = _sessionUUID;
-    _sessionUUID = sessionUUID;
+    QUuid oldUUID;
+    {
+        QWriteLocker lock { &_sessionUUIDLock };
+        oldUUID = _sessionUUID;
+        _sessionUUID = sessionUUID;
+    }
 
     if (sessionUUID != oldUUID) {
         qCDebug(networking) << "NodeList UUID changed from" <<  uuidStringWithoutCurlyBraces(oldUUID)
-        << "to" << uuidStringWithoutCurlyBraces(_sessionUUID);
+        << "to" << uuidStringWithoutCurlyBraces(sessionUUID);
         emit uuidChanged(sessionUUID, oldUUID);
     }
 }
