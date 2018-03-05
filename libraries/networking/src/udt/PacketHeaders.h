@@ -126,6 +126,11 @@ public:
         EntityScriptCallMethod,
         ChallengeOwnershipRequest,
         ChallengeOwnershipReply,
+
+        OctreeDataFileRequest,
+        OctreeDataFileReply,
+        OctreeDataPersist,
+
         NUM_PACKET_TYPE
     };
 
@@ -165,6 +170,8 @@ public:
             << PacketTypeEnum::Value::DomainConnectionDenied << PacketTypeEnum::Value::DomainServerPathQuery
             << PacketTypeEnum::Value::DomainServerPathResponse << PacketTypeEnum::Value::DomainServerAddedNode
             << PacketTypeEnum::Value::DomainServerConnectionToken << PacketTypeEnum::Value::DomainSettingsRequest
+            << PacketTypeEnum::Value::OctreeDataFileRequest << PacketTypeEnum::Value::OctreeDataFileReply
+            << PacketTypeEnum::Value::OctreeDataPersist << PacketTypeEnum::Value::OctreeFileReplacementFromUrl
             << PacketTypeEnum::Value::DomainSettings << PacketTypeEnum::Value::ICEServerPeerInformation
             << PacketTypeEnum::Value::ICEServerQuery << PacketTypeEnum::Value::ICEServerHeartbeat
             << PacketTypeEnum::Value::ICEServerHeartbeatACK << PacketTypeEnum::Value::ICEPing
@@ -176,6 +183,22 @@ public:
             << PacketTypeEnum::Value::ReplicatedSilentAudioFrame << PacketTypeEnum::Value::ReplicatedAvatarIdentity
             << PacketTypeEnum::Value::ReplicatedKillAvatar << PacketTypeEnum::Value::ReplicatedBulkAvatarData;
         return NON_SOURCED_PACKETS;
+    }
+
+    const static QSet<PacketTypeEnum::Value> getDomainSourcedPackets() {
+        const static QSet<PacketTypeEnum::Value> DOMAIN_SOURCED_PACKETS = QSet<PacketTypeEnum::Value>()
+            << PacketTypeEnum::Value::AssetMappingOperation
+            << PacketTypeEnum::Value::AssetGet
+            << PacketTypeEnum::Value::AssetUpload;
+        return DOMAIN_SOURCED_PACKETS;
+    }
+
+    const static QSet<PacketTypeEnum::Value> getDomainIgnoredVerificationPackets() {
+        const static QSet<PacketTypeEnum::Value> DOMAIN_IGNORED_VERIFICATION_PACKETS = QSet<PacketTypeEnum::Value>()
+            << PacketTypeEnum::Value::AssetMappingOperationReply
+            << PacketTypeEnum::Value::AssetGetReply
+            << PacketTypeEnum::Value::AssetUploadReply;
+        return DOMAIN_IGNORED_VERIFICATION_PACKETS;
     }
 };
 
@@ -206,7 +229,8 @@ enum class EntityVersion : PacketVersion {
     OwnershipChallengeFix,
     ZoneLightInheritModes = 82,
     ZoneStageRemoved,
-    SoftEntities
+    SoftEntities,
+    MaterialEntities
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

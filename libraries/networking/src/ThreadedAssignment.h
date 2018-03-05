@@ -18,8 +18,6 @@
 
 #include "Assignment.h"
 
-using DownstreamNodeFoundCallback = std::function<void(Node& downstreamNode)>;
-
 class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
@@ -47,10 +45,10 @@ protected:
     QTimer _domainServerTimer;
     QTimer _statsTimer;
     int _numQueuedCheckIns { 0 };
-    
+
 protected slots:
     void domainSettingsRequestFailed();
-    
+
 private slots:
     void checkInWithDomainServerOrExit();
 };

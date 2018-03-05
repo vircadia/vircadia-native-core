@@ -17,18 +17,9 @@
 void RenderViewTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, bool isDeferred, uint8_t tagBits, uint8_t tagMask) {
    // auto items = input.get<Input>();
 
-    // Shadows use an orthographic projection because they are linked to sunlights
-    // but the cullFunctor passed is probably tailored for perspective projection and culls too much.
-    task.addJob<RenderShadowTask>("RenderShadowTask", [](const RenderArgs* args, const AABox& bounds) {
-        // Cull only objects that are too small relatively to shadow frustum
-        auto& frustum = args->getViewFrustum();
-        auto frustumSize = std::max(frustum.getHeight(), frustum.getWidth());
-        const auto boundsRadius = bounds.getDimensions().length();
-        const auto relativeBoundRadius = boundsRadius / frustumSize;
-        const auto threshold = 1e-3f;
-        return relativeBoundRadius > threshold;
-        return true;
-    }, tagBits, tagMask);
+    // Warning : the cull functor passed to the shadow pass should only be testing for LOD culling. If frustum culling
+    // is performed, then casters not in the view frustum will be removed, which is not what we wish.
+    task.addJob<RenderShadowTask>("RenderShadowTask", cullFunctor, tagBits, tagMask);
 
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, tagBits, tagMask);
     assert(items.canCast<RenderFetchCullSortTask::Output>());

@@ -11,7 +11,8 @@ var toolBar = (function() {
         newTextButton,
         newWebButton,
         newZoneButton,
-        newParticleButton
+        newParticleButton,
+        newMaterialButton
 
     var toolIconUrl = Script.resolvePath("../../system/assets/images/tools/");
 
@@ -89,6 +90,13 @@ var toolBar = (function() {
             visible: false
         });
 
+        newMaterialButton = toolBar.addButton({
+            objectName: "newMaterialButton",
+            imageURL: toolIconUrl + "material-01.svg",
+            alpha: 0.9,
+            visible: false
+        });
+
         that.setActive(false);
         newModelButton.clicked();
     }
@@ -109,8 +117,8 @@ var toolBar = (function() {
         newTextButton.writeProperty('visible', doShow);
         newWebButton.writeProperty('visible', doShow);
         newZoneButton.writeProperty('visible', doShow);
-        newModelButton.writeProperty('visible', doShow);
         newParticleButton.writeProperty('visible', doShow);
+        newMaterialButton.writeProperty('visible', doShow);
     };
 
     initialize();

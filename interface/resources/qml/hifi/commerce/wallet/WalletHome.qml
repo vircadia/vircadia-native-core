@@ -310,7 +310,7 @@ Item {
                 height: parent.height;
 
                 HifiControlsUit.Separator {
-                colorScheme: 1;
+                    colorScheme: 1;
                     anchors.left: parent.left;
                     anchors.right: parent.right;
                     anchors.top: parent.top;
@@ -318,20 +318,42 @@ Item {
 
                 RalewayRegular {
                     id: noActivityText;
-                text: "<b>The Wallet app is in closed Beta.</b><br><br>To request entry and <b>receive free HFC</b>, please contact " +
-                "<b>info@highfidelity.com</b> with your High Fidelity account username and the email address registered to that account.";
-                // Text size
-                size: 24;
-                // Style
-                color: hifi.colors.blueAccent;
-                anchors.left: parent.left;
-                anchors.leftMargin: 12;
-                anchors.right: parent.right;
-                anchors.rightMargin: 12;
-                anchors.verticalCenter: parent.verticalCenter;
-                height: paintedHeight;
-                wrapMode: Text.WordWrap;
-                horizontalAlignment: Text.AlignHCenter;
+                    text: "Congrats! Your wallet is all set!<br><br>" +
+                        "<b>Where's my HFC?</b><br>" +
+                        "High Fidelity commerce is in open beta right now. Want more HFC? Get it by meeting with a banker at " +
+                        "<a href='#goToBank'>BankOfHighFidelity</a>!"
+                    // Text size
+                    size: 22;
+                    // Style
+                    color: hifi.colors.blueAccent;
+                    anchors.top: parent.top;
+                    anchors.topMargin: 36;
+                    anchors.left: parent.left;
+                    anchors.leftMargin: 12;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: 12;
+                    height: paintedHeight;
+                    wrapMode: Text.WordWrap;
+                    horizontalAlignment: Text.AlignHCenter;
+
+                    onLinkActivated: {
+                        sendSignalToWallet({ method: "transactionHistory_goToBank" });
+                    }
+                }
+
+                HifiControlsUit.Button {
+                    id: bankButton;
+                    color: hifi.buttons.blue;
+                    colorScheme: hifi.colorSchemes.dark;
+                    anchors.top: noActivityText.bottom;
+                    anchors.topMargin: 30;
+                    anchors.horizontalCenter: parent.horizontalCenter;
+                    width: parent.width/2;
+                    height: 50;
+                    text: "VISIT BANK OF HIGH FIDELITY";
+                    onClicked: {
+                        sendSignalToWallet({ method: "transactionHistory_goToBank" });
+                    }
                 }
             }
             
@@ -391,7 +413,7 @@ Item {
                             anchors.topMargin: 15;
                             width: 118;
                             height: paintedHeight;
-                            wrapMode: Text.WordWrap;
+                            wrapMode: Text.Wrap;
                             // Alignment
                             horizontalAlignment: Text.AlignRight;
                         }
@@ -408,7 +430,7 @@ Item {
                             height: paintedHeight;
                             color: model.status === "invalidated" ? hifi.colors.redAccent : hifi.colors.baseGrayHighlight;
                             linkColor: hifi.colors.blueAccent;
-                            wrapMode: Text.WordWrap;
+                            wrapMode: Text.Wrap;
                             font.strikeout: model.status === "invalidated";
 
                             onLinkActivated: {

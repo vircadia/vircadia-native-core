@@ -19,6 +19,9 @@
 #include "animdebugdraw_vert.h"
 #include "animdebugdraw_frag.h"
 
+#include "animdebugdraw_vert.h"
+#include "animdebugdraw_frag.h"
+
 class AnimDebugDrawData {
 public:
 

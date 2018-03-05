@@ -42,6 +42,8 @@ private:
     uint32_t _framerateTarget { 0 };
     int _fullscreenTarget{ -1 };
 
+#if defined(Q_OS_ANDROID)
     gpu::TexturePointer _virtualPadStickTexture;
     gpu::TexturePointer _virtualPadStickBaseTexture;
+#endif
 };
