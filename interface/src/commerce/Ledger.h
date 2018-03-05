@@ -37,7 +37,7 @@ public:
     void transferHfcToUsername(const QString& hfc_key, const QString& username, const int& amount, const QString& optionalMessage);
     void alreadyOwned(const QString& marketplaceId);
     void getAvailableUpdates();
-    void updateItem(const QString& hfc_key, const QString& asset_id, const QString& inventory_key);
+    void updateItem(const QString& hfc_key, const QString& certificate_id);
 
     enum CertificateStatus {
         CERTIFICATE_STATUS_UNKNOWN = 0,

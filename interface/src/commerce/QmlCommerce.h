@@ -91,7 +91,7 @@ protected:
     Q_INVOKABLE bool openApp(const QString& appHref);
 
     Q_INVOKABLE void getAvailableUpdates();
-    Q_INVOKABLE void updateItem(const QString& marketplaceId);
+    Q_INVOKABLE void updateItem(const QString& certificateId);
 
 private:
     QString _appsPath;

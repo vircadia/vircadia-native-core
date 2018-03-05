@@ -351,7 +351,7 @@ void QmlCommerce::getAvailableUpdates() {
     ledger->getAvailableUpdates();
 }
 
-void QmlCommerce::updateItem(const QString& marketplaceId) {
+void QmlCommerce::updateItem(const QString& certificateId) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList keys = wallet->listPublicKeys();
@@ -360,6 +360,5 @@ void QmlCommerce::updateItem(const QString& marketplaceId) {
         return emit updateItemResult(result);
     }
     QString key = keys[0];
-    // For now, we receive at the same key that pays for it.
-    ledger->updateItem(key, marketplaceId, key);
+    ledger->updateItem(key, certificateId);
 }

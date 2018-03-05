@@ -35,6 +35,7 @@ Rectangle {
     property string itemId;
     property string itemHref;
     property string itemAuthor;
+    property string certificateId;
     property double balanceAfterPurchase;
     property bool alreadyOwned: false;
     property int itemPrice: -1;
@@ -586,7 +587,7 @@ Rectangle {
                     (viewInMyPurchasesButton.visible ? "Buy It Again" : "Confirm Purchase") : "--") : "Get Item"));
                 onClicked: {
                     if (root.isUpdating) {
-                        Commerce.updateItem(root.itemId);
+                        Commerce.updateItem(root.certificateId);
                     } else if (root.isCertified) {
                         if (!root.shouldBuyWithControlledFailure) {
                             if (root.itemType === "contentSet" && !Entities.canReplaceContent()) {
@@ -1037,13 +1038,16 @@ Rectangle {
     function fromScript(message) {
         switch (message.method) {
             case 'updateCheckoutQML':
-                root.isUpdating = message.params.isUpdating;
+                if (message.params.isUpdating) {
+                    root.isUpdating = message.params.isUpdating;    
+                }
                 root.itemId = message.params.itemId;
                 root.itemName = message.params.itemName.trim();
                 root.itemPrice = message.params.itemPrice;
                 root.itemHref = message.params.itemHref;
                 root.referrer = message.params.referrer;
                 root.itemAuthor = message.params.itemAuthor;
+                root.certificateId = message.params.certificateId;
                 refreshBuyUI();
             break;
             default:

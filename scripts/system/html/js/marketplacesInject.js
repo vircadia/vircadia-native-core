@@ -246,7 +246,6 @@
     function buyButtonClicked(id, name, author, price, href, referrer) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
-            isUpdating: false,
             itemId: id,
             itemName: name,
             itemPrice: price ? parseInt(price, 10) : 0,
@@ -256,7 +255,7 @@
         }));
     }
 
-    function updateButtonClicked(id, name, author, href, referrer) {
+    function updateButtonClicked(id, name, author, href, referrer, certId) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "UPDATE",
             isUpdating: true,
@@ -265,19 +264,9 @@
             itemPrice: 0,
             itemHref: href,
             referrer: referrer,
-            itemAuthor: author
+            itemAuthor: author,
+            certificateId: certId
         }));
-    }
-
-    // From https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
-    function getParameterByName(name, url) {
-        if (!url) url = window.location.href;
-        name = name.replace(/[\[\]]/g, "\\$&");
-        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
-            results = regex.exec(url);
-        if (!results) return null;
-        if (!results[2]) return '';
-        return decodeURIComponent(results[2].replace(/\+/g, " "));
     }
 
     function injectBuyButtonOnMainPage() {
@@ -437,7 +426,7 @@
                 var cost = $('.item-cost').text();
                 if (availability !== 'available') {
                     purchaseButton.html('UNAVAILABLE (' + availability + ')');
-                } else if (window.location.href.indexOf('edition=' != -1)) {
+                } else if (window.location.href.indexOf('certificateId=' != -1)) {
                     purchaseButton.html('UPDATE FOR FREE');
                 } else if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
                     purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
@@ -445,12 +434,15 @@
                 }
 
                 purchaseButton.on('click', function () {
-                    if (window.location.href.indexOf('edition=' != -1)) {
+                    var urlParams = new URLSearchParams(window.location.search);
+
+                    if (window.location.href.indexOf('certificateId=' != -1)) {
                         updateButtonClicked(window.location.pathname.split("/")[3],
                             $('#top-center').find('h1').text(),
                             $('#creator').find('.value').text(),
                             href,
-                            "itemPage");
+                            "itemPage",
+                            urlParams.get('certificateId'));
                     } else if ('available' === availability) {
                         buyButtonClicked(window.location.pathname.split("/")[3],
                             $('#top-center').find('h1').text(),

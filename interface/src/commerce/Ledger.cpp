@@ -374,12 +374,10 @@ void Ledger::getAvailableUpdates() {
     send(endpoint, "availableUpdatesSuccess", "availableUpdatesFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
 }
 
-void Ledger::updateItem(const QString& hfc_key, const QString& asset_id, const QString& inventory_key) {
+void Ledger::updateItem(const QString& hfc_key, const QString& certificate_id) {
     QJsonObject transaction;
-    transaction["hfc_key"] = hfc_key;
-    transaction["cost"] = 0;
-    transaction["asset_id"] = asset_id;
-    transaction["inventory_key"] = inventory_key;
+    transaction["public_key"] = hfc_key;
+    transaction["certificate_id"] = certificate_id;
     QJsonDocument transactionDoc{ transaction };
     auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
     signedSend("transaction", transactionString, hfc_key, "update_item", "updateItemSuccess", "updateItemFailure");
