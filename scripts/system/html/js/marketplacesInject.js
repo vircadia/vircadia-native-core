@@ -445,15 +445,11 @@
 
                 purchaseButton.on('click', function () {
                     if (url.indexOf('edition=' != -1)) {
-                        if (url.indexOf('upgradeUrl=' === -1)) {
-                            console.log("ERROR! Item is an upgrade, but no upgradeUrl was specified.");
-                        } else {
-                            updateButtonClicked(window.location.pathname.split("/")[3],
-                                $('#top-center').find('h1').text(),
-                                $('#creator').find('.value').text(),
-                                getParameterByName('upgradeUrl'),
-                                "itemPage");
-                        }
+                        updateButtonClicked(window.location.pathname.split("/")[3],
+                            $('#top-center').find('h1').text(),
+                            $('#creator').find('.value').text(),
+                            href,
+                            "itemPage");
                     } else if ('available' === availability) {
                         buyButtonClicked(window.location.pathname.split("/")[3],
                             $('#top-center').find('h1').text(),

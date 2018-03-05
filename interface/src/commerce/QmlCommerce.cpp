@@ -38,7 +38,7 @@ QmlCommerce::QmlCommerce() {
     connect(ledger.data(), &Ledger::updateCertificateStatus, this, &QmlCommerce::updateCertificateStatus);
     connect(ledger.data(), &Ledger::transferHfcToNodeResult, this, &QmlCommerce::transferHfcToNodeResult);
     connect(ledger.data(), &Ledger::transferHfcToUsernameResult, this, &QmlCommerce::transferHfcToUsernameResult);
-    connect(ledger.data(), &Ledger::transferHfcToUsernameResult, this, &QmlCommerce::transferHfcToUsernameResult);
+    connect(ledger.data(), &Ledger::availableUpdatesResult, this, &QmlCommerce::availableUpdatesResult);
     
     auto accountManager = DependencyManager::get<AccountManager>();
     connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
@@ -343,4 +343,9 @@ bool QmlCommerce::openApp(const QString& itemHref) {
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
 
     return true;
+}
+
+void QmlCommerce::getAvailableUpdates() {
+    auto ledger = DependencyManager::get<Ledger>();
+    ledger->getAvailableUpdates();
 }

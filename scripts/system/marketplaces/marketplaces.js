@@ -561,7 +561,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'updateItemClicked':
-                tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId + "?edition=" + message.itemEdition + "&upgradeUrl=" + message.upgradeUrl,
+                tablet.gotoWebScreen(message.upgradeUrl + "?edition=" + message.itemEdition + "&upgradeUrl=" + message.upgradeUrl,
                     MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'passphrasePopup_cancelClicked':

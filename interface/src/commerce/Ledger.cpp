@@ -52,6 +52,7 @@ Handler(inventory)
 Handler(transferHfcToNode)
 Handler(transferHfcToUsername)
 Handler(alreadyOwned)
+Handler(availableUpdates)
 
 void Ledger::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request) {
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -362,4 +363,12 @@ void Ledger::alreadyOwned(const QString& marketplaceId) {
     request["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
     request["marketplace_item_id"] = marketplaceId;
     send(endpoint, "alreadyOwnedSuccess", "alreadyOwnedFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
+}
+
+void Ledger::getAvailableUpdates() {
+    auto wallet = DependencyManager::get<Wallet>();
+    QString endpoint = "available_updates";
+    QJsonObject request;
+    request["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
+    send(endpoint, "availableUpdatesSuccess", "availableUpdatesFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
 }
