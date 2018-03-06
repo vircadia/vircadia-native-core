@@ -23,10 +23,10 @@ void ClassificationTracker::run(const WorkloadContextPointer& context, Outputs& 
     if (space) {
         Changes changes;
         space->categorizeAndGetChanges(changes);
-        outputs.resize(workload::Space::NUM_TRANSITIONS);
+        outputs.resize(workload::Region::NUM_TRANSITIONS);
         for (uint32_t i = 0; i < changes.size(); ++i) {
-            int32_t j = Space::computeTransitionIndex(changes[i].prevRegion, changes[i].region);
-            assert(j >= 0 && j < workload::Space::NUM_TRANSITIONS);
+            int32_t j = Region::computeTransitionIndex(changes[i].prevRegion, changes[i].region);
+            assert(j >= 0 && j < workload::Region::NUM_TRANSITIONS);
             outputs[j].push_back(changes[i].proxyId);
         }
     }

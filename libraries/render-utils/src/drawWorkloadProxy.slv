@@ -48,7 +48,7 @@ WorkloadProxy getWorkloadProxy(int i) {
 
 
 out vec4 varColor;
-out vec2 varTexcoord;
+out vec3 varTexcoord;
 
 void main(void) {
     const vec4 UNIT_SPRITE[3] = vec4[3](
@@ -80,7 +80,7 @@ void main(void) {
    // vec3 dirY = normalize(cross(dirZ, vec3(1.0, 0.0, 0.0)));
 
     vec4 pos = vec4(proxyPosEye.xyz + proxy.sphere.w * ( dirX * spriteVert.x + dirY * spriteVert.y /* + dirZ * spriteVert.z*/), 1.0);
-    varTexcoord = spriteVert.xy;
+    varTexcoord = spriteVert.xyz;
     <$transformEyeToClipPos(cam, pos, gl_Position)$>
 
     // Convert region to color

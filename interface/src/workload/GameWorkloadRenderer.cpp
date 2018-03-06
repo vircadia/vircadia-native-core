@@ -16,11 +16,14 @@
 #include <GeometryCache.h>
 
 #include "render-utils/drawWorkloadProxy_vert.h"
+#include "render-utils/drawWorkloadView_vert.h"
 #include "render-utils/drawWorkloadProxy_frag.h"
 
 
 void GameSpaceToRender::configure(const Config& config) {
-    _showAllProxies = config.showAllProxies;
+    _freezeViews = config.freezeViews;
+    _showAllProxies = config.showProxies;
+    _showAllViews = config.showViews;
 }
 
 void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, Outputs& outputs) {
@@ -33,7 +36,11 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
         return;
     }
 
-    auto visible = _showAllProxies;
+    auto visible = _showAllProxies || _showAllViews;
+    auto showProxies = _showAllProxies;
+    auto showViews = _showAllViews;
+    auto freezeViews = _freezeViews;
+
     render::Transaction transaction;
     auto scene = gameWorkloadContext->_scene;
 
@@ -51,22 +58,30 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
     std::vector<workload::Space::Proxy> proxies(space->getNumAllocatedProxies());
     space->copyProxyValues(proxies.data(), (uint32_t)proxies.size());
 
-
+    workload::Views views(space->getNumViews());
+    if (!freezeViews) {
+        space->copyViews(views);
+    }
 
     // Valid space, let's display its content
     if (!render::Item::isValidID(_spaceRenderItemID)) {
         _spaceRenderItemID = scene->allocateID();
         auto renderItem = std::make_shared<GameWorkloadRenderItem>();
         renderItem->editBound().setBox(glm::vec3(-100.0f), 200.0f);
-        renderItem->setVisible(visible);
         renderItem->setAllProxies(proxies);
         transaction.resetItem(_spaceRenderItemID, std::make_shared<GameWorkloadRenderItem::Payload>(renderItem));
-    } else {
-        transaction.updateItem<GameWorkloadRenderItem>(_spaceRenderItemID, [visible, proxies](GameWorkloadRenderItem& item) {
-            item.setVisible(visible);
-            item.setAllProxies(proxies);
-        });
     }
+    
+    transaction.updateItem<GameWorkloadRenderItem>(_spaceRenderItemID, [visible, showProxies, proxies, freezeViews, showViews, views](GameWorkloadRenderItem& item) {
+        item.setVisible(visible);
+        item.showProxies(showProxies);
+        item.setAllProxies(proxies);
+        item.showViews(showViews);
+        if (!freezeViews) {
+            item.setAllViews(views);
+        }
+    });
+    
     scene->enqueueTransaction(transaction);
 }
 
@@ -109,6 +124,15 @@ void GameWorkloadRenderItem::setVisible(bool isVisible) {
     }
 }
 
+void GameWorkloadRenderItem::showProxies(bool show) {
+    _showProxies = show;
+}
+
+void GameWorkloadRenderItem::showViews(bool show) {
+    _showViews = show;
+}
+
+
 void GameWorkloadRenderItem::setAllProxies(const std::vector<workload::Space::Proxy>& proxies) {
     _myOwnProxies = proxies;
     static const uint32_t sizeOfProxy = sizeof(workload::Space::Proxy);
@@ -120,7 +144,18 @@ void GameWorkloadRenderItem::setAllProxies(const std::vector<workload::Space::Pr
     _numAllProxies = (uint32_t) proxies.size();
 }
 
-const gpu::PipelinePointer GameWorkloadRenderItem::getPipeline() {
+void GameWorkloadRenderItem::setAllViews(const workload::Views& views) {
+    _myOwnViews = views;
+    static const uint32_t sizeOfView = sizeof(workload::View);
+    if (!_allViewsBuffer) {
+        _allViewsBuffer = std::make_shared<gpu::Buffer>(sizeOfView);
+    }
+
+    _allViewsBuffer->setData(views.size() * sizeOfView, (const gpu::Byte*) views.data());
+    _numAllViews = (uint32_t)views.size();
+}
+
+const gpu::PipelinePointer GameWorkloadRenderItem::getProxiesPipeline() {
     if (!_drawAllProxiesPipeline) {
         auto vs = drawWorkloadProxy_vert::getShader();
         auto ps = drawWorkloadProxy_frag::getShader();
@@ -143,27 +178,56 @@ const gpu::PipelinePointer GameWorkloadRenderItem::getPipeline() {
     return _drawAllProxiesPipeline;
 }
 
+
+const gpu::PipelinePointer GameWorkloadRenderItem::getViewsPipeline() {
+    if (!_drawAllViewsPipeline) {
+        auto vs = drawWorkloadView_vert::getShader();
+        auto ps = drawWorkloadProxy_frag::getShader();
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding("workloadViewsBuffer", 1));
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        auto state = std::make_shared<gpu::State>();
+        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        /*  state->setBlendFunction(true,
+        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::DEST_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ZERO);*/
+
+        PrepareStencil::testMaskDrawShape(*state);
+        state->setCullMode(gpu::State::CULL_NONE);
+        _drawAllViewsPipeline = gpu::Pipeline::create(program, state);
+    }
+    return _drawAllViewsPipeline;
+}
 void GameWorkloadRenderItem::render(RenderArgs* args) {
     gpu::Batch& batch = *(args->_batch);
 
-    // Setup projection
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->getViewFrustum().evalProjectionMatrix(projMat);
-    args->getViewFrustum().evalViewTransform(viewMat);
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat);
     batch.setModelTransform(Transform());
 
-    // Bind program
-    batch.setPipeline(getPipeline());
-
     batch.setResourceBuffer(0, _allProxiesBuffer);
+    batch.setResourceBuffer(1, _allViewsBuffer);
 
-    static const int NUM_VERTICES_PER_QUAD = 3;
-    batch.draw(gpu::TRIANGLES, NUM_VERTICES_PER_QUAD * _numAllProxies, 0);
+    // Show Proxies
+    if (_showProxies) {
+        batch.setPipeline(getProxiesPipeline());
 
-    batch.setResourceBuffer(11, nullptr);
+        static const int NUM_VERTICES_PER_PROXY = 3;
+        batch.draw(gpu::TRIANGLES, NUM_VERTICES_PER_PROXY * _numAllProxies, 0);
+    }
+
+    // Show Views
+    if (_showViews) {
+        batch.setPipeline(getViewsPipeline());
+
+        static const int NUM_VERTICES_PER_VIEW = 27;
+        batch.draw(gpu::TRIANGLES, NUM_VERTICES_PER_VIEW * _numAllViews, 0);
+    }
+
+    batch.setResourceBuffer(0, nullptr);
+    batch.setResourceBuffer(1, nullptr);
+
 }
 
 

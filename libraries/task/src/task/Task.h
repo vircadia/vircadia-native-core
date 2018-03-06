@@ -78,6 +78,7 @@ public:
 
     virtual const Varying getInput() const { return Varying(); }
     virtual const Varying getOutput() const { return Varying(); }
+    virtual Varying& editInput() = 0;
 
     virtual QConfigPointer& getConfiguration() { return _config; }
     virtual void applyConfiguration() = 0;
@@ -141,6 +142,7 @@ public:
 
         const Varying getInput() const override { return _input; }
         const Varying getOutput() const override { return _output; }
+        Varying& editInput() override { return _input; }
 
         template <class... A>
         Model(const Varying& input, QConfigPointer config, A&&... args) :
@@ -177,6 +179,10 @@ public:
 
     const Varying getInput() const { return _concept->getInput(); }
     const Varying getOutput() const { return _concept->getOutput(); }
+
+    template <class I> void feedInput(const I& in) { _concept->editInput().template edit<I>() = in; }
+
+
     QConfigPointer& getConfiguration() const { return _concept->getConfiguration(); }
     void applyConfiguration() { return _concept->applyConfiguration(); }
 
@@ -240,6 +246,8 @@ public:
 
         const Varying getInput() const override { return _input; }
         const Varying getOutput() const override { return _output; }
+        Varying& editInput() override { return _input; }
+
         typename Jobs::iterator editJob(std::string name) {
             typename Jobs::iterator jobIt;
             for (jobIt = _jobs.begin(); jobIt != _jobs.end(); ++jobIt) {

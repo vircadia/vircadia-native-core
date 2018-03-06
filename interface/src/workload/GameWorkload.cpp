@@ -9,6 +9,7 @@
 //
 #include "GameWorkload.h"
 #include "GameWorkloadRenderer.h"
+#include <ViewFrustum.h>
 
 GameWorkloadContext::GameWorkloadContext(const workload::SpacePointer& space, const render::ScenePointer& scene) : WorkloadContext(space), _scene(scene) {
 }
@@ -36,5 +37,9 @@ void GameWorkload::shutdown() {
     _engine.reset();
 }
 
-
+void GameWorkload::updateViews(const ViewFrustum& frustum) {
+    workload::Views views;
+    views.emplace_back(workload::View::evalFromFrustum(frustum));
+    _engine->feedInput(views);
+}
 
