@@ -1954,10 +1954,10 @@ SelectionDisplay = (function() {
         };
 
         var onMove = function(event) {
-			if (event.x === undefined || event.y === undefined) {
-				return;
-			}
-			
+            if (event.x === undefined || event.y === undefined) {
+                return;
+            }
+            
             var proportional = (spaceMode === SPACE_WORLD) || directionEnum === STRETCH_DIRECTION.ALL;
             
             var position, dimensions, rotation;
@@ -2081,35 +2081,35 @@ SelectionDisplay = (function() {
         var directionVector, offset, selectedHandle;
         if (directionEnum === SCALE_DIRECTION.LBN) {
             directionVector = { x:1, y:0, z:1 };
-			offset = { x:-1, y:-1, z:-1 };
+            offset = { x:-1, y:-1, z:-1 };
             selectedHandle = handleScaleLBNCube;
         } else if (directionEnum === SCALE_DIRECTION.RBN) {
             directionVector = { x:-1, y:0, z:1 };
-			offset = { x:1, y:-1, z:-1 };
+            offset = { x:1, y:-1, z:-1 };
             selectedHandle = handleScaleRBNCube;
         } else if (directionEnum === SCALE_DIRECTION.LBF) {
             directionVector = { x:1, y:0, z:-1 };
-			offset = { x:-1, y:-1, z:1 };
+            offset = { x:-1, y:-1, z:1 };
             selectedHandle = handleScaleLBFCube;
         } else if (directionEnum === SCALE_DIRECTION.RBF) {
             directionVector = { x:-1, y:0, z:-1 };
-			offset = { x:1, y:-1, z:1 };
+            offset = { x:1, y:-1, z:1 };
             selectedHandle = handleScaleRBFCube;
         } else if (directionEnum === SCALE_DIRECTION.LTN) { 
             directionVector = { x:1, y:0, z:1 };
-			offset = { x:-1, y:1, z:-1 };
+            offset = { x:-1, y:1, z:-1 };
             selectedHandle = handleScaleLTNCube;
         } else if (directionEnum === SCALE_DIRECTION.RTN) {
             directionVector = { x:-1, y:0, z:1 };
-			offset = { x:1, y:1, z:-1 };
+            offset = { x:1, y:1, z:-1 };
             selectedHandle = handleScaleRTNCube;
         } else if (directionEnum === SCALE_DIRECTION.LTF) {
             directionVector = { x:1, y:0, z:-1 };
-			offset = { x:-1, y:1, z:1 };
+            offset = { x:-1, y:1, z:1 };
             selectedHandle = handleScaleLTFCube;
         } else if (directionEnum === SCALE_DIRECTION.RTF) {
             directionVector = { x:-1, y:0, z:-1 };
-			offset = { x:1, y:1, z:1 };
+            offset = { x:1, y:1, z:1 };
             selectedHandle = handleScaleRTFCube;
         }
         var tool = makeStretchTool(mode, STRETCH_DIRECTION.ALL, directionVector, 
