@@ -321,22 +321,19 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
     }
     var keys = Object.keys(updateKeyPair);
     keys.forEach(function (key) {
-        delete parsedData[groupName][key];
         if (updateKeyPair[key] !== null && updateKeyPair[key] !== "null") {
             if (updateKeyPair[key] instanceof Element) {
                 if (updateKeyPair[key].type === "checkbox") {
-                    if (updateKeyPair[key].checked !== defaults[key]) {
-                        parsedData[groupName][key] = updateKeyPair[key].checked;
-                    }
+                    parsedData[groupName][key] = updateKeyPair[key].checked;
                 } else {
                     var val = isNaN(updateKeyPair[key].value) ? updateKeyPair[key].value : parseInt(updateKeyPair[key].value);
-                    if (val !== defaults[key]) {
-                        parsedData[groupName][key] = val;
-                    }
+                    parsedData[groupName][key] = val;
                 }
             } else {
                 parsedData[groupName][key] = updateKeyPair[key];
             }
+        } else if (defaults[key] !== null && defaults[key] !== "null") {
+            parsedData[groupName][key] = defaults[key];
         }
     });
     if (Object.keys(parsedData[groupName]).length === 0) {

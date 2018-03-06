@@ -377,7 +377,6 @@ Rectangle {
             clip: true;
             model: filteredPurchasesModel;
             snapMode: ListView.SnapToItem;
-            highlightRangeMode: ListView.StrictlyEnforceRange;
             // Anchors
             anchors.top: separator.bottom;
             anchors.topMargin: 12;
