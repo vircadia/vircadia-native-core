@@ -2726,7 +2726,8 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     AvatarInputs::show();
     auto surfaceContext = DependencyManager::get<OffscreenUi>()->getSurfaceContext();
     surfaceContext->setContextProperty("Stats", Stats::getInstance());
-    surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());}
+    surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+}
 
 void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
     PROFILE_RANGE(render, __FUNCTION__);
