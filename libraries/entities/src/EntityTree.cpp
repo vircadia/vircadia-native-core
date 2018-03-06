@@ -1151,7 +1151,9 @@ void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) 
     });
     connect(_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
         qCDebug(entities) << "Ownership challenge timed out, deleting entity" << entityItemID;
-        deleteEntity(entityItemID, true);
+        withWriteLock([&] {
+            deleteEntity(entityItemID, true);
+        });
         if (_challengeOwnershipTimeoutTimer) {
             _challengeOwnershipTimeoutTimer->stop();
             _challengeOwnershipTimeoutTimer->deleteLater();
@@ -1259,7 +1261,9 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
 
     if (text == "") {
         qCDebug(entities) << "CRITICAL ERROR: Couldn't compute nonce. Deleting entity...";
-        deleteEntity(entityItemID, true);
+        withWriteLock([&] {
+            deleteEntity(entityItemID, true);
+        });
     } else {
         qCDebug(entities) << "Challenging ownership of Cert ID" << certID;
         // 2. Send the nonce to the rezzing avatar's node
@@ -1322,8 +1326,7 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
     request["certificate_id"] = certID;
     networkRequest.setUrl(requestURL);
 
-    QNetworkReply* networkReply = NULL;
-    networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
+    QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
 
     connect(networkReply, &QNetworkReply::finished, [=]() {
         QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
@@ -1332,14 +1335,20 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
         if (networkReply->error() == QNetworkReply::NoError) {
             if (!jsonObject["invalid_reason"].toString().isEmpty()) {
                 qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
-                deleteEntity(entityItemID, true);
+                withWriteLock([&] {
+                    deleteEntity(entityItemID, true);
+                });
             } else if (jsonObject["transfer_status"].toArray().first().toString() == "failed") {
                 qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
-                deleteEntity(entityItemID, true);
+                withWriteLock([&] {
+                    deleteEntity(entityItemID, true);
+                });
             } else if (jsonObject["transfer_status"].toArray().first().toString() == "pending") {
                 if (isRetryingValidation) {
                     qCDebug(entities) << "'transfer_status' is 'pending' after retry, deleting entity" << entityItemID;
-                    deleteEntity(entityItemID, true);
+                    withWriteLock([&] {
+                        deleteEntity(entityItemID, true);
+                    });
                 } else {
                     if (thread() != QThread::currentThread()) {
                         QMetaObject::invokeMethod(this, "startPendingTransferStatusTimer",
@@ -1362,7 +1371,9 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
         } else {
             qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << entityItemID
                 << "More info:" << jsonObject;
-            deleteEntity(entityItemID, true);
+            withWriteLock([&] {
+                deleteEntity(entityItemID, true);
+            });
         }
 
         networkReply->deleteLater();
@@ -1796,9 +1807,9 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
 
 void EntityTree::update(bool simulate) {
     PROFILE_RANGE(simulation_physics, "UpdateTree");
-    fixupNeedsParentFixups();
-    if (simulate && _simulation) {
-        withWriteLock([&] {
+    withWriteLock([&] {
+        fixupNeedsParentFixups();
+        if (simulate && _simulation) {
             _simulation->updateEntities();
             {
                 PROFILE_RANGE(simulation_physics, "Deletes");
@@ -1816,8 +1827,8 @@ void EntityTree::update(bool simulate) {
                     deleteEntities(idsToDelete, true);
                 }
             }
-        });
-    }
+        }
+    });
 }
 
 quint64 EntityTree::getAdjustedConsiderSince(quint64 sinceTime) {
@@ -2286,7 +2297,9 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer
     QScriptEngine scriptEngine;
     RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues,
                                             skipThoseWithBadParents, _myAvatar);
-    recurseTreeWithOperator(&theOperator);
+    withReadLock([&] {
+        recurseTreeWithOperator(&theOperator);
+    });
     return true;
 }
 
