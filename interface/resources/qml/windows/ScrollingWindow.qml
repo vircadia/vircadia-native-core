@@ -38,24 +38,26 @@ Window {
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
+    readonly property real verticalScrollWidth: 10
+    readonly property real verticalScrollShaft: 8
+
 
     // Scrollable window content.
     // FIXME this should not define any visual content in this type.  The base window
     // type should only consist of logic sized areas, with nothing drawn (although the
     // default value for the frame property does include visual decorations)
     property var pane: Item {
-        property bool isScrolling: scrollView.contentHeight > scrollView.availableHeight
+        property bool isScrolling: Qt.binding(function() { return scrollView.contentHeight > scrollView.availableHeight; });
 
-        property int contentWidth: scrollView.width - (isScrolling ? 10 : 0)
-        property int scrollHeight: scrollView.height
+        property int contentWidth: scrollView.availableWidth
+        property int scrollHeight: scrollView.availableHeight
 
         anchors.fill: parent
-        anchors.rightMargin: isScrolling ? 11 : 0
 
         Rectangle {
             id: contentBackground
             anchors.fill: parent
-            anchors.rightMargin: parent.isScrolling ? 11 : 0
+            //anchors.rightMargin: parent.isScrolling ? verticalScrollWidth + 1 : 0
             color: hifi.colors.baseGray
             visible: !window.hideBackground && modality != Qt.ApplicationModal
         }
@@ -77,22 +79,23 @@ Window {
 
         ScrollView {
             id: scrollView
-            contentItem: content
+            contentChildren: content
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
             clip: true
 
+            anchors.rightMargin: parent.isScrolling ? verticalScrollWidth : 0
             anchors.fill: parent
-            anchors.rightMargin: parent.isScrolling ? 1 : 0
             anchors.bottomMargin: footerPane.height
 
             ScrollBar.vertical: ScrollBar {
-                policy: ScrollBar.AsNeeded
-                x: scrollView.width - width
-                y: scrollView.topPadding
-                height: scrollView.availableHeight
-                visible: scrollView.contentHeight > scrollView.availableHeight
+                policy: scrollView.contentHeight > scrollView.availableHeight ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+                parent: scrollView.parent
+                anchors.top: scrollView.top
+                anchors.right: scrollView.right
+                anchors.bottom: scrollView.bottom
+                anchors.rightMargin: -verticalScrollWidth //compensate scrollview's right margin
                 background: Item {
-                    implicitWidth: 10
+                    implicitWidth: verticalScrollWidth
                     Rectangle {
                         color: hifi.colors.darkGray30
                         radius: 4
@@ -104,9 +107,9 @@ Window {
                     }
                 }
                 contentItem: Item {
-                    implicitWidth: 8
+                    implicitWidth: verticalScrollShaft
                     Rectangle {
-                        radius: 4
+                        radius: verticalScrollShaft/2
                         color: hifi.colors.white30
                         anchors {
                             fill: parent
