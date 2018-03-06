@@ -253,6 +253,9 @@ void GL45Texture::releaseBindless() const {
 void GL45Texture::recreateBindless() const {
     if (isBindless()) {
         releaseBindless();
+    } else {
+        // Once a texture is about to become bindless, it's base mip level MUST be set to 0
+        glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, 0);
     }
 
     _bindless.sampler = SAMPLER_CACHE.getGLSampler(_cachedSampler);
@@ -270,16 +273,15 @@ const GL45Texture::Bindless& GL45Texture::getBindless() const {
 
 void GL45Texture::syncSampler() const {
     const Sampler& sampler = _gpuObject.getSampler();
-    bool samplerChanged = _cachedSampler != sampler;
-    if (samplerChanged) {
-        _cachedSampler = sampler;
-    }
+    if (_cachedSampler == sampler) {
+        return;
+    } 
+
+    _cachedSampler = sampler;
 
     if (isBindless()) {
-        if (samplerChanged) {
-            recreateBindless();
-        } 
-    } else if (samplerChanged) {
+        recreateBindless();
+    } else {
         const auto& fm = FILTER_MODES[sampler.getFilter()];
         glTextureParameteri(_id, GL_TEXTURE_MIN_FILTER, fm.minFilter);
         glTextureParameteri(_id, GL_TEXTURE_MAG_FILTER, fm.magFilter);
