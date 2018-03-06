@@ -2190,7 +2190,8 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     if (state == CharacterController::State::Hover ||
             _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
         // we can fly --> support vertical motion
-        glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
+        float impulse = _sprint ? 4.0f : 1.0f;
+        glm::vec3 up = (getDriveKey(TRANSLATE_Y) * impulse) * IDENTITY_UP;
         direction += up;
     }
 
@@ -2210,7 +2211,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         float motorSpeed = glm::length(_actionMotorVelocity);
         float finalMaxMotorSpeed = getSensorToWorldScale() * DEFAULT_AVATAR_MAX_FLYING_SPEED;
         float speedGrowthTimescale  = 2.0f;
-        float speedIncreaseFactor = 1.8f;
+        float speedIncreaseFactor = _sprint ? 5.0f : 1.8f;
         motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale, 0.0f, 1.0f) * speedIncreaseFactor;
         const float maxBoostSpeed = getSensorToWorldScale() * MAX_BOOST_SPEED;
 

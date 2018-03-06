@@ -6,8 +6,8 @@
         { "from": "Keyboard.D", "when": "Keyboard.Shift", "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.A", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.D", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_RIGHT" },
-        { "from": "Keyboard.E", "when": "Keyboard.Shift", "to": "Actions.BOOM_IN", "filters": [ { "type": "scale", "scale": 0.05 } ] },
-        { "from": "Keyboard.C", "when": "Keyboard.Shift", "to": "Actions.BOOM_OUT", "filters": [ { "type": "scale", "scale": 0.05 } ] },
+        { "from": "Keyboard.E", "to": "Actions.LATERAL_RIGHT" },
+        { "from": "Keyboard.Q", "to": "Actions.LATERAL_LEFT" },
 
 
         { "comment" : "Mouse turn need to be small continuous increments",
