@@ -1,6 +1,3 @@
-if (NOT ANDROID)
-endif()
-
 #
 #  Copyright 2015 High Fidelity, Inc.
 #  Created by Bradley Austin Davis on 2015/10/10

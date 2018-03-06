@@ -37,7 +37,6 @@ static const uvec2 MIN_QML_WINDOW_SIZE { 120, 80 };
 
 QVariantMap QmlWindowClass::parseArguments(QScriptContext* context) {
     const auto argumentCount = context->argumentCount();
-    QString title;
     QVariantMap properties;
     if (argumentCount > 1) {
         if (!context->argument(0).isUndefined()) {

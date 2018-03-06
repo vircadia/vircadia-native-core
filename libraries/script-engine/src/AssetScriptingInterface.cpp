@@ -440,7 +440,7 @@ void AssetScriptingInterface::saveToCache(const QUrl& rawURL, const QByteArray& 
     JS_VERIFY(url.scheme() == "atp" || url.scheme() == "cache", "only 'atp' and 'cache' URL schemes supported");
     JS_VERIFY(hash.isEmpty() || hash == hashDataHex(data), QString("invalid checksum hash for atp:HASH style URL (%1 != %2)").arg(hash, hashDataHex(data)));
 
-    qCDebug(scriptengine) << "saveToCache" << url.toDisplayString() << data << hash << metadata;
+    // qCDebug(scriptengine) << "saveToCache" << url.toDisplayString() << data << hash << metadata;
 
     jsPromiseReady(Parent::saveToCache(url, data, metadata), scope, callback);
 }

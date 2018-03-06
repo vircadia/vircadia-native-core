@@ -10,6 +10,8 @@
 #include <recording/Clip.h>
 #include <recording/Frame.h>
 
+#include <SharedUtil.h>
+
 #include "Constants.h"
 
 using namespace recording;
@@ -97,17 +99,9 @@ void testClipOrdering() {
     Q_UNUSED(lastFrameTimeOffset); // FIXME - Unix build not yet upgraded to Qt 5.5.1 we can remove this once it is
 }
 
-#ifdef Q_OS_WIN32
-void myMessageHandler(QtMsgType type, const QMessageLogContext & context, const QString & msg) {
-    OutputDebugStringA(msg.toLocal8Bit().toStdString().c_str());
-    OutputDebugStringA("\n");
-}
-#endif
-
 int main(int, const char**) {
-#ifdef Q_OS_WIN32
-    qInstallMessageHandler(myMessageHandler);
-#endif
+    setupHifiApplication("Recording Test");
+
     testFrameTypeRegistration();
     testFilePersist();
     testClipOrdering();

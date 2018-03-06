@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  model_lightmap_normal_specular_map_fade.frag
+//  model_lightmap_normal_map_fade.frag
 //  fragment shader
 //
 //  Created by Olivier Prat on 06/05/17.

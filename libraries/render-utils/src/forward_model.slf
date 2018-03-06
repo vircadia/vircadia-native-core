@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  forward_model_specular_map.frag
+//  forward_model.frag
 //  fragment shader
 //
 //  Created by Sam Gateau on 2/15/2016.

@@ -48,7 +48,7 @@ public:
 
     const FBXGeometry& getFBXGeometry() const { return *_fbxGeometry; }
     const GeometryMeshes& getMeshes() const { return *_meshes; }
-    const std::shared_ptr<const NetworkMaterial> getShapeMaterial(int shapeID) const;
+    const std::shared_ptr<NetworkMaterial> getShapeMaterial(int shapeID) const;
 
     const QVariantMap getTextures() const;
     void setTextures(const QVariantMap& textureMap);
@@ -131,7 +131,6 @@ private:
     Geometry::Pointer& _geometryRef;
 };
 
-
 /// Stores cached model geometries.
 class ModelCache : public ResourceCache, public Dependency {
     Q_OBJECT
@@ -161,7 +160,18 @@ class NetworkMaterial : public graphics::Material {
 public:
     using MapChannel = graphics::Material::MapChannel;
 
+    NetworkMaterial() : _textures(MapChannel::NUM_MAP_CHANNELS) {}
     NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl);
+    NetworkMaterial(const NetworkMaterial& material);
+
+    void setAlbedoMap(const QString& url, bool useAlphaChannel);
+    void setNormalMap(const QString& url, bool isBumpmap);
+    void setRoughnessMap(const QString& url, bool isGloss);
+    void setMetallicMap(const QString& url, bool isSpecular);
+    void setOcclusionMap(const QString& url);
+    void setEmissiveMap(const QString& url);
+    void setScatteringMap(const QString& url);
+    void setLightmapMap(const QString& url);
 
 protected:
     friend class Geometry;

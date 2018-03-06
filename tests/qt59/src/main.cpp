@@ -63,10 +63,7 @@ void Qt59TestApp::finish(int exitCode) {
 
 
 int main(int argc, char * argv[]) {
-    QCoreApplication::setApplicationName("Qt59Test");
-    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
-    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
+    setupHifiApplication("Qt59Test");
 
     Qt59TestApp app(argc, argv);
 

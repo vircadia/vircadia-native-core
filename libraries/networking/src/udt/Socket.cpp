@@ -328,14 +328,14 @@ void Socket::checkForReadyReadBackup() {
 void Socket::readPendingDatagrams() {
     int packetSizeWithHeader = -1;
 
-    while ((packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+    while (_udpSocket.hasPendingDatagrams() && (packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
 
         // we're reading a packet so re-start the readyRead backup timer
         _readyReadBackupTimer->start();
 
         // grab a time point we can mark as the receive time of this packet
         auto receiveTime = p_high_resolution_clock::now();
-        
+
         // setup a HifiSockAddr to read into
         HifiSockAddr senderSockAddr;
 
@@ -517,7 +517,7 @@ void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
     static QString repeatedMessage
         = LogHandler::getInstance().addRepeatedMessageRegex(SOCKET_REGEX);
 
-    qCDebug(networking) << "udt::Socket error - " << socketError;
+    qCDebug(networking) << "udt::Socket error - " << socketError << _udpSocket.errorString();
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {

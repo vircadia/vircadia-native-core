@@ -9,6 +9,7 @@
     <link href="/css/style.css" rel="stylesheet" media="screen">
     <link href="/css/sweetalert.css" rel="stylesheet" media="screen">
     <link href="/css/bootstrap-switch.min.css" rel="stylesheet" media="screen">
+    <link href="/css/bootstrap-sortable.css" rel="stylesheet" media="screen">
 
     <script src='/js/sweetalert.min.js'></script>
   </head>
@@ -17,30 +18,47 @@
       <div class="container-fluid">
         <!-- Brand and toggle get grouped for better mobile display -->
         <div class="navbar-header">
-          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#collapsed-navbar">
             <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
+            <span id="hamburger-badge" class="badge"></span>
+
+            <div id="button-bars">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </div>
           </button>
+
+          <button id="save-settings-xs-button" class="save-button btn btn-success navbar-btn hidden-sm hidden-md hidden-lg" disabled="true"><span class="save-button-text">Save</span></button>
         </div>
 
         <!-- Collect the nav links, forms, and other content for toggling -->
-        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <div class="collapse navbar-collapse" id="collapsed-navbar">
           <ul class="nav navbar-nav">
             <li><a href="/">Nodes</a></li>
-            <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Assignments <span class="caret"></span></a>
-                <ul class="dropdown-menu" role="menu">
-                  <li><a href="/assignment">New Assignment</a></li>
-                </ul>
+            <li><a href="/assignment">Assignment</a></li>
+
+            <li class="dropdown dropdown-on-hover">
+              <a href="/content/" class="hidden-xs">Content <span class="content-settings-badge badge"></span> <span class="caret"></span></a>
+              <a href="#" class="dropdown-toggle hidden-sm hidden-md hidden-lg" data-toggle="dropdown">Content <span class="content-badge badge"></span> <span class="caret"></span></a>
+              <ul id="content-settings-nav-dropdown" class="dropdown-menu" role="menu">
+              </ul>
             </li>
-            <li><a href="/content/">Content</a></li>
-            <li><a href="/settings/">Settings</a></li>
+
+            <li class="dropdown dropdown-on-hover">
+              <a href="/settings/" class="hidden-xs">Settings <span class="domain-settings-badge badge"></span> <span class="caret"></span></a>
+              <a href="#" class="dropdown-toggle hidden-sm hidden-md hidden-lg" data-toggle="dropdown">Settings <span class="domain-settings-badge badge"></span> <span class="caret"></span></a>
+              <ul id="domain-settings-nav-dropdown" class="dropdown-menu" role="menu">
+              </ul>
+            </li>
           </ul>
           <ul class="nav navbar-right navbar-nav">
-            <li><a id="visit-domain-link" class="blue-link" target="_blank" style="display: none;">Visit domain in VR</a></li>
-            <li><a href="#" id="restart-server"><span class="glyphicon glyphicon-refresh"></span> Restart</a></li>
+            <a id="visit-domain-link" class="btn btn-default navbar-btn" role="button" target="_blank" style="display: none;">
+              <img id="visit-hmd-icon" src="/images/hmd-w-eyes.svg" alt="Head-mounted display" />
+              Visit in VR
+            </a>
+            <button id="save-settings-button" class="save-button btn btn-success navbar-btn hidden-xs" disabled="true"><span class="save-button-text">Save</span></button>
+            <a href="#" id="restart-server" class="navbar-btn btn btn-link"><span class="glyphicon glyphicon-refresh"></span> Restart</a>
           </ul>
         </div>
       </div><!-- /.container-fluid -->
@@ -50,7 +68,7 @@
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h4 class="modal-title">domain-server is restarting</h4>
+            <h4 class="modal-title">Domain Server is restarting</h4>
           </div>
           <div class="modal-body">
             <h5>This page will automatically refresh in <span id="refresh-time">3 seconds</span>.</h5>

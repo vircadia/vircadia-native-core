@@ -20,9 +20,8 @@
 std::mutex QmlFragmentClass::_mutex;
 std::map<QString, QScriptValue> QmlFragmentClass::_fragments;
 
-QmlFragmentClass::QmlFragmentClass(QString id) : 
-    qml(id) {
-}
+QmlFragmentClass::QmlFragmentClass(QString id) : qml(id) { }
+
 // Method called by Qt scripts to create a new bottom menu bar in Android
 QScriptValue QmlFragmentClass::constructor(QScriptContext* context, QScriptEngine* engine) {
 

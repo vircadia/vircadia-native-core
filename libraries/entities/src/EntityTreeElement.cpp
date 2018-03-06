@@ -896,6 +896,7 @@ EntityItemPointer EntityTreeElement::getEntityWithEntityItemID(const EntityItemI
 void EntityTreeElement::cleanupEntities() {
     withWriteLock([&] {
         foreach(EntityItemPointer entity, _entityItems) {
+            entity->preDelete();
             // NOTE: only EntityTreeElement should ever be changing the value of entity->_element
             // NOTE: We explicitly don't delete the EntityItem here because since we only
             // access it by smart pointers, when we remove it from the _entityItems
@@ -907,26 +908,10 @@ void EntityTreeElement::cleanupEntities() {
     bumpChangedContent();
 }
 
-bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
-    bool foundEntity = false;
-    withWriteLock([&] {
-        uint16_t numberOfEntities = _entityItems.size();
-        for (uint16_t i = 0; i < numberOfEntities; i++) {
-            EntityItemPointer& entity = _entityItems[i];
-            if (entity->getEntityItemID() == id) {
-                foundEntity = true;
-                // NOTE: only EntityTreeElement should ever be changing the value of entity->_element
-                entity->_element = NULL;
-                _entityItems.removeAt(i);
-                bumpChangedContent();
-                break;
-            }
-        }
-    });
-    return foundEntity;
-}
-
-bool EntityTreeElement::removeEntityItem(EntityItemPointer entity) {
+bool EntityTreeElement::removeEntityItem(EntityItemPointer entity, bool deletion) {
+    if (deletion) {
+        entity->preDelete();
+    }
     int numEntries = 0;
     withWriteLock([&] {
         numEntries = _entityItems.removeAll(entity);

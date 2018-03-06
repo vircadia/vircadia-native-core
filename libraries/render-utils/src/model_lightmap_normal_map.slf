@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  model_lightmap_normal_specular_map.frag
+//  model_lightmap_normal_map.frag
 //  fragment shader
 //
 //  Created by Samuel Gateau on 11/19/14.
