@@ -29,18 +29,34 @@ public:
     View() = default;
     View(const View& view) = default;
 
-    View(const glm::vec3& pos, float nearRadius, float midRadius, float farRadius) :
-        origin(pos) {
-        regions[Region::R1] = Sphere(pos, nearRadius);
-        regions[Region::R2] = Sphere(pos, midRadius);
-        regions[Region::R3] = Sphere(pos, farRadius);
-    }
+    // View attributes:
 
-    glm::vec3 origin;
-    float _padding { 1.0f };
-    Sphere regions[(Region::NUM_CLASSIFICATIONS - 1)];
+    // direction
+    glm::vec3 direction{ 0.0f, 0.0f, -1.0f };
 
-    static View evalFromFrustum(const ViewFrustum& frustum, float farDistance);
+    // Max radius
+    float maxRadius{ FLT_MAX };
+
+    // Fov stores the half field of view angle, and tan/cos/sin ready to go, default is fov of 90deg
+    glm::vec4 fov_halfAngle_tan_cos_sin { M_PI_4, 1.0f, M_SQRT2 * 0.5f, M_SQRT2 * 0.5f };
+
+    // Origin position 
+    glm::vec3 origin{ 0.0f };
+
+    // Origin radius
+    float originRadius{ 0.5f };
+
+    // N regions spheres
+    Sphere regions[Region::NUM_VIEW_REGIONS];
+
+    // Set fov properties from angle
+    void setFov(float angleRad);
+
+
+    static View evalFromFrustum(const ViewFrustum& frustum);
+    static Sphere evalRegionSphere(const View& view, float originRadius, float maxDistance);
+
+    static void updateRegions(View& view);
 };
 
 using Views = std::vector<View>;

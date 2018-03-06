@@ -18,7 +18,11 @@ void SetupViews::configure(const Config& config) {
 
 void SetupViews::run(const WorkloadContextPointer& renderContext, const Input& inputs) {
     
-    inputs;
+    Views views = inputs;
+    for (auto& v : views) {
+        View::updateRegions(v);
+    }
 
+    renderContext->_space->setViews(views);
 }
 

@@ -28,6 +28,8 @@ public:
     static const uint8_t NUM_CLASSIFICATIONS = 4;
     static const uint8_t NUM_TRANSITIONS = NUM_CLASSIFICATIONS * (NUM_CLASSIFICATIONS - 1);
 
+    static const uint8_t NUM_VIEW_REGIONS = (NUM_CLASSIFICATIONS - 1);
+
     static uint8_t computeTransitionIndex(uint8_t prevIndex, uint8_t newIndex);
 
 };

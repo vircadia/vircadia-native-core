@@ -38,13 +38,8 @@ void GameWorkload::shutdown() {
 }
 
 void GameWorkload::updateViews(const ViewFrustum& frustum) {
-    // TEMP HACK: one view with static radiuses
-    float r0 = 10.0f;
-    float r1 = 20.0f;
-    float r2 = 30.0f;
-    workload::View view(frustum.getPosition(), r0, r1, r2);
     workload::Views views;
-    views.push_back(view);
-    _engine->setInput(views);
+    views.emplace_back(workload::View::evalFromFrustum(frustum));
+    _engine->feedInput(views);
 }
 

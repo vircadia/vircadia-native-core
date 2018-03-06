@@ -22,8 +22,10 @@ uniform vec4 inColor;
 
 
 struct WorkloadView {
+    vec4 direction_far;
+    vec4 fov;
     vec4 origin;
-    vec4 radiuses;
+    vec4 regions[3];
 };
 
 #if defined(GPU_GL410)
@@ -83,7 +85,10 @@ void main(void) {
     vec4 spriteVert = UNIT_SPRITE[UNIT_SPRITE_INDICES[vertexID]];
 
     WorkloadView view = getWorkloadView(viewID);
-    vec4 proxyPosWorld = vec4(view.origin.xyz, 1.0);
+
+    vec4 region = view.regions[regionID];
+
+    vec4 proxyPosWorld = vec4(region.xyz, 1.0);
 
     // standard transform, bring proxy in view space
     TransformCamera cam = getTransformCamera();
@@ -103,7 +108,7 @@ void main(void) {
     vec3 dirX = normalize(cross(vec3(0.0, 1.0, 0.0), dirZ));
     vec3 dirY = normalize(cross(dirZ, dirX));
     */
-   float regionRadius = view.radiuses[regionID];
+   float regionRadius = region.w;
 
     vec3 originSpaceVert =  dirY * (-0.02) + regionRadius * ( dirX * spriteVert.x + dirY * spriteVert.y + dirZ * spriteVert.z);
 
