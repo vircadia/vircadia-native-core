@@ -403,7 +403,7 @@ void Socket::readPendingDatagrams() {
                                                                                   packet->getPayloadSize())) {
                         // the connection could not be created or indicated that we should not continue processing this packet
 #ifdef UDT_CONNECTION_DEBUG
-                        qCDebug(networking) << "Bad packet version" << (unsigned int)NLPacket::versionInHeader(*packet)
+                        qCDebug(networking) << "Can't process packet: version" << (unsigned int)NLPacket::versionInHeader(*packet)
                             << ", type" << NLPacket::typeInHeader(*packet);
 #endif
                         continue;
