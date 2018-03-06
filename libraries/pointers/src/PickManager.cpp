@@ -96,10 +96,10 @@ void PickManager::update() {
     });
 
     bool shouldPickHUD = _shouldPickHUDOperator();
-    // we pass the same expiry to both updates
-    // even when the rayPicks consume all the budget at least one stylus will be updated
-    _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], _nextPickToUpdate[PickQuery::Ray], expiry, shouldPickHUD);
+    // we pass the same expiry to both updates, but the stylus updates are relatively cheap
+    // and the rayPicks updae will ALWAYS update at least one ray even when there is no budget
     _stylusPickCacheOptimizer.update(cachedPicks[PickQuery::Stylus], _nextPickToUpdate[PickQuery::Stylus], expiry, false);
+    _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], _nextPickToUpdate[PickQuery::Ray], expiry, shouldPickHUD);
 }
 
 bool PickManager::isLeftHand(unsigned int uid) {
