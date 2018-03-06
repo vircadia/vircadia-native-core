@@ -62,7 +62,7 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
         _baker->moveToThread(Oven::instance().getNextWorkerThread());
     } else if (isScript) {
         _baker = std::unique_ptr<Baker> { new JSBaker(inputUrl, outputPath) };
-        _baker->moveToThread(qApp->getNextWorkerThread());
+        _baker->moveToThread(Oven::instance().getNextWorkerThread());
     } else if (isSupportedImage) {
         _baker = std::unique_ptr<Baker> { new TextureBaker(inputUrl, image::TextureUsage::CUBE_TEXTURE, outputPath) };
         _baker->moveToThread(Oven::instance().getNextWorkerThread());

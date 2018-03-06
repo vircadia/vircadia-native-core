@@ -1338,7 +1338,7 @@ QString getBakeMapping(const AssetUtils::AssetHash& hash, const QString& relativ
 }
 
 void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath, QString errors) {
-    qDebug() << "Failed: " << originalAssetHash << assetPath << errors;
+    qDebug() << "Failed to bake: " << originalAssetHash << assetPath << "(" << errors << ")";
 
     bool loaded;
     AssetMeta meta;
