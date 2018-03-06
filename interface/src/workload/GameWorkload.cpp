@@ -9,6 +9,7 @@
 //
 #include "GameWorkload.h"
 #include "GameWorkloadRenderer.h"
+#include <ViewFrustum.h>
 
 GameWorkloadContext::GameWorkloadContext(const workload::SpacePointer& space, const render::ScenePointer& scene) : WorkloadContext(space), _scene(scene) {
 }
@@ -36,5 +37,14 @@ void GameWorkload::shutdown() {
     _engine.reset();
 }
 
-
+void GameWorkload::updateViews(const ViewFrustum& frustum) {
+    // TEMP HACK: one view with static radiuses
+    float r0 = 10.0f;
+    float r1 = 20.0f;
+    float r2 = 30.0f;
+    workload::View view(frustum.getPosition(), r0, r1, r2);
+    workload::Views views;
+    views.push_back(view);
+    _engine->setInput(views);
+}
 

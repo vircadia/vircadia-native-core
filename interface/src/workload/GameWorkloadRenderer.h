@@ -64,7 +64,7 @@ public:
     void showViews(bool show);
 
     void setAllProxies(const std::vector<workload::Space::Proxy>& proxies);
-    void setAllViews(const std::vector<workload::Space::View>& views);
+    void setAllViews(const workload::Views& views);
 
     render::ItemKey getKey() const;
 
@@ -75,7 +75,7 @@ protected:
     gpu::BufferPointer _allProxiesBuffer;
     uint32_t _numAllProxies{ 0 };
 
-    std::vector<workload::Space::View> _myOwnViews;
+    workload::Views _myOwnViews;
     gpu::BufferPointer _allViewsBuffer;
     uint32_t _numAllViews{ 0 };
 

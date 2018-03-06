@@ -31,6 +31,8 @@ public:
     void startup(const workload::SpacePointer& space, const render::ScenePointer& scene);
     void shutdown();
 
+    void updateViews(const ViewFrustum& frustum);
+
     workload::EnginePointer _engine;
 };
 

@@ -33,8 +33,8 @@ int32_t Space::createProxy(const Space::Sphere& newSphere) {
         int32_t index = _freeIndices.back();
         _freeIndices.pop_back();
         _proxies[index].sphere = newSphere;
-        _proxies[index].region = Space::REGION_UNKNOWN;
-        _proxies[index].prevRegion = Space::REGION_UNKNOWN;
+        _proxies[index].region = Region::UNKNOWN;
+        _proxies[index].prevRegion = Region::UNKNOWN;
         return index;
     }
 }
@@ -54,7 +54,7 @@ void Space::updateProxies(const std::vector<ProxyUpdate>& changedProxies) {
     }
 }
 
-void Space::setViews(const std::vector<Space::View>& views) {
+void Space::setViews(const Views& views) {
     _views = views;
 }
 
@@ -68,12 +68,14 @@ void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
     uint32_t numViews = (uint32_t)_views.size();
     for (uint32_t i = 0; i < numProxies; ++i) {
         Proxy& proxy = _proxies[i];
-        if (proxy.region < Space::REGION_INVALID) {
-            uint8_t region = Space::REGION_UNKNOWN;
+        if (proxy.region < Region::INVALID) {
+            uint8_t region = Region::UNKNOWN;
             for (uint32_t j = 0; j < numViews; ++j) {
-                float distance2 = glm::distance2(_views[j].center, glm::vec3(_proxies[i].sphere));
+                auto& view = _views[j];
+
+                float distance2 = glm::distance2(view.origin, glm::vec3(proxy.sphere));
                 for (uint8_t c = 0; c < region; ++c) {
-                    float touchDistance = _views[j].radiuses[c] + _proxies[i].sphere.w;
+                    float touchDistance = view.regions[c].w + proxy.sphere.w;
                     if (distance2 < touchDistance * touchDistance) {
                         region = c;
                         break;
@@ -104,7 +106,7 @@ void Space::deleteProxy(int32_t proxyId) {
                 }
             }
         } else {
-            _proxies[proxyId].region = Space::REGION_INVALID;
+            _proxies[proxyId].region = Region::INVALID;
             _freeIndices.push_back(proxyId);
         }
     }

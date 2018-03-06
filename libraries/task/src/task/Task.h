@@ -76,6 +76,7 @@ public:
     JobConcept(QConfigPointer config) : _config(config) {}
     virtual ~JobConcept() = default;
 
+    virtual void setInput(const Varying& input) {}
     virtual const Varying getInput() const { return Varying(); }
     virtual const Varying getOutput() const { return Varying(); }
 
@@ -139,6 +140,7 @@ public:
         Varying _input;
         Varying _output;
 
+        void setInput(const Varying& input) override { _input = input; }
         const Varying getInput() const override { return _input; }
         const Varying getOutput() const override { return _output; }
 
@@ -175,6 +177,7 @@ public:
 
     Job(std::string name, ConceptPointer concept) : _concept(concept), _name(name) {}
 
+    void setInput(const Varying& in) { _concept->setInput(in); }
     const Varying getInput() const { return _concept->getInput(); }
     const Varying getOutput() const { return _concept->getOutput(); }
     QConfigPointer& getConfiguration() const { return _concept->getConfiguration(); }

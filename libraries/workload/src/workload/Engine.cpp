@@ -16,23 +16,24 @@
 
 #include <iostream>
 
+#include "ViewTask.h"
 #include "ClassificationTracker.h"
 
 namespace workload {
 
     WorkloadContext::WorkloadContext(const SpacePointer& space) : task::JobContext(trace_workload()), _space(space) {}
 
-    using EngineModel = Task::Model<class EngineBuilder>;
-
     class EngineBuilder {
     public:
-        using JobModel = Task::Model<EngineModel>;
-        void build(EngineModel& model, const Varying& in, Varying& out) {
+        using Input = Views;
+        using JobModel = Task::ModelI<EngineBuilder, Input>;
+        void build(JobModel& model, const Varying& in, Varying& out) {
+            model.addJob<SetupViews>("setupViews", in);
             auto classifications = model.addJob<ClassificationTracker>("classificationTracker");
         }
     };
 
-    Engine::Engine(const WorkloadContextPointer& context) : Task("Engine", EngineModel::create()),
+    Engine::Engine(const WorkloadContextPointer& context) : Task("Engine", EngineBuilder::JobModel::create()),
             _context(context) {
     }
 } // namespace workload

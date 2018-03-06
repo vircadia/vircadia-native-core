@@ -4261,14 +4261,7 @@ void Application::idle() {
     }
 
     {
-        // TEMP HACK: one view with static radiuses
-        float r0 = 10.0f;
-        float r1 = 20.0f;
-        float r2 = 30.0f;
-        workload::Space::View view(_viewFrustum.getPosition(), r0, r1, r2);
-        std::vector<workload::Space::View> views;
-        views.push_back(view);
-        getEntities()->getWorkloadSpace()->setViews(views);
+        _gameWorkload.updateViews(_viewFrustum);
         _gameWorkload._engine->run();
     }
     {
