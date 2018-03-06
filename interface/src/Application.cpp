@@ -3140,6 +3140,14 @@ void Application::loadServerlessDomain(QUrl domainURL) {
         return;
     }
 
+    QUuid serverlessSessionID = QUuid::createUuid();
+    getMyAvatar()->setSessionUUID(serverlessSessionID);
+    nodeList->setSessionUUID(serverlessSessionID);
+
+    // there is no domain-server to tell us our permissions, so enable all
+    permissions.setAll(true);
+    nodeList->setPermissions(permissions);
+
     // we can't import directly into the main tree because we would need to lock it, and
     // Octree::readFromURL calls loop.exec which can run code which will also attempt to lock the tree.
     EntityTreePointer tmpTree(new EntityTree());
@@ -3149,14 +3157,6 @@ void Application::loadServerlessDomain(QUrl domainURL) {
     tmpTree->setMyAvatar(myAvatar);
     bool success = tmpTree->readFromURL(domainURL.toString());
     if (success) {
-        QUuid serverlessSessionID = QUuid::createUuid();
-        getMyAvatar()->setSessionUUID(serverlessSessionID);
-        nodeList->setSessionUUID(serverlessSessionID);
-
-        // there is no domain-server to tell us our permissions, so enable all
-        permissions.setAll(true);
-        nodeList->setPermissions(permissions);
-
         tmpTree->reaverageOctreeElements();
         tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), 0, 0, 0);
     }
