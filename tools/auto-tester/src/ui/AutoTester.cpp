@@ -36,10 +36,6 @@ void AutoTester::on_createTestButton_clicked() {
     test->createTest();
 }
 
-void AutoTester::on_deleteOldSnapshotsButton_clicked() {
-    test->deleteOldSnapshots();
-}
-
 void AutoTester::on_closeButton_clicked() {
     exit(0);
 }

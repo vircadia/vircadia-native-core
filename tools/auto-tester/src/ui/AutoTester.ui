@@ -30,8 +30,8 @@
    <widget class="QPushButton" name="createTestButton">
     <property name="geometry">
      <rect>
-      <x>360</x>
-      <y>210</y>
+      <x>20</x>
+      <y>30</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -44,7 +44,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>75</y>
+      <y>135</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -70,7 +70,7 @@
     <property name="geometry">
      <rect>
       <x>23</x>
-      <y>40</y>
+      <y>100</y>
       <width>131</width>
       <height>20</height>
      </rect>
@@ -93,19 +93,6 @@
     </property>
     <property name="value">
      <number>24</number>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="deleteOldSnapshotsButton">
-    <property name="geometry">
-     <rect>
-      <x>360</x>
-      <y>270</y>
-      <width>220</width>
-      <height>40</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Delete Old Snapshots</string>
     </property>
    </widget>
    <widget class="QPushButton" name="createRecursiveScriptsRecursivelyButton">

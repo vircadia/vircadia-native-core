@@ -30,7 +30,6 @@ private slots:
     void on_createRecursiveScriptButton_clicked();
     void on_createRecursiveScriptsRecursivelyButton_clicked();
     void on_createTestButton_clicked();
-    void on_deleteOldSnapshotsButton_clicked();
     void on_closeButton_clicked();
 
     void saveImage(int index);

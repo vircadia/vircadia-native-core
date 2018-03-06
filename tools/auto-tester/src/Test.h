@@ -33,9 +33,9 @@ public:
 
     bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
 
-    QStringList createListOfAll_IMAGE_FORMAT_imagesInDirectory(QString pathToImageDirectory);
+    QStringList createListOfAll_imagesInDirectory(QString imageFormat, QString pathToImageDirectory);
 
-    bool isInSnapshotFilenameFormat(QString filename);
+    bool isInSnapshotFilenameFormat(QString imageFormat, QString filename);
 
     void importTest(QTextStream& textStream, const QString& testPathname);
 
@@ -48,6 +48,8 @@ public:
 
     QString getExpectedImageDestinationDirectory(QString filename);
     QString getExpectedImagePartialSourceDirectory(QString filename);
+
+    void copyJPGtoPNG(QString sourceJPGFullFilename, QString destinationPNGFullFilename);
 
 private:
     const QString TEST_FILENAME { "test.js" };
@@ -70,7 +72,6 @@ private:
     // Expected images are in the format ExpectedImage_dddd.jpg (d == decimal digit)
     const int NUM_DIGITS { 5 };
     const QString EXPECTED_IMAGE_PREFIX { "ExpectedImage_" };
-    const QString IMAGE_FORMAT { ".png" };
 
     QString pathToTestResultsDirectory;
     QStringList expectedImagesFilenames;

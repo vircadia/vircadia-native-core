@@ -12,6 +12,8 @@
 #include <assert.h>
 #include <QtCore/QTextStream>
 #include <QDirIterator>
+#include <QImageReader>
+#include <QImageWriter>
 
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
@@ -20,7 +22,7 @@
 extern AutoTester* autoTester;
 
 Test::Test() {
-    QString regex(EXPECTED_IMAGE_PREFIX + QString("\\\\d").repeated(NUM_DIGITS) + IMAGE_FORMAT);
+    QString regex(EXPECTED_IMAGE_PREFIX + QString("\\\\d").repeated(NUM_DIGITS) + ".png");
     
     expectedImageFilenameFormat = QRegularExpression(regex);
 
@@ -194,11 +196,23 @@ void Test::startTestsEvaluation() {
         return;
     }
 
+    // Before any processing - all images are converted to PNGs, as this is the format stored on GitHub
+    QStringList sortedSnapshotFilenames = createListOfAll_imagesInDirectory("jpg", pathToTestResultsDirectory);
+    foreach(QString filename, sortedSnapshotFilenames) {
+        QStringList stringParts = filename.split(".");
+        copyJPGtoPNG(
+            pathToTestResultsDirectory + "/" + stringParts[0] + ".jpg", 
+            pathToTestResultsDirectory + "/" + stringParts[0] + ".png"
+        );
+
+        QFile::remove(pathToTestResultsDirectory + "/" + stringParts[0] + ".jpg");
+    }
+
     // Create two lists.  The first is the test results,  the second is the expected images
-    // The expected images are represented as a URL to enabel download from GitHub
+    // The expected images are represented as a URL to enable download from GitHub
     // Images that are in the wrong format are ignored.
 
-    QStringList sortedTestResultsFilenames = createListOfAll_IMAGE_FORMAT_imagesInDirectory(pathToTestResultsDirectory);
+    QStringList sortedTestResultsFilenames = createListOfAll_imagesInDirectory("png", pathToTestResultsDirectory);
     QStringList expectedImagesURLs;
 
     const QString URLPrefix("https://raw.githubusercontent.com");
@@ -212,7 +226,7 @@ void Test::startTestsEvaluation() {
 
     foreach(QString currentFilename, sortedTestResultsFilenames) {
         QString fullCurrentFilename = pathToTestResultsDirectory + "/" + currentFilename;
-        if (isInSnapshotFilenameFormat(currentFilename)) {
+        if (isInSnapshotFilenameFormat("png", currentFilename)) {
             resultImagesFullFilenames << fullCurrentFilename;
 
             QString expectedImagePartialSourceDirectory = getExpectedImagePartialSourceDirectory(currentFilename);
@@ -220,7 +234,7 @@ void Test::startTestsEvaluation() {
             // Images are stored on GitHub as ExpectedImage_ddddd.png
             // Extract the digits at the end of the filename (exluding the file extension)
             QString expectedImageFilenameTail = currentFilename.left(currentFilename.length() - 4).right(NUM_DIGITS);
-            QString expectedImageStoredFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + IMAGE_FORMAT;
+            QString expectedImageStoredFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + ".png";
 
             QString imageURLString(URLPrefix + "/" + githubUser + "/" + testsRepo + "/" + branch + "/" + 
                 expectedImagePartialSourceDirectory + "/" + expectedImageStoredFilename);
@@ -351,24 +365,23 @@ void Test::createTest() {
         return;
     }
 
-    QStringList sortedImageFilenames = createListOfAll_IMAGE_FORMAT_imagesInDirectory(imageSourceDirectory);
+    QStringList sortedImageFilenames = createListOfAll_imagesInDirectory("jpg", imageSourceDirectory);
 
     int i = 1; 
     const int maxImages = pow(10, NUM_DIGITS);
     foreach (QString currentFilename, sortedImageFilenames) {
         QString fullCurrentFilename = imageSourceDirectory + "/" + currentFilename;
-        if (isInSnapshotFilenameFormat(currentFilename)) {
+        if (isInSnapshotFilenameFormat("jpg", currentFilename)) {
             if (i >= maxImages) {
                 messageBox.critical(0, "Error", "More than " + QString::number(maxImages) + " images not supported");
                 exit(-1);
             }
-            QString newFilename = "ExpectedImage_" + QString::number(i - 1).rightJustified(5, '0') + IMAGE_FORMAT;
+            QString newFilename = "ExpectedImage_" + QString::number(i - 1).rightJustified(5, '0') + ".png";
             QString imageDestinationDirectory = getExpectedImageDestinationDirectory(currentFilename);
             QString fullNewFileName = imageDestinationDirectory + "/" + newFilename;
 
             try {
-                QFile::remove(fullNewFileName);
-                QFile::copy(fullCurrentFilename, fullNewFileName);
+                copyJPGtoPNG(fullCurrentFilename, fullNewFileName);
             } catch (...) {
                 messageBox.critical(0, "Error", "Could not delete existing file: " + currentFilename + "\nTest creation aborted");
                 exit(-1);
@@ -380,45 +393,23 @@ void Test::createTest() {
     messageBox.information(0, "Success", "Test images have been created");
 }
 
-void Test::deleteOldSnapshots() {
-    // Select folder to start recursing from
-    QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select root folder for snapshot deletion", ".", QFileDialog::ShowDirsOnly);
-    if (topLevelDirectory == "") {
-        return;
-    }
+void Test::copyJPGtoPNG(QString sourceJPGFullFilename, QString destinationPNGFullFilename) {
+    QFile::remove(destinationPNGFullFilename);
 
-    // Recurse over folders
-    QDirIterator it(topLevelDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-        QString directory = it.next();
+    QImageReader reader;
+    reader.setFileName(sourceJPGFullFilename);
 
-        // Only process directories
-        QDir dir(directory);
-        if (!isAValidDirectory(directory)) {
-            continue;
-        }
+    QImage image = reader.read();
 
-        QStringList sortedImageFilenames = createListOfAll_IMAGE_FORMAT_imagesInDirectory(directory);
-
-        // Delete any file that is a snapshot (NOT the Expected Images)
-        QStringList expectedImages;
-        QStringList resultImages;
-        foreach(QString currentFilename, sortedImageFilenames) {
-            QString fullCurrentFilename = directory + "/" + currentFilename;
-            if (isInSnapshotFilenameFormat(currentFilename)) {
-                if (!QFile::remove(fullCurrentFilename)) {
-                    messageBox.critical(0, "Error", "Could not delete existing file: " + currentFilename + "\nSnapshot deletion aborted");
-                    exit(-1);
-                }
-            }
-        }
-    }
+    QImageWriter writer;
+    writer.setFileName(destinationPNGFullFilename);
+    writer.write(image);
 }
 
-QStringList Test::createListOfAll_IMAGE_FORMAT_imagesInDirectory(QString pathToImageDirectory) {
+QStringList Test::createListOfAll_imagesInDirectory(QString imageFormat, QString pathToImageDirectory) {
     imageDirectory = QDir(pathToImageDirectory);
     QStringList nameFilters;
-    nameFilters << "*" + IMAGE_FORMAT;
+    nameFilters << "*." + imageFormat;
 
     return imageDirectory.entryList(nameFilters, QDir::Files, QDir::Name);
 }
@@ -428,7 +419,7 @@ QStringList Test::createListOfAll_IMAGE_FORMAT_imagesInDirectory(QString pathToI
 //      Filename (i.e. without extension) contains _tests_ (this is based on all test scripts being within the tests folder
 //      Last 5 characters in filename are digits
 //      Extension is jpg
-bool Test::isInSnapshotFilenameFormat(QString filename) {
+bool Test::isInSnapshotFilenameFormat(QString imageFormat, QString filename) {
     QStringList filenameParts = filename.split(".");
 
     bool filnameHasNoPeriods = (filenameParts.size() == 2);
@@ -437,7 +428,7 @@ bool Test::isInSnapshotFilenameFormat(QString filename) {
     bool last5CharactersAreDigits;
     filenameParts[0].right(5).toInt(&last5CharactersAreDigits, 10);
 
-    bool extensionIsIMAGE_FORMAT = filenameParts[1] == IMAGE_FORMAT.right(3); // without the period
+    bool extensionIsIMAGE_FORMAT = (filenameParts[1] == imageFormat);
 
     return (filnameHasNoPeriods && contains_tests && last5CharactersAreDigits && extensionIsIMAGE_FORMAT);
 }
