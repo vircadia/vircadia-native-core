@@ -458,12 +458,12 @@ SelectionDisplay = (function() {
         borderSize: 1.4
     };
     var handleScaleLBNCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // (-x, -y, -z)
-    var handleScaleRBNCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // (-x, -y,  z)
-    var handleScaleLBFCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // ( x, -y, -z)
+    var handleScaleRBNCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // ( x, -y, -z)
+    var handleScaleLBFCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // (-x, -y,  z)
     var handleScaleRBFCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // ( x, -y,  z)
     var handleScaleLTNCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // (-x,  y, -z)
-    var handleScaleRTNCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // (-x,  y,  z)
-    var handleScaleLTFCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // ( x,  y, -z)
+    var handleScaleRTNCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // ( x,  y, -z)
+    var handleScaleLTFCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // (-x,  y,  z)
     var handleScaleRTFCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // ( x,  y,  z)
 
     var handlePropertiesScaleEdge = {
@@ -1021,7 +1021,6 @@ SelectionDisplay = (function() {
             return;
         }
 
-
         if (SelectionManager.hasSelection()) {
             var position = SelectionManager.worldPosition;
             var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
@@ -1147,14 +1146,14 @@ SelectionDisplay = (function() {
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleRBNCubePosition = { x:-scaleCubeOffsetX, y:-scaleCubeOffsetY, z:scaleCubeOffsetZ };
+            var scaleRBNCubePosition = { x:scaleCubeOffsetX, y:-scaleCubeOffsetY, z:-scaleCubeOffsetZ };
             scaleRBNCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleRBNCubePosition));
             Overlays.editOverlay(handleScaleRBNCube, { 
                 position: scaleRBNCubePosition, 
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleLBFCubePosition = { x:scaleCubeOffsetX, y:-scaleCubeOffsetY, z:-scaleCubeOffsetZ };
+            var scaleLBFCubePosition = { x:-scaleCubeOffsetX, y:-scaleCubeOffsetY, z:scaleCubeOffsetZ };
             scaleLBFCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleLBFCubePosition));
             Overlays.editOverlay(handleScaleLBFCube, { 
                 position: scaleLBFCubePosition, 
@@ -1175,14 +1174,14 @@ SelectionDisplay = (function() {
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleRTNCubePosition = { x:-scaleCubeOffsetX, y:scaleCubeOffsetY, z:scaleCubeOffsetZ };
+            var scaleRTNCubePosition = { x:scaleCubeOffsetX, y:scaleCubeOffsetY, z:-scaleCubeOffsetZ };
             scaleRTNCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleRTNCubePosition));
             Overlays.editOverlay(handleScaleRTNCube, { 
                 position: scaleRTNCubePosition, 
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleLTFCubePosition = { x:scaleCubeOffsetX, y:scaleCubeOffsetY, z:-scaleCubeOffsetZ };
+            var scaleLTFCubePosition = { x:-scaleCubeOffsetX, y:scaleCubeOffsetY, z:scaleCubeOffsetZ };
             scaleLTFCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleLTFCubePosition));
             Overlays.editOverlay(handleScaleLTFCube, { 
                 position: scaleLTFCubePosition, 
@@ -1236,9 +1235,11 @@ SelectionDisplay = (function() {
             });
 
             // UPDATE STRETCH HIGHLIGHT PANELS
-            var scaleLTFCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleLTFCubePosition);
             var scaleRBFCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleRBFCubePosition);
-            var stretchPanelXDimensions = Vec3.subtract(scaleLTFCubePositionRotated, scaleRBFCubePositionRotated);
+            var scaleRTFCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleRTFCubePosition);
+            var scaleLTNCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleLTNCubePosition);
+            var scaleRTNCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleRTNCubePosition);
+            var stretchPanelXDimensions = Vec3.subtract(scaleRTNCubePositionRotated, scaleRBFCubePositionRotated);
             var tempY = Math.abs(stretchPanelXDimensions.y);
             stretchPanelXDimensions.x = STRETCH_PANEL_WIDTH;
             stretchPanelXDimensions.y = Math.abs(stretchPanelXDimensions.z);
@@ -1249,8 +1250,6 @@ SelectionDisplay = (function() {
                 rotation: rotationZ,
                 dimensions: stretchPanelXDimensions
             });
-            var scaleLTNCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleLTNCubePosition);
-            var scaleRTFCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleRTFCubePosition);
             var stretchPanelYDimensions = Vec3.subtract(scaleLTNCubePositionRotated, scaleRTFCubePositionRotated);
             var tempX = Math.abs(stretchPanelYDimensions.x);
             stretchPanelYDimensions.x = Math.abs(stretchPanelYDimensions.z);
@@ -1262,9 +1261,7 @@ SelectionDisplay = (function() {
                 rotation: rotationY,
                 dimensions: stretchPanelYDimensions
             });
-            var scaleRTFCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleRTFCubePosition);
-            var scaleRBNCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleRBNCubePosition);
-            var stretchPanelZDimensions = Vec3.subtract(scaleRTFCubePositionRotated, scaleRBNCubePositionRotated);
+            var stretchPanelZDimensions = Vec3.subtract(scaleLTNCubePositionRotated, scaleRBFCubePositionRotated);
             var tempX = Math.abs(stretchPanelZDimensions.x);
             stretchPanelZDimensions.x = Math.abs(stretchPanelZDimensions.y);
             stretchPanelZDimensions.y = tempX;
@@ -1957,7 +1954,11 @@ SelectionDisplay = (function() {
         };
 
         var onMove = function(event) {
-            var proportional = (spaceMode === SPACE_WORLD) || event.isShifted || directionEnum === STRETCH_DIRECTION.ALL;
+			if (event.x === undefined || event.y === undefined) {
+				return;
+			}
+			
+            var proportional = (spaceMode === SPACE_WORLD) || directionEnum === STRETCH_DIRECTION.ALL;
             
             var position, dimensions, rotation;
             if (spaceMode === SPACE_LOCAL) {
@@ -1998,12 +1999,6 @@ SelectionDisplay = (function() {
             vector = grid.snapToSpacing(vector);
     
             var changeInDimensions = Vec3.multiply(NEGATE_VECTOR, vec3Mult(localSigns, vector));
-            if (directionEnum === STRETCH_DIRECTION.ALL) {
-                var toCameraDistance = getDistanceToCamera(position);
-                var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE;
-                changeInDimensions = Vec3.multiply(changeInDimensions, dimensionsMultiple);
-            }
-
             var newDimensions;
             if (proportional) {
                 var absoluteX = Math.abs(changeInDimensions.x);
@@ -2085,31 +2080,38 @@ SelectionDisplay = (function() {
     function addHandleScaleTool(overlay, mode, directionEnum) {
         var directionVector, offset, selectedHandle;
         if (directionEnum === SCALE_DIRECTION.LBN) {
-            directionVector = { x:1, y:1, z:1 };
+            directionVector = { x:1, y:0, z:1 };
+			offset = { x:-1, y:-1, z:-1 };
             selectedHandle = handleScaleLBNCube;
         } else if (directionEnum === SCALE_DIRECTION.RBN) {
-            directionVector = { x:1, y:1, z:-1 };
+            directionVector = { x:-1, y:0, z:1 };
+			offset = { x:1, y:-1, z:-1 };
             selectedHandle = handleScaleRBNCube;
         } else if (directionEnum === SCALE_DIRECTION.LBF) {
-            directionVector = { x:-1, y:1, z:1 };
+            directionVector = { x:1, y:0, z:-1 };
+			offset = { x:-1, y:-1, z:1 };
             selectedHandle = handleScaleLBFCube;
         } else if (directionEnum === SCALE_DIRECTION.RBF) {
-            directionVector = { x:-1, y:1, z:-1 };
+            directionVector = { x:-1, y:0, z:-1 };
+			offset = { x:1, y:-1, z:1 };
             selectedHandle = handleScaleRBFCube;
         } else if (directionEnum === SCALE_DIRECTION.LTN) { 
-            directionVector = { x:1, y:-1, z:1 };
+            directionVector = { x:1, y:0, z:1 };
+			offset = { x:-1, y:1, z:-1 };
             selectedHandle = handleScaleLTNCube;
         } else if (directionEnum === SCALE_DIRECTION.RTN) {
-            directionVector = { x:1, y:-1, z:-1 };
+            directionVector = { x:-1, y:0, z:1 };
+			offset = { x:1, y:1, z:-1 };
             selectedHandle = handleScaleRTNCube;
         } else if (directionEnum === SCALE_DIRECTION.LTF) {
-            directionVector = { x:-1, y:-1, z:1 };
+            directionVector = { x:1, y:0, z:-1 };
+			offset = { x:-1, y:1, z:1 };
             selectedHandle = handleScaleLTFCube;
         } else if (directionEnum === SCALE_DIRECTION.RTF) {
-            directionVector = { x:-1, y:-1, z:-1 };
+            directionVector = { x:-1, y:0, z:-1 };
+			offset = { x:1, y:1, z:1 };
             selectedHandle = handleScaleRTFCube;
         }
-        offset = Vec3.multiply(directionVector, NEGATE_VECTOR);
         var tool = makeStretchTool(mode, STRETCH_DIRECTION.ALL, directionVector, 
                                    directionVector, offset, null, selectedHandle);
         return addHandleTool(overlay, tool);
