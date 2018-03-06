@@ -21,6 +21,7 @@ Rectangle {
     anchors.margins: hifi.dimensions.contentMargin.x
     
     color: hifi.colors.baseGray;
+    property var setupViews: Workload.getConfig("setupViews")
     property var spaceToRender: Workload.getConfig("SpaceToRender")
    
     Column {
@@ -37,7 +38,7 @@ Rectangle {
             boxSize: 20
             text: "Freeze Views"
             checked: workload.spaceToRender["freezeViews"]
-            onCheckedChanged: { workload.spaceToRender["freezeViews"] = checked }
+            onCheckedChanged: { workload.spaceToRender["freezeViews"] = checked, workload.setupViews.enabled = !checked; }
         }
         Separator {}
         HifiControls.Label {

@@ -20,16 +20,37 @@
 #include "ClassificationTracker.h"
 
 namespace workload {
+    class DebugCout {
+    public:
+        using Inputs = SortedChanges;
+        using JobModel = workload::Job::ModelI<DebugCout, Inputs>;
+
+        DebugCout() {}
+
+        void run(const workload::WorkloadContextPointer& renderContext, const Inputs& inputs) {
+            qDebug() << "Some message from " << inputs.size();
+            int i = 0;
+            for (auto&  b: inputs) {
+                qDebug() << "    Bucket Number" << i << " size is " << b.size();
+                i++;
+            }
+        }
+
+    protected:
+    };
+
 
     WorkloadContext::WorkloadContext(const SpacePointer& space) : task::JobContext(trace_workload()), _space(space) {}
 
     class EngineBuilder {
     public:
-        using Input = Views;
-        using JobModel = Task::ModelI<EngineBuilder, Input>;
+        using Inputs = Views;
+        using JobModel = Task::ModelI<EngineBuilder, Inputs>;
         void build(JobModel& model, const Varying& in, Varying& out) {
             model.addJob<SetupViews>("setupViews", in);
-            auto classifications = model.addJob<ClassificationTracker>("classificationTracker");
+            const auto classifications = model.addJob<ClassificationTracker>("classificationTracker");
+         //   model.addJob<DebugCout>("debug", classifications);
+
         }
     };
 

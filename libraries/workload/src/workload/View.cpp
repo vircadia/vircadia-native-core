@@ -32,7 +32,7 @@ View View::evalFromFrustum(const ViewFrustum& frustum) {
 }
 
 Sphere View::evalRegionSphere(const View& view, float originRadius, float maxDistance) {
-    float radius = (maxDistance + originRadius) / 2.0;
+    float radius = (maxDistance + originRadius) / 2.0f;
     float center = radius - originRadius;
     return Sphere(view.origin + view.direction * center, radius);
 }

@@ -73,11 +73,20 @@ void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
             for (uint32_t j = 0; j < numViews; ++j) {
                 auto& view = _views[j];
 
-                float distance2 = glm::distance2(view.origin, glm::vec3(proxy.sphere));
-                for (uint8_t c = 0; c < region; ++c) {
-                    float touchDistance = view.regions[c].w + proxy.sphere.w;
-                    if (distance2 < touchDistance * touchDistance) {
-                        region = c;
+                glm::vec3 distance2(glm::distance2(proxy.sphere, view.regions[0]), glm::distance2(proxy.sphere, view.regions[1]), glm::distance2(proxy.sphere, view.regions[2]));
+                glm::vec3 regionRadii2(view.regions[0].w + proxy.sphere.w, view.regions[1].w + proxy.sphere.w, view.regions[2].w + proxy.sphere.w);
+                regionRadii2 *= regionRadii2;
+                auto touchTests = glm::lessThanEqual(distance2, regionRadii2);
+
+                if (glm::any(touchTests)) {
+                    if (touchTests.x) {
+                        region = Region::R1;
+                        break;
+                    } else if (touchTests.y) {
+                        region = Region::R2;
+                        break;
+                    } else {
+                        region = Region::R3;
                         break;
                     }
                 }

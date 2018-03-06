@@ -180,7 +180,7 @@ public:
     const Varying getInput() const { return _concept->getInput(); }
     const Varying getOutput() const { return _concept->getOutput(); }
 
-    template <class I> void feedInput(const I& in) { _concept->editInput().edit<I>() = in; }
+    template <class I> void feedInput(const I& in) { _concept->editInput().template edit<I>() = in; }
 
 
     QConfigPointer& getConfiguration() const { return _concept->getConfiguration(); }
