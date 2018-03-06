@@ -309,9 +309,10 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 bool isPossiblePlaceName(QString possiblePlaceName) {
     bool result { false };
     int length = possiblePlaceName.length();
-    static const int MINIMUM_PLACENAME_LENGTH = 4;
+    static const int MINIMUM_PLACENAME_LENGTH = 2;
     static const int MAXIMUM_PLACENAME_LENGTH = 64;
-    if (possiblePlaceName != "localhost" && length >= MINIMUM_PLACENAME_LENGTH && length <= MAXIMUM_PLACENAME_LENGTH) {
+    if (possiblePlaceName.toLower() != "localhost" &&
+        length >= MINIMUM_PLACENAME_LENGTH && length <= MAXIMUM_PLACENAME_LENGTH) {
         const QRegExp PLACE_NAME_REGEX = QRegExp("^[0-9A-Za-z](([0-9A-Za-z]|-(?!-))*[^\\W_]$|$)");
         result = PLACE_NAME_REGEX.indexIn(possiblePlaceName) == 0;
     }

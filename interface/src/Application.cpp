@@ -3129,20 +3129,16 @@ void Application::loadServerlessDomain(QUrl domainURL) {
         return;
     }
 
+    auto nodeList = DependencyManager::get<NodeList>();
     clearDomainOctreeDetails();
+    getMyAvatar()->setSessionUUID(QUuid()); // clear the sessionID
+    NodePermissions permissions; // deny all permissions
+    permissions.setAll(false);
+    nodeList->setPermissions(permissions);
 
     if (domainURL.isEmpty()) {
         return;
     }
-
-    QUuid serverlessSessionID = QUuid::createUuid();
-    getMyAvatar()->setSessionUUID(serverlessSessionID);
-    DependencyManager::get<NodeList>()->setSessionUUID(serverlessSessionID);
-
-    // there is no domain-server to tell us our permissions, so enable all
-    NodePermissions permissions;
-    permissions.setAll(true);
-    DependencyManager::get<NodeList>()->setPermissions(permissions);
 
     // we can't import directly into the main tree because we would need to lock it, and
     // Octree::readFromURL calls loop.exec which can run code which will also attempt to lock the tree.
@@ -3153,6 +3149,14 @@ void Application::loadServerlessDomain(QUrl domainURL) {
     tmpTree->setMyAvatar(myAvatar);
     bool success = tmpTree->readFromURL(domainURL.toString());
     if (success) {
+        QUuid serverlessSessionID = QUuid::createUuid();
+        getMyAvatar()->setSessionUUID(serverlessSessionID);
+        nodeList->setSessionUUID(serverlessSessionID);
+
+        // there is no domain-server to tell us our permissions, so enable all
+        permissions.setAll(true);
+        nodeList->setPermissions(permissions);
+
         tmpTree->reaverageOctreeElements();
         tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), 0, 0, 0);
     }
