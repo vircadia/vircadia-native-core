@@ -8,8 +8,6 @@
         { "from": "Keyboard.D", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.E", "when": "Keyboard.Shift", "to": "Actions.BOOM_IN", "filters": [ { "type": "scale", "scale": 0.05 } ] },
         { "from": "Keyboard.C", "when": "Keyboard.Shift", "to": "Actions.BOOM_OUT", "filters": [ { "type": "scale", "scale": 0.05 } ] },
-        { "from": "Keyboard.S", "when": "Keyboard.Shift", "to": "Actions.PITCH_DOWN" },
-        { "from": "Keyboard.W", "when": "Keyboard.Shift", "to": "Actions.PITCH_UP" },
 
 
         { "comment" : "Mouse turn need to be small continuous increments",
@@ -90,8 +88,8 @@
 
         { "from": "Keyboard.W", "when": "!Keyboard.Control", "to": "Actions.LONGITUDINAL_FORWARD" },
         { "from": "Keyboard.S", "when": "!Keyboard.Control", "to": "Actions.LONGITUDINAL_BACKWARD" },
-        { "from": "Keyboard.C", "to": "Actions.VERTICAL_DOWN" },
-        { "from": "Keyboard.E", "to": "Actions.VERTICAL_UP" },
+        { "from": "Keyboard.Shift", "to": "Actions.SPRINT" },
+        { "from": "Keyboard.Control", "to": "Actions.VERTICAL_DOWN" },
         { "from": "Keyboard.Left", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.Right", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.Left", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" },
@@ -128,7 +126,7 @@
         { "from": "Keyboard.MouseWheelLeft", "to": "Actions.BOOM_OUT", "filters": [ { "type": "scale", "scale": 0.02 } ]},
         { "from": "Keyboard.MouseWheelRight", "to": "Actions.BOOM_IN", "filters": [ { "type": "scale", "scale": 0.02 } ]},
 
-        { "from": "Keyboard.Space", "to": "Actions.SHIFT" },
+        { "from": "Keyboard.Space", "to": "Actions.VERTICAL_UP" },
         { "from": "Keyboard.R", "to": "Actions.ACTION1" },
         { "from": "Keyboard.T", "to": "Actions.ACTION2" },
         { "from": "Keyboard.Tab", "to": "Actions.ContextMenu" }

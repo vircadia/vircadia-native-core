@@ -352,7 +352,7 @@ static const QString AVA_JSON_EXTENSION = ".ava.json";
 static const QString WEB_VIEW_TAG = "noDownload=true";
 static const QString ZIP_EXTENSION = ".zip";
 
-static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
+static const float MIRROR_FULLSCREEN_DISTANCE = 0.789f;
 
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
@@ -2812,12 +2812,13 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
                 + mirrorBodyOrientation * hmdOffset);
         }
         else {
+            auto boomZOffset = boomOffset * Vectors::UNIT_Z;
             _myCamera.setOrientation(myAvatar->getWorldOrientation()
                 * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
             _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                 + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
                 + (myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+                                  glm::vec3(0.0f, 0.0f, -1.0f) * myAvatar->getBoomLength() * _scaleMirror);
         }
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
@@ -3324,8 +3325,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     } else {
                         setFullscreen(nullptr);
                     }
-                } else {
-                    Menu::getInstance()->triggerOption(MenuOption::AddressBar);
                 }
                 break;
 
@@ -3387,13 +3386,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_F: {
-                if (isOption) {
-                    _physicsEngine->dumpNextStats();
-                }
-                break;
-            }
-
             case Qt::Key_Asterisk:
                 Menu::getInstance()->triggerOption(MenuOption::DefaultSkybox);
                 break;
@@ -3413,7 +3405,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_S:
                 if (isShifted && isMeta && !isOption) {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
-                } else if (!isOption && !isShifted && isMeta) {
+                }
+                break;
+
+            case Qt::Key_P:
+                if (!isOption && !isShifted && isMeta) {
                     AudioInjectorOptions options;
                     options.localOnly = true;
                     options.stereo = true;
@@ -4853,6 +4849,7 @@ void Application::cameraMenuChanged() {
         if (!isHMDMode() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
             _myCamera.setMode(CAMERA_MODE_MIRROR);
             getMyAvatar()->reset(false, false, false); // to reset any active MyAvatar::FollowHelpers
+            getMyAvatar()->setBoomLength(MyAvatar::ZOOM_DEFAULT);
         }
     } else if (menu->isOptionChecked(MenuOption::FirstPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
@@ -5144,6 +5141,8 @@ void Application::update(float deltaTime) {
             }
             myAvatar->setDriveKey(MyAvatar::ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
         }
+
+        myAvatar->setSprintMode((bool)userInputMapper->getActionState(controller::Action::SPRINT));
 
         static const std::vector<controller::Action> avatarControllerActions = {
             controller::Action::LEFT_HAND,

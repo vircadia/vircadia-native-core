@@ -395,6 +395,7 @@ public:
     //  Set what driving keys are being pressed to control thrust levels
     void clearDriveKeys();
     void setDriveKey(DriveKeys key, float val);
+    void setSprintMode(bool sprint);
     float getDriveKey(DriveKeys key) const;
     Q_INVOKABLE float getRawDriveKey(DriveKeys key) const;
     void relayDriveKeysToCharacterController();
@@ -839,6 +840,7 @@ private:
     mutable std::mutex _controllerPoseMapMutex;
 
     bool _hmdLeanRecenterEnabled = true;
+    bool _sprint = false;
     AnimPose _prePhysicsRoomPose;
     std::mutex _holdActionsMutex;
     std::vector<AvatarActionHold*> _holdActions;
