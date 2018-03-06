@@ -63,6 +63,7 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
     } else {
         qCDebug(model_baking) << "Failed to determine baker type for file" << inputUrl;
         QCoreApplication::exit(OVEN_STATUS_CODE_FAIL);
+        return;
     }
 
     // invoke the bake method on the baker thread
