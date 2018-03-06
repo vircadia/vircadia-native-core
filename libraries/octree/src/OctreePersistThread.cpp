@@ -341,7 +341,7 @@ void OctreePersistThread::sendLatestEntityDataToDS() {
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
     QByteArray data;
-    if (_tree->toGzippedJSON(&data)) {
+    if (_tree->toJSON(&data, nullptr, true)) {
         auto message = NLPacketList::create(PacketType::OctreeDataPersist, QByteArray(), true, true);
         message->write(data);
         nodeList->sendPacketList(std::move(message), domainHandler.getSockAddr());
