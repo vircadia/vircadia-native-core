@@ -357,10 +357,12 @@ public:
     struct ShapeData {
         gpu::BufferView _positionView;
         gpu::BufferView _normalView;
+        gpu::BufferView _texCoordView;
+        gpu::BufferView _tangentView;
         gpu::BufferView _indicesView;
         gpu::BufferView _wireIndicesView;
 
-        void setupVertices(gpu::BufferPointer& vertexBuffer, const geometry::VertexVector& vertices);
+        void setupVertices(gpu::BufferPointer& vertexBuffer, const std::vector<float>& vertices);
         void setupIndices(gpu::BufferPointer& indexBuffer, const geometry::IndexVector& indices, const geometry::IndexVector& wireIndices);
         void setupBatch(gpu::Batch& batch) const;
         void draw(gpu::Batch& batch) const;

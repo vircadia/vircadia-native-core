@@ -126,6 +126,8 @@ static const int VERTICES_PER_TRIANGLE = 3;
 
 static const gpu::Element POSITION_ELEMENT { gpu::VEC3, gpu::FLOAT, gpu::XYZ };
 static const gpu::Element NORMAL_ELEMENT { gpu::VEC3, gpu::FLOAT, gpu::XYZ };
+static const gpu::Element TEXCOORD0_ELEMENT { gpu::VEC2, gpu::FLOAT, gpu::UV };
+static const gpu::Element TANGENT_ELEMENT { gpu::VEC3, gpu::FLOAT, gpu::XYZ };
 static const gpu::Element COLOR_ELEMENT { gpu::VEC4, gpu::NUINT8, gpu::RGBA };
 static const gpu::Element TEXCOORD4_ELEMENT { gpu::VEC4, gpu::FLOAT, gpu::XYZW };
 
@@ -133,8 +135,10 @@ static gpu::Stream::FormatPointer SOLID_STREAM_FORMAT;
 static gpu::Stream::FormatPointer INSTANCED_SOLID_STREAM_FORMAT;
 static gpu::Stream::FormatPointer INSTANCED_SOLID_FADE_STREAM_FORMAT;
 
-static const uint SHAPE_VERTEX_STRIDE = sizeof(glm::vec3) * 2; // vertices and normals
+static const uint SHAPE_VERTEX_STRIDE = sizeof(glm::vec3) * 3 + sizeof(glm::vec2); // position, normal, texcoords, tangent
 static const uint SHAPE_NORMALS_OFFSET = sizeof(glm::vec3);
+static const uint SHAPE_TEXCOORD0_OFFSET = sizeof(glm::vec3) * 2;
+static const uint SHAPE_TANGENT_OFFSET = sizeof(glm::vec3) * 2 + sizeof(glm::vec2);
 
 void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, const glm::vec3 &entityExtents, QVector<glm::vec3> &outPointList) {
 
@@ -193,7 +197,18 @@ std::vector<vec3> polygon() {
     return result;
 }
 
-void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, const geometry::VertexVector& vertices) {
+void addVec3ToVector(std::vector<float>& vertices, glm::vec3 vec) {
+    vertices.push_back(vec.x);
+    vertices.push_back(vec.y);
+    vertices.push_back(vec.z);
+}
+
+void addVec2ToVector(std::vector<float>& vertices, glm::vec2 vec) {
+    vertices.push_back(vec.x);
+    vertices.push_back(vec.y);
+}
+
+void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, const std::vector<float>& vertices) {
     gpu::Buffer::Size offset = vertexBuffer->getSize();
     vertexBuffer->append(vertices);
 
@@ -203,6 +218,10 @@ void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, c
         viewSize, SHAPE_VERTEX_STRIDE, POSITION_ELEMENT);
     _normalView = gpu::BufferView(vertexBuffer, offset + SHAPE_NORMALS_OFFSET,
         viewSize, SHAPE_VERTEX_STRIDE, NORMAL_ELEMENT);
+    _texCoordView = gpu::BufferView(vertexBuffer, offset + SHAPE_TEXCOORD0_OFFSET,
+        viewSize, SHAPE_VERTEX_STRIDE, TEXCOORD0_ELEMENT);
+    _tangentView = gpu::BufferView(vertexBuffer, offset + SHAPE_TANGENT_OFFSET,
+        viewSize, SHAPE_VERTEX_STRIDE, TANGENT_ELEMENT);
 }
 
 void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, const geometry::IndexVector& indices, const geometry::IndexVector& wireIndices) {
@@ -228,6 +247,8 @@ void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, con
 void GeometryCache::ShapeData::setupBatch(gpu::Batch& batch) const {
     batch.setInputBuffer(gpu::Stream::POSITION, _positionView);
     batch.setInputBuffer(gpu::Stream::NORMAL, _normalView);
+    batch.setInputBuffer(gpu::Stream::TEXCOORD, _texCoordView);
+    batch.setInputBuffer(gpu::Stream::TANGENT, _tangentView);
     batch.setIndexBuffer(_indicesView);
 }
 
@@ -294,7 +315,7 @@ static IndexPair indexToken(geometry::Index a, geometry::Index b) {
 template <size_t N>
 void setupFlatShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N>& shape, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
     using namespace geometry;
-    VertexVector vertices;
+    std::vector<float> vertices;
     IndexVector solidIndices, wireIndices;
     IndexPairs wireSeenIndices;
 
@@ -310,11 +331,38 @@ void setupFlatShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N
         // Compute the face normal
         vec3 faceNormal = shape.getFaceNormal(f);
 
+        // Find two points on this face with the same Y tex coords, and find the vector going from the one with the smaller X tex coord to the one with the larger X tex coord
+        vec3 faceTangent = vec3(0.0f);
+        Index i1 = 0;
+        Index i2 = i1 + 1;
+        while (i1 < N) {
+            if (shape.texCoords[f * N + i1].y == shape.texCoords[f * N + i2].y) {
+                break;
+            }
+            if (i2 == N - 1) {
+                i1++;
+                i2 = i1 + 1;
+            } else {
+                i2++;
+            }
+        }
+
+        if (i1 < N && i2 < N) {
+            vec3 p1 = shape.vertices[face[i1]];
+            vec3 p2 = shape.vertices[face[i2]];
+            faceTangent = glm::normalize(p1 - p2);
+            if (shape.texCoords[f * N + i1].x < shape.texCoords[f * N + i2].x) {
+                faceTangent *= -1.0f;
+            }
+        }
+
         // Create the vertices for the face
         for (Index i = 0; i < N; i++) {
             Index originalIndex = face[i];
-            vertices.push_back(shape.vertices[originalIndex]);
-            vertices.push_back(faceNormal);
+            addVec3ToVector(vertices, shape.vertices[originalIndex]);
+            addVec3ToVector(vertices, faceNormal);
+            addVec2ToVector(vertices, shape.texCoords[f * N + i]);
+            addVec3ToVector(vertices, faceTangent);
         }
 
         // Create the wire indices for unseen edges
@@ -342,21 +390,99 @@ void setupFlatShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N
     shapeData.setupIndices(indexBuffer, solidIndices, wireIndices);
 }
 
+vec2 calculateSphereTexCoord(const vec3& vertex) {
+    float u = 1.0f - (std::atan2(-vertex.z, -vertex.x) / ((float)M_PI) + 1.0f) * 0.5f;
+    if (vertex.y == 1.0f || vertex.y == -1.0f) {
+        // Remember points at the top so we don't treat them as being along the seam
+        u = NAN;
+    }
+    float v = 0.5f - std::asin(vertex.y) / (float)M_PI;
+    return vec2(u, v);
+}
+
+vec3 calculateSphereTangent(float u) {
+    float phi = u * M_PI * 2.0f;
+    return -glm::normalize(glm::vec3(glm::sin(phi), 0.0f, glm::cos(phi)));
+}
+
 template <size_t N>
 void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N>& shape, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
     using namespace geometry;
 
-    VertexVector vertices;
-    vertices.reserve(shape.vertices.size() * 2);
+    std::vector<float> vertices;
+    vertices.reserve(shape.vertices.size() * SHAPE_VERTEX_STRIDE / sizeof(float));
     for (const auto& vertex : shape.vertices) {
-        vertices.push_back(vertex);
-        vertices.push_back(vertex);
+        addVec3ToVector(vertices, vertex);
+        addVec3ToVector(vertices, vertex);
+        vec2 uv = calculateSphereTexCoord(vertex);
+        addVec2ToVector(vertices, calculateSphereTexCoord(vertex));
+        // We'll fill in the correct tangents later, once we correct the UVs
+        addVec3ToVector(vertices, vec3(0.0f));
+    }
+
+    // We need to fix up the sphere's UVs because it's actually a tesselated icosahedron.  See http://mft-dev.dk/uv-mapping-sphere/
+    size_t faceCount = shape.faces.size();
+    for (size_t f = 0; f < faceCount; f++) {
+        // Fix zipper
+        {
+            float& u1 = vertices[shape.faces[f][0] * SHAPE_VERTEX_STRIDE / sizeof(float) + SHAPE_TEXCOORD0_OFFSET / sizeof(float)];
+            float& u2 = vertices[shape.faces[f][1] * SHAPE_VERTEX_STRIDE / sizeof(float) + SHAPE_TEXCOORD0_OFFSET / sizeof(float)];
+            float& u3 = vertices[shape.faces[f][2] * SHAPE_VERTEX_STRIDE / sizeof(float) + SHAPE_TEXCOORD0_OFFSET / sizeof(float)];
+
+            if (glm::isnan(u1)) {
+                u1 = (u2 + u3) / 2.0f;
+            }
+            if (glm::isnan(u2)) {
+                u2 = (u1 + u3) / 2.0f;
+            }
+            if (glm::isnan(u3)) {
+                u3 = (u1 + u2) / 2.0f;
+            }
+
+            const float U_THRESHOLD = 0.25f;
+            float max = glm::max(u1, glm::max(u2, u3));
+            float min = glm::min(u1, glm::min(u2, u3));
+
+            if (max - min > U_THRESHOLD) {
+                if (u1 < U_THRESHOLD) {
+                    u1 += 1.0f;
+                }
+                if (u2 < U_THRESHOLD) {
+                    u2 += 1.0f;
+                }
+                if (u3 < U_THRESHOLD) {
+                    u3 += 1.0f;
+                }
+            }
+        }
+
+        // Fix swirling at poles
+        for (Index i = 0; i < N; i++) {
+            Index originalIndex = shape.faces[f][i];
+            if (shape.vertices[originalIndex].y == 1.0f || shape.vertices[originalIndex].y == -1.0f) {
+                float uSum = 0.0f;
+                for (Index i2 = 1; i2 <= N - 1; i2++) {
+                    float u = vertices[shape.faces[f][(i + i2) % N] * SHAPE_VERTEX_STRIDE / sizeof(float) + SHAPE_TEXCOORD0_OFFSET / sizeof(float)];
+                    uSum += u;
+                }
+                uSum /= (float)(N - 1);
+                vertices[originalIndex * SHAPE_VERTEX_STRIDE / sizeof(float) + SHAPE_TEXCOORD0_OFFSET / sizeof(float)] = uSum;
+                break;
+            }
+        }
+
+        // Fill in tangents
+        for (Index i = 0; i < N; i++) {
+            vec3 tangent = calculateSphereTangent(vertices[shape.faces[f][i] * SHAPE_VERTEX_STRIDE / sizeof(float) + SHAPE_TEXCOORD0_OFFSET / sizeof(float)]);
+            vertices[shape.faces[f][i] * SHAPE_VERTEX_STRIDE / sizeof(float) + SHAPE_TANGENT_OFFSET / sizeof(float)] = tangent.x;
+            vertices[shape.faces[f][i] * SHAPE_VERTEX_STRIDE / sizeof(float) + SHAPE_TANGENT_OFFSET / sizeof(float) + 1] = tangent.y;
+            vertices[shape.faces[f][i] * SHAPE_VERTEX_STRIDE / sizeof(float) + SHAPE_TANGENT_OFFSET / sizeof(float) + 2] = tangent.z;
+        }
     }
 
     IndexVector solidIndices, wireIndices;
     IndexPairs wireSeenIndices;
 
-    size_t faceCount = shape.faces.size();
     size_t faceIndexCount = triangulatedFaceIndexCount<N>();
 
     solidIndices.reserve(faceIndexCount * faceCount);
@@ -391,25 +517,31 @@ void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid
 template <uint32_t N>
 void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer, bool isConical = false) {
     using namespace geometry;
-    VertexVector vertices;
+    std::vector<float> vertices;
     IndexVector solidIndices, wireIndices;
 
     // Top (if not conical) and bottom faces
     std::vector<vec3> shape = polygon<N>();
     if (isConical) {
         for (uint32_t i = 0; i < N; i++) {
-            vertices.push_back(vec3(0.0f, 0.5f, 0.0f));
-            vertices.push_back(vec3(0.0f, 1.0f, 0.0f));
+            addVec3ToVector(vertices, vec3(0.0f, 0.5f, 0.0f));
+            addVec3ToVector(vertices, vec3(0.0f, 1.0f, 0.0f));
+            addVec2ToVector(vertices, vec2(i / (float)N, 1.0f));
+            addVec3ToVector(vertices, vec3(0.0f));
         }
     } else {
         for (const vec3& v : shape) {
-            vertices.push_back(vec3(v.x, 0.5f, v.z));
-            vertices.push_back(vec3(0.0f, 1.0f, 0.0f));
+            addVec3ToVector(vertices, vec3(v.x, 0.5f, v.z));
+            addVec3ToVector(vertices, vec3(0.0f, 1.0f, 0.0f));
+            addVec2ToVector(vertices, vec2(v.x, v.z) + vec2(0.5f));
+            addVec3ToVector(vertices, vec3(1.0f, 0.0f, 0.0f));
         }
     }
     for (const vec3& v : shape) {
-        vertices.push_back(vec3(v.x, -0.5f, v.z));
-        vertices.push_back(vec3(0.0f, -1.0f, 0.0f));
+        addVec3ToVector(vertices, vec3(v.x, -0.5f, v.z));
+        addVec3ToVector(vertices, vec3(0.0f, -1.0f, 0.0f));
+        addVec2ToVector(vertices, vec2(-v.x, v.z) + vec2(0.5f));
+        addVec3ToVector(vertices, vec3(-1.0f, 0.0f, 0.0f));
     }
     Index baseVertex = 0;
     for (uint32_t i = 2; i < N; i++) {
@@ -438,15 +570,28 @@ void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& ver
         vec3 topRight = (isConical ? vec3(0.0f, 0.5f, 0.0f) : vec3(right.x, 0.5f, right.z));
         vec3 bottomLeft = vec3(left.x, -0.5f, left.z);
         vec3 bottomRight = vec3(right.x, -0.5f, right.z);
+        vec3 tangent = glm::normalize(bottomLeft - bottomRight);
 
-        vertices.push_back(topLeft);
-        vertices.push_back(normal);
-        vertices.push_back(bottomLeft);
-        vertices.push_back(normal);
-        vertices.push_back(topRight);
-        vertices.push_back(normal);
-        vertices.push_back(bottomRight);
-        vertices.push_back(normal);
+        // Our tex coords go in the opposite direction as our vertices
+        float u = 1.0f - i / (float)N;
+        float u2 = 1.0f - (i + 1) / (float)N;
+
+        addVec3ToVector(vertices, topLeft);
+        addVec3ToVector(vertices, normal);
+        addVec2ToVector(vertices, vec2(u, 0.0f));
+        addVec3ToVector(vertices, tangent);
+        addVec3ToVector(vertices, bottomLeft);
+        addVec3ToVector(vertices, normal);
+        addVec2ToVector(vertices, vec2(u, 1.0f));
+        addVec3ToVector(vertices, tangent);
+        addVec3ToVector(vertices, topRight);
+        addVec3ToVector(vertices, normal);
+        addVec2ToVector(vertices, vec2(u2, 0.0f));
+        addVec3ToVector(vertices, tangent);
+        addVec3ToVector(vertices, bottomRight);
+        addVec3ToVector(vertices, normal);
+        addVec2ToVector(vertices, vec2(u2, 1.0f));
+        addVec3ToVector(vertices, tangent);
 
         solidIndices.push_back(baseVertex + 0);
         solidIndices.push_back(baseVertex + 2);
@@ -469,14 +614,16 @@ void drawCircle(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexB
     // Draw a circle with radius 1/4th the size of the bounding box
     using namespace geometry;
 
-    VertexVector vertices;
+    std::vector<float> vertices;
     IndexVector solidIndices, wireIndices;
     const int NUM_CIRCLE_VERTICES = 64;
 
     std::vector<vec3> shape = polygon<NUM_CIRCLE_VERTICES>();
     for (const vec3& v : shape) {
-        vertices.push_back(vec3(v.x, 0.0f, v.z));
-        vertices.push_back(vec3(0.0f, 0.0f, 0.0f));
+        addVec3ToVector(vertices, vec3(v.x, 0.0f, v.z));
+        addVec3ToVector(vertices, vec3(0.0f, 0.0f, 0.0f));
+        addVec2ToVector(vertices, vec2(v.x, v.z) + vec2(0.5f));
+        addVec3ToVector(vertices, vec3(1.0f, 0.0f, 0.0f));
     }
 
     Index baseVertex = 0;
@@ -532,9 +679,9 @@ void GeometryCache::buildShapes() {
     // Line
     {
         ShapeData& shapeData = _shapes[Line];
-        shapeData.setupVertices(_shapeVertices, VertexVector {
-            vec3(-0.5f, 0.0f, 0.0f), vec3(-0.5f, 0.0f, 0.0f),
-            vec3(0.5f, 0.0f, 0.0f), vec3(0.5f, 0.0f, 0.0f)
+        shapeData.setupVertices(_shapeVertices, std::vector<float> {
+            -0.5f, 0.0f, 0.0f,  -0.5f, 0.0f, 0.0f,   0.0f, 0.0f,   0.0f, 0.0f, 0.0f,
+            0.5f, 0.0f, 0.0f,    0.5f, 0.0f, 0.0f,   0.0f, 0.0f,   0.0f, 0.0f, 0.0f
         });
         IndexVector wireIndices;
         // Only two indices
@@ -598,6 +745,8 @@ gpu::Stream::FormatPointer& getSolidStreamFormat() {
         SOLID_STREAM_FORMAT = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
         SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
+        SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::TEXCOORD0, gpu::Stream::TEXCOORD0, TEXCOORD0_ELEMENT);
+        SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::TANGENT, gpu::Stream::TANGENT, TANGENT_ELEMENT);
     }
     return SOLID_STREAM_FORMAT;
 }
@@ -607,6 +756,8 @@ gpu::Stream::FormatPointer& getInstancedSolidStreamFormat() {
         INSTANCED_SOLID_STREAM_FORMAT = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
         INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
+        INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::TEXCOORD0, gpu::Stream::TEXCOORD0, TEXCOORD0_ELEMENT);
+        INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::TANGENT, gpu::Stream::TANGENT, TANGENT_ELEMENT);
         INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::COLOR, gpu::Stream::COLOR, COLOR_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
     }
     return INSTANCED_SOLID_STREAM_FORMAT;
@@ -617,6 +768,8 @@ gpu::Stream::FormatPointer& getInstancedSolidFadeStreamFormat() {
         INSTANCED_SOLID_FADE_STREAM_FORMAT = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
         INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
+        INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::TEXCOORD0, gpu::Stream::TEXCOORD0, TEXCOORD0_ELEMENT);
+        INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::TANGENT, gpu::Stream::TANGENT, TANGENT_ELEMENT);
         INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::COLOR, gpu::Stream::COLOR, COLOR_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
         INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::TEXCOORD2, gpu::Stream::TEXCOORD2, TEXCOORD4_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
         INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::TEXCOORD3, gpu::Stream::TEXCOORD3, TEXCOORD4_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
@@ -919,6 +1072,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
 
     details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
     details.streamFormat->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), VERTEX_NORMAL_OFFSET);
+    // TODO: circle3D overlays use this to define their vertices, so they need tex coords
     details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
     details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
