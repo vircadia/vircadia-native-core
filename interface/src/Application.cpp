@@ -6677,8 +6677,8 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
             // to prevent files that aren't models from being loaded into world automatically
-            if (filePath.toLower().endsWith(OBJ_EXTENSION) || filePath.toLower().endsWith(FBX_EXTENSION) || 
-                filePath.toLower().endsWith(JPG_EXTENSION) || filePath.toLower().endsWith(PNG_EXTENSION) &&
+            if ((filePath.toLower().endsWith(OBJ_EXTENSION) || filePath.toLower().endsWith(FBX_EXTENSION) || 
+                filePath.toLower().endsWith(JPG_EXTENSION) || filePath.toLower().endsWith(PNG_EXTENSION)) &&
                 (!isBlocks) && (!isZip)) {
                 addAssetToWorldAddEntity(filePath, mapping);
             } else {
