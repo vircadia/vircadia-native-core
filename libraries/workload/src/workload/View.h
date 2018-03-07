@@ -57,6 +57,8 @@ public:
     static Sphere evalRegionSphere(const View& view, float originRadius, float maxDistance);
 
     static void updateRegions(View& view);
+
+    static void updateRegions(View& view, const float* configDistances);
 };
 
 using Views = std::vector<View>;

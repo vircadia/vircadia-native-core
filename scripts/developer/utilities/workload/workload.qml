@@ -40,6 +40,24 @@ Rectangle {
             checked: workload.spaceToRender["freezeViews"]
             onCheckedChanged: { workload.spaceToRender["freezeViews"] = checked, workload.setupViews.enabled = !checked; }
         }
+        Repeater {
+            model: [ 
+                "R1 Front:r1Front:300:1.0", "R1 Back:r1Back:50.0:0.0",
+                "R2 Front:r2Front:300:1.0", "R2 Back:r2Back:50.0:0.0",
+                "R3 Front:r3Front:300:1.0", "R3 Back:r3Back:50.0:0.0"
+            ]
+            ConfigSlider {
+                    label: qsTr(modelData.split(":")[0])
+                    integral: false
+                    config:  workload.setupViews
+                    property: modelData.split(":")[1]
+                    max: modelData.split(":")[2]
+                    min: modelData.split(":")[3]
+
+                    anchors.left: parent.left
+                    anchors.right: parent.right 
+            }
+        }
         Separator {}
         HifiControls.Label {
             text: "Display"       
