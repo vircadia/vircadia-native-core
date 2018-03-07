@@ -1051,9 +1051,6 @@ Rectangle {
     function fromScript(message) {
         switch (message.method) {
             case 'updateCheckoutQML':
-                if (message.params.isUpdating) {
-                    root.isUpdating = message.params.isUpdating;    
-                }
                 root.itemId = message.params.itemId;
                 root.itemName = message.params.itemName.trim();
                 root.itemPrice = message.params.itemPrice;

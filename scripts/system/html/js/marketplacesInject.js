@@ -255,19 +255,6 @@
         }));
     }
 
-    function updateButtonClicked(id, name, author, href, referrer) {
-        EventBridge.emitWebEvent(JSON.stringify({
-            type: "UPDATE",
-            isUpdating: true,
-            itemId: id,
-            itemName: name,
-            itemPrice: 0,
-            itemHref: href,
-            referrer: referrer,
-            itemAuthor: author
-        }));
-    }
-
     function injectBuyButtonOnMainPage() {
         var cost;
 
@@ -423,25 +410,18 @@
                 }
 
                 var cost = $('.item-cost').text();
-                if (availability !== 'available') {
-                    purchaseButton.html('UNAVAILABLE (' + availability + ')');
-                } else if (window.location.href.indexOf('certificateId=' != -1)) {
+                var isUpdating = window.location.href.indexOf('edition=') > -1;
+                if (isUpdating) {
                     purchaseButton.html('UPDATE FOR FREE');
+                } else if (availability !== 'available') {
+                    purchaseButton.html('UNAVAILABLE (' + availability + ')');
                 } else if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
                     purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
                         'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
                 }
 
                 purchaseButton.on('click', function () {
-                    var urlParams = new URLSearchParams(window.location.search);
-
-                    if (window.location.href.indexOf('edition=' != -1)) { // "Upgrading" case
-                        updateButtonClicked(window.location.pathname.split("/")[3],
-                            $('#top-center').find('h1').text(),
-                            $('#creator').find('.value').text(),
-                            href,
-                            "itemPage");
-                    } else if ('available' === availability) {
+                    if ('available' === availability || isUpdating) {
                         buyButtonClicked(window.location.pathname.split("/")[3],
                             $('#top-center').find('h1').text(),
                             $('#creator').find('.value').text(),

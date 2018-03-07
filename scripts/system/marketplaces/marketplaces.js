@@ -420,7 +420,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
             isDownloadBeingCancelled = false;
         } else {
             var parsedJsonMessage = JSON.parse(message);
-            if (parsedJsonMessage.type === "CHECKOUT" || parsedJsonMessage.type === "UPDATE") {
+            if (parsedJsonMessage.type === "CHECKOUT") {
                 wireEventBridge(true);
                 tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
                 tablet.sendToQml({
