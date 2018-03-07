@@ -666,6 +666,10 @@ Rectangle {
         tempPurchasesModel.clear();
         for (var i = 0; i < purchasesModel.count; i++) {
             if (purchasesModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
+                if (!purchasesModel.get(i).valid) {
+                    continue;
+                }
+
                 if (purchasesModel.get(i).status !== "confirmed" && !root.isShowingMyItems) {
                     tempPurchasesModel.insert(0, purchasesModel.get(i));
                 } else if ((root.isShowingMyItems && purchasesModel.get(i).edition_number === "0") ||
@@ -691,7 +695,10 @@ Rectangle {
             var currentId;
             for (var i = 0; i < tempPurchasesModel.count; i++) {
                 currentId = tempPurchasesModel.get(i).id;
-
+                
+                if (!purchasesModel.get(i).valid) {
+                    continue;
+                }
                 filteredPurchasesModel.append(tempPurchasesModel.get(i));
                 filteredPurchasesModel.setProperty(i, 'permissionExplanationCardVisible', false);
                 filteredPurchasesModel.setProperty(i, 'isInstalled', ((root.installedApps).indexOf(currentId) > -1));
