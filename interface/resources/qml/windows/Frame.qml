@@ -44,7 +44,7 @@ Item {
         id: debugZ
         visible: DebugQML
         color: "red"
-        text: (window ? "Z: " + window.z : "") + DebugQMLFile
+        text: (window ? "Z: " + window.z : "")
         y: window ? window.height + 4 : 0
     }
 
