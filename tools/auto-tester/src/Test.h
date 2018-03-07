@@ -28,6 +28,8 @@ public:
 
     void createRecursiveScript();
     void createRecursiveScriptsRecursively();
+    void createRecursiveScript(QString topLevelDirectory, bool interactiveMode);
+
     void createTest();
     void deleteOldSnapshots();
 

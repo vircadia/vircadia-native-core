@@ -311,6 +311,52 @@ void Test::createRecursiveScript() {
         return;
     }
 
+    createRecursiveScript(topLevelDirectory, true);
+}
+
+// This method creates a `testRecursive.js` script in every sub-folder.
+void Test::createRecursiveScriptsRecursively() {
+    // Select folder to start recursing from
+    QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select the root folder for the recursive scripts", ".", QFileDialog::ShowDirsOnly);
+    if (topLevelDirectory == "") {
+        return;
+    }
+
+    createRecursiveScript(topLevelDirectory, false);
+
+    QDirIterator it(topLevelDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        QString directory = it.next();
+
+        // Only process directories
+        QDir dir();
+        if (!isAValidDirectory(directory)) {
+            continue;
+        }
+
+        // Only process directories that have sub-directories
+        bool hasNoSubDirectories{ true };
+        QDirIterator it2(directory.toStdString().c_str(), QDirIterator::Subdirectories);
+        while (it2.hasNext()) {
+            QString directory2 = it2.next();
+
+            // Only process directories
+            QDir dir();
+            if (isAValidDirectory(directory2)) {
+                hasNoSubDirectories = false;
+                break;
+            }
+        }
+
+        if (!hasNoSubDirectories) {
+            createRecursiveScript(directory, false);
+        }
+    }
+
+    messageBox.information(0, "Success", "Scripts have been created");
+}
+
+void Test::createRecursiveScript(QString topLevelDirectory, bool interactiveMode) {
     const QString recursiveTestsFilename("testRecursive.js");
     QFile allTestsFilename(topLevelDirectory + "/" + recursiveTestsFilename);
     if (!allTestsFilename.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -350,7 +396,7 @@ void Test::createRecursiveScript() {
             continue;
         }
 
-        const QString testPathname{ directory + "/" + TEST_FILENAME };
+        const QString testPathname { directory + "/" + TEST_FILENAME };
         QFileInfo fileInfo(testPathname);
         if (fileInfo.exists()) {
             // Current folder contains a test
@@ -360,7 +406,7 @@ void Test::createRecursiveScript() {
         }
     }
 
-    if (testPathnames.length() <= 0) {
+    if (interactiveMode && testPathnames.length() <= 0) {
         messageBox.information(0, "Failure", "No \"" + TEST_FILENAME + "\" files found");
         allTestsFilename.close();
         return;
@@ -370,10 +416,10 @@ void Test::createRecursiveScript() {
     textStream << "autoTester.runRecursive();" << endl;
 
     allTestsFilename.close();
-    messageBox.information(0, "Success", "Script has been created");
-}
-
-void Test::createRecursiveScriptsRecursively() {
+    
+    if (interactiveMode) {
+        messageBox.information(0, "Success", "Script has been created");
+    }
 }
 
 void Test::createTest() {
