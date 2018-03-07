@@ -63,8 +63,8 @@ void Space::copyViews(std::vector<View>& copy) const {
 }
 
 void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
-    uint32_t numProxies = _proxies.size();
-    uint32_t numViews = _views.size();
+    uint32_t numProxies = (uint32_t)_proxies.size();
+    uint32_t numViews = (uint32_t)_views.size();
     for (uint32_t i = 0; i < numProxies; ++i) {
         Proxy& proxy = _proxies[i];
         if (proxy.region < Region::INVALID) {
