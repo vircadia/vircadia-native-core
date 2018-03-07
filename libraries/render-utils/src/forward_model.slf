@@ -1,18 +1,16 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
+//
 //  forward_model.frag
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 10/14/13.
-//  Copyright 2013 High Fidelity, Inc.
+//  Created by Sam Gateau on 2/15/2016.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
-<! <@include ForwardBufferWrite.slh@> !>
-
 <@include ForwardGlobalLight.slh@>
 <$declareEvalSkyboxGlobalColor()$>
 
@@ -22,21 +20,21 @@
 <$declareStandardCameraTransform()$>
 
 <@include MaterialTextures.slh@>
-<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, _SCRIBE_NULL)$>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC, EMISSIVE, OCCLUSION)$>
 
 in vec4 _position;
-in vec3 _normal;
-in vec3 _color;
 in vec2 _texCoord0;
 in vec2 _texCoord1;
+in vec3 _normal;
+in vec3 _color;
 
-out vec4 _fragColor;
+layout(location = 0) out vec4 _fragColor0;
 
 void main(void) {
     Material mat = getMaterial();
-    int matKey = getMaterialKey(mat);
-    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, _SCRIBE_NULL, emissiveTex)$>
-<!   <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$> !>
+    BITFIELD matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, metallicTex, emissiveTex)$>
+    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
 
     float opacity = 1.0;
     <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
@@ -46,41 +44,33 @@ void main(void) {
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
     albedo *= _color;
 
-    float metallic = getMaterialMetallic(mat);
-    vec3 fresnel = vec3(0.03); // Default Di-electric fresnel value
-    if (metallic <= 0.5) {
-        metallic = 0.0;
-    } else {
-        fresnel = albedo;
-        metallic = 1.0;
-    }
-
     float roughness = getMaterialRoughness(mat);
     <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
 
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
+    float metallic = getMaterialMetallic(mat);
+    <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
+    vec3 fresnel = getFresnelF0(metallic, albedo);
 
     vec3 fragPosition = _position.xyz;
+    vec3 fragNormal = normalize(_normal);
 
     TransformCamera cam = getTransformCamera();
-    vec3 fragNormal;
-    <$transformEyeToWorldDir(cam, _normal, fragNormal)$>
 
     vec4 color = vec4(evalSkyboxGlobalColor(
         cam._viewInverse,
         1.0,
-        1.0,
+        occlusionTex,
         fragPosition,
         fragNormal,
         albedo,
         fresnel,
         metallic,
         roughness),
-        opacity); 
-        color.rgb += emissive * isEmissiveEnabled();
+        opacity);
+    color.rgb += emissive * isEmissiveEnabled();
 
-//    _fragColor = vec4(albedo, opacity);
-    _fragColor = color;
+    _fragColor0 = color;
 }

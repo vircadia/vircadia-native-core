@@ -798,7 +798,7 @@ void NodeList::sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationN
 
 void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
     // enumerate the nodes to send a reliable ignore packet to each that can leverage it
-    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID) {
         eachMatchingNode([](const SharedNodePointer& node)->bool {
             if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
                 return true;
@@ -851,7 +851,7 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
 
 void NodeList::removeFromIgnoreMuteSets(const QUuid& nodeID) {
     // don't remove yourself, or nobody
-    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID) {
         {
             QWriteLocker ignoredSetLocker{ &_ignoredSetLock };
             _ignoredNodeIDs.unsafe_erase(nodeID);
@@ -870,7 +870,7 @@ bool NodeList::isIgnoringNode(const QUuid& nodeID) const {
 
 void NodeList::personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled) {
     // cannot personal mute yourself, or nobody
-    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID) {
         auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
         if (audioMixer) {
             if (isIgnoringNode(nodeID)) {
@@ -970,7 +970,7 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
 
 void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
     // cannot set gain of yourself
-    if (_sessionUUID != nodeID) {
+    if (getSessionUUID() != nodeID) {
         auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
         if (audioMixer) {
             // setup the packet
@@ -1013,7 +1013,7 @@ void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
     // send a request to domain-server to kick the node with the given session ID
     // the domain-server will handle the persistence of the kick (via username or IP)
 
-    if (!nodeID.isNull() && _sessionUUID != nodeID ) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID ) {
         if (getThisNodeCanKick()) {
             // setup the packet
             auto kickPacket = NLPacket::create(PacketType::NodeKickRequest, NUM_BYTES_RFC4122_UUID, true);
@@ -1036,7 +1036,7 @@ void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
 
 void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
     // cannot mute yourself, or nobody
-    if (!nodeID.isNull() && _sessionUUID != nodeID ) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID ) {
         if (getThisNodeCanKick()) {
             auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
             if (audioMixer) {
