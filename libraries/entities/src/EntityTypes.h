@@ -42,8 +42,12 @@ public:
      *     <tr><th>Value</th><th>Description</th><th>Properties</th></tr>
      *   </thead>
      *   <tbody>
-     *     <tr><td><code>"Box"</code></td><td>A rectangular prism. This is identical to the <code>Shape</code> EntityType except
-     *       that it is always created with an initial <code>shape</code> property value of <code>"Cube"</code>.</td>
+     *     <tr><td><code>"Box"</code></td><td>A rectangular prism. This is a synonym of <code>"Shape"</code> for the case 
+     *       where the entity's <code>shape</code> property value is <code>"Cube"</code>.<br />
+     *       If an entity is created with its <code>type</code> 
+     *       set to <code>"Box"</code> it will always be created with a <code>shape</code> property value of 
+     *       <code>"Cube"</code>. If an entity of type <code>Shape</code> or <code>Sphere</code> has its <code>shape</code> set 
+     *       to <code>"Cube"</code> then its <code>type</code> will be reported as <code>"Box"</code>.
      *       <td>{@link Entities.EntityProperties-Box|EntityProperties-Box}</td></tr>
      *     <tr><td><code>"Light"</code></td><td>A local lighting effect.</td>
      *       <td>{@link Entities.EntityProperties-Light|EntityProperties-Light}</td></tr>
@@ -62,10 +66,14 @@ public:
      *     <tr><td><code>"PolyVox"</code></td><td>A set of textured voxels.</td>
      *       <td>{@link Entities.EntityProperties-PolyVox|EntityProperties-PolyVox}</td></tr>
      *     <tr><td><code>"Shape"</code></td><td>A basic entity such as a cube.
-     *       See also, the <code>Box</code> and <code>Sphere</code> entity types.</td>
+     *       See also, the <code>"Box"</code> and <code>"Sphere"</code> entity types.</td>
      *       <td>{@link Entities.EntityProperties-Shape|EntityProperties-Shape}</td></tr>
-     *     <tr><td><code>"Sphere"</code></td><td>A sphere. This is identical to the <code>Shape</code> EntityType except that it is
-     *       always created with an initial <code>shape</code> property value of <code>"Sphere"</code>.</td>
+     *     <tr><td><code>"Sphere"</code></td><td>A sphere. This is a synonym of <code>"Shape"</code> for the case
+     *       where the entity's <code>shape</code> property value is <code>"Sphere"</code>.<br />
+     *       If an entity is created with its <code>type</code>
+     *       set to <code>"Sphere"</code> it will always be created with a <code>shape</code> property value of
+     *       <code>"Sphere"</code>. If an entity of type <code>Box</code> or <code>Shape</code> has its <code>shape</code> set
+     *       to <code>"Sphere"</code> then its <code>type</code> will be reported as <code>"Sphere"</code>.
      *       <td>{@link Entities.EntityProperties-Sphere|EntityProperties-Sphere}</td></tr>
      *     <tr><td><code>"Text"</code></td><td>A pane of text oriented in space.</td>
      *       <td>{@link Entities.EntityProperties-Text|EntityProperties-Text}</td></tr>

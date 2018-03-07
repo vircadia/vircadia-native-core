@@ -79,7 +79,8 @@ const int16_t BULLET_COLLISION_MASK_COLLISIONLESS = 0;
  *     <tr><td><code>16</code></td><td>Other avatars.</td></tr>
  *   </tbody>
  * </table>
- * <p>The values for the collision types that are enabled are added together to give the CollisionMask value.</p>
+ * <p>The values for the collision types that are enabled are added together to give the CollisionMask value. For example, a 
+ * value of <code>31</code> means that an entity will collide with all item types.</p>
  * @typedef {number} Entities.CollisionMask
  */
 

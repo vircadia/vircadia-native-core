@@ -37,7 +37,7 @@ private slots:
 public slots:
 
     /**jsdoc
-     * Set the maximum number of entity packets that the client send per second.
+     * Set the maximum number of entity packets that the client can send per second.
      * @function Entities.setPacketsPerSecond
      * @param {number} packetsPerSecond - Integer maximum number of entity packets that the client can send per second.
      */
@@ -53,7 +53,8 @@ public slots:
     int getPacketsPerSecond() const  { return _packetSender->getPacketsPerSecond(); }
 
     /**jsdoc
-     * Check whether servers exist for the client to send entity packets to.
+     * Check whether servers exist for the client to send entity packets to, i.e., whether you are connected to a domain and 
+     * its entity server is working.
      * @function Entities.serversExist
      * @returns {boolean} <code>true</code> if servers exist for the client to send entity packets to, otherwise 
      *     <code>false</code>.

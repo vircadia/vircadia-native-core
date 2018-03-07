@@ -186,8 +186,8 @@ public slots:
     /**jsdoc
      * Check whether or not you can make changes to the asset server's assets.
      * @function Entities.canWriteAssets
-     * @returns {boolean} <code>true</code> if the domain server will allow the script to make changes to the to the asset 
-     *     server's assets, otherwise <code>false</code>.
+     * @returns {boolean} <code>true</code> if the domain server will allow the script to make changes to the asset server's 
+     *     assets, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool canWriteAssets();
 
@@ -481,7 +481,7 @@ public slots:
     Q_INVOKABLE bool getServerScriptStatus(QUuid entityID, QScriptValue callback);
 
     /**jsdoc
-    * Get metadata for "magic" entity properties such as <code>script</code> and <code>serverScripts</code>.
+    * Get metadata for certain entity properties such as <code>script</code> and <code>serverScripts</code>.
     * @function Entities.queryPropertyMetadata
     * @param {Uuid} entityID - The ID of the entity to get the metadata for.
     * @param {string} property - The property name to get the metadata for.
@@ -491,7 +491,7 @@ public slots:
     * @throws Throws an error if <code>property</code> is not handled yet or <code>callback</code> is not a function.
     */
     /**jsdoc
-    * Get metadata for "magic" entity properties such as <code>script</code> and <code>serverScripts</code>.
+    * Get metadata for certain entity properties such as <code>script</code> and <code>serverScripts</code>.
     * @function Entities.queryPropertyMetadata
     * @param {Uuid} entityID - The ID of the entity to get the metadata for.
     * @param {string} property - The property name to get the metadata for.
@@ -513,8 +513,9 @@ public slots:
 
 
     /**jsdoc
-     * Set whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Light} entities. Ray picks are 
-     *     done using {@link Entities.findRayIntersection|findRayIntersection}or 
+     * Set whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Light} entities. By default, Light 
+     * entities are not intersected. The setting lasts for the Interface session. Ray picks are done using 
+     *     {@link Entities.findRayIntersection|findRayIntersection} or 
      *     {@link Entities.findRayIntersectionBlocking|findRayIntersectionBlocking}, or the {@link Picks} and {@link RayPick} 
      *     APIs.
      * @function Entities.setLightsArePickable
@@ -526,7 +527,7 @@ public slots:
 
     /**jsdoc
      * Get whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Light} entities. Ray picks are 
-     *     done using {@link Entities.findRayIntersection|findRayIntersection}or 
+     *     done using {@link Entities.findRayIntersection|findRayIntersection} or 
      *     {@link Entities.findRayIntersectionBlocking|findRayIntersectionBlocking}, or the {@link Picks} and {@link RayPick} 
      *     APIs.
      * @function Entities.getLightsArePickable
@@ -537,8 +538,9 @@ public slots:
     Q_INVOKABLE bool getLightsArePickable() const;
 
     /**jsdoc
-     * Set whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Zone} entities. Ray picks are 
-     *     done using {@link Entities.findRayIntersection|findRayIntersection}or 
+     * Set whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Zone} entities. By default, Light 
+     * entities are not intersected. The setting lasts for the Interface session. Ray picks are done using 
+     *     {@link Entities.findRayIntersection|findRayIntersection} or 
      *     {@link Entities.findRayIntersectionBlocking|findRayIntersectionBlocking}, or the {@link Picks} and {@link RayPick} 
      *     APIs.
      * @function Entities.setZonesArePickable
@@ -550,7 +552,7 @@ public slots:
 
     /**jsdoc
      * Get whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Zone} entities. Ray picks are 
-     *     done using {@link Entities.findRayIntersection|findRayIntersection}or 
+     *     done using {@link Entities.findRayIntersection|findRayIntersection} or 
      *     {@link Entities.findRayIntersectionBlocking|findRayIntersectionBlocking}, or the {@link Picks} and {@link RayPick} 
      *     APIs.
      * @function Entities.getZonesArePickable
@@ -584,8 +586,8 @@ public slots:
      * @function Entities.setVoxelSphere
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
      * @param {Vec3} center - The center of the sphere of voxels to set, in world coordinates.
-     * @param {number} radius - If radius of the sphere of voxels to set, in world coordinates.
-     * @param {number} value - If <code>value % 256 == 0</code> then the each voxel is cleared, otherwise each voxel is set.
+     * @param {number} radius - The radius of the sphere of voxels to set, in world coordinates.
+     * @param {number} value - If <code>value % 256 == 0</code> then each voxel is cleared, otherwise each voxel is set.
      * @example <caption>Create a PolyVox sphere.</caption>
      * var position = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -8 }));
      * var polyVox = Entities.addEntity({
@@ -607,7 +609,7 @@ public slots:
      * @param {Vec3} start - The center of the sphere of voxels to set, in world coordinates.
      * @param {Vec3} end - The center of the sphere of voxels to set, in world coordinates.
      * @param {number} radius - The radius of the capsule cylinder and spherical ends, in world coordinates.
-     * @param {number} value - If <code>value % 256 == 0</code> then the each voxel is cleared, otherwise each voxel is set.
+     * @param {number} value - If <code>value % 256 == 0</code> then each voxel is cleared, otherwise each voxel is set.
      * @example <caption>Create a PolyVox capsule shape.</caption>
      * var position = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -8 }));
      * var polyVox = Entities.addEntity({
@@ -631,7 +633,7 @@ public slots:
      * @param {Vec3} position - The position relative to the minimum axes values corner of the entity. The 
      *     <code>position</code> coordinates are rounded to the nearest integer to get the voxel coordinate. The minimum axes 
      *     corner voxel is <code>{ x: 0, y: 0, z: 0 }</code>.
-     * @param {number} value - If <code>value % 256 == 0</code> then the voxel is cleared, otherwise the voxel is set.
+     * @param {number} value - If <code>value % 256 == 0</code> then voxel is cleared, otherwise the voxel is set.
      * @example <caption>Create a cube PolyVox entity and clear the minimum axes corner voxel.</caption>
      * var entity = Entities.addEntity({
      *     type: "PolyVox",
@@ -650,7 +652,7 @@ public slots:
      * Set the values of all voxels in a {@link Entities.EntityType|PolyVox} entity.
      * @function Entities.setAllVoxels
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
-     * @param {number} value - If <code>value % 256 == 0</code> then the each voxel is cleared, otherwise each voxel is set.
+     * @param {number} value - If <code>value % 256 == 0</code> then each voxel is cleared, otherwise each voxel is set.
      * @example <caption>Create a PolyVox cube.</caption>
      * var entity = Entities.addEntity({
      *     type: "PolyVox",
@@ -671,7 +673,7 @@ public slots:
      * @param {Vec3} lowPosition - The position of the minimum axes value corner of the cube of voxels to set, in voxel 
      *     coordinates.
      * @param {Vec3} cuboidSize - The size of the cube of voxels to set, in voxel coordinates.
-     * @param {number} value - If <code>value % 256 == 0</code> then the each voxel is cleared, otherwise each voxel is set.
+     * @param {number} value - If <code>value % 256 == 0</code> then each voxel is cleared, otherwise each voxel is set.
      * @example <caption>Create a PolyVox cube and clear the voxels in one corner.</caption>
      * var polyVox = Entities.addEntity({
      *     type: "PolyVox",
@@ -745,7 +747,7 @@ public slots:
      * @param {Vec3} voxelCoords - The voxel coordinates. May be fractional and outside the entity's bounding box.
      * @returns {Vec3} The local coordinates of the <code>voxelCoords</code> if the <code>entityID</code> is a 
      *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3|Vec3.ZERO}.
-     * @example <caption>Get the world dimensions of a voxel in a PolyVox entity.</code>
+     * @example <caption>Get the world dimensions of a voxel in a PolyVox entity.</caption>
      * var polyVox = Entities.addEntity({
      *     type: "PolyVox",
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -8 })),
@@ -849,7 +851,7 @@ public slots:
      * @param {Entities.ActionType} actionType - The type of action.
      * @param {Uuid} entityID - The ID of the entity to add the action to.
      * @param {Entities.ActionArguments} arguments - Configure the action.
-     * @returns {Uuid} The ID of the action added if successful, otherwise <code>null</code>.
+     * @returns {Uuid} The ID of the action added if successfully added, otherwise <code>null</code>.
      * @example <caption>Constrain a cube to move along a vertical line.</caption>
      * var entityID = Entities.addEntity({
      *     type: "Box",
@@ -919,7 +921,7 @@ public slots:
     Q_INVOKABLE glm::vec3 getAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex);
 
     /**jsdoc
-     * Get the trannslation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's coordinate frame.
+     * Get the translation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's coordinate frame.
      * @function Entities.getAbsoluteJointRotationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
@@ -1068,7 +1070,8 @@ public slots:
 
 
     /**jsdoc
-     * Get the IDs of entities, overlays, and avatars that are directly parented to an entity.
+     * Get the IDs of entities, overlays, and avatars that are directly parented to an entity. To get all descendants of an 
+     * entity, recurse on the IDs returned by the function.
      * @function Entities.getChildrenIDs
      * @param {Uuid} parentID - The ID of the entity to get the children IDs of.
      * @returns {Uuid[]} An array of entity, overlay, and avatar IDs that are parented directly to the <code>parentID</code> 
@@ -1133,11 +1136,11 @@ public slots:
     Q_INVOKABLE QVector<QUuid> getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex);
 
     /**jsdoc
-     * Check whether an entity or overlay has a an entity as an ancestor (parent, parent's parent, etc.).
+     * Check whether an entity or overlay has an entity as an ancestor (parent, parent's parent, etc.).
      * @function Entities.isChildOfParent
      * @param {Uuid} childID - The ID of the child entity or overlay to test for being a child, grandchild, etc.
      * @param {Uuid} parentID - The ID of the parent entity to test for being a parent, grandparent, etc.
-     * @returns {boolean} <code>true</code> if the <code>childID></code> entity or overlay has the <code>parentID</code> entity 
+     * @returns {boolean} <code>true</code> if the <code>childID</code> entity or overlay has the <code>parentID</code> entity 
      *     as a parent or grandparent etc., otherwise <code>false</code>.
      * @example <caption>Check that a grandchild entity is a child of its grandparent.</caption>
      * function createEntity(description, position, parent) {
@@ -1273,8 +1276,8 @@ public slots:
      * but a {@link Entities.EntityType|Shape} entity doesn't.
      * @function Entities.wantsHandControllerPointerEvents
      * @param {Uuid} entityID -  The ID of the entity.
-     * @returns {boolean} <code>true</code> if the entity entity can be found and it wants hand controller pointer events, 
-     *     otherwise <code>false</code>.
+     * @returns {boolean} <code>true</code> if the entity can be found and it wants hand controller pointer events, otherwise 
+     *     <code>false</code>.
      */
     Q_INVOKABLE bool wantsHandControllerPointerEvents(QUuid id);
 
@@ -1657,7 +1660,7 @@ signals:
 
     /**jsdoc
      * Triggered when an avatar leaves an entity.
-     * @function Entities.enterEntity
+     * @function Entities.leaveEntity
      * @param {Uuid} entityID - The ID of the entity that the avatar left.
      * @returns {Signal}
      */

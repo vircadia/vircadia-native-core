@@ -57,7 +57,7 @@ static const float INITIAL_KEY_LIGHT_ALTITUDE{ 200.0f };
  *
  * @property {boolean} hazeAltitudeEffect=false - If <code>true</code> then haze decreases with altitude as defined by the 
  *     entity's local coordinate system; <code>hazeBaseRef</code> and </code>hazeCeiling</code> are used.
- * @property {number} hazeBaseRef=0 - The y-azis value in the entity's local coordinate system at which the haze density starts 
+ * @property {number} hazeBaseRef=0 - The y-axis value in the entity's local coordinate system at which the haze density starts 
  *     reducing with altitude.
  * @property {number} hazeCeiling=200 - The y-axis value in the entity's local coordinate system at which the haze density has 
  *     reduced to 5%.

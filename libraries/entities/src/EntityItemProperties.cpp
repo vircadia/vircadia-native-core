@@ -447,8 +447,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @typedef {object} Entities.EntityProperties
  * @property {Uuid} id - The ID of the entity. <em>Read-only.</em>
  * @property {string} name="" - A name for the entity. Need not be unique.
- * @property {Entities.EntityType} type - The entity type. You cannot change the type of an entity after it's created. 
- *     <em>Read-only.</em>
+ * @property {Entities.EntityType} type - The entity type. You cannot change the type of an entity after it's created. (Though 
+ *     its value may switch among <code>"Box"</code>, <code>"Shape"</code>, and <code>"Sphere"</code> depending on changes to 
+ *     the <code>shape</code> property set for entities of these types.) <em>Read-only.</em>
  * @property {boolean} clientOnly=false - If <code>true</code> then the entity is an avatar entity, otherwise it is a server
  *     entity. <em>Read-only.</em>
  * @property {Uuid} owningAvatarID=Uuid.NULL - The session ID of the owning avatar if <code>clientOnly</code> is 
@@ -510,7 +511,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>10.0</code>. The higher the value, the more quickly it slows down. Examples: <code>0.1</code> for ice, 
  *     <code>0.9</code> for sandpaper.
  * @property {number} density=1000 - The density of the entity in kg/m<sup>3</sup>, <code>100</code> for balsa wood &ndash; 
- *     <code>10000</code> for silver. The density is used in conjunction with the entity's collision volume to work out its 
+ *     <code>10000</code> for silver. The density is used in conjunction with the entity's bounding box volume to work out its 
  *     mass in the application of physics.
  *
  * @property {boolean} collisionless=false - Whether or not the entity should collide with items per its 
@@ -528,13 +529,17 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} href="" - A "hifi://" metaverse address that a user is taken to when they click on the entity.
  * @property {string} description="" - A description of the <code>href</code> property value.
  *
- * @property {string} userData="" - Intended to be used to store extra data about the entity in JSON format. WARNING: Other 
- *     apps such as the Create app can also use this property, so make sure you handle data stored by other apps.
+ * @property {string} userData="" - Used to store extra data about the entity in JSON format. WARNING: Other apps such as the 
+ *     Create app can also use this property, so make sure you handle data stored by other apps &mdash; edit only your bit and 
+ *     leave the rest of the data intact. You can use <code>JSON.parse()</code> to parse the string into a JavaScript object 
+ *     which you can manipulate the properties of, and use <code>JSON.stringify()</code> to convert the object into a string to 
+ *     put in the property.
  *
  * @property {string} script="" - The URL of the client entity script, if any, that is attached to the entity.
  * @property {number} scriptTimestamp=0 - Intended to be used to indicate when the client entity script was loaded. Should be 
  *     an integer number of milliseconds since midnight GMT on January 1, 1970 (e.g., as supplied by <code>Date.now()</code>. 
- *     If you update the property's value, the <code>script</code> is re-downloaded and reloaded.
+ *     If you update the property's value, the <code>script</code> is re-downloaded and reloaded. This is how the "reload" 
+ *     button beside the "script URL" field in properties tab of the Create app works.
  * @property {string} serverScripts="" - The URL of the server entity script, if any, that is attached to the entity.
  *
  * @property {Uuid} parentID=Uuid.NULL - The ID of the entity or avatar that this entity is parented to. {@link Uuid|Uuid.NULL} 
@@ -564,7 +569,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} actionData="" - Base-64 encoded compressed dump of the actions associated with the entity. This property
  *     is typically not used in scripts directly; rather, functions that manipulate an entity's actions update it.
  *     The size of this property increases with the number of actions. Because this property value has to fit within a High 
- *     Fidelity datagram packet there is a limit to the number of actions that an entity can have.
+ *     Fidelity datagram packet there is a limit to the number of actions that an entity can have, and edits which would result 
+ *     in overflow are rejected.
  *     <em>Read-only.</em>
  * @property {Entities.RenderInfo} renderInfo - Information on the cost of rendering the entity. Currently information is only 
  *     provided for <code>Model</code> entities. <em>Read-only.</em>
@@ -603,9 +609,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 
 /**jsdoc
  * The <code>"Box"</code> {@link Entities.EntityType|EntityType} is the same as the <code>"Shape"</code>
- * {@link Entities.EntityType|EntityType} except that its initial <code>shape</code> value is always set to <code>"Cube"</code>
- * when the entity is created. This property value can subsequently be changed (i.e. so that the entity is no longer displayed 
- * as a cube).
+ * {@link Entities.EntityType|EntityType} except that its <code>shape</code> value is always set to <code>"Cube"</code>
+ * when the entity is created. If its <code>shape</code> property value is subsequently changed then the entity's 
+ * <code>type</code> will be reported as <code>"Sphere"</code> if the <code>shape</code> is set to <code>"Sphere"</code>, 
+ * otherwise it will be reported as <code>"Shape"</code>.
  * @typedef {object} Entities.EntityProperties-Box
  */
 
@@ -619,7 +626,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} intensity=1 - The brightness of the light.
  * @property {number} falloffRadius=0.1 - The distance from the light's center at which intensity is reduced by 25%.
  * @property {boolean} isSpotlight=false - If <code>true</code> then the light is directional, emitting along the entity's
- *     negative z-axis; otherwise the light is a point light which emanates in all directions.
+ *     local negative z-axis; otherwise the light is a point light which emanates in all directions.
  * @property {number} exponent=0 - Affects the softness of the spotlight beam: the higher the value the softer the beam.
  * @property {number} cutoff=1.57 - Affects the size of the spotlight beam: the higher the value the larger the beam.
  * @example <caption>Create a spotlight pointing at the ground.</caption>
@@ -724,15 +731,16 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @typedef {object} Entities.EntityProperties-Model
  * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity. When adding an entity, if no <code>dimensions</code> 
  *     value is specified then the model is automatically sized to its 
- *     <code>{@link Entityes.EntityProperties|naturalDimensions}</code>.
+ *     <code>{@link Entities.EntityProperties|naturalDimensions}</code>.
  * @property {Color} color=255,255,255 - <em>Currently not used.</em>
  * @property {string} modelURL="" - The URL of the FBX of OBJ model. Baked FBX models' URLs end in ".baked.fbx".<br />
  *     Note: If the name ends with <code>"default-image-model.fbx"</code> then the entity is considered to be an "Image" 
  *     entity, in which case the <code>textures</code> property should be set per the example.
  * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
- *     model's original textures. Only the texture names and URLs to be overridden need be specified; original textures are 
- *     used where there are no overrides. You can use <code>JSON.stringify()</code> to convert a JavaScript object of name, URL 
- *     pairs into a JSON string.
+ *     model's original textures. Use a texture name from the <code>originanlTextures</code> property to override that texture. 
+ *     Only the texture names and URLs to be overridden need be specified; original textures are used where there are no 
+ *     overrides. You can use <code>JSON.stringify()</code> to convert a JavaScript object of name, URL pairs into a JSON 
+ *     string.
  * @property {string} originalTextures="{}" - A JSON string of texture name, URL pairs used in the model. The property value is 
  *     filled in after the entity has finished rezzing (i.e., textures have loaded). You can use <code>JSON.parse()</code> to 
  *     parse the JSON string into a JavaScript object of name, URL pairs. <em>Read-only.</em>
@@ -773,7 +781,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     dimensions: { x: 0.0945, y: 0.0921, z: 0.0423 },
  *     lifetime: 300  // Delete after 5 minutes.
  * });
- * @example <caption>Crate an "Image" entity like the Create app.</caption>
+ * @example <caption>Create an "Image" entity like you can in the Create app.</caption>
  * var IMAGE_MODEL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
  * var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
  * var entity = Entities.addEntity({
@@ -807,7 +815,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} emitSpeed=5 - The speed, in m/s, that each particle is emitted at.
  * @property {number} speedSpread=1 - The spread in speeds at which particles are emitted at. If <code>emitSpeed == 5</code> 
  *     and <code>speedSpread == 1</code>, particles will be emitted with speeds in the range 4m/s &ndash; 6m/s.
- * @property {vec3} emitAcceleration=0,-9.8,0 - The acceleration that is applied to each particle during its lifetime.
+ * @property {vec3} emitAcceleration=0,-9.8,0 - The acceleration that is applied to each particle during its lifetime. The 
+ *     default is Earth's gravity value.
  * @property {vec3} accelerationSpread=0,0,0 - The spread in accelerations that each particle is given. If
  *     <code>emitAccelerations == {x: 0, y: -9.8, z: 0}</code> and <code>accelerationSpread ==
  *     {x: 0, y: 1, z: 0}</code>, each particle will have an acceleration in the range, <code>{x: 0, y: -10.8, z: 0}</code> 
@@ -818,40 +827,46 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     otherwise they stay with the entity's dimensions.
  *
  * @property {Quat} emitOrientation=-0.707,0,0,0.707 - The orientation of particle emission relative to the entity's axes. By
- *     default, particles emit along the entity's z-axis, and <code>azimuthStart</code> and <code>azimuthFinish</code> are 
- *     relative to the entity's x-axis. The default value is a rotation of -90 degrees about the x-axis, i.e., the particles 
- *     emit vertically.
+ *     default, particles emit along the entity's local z-axis, and <code>azimuthStart</code> and <code>azimuthFinish</code> 
+ *     are relative to the entity's local x-axis. The default value is a rotation of -90 degrees about the local x-axis, i.e., 
+ *     the particles emit vertically.
  * @property {vec3} emitDimensions=0,0,0 - The dimensions of the ellipsoid from which particles are emitted.
  * @property {number} emitRadiusStart=1 - The starting radius within the ellipsoid at which particles start being emitted;
  *     range <code>0.0</code> &ndash; <code>1.0</code> for the ellipsoid center to the ellipsoid surface, respectively.
  *     Particles are emitted from the portion of the ellipsoid that lies between <code>emitRadiusStart</code> and the 
  *     ellipsoid's surface.
- * @property {number} polarStart=0 - The angle in radians from the entity's z-axis at which particles start being emitted 
+ * @property {number} polarStart=0 - The angle in radians from the entity's local z-axis at which particles start being emitted 
  *     within the ellipsoid; range <code>0</code> &ndash; <code>Math.PI</code>. Particles are emitted from the portion of the 
  *     ellipsoid that lies between <code>polarStart<code> and <code>polarFinish</code>.
- * @property {number} polarFinish=0 - The angle in radians from the entity's z-axis at which particles stop being emitted 
+ * @property {number} polarFinish=0 - The angle in radians from the entity's local z-axis at which particles stop being emitted 
  *     within the ellipsoid; range <code>0</code> &ndash; <code>Math.PI</code>. Particles are emitted from the portion of the 
  *     ellipsoid that lies between <code>polarStart<code> and <code>polarFinish</code>.
- * @property {number} azimuthStart=-Math.PI - The angle in radians from the entity's x-axis about the entity's z-axis at which 
- *     particles start being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are emitted from the 
- *     portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
- * @property {number} azimuthFinish=Math.PI - The angle in radians from the entity's x-axis about the entity's z-axis at which 
- *     particles stop being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are emitted from the 
- *     portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
+ * @property {number} azimuthStart=-Math.PI - The angle in radians from the entity's local x-axis about the entity's local 
+ *     z-axis at which particles start being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are 
+ *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
+ * @property {number} azimuthFinish=Math.PI - The angle in radians from the entity's local x-axis about the entity's local 
+ *     z-axis at which particles stop being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are 
+ *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
  *
  * @property {string} textures="" - The URL of a JPG or PNG image file to display for each particle. If you want transparency, 
  *     use PNG format.
  * @property {number} particleRadius=0.025 - The radius of each particle at the middle of its life.
- * @property {number} radiusStart=0.025 - The radius of each particle at the start of its life.
- * @property {number} radiusFinish=0.025 - The radius of each particle at the end of its life.
+ * @property {number} radiusStart=0.025 - The radius of each particle at the start of its life. If not explicitly set, the 
+ *     <code>particleRadius</code> value is used.
+ * @property {number} radiusFinish=0.025 - The radius of each particle at the end of its life. If not explicitly set, the 
+ *     <code>particleRadius</code> value is used.
  * @property {number} radiusSpread=0 - <em>Currently not used.</em>
  * @property {Color} color=255,255,255 - The color of each particle at the middle of its life.
- * @property {Color} colorStart=255,255,255 - The color of each particle at the start of its life.
- * @property {color} colorFinish=255,255,255 - The color of each particle at the end of its life.
+ * @property {Color} colorStart=255,255,255 - The color of each particle at the start of its life. If not explicitly set, the 
+ *     <code>color</code> value is used.
+ * @property {Color} colorFinish=255,255,255 - The color of each particle at the end of its life. If not explicitly set, the 
+ *     <code>color</code> value is used.
  * @property {Color} colorSpread=0,0,0 - <em>Currently not used.</em>
  * @property {number} alpha=1 - The alpha of each particle at the middle of its life.
- * @property {number} alphaStart=1 - The alpha of each particle at the start of its life.
- * @property {number} alphaFinish=1 - The alpha of each particle at the end of its life.
+ * @property {number} alphaStart=1 - The alpha of each particle at the start of its life. If not explicitly set, the 
+ *     <code>alpha</code> value is used.
+ * @property {number} alphaFinish=1 - The alpha of each particle at the end of its life. If not explicitly set, the 
+ *     <code>alpha</code> value is used.
  * @property {number} alphaSpread=0 - <em>Currently not used.</em>
  *
  * @property {ShapeType} shapeType="none" - <em>Currently not used.</em> <em>Read-only.</em>
@@ -939,24 +954,24 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     rejected.
  * @property {Entities.PolyVoxSurfaceStyle} voxelSurfaceStyle=2 - The style of rendering the voxels' surface and how 
  *     neighboring PolyVox entities are joined.
- * @property {string} xTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's x-axis. JPG or PNG
- *     format. If no texture is specified the surfaces display white.
- * @property {string} yTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's y-axis. JPG or PNG
- *     format. If no texture is specified the surfaces display white.
- * @property {string} zTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's z-axis. JPG or PNG
- *     format. If no texture is specified the surfaces display white.
- * @property {Uuid} xNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve x-axis direction, if you 
- *     want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
- * @property {Uuid} yNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve y-axis direction, if you 
- *     want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
- * @property {Uuid} zNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve z-axis direction, if you 
- *     want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
- * @property {Uuid} xPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve x-axis direction, if you 
- *     want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
- * @property {Uuid} yPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve y-axis direction, if you 
- *     want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
- * @property {Uuid} zPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve z-axis direction, if you 
- *     want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {string} xTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's local x-axis. JPG or
+ *     PNG format. If no texture is specified the surfaces display white.
+ * @property {string} yTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's local y-axis. JPG or 
+ *     PNG format. If no texture is specified the surfaces display white.
+ * @property {string} zTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's local z-axis. JPG or 
+ *     PNG format. If no texture is specified the surfaces display white.
+ * @property {Uuid} xNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local x-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} yNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local y-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} zNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local z-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} xPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local x-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} yPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local y-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} zPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local z-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
  * @example <caption>Create a textured PolyVox sphere.</caption>
  * var position = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -8 }));
  * var texture = "http://public.highfidelity.com/cozza13/tuscany/Concrete2.jpg";
@@ -991,9 +1006,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 
 /**jsdoc
  * The <code>"Sphere"</code> {@link Entities.EntityType|EntityType} is the same as the <code>"Shape"</code>
- * {@link Entities.EntityType|EntityType} except that its initial <code>shape</code> value is always set to 
- * <code>"Sphere"</code> when the entity is created. This property value can subsequently be changed (i.e. so that the entity 
- * is no longer displayed as a sphere).
+ * {@link Entities.EntityType|EntityType} except that its <code>shape</code> value is always set to <code>"Sphere"</code>
+ * when the entity is created. If its <code>shape</code> property value is subsequently changed then the entity's 
+ * <code>type</code> will be reported as <code>"Box"</code> if the <code>shape</code> is set to <code>"Cube"</code>, 
+ * otherwise it will be reported as <code>"Shape"</code>.
  * @typedef {object} Entities.EntityProperties-Sphere
  */
 
@@ -1030,7 +1046,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Vec3} dimensions=0.1,0.1,0.01 - The dimensions of the entity.
  * @property {string} sourceUrl="" - The URL of the Web page to display. This value does not change as you or others navigate 
  *     on the Web entity.
- * @property {number} dpi=30 - The resolution to display the page at, in dots per inch
+ * @property {number} dpi=30 - The resolution to display the page at, in dots per inch. If you convert this to dots per meter 
+ *     (multiply by 1 / 0.0254 = 39.3701) then multiply <code>dimensions.x</code> and <code>dimensions.y</code> by that value 
+ *     you get the resolution in pixels.
  * @example <caption>Create a Web entity displaying at 1920 x 1080 resolution.</caption>
  * var METERS_TO_INCHES = 39.3701;
  * var entity = Entities.addEntity({
@@ -1050,6 +1068,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 
 /**jsdoc
  * The <code>"Zone"</code> {@link Entities.EntityType|EntityType} is a volume of lighting effects and avatar permissions.
+ * Avatar interaction events such as {@link Entities.enterEntity} are also often used with a Zone entity.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  * @typedef {object} Entities.EntityProperties-Zone
  * @property {Vec3} dimensions=0.1,0.1,0.1 - The size of the volume in which the zone's lighting effects and avatar permissions 
@@ -1247,7 +1266,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, getShapeTypeAsString());
     }
     
-    // FIXME: Shouldn't provide a shapeType property for Box and Sphere entities?
+    // FIXME: Shouldn't provide a shapeType property for Box and Sphere entities.
     if (_type == EntityTypes::Box) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, QString("Box"));
     }

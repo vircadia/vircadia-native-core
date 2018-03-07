@@ -102,12 +102,12 @@ variables.  These argument variables are used by the code which is run when bull
 *   </thead>
 *   <tbody>
 *     <tr><td><code>"far-grab"</code></td><td>Avatar action</td>
-*       <td>Moves and rotates an entity to a target position and orientation, optionally relative to another entity, such that 
-*       the entity doesn't collide with the user's avatar.</td>
+*       <td>Moves and rotates an entity to a target position and orientation, optionally relative to another entity. Collisions 
+*       between the entity and the user's avatar are disabled during the far-grab.</td>
 *       <td>{@link Entities.ActionArguments-FarGrab}</td></tr>
 *     <tr><td><code>"hold"</code></td><td>Avatar action</td>
-*       <td>Positions and rotates an entity relative to an avatar's hand, without collisions between the entity and the holding 
-*       avatar.</td>
+*       <td>Positions and rotates an entity relative to an avatar's hand. Collisions between the entity and the user's avatar 
+*       are disabled during the hold.</td>
 *       <td>{@link Entities.ActionArguments-Hold}</td></tr>
 *     <tr><td><code>"offset"</code></td><td>Object action</td>
 *       <td>Moves an entity so that it is a set distance away from a target point.</td>

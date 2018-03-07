@@ -17,7 +17,8 @@
 
 /**jsdoc
  * The <code>"far-grab"</code> {@link Entities.ActionType|ActionType} moves and rotates an entity to a target position and 
- * orientation, optionally relative to another entity, such that the entity doesn't collide with the user's avatar.
+ * orientation, optionally relative to another entity. Collisions between the entity and the user's avatar are disabled during 
+ * the far-grab.
  * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}.
  *
  * @typedef {object} Entities.ActionArguments-FarGrab

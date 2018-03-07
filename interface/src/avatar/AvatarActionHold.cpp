@@ -417,8 +417,8 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
 }
 
 /**jsdoc
- * The <code>"hold"</code> {@link Entities.ActionType|ActionType} positions and rotates an entity relative to an avatar's hand,  
- * without collisions between the entity and the holding avatar.
+ * The <code>"hold"</code> {@link Entities.ActionType|ActionType} positions and rotates an entity relative to an avatar's hand. 
+ * Collisions between the entity and the user's avatar are disabled during the hold.
  * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}.
  *
  * @typedef {object} Entities.ActionArguments-Hold
