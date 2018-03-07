@@ -262,22 +262,28 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
     const QList<QTouchEvent::TouchPoint>& tPoints = event->touchPoints();
     bool leftTouchFound = false;
     bool rightTouchFound = false;
+    glm::vec2 thisPoint;
     for (int i = 0; i < _touchPointCount; ++i) {
-        glm::vec2 thisPoint(tPoints[i].pos().x(), tPoints[i].pos().y());
-        if (_validTouchLeft) {
-            leftTouchFound = true;
-            touchLeftUpdate(thisPoint);
-        } else if (touchLeftBeginPointIsValid(thisPoint)) {
-            if (!leftTouchFound) {
+        thisPoint.x = tPoints[i].pos().x();
+        thisPoint.y = tPoints[i].pos().y();
+        // left side and the first one detected counts
+        if (thisPoint.x < _screenWidthCenter && !leftTouchFound) {
+            if (_validTouchLeft) {
+                // valid if it's an ongoing touch
                 leftTouchFound = true;
-                touchLeftBegin(thisPoint);
-            }
-        } else {
+                touchLeftUpdate(thisPoint);
+            } else if (touchLeftBeginPointIsValid(thisPoint)) {
+                // valid if it's start point is valid
+                    leftTouchFound = true;
+                    touchLeftBegin(thisPoint);
+            } // if it wasn't even a valid starting point, it won't count as left touch valid
+        } else  if (thisPoint.x >= _screenWidthCenter) { // right side
             if (!rightTouchFound) {
                 rightTouchFound = true;
                 if (!_validTouchRight) {
                     touchRightBegin(thisPoint);
                 } else {
+                    // as we don't have a stick on the right side, there is no condition to process right touch
                     touchRightUpdate(thisPoint);
                 }
             }
