@@ -255,7 +255,7 @@
         }));
     }
 
-    function updateButtonClicked(id, name, author, href, referrer, certId) {
+    function updateButtonClicked(id, name, author, href, referrer) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "UPDATE",
             isUpdating: true,
@@ -264,8 +264,7 @@
             itemPrice: 0,
             itemHref: href,
             referrer: referrer,
-            itemAuthor: author,
-            certificateId: certId
+            itemAuthor: author
         }));
     }
 
@@ -436,13 +435,12 @@
                 purchaseButton.on('click', function () {
                     var urlParams = new URLSearchParams(window.location.search);
 
-                    if (window.location.href.indexOf('certificateId=' != -1)) {
+                    if (window.location.href.indexOf('edition=' != -1)) { // "Upgrading" case
                         updateButtonClicked(window.location.pathname.split("/")[3],
                             $('#top-center').find('h1').text(),
                             $('#creator').find('.value').text(),
                             href,
-                            "itemPage",
-                            urlParams.get('certificateId'));
+                            "itemPage");
                     } else if ('available' === availability) {
                         buyButtonClicked(window.location.pathname.split("/")[3],
                             $('#top-center').find('h1').text(),

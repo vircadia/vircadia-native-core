@@ -52,6 +52,7 @@ Rectangle {
     property string referrer;
     property bool isInstalled;
     property bool isUpdating;
+    property string baseAppURL;
     // Style
     color: hifi.colors.white;
     Connections {
@@ -106,9 +107,9 @@ Rectangle {
             if (result.status !== 'success') {
                 console.log("Failed to get balance", result.data.message);
             } else {
-                root.balanceReceived = true;
                 root.balanceAfterPurchase = result.data.balance - root.itemPrice;
                 root.refreshBuyUI();
+                root.balanceReceived = true;
             }
         }
 
@@ -116,7 +117,6 @@ Rectangle {
             if (result.status !== 'success') {
                 console.log("Failed to get Already Owned status", result.data.message);
             } else {
-                root.ownershipStatusReceived = true;
                 if (result.data.marketplace_item_id === root.itemId) {
                     root.alreadyOwned = result.data.already_owned;
                 } else {
@@ -124,6 +124,7 @@ Rectangle {
                     root.alreadyOwned = false;
                 }
                 root.refreshBuyUI();
+                root.ownershipStatusReceived = true;
             }
         }
 
@@ -137,13 +138,20 @@ Rectangle {
             if (result.status !== 'success') {
                 console.log("Failed to get Available Updates", result.data.message);
             } else {
-                root.availableUpdatesReceived = true;
                 for (var i = 0; i < result.data.updates.length; i++) {
-                    if (result.data.updates[i].item_id === root.itemId) {
+                    // If the ItemID of the item we're looking at matches EITHER the ID of a "base" item
+                    // OR the ID of an "upgrade" item, we're updating.
+                    if (root.itemId === result.data.updates[i].item_id ||
+                        root.itemId === result.data.updates[i].updated_item_id) {
                         root.isUpdating = true;
+                        root.certificateId = result.data.updates[i].certificate_id;
+                        if (root.itemType === "app") {
+                            root.baseAppURL = result.data.updates[i].base_download_url;
+                        }
                         break;
                     }
                 }
+                root.availableUpdatesReceived = true;
             }
         }
 
@@ -587,6 +595,11 @@ Rectangle {
                     (viewInMyPurchasesButton.visible ? "Buy It Again" : "Confirm Purchase") : "--") : "Get Item"));
                 onClicked: {
                     if (root.isUpdating) {
+                        // If we're updating an app, the existing app needs to be uninstalled.
+                        // This call will fail/return `false` if the app isn't installed, but that's OK.
+                        if (root.itemType === "app") {
+                            Commerce.uninstallApp(root.baseAppURL);
+                        }
                         Commerce.updateItem(root.certificateId);
                     } else if (root.isCertified) {
                         if (!root.shouldBuyWithControlledFailure) {
@@ -1047,7 +1060,6 @@ Rectangle {
                 root.itemHref = message.params.itemHref;
                 root.referrer = message.params.referrer;
                 root.itemAuthor = message.params.itemAuthor;
-                root.certificateId = message.params.certificateId;
                 refreshBuyUI();
             break;
             default:

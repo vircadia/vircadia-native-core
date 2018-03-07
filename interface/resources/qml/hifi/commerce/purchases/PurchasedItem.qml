@@ -681,7 +681,7 @@ Item {
                 verticalAlignment: Text.AlignVCenter;
 
                 onLinkActivated: {
-                    sendToPurchases({method: 'updateItemClicked', itemId: root.itemId, itemEdition: root.itemEdition, upgradeUrl: root.upgradeUrl, certificateId: root.certificateId});
+                    sendToPurchases({method: 'updateItemClicked', itemId: root.itemId, itemEdition: root.itemEdition, upgradeUrl: root.upgradeUrl});
                 }
             }
         }
