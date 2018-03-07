@@ -138,11 +138,12 @@ ItemKey ShapeEntityRenderer::getKey() {
 }
 
 bool ShapeEntityRenderer::useMaterialPipeline() const {
-    withReadLock([&] {
-        if (_procedural.isReady()) {
-            return false;
-        }
+    bool proceduralReady = resultWithReadLock<bool>([&] {
+        return _procedural.isReady();
     });
+    if (proceduralReady) {
+        return false;
+    }
 
     graphics::MaterialKey drawMaterialKey;
     auto mat = _materials.find("0");

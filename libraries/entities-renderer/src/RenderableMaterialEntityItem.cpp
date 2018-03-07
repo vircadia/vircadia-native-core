@@ -123,5 +123,5 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
     // Draw!
     DependencyManager::get<GeometryCache>()->renderSphere(batch);
 
-    args->_details._trianglesRendered += DependencyManager::get<GeometryCache>()->getSphereTriangleCount();
+    args->_details._trianglesRendered += (int)DependencyManager::get<GeometryCache>()->getSphereTriangleCount();
 }

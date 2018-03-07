@@ -22,7 +22,7 @@ Solid<3> tesselate(const Solid<3>& solid_, int count) {
     Solid<3> solid = solid_;
     float length = glm::length(solid.vertices[0]);
     for (int i = 0; i < count; ++i) {
-        Solid<3> result { solid.vertices, {} };
+        Solid<3> result { solid.vertices, {}, {} };
         result.vertices.reserve(solid.vertices.size() + solid.faces.size() * 6);
         for (size_t f = 0; f < solid.faces.size(); ++f) {
             Index baseVertex = (Index)result.vertices.size();
@@ -171,16 +171,16 @@ const Solid<5>& dodecahedron() {
     // 1 = 3 * x1 + 3 * x2 + x3
     // x1 + 2 * x3 = (golden ratio) * x1
     // x2 = x1 + 2 * x3
-    static const float x1 = 4.0f / (17.0f + 7.0f * sqrt(5.0f));
-    static const float x2 = (1.0f / 11.0f) * (5.0f * sqrt(5.0f) - 9.0f);
+    static const float x1 = 4.0f / (17.0f + 7.0f * sqrtf(5.0f));
+    static const float x2 = (1.0f / 11.0f) * (5.0f * sqrtf(5.0f) - 9.0f);
     static const float x2_2 = x2 / 2.0f;
-    static const float x3 = (1.0f / 11.0f) * (6.0f * sqrt(5.0f) - 13.0f);
+    static const float x3 = (1.0f / 11.0f) * (6.0f * sqrtf(5.0f) - 13.0f);
     // y1 and y2 are the solutions to the following system of equations (x is the sidelength, but is different than x1 because the scale in the y direction is different):
     // 1 = 3 * y1 + 2 * y2
     // y1 = sin(108 deg) * x
-    // y1 + y2 = x * sqrt(5 + 2 * sqrt(5)) / 2
-    static const float y1 = sqrt(2.0f * (5.0f + sqrt(5.0f))) / (sqrt(2.0f * (5.0f + sqrt(5.0f))) + 4.0f * sqrt(5.0f + 2.0f * sqrt(5.0f)));
-    static const float y2 = -(sqrt(2.0f * (5.0f + sqrt(5.0f))) - 2.0f * sqrt(5.0f + 2.0f * sqrt(5.0f))) / (sqrt(2.0f * (5.0f + sqrt(5.0f))) + 4.0f * sqrt(5.0f + 2.0f * sqrt(5.0f)));
+    // y1 + y2 = x * sqrtf(5 + 2 * sqrtf(5)) / 2
+    static const float y1 = sqrtf(2.0f * (5.0f + sqrtf(5.0f))) / (sqrtf(2.0f * (5.0f + sqrtf(5.0f))) + 4.0f * sqrtf(5.0f + 2.0f * sqrtf(5.0f)));
+    static const float y2 = -(sqrtf(2.0f * (5.0f + sqrtf(5.0f))) - 2.0f * sqrtf(5.0f + 2.0f * sqrtf(5.0f))) / (sqrtf(2.0f * (5.0f + sqrtf(5.0f))) + 4.0f * sqrtf(5.0f + 2.0f * sqrtf(5.0f)));
 
     static const Solid<5> DODECAHEDRON = Solid<5>{
         {

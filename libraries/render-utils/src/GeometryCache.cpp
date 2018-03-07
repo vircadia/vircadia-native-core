@@ -401,7 +401,7 @@ vec2 calculateSphereTexCoord(const vec3& vertex) {
 }
 
 vec3 calculateSphereTangent(float u) {
-    float phi = u * M_PI * 2.0f;
+    float phi = u * (float)M_PI * 2.0f;
     return -glm::normalize(glm::vec3(glm::sin(phi), 0.0f, glm::cos(phi)));
 }
 
@@ -414,7 +414,6 @@ void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid
     for (const auto& vertex : shape.vertices) {
         addVec3ToVector(vertices, vertex);
         addVec3ToVector(vertices, vertex);
-        vec2 uv = calculateSphereTexCoord(vertex);
         addVec2ToVector(vertices, calculateSphereTexCoord(vertex));
         // We'll fill in the correct tangents later, once we correct the UVs
         addVec3ToVector(vertices, vec3(0.0f));
