@@ -147,7 +147,7 @@ Rectangle {
                         // This CertID is the one corresponding to the base item CertID that the user already owns
                         root.certificateId = result.data.updates[i].certificate_id;
                         if (root.itemType === "app") {
-                            root.baseAppURL = result.data.updates[i].base_download_url;
+                            root.baseAppURL = result.data.updates[i].item_download_url;
                         }
                         break;
                     }
