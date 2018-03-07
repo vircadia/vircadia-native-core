@@ -71,7 +71,7 @@ void PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<
         uint32_t& nextToUpdate, uint64_t expiry, bool shouldPickHUD) {
     PickCache results;
     const uint32_t INVALID_PICK_ID = 0;
-    auto iter = picks.begin();
+    auto itr = picks.begin();
     if (nextToUpdate != INVALID_PICK_ID) {
         itr = picks.find(nextToUpdate);
         if (itr == picks.end()) {
