@@ -493,7 +493,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
 
     if (!properties.getClientOnly() && getIsClient() &&
         !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp() &&
-        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified()) {
+        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified() && !_serverlessDomain) {
         return nullptr;
     }
 
