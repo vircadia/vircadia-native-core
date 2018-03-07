@@ -41,7 +41,7 @@ public:
 public slots:
     virtual bool shouldLoopbackInjectors() { return false; }
     
-    virtual void setIsStereoInput(bool stereo) = 0;
+    virtual bool setIsStereoInput(bool stereo) = 0;
 };
 
 Q_DECLARE_METATYPE(AbstractAudioInterface*)
