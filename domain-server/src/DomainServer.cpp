@@ -1941,7 +1941,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
 
-    auto getSetting = [this](QString keyPath, QVariant value) -> bool {
+    auto getSetting = [this](QString keyPath, QVariant& value) -> bool {
 
         value = _settingsManager.valueForKeyPath(keyPath);
         if (!value.isValid()) {
