@@ -40,12 +40,6 @@ Item {
             var keys = Object.keys(properties).forEach(function (key) {
                 button[key] = properties[key];
             });
-            button.entered.connect(function() {
-                Controller.setVPadEnabled(false);
-            });
-            button.exited.connect(function() {
-                Controller.setVPadEnabled(true);
-            });            
             return button;
         } else if( component.status == Component.Error) {
             console.log("Load button errors " + component.errorString());
