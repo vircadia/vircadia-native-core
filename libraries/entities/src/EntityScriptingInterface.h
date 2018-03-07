@@ -928,6 +928,23 @@ public slots:
      * @returns {Quat} The rotation of the joint in the entity's coordinate frame if the entity is a
      *     {@link Entities.EntityType|Model} entity, the entity is loaded, and the joint index is valid; otherwise 
      *     <code>{@link Quat(0)|Quat.IDENTITY}</code>.
+     * @example <caption>Compare the local and absolute rotations of an avatar model's left hand joint.</caption>
+     * entityID = Entities.addEntity({
+     *     type: "Model",
+     *     modelURL: "https://hifi-content.s3.amazonaws.com/milad/production/Examples/Models/Avatars/blue_suited.fbx",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+     *     rotation: MyAvatar.orientation,
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     *
+     * Script.setTimeout(function () {
+     *     // Joint data aren't available until after the model has loaded.
+     *     var index = Entities.getJointIndex(entityID, "LeftHand");
+     *     var localRotation = Entities.getLocalJointRotation(entityID, index);
+     *     var absoluteRotation = Entities.getAbsoluteJointRotationInObjectFrame(entityID, index);
+     *     print("Left hand local rotation: " + JSON.stringify(Quat.safeEulerAngles(localRotation)));
+     *     print("Left hand absolute rotation: " + JSON.stringify(Quat.safeEulerAngles(absoluteRotation)));
+     * }, 2000);
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE glm::quat getAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex);
@@ -953,6 +970,23 @@ public slots:
      * @param {Quat} rotation - The rotation relative to the entity's coordinate frame to set the joint to.
      * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityType|Model} entity, the entity is loaded, 
      *     the joint index is valid, and the rotation is different to the joint's current rotation; otherwise <code>false</code>.
+     * @example <caption>Raise an avatar model's left palm.</caption>
+     * entityID = Entities.addEntity({
+     *     type: "Model",
+     *     modelURL: "https://hifi-content.s3.amazonaws.com/milad/production/Examples/Models/Avatars/blue_suited.fbx",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+     *     rotation: MyAvatar.orientation,
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     *
+     * Script.setTimeout(function () {
+     *     // Joint data aren't available until after the model has loaded.
+     *     var index = Entities.getJointIndex(entityID, "LeftHand");
+     *     var absoluteRotation = Entities.getAbsoluteJointRotationInObjectFrame(entityID, index);
+     *     absoluteRotation = Quat.multiply(Quat.fromPitchYawRollDegrees(0, 0, 90), absoluteRotation);
+     *     var success = Entities.setAbsoluteJointRotationInObjectFrame(entityID, index, absoluteRotation);
+     *     print("Success: " + success);
+     * }, 2000);
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE bool setAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex, glm::quat rotation);
@@ -976,6 +1010,21 @@ public slots:
      * @param {number} jointIndex - The integer index of the joint.
      * @returns {Quat} The local rotation of the joint if the entity is a {@link Entities.EntityType|Model} entity, the entity 
      *     is loaded, and the joint index is valid; otherwise <code>{@link Quat(0)|Quat.IDENTITY}</code>.
+     * @example <caption>Report the local rotation of an avatar model's head joint.</caption>
+     * entityID = Entities.addEntity({
+     *     type: "Model",
+     *     modelURL: "https://hifi-content.s3.amazonaws.com/milad/production/Examples/Models/Avatars/blue_suited.fbx",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+     *     rotation: MyAvatar.orientation,
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     *
+     * Script.setTimeout(function () {
+     *     // Joint data aren't available until after the model has loaded.
+     *     var index = Entities.getJointIndex(entityID, "Head");
+     *     var rotation = Entities.getLocalJointRotation(entityID,  index);
+     *     print("Head local rotation: " + JSON.stringify(Quat.safeEulerAngles(rotation)));
+     * }, 2000);
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE glm::quat getLocalJointRotation(const QUuid& entityID, int jointIndex);
@@ -1001,6 +1050,22 @@ public slots:
      * @param {Quat} rotation - The local rotation to set the joint to.
      * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityType|Model} entity, the entity is loaded, 
      *     the joint index is valid, and the rotation is different to the joint's current rotation; otherwise <code>false</code>.
+     * @example <caption>Make an avatar model turn its head left.</caption>
+     * entityID = Entities.addEntity({
+     *     type: "Model",
+     *     modelURL: "https://hifi-content.s3.amazonaws.com/milad/production/Examples/Models/Avatars/blue_suited.fbx",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+     *     rotation: MyAvatar.orientation,
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     *
+     * Script.setTimeout(function () {
+     *     // Joint data aren't available until after the model has loaded.
+     *     var index = Entities.getJointIndex(entityID, "Head");
+     *     var rotation = Quat.fromPitchYawRollDegrees(0, 60, 0);
+     *     var success = Entities.setLocalJointRotation(entityID, index, rotation);
+     *     print("Success: " + success);
+     * }, 2000);
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE bool setLocalJointRotation(const QUuid& entityID, int jointIndex, glm::quat rotation);
@@ -1026,6 +1091,36 @@ public slots:
      * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityType|Model} entity, the entity is loaded, 
      *     the model has joints, and at least one of the rotations is different to the model's current rotations; otherwise 
      *     <code>false</code>.
+     * @example <caption>Raise both palms of an avatar model.</caption>
+     * entityID = Entities.addEntity({
+     *     type: "Model",
+     *     modelURL: "https://hifi-content.s3.amazonaws.com/milad/production/Examples/Models/Avatars/blue_suited.fbx",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+     *     rotation: MyAvatar.orientation,
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     *
+     * Script.setTimeout(function () {
+     *     // Joint data aren't available until after the model has loaded.
+     *
+     *     // Get all the joint rotations.
+     *     var jointNames = Entities.getJointNames(entityID);
+     *     var jointRotations = [];
+     *     for (var i = 0, length = jointNames.length; i < length; i++) {
+     *         var index = Entities.getJointIndex(entityID, jointNames[i]);
+     *         jointRotations.push(Entities.getLocalJointRotation(entityID, index));
+     *     }
+     *
+     *     // Raise both palms.
+     *     var index = jointNames.indexOf("LeftHand");
+     *     jointRotations[index] = Quat.multiply(Quat.fromPitchYawRollDegrees(-90, 0, 0), jointRotations[index]);
+     *     index = jointNames.indexOf("RightHand");
+     *     jointRotations[index] = Quat.multiply(Quat.fromPitchYawRollDegrees(-90, 0, 0), jointRotations[index]);
+     *
+     *     // Update all the joint rotations.
+     *     var success = Entities.setLocalJointRotations(entityID, jointRotations);
+     *     print("Success: " + success);
+     * }, 2000);
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE bool setLocalJointRotations(const QUuid& entityID, const QVector<glm::quat>& rotations);
@@ -1054,6 +1149,20 @@ public slots:
      * @returns {number} The integer index of the joint if the entity is a {@link Entities.EntityType|Model} entity, the entity 
      *     is loaded, and the joint is present; otherwise <code>-1</code>. The joint indexes are in order per 
      *     {@link Entities.getJointNames|getJointNames}.
+     * @example <caption>Report the index of a model's head joint.</caption>
+     * entityID = Entities.addEntity({
+     *     type: "Model",
+     *     modelURL: "https://hifi-content.s3.amazonaws.com/milad/production/Examples/Models/Avatars/blue_suited.fbx",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+     *     rotation: MyAvatar.orientation,
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     *
+     * Script.setTimeout(function () {
+     *     // Joint data aren't available until after the model has loaded.
+     *     var index = Entities.getJointIndex(entityID, "Head");
+     *     print("Head joint index: " + index);
+     * }, 2000);
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name);
@@ -1064,6 +1173,20 @@ public slots:
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|Model} entity.
      * @returns {string[]} The names of all the joints in the entity if it is a {@link Entities.EntityType|Model} entity and 
      *     is loaded, otherwise an empty array. The joint names are in order per {@link Entities.getJointIndex|getJointIndex}.
+     * @example <caption>Report a model's joint names.</caption>
+     * entityID = Entities.addEntity({
+     *     type: "Model",
+     *     modelURL: "https://hifi-content.s3.amazonaws.com/milad/production/Examples/Models/Avatars/blue_suited.fbx",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+     *     rotation: MyAvatar.orientation,
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     *
+     * Script.setTimeout(function () {
+     *     // Joint data aren't available until after the model has loaded.
+     *     var jointNames = Entities.getJointNames(entityID);
+     *     print("Joint names: " + JSON.stringify(jointNames));
+     * }, 2000);
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE QStringList getJointNames(const QUuid& entityID);
