@@ -175,7 +175,7 @@ Rectangle {
         root.ownershipStatusReceived = false;
         Commerce.alreadyOwned(root.itemId);
         root.availableUpdatesReceived = false;
-        Commerce.getAvailableUpdates();
+        Commerce.getAvailableUpdates(root.itemId);
         itemPreviewImage.source = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/" + itemId + "/thumbnail/hifi-mp-" + itemId + ".jpg";
     }
 

@@ -346,9 +346,9 @@ bool QmlCommerce::openApp(const QString& itemHref) {
     return true;
 }
 
-void QmlCommerce::getAvailableUpdates() {
+void QmlCommerce::getAvailableUpdates(const QString& itemId) {
     auto ledger = DependencyManager::get<Ledger>();
-    ledger->getAvailableUpdates();
+    ledger->getAvailableUpdates(itemId);
 }
 
 void QmlCommerce::updateItem(const QString& certificateId) {

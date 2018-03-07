@@ -366,11 +366,14 @@ void Ledger::alreadyOwned(const QString& marketplaceId) {
     send(endpoint, "alreadyOwnedSuccess", "alreadyOwnedFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
 }
 
-void Ledger::getAvailableUpdates() {
+void Ledger::getAvailableUpdates(const QString& itemId) {
     auto wallet = DependencyManager::get<Wallet>();
     QString endpoint = "available_updates";
     QJsonObject request;
     request["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
+    if (!itemId.isEmpty()) {
+        request["marketplace_item_id"] = itemId;
+    }
     send(endpoint, "availableUpdatesSuccess", "availableUpdatesFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
 }
 

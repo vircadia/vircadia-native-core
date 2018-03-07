@@ -36,7 +36,7 @@ public:
     void transferHfcToNode(const QString& hfc_key, const QString& nodeID, const int& amount, const QString& optionalMessage);
     void transferHfcToUsername(const QString& hfc_key, const QString& username, const int& amount, const QString& optionalMessage);
     void alreadyOwned(const QString& marketplaceId);
-    void getAvailableUpdates();
+    void getAvailableUpdates(const QString& itemId = "");
     void updateItem(const QString& hfc_key, const QString& certificate_id);
 
     enum CertificateStatus {
