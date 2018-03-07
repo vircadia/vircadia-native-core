@@ -396,10 +396,12 @@ function savePermissions() {
 
   var admins = $('#admin-usernames').val().split(',');
 
-  var existingAdmins = Settings.data.values.security.permissions.map(function(value) {
-    return value.permissions_id;
-  });
-  admins = admins.concat(existingAdmins);
+  if (Settings.data.values.security.permissions) {
+    var existingAdmins = Settings.data.values.security.permissions.map(function(value) {
+      return value.permissions_id;
+    });
+    admins = admins.concat(existingAdmins);
+  }
 
   // Filter out unique values
   admins = _.uniq(admins.map(function(username) {

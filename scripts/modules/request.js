@@ -71,7 +71,7 @@ module.exports = {
             }
         }
         httpRequest.open(options.method, options.uri, true);
-        httpRequest.send(options.body);
+        httpRequest.send(options.body || null);
         }
 };
 

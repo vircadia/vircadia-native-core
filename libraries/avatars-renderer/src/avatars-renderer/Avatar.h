@@ -20,6 +20,7 @@
 #include <AvatarData.h>
 #include <ShapeInfo.h>
 #include <render/Scene.h>
+#include <graphics-scripting/Forward.h>
 #include <GLMHelpers.h>
 
 
@@ -53,7 +54,7 @@ class Texture;
 
 using AvatarPhysicsCallback = std::function<void(uint32_t)>;
 
-class Avatar : public AvatarData {
+class Avatar : public AvatarData, public scriptable::ModelProvider {
     Q_OBJECT
 
     /**jsdoc
@@ -272,6 +273,11 @@ public:
 
     virtual void setAvatarEntityDataChanged(bool value) override;
 
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
+
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
@@ -397,6 +403,11 @@ protected:
     float _displayNameAlpha { 1.0f };
 
     ThreadSafeValueCache<float> _unscaledEyeHeightCache { DEFAULT_AVATAR_EYE_HEIGHT };
+
+    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
+    std::mutex _materialsLock;
+
+    void processMaterials();
 };
 
 #endif // hifi_Avatar_h

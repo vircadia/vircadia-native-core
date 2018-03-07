@@ -12,8 +12,25 @@
 
 #include <ViewFrustum.h>
 
-
 using namespace render;
+
+void Octree::PerspectiveSelector::setAngle(float a) {
+    const float MAX_LOD_ANGLE = glm::radians(45.0f);
+    const float MIN_LOD_ANGLE = glm::radians(1.0f / 60.0f);
+
+    angle = std::max(MIN_LOD_ANGLE, std::min(MAX_LOD_ANGLE, a));
+    auto tanAlpha = tan(angle);
+    squareTanAlpha = (float)(tanAlpha * tanAlpha);
+}
+
+float Octree::PerspectiveSelector::testThreshold(const Coord3f& point, float size) const {
+    auto eyeToPoint = point - eyePos;
+    return (size * size / glm::dot(eyeToPoint, eyeToPoint)) - squareTanAlpha;
+}
+
+float Octree::OrthographicSelector::testThreshold(const Coord3f& point, float size) const {
+    return (size * size) - squareMinSize;
+}
 
 
 const float Octree::INV_DEPTH_DIM[] = {
@@ -520,10 +537,9 @@ int Octree::selectTraverse(Index cellID, CellSelection& selection, const Frustum
 
             // Test for lod
             auto cellLocation = cell.getlocation();
-            float lod = selector.testSolidAngle(cellLocation.getCenter(), Octree::getCoordSubcellWidth(cellLocation.depth));
-            if (lod < 0.0f) {
+            float test = selector.testThreshold(cellLocation.getCenter(), Octree::getCoordSubcellWidth(cellLocation.depth));
+            if (test < 0.0f) {
                 return 0;
-                break;
             }
 
             // Select this cell partially in frustum
@@ -543,13 +559,13 @@ int Octree::selectTraverse(Index cellID, CellSelection& selection, const Frustum
 }
 
 
-int  Octree::selectBranch(Index cellID, CellSelection& selection, const FrustumSelector& selector) const {
+int Octree::selectBranch(Index cellID, CellSelection& selection, const FrustumSelector& selector) const {
     int numSelectedsIn = (int) selection.size();
     auto cell = getConcreteCell(cellID);
 
     auto cellLocation = cell.getlocation();
-    float lod = selector.testSolidAngle(cellLocation.getCenter(), Octree::getCoordSubcellWidth(cellLocation.depth));
-    if (lod < 0.0f) {
+    float test = selector.testThreshold(cellLocation.getCenter(), Octree::getCoordSubcellWidth(cellLocation.depth));
+    if (test < 0.0f) {
         return 0;
     }
 
@@ -580,24 +596,40 @@ int Octree::selectCellBrick(Index cellID, CellSelection& selection, bool inside)
     return (int) selection.size() - numSelectedsIn;
 }
 
-
-int ItemSpatialTree::selectCells(CellSelection& selection, const ViewFrustum& frustum, float lodAngle) const {
+int ItemSpatialTree::selectCells(CellSelection& selection, const ViewFrustum& frustum, float threshold) const {
     auto worldPlanes = frustum.getPlanes();
-    FrustumSelector selector;
-    for (int i = 0; i < ViewFrustum::NUM_PLANES; i++) {
-        ::Plane octPlane;
-        octPlane.setNormalAndPoint(worldPlanes[i].getNormal(), evalCoordf(worldPlanes[i].getPoint(), ROOT_DEPTH));
-        selector.frustum[i] = Coord4f(octPlane.getNormal(), octPlane.getDCoefficient());
+    if (frustum.isPerspective()) {
+        PerspectiveSelector selector;
+        for (int i = 0; i < ViewFrustum::NUM_PLANES; i++) {
+            ::Plane octPlane;
+            octPlane.setNormalAndPoint(worldPlanes[i].getNormal(), evalCoordf(worldPlanes[i].getPoint(), ROOT_DEPTH));
+            selector.frustum[i] = Coord4f(octPlane.getNormal(), octPlane.getDCoefficient());
+        }
+
+        selector.eyePos = evalCoordf(frustum.getPosition(), ROOT_DEPTH);
+        selector.setAngle(threshold);
+
+        return Octree::select(selection, selector);
+    } else {
+        OrthographicSelector selector;
+        for (int i = 0; i < ViewFrustum::NUM_PLANES; i++) {
+            ::Plane octPlane;
+            octPlane.setNormalAndPoint(worldPlanes[i].getNormal(), evalCoordf(worldPlanes[i].getPoint(), ROOT_DEPTH));
+            selector.frustum[i] = Coord4f(octPlane.getNormal(), octPlane.getDCoefficient());
+        }
+
+        // Divide the threshold (which is in world distance units) by the dimension of the octree
+        // as all further computations will be done in normalized octree units
+        threshold *= getInvCellWidth(ROOT_DEPTH);
+        selector.setSize(threshold);
+
+        return Octree::select(selection, selector);
     }
-
-    selector.eyePos = evalCoordf(frustum.getPosition(), ROOT_DEPTH);
-    selector.setAngle(glm::radians(lodAngle));
-
-    return Octree::select(selection, selector);
 }
 
-int ItemSpatialTree::selectCellItems(ItemSelection& selection, const ItemFilter& filter, const ViewFrustum& frustum, float lodAngle) const {
-    selectCells(selection.cellSelection, frustum, lodAngle);
+int ItemSpatialTree::selectCellItems(ItemSelection& selection, const ItemFilter& filter, const ViewFrustum& frustum, 
+                                     float threshold) const {
+    selectCells(selection.cellSelection, frustum, threshold);
 
     // Just grab the items in every selected bricks
     for (auto brickId : selection.cellSelection.insideBricks) {

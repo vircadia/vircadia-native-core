@@ -57,7 +57,8 @@ public:
     enum FilterType {
         Add,
         Edit,
-        Physics
+        Physics,
+        Delete
     };
     EntityTree(bool shouldReaverage = false);
     virtual ~EntityTree();
@@ -132,9 +133,9 @@ public:
     /// \param position point of query in world-frame (meters)
     /// \param targetRadius radius of query (meters)
     EntityItemPointer findClosestEntity(const glm::vec3& position, float targetRadius);
-    EntityItemPointer findEntityByID(const QUuid& id);
-    EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID);
-    virtual SpatiallyNestablePointer findByID(const QUuid& id) override { return findEntityByID(id); }
+    EntityItemPointer findEntityByID(const QUuid& id) const;
+    EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID) const;
+    virtual SpatiallyNestablePointer findByID(const QUuid& id) const override { return findEntityByID(id); }
 
     EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
 
@@ -193,6 +194,8 @@ public:
 
     int processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
     int processEraseMessageDetails(const QByteArray& buffer, const SharedNodePointer& sourceNode);
+    bool shouldEraseEntity(EntityItemID entityID, const SharedNodePointer& sourceNode);
+
 
     EntityTreeElementPointer getContainingElement(const EntityItemID& entityItemID)  /*const*/;
     void addEntityMapEntry(EntityItemPointer entity);
@@ -279,6 +282,21 @@ public:
     bool verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id);
 
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
+
+    static void setAddMaterialToEntityOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToEntityOperator) { _addMaterialToEntityOperator = addMaterialToEntityOperator; }
+    static void setRemoveMaterialFromEntityOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromEntityOperator) { _removeMaterialFromEntityOperator = removeMaterialFromEntityOperator; }
+    static bool addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName);
+    static bool removeMaterialFromEntity(const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+
+    static void setAddMaterialToAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToAvatarOperator) { _addMaterialToAvatarOperator = addMaterialToAvatarOperator; }
+    static void setRemoveMaterialFromAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromAvatarOperator) { _removeMaterialFromAvatarOperator = removeMaterialFromAvatarOperator; }
+    static bool addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName);
+    static bool removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+
+    static void setAddMaterialToOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToOverlayOperator) { _addMaterialToOverlayOperator = addMaterialToOverlayOperator; }
+    static void setRemoveMaterialFromOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromOverlayOperator) { _removeMaterialFromOverlayOperator = removeMaterialFromOverlayOperator; }
+    static bool addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName);
+    static bool removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName);
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -387,6 +405,13 @@ private:
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation);
 
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };
+
+    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToEntityOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromEntityOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToAvatarOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromAvatarOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToOverlayOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromOverlayOperator;
 };
 
 #endif // hifi_EntityTree_h

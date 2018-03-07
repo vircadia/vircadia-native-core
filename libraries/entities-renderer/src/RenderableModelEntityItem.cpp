@@ -133,6 +133,9 @@ void RenderableModelEntityItem::doInitialModelSimulation() {
     model->setRotation(getWorldOrientation());
     model->setTranslation(getWorldPosition());
 
+    glm::vec3 scale = model->getScale();
+    model->setUseDualQuaternionSkinning(!isNonUniformScale(scale));
+
     if (_needsInitialSimulation) {
         model->simulate(0.0f);
         _needsInitialSimulation = false;
@@ -243,6 +246,8 @@ void RenderableModelEntityItem::updateModelBounds() {
     }
 
     if (updateRenderItems) {
+        glm::vec3 scale = model->getScale();
+        model->setUseDualQuaternionSkinning(!isNonUniformScale(scale));
         model->updateRenderItems();
     }
 }
@@ -950,6 +955,7 @@ QStringList RenderableModelEntityItem::getJointNames() const {
     return result;
 }
 
+// FIXME: deprecated; remove >= RC67
 bool RenderableModelEntityItem::getMeshes(MeshProxyList& result) {
     auto model = getModel();
     if (!model || !model->isLoaded()) {
@@ -957,6 +963,34 @@ bool RenderableModelEntityItem::getMeshes(MeshProxyList& result) {
     }
     BLOCKING_INVOKE_METHOD(model.get(), "getMeshes", Q_RETURN_ARG(MeshProxyList, result));
     return !result.isEmpty();
+}
+
+scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScriptableModel() {
+    auto model = resultWithReadLock<ModelPointer>([this]{ return _model; });
+
+    if (!model || !model->isLoaded()) {
+        return scriptable::ScriptableModelBase();
+    }
+
+    auto result = _model->getScriptableModel();
+    result.objectID = getEntity()->getID();
+    return result;
+}
+
+bool render::entities::ModelEntityRenderer::canReplaceModelMeshPart(int meshIndex, int partIndex) {
+    // TODO: for now this method is just used to indicate that this provider generally supports mesh updates
+    auto model = resultWithReadLock<ModelPointer>([this]{ return _model; });
+    return model && model->isLoaded();
+}
+
+bool render::entities::ModelEntityRenderer::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer newModel, int meshIndex, int partIndex) {
+    auto model = resultWithReadLock<ModelPointer>([this]{ return _model; });
+
+    if (!model || !model->isLoaded()) {
+        return false;
+    }
+
+    return model->replaceScriptableModelMeshPart(newModel, meshIndex, partIndex);
 }
 
 void RenderableModelEntityItem::simulateRelayedJoints() {
@@ -985,6 +1019,7 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
         return;
     }
 
+    bool changed { false };
     // relay any inbound joint changes from scripts/animation/network to the model/rig
     _jointDataLock.withWriteLock([&] {
         for (int index = 0; index < _localJointData.size(); ++index) {
@@ -992,13 +1027,21 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
             if (jointData.rotationDirty) {
                 model->setJointRotation(index, true, jointData.joint.rotation, 1.0f);
                 jointData.rotationDirty = false;
+                changed = true;
             }
             if (jointData.translationDirty) {
                 model->setJointTranslation(index, true, jointData.joint.translation, 1.0f);
                 jointData.translationDirty = false;
+                changed = true;
             }
         }
     });
+
+    if (changed) {
+        forEachChild([&](SpatiallyNestablePointer object) {
+            object->locationChanged(false);
+        });
+    }
 }
 
 using namespace render;
@@ -1042,7 +1085,6 @@ void ModelEntityRenderer::removeFromScene(const ScenePointer& scene, Transaction
 void ModelEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity) {
     entity->setModel({});
 }
-
 
 void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     if (!_animation || !_animation->isLoaded()) {
@@ -1267,6 +1309,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
                 auto entityRenderer = static_cast<EntityRenderer*>(&data);
                 entityRenderer->clearSubRenderItemIDs();
             });
+            emit DependencyManager::get<scriptable::ModelProviderFactory>()->
+                modelRemovedFromScene(entity->getEntityItemID(), NestableType::Entity, _model);
         }
         return;
     }
@@ -1277,6 +1321,10 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         connect(model.get(), &Model::setURLFinished, this, [&](bool didVisualGeometryRequestSucceed) {
             setKey(didVisualGeometryRequestSucceed);
             emit requestRenderUpdate();
+            if(didVisualGeometryRequestSucceed) {
+                emit DependencyManager::get<scriptable::ModelProviderFactory>()->
+                    modelAddedToScene(entity->getEntityItemID(), NestableType::Entity, _model);
+            }
         });
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         connect(entity.get(), &RenderableModelEntityItem::requestCollisionGeometryUpdate, this, &ModelEntityRenderer::flagForCollisionGeometryUpdate);
@@ -1343,7 +1391,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
         //        the renderable item. As it stands now the model checks it's visible/invisible state
         //        so most of the time we don't do anything in this function.
-        model->setVisibleInScene(_visible, scene, viewTaskBits);
+        model->setVisibleInScene(_visible, scene, viewTaskBits, false);
     }
     // TODO? early exit here when not visible?
 
@@ -1380,6 +1428,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
                 auto entityRenderer = static_cast<EntityRenderer*>(&data);
                 entityRenderer->setSubRenderItemIDs(newRenderItemIDs);
             });
+            processMaterials();
         }
     }
 
@@ -1466,3 +1515,28 @@ void ModelEntityRenderer::mapJoints(const TypedEntityPointer& entity, const QStr
     }
 }
 
+void ModelEntityRenderer::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    Parent::addMaterial(material, parentMaterialName);
+    if (_model && _model->fetchRenderItemIDs().size() > 0) {
+        _model->addMaterial(material, parentMaterialName);
+    }
+}
+
+void ModelEntityRenderer::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    Parent::removeMaterial(material, parentMaterialName);
+    if (_model && _model->fetchRenderItemIDs().size() > 0) {
+        _model->removeMaterial(material, parentMaterialName);
+    }
+}
+
+void ModelEntityRenderer::processMaterials() {
+    assert(_model);
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    for (auto& shapeMaterialPair : _materials) {
+        auto material = shapeMaterialPair.second;
+        while (!material.empty()) {
+            _model->addMaterial(material.top(), shapeMaterialPair.first);
+            material.pop();
+        }
+    }
+}

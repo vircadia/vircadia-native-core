@@ -42,11 +42,17 @@ signals:
     void historyResult(QJsonObject result);
     void accountResult(QJsonObject result);
     void certificateInfoResult(QJsonObject result);
+    void alreadyOwnedResult(QJsonObject result);
 
     void updateCertificateStatus(const QString& certID, uint certStatus);
 
     void transferHfcToNodeResult(QJsonObject result);
     void transferHfcToUsernameResult(QJsonObject result);
+
+    void contentSetChanged(const QString& contentSetHref);
+
+    void appInstalled(const QString& appHref);
+    void appUninstalled(const QString& appHref);
 
 protected:
     Q_INVOKABLE void getWalletStatus();
@@ -55,10 +61,12 @@ protected:
     Q_INVOKABLE void getKeyFilePathIfExists();
     Q_INVOKABLE void getSecurityImage();
     Q_INVOKABLE void getWalletAuthenticatedStatus();
+    Q_INVOKABLE bool copyKeyFileFrom(const QString& pathname);
 
     Q_INVOKABLE void chooseSecurityImage(const QString& imageFile);
     Q_INVOKABLE void setPassphrase(const QString& passphrase);
     Q_INVOKABLE void changePassphrase(const QString& oldPassphrase, const QString& newPassphrase);
+    Q_INVOKABLE void setSoftReset();
 
     Q_INVOKABLE void buy(const QString& assetId, int cost, const bool controlledFailure = false);
     Q_INVOKABLE void balance();
@@ -68,9 +76,20 @@ protected:
     Q_INVOKABLE void account();
 
     Q_INVOKABLE void certificateInfo(const QString& certificateId);
+    Q_INVOKABLE void alreadyOwned(const QString& marketplaceId);
 
     Q_INVOKABLE void transferHfcToNode(const QString& nodeID, const int& amount, const QString& optionalMessage);
     Q_INVOKABLE void transferHfcToUsername(const QString& username, const int& amount, const QString& optionalMessage);
+
+    Q_INVOKABLE void replaceContentSet(const QString& itemHref);
+
+    Q_INVOKABLE QString getInstalledApps();
+    Q_INVOKABLE bool installApp(const QString& appHref);
+    Q_INVOKABLE bool uninstallApp(const QString& appHref);
+    Q_INVOKABLE bool openApp(const QString& appHref);
+
+private:
+    QString _appsPath;
 };
 
 #endif // hifi_QmlCommerce_h

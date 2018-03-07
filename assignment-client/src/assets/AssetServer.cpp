@@ -257,12 +257,10 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     _transferTaskPool.setMaxThreadCount(TASK_POOL_THREAD_COUNT);
     _bakingTaskPool.setMaxThreadCount(1);
 
+    // Queue all requests until the Asset Server is fully setup
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
-    packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
-    packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
-    packetReceiver.registerListener(PacketType::AssetMappingOperation, this, "handleAssetMappingOperation");
-    
+    packetReceiver.registerListenerForTypes({ PacketType::AssetGet, PacketType::AssetGetInfo, PacketType::AssetUpload, PacketType::AssetMappingOperation }, this, "queueRequests");
+
 #ifdef Q_OS_WIN
     updateConsumedCores();
     QTimer* timer = new QTimer(this);
@@ -291,6 +289,7 @@ void AssetServer::aboutToFinish() {
         if (pendingRunnable) {
             it = _pendingBakes.erase(it);
         } else {
+            qDebug() << "Aborting bake for" << it.key();
             it.value()->abort();
             ++it;
         }
@@ -396,6 +395,7 @@ void AssetServer::completeSetup() {
 
         if (_fileMappings.size() > 0) {
             cleanupUnmappedFiles();
+            cleanupBakedFilesForDeletedAssets();
         }
 
         nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
@@ -417,10 +417,65 @@ void AssetServer::completeSetup() {
 
     PathUtils::removeTemporaryApplicationDirs();
     PathUtils::removeTemporaryApplicationDirs("Oven");
+
+    qCDebug(asset_server) << "Overriding temporary queuing packet handler.";
+    // We're fully setup, override the request queueing handler and replay all requests
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
+    packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
+    packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
+    packetReceiver.registerListener(PacketType::AssetMappingOperation, this, "handleAssetMappingOperation");
+
+    replayRequests();
+}
+
+void AssetServer::queueRequests(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode) {
+    qCDebug(asset_server) << "Queuing requests until fully setup";
+
+    QMutexLocker lock { &_queuedRequestsMutex };
+    _queuedRequests.push_back({ packet, senderNode });
+
+    // If we've stopped queueing but the callback was already in flight,
+    // then replay it immediately.
+    if (!_isQueueingRequests) {
+        lock.unlock();
+        replayRequests();
+    }
+}
+
+void AssetServer::replayRequests() {
+    RequestQueue queue;
+    {
+        QMutexLocker lock { &_queuedRequestsMutex };
+        std::swap(queue, _queuedRequests);
+        _isQueueingRequests = false;
+    }
+
+    qCDebug(asset_server) << "Replaying" << queue.size() << "requests.";
+
+    for (const auto& request : queue) {
+        switch (request.first->getType()) {
+            case PacketType::AssetGet:
+                handleAssetGet(request.first, request.second);
+                break;
+            case PacketType::AssetGetInfo:
+                handleAssetGetInfo(request.first, request.second);
+                break;
+            case PacketType::AssetUpload:
+                handleAssetUpload(request.first, request.second);
+                break;
+            case PacketType::AssetMappingOperation:
+                handleAssetMappingOperation(request.first, request.second);
+                break;
+            default:
+                qCWarning(asset_server) << "Unknown queued request type:" << request.first->getType();
+                break;
+        }
+    }
 }
 
 void AssetServer::cleanupUnmappedFiles() {
-    QRegExp hashFileRegex { "^[a-f0-9]{" + QString::number(AssetUtils::SHA256_HASH_HEX_LENGTH) + "}" };
+    QRegExp hashFileRegex { AssetUtils::ASSET_HASH_REGEX_STRING };
 
     auto files = _filesDirectory.entryInfoList(QDir::Files);
 
@@ -452,6 +507,38 @@ void AssetServer::cleanupUnmappedFiles() {
     }
 }
 
+void AssetServer::cleanupBakedFilesForDeletedAssets() {
+    qCInfo(asset_server) << "Performing baked asset cleanup for deleted assets";
+
+    std::set<AssetUtils::AssetHash> bakedHashes;
+
+    for (const auto& it : _fileMappings) {
+        // check if this is a mapping to baked content
+        if (it.first.startsWith(AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER)) {
+            // extract the hash from the baked mapping
+            AssetUtils::AssetHash hash = it.first.mid(AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER.length(),
+                                                      AssetUtils::SHA256_HASH_HEX_LENGTH);
+
+            // add the hash to our set of hashes for which we have baked content
+            bakedHashes.insert(hash);
+        }
+    }
+
+    // enumerate the hashes for which we have baked content
+    for (const auto& hash : bakedHashes) {
+        // check if we have a mapping that points to this hash
+        auto matchingMapping = std::find_if(std::begin(_fileMappings), std::end(_fileMappings),
+                                            [&hash](const std::pair<AssetUtils::AssetPath, AssetUtils::AssetHash> mappingPair) {
+            return mappingPair.second == hash;
+        });
+
+        if (matchingMapping == std::end(_fileMappings)) {
+            // we didn't find a mapping for this hash, remove any baked content we still have for it
+            removeBakedPathsForDeletedAsset(hash);
+        }
+    }
+}
+
 void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     using AssetMappingOperationType = AssetUtils::AssetMappingOperationType;
 
@@ -464,32 +551,41 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
     auto replyPacket = NLPacketList::create(PacketType::AssetMappingOperationReply, QByteArray(), true, true);
     replyPacket->writePrimitive(messageID);
 
+    bool canWriteToAssetServer = true;
+    if (senderNode) {
+        canWriteToAssetServer = senderNode->getCanWriteToAssetServer();
+    }
+
     switch (operationType) {
         case AssetMappingOperationType::Get:
-            handleGetMappingOperation(*message, senderNode, *replyPacket);
+            handleGetMappingOperation(*message, *replyPacket);
             break;
         case AssetMappingOperationType::GetAll:
-            handleGetAllMappingOperation(*message, senderNode, *replyPacket);
+            handleGetAllMappingOperation(*replyPacket);
             break;
         case AssetMappingOperationType::Set:
-            handleSetMappingOperation(*message, senderNode, *replyPacket);
+            handleSetMappingOperation(*message, canWriteToAssetServer, *replyPacket);
             break;
         case AssetMappingOperationType::Delete:
-            handleDeleteMappingsOperation(*message, senderNode, *replyPacket);
+            handleDeleteMappingsOperation(*message, canWriteToAssetServer, *replyPacket);
             break;
         case AssetMappingOperationType::Rename:
-            handleRenameMappingOperation(*message, senderNode, *replyPacket);
+            handleRenameMappingOperation(*message, canWriteToAssetServer, *replyPacket);
             break;
         case AssetMappingOperationType::SetBakingEnabled:
-            handleSetBakingEnabledOperation(*message, senderNode, *replyPacket);
+            handleSetBakingEnabledOperation(*message, canWriteToAssetServer, *replyPacket);
             break;
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacketList(std::move(replyPacket), *senderNode);
+    if (senderNode) {
+        nodeList->sendPacketList(std::move(replyPacket), *senderNode);
+    } else {
+        nodeList->sendPacketList(std::move(replyPacket), message->getSenderSockAddr());
+    }
 }
 
-void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
+void AssetServer::handleGetMappingOperation(ReceivedMessage& message, NLPacketList& replyPacket) {
     QString assetPath = message.readString();
 
     QUrl url { assetPath };
@@ -568,7 +664,7 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
     }
 }
 
-void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
+void AssetServer::handleGetAllMappingOperation(NLPacketList& replyPacket) {
     replyPacket.writePrimitive(AssetUtils::AssetServerError::NoError);
 
     uint32_t count = (uint32_t)_fileMappings.size();
@@ -591,8 +687,8 @@ void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedN
     }
 }
 
-void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
-    if (senderNode->getCanWriteToAssetServer()) {
+void AssetServer::handleSetMappingOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket) {
+    if (hasWriteAccess) {
         QString assetPath = message.readString();
 
         auto assetHash = message.read(AssetUtils::SHA256_HASH_LENGTH).toHex();
@@ -614,8 +710,8 @@ void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNode
     }
 }
 
-void AssetServer::handleDeleteMappingsOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
-    if (senderNode->getCanWriteToAssetServer()) {
+void AssetServer::handleDeleteMappingsOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket) {
+    if (hasWriteAccess) {
         int numberOfDeletedMappings { 0 };
         message.readPrimitive(&numberOfDeletedMappings);
 
@@ -642,8 +738,8 @@ void AssetServer::handleDeleteMappingsOperation(ReceivedMessage& message, Shared
     }
 }
 
-void AssetServer::handleRenameMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
-    if (senderNode->getCanWriteToAssetServer()) {
+void AssetServer::handleRenameMappingOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket) {
+    if (hasWriteAccess) {
         QString oldPath = message.readString();
         QString newPath = message.readString();
 
@@ -664,8 +760,8 @@ void AssetServer::handleRenameMappingOperation(ReceivedMessage& message, SharedN
     }
 }
 
-void AssetServer::handleSetBakingEnabledOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
-    if (senderNode->getCanWriteToAssetServer()) {
+void AssetServer::handleSetBakingEnabledOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket) {
+    if (hasWriteAccess) {
         bool enabled { true };
         message.readPrimitive(&enabled);
 
@@ -739,9 +835,14 @@ void AssetServer::handleAssetGet(QSharedPointer<ReceivedMessage> message, Shared
 }
 
 void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    bool canWriteToAssetServer = true;
+    if (senderNode) {
+        canWriteToAssetServer = senderNode->getCanWriteToAssetServer();
+    }
 
-    if (senderNode->getCanWriteToAssetServer()) {
-        qCDebug(asset_server) << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
+
+    if (canWriteToAssetServer) {
+        qCDebug(asset_server) << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(message->getSourceID());
 
         auto task = new UploadAssetTask(message, senderNode, _filesDirectory, _filesizeLimit);
         _transferTaskPool.start(task);
@@ -761,7 +862,11 @@ void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, Sha
 
         // send off the packet
         auto nodeList = DependencyManager::get<NodeList>();
-        nodeList->sendPacket(std::move(permissionErrorPacket), *senderNode);
+        if (senderNode) {
+            nodeList->sendPacket(std::move(permissionErrorPacket), *senderNode);
+        } else {
+            nodeList->sendPacket(std::move(permissionErrorPacket), message->getSenderSockAddr());
+        }
     }
 }
 
@@ -1283,6 +1388,8 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
 }
 
 void AssetServer::handleAbortedBake(QString originalAssetHash, QString assetPath) {
+    qDebug() << "Aborted bake:" << originalAssetHash;
+
     // for an aborted bake we don't do anything but remove the BakeAssetTask from our pending bakes
     _pendingBakes.remove(originalAssetHash);
 }

@@ -9,13 +9,15 @@
 
 #include "AnimDebugDraw.h"
 
-#include <gpu/Shader.h>
 #include <gpu/Batch.h>
 #include <GLMHelpers.h>
 
 #include "AbstractViewStateInterface.h"
 #include "RenderUtilsLogging.h"
 #include "DebugDraw.h"
+
+#include "animdebugdraw_vert.h"
+#include "animdebugdraw_frag.h"
 
 #include "animdebugdraw_vert.h"
 #include "animdebugdraw_frag.h"

@@ -92,6 +92,10 @@ public:
 
     void removeFromIgnoreMuteSets(const QUuid& nodeID);
 
+    virtual bool isDomainServer() const override { return false; }
+    virtual QUuid getDomainUUID() const override { return _domainHandler.getUUID(); }
+    virtual HifiSockAddr getDomainSockAddr() const override { return _domainHandler.getSockAddr(); }
+
 public slots:
     void reset(bool skipDomainHandlerReset = false);
     void resetFromDomainHandler() { reset(true); }
@@ -172,7 +176,11 @@ private:
     tbb::concurrent_unordered_map<QUuid, float, UUIDHasher> _avatarGainMap;
 
     void sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationNode);
+#if defined(Q_OS_ANDROID)
+    Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", false };
+#else
     Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", true };
+#endif
 
 #if (PR_BUILD || DEV_BUILD)
     bool _shouldSendNewerVersion { false };

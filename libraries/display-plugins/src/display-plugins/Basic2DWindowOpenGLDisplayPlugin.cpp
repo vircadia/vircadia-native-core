@@ -24,6 +24,7 @@ const QString Basic2DWindowOpenGLDisplayPlugin::NAME("Desktop");
 static const QString FULLSCREEN = "Fullscreen";
 
 void Basic2DWindowOpenGLDisplayPlugin::customizeContext() {
+#if defined(Q_OS_ANDROID)
     auto iconPath = PathUtils::resourcesPath() + "images/analog_stick.png";
     auto image = QImage(iconPath);
     qreal dpi = getFullscreenTarget()->physicalDotsPerInch();
@@ -68,8 +69,7 @@ void Basic2DWindowOpenGLDisplayPlugin::customizeContext() {
         _virtualPadStickBaseTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         _virtualPadStickBaseTexture->setAutoGenerateMips(true);
     }
-
-
+#endif
     Parent::customizeContext();
 }
 
@@ -95,6 +95,7 @@ bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
 }
 
 void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
+#if defined(Q_OS_ANDROID)
     auto& virtualPadManager = VirtualPad::Manager::instance();
     if(virtualPadManager.getLeftVirtualPad()->isShown()) {
         // render stick base
@@ -124,6 +125,7 @@ void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         });
     }
+#endif
     Parent::compositeExtra();
 }
 

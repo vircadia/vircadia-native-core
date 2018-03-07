@@ -59,16 +59,32 @@ extern "C" FILE * __cdecl __iob_func(void) {
 #include <QSysInfo>
 #include <QThread>
 
+#include <BuildInfo.h>
+
+#include "LogHandler.h"
 #include "NumericalConstants.h"
 #include "OctalCode.h"
 #include "SharedLogging.h"
 
+//     Global instances are stored inside the QApplication properties
+// to provide a single instance across DLL boundaries.
+// This is something we cannot do here since several DLLs
+// and our main binaries statically link this "shared" library
+// resulting in multiple static memory blocks in different constexts
+//     But we need to be able to use global instances before the QApplication
+// is setup, so to accomplish that we stage the global instances in a local
+// map and setup a pre routine (commitGlobalInstances) that will run in the
+// QApplication constructor and commit all the staged instances to the
+// QApplication properties.
+//     Note: One of the side effects of this, is that no DLL loaded before
+// the QApplication is constructed, can expect to access the existing staged
+// global instanced. For this reason, we advise all DLLs be loaded after
+// the QApplication is instanced.
+static std::mutex stagedGlobalInstancesMutex;
 static std::unordered_map<std::string, QVariant> stagedGlobalInstances;
 
-
 std::mutex& globalInstancesMutex() {
-    static std::mutex mutex;
-    return mutex;
+    return stagedGlobalInstancesMutex;
 }
 
 static void commitGlobalInstances() {
@@ -78,7 +94,13 @@ static void commitGlobalInstances() {
     }
     stagedGlobalInstances.clear();
 }
-FIXED_Q_COREAPP_STARTUP_FUNCTION(commitGlobalInstances)
+
+// This call is necessary for global instances to work across DLL boundaries
+// Ideally, this founction would be called at the top of the main function.
+// See description at the top of the file.
+void setupGlobalInstances() {
+    qAddPreRoutine(commitGlobalInstances);
+}
 
 QVariant getGlobalInstance(const char* propertyName) {
     if (qApp) {
@@ -105,7 +127,7 @@ void usecTimestampNowForceClockSkew(qint64 clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
-static qint64 TIME_REFERENCE = 0; // in usec
+static std::atomic<qint64> TIME_REFERENCE { 0 }; // in usec
 static std::once_flag usecTimestampNowIsInitialized;
 static QElapsedTimer timestampTimer;
 
@@ -771,6 +793,10 @@ QString formatUsecTime(double usecs) {
     return formatUsecTime<double>(usecs);
 }
 
+QString formatSecTime(qint64 secs) {
+    return formatUsecTime(secs * 1000000);
+}
+
 
 QString formatSecondsElapsed(float seconds) {
     QString result;
@@ -813,8 +839,8 @@ bool similarStrings(const QString& stringA, const QString& stringB) {
 }
 
 void disableQtBearerPoll() {
-    // to disable the Qt constant wireless scanning, set the env for polling interval
-    qDebug() << "Disabling Qt wireless polling by using a negative value for QTimer::setInterval";
+    // To disable the Qt constant wireless scanning, set the env for polling interval to -1
+    // The constant polling causes ping spikes on windows every 10 seconds or so that affect the audio
     const QByteArray DISABLE_BEARER_POLL_TIMEOUT = QString::number(-1).toLocal8Bit();
     qputenv("QT_BEARER_POLL_TIMEOUT", DISABLE_BEARER_POLL_TIMEOUT);
 }
@@ -1176,6 +1202,32 @@ void watchParentProcess(int parentPID) {
 }
 #endif
 
+void setupHifiApplication(QString applicationName) {
+    disableQtBearerPoll(); // Fixes wifi ping spikes
+
+    // Those calls are necessary to format the log correctly
+    // and to direct the application to the correct location
+    // for read/writes into AppData and other platform equivalents.
+    QCoreApplication::setApplicationName(applicationName);
+    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
+    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
+    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
+
+    // This ensures the global instances mechanism is correctly setup.
+    // You can find more details as to why this is important in the SharedUtil.h/cpp files
+    setupGlobalInstances();
+
+#ifndef WIN32
+    // Windows tends to hold onto log lines until it has a sizeable buffer
+    // This makes the log feel unresponsive and trap useful log data in the log buffer
+    // when a crash occurs.
+    //Force windows to flush the buffer on each new line character to avoid this.
+    setvbuf(stdout, NULL, _IOLBF, 0);
+#endif
+
+    // Install the standard hifi message handler so we get consistant log formatting
+    qInstallMessageHandler(LogHandler::verboseMessageHandler);
+}
 
 #ifdef Q_OS_WIN
 QString getLastErrorAsString() {

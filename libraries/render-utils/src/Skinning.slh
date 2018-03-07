@@ -11,18 +11,16 @@
 <@if not SKINNING_SLH@>
 <@def SKINNING_SLH@>
 
-// Use dual quaternion skinning
-// Must match #define SKIN_DQ in Model.h
-<@def SKIN_DQ@>
-
 const int MAX_CLUSTERS = 128;
 const int INDICES_PER_VERTEX = 4;
+
+<@func declareUseDualQuaternionSkinning(USE_DUAL_QUATERNION_SKINNING)@>
 
 layout(std140) uniform skinClusterBuffer {
     mat4 clusterMatrices[MAX_CLUSTERS];
 };
 
-<@if SKIN_DQ@>
+<@if USE_DUAL_QUATERNION_SKINNING@>
 
 mat4 dualQuatToMat4(vec4 real, vec4 dual) {
     float twoRealXSq = 2.0 * real.x * real.x;
@@ -211,7 +209,7 @@ void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, v
     skinnedTangent = vec3(m * vec4(inTangent, 0));
 }
 
-<@else@>  // SKIN_DQ
+<@else@>  // USE_DUAL_QUATERNION_SKINNING
 
 void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, out vec4 skinnedPosition) {
     vec4 newPosition = vec4(0.0, 0.0, 0.0, 0.0);
@@ -260,6 +258,8 @@ void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, v
     skinnedTangent = newTangent.xyz;
 }
 
-<@endif@> // if SKIN_DQ
+<@endif@> // if USE_DUAL_QUATERNION_SKINNING
+
+<@endfunc@> // func declareUseDualQuaternionSkinning(USE_DUAL_QUATERNION_SKINNING)
 
 <@endif@> // if not SKINNING_SLH

@@ -44,7 +44,9 @@ enum AssetServerError : uint8_t {
     AssetTooLarge,
     PermissionDenied,
     MappingOperationFailed,
-    FileOperationFailed
+    FileOperationFailed,
+    NoAssetServer,
+    LostConnection
 };
 
 enum AssetMappingOperationType : uint8_t {
@@ -71,7 +73,8 @@ struct MappingInfo {
     QString bakingErrors;
 };
 
-using AssetMapping = std::map<AssetPath, MappingInfo>;
+using AssetMappings = std::map<AssetPath, MappingInfo>;
+using Mappings = std::map<AssetPath, AssetHash>;
 
 QUrl getATPUrl(const QString& input);
 AssetHash extractAssetHash(const QString& input);
