@@ -128,7 +128,7 @@ Rectangle {
                 AudioControls.CheckBox {
                     id: stereoMic
                     spacing: muteMic.spacing;
-                    text: qsTr("use stereo for stereo devices");
+                    text: qsTr("Use stereo for stereo devices");
                     checked: false;
                     onClicked: {
                         var success = AudioScriptingInterface.setStereoInput(checked);
