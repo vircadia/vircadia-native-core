@@ -476,13 +476,14 @@ QString Test::getExpectedImagePartialSourceDirectory(QString filename) {
     QString filenameWithoutExtension = filename.split(".")[0];
     QStringList filenameParts = filenameWithoutExtension.split("_");
 
-    // Note that the topmost "tests" folder is assumed to be the root
-    int i { 0 };
-    while (i < filenameParts.length() && filenameParts[i] != "tests") {
-        ++i;
+    // Note that the bottom-most "tests" folder is assumed to be the root
+    // This is required because the tests folder is named hifi_tests
+    int i { filenameParts.length() - 1 };
+    while (i >= 0 && filenameParts[i] != "tests") {
+        --i;
     }
 
-    if (i == filenameParts.length()) {
+    if (i < 0) {
         messageBox.critical(0, "Internal error #9", "Bad filename");
         exit(-1);
     }
