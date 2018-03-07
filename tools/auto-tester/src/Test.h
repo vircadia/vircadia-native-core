@@ -77,6 +77,10 @@ private:
     QStringList expectedImagesFilenames;
     QStringList expectedImagesFullFilenames;
     QStringList resultImagesFullFilenames;
+
+    // Used for accessing GitHub
+    const QString user{ "NissimHadar" };
+    const QString branch{ "addRecursionToAutotester" };
 };
 
 #endif // hifi_test_h

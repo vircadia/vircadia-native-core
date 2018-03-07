@@ -84,7 +84,7 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
         QImage expectedImage(expectedImagesFullFilenames[i]);
 
         if (resultImage.width() != expectedImage.width() || resultImage.height() != expectedImage.height()) {
-            messageBox.critical(0, "Internal error", "Images are not the same size");
+            messageBox.critical(0, "Internal error #1", "Images are not the same size");
             exit(-1);
         }
 
@@ -92,7 +92,7 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
         try {
             similarityIndex = imageComparer.compareImages(resultImage, expectedImage);
         } catch (...) {
-            messageBox.critical(0, "Internal error", "Image not in expected format");
+            messageBox.critical(0, "Internal error #2", "Image not in expected format");
             exit(-1);
         }
 
@@ -139,20 +139,20 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
 
 void Test::appendTestResultsToFile(QString testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage) {
     if (!QDir().exists(testResultsFolderPath)) {
-        messageBox.critical(0, "Internal error", "Folder " + testResultsFolderPath + " not found");
+        messageBox.critical(0, "Internal error #3", "Folder " + testResultsFolderPath + " not found");
         exit(-1);
     }
 
     QString failureFolderPath { testResultsFolderPath + "/" + "Failure_" + QString::number(index) };
     if (!QDir().mkdir(failureFolderPath)) {
-        messageBox.critical(0, "Internal error", "Failed to create folder " + failureFolderPath);
+        messageBox.critical(0, "Internal error #4", "Failed to create folder " + failureFolderPath);
         exit(-1);
     }
     ++index;
 
     QFile descriptionFile(failureFolderPath + "/" + TEST_RESULTS_FILENAME);
     if (!descriptionFile.open(QIODevice::ReadWrite)) {
-        messageBox.critical(0, "Internal error", "Failed to create file " + TEST_RESULTS_FILENAME);
+        messageBox.critical(0, "Internal error #5", "Failed to create file " + TEST_RESULTS_FILENAME);
         exit(-1);
     }
 
@@ -172,14 +172,14 @@ void Test::appendTestResultsToFile(QString testResultsFolderPath, TestFailure te
     sourceFile = testFailure._pathname + testFailure._expectedImageFilename;
     destinationFile = failureFolderPath + "/" + "Expected Image.jpg";
     if (!QFile::copy(sourceFile, destinationFile)) {
-        messageBox.critical(0, "Internal error", "Failed to copy " + sourceFile + " to " + destinationFile);
+        messageBox.critical(0, "Internal error #6", "Failed to copy " + sourceFile + " to " + destinationFile);
         exit(-1);
     }
 
     sourceFile = testFailure._pathname + testFailure._actualImageFilename;
     destinationFile = failureFolderPath + "/" + "Actual Image.jpg";
     if (!QFile::copy(sourceFile, destinationFile)) {
-        messageBox.critical(0, "Internal error", "Failed to copy " + sourceFile + " to " + destinationFile);
+        messageBox.critical(0, "Internal error #7", "Failed to copy " + sourceFile + " to " + destinationFile);
         exit(-1);
     }
 
@@ -282,7 +282,24 @@ bool Test::isAValidDirectory(QString pathname) {
 }
 
 void Test::importTest(QTextStream& textStream, const QString& testPathname) {
-    textStream << "Script.include(\"" << "file:///" << testPathname + "?raw=true\");" << endl;
+    // `testPathname` includes the full path to the test.  We need the portion below (and including) `tests`
+    QStringList filenameParts = testPathname.split('/');
+    int i{ 0 };
+    while (i < filenameParts.length() && filenameParts[i] != "tests") {
+        ++i;
+    }
+
+    if (i == filenameParts.length()) {
+        messageBox.critical(0, "Internal error #10", "Bad testPathname");
+        exit(-1);
+    }
+
+    QString filename;
+    for (int j = i; j < filenameParts.length(); ++j) {
+        filename += "/" + filenameParts[j];
+    }
+
+    textStream << "Script.include(\"" << "https://raw.githubusercontent.com/" << user << "/hifi_tests/" << branch << filename + "\");" << endl;
 }
 
 // Creates a single script in a user-selected folder.
@@ -298,7 +315,7 @@ void Test::createRecursiveScript() {
     QFile allTestsFilename(topLevelDirectory + "/" + recursiveTestsFilename);
     if (!allTestsFilename.open(QIODevice::WriteOnly | QIODevice::Text)) {
         messageBox.critical(0,
-            "Internal Error",
+            "Internal Error #8",
             "Failed to create \"" + recursiveTestsFilename + "\" in directory \"" + topLevelDirectory + "\""
         );
 
@@ -308,7 +325,7 @@ void Test::createRecursiveScript() {
     QTextStream textStream(&allTestsFilename);
     textStream << "// This is an automatically generated file, created by auto-tester" << endl << endl;
 
-    textStream << "var autoTester = Script.require(\"https://github.com/highfidelity/hifi_tests/blob/master/tests/utils/autoTester.js?raw=true\");" << endl;
+    textStream << "var autoTester = Script.require(\"https://raw.githubusercontent.com/" + user + "/hifi_tests/" + branch + "/tests/utils/autoTester.js\");" << endl;
     textStream << "autoTester.enableRecursive();" << endl << endl;
 
     QVector<QString> testPathnames;
@@ -459,9 +476,15 @@ QString Test::getExpectedImagePartialSourceDirectory(QString filename) {
     QString filenameWithoutExtension = filename.split(".")[0];
     QStringList filenameParts = filenameWithoutExtension.split("_");
 
+    // Note that the topmost "tests" folder is assumed to be the root
     int i { 0 };
-    while (filenameParts[i] != "tests") {
+    while (i < filenameParts.length() && filenameParts[i] != "tests") {
         ++i;
+    }
+
+    if (i == filenameParts.length()) {
+        messageBox.critical(0, "Internal error #9", "Bad filename");
+        exit(-1);
     }
 
     QString result = filenameParts[i];
