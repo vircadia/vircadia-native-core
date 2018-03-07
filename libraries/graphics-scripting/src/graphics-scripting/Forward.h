@@ -65,6 +65,12 @@ namespace scriptable {
         QString lightmapMap;
         QString scatteringMap;
     };
+
+    /**jsdoc
+     * @typedef {object} Graphics.MaterialLayer
+     * @property {Material} material - This layer's material.
+     * @property {number} priority - The priority of this layer.  If multiple materials are applied to a mesh part, only the highest priority layer is used.
+     */
     class ScriptableMaterialLayer {
     public:
         ScriptableMaterialLayer() {}
