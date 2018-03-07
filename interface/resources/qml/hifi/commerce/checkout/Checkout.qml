@@ -108,8 +108,8 @@ Rectangle {
                 console.log("Failed to get balance", result.data.message);
             } else {
                 root.balanceAfterPurchase = result.data.balance - root.itemPrice;
-                root.refreshBuyUI();
                 root.balanceReceived = true;
+                root.refreshBuyUI();
             }
         }
 
@@ -123,8 +123,8 @@ Rectangle {
                     console.log("WARNING - Received 'Already Owned' status about different Marketplace ID!");
                     root.alreadyOwned = false;
                 }
-                root.refreshBuyUI();
                 root.ownershipStatusReceived = true;
+                root.refreshBuyUI();
             }
         }
 
@@ -140,10 +140,11 @@ Rectangle {
             } else {
                 for (var i = 0; i < result.data.updates.length; i++) {
                     // If the ItemID of the item we're looking at matches EITHER the ID of a "base" item
-                    // OR the ID of an "upgrade" item, we're updating.
+                    // OR the ID of an "updated" item, we're updating.
                     if (root.itemId === result.data.updates[i].item_id ||
                         root.itemId === result.data.updates[i].updated_item_id) {
                         root.isUpdating = true;
+                        // This CertID is the one corresponding to the base item CertID that the user already owns
                         root.certificateId = result.data.updates[i].certificate_id;
                         if (root.itemType === "app") {
                             root.baseAppURL = result.data.updates[i].base_download_url;
@@ -152,6 +153,7 @@ Rectangle {
                     }
                 }
                 root.availableUpdatesReceived = true;
+                refreshBuyUI();
             }
         }
 
@@ -202,6 +204,7 @@ Rectangle {
     }
 
     onItemPriceChanged: {
+        root.balanceReceived = false;
         Commerce.balance();
     }
 
@@ -1117,12 +1120,6 @@ Rectangle {
         } else {
             root.activeView = "checkoutSuccess";
         }
-        root.balanceReceived = false;
-        root.ownershipStatusReceived = false;
-        root.availableUpdatesReceived = false;
-        Commerce.alreadyOwned(root.itemId);
-        Commerce.balance();
-        Commerce.getAvailableUpdates();
     }
 
     //
