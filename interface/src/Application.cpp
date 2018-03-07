@@ -1169,7 +1169,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
-    connect(addressManager.data(), &AddressManager::setServerlessDomain, this, &Application::setServerlessDomain);
+    connect(addressManager.data(), &AddressManager::urlHandled, this, &Application::setServerlessDomain);
 
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
     connect(this, &Application::activeDisplayPluginChanged, this, [](){
@@ -3116,10 +3116,10 @@ bool Application::isServerlessMode() const {
     return false;
 }
 
-void Application::setServerlessDomain(bool serverlessDomain) {
+void Application::setServerlessDomain(bool isHifiScheme) {
     auto tree = getEntities()->getTree();
     if (tree) {
-        tree->setIsServerlessMode(serverlessDomain);
+        tree->setIsServerlessMode(!isHifiScheme);
     }
 }
 
