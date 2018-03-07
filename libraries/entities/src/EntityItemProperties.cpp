@@ -737,7 +737,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     Note: If the name ends with <code>"default-image-model.fbx"</code> then the entity is considered to be an "Image" 
  *     entity, in which case the <code>textures</code> property should be set per the example.
  * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
- *     model's original textures. Use a texture name from the <code>originanlTextures</code> property to override that texture. 
+ *     model's original textures. Use a texture name from the <code>originalTextures</code> property to override that texture. 
  *     Only the texture names and URLs to be overridden need be specified; original textures are used where there are no 
  *     overrides. You can use <code>JSON.stringify()</code> to convert a JavaScript object of name, URL pairs into a JSON 
  *     string.
