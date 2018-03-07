@@ -69,12 +69,14 @@ void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
     for (uint32_t i = 0; i < numProxies; ++i) {
         Proxy& proxy = _proxies[i];
         if (proxy.region < Region::INVALID) {
+            glm::vec3 proxyCenter = glm::vec3(proxy.sphere);
+            float proxyRadius = proxy.sphere.w;
             uint8_t region = Region::UNKNOWN;
             for (uint32_t j = 0; j < numViews; ++j) {
                 auto& view = _views[j];
 
-                glm::vec3 distance2(glm::distance2(proxy.sphere, view.regions[0]), glm::distance2(proxy.sphere, view.regions[1]), glm::distance2(proxy.sphere, view.regions[2]));
-                glm::vec3 regionRadii2(view.regions[0].w + proxy.sphere.w, view.regions[1].w + proxy.sphere.w, view.regions[2].w + proxy.sphere.w);
+                glm::vec3 distance2(glm::distance2(proxyCenter, glm::vec3(view.regions[0])), glm::distance2(proxyCenter, glm::vec3(view.regions[1])), glm::distance2(proxyCenter, glm::vec3(view.regions[2])));
+                glm::vec3 regionRadii2(view.regions[0].w + proxyRadius, view.regions[1].w + proxyRadius, view.regions[2].w + proxyRadius);
                 regionRadii2 *= regionRadii2;
                 auto touchTests = glm::lessThanEqual(distance2, regionRadii2);
 
