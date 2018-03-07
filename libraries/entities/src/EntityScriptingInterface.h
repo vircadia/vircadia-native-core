@@ -909,11 +909,12 @@ public slots:
 
 
     /**jsdoc
-     * Get the translation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's coordinate frame.
+     * Get the translation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's position and 
+     * orientation.
      * @function Entities.getAbsoluteJointTranslationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
-     * @returns {Vec3} The translation of the joint in the entity's coordinate frame if the entity is a
+     * @returns {Vec3} The translation of the joint relative to the entity's position and orientation if the entity is a
      *     {@link Entities.EntityType|Model} entity, the entity is loaded, and the joint index is valid; otherwise 
      *     <code>{@link Vec3(0)|Vec3.ZERO}</code>.
      */
@@ -921,11 +922,12 @@ public slots:
     Q_INVOKABLE glm::vec3 getAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex);
 
     /**jsdoc
-     * Get the translation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's coordinate frame.
+     * Get the translation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's position and 
+     * orientation.
      * @function Entities.getAbsoluteJointRotationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
-     * @returns {Quat} The rotation of the joint in the entity's coordinate frame if the entity is a
+     * @returns {Quat} The rotation of the joint relative to the entity's orientation if the entity is a
      *     {@link Entities.EntityType|Model} entity, the entity is loaded, and the joint index is valid; otherwise 
      *     <code>{@link Quat(0)|Quat.IDENTITY}</code>.
      * @example <caption>Compare the local and absolute rotations of an avatar model's left hand joint.</caption>
@@ -950,11 +952,12 @@ public slots:
     Q_INVOKABLE glm::quat getAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex);
 
     /**jsdoc
-     * Set the translation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's coordinate frame.
+     * Set the translation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's position and 
+     * orientation.
      * @function Entities.setAbsoluteJointTranslationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
-     * @param {Vec3} translation - The translation relative to the entity's coordinate frame to set the joint to.
+     * @param {Vec3} translation - The translation to set the joint to relative to the entity's position and orientation.
      * @returns {boolean} <code>true</code>if the entity is a {@link Entities.EntityType|Model} entity, the entity is loaded, 
      *     the joint index is valid, and the translation is different to the joint's current translation; otherwise 
      *     <code>false</code>.
@@ -963,11 +966,12 @@ public slots:
     Q_INVOKABLE bool setAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex, glm::vec3 translation);
 
     /**jsdoc
-     * Set the rotation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's coordinate frame.
+     * Set the rotation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's position and 
+     * orientation.
      * @function Entities.setAbsoluteJointRotationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
-     * @param {Quat} rotation - The rotation relative to the entity's coordinate frame to set the joint to.
+     * @param {Quat} rotation - The rotation to set the joint to relative to the entity's orientation.
      * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityType|Model} entity, the entity is loaded, 
      *     the joint index is valid, and the rotation is different to the joint's current rotation; otherwise <code>false</code>.
      * @example <caption>Raise an avatar model's left palm.</caption>
@@ -1126,7 +1130,9 @@ public slots:
     Q_INVOKABLE bool setLocalJointRotations(const QUuid& entityID, const QVector<glm::quat>& rotations);
 
     /**jsdoc
-     * Set the local rotations and translations of joints in a {@link Entities.EntityType|Model} entity.
+     * Set the local rotations and translations of joints in a {@link Entities.EntityType|Model} entity. This is the same as 
+     * calling both {@link Entities.setLocalJointRotations|setLocalJointRotations} and 
+     * {@link Entities.setLocalJointTranslations|setLocalJointTranslations} at the same time.
      * @function Entities.setLocalJointsData
      * @param {Uuid} entityID - The ID of the entity.
      * @param {Quat[]} rotations - The local rotations to set the joints to.
