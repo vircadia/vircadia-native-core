@@ -124,7 +124,7 @@ QUrl PathUtils::expandToLocalDataAbsolutePath(const QUrl& fileUrl) {
     QUrl url = fileUrl;
     QString path = fileUrl.path();
     if (path.startsWith("/~/")) {
-        path.replace(0, 3, getAppLocalDataPath());
+        path.replace(0, 3, resourcesPath());
         url = QUrl::fromLocalFile(path);
     }
     return url;
