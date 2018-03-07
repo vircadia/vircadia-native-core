@@ -284,8 +284,8 @@ public:
     void loadOctreeFile(const char* fileName);
 
     // Octree exporters
-    bool toJSON(QJsonDocument* doc, const OctreeElementPointer& element = nullptr);
-    bool toGzippedJSON(QByteArray* data, const OctreeElementPointer& element = nullptr);
+    bool toJSONDocument(QJsonDocument* doc, const OctreeElementPointer& element = nullptr);
+    bool toJSON(QByteArray* data, const OctreeElementPointer& element = nullptr, bool doGzip = false);
     bool writeToFile(const char* filename, const OctreeElementPointer& element = nullptr, QString persistAsFileType = "json.gz");
     bool writeToJSONFile(const char* filename, const OctreeElementPointer& element = nullptr, bool doGzip = false);
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,

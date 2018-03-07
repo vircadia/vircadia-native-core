@@ -69,6 +69,10 @@ Item {
         hoverEnabled: true;
     }
     
+    Component.onDestruction: {
+        sendSignalToParent({method: 'maybeEnableHmdPreview'});
+    }
+
     // This will cause a bug -- if you bring up passphrase selection in HUD mode while
     // in HMD while having HMD preview enabled, then move, then finish passphrase selection,
     // HMD preview will stay off.
