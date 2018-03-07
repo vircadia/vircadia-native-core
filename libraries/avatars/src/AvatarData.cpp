@@ -300,7 +300,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             tranlationChangedSince(lastSentTime) ||
             parentInfoChangedSince(lastSentTime));
 
-        hasFaceTrackerInfo = !dropFaceTracking && hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
+        hasFaceTrackerInfo = !dropFaceTracking && (hasFaceTracker() || getHasScriptedBlendshapes()) &&
+            (sendAll || faceTrackerInfoChangedSince(lastSentTime));
         hasJointData = sendAll || !sendMinimum;
         hasJointDefaultPoseFlags = hasJointData;
     }

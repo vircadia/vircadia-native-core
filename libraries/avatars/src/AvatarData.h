@@ -497,6 +497,8 @@ public:
 
     float getDomainLimitedScale() const;
 
+    virtual bool getHasScriptedBlendshapes() const { return false; }
+
     /**jsdoc
      * returns the minimum scale allowed for this avatar in the current domain.
      * This value can change as the user changes avatars or when changing domains.
