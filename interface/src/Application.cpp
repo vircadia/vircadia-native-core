@@ -2812,7 +2812,6 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
                 + mirrorBodyOrientation * hmdOffset);
         }
         else {
-            auto boomZOffset = boomOffset * Vectors::UNIT_Z;
             _myCamera.setOrientation(myAvatar->getWorldOrientation()
                 * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
             _myCamera.setPosition(myAvatar->getDefaultEyePosition()
