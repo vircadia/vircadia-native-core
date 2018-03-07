@@ -43,7 +43,6 @@ const int DIRTY_SIMULATION_FLAGS =
         Simulation::DIRTY_SIMULATOR_ID;
 
 class EntitySimulation : public QObject, public std::enable_shared_from_this<EntitySimulation> {
-Q_OBJECT
 public:
     EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL), _nextExpiry(quint64(-1)) { }
     virtual ~EntitySimulation() { setEntityTree(NULL); }
@@ -56,8 +55,6 @@ public:
     void setEntityTree(EntityTreePointer tree);
 
     void updateEntities();
-
-//    friend class EntityTree;
 
     virtual void addDynamic(EntityDynamicPointer dynamic);
     virtual void removeDynamic(const QUuid dynamicID);
@@ -82,9 +79,6 @@ public:
 
     /// \param entity pointer to EntityItem that needs to be put on the entitiesToDelete list and removed from others.
     virtual void prepareEntityForDelete(EntityItemPointer entity);
-
-signals:
-    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 protected:
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class
@@ -124,7 +118,6 @@ private:
 
 
     SetOfEntities _entitiesToUpdate; // entities that need to call EntityItem::update()
-
 };
 
 #endif // hifi_EntitySimulation_h

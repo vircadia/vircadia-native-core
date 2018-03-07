@@ -28,6 +28,7 @@ using PhysicalEntitySimulationPointer = std::shared_ptr<PhysicalEntitySimulation
 using SetOfEntityMotionStates = QSet<EntityMotionState*>;
 
 class PhysicalEntitySimulation : public EntitySimulation {
+    Q_OBJECT
 public:
     PhysicalEntitySimulation();
     ~PhysicalEntitySimulation();
@@ -38,6 +39,9 @@ public:
     virtual void applyDynamicChanges() override;
 
     virtual void takeEntitiesToDelete(VectorOfEntities& entitiesToDelete) override;
+
+signals:
+    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 protected: // only called by EntitySimulation
     // overrides for EntitySimulation
