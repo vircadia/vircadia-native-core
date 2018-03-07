@@ -21,6 +21,8 @@
 #include "ui/AutoTester.h"
 extern AutoTester* autoTester;
 
+#include <math.h>
+
 Test::Test() {
     QString regex(EXPECTED_IMAGE_PREFIX + QString("\\\\d").repeated(NUM_DIGITS) + ".png");
     
