@@ -921,7 +921,6 @@ function saveAvatarData(QUuid) {
     if (avatarsData[QUuid] != undefined) {
         avatarsData[QUuid].position = avat.position;
     } else {
-<<<<<<< HEAD
         var avatarIcon = Overlays.addOverlay("circle3d", {
             color: uniqueColor.convertHexToRGB(uniqueColor.getColor(QUuid)),
             dimensions: ICON_ENTITY_DEFAULT_DIMENSIONS,
@@ -930,20 +929,6 @@ function saveAvatarData(QUuid) {
             outerRadius: 2,
             isSolid: true,
             visible: false
-=======
-        var avatarIcon = Overlays.addOverlay("image3d", {
-            subImage : {
-                x : 0,
-                y : 0,
-                width : 150,
-                height : 142
-            },
-            url : getAvatarIconForUser(QUuid),
-            dimensions : ICON_ENTITY_DEFAULT_DIMENSIONS,
-            visible : false,
-            ignoreRayIntersection : false,
-            orientation : Quat.fromPitchYawRollDegrees(-90, 0, 0)
->>>>>>> upstream/master
         });
 
         var needRefresh = !avat || !avat.displayName;
@@ -951,7 +936,6 @@ function saveAvatarData(QUuid) {
                 : "Unknown";
         var textWidth = displayName.length * AVATAR_DISPLAY_NAME_CHAR_WIDTH;
         var avatarName = Overlays.addOverlay("text", {
-<<<<<<< HEAD
             width: textWidth,
             height: AVATAR_DISPLAY_NAME_HEIGHT,
             color: { red: 255, green: 255, blue: 255},
@@ -961,28 +945,6 @@ function saveAvatarData(QUuid) {
             visible: false,
             text: displayName,
             textAlignCenter: true
-=======
-            width : textWidth,
-            height : AVATAR_DISPLAY_NAME_HEIGHT,
-            color : {
-                red : 255,
-                green : 255,
-                blue : 255
-            },
-            backgroundAlpha : 0.0,
-            textRaiseColor : {
-                red : 0,
-                green : 0,
-                blue : 0
-            },
-            font : {
-                size : 68,
-                bold : true
-            },
-            visible : false,
-            text : displayName,
-            textAlignCenter : true
->>>>>>> upstream/master
         });
         avatarsIcons.push(avatarIcon);
         avatarsNames.push(avatarName);
@@ -1050,7 +1012,6 @@ function distanceForCameraHeight(h) {
     return 5;
 }
 function renderMyAvatarIcon() {
-<<<<<<< HEAD
     var commonY = Camera.position.y - distanceForCameraHeight(Camera.position.y);
     var iconPos = findLineToHeightIntersectionCoords(   MyAvatar.position.x,
                                                         MyAvatar.position.y + RADAR_ICONS_APPARENT_DISTANCE_TO_AVATAR_BASE,
@@ -1058,17 +1019,6 @@ function renderMyAvatarIcon() {
                                                         Camera.position.x, Camera.position.y, Camera.position.z,
                                                         commonY);
     if (!iconPos) { printd("avatarmy icon pos null"); return;}
-=======
-    var iconPos = findLineToHeightIntersectionCoords(MyAvatar.position.x,
-            MyAvatar.position.y + RADAR_ICONS_APPARENT_DISTANCE_TO_AVATAR_BASE,
-            MyAvatar.position.z, Camera.position.x, Camera.position.y,
-            Camera.position.z, Camera.position.y
-                    - RADAR_CAMERA_DISTANCE_TO_ICONS);
-    if (!iconPos) {
-        printd("avatarmy icon pos null");
-        return;
-    }
->>>>>>> upstream/master
     var iconDimensions = avatarIconPlaneDimensions();
 
     var avatarPos = MyAvatar.position;
@@ -1084,7 +1034,6 @@ function renderMyAvatarIcon() {
     var y = (p1.z - borderPoints[0].z) * (Window.innerHeight)
             / (borderPoints[1].z - borderPoints[0].z);
 
-<<<<<<< HEAD
     if (!myAvatarIcon && MyAvatar.SELF_ID) {
        myAvatarIcon =  Overlays.addOverlay("circle3d", {
             color: uniqueColor.convertHexToRGB(uniqueColor.getColor(MyAvatar.SELF_ID)),
@@ -1094,27 +1043,11 @@ function renderMyAvatarIcon() {
             outerRadius: 2,
             isSolid: true,
             visible: false
-=======
-    if (!myAvatarIcon && MyAvatar.sessionUUID) {
-        myAvatarIcon = Overlays.addOverlay("image3d", {
-            subImage : {
-                x : 0,
-                y : 0,
-                width : 150,
-                height : 142
-            },
-            url : getAvatarIconForUser(MyAvatar.sessionUUID),
-            dimensions : ICON_ENTITY_DEFAULT_DIMENSIONS,
-            visible : false,
-            ignoreRayIntersection : false,
-            orientation : Quat.fromPitchYawRollDegrees(-90, 0, 0)
->>>>>>> upstream/master
         });
     }
 
     if (!myAvatarName) {
         myAvatarName = Overlays.addOverlay("text", {
-<<<<<<< HEAD
                         width: 100,
                         height: AVATAR_DISPLAY_NAME_HEIGHT,
                         textAlignCenter: true,
@@ -1125,29 +1058,6 @@ function renderMyAvatarIcon() {
                         visible: false,
                         text: "Me"
                        });
-=======
-            width : 40,
-            height : AVATAR_DISPLAY_NAME_HEIGHT,
-            textAlignCenter : true,
-            color : {
-                red : 255,
-                green : 255,
-                blue : 255
-            },
-            backgroundAlpha : 0.0,
-            font : {
-                size : 68,
-                bold : true
-            },
-            textRaiseColor : {
-                red : 0,
-                green : 0,
-                blue : 0
-            },
-            visible : false,
-            text : "Me"
-        });
->>>>>>> upstream/master
     }
 
     if (myAvatarIcon) {
@@ -1209,7 +1119,6 @@ function renderAllOthersAvatarIcons() {
                 avatarPos = AvatarList.getAvatar(QUuid).position;
 
                 var cameraPos = Camera.position;
-<<<<<<< HEAD
                 var p1 = findLineToHeightIntersectionCoords(avatarPos.x, avatarPos.y, avatarPos.z, 
                                                     cameraPos.x, cameraPos.y, cameraPos.z,
                                                     commonY);
@@ -1222,29 +1131,6 @@ function renderAllOthersAvatarIcons() {
                                                                         Camera.position.x, Camera.position.y, Camera.position.z,
                                                                         commonY);
                     if (!iconPos) { print ("avatar icon pos bad for " + QUuid); continue; }
-=======
-                var p1 = findLineToHeightIntersectionCoords(avatarPos.x,
-                        avatarPos.y, avatarPos.z, cameraPos.x, cameraPos.y,
-                        cameraPos.z, commonY);
-
-                var x = (p1.x - borderPoints[0].x) * (Window.innerWidth)
-                        / (borderPoints[1].x - borderPoints[0].x);
-                var y = (p1.z - borderPoints[0].z) * (Window.innerHeight)
-                        / (borderPoints[1].z - borderPoints[0].z);
-
-                if (avatarsData[QUuid].icon != undefined) {
-                    var iconPos = findLineToHeightIntersectionCoords(
-                            avatarPos.x,
-                            avatarPos.y
-                                    + RADAR_ICONS_APPARENT_DISTANCE_TO_AVATAR_BASE,
-                            avatarPos.z, Camera.position.x, Camera.position.y,
-                            Camera.position.z, Camera.position.y
-                                    - RADAR_CAMERA_DISTANCE_TO_ICONS);
-                    if (!iconPos) {
-                        print("avatar icon pos bad for " + QUuid);
-                        continue;
-                    }
->>>>>>> upstream/master
                     if (avatarsData[QUuid].needRefresh) {
                         var avat = AvatarList.getAvatar(QUuid);
                         if (avat && avat.displayName) {
