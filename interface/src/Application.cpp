@@ -6676,10 +6676,10 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
             qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
-            // to prevent files that aren't models from being loaded into world automatically
-            if ((filePath.toLower().endsWith(OBJ_EXTENSION) || filePath.toLower().endsWith(FBX_EXTENSION) || 
-                filePath.toLower().endsWith(JPG_EXTENSION) || filePath.toLower().endsWith(PNG_EXTENSION)) &&
-                (!isBlocks) && (!isZip)) {
+            // to prevent files that aren't models or texture files from being loaded into world automatically
+            if (filePath.toLower().endsWith(OBJ_EXTENSION) || filePath.toLower().endsWith(FBX_EXTENSION) || 
+                (filePath.toLower().endsWith(JPG_EXTENSION) || filePath.toLower().endsWith(PNG_EXTENSION) &&
+                ((!isBlocks) && (!isZip)))) {
                 addAssetToWorldAddEntity(filePath, mapping);
             } else {
                 qCDebug(interfaceapp) << "Zipped contents are not supported entity files";
