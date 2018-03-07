@@ -1787,7 +1787,7 @@ bool Octree::writeToFile(const char* fileName, const OctreeElementPointer& eleme
     return success;
 }
 
-bool Octree::toJSON(QJsonDocument* doc, const OctreeElementPointer& element) {
+bool Octree::toJSONDocument(QJsonDocument* doc, const OctreeElementPointer& element) {
     QVariantMap entityDescription;
 
     OctreeElementPointer top;
@@ -1813,18 +1813,22 @@ bool Octree::toJSON(QJsonDocument* doc, const OctreeElementPointer& element) {
     return true;
 }
 
-bool Octree::toGzippedJSON(QByteArray* data, const OctreeElementPointer& element) {
+bool Octree::toJSON(QByteArray* data, const OctreeElementPointer& element, bool doGzip) {
     QJsonDocument doc;
-    if (!toJSON(&doc, element)) {
+    if (!toJSONDocument(&doc, element)) {
         qCritical("Failed to convert Entities to QVariantMap while converting to json.");
         return false;
     }
 
-    QByteArray jsonData = doc.toJson();
+    if (doGzip) {
+        QByteArray jsonData = doc.toJson();
 
-    if (!gzip(jsonData, *data, -1)) {
-        qCritical("Unable to gzip data while saving to json.");
-        return false;
+        if (!gzip(jsonData, *data, -1)) {
+            qCritical("Unable to gzip data while saving to json.");
+            return false;
+        }
+    } else {
+        *data = doc.toJson();
     }
 
     return true;
@@ -1834,7 +1838,7 @@ bool Octree::writeToJSONFile(const char* fileName, const OctreeElementPointer& e
     qCDebug(octree, "Saving JSON SVO to file %s...", fileName);
 
     QByteArray jsonDataForFile;
-    if (!toGzippedJSON(&jsonDataForFile)) {
+    if (!toJSON(&jsonDataForFile, element, doGzip)) {
         return false;
     }
 
@@ -1845,7 +1849,6 @@ bool Octree::writeToJSONFile(const char* fileName, const OctreeElementPointer& e
     } else {
         qCritical("Could not write to JSON description of entities.");
     }
-
 
     return success;
 }
