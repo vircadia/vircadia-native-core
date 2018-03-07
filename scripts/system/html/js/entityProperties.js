@@ -1278,7 +1278,7 @@ function loaded() {
             if (elCloneable.checked) {
                 elGrabbable.checked = false;
             }
-            userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, properties.dynamic);
+            userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, true);
         });
         elCloneableDynamic.addEventListener('change', function(event) {
             userDataChanger("grabbableKey", "cloneDynamic", event.target, elUserData, -1);
