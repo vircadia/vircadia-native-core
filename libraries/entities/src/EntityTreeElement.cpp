@@ -601,8 +601,8 @@ EntityItemID EntityTreeElement::findRayIntersection(const glm::vec3& origin, con
 
     // if the ray doesn't intersect with our cube OR the distance to element is less than current best distance
     // we can stop searching!
-    if (!_cube.findRayIntersection(origin, direction, distanceToElementCube, localFace, localSurfaceNormal)
-            || (!_cube.contains(origin) && distanceToElementCube > distance)) {
+    bool hit = _cube.findRayIntersection(origin, direction, distanceToElementCube, localFace, localSurfaceNormal);
+    if (!hit || (!_cube.contains(origin) && distanceToElementCube > distance)) {
         keepSearching = false; // no point in continuing to search
         return result; // we did not intersect
     }
