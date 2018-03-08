@@ -2710,6 +2710,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 
     surfaceContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
+    surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
     surfaceContext->setContextProperty("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     surfaceContext->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
@@ -2723,10 +2724,12 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 
 void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     Stats::show();
-    AvatarInputs::show();
     auto surfaceContext = DependencyManager::get<OffscreenUi>()->getSurfaceContext();
     surfaceContext->setContextProperty("Stats", Stats::getInstance());
-    surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
+    offscreenUi->show(qml, "AvatarInputsBar");
 }
 
 void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
