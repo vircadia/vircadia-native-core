@@ -908,7 +908,7 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter;
             }
 
-            FontLoader { id: ralewayRegular; source: "../../fonts/Raleway-Regular.ttf"; }
+            FontLoader { id: ralewayRegular; source: "qrc:/fonts/Raleway-Regular.ttf"; }
             Text {
                 id: connectionHelpText;
                 // Anchors

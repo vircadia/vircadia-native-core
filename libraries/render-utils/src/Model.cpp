@@ -684,12 +684,20 @@ scriptable::ScriptableModelBase Model::getScriptableModel() {
 
     const FBXGeometry& geometry = getFBXGeometry();
     int numberOfMeshes = geometry.meshes.size();
+    int shapeID = 0;
     for (int i = 0; i < numberOfMeshes; i++) {
         const FBXMesh& fbxMesh = geometry.meshes.at(i);
         if (auto mesh = fbxMesh._mesh) {
             result.append(mesh);
+
+            int numParts = (int)mesh->getNumParts();
+            for (int partIndex = 0; partIndex < numParts; partIndex++) {
+                result.appendMaterial(graphics::MaterialLayer(getGeometry()->getShapeMaterial(shapeID), 0), shapeID, _modelMeshMaterialNames[shapeID]);
+                shapeID++;
+            }
         }
     }
+    result.appendMaterialNames(_modelMeshMaterialNames);
     return result;
 }
 

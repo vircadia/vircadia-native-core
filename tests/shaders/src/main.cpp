@@ -50,12 +50,8 @@
 #include <render-utils/model_frag.h>
 #include <render-utils/model_shadow_frag.h>
 #include <render-utils/model_normal_map_frag.h>
-#include <render-utils/model_normal_specular_map_frag.h>
-#include <render-utils/model_specular_map_frag.h>
 #include <render-utils/model_lightmap_frag.h>
 #include <render-utils/model_lightmap_normal_map_frag.h>
-#include <render-utils/model_lightmap_normal_specular_map_frag.h>
-#include <render-utils/model_lightmap_specular_map_frag.h>
 #include <render-utils/model_translucent_frag.h>
 
 #include <entities-renderer/textured_particle_frag.h>
@@ -180,19 +176,13 @@ void QTestWindow::draw() {
 
         testShaderBuild(model_vert::getSource(), model_frag::getSource());
         testShaderBuild(model_normal_map_vert::getSource(), model_normal_map_frag::getSource());
-        testShaderBuild(model_vert::getSource(), model_specular_map_frag::getSource());
-        testShaderBuild(model_normal_map_vert::getSource(), model_normal_specular_map_frag::getSource());
         testShaderBuild(model_vert::getSource(), model_translucent_frag::getSource());
         testShaderBuild(model_normal_map_vert::getSource(), model_translucent_frag::getSource());
         testShaderBuild(model_lightmap_vert::getSource(), model_lightmap_frag::getSource());
         testShaderBuild(model_lightmap_normal_map_vert::getSource(), model_lightmap_normal_map_frag::getSource());
-        testShaderBuild(model_lightmap_vert::getSource(), model_lightmap_specular_map_frag::getSource());
-        testShaderBuild(model_lightmap_normal_map_vert::getSource(), model_lightmap_normal_specular_map_frag::getSource());
 
         testShaderBuild(skin_model_vert::getSource(), model_frag::getSource());
         testShaderBuild(skin_model_normal_map_vert::getSource(), model_normal_map_frag::getSource());
-        testShaderBuild(skin_model_vert::getSource(), model_specular_map_frag::getSource());
-        testShaderBuild(skin_model_normal_map_vert::getSource(), model_normal_specular_map_frag::getSource());
         testShaderBuild(skin_model_vert::getSource(), model_translucent_frag::getSource());
         testShaderBuild(skin_model_normal_map_vert::getSource(), model_translucent_frag::getSource());
 

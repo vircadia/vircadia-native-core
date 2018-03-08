@@ -115,13 +115,15 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var filterText; // Used for updating Purchases QML
 
     var onWalletScreen = false;
+    var onCommerceScreen = false;
+
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
         var onWalletScreenNow = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
-        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
+        var onCommerceScreenNow = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
             || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
 
-        if (!onWalletScreenNow && onWalletScreen) { // exiting wallet screen
+        if ((!onWalletScreenNow && onWalletScreen) || (!onCommerceScreenNow && onCommerceScreen)) { // exiting wallet or commerce screen
             if (isHmdPreviewDisabledBySecurity) {
                 DesktopPreviewProvider.setPreviewDisabledReason("USER");
                 Menu.setIsOptionChecked("Disable Preview", false);
@@ -129,6 +131,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
             }
         }
 
+        onCommerceScreen = onCommerceScreenNow;
         onWalletScreen = onWalletScreenNow;
         wireEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
 

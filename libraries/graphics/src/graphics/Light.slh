@@ -32,9 +32,16 @@ vec3 getLightIrradiance(Light l) { return lightIrradiance_getIrradiance(l.irradi
 // AMbient lighting needs extra info provided from a different Buffer
 <@include graphics/SphericalHarmonics.shared.slh@>
 // Light Ambient
-struct LightAmbient {
-    vec4 _ambient;
+#ifndef PRECISIONQ
+#ifdef GL_ES
+#define PRECISIONQ highp
+#else
+#define PRECISIONQ
+#endif
+#endif
 
+struct LightAmbient {
+    PRECISIONQ vec4 _ambient;
     SphericalHarmonics _ambientSphere;
     mat4 transform;
 };

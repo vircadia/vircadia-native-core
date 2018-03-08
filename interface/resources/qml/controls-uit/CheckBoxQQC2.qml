@@ -109,7 +109,7 @@ CheckBox {
 
     contentItem: Text {
         id: root
-        FontLoader { id: ralewaySemiBold; source: pathToFonts + "fonts/Raleway-SemiBold.ttf"; }
+        FontLoader { id: ralewaySemiBold; source: "qrc:/fonts/Raleway-SemiBold.ttf"; }
         font.pixelSize: hifi.fontSizes.inputLabel
         font.family: ralewaySemiBold.name
         text: checkBox.text

@@ -68,7 +68,6 @@ ShapeKey MaterialEntityRenderer::getShapeKey() {
 
     bool isTranslucent = drawMaterialKey.isTranslucent();
     bool hasTangents = drawMaterialKey.isNormalMap();
-    bool hasSpecular = drawMaterialKey.isMetallicMap();
     bool hasLightmap = drawMaterialKey.isLightmapMap();
     bool isUnlit = drawMaterialKey.isUnlit();
     
@@ -80,9 +79,6 @@ ShapeKey MaterialEntityRenderer::getShapeKey() {
     }
     if (hasTangents) {
         builder.withTangents();
-    }
-    if (hasSpecular) {
-        builder.withSpecular();
     }
     if (hasLightmap) {
         builder.withLightmap();
