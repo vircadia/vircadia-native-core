@@ -54,32 +54,31 @@ TexMapArray getTexMapArray() {
 
 TextureTable(0, matTex);
 <!
-EMISSIVE_MAP = 0,
-ALBEDO_MAP,
-METALLIC_MAP,
-ROUGHNESS_MAP,
-NORMAL_MAP,
-OCCLUSION_MAP,
-LIGHTMAP_MAP,
-SCATTERING_MAP,
+    ALBEDO = 0,
+    NORMAL, 1
+    METALLIC, 2
+    EMISSIVE_LIGHTMAP, 3
+    ROUGHNESS, 4
+    OCCLUSION, 5
+    SCATTERING, 6
 !>
 
 <@if withAlbedo@>
-#define albedoMap 1
+#define albedoMap 0
 vec4 fetchAlbedoMap(vec2 uv) {
     return tableTexValue(matTex, albedoMap, uv);
 }
 <@endif@>
 
 <@if withRoughness@>
-#define roughnessMap 3
+#define roughnessMap 4
 float fetchRoughnessMap(vec2 uv) {
     return tableTexValue(matTex, roughnessMap, uv).r;
 }
 <@endif@>
 
 <@if withNormal@>
-#define normalMap 4
+#define normalMap 1
 vec3 fetchNormalMap(vec2 uv) {
     return tableTexValue(matTex, normalMap, uv).xyz;
 }
@@ -93,7 +92,7 @@ float fetchMetallicMap(vec2 uv) {
 <@endif@>
 
 <@if withEmissive@>
-#define emissiveMap 0
+#define emissiveMap 3
 vec3 fetchEmissiveMap(vec2 uv) {
     return tableTexValue(matTex, emissiveMap, uv).rgb;
 }
@@ -107,7 +106,7 @@ float fetchOcclusionMap(vec2 uv) {
 <@endif@>
 
 <@if withScattering@>
-#define scatteringMap 7
+#define scatteringMap 6
 float fetchScatteringMap(vec2 uv) {
     float scattering = texture(tableTex(matTex, scatteringMap), uv).r; // boolean scattering for now
     return max(((scattering - 0.1) / 0.9), 0.0);
