@@ -34,6 +34,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         App.openUrl("https://metaverse.highfidelity.com/marketplace?category=avatars");
         break;
     case 'hide':
+        Controller.setVPadHidden(false);
         module.exports.onHidden();
         break;
     default:
@@ -122,18 +123,21 @@ module.exports = {
         init();
     },
     show: function() {
+        Controller.setVPadHidden(true);
         if (window) {
             window.setVisible(true);
             isVisible = true;
         }
     },
     hide: function() {
+        Controller.setVPadHidden(false);
         if (window) {
             window.setVisible(false);
         }
         isVisible = false;
     },
     destroy: function() {
+        Controller.setVPadHidden(false);
         if (window) {
             window.fromQml.disconnect(fromQml);   
             window.close();
@@ -155,5 +159,7 @@ module.exports = {
     refreshSelectedAvatar: function(currentAvatarURL) {
         refreshSelected(currentAvatarURL);
     },
-    onHidden: function() { }
+    onHidden: function() {
+        Controller.setVPadHidden(false);
+    }
 };

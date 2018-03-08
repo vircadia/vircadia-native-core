@@ -228,7 +228,7 @@ void TouchscreenVirtualPadDevice::touchBeginEvent(const QTouchEvent* event) {
     // touch begin here is a big begin -> begins both pads? maybe it does nothing
     debugPoints(event, " BEGIN ++++++++++++++++");
     auto& virtualPadManager = VirtualPad::Manager::instance();
-    if (!virtualPadManager.isEnabled()) {
+    if (!virtualPadManager.isEnabled() && !virtualPadManager.isHidden()) {
         return;
     }
     KeyboardMouseDevice::enableTouch(false);
@@ -236,7 +236,7 @@ void TouchscreenVirtualPadDevice::touchBeginEvent(const QTouchEvent* event) {
 
 void TouchscreenVirtualPadDevice::touchEndEvent(const QTouchEvent* event) {
     auto& virtualPadManager = VirtualPad::Manager::instance();
-    if (!virtualPadManager.isEnabled()) {
+    if (!virtualPadManager.isEnabled() && !virtualPadManager.isHidden()) {
         touchLeftEnd();
         touchRightEnd();
         return;
@@ -252,7 +252,7 @@ void TouchscreenVirtualPadDevice::touchEndEvent(const QTouchEvent* event) {
 
 void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
     auto& virtualPadManager = VirtualPad::Manager::instance();
-    if (!virtualPadManager.isEnabled()) {
+    if (!virtualPadManager.isEnabled() && !virtualPadManager.isHidden()) {
         touchLeftEnd();
         touchRightEnd();
         return;
@@ -309,7 +309,7 @@ bool TouchscreenVirtualPadDevice::touchLeftBeginPointIsValid(glm::vec2 touchPoin
 
 void TouchscreenVirtualPadDevice::touchLeftBegin(glm::vec2 touchPoint) {
     auto& virtualPadManager = VirtualPad::Manager::instance();
-    if (virtualPadManager.isEnabled()) {
+    if (virtualPadManager.isEnabled() && !virtualPadManager.isHidden()) {
         if (_fixedPosition) {
             _firstTouchLeftPoint = _fixedCenterPosition;
         } else {
@@ -333,7 +333,7 @@ void TouchscreenVirtualPadDevice::touchLeftEnd() {
 
 void TouchscreenVirtualPadDevice::touchRightBegin(glm::vec2 touchPoint) {
     auto& virtualPadManager = VirtualPad::Manager::instance();
-    if (virtualPadManager.isEnabled()) {
+    if (virtualPadManager.isEnabled() && !virtualPadManager.isHidden()) {
         _firstTouchRightPoint = touchPoint;
         _validTouchRight = true;
     }
@@ -353,7 +353,7 @@ void TouchscreenVirtualPadDevice::touchRightEnd() {
 
 void TouchscreenVirtualPadDevice::touchGestureEvent(const QGestureEvent* event) {
     auto& virtualPadManager = VirtualPad::Manager::instance();
-    if (!virtualPadManager.isEnabled()) {
+    if (!virtualPadManager.isEnabled()  && !virtualPadManager.isHidden()) {
         return;
     }
     if (QGesture* gesture = event->gesture(Qt::PinchGesture)) {
