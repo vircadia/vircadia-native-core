@@ -35,7 +35,7 @@ protected:
     // FIXME: there is no way to play a positionless sound
     Q_INVOKABLE ScriptAudioInjector* playSystemSound(SharedSoundPointer sound, const QVector3D& position);
 
-    Q_INVOKABLE void setStereoInput(bool stereo);
+    Q_INVOKABLE bool setStereoInput(bool stereo);
 
 signals:
     void mutedByMixer(); /// the client has been muted by the mixer

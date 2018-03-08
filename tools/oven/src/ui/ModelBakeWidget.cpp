@@ -21,8 +21,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
 
-#include "../Oven.h"
-#include "OvenMainWindow.h"
+#include "../OvenGUIApplication.h"
 
 #include "ModelBakeWidget.h"
 
@@ -208,12 +207,12 @@ void ModelBakeWidget::bakeButtonClicked() {
         // everything seems to be in place, kick off a bake for this model now
         auto baker = std::unique_ptr<FBXBaker> {
             new FBXBaker(modelToBakeURL, []() -> QThread* {
-                return qApp->getNextWorkerThread();
+                return Oven::instance().getNextWorkerThread();
             }, bakedOutputDirectory.absolutePath(), originalOutputDirectory.absolutePath())
         };
 
         // move the baker to the FBX baker thread
-        baker->moveToThread(qApp->getNextWorkerThread());
+        baker->moveToThread(Oven::instance().getNextWorkerThread());
 
         // invoke the bake method on the baker thread
         QMetaObject::invokeMethod(baker.get(), "bake");
@@ -222,7 +221,7 @@ void ModelBakeWidget::bakeButtonClicked() {
         connect(baker.get(), &FBXBaker::finished, this, &ModelBakeWidget::handleFinishedBaker);
 
         // add a pending row to the results window to show that this bake is in process
-        auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+        auto resultsWindow = OvenGUIApplication::instance()->getMainWindow()->showResultsWindow();
         auto resultsRow = resultsWindow->addPendingResultRow(modelToBakeURL.fileName(), outputDirectory);
 
         // keep a unique_ptr to this baker
@@ -244,7 +243,7 @@ void ModelBakeWidget::handleFinishedBaker() {
 
         if (it != _bakers.end()) {
             auto resultRow = it->second;
-            auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+            auto resultsWindow = OvenGUIApplication::instance()->getMainWindow()->showResultsWindow();
 
             if (baker->hasErrors()) {
                 resultsWindow->changeStatusForRow(resultRow, baker->getErrors().join("\n"));
