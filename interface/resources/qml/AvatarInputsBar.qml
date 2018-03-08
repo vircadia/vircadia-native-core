@@ -14,9 +14,9 @@ import Qt.labs.settings 1.0
 
 import "./hifi/audio" as HifiAudio
 
-Hifi.AvatarInputs {
+Item {
     id: root;
-    objectName: "AvatarInputs"
+    objectName: "AvatarInputsBar"
     property int modality: Qt.NonModal
     width: audio.width;
     height: audio.height;
@@ -26,7 +26,7 @@ Hifi.AvatarInputs {
 
     HifiAudio.MicBar {
         id: audio;
-        visible: root.showAudioTools;
+        visible: AvatarInputs.showAudioTools;
         standalone: true;
 	    dragTarget: parent;
     }
