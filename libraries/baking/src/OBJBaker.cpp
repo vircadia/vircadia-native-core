@@ -150,6 +150,16 @@ void OBJBaker::bakeOBJ() {
 
     _bakedModelFilePath = _bakedOutputDir + "/" + bakedFilename;
 
+    if (!QDir().mkpath(_bakedOutputDir)) {
+        handleError("Failed to create baked OBJ output folder " + _bakedOutputDir);
+        return;
+    }
+
+    if (!QDir().mkpath(_originalOutputDir)) {
+        handleError("Failed to create original OBJ output folder " + _originalOutputDir);
+        return;
+    }
+
     QFile bakedFile;
     bakedFile.setFileName(_bakedModelFilePath);
     if (!bakedFile.open(QIODevice::WriteOnly)) {
@@ -163,8 +173,7 @@ void OBJBaker::bakeOBJ() {
     _outputFiles.push_back(_bakedModelFilePath);
     qCDebug(model_baking) << "Exported" << _modelURL << "to" << _bakedModelFilePath;
 
-    // Export done emit finished
-    emit finished();
+    checkIfTexturesFinished();
 }
 
 void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
@@ -279,6 +288,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
             auto textureFile = compressTexture(textureFileName, textureType);
             if (textureFile.isNull()) {
                 // Baking failed return
+                handleError("Failed to compress texture: " + textureFileName);
                 return;
             }
             relativeFilenameNode.properties = { textureFile };

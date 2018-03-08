@@ -95,7 +95,7 @@ void FBXBaker::setupOutputFolder() {
         }
         // attempt to make the output folder
         if (!QDir().mkpath(_originalOutputDir)) {
-            handleError("Failed to create FBX output folder " + _bakedOutputDir);
+            handleError("Failed to create FBX output folder " + _originalOutputDir);
             return;
         }
     }

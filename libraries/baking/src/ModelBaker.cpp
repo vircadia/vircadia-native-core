@@ -327,6 +327,7 @@ void ModelBaker::bakeTexture(const QUrl& textureURL, image::TextureUsage::Type t
 
 void ModelBaker::handleBakedTexture() {
     TextureBaker* bakedTexture = qobject_cast<TextureBaker*>(sender());
+    qDebug() << "Handling baked texture" << bakedTexture->getTextureURL();
 
     // make sure we haven't already run into errors, and that this is a valid texture
     if (bakedTexture) {

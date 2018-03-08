@@ -191,7 +191,7 @@ void ModelBakeWidget::bakeButtonClicked() {
             subFolderName = modelName + "-" + QString::number(++iteration) + "/";
         }
 
-        outputDirectory.mkdir(subFolderName);
+        outputDirectory.mkpath(subFolderName);
 
         if (!outputDirectory.exists()) {
             QMessageBox::warning(this, "Unable to create directory", "Unable to create output directory. Please create it manually or choose a different directory.");
