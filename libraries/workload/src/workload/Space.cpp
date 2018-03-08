@@ -62,7 +62,6 @@ void Space::copyViews(std::vector<View>& copy) const {
     copy = _views;
 }
 
-// TODO?: move this to an algorithm/job?
 void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
     uint32_t numProxies = (uint32_t)_proxies.size();
     uint32_t numViews = (uint32_t)_views.size();
@@ -74,21 +73,11 @@ void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
             uint8_t region = Region::UNKNOWN;
             for (uint32_t j = 0; j < numViews; ++j) {
                 auto& view = _views[j];
-
-                glm::vec3 distance2(glm::distance2(proxyCenter, glm::vec3(view.regions[0])), glm::distance2(proxyCenter, glm::vec3(view.regions[1])), glm::distance2(proxyCenter, glm::vec3(view.regions[2])));
-                glm::vec3 regionRadii2(view.regions[0].w + proxyRadius, view.regions[1].w + proxyRadius, view.regions[2].w + proxyRadius);
-                regionRadii2 *= regionRadii2;
-                auto touchTests = glm::lessThanEqual(distance2, regionRadii2);
-
-                if (glm::any(touchTests)) {
-                    if (touchTests.x) {
-                        region = Region::R1;
-                        break;
-                    } else if (touchTests.y) {
-                        region = Region::R2;
-                        break;
-                    } else {
-                        region = Region::R3;
+                // for each 'view' we need only increment 'k' below the current value of 'region'
+                for (uint8_t k = 0; k < region; ++k) {
+                    float touchDistance = proxyRadius + view.regions[k].w;
+                    if (distance2(proxyCenter, glm::vec3(view.regions[k])) < touchDistance * touchDistance) {
+                        region = k;
                         break;
                     }
                 }
@@ -124,10 +113,8 @@ void Space::deleteProxy(int32_t proxyId) {
 }
 
 uint32_t Space::copyProxyValues(Proxy* proxies, uint32_t numDestProxies) const {
-
     auto numCopied = std::min(numDestProxies, (uint32_t)_proxies.size());
     memcpy(proxies, _proxies.data(), numCopied * sizeof(Proxy));
-
     return numCopied;
 }
 

@@ -48,7 +48,6 @@ void View::updateRegions(View& view) {
         config[i * 2 + 1] = refFar * weight;
         refFar *= 2.0f;
     }
-
     updateRegions(view, config.data());
 }
 

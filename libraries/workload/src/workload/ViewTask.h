@@ -41,14 +41,14 @@ namespace workload {
         void setR3Back(float d) { data.r3Back = d; emit dirty(); }
 
         struct Data {
-            float r1Front { 10.0f };
             float r1Back { 2.0f };
+            float r1Front { 10.0f };
 
-            float r2Front{ 30.0f };
             float r2Back{ 5.0f };
+            float r2Front{ 30.0f };
 
-            float r3Front{ 100.0f };
             float r3Back{ 10.0f };
+            float r3Front{ 100.0f };
         } data;
 
     signals:
