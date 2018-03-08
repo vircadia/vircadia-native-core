@@ -54,6 +54,10 @@ Oven::Oven(int argc, char* argv[]) :
     // setup our worker threads
     setupWorkerThreads(QThread::idealThreadCount());
 
+    // Initialize dependencies for OBJ Baker
+    DependencyManager::set<StatTracker>();
+    DependencyManager::set<ResourceManager>(false);
+
     // check if we were passed any command line arguments that would tell us just to run without the GUI
     if (parser.isSet(CLI_INPUT_PARAMETER) || parser.isSet(CLI_OUTPUT_PARAMETER)) {
         if (parser.isSet(CLI_INPUT_PARAMETER) && parser.isSet(CLI_OUTPUT_PARAMETER)) {
