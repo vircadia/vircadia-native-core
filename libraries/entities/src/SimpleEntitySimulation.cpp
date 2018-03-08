@@ -85,7 +85,11 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
 }
 
 void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
-    EntitySimulation::addEntityInternal(entity);
+    if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
+        QMutexLocker lock(&_mutex);
+        _simpleKinematicEntities.insert(entity);
+        entity->setLastSimulated(usecTimestampNow());
+    }
     if (!entity->getSimulatorID().isNull()) {
         QMutexLocker lock(&_mutex);
         _entitiesWithSimulationOwner.insert(entity);
