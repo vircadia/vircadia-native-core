@@ -19,9 +19,9 @@
         android:allowBackup="true"
         android:screenOrientation="unspecified"
         android:theme="@style/NoSystemUI"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_launcher"
         android:launchMode="singleTop"
-        android:roundIcon="@mipmap/ic_launcher_round">
+        android:roundIcon="@drawable/ic_launcher">
         <activity android:name="io.highfidelity.hifiinterface.PermissionChecker">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
