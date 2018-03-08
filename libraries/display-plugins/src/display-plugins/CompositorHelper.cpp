@@ -458,9 +458,8 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
     return result;
 }
 
-glm::mat4 CompositorHelper::getPoint2DTransform(const glm::vec2& point) const {
+glm::mat4 CompositorHelper::getPoint2DTransform(const glm::vec2& point, float sizeX, float sizeY) const {
     glm::mat4 result;
-    static const float PIXEL_SIZE = 512.0f;
     const auto canvasSize = vec2(toGlm(_renderingWidget->size()));;
     QPoint qPoint(point.x,point.y);
     vec2 position = toGlm(_renderingWidget->mapFromGlobal(qPoint));
@@ -469,7 +468,7 @@ glm::mat4 CompositorHelper::getPoint2DTransform(const glm::vec2& point) const {
     position -= 1.0;
     position.y *= -1.0f;
 
-    vec2 size = PIXEL_SIZE / canvasSize;
+    vec2 size = vec2(sizeX / canvasSize.x, sizeY / canvasSize.y);
     result = glm::scale(glm::translate(glm::mat4(), vec3(position, 0.0f)), vec3(size, 1.0f));
     return result;
 }
