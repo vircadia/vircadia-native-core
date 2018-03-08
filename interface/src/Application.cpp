@@ -6484,8 +6484,8 @@ void Application::replaceDomainContent(const QString& url) {
         limitedNodeList->sendPacket(std::move(octreeFilePacket), domainHandler.getSockAddr());
     });
     auto addressManager = DependencyManager::get<AddressManager>();
-    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT());
-    QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT();
+    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
+    QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
     qCDebug(interfaceapp) << "Setting new home bookmark to: " << newHomeAddress;
     DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(newHomeAddress);
 }
