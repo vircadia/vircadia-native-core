@@ -111,7 +111,18 @@ void SimpleEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
 }
 
 void SimpleEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
-    EntitySimulation::changeEntityInternal(entity);
+    {
+        QMutexLocker lock(&_mutex);
+        if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
+            int numKinematicEntities = _simpleKinematicEntities.size();
+            _simpleKinematicEntities.insert(entity);
+            if (numKinematicEntities != _simpleKinematicEntities.size()) {
+                entity->setLastSimulated(usecTimestampNow());
+            }
+        } else {
+            _simpleKinematicEntities.remove(entity);
+        }
+    }
     if (entity->getSimulatorID().isNull()) {
         QMutexLocker lock(&_mutex);
         _entitiesWithSimulationOwner.remove(entity);

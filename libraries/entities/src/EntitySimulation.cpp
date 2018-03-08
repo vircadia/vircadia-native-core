@@ -71,19 +71,6 @@ void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
     }
 }
 
-void EntitySimulation::changeEntityInternal(EntityItemPointer entity) {
-    QMutexLocker lock(&_mutex);
-    if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
-        int numKinematicEntities = _simpleKinematicEntities.size();
-        _simpleKinematicEntities.insert(entity);
-        if (numKinematicEntities != _simpleKinematicEntities.size()) {
-            entity->setLastSimulated(usecTimestampNow());
-        }
-    } else {
-        _simpleKinematicEntities.remove(entity);
-    }
-}
-
 // protected
 void EntitySimulation::expireMortalEntities(const quint64& now) {
     if (now > _nextExpiry) {

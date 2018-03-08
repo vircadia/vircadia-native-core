@@ -86,7 +86,7 @@ protected:
     virtual void updateEntitiesInternal(const quint64& now) = 0;
     virtual void addEntityInternal(EntityItemPointer entity) = 0;
     virtual void removeEntityInternal(EntityItemPointer entity) = 0;
-    virtual void changeEntityInternal(EntityItemPointer entity);
+    virtual void changeEntityInternal(EntityItemPointer entity) = 0;
     virtual void clearEntitiesInternal() = 0;
 
     void expireMortalEntities(const quint64& now);
