@@ -27,10 +27,6 @@
 
 #include "DomainHandler.h"
 
-QString DOMAIN_SPAWNING_POINT() {
-    return QString("/0, -10, 0");
-}
-
 DomainHandler::DomainHandler(QObject* parent) :
     QObject(parent),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),

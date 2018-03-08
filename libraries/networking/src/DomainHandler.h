@@ -202,7 +202,7 @@ private:
     QTimer _apiRefreshTimer;
 };
 
-QString DOMAIN_SPAWNING_POINT();
+const QString DOMAIN_SPAWNING_POINT { "/0, -10, 0" };
 
 
 #endif // hifi_DomainHandler_h

@@ -299,7 +299,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         setDomainInfo(domainUrl, trigger);
         DependencyManager::get<NodeList>()->getDomainHandler().setIsConnected(true);
         emit lookupResultsFinished();
-        handlePath(DOMAIN_SPAWNING_POINT(), LookupTrigger::Internal, false);
+        handlePath(DOMAIN_SPAWNING_POINT, LookupTrigger::Internal, false);
         return true;
     }
 
