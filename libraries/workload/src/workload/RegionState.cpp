@@ -31,7 +31,7 @@ void RegionState::run(const workload::WorkloadContextPointer& renderContext, con
 
     for (uint32_t i = 0; i < _state.size(); ++i) {
         const IndexVector& going = inputs[2 * i];
-        const IndexVector& coming = inputs[2 * i - 1];
+        const IndexVector& coming = inputs[2 * i + 1];
         if (coming.size() == 0 && going.size() == 0) {
             continue;
         }
