@@ -492,7 +492,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, deferredFramebuffer->getPrimaryDepthTexture());
         
         // FIXME: Different render modes should have different tasks
-        if (args->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && deferredLightingEffect->isAmbientOcclusionEnabled()) {
+        if (args->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && deferredLightingEffect->isAmbientOcclusionEnabled() && ambientOcclusionFramebuffer) {
             batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, ambientOcclusionFramebuffer->getOcclusionTexture());
         } else {
             // need to assign the white texture if ao is off
