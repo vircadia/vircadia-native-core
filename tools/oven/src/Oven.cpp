@@ -11,33 +11,15 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
-#include <QtCore/QCommandLineParser>
 
 #include <image/Image.h>
 
-#include "ui/OvenMainWindow.h"
 #include "Oven.h"
-#include "BakerCLI.h"
 
-static const QString OUTPUT_FOLDER = "/Users/birarda/code/hifi/lod/test-oven/export";
+Oven* Oven::_staticInstance { nullptr };
 
-static const QString CLI_INPUT_PARAMETER = "i";
-static const QString CLI_OUTPUT_PARAMETER = "o";
-static const QString CLI_TYPE_PARAMETER = "t";
-
-Oven::Oven(int argc, char* argv[]) :
-    QApplication(argc, argv)
-{
-    // parse the command line parameters
-    QCommandLineParser parser;
-   
-    parser.addOptions({
-        { CLI_INPUT_PARAMETER, "Path to file that you would like to bake.", "input" },
-        { CLI_OUTPUT_PARAMETER, "Path to folder that will be used as output.", "output" },
-        { CLI_TYPE_PARAMETER, "Type of asset.", "type" }
-    });
-    parser.addHelpOption();
-    parser.process(*this);
+Oven::Oven() {
+    _staticInstance = this;
 
     // enable compression in image library
     image::setColorTexturesCompressionEnabled(true);
@@ -47,41 +29,30 @@ Oven::Oven(int argc, char* argv[]) :
 
     // setup our worker threads
     setupWorkerThreads(QThread::idealThreadCount());
-
-    // check if we were passed any command line arguments that would tell us just to run without the GUI
-    if (parser.isSet(CLI_INPUT_PARAMETER) || parser.isSet(CLI_OUTPUT_PARAMETER)) {
-        if (parser.isSet(CLI_INPUT_PARAMETER) && parser.isSet(CLI_OUTPUT_PARAMETER)) {
-            BakerCLI* cli = new BakerCLI(this);
-            QUrl inputUrl(QDir::fromNativeSeparators(parser.value(CLI_INPUT_PARAMETER)));
-            QUrl outputUrl(QDir::fromNativeSeparators(parser.value(CLI_OUTPUT_PARAMETER)));
-            QString type = parser.isSet(CLI_TYPE_PARAMETER) ? parser.value(CLI_TYPE_PARAMETER) : QString::null;
-            cli->bakeFile(inputUrl, outputUrl.toString(), type);
-        } else {
-            parser.showHelp();
-            QApplication::quit();
-        } 
-    } else {
-        // setup the GUI
-        _mainWindow = new OvenMainWindow;
-        _mainWindow->show();
-    }
 }
 
 Oven::~Oven() {
-    // cleanup the worker threads
-    for (auto i = 0; i < _workerThreads.size(); ++i) {
-        _workerThreads[i]->quit();
-        _workerThreads[i]->wait();
+    // quit all worker threads and wait on them
+    for (auto& thread : _workerThreads) {
+        thread->quit();
     }
+
+    for (auto& thread: _workerThreads) {
+        thread->wait();
+    }
+
+    _staticInstance = nullptr;
 }
 
 void Oven::setupWorkerThreads(int numWorkerThreads) {
+    _workerThreads.reserve(numWorkerThreads);
+
     for (auto i = 0; i < numWorkerThreads; ++i) {
         // setup a worker thread yet and add it to our concurrent vector
-        auto newThread = new QThread(this);
+        auto newThread = std::unique_ptr<QThread> { new QThread };
         newThread->setObjectName("Oven Worker Thread " + QString::number(i + 1));
 
-        _workerThreads.push_back(newThread);
+        _workerThreads.push_back(std::move(newThread));
     }
 }
 
@@ -92,13 +63,13 @@ QThread* Oven::getNextWorkerThread() {
     // (for the FBX Baker Thread to have room), and cycle through them to hand a usable running thread back to our callers.
 
     auto nextIndex = ++_nextWorkerThreadIndex;
-    auto nextThread = _workerThreads[nextIndex % _workerThreads.size()];
+    auto& nextThread = _workerThreads[nextIndex % _workerThreads.size()];
 
     // start the thread if it isn't running yet
     if (!nextThread->isRunning()) {
         nextThread->start();
     }
 
-    return nextThread;
+    return nextThread.get();
 }
 

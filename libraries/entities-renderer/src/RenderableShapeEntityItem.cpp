@@ -169,8 +169,12 @@ scriptable::ScriptableModelBase ShapeEntityRenderer::getScriptableModel()  {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto geometryShape = geometryCache->getShapeForEntityShape(_shape);
     glm::vec3 vertexColor;
-    if (_materials["0"].top().material) {
-        vertexColor = _materials["0"].top().material->getAlbedo();
+    {
+        std::lock_guard<std::mutex> lock(_materialsLock);
+        result.appendMaterials(_materials);
+        if (_materials["0"].top().material) {
+            vertexColor = _materials["0"].top().material->getAlbedo();
+        }
     }
     if (auto mesh = geometryCache->meshFromShape(geometryShape, vertexColor)) {
         result.objectID = getEntity()->getID();
