@@ -978,15 +978,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qInstallMessageHandler(messageHandler);
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
-    QFontDatabase::addApplicationFont(":/fonts/fontawesome-webfont.ttf");
-    QFontDatabase::addApplicationFont(":/fonts/hifi-glyphs.ttf");
-    QFontDatabase::addApplicationFont(":/fonts/AnonymousPro-Regular.ttf");
-    QFontDatabase::addApplicationFont(":/fonts/FiraSans-Regular.ttf");
-    QFontDatabase::addApplicationFont(":/fonts/FiraSans-SemiBold.ttf");
-    QFontDatabase::addApplicationFont(":/fonts/Raleway-Light.ttf");
-    QFontDatabase::addApplicationFont(":/fonts/Raleway-Regular.ttf");
-    QFontDatabase::addApplicationFont(":/fonts/Raleway-Bold.ttf");
-    QFontDatabase::addApplicationFont(":/fonts/Raleway-SemiBold.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/fontawesome-webfont.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/hifi-glyphs.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/AnonymousPro-Regular.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/FiraSans-Regular.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/FiraSans-SemiBold.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Light.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Regular.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Bold.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-SemiBold.ttf");
     _window->setWindowTitle("High Fidelity Interface");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
