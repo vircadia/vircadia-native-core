@@ -14,7 +14,7 @@ var qml = Script.resolvePath('shadow.qml');
 var window = new OverlayWindow({
     title: 'Shadow Debug',
     source: qml,
-    width: 200, 
-    height: 90
+    width: 250, 
+    height: 300
 });
 window.closed.connect(function() { Script.stop(); });

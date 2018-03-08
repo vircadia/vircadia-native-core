@@ -26,6 +26,8 @@
 #include <QPair>
 #include <QUrl>
 
+#include <memory>
+
 class QTcpSocket;
 class HTTPManager;
 class MaskFilter;
@@ -87,6 +89,9 @@ public:
     void respond (const char* code, const QByteArray& content = QByteArray(),
         const char* contentType = DefaultContentType,
         const Headers& headers = Headers());
+    void respond (const char* code, std::unique_ptr<QIODevice> device,
+        const char* contentType = DefaultContentType,
+        const Headers& headers = Headers());
 
 protected slots:
 
@@ -100,6 +105,7 @@ protected slots:
     void readContent ();
 
 protected:
+    void respondWithStatusAndHeaders(const char* code, const char* contentType, const Headers& headers, qint64 size);
 
     /// The parent HTTP manager
     HTTPManager* _parentManager;
@@ -127,6 +133,9 @@ protected:
 
     /// The content of the request.
     QByteArray _requestContent;
+
+    /// Response content
+    std::unique_ptr<QIODevice> _responseDevice;
 };
 
 #endif // hifi_HTTPConnection_h

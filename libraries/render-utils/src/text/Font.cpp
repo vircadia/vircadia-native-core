@@ -223,9 +223,9 @@ void Font::setupGPU() {
 
         // Setup render pipeline
         {
-            auto vertexShader = gpu::Shader::createVertex(std::string(sdf_text3D_vert));
-            auto pixelShader = gpu::Shader::createPixel(std::string(sdf_text3D_frag));
-            auto pixelShaderTransparent = gpu::Shader::createPixel(std::string(sdf_text3D_transparent_frag));
+            auto vertexShader = sdf_text3D_vert::getShader();
+            auto pixelShader = sdf_text3D_frag::getShader();
+            auto pixelShaderTransparent = sdf_text3D_transparent_frag::getShader();
             gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
             gpu::ShaderPointer programTransparent = gpu::Shader::createProgram(vertexShader, pixelShaderTransparent);
 
@@ -368,7 +368,9 @@ void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, c
     setupGPU();
 
     batch.setPipeline(((*color).a < 1.0f || layered) ? _transparentPipeline : _pipeline);
-    batch.setResourceTexture(_fontLoc, _texture);
+    if (_fontLoc >= 0) {
+        batch.setResourceTexture(_fontLoc, _texture);
+    }
     if (_outlineLoc >= 0) {
         batch._glUniform1i(_outlineLoc, (effectType == OUTLINE_EFFECT));
     }

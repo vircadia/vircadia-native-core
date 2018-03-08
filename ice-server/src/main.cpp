@@ -11,17 +11,12 @@
 
 #include <QtCore/QCoreApplication>
 
-#include <LogHandler.h>
+#include <SharedUtil.h>
 
 #include "IceServer.h"
 
 int main(int argc, char* argv[]) {
-#ifndef WIN32
-    setvbuf(stdout, NULL, _IOLBF, 0);
-#endif
-
-    qInstallMessageHandler(LogHandler::verboseMessageHandler);
-    qInfo() << "Starting.";
+    setupHifiApplication("Ice Server");
     
     IceServer iceServer(argc, argv);
     return iceServer.exec();

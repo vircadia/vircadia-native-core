@@ -16,6 +16,7 @@ ScriptAvatarData::ScriptAvatarData(AvatarSharedPointer avatarData) :
 {
     QObject::connect(avatarData.get(), &AvatarData::displayNameChanged, this, &ScriptAvatarData::displayNameChanged);
     QObject::connect(avatarData.get(), &AvatarData::sessionDisplayNameChanged, this, &ScriptAvatarData::sessionDisplayNameChanged);
+    QObject::connect(avatarData.get(), &AvatarData::skeletonModelURLChanged, this, &ScriptAvatarData::skeletonModelURLChanged);
     QObject::connect(avatarData.get(), &AvatarData::lookAtSnappingChanged, this, &ScriptAvatarData::lookAtSnappingChanged);
 }
 

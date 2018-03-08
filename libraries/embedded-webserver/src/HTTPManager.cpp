@@ -79,7 +79,7 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
             QHash<QByteArray, QByteArray> redirectHeader;
             redirectHeader.insert(QByteArray("Location"), redirectLocation.toUtf8());
             
-            connection->respond(HTTPConnection::StatusCode301, "", HTTPConnection::DefaultContentType, redirectHeader);
+            connection->respond(HTTPConnection::StatusCode302, "", HTTPConnection::DefaultContentType, redirectHeader);
         }
         
         // if the last thing is a trailing slash then we want to look for index file
@@ -98,13 +98,14 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
             // file exists, serve it
             static QMimeDatabase mimeDatabase;
             
-            QFile localFile(filePath);
-            localFile.open(QIODevice::ReadOnly);
-            QByteArray localFileData = localFile.readAll();
+            auto localFile = std::unique_ptr<QFile>(new QFile(filePath));
+            localFile->open(QIODevice::ReadOnly);
+            QByteArray localFileData;
             
             QFileInfo localFileInfo(filePath);
             
             if (localFileInfo.completeSuffix() == "shtml") {
+                localFileData = localFile->readAll();
                 // this is a file that may have some SSI statements
                 // the only thing we support is the include directive, but check the contents for that
                 
@@ -153,8 +154,12 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
                 ? QString { "text/html" }
                 : mimeDatabase.mimeTypeForFile(filePath).name();
 
-            connection->respond(HTTPConnection::StatusCode200, localFileData, qPrintable(mimeType));
-            
+            if (localFileData.isNull()) {
+                connection->respond(HTTPConnection::StatusCode200, std::move(localFile), qPrintable(mimeType));
+            } else {
+                connection->respond(HTTPConnection::StatusCode200, localFileData, qPrintable(mimeType));
+            }
+
             return true;
         }
     }

@@ -202,8 +202,4 @@ TreeView {
     }
 
     onDoubleClicked: isExpanded(index) ? collapse(index) : expand(index)
-
-    onClicked: {
-        selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect);
-    }
 }

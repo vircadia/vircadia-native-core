@@ -52,25 +52,25 @@ void ZoneRendererTask::build(JobModel& task, const Varying& input, Varying& oupu
 }
 
 void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) {
+    // Grab light, background and haze stages and clear them
+    auto lightStage = context->_scene->getStage<LightStage>();
+    assert(lightStage);
+    lightStage->_currentFrame.clear();
+
     auto backgroundStage = context->_scene->getStage<BackgroundStage>();
     assert(backgroundStage);
     backgroundStage->_currentFrame.clear();
 
-    // Haze
     auto hazeStage = context->_scene->getStage<HazeStage>();
     assert(hazeStage);
     hazeStage->_currentFrame.clear();
 
-    // call render in the correct order first...
+    // call render over the zones to grab their components in the correct order first...
     render::renderItems(context, inputs);
 
     // Finally add the default lights and background:
-    auto lightStage = context->_scene->getStage<LightStage>();
-    assert(lightStage);
-    
     lightStage->_currentFrame.pushSunLight(lightStage->getDefaultLight());
     lightStage->_currentFrame.pushAmbientLight(lightStage->getDefaultLight());
-
     backgroundStage->_currentFrame.pushBackground(0);
     hazeStage->_currentFrame.pushHaze(0);
 }
@@ -78,7 +78,7 @@ void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) 
 const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
     if (!_keyLightPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = gpu::Shader::createPixel(std::string(zone_drawKeyLight_frag));
+        auto ps = zone_drawKeyLight_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -99,7 +99,7 @@ const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
 const gpu::PipelinePointer& DebugZoneLighting::getAmbientPipeline() {
     if (!_ambientPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = gpu::Shader::createPixel(std::string(zone_drawAmbient_frag));
+        auto ps = zone_drawAmbient_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -120,7 +120,7 @@ const gpu::PipelinePointer& DebugZoneLighting::getAmbientPipeline() {
 const gpu::PipelinePointer& DebugZoneLighting::getBackgroundPipeline() {
     if (!_backgroundPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = gpu::Shader::createPixel(std::string(zone_drawSkybox_frag));
+        auto ps = zone_drawSkybox_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;

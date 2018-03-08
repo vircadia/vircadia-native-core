@@ -1,0 +1,22 @@
+module stylesUit
+AnonymousProRegular 1.0 AnonymousProRegular.qml
+ButtonLabel 1.0 ButtonLabel.qml
+FiraSansRegular 1.0 FiraSansRegular.qml
+FiraSansSemiBold 1.0 FiraSansSemiBold.qml
+HifiConstants 1.0 HifiConstants.qml
+HiFiGlyphs 1.0 HiFiGlyphs.qml
+IconButton 1.0 IconButton.qml
+InfoItem 1.0 InfoItem.qml
+InputLabel 1.0 InputLabel.qml
+ListItem 1.0 ListItem.qml
+Logs 1.0 Logs.qml
+OverlayTitle 1.0 OverlayTitle.qml
+RalewayBold 1.0 RalewayBold.qml
+RalewayLight 1.0 RalewayLight.qml
+RalewayRegular 1.0 RalewayRegular.qml
+RalewaySemiBold 1.0 RalewaySemiBold.qml
+SectionName 1.0 SectionName.qml
+Separator 1.0 Separator.qml
+ShortcutText 1.0 ShortcutText.qml
+TabName 1.0 TabName.qml
+TextFieldInput 1.0 TextFieldInput.qml

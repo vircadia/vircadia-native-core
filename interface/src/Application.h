@@ -33,6 +33,7 @@
 #include <FileScriptingInterface.h>
 #include <input-plugins/KeyboardMouseDevice.h>
 #include <input-plugins/TouchscreenDevice.h>
+#include <input-plugins/TouchscreenVirtualPadDevice.h>
 #include <OctreeQuery.h>
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
@@ -266,8 +267,9 @@ public:
 
     float getGameLoopRate() const { return _gameLoopCounter.rate(); }
 
-    void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f);
-    void takeSecondaryCameraSnapshot();
+    void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
+    void takeSecondaryCameraSnapshot(const QString& filename = QString());
+
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
     graphics::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
@@ -283,6 +285,8 @@ public:
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
     void saveNextPhysicsStats(QString filename);
+
+    void replaceDomainContent(const QString& url);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -365,6 +369,7 @@ public slots:
     void updateHeartbeat() const;
 
     static void deadlockApplication();
+    static void unresponsiveApplication(); // cause main thread to be unresponsive for 35 seconds
 
     void rotationModeChanged() const;
 
@@ -389,6 +394,8 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
 private slots:
+    void onDesktopRootItemCreated(QQuickItem* qmlContext);
+    void onDesktopRootContextCreated(QQmlContext* qmlContext);
     void showDesktop();
     void clearDomainOctreeDetails();
     void clearDomainAvatars();
@@ -469,6 +476,7 @@ private:
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
     bool importFromZIP(const QString& filePath);
+    bool importImage(const QString& urlString);
 
     bool nearbyEntitiesAreReadyForPhysics();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
@@ -545,6 +553,7 @@ private:
     std::shared_ptr<controller::StateController> _applicationStateDevice; // Default ApplicationDevice reflecting the state of different properties of the session
     std::shared_ptr<KeyboardMouseDevice> _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
     std::shared_ptr<TouchscreenDevice> _touchscreenDevice;   // the good old touchscreen
+    std::shared_ptr<TouchscreenVirtualPadDevice> _touchscreenVirtualPadDevice;
     SimpleMovingAverage _avatarSimsPerSecond {10};
     int _avatarSimsPerSecondReport {0};
     quint64 _lastAvatarSimsPerSecondUpdate {0};

@@ -16,12 +16,8 @@
 QTEST_MAIN(PathUtilsTests)
 
 void PathUtilsTests::testPathUtils() {
-    QString result = PathUtils::qmlBasePath();
-#if DEV_BUILD
-    QVERIFY(result.startsWith("file:///"));
-#else
+    QString result = PathUtils::qmlBaseUrl();
     QVERIFY(result.startsWith("qrc:///"));
-#endif
     QVERIFY(result.endsWith("/"));
 }
 

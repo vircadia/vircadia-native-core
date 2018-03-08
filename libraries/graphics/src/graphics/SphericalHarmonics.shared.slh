@@ -15,16 +15,24 @@
 
 #define SphericalHarmonicsConstRef SphericalHarmonics
 
+#ifndef PRECISIONQ
+#ifdef GL_ES
+#define PRECISIONQ highp
+#else
+#define PRECISIONQ
+#endif
+#endif
+
 struct SphericalHarmonics {
-    vec4 L00;
-    vec4 L1m1;
-    vec4 L10;
-    vec4 L11;
-    vec4 L2m2;
-    vec4 L2m1;
-    vec4 L20;
-    vec4 L21;
-    vec4 L22;
+    PRECISIONQ vec4 L00;
+    PRECISIONQ vec4 L1m1;
+    PRECISIONQ vec4 L10;
+    PRECISIONQ vec4 L11;
+    PRECISIONQ vec4 L2m2;
+    PRECISIONQ vec4 L2m1;
+    PRECISIONQ vec4 L20;
+    PRECISIONQ vec4 L21;
+    PRECISIONQ vec4 L22;
 };
 
 vec4 sphericalHarmonics_evalSphericalLight(SphericalHarmonicsConstRef sh, vec3 direction) {

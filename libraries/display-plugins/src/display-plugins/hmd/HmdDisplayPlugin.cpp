@@ -395,8 +395,8 @@ void HmdDisplayPlugin::HUDRenderer::build() {
 
 void HmdDisplayPlugin::HUDRenderer::updatePipeline() {
     if (!pipeline) {
-        auto vs = gpu::Shader::createVertex(std::string(hmd_ui_vert));
-        auto ps = gpu::Shader::createPixel(std::string(hmd_ui_frag));
+        auto vs = hmd_ui_vert::getShader();
+        auto ps = hmd_ui_frag::getShader();
         auto program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram(*program, gpu::Shader::BindingSet());
         uniformsLocation = program->getUniformBuffers().findLocation("hudBuffer");

@@ -54,6 +54,8 @@
 #include "HeadData.h"
 #include "PathUtils.h"
 
+#include <graphics/Material.h>
+
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
 using AvatarHash = QHash<QUuid, AvatarSharedPointer>;
@@ -371,7 +373,7 @@ class AvatarData : public QObject, public SpatiallyNestable {
     // The result is unique among all avatars present at the time.
     Q_PROPERTY(QString sessionDisplayName READ getSessionDisplayName WRITE setSessionDisplayName NOTIFY sessionDisplayNameChanged)
     Q_PROPERTY(bool lookAtSnappingEnabled MEMBER _lookAtSnappingEnabled NOTIFY lookAtSnappingChanged)
-    Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
+    Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript NOTIFY skeletonModelURLChanged)
     Q_PROPERTY(QVector<AttachmentData> attachmentData READ getAttachmentData WRITE setAttachmentData)
 
     Q_PROPERTY(QStringList jointNames READ getJointNames)
@@ -694,9 +696,13 @@ public:
 
     bool getIsReplicated() const { return _isReplicated; }
 
+    virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {}
+    virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
+
 signals:
     void displayNameChanged();
     void sessionDisplayNameChanged();
+    void skeletonModelURLChanged();
     void lookAtSnappingChanged(bool enabled);
     void sessionUUIDChanged();
 
@@ -707,7 +713,11 @@ public slots:
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& sessionUUID) {
         if (sessionUUID != getID()) {
-            setID(sessionUUID);
+            if (sessionUUID == QUuid()) {
+                setID(AVATAR_SELF_ID);
+            } else {
+                setID(sessionUUID);
+            }
             emit sessionUUIDChanged();
         }
     }

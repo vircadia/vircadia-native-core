@@ -7,14 +7,14 @@
 
 /* jslint bitwise: true */
 
-/* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
+/* global Script, Controller, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
    getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities,
    enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable, entityIsGrabbable,
    makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
    DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
    getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
-   Picks, makeLaserLockInfo Xform, makeLaserParams
+   Picks, makeLaserLockInfo Xform, makeLaserParams, AddressManager, getEntityParents
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -208,7 +208,7 @@ Script.include("/~/system/libraries/Xform.js");
             var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
             var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
 
-            var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, ["position"]);
+            var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
             var now = Date.now();
             var deltaObjectTime = (now - this.currentObjectTime) / MSECS_PER_SEC; // convert to seconds
             this.currentObjectTime = now;
@@ -369,6 +369,14 @@ Script.include("/~/system/libraries/Xform.js");
             }
         };
 
+        this.targetIsNull = function() {
+            var properties = Entities.getEntityProperties(this.grabbedThingID);
+            if (Object.keys(properties).length === 0 && this.distanceHolding) {
+                return true;
+            }
+            return false;
+        };
+
         this.isReady = function (controllerData) {
             if (HMD.active) {
                 if (this.notPointingAtEntity(controllerData)) {
@@ -391,7 +399,7 @@ Script.include("/~/system/libraries/Xform.js");
 
         this.run = function (controllerData) {
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE ||
-                this.notPointingAtEntity(controllerData)) {
+                this.notPointingAtEntity(controllerData) || this.targetIsNull()) {
                 this.endNearGrabAction();
                 return makeRunningValues(false, [], []);
             }
@@ -441,11 +449,16 @@ Script.include("/~/system/libraries/Xform.js");
                 if (rayPickInfo.type === Picks.INTERSECTED_ENTITY) {
                     if (controllerData.triggerClicks[this.hand]) {
                         var entityID = rayPickInfo.objectID;
+
                         var targetProps = Entities.getEntityProperties(entityID, [
                             "dynamic", "shapeType", "position",
                             "rotation", "dimensions", "density",
-                            "userData", "locked", "type"
+                            "userData", "locked", "type", "href"
                         ]);
+                        if (targetProps.href !== "") {
+                            AddressManager.handleLookupString(targetProps.href);
+                            return makeRunningValues(false, [], []);
+                        }
 
                         this.targetObject = new TargetObject(entityID, targetProps);
                         this.targetObject.parentProps = getEntityParents(targetProps);
@@ -472,7 +485,8 @@ Script.include("/~/system/libraries/Xform.js");
                                 this.grabbedDistance = rayPickInfo.distance;
                             }
 
-                            if (otherFarGrabModule.grabbedThingID === this.grabbedThingID && otherFarGrabModule.distanceHolding) {
+                            if (otherFarGrabModule.grabbedThingID === this.grabbedThingID &&
+                                otherFarGrabModule.distanceHolding) {
                                 this.prepareDistanceRotatingData(controllerData);
                                 this.distanceRotate(otherFarGrabModule);
                             } else {

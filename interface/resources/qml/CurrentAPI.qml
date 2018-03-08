@@ -34,7 +34,7 @@ Item {
         height: parent.height
     }
     
-    FontLoader { id: ralewayRegular; source: pathToFonts + "fonts/Raleway-Regular.ttf"; }
+    FontLoader { id: ralewayRegular; source: "qrc:/fonts/Raleway-Regular.ttf"; }
 
     Timer {
         id: updateList

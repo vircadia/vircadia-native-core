@@ -180,6 +180,8 @@ public:
     float emissiveIntensity{ 1.0f };
     float ambientFactor{ 1.0f };
 
+    float bumpMultiplier { 1.0f }; // TODO: to be implemented
+
     QString materialID;
     QString name;
     QString shadingModel;
@@ -240,6 +242,9 @@ public:
 
     graphics::MeshPointer _mesh;
     bool wasCompressed { false };
+
+    void createMeshTangents(bool generateFromTexCoords);
+    void createBlendShapeTangents(bool generateTangents);
 };
 
 class ExtractedMesh {

@@ -55,7 +55,7 @@ void Application::paintGL() {
         // If a display plugin loses it's underlying support, it
         // needs to be able to signal us to not use it
         if (!displayPlugin->beginFrameRender(_renderFrameCount)) {
-            updateDisplayMode();
+            QMetaObject::invokeMethod(this, "updateDisplayMode");
             return;
         }
     }

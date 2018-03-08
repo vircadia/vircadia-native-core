@@ -35,10 +35,12 @@ class AvatarHashMap : public QObject, public Dependency {
 
 public:
     AvatarHash getHashCopy() { QReadLocker lock(&_hashLock); return _avatarHash; }
+    const AvatarHash getHashCopy() const { QReadLocker lock(&_hashLock); return _avatarHash; }
     int size() { return _avatarHash.size(); }
 
     // Currently, your own avatar will be included as the null avatar id.
     Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
+    Q_INVOKABLE QVector<QUuid> getAvatarsInRange(const glm::vec3& position, float rangeMeters) const;
 
     // Null/Default-constructed QUuids will return MyAvatar
     Q_INVOKABLE virtual ScriptAvatarData* getAvatar(QUuid avatarID) { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }

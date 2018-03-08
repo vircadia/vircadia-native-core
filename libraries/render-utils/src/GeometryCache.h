@@ -375,6 +375,7 @@ public:
     /// otherwise nullptr in the event of an error.
     const ShapeData * getShapeData(Shape shape) const;
 
+    graphics::MeshPointer meshFromShape(Shape geometryShape, glm::vec3 color);
 private:
 
     GeometryCache();

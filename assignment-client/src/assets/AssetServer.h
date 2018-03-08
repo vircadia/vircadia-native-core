@@ -21,17 +21,9 @@
 #include "AssetUtils.h"
 #include "ReceivedMessage.h"
 
-namespace std {
-    template <>
-    struct hash<QString> {
-        size_t operator()(const QString& v) const { return qHash(v); }
-    };
-}
+#include "RegisteredMetaTypes.h"
 
 struct AssetMeta {
-    AssetMeta() {
-    }
-
     int bakeVersion { 0 };
     bool failedLastBake { false };
     QString lastBakeErrors;
@@ -52,6 +44,7 @@ public slots:
 private slots:
     void completeSetup();
 
+    void queueRequests(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetGetInfo(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetGet(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetUpload(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer senderNode);
@@ -60,14 +53,17 @@ private slots:
     void sendStatsPacket() override;
 
 private:
-    using Mappings = std::unordered_map<QString, QString>;
+    void replayRequests();
 
-    void handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleGetAllMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleDeleteMappingsOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleRenameMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleSetBakingEnabledOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+    void handleGetMappingOperation(ReceivedMessage& message, NLPacketList& replyPacket);
+    void handleGetAllMappingOperation(NLPacketList& replyPacket);
+    void handleSetMappingOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket);
+    void handleDeleteMappingsOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket);
+    void handleRenameMappingOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket);
+    void handleSetBakingEnabledOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket);
+
+    void handleAssetServerBackup(ReceivedMessage& message, NLPacketList& replyPacket);
+    void handleAssetServerRestore(ReceivedMessage& message, NLPacketList& replyPacket);
 
     // Mapping file operations must be called from main assignment thread only
     bool loadMappingsFromFile();
@@ -86,6 +82,9 @@ private:
 
     /// Delete any unmapped files from the local asset directory
     void cleanupUnmappedFiles();
+
+    /// Delete any baked files for assets removed from the local asset directory
+    void cleanupBakedFilesForDeletedAssets();
 
     QString getPathToAssetHash(const AssetUtils::AssetHash& assetHash);
 
@@ -111,7 +110,7 @@ private:
     /// Remove baked paths when the original asset is deleteds
     void removeBakedPathsForDeletedAsset(AssetUtils::AssetHash originalAssetHash);
 
-    Mappings _fileMappings;
+    AssetUtils::Mappings _fileMappings;
 
     QDir _resourcesDirectory;
     QDir _filesDirectory;
@@ -121,6 +120,11 @@ private:
 
     QHash<AssetUtils::AssetHash, std::shared_ptr<BakeAssetTask>> _pendingBakes;
     QThreadPool _bakingTaskPool;
+
+    QMutex _queuedRequestsMutex;
+    bool _isQueueingRequests { true };
+    using RequestQueue = QVector<QPair<QSharedPointer<ReceivedMessage>, SharedNodePointer>>;
+    RequestQueue _queuedRequests;
 
     bool _wasColorTextureCompressionEnabled { false };
     bool _wasGrayscaleTextureCompressionEnabled { false  };

@@ -75,11 +75,11 @@ var selectionDisplay = null; // for gridTool.js to ignore
             tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
             tablet.sendToQml({
                 method: 'updateCheckoutQML', params: {
-                    itemId: '0d90d21c-ce7a-4990-ad18-e9d2cf991027',
-                    itemName: 'Test Flaregun',
-                    itemPrice: (debugError ? 10 : 17),
-                    itemHref: 'http://mpassets.highfidelity.com/0d90d21c-ce7a-4990-ad18-e9d2cf991027-v1/flaregun.json',
-                    categories: ["Wearables", "Miscellaneous"]
+                    itemId: '424611a2-73d0-4c03-9087-26a6a279257b',
+                    itemName: '2018-02-15 Finnegon',
+                    itemPrice: (debugError ? 10 : 3),
+                    itemHref: 'http://devmpassets.highfidelity.com/424611a2-73d0-4c03-9087-26a6a279257b-v1/finnigon.fst',
+                    categories: ["Miscellaneous"]
                 }
             });
         }
@@ -104,8 +104,9 @@ var selectionDisplay = null; // for gridTool.js to ignore
             tablet.gotoHomeScreen();
         } else {
             Wallet.refreshWalletStatus();
-            var entity = HMD.tabletID;
-            Entities.editEntity(entity, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
+            if (HMD.tabletID) {
+                Entities.editEntity(HMD.tabletID, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
+            }
             showMarketplace();
         }
     }
@@ -163,6 +164,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
         var certificateId = itemCertificateId || (Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID);
         tablet.sendToQml({
             method: 'inspectionCertificate_setCertificateId',
+            entityId: currentEntityWithContextOverlay,
             certificateId: certificateId
         });
     }
@@ -231,12 +233,18 @@ var selectionDisplay = null; // for gridTool.js to ignore
         return position;
     }
 
-    function rezEntity(itemHref, isWearable) {
+    function rezEntity(itemHref, itemType) {
+        var isWearable = itemType === "wearable";
         var success = Clipboard.importEntities(itemHref);
         var wearableLocalPosition = null;
         var wearableLocalRotation = null;
         var wearableLocalDimensions = null;
         var wearableDimensions = null;
+
+        if (itemType === "contentSet") {
+            console.log("Item is a content set; codepath shouldn't go here.")
+            return;
+        }
 
         if (isWearable) {
             var wearableTransforms = Settings.getValue("io.highfidelity.avatarStore.checkOut.transforms");
@@ -543,7 +551,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 break;
             case 'checkout_rezClicked':
             case 'purchases_rezClicked':
-                rezEntity(message.itemHref, message.isWearable);
+                rezEntity(message.itemHref, message.itemType);
                 break;
             case 'header_marketplaceImageClicked':
             case 'purchases_backClicked':
@@ -582,6 +590,9 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 break;
             case 'inspectionCertificate_closeClicked':
                 tablet.gotoHomeScreen();
+                break;
+            case 'inspectionCertificate_requestOwnershipVerification':
+                ContextOverlay.requestOwnershipVerification(message.entity);
                 break;
             case 'inspectionCertificate_showInMarketplaceClicked':
                 tablet.gotoWebScreen(message.marketplaceUrl, MARKETPLACES_INJECT_SCRIPT_URL);

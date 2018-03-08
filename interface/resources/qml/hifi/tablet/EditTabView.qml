@@ -1,5 +1,6 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls 2.2 // Need both for short-term fix
 import QtWebEngine 1.1
 import QtWebChannel 1.0
 import QtQuick.Controls.Styles 1.4
@@ -8,6 +9,7 @@ import "../toolbars"
 import QtGraphicalEffects 1.0
 import "../../controls-uit" as HifiControls
 import "../../styles-uit"
+
 
 
 TabView {
@@ -23,8 +25,27 @@ TabView {
 
         Rectangle {
             color: "#404040"
+            id: container
+
+            Flickable {
+            height: parent.height
+            width: parent.width
+
+            contentHeight: createEntitiesFlow.height +  importButton.height + assetServerButton.height +
+                           header.anchors.topMargin + createEntitiesFlow.anchors.topMargin +
+                           assetServerButton.anchors.topMargin + importButton.anchors.topMargin
+            contentWidth: width
+
+            ScrollBar.vertical : ScrollBar {
+                visible: parent.contentHeight > parent.height
+                width: 20
+                background: Rectangle {
+                    color: hifi.colors.tableScrollBackgroundDark
+                }
+            }
 
             Text {
+                id: header
                 color: "#ffffff"
                 text: "Choose an Entity Type to Create:"
                 font.pixelSize: 14
@@ -102,6 +123,17 @@ TabView {
                 }
 
                 NewEntityButton {
+                    icon: "icons/create-icons/image.svg"
+                    text: "IMAGE"
+                    onClicked: {
+                        editRoot.sendToScript({
+                            method: "newEntityButtonClicked", params: { buttonName: "newImageButton" }
+                        });
+                        editTabView.currentIndex = 2
+                    }
+                }
+
+                NewEntityButton {
                     icon: "icons/create-icons/25-web-1-01.svg"
                     text: "WEB"
                     onClicked: {
@@ -133,6 +165,17 @@ TabView {
                         editTabView.currentIndex = 4
                     }
                 }
+
+                NewEntityButton {
+                    icon: "icons/create-icons/126-material-01.svg"
+                    text: "MATERIAL"
+                    onClicked: {
+                        editRoot.sendToScript({
+                            method: "newEntityButtonClicked", params: { buttonName: "newMaterialButton" }
+                        });
+                        editTabView.currentIndex = 2
+                    }
+                }
             }
 
             HifiControls.Button {
@@ -154,6 +197,7 @@ TabView {
             }
 
             HifiControls.Button {
+                id: importButton
                 text: "Import Entities (.json)"
                 color: hifi.buttons.black
                 colorScheme: hifi.colorSchemes.dark
@@ -170,6 +214,7 @@ TabView {
                 }
             }
         }
+      } // Flickable
     }
 
     Tab {

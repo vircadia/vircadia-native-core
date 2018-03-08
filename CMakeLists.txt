@@ -13,6 +13,11 @@ include("cmake/init.cmake")
 
 include("cmake/compiler.cmake")
 
+if (BUILD_SCRIBE_ONLY)
+    add_subdirectory(tools/scribe)
+    return()
+endif()
+
 if (NOT DEFINED SERVER_ONLY)
   set(SERVER_ONLY 0)
 endif()

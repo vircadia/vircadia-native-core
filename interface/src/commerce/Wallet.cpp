@@ -59,6 +59,23 @@ QString keyFilePath() {
     auto accountManager = DependencyManager::get<AccountManager>();
     return PathUtils::getAppDataFilePath(QString("%1.%2").arg(accountManager->getAccountInfo().getUsername(), KEY_FILE));
 }
+bool Wallet::copyKeyFileFrom(const QString& pathname) {
+    QString existing = getKeyFilePath();
+    qCDebug(commerce) << "Old keyfile" << existing;
+    if (!existing.isEmpty()) {
+        QString backup = QString(existing).insert(existing.indexOf(KEY_FILE) - 1,
+            QDateTime::currentDateTime().toString(Qt::ISODate).replace(":", ""));
+        qCDebug(commerce) << "Renaming old keyfile to" << backup;
+        if (!QFile::rename(existing, backup)) {
+            qCCritical(commerce) << "Unable to backup" << existing << "to" << backup;
+            return false;
+        }
+    }
+    QString destination = keyFilePath();
+    bool result = QFile::copy(pathname, destination);
+    qCDebug(commerce) << "copy" << pathname << "to" << destination << "=>" << result;
+    return result;
+}
 
 // use the cached _passphrase if it exists, otherwise we need to prompt
 int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
@@ -300,17 +317,24 @@ Wallet::Wallet() {
     packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnershipPacket");
     packetReceiver.registerListener(PacketType::ChallengeOwnershipRequest, this, "handleChallengeOwnershipPacket");
 
-    connect(ledger.data(), &Ledger::accountResult, this, [&]() {
+    connect(ledger.data(), &Ledger::accountResult, this, [&](QJsonObject result) {
         auto wallet = DependencyManager::get<Wallet>();
         auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
         uint status;
+        QString keyStatus = result.contains("data") ? result["data"].toObject()["keyStatus"].toString() : "";
 
         if (wallet->getKeyFilePath() == "" || !wallet->getSecurityImage()) {
-            status = (uint)WalletStatus::WALLET_STATUS_NOT_SET_UP;
+            if (keyStatus == "preexisting") {
+                status = (uint) WalletStatus::WALLET_STATUS_PREEXISTING;
+            } else{
+                status = (uint) WalletStatus::WALLET_STATUS_NOT_SET_UP;
+            }
         } else if (!wallet->walletIsAuthenticatedWithPassphrase()) {
-            status = (uint)WalletStatus::WALLET_STATUS_NOT_AUTHENTICATED;
+            status = (uint) WalletStatus::WALLET_STATUS_NOT_AUTHENTICATED;
+        } else if (keyStatus == "conflicting") {
+            status = (uint) WalletStatus::WALLET_STATUS_CONFLICTING;
         } else {
-            status = (uint)WalletStatus::WALLET_STATUS_READY;
+            status = (uint) WalletStatus::WALLET_STATUS_READY;
         }
 
         walletScriptingInterface->setWalletStatus(status);
@@ -524,17 +548,17 @@ bool Wallet::generateKeyPair() {
 
     // TODO: redo this soon -- need error checking and so on
     writeSecurityImage(_securityImage, keyFilePath());
-    QString oldKey = _publicKeys.count() == 0 ? "" : _publicKeys.last();
     QString key = keyPair.first->toBase64();
     _publicKeys.push_back(key);
     qCDebug(commerce) << "public key:" << key;
+    _isOverridingServer = false;
 
     // It's arguable whether we want to change the receiveAt every time, but:
     // 1. It's certainly needed the first time, when createIfNeeded answers true.
     // 2. It is maximally private, and we can step back from that later if desired.
     // 3. It maximally exercises all the machinery, so we are most likely to surface issues now.
     auto ledger = DependencyManager::get<Ledger>();
-    return ledger->receiveAt(key, oldKey);
+    return ledger->receiveAt(key, key);
 }
 
 QStringList Wallet::listPublicKeys() {
