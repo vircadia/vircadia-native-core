@@ -80,8 +80,6 @@ void PhysicalEntitySimulation::takeEntitiesToDelete(VectorOfEntities& entitiesTo
         // this entity is still in its tree, so we insert into the external list
         entitiesToDelete.push_back(entity);
 
-        // Someday when we invert the entities/physics lib dependencies we can let EntityItem delete its own PhysicsInfo
-        // rather than do it here
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (motionState) {
             _entitiesToRemoveFromPhysics.insert(entity);
@@ -141,6 +139,8 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (motionState) {
             entity->setPhysicsInfo(nullptr);
+            // someday when we invert the entities/physics lib dependencies we can let EntityItem delete its own PhysicsInfo
+            // until then we must do it here
             delete motionState;
         }
     }
@@ -192,6 +192,8 @@ void PhysicalEntitySimulation::deleteObjectsRemovedFromPhysics() {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         assert(motionState);
         entity->setPhysicsInfo(nullptr);
+        // someday when we invert the entities/physics lib dependencies we can let EntityItem delete its own PhysicsInfo
+        // until then we must do it here
         delete motionState;
 
         if (entity->isDead()) {
