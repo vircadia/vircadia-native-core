@@ -659,8 +659,7 @@ Rectangle {
 
                         text: styleData.value
 
-                        FontLoader { id: firaSansSemiBold; source: "qrc:/fonts/FiraSans-SemiBold.ttf"; }
-                        font.family: firaSansSemiBold.name
+                        font.family: "Fira Sans SemiBold"
                         font.pixelSize: hifi.fontSizes.textFieldInput
                         height: hifi.dimensions.tableRowHeight
 
