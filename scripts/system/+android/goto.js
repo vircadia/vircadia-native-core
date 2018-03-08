@@ -52,7 +52,7 @@ module.exports = {
         });
     },
     show: function() {
-        Controller.setVPadEnabled(false);
+        Controller.setVPadHidden(true);
         if (window) {
             window.fromQml.connect(fromQml);
             window.setVisible(true);
@@ -60,7 +60,7 @@ module.exports = {
         }
     },
     hide: function() {
-        Controller.setVPadEnabled(true);
+        Controller.setVPadHidden(false);
         if (window) {
             window.fromQml.disconnect(fromQml);
             window.setVisible(false);

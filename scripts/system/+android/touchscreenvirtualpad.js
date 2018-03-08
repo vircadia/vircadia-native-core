@@ -14,6 +14,7 @@
 
 function init() {
 	Controller.setVPadEnabled(true);
+	Controller.setVPadHidden(false);
 }
 
 init();
