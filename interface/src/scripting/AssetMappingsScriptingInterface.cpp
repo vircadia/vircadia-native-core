@@ -140,7 +140,7 @@ void AssetMappingsScriptingInterface::deleteMappings(QStringList paths, QJSValue
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createDeleteMappingsRequest(paths);
 
-    connect(request, &DeleteMappingsRequest::finished, this, [this, callback](DeleteMappingsRequest* request) mutable {
+    connect(request, &DeleteMappingsRequest::finished, this, [callback](DeleteMappingsRequest* request) mutable {
         if (callback.isCallable()) {
             QJSValueList args { request->getErrorString() };
             callback.call(args);
@@ -156,7 +156,7 @@ void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetAllMappingsRequest();
 
-    connect(request, &GetAllMappingsRequest::finished, this, [this, callback](GetAllMappingsRequest* request) mutable {
+    connect(request, &GetAllMappingsRequest::finished, this, [callback](GetAllMappingsRequest* request) mutable {
         auto mappings = request->getMappings();
         auto map = callback.engine()->newObject();
 
@@ -179,7 +179,7 @@ void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString new
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createRenameMappingRequest(oldPath, newPath);
 
-    connect(request, &RenameMappingRequest::finished, this, [this, callback](RenameMappingRequest* request) mutable {
+    connect(request, &RenameMappingRequest::finished, this, [callback](RenameMappingRequest* request) mutable {
         if (callback.isCallable()) {
             QJSValueList args{ request->getErrorString() };
             callback.call(args);
@@ -195,7 +195,7 @@ void AssetMappingsScriptingInterface::setBakingEnabled(QStringList paths, bool e
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createSetBakingEnabledRequest(paths, enabled);
 
-    connect(request, &SetBakingEnabledRequest::finished, this, [this, callback](SetBakingEnabledRequest* request) mutable {
+    connect(request, &SetBakingEnabledRequest::finished, this, [callback](SetBakingEnabledRequest* request) mutable {
         if (callback.isCallable()) {
             QJSValueList args{ request->getErrorString() };
             callback.call(args);

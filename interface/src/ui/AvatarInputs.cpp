@@ -23,10 +23,7 @@ static AvatarInputs* INSTANCE{ nullptr };
 Setting::Handle<bool> showAudioToolsSetting { QStringList { "AvatarInputs", "showAudioTools" }, false };
 
 AvatarInputs* AvatarInputs::getInstance() {
-    if (!INSTANCE) {
-        AvatarInputs::registerType();
-        Q_ASSERT(INSTANCE);
-    }
+    Q_ASSERT(INSTANCE);
     return INSTANCE;
 }
 
