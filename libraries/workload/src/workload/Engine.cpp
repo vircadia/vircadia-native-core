@@ -17,29 +17,10 @@
 #include <iostream>
 
 #include "ViewTask.h"
-#include "ClassificationTracker.h"
+#include "RegionTracker.h"
+#include "RegionState.h"
 
 namespace workload {
-    class DebugCout {
-    public:
-        using Inputs = SortedChanges;
-        using JobModel = workload::Job::ModelI<DebugCout, Inputs>;
-
-        DebugCout() {}
-
-        void run(const workload::WorkloadContextPointer& renderContext, const Inputs& inputs) {
-            qDebug() << "Some message from " << inputs.size();
-            int i = 0;
-            for (auto&  b: inputs) {
-                qDebug() << "    Bucket Number" << i << " size is " << b.size();
-                i++;
-            }
-        }
-
-    protected:
-    };
-
-
     WorkloadContext::WorkloadContext(const SpacePointer& space) : task::JobContext(trace_workload()), _space(space) {}
 
     class EngineBuilder {
@@ -48,8 +29,8 @@ namespace workload {
         using JobModel = Task::ModelI<EngineBuilder, Inputs>;
         void build(JobModel& model, const Varying& in, Varying& out) {
             model.addJob<SetupViews>("setupViews", in);
-            const auto classifications = model.addJob<ClassificationTracker>("classificationTracker");
-         //   model.addJob<DebugCout>("debug", classifications);
+            const auto regionChanges = model.addJob<RegionTracker>("regionTracker");
+            model.addJob<RegionState>("regionState", regionChanges);
 
         }
     };

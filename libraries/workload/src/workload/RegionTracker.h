@@ -1,5 +1,5 @@
 //
-//  ClassificationTracker.h
+//  RegionTracker.h
 //  libraries/workload/src/workload
 //
 //  Created by Andrew Meadows 2018.02.21
@@ -12,27 +12,27 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_workload_ClassificationTracker_h
-#define hifi_workload_ClassificationTracker_h
+#ifndef hifi_workload_RegionTracker_h
+#define hifi_workload_RegionTracker_h
 
 #include "Space.h"
 #include "Engine.h"
 
 namespace workload {
 
-    class ClassificationTrackerConfig : public Job::Config {
+    class RegionTrackerConfig : public Job::Config {
         Q_OBJECT
     public:
-        ClassificationTrackerConfig() : Job::Config(true) {}
+        RegionTrackerConfig() : Job::Config(true) {}
     };
 
-    class ClassificationTracker {
+    class RegionTracker {
     public:
-        using Config = ClassificationTrackerConfig;
-        using Outputs = SortedChanges;
-        using JobModel = workload::Job::ModelO<ClassificationTracker, Outputs, Config>;
+        using Config = RegionTrackerConfig;
+        using Outputs = IndexVectors;
+        using JobModel = workload::Job::ModelO<RegionTracker, Outputs, Config>;
 
-        ClassificationTracker() {}
+        RegionTracker() {}
 
         void configure(const Config& config);
         void run(const workload::WorkloadContextPointer& renderContext, Outputs& outputs);
@@ -42,4 +42,4 @@ namespace workload {
 
 } // namespace workload
 
-#endif // hifi_workload_ClassificationTracker_h
+#endif // hifi_workload_RegionTracker_h

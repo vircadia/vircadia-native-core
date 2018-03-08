@@ -24,6 +24,8 @@
 
 namespace workload {
 
+using IndexVector = std::vector<int32_t>;
+
 class Space {
 public:
     using Sphere = glm::vec4; // <x,y,z> = center, w = radius
@@ -52,7 +54,7 @@ public:
 
     void clear();
     int32_t createProxy(const Sphere& sphere);
-    void deleteProxies(const std::vector<int32_t>& deadIndices);
+    void deleteProxies(const IndexVector& deadIndices);
     void updateProxies(const std::vector<ProxyUpdate>& changedProxies);
     void setViews(const std::vector<View>& views);
 
@@ -72,12 +74,12 @@ private:
 
     std::vector<Proxy> _proxies;
     Views _views;
-    std::vector<int32_t> _freeIndices;
+    IndexVector _freeIndices;
 };
 
 using SpacePointer = std::shared_ptr<Space>;
 using Changes = std::vector<Space::Change>;
-using SortedChanges = std::vector<std::vector<int32_t>>;
+using IndexVectors = std::vector<IndexVector>;
 
 } // namespace workload
 
