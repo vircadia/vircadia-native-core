@@ -400,6 +400,5 @@ scriptable::ScriptableMesh::~ScriptableMesh() {
     strongMesh.reset();
 }
 
-
 #include "ScriptableMesh.moc"
 

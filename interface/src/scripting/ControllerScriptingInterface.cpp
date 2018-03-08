@@ -89,6 +89,16 @@ void ControllerScriptingInterface::setVPadEnabled(const bool enable) {
     virtualPadManager.enable(enable);
 }
 
+void ControllerScriptingInterface::setVPadHidden(const bool hidden) {
+    auto& virtualPadManager = VirtualPad::Manager::instance();
+    virtualPadManager.hide(hidden);
+}
+
+void ControllerScriptingInterface::setVPadExtraBottomMargin(const int margin) {
+    auto& virtualPadManager = VirtualPad::Manager::instance();
+    virtualPadManager.setExtraBottomMargin(margin);
+}
+
 void ControllerScriptingInterface::emitKeyPressEvent(QKeyEvent* event) { emit keyPressEvent(KeyEvent(*event)); }
 void ControllerScriptingInterface::emitKeyReleaseEvent(QKeyEvent* event) { emit keyReleaseEvent(KeyEvent(*event)); }
 
