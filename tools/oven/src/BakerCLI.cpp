@@ -14,13 +14,14 @@
 #include <QtCore/QDebug>
 #include <QFile>
 
+#include "OvenCLIApplication.h"
 #include "ModelBakingLoggingCategory.h"
-#include "Oven.h"
 #include "BakerCLI.h"
 #include "FBXBaker.h"
 #include "TextureBaker.h"
 
-BakerCLI::BakerCLI(Oven* parent) : QObject(parent) {
+BakerCLI::BakerCLI(OvenCLIApplication* parent) : QObject(parent) {
+    
 }
 
 void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString& type) {
@@ -50,14 +51,18 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
 
     // create our appropiate baker
     if (isFBX) {
-        _baker = std::unique_ptr<Baker> { new FBXBaker(inputUrl, []() -> QThread* { return qApp->getNextWorkerThread(); }, outputPath) };
-        _baker->moveToThread(qApp->getNextWorkerThread());
+        _baker = std::unique_ptr<Baker> {
+            new FBXBaker(inputUrl,
+                         []() -> QThread* { return Oven::instance().getNextWorkerThread(); },
+                         outputPath)
+        };
+        _baker->moveToThread(Oven::instance().getNextWorkerThread());
     } else if (isSupportedImage) {
         _baker = std::unique_ptr<Baker> { new TextureBaker(inputUrl, image::TextureUsage::CUBE_TEXTURE, outputPath) };
-        _baker->moveToThread(qApp->getNextWorkerThread());
+        _baker->moveToThread(Oven::instance().getNextWorkerThread());
     } else {
         qCDebug(model_baking) << "Failed to determine baker type for file" << inputUrl;
-        QApplication::exit(OVEN_STATUS_CODE_FAIL);
+        QCoreApplication::exit(OVEN_STATUS_CODE_FAIL);
     }
 
     // invoke the bake method on the baker thread
@@ -81,5 +86,5 @@ void BakerCLI::handleFinishedBaker() {
             errorFile.close();
         }
     }
-    QApplication::exit(exitCode);
+    QCoreApplication::exit(exitCode);
 }
