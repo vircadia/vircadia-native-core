@@ -1976,10 +1976,6 @@ SelectionDisplay = (function() {
         };
 
         var onMove = function(event) {
-            if (event.x === undefined || event.y === undefined) {
-                return;
-            }
-            
             var proportional = (spaceMode === SPACE_WORLD) || directionEnum === STRETCH_DIRECTION.ALL;
             
             var position, dimensions, rotation;
