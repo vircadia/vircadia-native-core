@@ -74,6 +74,14 @@ public:
             uint32_t minMip{ 0 };
             uint32_t sampler{ 0 };
 
+            bool operator==(const Bindless& other) const {
+                return handle == other.handle && minMip == other.minMip && sampler == other.sampler;
+            }
+
+            bool operator!=(const Bindless& other) const {
+                return !(*this == other);
+            }
+
             operator bool() const {
                 return handle != 0;
             }
@@ -177,7 +185,7 @@ public:
         ~GL45VariableAllocationTexture();
 
         Size size() const override { return _size; }
-        uint16 getMinMip() const override { return _populatedMip; }
+        uint16 getMinMip() const override { return _populatedMip - _allocatedMip; }
         virtual const Bindless& getBindless() const override;
 
         Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;

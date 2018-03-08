@@ -249,7 +249,7 @@ void GL45Texture::releaseBindless() const {
     glMakeTextureHandleNonResidentARB(_bindless.handle);
     _bindless = Bindless();
 }
-    
+
 void GL45Texture::recreateBindless() const {
     if (isBindless()) {
         releaseBindless();
@@ -439,6 +439,7 @@ GL45TextureTable* GL45Backend::syncGPUObject(const TextureTablePointer& textureT
     }
 
     object->update(handles);
+
     return object;
 }
 

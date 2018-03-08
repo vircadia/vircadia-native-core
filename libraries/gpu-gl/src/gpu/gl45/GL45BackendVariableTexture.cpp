@@ -146,7 +146,8 @@ void GL45ResourceTexture::promote() {
     uint16_t targetAllocatedMip = _allocatedMip - std::min<uint16_t>(_allocatedMip, 2);
     targetAllocatedMip = std::max<uint16_t>(_minAllocatedMip, targetAllocatedMip);
 
-    if (isBindless()) {
+    bool bindless = isBindless();
+    if (bindless) {
         releaseBindless();
     }
 
@@ -162,6 +163,10 @@ void GL45ResourceTexture::promote() {
     
     // copy pre-existing mips
     copyTextureMipsInGPUMem(oldId, _id, oldAllocatedMip, _allocatedMip, _populatedMip);
+
+    if (bindless) {
+        getBindless();
+    }
 
     // destroy the old texture
     glDeleteTextures(1, &oldId);
@@ -183,7 +188,8 @@ void GL45ResourceTexture::demote() {
     auto oldSize = _size;
     auto oldPopulatedMip = _populatedMip;
 
-    if (isBindless()) {
+    bool bindless = isBindless();
+    if (bindless) {
         releaseBindless();
     }
 
@@ -195,6 +201,10 @@ void GL45ResourceTexture::demote() {
 
     // copy pre-existing mips
     copyTextureMipsInGPUMem(oldId, _id, oldAllocatedMip, _allocatedMip, _populatedMip);
+
+    if (bindless) {
+        getBindless();
+    }
 
     // destroy the old texture
     glDeleteTextures(1, &oldId);
