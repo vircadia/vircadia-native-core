@@ -430,6 +430,11 @@ void Test::createTest() {
         return;
     }
 
+    QString imageDestinationDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder to save the test images", ".", QFileDialog::ShowDirsOnly);
+    if (imageDestinationDirectory == "") {
+        return;
+    }
+
     QStringList sortedImageFilenames = createListOfAll_imagesInDirectory("jpg", imageSourceDirectory);
 
     int i = 1; 
@@ -442,7 +447,6 @@ void Test::createTest() {
                 exit(-1);
             }
             QString newFilename = "ExpectedImage_" + QString::number(i - 1).rightJustified(5, '0') + ".png";
-            QString imageDestinationDirectory = getExpectedImageDestinationDirectory(currentFilename);
             QString fullNewFileName = imageDestinationDirectory + "/" + newFilename;
 
             try {
