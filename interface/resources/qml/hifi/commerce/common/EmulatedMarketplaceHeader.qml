@@ -141,10 +141,9 @@ Item {
                 }
             }
 
-            FontLoader { id: ralewayRegular; source: "../../../../fonts/Raleway-Regular.ttf"; }
             TextMetrics {
                 id: textMetrics;
-                font.family: ralewayRegular.name
+                font.family: "Raleway"
                 text: usernameText.text;
             }
 
