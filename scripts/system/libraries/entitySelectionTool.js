@@ -272,16 +272,18 @@ SelectionDisplay = (function() {
     var STRETCH_SPHERE_OFFSET = 0.06;
     var STRETCH_SPHERE_CAMERA_DISTANCE_MULTIPLE = 0.01;
     var STRETCH_MINIMUM_DIMENSION = 0.001;
-    var STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE = 2;
+    var STRETCH_ALL_MINIMUM_DIMENSION = 0.01;
+    var STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE = 6;
     var STRETCH_PANEL_WIDTH = 0.01;
 
     var SCALE_CUBE_OFFSET = 0.5;
     var SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE = 0.015;
-    var SCALE_MINIMUM_DIMENSION = 0.02;
 
     var CLONER_OFFSET = { x:0.9, y:-0.9, z:0.9 };    
     
     var CTRL_KEY_CODE = 16777249;
+
+    var AVATAR_COLLISIONS_OPTION = "Enable Avatar Collisions";
 
     var TRANSLATE_DIRECTION = {
         X : 0,
@@ -335,6 +337,8 @@ SelectionDisplay = (function() {
     var previousHandleColor;
 
     var ctrlPressed = false;
+
+    var handleStretchCollisionOverride = false;
 
     var handlePropertiesTranslateArrowCones = {
         shape: "Cone",
@@ -596,6 +600,11 @@ SelectionDisplay = (function() {
 
     var activeTool = null;
     var handleTools = {};
+
+    that.shutdown = function() {
+        that.restoreAvatarCollisionsFromStretch();
+    }
+    Script.scriptEnding.connect(that.shutdown);
 
     // We get mouseMoveEvents from the handControllers, via handControllerPointer.
     // But we dont' get mousePressEvents.
@@ -1740,6 +1749,13 @@ SelectionDisplay = (function() {
         };
     };
 
+    that.restoreAvatarCollisionsFromStretch = function() {
+        if (handleStretchCollisionOverride) {
+            Menu.setIsOptionChecked(AVATAR_COLLISIONS_OPTION, true);
+            handleStretchCollisionOverride = false;
+        }
+    }
+
     // TOOL DEFINITION: HANDLE STRETCH TOOL   
     function makeStretchTool(stretchMode, directionEnum, directionVec, pivot, offset, stretchPanel, scaleHandle) {
         var directionFor3DStretch = directionVec;
@@ -1942,6 +1958,10 @@ SelectionDisplay = (function() {
             if (scaleHandle != null) {
                 Overlays.editOverlay(scaleHandle, { color: COLOR_SCALE_CUBE_SELECTED });
             }
+            if (Menu.isOptionChecked(AVATAR_COLLISIONS_OPTION)) {
+                Menu.setIsOptionChecked(AVATAR_COLLISIONS_OPTION, false);
+                handleStretchCollisionOverride = true;
+            }
         };
 
         var onEnd = function(event, reason) {    
@@ -1951,6 +1971,7 @@ SelectionDisplay = (function() {
             if (scaleHandle != null) {
                 Overlays.editOverlay(scaleHandle, { color: COLOR_SCALE_CUBE });
             }
+            that.restoreAvatarCollisionsFromStretch();
             pushCommandForSelections();
         };
 
@@ -2000,6 +2021,12 @@ SelectionDisplay = (function() {
             vector = grid.snapToSpacing(vector);
     
             var changeInDimensions = Vec3.multiply(NEGATE_VECTOR, vec3Mult(localSigns, vector));
+            if (directionEnum === STRETCH_DIRECTION.ALL) {	
+                var toCameraDistance = getDistanceToCamera(position);	
+                var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE;	
+                changeInDimensions = Vec3.multiply(changeInDimensions, dimensionsMultiple);	
+            }
+
             var newDimensions;
             if (proportional) {
                 var absoluteX = Math.abs(changeInDimensions.x);
@@ -2022,9 +2049,11 @@ SelectionDisplay = (function() {
                 newDimensions = Vec3.sum(initialDimensions, changeInDimensions);
             }
     
-            newDimensions.x = Math.max(newDimensions.x, STRETCH_MINIMUM_DIMENSION);
-            newDimensions.y = Math.max(newDimensions.y, STRETCH_MINIMUM_DIMENSION);
-            newDimensions.z = Math.max(newDimensions.z, STRETCH_MINIMUM_DIMENSION);
+            var minimumDimension = directionEnum === STRETCH_DIRECTION.ALL ? STRETCH_ALL_MINIMUM_DIMENSION : 
+                                                                             STRETCH_MINIMUM_DIMENSION;
+            newDimensions.x = Math.max(newDimensions.x, minimumDimension);
+            newDimensions.y = Math.max(newDimensions.y, minimumDimension);
+            newDimensions.z = Math.max(newDimensions.z, minimumDimension);
     
             var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(localDeltaPivot, changeInDimensions));
             if (directionEnum === STRETCH_DIRECTION.ALL) {
@@ -2081,38 +2110,31 @@ SelectionDisplay = (function() {
     function addHandleScaleTool(overlay, mode, directionEnum) {
         var directionVector, offset, selectedHandle;
         if (directionEnum === SCALE_DIRECTION.LBN) {
-            directionVector = { x:1, y:0, z:1 };
-            offset = { x:-1, y:-1, z:-1 };
+            directionVector = { x:1, y:1, z:1 };
             selectedHandle = handleScaleLBNCube;
         } else if (directionEnum === SCALE_DIRECTION.RBN) {
-            directionVector = { x:-1, y:0, z:1 };
-            offset = { x:1, y:-1, z:-1 };
+            directionVector = { x:-1, y:1, z:1 };
             selectedHandle = handleScaleRBNCube;
         } else if (directionEnum === SCALE_DIRECTION.LBF) {
-            directionVector = { x:1, y:0, z:-1 };
-            offset = { x:-1, y:-1, z:1 };
+            directionVector = { x:1, y:1, z:-1 };
             selectedHandle = handleScaleLBFCube;
         } else if (directionEnum === SCALE_DIRECTION.RBF) {
-            directionVector = { x:-1, y:0, z:-1 };
-            offset = { x:1, y:-1, z:1 };
+            directionVector = { x:-1, y:1, z:-1 };
             selectedHandle = handleScaleRBFCube;
         } else if (directionEnum === SCALE_DIRECTION.LTN) { 
-            directionVector = { x:1, y:0, z:1 };
-            offset = { x:-1, y:1, z:-1 };
+            directionVector = { x:1, y:-1, z:1 };
             selectedHandle = handleScaleLTNCube;
         } else if (directionEnum === SCALE_DIRECTION.RTN) {
-            directionVector = { x:-1, y:0, z:1 };
-            offset = { x:1, y:1, z:-1 };
+            directionVector = { x:-1, y:-1, z:1 };
             selectedHandle = handleScaleRTNCube;
         } else if (directionEnum === SCALE_DIRECTION.LTF) {
-            directionVector = { x:1, y:0, z:-1 };
-            offset = { x:-1, y:1, z:1 };
+            directionVector = { x:1, y:-1, z:-1 };
             selectedHandle = handleScaleLTFCube;
         } else if (directionEnum === SCALE_DIRECTION.RTF) {
-            directionVector = { x:-1, y:0, z:-1 };
-            offset = { x:1, y:1, z:1 };
+            directionVector = { x:-1, y:-1, z:-1 };
             selectedHandle = handleScaleRTFCube;
         }
+        offset = Vec3.multiply(directionVector, NEGATE_VECTOR);
         var tool = makeStretchTool(mode, STRETCH_DIRECTION.ALL, directionVector, 
                                    directionVector, offset, null, selectedHandle);
         return addHandleTool(overlay, tool);
