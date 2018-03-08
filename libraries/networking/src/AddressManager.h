@@ -400,7 +400,7 @@ signals:
     void goBackPossible(bool isPossible);
 
     /**jsdoc
-     * Triggered when there's a change in whether or not there's a forward location that can be navigated to using 
+     * Triggered when there's a change in whether or not there's a forward location that can be navigated to using
      * {@link location.goForward|goForward}. (Reflects changes in the state of the "Goto" dialog's forward arrow.)
      * @function location.goForwardPossible
      * @param {boolean} isPossible - <code>true</code> if there's a forward location to navigate to, otherwise
@@ -415,8 +415,7 @@ signals:
      */
     void goForwardPossible(bool isPossible);
 
-    void setServerlessDomain(bool serverlessDomain);
-    void loadServerlessDomain(QUrl domainURL);
+    void urlHandled(bool isHifiScheme);
 
 private slots:
     void handleAPIResponse(QNetworkReply& requestReply);

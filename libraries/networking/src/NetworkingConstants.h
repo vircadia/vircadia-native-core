@@ -25,8 +25,8 @@ namespace NetworkingConstants {
     // if you manually generate a personal access token for the domains scope
     // at https://staging.highfidelity.com/user/tokens/new?for_domain_server=true
 
-    QUrl METAVERSE_SERVER_URL_STABLE();
-    QUrl METAVERSE_SERVER_URL_STAGING();
+    const QUrl METAVERSE_SERVER_URL_STABLE { "https://metaverse.highfidelity.com" };
+    const QUrl METAVERSE_SERVER_URL_STAGING { "https://staging.highfidelity.com" };
     QUrl METAVERSE_SERVER_URL();
 }
 
