@@ -41,6 +41,9 @@ Item {
 
     Styles.HifiConstants { id: hifi }
     HifiConstants { id: android }
+    MouseArea {
+        anchors.fill: parent
+    }
 
 	Rectangle {
         id: background

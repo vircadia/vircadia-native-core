@@ -15,6 +15,7 @@
 #include <controllers/InputDevice.h>
 #include "InputPlugin.h"
 #include <QtGui/qtouchdevice.h>
+#include "VirtualPadManager.h"
 
 class QTouchEvent;
 class QGestureEvent;
@@ -26,6 +27,7 @@ Q_OBJECT
 public:
 
     // Plugin functions
+    virtual void init() override;
     virtual bool isSupported() const override;
     virtual const QString getName() const override { return NAME; }
 
@@ -60,9 +62,10 @@ public:
     const std::shared_ptr<InputDevice>& getInputDevice() const { return _inputDevice; }
 
 protected:
-    qreal _lastPinchScale;
-    qreal _pinchScale;
-    qreal _screenDPI;
+    float _lastPinchScale;
+    float _pinchScale;
+    float _screenDPI;
+    qreal _screenDPIProvided;
     glm::vec2 _screenDPIScale;
     bool _validTouchLeft;
     glm::vec2 _firstTouchLeftPoint;
@@ -74,12 +77,24 @@ protected:
     int _screenWidthCenter;
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
 
+    bool _fixedPosition;
+    glm::vec2 _fixedCenterPosition;
+    float _fixedRadius;
+    float _fixedRadiusForCalc;
+    int _extraBottomMargin {0};
+
     void touchLeftBegin(glm::vec2 touchPoint);
     void touchLeftUpdate(glm::vec2 touchPoint);
     void touchLeftEnd();
+    bool touchLeftBeginPointIsValid(glm::vec2 touchPoint);
     void touchRightBegin(glm::vec2 touchPoint);
     void touchRightUpdate(glm::vec2 touchPoint);
     void touchRightEnd();
+    void setupFixedCenter(VirtualPad::Manager& virtualPadManager, bool force = false);
+
+    void processInputUseCircleMethod(VirtualPad::Manager& virtualPadManager);
+    void processInputUseSquareMethod(VirtualPad::Manager& virtualPadManager);
+    glm::vec2 clippedPointInCircle(float radius, glm::vec2 origin, glm::vec2 touchPoint);
 // just for debug
 private:
     void debugPoints(const QTouchEvent* event, QString who);

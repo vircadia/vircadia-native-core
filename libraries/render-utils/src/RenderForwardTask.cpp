@@ -37,6 +37,7 @@ using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber,
     const render::ShapePipeline::BatchSetter& batchSetter,
     const render::ShapePipeline::ItemSetter& itemSetter);
+extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     auto items = input.get<Input>();
@@ -45,6 +46,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initForwardPipelines(*shapePlumber, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
+    initOverlay3DPipelines(*shapePlumber);
 
     // Extract opaques / transparents / lights / metas / overlays / background
     const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
@@ -98,7 +100,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // Lighting Buffer ready for tone mapping
     // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
     // the output FBO as null, which causes the tonemapping to target the blit framebuffer
-    const auto toneMappingInputs = ToneMappingDeferred::Inputs(framebuffer, nullptr).asVarying();
+    const auto toneMappingInputs = ToneMappingDeferred::Inputs(framebuffer, static_cast<gpu::FramebufferPointer>(nullptr) ).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     // Layered Overlays
