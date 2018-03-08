@@ -1,4 +1,4 @@
-﻿//
+//
 //  GLBackendPipeline.cpp
 //  libraries/gpu/src/gpu
 //
@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "GLBackend.h"
+#include <gpu/TextureTable.h>
+
 #include "GLShared.h"
 #include "GLPipeline.h"
 #include "GLShader.h"
@@ -247,8 +249,11 @@ void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
         return;
     }
 
-    TexturePointer resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
+    const auto& resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
+    bindResourceTexture(slot, resourceTexture);
+}
 
+void GLBackend::bindResourceTexture(uint32_t slot, const TexturePointer& resourceTexture) {
     if (!resourceTexture) {
         releaseResourceTexture(slot);
         return;
@@ -269,15 +274,28 @@ void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(target, to);
 
-        (void) CHECK_GL_ERROR();
+        (void)CHECK_GL_ERROR();
 
         _resource._textures[slot] = resourceTexture;
 
-        _stats._RSAmountTextureMemoryBounded += (int) object->size();
+        _stats._RSAmountTextureMemoryBounded += (int)object->size();
 
     } else {
         releaseResourceTexture(slot);
         return;
+    }
+}
+
+void GLBackend::do_setResourceTextureTable(const Batch& batch, size_t paramOffset) {
+    const auto& textureTablePointer = batch._textureTables.get(batch._params[paramOffset]._uint);
+    if (!textureTablePointer) {
+        return;
+    }
+
+    const auto& textureTable = *textureTablePointer;
+    const auto& textures = textureTable.getTextures();
+    for (GLuint slot = 0; slot < textures.size(); ++slot) {
+        bindResourceTexture(slot, textures[slot]);
     }
 }
 
@@ -290,4 +308,3 @@ int GLBackend::ResourceStageState::findEmptyTextureSlot() const {
     }
     return -1;
 }
-

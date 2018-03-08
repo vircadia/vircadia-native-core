@@ -73,9 +73,7 @@ bool GLShader::makeProgram(GLBackend& backend, Shader& shader, const Shader::Bin
 
             Shader::SlotSet uniforms;
             Shader::SlotSet textures;
-            Shader::SlotSet textureTables;
             Shader::SlotSet samplers;
-            //backend.makeUniformSlots(shaderObject.glprogram, slotBindings, uniforms, textures, textureTables, samplers);
             backend.makeUniformSlots(shaderObject.glprogram, slotBindings, uniforms, textures, samplers);
 
             Shader::SlotSet resourceBuffers;

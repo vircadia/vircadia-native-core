@@ -24,8 +24,6 @@
 
 class Transform;
 
-#define USE_BINDLESS_TEXTURES 1
-
 namespace graphics {
 
 class TextureMap;
@@ -363,10 +361,7 @@ public:
 
     void setModel(const std::string& model) { _model = model; }
 
-#if USE_BINDLESS_TEXTURES
     const gpu::TextureTablePointer& getTextureTable() const { return _textureTable; }
-    void setTextureTable(const gpu::TextureTablePointer& textureTable) { _textureTable = textureTable; }
-#endif
 
 protected:
     std::string _name { "" };
@@ -375,9 +370,7 @@ private:
     mutable MaterialKey _key;
     mutable UniformBufferView _schemaBuffer;
     mutable UniformBufferView _texMapArrayBuffer;
-#if USE_BINDLESS_TEXTURES
-    mutable gpu::TextureTablePointer _textureTable;
-#endif
+    mutable gpu::TextureTablePointer _textureTable{ std::make_shared<gpu::TextureTable>() };
 
     TextureMaps _textureMaps;
 

@@ -606,7 +606,3 @@ GL41ResourceTexture::GL41ResourceTexture(const std::weak_ptr<GLBackend>& backend
 
 GL41ResourceTexture::~GL41ResourceTexture() {
 }
-
-void GL41Backend::do_setResourceTextureTable(const Batch& batch, size_t paramOffset) {
-
-}

@@ -30,6 +30,7 @@ public:
 
     Array getTextures() const;
     Stamp getStamp() const { return _stamp; }
+
 private:
     mutable Mutex _mutex;
     Array _textures;

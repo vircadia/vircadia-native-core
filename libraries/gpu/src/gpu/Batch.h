@@ -30,11 +30,6 @@ class QDebug;
 namespace gpu {
 
 enum ReservedSlot {
-#ifdef GPU_SSBO_DRAW_CALL_INFO
-    TRANSFORM_OBJECT_SLOT = 14,
-#else
-    TRANSFORM_OBJECT_SLOT = 31,
-#endif
     TRANSFORM_CAMERA_SLOT = 15,
 };
 
@@ -409,9 +404,10 @@ public:
                 return offset;
             }
 
-            Data get(uint32 offset) const {
+            const Data& get(uint32 offset) const {
                 if (offset >= _items.size()) {
-                    return Data();
+                    static const Data EMPTY;
+                    return EMPTY;
                 }
                 return (_items.data() + offset)->_data;
             }

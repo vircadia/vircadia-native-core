@@ -41,11 +41,16 @@ GL45VariableAllocationTexture::~GL45VariableAllocationTexture() {
     Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
 }
 
+#if GPU_BINDLESS_TEXTURES
 const GL45Texture::Bindless& GL45VariableAllocationTexture::getBindless() const {
-    auto& result = Parent::getBindless();
+    // The parent call may re-initialize the _bindless member, so we need to call it first
+    const auto& result = Parent::getBindless();
+    // Make sure the referenced structure has the correct minimum available mip value
     _bindless.minMip = _populatedMip - _allocatedMip;
+    // Now return the result
     return result;
 }
+#endif
 
 Size GL45VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
     Size amountCopied = 0;
@@ -134,9 +139,13 @@ Size GL45ResourceTexture::copyMipsFromTexture() {
 
 void GL45ResourceTexture::syncSampler() const {
     Parent::syncSampler();
+#if GPU_BINDLESS_TEXTURES
     if (!isBindless()) {
     	glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, _populatedMip - _allocatedMip);
     }
+#else
+    glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, _populatedMip - _allocatedMip);
+#endif
 }
 
 void GL45ResourceTexture::promote() {
@@ -146,10 +155,12 @@ void GL45ResourceTexture::promote() {
     uint16_t targetAllocatedMip = _allocatedMip - std::min<uint16_t>(_allocatedMip, 2);
     targetAllocatedMip = std::max<uint16_t>(_minAllocatedMip, targetAllocatedMip);
 
+#if GPU_BINDLESS_TEXTURES
     bool bindless = isBindless();
     if (bindless) {
         releaseBindless();
     }
+#endif
 
     GLuint oldId = _id;
     auto oldSize = _size;
@@ -164,14 +175,17 @@ void GL45ResourceTexture::promote() {
     // copy pre-existing mips
     copyTextureMipsInGPUMem(oldId, _id, oldAllocatedMip, _allocatedMip, _populatedMip);
 
+#if GPU_BINDLESS_TEXTURES
     if (bindless) {
         getBindless();
     }
+#endif
 
     // destroy the old texture
     glDeleteTextures(1, &oldId);
 
     // Update sampler
+    _cachedSampler = InvalidSampler();
     syncSampler();
 
     // update the memory usage
@@ -188,10 +202,12 @@ void GL45ResourceTexture::demote() {
     auto oldSize = _size;
     auto oldPopulatedMip = _populatedMip;
 
+#if GPU_BINDLESS_TEXTURES
     bool bindless = isBindless();
     if (bindless) {
         releaseBindless();
     }
+#endif
 
     // allocate new texture
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
@@ -202,14 +218,17 @@ void GL45ResourceTexture::demote() {
     // copy pre-existing mips
     copyTextureMipsInGPUMem(oldId, _id, oldAllocatedMip, _allocatedMip, _populatedMip);
 
+#if GPU_BINDLESS_TEXTURES
     if (bindless) {
         getBindless();
     }
+#endif
 
     // destroy the old texture
     glDeleteTextures(1, &oldId);
 
     // Update sampler
+    _cachedSampler = InvalidSampler();
     syncSampler();
 
     // update the memory usage

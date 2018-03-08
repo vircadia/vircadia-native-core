@@ -55,7 +55,6 @@ static const std::string textureTableVersion {
     "#extension GL_ARB_bindless_texture : require\n#define GPU_TEXTURE_TABLE_BINDLESS\n"
 };
 
-
 // Versions specific of the shader
 static const std::array<std::string, GLShader::NumVersions> VERSION_DEFINES { {
     "",
@@ -70,15 +69,13 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, const Shader::Co
     Shader::CompilationLogs compilationLogs(GLShader::NumVersions);
     shader.incrementCompilationAttempt();
 
-    bool supportTextureTableBindless = true;
-
     for (int version = 0; version < GLShader::NumVersions; version++) {
         auto& shaderObject = shaderObjects[version];
 
         std::string shaderDefines = getBackendShaderHeader() + "\n"
-			+ (supportTextureTableBindless ? textureTableVersion : "\n")
-			+ DOMAIN_DEFINES[shader.getType()] + "\n"
-			+ VERSION_DEFINES[version];
+            + (supportsBindless() ? textureTableVersion : "\n")
+            + DOMAIN_DEFINES[shader.getType()] + "\n"
+            + VERSION_DEFINES[version];
         if (handler) {
             bool retest = true;
             std::string currentSrc = shaderSource;

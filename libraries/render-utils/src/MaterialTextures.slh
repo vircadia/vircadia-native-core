@@ -48,9 +48,9 @@ TexMapArray getTexMapArray() {
 
 <@func declareMaterialTextures(withAlbedo, withRoughness, withNormal, withMetallic, withEmissive, withOcclusion, withScattering)@>
 
-
-
 <@include gpu/TextureTable.slh@>
+
+#ifdef GPU_TEXTURE_TABLE_BINDLESS
 
 TextureTable(0, matTex);
 <!
@@ -114,8 +114,7 @@ float fetchScatteringMap(vec2 uv) {
 }
 <@endif@>
 
-<!
-<@else@>
+#else
 
 <@if withAlbedo@>
 uniform sampler2D albedoMap;
@@ -170,8 +169,8 @@ float fetchScatteringMap(vec2 uv) {
     return texture(scatteringMap, uv).r; // boolean scattering for now
 }
 <@endif@>
-<@endif@>
-!>
+
+#endif
 
 <@endfunc@>
 

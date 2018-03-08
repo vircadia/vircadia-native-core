@@ -19,7 +19,6 @@
 
 #define INCREMENTAL_TRANSFER 0
 #define GPU_SSBO_TRANSFORM_OBJECT 1
-#define GPU_BINDLESS_TEXTURES 1
 
 namespace gpu { namespace gl45 {
     
@@ -32,6 +31,9 @@ class GL45Backend : public GLBackend {
     friend class Context;
 
 public:
+#if GPU_BINDLESS_TEXTURES
+    virtual bool supportsBindless() const override { return true; }
+#endif
 
 #ifdef GPU_SSBO_TRANSFORM_OBJECT
     static const GLint TRANSFORM_OBJECT_SLOT  { 14 }; // SSBO binding slot
@@ -60,15 +62,11 @@ public:
         Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
         void syncSampler() const override;
 
-        bool isBindless() const {
 #if GPU_BINDLESS_TEXTURES
+        bool isBindless() const {
             return _bindless.operator bool();
-#else
-            return false;
-#endif
         }
 
-#if GPU_BINDLESS_TEXTURES
         struct Bindless {
             uint64_t handle{ 0 };
             uint32_t minMip{ 0 };
@@ -90,10 +88,9 @@ public:
         virtual const Bindless& getBindless() const;
         void releaseBindless() const;
         void recreateBindless() const;
-        virtual uint16 getMinMip() const = 0;
-
-
     private:
+        mutable Bindless _bindless;
+#endif
         class InvalidSampler : public Sampler {
         public:
             InvalidSampler() {
@@ -108,10 +105,6 @@ public:
         static const Sampler INVALID_SAMPLER;
         // This stores the texture handle (64 bits) in xy, the min mip available in z, and the sampler ID in w
         mutable Sampler _cachedSampler{ INVALID_SAMPLER };
-
-        mutable Bindless _bindless;
-
-#endif
     };
 
 #if GPU_BINDLESS_TEXTURES 
@@ -147,7 +140,6 @@ public:
 
     protected:
         Size size() const override { return _size; }
-        uint16 getMinMip() const override { return 0; }
 
         void allocateStorage() const;
         void syncSampler() const override;
@@ -179,18 +171,18 @@ public:
         friend class GL45Backend;
         using PromoteLambda = std::function<void()>;
 
-        const uvec4& getHandle();
     protected:
         GL45VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         ~GL45VariableAllocationTexture();
 
         Size size() const override { return _size; }
-        uint16 getMinMip() const override { return _populatedMip - _allocatedMip; }
-        virtual const Bindless& getBindless() const override;
 
         Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
         void copyTextureMipsInGPUMem(GLuint srcId, GLuint destId, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) override;
 
+#if GPU_BINDLESS_TEXTURES
+        virtual const Bindless& getBindless() const override;
+#endif
     };
 
     class GL45ResourceTexture : public GL45VariableAllocationTexture {
@@ -259,7 +251,6 @@ protected:
     GLuint getQueryID(const QueryPointer& query) override;
     GLQuery* syncGPUObject(const Query& query) override;
 
-    GL45TextureTable* syncGPUObject(const TextureTablePointer& textureTable);
 
     // Draw Stage
     void do_draw(const Batch& batch, size_t paramOffset) override;
@@ -272,9 +263,6 @@ protected:
     // Input Stage
     void resetInputStage() override;
     void updateInput() override;
-
-    // Resource stage
-    void do_setResourceTextureTable(const Batch& batch, size_t paramOffset) override;
 
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void transferTransformState(const Batch& batch) const override;
@@ -295,6 +283,12 @@ protected:
 
     // Texture Management Stage
     void initTextureManagementStage() override;
+
+#if GPU_BINDLESS_TEXTURES
+    GL45TextureTable* syncGPUObject(const TextureTablePointer& textureTable);
+    // Resource stage
+    void do_setResourceTextureTable(const Batch& batch, size_t paramOffset) override;
+#endif
 };
 
 } }

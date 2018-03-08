@@ -8,6 +8,7 @@
 #include "TextureTable.h"
 #include "Texture.h"
 
+#include <shared/GlobalAppProperties.h>
 using namespace gpu;
 
 TextureTable::TextureTable() { }
@@ -42,7 +43,9 @@ void TextureTable::setTexture(size_t index, const TextureView& textureView) {
 
 TextureTable::Array TextureTable::getTextures() const {
      Array result; 
-     Lock lock(_mutex); 
-     result = _textures;
+     {
+         Lock lock(_mutex);
+         result = _textures;
+     }
      return result; 
 }

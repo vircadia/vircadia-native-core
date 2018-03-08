@@ -36,7 +36,6 @@
 //#define GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
 #define GPU_STEREO_TECHNIQUE_INSTANCED
 
-
 // Let these be configured by the one define picked above
 #ifdef GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
 #define GPU_STEREO_DRAWCALL_DOUBLED
@@ -51,6 +50,8 @@
 #define GPU_STEREO_DRAWCALL_INSTANCED
 #define GPU_STEREO_CAMERA_BUFFER
 #endif
+
+#define GPU_BINDLESS_TEXTURES 0
 
 namespace gpu { namespace gl {
 
@@ -132,7 +133,7 @@ public:
     // Resource Stage
     virtual void do_setResourceBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_setResourceTexture(const Batch& batch, size_t paramOffset) final;
-    virtual void do_setResourceTextureTable(const Batch& batch, size_t paramOffset)  = 0;
+    virtual void do_setResourceTextureTable(const Batch& batch, size_t paramOffset);
 
     // Pipeline Stage
     virtual void do_setPipeline(const Batch& batch, size_t paramOffset) final;
@@ -228,6 +229,10 @@ public:
 protected:
 
     void recycle() const override;
+
+    // FIXME instead of a single flag, create a features struct similar to
+    // https://www.khronos.org/registry/vulkan/specs/1.0/man/html/VkPhysicalDeviceFeatures.html
+    virtual bool supportsBindless() const { return false;  }
 
     static const size_t INVALID_OFFSET = (size_t)-1;
     bool _inRenderTransferPass { false };
@@ -382,6 +387,10 @@ protected:
     // This is using different gl object  depending on the gl version
     virtual bool bindResourceBuffer(uint32_t slot, BufferPointer& buffer) = 0;
     virtual void releaseResourceBuffer(uint32_t slot) = 0;
+
+    // Helper function that provides common code used by do_setResourceTexture and 
+    // do_setResourceTextureTable (in non-bindless mode)
+    void bindResourceTexture(uint32_t slot, const TexturePointer& texture);
 
     // update resource cache and do the gl unbind call with the current gpu::Texture cached at slot s
     void releaseResourceTexture(uint32_t slot);

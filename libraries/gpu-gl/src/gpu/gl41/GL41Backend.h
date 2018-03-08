@@ -157,9 +157,6 @@ protected:
     void resetInputStage() override;
     void updateInput() override;
 
-    // Resource stage
-    void do_setResourceTextureTable(const Batch& batch, size_t paramOffset) override;
-
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void transferTransformState(const Batch& batch) const override;
     void initTransform() override;

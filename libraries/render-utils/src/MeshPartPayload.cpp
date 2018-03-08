@@ -14,8 +14,6 @@
 #include <PerfStat.h>
 #include <DualQuaternion.h>
 
-#include <gpu/TextureTable.h>
-
 #include "DeferredLightingEffect.h"
 
 #include "RenderPipelines.h"

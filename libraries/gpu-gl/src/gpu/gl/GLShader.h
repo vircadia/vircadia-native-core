@@ -17,8 +17,6 @@ struct ShaderObject {
     GLuint glprogram { 0 };
     GLint transformCameraSlot { -1 };
     GLint transformObjectSlot { -1 };
-    GLint resourceTextureTableSlot0 { -1 };
-    GLint resourceTextureTableSlot1 { -1 };
 };
 
 class GLShader : public GPUObject {

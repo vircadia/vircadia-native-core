@@ -29,9 +29,6 @@ using namespace gpu::gl;
 using namespace gpu::gl45;
 
 #define MAX_RESOURCE_TEXTURES_PER_FRAME 2
-
-#pragma optimize("", off)
-
 #define FORCE_STRICT_TEXTURE 0
 #define ENABLE_SPARSE_TEXTURE 0
 
@@ -243,6 +240,7 @@ Size GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
     return amountCopied;
 }
 
+#if GPU_BINDLESS_TEXTURES
 void GL45Texture::releaseBindless() const {
     // Release the old handler
     SAMPLER_CACHE.releaseGLSampler(_bindless.sampler);
@@ -267,9 +265,10 @@ const GL45Texture::Bindless& GL45Texture::getBindless() const {
     if (!_bindless) {
         recreateBindless();
     }
-    _bindless.minMip = getMinMip();
     return _bindless;
 }
+#endif
+
 
 void GL45Texture::syncSampler() const {
     const Sampler& sampler = _gpuObject.getSampler();
@@ -279,31 +278,33 @@ void GL45Texture::syncSampler() const {
 
     _cachedSampler = sampler;
 
+#if GPU_BINDLESS_TEXTURES
     if (isBindless()) {
         recreateBindless();
+        return;
+    } 
+#endif
+
+    const auto& fm = FILTER_MODES[sampler.getFilter()];
+    glTextureParameteri(_id, GL_TEXTURE_MIN_FILTER, fm.minFilter);
+    glTextureParameteri(_id, GL_TEXTURE_MAG_FILTER, fm.magFilter);
+
+    if (sampler.doComparison()) {
+        glTextureParameteri(_id, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE_ARB);
+        glTextureParameteri(_id, GL_TEXTURE_COMPARE_FUNC, COMPARISON_TO_GL[sampler.getComparisonFunction()]);
     } else {
-        const auto& fm = FILTER_MODES[sampler.getFilter()];
-        glTextureParameteri(_id, GL_TEXTURE_MIN_FILTER, fm.minFilter);
-        glTextureParameteri(_id, GL_TEXTURE_MAG_FILTER, fm.magFilter);
-
-        if (sampler.doComparison()) {
-            glTextureParameteri(_id, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE_ARB);
-            glTextureParameteri(_id, GL_TEXTURE_COMPARE_FUNC, COMPARISON_TO_GL[sampler.getComparisonFunction()]);
-        } else {
-            glTextureParameteri(_id, GL_TEXTURE_COMPARE_MODE, GL_NONE);
-        }
-
-        glTextureParameteri(_id, GL_TEXTURE_WRAP_S, WRAP_MODES[sampler.getWrapModeU()]);
-        glTextureParameteri(_id, GL_TEXTURE_WRAP_T, WRAP_MODES[sampler.getWrapModeV()]);
-        glTextureParameteri(_id, GL_TEXTURE_WRAP_R, WRAP_MODES[sampler.getWrapModeW()]);
-
-        glTextureParameterf(_id, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
-        glTextureParameterfv(_id, GL_TEXTURE_BORDER_COLOR, (const float*)&sampler.getBorderColor());
-
-        glTextureParameterf(_id, GL_TEXTURE_MIN_LOD, sampler.getMinMip());
-        glTextureParameterf(_id, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
+        glTextureParameteri(_id, GL_TEXTURE_COMPARE_MODE, GL_NONE);
     }
-    (void)CHECK_GL_ERROR();
+
+    glTextureParameteri(_id, GL_TEXTURE_WRAP_S, WRAP_MODES[sampler.getWrapModeU()]);
+    glTextureParameteri(_id, GL_TEXTURE_WRAP_T, WRAP_MODES[sampler.getWrapModeV()]);
+    glTextureParameteri(_id, GL_TEXTURE_WRAP_R, WRAP_MODES[sampler.getWrapModeW()]);
+
+    glTextureParameterf(_id, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
+    glTextureParameterfv(_id, GL_TEXTURE_BORDER_COLOR, (const float*)&sampler.getBorderColor());
+
+    glTextureParameterf(_id, GL_TEXTURE_MIN_LOD, sampler.getMinMip());
+    glTextureParameterf(_id, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
 }
 
 // Fixed allocation textures, used for strict resources & framebuffer attachments
@@ -378,6 +379,7 @@ GL45StrictResourceTexture::~GL45StrictResourceTexture() {
 }
 
 // Encapsulate bindless textures
+#if GPU_BINDLESS_TEXTURES
 using GL45TextureTable = GL45Backend::GL45TextureTable;
 
 GLuint GL45TextureTable::allocate() {
@@ -416,10 +418,14 @@ GL45TextureTable* GL45Backend::syncGPUObject(const TextureTablePointer& textureT
     const auto& textureTable = *textureTablePointer;
 
     // Find the target handles
+    auto defaultTextures = gpu::TextureTable::getDefault()->getTextures();
     auto textures = textureTable.getTextures();
     GL45TextureTable::BindlessArray handles{};
     for (size_t i = 0; i < textures.size(); ++i) {
         auto texture = textures[i];
+        if (!texture) {
+            texture = defaultTextures[i];
+        }
         if (!texture) {
             continue;
         }
@@ -444,10 +450,15 @@ GL45TextureTable* GL45Backend::syncGPUObject(const TextureTablePointer& textureT
 }
 
 void GL45Backend::do_setResourceTextureTable(const Batch& batch, size_t paramOffset) {
-    auto textureTable = batch._textureTables.get(batch._params[paramOffset]._uint);
+    auto textureTablePointer = batch._textureTables.get(batch._params[paramOffset]._uint);
+    if (!textureTablePointer) {
+        return;
+    }
+
     auto slot = batch._params[paramOffset + 1]._uint;
-    GL45TextureTable* glTextureTable = syncGPUObject(textureTable);
+    GL45TextureTable* glTextureTable = syncGPUObject(textureTablePointer);
     if (glTextureTable) {
         glBindBufferBase(GL_UNIFORM_BUFFER, slot + GLBackend::RESOURCE_TABLE_TEXTURE_SLOT_OFFSET, glTextureTable->_id);
     }
 }
+#endif
