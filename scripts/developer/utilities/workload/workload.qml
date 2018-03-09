@@ -37,8 +37,8 @@ Rectangle {
         HifiControls.CheckBox {
             boxSize: 20
             text: "Freeze Views"
-            checked: workload.spaceToRender["freezeViews"]
-            onCheckedChanged: { workload.spaceToRender["freezeViews"] = checked, workload.setupViews.enabled = !checked; }
+            checked: workload.setupViews["freezeViews"]
+            onCheckedChanged: { workload.spaceToRender["freezeViews"] = checked, workload.setupViews["freezeViews"] = checked; }
         }
 
         RowLayout {

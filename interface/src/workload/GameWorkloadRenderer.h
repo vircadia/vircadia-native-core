@@ -85,6 +85,10 @@ protected:
     gpu::PipelinePointer _drawAllViewsPipeline;
     const gpu::PipelinePointer getViewsPipeline();
 
+    uint32_t _numDrawViewVerts{ 0 };
+    gpu::BufferPointer _drawViewBuffer;
+    const gpu::BufferPointer getDrawViewBuffer();
+
     render::ItemKey _key;
     bool _showProxies{ true };
     bool _showViews{ true };

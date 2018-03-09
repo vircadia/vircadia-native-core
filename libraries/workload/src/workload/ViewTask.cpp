@@ -18,12 +18,17 @@ void SetupViews::configure(const Config& config) {
 }
 
 void SetupViews::run(const WorkloadContextPointer& renderContext, const Input& inputs) {
-    
-    Views views = inputs;
-    for (auto& v : views) {
+    // If views are frozen don't use the input
+    if (!data.freezeViews) {
+        _views = inputs;
+    }
+
+    // Update regions based on the current config
+    for (auto& v : _views) {
         View::updateRegions(v, (float*) &data);
     }
 
-    renderContext->_space->setViews(views);
+    // Views are setup, assign to the Space
+    renderContext->_space->setViews(_views);
 }
 
