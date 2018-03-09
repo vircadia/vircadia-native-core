@@ -50,7 +50,7 @@ void AssetScriptingInterface::uploadData(QString data, QScriptValue callback) {
         jsCallback(handler, url, hash);
     });
 
-    connect(upload, &AssetUpload::finished, upload, [this, deferred](AssetUpload* upload, const QString& hash) {
+    connect(upload, &AssetUpload::finished, upload, [deferred](AssetUpload* upload, const QString& hash) {
         // we are now on the "Resource Manager" thread (and "hash" being a *reference* makes it unsafe to use directly)
         Q_ASSERT(QThread::currentThread() == upload->thread());
         deferred->resolve({
@@ -70,7 +70,7 @@ void AssetScriptingInterface::setMapping(QString path, QString hash, QScriptValu
         jsCallback(handler, error, result);
     });
 
-    connect(setMappingRequest, &SetMappingRequest::finished, setMappingRequest, [this, deferred](SetMappingRequest* request) {
+    connect(setMappingRequest, &SetMappingRequest::finished, setMappingRequest, [deferred](SetMappingRequest* request) {
         Q_ASSERT(QThread::currentThread() == request->thread());
         // we are now on the "Resource Manager" thread
         QString error = request->getErrorString();
@@ -102,7 +102,7 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
         jsCallback(handler, result.value("data").toString(), { { "errorMessage", error } });
     });
 
-    connect(assetRequest, &AssetRequest::finished, assetRequest, [this, deferred](AssetRequest* request) {
+    connect(assetRequest, &AssetRequest::finished, assetRequest, [deferred](AssetRequest* request) {
         Q_ASSERT(QThread::currentThread() == request->thread());
         // we are now on the "Resource Manager" thread
         Q_ASSERT(request->getState() == AssetRequest::Finished);
@@ -128,7 +128,7 @@ void AssetScriptingInterface::setBakingEnabled(QString path, bool enabled, QScri
 
     Promise deferred = jsPromiseReady(makePromise(__FUNCTION__), thisObject(), callback);
 
-    connect(setBakingEnabledRequest, &SetBakingEnabledRequest::finished, setBakingEnabledRequest, [this, deferred](SetBakingEnabledRequest* request) {
+    connect(setBakingEnabledRequest, &SetBakingEnabledRequest::finished, setBakingEnabledRequest, [deferred](SetBakingEnabledRequest* request) {
         Q_ASSERT(QThread::currentThread() == request->thread());
         // we are now on the "Resource Manager" thread
 

@@ -908,7 +908,7 @@ Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 
 Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
-const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 100.0f;
+const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 70.0f;
 const float DEFAULT_DESKTOP_TABLET_SCALE_PERCENT = 75.0f;
 const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
 const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
@@ -1169,7 +1169,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
-    connect(addressManager.data(), &AddressManager::urlHandled, this, &Application::setServerlessDomain);
+    connect(addressManager.data(), &AddressManager::urlHandled, this, &Application::setIsServerlessDomain);
 
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
     connect(this, &Application::activeDisplayPluginChanged, this, [](){
@@ -2706,7 +2706,6 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("Overlays", &_overlays);
     surfaceContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
     surfaceContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
-    surfaceContext->setContextProperty("Stats", Stats::getInstance());
     surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     surfaceContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     surfaceContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
@@ -2736,7 +2735,6 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 
     surfaceContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
-    surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
     surfaceContext->setContextProperty("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     surfaceContext->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
@@ -2751,6 +2749,9 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     Stats::show();
     AvatarInputs::show();
+    auto surfaceContext = DependencyManager::get<OffscreenUi>()->getSurfaceContext();
+    surfaceContext->setContextProperty("Stats", Stats::getInstance());
+    surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
 }
 
 void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
@@ -3116,7 +3117,7 @@ bool Application::isServerlessMode() const {
     return false;
 }
 
-void Application::setServerlessDomain(bool isHifiScheme) {
+void Application::setIsServerlessDomain(bool isHifiScheme) {
     auto tree = getEntities()->getTree();
     if (tree) {
         tree->setIsServerlessMode(!isHifiScheme);
@@ -6238,6 +6239,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
+
+    scriptEngine->registerGlobalObject("App", this);
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 

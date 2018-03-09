@@ -43,7 +43,8 @@ Item {
     Text {
         id: debugZ
         visible: DebugQML
-        text: window ? "Z: " + window.z : ""
+        color: "red"
+        text: (window ? "Z: " + window.z : "")
         y: window ? window.height + 4 : 0
     }
 

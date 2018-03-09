@@ -394,8 +394,10 @@ public slots:
     const QString getPreferredCursor() const { return _preferredCursor.get(); }
     void setPreferredCursor(const QString& cursor);
 
-    void setServerlessDomain(bool serverlessDomain);
+    void setIsServerlessDomain(bool serverlessDomain);
     void loadServerlessDomain(QUrl domainURL);
+
+    Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
