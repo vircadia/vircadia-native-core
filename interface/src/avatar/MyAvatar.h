@@ -837,8 +837,8 @@ private:
     std::map<controller::Action, controller::Pose> _controllerPoseMap;
     mutable std::mutex _controllerPoseMapMutex;
 
-    bool _hmdLeanRecenterEnabled = true;
-    bool _sprint = false;
+    bool _hmdLeanRecenterEnabled { true };
+    bool _sprint { false };
     AnimPose _prePhysicsRoomPose;
     std::mutex _holdActionsMutex;
     std::vector<AvatarActionHold*> _holdActions;

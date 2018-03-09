@@ -2190,7 +2190,9 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     if (state == CharacterController::State::Hover ||
             _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
         // we can fly --> support vertical motion
-        float impulse = _sprint ? 4.0f : 1.0f;
+        const float SPRINT_IMPULSE = 4.0f;
+        const float WALK_IMPULSE = 1.0f;
+        float impulse = _sprint ? SPRINT_IMPULSE : WALK_IMPULSE;
         glm::vec3 up = (getDriveKey(TRANSLATE_Y) * impulse) * IDENTITY_UP;
         direction += up;
     }
@@ -2208,10 +2210,12 @@ void MyAvatar::updateActionMotor(float deltaTime) {
 
     if (state == CharacterController::State::Hover) {
         // we're flying --> complex acceleration curve that builds on top of current motor speed and caps at some max speed
+        const float WALK_SPEED_FACTOR = 1.8f;
+        const float SPRINT_SPEED_FACTOR = 5.0f;
         float motorSpeed = glm::length(_actionMotorVelocity);
         float finalMaxMotorSpeed = getSensorToWorldScale() * DEFAULT_AVATAR_MAX_FLYING_SPEED;
         float speedGrowthTimescale  = 2.0f;
-        float speedIncreaseFactor = _sprint ? 5.0f : 1.8f;
+        float speedIncreaseFactor = _sprint ? SPRINT_SPEED_FACTOR : WALK_SPEED_FACTOR;
         motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale, 0.0f, 1.0f) * speedIncreaseFactor;
         const float maxBoostSpeed = getSensorToWorldScale() * MAX_BOOST_SPEED;
 
@@ -2825,8 +2829,12 @@ float MyAvatar::getWalkSpeed() const {
 
 void MyAvatar::setSprintMode(bool sprint) {
     _sprint = sprint;
-    float sprintSpeed = _sprint ? AVATAR_RUN_SPEED : DEFAULT_AVATAR_MAX_WALKING_SPEED;
-    _walkSpeed.set(sprintSpeed);
+
+    if (_sprint) {
+        _walkSpeed.set(AVATAR_RUN_SPEED);
+    } else {
+        _walkSpeed.set(DEFAULT_AVATAR_MAX_WALKING_SPEED);
+    }
 }
 
 void MyAvatar::setWalkSpeed(float value) {
