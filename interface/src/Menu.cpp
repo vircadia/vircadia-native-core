@@ -361,7 +361,7 @@ Menu::Menu() {
     // Developer menu ----------------------------------
     MenuWrapper* developerMenu = addMenu("Developer", "Developer");
 
-    // Developer > Graphics...
+    // Developer > Graphics
     MenuWrapper* graphicsOptionsMenu = developerMenu->addMenu("Render");
     action = addCheckableActionToQMenuAndActionHash(graphicsOptionsMenu, MenuOption::Shadows, 0, true);
     connect(action, &QAction::triggered, [action] {

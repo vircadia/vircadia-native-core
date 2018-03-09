@@ -12,27 +12,16 @@
 #ifndef hifi_Oven_h
 #define hifi_Oven_h
 
-#include <QtWidgets/QApplication>
-
-#include <TBBHelpers.h>
-
 #include <atomic>
+#include <memory>
 
-#if defined(qApp)
-#undef qApp
-#endif
-#define qApp (static_cast<Oven*>(QCoreApplication::instance()))
-
-class OvenMainWindow;
-
-class Oven : public QApplication {
-    Q_OBJECT
+class Oven {
 
 public:
-    Oven(int argc, char* argv[]);
+    Oven();
     ~Oven();
 
-    OvenMainWindow* getMainWindow() const { return _mainWindow; }
+    static Oven& instance() { return *_staticInstance; }
 
     QThread* getNextWorkerThread();
 
@@ -40,11 +29,12 @@ private:
     void setupWorkerThreads(int numWorkerThreads);
     void setupFBXBakerThread();
 
-    OvenMainWindow* _mainWindow;
-    QList<QThread*> _workerThreads;
+    std::vector<std::unique_ptr<QThread>> _workerThreads;
 
     std::atomic<uint> _nextWorkerThreadIndex;
     int _numWorkerThreads;
+
+    static Oven* _staticInstance;
 };
 
 

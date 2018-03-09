@@ -11,11 +11,21 @@
 <@if not MODEL_MATERIAL_SLH@>
 <@def MODEL_MATERIAL_SLH@>
 
-struct Material { 
-    vec4 _emissiveOpacity;
-    vec4 _albedoRoughness;
-    vec4 _fresnelMetallic;
-    vec4 _scatteringSpare2Key;
+// The material values (at least the material key) must be precisely bitwise accurate
+// to what is provided by the uniform buffer, or the material key has the wrong bits
+#ifdef GL_ES
+precision highp float;
+#define BITFIELD highp int
+#define PRECISIONQ highp
+#else
+#define BITFIELD int
+#define PRECISIONQ 
+#endif
+struct Material {
+    PRECISIONQ vec4 _emissiveOpacity;
+    PRECISIONQ vec4 _albedoRoughness;
+    PRECISIONQ vec4 _fresnelMetallic;
+    PRECISIONQ vec4 _scatteringSpare2Key;
 };
 
 uniform materialBuffer {
@@ -39,27 +49,29 @@ float getMaterialShininess(Material m) { return 1.0 - getMaterialRoughness(m); }
 
 float getMaterialScattering(Material m) { return m._scatteringSpare2Key.x; }
 
-int getMaterialKey(Material m) { return floatBitsToInt(m._scatteringSpare2Key.w); }
+BITFIELD getMaterialKey(Material m) { return floatBitsToInt(m._scatteringSpare2Key.w); }
 
-const int EMISSIVE_VAL_BIT              = 0x00000001;
-const int UNLIT_VAL_BIT                 = 0x00000002;
-const int ALBEDO_VAL_BIT                = 0x00000004;
-const int METALLIC_VAL_BIT              = 0x00000008;
-const int GLOSSY_VAL_BIT                = 0x00000010;
-const int OPACITY_VAL_BIT               = 0x00000020;
-const int OPACITY_MASK_MAP_BIT          = 0x00000040;
-const int OPACITY_TRANSLUCENT_MAP_BIT   = 0x00000080;
-const int SCATTERING_VAL_BIT            = 0x00000100;
-
-
-const int EMISSIVE_MAP_BIT              = 0x00000200;
-const int ALBEDO_MAP_BIT                = 0x00000400;
-const int METALLIC_MAP_BIT              = 0x00000800;
-const int ROUGHNESS_MAP_BIT             = 0x00001000;
-const int NORMAL_MAP_BIT                = 0x00002000;
-const int OCCLUSION_MAP_BIT             = 0x00004000;
-const int LIGHTMAP_MAP_BIT              = 0x00008000;
-const int SCATTERING_MAP_BIT            = 0x00010000;
+const BITFIELD EMISSIVE_VAL_BIT              = 0x00000001;
+const BITFIELD UNLIT_VAL_BIT                 = 0x00000002;
+const BITFIELD ALBEDO_VAL_BIT                = 0x00000004;
+const BITFIELD METALLIC_VAL_BIT              = 0x00000008;
+const BITFIELD GLOSSY_VAL_BIT                = 0x00000010;
+const BITFIELD OPACITY_VAL_BIT               = 0x00000020;
+const BITFIELD OPACITY_MASK_MAP_BIT          = 0x00000040;
+const BITFIELD OPACITY_TRANSLUCENT_MAP_BIT   = 0x00000080;
+const BITFIELD SCATTERING_VAL_BIT            = 0x00000100;
 
 
+const BITFIELD EMISSIVE_MAP_BIT              = 0x00000200;
+const BITFIELD ALBEDO_MAP_BIT                = 0x00000400;
+const BITFIELD METALLIC_MAP_BIT              = 0x00000800;
+const BITFIELD ROUGHNESS_MAP_BIT             = 0x00001000;
+const BITFIELD NORMAL_MAP_BIT                = 0x00002000;
+const BITFIELD OCCLUSION_MAP_BIT             = 0x00004000;
+const BITFIELD LIGHTMAP_MAP_BIT              = 0x00008000;
+const BITFIELD SCATTERING_MAP_BIT            = 0x00010000;
+
+#ifdef GL_ES
+precision lowp float;
+#endif
 <@endif@>

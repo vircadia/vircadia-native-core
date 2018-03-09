@@ -70,6 +70,7 @@ public slots:
 
 protected:
     void makeRequest() override;
+    void makeLocalRequest();
 
     virtual bool isCacheable() const override { return _loaded; }
 
@@ -133,6 +134,8 @@ private:
 
 using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
 
+Q_DECLARE_METATYPE(QWeakPointer<NetworkTexture>)
+
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {
     Q_OBJECT
@@ -193,12 +196,11 @@ private:
     TextureCache();
     virtual ~TextureCache();
 
-#if !defined(DISABLE_KTX_CACHE)
     static const std::string KTX_DIRNAME;
     static const std::string KTX_EXT;
 
     std::shared_ptr<cache::FileCache> _ktxCache { std::make_shared<KTXCache>(KTX_DIRNAME, KTX_EXT) };
-#endif
+
     // Map from image hashes to texture weak pointers
     std::unordered_map<std::string, std::weak_ptr<gpu::Texture>> _texturesByHashes;
     std::mutex _texturesByHashesMutex;

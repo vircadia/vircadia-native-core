@@ -257,12 +257,10 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     _transferTaskPool.setMaxThreadCount(TASK_POOL_THREAD_COUNT);
     _bakingTaskPool.setMaxThreadCount(1);
 
+    // Queue all requests until the Asset Server is fully setup
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
-    packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
-    packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
-    packetReceiver.registerListener(PacketType::AssetMappingOperation, this, "handleAssetMappingOperation");
-    
+    packetReceiver.registerListenerForTypes({ PacketType::AssetGet, PacketType::AssetGetInfo, PacketType::AssetUpload, PacketType::AssetMappingOperation }, this, "queueRequests");
+
 #ifdef Q_OS_WIN
     updateConsumedCores();
     QTimer* timer = new QTimer(this);
@@ -291,6 +289,7 @@ void AssetServer::aboutToFinish() {
         if (pendingRunnable) {
             it = _pendingBakes.erase(it);
         } else {
+            qDebug() << "Aborting bake for" << it.key();
             it.value()->abort();
             ++it;
         }
@@ -396,6 +395,7 @@ void AssetServer::completeSetup() {
 
         if (_fileMappings.size() > 0) {
             cleanupUnmappedFiles();
+            cleanupBakedFilesForDeletedAssets();
         }
 
         nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
@@ -417,10 +417,65 @@ void AssetServer::completeSetup() {
 
     PathUtils::removeTemporaryApplicationDirs();
     PathUtils::removeTemporaryApplicationDirs("Oven");
+
+    qCDebug(asset_server) << "Overriding temporary queuing packet handler.";
+    // We're fully setup, override the request queueing handler and replay all requests
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
+    packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
+    packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
+    packetReceiver.registerListener(PacketType::AssetMappingOperation, this, "handleAssetMappingOperation");
+
+    replayRequests();
+}
+
+void AssetServer::queueRequests(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode) {
+    qCDebug(asset_server) << "Queuing requests until fully setup";
+
+    QMutexLocker lock { &_queuedRequestsMutex };
+    _queuedRequests.push_back({ packet, senderNode });
+
+    // If we've stopped queueing but the callback was already in flight,
+    // then replay it immediately.
+    if (!_isQueueingRequests) {
+        lock.unlock();
+        replayRequests();
+    }
+}
+
+void AssetServer::replayRequests() {
+    RequestQueue queue;
+    {
+        QMutexLocker lock { &_queuedRequestsMutex };
+        std::swap(queue, _queuedRequests);
+        _isQueueingRequests = false;
+    }
+
+    qCDebug(asset_server) << "Replaying" << queue.size() << "requests.";
+
+    for (const auto& request : queue) {
+        switch (request.first->getType()) {
+            case PacketType::AssetGet:
+                handleAssetGet(request.first, request.second);
+                break;
+            case PacketType::AssetGetInfo:
+                handleAssetGetInfo(request.first, request.second);
+                break;
+            case PacketType::AssetUpload:
+                handleAssetUpload(request.first, request.second);
+                break;
+            case PacketType::AssetMappingOperation:
+                handleAssetMappingOperation(request.first, request.second);
+                break;
+            default:
+                qCWarning(asset_server) << "Unknown queued request type:" << request.first->getType();
+                break;
+        }
+    }
 }
 
 void AssetServer::cleanupUnmappedFiles() {
-    QRegExp hashFileRegex { "^[a-f0-9]{" + QString::number(AssetUtils::SHA256_HASH_HEX_LENGTH) + "}" };
+    QRegExp hashFileRegex { AssetUtils::ASSET_HASH_REGEX_STRING };
 
     auto files = _filesDirectory.entryInfoList(QDir::Files);
 
@@ -448,6 +503,38 @@ void AssetServer::cleanupUnmappedFiles() {
                     qCDebug(asset_server) << "\tAttempt to delete unmapped file" << filename << "failed";
                 }
             }
+        }
+    }
+}
+
+void AssetServer::cleanupBakedFilesForDeletedAssets() {
+    qCInfo(asset_server) << "Performing baked asset cleanup for deleted assets";
+
+    std::set<AssetUtils::AssetHash> bakedHashes;
+
+    for (const auto& it : _fileMappings) {
+        // check if this is a mapping to baked content
+        if (it.first.startsWith(AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER)) {
+            // extract the hash from the baked mapping
+            AssetUtils::AssetHash hash = it.first.mid(AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER.length(),
+                                                      AssetUtils::SHA256_HASH_HEX_LENGTH);
+
+            // add the hash to our set of hashes for which we have baked content
+            bakedHashes.insert(hash);
+        }
+    }
+
+    // enumerate the hashes for which we have baked content
+    for (const auto& hash : bakedHashes) {
+        // check if we have a mapping that points to this hash
+        auto matchingMapping = std::find_if(std::begin(_fileMappings), std::end(_fileMappings),
+                                            [&hash](const std::pair<AssetUtils::AssetPath, AssetUtils::AssetHash> mappingPair) {
+            return mappingPair.second == hash;
+        });
+
+        if (matchingMapping == std::end(_fileMappings)) {
+            // we didn't find a mapping for this hash, remove any baked content we still have for it
+            removeBakedPathsForDeletedAsset(hash);
         }
     }
 }
@@ -1301,6 +1388,8 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
 }
 
 void AssetServer::handleAbortedBake(QString originalAssetHash, QString assetPath) {
+    qDebug() << "Aborted bake:" << originalAssetHash;
+
     // for an aborted bake we don't do anything but remove the BakeAssetTask from our pending bakes
     _pendingBakes.remove(originalAssetHash);
 }

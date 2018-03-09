@@ -21,8 +21,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QDebug>
 
-#include "../Oven.h"
-#include "OvenMainWindow.h"
+#include "../OvenGUIApplication.h"
 
 #include "DomainBakeWidget.h"
 
@@ -223,14 +222,14 @@ void DomainBakeWidget::bakeButtonClicked() {
         connect(domainBaker.get(), &DomainBaker::bakeProgress, this, &DomainBakeWidget::handleBakerProgress);
 
         // move the baker to the next available Oven worker thread
-        auto nextThread = qApp->getNextWorkerThread();
+        auto nextThread = Oven::instance().getNextWorkerThread();
         domainBaker->moveToThread(nextThread);
 
         // kickoff the domain baker on its thread
         QMetaObject::invokeMethod(domainBaker.get(), "bake");
 
         // add a pending row to the results window to show that this bake is in process
-        auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+        auto resultsWindow = OvenGUIApplication::instance()->getMainWindow()->showResultsWindow();
         auto resultsRowName = _domainNameLineEdit->text().isEmpty() ? fileToBakeURL.fileName() : _domainNameLineEdit->text();
         auto resultsRow = resultsWindow->addPendingResultRow(resultsRowName, outputDirectory);
 
@@ -250,7 +249,7 @@ void DomainBakeWidget::handleBakerProgress(int baked, int total) {
             auto resultRow = it->second;
             
             // grab the results window, don't force it to be brought to the top
-            auto resultsWindow = qApp->getMainWindow()->showResultsWindow(false);
+            auto resultsWindow = OvenGUIApplication::instance()->getMainWindow()->showResultsWindow(false);
 
             int percentage = roundf(float(baked) / float(total) * 100.0f);
 
@@ -269,7 +268,7 @@ void DomainBakeWidget::handleFinishedBaker() {
 
         if (it != _bakers.end()) {
             auto resultRow = it->second;
-            auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+            auto resultsWindow = OvenGUIApplication::instance()->getMainWindow()->showResultsWindow();
 
             if (baker->hasErrors()) {
                 auto errors = baker->getErrors();

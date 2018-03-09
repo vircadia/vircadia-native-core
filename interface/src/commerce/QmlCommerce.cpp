@@ -62,6 +62,11 @@ void QmlCommerce::getKeyFilePathIfExists() {
     emit keyFilePathIfExistsResult(wallet->getKeyFilePath());
 }
 
+bool QmlCommerce::copyKeyFileFrom(const QString& pathname) {
+    auto wallet = DependencyManager::get<Wallet>();
+    return wallet->copyKeyFileFrom(pathname);
+}
+
 void QmlCommerce::getWalletAuthenticatedStatus() {
     auto wallet = DependencyManager::get<Wallet>();
     emit walletAuthenticatedStatusResult(wallet->walletIsAuthenticatedWithPassphrase());
@@ -126,6 +131,11 @@ void QmlCommerce::changePassphrase(const QString& oldPassphrase, const QString& 
     } else {
         emit changePassphraseStatusResult(false);
     }
+}
+
+void QmlCommerce::setSoftReset() {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->setSoftReset();
 }
 
 void QmlCommerce::setPassphrase(const QString& passphrase) {

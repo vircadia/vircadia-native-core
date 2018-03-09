@@ -144,7 +144,7 @@ Rectangle {
     }
 
     function canAddToWorld(path) {
-        var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i];
+        var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i, /\.jpg\b/i, /\.png\b/i];
         
         if (selectedItemCount > 1) {
             return false;
@@ -188,9 +188,10 @@ Rectangle {
             var textures = JSON.stringify({ "tex.picture": defaultURL});
             var shapeType = "box";
             var dynamic = false;
+            var collisionless = true;
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getForward(MyAvatar.orientation)));
             var gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 0);
-            Entities.addModelEntity(name, modelURL, textures, shapeType, dynamic, position, gravity);
+            Entities.addModelEntity(name, modelURL, textures, shapeType, dynamic, collisionless, position, gravity);
         } else {
             var SHAPE_TYPE_NONE = 0;
             var SHAPE_TYPE_SIMPLE_HULL = 1;
@@ -235,6 +236,7 @@ Rectangle {
                     var result = JSON.parse(jsonResult);
                     var url = result.textInput.trim();
                     var shapeType;
+                    var collisionless = false;
                     switch (result.comboBox) {
                         case SHAPE_TYPE_SIMPLE_HULL:
                             shapeType = "simple-hull";
@@ -253,6 +255,7 @@ Rectangle {
                             break;
                         default:
                             shapeType = "none";
+                            collisionless = true;
                     }
 
                     var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
@@ -274,7 +277,7 @@ Rectangle {
                         print("Asset browser - adding asset " + url + " (" + name + ") to world.");
 
                         // Entities.addEntity doesn't work from QML, so we use this.
-                        Entities.addModelEntity(name, url, "", shapeType, dynamic, addPosition, gravity);
+                        Entities.addModelEntity(name, url, "", shapeType, dynamic, collisionless, addPosition, gravity);
                     }
                 }
             });
@@ -656,7 +659,7 @@ Rectangle {
 
                         text: styleData.value
 
-                        FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+                        FontLoader { id: firaSansSemiBold; source: "qrc:/fonts/FiraSans-SemiBold.ttf"; }
                         font.family: firaSansSemiBold.name
                         font.pixelSize: hifi.fontSizes.textFieldInput
                         height: hifi.dimensions.tableRowHeight

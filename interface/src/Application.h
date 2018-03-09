@@ -33,6 +33,7 @@
 #include <FileScriptingInterface.h>
 #include <input-plugins/KeyboardMouseDevice.h>
 #include <input-plugins/TouchscreenDevice.h>
+#include <input-plugins/TouchscreenVirtualPadDevice.h>
 #include <OctreeQuery.h>
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
@@ -392,6 +393,8 @@ public slots:
     const QString getPreferredCursor() const { return _preferredCursor.get(); }
     void setPreferredCursor(const QString& cursor);
 
+    Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
+
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
@@ -552,6 +555,7 @@ private:
     std::shared_ptr<controller::StateController> _applicationStateDevice; // Default ApplicationDevice reflecting the state of different properties of the session
     std::shared_ptr<KeyboardMouseDevice> _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
     std::shared_ptr<TouchscreenDevice> _touchscreenDevice;   // the good old touchscreen
+    std::shared_ptr<TouchscreenVirtualPadDevice> _touchscreenVirtualPadDevice;
     SimpleMovingAverage _avatarSimsPerSecond {10};
     int _avatarSimsPerSecondReport {0};
     quint64 _lastAvatarSimsPerSecondUpdate {0};

@@ -99,7 +99,6 @@ public:
 
     // dual quaternion skinning
     void updateClusterBuffer(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions);
-
     void updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform);
 
     // Render Item interface

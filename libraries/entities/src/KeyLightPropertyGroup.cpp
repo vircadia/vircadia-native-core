@@ -80,8 +80,7 @@ bool KeyLightPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
     EntityPropertyFlags& propertyFlags,
     EntityPropertyFlags& propertiesDidntFit,
     int& propertyCount, 
-    OctreeElement::AppendState& appendState) const 
-{
+    OctreeElement::AppendState& appendState) const {
 
     bool successPropertyFits = true;
     

@@ -14,7 +14,7 @@ import QtQuick.Controls.Styles 1.4
 
 Text {
     id: root
-    FontLoader { id: anonymousProRegular; source: "../../fonts/AnonymousPro-Regular.ttf"; }
+    FontLoader { id: anonymousProRegular; source: "qrc:/fonts/AnonymousPro-Regular.ttf"; }
     property real size: 32
     font.pixelSize: size
     verticalAlignment: Text.AlignVCenter

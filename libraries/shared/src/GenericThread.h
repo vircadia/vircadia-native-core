@@ -47,6 +47,7 @@ public slots:
     void threadRoutine();
 
 signals:
+    void started();
     void finished();
 
 protected:

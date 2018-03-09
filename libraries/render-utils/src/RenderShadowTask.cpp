@@ -163,8 +163,10 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
 
         auto shadowPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
         auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
+        auto shadowSkinnedDQPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned().withDualQuatSkinned());
 
         std::vector<ShapeKey> skinnedShapeKeys{};
+        std::vector<ShapeKey> skinnedDQShapeKeys{};
         std::vector<ShapeKey> ownPipelineShapeKeys{};
 
         // Iterate through all inShapes and render the unskinned
@@ -172,7 +174,11 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
         batch.setPipeline(shadowPipeline->pipeline);
         for (auto items : inShapes) {
             if (items.first.isSkinned()) {
-                skinnedShapeKeys.push_back(items.first);
+                if (items.first.isDualQuatSkinned()) {
+                    skinnedDQShapeKeys.push_back(items.first);
+                } else {
+                    skinnedShapeKeys.push_back(items.first);
+                }
             } else if (!items.first.hasOwnPipeline()) {
                 renderItems(renderContext, items.second);
             } else {
@@ -184,6 +190,13 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
         args->_shapePipeline = shadowSkinnedPipeline;
         batch.setPipeline(shadowSkinnedPipeline->pipeline);
         for (const auto& key : skinnedShapeKeys) {
+            renderItems(renderContext, inShapes.at(key));
+        }
+
+        // Reiterate to render the DQ skinned
+        args->_shapePipeline = shadowSkinnedDQPipeline;
+        batch.setPipeline(shadowSkinnedDQPipeline->pipeline);
+        for (const auto& key : skinnedDQShapeKeys) {
             renderItems(renderContext, inShapes.at(key));
         }
 

@@ -151,11 +151,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto velocityBufferOutputs = task.addJob<VelocityBufferPass>("VelocityBuffer", velocityBufferInputs);
     const auto velocityBuffer = velocityBufferOutputs.getN<VelocityBufferPass::Outputs>(0);
 
+    // Clear Light, Haze and Skybox Stages and render zones from the general metas bucket
+    const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
+
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     task.addJob<DrawLight>("DrawLight", lights);
-
-    // Filter zones from the general metas bucket
-    const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
 
     // Light Clustering
     // Create the cluster grid of lights, cpu job for now
@@ -246,7 +246,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DrawBounds>("DrawOverlayInFrontTransparentBounds", overlaysInFrontTransparent);
     }
 
-    // AA job to be revisited
+    // AA job
     const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, primaryFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
     task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 

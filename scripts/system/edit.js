@@ -565,11 +565,12 @@ var toolBar = (function () {
             createNewEntity({
                 type: "Model",
                 dimensions: {
-                    x: 4.16,
-                    y: 0.02,
-                    z: 2.58
+                    x: 0.5385,
+                    y: 0.2819,
+                    z: 0.0092
                 },
                 shapeType: "box",
+                collisionless: true,
                 modelURL: IMAGE_MODEL,
                 textures: JSON.stringify({ "tex.picture": DEFAULT_IMAGE })
             });
@@ -814,13 +815,16 @@ function findClickedEntity(event) {
 // Handles selections on overlays while in edit mode by querying entities from
 // entityIconOverlayManager.
 function handleOverlaySelectionToolUpdates(channel, message, sender) {
+    var wantDebug = false;
     if (sender !== MyAvatar.sessionUUID || channel !== 'entityToolUpdates')
         return;
 
     var data = JSON.parse(message);
 
     if (data.method === "selectOverlay") {
-        print("setting selection to overlay " + data.overlayID);
+        if (wantDebug) {
+            print("setting selection to overlay " + data.overlayID);
+        }
         var entity = entityIconOverlayManager.findEntity(data.overlayID);
 
         if (entity !== null) {
