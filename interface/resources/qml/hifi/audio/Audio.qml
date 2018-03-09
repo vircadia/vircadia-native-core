@@ -129,7 +129,7 @@ Rectangle {
                     id: stereoMic
                     spacing: muteMic.spacing;
                     text: qsTr("Use stereo for stereo devices");
-                    checked: false;
+                    checked: AudioScriptingInterface.isStereoEnabled();
                     onClicked: {
                         var success = AudioScriptingInterface.setStereoInput(checked);
                         if (!success) {
