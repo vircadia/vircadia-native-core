@@ -186,7 +186,6 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
     // Although it is not the responsibility of the EntitySimulation to sort the tree for EXTERNAL changes
     // it IS responsibile for triggering deletes for entities that leave the bounds of the domain, hence
     // we must check for that case here, however we rely on the change event to have set DIRTY_POSITION flag.
-    bool wasRemoved = false;
     uint32_t dirtyFlags = entity->getDirtyFlags();
     if (dirtyFlags & Simulation::DIRTY_POSITION) {
         AACube domainBounds(glm::vec3((float)-HALF_TREE_SCALE), (float)TREE_SCALE);
@@ -196,29 +195,28 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
             qCDebug(entities) << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
             entity->die();
             prepareEntityForDelete(entity);
-            wasRemoved = true;
+            return;
         }
     }
-    if (!wasRemoved) {
-        if (dirtyFlags & Simulation::DIRTY_LIFETIME) {
-            if (entity->isMortal()) {
-                _mortalEntities.insert(entity);
-                quint64 expiry = entity->getExpiry();
-                if (expiry < _nextExpiry) {
-                    _nextExpiry = expiry;
-                }
-            } else {
-                _mortalEntities.remove(entity);
+
+    if (dirtyFlags & Simulation::DIRTY_LIFETIME) {
+        if (entity->isMortal()) {
+            _mortalEntities.insert(entity);
+            quint64 expiry = entity->getExpiry();
+            if (expiry < _nextExpiry) {
+                _nextExpiry = expiry;
             }
-            entity->clearDirtyFlags(Simulation::DIRTY_LIFETIME);
-        }
-        if (entity->needsToCallUpdate()) {
-            _entitiesToUpdate.insert(entity);
         } else {
-            _entitiesToUpdate.remove(entity);
+            _mortalEntities.remove(entity);
         }
-        changeEntityInternal(entity);
+        entity->clearDirtyFlags(Simulation::DIRTY_LIFETIME);
     }
+    if (entity->needsToCallUpdate()) {
+        _entitiesToUpdate.insert(entity);
+    } else {
+        _entitiesToUpdate.remove(entity);
+    }
+    changeEntityInternal(entity);
 }
 
 void EntitySimulation::clearEntities() {
