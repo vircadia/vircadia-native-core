@@ -657,8 +657,7 @@ Windows.ScrollingWindow {
 
                         text: styleData.value
 
-                        FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
-                        font.family: firaSansSemiBold.name
+                        font.family: "Fira Sans SemiBold"
                         font.pixelSize: hifi.fontSizes.textFieldInput
                         height: hifi.dimensions.tableRowHeight
 
