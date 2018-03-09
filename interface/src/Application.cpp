@@ -7138,7 +7138,7 @@ void Application::packageModel() {
 
 void Application::openUrl(const QUrl& url) const {
     if (!url.isEmpty()) {
-        if (isDomainURL(url)) {
+        if (url.scheme() == URL_SCHEME_HIFI) {
             DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
         } else {
             // address manager did not handle - ask QDesktopServices to handle
