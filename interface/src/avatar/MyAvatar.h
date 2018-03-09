@@ -682,8 +682,6 @@ private:
     // These are made private for MyAvatar so that you will use the "use" methods instead
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
-    void setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visiblity);
-
     virtual void updatePalms() override {}
     void lateUpdatePalms();
 

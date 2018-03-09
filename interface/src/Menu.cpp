@@ -43,6 +43,7 @@
 #include "ui/StandAloneJSConsole.h"
 #include "InterfaceLogging.h"
 #include "LocationBookmarks.h"
+#include "DeferredLightingEffect.h"
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
@@ -360,11 +361,16 @@ Menu::Menu() {
     // Developer menu ----------------------------------
     MenuWrapper* developerMenu = addMenu("Developer", "Developer");
 
-    // Developer > Graphics...
-    action = addActionToQMenuAndActionHash(developerMenu, "Graphics...");
-    connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/GraphicsPreferencesDialog.qml"),
-            QString("hifi/tablet/TabletGraphicsPreferences.qml"), "GraphicsPreferencesDialog");
+    // Developer > Graphics
+    MenuWrapper* graphicsOptionsMenu = developerMenu->addMenu("Render");
+    action = addCheckableActionToQMenuAndActionHash(graphicsOptionsMenu, MenuOption::Shadows, 0, true);
+    connect(action, &QAction::triggered, [action] {
+        DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(action->isChecked());
+    });
+
+    action = addCheckableActionToQMenuAndActionHash(graphicsOptionsMenu, MenuOption::AmbientOcclusion, 0, false);
+    connect(action, &QAction::triggered, [action] {
+        DependencyManager::get<DeferredLightingEffect>()->setAmbientOcclusionEnabled(action->isChecked());
     });
 
     // Developer > UI >>>

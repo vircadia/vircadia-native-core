@@ -974,6 +974,10 @@ scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScript
 
     auto result = _model->getScriptableModel();
     result.objectID = getEntity()->getID();
+    {
+        std::lock_guard<std::mutex> lock(_materialsLock);
+        result.appendMaterials(_materials);
+    }
     return result;
 }
 
@@ -1394,6 +1398,10 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         model->setVisibleInScene(_visible, scene, viewTaskBits, false);
     }
     // TODO? early exit here when not visible?
+
+    if (model->canCastShadow() != _canCastShadow) {
+        model->setCanCastShadow(_canCastShadow, scene, viewTaskBits, false);
+    }
 
     if (_needsCollisionGeometryUpdate) {
         setCollisionMeshKey(entity->getCollisionMeshKey());

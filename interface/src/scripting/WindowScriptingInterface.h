@@ -179,7 +179,6 @@ public slots:
      * Prompt the user to choose a file. Displays a non-modal dialog that navigates the directory tree. A
      * {@link Window.browseChanged|browseChanged} signal is emitted when a file is chosen; no signal is emitted if the user
      * cancels the dialog.
-     * @deprecated A deprecated {@link Window.openFileChanged|openFileChanged} signal is also emitted when a file is chosen.
      * @function Window.browseAsync
      * @param {string} title="" - The title to display at the top of the dialog.
      * @param {string} directory="" - The initial directory to start browsing at.
@@ -659,15 +658,6 @@ signals:
      * @returns {Signal}
      */
     void browseChanged(QString filename);
-
-    /**jsdoc
-     * Triggered when the user chooses a file in a {@link Window.browseAsync|browseAsync} dialog.
-     * @function Window.openFileChanged
-     * @deprecated This signal is being replaced with {@link Window.browseChanged|browseChanged} and will be removed.
-     * @param {string} filename - The path and name of the file the user chose in the dialog.
-     * @returns {Signal}
-     */
-    void openFileChanged(QString filename);
 
     /**jsdoc
      * Triggered when the user OKs a {@link Window.promptAsync|promptAsync} dialog.

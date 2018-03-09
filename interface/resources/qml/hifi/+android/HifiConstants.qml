@@ -10,6 +10,7 @@
 //
 
 import QtQuick 2.4
+import QtQuick.Window 2.2
 
 Item {
 
@@ -20,26 +21,27 @@ Item {
 
     Item {
         id: dimen
-        readonly property real windowLessWidth: 126
-        readonly property real windowLessHeight: 64
+        readonly property bool atLeast1440p: Screen.width >= 2560 && Screen.height >= 1440
+        readonly property real windowLessWidth: atLeast1440p?378:284
+        readonly property real windowLessHeight: atLeast1440p?192:144
 
         readonly property real windowZ: 100
 
-        readonly property real headerHeight: 276
+        readonly property real headerHeight: atLeast1440p?276:207
 
-        readonly property real headerIconPosX: 90
-        readonly property real headerIconPosY: 108
-        readonly property real headerIconWidth: 111
-        readonly property real headerIconHeight: 111
-        readonly property real headerIconTitleDistance: 151
+        readonly property real headerIconPosX: atLeast1440p?90:67
+        readonly property real headerIconPosY: atLeast1440p?108:81
+        readonly property real headerIconWidth: atLeast1440p?111:83
+        readonly property real headerIconHeight: atLeast1440p?111:83
+        readonly property real headerIconTitleDistance: atLeast1440p?151:113
 
-        readonly property real headerHideWidth: 150
-        readonly property real headerHideHeight: 150
-        readonly property real headerHideRightMargin: 110
-        readonly property real headerHideTopMargin: 90
-        readonly property real headerHideIconWidth: 70
-        readonly property real headerHideIconHeight: 45
-        readonly property real headerHideTextTopMargin: 36
+        readonly property real headerHideWidth: atLeast1440p?150:112
+        readonly property real headerHideHeight: atLeast1440p?150:112
+        readonly property real headerHideRightMargin: atLeast1440p?110:82
+        readonly property real headerHideTopMargin: atLeast1440p?90:67
+        readonly property real headerHideIconWidth: atLeast1440p?70:52
+        readonly property real headerHideIconHeight: atLeast1440p?45:33
+        readonly property real headerHideTextTopMargin: atLeast1440p?36:27
 
         readonly property real botomHudWidth: 366
         readonly property real botomHudHeight: 180

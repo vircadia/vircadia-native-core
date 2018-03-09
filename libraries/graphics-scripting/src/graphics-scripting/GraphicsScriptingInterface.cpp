@@ -297,6 +297,10 @@ namespace {
         qRegisterMetaType<scriptable::ScriptableMeshPointer>(),
         qRegisterMetaType<scriptable::ScriptableModelPointer>(),
         qRegisterMetaType<scriptable::ScriptableMeshPartPointer>(),
+        qRegisterMetaType<scriptable::ScriptableMaterial>(),
+        qRegisterMetaType<scriptable::ScriptableMaterialLayer>(),
+        qRegisterMetaType<QVector<scriptable::ScriptableMaterialLayer>>(),
+        qRegisterMetaType<scriptable::MultiMaterialMap>(),
         qRegisterMetaType<graphics::Mesh::Topology>(),
     };
 }
@@ -335,6 +339,67 @@ namespace scriptable {
         );
     }
 
+    QScriptValue qVectorScriptableMaterialLayerToScriptValue(QScriptEngine* engine, const QVector<scriptable::ScriptableMaterialLayer>& vector) {
+        return qScriptValueFromSequence(engine, vector);
+    }
+
+    void qVectorScriptableMaterialLayerFromScriptValue(const QScriptValue& array, QVector<scriptable::ScriptableMaterialLayer>& result) {
+        qScriptValueToSequence(array, result);
+    }
+
+    QScriptValue scriptableMaterialToScriptValue(QScriptEngine* engine, const scriptable::ScriptableMaterial &material) {
+        QScriptValue obj = engine->newObject();
+        obj.setProperty("name", material.name);
+        obj.setProperty("model", material.model);
+        obj.setProperty("opacity", material.opacity);
+        obj.setProperty("roughness", material.roughness);
+        obj.setProperty("metallic", material.metallic);
+        obj.setProperty("scattering", material.scattering);
+        obj.setProperty("unlit", material.unlit);
+        obj.setProperty("emissive", vec3toScriptValue(engine, material.emissive));
+        obj.setProperty("albedo", vec3toScriptValue(engine, material.albedo));
+        obj.setProperty("emissiveMap", material.emissiveMap);
+        obj.setProperty("albedoMap", material.albedoMap);
+        obj.setProperty("opacityMap", material.opacityMap);
+        obj.setProperty("metallicMap", material.metallicMap);
+        obj.setProperty("specularMap", material.specularMap);
+        obj.setProperty("roughnessMap", material.roughnessMap);
+        obj.setProperty("glossMap", material.glossMap);
+        obj.setProperty("normalMap", material.normalMap);
+        obj.setProperty("bumpMap", material.bumpMap);
+        obj.setProperty("occlusionMap", material.occlusionMap);
+        obj.setProperty("lightmapMap", material.lightmapMap);
+        obj.setProperty("scatteringMap", material.scatteringMap);
+        return obj;
+    }
+
+    void scriptableMaterialFromScriptValue(const QScriptValue &object, scriptable::ScriptableMaterial& material) {
+        // No need to convert from QScriptValue to ScriptableMaterial
+    }
+
+    QScriptValue scriptableMaterialLayerToScriptValue(QScriptEngine* engine, const scriptable::ScriptableMaterialLayer &materialLayer) {
+        QScriptValue obj = engine->newObject();
+        obj.setProperty("material", scriptableMaterialToScriptValue(engine, materialLayer.material));
+        obj.setProperty("priority", materialLayer.priority);
+        return obj;
+    }
+
+    void scriptableMaterialLayerFromScriptValue(const QScriptValue &object, scriptable::ScriptableMaterialLayer& materialLayer) {
+        // No need to convert from QScriptValue to ScriptableMaterialLayer
+    }
+
+    QScriptValue multiMaterialMapToScriptValue(QScriptEngine* engine, const scriptable::MultiMaterialMap& map) {
+        QScriptValue obj = engine->newObject();
+        for (auto key : map.keys()) {
+            obj.setProperty(key, qVectorScriptableMaterialLayerToScriptValue(engine, map[key]));
+        }
+        return obj;
+    }
+
+    void multiMaterialMapFromScriptValue(const QScriptValue& map, scriptable::MultiMaterialMap& result) {
+        // No need to convert from QScriptValue to MultiMaterialMap
+    }
+
     template <typename T> int registerDebugEnum(QScriptEngine* engine, const DebugEnums<T>& debugEnums) {
         static const DebugEnums<T>& instance = debugEnums;
         return qScriptRegisterMetaType<T>(
@@ -351,6 +416,7 @@ namespace scriptable {
 
 void GraphicsScriptingInterface::registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterSequenceMetaType<QVector<glm::uint32>>(engine);
+    qScriptRegisterSequenceMetaType<QVector<scriptable::ScriptableMaterialLayer>>(engine);
 
     scriptable::registerQPointerMetaType<scriptable::ScriptableModel>(engine);
     scriptable::registerQPointerMetaType<scriptable::ScriptableMesh>(engine);
@@ -360,6 +426,11 @@ void GraphicsScriptingInterface::registerMetaTypes(QScriptEngine* engine) {
     scriptable::registerDebugEnum<gpu::Type>(engine, gpu::TYPES);
     scriptable::registerDebugEnum<gpu::Semantic>(engine, gpu::SEMANTICS);
     scriptable::registerDebugEnum<gpu::Dimension>(engine, gpu::DIMENSIONS);
+
+    qScriptRegisterMetaType(engine, scriptable::scriptableMaterialToScriptValue, scriptable::scriptableMaterialFromScriptValue);
+    qScriptRegisterMetaType(engine, scriptable::scriptableMaterialLayerToScriptValue, scriptable::scriptableMaterialLayerFromScriptValue);
+    qScriptRegisterMetaType(engine, scriptable::qVectorScriptableMaterialLayerToScriptValue, scriptable::qVectorScriptableMaterialLayerFromScriptValue);
+    qScriptRegisterMetaType(engine, scriptable::multiMaterialMapToScriptValue, scriptable::multiMaterialMapFromScriptValue);
 
     Q_UNUSED(metaTypeIds);
 }
