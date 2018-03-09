@@ -21,10 +21,13 @@ namespace VirtualPad {
         virtual glm::vec2 getFirstTouch();
         virtual void setCurrentTouch(glm::vec2 point);
         virtual glm::vec2 getCurrentTouch();
+        virtual bool isShown();
+        virtual void setShown(bool show);
     private:
         bool _isBeingTouched;
         glm::vec2 _firstTouch;
         glm::vec2 _currentTouch;
+        bool _shown;
     };
 
     class Manager : public QObject, public Dependency {
@@ -37,9 +40,15 @@ namespace VirtualPad {
         Instance* getLeftVirtualPad();
         bool isEnabled();
         void enable(bool enable);
+        bool isHidden();
+        void hide(bool hide);
+        int extraBottomMargin();
+        void setExtraBottomMargin(int margin);
     private:
         Instance _leftVPadInstance;
         bool _enabled;
+        bool _hidden;
+        int _extraBottomMargin {0};
     };
 }
 

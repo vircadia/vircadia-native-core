@@ -129,6 +129,7 @@ protected:
     bool _isFading{ _entitiesShouldFadeFunction() };
     bool _prevIsTransparent { false };
     bool _visible { false };
+    bool _canCastShadow { false };
     bool _cauterized { false };
     bool _moving { false };
     bool _needsRenderUpdate { false };
