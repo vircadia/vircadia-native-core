@@ -185,7 +185,7 @@ void TouchscreenVirtualPadDevice::pluginUpdate(float deltaTime, const controller
 
         // NOW BETWEEN -1 1
         rightDistanceScaleX /= STICK_RADIUS_INCHES;
-        rightDistanceScaleY /= STICK_RADIUS_INCHES;
+        rightDistanceScaleY /= STICK_RADIUS_INCHES*2; // pitch is slower
 
         _inputDevice->_axisStateMap[controller::RX] = rightDistanceScaleX;
         _inputDevice->_axisStateMap[controller::RY] = rightDistanceScaleY;

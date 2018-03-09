@@ -20,7 +20,7 @@
 class QTouchEvent;
 class QGestureEvent;
 
-const float STICK_RADIUS_INCHES = .3f;
+const float STICK_RADIUS_INCHES = 1.0f;
 
 class TouchscreenVirtualPadDevice : public InputPlugin {
 Q_OBJECT
