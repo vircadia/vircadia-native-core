@@ -68,18 +68,18 @@ private:
     bool _shouldOutputThreadID { false };
     bool _shouldDisplayMilliseconds { false };
 
-    struct _RepeatedMessage {
-        QRegExp     regexp;
-        int         messageCount { 0 };
-        QString     lastMessage;
+    struct RepeatedMessage {
+        QRegExp regexp;
+        int messageCount { 0 };
+        QString lastMessage;
     };
-    std::set<std::unique_ptr<_RepeatedMessage>> _repeatedMessages;
+    std::set<std::unique_ptr<RepeatedMessage>> _repeatedMessages;
 
-    struct _OnceOnlyMessage {
-        QRegExp     regexp;
-        int         messageCount { 0 };
+    struct OnceOnlyMessage {
+        QRegExp regexp;
+        int messageCount { 0 };
     };
-    std::set<std::unique_ptr<_OnceOnlyMessage>> _onetimeMessages;
+    std::set<std::unique_ptr<OnceOnlyMessage>> _onetimeMessages;
 
     static QMutex _mutex;
 };

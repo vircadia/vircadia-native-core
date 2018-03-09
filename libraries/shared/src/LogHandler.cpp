@@ -117,10 +117,12 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
 
     if (type == LogDebug) {
         // for debug messages, check if this matches any of our regexes for repeated log messages
-        for(auto& repeatRegex: _repeatedMessages) {
+        for(auto& repeatRegex : _repeatedMessages) {
             if (repeatRegex->regexp.indexIn(message) != -1) {
                 // If we've printed the first one then return out.
-                if (repeatRegex->messageCount++ == 0) break;
+                if (repeatRegex->messageCount++ == 0) {
+                    break;
+                }
                 repeatRegex->lastMessage = message;
                 return QString();
             }
@@ -131,11 +133,17 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
         // see if this message is one we should only print once
         for(auto& onceOnly : _onetimeMessages) {
             if (onceOnly->regexp.indexIn(message) != -1) {
-                if (onceOnly->messageCount++ == 0) break;   // we have a match and haven't yet printed this message.
-                else return QString();  // We've already printed this message, don't print it again.
+                if (onceOnly->messageCount++ == 0) {
+                    // we have a match and haven't yet printed this message.
+                    break;
+                }
+                else {
+                    // We've already printed this message, don't print it again.
+                    return QString();
                 }
             }
         }
+    }
 
     // log prefix is in the following format
     // [TIMESTAMP] [DEBUG] [PID] [TID] [TARGET] logged string
@@ -197,7 +205,7 @@ const QString& LogHandler::addRepeatedMessageRegex(const QString& regexString) {
     QMetaObject::invokeMethod(this, "setupRepeatedMessageFlusher");
 
     QMutexLocker lock(&_mutex);
-    std::unique_ptr<_RepeatedMessage> repeatRecord(new _RepeatedMessage());
+    std::unique_ptr<RepeatedMessage> repeatRecord(new RepeatedMessage());
     repeatRecord->regexp = QRegExp(regexString);
     _repeatedMessages.insert(std::move(repeatRecord));
     return regexString;
@@ -205,7 +213,7 @@ const QString& LogHandler::addRepeatedMessageRegex(const QString& regexString) {
 
 const QString& LogHandler::addOnlyOnceMessageRegex(const QString& regexString) {
     QMutexLocker lock(&_mutex);
-    std::unique_ptr<_OnceOnlyMessage> onetimeMessage(new _OnceOnlyMessage());
+    std::unique_ptr<OnceOnlyMessage> onetimeMessage(new OnceOnlyMessage());
     onetimeMessage->regexp = QRegExp(regexString);
     _onetimeMessages.insert(std::move(onetimeMessage));
     return regexString;
