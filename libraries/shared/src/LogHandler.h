@@ -17,7 +17,7 @@
 #include <QString>
 #include <QRegExp>
 #include <QMutex>
-#include <set>
+#include <vector>
 #include <memory>
 
 const int VERBOSE_LOG_INTERVAL_SECONDS = 5;
@@ -73,13 +73,13 @@ private:
         int messageCount { 0 };
         QString lastMessage;
     };
-    std::set<std::unique_ptr<RepeatedMessage>> _repeatedMessages;
+    std::vector<RepeatedMessage> _repeatedMessages;
 
     struct OnceOnlyMessage {
         QRegExp regexp;
         int messageCount { 0 };
     };
-    std::set<std::unique_ptr<OnceOnlyMessage>> _onetimeMessages;
+    std::vector<OnceOnlyMessage> _onetimeMessages;
 
     static QMutex _mutex;
 };

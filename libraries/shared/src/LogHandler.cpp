@@ -93,11 +93,11 @@ void LogHandler::flushRepeatedMessages() {
     QMutexLocker lock(&_mutex);
     for(auto& message: _repeatedMessages) {
 
-        if (message->messageCount > 1) {
+        if (message.messageCount > 1) {
             QString repeatMessage = QString("%1 repeated log entries matching \"%2\" - Last entry: \"%3\"")
-                .arg(message->messageCount - 1)
-                .arg(message->regexp.pattern())
-                .arg(message->lastMessage);
+                .arg(message.messageCount - 1)
+                .arg(message.regexp.pattern())
+                .arg(message.lastMessage);
 
             QMessageLogContext emptyContext;
             lock.unlock();
@@ -105,7 +105,7 @@ void LogHandler::flushRepeatedMessages() {
             lock.relock();
         }
 
-        message->messageCount = 0;
+        message.messageCount = 0;
     }
 }
 
@@ -117,13 +117,13 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
 
     if (type == LogDebug) {
         // for debug messages, check if this matches any of our regexes for repeated log messages
-        for(auto& repeatRegex : _repeatedMessages) {
-            if (repeatRegex->regexp.indexIn(message) != -1) {
+        for (auto& repeatRegex : _repeatedMessages) {
+            if (repeatRegex.regexp.indexIn(message) != -1) {
                 // If we've printed the first one then return out.
-                if (repeatRegex->messageCount++ == 0) {
+                if (repeatRegex.messageCount++ == 0) {
                     break;
                 }
-                repeatRegex->lastMessage = message;
+                repeatRegex.lastMessage = message;
                 return QString();
             }
         }
@@ -131,13 +131,12 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
 
     if (type == LogDebug) {
         // see if this message is one we should only print once
-        for(auto& onceOnly : _onetimeMessages) {
-            if (onceOnly->regexp.indexIn(message) != -1) {
-                if (onceOnly->messageCount++ == 0) {
+        for (auto& onceOnly : _onetimeMessages) {
+            if (onceOnly.regexp.indexIn(message) != -1) {
+                if (onceOnly.messageCount++ == 0) {
                     // we have a match and haven't yet printed this message.
                     break;
-                }
-                else {
+                } else {
                     // We've already printed this message, don't print it again.
                     return QString();
                 }
@@ -205,16 +204,16 @@ const QString& LogHandler::addRepeatedMessageRegex(const QString& regexString) {
     QMetaObject::invokeMethod(this, "setupRepeatedMessageFlusher");
 
     QMutexLocker lock(&_mutex);
-    std::unique_ptr<RepeatedMessage> repeatRecord(new RepeatedMessage());
-    repeatRecord->regexp = QRegExp(regexString);
-    _repeatedMessages.insert(std::move(repeatRecord));
+    RepeatedMessage repeatRecord;
+    repeatRecord.regexp = QRegExp(regexString);
+    _repeatedMessages.push_back(repeatRecord);
     return regexString;
 }
 
 const QString& LogHandler::addOnlyOnceMessageRegex(const QString& regexString) {
     QMutexLocker lock(&_mutex);
-    std::unique_ptr<OnceOnlyMessage> onetimeMessage(new OnceOnlyMessage());
-    onetimeMessage->regexp = QRegExp(regexString);
-    _onetimeMessages.insert(std::move(onetimeMessage));
+    OnceOnlyMessage onetimeMessage;
+    onetimeMessage.regexp = QRegExp(regexString);
+    _onetimeMessages.push_back(onetimeMessage);
     return regexString;
 }
