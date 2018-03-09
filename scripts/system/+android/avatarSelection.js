@@ -115,8 +115,6 @@ module.exports = {
             qml: "hifi/avatarSelection.qml",
             visible: false
         });
-        /*,
-            visible: false*/
         if (window) {
             window.fromQml.connect(fromQml);
         }
