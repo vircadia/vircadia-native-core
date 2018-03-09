@@ -891,7 +891,7 @@ Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 
 Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
-const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 100.0f;
+const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 70.0f;
 const float DEFAULT_DESKTOP_TABLET_SCALE_PERCENT = 75.0f;
 const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
 const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
