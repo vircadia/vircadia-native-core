@@ -51,8 +51,32 @@ namespace VirtualPad {
         return _enabled;
     }
 
+    void Manager::hide(bool hidden) {
+        _hidden = hidden;
+    }
+
+    bool Manager::isHidden() {
+        return _hidden;
+    }
+
+    int Manager::extraBottomMargin() {
+        return _extraBottomMargin;
+    }
+
+    void Manager::setExtraBottomMargin(int margin) {
+        _extraBottomMargin = margin;
+    }
+
     Instance* Manager::getLeftVirtualPad() {
         return &_leftVPadInstance;
+    }
+
+    bool Instance::isShown() {
+        return _shown;
+    }
+
+    void Instance::setShown(bool show) {
+        _shown = show;
     }
 
 }

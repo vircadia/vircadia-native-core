@@ -23,13 +23,22 @@ Item {
     anchors.left: parent.left
     anchors.right: parent.right    
     height: 24
+
+    property var labelAreaWidthScale: 0.5
+
     property bool integral: false
     property var config
     property string property
-    property alias label: labelControl.text
     property alias min: sliderControl.minimumValue
     property alias max: sliderControl.maximumValue
 
+    property alias label: labelControl.text
+    property bool showLabel: true  
+
+    property bool showValue: true  
+
+    
+       
     signal valueChanged(real value)
 
     Component.onCompleted: {
@@ -41,20 +50,12 @@ Item {
     HifiControls.Label {
         id: labelControl
         text: root.label
-        enabled: true
+        enabled: root.showLabel
         anchors.left: root.left
-        anchors.right: root.horizontalCenter
+        width: root.width * root.labelAreaWidthScale
         anchors.verticalCenter: root.verticalCenter
     }
-
-    HifiControls.Label {
-        id: labelValue
-        text: sliderControl.value.toFixed(root.integral ? 0 : 2)
-        anchors.right: root.right
-        anchors.bottom: root.bottom
-        anchors.bottomMargin: 0
-    }
-
+    
     Binding {
         id: bindingControl
         target: root.config
@@ -66,7 +67,7 @@ Item {
     HifiControls.Slider {
         id: sliderControl
         stepSize: root.integral ? 1.0 : 0.0
-        anchors.left: root.horizontalCenter
+        anchors.left: labelControl.right
         anchors.right: root.right
         anchors.rightMargin: 0
         anchors.top: root.top
@@ -74,4 +75,17 @@ Item {
 
         onValueChanged: { root.valueChanged(value) }
     }
+
+    HifiControls.Label {
+        id: labelValue
+        enabled: root.showValue
+        text: sliderControl.value.toFixed(root.integral ? 0 : 2)
+        anchors.right: labelControl.right
+        anchors.rightMargin: 5
+        anchors.verticalCenter: root.verticalCenter
+    }
+
+
+ 
+
 }

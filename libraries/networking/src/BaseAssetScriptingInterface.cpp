@@ -233,7 +233,7 @@ Promise BaseAssetScriptingInterface::downloadBytes(QString hash) {
     QPointer<AssetRequest> assetRequest = assetClient()->createRequest(hash);
     Promise deferred = makePromise(__FUNCTION__);
 
-    QObject::connect(assetRequest, &AssetRequest::finished, assetRequest, [this, deferred](AssetRequest* request) {
+    QObject::connect(assetRequest, &AssetRequest::finished, assetRequest, [deferred](AssetRequest* request) {
         // note: we are now on the "Resource Manager" thread
         Q_ASSERT(QThread::currentThread() == request->thread());
         Q_ASSERT(request->getState() == AssetRequest::Finished);
