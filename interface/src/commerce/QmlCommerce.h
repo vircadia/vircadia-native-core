@@ -67,6 +67,7 @@ protected:
     Q_INVOKABLE void setPassphrase(const QString& passphrase);
     Q_INVOKABLE void changePassphrase(const QString& oldPassphrase, const QString& newPassphrase);
     Q_INVOKABLE void setSoftReset();
+    Q_INVOKABLE void clearWallet();
 
     Q_INVOKABLE void buy(const QString& assetId, int cost, const bool controlledFailure = false);
     Q_INVOKABLE void balance();
