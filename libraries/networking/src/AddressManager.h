@@ -71,15 +71,6 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(QString domainID READ getDomainID)
     Q_PROPERTY(QString domainId READ getDomainID)
 public:
-
-    /**jsdoc
-     * Get Interface's protocol version.
-     * @function location.protocolVersion
-     * @returns {string} A string uniquely identifying the version of the metaverse protocol that Interface is using.
-     * @deprecated This function is deprecated and will be removed. Use {@link Window.protocolSignature} instead.
-     */
-    Q_INVOKABLE QString protocolVersion();
-
     using PositionGetter = std::function<glm::vec3()>;
     using OrientationGetter = std::function<glm::quat()>;
 

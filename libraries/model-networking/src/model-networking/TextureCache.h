@@ -134,6 +134,8 @@ private:
 
 using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
 
+Q_DECLARE_METATYPE(QWeakPointer<NetworkTexture>)
+
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {
     Q_OBJECT

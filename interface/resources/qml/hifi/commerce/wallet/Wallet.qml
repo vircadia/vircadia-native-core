@@ -174,11 +174,12 @@ Rectangle {
     WalletChoice {
         id: walletChoice;
         proceedFunction: function (isReset) {
-            console.log(isReset ? "Reset wallet." : "Trying again with new wallet.");
+            console.log("WalletChoice", isReset ? "Reset wallet." : "Trying again with new wallet.");
             Commerce.setSoftReset();
             if (isReset) {
                 walletResetSetup();
             } else {
+                Commerce.clearWallet();
                 var msg = { referrer: walletChoice.referrer }
                 followReferrer(msg);
             }
@@ -236,6 +237,8 @@ Rectangle {
                     } else {
                         sendToScript(msg);
                     }
+                } else if (msg.method === 'maybeEnableHmdPreview') {
+                    sendToScript(msg);
                 }
             }
         }

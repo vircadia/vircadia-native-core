@@ -19,11 +19,11 @@
     var tabletRezzed = false;
     var activeHand = null;
     var DEFAULT_WIDTH = 0.4375;
-    var DEFAULT_TABLET_SCALE = 100;
+    var DEFAULT_TABLET_SCALE = 70;
     var preMakeTime = Date.now();
     var validCheckTime = Date.now();
     var debugTablet = false;
-    var tabletScalePercentage = 100.0;
+    var tabletScalePercentage = 70.0;
     UIWebTablet = null;
     var MSECS_PER_SEC = 1000.0;
     var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
