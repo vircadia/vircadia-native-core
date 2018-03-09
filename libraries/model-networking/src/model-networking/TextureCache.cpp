@@ -459,6 +459,10 @@ void NetworkTexture::makeRequest() {
 
 }
 
+void NetworkTexture::handleLocalRequestCompleted() {
+    TextureCache::requestCompleted(_self);
+}
+
 void NetworkTexture::makeLocalRequest() {
     const QString scheme = _url.scheme();
     QString path;
@@ -467,6 +471,9 @@ void NetworkTexture::makeLocalRequest() {
     } else {
         path = ":" + _url.path();
     }
+
+    auto self = _self;
+    connect(this, &Resource::finished, this, &NetworkTexture::handleLocalRequestCompleted);
 
     path = FileUtils::selectFile(path);
 
