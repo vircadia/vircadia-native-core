@@ -329,7 +329,7 @@ void Test::createRecursiveScriptsRecursively() {
         QString directory = it.next();
 
         // Only process directories
-        QDir dir();
+        QDir dir;
         if (!isAValidDirectory(directory)) {
             continue;
         }
@@ -341,7 +341,7 @@ void Test::createRecursiveScriptsRecursively() {
             QString directory2 = it2.next();
 
             // Only process directories
-            QDir dir();
+            QDir dir;
             if (isAValidDirectory(directory2)) {
                 hasNoSubDirectories = false;
                 break;
