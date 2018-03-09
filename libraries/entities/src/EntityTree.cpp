@@ -453,12 +453,13 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
 
         uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
         if (newFlags) {
-            if (_simulation) {
+            if (entity->isSimulated()) {
+                assert((bool)_simulation);
                 if (newFlags & DIRTY_SIMULATION_FLAGS) {
                     _simulation->changeEntity(entity);
                 }
             } else {
-                // normally the _simulation clears ALL updateFlags, but since there is none we do it explicitly
+                // normally the _simulation clears ALL dirtyFlags, but when not possible we do it explicitly
                 entity->clearDirtyFlags();
             }
         }
@@ -469,7 +470,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
         if (entityScriptBefore != entityScriptAfter || reload) {
             emitEntityScriptChanging(entity->getEntityItemID(), reload); // the entity script has changed
         }
-     }
+    }
 
     // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
     if (!entity->getElement()) {
