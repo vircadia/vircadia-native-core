@@ -1115,6 +1115,7 @@ void MyAvatar::setEnableDebugDrawIKChains(bool isEnabled) {
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
     _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE, true);
+	_skeletonModel->setCanCastShadow(isEnabled, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE, true);
 }
 
 void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
@@ -1467,6 +1468,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     int skeletonModelChangeCount = _skeletonModelChangeCount;
     Avatar::setSkeletonModelURL(skeletonModelURL);
     _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE, true);
+	_skeletonModel->setCanCastShadow(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE, true);
     _headBoneSet.clear();
     _cauterizationNeedsUpdate = true;
 
@@ -1848,12 +1850,6 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
     Avatar::attach(modelURL, jointName, translation, rotation, scale, isSoft, allowDuplicates, useSaved);
 }
 
-void MyAvatar::setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visible) {
-    if (model->isActive() && model->isRenderable()) {
-        model->setVisibleInScene(visible, scene, render::ItemKey::TAG_BITS_NONE, true);
-    }
-}
-
 void MyAvatar::initHeadBones() {
     int neckJointIndex = -1;
     if (_skeletonModel->isLoaded()) {
@@ -2043,8 +2039,12 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
                 _attachmentData[i].jointName.compare("RightEye", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("HeadTop_End", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("Face", Qt::CaseInsensitive) == 0) {
+
                 _attachmentModels[i]->setVisibleInScene(shouldDrawHead, qApp->getMain3DScene(),
                                                         render::ItemKey::TAG_BITS_NONE, true);
+
+				_attachmentModels[i]->setCanCastShadow(shouldDrawHead, qApp->getMain3DScene(), 
+													   render::ItemKey::TAG_BITS_NONE, true);
             }
         }
     }
