@@ -41,12 +41,6 @@ const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 
 Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address", DEFAULT_HIFI_ADDRESS);
 
-AddressManager::AddressManager() :
-    _port(0)
-{
-
-}
-
 bool AddressManager::isConnected() {
     return DependencyManager::get<NodeList>()->getDomainHandler().isConnected();
 }
