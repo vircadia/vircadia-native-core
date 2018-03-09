@@ -658,7 +658,7 @@ Function PostInstallOptionsPage
     !insertmacro SetInstallOption $DesktopClientCheckbox @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ ${BST_CHECKED}
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @CONSOLE_HF_SHORTCUT_NAME@"
     Pop $DesktopServerCheckbox
     IntOp $CurrentOffset $CurrentOffset + 15
@@ -667,7 +667,7 @@ Function PostInstallOptionsPage
     !insertmacro SetInstallOption $DesktopServerCheckbox @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ ${BST_UNCHECKED}
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ after install"
     Pop $LaunchServerNowCheckbox
 
@@ -694,7 +694,7 @@ Function PostInstallOptionsPage
     ${EndIf}
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ on startup"
     Pop $ServerStartupCheckbox
     IntOp $CurrentOffset $CurrentOffset + 15
@@ -703,7 +703,7 @@ Function PostInstallOptionsPage
     !insertmacro SetInstallOption $ServerStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Perform a clean install (Delete older settings and content)"
     Pop $CleanInstallCheckbox
     IntOp $CurrentOffset $CurrentOffset + 15
@@ -715,7 +715,7 @@ Function PostInstallOptionsPage
       ${NSD_SetState} $DesktopClientCheckbox ${BST_UNCHECKED}
     ${EndIf}
 
-    ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    ${If} @SERVER_COMPONENT_CONDITIONAL@
       ${NSD_SetState} $DesktopServerCheckbox ${BST_UNCHECKED}
       ${NSD_SetState} $ServerStartupCheckbox ${BST_UNCHECKED}
     ${EndIf}
@@ -779,7 +779,7 @@ Function ReadPostInstallOptions
     ${NSD_GetState} $DesktopClientCheckbox $DesktopClientState
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     ; check if the user asked for a desktop shortcut to Sandbox
     ${NSD_GetState} $DesktopServerCheckbox $DesktopServerState
 
@@ -792,7 +792,7 @@ Function ReadPostInstallOptions
     ${NSD_GetState} $CopyFromProductionCheckbox $CopyFromProductionState
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     ; check if we need to launch the server post-install
     ${NSD_GetState} $LaunchServerNowCheckbox $LaunchServerNowState
   ${EndIf}
@@ -820,7 +820,7 @@ Function HandlePostInstallOptions
 
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     ; check if the user asked for a desktop shortcut to Sandbox
     ${If} $DesktopServerState == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
@@ -1041,7 +1041,7 @@ Section "-Core installation"
   ${EndIf}
 
   ; Conditional handling for server console shortcut
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
       "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
   ${EndIf}
@@ -1186,7 +1186,7 @@ Function .onSelChange
 
   ; if neither component is selected, disable the install button
   ${IfNot} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
-  ${AndIfNot} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${AndIfNot} @SERVER_COMPONENT_CONDITIONAL@
     GetDlgItem $0 $HWNDPARENT 1
     EnableWindow $0 0
   ${Else}
