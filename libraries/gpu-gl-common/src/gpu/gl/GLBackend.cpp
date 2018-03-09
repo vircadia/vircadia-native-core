@@ -16,17 +16,11 @@
 #include <functional>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "../gl41/GL41Backend.h"
-#include "../gl45/GL45Backend.h"
-
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
 #endif
 
-#include <shared/GlobalAppProperties.h>
 #include <GPUIdent.h>
-#include <gl/QOpenGLContextWrapper.h>
-#include <QtCore/QProcessEnvironment>
 
 #include "GLTexture.h"
 #include "GLShader.h"
@@ -34,47 +28,9 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-static const QString DEBUG_FLAG("HIFI_DISABLE_OPENGL_45");
-static bool disableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
-
-static GLBackend* INSTANCE{ nullptr };
-
-BackendPointer GLBackend::createBackend() {
-    // FIXME provide a mechanism to override the backend for testing
-    // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
-    auto version = QOpenGLContextWrapper::currentContextVersion();
-    std::shared_ptr<GLBackend> result;
-    if (!disableOpenGL45 && version >= 0x0405) {
-        qCDebug(gpugllogging) << "Using OpenGL 4.5 backend";
-        result = std::make_shared<gpu::gl45::GL45Backend>();
-    } else {
-        qCDebug(gpugllogging) << "Using OpenGL 4.1 backend";
-        result = std::make_shared<gpu::gl41::GL41Backend>();
-    }
-    result->initInput();
-    result->initTransform();
-    result->initTextureManagementStage();
-
-    INSTANCE = result.get();
-    void* voidInstance = &(*result);
-    qApp->setProperty(hifi::properties::gl::BACKEND, QVariant::fromValue(voidInstance));
-    return result;
-}
-
-GLBackend& getBackend() {
-    if (!INSTANCE) {
-        INSTANCE = static_cast<GLBackend*>(qApp->property(hifi::properties::gl::BACKEND).value<void*>());
-    }
-    return *INSTANCE;
-}
-
-bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindings, const Shader::CompilationHandler& handler) {
-    return GLShader::makeProgram(getBackend(), shader, slotBindings, handler);
-}
-
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
-    (&::gpu::gl::GLBackend::do_draw),
+    (&::gpu::gl::GLBackend::do_draw), 
     (&::gpu::gl::GLBackend::do_drawIndexed),
     (&::gpu::gl::GLBackend::do_drawInstanced),
     (&::gpu::gl::GLBackend::do_drawIndexedInstanced),
@@ -110,7 +66,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_getQuery),
 
     (&::gpu::gl::GLBackend::do_resetStages),
-    
+
     (&::gpu::gl::GLBackend::do_disableContextViewCorrection),
     (&::gpu::gl::GLBackend::do_restoreContextViewCorrection),
     (&::gpu::gl::GLBackend::do_disableContextStereo),
@@ -153,12 +109,15 @@ void GLBackend::init() {
         qCDebug(gpugllogging) << "\tcard:" << gpu->getName();
         qCDebug(gpugllogging) << "\tdriver:" << gpu->getDriver();
         qCDebug(gpugllogging) << "\tdedicated memory:" << gpu->getMemory() << "MB";
+#if !defined(USE_GLES)
         qCDebug(gpugllogging, "V-Sync is %s\n", (::gl::getSwapInterval() > 0 ? "ON" : "OFF"));
+#endif
 #if THREADED_TEXTURE_BUFFERING
         // This has to happen on the main thread in order to give the thread 
         // pool a reasonable parent object
         GLVariableAllocationSupport::TransferJob::startBufferingThread();
 #endif
+
     });
 }
 
@@ -310,6 +269,7 @@ void GLBackend::render(const Batch& batch) {
         glDisable(GL_CLIP_DISTANCE0);
     }
 #endif
+
     // Restore the saved stereo state for the next batch
     _stereo._enable = savedStereo;
 }
@@ -330,7 +290,6 @@ void GLBackend::setupStereoSide(int side) {
     vp.z /= 2;
     glViewport(vp.x + side * vp.z, vp.y, vp.z, vp.w);
 
-
 #ifdef GPU_STEREO_CAMERA_BUFFER
 #ifdef GPU_STEREO_DRAWCALL_DOUBLED
     glVertexAttribI1i(14, side);
@@ -338,7 +297,6 @@ void GLBackend::setupStereoSide(int side) {
 #else
     _transform.bindCurrentCamera(side);
 #endif
-
 }
 #else
 #endif

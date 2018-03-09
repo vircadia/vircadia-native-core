@@ -67,9 +67,9 @@ set(PLATFORM_QT_GL OpenGL)
 
 if (USE_GLES)
   add_definitions(-DUSE_GLES)
-  set(PLATFORM_GL_BACKEND gpu-gles)
+  set(PLATFORM_GL_BACKEND gpu-gl-common gpu-gles)
 else()
-  set(PLATFORM_GL_BACKEND gpu-gl)
+  set(PLATFORM_GL_BACKEND gpu-gl-common gpu-gl)
 endif()
 
 

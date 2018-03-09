@@ -11,15 +11,77 @@
 using namespace gpu;
 using namespace gpu::gl;
 
+#if defined(USE_GLES)
+#define GL_R16 GL_R16_EXT
+#define GL_R16_SNORM GL_R16_SNORM_EXT
+#define GL_RGBA16 GL_RGBA16_EXT
+#define GL_RGBA16_SNORM GL_RGBA16_SNORM_EXT
+#define GL_DEPTH_COMPONENT32 GL_DEPTH_COMPONENT32_OES
+#define GL_RGBA2 GL_RGBA8
+#define GL_COMPRESSED_RED_RGTC1 0x8DBB
+#define GL_COMPRESSED_SIGNED_RED_RGTC1 0x8DBC
+#define GL_COMPRESSED_RG_RGTC2 0x8DBD
+#define GL_COMPRESSED_SIGNED_RG_RGTC2 0x8DBE
+#define GL_COMPRESSED_RGBA_BPTC_UNORM 0x8E8C
+#define GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM 0x8E8D
+#define GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT 0x8E8E
+#define GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT 0x8E8F
+#define GL_SLUMINANCE8_EXT GL_SLUMINANCE8_NV
+#endif
+
 bool GLTexelFormat::isCompressed() const {
     switch (internalFormat) {
         case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
         case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
         case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+    
+        case GL_COMPRESSED_R11_EAC:
+        case GL_COMPRESSED_SIGNED_R11_EAC:
+        case GL_COMPRESSED_RG11_EAC:
+        case GL_COMPRESSED_SIGNED_RG11_EAC:
+        case GL_COMPRESSED_RGB8_ETC2:
+        case GL_COMPRESSED_SRGB8_ETC2:
+        case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+        case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+        case GL_COMPRESSED_RGBA8_ETC2_EAC:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
         case GL_COMPRESSED_RED_RGTC1:
         case GL_COMPRESSED_RG_RGTC2:
         case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
         case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
+
+#if defined(USE_GLES)
+        case GL_COMPRESSED_RGBA_ASTC_4x4:
+        case GL_COMPRESSED_RGBA_ASTC_5x4:
+        case GL_COMPRESSED_RGBA_ASTC_5x5:
+        case GL_COMPRESSED_RGBA_ASTC_6x5:
+        case GL_COMPRESSED_RGBA_ASTC_6x6:
+        case GL_COMPRESSED_RGBA_ASTC_8x5:
+        case GL_COMPRESSED_RGBA_ASTC_8x6:
+        case GL_COMPRESSED_RGBA_ASTC_8x8:
+        case GL_COMPRESSED_RGBA_ASTC_10x5:
+        case GL_COMPRESSED_RGBA_ASTC_10x6:
+        case GL_COMPRESSED_RGBA_ASTC_10x8:
+        case GL_COMPRESSED_RGBA_ASTC_10x10:
+        case GL_COMPRESSED_RGBA_ASTC_12x10:
+        case GL_COMPRESSED_RGBA_ASTC_12x12:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12:
+#endif
+
+
             return true;
         default:
             return false;
@@ -346,7 +408,11 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             switch (srcFormat.getSemantic()) {
             case gpu::BGRA:
             case gpu::SBGRA:
+#if defined(USE_GLES)
+                texel.format = GL_RGBA;
+#else
                 texel.format = GL_BGRA;
+#endif
                 break;
             case gpu::RGB:
             case gpu::RGBA:
@@ -383,8 +449,10 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             switch (srcFormat.getSemantic()) {
             case gpu::BGRA:
             case gpu::SBGRA:
+#if !defined(USE_GLES)
                 texel.format = GL_BGRA;
                 break;
+#endif
             case gpu::RGB:
             case gpu::RGBA:
             case gpu::SRGB:
@@ -434,6 +502,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             texel.type = ELEMENT_TYPE_TO_GL[dstFormat.getType()];
 
             switch (dstFormat.getSemantic()) {
+
             case gpu::RED:
             case gpu::RGB:
             case gpu::RGBA:
@@ -491,7 +560,11 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 }
                 case gpu::NUINT8: {
                     if ((dstFormat.getSemantic() == gpu::SRGB || dstFormat.getSemantic() == gpu::SRGBA)) {
+#if defined(USE_GLES)
+                        texel.internalFormat = GL_SLUMINANCE8_NV;
+#else
                         texel.internalFormat = GL_SLUMINANCE8_EXT;
+#endif
                     } else {
                         texel.internalFormat = GL_R8;
                     }
@@ -525,13 +598,21 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
 
             case gpu::DEPTH:
                 texel.format = GL_DEPTH_COMPONENT; // It's depth component to load it
+#if defined(USE_GLES)
+                texel.internalFormat = GL_DEPTH_COMPONENT32_OES;
+#else
                 texel.internalFormat = GL_DEPTH_COMPONENT32;
+#endif
                 switch (dstFormat.getType()) {
                 case gpu::UINT32:
                 case gpu::INT32:
                 case gpu::NUINT32:
                 case gpu::NINT32: {
+#if defined(USE_GLES)
+                    texel.internalFormat = GL_DEPTH_COMPONENT32_OES;
+#else
                     texel.internalFormat = GL_DEPTH_COMPONENT32;
+#endif
                     break;
                 }
                 case gpu::FLOAT: {
@@ -699,8 +780,10 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             switch (srcFormat.getSemantic()) {
             case gpu::BGRA:
             case gpu::SBGRA:
+#if !defined(USE_GLES)
                 texel.format = GL_BGRA;
                 break;
+#endif
             case gpu::RGB:
             case gpu::RGBA:
             case gpu::SRGB:
