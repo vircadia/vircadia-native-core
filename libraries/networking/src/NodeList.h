@@ -176,7 +176,11 @@ private:
     tbb::concurrent_unordered_map<QUuid, float, UUIDHasher> _avatarGainMap;
 
     void sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationNode);
+#if defined(Q_OS_ANDROID)
+    Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", false };
+#else
     Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", true };
+#endif
 
 #if (PR_BUILD || DEV_BUILD)
     bool _shouldSendNewerVersion { false };

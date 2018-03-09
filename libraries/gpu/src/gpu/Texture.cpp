@@ -868,16 +868,6 @@ void SphericalHarmonics::evalFromTexture(const Texture& texture) {
 
 
 // TextureSource
-TextureSource::TextureSource() {
-}
-
-TextureSource::~TextureSource() {
-}
-
-void TextureSource::reset(const QUrl& url) {
-    _imageUrl = url;
-}
-
 void TextureSource::resetTexture(gpu::TexturePointer texture) {
     _gpuTexture = texture;
 }

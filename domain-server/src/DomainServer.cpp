@@ -1937,9 +1937,11 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
+    QPointer<HTTPConnection> connectionPtr { connection };
+
     auto nodeList = DependencyManager::get<LimitedNodeList>();
 
-    auto getSetting = [this](QString keyPath, QVariant value) -> bool {
+    auto getSetting = [this](QString keyPath, QVariant& value) -> bool {
 
         value = _settingsManager.valueForKeyPath(keyPath);
         if (!value.isValid()) {
@@ -2120,30 +2122,38 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             return true;
         } else if (url.path() == URI_API_BACKUPS) {
             auto deferred = makePromise("getAllBackupsAndStatus");
-            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+            deferred->then([connectionPtr, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                if (!connectionPtr) {
+                    return;
+                }
+
                 QJsonDocument docJSON(QJsonObject::fromVariantMap(result));
 
-                connection->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
+                connectionPtr->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
             });
             _contentManager->getAllBackupsAndStatus(deferred);
             return true;
         } else if (url.path().startsWith(URI_API_BACKUPS_ID)) {
             auto id = url.path().mid(QString(URI_API_BACKUPS_ID).length());
             auto deferred = makePromise("consolidateBackup");
-            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+            deferred->then([connectionPtr, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                if (!connectionPtr) {
+                    return;
+                }
+
                 QJsonObject rootJSON;
                 auto success = result["success"].toBool();
                 if (success) {
                     auto path = result["backupFilePath"].toString();
                     auto file { std::unique_ptr<QFile>(new QFile(path)) };
                     if (file->open(QIODevice::ReadOnly)) {
-                        connection->respond(HTTPConnection::StatusCode200, std::move(file));
+                        connectionPtr->respond(HTTPConnection::StatusCode200, std::move(file));
                     } else {
                         qCritical(domain_server) << "Unable to load consolidated backup at:" << path << result;
-                        connection->respond(HTTPConnection::StatusCode500, "Error opening backup");
+                        connectionPtr->respond(HTTPConnection::StatusCode500, "Error opening backup");
                     }
                 } else {
-                    connection->respond(HTTPConnection::StatusCode400);
+                    connectionPtr->respond(HTTPConnection::StatusCode400);
                 }
             });
             _contentManager->consolidateBackup(deferred, id);
@@ -2264,12 +2274,16 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 } else if (uploadedFilename.endsWith(".zip", Qt::CaseInsensitive)) {
                     auto deferred = makePromise("recoverFromUploadedBackup");
 
-                    deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                    deferred->then([connectionPtr, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                        if (!connectionPtr) {
+                            return;
+                        }
+
                         QJsonObject rootJSON;
                         auto success = result["success"].toBool();
                         rootJSON["success"] = success;
                         QJsonDocument docJSON(rootJSON);
-                        connection->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
+                        connectionPtr->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
                                             JSON_MIME_TYPE.toUtf8());
                     });
 
@@ -2297,12 +2311,16 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             }
 
             auto deferred = makePromise("createManualBackup");
-            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+            deferred->then([connectionPtr, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                if (!connectionPtr) {
+                    return;
+                }
+
                 QJsonObject rootJSON;
                 auto success = result["success"].toBool();
                 rootJSON["success"] = success;
                 QJsonDocument docJSON(rootJSON);
-                connection->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
+                connectionPtr->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
                                     JSON_MIME_TYPE.toUtf8());
             });
             _contentManager->createManualBackup(deferred, it.value());
@@ -2322,12 +2340,16 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         } else if (url.path().startsWith(URI_API_BACKUPS_RECOVER)) {
             auto id = url.path().mid(QString(URI_API_BACKUPS_RECOVER).length());
             auto deferred = makePromise("recoverFromBackup");
-            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+            deferred->then([connectionPtr, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                if (!connectionPtr) {
+                    return;
+                }
+
                 QJsonObject rootJSON;
                 auto success = result["success"].toBool();
                 rootJSON["success"] = success;
                 QJsonDocument docJSON(rootJSON);
-                connection->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
+                connectionPtr->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
                                     JSON_MIME_TYPE.toUtf8());
             });
             _contentManager->recoverFromBackup(deferred, id);
@@ -2423,12 +2445,16 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         if (url.path().startsWith(URI_API_BACKUPS_ID)) {
             auto id = url.path().mid(QString(URI_API_BACKUPS_ID).length());
             auto deferred = makePromise("deleteBackup");
-            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+            deferred->then([connectionPtr, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                if (!connectionPtr) {
+                    return;
+                }
+
                 QJsonObject rootJSON;
                 auto success = result["success"].toBool();
                 rootJSON["success"] = success;
                 QJsonDocument docJSON(rootJSON);
-                connection->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
+                connectionPtr->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
                                     JSON_MIME_TYPE.toUtf8());
             });
             _contentManager->deleteBackup(deferred, id);

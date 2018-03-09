@@ -578,6 +578,7 @@ void Connection::processControl(ControlPacketPointer controlPacket) {
 #ifdef UDT_CONNECTION_DEBUG
                 qCDebug(networking) << "Got handshake request, stopping SendQueue";
 #endif
+                _hasReceivedHandshakeACK = false;
                 stopSendQueue();
             }
             break;
