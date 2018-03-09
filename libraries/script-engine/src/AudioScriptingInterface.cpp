@@ -68,10 +68,10 @@ bool AudioScriptingInterface::setStereoInput(bool stereo) {
     return stereoInputChanged;
 }
 
-bool AudioScriptingInterface::isStereoEnabled() {
+bool AudioScriptingInterface::isStereoInput() {
     bool stereoEnabled = false;
     if (_localAudioInterface) {
-        stereoEnabled = _localAudioInterface->isStereoEnabled();
+        stereoEnabled = _localAudioInterface->isStereoInput();
     }
     return stereoEnabled;
 }

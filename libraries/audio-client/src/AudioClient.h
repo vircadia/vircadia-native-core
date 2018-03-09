@@ -193,7 +193,7 @@ public slots:
     bool isMuted() { return _muted; }
 
     virtual bool setIsStereoInput(bool stereo) override;
-    virtual bool isStereoEnabled() override { return _isStereoInput; }
+    virtual bool isStereoInput() override { return _isStereoInput; }
 
     void setNoiseReduction(bool isNoiseGateEnabled);
     bool isNoiseReductionEnabled() const { return _isNoiseGateEnabled; }

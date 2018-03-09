@@ -43,7 +43,7 @@ public slots:
 
     virtual bool setIsStereoInput(bool stereo) = 0;
 
-    virtual bool isStereoEnabled() = 0;
+    virtual bool isStereoInput() = 0;
 };
 
 Q_DECLARE_METATYPE(AbstractAudioInterface*)
