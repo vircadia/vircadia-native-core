@@ -399,7 +399,7 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [action] {
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         if (renderConfig) {
-            auto mainViewAmbientOcclusionConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.AmbientOcclusion");
+            auto mainViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("RenderMainView.AmbientOcclusion");
             if (mainViewAmbientOcclusionConfig) {
                 if (action->isChecked()) {
                     mainViewAmbientOcclusionConfig->setPreset("Enabled");
