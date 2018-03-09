@@ -33,7 +33,8 @@ Item {
         bar.visible = shown;
         sendToScript({method: 'shownChanged', params: { shown: shown }});
         if (shown) {
-            updateLocationText(false);
+            addressLine.text="";
+            updateLocationText(addressLine.text.length > 0);
         }
     }
 
@@ -43,7 +44,7 @@ Item {
     }
 
     Component.onCompleted: {
-        updateLocationText(false);
+        updateLocationText(addressLine.text.length > 0);
     }
 
     HifiConstants { id: hifi }
@@ -75,33 +76,33 @@ Item {
         HifiStyles.RalewayRegular {
             id: notice
             text: "YOUR LOCATION"
-            font.pixelSize: hifi.fonts.pixelSize * 2.15;
+            font.pixelSize: (hifi.fonts.pixelSize * 2.15)*(android.dimen.atLeast1440p?1:.75);
             color: "#2CD7FF"
             anchors {
                 bottom: addressBackground.top
-                bottomMargin: 45
+                bottomMargin: android.dimen.atLeast1440p?45:34
                 left: addressBackground.left
-                leftMargin: 60
+                leftMargin: android.dimen.atLeast1440p?60:45
             }
 
         }
 
-        property int inputAreaHeight: 210
+        property int inputAreaHeight: android.dimen.atLeast1440p?210:156
         property int inputAreaStep: (height - inputAreaHeight) / 2
 
         ToolbarButton {
             id: homeButton
-            y: 280
+            y: android.dimen.atLeast1440p?280:210
             imageURL: "../../icons/home.svg"
             onClicked: {
                 addressBarDialog.loadHome();
                 bar.shown = false;
             }
             anchors {
-                leftMargin: 75
+                leftMargin: android.dimen.atLeast1440p?75:56
                 left: parent.left
             }
-            size: 150
+            size: android.dimen.atLeast1440p?150:150//112
         }
 
         ToolbarButton {
@@ -110,10 +111,10 @@ Item {
             onClicked: addressBarDialog.loadBack();
             anchors {
                 left: homeButton.right
-                leftMargin: 70
+                leftMargin: android.dimen.atLeast1440p?70:52
                 verticalCenter: homeButton.verticalCenter
             }
-            size: 150
+            size: android.dimen.atLeast1440p?150:150
         }
         ToolbarButton {
             id: forwardArrow;
@@ -121,16 +122,16 @@ Item {
             onClicked: addressBarDialog.loadForward();
             anchors {
                 left: backArrow.right
-                leftMargin: 60
+                leftMargin: android.dimen.atLeast1440p?60:45
                 verticalCenter: homeButton.verticalCenter
             }
-            size: 150
+            size: android.dimen.atLeast1440p?150:150
         }
 
         HifiStyles.FiraSansRegular {
             id: location;
             font.pixelSize: addressLine.font.pixelSize;
-            color: "gray";
+            color: "lightgray";
             clip: true;
             anchors.fill: addressLine;
             visible: addressLine.text.length === 0
@@ -139,24 +140,24 @@ Item {
 
         Rectangle {
             id: addressBackground
-            x: 780
-            y: 280
-            width: 1440
-            height: 150
+            x: android.dimen.atLeast1440p?780:585
+            y: android.dimen.atLeast1440p?280:235 // tweaking by hand
+            width: android.dimen.atLeast1440p?1270:952
+            height: android.dimen.atLeast1440p?150:112
             color: "#FFFFFF"
         }
 
         TextInput {
             id: addressLine
             focus: true
-            x: 870
-            y: 450
-            width: 1350
-            height: 120
+            x: android.dimen.atLeast1440p?870:652
+            y: android.dimen.atLeast1440p?300:245 // tweaking by hand
+            width: android.dimen.atLeast1440p?1200:900
+            height: android.dimen.atLeast1440p?120:90
             inputMethodHints: Qt.ImhNoPredictiveText
             //helperText: "Hint is here"
             anchors {
-                verticalCenter: homeButton.verticalCenter                
+                //verticalCenter: addressBackground.verticalCenter
             }
             font.pixelSize: hifi.fonts.pixelSize * 3.75
             onTextChanged: {
