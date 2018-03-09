@@ -14,10 +14,10 @@ import QtQuick.Controls.Styles 1.4
 
 Text {
     id: root
-    FontLoader { id: ralewaySemiBold; source: "qrc:/fonts/Raleway-SemiBold.ttf"; }
     property real size: 32
     font.pixelSize: size
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
-    font.family: ralewaySemiBold.name
+    font.family: "Raleway"
+    font.weight: Font.DemiBold
 }

@@ -16,9 +16,9 @@ import "../styles-uit"
 TextEdit {
 
     property real size: 32
-
-    FontLoader { id: ralewaySemiBold; source: "qrc:/fonts/Raleway-SemiBold.ttf"; }
-    font.family: ralewaySemiBold.name
+    
+    font.family: "Raleway"
+    font.weight: Font.DemiBold
     font.pointSize: size
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
