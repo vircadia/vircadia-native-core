@@ -471,6 +471,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} locked=false - Whether or not the entity can be edited or deleted. If <code>true</code> then the 
  *     entity's properties other than <code>locked</code> cannot be changed, and the entity cannot be deleted.
  * @property {boolean} visible=true - Whether or not the entity is rendered. If <code>true</code> then the entity is rendered.
+ * @property {boolean} canCastShadows=true - Whether or not the entity casts shadows. Currently applicable only to 
+ *     {@link Entities.EntityType|Model} and {@link Entities.EntityType|Shape} entities. Shadows are cast if inside a 
+ *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its {@link Entities.EntityProperties-Zone|keyLight} property.
  *
  * @property {Vec3} position=0,0,0 - The position of the entity.
  * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
@@ -1189,7 +1192,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_VELOCITY, angularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_DAMPING, angularDamping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE, visible);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);  // Relevant to Shape and Model entities only.
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISIONLESS, collisionless);
     COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_COLLISIONLESS, collisionless, ignoreForCollisions, getCollisionless()); // legacy support
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_MASK, collisionMask);
