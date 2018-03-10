@@ -17,23 +17,23 @@ QtObject {
         // Translates icon enum to glyph char.
         var glyph;
         switch (icon) {
-            case hifi.icons.information:
-                glyph = hifi.glyphs.info;
+            case icons.information:
+                glyph = glyphs.info;
                 break;
-            case hifi.icons.question:
-                glyph = hifi.glyphs.question;
+            case icons.question:
+                glyph = glyphs.question;
                 break;
-            case hifi.icons.warning:
-                glyph = hifi.glyphs.alert;
+            case icons.warning:
+                glyph = glyphs.alert;
                 break;
-            case hifi.icons.critical:
-                glyph = hifi.glyphs.error;
+            case icons.critical:
+                glyph = glyphs.error;
                 break;
-            case hifi.icons.placemark:
-                glyph = hifi.glyphs.placemark;
+            case icons.placemark:
+                glyph = glyphs.placemark;
                 break;
             default:
-                glyph = hifi.glyphs.noIcon;
+                glyph = glyphs.noIcon;
         }
         return glyph;
     }
