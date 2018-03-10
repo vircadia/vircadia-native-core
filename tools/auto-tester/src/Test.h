@@ -43,7 +43,7 @@ public:
 
     void appendTestResultsToFile(QString testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage);
 
-    bool createTestResultsFolderPathIfNeeded(QString directory);
+    bool createTestResultsFolderPath(QString directory);
     void zipAndDeleteTestResultsFolder();
 
     bool isAValidDirectory(QString pathname);
@@ -81,8 +81,9 @@ private:
     QStringList resultImagesFullFilenames;
 
     // Used for accessing GitHub
-    const QString user{ "NissimHadar" };
-    const QString branch{ "addRecursionToAutotester" };
+    const QString user { "NissimHadar" };
+    const QString branch { "addRecursionToAutotester" };
+	const QString DATETIME_FORMAT { "yyyy-MM-dd_hh-mm-ss" };
 };
 
 #endif // hifi_test_h

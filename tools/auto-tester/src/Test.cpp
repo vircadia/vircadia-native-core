@@ -31,21 +31,13 @@ Test::Test() {
     mismatchWindow.setModal(true);
 }
 
-bool Test::createTestResultsFolderPathIfNeeded(QString directory) {
-    // The test results folder is located in the root of the tests (i.e. for recursive test evaluation)
-    if (testResultsFolderPath == "") {
-        testResultsFolderPath =  directory + "/" + TEST_RESULTS_FOLDER;
-        QDir testResultsFolder(testResultsFolderPath);
+bool Test::createTestResultsFolderPath(QString directory) {
+	QDateTime now = QDateTime::currentDateTime();
+    testResultsFolderPath =  directory + "/" + TEST_RESULTS_FOLDER + "--" + now.toString(DATETIME_FORMAT);
+    QDir testResultsFolder(testResultsFolderPath);
 
-        if (testResultsFolder.exists()) {
-            testResultsFolder.removeRecursively();
-        }
-
-        // Create a new test results folder
-        return QDir().mkdir(testResultsFolderPath);
-    } else {
-        return true;
-    }
+    // Create a new test results folder
+    return QDir().mkdir(testResultsFolderPath);
 }
 
 void Test::zipAndDeleteTestResultsFolder() {
@@ -194,7 +186,7 @@ void Test::startTestsEvaluation() {
     }
 
     // Quit if test results folder could not be created
-    if (!createTestResultsFolderPathIfNeeded(pathToTestResultsDirectory)) {
+    if (!createTestResultsFolderPath(pathToTestResultsDirectory)) {
         return;
     }
 
