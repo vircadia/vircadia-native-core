@@ -15,6 +15,7 @@
 #include <StencilMaskPass.h>
 #include <GeometryCache.h>
 
+#include <gpu/DrawWhite_frag.h>
 #include "render-utils/drawWorkloadProxy_vert.h"
 #include "render-utils/drawWorkloadView_vert.h"
 #include "render-utils/drawWorkloadProxy_frag.h"
@@ -178,7 +179,8 @@ const gpu::PipelinePointer GameWorkloadRenderItem::getProxiesPipeline() {
 const gpu::PipelinePointer GameWorkloadRenderItem::getViewsPipeline() {
     if (!_drawAllViewsPipeline) {
         auto vs = drawWorkloadView_vert::getShader();
-        auto ps = drawWorkloadProxy_frag::getShader();
+    //    auto ps = drawWorkloadProxy_frag::getShader();
+        auto ps = DrawWhite_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -247,7 +249,7 @@ void GameWorkloadRenderItem::render(RenderArgs* args) {
         batch.setUniformBuffer(0, getDrawViewBuffer());
     //    static const int NUM_VERTICES_PER_VIEW = 27;
     //    batch.draw(gpu::TRIANGLES, NUM_VERTICES_PER_VIEW * _numAllViews, 0);
-        batch.draw(gpu::TRIANGLES, _numDrawViewVerts * 4, 0);
+        batch.draw(gpu::TRIANGLE_STRIP, _numDrawViewVerts * 3 * 2, 0);
 
     }
 
