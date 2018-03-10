@@ -17,10 +17,12 @@ in vec4 varColor;
 in vec3 varTexcoord;
 
 void main(void) {
-    float r = sqrt(dot(varTexcoord.xyz,varTexcoord.xyz));
-    float a = paintStripe(r * varColor.w, 0.0, 1.0 / varColor.w, 0.05 / varColor.w);
-    if (a <= 0.1 || r > 1.1) {
-        discard;
+    if (varColor.w > 0.0) {
+        float r = sqrt(dot(varTexcoord.xyz,varTexcoord.xyz));
+        float a = paintStripe(r * varColor.w, 0.0, 1.0 / varColor.w, 0.05 / varColor.w);
+        if (a <= 0.1 || r > 1.1) {
+            discard;
+        }
     }
 
     packDeferredFragmentUnlit(

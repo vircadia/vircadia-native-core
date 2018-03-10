@@ -141,5 +141,5 @@ void main(void) {
     <$transformEyeToClipPos(cam, proxyPosEye, gl_Position)$>
 
     // Convert region to color
-    varColor = vec4(colorWheel(float(regionID) / 4.0), regionRadius);
+    varColor = vec4(colorWheel(float(regionID) / 4.0), -1.0);
 }
