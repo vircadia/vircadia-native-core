@@ -240,39 +240,69 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
     const QList<QTouchEvent::TouchPoint>& tPoints = event->touchPoints();
     bool moveTouchFound = false;
     bool viewTouchFound = false;
+
+    int idxMoveStartingPointCandidate = -1;
+    int idxViewStartingPointCandidate = -1;
+
+    bool thisPointConsumed = false;
     glm::vec2 thisPoint;
     for (int i = 0; i < _touchPointCount; ++i) {
         thisPoint.x = tPoints[i].pos().x();
         thisPoint.y = tPoints[i].pos().y();
-        // movew touch and the first one detected counts
-        if (thisPoint.x < _screenWidthCenter && !moveTouchFound) {
-            if (_moveHasValidTouch) {
-                // valid if it's an ongoing touch
-                moveTouchFound = true;
-                moveTouchUpdate(thisPoint);
-            } else if (moveTouchBeginIsValid(thisPoint)) {
-                // starting point should be valid
-                moveTouchFound = true;
-                moveTouchBegin(thisPoint);
-            } // if it wasn't even a valid starting point, it won't count as a valid movement touch
-        } else  if (thisPoint.x >= _screenWidthCenter) { // right side
-            if (!viewTouchFound) {
-                viewTouchFound = true;
-                if (!_viewHasValidTouch) {
-                    viewTouchBegin(thisPoint);
-                } else {
-                    // as we don't have a stick on the right side, there is no condition to process right touch
-                    viewTouchUpdate(thisPoint);
-                }
-            }
+        thisPointConsumed = false;
+
+        if (!moveTouchFound && _moveHasValidTouch && _moveCurrentTouchId == tPoints[i].id()) {
+            // valid if it's an ongoing touch
+            moveTouchFound = true;
+            moveTouchUpdate(thisPoint);
+            thisPointConsumed = true;
+        }
+
+        if (thisPointConsumed) continue;
+
+        if (!viewTouchFound && _viewHasValidTouch && _viewCurrentTouchId == tPoints[i].id()) {
+            // valid if it's an ongoing touch
+            viewTouchFound = true;
+            viewTouchUpdate(thisPoint);
+            thisPointConsumed = true;
+        }
+
+        if (thisPointConsumed) continue;
+
+        if (!moveTouchFound && idxMoveStartingPointCandidate==-1 && moveTouchBeginIsValid(thisPoint)) {
+            idxMoveStartingPointCandidate = i;
+            thisPointConsumed = true;
+        }
+
+        if (thisPointConsumed) continue;
+
+        if (!viewTouchFound && idxViewStartingPointCandidate==-1 && viewTouchBeginIsValid(thisPoint)) {
+            idxViewStartingPointCandidate = i;
+            thisPointConsumed = true;
+        }
+
+    }
+
+    if (!moveTouchFound) {
+        if (idxMoveStartingPointCandidate!=-1) {
+            _moveCurrentTouchId = tPoints[idxMoveStartingPointCandidate].id();
+            moveTouchBegin(thisPoint);
+        } else {
+            moveTouchEnd();
         }
     }
-    if (!moveTouchFound) {
-        moveTouchEnd();
-    }
     if (!viewTouchFound) {
-        viewTouchEnd();
+        if (idxViewStartingPointCandidate!=-1) {
+            _viewCurrentTouchId = tPoints[idxViewStartingPointCandidate].id();
+            viewTouchBegin(thisPoint);
+        } else {
+            viewTouchEnd();
+        }
     }
+}
+
+bool TouchscreenVirtualPadDevice::viewTouchBeginIsValid(glm::vec2 touchPoint) {
+    return !moveTouchBeginIsValid(touchPoint);
 }
 
 bool TouchscreenVirtualPadDevice::moveTouchBeginIsValid(glm::vec2 touchPoint) {

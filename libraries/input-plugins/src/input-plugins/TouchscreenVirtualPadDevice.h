@@ -71,10 +71,12 @@ protected:
     bool _moveHasValidTouch;
     glm::vec2 _moveRefTouchPoint;
     glm::vec2 _moveCurrentTouchPoint;
+    int _moveCurrentTouchId;
 
     bool _viewHasValidTouch;
     glm::vec2 _viewRefTouchPoint;
     glm::vec2 _viewCurrentTouchPoint;
+    int _viewCurrentTouchId;
 
     int _touchPointCount;
     int _screenWidthCenter;
@@ -94,6 +96,7 @@ protected:
     void viewTouchBegin(glm::vec2 touchPoint);
     void viewTouchUpdate(glm::vec2 touchPoint);
     void viewTouchEnd();
+    bool viewTouchBeginIsValid(glm::vec2 touchPoint);
 
     void setupFixedCenter(VirtualPad::Manager& virtualPadManager, bool force = false);
 
