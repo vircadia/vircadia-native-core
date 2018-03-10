@@ -106,7 +106,7 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
 }
 
 bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                bool& keepSearching, OctreeElementPointer& element, float& distance,
+                                                OctreeElementPointer& element, float& distance,
                                                 BoxFace& face, glm::vec3& surfaceNormal,
                                                 QVariantMap& extraInfo, bool precisionPicking) const {
     glm::vec3 dimensions = getScaledDimensions();

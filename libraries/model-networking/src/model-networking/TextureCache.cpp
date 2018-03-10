@@ -294,7 +294,7 @@ _type(),
 _sourceIsKTX(false),
 _maxNumPixels(100)
 {
-    _textureSource = std::make_shared<gpu::TextureSource>();
+    _textureSource = std::make_shared<gpu::TextureSource>(url);
     _lowestRequestedMipLevel = 0;
     _loaded = true;
 }
@@ -310,7 +310,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, 
     _sourceIsKTX(url.path().endsWith(".ktx")),
     _maxNumPixels(maxNumPixels)
 {
-    _textureSource = std::make_shared<gpu::TextureSource>();
+    _textureSource = std::make_shared<gpu::TextureSource>(url, (int)type);
     _lowestRequestedMipLevel = 0;
 
     _shouldFailOnRedirect = !_sourceIsKTX;

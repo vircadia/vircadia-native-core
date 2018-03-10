@@ -12,10 +12,9 @@ import QtQuick 2.5
 
 Text {
     id: root
-    FontLoader { id: firaSansRegular; source: "qrc:/fonts/FiraSans-Regular.ttf"; }
     property real size: 32
     font.pixelSize: size
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
-    font.family: firaSansRegular.name
+    font.family: "Fira Sans"
 }

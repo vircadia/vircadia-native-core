@@ -165,6 +165,7 @@ Item {
         readonly property real scrollbarBackgroundWidth: 20
         readonly property real scrollbarHandleWidth: scrollbarBackgroundWidth - 2
         readonly property real tabletMenuHeader: 90
+        readonly property real buttonWidth: 120
     }
 
     Item {
