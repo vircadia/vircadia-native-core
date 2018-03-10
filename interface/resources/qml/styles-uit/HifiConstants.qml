@@ -12,14 +12,6 @@ import QtQuick 2.5
 import QtQuick.Window 2.2
 
 QtObject {
-    readonly property alias colors: colors
-    readonly property alias colorSchemes: colorSchemes
-    readonly property alias dimensions: dimensions
-    readonly property alias fontSizes: fontSizes
-    readonly property alias glyphs: glyphs
-    readonly property alias icons: icons
-    readonly property alias buttons: buttons
-    readonly property alias effects: effects
 
     function glyphForIcon(icon) {
         // Translates icon enum to glyph char.
@@ -46,9 +38,7 @@ QtObject {
         return glyph;
     }
 
-    QtObject {
-        id: colors
-
+    readonly property QtObject colors: QtObject {
         // Base colors
         readonly property color baseGray: "#393939"
         readonly property color darkGray: "#121212"
@@ -134,15 +124,13 @@ QtObject {
         readonly property color tabBackgroundLight: "#d4d4d4"
     }
 
-    QtObject {
-        id: colorSchemes
+    readonly property QtObject colorSchemes: QtObject {
         readonly property int light: 0
         readonly property int dark: 1
         readonly property int faintGray: 2
     }
 
-    QtObject {
-        id: dimensions
+    readonly property QtObject dimensions: QtObject {
         readonly property bool largeScreen: Screen.width >= 1920 && Screen.height >= 1080
         readonly property real borderRadius: largeScreen ? 7.5 : 5.0
         readonly property real borderWidth: largeScreen ? 2 : 1
@@ -168,8 +156,8 @@ QtObject {
         readonly property real buttonWidth: 120
     }
 
-    QtObject {
-        id: fontSizes  // In pixels
+    readonly property QtObject fontSizes: QtObject {
+        // In pixels
         readonly property real overlayTitle: dimensions.largeScreen ? 18 : 14
         readonly property real tabName: dimensions.largeScreen ? 12 : 10
         readonly property real sectionName: dimensions.largeScreen ? 12 : 10
@@ -194,8 +182,7 @@ QtObject {
         readonly property real disclosureButton: dimensions.largeScreen ? 30 : 22
     }
 
-    QtObject {
-        id: icons
+    readonly property QtObject icons: QtObject {
         // Values per OffscreenUi::Icon
         readonly property int none: 0
         readonly property int question: 1
@@ -205,8 +192,7 @@ QtObject {
         readonly property int placemark: 5
     }
 
-    QtObject {
-        id: buttons
+    readonly property QtObject buttons: QtObject {
         readonly property int white: 0
         readonly property int blue: 1
         readonly property int red: 2
@@ -227,12 +213,11 @@ QtObject {
         readonly property int radius: 5
     }
 
-    QtObject {
-        id: effects
+    readonly property QtObject effects: QtObject {
         readonly property int fadeInDuration: 300
     }
-    QtObject {
-        id: glyphs
+
+    readonly property QtObject glyphs: QtObject {
         readonly property string noIcon: ""
         readonly property string hmd: "b"
         readonly property string screen: "c"
