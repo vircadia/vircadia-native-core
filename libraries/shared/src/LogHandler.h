@@ -13,11 +13,12 @@
 #ifndef hifi_LogHandler_h
 #define hifi_LogHandler_h
 
-#include <QHash>
 #include <QObject>
-#include <QSet>
 #include <QString>
+#include <QRegExp>
 #include <QMutex>
+#include <vector>
+#include <memory>
 
 const int VERBOSE_LOG_INTERVAL_SECONDS = 5;
 
@@ -66,12 +67,19 @@ private:
     bool _shouldOutputProcessID { false };
     bool _shouldOutputThreadID { false };
     bool _shouldDisplayMilliseconds { false };
-    QSet<QString> _repeatedMessageRegexes;
-    QHash<QString, int> _repeatMessageCountHash;
-    QHash<QString, QString> _lastRepeatedMessage;
 
-    QSet<QString> _onlyOnceMessageRegexes;
-    QHash<QString, int> _onlyOnceMessageCountHash;
+    struct RepeatedMessage {
+        QRegExp regexp;
+        int messageCount { 0 };
+        QString lastMessage;
+    };
+    std::vector<RepeatedMessage> _repeatedMessages;
+
+    struct OnceOnlyMessage {
+        QRegExp regexp;
+        int messageCount { 0 };
+    };
+    std::vector<OnceOnlyMessage> _onetimeMessages;
 
     static QMutex _mutex;
 };

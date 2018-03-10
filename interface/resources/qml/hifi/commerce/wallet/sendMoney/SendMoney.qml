@@ -997,14 +997,13 @@ Item {
             anchors.right: parent.right;
             anchors.rightMargin: 20;
             height: 95;
-                
-            FontLoader { id: firaSansSemiBold; source: "qrc:/fonts/FiraSans-SemiBold.ttf"; }
+
             TextArea {
                 id: optionalMessage;
                 property int maximumLength: 72;
                 property string previousText: text;
                 placeholderText: "<i>Optional Public Message (" + maximumLength + " character limit)</i>";
-                font.family: firaSansSemiBold.name;
+                font.family: "Fira Sans SemiBold";
                 font.pixelSize: 20;
                 // Anchors
                 anchors.fill: parent;

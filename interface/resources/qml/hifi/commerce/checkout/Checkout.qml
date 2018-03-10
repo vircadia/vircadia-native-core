@@ -147,8 +147,7 @@ Rectangle {
         } else if (root.itemHref.indexOf('.json') > -1) {
             root.itemType = "entity"; // "wearable" type handled later
         } else {
-            console.log("WARNING - Item type is UNKNOWN!");
-            root.itemType = "entity";
+            root.itemType = "unknown";
         }
     }
 
