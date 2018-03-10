@@ -25,8 +25,7 @@ SpinBox {
     property color colorLabelInside: hifi.colors.white
     property real controlHeight: height + (spinBoxLabel.visible ? spinBoxLabel.height + spinBoxLabel.anchors.bottomMargin : 0)
 
-    FontLoader { id: firaSansSemiBold; source: "qrc:/fonts/FiraSans-SemiBold.ttf"; }
-    font.family: firaSansSemiBold.name
+    font.family: "Fira Sans SemiBold"
     font.pixelSize: hifi.fontSizes.textFieldInput
     height: hifi.fontSizes.textFieldInput + 13  // Match height of TextField control.
 

@@ -185,6 +185,14 @@ public:
      */
     Q_INVOKABLE bool isMouse(unsigned int uid);
 
+    Q_PROPERTY(unsigned int perFrameTimeBudget READ getPerFrameTimeBudget WRITE setPerFrameTimeBudget)
+    /**jsdoc
+     * The max number of usec to spend per frame updating Pick results.
+     * @typedef {number} Picks.perFrameTimeBudget
+     */
+    unsigned int getPerFrameTimeBudget() const;
+    void setPerFrameTimeBudget(unsigned int numUsecs);
+
 public slots:
     static constexpr unsigned int PICK_NOTHING() { return 0; }
     static constexpr unsigned int PICK_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_ENTITIES); }

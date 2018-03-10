@@ -128,10 +128,10 @@ Rectangle {
                 AudioControls.CheckBox {
                     id: stereoMic
                     spacing: muteMic.spacing;
-                    text: qsTr("use stereo for stereo devices");
-                    checked: false;
+                    text: qsTr("Enable stereo input");
+                    checked: AudioScriptingInterface.isStereoInput();
                     onClicked: {
-                        var success = Audio.setIsStereoInput(checked);
+                        var success = AudioScriptingInterface.setStereoInput(checked);
                         if (!success) {
                             checked = !checked;
                         }
@@ -219,7 +219,7 @@ Rectangle {
                     onPressed: {
                         if (!checked) {
                             stereoMic.checked = false;
-                            Audio.setIsStereoInput(false); // the next selected audio device might not support stereo
+                            AudioScriptingInterface.setStereoInput(false); // the next selected audio device might not support stereo
                             AudioScriptingInterface.setInputDevice(info, bar.currentIndex === 1);
                         }
                     }
