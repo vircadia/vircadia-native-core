@@ -23,8 +23,6 @@ Original.Button {
 
     property Action action: null
 
-    width: 120
-
     width: hifi.dimensions.buttonWidth
     height: hifi.dimensions.controlLineHeight
 
