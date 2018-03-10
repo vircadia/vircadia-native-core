@@ -156,36 +156,34 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
         // re-set the domain info so that auth information is reloaded
         hardReset();
 
-        QString hostname = domainURL.host();
-        quint16 port = domainURL.port();
-
+        QString previousHost = _domainURL.host();
         _domainURL = domainURL;
 
         if (domainURL.scheme() != URL_SCHEME_HIFI) {
             setIsConnected(true);
-        } else if (hostname != _domainURL.host()) {
-            qCDebug(networking) << "Updated domain hostname to" << hostname;
+        } else if (previousHost != domainURL.host()) {
+            qCDebug(networking) << "Updated domain hostname to" << domainURL.host();
 
-            if (!hostname.isEmpty()) {
+            if (!domainURL.host().isEmpty()) {
                 // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
-                qCDebug(networking, "Looking up DS hostname %s.", hostname.toLocal8Bit().constData());
-                QHostInfo::lookupHost(hostname, this, SLOT(completedHostnameLookup(const QHostInfo&)));
+                qCDebug(networking, "Looking up DS hostname %s.", domainURL.host().toLocal8Bit().constData());
+                QHostInfo::lookupHost(domainURL.host(), this, SLOT(completedHostnameLookup(const QHostInfo&)));
 
                 DependencyManager::get<NodeList>()->flagTimeForConnectionStep(
                     LimitedNodeList::ConnectionStep::SetDomainHostname);
 
-                UserActivityLogger::getInstance().changedDomain(hostname);
+                UserActivityLogger::getInstance().changedDomain(domainURL.host());
             }
         }
 
         emit domainURLChanged(_domainURL);
 
-        if (_sockAddr.getPort() != port) {
-            qCDebug(networking) << "Updated domain port to" << port;
+        if (_sockAddr.getPort() != domainURL.port()) {
+            qCDebug(networking) << "Updated domain port to" << domainURL.port();
         }
 
         // grab the port by reading the string after the colon
-        _sockAddr.setPort(port);
+        _sockAddr.setPort(domainURL.port());
     }
 }
 

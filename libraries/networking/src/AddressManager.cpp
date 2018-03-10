@@ -574,9 +574,9 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
     if (ipAddressRegex.indexIn(lookupString) != -1) {
         QString domainIPString = ipAddressRegex.cap(1);
 
-        qint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
         if (!ipAddressRegex.cap(2).isEmpty()) {
-            domainPort = (qint16) ipAddressRegex.cap(2).toInt();
+            domainPort = (quint16) ipAddressRegex.cap(2).toInt();
         }
 
         emit lookupResultsFinished();
@@ -597,7 +597,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
         quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
 
         if (!hostnameRegex.cap(2).isEmpty()) {
-            domainPort = (qint16)hostnameRegex.cap(2).toInt();
+            domainPort = (quint16)hostnameRegex.cap(2).toInt();
         }
 
         emit lookupResultsFinished();
