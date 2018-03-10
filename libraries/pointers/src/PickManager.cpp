@@ -89,14 +89,17 @@ void PickManager::setIncludeItems(unsigned int uid, const QVector<QUuid>& includ
 }
 
 void PickManager::update() {
+    uint64_t expiry = usecTimestampNow() + _perFrameTimeBudget;
     std::unordered_map<PickQuery::PickType, std::unordered_map<unsigned int, std::shared_ptr<PickQuery>>> cachedPicks;
     withReadLock([&] {
         cachedPicks = _picks;
     });
 
     bool shouldPickHUD = _shouldPickHUDOperator();
-    _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], shouldPickHUD);
-    _stylusPickCacheOptimizer.update(cachedPicks[PickQuery::Stylus], false);
+    // we pass the same expiry to both updates, but the stylus updates are relatively cheap
+    // and the rayPicks updae will ALWAYS update at least one ray even when there is no budget
+    _stylusPickCacheOptimizer.update(cachedPicks[PickQuery::Stylus], _nextPickToUpdate[PickQuery::Stylus], expiry, false);
+    _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], _nextPickToUpdate[PickQuery::Ray], expiry, shouldPickHUD);
 }
 
 bool PickManager::isLeftHand(unsigned int uid) {
