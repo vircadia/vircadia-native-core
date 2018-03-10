@@ -11,7 +11,7 @@
 import QtQuick 2.5
 import QtQuick.Window 2.2
 
-Item {
+QtObject {
     readonly property alias colors: colors
     readonly property alias colorSchemes: colorSchemes
     readonly property alias dimensions: dimensions
@@ -46,7 +46,7 @@ Item {
         return glyph;
     }
 
-    Item {
+    QtObject {
         id: colors
 
         // Base colors
@@ -134,14 +134,14 @@ Item {
         readonly property color tabBackgroundLight: "#d4d4d4"
     }
 
-    Item {
+    QtObject {
         id: colorSchemes
         readonly property int light: 0
         readonly property int dark: 1
         readonly property int faintGray: 2
     }
 
-    Item {
+    QtObject {
         id: dimensions
         readonly property bool largeScreen: Screen.width >= 1920 && Screen.height >= 1080
         readonly property real borderRadius: largeScreen ? 7.5 : 5.0
@@ -168,7 +168,7 @@ Item {
         readonly property real buttonWidth: 120
     }
 
-    Item {
+    QtObject {
         id: fontSizes  // In pixels
         readonly property real overlayTitle: dimensions.largeScreen ? 18 : 14
         readonly property real tabName: dimensions.largeScreen ? 12 : 10
@@ -194,7 +194,7 @@ Item {
         readonly property real disclosureButton: dimensions.largeScreen ? 30 : 22
     }
 
-    Item {
+    QtObject {
         id: icons
         // Values per OffscreenUi::Icon
         readonly property int none: 0
@@ -205,7 +205,7 @@ Item {
         readonly property int placemark: 5
     }
 
-    Item {
+    QtObject {
         id: buttons
         readonly property int white: 0
         readonly property int blue: 1
@@ -231,7 +231,7 @@ Item {
         id: effects
         readonly property int fadeInDuration: 300
     }
-    Item {
+    QtObject {
         id: glyphs
         readonly property string noIcon: ""
         readonly property string hmd: "b"
