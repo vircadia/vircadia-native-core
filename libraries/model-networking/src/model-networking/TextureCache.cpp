@@ -472,7 +472,6 @@ void NetworkTexture::makeLocalRequest() {
         path = ":" + _url.path();
     }
 
-    auto self = _self;
     connect(this, &Resource::finished, this, &NetworkTexture::handleLocalRequestCompleted);
 
     path = FileUtils::selectFile(path);
