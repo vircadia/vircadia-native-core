@@ -16,14 +16,14 @@
 namespace workload {
     class SetupViewsConfig : public Job::Config{
         Q_OBJECT
-            Q_PROPERTY(float r1Front READ getR1Front WRITE setR1Front NOTIFY dirty)
-            Q_PROPERTY(float r1Back READ getR1Back WRITE setR1Back NOTIFY dirty)
-            Q_PROPERTY(float r2Front READ getR2Front WRITE setR2Front NOTIFY dirty)
-            Q_PROPERTY(float r2Back READ getR2Back WRITE setR2Back NOTIFY dirty)
-            Q_PROPERTY(float r3Front READ getR3Front WRITE setR3Front NOTIFY dirty)
-            Q_PROPERTY(float r3Back READ getR3Back WRITE setR3Back NOTIFY dirty)
+        Q_PROPERTY(float r1Front READ getR1Front WRITE setR1Front NOTIFY dirty)
+        Q_PROPERTY(float r1Back READ getR1Back WRITE setR1Back NOTIFY dirty)
+        Q_PROPERTY(float r2Front READ getR2Front WRITE setR2Front NOTIFY dirty)
+        Q_PROPERTY(float r2Back READ getR2Back WRITE setR2Back NOTIFY dirty)
+        Q_PROPERTY(float r3Front READ getR3Front WRITE setR3Front NOTIFY dirty)
+        Q_PROPERTY(float r3Back READ getR3Back WRITE setR3Back NOTIFY dirty)
+        Q_PROPERTY(bool freezeViews READ getFreezeView WRITE setFreezeView NOTIFY dirty)
     public:
-        SetupViewsConfig() : Job::Config(true) {}
 
 
         float getR1Front() const { return data.r1Front; }
@@ -40,6 +40,9 @@ namespace workload {
         void setR3Front(float d) { data.r3Front = d; emit dirty(); }
         void setR3Back(float d) { data.r3Back = d; emit dirty(); }
 
+        bool getFreezeView() const { return data.freezeViews; }
+        void setFreezeView(bool freeze) { data.freezeViews = freeze; emit dirty(); }
+
         struct Data {
             float r1Back { 2.0f };
             float r1Front { 10.0f };
@@ -49,6 +52,8 @@ namespace workload {
 
             float r3Back{ 10.0f };
             float r3Front{ 100.0f };
+
+            bool freezeViews{ false };
         } data;
 
     signals:
@@ -66,6 +71,7 @@ namespace workload {
 
     protected:
         Config::Data data;
+        Views _views;
     };
 
 } // namespace workload

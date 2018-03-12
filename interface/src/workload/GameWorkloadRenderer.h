@@ -21,7 +21,7 @@ public:
 
     bool freezeViews{ false };
     bool showProxies{ false };
-    bool showViews{ false };
+    bool showViews{ true };
 signals:
     void dirty();
 
@@ -84,6 +84,10 @@ protected:
 
     gpu::PipelinePointer _drawAllViewsPipeline;
     const gpu::PipelinePointer getViewsPipeline();
+
+    uint32_t _numDrawViewVerts{ 0 };
+    gpu::BufferPointer _drawViewBuffer;
+    const gpu::BufferPointer getDrawViewBuffer();
 
     render::ItemKey _key;
     bool _showProxies{ true };

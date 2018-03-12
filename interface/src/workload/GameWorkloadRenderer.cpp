@@ -18,6 +18,7 @@
 #include "render-utils/drawWorkloadProxy_vert.h"
 #include "render-utils/drawWorkloadView_vert.h"
 #include "render-utils/drawWorkloadProxy_frag.h"
+#include "render-utils/drawWorkloadView_frag.h"
 
 
 void GameSpaceToRender::configure(const Config& config) {
@@ -59,9 +60,7 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
     space->copyProxyValues(proxies.data(), (uint32_t)proxies.size());
 
     workload::Views views(space->getNumViews());
-    if (!freezeViews) {
-        space->copyViews(views);
-    }
+    space->copyViews(views);
 
     // Valid space, let's display its content
     if (!render::Item::isValidID(_spaceRenderItemID)) {
@@ -77,9 +76,7 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
         item.showProxies(showProxies);
         item.setAllProxies(proxies);
         item.showViews(showViews);
-        if (!freezeViews) {
-            item.setAllViews(views);
-        }
+        item.setAllViews(views);
     });
     
     scene->enqueueTransaction(transaction);
@@ -182,11 +179,12 @@ const gpu::PipelinePointer GameWorkloadRenderItem::getProxiesPipeline() {
 const gpu::PipelinePointer GameWorkloadRenderItem::getViewsPipeline() {
     if (!_drawAllViewsPipeline) {
         auto vs = drawWorkloadView_vert::getShader();
-        auto ps = drawWorkloadProxy_frag::getShader();
+        auto ps = drawWorkloadView_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding("workloadViewsBuffer", 1));
+        slotBindings.insert(gpu::Shader::Binding("drawMeshBuffer", 0));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         auto state = std::make_shared<gpu::State>();
@@ -201,6 +199,32 @@ const gpu::PipelinePointer GameWorkloadRenderItem::getViewsPipeline() {
     }
     return _drawAllViewsPipeline;
 }
+
+const gpu::BufferPointer GameWorkloadRenderItem::getDrawViewBuffer() {
+    if (!_drawViewBuffer) {
+        int numSegments = 64;
+        float angleStep = (float)M_PI * 2.0f / (float)numSegments;
+
+        struct Vert {
+            glm::vec4 p;
+        };
+        std::vector<Vert> verts(numSegments + 1);
+        for (int i = 0; i < numSegments; i++) {
+            float angle = (float)i * angleStep;
+            verts[i].p.x = cos(angle);
+            verts[i].p.y = sin(angle);
+            verts[i].p.z = angle;
+            verts[i].p.w = 1.0f;
+        }
+        verts[numSegments] = verts[0];
+        verts[numSegments].p.w = 0.0f;
+
+        _drawViewBuffer = std::make_shared<gpu::Buffer>(verts.size() * sizeof(Vert), (const gpu::Byte*) verts.data());
+        _numDrawViewVerts = numSegments + 1;
+    }
+    return _drawViewBuffer;
+}
+
 void GameWorkloadRenderItem::render(RenderArgs* args) {
     gpu::Batch& batch = *(args->_batch);
 
@@ -221,8 +245,11 @@ void GameWorkloadRenderItem::render(RenderArgs* args) {
     if (_showViews) {
         batch.setPipeline(getViewsPipeline());
 
-        static const int NUM_VERTICES_PER_VIEW = 27;
-        batch.draw(gpu::TRIANGLES, NUM_VERTICES_PER_VIEW * _numAllViews, 0);
+        batch.setUniformBuffer(0, getDrawViewBuffer());
+        static const int NUM_VERTICES_PER_DRAWVIEWVERT = 2;
+        static const int NUM_REGIONS = 3;
+        batch.draw(gpu::TRIANGLE_STRIP, NUM_REGIONS * NUM_VERTICES_PER_DRAWVIEWVERT * _numDrawViewVerts, 0);
+
     }
 
     batch.setResourceBuffer(0, nullptr);
