@@ -28,8 +28,20 @@ Item {
     property alias text: textField.text;
     property alias primaryFilterChoices: filterBarModel;
     property alias textFieldFocused: textField.focus;
-    property string primaryFilter: "";
+    property int primaryFilter_index: -1;
+    property string primaryFilter_filterName: "";
+    property string primaryFilter_displayName: "";
     signal accepted;
+
+    onPrimaryFilter_indexChanged: {
+        if (primaryFilter_index === -1) {
+            primaryFilter_filterName = "";
+            primaryFilter_displayName = "";
+        } else {
+            primaryFilter_filterName = filterBarModel.get(primaryFilter_index).filterName;
+            primaryFilter_displayName = filterBarModel.get(primaryFilter_index).displayName;
+        }
+    }
 
     TextField {
         id: textField;
@@ -39,14 +51,15 @@ Item {
         anchors.left: parent.left;
 
         font.family: "Fira Sans"
-        font.pixelSize: hifi.fontSizes.textFieldInput
+        font.pixelSize: hifi.fontSizes.textFieldInput;
 
-        placeholderText: root.primaryFilter === "" ? root.placeholderText : "";
+        placeholderText: root.primaryFilter_index === -1 ? root.placeholderText : "";
                     
         TextMetrics {
             id: primaryFilterTextMetrics;
             font.family: "FiraSans Regular";
-            text: root.primaryFilter;
+            font.pixelSize: hifi.fontSizes.textFieldInput;
+            text: root.primaryFilter_displayName;
         }
 
         // workaround for https://bugreports.qt.io/browse/QTBUG-49297
@@ -59,11 +72,12 @@ Item {
                     // emit accepted signal manually
                     if (acceptableInput) {
                         root.accepted();
+                        root.forceActiveFocus();
                     }
                 break;
                 case Qt.Key_Backspace:
                     if (textField.text === "") {
-                        root.primaryFilter = "";
+                        primaryFilter_index = -1;
                     }
                 break;
             }
@@ -83,19 +97,19 @@ Item {
             id: style;
             textColor: {
                 if (isLightColorScheme) {
-                    if (root.activeFocus) {
+                    if (textField.activeFocus) {
                         hifi.colors.black
                     } else {
                         hifi.colors.lightGray
                     }
                 } else if (isFaintGrayColorScheme) {
-                    if (root.activeFocus) {
+                    if (textField.activeFocus) {
                         hifi.colors.black
                     } else {
                         hifi.colors.lightGray
                     }
                 } else {
-                    if (root.activeFocus) {
+                    if (textField.activeFocus) {
                         hifi.colors.white
                     } else {
                         hifi.colors.lightGrayText
@@ -107,19 +121,19 @@ Item {
 
                 color: {
                     if (isLightColorScheme) {
-                        if (root.activeFocus) {
+                        if (textField.activeFocus) {
                             hifi.colors.white
                         } else {
                             hifi.colors.textFieldLightBackground
                         }
                     } else if (isFaintGrayColorScheme) {
-                        if (root.activeFocus) {
+                        if (textField.activeFocus) {
                             hifi.colors.white
                         } else {
                             hifi.colors.faintGray50
                         }
                     } else {
-                        if (root.activeFocus) {
+                        if (textField.activeFocus) {
                             hifi.colors.black
                         } else {
                             hifi.colors.baseGrayShadow
@@ -127,8 +141,8 @@ Item {
                     }
                 }
 
-                border.color: root.error ? hifi.colors.redHighlight :
-                (root.activeFocus ? hifi.colors.primaryHighlight : (isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray))
+                border.color: textField.error ? hifi.colors.redHighlight :
+                (textField.activeFocus ? hifi.colors.primaryHighlight : (isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray))
                 border.width: 1
                 radius: 4
 
@@ -156,7 +170,7 @@ Item {
                         color: textColor;
                         size: 40;
                         anchors.left: parent.left;
-                        anchors.leftMargin: 14;
+                        anchors.leftMargin: 15;
                         width: paintedWidth;
                     }
 
@@ -173,7 +187,7 @@ Item {
                     z: 999;
                     id: primaryFilterContainer;
                     color: hifi.colors.lightGray;
-                    width: primaryFilterTextMetrics.tightBoundingRect.width + 24;
+                    width: primaryFilterTextMetrics.tightBoundingRect.width + 14;
                     height: parent.height - 8;
                     anchors.verticalCenter: parent.verticalCenter;
                     anchors.left: searchButtonContainer.right;
@@ -182,12 +196,12 @@ Item {
 
                     FiraSansRegular {
                         id: primaryFilterText;
-                        text: root.primaryFilter;
+                        text: root.primaryFilter_displayName;
                         anchors.fill: parent;
                         color: hifi.colors.white;
                         horizontalAlignment: Text.AlignHCenter;
                         verticalAlignment: Text.AlignVCenter;
-                        size: 16;
+                        size: hifi.fontSizes.textFieldInput;
                     }
                 }
 
@@ -199,14 +213,15 @@ Item {
                     anchors.right: parent.right
                     anchors.rightMargin: hifi.dimensions.textPadding - 2
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: root.text !== "" || root.primaryFilter !== "";
+                    visible: root.text !== "" || root.primaryFilter_index !== -1;
 
                     MouseArea {
                         anchors.fill: parent;
                         onClicked: {
                             root.text = "";
-                            root.primaryFilter = "";
-                            root.forceActiveFocus();
+                            root.primaryFilter_index = -1;
+                            dropdownContainer.visible = false;
+                            textField.forceActiveFocus();
                         }
                     }
                 }
@@ -215,7 +230,7 @@ Item {
             placeholderTextColor: isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray
             selectedTextColor: hifi.colors.black
             selectionColor: hifi.colors.primaryHighlight
-            padding.left: 44 + (root.primaryFilter === "" ? 0 : primaryFilterTextMetrics.tightBoundingRect.width + 32);
+            padding.left: 44 + (root.primaryFilter_index === -1 ? 0 : primaryFilterTextMetrics.tightBoundingRect.width + 24);
             padding.right: 44
         }
     }
@@ -229,17 +244,14 @@ Item {
         anchors.left: parent.left;
         anchors.right: parent.right;
         color: hifi.colors.white;
-        signal buttonClicked(string text);
-
-        onButtonClicked: {
-            root.primaryFilter = text;
-        }
 
         ListModel {
             id: filterBarModel;
         }
 
         ListView {
+            id: dropdownListView;
+            interactive: false;
             anchors.fill: parent;
             model: filterBarModel;
             delegate: Rectangle {
@@ -271,7 +283,7 @@ Item {
                     }
                     onClicked: {
                         textField.forceActiveFocus();
-                        dropdownContainer.buttonClicked(model.filterName);
+                        root.primaryFilter_index = index;
                         dropdownContainer.visible = false;
                     }
                 }

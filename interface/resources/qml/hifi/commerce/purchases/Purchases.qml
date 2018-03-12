@@ -362,10 +362,10 @@ Rectangle {
                     filterBar.primaryFilterChoices.append(choices);
                 }
 
-                onPrimaryFilterChanged: {
+                onPrimaryFilter_displayNameChanged: {
                     buildFilteredPurchasesModel();
                     purchasesContentsList.positionViewAtIndex(0, ListView.Beginning)
-                    filterBar.previousPrimaryFilter = filterBar.primaryFilter;
+                    filterBar.previousPrimaryFilter = filterBar.primaryFilter_displayName;
                 }
 
                 onTextChanged: {
@@ -709,8 +709,8 @@ Rectangle {
                 currentItemType = "unknown";
             }
 
-            if (filterBar.primaryFilter !== "" &&
-                currentItemType.toLowerCase() !== filterBar.primaryFilter.toLowerCase()) {
+            if (filterBar.primaryFilter_filterName !== "" &&
+                currentItemType.toLowerCase() !== filterBar.primaryFilter_filterName.toLowerCase()) {
                 tempPurchasesModel.remove(i);
                 i--;
             } else {
@@ -785,7 +785,7 @@ Rectangle {
     function fromScript(message) {
         switch (message.method) {
             case 'updatePurchases':
-                referrerURL = message.referrerURL;
+                referrerURL = message.referrerURL || "";
                 titleBarContainer.referrerURL = message.referrerURL;
                 filterBar.text = message.filterText ? message.filterText : "";
             break;
