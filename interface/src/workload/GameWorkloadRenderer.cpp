@@ -203,7 +203,7 @@ const gpu::PipelinePointer GameWorkloadRenderItem::getViewsPipeline() {
 const gpu::BufferPointer GameWorkloadRenderItem::getDrawViewBuffer() {
     if (!_drawViewBuffer) {
         int numSegments = 64;
-        float angleStep = M_PI * 2.0 / (float)numSegments;
+        float angleStep = (float)M_PI * 2.0f / (float)numSegments;
 
         struct Vert {
             glm::vec4 p;
@@ -214,10 +214,10 @@ const gpu::BufferPointer GameWorkloadRenderItem::getDrawViewBuffer() {
             verts[i].p.x = cos(angle);
             verts[i].p.y = sin(angle);
             verts[i].p.z = angle;
-            verts[i].p.w = 1.0;
+            verts[i].p.w = 1.0f;
         }
         verts[numSegments] = verts[0];
-        verts[numSegments].p.w = 0.0;
+        verts[numSegments].p.w = 0.0f;
 
         _drawViewBuffer = std::make_shared<gpu::Buffer>(verts.size() * sizeof(Vert), (const gpu::Byte*) verts.data());
         _numDrawViewVerts = numSegments + 1;
@@ -246,7 +246,9 @@ void GameWorkloadRenderItem::render(RenderArgs* args) {
         batch.setPipeline(getViewsPipeline());
 
         batch.setUniformBuffer(0, getDrawViewBuffer());
-        batch.draw(gpu::TRIANGLE_STRIP, _numDrawViewVerts * 3 * 2, 0);
+        static const int NUM_VERTICES_PER_DRAWVIEWVERT = 2;
+        static const int NUM_REGIONS = 3;
+        batch.draw(gpu::TRIANGLE_STRIP, NUM_REGIONS * NUM_VERTICES_PER_DRAWVIEWVERT * _numDrawViewVerts, 0);
 
     }
 
