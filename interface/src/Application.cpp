@@ -981,6 +981,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qInstallMessageHandler(messageHandler);
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/fontawesome-webfont.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/hifi-glyphs.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/AnonymousPro-Regular.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/FiraSans-Regular.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/FiraSans-SemiBold.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Light.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Regular.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Bold.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-SemiBold.ttf");
     _window->setWindowTitle("High Fidelity Interface");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
@@ -6637,17 +6646,17 @@ void Application::addAssetToWorld(QString path, QString zipFile, bool isZip, boo
 
     addAssetToWorldInfo(filename, "Adding " + mapping.mid(1) + " to the Asset Server.");
 
-    addAssetToWorldWithNewMapping(path, mapping, 0);
+    addAssetToWorldWithNewMapping(path, mapping, 0, isZip, isBlocks);
 }
 
-void Application::addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy) {
+void Application::addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy, bool isZip, bool isBlocks) {
     auto request = DependencyManager::get<AssetClient>()->createGetMappingRequest(mapping);
 
     QObject::connect(request, &GetMappingRequest::finished, this, [=](GetMappingRequest* request) mutable {
         const int MAX_COPY_COUNT = 100;  // Limit number of duplicate assets; recursion guard.
         auto result = request->getError();
         if (result == GetMappingRequest::NotFound) {
-            addAssetToWorldUpload(filePath, mapping);
+            addAssetToWorldUpload(filePath, mapping, isZip, isBlocks);
         } else if (result != GetMappingRequest::NoError) {
             QString errorInfo = "Could not map asset name: "
                 + mapping.left(mapping.length() - QString::number(copy).length() - 1);
@@ -6659,7 +6668,7 @@ void Application::addAssetToWorldWithNewMapping(QString filePath, QString mappin
             }
             copy++;
             mapping = mapping.insert(mapping.lastIndexOf("."), "-" + QString::number(copy));
-            addAssetToWorldWithNewMapping(filePath, mapping, copy);
+            addAssetToWorldWithNewMapping(filePath, mapping, copy, isZip, isBlocks);
         } else {
             QString errorInfo = "Too many copies of asset name: "
                 + mapping.left(mapping.length() - QString::number(copy).length() - 1);
@@ -6672,7 +6681,7 @@ void Application::addAssetToWorldWithNewMapping(QString filePath, QString mappin
     request->start();
 }
 
-void Application::addAssetToWorldUpload(QString filePath, QString mapping) {
+void Application::addAssetToWorldUpload(QString filePath, QString mapping, bool isZip, bool isBlocks) {
     qInfo(interfaceapp) << "Uploading" << filePath << "to Asset Server as" << mapping;
     auto upload = DependencyManager::get<AssetClient>()->createUpload(filePath);
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
@@ -6681,7 +6690,7 @@ void Application::addAssetToWorldUpload(QString filePath, QString mapping) {
             qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
-            addAssetToWorldSetMapping(filePath, mapping, hash);
+            addAssetToWorldSetMapping(filePath, mapping, hash, isZip, isBlocks);
         }
 
         // Remove temporary directory created by Clara.io market place download.
@@ -6698,7 +6707,7 @@ void Application::addAssetToWorldUpload(QString filePath, QString mapping) {
     upload->start();
 }
 
-void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash) {
+void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash, bool isZip, bool isBlocks) {
     auto request = DependencyManager::get<AssetClient>()->createSetMappingRequest(mapping, hash);
     connect(request, &SetMappingRequest::finished, this, [=](SetMappingRequest* request) mutable {
         if (request->getError() != SetMappingRequest::NoError) {
@@ -6706,9 +6715,10 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
             qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
-            // to prevent files that aren't models from being loaded into world automatically
-            if (filePath.toLower().endsWith(OBJ_EXTENSION) || filePath.toLower().endsWith(FBX_EXTENSION) || 
-                filePath.toLower().endsWith(JPG_EXTENSION) || filePath.toLower().endsWith(PNG_EXTENSION)) {
+            // to prevent files that aren't models or texture files from being loaded into world automatically
+            if ((filePath.toLower().endsWith(OBJ_EXTENSION) || filePath.toLower().endsWith(FBX_EXTENSION)) || 
+                ((filePath.toLower().endsWith(JPG_EXTENSION) || filePath.toLower().endsWith(PNG_EXTENSION)) &&
+                ((!isBlocks) && (!isZip)))) {
                 addAssetToWorldAddEntity(filePath, mapping);
             } else {
                 qCDebug(interfaceapp) << "Zipped contents are not supported entity files";

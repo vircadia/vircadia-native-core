@@ -28,7 +28,7 @@ class AbstractAudioInterface : public QObject {
     Q_OBJECT
 public:
     AbstractAudioInterface(QObject* parent = 0) : QObject(parent) {};
-    
+
     static void emitAudioPacket(const void* audioData, size_t bytes, quint16& sequenceNumber, bool isStereo,
                                 const Transform& transform, glm::vec3 avatarBoundingBoxCorner, glm::vec3 avatarBoundingBoxScale,
                                 PacketType packetType, QString codecName = QString(""));
@@ -40,8 +40,10 @@ public:
 
 public slots:
     virtual bool shouldLoopbackInjectors() { return false; }
-    
+
     virtual bool setIsStereoInput(bool stereo) = 0;
+
+    virtual bool isStereoInput() = 0;
 };
 
 Q_DECLARE_METATYPE(AbstractAudioInterface*)

@@ -138,6 +138,11 @@ void QmlCommerce::setSoftReset() {
     wallet->setSoftReset();
 }
 
+void QmlCommerce::clearWallet() {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->clear();
+}
+
 void QmlCommerce::setPassphrase(const QString& passphrase) {
     auto wallet = DependencyManager::get<Wallet>();
     wallet->setPassphrase(passphrase);
