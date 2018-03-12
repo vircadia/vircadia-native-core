@@ -68,6 +68,10 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool
     if (path.contains("vr.google.com/downloads")) {
         isZip = true;
     }
+    if (!hasModel(fileList)) {
+        isZip = false;
+    }
+
     emit unzipResult(path, fileList, autoAdd, isZip, isBlocks);
 
 }
@@ -105,6 +109,15 @@ bool FileScriptingInterface::isTempDir(QString tempDir) {
     QString testContainer = testDir;
     testContainer.remove(folderName);
     return (testContainer == tempContainer);
+}
+
+bool FileScriptingInterface::hasModel(QStringList fileList) {
+    for (int i = 0; i < fileList.size(); i++) {
+        if (fileList.at(i).toLower().contains(".fbx") || fileList.at(i).toLower().contains(".obj")) {
+            return true;
+        }
+    }
+    return false;
 }
 
 QString FileScriptingInterface::getTempDir() {
