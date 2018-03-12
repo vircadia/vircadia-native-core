@@ -356,7 +356,7 @@ getTabletWidthFromSettings = function () {
     var DEFAULT_TABLET_WIDTH = 0.4375;
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var toolbarMode = tablet.toolbarMode;
-    var DEFAULT_TABLET_SCALE = 100;
+    var DEFAULT_TABLET_SCALE = 70;
     var tabletScalePercentage = DEFAULT_TABLET_SCALE;
     if (!toolbarMode) {
         if (HMD.active) {
