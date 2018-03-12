@@ -9,10 +9,26 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtGraphicalEffects 1.0
+import Qt.labs.settings 1.0
 import "../../styles-uit"
 import "../../controls"
 import "../../controls-uit" as HifiControls
+import "../../dialogs"
 
+PreferencesDialog {
+    id: root
+    objectName: "ControlSettings"
+    title: "Control Settings"
+    showCategories: ["VR Movement", "Mouse Sensitivity", "Game Controller", "Face Tracking", "Sixense Controllers", "Perception Neuron", "Kinect", "Leap Motion"]
+    property var settings: Settings {
+        category: root.objectName
+        property alias x: root.x
+        property alias y: root.y
+        property alias width: root.width
+        property alias height: root.height
+    }
+}
+/*
 StackView {
     id: stack
     initialItem: inputConfiguration
@@ -45,7 +61,7 @@ StackView {
 
         RalewayRegular {
             id: header
-            text: "Controller Settings"
+            text: "Control Settings"
             size: 22
             color: "white"
 
@@ -226,3 +242,4 @@ StackView {
         timer.start();
     }
 }
+*/

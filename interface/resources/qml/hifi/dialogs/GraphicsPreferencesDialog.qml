@@ -7,7 +7,7 @@ PreferencesDialog {
     id: root
     objectName: "GraphicsPreferencesDialog"
     title: "Graphics Settings"
-    showCategories: ["Graphics"]
+    showCategories: ["Graphics Quality"]
     property var settings: Settings {
         category: root.objectName
         property alias x: root.x
