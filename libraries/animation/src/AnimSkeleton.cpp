@@ -81,7 +81,7 @@ int AnimSkeleton::getParentIndex(int jointIndex) const {
 QVector<int> AnimSkeleton::getChildrenOfJoint(int jointIndex) const {
     // Children and grandchildren, etc.
     QVector<int> result;
-    for (int i = jointIndex + 1; i < _joints.size(); i++) {
+    for (int i = jointIndex + 1; i < (int)_joints.size(); i++) {
         if (_joints[i].parentIndex == jointIndex || result.contains(_joints[i].parentIndex)) {
             result.push_back(i);
         }
