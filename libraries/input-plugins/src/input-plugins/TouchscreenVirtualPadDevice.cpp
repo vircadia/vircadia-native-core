@@ -138,10 +138,13 @@ void TouchscreenVirtualPadDevice::processInputDeviceForView() {
 
     // NOW BETWEEN -1 1
     rightDistanceScaleX /= STICK_RADIUS_INCHES;
-    rightDistanceScaleY /= STICK_RADIUS_INCHES*2; // pitch is slower
+    rightDistanceScaleY /= STICK_RADIUS_INCHES;
 
     _inputDevice->_axisStateMap[controller::RX] = rightDistanceScaleX;
     _inputDevice->_axisStateMap[controller::RY] = rightDistanceScaleY;
+
+    // after use, save last touch point as ref
+    _viewRefTouchPoint = _viewCurrentTouchPoint;
 }
 
 void TouchscreenVirtualPadDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
@@ -343,6 +346,7 @@ void TouchscreenVirtualPadDevice::viewTouchBegin(glm::vec2 touchPoint) {
     auto& virtualPadManager = VirtualPad::Manager::instance();
     if (virtualPadManager.isEnabled() && !virtualPadManager.isHidden()) {
         _viewRefTouchPoint = touchPoint;
+        _viewCurrentTouchPoint = touchPoint;
         _viewHasValidTouch = true;
     }
 }
