@@ -272,10 +272,6 @@ public:
 
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
-    graphics::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
-    gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
-    gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
-
     OverlayID getTabletScreenID() const;
     OverlayID getTabletHomeButtonID() const;
     QUuid getTabletFrameID() const; // may be an entity or an overlay
@@ -677,10 +673,6 @@ private:
     QString _returnFromFullScreenMirrorTo;
 
     ConnectionMonitor _connectionMonitor;
-
-    graphics::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
-    gpu::TexturePointer _defaultSkyboxTexture;
-    gpu::TexturePointer _defaultSkyboxAmbientTexture;
 
     QTimer _addAssetToWorldResizeTimer;
     QHash<QUuid, int> _addAssetToWorldResizeList;

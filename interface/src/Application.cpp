@@ -1998,20 +1998,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(_window, SIGNAL(windowMinimizedChanged(bool)), this, SLOT(windowMinimizedChanged(bool)));
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
 
-    {
-        PROFILE_RANGE(render, "Process Default Skybox");
-        auto textureCache = DependencyManager::get<TextureCache>();
-
-        QFileSelector fileSelector;
-        fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
-        auto skyboxUrl = fileSelector.select(PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.ktx");
-
-        _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl.toStdString());
-        _defaultSkyboxAmbientTexture = _defaultSkyboxTexture;
-
-        _defaultSkybox->setCubemap(_defaultSkyboxTexture);
-    }
-
     EntityTreeRenderer::setEntitiesShouldFadeFunction([this]() {
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
         return entityServerNode && !isPhysicsEnabled();
@@ -2461,7 +2447,6 @@ void Application::initializeGL() {
     DeadlockWatchdogThread::withPause([&] {
         // Set up the render engine
         render::CullFunctor cullFunctor = LODManager::shouldRender;
-        static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
         _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
 #ifndef Q_OS_ANDROID
         _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !DISABLE_DEFERRED);
