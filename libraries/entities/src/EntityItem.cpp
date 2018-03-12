@@ -2962,13 +2962,6 @@ void EntityItem::retrieveMarketplacePublicKey() {
 }
 
 void EntityItem::preDelete() {
-    // clear out any left-over actions
-    EntityTreeElementPointer element = _element; // use local copy of _element for logic below
-    EntityTreePointer entityTree = element ? element->getTree() : nullptr;
-    EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
-    if (simulation) {
-        clearActions(simulation);
-    }
 }
 
 void EntityItem::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {

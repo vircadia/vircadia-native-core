@@ -40,18 +40,17 @@ void EntitySimulation::updateEntities() {
     sortEntitiesThatMoved();
 }
 
-void EntitySimulation::takeEntitiesToDelete(VectorOfEntities& entitiesToDelete) {
+void EntitySimulation::takeDeadEntities(VectorOfEntities& entitiesToDelete) {
     QMutexLocker lock(&_mutex);
-    for (auto entity : _entitiesToDelete) {
+    for (auto entity : _deadEntities) {
         // push this entity onto the external list
         entitiesToDelete.push_back(entity);
     }
-    _entitiesToDelete.clear();
+    _deadEntities.clear();
 }
 
 void EntitySimulation::removeEntityInternal(EntityItemPointer entity) {
-    QMutexLocker lock(&_mutex);
-    // remove from all internal lists except _entitiesToDelete
+    // remove from all internal lists except _deadEntities
     _mortalEntities.remove(entity);
     _entitiesToUpdate.remove(entity);
     _entitiesToSort.remove(entity);
@@ -67,7 +66,9 @@ void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
         QMutexLocker lock(&_mutex);
         entity->clearActions(getThisPointer());
         removeEntityInternal(entity);
-        _entitiesToDelete.insert(entity);
+        if (entity->getElement()) {
+            _deadEntities.insert(entity);
+        }
     }
 }
 
@@ -229,12 +230,8 @@ void EntitySimulation::clearEntities() {
 
     clearEntitiesInternal();
 
-    for (auto entity : _allEntities) {
-        entity->setSimulated(false);
-        entity->die();
-    }
     _allEntities.clear();
-    _entitiesToDelete.clear();
+    _deadEntities.clear();
 }
 
 void EntitySimulation::moveSimpleKinematics(const quint64& now) {

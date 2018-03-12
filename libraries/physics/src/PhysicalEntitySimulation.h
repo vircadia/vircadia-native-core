@@ -38,7 +38,7 @@ public:
     virtual void addDynamic(EntityDynamicPointer dynamic) override;
     virtual void applyDynamicChanges() override;
 
-    virtual void takeEntitiesToDelete(VectorOfEntities& entitiesToDelete) override;
+    virtual void takeDeadEntities(VectorOfEntities& deadEntities) override;
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
@@ -68,7 +68,7 @@ public:
 
 private:
     SetOfEntities _entitiesToRemoveFromPhysics;
-    SetOfEntities _entitiesToRelease;
+    SetOfEntities _entitiesToForget;
     SetOfEntities _entitiesToAddToPhysics;
 
     SetOfEntityMotionStates _pendingChanges; // EntityMotionStates already in PhysicsEngine that need their physics changed

@@ -94,7 +94,6 @@ OctreeElementPointer EntityTree::createNewElement(unsigned char* octalCode) {
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     emit clearingEntities();
 
-    // this would be a good place to clean up our entities...
     if (_simulation) {
         _simulation->clearEntities();
     }
@@ -552,8 +551,6 @@ void EntityTree::setSimulation(EntitySimulationPointer simulation) {
             assert(simulation->getEntityTree().get() == this);
         }
         if (_simulation && _simulation != simulation) {
-            // It's important to clearEntities() on the simulation since taht will update each
-            // EntityItem::_simulationState correctly so as to not confuse the next _simulation.
             _simulation->clearEntities();
         }
         _simulation = simulation;
@@ -1803,13 +1800,13 @@ void EntityTree::update(bool simulate) {
             _simulation->updateEntities();
             {
                 PROFILE_RANGE(simulation_physics, "Deletes");
-                VectorOfEntities pendingDeletes;
-                _simulation->takeEntitiesToDelete(pendingDeletes);
-                if (pendingDeletes.size() > 0) {
+                VectorOfEntities deadEntities;
+                _simulation->takeDeadEntities(deadEntities);
+                if (deadEntities.size() > 0) {
                     // translate into list of ID's
                     QSet<EntityItemID> idsToDelete;
 
-                    for (auto entity : pendingDeletes) {
+                    for (auto entity : deadEntities) {
                         idsToDelete.insert(entity->getEntityItemID());
                     }
 

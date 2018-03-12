@@ -75,7 +75,7 @@ public:
 
     EntityTreePointer getEntityTree() { return _entityTree; }
 
-    virtual void takeEntitiesToDelete(VectorOfEntities& entitiesToDelete);
+    virtual void takeDeadEntities(VectorOfEntities& entitiesToDelete);
 
     /// \param entity pointer to EntityItem that needs to be put on the entitiesToDelete list and removed from others.
     virtual void prepareEntityForDelete(EntityItemPointer entity);
@@ -102,7 +102,7 @@ protected:
     QMutex _dynamicsMutex { QMutex::Recursive };
 
 protected:
-    SetOfEntities _entitiesToDelete; // entities simulation decided needed to be deleted (EntityTree will actually delete)
+    SetOfEntities _deadEntities;
 
 private:
     void moveSimpleKinematics();
