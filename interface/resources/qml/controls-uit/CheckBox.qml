@@ -42,8 +42,8 @@ Original.CheckBox {
     style: CheckBoxStyle {
         indicator: Rectangle {
             id: box
-            width: boxSize
-            height: boxSize
+            implicitWidth: boxSize
+            implicitHeight: boxSize
             radius: boxRadius
             border.width: 1
             border.color: pressed || hovered
@@ -101,8 +101,8 @@ Original.CheckBox {
         }
 
         label: Label {
-            text: control.text
-            color: control.color
+            text: checkBox.text
+            color: checkBox.color
             x: 2
             wrapMode: checkBox.wrap ? Text.Wrap : Text.NoWrap
             elide: checkBox.wrap ? Text.ElideNone : Text.ElideRight
