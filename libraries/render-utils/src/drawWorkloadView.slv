@@ -54,11 +54,6 @@ WorkloadView getWorkloadView(int i) {
 out vec4 varColor;
 out vec3 varTexcoord;
 
-/*const int NUM_VERTICES_PER_VIEW = 27;
-const int NUM_REGIONS_PER_VIEW = 3;
-const int NUM_VERTICES_PER_VIEW_REGION = NUM_VERTICES_PER_VIEW / NUM_REGIONS_PER_VIEW;
-*/
-
 const int NUM_VERTICES_PER_SEGMENT = 2;
 const int NUM_SEGMENT_PER_VIEW_REGION = 65;
 const int NUM_VERTICES_PER_VIEW_REGION = NUM_SEGMENT_PER_VIEW_REGION * NUM_VERTICES_PER_SEGMENT;
@@ -71,34 +66,6 @@ layout(std140) uniform drawMeshBuffer {
 };
 
 void main(void) {
-/*    const vec4 UNIT_SPRITE[NUM_VERTICES_PER_VIEW_REGION] = vec4[NUM_VERTICES_PER_VIEW_REGION](
-        vec4(-1.0, -1.0, 0.0, 1.0),
-        vec4(3.0, -1.0, 0.0, 1.0),
-        vec4(-1.0, 3.0, 0.0, 1.0),
-
-        vec4(-1.0, 0.0, -1.0, 1.0),
-        vec4(3.0, 0.0, -1.0, 1.0),
-        vec4(-1.0, 0.0, 3.0, 1.0),
-
-        vec4(0.0, -1.0, -1.0, 1.0),
-        vec4(0.0, 3.0, -1.0, 1.0),
-        vec4(0.0, -1.0, 3.0, 1.0)
-    );
-     const int UNIT_SPRITE_INDICES[NUM_VERTICES_PER_VIEW_REGION] = int[NUM_VERTICES_PER_VIEW_REGION](
-        0, 1, 2, 3, 4, 5, 6, 7, 8
-    );
-
-    int viewID = gl_VertexID / NUM_VERTICES_PER_VIEW;
-    int viewVertexID = gl_VertexID - viewID * NUM_VERTICES_PER_VIEW;
-
-    int regionID = viewVertexID / NUM_VERTICES_PER_VIEW_REGION;
-    int regionVertexID = viewVertexID - regionID * NUM_VERTICES_PER_VIEW_REGION;
-
-    int vertexID = regionVertexID;
-
-    vec4 spriteVert = UNIT_SPRITE[UNIT_SPRITE_INDICES[vertexID]];
-*/
-
     int viewID = gl_VertexID / NUM_VERTICES_PER_VIEW;
     int viewVertexID = gl_VertexID - viewID * NUM_VERTICES_PER_VIEW;
 
@@ -121,24 +88,16 @@ void main(void) {
     float regionRadius = region.w;
 
     // Define the sprite space
- //   vec3 dirZ = vec3(0.0, 0.0, 1.0);
- //   vec3 dirX = vec3(1.0, 0.0, 0.0);
- //   vec3 dirY = vec3(0.0, 1.0, 0.0);
-    
     vec3 dirZ = -normalize(view.direction_far.xyz);
     vec3 dirY = vec3(0.0, 1.0, 0.0);
     vec3 dirX = normalize(cross(dirY, dirZ));
     dirY = normalize(cross(dirZ, dirX));
-    
+
     spriteVert.xyz *= regionRadius; 
-
-  //  spriteVert.xyz += (0.05 * (regionID + 1)) * lateralDir;
-
     vec3 originSpaceVert = (dirX * spriteVert.x + dirY * spriteVert.y + dirZ * spriteVert.z);
-    vec3 originSpaceTan = normalize(dirX * spriteTan.x + dirY * spriteTan.y + dirZ * spriteTan.z);
-
-
     vec4 pos = vec4(proxyPosWorld.xyz + originSpaceVert, 1.0);
+
+    vec3 originSpaceTan = normalize(dirX * spriteTan.x + dirY * spriteTan.y + dirZ * spriteTan.z);
 
     // standard transform, bring pos in view space
     TransformCamera cam = getTransformCamera();
@@ -149,14 +108,11 @@ void main(void) {
     <$transformModelToEyeDir(cam, obj, originSpaceTan, tanEye)$>
 
     lateralDir = normalize(cross(vec3(0.0, 0.0, 1.0), normalize(tanEye)));
-    posEye.xyz += (0.05 * (regionID + 1)) * lateralDir;
-
+    posEye.xyz += (0.05 * (regionID + 1)) * (-1.0 + 2.0 * float(segmentVertexID)) * lateralDir;
 
     <$transformEyeToClipPos(cam, posEye, gl_Position)$>
 
     varTexcoord = spriteVert.xyz;
-
-
 
     // Convert region to color
     varColor = vec4(colorWheel(float(regionID) / 4.0), -1.0);
