@@ -11,7 +11,10 @@
 #define hifi_AutoTester_h
 
 #include <QtWidgets/QMainWindow>
+#include <QSignalMapper>
 #include "ui_AutoTester.h"
+
+#include "../Downloader.h"
 #include "../Test.h"
 
 class AutoTester : public QMainWindow {
@@ -19,19 +22,34 @@ class AutoTester : public QMainWindow {
 
 public:
     AutoTester(QWidget *parent = Q_NULLPTR);
+    void downloadImage(const QUrl& url);
+    void downloadImages(const QStringList& URLs, const QString& directoryName, const QStringList& filenames);
 
 private slots:
     void on_evaluateTestsButton_clicked();
-    void on_evaluateTestsRecursivelyButton_clicked();
     void on_createRecursiveScriptButton_clicked();
+    void on_createRecursiveScriptsRecursivelyButton_clicked();
     void on_createTestButton_clicked();
-    void on_deleteOldSnapshotsButton_clicked();
     void on_closeButton_clicked();
+
+    void saveImage(int index);
 
 private:
     Ui::AutoTesterClass ui;
+    Test* test;
 
-    Test test;
+    std::vector<Downloader*> downloaders;
+
+    // local storage for parameters - folder to store downloaded files in, and a list of their names
+    QString _directoryName;
+    QStringList _filenames;
+
+    // Used to enable passing a parameter to slots
+    QSignalMapper* signalMapper;
+
+    int _numberOfImagesToDownload;
+    int _numberOfImagesDownloaded;
+    int _index;
 };
 
 #endif // hifi_AutoTester_h
