@@ -49,8 +49,9 @@ public:
     bool getPassphraseIsCached() { return !(_passphrase->isEmpty()); }
     bool walletIsAuthenticatedWithPassphrase();
     bool changePassphrase(const QString& newPassphrase);
-    void setSoftReset() { _isOverridingServer = true;  }
+    void setSoftReset() { _isOverridingServer = true; }
     bool wasSoftReset() { bool was = _isOverridingServer; _isOverridingServer = false; return was; }
+    void clear();
 
     void getWalletStatus();
     enum WalletStatus {

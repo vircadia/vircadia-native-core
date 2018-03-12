@@ -37,7 +37,7 @@ template<typename T>
 class PickCacheOptimizer {
 
 public:
-    void update(std::unordered_map<unsigned int, std::shared_ptr<PickQuery>>& picks, bool shouldPickHUD);
+    void update(std::unordered_map<uint32_t, std::shared_ptr<PickQuery>>& picks, uint32_t& nextToUpdate, uint64_t expiry, bool shouldPickHUD);
 
 protected:
     typedef std::unordered_map<T, std::unordered_map<PickCacheKey, PickResultPointer>> PickCache;
@@ -67,64 +67,82 @@ void PickCacheOptimizer<T>::cacheResult(const bool intersects, const PickResultP
 }
 
 template<typename T>
-void PickCacheOptimizer<T>::update(std::unordered_map<unsigned int, std::shared_ptr<PickQuery>>& picks, bool shouldPickHUD) {
+void PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<PickQuery>>& picks,
+        uint32_t& nextToUpdate, uint64_t expiry, bool shouldPickHUD) {
     PickCache results;
-    for (const auto& pickPair : picks) {
-        std::shared_ptr<Pick<T>> pick = std::static_pointer_cast<Pick<T>>(pickPair.second);
-
+    const uint32_t INVALID_PICK_ID = 0;
+    auto itr = picks.begin();
+    if (nextToUpdate != INVALID_PICK_ID) {
+        itr = picks.find(nextToUpdate);
+        if (itr == picks.end()) {
+            itr = picks.begin();
+        }
+    }
+    uint32_t numUpdates = 0;
+    while(numUpdates < picks.size()) {
+        std::shared_ptr<Pick<T>> pick = std::static_pointer_cast<Pick<T>>(itr->second);
         T mathematicalPick = pick->getMathematicalPick();
         PickResultPointer res = pick->getDefaultResult(mathematicalPick.toVariantMap());
 
         if (!pick->isEnabled() || pick->getFilter().doesPickNothing() || pick->getMaxDistance() < 0.0f || !mathematicalPick) {
             pick->setPickResult(res);
-            continue;
-        }
-
-        if (pick->getFilter().doesPickEntities()) {
-            PickCacheKey entityKey = { pick->getFilter().getEntityFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
-            if (!checkAndCompareCachedResults(mathematicalPick, results, res, entityKey)) {
-                PickResultPointer entityRes = pick->getEntityIntersection(mathematicalPick);
-                if (entityRes) {
-                    cacheResult(entityRes->doesIntersect(), entityRes, entityKey, res, mathematicalPick, results, pick);
-                }
-            }
-        }
-
-        if (pick->getFilter().doesPickOverlays()) {
-            PickCacheKey overlayKey = { pick->getFilter().getOverlayFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
-            if (!checkAndCompareCachedResults(mathematicalPick, results, res, overlayKey)) {
-                PickResultPointer overlayRes = pick->getOverlayIntersection(mathematicalPick);
-                if (overlayRes) {
-                    cacheResult(overlayRes->doesIntersect(), overlayRes, overlayKey, res, mathematicalPick, results, pick);
-                }
-            }
-        }
-
-        if (pick->getFilter().doesPickAvatars()) {
-            PickCacheKey avatarKey = { pick->getFilter().getAvatarFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
-            if (!checkAndCompareCachedResults(mathematicalPick, results, res, avatarKey)) {
-                PickResultPointer avatarRes = pick->getAvatarIntersection(mathematicalPick);
-                if (avatarRes) {
-                    cacheResult(avatarRes->doesIntersect(), avatarRes, avatarKey, res, mathematicalPick, results, pick);
-                }
-            }
-        }
-
-        // Can't intersect with HUD in desktop mode
-        if (pick->getFilter().doesPickHUD() && shouldPickHUD) {
-            PickCacheKey hudKey = { pick->getFilter().getHUDFlags(), QVector<QUuid>(), QVector<QUuid>() };
-            if (!checkAndCompareCachedResults(mathematicalPick, results, res, hudKey)) {
-                PickResultPointer hudRes = pick->getHUDIntersection(mathematicalPick);
-                if (hudRes) {
-                    cacheResult(true, hudRes, hudKey, res, mathematicalPick, results, pick);
-                }
-            }
-        }
-
-        if (pick->getMaxDistance() == 0.0f || (pick->getMaxDistance() > 0.0f && res->checkOrFilterAgainstMaxDistance(pick->getMaxDistance()))) {
-            pick->setPickResult(res);
         } else {
-            pick->setPickResult(pick->getDefaultResult(mathematicalPick.toVariantMap()));
+            if (pick->getFilter().doesPickEntities()) {
+                PickCacheKey entityKey = { pick->getFilter().getEntityFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
+                if (!checkAndCompareCachedResults(mathematicalPick, results, res, entityKey)) {
+                    PickResultPointer entityRes = pick->getEntityIntersection(mathematicalPick);
+                    if (entityRes) {
+                        cacheResult(entityRes->doesIntersect(), entityRes, entityKey, res, mathematicalPick, results, pick);
+                    }
+                }
+            }
+
+            if (pick->getFilter().doesPickOverlays()) {
+                PickCacheKey overlayKey = { pick->getFilter().getOverlayFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
+                if (!checkAndCompareCachedResults(mathematicalPick, results, res, overlayKey)) {
+                    PickResultPointer overlayRes = pick->getOverlayIntersection(mathematicalPick);
+                    if (overlayRes) {
+                        cacheResult(overlayRes->doesIntersect(), overlayRes, overlayKey, res, mathematicalPick, results, pick);
+                    }
+                }
+            }
+
+            if (pick->getFilter().doesPickAvatars()) {
+                PickCacheKey avatarKey = { pick->getFilter().getAvatarFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
+                if (!checkAndCompareCachedResults(mathematicalPick, results, res, avatarKey)) {
+                    PickResultPointer avatarRes = pick->getAvatarIntersection(mathematicalPick);
+                    if (avatarRes) {
+                        cacheResult(avatarRes->doesIntersect(), avatarRes, avatarKey, res, mathematicalPick, results, pick);
+                    }
+                }
+            }
+
+            // Can't intersect with HUD in desktop mode
+            if (pick->getFilter().doesPickHUD() && shouldPickHUD) {
+                PickCacheKey hudKey = { pick->getFilter().getHUDFlags(), QVector<QUuid>(), QVector<QUuid>() };
+                if (!checkAndCompareCachedResults(mathematicalPick, results, res, hudKey)) {
+                    PickResultPointer hudRes = pick->getHUDIntersection(mathematicalPick);
+                    if (hudRes) {
+                        cacheResult(true, hudRes, hudKey, res, mathematicalPick, results, pick);
+                    }
+                }
+            }
+
+            if (pick->getMaxDistance() == 0.0f || (pick->getMaxDistance() > 0.0f && res->checkOrFilterAgainstMaxDistance(pick->getMaxDistance()))) {
+                pick->setPickResult(res);
+            } else {
+                pick->setPickResult(pick->getDefaultResult(mathematicalPick.toVariantMap()));
+            }
+        }
+
+        ++itr;
+        if (itr == picks.end()) {
+            itr = picks.begin();
+        }
+        nextToUpdate = itr->first;
+        ++numUpdates;
+        if (usecTimestampNow() > expiry) {
+            break;
         }
     }
 }

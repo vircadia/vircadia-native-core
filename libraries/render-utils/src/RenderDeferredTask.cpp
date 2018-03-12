@@ -142,12 +142,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto ambientOcclusionFramebuffer = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(0);
     const auto ambientOcclusionUniforms = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(1);
 
-    
+    // Clear Light, Haze and Skybox Stages and render zones from the general metas bucket
+    const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
+
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     task.addJob<DrawLight>("DrawLight", lights);
-
-    // Filter zones from the general metas bucket
-    const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
 
     // Light Clustering
     // Create the cluster grid of lights, cpu job for now

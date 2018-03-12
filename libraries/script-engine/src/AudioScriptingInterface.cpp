@@ -60,8 +60,18 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound
     }
 }
 
-void AudioScriptingInterface::setStereoInput(bool stereo) {
+bool AudioScriptingInterface::setStereoInput(bool stereo) {
+    bool stereoInputChanged = false;
     if (_localAudioInterface) {
-        _localAudioInterface->setIsStereoInput(stereo);
+        stereoInputChanged = _localAudioInterface->setIsStereoInput(stereo);
     }
+    return stereoInputChanged;
+}
+
+bool AudioScriptingInterface::isStereoInput() {
+    bool stereoEnabled = false;
+    if (_localAudioInterface) {
+        stereoEnabled = _localAudioInterface->isStereoInput();
+    }
+    return stereoEnabled;
 }

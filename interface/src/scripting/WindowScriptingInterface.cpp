@@ -259,7 +259,6 @@ void WindowScriptingInterface::browseAsync(const QString& title, const QString& 
             setPreviousBrowseLocation(QFileInfo(result).absolutePath());
         }
         emit browseChanged(result);
-        emit openFileChanged(result); // Deprecated signal; to be removed in due course.
     });
 }
 

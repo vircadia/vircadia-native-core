@@ -11,6 +11,8 @@
 #include "QJsonDocument"
 #include "QJsonArray"
 
+#include "RegisteredMetaTypes.h"
+
 NetworkMaterialResource::NetworkMaterialResource(const QUrl& url) :
     Resource(url) {}
 
@@ -39,6 +41,11 @@ bool NetworkMaterialResource::parseJSONColor(const QJsonValue& array, glm::vec3&
             color = glm::vec3(colorArray[0].toDouble(), colorArray[1].toDouble(), colorArray[2].toDouble());
             return true;
         }
+    } else if (array.isObject()) {
+        bool toReturn;
+        isSRGB = true;
+        color = vec3FromVariant(array.toObject(), toReturn);
+        return toReturn;
     }
     return false;
 }
