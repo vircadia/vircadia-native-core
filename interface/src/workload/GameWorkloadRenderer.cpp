@@ -15,7 +15,6 @@
 #include <StencilMaskPass.h>
 #include <GeometryCache.h>
 
-#include <gpu/DrawWhite_frag.h>
 #include "render-utils/drawWorkloadProxy_vert.h"
 #include "render-utils/drawWorkloadView_vert.h"
 #include "render-utils/drawWorkloadProxy_frag.h"
@@ -181,7 +180,6 @@ const gpu::PipelinePointer GameWorkloadRenderItem::getViewsPipeline() {
     if (!_drawAllViewsPipeline) {
         auto vs = drawWorkloadView_vert::getShader();
         auto ps = drawWorkloadView_frag::getShader();
-    //    auto ps = DrawWhite_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
