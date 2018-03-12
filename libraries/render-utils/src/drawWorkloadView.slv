@@ -106,39 +106,57 @@ void main(void) {
     int regionVertexID = viewVertexID - regionID * NUM_VERTICES_PER_VIEW_REGION;
 
     int segmentID = regionVertexID / NUM_VERTICES_PER_SEGMENT;
-    int segmentVertexID = regionVertexID / NUM_VERTICES_PER_SEGMENT;
+    int segmentVertexID = regionVertexID - segmentID * NUM_VERTICES_PER_SEGMENT;
 
     vec4 segment = verts[segmentID];
 
-    vec4 spriteVert = vec4(segment.xy, 0.0, 1.0);
+    vec4 spriteVert = vec4(segment.y, 0.0, segment.x, 1.0);
+    vec3 spriteTan = vec3(segment.x, 0.0, -segment.y);
 
-    vec3 lateralDir = (-1.0 + 2.0 * float(segmentVertexID)) * vec3(segment.y, -segment.x, 0.0);
-
+    vec3 lateralDir = vec3(0.0,  -1.0 + 2.0 * float(segmentVertexID), 0.0);
 
     WorkloadView view = getWorkloadView(viewID);
-
     vec4 region = view.regions[regionID];
-
     vec4 proxyPosWorld = vec4(region.xyz, 1.0);
     float regionRadius = region.w;
 
     // Define the sprite space
-    vec3 dirZ = vec3(0.0, 0.0, 1.0);
-    vec3 dirX = vec3(1.0, 0.0, 0.0);
+ //   vec3 dirZ = vec3(0.0, 0.0, 1.0);
+ //   vec3 dirX = vec3(1.0, 0.0, 0.0);
+ //   vec3 dirY = vec3(0.0, 1.0, 0.0);
+    
+    vec3 dirZ = -normalize(view.direction_far.xyz);
     vec3 dirY = vec3(0.0, 1.0, 0.0);
+    vec3 dirX = normalize(cross(dirY, dirZ));
+    dirY = normalize(cross(dirZ, dirX));
+    
+    spriteVert.xyz *= regionRadius; 
 
-    spriteVert.xyz += 0.2 * lateralDir;
-    vec3 originSpaceVert = regionRadius * (dirX * spriteVert.x + dirY * spriteVert.y + dirZ * spriteVert.z);
+  //  spriteVert.xyz += (0.05 * (regionID + 1)) * lateralDir;
+
+    vec3 originSpaceVert = (dirX * spriteVert.x + dirY * spriteVert.y + dirZ * spriteVert.z);
+    vec3 originSpaceTan = normalize(dirX * spriteTan.x + dirY * spriteTan.y + dirZ * spriteTan.z);
+
 
     vec4 pos = vec4(proxyPosWorld.xyz + originSpaceVert, 1.0);
-    varTexcoord = spriteVert.xyz;
 
-    // standard transform, bring proxy in view space
+    // standard transform, bring pos in view space
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    vec4 proxyPosEye;
-    <$transformModelToEyePos(cam, obj, pos, proxyPosEye)$>
-    <$transformEyeToClipPos(cam, proxyPosEye, gl_Position)$>
+    vec4 posEye;
+    <$transformModelToEyePos(cam, obj, pos, posEye)$>
+    vec3 tanEye;
+    <$transformModelToEyeDir(cam, obj, originSpaceTan, tanEye)$>
+
+    lateralDir = normalize(cross(vec3(0.0, 0.0, 1.0), normalize(tanEye)));
+    posEye.xyz += (0.05 * (regionID + 1)) * lateralDir;
+
+
+    <$transformEyeToClipPos(cam, posEye, gl_Position)$>
+
+    varTexcoord = spriteVert.xyz;
+
+
 
     // Convert region to color
     varColor = vec4(colorWheel(float(regionID) / 4.0), -1.0);
