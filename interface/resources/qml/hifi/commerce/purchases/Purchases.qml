@@ -296,6 +296,7 @@ Rectangle {
         // FILTER BAR START
         //
         Item {
+            z: 997;
             id: filterBarContainer;
             // Size
             height: 40;
@@ -321,17 +322,16 @@ Rectangle {
                 size: 22;
             }
 
-            HifiControlsUit.TextField {
+            HifiControlsUit.FilterBar {
                 id: filterBar;
                 property string previousText: "";
                 colorScheme: hifi.colorSchemes.faintGray;
-                hasClearButton: true;
-                hasRoundedBorder: true;
+                anchors.top: parent.top;
+                anchors.right: parent.right;
                 anchors.left: myText.right;
                 anchors.leftMargin: 16;
-                height: 39;
-                anchors.verticalCenter: parent.verticalCenter;
-                anchors.right: parent.right;
+                textFieldHeight: 39;
+                height: textFieldHeight + dropdownHeight;
                 placeholderText: "filter items";
 
                 onTextChanged: {
@@ -350,6 +350,7 @@ Rectangle {
         //
 
         HifiControlsUit.Separator {
+            z: 996;
             id: separator;
             colorScheme: 2;
             anchors.left: parent.left;
