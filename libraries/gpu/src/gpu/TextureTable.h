@@ -12,15 +12,17 @@
 
 #include <array>
 
+#define TEXTURE_TABLE_COUNT 8
+
 namespace gpu {
 
 class TextureTable {
 public:
-    static const size_t COUNT = 8;
-    using Array = std::array<TexturePointer, COUNT>;
+    static const size_t COUNT;
+    using Array = std::array<TexturePointer, TEXTURE_TABLE_COUNT>;
     TextureTable();
     TextureTable(const std::initializer_list<TexturePointer>& textures);
-    TextureTable(const std::array<TexturePointer, COUNT>& textures);
+    TextureTable(const Array& textures);
 
     // Only for gpu::Context
     const GPUObjectPointer gpuObject{};
@@ -34,7 +36,7 @@ public:
 private:
     mutable Mutex _mutex;
     Array _textures;
-    Stamp _stamp{ 0 };
+    Stamp _stamp{ 1 };
 };
 
 }

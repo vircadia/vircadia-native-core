@@ -20,6 +20,7 @@
 
 #define INCREMENTAL_TRANSFER 0
 #define GPU_SSBO_TRANSFORM_OBJECT 1
+#define GPU_BINDLESS_TEXTURES 0
 
 namespace gpu { namespace gl45 {
     
@@ -92,20 +93,11 @@ public:
     private:
         mutable Bindless _bindless;
 #endif
-        class InvalidSampler : public Sampler {
-        public:
-            InvalidSampler() {
-                _desc._borderColor = vec4(-1.0f);
-            }
 
-            operator const Sampler&() const {
-                return *this;
-            }
-        };
+        static Sampler getInvalidSampler();
 
-        static const Sampler INVALID_SAMPLER;
         // This stores the texture handle (64 bits) in xy, the min mip available in z, and the sampler ID in w
-        mutable Sampler _cachedSampler{ INVALID_SAMPLER };
+        mutable Sampler _cachedSampler{ getInvalidSampler() };
     };
 
 #if GPU_BINDLESS_TEXTURES 

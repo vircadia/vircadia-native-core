@@ -185,7 +185,7 @@ void GL45ResourceTexture::promote() {
     glDeleteTextures(1, &oldId);
 
     // Update sampler
-    _cachedSampler = InvalidSampler();
+    _cachedSampler = getInvalidSampler();
     syncSampler();
 
     // update the memory usage
@@ -228,7 +228,7 @@ void GL45ResourceTexture::demote() {
     glDeleteTextures(1, &oldId);
 
     // Update sampler
-    _cachedSampler = InvalidSampler();
+    _cachedSampler = getInvalidSampler();
     syncSampler();
 
     // update the memory usage

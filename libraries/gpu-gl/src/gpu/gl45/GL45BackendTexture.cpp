@@ -163,7 +163,18 @@ private:
 };
 
 static GLSamplerCache SAMPLER_CACHE;
-const Sampler GL45Texture::INVALID_SAMPLER = GL45Texture::InvalidSampler();
+
+
+Sampler GL45Texture::getInvalidSampler() {
+    static Sampler INVALID_SAMPLER;
+    static std::once_flag once;
+    std::call_once(once, [] {
+        Sampler::Desc invalidDesc;
+        invalidDesc._borderColor = vec4(-1.0f);
+        INVALID_SAMPLER = Sampler(invalidDesc);
+    });
+    return INVALID_SAMPLER;
+}
 
 GL45Texture::GL45Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture)
     : GLTexture(backend, texture, allocate(texture)) {

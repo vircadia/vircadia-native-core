@@ -11,6 +11,9 @@
 #include <shared/GlobalAppProperties.h>
 using namespace gpu;
 
+
+const size_t TextureTable::COUNT{ TEXTURE_TABLE_COUNT };
+
 TextureTable::TextureTable() { }
 
 TextureTable::TextureTable(const std::initializer_list<TexturePointer>& textures) {
@@ -23,7 +26,7 @@ TextureTable::TextureTable(const std::initializer_list<TexturePointer>& textures
     }
 }
 
-TextureTable::TextureTable(const std::array<TexturePointer, COUNT>& textures) : _stamp(1), _textures(textures) {
+TextureTable::TextureTable(const Array& textures) : _textures(textures) {
 }
 
 void TextureTable::setTexture(size_t index, const TexturePointer& texturePointer) {

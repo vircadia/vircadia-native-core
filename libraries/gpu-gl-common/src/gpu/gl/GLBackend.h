@@ -55,8 +55,6 @@
 #define GPU_STEREO_CAMERA_BUFFER
 #endif
 
-#define GPU_BINDLESS_TEXTURES 0
-
 namespace gpu { namespace gl {
 
 class GLBackend : public Backend, public std::enable_shared_from_this<GLBackend> {
