@@ -21,7 +21,7 @@ public:
 
     bool freezeViews{ false };
     bool showProxies{ false };
-    bool showViews{ true };
+    bool showViews{ false };
 signals:
     void dirty();
 
