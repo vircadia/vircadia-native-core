@@ -269,8 +269,8 @@ protected:
 
     int _leftEyeJointIndex { -1 };
     int _rightEyeJointIndex { -1 };
-    QVector<int> _leftEyeJointChildren;
-    QVector<int> _rightEyeJointChildren;
+    std::vector<int> _leftEyeJointChildren;
+    std::vector<int> _rightEyeJointChildren;
 
     int _leftHandJointIndex { -1 };
     int _leftElbowJointIndex { -1 };
