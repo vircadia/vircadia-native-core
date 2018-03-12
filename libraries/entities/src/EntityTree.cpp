@@ -260,7 +260,7 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
             return;
         }
     }
-    
+
     // check to see if we need to simulate this entity..
     if (_simulation) {
         _simulation->addEntity(entity);
@@ -693,7 +693,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             trackDeletedEntity(theEntity->getEntityItemID());
         }
 
-        if (_simulation) {
+        if (theEntity->isSimulated()) {
             _simulation->prepareEntityForDelete(theEntity);
         }
     }
@@ -1689,7 +1689,7 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
 }
 
 void EntityTree::entityChanged(EntityItemPointer entity) {
-    if (_simulation) {
+    if (entity->isSimulated()) {
         _simulation->changeEntity(entity);
     }
 }
