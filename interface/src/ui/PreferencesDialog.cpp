@@ -24,10 +24,6 @@
 #include "SnapshotAnimated.h"
 #include "UserActivityLogger.h"
 
-#include "AmbientOcclusionEffect.h"
-#include "AntialiasingEffect.h"
-#include "RenderShadowTask.h"
-
 void setupPreferences() {
     auto preferences = DependencyManager::get<Preferences>();
     auto nodeList = DependencyManager::get<NodeList>();
@@ -295,30 +291,6 @@ void setupPreferences() {
     }
 #endif
 
-
-    {
-        static const QString RENDER("Graphics");
-        auto renderConfig = qApp->getRenderEngine()->getConfiguration();
-        if (renderConfig) {
-            auto mainViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("RenderMainView.AmbientOcclusion");
-            if (mainViewAmbientOcclusionConfig) {
-                auto getter = [mainViewAmbientOcclusionConfig]()->QString { return mainViewAmbientOcclusionConfig->getPreset(); };
-                auto setter = [mainViewAmbientOcclusionConfig](QString preset) { mainViewAmbientOcclusionConfig->setPreset(preset); };
-                auto preference = new ComboBoxPreference(RENDER, "Ambient occlusion", getter, setter);
-                preference->setItems(mainViewAmbientOcclusionConfig->getPresetList());
-                preferences->addPreference(preference);
-            }
-
-            auto mainViewShadowConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
-            if (mainViewShadowConfig) {
-                auto getter = [mainViewShadowConfig]()->QString { return mainViewShadowConfig->getPreset(); };
-                auto setter = [mainViewShadowConfig](QString preset) { mainViewShadowConfig->setPreset(preset); };
-                auto preference = new ComboBoxPreference(RENDER, "Shadows", getter, setter);
-                preference->setItems(mainViewShadowConfig->getPresetList());
-                preferences->addPreference(preference);
-            }
-        }
-    }
     {
         static const QString NETWORKING("Networking");
 
