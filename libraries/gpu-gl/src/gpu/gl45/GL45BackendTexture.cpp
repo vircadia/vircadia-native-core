@@ -22,7 +22,7 @@
 #include <NumericalConstants.h>
 #include <gl/Context.h>
 #include <gpu/TextureTable.h>
-#include "../gl/GLTexelFormat.h"
+#include <gpu/gl/GLTexelFormat.h>
 
 using namespace gpu;
 using namespace gpu::gl;

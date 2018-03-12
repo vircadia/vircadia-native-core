@@ -22,6 +22,7 @@ class QQmlContext;
 private: \
     static const QString NAME; \
     static const QUrl QML; \
+    static bool registered; \
 public: \
     static void registerType(); \
     static void show(std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}); \
@@ -45,6 +46,7 @@ private:
 #define HIFI_QML_DEF(x) \
     const QUrl x::QML = PathUtils::qmlUrl(#x ".qml"); \
     const QString x::NAME = #x; \
+    bool x::registered = false; \
     \
     void x::registerType() { \
         qmlRegisterType<x>("Hifi", 1, 0, NAME.toLocal8Bit().constData()); \
@@ -52,6 +54,9 @@ private:
     \
     void x::show(std::function<void(QQmlContext*, QObject*)> f) { \
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
+        if (!registered) { \
+            x::registerType(); \
+        } \
         offscreenUi->show(QML, NAME, f); \
     } \
     \

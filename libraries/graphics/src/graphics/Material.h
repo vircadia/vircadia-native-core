@@ -357,8 +357,9 @@ public:
 
     void setTextureTransforms(const Transform& transform);
 
-    const std::string& getName() { return _name; }
+    const std::string& getName() const { return _name; }
 
+    const std::string& getModel() const { return _model; }
     void setModel(const std::string& model) { _model = model; }
 
     const gpu::TextureTablePointer& getTextureTable() const { return _textureTable; }

@@ -13,7 +13,7 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include "../gl/GLTexelFormat.h"
+#include <gpu/gl/GLTexelFormat.h>
 
 using namespace gpu;
 using namespace gpu::gl;
