@@ -27,6 +27,7 @@ Item {
     property alias dropdownHeight: dropdownContainer.height;
     property alias text: textField.text;
     property alias primaryFilterChoices: filterBarModel;
+    property alias textFieldFocused: textField.focus;
     property string primaryFilter: "";
     signal accepted;
 
@@ -69,7 +70,7 @@ Item {
         }
 
         onAccepted: {
-            root.accepted();
+            root.forceActiveFocus();
         }
 
         onActiveFocusChanged: {
@@ -162,7 +163,7 @@ Item {
                     MouseArea {
                         anchors.fill: parent;
                         onClicked: {
-                            textField.focus = true;
+                            textField.forceActiveFocus();
                             dropdownContainer.visible = !dropdownContainer.visible;
                         }
                     }
@@ -205,6 +206,7 @@ Item {
                         onClicked: {
                             root.text = "";
                             root.primaryFilter = "";
+                            root.forceActiveFocus();
                         }
                     }
                 }
@@ -268,7 +270,7 @@ Item {
                         dropDownButton.color = hifi.colors.white;
                     }
                     onClicked: {
-                        textField.focus = true;
+                        textField.forceActiveFocus();
                         dropdownContainer.buttonClicked(model.filterName);
                         dropdownContainer.visible = false;
                     }

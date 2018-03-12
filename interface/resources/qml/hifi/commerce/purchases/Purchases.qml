@@ -373,10 +373,6 @@ Rectangle {
                     purchasesContentsList.positionViewAtIndex(0, ListView.Beginning)
                     filterBar.previousText = filterBar.text;
                 }
-
-                onAccepted: {
-                    focus = false;
-                }
             }
         }
         //
@@ -610,7 +606,7 @@ Rectangle {
 
     HifiControlsUit.Keyboard {
         id: keyboard;
-        raised: HMD.mounted && filterBar.focus;
+        raised: HMD.mounted && filterBar.textFieldFocused;
         numeric: parent.punctuationMode;
         anchors {
             bottom: parent.bottom;
