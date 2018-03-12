@@ -346,7 +346,7 @@ public:
      * restoreRoleAnimation() is used to restore a specified animation role's default animation clip. If you have not specified an override animation
      * for the specified role, this function will have no effect.
      * @function MyAvatar.restoreRoleAnimation
-     * @param rule {string} The animation role clip to restore
+     * @param role {string} The animation role clip to restore
      */
     Q_INVOKABLE void restoreRoleAnimation(const QString& role);
 
@@ -680,8 +680,6 @@ private:
 
     // These are made private for MyAvatar so that you will use the "use" methods instead
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
-
-    void setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visiblity);
 
     virtual void updatePalms() override {}
     void lateUpdatePalms();

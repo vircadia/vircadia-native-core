@@ -10,11 +10,13 @@
 #include <QtWidgets/QApplication>
 #include "ui/AutoTester.h"
 
+AutoTester* autoTester;
+
 int main(int argc, char *argv[]) {
     QApplication application(argc, argv);
 
-    AutoTester autoTester;
-    autoTester.show();
+    autoTester = new AutoTester();
+    autoTester->show();
 
     return application.exec();
 }

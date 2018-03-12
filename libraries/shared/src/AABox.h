@@ -71,6 +71,7 @@ public:
     bool expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const;
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                 BoxFace& face, glm::vec3& surfaceNormal) const;
+    bool rayHitsBoundingSphere(const glm::vec3& origin, const glm::vec3& direction) const;
     bool touchesSphere(const glm::vec3& center, float radius) const; // fast but may generate false positives
     bool touchesAAEllipsoid(const glm::vec3& center, const glm::vec3& radials) const;
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const;

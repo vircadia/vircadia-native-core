@@ -175,3 +175,11 @@ void PickScriptingInterface::registerMetaTypes(QScriptEngine* engine) {
 
     qScriptRegisterMetaType(engine, pickTypesToScriptValue, pickTypesFromScriptValue);
 }
+
+unsigned int PickScriptingInterface::getPerFrameTimeBudget() const {
+    return DependencyManager::get<PickManager>()->getPerFrameTimeBudget();
+}
+
+void PickScriptingInterface::setPerFrameTimeBudget(unsigned int numUsecs) {
+    DependencyManager::get<PickManager>()->setPerFrameTimeBudget(numUsecs);
+}
