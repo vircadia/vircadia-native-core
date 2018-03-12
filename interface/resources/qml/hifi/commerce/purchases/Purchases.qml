@@ -325,6 +325,7 @@ Rectangle {
             HifiControlsUit.FilterBar {
                 id: filterBar;
                 property string previousText: "";
+                property string previousPrimaryFilter: "";
                 colorScheme: hifi.colorSchemes.faintGray;
                 anchors.top: parent.top;
                 anchors.right: parent.right;
@@ -333,6 +334,39 @@ Rectangle {
                 textFieldHeight: 39;
                 height: textFieldHeight + dropdownHeight;
                 placeholderText: "filter items";
+
+                Component.onCompleted: {
+                    var choices = [
+                        {
+                            "displayName": "App",
+                            "filterName": "app"
+                        },
+                        {
+                            "displayName": "Avatar",
+                            "filterName": "avatar"
+                        },
+                        {
+                            "displayName": "Content Set",
+                            "filterName": "contentSet"
+                        },
+                        {
+                            "displayName": "Entity",
+                            "filterName": "entity"
+                        },
+                        {
+                            "displayName": "Wearable",
+                            "filterName": "wearable"
+                        }
+                    ]
+                    filterBar.primaryFilterChoices.clear();
+                    filterBar.primaryFilterChoices.append(choices);
+                }
+
+                onPrimaryFilterChanged: {
+                    buildFilteredPurchasesModel();
+                    purchasesContentsList.positionViewAtIndex(0, ListView.Beginning)
+                    filterBar.previousPrimaryFilter = filterBar.primaryFilter;
+                }
 
                 onTextChanged: {
                     buildFilteredPurchasesModel();
@@ -399,21 +433,7 @@ Rectangle {
                 displayedItemCount: model.displayedItemCount;
                 permissionExplanationCardVisible: model.permissionExplanationCardVisible;
                 isInstalled: model.isInstalled;
-                itemType: {
-                    if (model.root_file_url.indexOf(".fst") > -1) {
-                        "avatar";
-                    } else if (model.categories.indexOf("Wearables") > -1) {
-                        "wearable";
-                    } else if (model.root_file_url.endsWith('.json.gz')) {
-                        "contentSet";
-                    } else if (model.root_file_url.endsWith('.app.json')) {
-                        "app";
-                    } else if (model.root_file_url.endsWith('.json')) {
-                        "entity";
-                    } else {
-                        "unknown";
-                    }
-                }
+                itemType: model.itemType;
                 anchors.topMargin: 10;
                 anchors.bottomMargin: 10;
 
@@ -661,6 +681,7 @@ Rectangle {
         var sameItemCount = 0;
         
         tempPurchasesModel.clear();
+
         for (var i = 0; i < purchasesModel.count; i++) {
             if (purchasesModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
                 if (purchasesModel.get(i).status !== "confirmed" && !root.isShowingMyItems) {
@@ -669,6 +690,35 @@ Rectangle {
                 (!root.isShowingMyItems && purchasesModel.get(i).edition_number !== "0")) {
                     tempPurchasesModel.append(purchasesModel.get(i));
                 }
+            }
+        }
+        
+        // primaryFilter filtering and adding of itemType property to model
+        var currentItemType, currentRootFileUrl, currentCategories;
+        for (var i = 0; i < tempPurchasesModel.count; i++) {
+            currentRootFileUrl = tempPurchasesModel.get(i).root_file_url;
+            currentCategories = tempPurchasesModel.get(i).categories;
+
+            if (currentRootFileUrl.indexOf(".fst") > -1) {
+                currentItemType = "avatar";
+            } else if (currentCategories.indexOf("Wearables") > -1) {
+                currentItemType = "wearable";
+            } else if (currentRootFileUrl.endsWith('.json.gz')) {
+                currentItemType = "contentSet";
+            } else if (currentRootFileUrl.endsWith('.app.json')) {
+                currentItemType = "app";
+            } else if (currentRootFileUrl.endsWith('.json')) {
+                currentItemType = "entity";
+            } else {
+                currentItemType = "unknown";
+            }
+
+            if (filterBar.primaryFilter !== "" &&
+                currentItemType.toLowerCase() !== filterBar.primaryFilter.toLowerCase()) {
+                tempPurchasesModel.remove(i);
+                i--;
+            } else {
+                tempPurchasesModel.setProperty(i, 'itemType', currentItemType);
             }
         }
         
@@ -683,7 +733,9 @@ Rectangle {
             }
         }
 
-        if (sameItemCount !== tempPurchasesModel.count || filterBar.text !== filterBar.previousText) {
+        if (sameItemCount !== tempPurchasesModel.count ||
+            filterBar.text !== filterBar.previousText ||
+            filterBar.primaryFilter !== filterBar.previousPrimaryFilter) {
             filteredPurchasesModel.clear();
             var currentId;
             for (var i = 0; i < tempPurchasesModel.count; i++) {

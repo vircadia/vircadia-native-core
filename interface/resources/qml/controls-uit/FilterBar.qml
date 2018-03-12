@@ -26,6 +26,8 @@ Item {
     property string placeholderText;
     property alias dropdownHeight: dropdownContainer.height;
     property alias text: textField.text;
+    property alias primaryFilterChoices: filterBarModel;
+    property string primaryFilter: "";
     signal accepted;
 
     TextField {
@@ -38,13 +40,12 @@ Item {
         font.family: "Fira Sans"
         font.pixelSize: hifi.fontSizes.textFieldInput
 
-        property string primaryFilter: "";
-        placeholderText: primaryFilter === "" ? root.placeholderText : "";
+        placeholderText: root.primaryFilter === "" ? root.placeholderText : "";
                     
         TextMetrics {
             id: primaryFilterTextMetrics;
             font.family: "FiraSans Regular";
-            text: textField.primaryFilter;
+            text: root.primaryFilter;
         }
 
         // workaround for https://bugreports.qt.io/browse/QTBUG-49297
@@ -61,7 +62,7 @@ Item {
                 break;
                 case Qt.Key_Backspace:
                     if (textField.text === "") {
-                        textField.primaryFilter = "";
+                        root.primaryFilter = "";
                     }
                 break;
             }
@@ -180,7 +181,7 @@ Item {
 
                     FiraSansRegular {
                         id: primaryFilterText;
-                        text: textField.primaryFilter;
+                        text: root.primaryFilter;
                         anchors.fill: parent;
                         color: hifi.colors.white;
                         horizontalAlignment: Text.AlignHCenter;
@@ -197,13 +198,13 @@ Item {
                     anchors.right: parent.right
                     anchors.rightMargin: hifi.dimensions.textPadding - 2
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: root.text !== "" || textField.primaryFilter !== "";
+                    visible: root.text !== "" || root.primaryFilter !== "";
 
                     MouseArea {
                         anchors.fill: parent;
                         onClicked: {
                             root.text = "";
-                            textField.primaryFilter = "";
+                            root.primaryFilter = "";
                         }
                     }
                 }
@@ -212,52 +213,15 @@ Item {
             placeholderTextColor: isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray
             selectedTextColor: hifi.colors.black
             selectionColor: hifi.colors.primaryHighlight
-            padding.left: 44 + (textField.primaryFilter === "" ? 0 : primaryFilterTextMetrics.tightBoundingRect.width + 32);
+            padding.left: 44 + (root.primaryFilter === "" ? 0 : primaryFilterTextMetrics.tightBoundingRect.width + 32);
             padding.right: 44
-        }
-    }
-
-    Component {
-        id: dropDownButtonComponent;
-
-        Rectangle {
-            id: dropDownButton;
-            color: hifi.colors.white;
-            property alias text: dropDownButtonText.text;
-
-            RalewaySemiBold {
-                id: dropDownButtonText;
-                anchors.fill: parent;
-                anchors.leftMargin: 12;
-                color: hifi.colors.baseGray;
-                horizontalAlignment: Text.AlignLeft;
-                verticalAlignment: Text.AlignVCenter;
-                size: 18;
-            }
-
-            MouseArea {
-                anchors.fill: parent;
-                hoverEnabled: true;
-                propagateComposedEvents: false;
-                onEntered: {
-                    dropDownButton.color = hifi.colors.blueHighlight;
-                }
-                onExited: {
-                    dropDownButton.color = hifi.colors.white;
-                }
-                onClicked: {
-                    textField.focus = true;
-                    dropdownContainer.buttonClicked(dropDownButtonText.text);
-                    dropdownContainer.visible = false;
-                }
-            }
         }
     }
 
     Rectangle {
         id: dropdownContainer;
         visible: false;
-        height: 100;
+        height: 50 * filterBarModel.count;
         width: parent.width;
         anchors.top: textField.bottom;
         anchors.left: parent.left;
@@ -266,30 +230,49 @@ Item {
         signal buttonClicked(string text);
 
         onButtonClicked: {
-            textField.primaryFilter = text;
+            root.primaryFilter = text;
         }
 
-        Loader {
-            id: item1;
-            sourceComponent: dropDownButtonComponent;
-            width: parent.width;
-            height: 50;
-            x: 0;
-            y: 0;
-            onLoaded: {
-                item.text = "item1";
-            }
+        ListModel {
+            id: filterBarModel;
         }
 
-        Loader {
-            id: item2;
-            sourceComponent: dropDownButtonComponent;
-            width: parent.width;
-            height: 50;
-            x: 0;
-            y: 50;
-            onLoaded: {
-                item.text = "item2";
+        ListView {
+            anchors.fill: parent;
+            model: filterBarModel;
+            delegate: Rectangle {
+                id: dropDownButton;
+                color: hifi.colors.white;
+                width: parent.width;
+                height: 50;
+
+                RalewaySemiBold {
+                    id: dropDownButtonText;
+                    text: model.displayName;
+                    anchors.fill: parent;
+                    anchors.leftMargin: 12;
+                    color: hifi.colors.baseGray;
+                    horizontalAlignment: Text.AlignLeft;
+                    verticalAlignment: Text.AlignVCenter;
+                    size: 18;
+                }
+
+                MouseArea {
+                    anchors.fill: parent;
+                    hoverEnabled: true;
+                    propagateComposedEvents: false;
+                    onEntered: {
+                        dropDownButton.color = hifi.colors.blueHighlight;
+                    }
+                    onExited: {
+                        dropDownButton.color = hifi.colors.white;
+                    }
+                    onClicked: {
+                        textField.focus = true;
+                        dropdownContainer.buttonClicked(model.filterName);
+                        dropdownContainer.visible = false;
+                    }
+                }
             }
         }
     }
