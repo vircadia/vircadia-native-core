@@ -2789,22 +2789,48 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
     }
     else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _thirdPersonHMDCameraBoomValid= false;
-        auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        const float YAW_SPEED = 70.0f;
-        float targetSpeed = userInputMapper->getActionState(controller::Action::YAW) * YAW_SPEED;
-        if (targetSpeed != 0.0f) {
-            const float ROTATION_TIMESCALE = 20.0f;
-            float blend = deltaTime / ROTATION_TIMESCALE;
-            if (blend > 1.0f) {
-                blend = 1.0f;
-            }
-            _rotateMirror = (1.0f - blend) * _rotateMirror + blend * targetSpeed;
+
+        if (isHMDMode()) {
+            auto mirrorBodyOrientation = myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
+
+            glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
+            // Mirror HMD yaw and roll
+            glm::vec3 mirrorHmdEulers = glm::eulerAngles(hmdRotation);
+            mirrorHmdEulers.y = -mirrorHmdEulers.y;
+            mirrorHmdEulers.z = -mirrorHmdEulers.z;
+            glm::quat mirrorHmdRotation = glm::quat(mirrorHmdEulers);
+
+            glm::quat worldMirrorRotation = mirrorBodyOrientation * mirrorHmdRotation;
+
+            _myCamera.setOrientation(worldMirrorRotation);
+
+            glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
+            // Mirror HMD lateral offsets
+            hmdOffset.x = -hmdOffset.x;
+
+            _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
+                + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
+                + mirrorBodyOrientation * hmdOffset);
         }
-        _myCamera.setOrientation(glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-        _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-            + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
-            + (glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-            glm::vec3(0.0f, 0.0f, -1.0f) * myAvatar->getBoomLength() * _scaleMirror);
+        else {
+            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            const float YAW_SPEED = 70.0f;
+            float targetSpeed = userInputMapper->getActionState(controller::Action::YAW) * YAW_SPEED;
+            if (targetSpeed != 0.0f) {
+                const float ROTATION_TIMESCALE = 20.0f;
+                float blend = deltaTime / ROTATION_TIMESCALE;
+                if (blend > 1.0f) {
+                    blend = 1.0f;
+                }
+                _rotateMirror = (1.0f - blend) * _rotateMirror + blend * targetSpeed;
+            }
+            _myCamera.setOrientation(glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+            _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                                  + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
+                                  + (glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                                  glm::vec3(0.0f, 0.0f, -1.0f) * myAvatar->getBoomLength() * _scaleMirror);
+        }
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
     else if (_myCamera.getMode() == CAMERA_MODE_ENTITY) {

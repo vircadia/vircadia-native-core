@@ -72,11 +72,6 @@
           "when": "Application.CameraThirdPerson",
           "to": "Actions.Yaw"
         },
-        { "from": { "makeAxis" : [ ["Keyboard.A"], ["Keyboard.D"] ] },
-          "when": "Application.CameraFSM",
-          "to": "Actions.Yaw"
-        },
-
         { "from": { "makeAxis" : ["Keyboard.MouseMoveLeft", "Keyboard.MouseMoveRight"] },
           "when": "Keyboard.RightMouseButton",
           "to": "Actions.Yaw",
