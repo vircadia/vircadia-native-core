@@ -1445,7 +1445,7 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
         // Update eye joint's children.
         auto children = index == _leftEyeJointIndex ? _leftEyeJointChildren : _rightEyeJointChildren;
-        for (int i = 0; i < children.size(); i++) {
+        for (int i = 0; i < (int)children.size(); i++) {
             int jointIndex = children[i];
             int parentIndex = _animSkeleton->getParentIndex(jointIndex);
             _internalPoseSet._absolutePoses[jointIndex] = 
