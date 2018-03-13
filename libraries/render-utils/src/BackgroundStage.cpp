@@ -93,7 +93,7 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
             PerformanceTimer perfTimer("skybox");
             auto args = renderContext->args;
 
-            gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+            gpu::doInBatch("DrawBackgroundStage::run", args->_context, [&](gpu::Batch& batch) {
                 args->_batch = &batch;
 
                 batch.enableSkybox(true);

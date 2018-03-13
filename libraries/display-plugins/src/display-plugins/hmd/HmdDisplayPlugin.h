@@ -26,9 +26,9 @@ public:
     ~HmdDisplayPlugin();
     bool isHmd() const override final { return true; }
     float getIPD() const override final { return _ipd; }
-    glm::mat4 getEyeToHeadTransform(Eye eye) const override final { return _eyeOffsets[eye]; }
-    glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override { return _eyeProjections[eye]; }
-    glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override { return _cullingProjection; }
+    glm::mat4 getEyeToHeadTransform(Eye eye) const override final;
+    glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override;
+    glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override;
     glm::uvec2 getRecommendedUiSize() const override final;
     glm::uvec2 getRecommendedRenderSize() const override final { return _renderTargetSize; }
     bool isDisplayVisible() const override { return isHmdMounted(); }
@@ -59,6 +59,7 @@ protected:
     void customizeContext() override;
     void uncustomizeContext() override;
     void updateFrameData() override;
+    glm::mat4 getViewCorrection() override;
 
     std::array<mat4, 2> _eyeOffsets;
     std::array<mat4, 2> _eyeProjections;

@@ -147,7 +147,7 @@ class MyTestWindow : public TestWindow {
             return;
         }
 
-        gpu::doInBatch(_renderArgs->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("main::renderFrame", _renderArgs->_context, [&](gpu::Batch& batch) {
             batch.setViewTransform(_camera);
             _renderArgs->_batch = &batch;
             _currentTest->renderTest(_currentTestId, _renderArgs);

@@ -107,7 +107,7 @@ public:
             args->_displayMode = RenderArgs::MONO;
             args->_renderMode = RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE;
 
-            gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+            gpu::doInBatch("SecondaryCameraJob::run", args->_context, [&](gpu::Batch& batch) {
                 batch.disableContextStereo();
                 batch.disableContextViewCorrection();
             });
@@ -196,7 +196,7 @@ public:
         args->_displayMode = cachedArgs->_displayMode;
         args->_renderMode = cachedArgs->_renderMode;
 
-        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("EndSecondaryCameraFrame::run", args->_context, [&](gpu::Batch& batch) {
             batch.restoreContextStereo();
             batch.restoreContextViewCorrection();
         });

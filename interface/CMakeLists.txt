@@ -23,12 +23,22 @@ set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
 set(RESOURCES_RCC ${CMAKE_CURRENT_SOURCE_DIR}/compiledResources/resources.rcc)
 generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources CUSTOM_PATHS ${CUSTOM_INTERFACE_QRC_PATHS} GLOBS *)
 
-add_custom_command(
-    OUTPUT ${RESOURCES_RCC}
-    DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-    COMMAND "${QT_DIR}/bin/rcc"
-    ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
-)
+if (ANDROID)
+  # on Android, don't compress the rcc binary
+  add_custom_command(
+      OUTPUT ${RESOURCES_RCC}
+      DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
+      COMMAND "${QT_DIR}/bin/rcc"
+      ARGS ${RESOURCES_QRC} -no-compress -binary -o ${RESOURCES_RCC}
+  )
+else ()
+  add_custom_command(
+      OUTPUT ${RESOURCES_RCC}
+      DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
+      COMMAND "${QT_DIR}/bin/rcc"
+      ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
+  )
+endif()
 
 list(APPEND GENERATE_QRC_DEPENDS ${RESOURCES_RCC})
 add_custom_target(resources ALL DEPENDS ${GENERATE_QRC_DEPENDS})

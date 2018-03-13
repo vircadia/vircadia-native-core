@@ -75,7 +75,7 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
     glm::ivec4 viewport{ 0, 0, bufferSize.x, bufferSize.y };
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("BloomThreshold::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         batch.setViewportTransform(viewport);
@@ -135,7 +135,7 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
     const auto blur2FB = inputs.get3();
     const glm::ivec4 viewport{ 0, 0, framebufferSize.x, framebufferSize.y };
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("BloomApply::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         batch.setFramebuffer(frameBuffer);
@@ -180,7 +180,7 @@ void BloomDraw::run(const render::RenderContextPointer& renderContext, const Inp
             _pipeline = gpu::Pipeline::create(program, state);
         }
 
-        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("BloomDraw::run", args->_context, [&](gpu::Batch& batch) {
             batch.enableStereo(false);
 
             batch.setFramebuffer(frameBuffer);
@@ -238,7 +238,7 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
         _pipeline = gpu::Pipeline::create(program, state);
     }
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DebugBloom::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         batch.setFramebuffer(frameBuffer);
