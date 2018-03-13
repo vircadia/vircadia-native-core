@@ -356,6 +356,10 @@ Rectangle {
                         {
                             "displayName": "Wearable",
                             "filterName": "wearable"
+                        },
+                        {
+                            "displayName": "Updatable",
+                            "filterName": "updatable"
                         }
                     ]
                     filterBar.primaryFilterChoices.clear();
@@ -709,8 +713,9 @@ Rectangle {
                 currentItemType = "unknown";
             }
 
-            if (filterBar.primaryFilter_filterName !== "" &&
-                currentItemType.toLowerCase() !== filterBar.primaryFilter_filterName.toLowerCase()) {
+            if (filterBar.primaryFilter_displayName !== "" &&
+                (filterBar.primaryFilter_displayName.toLowerCase() !== currentItemType.toLowerCase())) { //|| UNCOMMENT WHEN UPGRADES ARE IN
+                //(filterBar.primaryFilter_displayName === "Updatable" && tempPurchasesModel.get(i).upgradeUrl !== "")) {
                 tempPurchasesModel.remove(i);
                 i--;
             } else {

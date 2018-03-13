@@ -11,6 +11,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
+import QtGraphicalEffects 1.0
 
 import "../styles-uit"
 import "../controls-uit" as HifiControls
@@ -27,7 +28,7 @@ Item {
     property alias dropdownHeight: dropdownContainer.height;
     property alias text: textField.text;
     property alias primaryFilterChoices: filterBarModel;
-    property alias textFieldFocused: textField.focus;
+    property alias textFieldFocused: textField.activeFocus;
     property int primaryFilter_index: -1;
     property string primaryFilter_filterName: "";
     property string primaryFilter_displayName: "";
@@ -289,5 +290,16 @@ Item {
                 }
             }
         }
+    }
+
+    DropShadow {
+        anchors.fill: dropdownContainer;
+        horizontalOffset: 0;
+        verticalOffset: 4;
+        radius: 4.0;
+        samples: 9
+        color: Qt.rgba(0, 0, 0, 0.25);
+        source: dropdownContainer;
+        visible: dropdownContainer.visible;
     }
 }
