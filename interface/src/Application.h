@@ -272,10 +272,6 @@ public:
 
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
-    graphics::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
-    gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
-    gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
-
     OverlayID getTabletScreenID() const;
     OverlayID getTabletHomeButtonID() const;
     QUuid getTabletFrameID() const; // may be an entity or an overlay
@@ -321,11 +317,11 @@ public slots:
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
     void addAssetToWorldFromURLRequestFinished();
-    void addAssetToWorld(QString filePath, QString zipFile, bool isZip, bool isBlocks);
+    void addAssetToWorld(QString filePath, QString zipFile, bool isZip = false, bool isBlocks = false);
     void addAssetToWorldUnzipFailure(QString filePath);
-    void addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy);
-    void addAssetToWorldUpload(QString filePath, QString mapping);
-    void addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash);
+    void addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy, bool isZip = false, bool isBlocks = false);
+    void addAssetToWorldUpload(QString filePath, QString mapping, bool isZip = false, bool isBlocks = false);
+    void addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash, bool isZip = false, bool isBlocks = false);
     void addAssetToWorldAddEntity(QString filePath, QString mapping);
 
     void handleUnzip(QString sourceFile, QStringList destinationFile, bool autoAdd, bool isZip, bool isBlocks);
@@ -392,6 +388,8 @@ public slots:
 
     const QString getPreferredCursor() const { return _preferredCursor.get(); }
     void setPreferredCursor(const QString& cursor);
+
+    Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
@@ -621,6 +619,7 @@ private:
     struct AppRenderArgs {
         render::Args _renderArgs;
         glm::mat4 _eyeToWorld;
+        glm::mat4 _view;
         glm::mat4 _eyeOffsets[2];
         glm::mat4 _eyeProjections[2];
         glm::mat4 _headPose;
@@ -675,10 +674,6 @@ private:
     QString _returnFromFullScreenMirrorTo;
 
     ConnectionMonitor _connectionMonitor;
-
-    graphics::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
-    gpu::TexturePointer _defaultSkyboxTexture;
-    gpu::TexturePointer _defaultSkyboxAmbientTexture;
 
     QTimer _addAssetToWorldResizeTimer;
     QHash<QUuid, int> _addAssetToWorldResizeList;

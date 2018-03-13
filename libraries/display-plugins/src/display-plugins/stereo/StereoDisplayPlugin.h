@@ -26,7 +26,7 @@ public:
     // the IPD at the Application level, the way we now allow with HMDs.
     // If that becomes an issue then we'll need to break up the functionality similar
     // to the HMD plugins.  
-    // virtual glm::mat4 getEyeToHeadTransform(Eye eye) const override;
+    //virtual glm::mat4 getEyeToHeadTransform(Eye eye) const override;
 
 protected:
     virtual bool internalActivate() override;

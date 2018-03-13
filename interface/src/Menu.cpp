@@ -43,6 +43,10 @@
 #include "ui/StandAloneJSConsole.h"
 #include "InterfaceLogging.h"
 #include "LocationBookmarks.h"
+#include "DeferredLightingEffect.h"
+
+#include "AmbientOcclusionEffect.h"
+#include "RenderShadowTask.h"
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
@@ -360,13 +364,6 @@ Menu::Menu() {
     // Developer menu ----------------------------------
     MenuWrapper* developerMenu = addMenu("Developer", "Developer");
 
-    // Developer > Graphics...
-    action = addActionToQMenuAndActionHash(developerMenu, "Graphics...");
-    connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/GraphicsPreferencesDialog.qml"),
-            QString("hifi/tablet/TabletGraphicsPreferences.qml"), "GraphicsPreferencesDialog");
-    });
-
     // Developer > UI >>>
     MenuWrapper* uiOptionsMenu = developerMenu->addMenu("UI");
     action = addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::DesktopTabletToToolbar, 0,
@@ -383,6 +380,36 @@ Menu::Menu() {
 
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
+    action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, true);
+    connect(action, &QAction::triggered, [action] {
+        auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+        if (renderConfig) {
+            auto mainViewShadowTaskConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
+            if (mainViewShadowTaskConfig) {
+                if (action->isChecked()) {
+                    mainViewShadowTaskConfig->setPreset("Enabled");
+                } else { 
+                    mainViewShadowTaskConfig->setPreset("None");
+                }
+            }
+        }
+    });
+
+    action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AmbientOcclusion, 0, false);
+    connect(action, &QAction::triggered, [action] {
+        auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+        if (renderConfig) {
+            auto mainViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("RenderMainView.AmbientOcclusion");
+            if (mainViewAmbientOcclusionConfig) {
+                if (action->isChecked()) {
+                    mainViewAmbientOcclusionConfig->setPreset("Enabled");
+                } else {
+                    mainViewAmbientOcclusionConfig->setPreset("None");
+                }
+            }
+        }
+    });
+
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::WorldAxes);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DefaultSkybox, 0, true);
 

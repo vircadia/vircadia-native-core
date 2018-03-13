@@ -253,6 +253,31 @@ void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
         releaseResourceTexture(slot);
         return;
     }
+    setResourceTexture(slot, resourceTexture);
+}
+
+void GLBackend::do_setResourceFramebufferSwapChainTexture(const Batch& batch, size_t paramOffset) {
+    GLuint slot = batch._params[paramOffset + 1]._uint;
+    if (slot >= (GLuint)MAX_NUM_RESOURCE_TEXTURES) {
+        qCDebug(gpugllogging) << "GLBackend::do_setResourceFramebufferSwapChainTexture: Trying to set a resource Texture at slot #" << slot << " which doesn't exist. MaxNumResourceTextures = " << getMaxNumResourceTextures();
+        return;
+    }
+
+    SwapChainPointer swapChain = batch._swapChains.get(batch._params[paramOffset + 0]._uint);
+
+    if (!swapChain) {
+        releaseResourceTexture(slot);
+        return;
+    }
+    auto index = batch._params[paramOffset + 2]._uint;
+    auto renderBufferSlot = batch._params[paramOffset + 3]._uint;
+    FramebufferPointer resourceFramebuffer = static_cast<const FramebufferSwapChain*>(swapChain.get())->get(index);
+    TexturePointer resourceTexture = resourceFramebuffer->getRenderBuffer(renderBufferSlot);
+
+    setResourceTexture(slot, resourceTexture);
+}
+
+void GLBackend::setResourceTexture(unsigned int slot, const TexturePointer& resourceTexture) {
     // check cache before thinking
     if (_resource._textures[slot] == resourceTexture) {
         return;
@@ -269,11 +294,11 @@ void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(target, to);
 
-        (void) CHECK_GL_ERROR();
+        (void)CHECK_GL_ERROR();
 
         _resource._textures[slot] = resourceTexture;
 
-        _stats._RSAmountTextureMemoryBounded += (int) object->size();
+        _stats._RSAmountTextureMemoryBounded += (int)object->size();
 
     } else {
         releaseResourceTexture(slot);

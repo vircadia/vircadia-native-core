@@ -22,6 +22,7 @@ uniform sampler2D halfNormalMap;
 uniform sampler2D occlusionMap;
 uniform sampler2D occlusionBlurredMap;
 uniform sampler2D scatteringMap;
+uniform sampler2D velocityMap;
 
 <@include ShadowCore.slh@>
 

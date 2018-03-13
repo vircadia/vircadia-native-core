@@ -45,7 +45,7 @@ class PolyVoxEntityItem : public EntityItem {
     // never have a ray intersection pick a PolyVoxEntityItem.
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                             bool& keepSearching, OctreeElementPointer& element, float& distance,
+                                             OctreeElementPointer& element, float& distance,
                                              BoxFace& face, glm::vec3& surfaceNormal,
                                              QVariantMap& extraInfo, bool precisionPicking) const override { return false; }
 
@@ -59,6 +59,25 @@ class PolyVoxEntityItem : public EntityItem {
 
     virtual int getOnCount() const { return 0; }
 
+    /**jsdoc
+     * <p>A <code>PolyVoxSurfaceStyle</code> may be one of the following:</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Type</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>0</code></td><td>Marching cubes.</td><td>Chamfered edges. Open volume.
+     *       Joins neighboring PolyVox entities reasonably well.</td></tr>
+     *     <tr><td><code>1</code></td><td>Cubic.</td><td>Square edges. Open volume.
+     *       Joins neighboring PolyVox entities cleanly.</td></tr>
+     *     <tr><td><code>2</code></td><td>Edged cubic.</td><td>Square edges. Enclosed volume.
+     *       Joins neighboring PolyVox entities cleanly.</td></tr>
+     *     <tr><td><code>3</code></td><td>Edged marching cubes.</td><td>Chamfered edges. Enclosed volume.
+     *       Doesn't join neighboring PolyVox entities.</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {number} Entities.PolyVoxSurfaceStyle
+     */
     enum PolyVoxSurfaceStyle {
         SURFACE_MARCHING_CUBES,
         SURFACE_CUBIC,

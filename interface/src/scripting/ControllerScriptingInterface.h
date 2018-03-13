@@ -66,6 +66,8 @@ public slots:
     virtual QVariant getRecommendedHUDRect() const;
 
     virtual void setVPadEnabled(bool enable);
+    virtual void setVPadHidden(bool hidden); // Call it when a window should hide it
+    virtual void setVPadExtraBottomMargin(int margin);
 
 signals:
     void keyPressEvent(const KeyEvent& event);

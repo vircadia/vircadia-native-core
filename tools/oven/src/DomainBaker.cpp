@@ -208,14 +208,14 @@ void DomainBaker::enumerateEntities() {
                         if (isBakeableFBX) {
                             baker = {
                                 new FBXBaker(modelURL, []() -> QThread* {
-                                    return qApp->getNextWorkerThread();
+                                    return Oven::instance().getNextWorkerThread();
                                 }, _contentOutputPath + subDirName + "/baked", _contentOutputPath + subDirName + "/original"),
                                 &FBXBaker::deleteLater
                             };
                         } else {
                             baker = {
                                 new OBJBaker(modelURL, []() -> QThread* {
-                                    return qApp->getNextWorkerThread();
+                                    return Oven::instance().getNextWorkerThread();
                                 }, _contentOutputPath + subDirName + "/baked", _contentOutputPath + subDirName + "/original"),
                                 &OBJBaker::deleteLater
                             };
@@ -229,7 +229,7 @@ void DomainBaker::enumerateEntities() {
 
                         // move the baker to the baker thread
                         // and kickoff the bake
-                        baker->moveToThread(qApp->getNextWorkerThread());
+                        baker->moveToThread(Oven::instance().getNextWorkerThread());
                         QMetaObject::invokeMethod(baker.data(), "bake");
 
                         // keep track of the total number of baking entities
@@ -300,7 +300,7 @@ void DomainBaker::bakeSkybox(QUrl skyboxURL, QJsonValueRef entity) {
             _skyboxBakers.insert(skyboxURL, skyboxBaker);
 
             // move the baker to a worker thread and kickoff the bake
-            skyboxBaker->moveToThread(qApp->getNextWorkerThread());
+            skyboxBaker->moveToThread(Oven::instance().getNextWorkerThread());
             QMetaObject::invokeMethod(skyboxBaker.data(), "bake");
 
             // keep track of the total number of baking entities

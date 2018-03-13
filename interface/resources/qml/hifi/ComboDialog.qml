@@ -25,8 +25,6 @@ Item {
     property int dialogHeight;
     property int comboOptionTextSize: 16;
     property int comboBodyTextSize: 16;
-    FontLoader { id: ralewayRegular; source: "qrc:/fonts/Raleway-Regular.ttf"; }
-    FontLoader { id: ralewaySemiBold; source: "qrc:/fonts/Raleway-SemiBold.ttf"; }
     visible: false;
     id: combo;
     anchors.fill: parent;

@@ -34,6 +34,11 @@ namespace VirtualPad {
         return _currentTouch;
     }
 
+    const float Manager::DPI = 534.0f;
+    const float Manager::PIXEL_SIZE = 512.0f;
+    const float Manager::STICK_RADIUS = 105.0f;
+    const float Manager::BASE_MARGIN = 59.0f;
+
     Manager::Manager() {
 
     }
@@ -51,8 +56,32 @@ namespace VirtualPad {
         return _enabled;
     }
 
+    void Manager::hide(bool hidden) {
+        _hidden = hidden;
+    }
+
+    bool Manager::isHidden() {
+        return _hidden;
+    }
+
+    int Manager::extraBottomMargin() {
+        return _extraBottomMargin;
+    }
+
+    void Manager::setExtraBottomMargin(int margin) {
+        _extraBottomMargin = margin;
+    }
+
     Instance* Manager::getLeftVirtualPad() {
         return &_leftVPadInstance;
+    }
+
+    bool Instance::isShown() {
+        return _shown;
+    }
+
+    void Instance::setShown(bool show) {
+        _shown = show;
     }
 
 }

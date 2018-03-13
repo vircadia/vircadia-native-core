@@ -294,7 +294,7 @@ _type(),
 _sourceIsKTX(false),
 _maxNumPixels(100)
 {
-    _textureSource = std::make_shared<gpu::TextureSource>();
+    _textureSource = std::make_shared<gpu::TextureSource>(url);
     _lowestRequestedMipLevel = 0;
     _loaded = true;
 }
@@ -310,7 +310,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, 
     _sourceIsKTX(url.path().endsWith(".ktx")),
     _maxNumPixels(maxNumPixels)
 {
-    _textureSource = std::make_shared<gpu::TextureSource>();
+    _textureSource = std::make_shared<gpu::TextureSource>(url, (int)type);
     _lowestRequestedMipLevel = 0;
 
     _shouldFailOnRedirect = !_sourceIsKTX;
@@ -459,6 +459,10 @@ void NetworkTexture::makeRequest() {
 
 }
 
+void NetworkTexture::handleLocalRequestCompleted() {
+    TextureCache::requestCompleted(_self);
+}
+
 void NetworkTexture::makeLocalRequest() {
     const QString scheme = _url.scheme();
     QString path;
@@ -467,6 +471,8 @@ void NetworkTexture::makeLocalRequest() {
     } else {
         path = ":" + _url.path();
     }
+
+    connect(this, &Resource::finished, this, &NetworkTexture::handleLocalRequestCompleted);
 
     path = FileUtils::selectFile(path);
 

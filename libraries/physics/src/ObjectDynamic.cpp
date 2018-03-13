@@ -93,6 +93,38 @@ bool ObjectDynamic::updateArguments(QVariantMap arguments) {
     return somethingChanged;
 }
 
+/**jsdoc
+* Different entity action types have different arguments: some common to all actions (listed below) and some specific to each 
+* {@link Entities.ActionType|ActionType} (linked to below). The arguments are accessed as an object of property names and 
+* values.
+*
+* @typedef {object} Entities.ActionArguments
+* @property {Entities.ActionType} type - The type of action.
+* @property {string} tag="" - A string that a script can use for its own purposes.
+* @property {number} ttl=0 - How long the action should exist, in seconds, before it is automatically deleted. A value of 
+*     <code>0</code> means that the action should not be deleted.
+* @property {boolean} isMine=true - Is <code>true</code> if you created the action during your current Interface session, 
+*     <code>false</code> otherwise. <em>Read-only.</em>
+* @property {boolean} ::no-motion-state - Is present when the entity hasn't been registered with the physics engine yet (e.g., 
+*     if the action hasn't been properly configured), otherwise <code>undefined</code>. <em>Read-only.</em>
+* @property {boolean} ::active - Is <code>true</code> when the action is modifying the entity's motion, <code>false</code> 
+*     otherwise. Is present once the entity has been registered with the physics engine, otherwise <code>undefined</code>. 
+*     <em>Read-only.</em>
+* @property {Entities.PhysicsMotionType} ::motion-type - How the entity moves with the action. Is present once the entity has 
+*     been registered with the physics engine, otherwise <code>undefined</code>. <em>Read-only.</em>
+*
+* @see The different action types have additional arguments as follows:
+* @see {@link Entities.ActionArguments-FarGrab|ActionArguments-FarGrab}
+* @see {@link Entities.ActionArguments-Hold|ActionArguments-Hold}
+* @see {@link Entities.ActionArguments-Offset|ActionArguments-Offset}
+* @see {@link Entities.ActionArguments-Tractor|ActionArguments-Tractor}
+* @see {@link Entities.ActionArguments-TravelOriented|ActionArguments-TravelOriented}
+* @see {@link Entities.ActionArguments-Hinge|ActionArguments-Hinge}
+* @see {@link Entities.ActionArguments-Slider|ActionArguments-Slider}
+* @see {@link Entities.ActionArguments-ConeTwist|ActionArguments-ConeTwist}
+* @see {@link Entities.ActionArguments-BallSocket|ActionArguments-BallSocket}
+*/
+// Note: The "type" property is set in EntityItem::getActionArguments().
 QVariantMap ObjectDynamic::getArguments() {
     QVariantMap arguments;
     withReadLock([&]{

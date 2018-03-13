@@ -475,9 +475,9 @@ private:
     static QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 
     gpu::ShaderPointer _simpleOpaqueWebBrowserShader;
-    gpu::PipelinePointer _simpleOpaqueWebBrowserPipelineNoAA;
+    gpu::PipelinePointer _simpleOpaqueWebBrowserPipeline;
     gpu::ShaderPointer _simpleTransparentWebBrowserShader;
-    gpu::PipelinePointer _simpleTransparentWebBrowserPipelineNoAA;
+    gpu::PipelinePointer _simpleTransparentWebBrowserPipeline;
 
     static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
         bool unlit = false, bool depthBias = false);

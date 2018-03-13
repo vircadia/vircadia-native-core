@@ -22,6 +22,7 @@
 #include <QtCore/QThread>
 
 #include "../Oven.h"
+#include "../OvenGUIApplication.h"
 #include "OvenMainWindow.h"
 #include "FBXBaker.h"
 #include "OBJBaker.h"
@@ -208,7 +209,7 @@ void ModelBakeWidget::bakeButtonClicked() {
 
         std::unique_ptr<Baker> baker;
         auto getWorkerThreadCallback = []() -> QThread* {
-            return qApp->getNextWorkerThread();
+            return Oven::instance().getNextWorkerThread();
         };
         // everything seems to be in place, kick off a bake for this model now
         if (modelToBakeURL.fileName().endsWith(".fbx")) {
@@ -222,8 +223,8 @@ void ModelBakeWidget::bakeButtonClicked() {
             continue;
         }
 
-        // move the baker to the FBX/OBJ baker thread
-        baker->moveToThread(qApp->getNextWorkerThread());
+        // move the baker to the FBX baker thread
+        baker->moveToThread(Oven::instance().getNextWorkerThread());
 
         // invoke the bake method on the baker thread
         QMetaObject::invokeMethod(baker.get(), "bake");
@@ -232,7 +233,7 @@ void ModelBakeWidget::bakeButtonClicked() {
         connect(baker.get(), &Baker::finished, this, &ModelBakeWidget::handleFinishedBaker);
 
         // add a pending row to the results window to show that this bake is in process
-        auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+        auto resultsWindow = OvenGUIApplication::instance()->getMainWindow()->showResultsWindow();
         auto resultsRow = resultsWindow->addPendingResultRow(modelToBakeURL.fileName(), outputDirectory);
 
         // keep a unique_ptr to this baker
@@ -259,7 +260,7 @@ void ModelBakeWidget::handleFinishedBaker() {
 
     if (it != _bakers.end()) {
         auto resultRow = it->second;
-        auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
+        auto resultsWindow = OvenGUIApplication::instance()->getMainWindow()->showResultsWindow();
 
         if (baker->hasErrors()) {
             resultsWindow->changeStatusForRow(resultRow, baker->getErrors().join("\n"));

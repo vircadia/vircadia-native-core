@@ -908,7 +908,6 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter;
             }
 
-            FontLoader { id: ralewayRegular; source: "qrc:/fonts/Raleway-Regular.ttf"; }
             Text {
                 id: connectionHelpText;
                 // Anchors
@@ -923,7 +922,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHLeft
                 // Style
                 font.pixelSize: 18;
-                font.family: ralewayRegular.name
+                font.family: "Raleway"
                 color: hifi.colors.darkGray
                 wrapMode: Text.WordWrap
                 textFormat: Text.StyledText;
