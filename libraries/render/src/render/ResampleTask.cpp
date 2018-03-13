@@ -66,7 +66,7 @@ void HalfDownsample::run(const RenderContextPointer& renderContext, const gpu::F
     const auto bufferSize = resampledFrameBuffer->getSize();
     glm::ivec4 viewport{ 0, 0, bufferSize.x, bufferSize.y };
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("HalfDownsample::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         batch.setFramebuffer(resampledFrameBuffer);

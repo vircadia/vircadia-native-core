@@ -756,6 +756,9 @@ void CharacterController::updateState() {
                     SET_STATE(State::Hover, "double jump button");
                 } else if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
                     SET_STATE(State::Hover, "jump button held");
+                } else if (_floorDistance > _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT) {
+                    // Transition to hover if we are above the fall threshold
+                    SET_STATE(State::Hover, "above fall threshold");
                 }
             }
             break;

@@ -28,7 +28,7 @@ void Basic2DWindowOpenGLDisplayPlugin::customizeContext() {
     auto iconPath = PathUtils::resourcesPath() + "images/analog_stick.png";
     auto image = QImage(iconPath);
     qreal dpi = getFullscreenTarget()->physicalDotsPerInch();
-    _virtualPadPixelSize = dpi * 512 / 534; // 534 dpi for Pixel XL and Mate 9 Pro
+    _virtualPadPixelSize = dpi * VirtualPad::Manager::PIXEL_SIZE / VirtualPad::Manager::DPI;
 
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);

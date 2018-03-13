@@ -199,6 +199,8 @@ void Rig::destroyAnimGraph() {
     _internalPoseSet._overridePoses.clear();
     _internalPoseSet._overrideFlags.clear();
     _numOverrides = 0;
+    _leftEyeJointChildren.clear();
+    _rightEyeJointChildren.clear();
 }
 
 void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset) {
@@ -225,12 +227,17 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
     buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
 
     _rootJointIndex = geometry.rootJointIndex;
+    _leftEyeJointIndex = geometry.leftEyeJointIndex;
+    _rightEyeJointIndex = geometry.rightEyeJointIndex;
     _leftHandJointIndex = geometry.leftHandJointIndex;
     _leftElbowJointIndex = _leftHandJointIndex >= 0 ? geometry.joints.at(_leftHandJointIndex).parentIndex : -1;
     _leftShoulderJointIndex = _leftElbowJointIndex >= 0 ? geometry.joints.at(_leftElbowJointIndex).parentIndex : -1;
     _rightHandJointIndex = geometry.rightHandJointIndex;
     _rightElbowJointIndex = _rightHandJointIndex >= 0 ? geometry.joints.at(_rightHandJointIndex).parentIndex : -1;
     _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? geometry.joints.at(_rightElbowJointIndex).parentIndex : -1;
+
+    _leftEyeJointChildren = _animSkeleton->getChildrenOfJoint(geometry.leftEyeJointIndex);
+    _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(geometry.rightEyeJointIndex);
 }
 
 void Rig::reset(const FBXGeometry& geometry) {
@@ -253,12 +260,17 @@ void Rig::reset(const FBXGeometry& geometry) {
     buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
 
     _rootJointIndex = geometry.rootJointIndex;
+    _leftEyeJointIndex = geometry.leftEyeJointIndex;
+    _rightEyeJointIndex = geometry.rightEyeJointIndex;
     _leftHandJointIndex = geometry.leftHandJointIndex;
     _leftElbowJointIndex = _leftHandJointIndex >= 0 ? geometry.joints.at(_leftHandJointIndex).parentIndex : -1;
     _leftShoulderJointIndex = _leftElbowJointIndex >= 0 ? geometry.joints.at(_leftElbowJointIndex).parentIndex : -1;
     _rightHandJointIndex = geometry.rightHandJointIndex;
     _rightElbowJointIndex = _rightHandJointIndex >= 0 ? geometry.joints.at(_rightHandJointIndex).parentIndex : -1;
     _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? geometry.joints.at(_rightElbowJointIndex).parentIndex : -1;
+
+    _leftEyeJointChildren = _animSkeleton->getChildrenOfJoint(geometry.leftEyeJointIndex);
+    _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(geometry.rightEyeJointIndex);
 
     if (!_animGraphURL.isEmpty()) {
         _animNode.reset();
@@ -1430,6 +1442,15 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
         // directly set absolutePose rotation
         _internalPoseSet._absolutePoses[index].rot() = deltaQuat * headQuat;
+
+        // Update eye joint's children.
+        auto children = index == _leftEyeJointIndex ? _leftEyeJointChildren : _rightEyeJointChildren;
+        for (int i = 0; i < (int)children.size(); i++) {
+            int jointIndex = children[i];
+            int parentIndex = _animSkeleton->getParentIndex(jointIndex);
+            _internalPoseSet._absolutePoses[jointIndex] = 
+                _internalPoseSet._absolutePoses[parentIndex] * _internalPoseSet._relativePoses[jointIndex];
+        }
     }
 }
 

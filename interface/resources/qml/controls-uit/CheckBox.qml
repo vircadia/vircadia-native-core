@@ -43,8 +43,8 @@ Original.CheckBox {
 
     indicator: Rectangle {
         id: box
-        width: boxSize
-        height: boxSize
+            implicitWidth: boxSize
+            implicitHeight: boxSize
         radius: boxRadius
         y: parent.height / 2 - height / 2
         border.width: 1

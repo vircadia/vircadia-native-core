@@ -1,0 +1,156 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  taa_blend.frag
+//  fragment shader
+//
+//  Created by Sam Gateau on 8/17/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include taa.slh@>
+
+in vec2 varTexCoord0;
+layout(location = 0) out vec4 outFragColor;
+
+void main(void) {
+    vec3 nextColor = texture(nextMap, varTexCoord0).xyz;
+    outFragColor = vec4(nextColor, 1.0);
+
+
+    // Pixel being shaded
+	vec3 sourceColor = texture(sourceMap, varTexCoord0).xyz;
+
+    vec2 imageSize = getWidthHeight(0);
+    vec2 texelSize = getInvWidthHeight();
+
+    vec2 pixPos = varTexCoord0 * imageSize;
+    vec2 pixVelocity = imageSize * texture(velocityMap, varTexCoord0).xy;
+    float pixVelocityLength = length(pixVelocity);
+    vec2 velocity = pixVelocity * texelSize;
+    int stereoSide = 0;
+    vec2 prevTexCoord = taa_fromFragUVToEyeUVAndSide(varTexCoord0, stereoSide) - velocity;
+    prevTexCoord = taa_fromEyeUVToFragUV(prevTexCoord, stereoSide);
+    vec2 prevPix = prevTexCoord * imageSize;
+
+    // Pixel Debugged
+    if (taa_showDebugCursor()) {
+        vec2 cursorUVRaw = taa_getDebugCursorTexcoord();
+        vec2 cursorPosRaw = floor(cursorUVRaw * imageSize) + vec2(0.5);
+        vec3 cursorFrag = taa_findClosestFragment3x3(cursorUVRaw);
+        vec2 cursorUV = cursorUVRaw;
+        vec2 cursorPos = cursorUV * imageSize;
+        vec2 cursorVelocity = texture(velocityMap, cursorUV).xy;
+        vec2 cursorPrevUV = taa_fromFragUVToEyeUVAndSide(cursorUV, stereoSide) - cursorVelocity;
+        cursorVelocity *= imageSize;
+        float cursorVelocityLength = length(cursorVelocity);
+        vec2 cursorVelocityDir = cursorVelocity / cursorVelocityLength;
+
+        vec2 cursorToFragVec = pixPos - cursorPos;
+        float cursorToFragLength = length(cursorToFragVec);
+
+        if ((cursorToFragLength <= cursorVelocityLength)) {
+            vec2 cursorVelocityDir = cursorVelocity / cursorVelocityLength;
+            vec2 cursorVelocityNor = vec2(cursorVelocityDir.y, -cursorVelocityDir.x);
+
+            if ((dot(cursorVelocityDir, cursorToFragVec) < 0) && abs(dot(cursorVelocityNor, cursorToFragVec)) < 1.0) {
+
+                vec3 speedColor = taa_getVelocityColorRelative(cursorToFragLength);
+
+                outFragColor = vec4(speedColor, 1.0);
+                return;
+            }
+        }
+
+        float tenPercentHeight = 0.1 * imageSize.y;
+        float centerWidth = imageSize.x * 0.5;
+
+        //vec2 nextOrbPos = vec2(centerWidth, imageSize.y - 3 * tenPercentHeight);
+        vec2 nextOrbPos = cursorPos;
+        vec2 nextOrbPosToPix = pixPos - nextOrbPos;
+        float nextOrbPosToPixLength = length(nextOrbPosToPix);
+
+        vec2 prevOrbPos = nextOrbPos - cursorVelocityDir * 2.0 * tenPercentHeight;
+        vec2 prevOrbPosToPix = pixPos - prevOrbPos;
+        float prevOrbPosToPixLength = length(prevOrbPosToPix);
+
+        float orbPixThreshold = 2.0 / taa_getDebugOrbZoom();
+
+        if ((prevOrbPosToPixLength < tenPercentHeight) && (cursorVelocityLength > 0.5)) {
+            vec2 prevOrbPosToPix_uv = cursorPrevUV + prevOrbPosToPix * texelSize / taa_getDebugOrbZoom();
+            vec3 preOrbColor = vec3(0.0);
+            if (!(any(lessThan(prevOrbPosToPix_uv, vec2(0.0))) || any(greaterThan(prevOrbPosToPix_uv, vec2(1.0))))) {
+                preOrbColor = texture(historyMap, prevOrbPosToPix_uv).xyz;
+            }
+            if (prevOrbPosToPixLength < orbPixThreshold) {
+                preOrbColor = vec3(1.0, 0.0, 1.0);
+            }
+            float distanceToNext = length(imageSize * (cursorUV - prevOrbPosToPix_uv));
+            if (distanceToNext < orbPixThreshold) {
+                preOrbColor = vec3(1.0, 0.5, 0.0);
+            }
+            outFragColor = vec4(preOrbColor, 1.0);
+            return;
+        }
+        if (nextOrbPosToPixLength < tenPercentHeight) {
+            vec2 nextOrbPosToPix_uv = cursorUV + nextOrbPosToPix * texelSize / taa_getDebugOrbZoom();
+            vec3 nextOrbColor = vec3(0.0);
+            if (!(any(lessThan(nextOrbPosToPix_uv, vec2(0.0))) || any(greaterThan(nextOrbPosToPix_uv, vec2(1.0))))) {
+                nextOrbColor = texture(nextMap, nextOrbPosToPix_uv).xyz;
+            }
+            float distanceToPrev = length(imageSize * (cursorPrevUV - nextOrbPosToPix_uv));
+            if (distanceToPrev < orbPixThreshold) {
+                nextOrbColor = vec3(1.0, 0.0, 1.0);
+            }
+            if (nextOrbPosToPixLength < orbPixThreshold) {
+                nextOrbColor = vec3(1.0, 0.5, 0.0);
+            }
+
+            outFragColor = vec4(nextOrbColor, 1.0);
+            return;
+        }
+    }
+
+    // Debug region before debug or fxaa region X
+    float distToRegionDebug = varTexCoord0.x - taa_getRegionDebug().x;
+    float distToRegionFXAA = varTexCoord0.x - taa_getRegionFXAA().x;
+    if ((distToRegionFXAA < 0.0) && (distToRegionDebug > 0.0)) {
+        return;
+    }
+
+    // draw region splitter
+    if ((abs(distToRegionDebug) < getInvWidthHeight().x) || (abs(distToRegionFXAA) < getInvWidthHeight().x)) {
+		outFragColor.rgb = vec3(1.0, 1.0, 0.0);
+		return;
+	}
+    
+    if (distToRegionFXAA > 0.0) {
+        return;
+    }
+
+    if (taa_showClosestFragment()) {
+        vec3 fragUV = taa_findClosestFragment3x3(varTexCoord0);
+        outFragColor = vec4((fragUV.xy - varTexCoord0) * imageSize * 0.5 + vec2(0.5), 0.0, 1.0);
+        return;
+    }
+
+    outFragColor = vec4(nextColor, 1.0);	
+
+    vec3 prevColor = nextColor;
+
+    if (!(any(lessThan(prevTexCoord, vec2(0.0))) || any(greaterThan(prevTexCoord, vec2(1.0))))) {
+        prevColor = texture(historyMap, prevTexCoord).xyz;
+    }
+
+    outFragColor.xyz = mix(prevColor, vec3(1,0,1), clamp(distance(prevColor, nextColor) - 0.01, 0, 1));
+
+    if (pixVelocityLength > params.debugShowVelocityThreshold) {
+        vec3 speedColor = taa_getVelocityColorAboveThreshold(pixVelocityLength);
+
+        outFragColor = vec4(0.0, 1.0, 1.0, 1.0);
+    }
+}

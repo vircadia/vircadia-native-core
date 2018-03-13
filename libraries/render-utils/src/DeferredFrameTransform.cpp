@@ -38,12 +38,13 @@ void DeferredFrameTransform::update(RenderArgs* args) {
 
     args->getViewFrustum().evalProjectionMatrix(frameTransformBuffer.projectionMono);
 
-    // Running in stero ?
+    // Running in stereo ?
     bool isStereo = args->isStereo();
     if (!isStereo) {
         frameTransformBuffer.projection[0] = frameTransformBuffer.projectionMono;
         frameTransformBuffer.stereoInfo = glm::vec4(0.0f, (float)args->_viewport.z, 0.0f, 0.0f);
         frameTransformBuffer.invpixelInfo = glm::vec4(1.0f / args->_viewport.z, 1.0f / args->_viewport.w, 0.0f, 0.0f);
+        frameTransformBuffer.invProjection[0] = glm::inverse(frameTransformBuffer.projection[0]);
     } else {
 
         mat4 projMats[2];
@@ -55,6 +56,7 @@ void DeferredFrameTransform::update(RenderArgs* args) {
             // Compose the mono Eye space to Stereo clip space Projection Matrix
             auto sideViewMat = projMats[i] * eyeViews[i];
             frameTransformBuffer.projection[i] = sideViewMat;
+            frameTransformBuffer.invProjection[i] = glm::inverse(sideViewMat);
         }
 
         frameTransformBuffer.stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
