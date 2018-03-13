@@ -2819,10 +2819,10 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
                 }
                 _rotateMirror = (1.0f - blend) * _rotateMirror + blend * targetSpeed;
             }
-            _myCamera.setOrientation(glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+            _myCamera.setOrientation(myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
             _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                 + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
-                + (glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                + (myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                 glm::vec3(0.0f, 0.0f, -1.0f) * myAvatar->getBoomLength() * _scaleMirror);
         }
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
@@ -4831,6 +4831,7 @@ void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
         if (!isHMDMode() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
+            _rotateMirror = 0.0f;
             _myCamera.setMode(CAMERA_MODE_MIRROR);
             getMyAvatar()->reset(false, false, false); // to reset any active MyAvatar::FollowHelpers
             getMyAvatar()->setBoomLength(MyAvatar::ZOOM_DEFAULT);
