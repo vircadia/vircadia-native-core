@@ -35,6 +35,7 @@ Rectangle {
     property string itemId;
     property string itemHref;
     property string itemAuthor;
+    property int itemEdition: -1;
     property string certificateId;
     property double balanceAfterPurchase;
     property bool alreadyOwned: false;
@@ -143,6 +144,9 @@ Rectangle {
                     // OR the ID of an "updated" item, we're updating.
                     if (root.itemId === result.data.updates[i].item_id ||
                         root.itemId === result.data.updates[i].updated_item_id) {
+                        if (root.itemEdition !== -1 && root.itemEdition !== result.data.updates[i].edition_number) {
+                            continue;
+                        }
                         root.isUpdating = true;
                         // This CertID is the one corresponding to the base item CertID that the user already owns
                         root.certificateId = result.data.updates[i].certificate_id;
@@ -1059,6 +1063,7 @@ Rectangle {
                 root.itemHref = message.params.itemHref;
                 root.referrer = message.params.referrer;
                 root.itemAuthor = message.params.itemAuthor;
+                root.itemEdition = message.params.itemEdition;
                 refreshBuyUI();
             break;
             default:

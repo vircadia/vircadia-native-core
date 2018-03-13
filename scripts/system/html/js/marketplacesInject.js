@@ -243,7 +243,7 @@
         });
     }
 
-    function buyButtonClicked(id, name, author, price, href, referrer) {
+    function buyButtonClicked(id, name, author, price, href, referrer, edition) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
             itemId: id,
@@ -251,7 +251,8 @@
             itemPrice: price ? parseInt(price, 10) : 0,
             itemHref: href,
             referrer: referrer,
-            itemAuthor: author
+            itemAuthor: author,
+            itemEdition: edition
         }));
     }
 
@@ -319,7 +320,8 @@
                 $(this).closest('.grid-item').find('.creator').find('.value').text(),
                 $(this).closest('.grid-item').find('.item-cost').text(),
                 $(this).attr('data-href'),
-                "mainPage");
+                "mainPage",
+                -1);
         });
     }
 
@@ -411,6 +413,7 @@
 
                 var cost = $('.item-cost').text();
                 var isUpdating = window.location.href.indexOf('edition=') > -1;
+                var urlParams = new URLSearchParams(window.location.search);
                 if (isUpdating) {
                     purchaseButton.html('UPDATE FOR FREE');
                 } else if (availability !== 'available') {
@@ -427,7 +430,8 @@
                             $('#creator').find('.value').text(),
                             cost,
                             href,
-                            "itemPage");
+                            "itemPage",
+                            urlParams.get('edition'));
                         }
                     });
                 maybeAddPurchasesButton();
