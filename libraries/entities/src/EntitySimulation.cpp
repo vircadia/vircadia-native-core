@@ -40,12 +40,9 @@ void EntitySimulation::updateEntities() {
     sortEntitiesThatMoved();
 }
 
-void EntitySimulation::takeDeadEntities(VectorOfEntities& entitiesToDelete) {
+void EntitySimulation::takeDeadEntities(SetOfEntities& entitiesToDelete) {
     QMutexLocker lock(&_mutex);
-    for (auto entity : _deadEntities) {
-        // push this entity onto the external list
-        entitiesToDelete.push_back(entity);
-    }
+    entitiesToDelete.swap(_deadEntities);
     _deadEntities.clear();
 }
 

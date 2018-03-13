@@ -75,7 +75,7 @@ public:
 
     EntityTreePointer getEntityTree() { return _entityTree; }
 
-    virtual void takeDeadEntities(VectorOfEntities& entitiesToDelete);
+    virtual void takeDeadEntities(SetOfEntities& entitiesToDelete);
 
     /// \param entity pointer to EntityItem that needs to be put on the entitiesToDelete list and removed from others.
     virtual void prepareEntityForDelete(EntityItemPointer entity);

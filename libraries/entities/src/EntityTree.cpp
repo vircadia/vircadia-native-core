@@ -1800,7 +1800,7 @@ void EntityTree::update(bool simulate) {
             _simulation->updateEntities();
             {
                 PROFILE_RANGE(simulation_physics, "Deletes");
-                VectorOfEntities deadEntities;
+                SetOfEntities deadEntities;
                 _simulation->takeDeadEntities(deadEntities);
                 if (deadEntities.size() > 0) {
                     // translate into list of ID's

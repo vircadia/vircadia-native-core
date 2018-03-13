@@ -38,7 +38,7 @@ public:
     virtual void addDynamic(EntityDynamicPointer dynamic) override;
     virtual void applyDynamicChanges() override;
 
-    virtual void takeDeadEntities(VectorOfEntities& deadEntities) override;
+    virtual void takeDeadEntities(SetOfEntities& deadEntities) override;
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);

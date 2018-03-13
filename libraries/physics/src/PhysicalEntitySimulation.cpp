@@ -73,17 +73,15 @@ void PhysicalEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
     }
 }
 
-void PhysicalEntitySimulation::takeDeadEntities(VectorOfEntities& deadEntities) {
+void PhysicalEntitySimulation::takeDeadEntities(SetOfEntities& deadEntities) {
     QMutexLocker lock(&_mutex);
     for (auto entity : _deadEntities) {
-        // this entity is still in its tree, so we insert into the external list
-        deadEntities.push_back(entity);
-
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (motionState) {
             _entitiesToRemoveFromPhysics.insert(entity);
         }
     }
+    _deadEntities.swap(deadEntities);
     _deadEntities.clear();
 }
 
