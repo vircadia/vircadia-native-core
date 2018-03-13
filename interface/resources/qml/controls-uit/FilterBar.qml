@@ -58,6 +58,7 @@ Item {
             id: primaryFilterTextMetrics;
             font.family: "FiraSans Regular";
             font.pixelSize: hifi.fontSizes.textFieldInput;
+            font.capitalization: Font.AllUppercase;
             text: root.primaryFilter_displayName;
         }
 
@@ -184,23 +185,24 @@ Item {
             Rectangle {
                 z: 999;
                 id: primaryFilterContainer;
-                color: textField.activeFocus ? hifi.colors.blueHighlight : hifi.colors.lightGray;
+                color: textField.activeFocus ? hifi.colors.faintGray : hifi.colors.white;
                 width: primaryFilterTextMetrics.tightBoundingRect.width + 14;
                 height: parent.height - 8;
                 anchors.verticalCenter: parent.verticalCenter;
                 anchors.left: searchButtonContainer.right;
                 anchors.leftMargin: 4;
                 visible: primaryFilterText.text !== "";
-                radius: 4;
+                radius: height/2;
 
                 FiraSansRegular {
                     id: primaryFilterText;
                     text: root.primaryFilter_displayName;
                     anchors.fill: parent;
-                    color: hifi.colors.white;
+                    color: textField.activeFocus ? hifi.colors.black : hifi.colors.lightGray;
                     horizontalAlignment: Text.AlignHCenter;
                     verticalAlignment: Text.AlignVCenter;
                     size: hifi.fontSizes.textFieldInput;
+                    font.capitalization: Font.AllUppercase;
                 }
 
                 MouseArea {
@@ -236,7 +238,7 @@ Item {
         //placeholderTextColor: isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray
         selectedTextColor: hifi.colors.black
         selectionColor: hifi.colors.primaryHighlight
-        leftPadding: 44 + (root.primaryFilter_index === -1 ? 0 : primaryFilterTextMetrics.tightBoundingRect.width + 24);
+        leftPadding: 44 + (root.primaryFilter_index === -1 ? 0 : primaryFilterTextMetrics.tightBoundingRect.width + 20);
         rightPadding: 44;
     }
 
