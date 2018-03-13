@@ -75,32 +75,6 @@ static std::array<GeometryCache::Shape, (GeometryCache::NUM_SHAPES - 1)> MAPPING
         GeometryCache::Cylinder,
 } };
 
-/**jsdoc
-* <p>{@link Entities} and {@link Overlays} may have the following geometrical shapes:</p>
-* <table>
-*   <thead>
-*     <tr><th>Value</th><th>Description</th></tr>
-*   </thead>
-*   <tbody>
-*     <tr><td><code>Line</code></td><td>A 1D line oriented in 3 dimensions.</td></tr>
-*     <tr><td><code>Triangle</code></td><td>A triangular prism.</td></tr>
-*     <tr><td><code>Quad</code></td><td>A 2D square oriented in 3 dimensions.</tr>
-*     <tr><td><code>Hexagon</code></td><td>A hexagonal prism.</td></tr>
-*     <tr><td><code>Octagon</code></td><td>An octagonal prism.</td></tr>
-*     <tr><td><code>Circle</code></td><td>A 2D circle oriented in 3 dimensions.</td></td></tr>
-*     <tr><td><code>Cube</code></td><td>A cube.</td></tr>
-*     <tr><td><code>Sphere</code></td><td>A sphere.</td></tr>
-*     <tr><td><code>Tetrahedron</code></td><td>A tetrahedron.</td></tr>
-*     <tr><td><code>Octahedron</code></td><td>An octahedron.</td></tr>
-*     <tr><td><code>Dodecahedron</code></td><td>A dodecahedron.</td></tr>
-*     <tr><td><code>Icosahedron</code></td><td>An icosahedron.</td></tr>
-*     <tr><td><code>Torus</code></td><td>A torus. <em>Not implemented.</em></td></tr>
-*     <tr><td><code>Cone</code></td><td>A cone.</td></tr>
-*     <tr><td><code>Cylinder</code></td><td>A cylinder.</td></tr>
-*   </tbody>
-* </table>
-* @typedef {string} Shape
-*/
 static const std::array<const char * const, GeometryCache::NUM_SHAPES> GEOCACHE_SHAPE_STRINGS{ {
         "Line",
         "Triangle",
@@ -2136,7 +2110,7 @@ static void buildWebShader(const gpu::ShaderPointer& vertShader, const gpu::Shad
                             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-    PrepareStencil::testMaskDrawShapeNoAA(*state);
+    PrepareStencil::testMaskDrawShape(*state);
 
     pipelinePointerOut = gpu::Pipeline::create(shaderPointerOut, state);
 }
@@ -2148,11 +2122,11 @@ void GeometryCache::bindWebBrowserProgram(gpu::Batch& batch, bool transparent) {
 gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent) {
     static std::once_flag once;
     std::call_once(once, [&]() {
-        buildWebShader(simple_vert::getShader(), simple_opaque_web_browser_frag::getShader(), false, _simpleOpaqueWebBrowserShader, _simpleOpaqueWebBrowserPipelineNoAA);
-        buildWebShader(simple_vert::getShader(), simple_transparent_web_browser_frag::getShader(), true, _simpleTransparentWebBrowserShader, _simpleTransparentWebBrowserPipelineNoAA);
+        buildWebShader(simple_vert::getShader(), simple_opaque_web_browser_frag::getShader(), false, _simpleOpaqueWebBrowserShader, _simpleOpaqueWebBrowserPipeline);
+        buildWebShader(simple_vert::getShader(), simple_transparent_web_browser_frag::getShader(), true, _simpleTransparentWebBrowserShader, _simpleTransparentWebBrowserPipeline);
     });
 
-    return transparent ? _simpleTransparentWebBrowserPipelineNoAA : _simpleOpaqueWebBrowserPipelineNoAA;
+    return transparent ? _simpleTransparentWebBrowserPipeline : _simpleOpaqueWebBrowserPipeline;
 }
 
 void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool isAntiAliased) {

@@ -99,11 +99,15 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_setUniformBuffer),
     (&::gpu::gl::GLBackend::do_setResourceBuffer),
     (&::gpu::gl::GLBackend::do_setResourceTexture),
+    (&::gpu::gl::GLBackend::do_setResourceFramebufferSwapChainTexture),
 
     (&::gpu::gl::GLBackend::do_setFramebuffer),
+    (&::gpu::gl::GLBackend::do_setFramebufferSwapChain),
     (&::gpu::gl::GLBackend::do_clearFramebuffer),
     (&::gpu::gl::GLBackend::do_blit),
     (&::gpu::gl::GLBackend::do_generateTextureMips),
+
+    (&::gpu::gl::GLBackend::do_advance),
 
     (&::gpu::gl::GLBackend::do_beginQuery),
     (&::gpu::gl::GLBackend::do_endQuery),
@@ -756,9 +760,13 @@ void GLBackend::recycle() const {
     Texture::KtxStorage::releaseOpenKtxFiles();
 }
 
-void GLBackend::setCameraCorrection(const Mat4& correction) {
+void GLBackend::setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView, bool reset) {
+    auto invCorrection = glm::inverse(correction);
+    auto invPrevView = glm::inverse(prevRenderView);
+    _transform._correction.prevView = (reset ? Mat4() : prevRenderView);
+    _transform._correction.prevViewInverse = (reset ? Mat4() : invPrevView);
     _transform._correction.correction = correction;
-    _transform._correction.correctionInverse = glm::inverse(correction);
+    _transform._correction.correctionInverse = invCorrection;
     _pipeline._cameraCorrectionBuffer._buffer->setSubData(0, _transform._correction);
     _pipeline._cameraCorrectionBuffer._buffer->flush();
 }

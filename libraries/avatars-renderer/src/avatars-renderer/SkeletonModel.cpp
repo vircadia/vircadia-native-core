@@ -33,6 +33,10 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
 {
     // SkeletonModels, and by extention Avatars, use Dual Quaternion skinning.
     _useDualQuaternionSkinning = true;
+
+    // Avatars all cast shadow
+    _canCastShadow = true;
+
     assert(_owningAvatar);
 }
 

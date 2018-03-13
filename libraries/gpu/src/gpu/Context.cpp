@@ -53,11 +53,12 @@ const std::string& Context::getBackendVersion() const {
     return _backend->getVersion();
 }
 
-void Context::beginFrame(const glm::mat4& renderPose) {
+void Context::beginFrame(const glm::mat4& renderView, const glm::mat4& renderPose) {
     assert(!_frameActive);
     _frameActive = true;
     _currentFrame = std::make_shared<Frame>();
     _currentFrame->pose = renderPose;
+    _currentFrame->view = renderView;
 
     if (!_frameRangeTimer) {
         _frameRangeTimer = std::make_shared<RangeTimer>("gpu::Context::Frame");
@@ -108,7 +109,7 @@ void Context::executeFrame(const FramePointer& frame) const {
     consumeFrameUpdates(frame);
     _backend->setStereoState(frame->stereoState);
     {
-        Batch beginBatch;
+        Batch beginBatch("Context::executeFrame::begin");
         _frameRangeTimer->begin(beginBatch);
         _backend->render(beginBatch);
 
@@ -117,7 +118,7 @@ void Context::executeFrame(const FramePointer& frame) const {
             _backend->render(batch);
         }
 
-        Batch endBatch;
+        Batch endBatch("Context::executeFrame::end");
         _frameRangeTimer->end(endBatch);
         _backend->render(endBatch);
     }

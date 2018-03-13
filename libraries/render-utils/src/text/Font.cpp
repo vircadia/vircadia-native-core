@@ -243,7 +243,7 @@ void Font::setupGPU() {
             state->setBlendFunction(false,
                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            PrepareStencil::testMaskDrawShapeNoAA(*state);
+            PrepareStencil::testMaskDrawShape(*state);
             _pipeline = gpu::Pipeline::create(program, state);
 
             auto transparentState = std::make_shared<gpu::State>();
@@ -252,7 +252,7 @@ void Font::setupGPU() {
             transparentState->setBlendFunction(true,
                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            PrepareStencil::testMaskDrawShapeNoAA(*transparentState);
+            PrepareStencil::testMaskDrawShape(*transparentState);
             _transparentPipeline = gpu::Pipeline::create(programTransparent, transparentState);
         }
 
