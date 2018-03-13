@@ -217,7 +217,7 @@ void DomainBaker::enumerateEntities() {
                                 new OBJBaker(modelURL, []() -> QThread* {
                                     return qApp->getNextWorkerThread();
                                 }, _contentOutputPath + subDirName + "/baked", _contentOutputPath + subDirName + "/original"),
-                                &FBXBaker::deleteLater
+                                &OBJBaker::deleteLater
                             };
                         }
 
@@ -314,7 +314,7 @@ void DomainBaker::bakeSkybox(QUrl skyboxURL, QJsonValueRef entity) {
 }
 
 void DomainBaker::handleFinishedModelBaker() {
-    auto baker = qobject_cast<FBXBaker*>(sender());
+    auto baker = qobject_cast<ModelBaker*>(sender());
 
     if (baker) {
         if (!baker->hasErrors()) {
