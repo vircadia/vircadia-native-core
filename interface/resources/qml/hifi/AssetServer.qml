@@ -561,7 +561,7 @@ Windows.ScrollingWindow {
                 id: bakedColumn
                 title: "Use Baked?"
                 role: "baked"
-                width: 100
+                width: 170
             }
     
             itemDelegate: Loader {
