@@ -3419,22 +3419,21 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_Print:
-                if (!isOption && !isShifted && isMeta) {
-                    AudioInjectorOptions options;
-                    options.localOnly = true;
-                    options.stereo = true;
+            case Qt::Key_P: {
+                AudioInjectorOptions options;
+                options.localOnly = true;
+                options.stereo = true;
 
-                    if (_snapshotSoundInjector) {
-                        _snapshotSoundInjector->setOptions(options);
-                        _snapshotSoundInjector->restart();
-                    } else {
-                        QByteArray samples = _snapshotSound->getByteArray();
-                        _snapshotSoundInjector = AudioInjector::playSound(samples, options);
-                    }
-                    takeSnapshot(true);
+                if (_snapshotSoundInjector) {
+                    _snapshotSoundInjector->setOptions(options);
+                    _snapshotSoundInjector->restart();
+                } else {
+                    QByteArray samples = _snapshotSound->getByteArray();
+                    _snapshotSoundInjector = AudioInjector::playSound(samples, options);
                 }
+                takeSnapshot(true);
                 break;
+            }
 
             case Qt::Key_Apostrophe: {
                 if (isMeta) {
@@ -5120,11 +5119,11 @@ void Application::update(float deltaTime) {
         // FIXME can we drop drive keys and just have the avatar read the action states directly?
         myAvatar->clearDriveKeys();
         if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
-            if (!_controllerScriptingInterface->areActionsCaptured()) {
+            if (!_controllerScriptingInterface->areActionsCaptured() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_Z, -1.0f * userInputMapper->getActionState(controller::Action::TRANSLATE_Z));
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_X, userInputMapper->getActionState(controller::Action::TRANSLATE_X));
-                if (deltaTime > FLT_EPSILON && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
+                if (deltaTime > FLT_EPSILON) {
                     myAvatar->setDriveKey(MyAvatar::PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH));
                     myAvatar->setDriveKey(MyAvatar::YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW));
                     myAvatar->setDriveKey(MyAvatar::STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));

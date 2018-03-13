@@ -1,9 +1,6 @@
 {
     "name": "Keyboard/Mouse to Actions",
     "channels": [
-
-        { "from": "Keyboard.A", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" },
-        { "from": "Keyboard.D", "when": "Keyboard.Shift", "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.A", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.D", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.E", "to": "Actions.LATERAL_RIGHT" },
