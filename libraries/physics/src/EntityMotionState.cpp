@@ -49,8 +49,7 @@ bool entityTreeIsLocked() {
 
 EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer entity) :
     ObjectMotionState(nullptr),
-    _entityPtr(entity),
-    _entity(entity.get()),
+    _entity(entity),
     _serverPosition(0.0f),
     _serverRotation(),
     _serverVelocity(0.0f),
@@ -80,8 +79,11 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
 }
 
 EntityMotionState::~EntityMotionState() {
-    assert(_entity);
-    _entity = nullptr;
+    if (_entity) {
+        assert(_entity->getPhysicsInfo() == this);
+        _entity->setPhysicsInfo(nullptr);
+        _entity.reset();
+    }
 }
 
 void EntityMotionState::updateServerPhysicsVariables() {

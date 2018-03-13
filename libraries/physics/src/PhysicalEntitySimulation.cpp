@@ -137,7 +137,6 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
 
     // clear all other lists specific to this derived class
     _entitiesToRemoveFromPhysics.clear();
-    _entitiesToForget.clear();
     _entitiesToAddToPhysics.clear();
     _pendingChanges.clear();
     _outgoingChanges.clear();
@@ -153,42 +152,37 @@ void PhysicalEntitySimulation::prepareEntityForDelete(EntityItemPointer entity) 
 }
 // end EntitySimulation overrides
 
-void PhysicalEntitySimulation::getObjectsToRemoveFromPhysics(VectorOfMotionStates& result) {
-    result.clear();
+const VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToRemoveFromPhysics() {
     QMutexLocker lock(&_mutex);
     for (auto entity: _entitiesToRemoveFromPhysics) {
-        // make sure it isn't on any side lists
-        _entitiesToAddToPhysics.remove(entity);
-
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-        if (motionState) {
-            _pendingChanges.remove(motionState);
-            _outgoingChanges.remove(motionState);
-            _physicalObjects.remove(motionState);
-            result.push_back(motionState);
-            _entitiesToForget.insert(entity);
-        } else if (entity->isDead() && entity->getElement()) {
+        assert(motionState);
+
+        _entitiesToAddToPhysics.remove(entity);
+        if (entity->isDead() && entity->getElement()) {
             _deadEntities.insert(entity);
         }
+
+        _pendingChanges.remove(motionState);
+        _outgoingChanges.remove(motionState);
+        _physicalObjects.remove(motionState);
+
+        // remember this motionState and delete it later (after removing its RigidBody from the PhysicsEngine)
+        _objectsToDelete.push_back(motionState);
     }
     _entitiesToRemoveFromPhysics.clear();
+    return _objectsToDelete;
 }
 
 void PhysicalEntitySimulation::deleteObjectsRemovedFromPhysics() {
     QMutexLocker lock(&_mutex);
-    for (auto entity: _entitiesToForget) {
-        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-        assert(motionState);
-        entity->setPhysicsInfo(nullptr);
+    for (auto motionState : _objectsToDelete) {
         // someday when we invert the entities/physics lib dependencies we can let EntityItem delete its own PhysicsInfo
         // until then we must do it here
+        // NOTE: a reference to the EntityItemPointer is released in the EntityMotionState::dtor
         delete motionState;
-
-        if (entity->isDead() && entity->getElement()) {
-            _deadEntities.insert(entity);
-        }
     }
-    _entitiesToForget.clear();
+    _objectsToDelete.clear();
 }
 
 void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& result) {

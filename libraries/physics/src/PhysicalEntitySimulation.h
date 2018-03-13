@@ -54,8 +54,9 @@ protected: // only called by EntitySimulation
 public:
     virtual void prepareEntityForDelete(EntityItemPointer entity) override;
 
-    void getObjectsToRemoveFromPhysics(VectorOfMotionStates& result);
+    const VectorOfMotionStates& getObjectsToRemoveFromPhysics();
     void deleteObjectsRemovedFromPhysics();
+
     void getObjectsToAddToPhysics(VectorOfMotionStates& result);
     void setObjectsToChange(const VectorOfMotionStates& objectsToChange);
     void getObjectsToChange(VectorOfMotionStates& result);
@@ -67,9 +68,10 @@ public:
     EntityEditPacketSender* getPacketSender() { return _entityPacketSender; }
 
 private:
-    SetOfEntities _entitiesToRemoveFromPhysics;
-    SetOfEntities _entitiesToForget;
     SetOfEntities _entitiesToAddToPhysics;
+    SetOfEntities _entitiesToRemoveFromPhysics;
+
+    VectorOfMotionStates _objectsToDelete;
 
     SetOfEntityMotionStates _pendingChanges; // EntityMotionStates already in PhysicsEngine that need their physics changed
     SetOfEntityMotionStates _outgoingChanges; // EntityMotionStates for which we may need to send updates to entity-server

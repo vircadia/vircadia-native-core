@@ -70,7 +70,7 @@ public:
     virtual QUuid getSimulatorID() const override;
     virtual void bump(uint8_t priority) override;
 
-    EntityItemPointer getEntity() const { return _entityPtr.lock(); }
+    const EntityItemPointer& getEntity() const { return _entity; }
 
     void resetMeasuredBodyAcceleration();
     void measureBodyAcceleration();
@@ -104,9 +104,7 @@ protected:
     // recursive dependency).  Instead we keep a EntityItemWeakPointer to break that dependency while
     // still granting us the capability to generate EntityItemPointers as necessary (for external data
     // structures that use the MotionState to get to the EntityItem).
-    EntityItemWeakPointer _entityPtr;
-    // Meanwhile we also keep a raw EntityItem* for internal stuff where the pointer is guaranteed valid.
-    EntityItem* _entity;
+    EntityItemPointer _entity;
 
     bool _serverVariablesSet { false };
     glm::vec3 _serverPosition;    // in simulation-frame (not world-frame)
