@@ -45,6 +45,8 @@ protected:
         glm::vec4 stereoInfo{ 0.0 };
         // Mono proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space
         glm::mat4 projection[2];
+        // Inverse proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space
+        glm::mat4 invProjection[2];
         // THe mono projection for sure
         glm::mat4 projectionMono;
         // Inv View matrix from eye space (mono) to world space

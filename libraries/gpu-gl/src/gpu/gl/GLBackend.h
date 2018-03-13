@@ -68,7 +68,7 @@ public:
 
     virtual ~GLBackend();
 
-    void setCameraCorrection(const Mat4& correction);
+    void setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView, bool reset = false);
     void render(const Batch& batch) final override;
 
     // This call synchronize the Full Backend cache with the current GLState
@@ -126,14 +126,18 @@ public:
     // Resource Stage
     virtual void do_setResourceBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_setResourceTexture(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setResourceFramebufferSwapChainTexture(const Batch& batch, size_t paramOffset) final;
 
     // Pipeline Stage
     virtual void do_setPipeline(const Batch& batch, size_t paramOffset) final;
 
     // Output stage
     virtual void do_setFramebuffer(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setFramebufferSwapChain(const Batch& batch, size_t paramOffset) final;
     virtual void do_clearFramebuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_blit(const Batch& batch, size_t paramOffset) = 0;
+
+    virtual void do_advance(const Batch& batch, size_t paramOffset) final;
 
     // Query section
     virtual void do_beginQuery(const Batch& batch, size_t paramOffset) final;
@@ -245,6 +249,8 @@ protected:
     void setupStereoSide(int side);
 #endif
 
+    virtual void setResourceTexture(unsigned int slot, const TexturePointer& resourceTexture);
+    virtual void setFramebuffer(const FramebufferPointer& framebuffer);
     virtual void initInput() final;
     virtual void killInput() final;
     virtual void syncInputStateCache() final;
@@ -303,9 +309,12 @@ protected:
     // Allows for correction of the camera pose to account for changes
     // between the time when a was recorded and the time(s) when it is 
     // executed
+    // Prev is the previous correction used at previous frame
     struct CameraCorrection {
-        Mat4 correction;
-        Mat4 correctionInverse;
+        mat4 correction;
+        mat4 correctionInverse;
+        mat4 prevView;
+        mat4 prevViewInverse;
     };
 
     struct TransformStageState {

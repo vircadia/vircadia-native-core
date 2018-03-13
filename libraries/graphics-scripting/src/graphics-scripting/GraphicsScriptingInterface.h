@@ -38,7 +38,7 @@ public slots:
      * Returns a model reference object associated with the specified UUID ({@link EntityID}, {@link OverlayID}, or {@link AvatarID}).
      *
      * @function Graphics.getModel
-     * @param {UUID} The objectID of the model whose meshes are to be retrieved.
+     * @param {UUID} entityID - The objectID of the model whose meshes are to be retrieved.
      * @return {Graphics.Model} the resulting Model object
      */
     scriptable::ScriptableModelPointer getModel(QUuid uuid);

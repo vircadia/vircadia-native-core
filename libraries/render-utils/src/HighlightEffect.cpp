@@ -161,7 +161,7 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
         // Clear the framebuffer without stereo
         // Needs to be distinct from the other batch because using the clear call 
         // while stereo is enabled triggers a warning
-        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("DrawHighlightMask::run::begin", args->_context, [&](gpu::Batch& batch) {
             batch.enableStereo(false);
             batch.setFramebuffer(ressources->getDepthFramebuffer());
             batch.clearDepthStencilFramebuffer(1.0f, 0);
@@ -174,7 +174,7 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
 
         render::ItemBounds itemBounds;
 
-        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("DrawHighlightMask::run", args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
 
             auto maskPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
@@ -212,7 +212,7 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
 
         _boundsBuffer->setData(itemBounds.size() * sizeof(render::ItemBound), (const gpu::Byte*) itemBounds.data());
 
-        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("DrawHighlightMask::run::end", args->_context, [&](gpu::Batch& batch) {
             // Setup camera, projection and viewport for all items
             batch.setViewportTransform(args->_viewport);
             batch.setProjectionTransform(projMat);
@@ -284,7 +284,7 @@ void DrawHighlight::run(const render::RenderContextPointer& renderContext, const
                     shaderParameters._size.y = size;
                 }
 
-                gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+                gpu::doInBatch("DrawHighlight::run", args->_context, [&](gpu::Batch& batch) {
                     batch.enableStereo(false);
                     batch.setFramebuffer(destinationFrameBuffer);
 
@@ -357,7 +357,7 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
         assert(renderContext->args->hasViewFrustum());
         RenderArgs* args = renderContext->args;
 
-        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("DebugHighlight::run", args->_context, [&](gpu::Batch& batch) {
             batch.setViewportTransform(args->_viewport);
             batch.setFramebuffer(highlightRessources->getColorFramebuffer());
 
