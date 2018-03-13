@@ -7347,10 +7347,14 @@ bool Application::isThrottleRendering() const {
 }
 
 bool Application::hasFocus() const {
-    if (_displayPlugin) {
-        return getActiveDisplayPlugin()->hasFocus();
-    }
-    return (QApplication::activeWindow() != nullptr);
+    bool result = (QApplication::activeWindow() != nullptr);
+#if defined(Q_OS_WIN)
+    // On Windows, QWidget::activateWindow() - as called in setFocus() - makes the application's taskbar icon flash but doesn't 
+    // take user focus away from their current window. So also check whether the application is the user's current foreground 
+    // window.
+    result = result && (HWND)QApplication::activeWindow()->winId() == GetForegroundWindow();
+#endif
+    return result;
 }
 
 void Application::setFocus() {
