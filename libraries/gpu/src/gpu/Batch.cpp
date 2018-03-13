@@ -45,7 +45,12 @@ size_t Batch::_dataMax { BATCH_PREALLOCATE_MIN };
 size_t Batch::_objectsMax { BATCH_PREALLOCATE_MIN };
 size_t Batch::_drawCallInfosMax { BATCH_PREALLOCATE_MIN };
 
-Batch::Batch() {
+Batch::Batch(const char* name) {
+#ifdef DEBUG
+    if (name) {
+        _name = name;
+    }
+#endif
     _commands.reserve(_commandsMax);
     _commandOffsets.reserve(_commandOffsetsMax);
     _params.reserve(_paramsMax);
@@ -56,6 +61,9 @@ Batch::Batch() {
 
 Batch::Batch(const Batch& batch_) {
     Batch& batch = *const_cast<Batch*>(&batch_);
+#ifdef DEBUG
+    _name = batch_._name;
+#endif
     _commands.swap(batch._commands);
     _commandOffsets.swap(batch._commandOffsets);
     _params.swap(batch._params);
@@ -71,6 +79,7 @@ Batch::Batch(const Batch& batch_) {
     _transforms._items.swap(batch._transforms._items);
     _pipelines._items.swap(batch._pipelines._items);
     _framebuffers._items.swap(batch._framebuffers._items);
+    _swapChains._items.swap(batch._swapChains._items);
     _drawCallInfos.swap(batch._drawCallInfos);
     _queries._items.swap(batch._queries._items);
     _lambdas._items.swap(batch._lambdas._items);
@@ -108,6 +117,7 @@ void Batch::clear() {
     _transforms.clear();
     _pipelines.clear();
     _framebuffers.clear();
+    _swapChains.clear();
     _objects.clear();
     _drawCallInfos.clear();
 }
@@ -327,11 +337,33 @@ void Batch::setResourceTexture(uint32 slot, const TextureView& view) {
     setResourceTexture(slot, view._texture);
 }
 
+void Batch::setResourceFramebufferSwapChainTexture(uint32 slot, const FramebufferSwapChainPointer& framebuffer, unsigned int swapChainIndex, unsigned int renderBufferSlot) {
+    ADD_COMMAND(setResourceFramebufferSwapChainTexture);
+
+    _params.emplace_back(_swapChains.cache(framebuffer));
+    _params.emplace_back(slot);
+    _params.emplace_back(swapChainIndex);
+    _params.emplace_back(renderBufferSlot);
+}
+
 void Batch::setFramebuffer(const FramebufferPointer& framebuffer) {
     ADD_COMMAND(setFramebuffer);
 
     _params.emplace_back(_framebuffers.cache(framebuffer));
 
+}
+
+void Batch::setFramebufferSwapChain(const FramebufferSwapChainPointer& framebuffer, unsigned int swapChainIndex) {
+    ADD_COMMAND(setFramebufferSwapChain);
+
+    _params.emplace_back(_swapChains.cache(framebuffer));
+    _params.emplace_back(swapChainIndex);
+}
+
+void Batch::advance(const SwapChainPointer& swapChain) {
+    ADD_COMMAND(advance);
+
+    _params.emplace_back(_swapChains.cache(swapChain));
 }
 
 void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor) {

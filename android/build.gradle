@@ -137,6 +137,13 @@ def packages = [
         checksum: '20768f298f53b195e71b414b0ae240c4',
         sharedLibFolder: 'lib/release',
         includeLibs: ['libtbb.so', 'libtbbmalloc.so'],
+    ],
+    hifiAC: [
+        file: 'libplugins_libhifiCodec.zip',
+        versionId: 'mzKhsRCgVmloqq5bvE.0IwYK1NjGQc_G',
+        checksum: '9412a8e12c88a4096c1fc843bb9fe52d',
+        sharedLibFolder: '',
+        includeLibs: ['libplugins_libhifiCodec.so']
     ]
 ]
 
@@ -353,6 +360,7 @@ task verifyGvr(type: Verify) { def p = packages['gvr']; src new File(baseFolder,
 task verifyOpenSSL(type: Verify) { def p = packages['openssl']; src new File(baseFolder, p['file']);  checksum p['checksum'] }
 task verifyPolyvox(type: Verify) { def p = packages['polyvox']; src new File(baseFolder, p['file']); checksum p['checksum'] }
 task verifyTBB(type: Verify) { def p = packages['tbb']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+task verifyHifiAC(type: Verify) { def p = packages['hifiAC']; src new File(baseFolder, p['file']); checksum p['checksum'] }
 
 task verifyDependencyDownloads(dependsOn: downloadDependencies) { }
 verifyDependencyDownloads.dependsOn verifyQt
@@ -362,6 +370,7 @@ verifyDependencyDownloads.dependsOn verifyGvr
 verifyDependencyDownloads.dependsOn verifyOpenSSL
 verifyDependencyDownloads.dependsOn verifyPolyvox
 verifyDependencyDownloads.dependsOn verifyTBB
+verifyDependencyDownloads.dependsOn verifyHifiAC
 
 task extractDependencies(dependsOn: verifyDependencyDownloads) {
     doLast {

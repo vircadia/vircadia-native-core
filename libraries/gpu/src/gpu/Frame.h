@@ -28,6 +28,8 @@ namespace gpu {
 
         StereoState stereoState;
         uint32_t frameIndex{ 0 };
+        /// The view matrix used for rendering the frame, only applicable for HMDs
+        Mat4 view;
         /// The sensor pose used for rendering the frame, only applicable for HMDs
         Mat4 pose;
         /// The collection of batches which make up the frame
