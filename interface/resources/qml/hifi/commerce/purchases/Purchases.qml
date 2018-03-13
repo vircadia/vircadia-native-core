@@ -37,6 +37,7 @@ Rectangle {
     property bool isDebuggingFirstUseTutorial: false;
     property int pendingItemCount: 0;
     property string installedApps;
+    property bool keyboardRaised: false;
     // Style
     color: hifi.colors.white;
     Connections {
@@ -610,7 +611,7 @@ Rectangle {
 
     HifiControlsUit.Keyboard {
         id: keyboard;
-        raised: HMD.mounted && filterBar.textFieldFocused;
+        raised: HMD.mounted && parent.keyboardRaised;
         numeric: parent.punctuationMode;
         anchors {
             bottom: parent.bottom;

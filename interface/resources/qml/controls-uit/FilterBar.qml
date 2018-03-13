@@ -8,9 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
+import QtQuick 2.9
+import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
 
 import "../styles-uit"
@@ -28,7 +27,6 @@ Item {
     property alias dropdownHeight: dropdownContainer.height;
     property alias text: textField.text;
     property alias primaryFilterChoices: filterBarModel;
-    property alias textFieldFocused: textField.activeFocus;
     property int primaryFilter_index: -1;
     property string primaryFilter_filterName: "";
     property string primaryFilter_displayName: "";
@@ -94,146 +92,152 @@ Item {
             }
         }
 
-        style: TextFieldStyle {
-            id: style;
-            textColor: {
-                if (isLightColorScheme) {
-                    if (textField.activeFocus) {
-                        hifi.colors.black
-                    } else {
-                        hifi.colors.lightGray
-                    }
-                } else if (isFaintGrayColorScheme) {
-                    if (textField.activeFocus) {
-                        hifi.colors.black
-                    } else {
-                        hifi.colors.lightGray
-                    }
+        color: {
+            if (isLightColorScheme) {
+                if (textField.activeFocus) {
+                    hifi.colors.black
                 } else {
+                    hifi.colors.lightGray
+                }
+            } else if (isFaintGrayColorScheme) {
+                if (textField.activeFocus) {
+                    hifi.colors.black
+                } else {
+                    hifi.colors.lightGray
+                }
+            } else {
+                if (textField.activeFocus) {
+                    hifi.colors.white
+                } else {
+                    hifi.colors.lightGrayText
+                }
+            }
+        }
+
+        background: Rectangle {
+            id: mainFilterBarRectangle;
+
+            color: {
+                if (isLightColorScheme) {
                     if (textField.activeFocus) {
                         hifi.colors.white
                     } else {
-                        hifi.colors.lightGrayText
+                        hifi.colors.textFieldLightBackground
                     }
-                }
-            }
-            background: Rectangle {
-                id: mainFilterBarRectangle;
-
-                color: {
-                    if (isLightColorScheme) {
-                        if (textField.activeFocus) {
-                            hifi.colors.white
-                        } else {
-                            hifi.colors.textFieldLightBackground
-                        }
-                    } else if (isFaintGrayColorScheme) {
-                        if (textField.activeFocus) {
-                            hifi.colors.white
-                        } else {
-                            hifi.colors.faintGray50
-                        }
+                } else if (isFaintGrayColorScheme) {
+                    if (textField.activeFocus) {
+                        hifi.colors.white
                     } else {
-                        if (textField.activeFocus) {
-                            hifi.colors.black
-                        } else {
-                            hifi.colors.baseGrayShadow
-                        }
+                        hifi.colors.faintGray50
                     }
-                }
-
-                border.color: textField.error ? hifi.colors.redHighlight :
-                (textField.activeFocus ? hifi.colors.primaryHighlight : (isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray))
-                border.width: 1
-                radius: 4
-
-                Item {
-                    id: searchButtonContainer;
-                    anchors.left: parent.left;
-                    anchors.verticalCenter: parent.verticalCenter;
-                    height: parent.height;
-                    width: 42;
-
-                    // Search icon
-                    HiFiGlyphs {
-                        id: searchIcon;
-                        text: hifi.glyphs.search
-                        color: textColor
-                        size: 40;
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: paintedWidth;
-                    }
-
-                    // Carat
-                    HiFiGlyphs {
-                        text: hifi.glyphs.caratDn;
-                        color: textColor;
-                        size: 40;
-                        anchors.left: parent.left;
-                        anchors.leftMargin: 15;
-                        width: paintedWidth;
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent;
-                        onClicked: {
-                            textField.forceActiveFocus();
-                            dropdownContainer.visible = !dropdownContainer.visible;
-                        }
-                    }
-                }
-
-                Rectangle {
-                    z: 999;
-                    id: primaryFilterContainer;
-                    color: hifi.colors.lightGray;
-                    width: primaryFilterTextMetrics.tightBoundingRect.width + 14;
-                    height: parent.height - 8;
-                    anchors.verticalCenter: parent.verticalCenter;
-                    anchors.left: searchButtonContainer.right;
-                    anchors.leftMargin: 4;
-                    visible: primaryFilterText.text !== "";
-
-                    FiraSansRegular {
-                        id: primaryFilterText;
-                        text: root.primaryFilter_displayName;
-                        anchors.fill: parent;
-                        color: hifi.colors.white;
-                        horizontalAlignment: Text.AlignHCenter;
-                        verticalAlignment: Text.AlignVCenter;
-                        size: hifi.fontSizes.textFieldInput;
-                    }
-                }
-
-                // "Clear" button
-                HiFiGlyphs {
-                    text: hifi.glyphs.error
-                    color: textColor
-                    size: 40
-                    anchors.right: parent.right
-                    anchors.rightMargin: hifi.dimensions.textPadding - 2
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: root.text !== "" || root.primaryFilter_index !== -1;
-
-                    MouseArea {
-                        anchors.fill: parent;
-                        onClicked: {
-                            root.text = "";
-                            root.primaryFilter_index = -1;
-                            dropdownContainer.visible = false;
-                            textField.forceActiveFocus();
-                        }
+                } else {
+                    if (textField.activeFocus) {
+                        hifi.colors.black
+                    } else {
+                        hifi.colors.baseGrayShadow
                     }
                 }
             }
 
-            placeholderTextColor: isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray
-            selectedTextColor: hifi.colors.black
-            selectionColor: hifi.colors.primaryHighlight
-            padding.left: 44 + (root.primaryFilter_index === -1 ? 0 : primaryFilterTextMetrics.tightBoundingRect.width + 24);
-            padding.right: 44
+            border.color: textField.error ? hifi.colors.redHighlight :
+            (textField.activeFocus ? hifi.colors.primaryHighlight : (isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray))
+            border.width: 1
+            radius: 4
+
+            Item {
+                id: searchButtonContainer;
+                anchors.left: parent.left;
+                anchors.verticalCenter: parent.verticalCenter;
+                height: parent.height;
+                width: 42;
+
+                // Search icon
+                HiFiGlyphs {
+                    id: searchIcon;
+                    text: hifi.glyphs.search
+                    color: textColor
+                    size: 40;
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: paintedWidth;
+                }
+
+                // Carat
+                HiFiGlyphs {
+                    text: hifi.glyphs.caratDn;
+                    color: textColor;
+                    size: 40;
+                    anchors.left: parent.left;
+                    anchors.leftMargin: 15;
+                    width: paintedWidth;
+                }
+
+                MouseArea {
+                    anchors.fill: parent;
+                    onClicked: {
+                        textField.forceActiveFocus();
+                        dropdownContainer.visible = !dropdownContainer.visible;
+                    }
+                }
+            }
+
+            Rectangle {
+                z: 999;
+                id: primaryFilterContainer;
+                color: textField.activeFocus ? hifi.colors.blueHighlight : hifi.colors.lightGray;
+                width: primaryFilterTextMetrics.tightBoundingRect.width + 14;
+                height: parent.height - 8;
+                anchors.verticalCenter: parent.verticalCenter;
+                anchors.left: searchButtonContainer.right;
+                anchors.leftMargin: 4;
+                visible: primaryFilterText.text !== "";
+                radius: 4;
+
+                FiraSansRegular {
+                    id: primaryFilterText;
+                    text: root.primaryFilter_displayName;
+                    anchors.fill: parent;
+                    color: hifi.colors.white;
+                    horizontalAlignment: Text.AlignHCenter;
+                    verticalAlignment: Text.AlignVCenter;
+                    size: hifi.fontSizes.textFieldInput;
+                }
+
+                MouseArea {
+                    anchors.fill: parent;
+                    onClicked: {
+                        textField.forceActiveFocus();
+                    }
+                }
+            }
+
+            // "Clear" button
+            HiFiGlyphs {
+                text: hifi.glyphs.error
+                color: textColor
+                size: 40
+                anchors.right: parent.right
+                anchors.rightMargin: hifi.dimensions.textPadding - 2
+                anchors.verticalCenter: parent.verticalCenter
+                visible: root.text !== "" || root.primaryFilter_index !== -1;
+
+                MouseArea {
+                    anchors.fill: parent;
+                    onClicked: {
+                        root.text = "";
+                        root.primaryFilter_index = -1;
+                        dropdownContainer.visible = false;
+                        textField.forceActiveFocus();
+                    }
+                }
+            }
         }
+
+        //placeholderTextColor: isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray
+        selectedTextColor: hifi.colors.black
+        selectionColor: hifi.colors.primaryHighlight
+        leftPadding: 44 + (root.primaryFilter_index === -1 ? 0 : primaryFilterTextMetrics.tightBoundingRect.width + 24);
+        rightPadding: 44;
     }
 
     Rectangle {
