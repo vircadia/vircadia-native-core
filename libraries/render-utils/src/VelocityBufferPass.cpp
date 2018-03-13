@@ -18,7 +18,6 @@
 
 const int VelocityBufferPass_FrameTransformSlot = 0;
 const int VelocityBufferPass_DepthMapSlot = 0;
-const int VelocityBufferPass_NormalMapSlot = 1;
 
 
 #include "velocityBuffer_cameraMotion_frag.h"
@@ -118,7 +117,7 @@ void VelocityBufferPass::run(const render::RenderContextPointer& renderContext, 
 
     auto fullViewport = args->_viewport;
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("VelocityBufferPass::run", args->_context, [=](gpu::Batch& batch) {
         _gpuTimer->begin(batch);
         batch.enableStereo(false);
 

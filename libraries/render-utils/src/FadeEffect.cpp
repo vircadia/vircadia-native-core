@@ -34,8 +34,12 @@ render::ShapePipeline::BatchSetter FadeEffect::getBatchSetter() const {
         auto program = shapePipeline.pipeline->getProgram();
         auto maskMapLocation = program->getTextures().findLocation("fadeMaskMap");
         auto bufferLocation = program->getUniformBuffers().findLocation("fadeParametersBuffer");
-        batch.setResourceTexture(maskMapLocation, _maskMap);
-        batch.setUniformBuffer(bufferLocation, _configurations);
+        if (maskMapLocation != -1) {
+            batch.setResourceTexture(maskMapLocation, _maskMap);
+        } 
+        if (bufferLocation != -1) {
+            batch.setUniformBuffer(bufferLocation, _configurations);
+        }
     };
 }
 

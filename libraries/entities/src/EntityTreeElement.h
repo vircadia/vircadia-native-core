@@ -152,10 +152,10 @@ public:
         const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
         QVariantMap& extraInfo, bool precisionPicking = false);
     virtual EntityItemID findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance,
+                         OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
                          const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
-                         QVariantMap& extraInfo, bool precisionPicking, float distanceToElementCube);
+                         QVariantMap& extraInfo, bool precisionPicking);
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const override;
 
@@ -210,8 +210,7 @@ public:
     void getEntitiesInside(const AACube& box, QVector<EntityItemPointer>& foundEntities);
 
     void cleanupEntities(); /// called by EntityTree on cleanup this will free all entities
-    bool removeEntityWithEntityItemID(const EntityItemID& id);
-    bool removeEntityItem(EntityItemPointer entity);
+    bool removeEntityItem(EntityItemPointer entity, bool deletion = false);
 
     bool containsEntityBounds(EntityItemPointer entity) const;
     bool bestFitEntityBounds(EntityItemPointer entity) const;

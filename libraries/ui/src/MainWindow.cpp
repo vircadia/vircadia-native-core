@@ -107,12 +107,12 @@ void MainWindow::changeEvent(QEvent* event) {
         QWindowStateChangeEvent* stateChangeEvent = static_cast<QWindowStateChangeEvent*>(event);
         if ((stateChangeEvent->oldState() == Qt::WindowNoState ||
             stateChangeEvent->oldState() == Qt::WindowMaximized) &&
-            windowState() == Qt::WindowMinimized) {
+            (windowState() & Qt::WindowMinimized) == Qt::WindowMinimized) {
             emit windowShown(false);
             emit windowMinimizedChanged(true);
         } else {
             emit windowShown(true);
-            if (stateChangeEvent->oldState() == Qt::WindowMinimized) {
+            if ((stateChangeEvent->oldState() & Qt::WindowMinimized) == Qt::WindowMinimized) {
                 emit windowMinimizedChanged(false);
             }
         }

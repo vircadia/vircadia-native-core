@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioMixer.h"
+
 #include <thread>
 
 #include <QtCore/QJsonArray>
@@ -35,8 +37,6 @@
 #include "AudioMixerClientData.h"
 #include "AvatarAudioStream.h"
 #include "InjectedAudioStream.h"
-
-#include "AudioMixer.h"
 
 static const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
 static const int DISABLE_STATIC_JITTER_FRAMES = -1;

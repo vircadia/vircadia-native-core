@@ -42,25 +42,24 @@
             </div>
         </fieldset>
 
-
         <fieldset id="general" class="major">
             <div class="shape-group shape-section property dropdown" id="shape-list">
                 <label for="property-shape">Shape</label>
                 <select name="SelectShape" id="property-shape">
-                        <option value="Cube">Box</option>
-                        <option value="Sphere">Sphere</option>
-                        <option value="Tetrahedron">Tetrahedron</option>
-                        <option value="Octahedron">Octahedron</option>
-                        <option value="Icosahedron">Icosahedron</option>
-                        <option value="Dodecahedron">Dodecahedron</option>
-                        <option value="Hexagon">Hexagon</option>
-                        <option value="Triangle">Triangle</option>
-                        <option value="Octagon">Octagon</option>
-                        <option value="Cylinder">Cylinder</option>
-                        <option value="Cone">Cone</option>
-                        <option value="Circle">Circle</option>
-                        <option value="Quad">Quad</option>
-                    </select>
+                    <option value="Cube">Box</option>
+                    <option value="Sphere">Sphere</option>
+                    <option value="Tetrahedron">Tetrahedron</option>
+                    <option value="Octahedron">Octahedron</option>
+                    <option value="Icosahedron">Icosahedron</option>
+                    <option value="Dodecahedron">Dodecahedron</option>
+                    <option value="Hexagon">Hexagon</option>
+                    <option value="Triangle">Triangle</option>
+                    <option value="Octagon">Octagon</option>
+                    <option value="Cylinder">Cylinder</option>
+                    <option value="Cone">Cone</option>
+                    <option value="Circle">Circle</option>
+                    <option value="Quad">Quad</option>
+                </select>
             </div>
             <div class="property text">
                 <label for="property-name">Name</label>
@@ -293,7 +292,6 @@
             </div>
         </fieldset>
 
-
         <fieldset id="behavior" class="major">
             <legend class="section-header behavior-group">
                 Behavior<span class=".collapse-icon">M</span>
@@ -314,6 +312,10 @@
             <div id="id" class="property value">
                 <label>ID:</label>
                 <input type="text" id="property-id" readonly>
+            </div>
+            <div class="can-cast-shadow-section property checkbox">
+                <input type="checkbox" id="property-can-cast-shadow">
+                <label for="property-can-cast-shadow">Can cast shadow</label>
             </div>
 
             <fieldset class="minor">
@@ -365,8 +367,6 @@
             </div>
         </fieldset>
 
-
-
         <fieldset id="light" class="major">
             <legend class="section-header light-group light-section">
                 Light<span class=".collapse-icon">M</span>
@@ -399,7 +399,6 @@
                 </div>
             </fieldset>
         </fieldset>
-
 
         <fieldset id="model" class="major">
             <legend class="section-header model-group model-section zone-section">
@@ -484,7 +483,6 @@
             </fieldset>
         </fieldset>
 
-
         <fieldset id="zone" class="major">
             <legend class="section-header zone-group zone-section">
                 Zone<span class=".collapse-icon">M</span>
@@ -531,6 +529,10 @@
                         <div><label>Light azimuth <span class="unit">deg</span></label><input type="number" id="property-zone-key-light-direction-y"></div>
                         <div></div>
                     </div>
+                </div>
+                <div class="zone-group zone-section keylight-section property checkbox">
+                    <input type="checkbox" id="property-zone-key-light-cast-shadows">
+                    <label for="property-zone-key-light-cast-shadows">Cast Shadows</label>
                 </div>
             <fieldset class="minor">
                 <legend class="sub-section-header zone-group zone-section background-section">
@@ -676,7 +678,7 @@
                         min="-1000" max="50000" step="10"></div>
                     </div>
                 </fieldset-->
-           </fieldset>
+            </fieldset>
         </fieldset>
         <fieldset id="text" class="major">
             <legend class="section-header text-group text-section">
@@ -768,6 +770,71 @@
                 <label for="property-z-texture-url">Z-axis texture URL</label>
                 <input type="text" id="property-z-texture-url">
             </div>
+        </fieldset>
+
+        <fieldset id="material" class="major">
+            <legend class="section-header material-group material-section">
+                Material<span>M</span>
+            </legend>
+            <fieldset class="minor">
+                <div class="material-group material-section property url">
+                    <label for="property-material-url">Material URL</label>
+                    <input type="text" id="property-material-url">
+                </div>
+            </fieldset>
+            <fieldset class="minor">
+                <div class="material-group material-section property text" id="property-parent-material-id-string-container">
+                    <label for="property-parent-material-id-string">Material Name to Replace </label>
+                    <input type="text" id="property-parent-material-id-string">
+                </div>
+
+                <div class="material-group material-section property number" id="property-parent-material-id-number-container">
+                    <label for="property-parent-material-id-number">Submesh to Replace </label>
+                    <input type="number" min="0" step="1" value="0" id="property-parent-material-id-number">
+                </div>
+
+                <div class="material-group material-section property checkbox">
+                    <input type="checkbox" id="property-parent-material-id-checkbox">
+                    <label for="property-parent-material-id-checkbox">Select Submesh</label>
+                </div>
+
+                <div class="material-group material-section property number">
+                    <label>Priority </label>
+                    <input type="number" id="property-priority" min="0">
+                </div>
+
+                <fieldset>
+                    <!-- TODO: support 3D projected materials
+                    <div class="material-group material-section property dropdown">
+                        <label>Material mode </label>
+                        <select name="SelectMaterialMode" id="property-material-mapping-mode">
+                            <option value="uv">UV space material</option>
+                            <option value="projected">3D projected material</option>
+                        </select>
+                    </div>
+                    -->
+
+                    <div class="material-group material-section property xy fstuple">
+                        <label>Material Position </label>
+                        <div class="tuple">
+                            <div><input type="number" class="x" id="property-material-mapping-pos-x" min="0" max="1" step="0.1"><label for="property-material-mapping-pos-x">X:</label></div>
+                            <div><input type="number" class="y" id="property-material-mapping-pos-y" min="0" max="1" step="0.1"><label for="property-material-mapping-pos-y">Y:</label></div>
+                    </div>
+
+                    <div class="material-group material-section property wh fstuple">
+                        <label>Material Scale </label>
+                        <div class="tuple">
+                            <div><input type="number" class="x" id="property-material-mapping-scale-x" min="0" step="0.1"><label for="property-material-mapping-scale-x">Width:</label></div>
+                            <div><input type="number" class="y" id="property-material-mapping-scale-y" min="0" step="0.1"><label for="property-material-mapping-scale-y">Height:</label></div>
+                    </div>
+
+                    <div class="material-group material-section property number">
+                        <label>Material Rotation <span class="unit">deg</span></label>
+                        <input type="number" id="property-material-mapping-rot" step="0.1">
+                    </div>
+                </fieldset>
+
+            </fieldset>
         </fieldset>
 
     </div>

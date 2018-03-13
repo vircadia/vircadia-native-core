@@ -24,13 +24,16 @@ exports.handlers = {
             '../../libraries/animation/src',
             '../../libraries/avatars/src',
             '../../libraries/controllers/src/controllers/',
+            '../../libraries/graphics-scripting/src/graphics-scripting/',
             '../../libraries/entities/src',
+            '../../libraries/model-networking/src/model-networking/',
+            '../../libraries/octree/src',
             '../../libraries/networking/src',
+            '../../libraries/physics/src',
             '../../libraries/pointers/src',
-            '../../libraries/render-utils/src',
+            '../../libraries/script-engine/src',
             '../../libraries/shared/src',
             '../../libraries/shared/src/shared',
-            '../../libraries/script-engine/src',
         ];
         var exts = ['.h', '.cpp'];
 

@@ -118,6 +118,7 @@ protected:
     void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor, gpu::FramebufferPointer fbo);
     void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor);
     virtual void updateFrameData();
+    virtual glm::mat4 getViewCorrection() { return glm::mat4(); }
 
     void withOtherThreadContext(std::function<void()> f) const;
 
@@ -137,6 +138,7 @@ protected:
 
     gpu::FramePointer _currentFrame;
     gpu::Frame* _lastFrame { nullptr };
+    mat4 _prevRenderView;
     gpu::FramebufferPointer _compositeFramebuffer;
     gpu::PipelinePointer _hudPipeline;
     gpu::PipelinePointer _mirrorHUDPipeline;

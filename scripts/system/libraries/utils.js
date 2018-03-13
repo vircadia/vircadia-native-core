@@ -356,7 +356,7 @@ getTabletWidthFromSettings = function () {
     var DEFAULT_TABLET_WIDTH = 0.4375;
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var toolbarMode = tablet.toolbarMode;
-    var DEFAULT_TABLET_SCALE = 100;
+    var DEFAULT_TABLET_SCALE = 70;
     var tabletScalePercentage = DEFAULT_TABLET_SCALE;
     if (!toolbarMode) {
         if (HMD.active) {
@@ -427,4 +427,18 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
         localRotation: Quat.angleAxis(180, Vec3.UNIT_Y),
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });
+};
+
+getMainTabletIDs = function () {
+    var tabletIDs = [];
+    if (HMD.tabletID) {
+        tabletIDs.push(HMD.tabletID);
+    }
+    if (HMD.tabletScreenID) {
+        tabletIDs.push(HMD.tabletScreenID);
+    }
+    if (HMD.homeButtonID) {
+        tabletIDs.push(HMD.homeButtonID);
+    }
+    return tabletIDs;
 };

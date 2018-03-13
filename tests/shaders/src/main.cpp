@@ -50,12 +50,8 @@
 #include <render-utils/model_frag.h>
 #include <render-utils/model_shadow_frag.h>
 #include <render-utils/model_normal_map_frag.h>
-#include <render-utils/model_normal_specular_map_frag.h>
-#include <render-utils/model_specular_map_frag.h>
 #include <render-utils/model_lightmap_frag.h>
 #include <render-utils/model_lightmap_normal_map_frag.h>
-#include <render-utils/model_lightmap_normal_specular_map_frag.h>
-#include <render-utils/model_lightmap_specular_map_frag.h>
 #include <render-utils/model_translucent_frag.h>
 
 #include <entities-renderer/textured_particle_frag.h>
@@ -180,19 +176,13 @@ void QTestWindow::draw() {
 
         testShaderBuild(model_vert::getSource(), model_frag::getSource());
         testShaderBuild(model_normal_map_vert::getSource(), model_normal_map_frag::getSource());
-        testShaderBuild(model_vert::getSource(), model_specular_map_frag::getSource());
-        testShaderBuild(model_normal_map_vert::getSource(), model_normal_specular_map_frag::getSource());
         testShaderBuild(model_vert::getSource(), model_translucent_frag::getSource());
         testShaderBuild(model_normal_map_vert::getSource(), model_translucent_frag::getSource());
         testShaderBuild(model_lightmap_vert::getSource(), model_lightmap_frag::getSource());
         testShaderBuild(model_lightmap_normal_map_vert::getSource(), model_lightmap_normal_map_frag::getSource());
-        testShaderBuild(model_lightmap_vert::getSource(), model_lightmap_specular_map_frag::getSource());
-        testShaderBuild(model_lightmap_normal_map_vert::getSource(), model_lightmap_normal_specular_map_frag::getSource());
 
         testShaderBuild(skin_model_vert::getSource(), model_frag::getSource());
         testShaderBuild(skin_model_normal_map_vert::getSource(), model_normal_map_frag::getSource());
-        testShaderBuild(skin_model_vert::getSource(), model_specular_map_frag::getSource());
-        testShaderBuild(skin_model_normal_map_vert::getSource(), model_normal_specular_map_frag::getSource());
         testShaderBuild(skin_model_vert::getSource(), model_translucent_frag::getSource());
         testShaderBuild(skin_model_normal_map_vert::getSource(), model_translucent_frag::getSource());
 
@@ -214,24 +204,14 @@ void QTestWindow::draw() {
     _context.swapBuffers(this);
 }
 
-void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    if (!message.isEmpty()) {
-#ifdef Q_OS_WIN
-        OutputDebugStringA(message.toLocal8Bit().constData());
-        OutputDebugStringA("\n");
-#else 
-        std::cout << message.toLocal8Bit().constData() << std::endl;
-#endif
-    }
-}
-
 const char * LOG_FILTER_RULES = R"V0G0N(
 hifi.gpu=true
 )V0G0N";
 
-int main(int argc, char** argv) {    
+int main(int argc, char** argv) {
+    setupHifiApplication("Shaders Test");
+
     QGuiApplication app(argc, argv);
-    qInstallMessageHandler(messageHandler);
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow window;
     QTimer timer;

@@ -32,6 +32,7 @@
 #include "gpu/StandardShaderLib.h"
 
 #include "graphics/TextureMap.h"
+#include "graphics/BufferViewHelpers.h"
 #include "render/Args.h"
 
 #include "standardTransformPNTC_vert.h"
@@ -74,32 +75,6 @@ static std::array<GeometryCache::Shape, (GeometryCache::NUM_SHAPES - 1)> MAPPING
         GeometryCache::Cylinder,
 } };
 
-/**jsdoc
-* <p>{@link Entities} and {@link Overlays} may have the following geometrical shapes:</p>
-* <table>
-*   <thead>
-*     <tr><th>Value</th><th>Description</th></tr>
-*   </thead>
-*   <tbody>
-*     <tr><td><code>Line</code></td><td>A 1D line oriented in 3 dimensions.</td></tr>
-*     <tr><td><code>Triangle</code></td><td>A triangular prism.</td></tr>
-*     <tr><td><code>Quad</code></td><td>A 2D square oriented in 3 dimensions.</tr>
-*     <tr><td><code>Hexagon</code></td><td>A hexagonal prism.</td></tr>
-*     <tr><td><code>Octagon</code></td><td>An octagonal prism.</td></tr>
-*     <tr><td><code>Circle</code></td><td>A 2D circle oriented in 3 dimensions.</td></td></tr>
-*     <tr><td><code>Cube</code></td><td>A cube.</td></tr>
-*     <tr><td><code>Sphere</code></td><td>A sphere.</td></tr>
-*     <tr><td><code>Tetrahedron</code></td><td>A tetrahedron.</td></tr>
-*     <tr><td><code>Octahedron</code></td><td>An octahedron.</td></tr>
-*     <tr><td><code>Dodecahedron</code></td><td>A dodecahedron.</td></tr>
-*     <tr><td><code>Icosahedron</code></td><td>An icosahedron.</td></tr>
-*     <tr><td><code>Torus</code></td><td>A torus. <em>Not implemented.</em></td></tr>
-*     <tr><td><code>Cone</code></td><td>A cone.</td></tr>
-*     <tr><td><code>Cylinder</code></td><td>A cylinder.</td></tr>
-*   </tbody>
-* </table>
-* @typedef {string} Shape
-*/
 static const std::array<const char * const, GeometryCache::NUM_SHAPES> GEOCACHE_SHAPE_STRINGS{ {
         "Line",
         "Triangle",
@@ -1318,7 +1293,6 @@ void GeometryCache::renderUnitQuad(gpu::Batch& batch, const glm::vec4& color, in
     renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color, id);
 }
 
-
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
     const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner,
     const glm::vec4& color, int id) {
@@ -2403,4 +2377,39 @@ void GeometryCache::renderWireCubeInstance(RenderArgs* args, gpu::Batch& batch, 
     static const std::string INSTANCE_NAME = __FUNCTION__;
     assert(pipeline != nullptr);
     renderInstances(args, batch, color, true, pipeline, GeometryCache::Cube);
+}
+
+graphics::MeshPointer GeometryCache::meshFromShape(Shape geometryShape, glm::vec3 color) {
+    auto shapeData = getShapeData(geometryShape);
+
+    qDebug() << "GeometryCache::getMeshProxyListFromShape" << shapeData << stringFromShape(geometryShape);
+
+    auto positionsBufferView = buffer_helpers::clone(shapeData->_positionView);
+    auto normalsBufferView = buffer_helpers::clone(shapeData->_normalView);
+    auto indexBufferView = buffer_helpers::clone(shapeData->_indicesView);
+
+    gpu::BufferView::Size numVertices = positionsBufferView.getNumElements();
+    Q_ASSERT(numVertices == normalsBufferView.getNumElements());
+
+    // apply input color across all vertices
+    auto colorsBufferView = buffer_helpers::clone(shapeData->_normalView);
+    for (gpu::BufferView::Size i = 0; i < numVertices; i++) {
+        colorsBufferView.edit<glm::vec3>((gpu::BufferView::Index)i) = color;
+    }
+
+    graphics::MeshPointer mesh(new graphics::Mesh());
+    mesh->setVertexBuffer(positionsBufferView);
+    mesh->setIndexBuffer(indexBufferView);
+    mesh->addAttribute(gpu::Stream::NORMAL, normalsBufferView);
+    mesh->addAttribute(gpu::Stream::COLOR, colorsBufferView);
+
+    const auto startIndex = 0, baseVertex = 0;
+    graphics::Mesh::Part part(startIndex, (graphics::Index)indexBufferView.getNumElements(), baseVertex, graphics::Mesh::TRIANGLES);
+    auto partBuffer = new gpu::Buffer(sizeof(graphics::Mesh::Part), (gpu::Byte*)&part);
+    mesh->setPartBuffer(gpu::BufferView(partBuffer, gpu::Element::PART_DRAWCALL));
+
+    mesh->modelName = GeometryCache::stringFromShape(geometryShape).toStdString();
+    mesh->displayName = QString("GeometryCache/shape::%1").arg(GeometryCache::stringFromShape(geometryShape)).toStdString();
+
+    return mesh;
 }

@@ -31,6 +31,12 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
     _defaultEyeModelPosition(glm::vec3(0.0f, 0.0f, 0.0f)),
     _headClipDistance(DEFAULT_NEAR_CLIP)
 {
+    // SkeletonModels, and by extention Avatars, use Dual Quaternion skinning.
+    _useDualQuaternionSkinning = true;
+
+    // Avatars all cast shadow
+    _canCastShadow = true;
+
     assert(_owningAvatar);
 }
 

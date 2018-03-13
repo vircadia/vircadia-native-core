@@ -70,6 +70,8 @@ public slots:
 
 protected:
     void makeRequest() override;
+    void makeLocalRequest();
+    Q_INVOKABLE void handleLocalRequestCompleted();
 
     virtual bool isCacheable() const override { return _loaded; }
 
@@ -133,6 +135,8 @@ private:
 
 using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
 
+Q_DECLARE_METATYPE(QWeakPointer<NetworkTexture>)
+
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {
     Q_OBJECT
@@ -162,7 +166,6 @@ public:
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, image::TextureUsage::Type type = image::TextureUsage::DEFAULT_TEXTURE,
         const QByteArray& content = QByteArray(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
-
 
     gpu::TexturePointer getTextureByHash(const std::string& hash);
     gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
@@ -194,12 +197,11 @@ private:
     TextureCache();
     virtual ~TextureCache();
 
-#if !defined(DISABLE_KTX_CACHE)
     static const std::string KTX_DIRNAME;
     static const std::string KTX_EXT;
 
     std::shared_ptr<cache::FileCache> _ktxCache { std::make_shared<KTXCache>(KTX_DIRNAME, KTX_EXT) };
-#endif
+
     // Map from image hashes to texture weak pointers
     std::unordered_map<std::string, std::weak_ptr<gpu::Texture>> _texturesByHashes;
     std::mutex _texturesByHashesMutex;

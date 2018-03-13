@@ -68,7 +68,7 @@ public:
 
     virtual bool supportsDetailedRayIntersection() const override;
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                        bool& keepSearching, OctreeElementPointer& element, float& distance,
+                        OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         QVariantMap& extraInfo, bool precisionPicking) const override;
 
@@ -111,7 +111,7 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
-    bool getMeshes(MeshProxyList& result) override;
+    bool getMeshes(MeshProxyList& result) override; // deprecated
     const void* getCollisionMeshKey() const { return _collisionMeshKey; }
 
 signals:
@@ -138,9 +138,16 @@ namespace render { namespace entities {
 class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem> {
     using Parent = TypedEntityRenderer<RenderableModelEntityItem>;
     friend class EntityRenderer;
+    Q_OBJECT
 
 public:
     ModelEntityRenderer(const EntityItemPointer& entity);
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
+    virtual bool canReplaceModelMeshPart(int meshIndex, int partIndex) override;
+    virtual bool replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer model, int meshIndex, int partIndex) override;
+
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
 
 protected:
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction) override;
@@ -194,6 +201,8 @@ private:
     uint64_t _lastAnimated { 0 };
 
     render::ItemKey _itemKey { render::ItemKey::Builder().withTypeMeta() };
+
+    void processMaterials();
 };
 
 } } // namespace 

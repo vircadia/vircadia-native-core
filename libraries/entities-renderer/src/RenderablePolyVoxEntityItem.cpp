@@ -565,7 +565,7 @@ public:
 #endif
 
 bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                              bool& keepSearching, OctreeElementPointer& element,
+                                                              OctreeElementPointer& element,
                                                               float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                                                               QVariantMap& extraInfo, bool precisionPicking) const
 {
@@ -1418,6 +1418,7 @@ void RenderablePolyVoxEntityItem::bonkNeighbors() {
     }
 }
 
+// deprecated
 bool RenderablePolyVoxEntityItem::getMeshes(MeshProxyList& result) {
     if (!updateDependents()) {
         return false;
@@ -1448,6 +1449,37 @@ bool RenderablePolyVoxEntityItem::getMeshes(MeshProxyList& result) {
         });
     }
     return success;
+}
+
+scriptable::ScriptableModelBase RenderablePolyVoxEntityItem::getScriptableModel() {
+    if (!updateDependents() || !_mesh) {
+        return scriptable::ScriptableModelBase();
+    }
+
+    bool success = false;
+    glm::mat4 transform = voxelToLocalMatrix();
+    scriptable::ScriptableModelBase result;
+    result.objectID = getThisPointer()->getID();
+    withReadLock([&] {
+        gpu::BufferView::Index numVertices = (gpu::BufferView::Index)_mesh->getNumVertices();
+        if (!_meshReady) {
+            // we aren't ready to return a mesh.  the caller will have to try again later.
+            success = false;
+        } else if (numVertices == 0) {
+            // we are ready, but there are no triangles in the mesh.
+            success = true;
+        } else {
+            success = true;
+            // the mesh will be in voxel-space.  transform it into object-space
+            result.append(_mesh->map(
+                [=](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
+                [=](glm::vec3 color){ return color; },
+                [=](glm::vec3 normal){ return glm::normalize(glm::vec3(transform * glm::vec4(normal, 0.0f))); },
+                [&](uint32_t index){ return index; }
+            ));
+        }
+    });
+    return result;
 }
 
 using namespace render;

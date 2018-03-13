@@ -45,6 +45,7 @@
 #include <TextureCache.h>
 #include <PerfStat.h>
 #include <PathUtils.h>
+#include <SharedUtil.h>
 #include <ViewFrustum.h>
 
 #include <gpu/Pipeline.h>
@@ -146,7 +147,7 @@ class MyTestWindow : public TestWindow {
             return;
         }
 
-        gpu::doInBatch(_renderArgs->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("main::renderFrame", _renderArgs->_context, [&](gpu::Batch& batch) {
             batch.setViewTransform(_camera);
             _renderArgs->_batch = &batch;
             _currentTest->renderTest(_currentTestId, _renderArgs);
@@ -192,7 +193,9 @@ void testSparseRectify() {
     }
 }
 
-int main(int argc, char** argv) {   
+int main(int argc, char** argv) {
+    setupHifiApplication("GPU Test");
+
     testSparseRectify();
 
     // FIXME this test appears to be broken

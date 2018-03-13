@@ -90,10 +90,10 @@ void Application::paintGL() {
 
     {
         PROFILE_RANGE(render, "/gpuContextReset");
-        _gpuContext->beginFrame(HMDSensorPose);
+        _gpuContext->beginFrame(_appRenderArgs._view, HMDSensorPose);
         // Reset the gpu::Context Stages
         // Back to the default framebuffer;
-        gpu::doInBatch(_gpuContext, [&](gpu::Batch& batch) {
+        gpu::doInBatch("Application_render::gpuContextReset", _gpuContext, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
     }

@@ -69,14 +69,16 @@ Item {
         hoverEnabled: true;
     }
     
+    Component.onDestruction: {
+        sendSignalToParent({method: 'maybeEnableHmdPreview'});
+    }
+
     // This will cause a bug -- if you bring up passphrase selection in HUD mode while
     // in HMD while having HMD preview enabled, then move, then finish passphrase selection,
     // HMD preview will stay off.
     // TODO: Fix this unlikely bug
     onVisibleChanged: {
         if (visible) {
-            passphraseField.error = false;
-            passphraseField.focus = true;
             sendSignalToParent({method: 'disableHmdPreview'});
         } else {
             sendSignalToParent({method: 'maybeEnableHmdPreview'});
@@ -206,6 +208,14 @@ Item {
             placeholderText: "passphrase";
             activeFocusOnPress: true;
             activeFocusOnTab: true;
+            
+            onVisibleChanged: {
+                if (visible) {
+                    error = false;
+                    focus = true;
+                    forceActiveFocus();
+                }
+            }
 
             onFocusChanged: {
                 root.keyboardRaised = focus;

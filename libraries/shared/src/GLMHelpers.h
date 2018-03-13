@@ -260,6 +260,8 @@ glm::mat4 orthoInverse(const glm::mat4& m);
 //  Return a random vector of average length 1
 glm::vec3 randVector();
 
+bool isNonUniformScale(const glm::vec3& scale);
+
 //
 // Safe replacement of glm_mat4_mul() for unaligned arguments instead of __m128
 //

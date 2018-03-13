@@ -187,6 +187,10 @@ void Procedural::setProceduralData(const ProceduralData& proceduralData) {
 }
 
 bool Procedural::isReady() const {
+#if defined(USE_GLES)
+    return false;
+#endif
+
     if (!_enabled) {
         return false;
     }

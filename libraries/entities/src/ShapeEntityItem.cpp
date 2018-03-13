@@ -20,6 +20,33 @@
 #include "ShapeEntityItem.h"
 
 namespace entity {
+
+    /**jsdoc
+     * <p>A <code>Shape</code>, <code>Box</code>, or <code>Sphere</code> {@link Entities.EntityType|EntityType} may display as 
+     * one of the following geometrical shapes:</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Dimensions</th><th>Notes</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>"Circle"</code></td><td>2D</td><td>A circle oriented in 3D.</td></tr>
+     *     <tr><td><code>"Cube"</code></td><td>3D</td><td></td></tr>
+     *     <tr><td><code>"Cone"</code></td><td>3D</td><td></td></tr>
+     *     <tr><td><code>"Cylinder"</code></td><td>3D</td><td></td></tr>
+     *     <tr><td><code>"Dodecahedron"</code></td><td>3D</td><td></td></tr>
+     *     <tr><td><code>"Hexagon"</code></td><td>3D</td><td>A hexagonal prism.</td></tr>
+     *     <tr><td><code>"Icosahedron"</code></td><td>3D</td><td></td></tr>
+     *     <tr><td><code>"Octagon"</code></td><td>3D</td><td>An octagonal prism.</td></tr>
+     *     <tr><td><code>"Octahedron"</code></td><td>3D</td><td></td></tr>
+     *     <tr><td><code>"Quad"</code></td><td>2D</td><td>A square oriented in 3D.</td></tr>
+     *     <tr><td><code>"Sphere"</code></td><td>3D</td><td></td></tr>
+     *     <tr><td><code>"Tetrahedron"</code></td><td>3D</td><td></td></tr>
+     *     <tr><td><code>"Torus"</code></td><td>3D</td><td><em>Not implemented.</em></td></tr>
+     *     <tr><td><code>"Triangle"</code></td><td>3D</td><td>A triangular prism.</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {string} Entities.Shape
+     */
     static const std::array<QString, Shape::NUM_SHAPES> shapeStrings { {
         "Triangle", 
         "Quad", 
@@ -32,7 +59,7 @@ namespace entity {
         "Octahedron", 
         "Dodecahedron", 
         "Icosahedron", 
-        "Torus",
+        "Torus",  // Not implemented yet.
         "Cone", 
         "Cylinder" 
     } };
@@ -85,6 +112,7 @@ EntityItemPointer ShapeEntityItem::sphereFactory(const EntityItemID& entityID, c
 ShapeEntityItem::ShapeEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Shape;
     _volumeMultiplier *= PI / 6.0f;
+    _material = std::make_shared<graphics::Material>();
 }
 
 EntityItemProperties ShapeEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
@@ -184,6 +212,7 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
 void ShapeEntityItem::setColor(const rgbColor& value) {
     memcpy(_color, value, sizeof(rgbColor));
+    _material->setAlbedo(glm::vec3(_color[0], _color[1], _color[2]) / 255.0f);
 }
 
 xColor ShapeEntityItem::getXColor() const {
@@ -204,6 +233,11 @@ void ShapeEntityItem::setColor(const QColor& value) {
     setAlpha(value.alpha());
 }
 
+void ShapeEntityItem::setAlpha(float alpha) {
+    _alpha = alpha;
+    _material->setOpacity(alpha);
+}
+
 void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     const float MAX_FLAT_DIMENSION = 0.0001f;
     if ((_shape == entity::Shape::Circle || _shape == entity::Shape::Quad) && value.y > MAX_FLAT_DIMENSION) {
@@ -221,7 +255,7 @@ bool ShapeEntityItem::supportsDetailedRayIntersection() const {
 }
 
 bool ShapeEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                   bool& keepSearching, OctreeElementPointer& element,
+                                                   OctreeElementPointer& element,
                                                    float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                                                    QVariantMap& extraInfo, bool precisionPicking) const {
     // determine the ray in the frame of the entity transformed from a unit sphere

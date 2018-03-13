@@ -385,7 +385,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     auto firstHBlurPipeline = getHBlurPipeline();
     auto lastVBlurPipeline = getVBlurPipeline();
     
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("AmbientOcclusionEffect::run", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         _gpuTimer->begin(batch);
@@ -518,7 +518,7 @@ void DebugAmbientOcclusion::run(const render::RenderContextPointer& renderContex
     
     auto debugPipeline = getDebugPipeline();
     
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("DebugAmbientOcclusion::run", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         batch.setViewportTransform(sourceViewport);

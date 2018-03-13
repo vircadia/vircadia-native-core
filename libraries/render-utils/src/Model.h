@@ -27,6 +27,7 @@
 #include <gpu/Batch.h>
 #include <render/Forward.h>
 #include <render/Scene.h>
+#include <graphics-scripting/Forward.h>
 #include <Transform.h>
 #include <SpatiallyNestable.h>
 #include <TriangleSet.h>
@@ -64,7 +65,7 @@ using ModelWeakPointer = std::weak_ptr<Model>;
 
 
 /// A generic 3D model displaying geometry loaded from a URL.
-class Model : public QObject, public std::enable_shared_from_this<Model> {
+class Model : public QObject, public std::enable_shared_from_this<Model>, public scriptable::ModelProvider {
     Q_OBJECT
 
 public:
@@ -87,6 +88,10 @@ public:
 
     // new Scene/Engine rendering support
     void setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
+
+    bool canCastShadow() const { return _canCastShadow; }
+    void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
+
     void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
     void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
@@ -256,8 +261,6 @@ public:
     int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
     bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
 
-
-#if defined(SKIN_DQ)
     class TransformDualQuaternion {
     public:
         TransformDualQuaternion() {}
@@ -295,15 +298,11 @@ public:
         DualQuaternion _dq;
         glm::vec4 _cauterizedPosition { 0.0f, 0.0f, 0.0f, 1.0f };
     };
-#endif
 
     class MeshState {
     public:
-#if defined(SKIN_DQ)
-        std::vector<TransformDualQuaternion> clusterTransforms;
-#else
-        std::vector<glm::mat4> clusterTransforms;
-#endif
+        std::vector<TransformDualQuaternion> clusterDualQuaternions;
+        std::vector<glm::mat4> clusterMatrices;
     };
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
@@ -317,8 +316,15 @@ public:
     int getResourceDownloadAttemptsRemaining() { return _renderWatcher.getResourceDownloadAttemptsRemaining(); }
 
     Q_INVOKABLE MeshProxyList getMeshes() const;
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
+    virtual bool replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer model, int meshIndex, int partIndex) override;
 
     void scaleToFit();
+    bool getUseDualQuaternionSkinning() const { return _useDualQuaternionSkinning; }
+    void setUseDualQuaternionSkinning(bool value);
+
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
 public slots:
     void loadURLFinished(bool success);
@@ -401,6 +407,8 @@ protected:
     bool _isVisible;
     uint8_t _viewTagBits{ render::ItemKey::TAG_BITS_ALL };
 
+    bool _canCastShadow;
+
     gpu::Buffers _blendedVertexBuffers;
 
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
@@ -409,11 +417,11 @@ protected:
     int _blendNumber;
     int _appliedBlendNumber;
 
-    QMutex _mutex;
+    mutable QMutex _mutex{ QMutex::Recursive };
 
     bool _overrideModelTransform { false };
     bool _triangleSetsValid { false };
-    void calculateTriangleSets();
+    void calculateTriangleSets(const FBXGeometry& geometry);
     QVector<TriangleSet> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
 
 
@@ -422,6 +430,7 @@ protected:
     virtual void createCollisionRenderItemSet();
 
     bool _isWireframe;
+    bool _useDualQuaternionSkinning { false };
 
     // debug rendering support
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
@@ -437,6 +446,7 @@ protected:
     render::ItemIDs _modelMeshRenderItemIDs;
     using ShapeInfo = struct { int meshIndex; };
     std::vector<ShapeInfo> _modelMeshRenderItemShapes;
+    std::vector<std::string> _modelMeshMaterialNames;
 
     bool _addedToScene { false }; // has been added to scene
     bool _needsFixupInScene { true }; // needs to be removed/re-added to scene
@@ -472,6 +482,8 @@ private:
     float _loadingPriority { 0.0f };
 
     void calculateTextureInfo();
+
+    std::vector<unsigned int> getMeshIDsFromMaterialID(QString parentMaterialName);
 };
 
 Q_DECLARE_METATYPE(ModelPointer)

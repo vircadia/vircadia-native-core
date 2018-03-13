@@ -20,15 +20,6 @@ layout(location = 0) out vec4 outFragColor;
 
 void main() {
     vec2 fragUV = varTexCoord0;
-    
-
-
-    vec2 texelSize = taa_getTexelSize();
-
-    vec2 fragJitterPix = taa_getCurrentJitterSample();
-    if (taa_unjitter()) {
-        fragUV -= fragJitterPix * texelSize;
-    }
 
     // Debug region before debug or fxaa region X
     float distToRegionFXAA = fragUV.x - taa_getRegionFXAA().x;  
@@ -37,22 +28,17 @@ void main() {
         return;
     }
 
-   // vec3 nearFragUV = taa_findClosestFragment3x3(fragUV);
-   // vec2 fragVel = taa_fetchVelocityMap(nearFragUV.xy);
-
-    vec3 fragVelAndZ = taa_fetchVelocityMapBest(fragUV);
-    vec2 fragVel = fragVelAndZ.xy;
-    float fragDepth = fragVelAndZ.z;
+    vec2 fragVel = taa_fetchVelocityMapBest(fragUV).xy;
 
     vec3 sourceColor;
     vec3 historyColor;
-    vec2 prevFragUV = taa_fetchSourceAndHistory(fragUV, fragVel, fragJitterPix, sourceColor, historyColor);
+    vec2 prevFragUV = taa_fetchSourceAndHistory(fragUV, fragVel, sourceColor, historyColor);
 
     vec3 nextColor = sourceColor;
  
-     if (taa_constrainColor()) {
+    if (taa_constrainColor()) {
         // clamp history to neighbourhood of current sample
-        historyColor = taa_evalConstrainColor(sourceColor, fragUV, fragVel, fragDepth, fragJitterPix, historyColor);
+        historyColor = taa_evalConstrainColor(sourceColor, fragUV, fragVel, historyColor);
     }
     
     if (taa_feedbackColor()) {

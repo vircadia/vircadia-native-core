@@ -19,11 +19,11 @@
     var tabletRezzed = false;
     var activeHand = null;
     var DEFAULT_WIDTH = 0.4375;
-    var DEFAULT_TABLET_SCALE = 100;
+    var DEFAULT_TABLET_SCALE = 70;
     var preMakeTime = Date.now();
     var validCheckTime = Date.now();
     var debugTablet = false;
-    var tabletScalePercentage = 100.0;
+    var tabletScalePercentage = 70.0;
     UIWebTablet = null;
     var MSECS_PER_SEC = 1000.0;
     var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
@@ -41,14 +41,14 @@
         if (!UIWebTablet) {
             return false;
         }
-        if (Overlays.getProperty(HMD.tabletID, "type") != "model") {
+        if (Overlays.getProperty(HMD.tabletID, "type") !== "model") {
             if (debugTablet) {
                 print("TABLET is invalid due to frame: " + JSON.stringify(Overlays.getProperty(HMD.tabletID, "type")));
             }
             return false;
         }
-        if (Overlays.getProperty(HMD.homeButtonID, "type") != "circle3d" ||
-            Overlays.getProperty(HMD.tabletScreenID, "type") != "web3d") {
+        if (Overlays.getProperty(HMD.homeButtonID, "type") !== "circle3d" ||
+                Overlays.getProperty(HMD.tabletScreenID, "type") !== "web3d") {
             if (debugTablet) {
                 print("TABLET is invalid due to other");
             }
@@ -112,7 +112,7 @@
     }
 
     function showTabletUI() {
-        checkTablet()
+        checkTablet();
 
         if (!tabletRezzed || !tabletIsValid()) {
             closeTabletUI();
@@ -157,7 +157,7 @@
     }
 
     function closeTabletUI() {
-        checkTablet()
+        checkTablet();
         gTablet.tabletShown = false;
         if (UIWebTablet) {
             if (UIWebTablet.onClose) {
@@ -178,14 +178,14 @@
             print("TABLET closeTabletUI, UIWebTablet is null");
         }
         tabletRezzed = false;
-        gTablet = null
+        gTablet = null;
     }
 
 
     function updateShowTablet() {
         var now = Date.now();
 
-        checkTablet()
+        checkTablet();
 
         // close the WebTablet if it we go into toolbar mode.
         var tabletShown = gTablet.tabletShown;
@@ -270,7 +270,7 @@
         }
         if (channel === "home") {
             if (UIWebTablet) {
-                checkTablet()
+                checkTablet();
                 gTablet.landscape = false;
             }
         }

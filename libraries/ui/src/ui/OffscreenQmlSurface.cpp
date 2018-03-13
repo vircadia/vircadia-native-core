@@ -28,7 +28,7 @@
 #include <QtMultimedia/QMediaService>
 #include <QtMultimedia/QAudioOutputSelectorControl>
 #include <QtMultimedia/QMediaPlayer>
-
+#include <QtGui/QInputMethodEvent>
 #include <shared/NsightHelpers.h>
 #include <shared/GlobalAppProperties.h>
 #include <shared/QtHelpers.h>
@@ -225,7 +225,7 @@ void AudioHandler::run() {
 
 void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     Parent::initializeEngine(engine);
-
+    new QQmlFileSelector(engine);
     static std::once_flag once;
     std::call_once(once, [] { 
         qRegisterMetaType<TabletProxy*>();
@@ -248,7 +248,6 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     rootContext->setContextProperty("GL", ::getGLContextData());
     rootContext->setContextProperty("urlHandler", new UrlHandler());
     rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
-    rootContext->setContextProperty("pathToFonts", "../../");
     rootContext->setContextProperty("ApplicationInterface", qApp);
     auto javaScriptToInject = getEventBridgeJavascript();
     if (!javaScriptToInject.isEmpty()) {
@@ -305,7 +304,6 @@ void OffscreenQmlSurface::onItemCreated(QQmlContext* qmlContext, QQuickItem* new
         qmlContext->setContextProperty("eventBridgeWrapper", new EventBridgeWrapper(eventBridge, qmlContext));
     }
 
-    connect(newItem, SIGNAL(sendToScript(QVariant)), this, SIGNAL(fromQml(QVariant)));
 }
 
 void OffscreenQmlSurface::onRootCreated() {

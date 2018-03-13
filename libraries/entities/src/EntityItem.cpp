@@ -60,14 +60,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
 }
 
 EntityItem::~EntityItem() {
-    // clear out any left-over actions
-    EntityTreeElementPointer element = _element; // use local copy of _element for logic below
-    EntityTreePointer entityTree = element ? element->getTree() : nullptr;
-    EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
-    if (simulation) {
-        clearActions(simulation);
-    }
-
     // these pointers MUST be correct at delete, else we probably have a dangling backpointer
     // to this EntityItem in the corresponding data structure.
     assert(!_simulated);
@@ -99,6 +91,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_REGISTRATION_POINT;
     requestedProperties += PROP_ANGULAR_DAMPING;
     requestedProperties += PROP_VISIBLE;
+    requestedProperties += PROP_CAN_CAST_SHADOW;
     requestedProperties += PROP_COLLISIONLESS;
     requestedProperties += PROP_COLLISION_MASK;
     requestedProperties += PROP_DYNAMIC;
@@ -257,6 +250,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, getAngularDamping());
         APPEND_ENTITY_PROPERTY(PROP_VISIBLE, getVisible());
+        APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, getCanCastShadow());
         APPEND_ENTITY_PROPERTY(PROP_COLLISIONLESS, getCollisionless());
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_MASK, getCollisionMask());
         APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, getDynamic());
@@ -807,6 +801,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, setAngularDamping);
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
+    READ_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     READ_ENTITY_PROPERTY(PROP_COLLISIONLESS, bool, setCollisionless);
     READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint8_t, setCollisionMask);
     READ_ENTITY_PROPERTY(PROP_DYNAMIC, bool, setDynamic);
@@ -1242,6 +1237,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularDamping, getAngularDamping);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRenderAlpha, getLocalRenderAlpha);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(visible, getVisible);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(canCastShadow, getCanCastShadow);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionless, getCollisionless);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionMask, getCollisionMask);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dynamic, getDynamic);
@@ -1354,6 +1350,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionSoundURL, setCollisionSoundURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(canCastShadow, setCanCastShadow);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
 
     // Certifiable Properties
@@ -2731,6 +2728,28 @@ void EntityItem::setVisible(bool value) {
     }
 }
 
+bool EntityItem::getCanCastShadow() const {
+    bool result;
+    withReadLock([&] {
+        result = _canCastShadow;
+    });
+    return result;
+}
+
+void EntityItem::setCanCastShadow(bool value) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_canCastShadow != value) {
+            changed = true;
+            _canCastShadow = value;
+        }
+    });
+
+    if (changed) {
+        emit requestRenderUpdate();
+    }
+}
+
 bool EntityItem::isChildOfMyAvatar() const {
     QUuid ancestorID = findAncestorOfType(NestableType::Avatar);
     return !ancestorID.isNull() && (ancestorID == Physics::getSessionUUID() || ancestorID == AVATAR_SELF_ID);
@@ -2936,4 +2955,33 @@ void EntityItem::retrieveMarketplacePublicKey() {
 
         networkReply->deleteLater();
     });
+}
+
+void EntityItem::preDelete() {
+    // clear out any left-over actions
+    EntityTreeElementPointer element = _element; // use local copy of _element for logic below
+    EntityTreePointer entityTree = element ? element->getTree() : nullptr;
+    EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
+    if (simulation) {
+        clearActions(simulation);
+    }
+}
+
+void EntityItem::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    _materials[parentMaterialName].push(material);
+}
+
+void EntityItem::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    _materials[parentMaterialName].remove(material);
+}
+
+std::unordered_map<std::string, graphics::MultiMaterial> EntityItem::getMaterials() {
+    std::unordered_map<std::string, graphics::MultiMaterial> toReturn;
+    {
+        std::lock_guard<std::mutex> lock(_materialsLock);
+        toReturn = _materials;
+    }
+    return toReturn;
 }

@@ -17,8 +17,8 @@ struct CameraCorrection {
     mat4 _correction;
     mat4 _correctionInverse;
     
-    mat4 _prevCorrection;
-    mat4 _prevCorrectionInverse;
+    mat4 _prevView;
+    mat4 _prevViewInverse;
 };
  
 uniform cameraCorrectionBuffer {
@@ -35,20 +35,11 @@ struct DeferredFrameTransform {
     mat4 _projectionMono;
     mat4 _viewInverse;
     mat4 _view;
-    mat4 _prevViewInverse;
-    mat4 _prevView;
 };
 
 uniform deferredFrameTransformBuffer {
     DeferredFrameTransform frameTransform;
 };
-
-DeferredFrameTransform getDeferredFrameTransform() {
-    DeferredFrameTransform result = frameTransform;
-    result._view = result._view * cameraCorrection._correctionInverse;  
-    result._viewInverse = result._viewInverse * cameraCorrection._correction;  
-    return result;
-}
 
 vec2 getWidthHeight(int resolutionLevel) {
     return vec2(ivec2(frameTransform._pixelInfo.zw) >> resolutionLevel);
@@ -85,11 +76,26 @@ float getPosLinearDepthFar() {
 }
 
 mat4 getViewInverse() {
-    return frameTransform._viewInverse * cameraCorrection._correction;
+    return frameTransform._viewInverse * cameraCorrection._correctionInverse;
 }
 
 mat4 getView() {
-    return frameTransform._view * cameraCorrection._correctionInverse;
+    return cameraCorrection._correction * frameTransform._view;
+}
+
+mat4 getPreviousView() {
+    return cameraCorrection._prevView;
+}
+
+mat4 getPreviousViewInverse() {
+    return cameraCorrection._prevViewInverse;
+}
+
+DeferredFrameTransform getDeferredFrameTransform() {
+    DeferredFrameTransform result = frameTransform;
+    result._view = getView();  
+    result._viewInverse = getViewInverse();  
+    return result;
 }
 
 bool isStereo() {

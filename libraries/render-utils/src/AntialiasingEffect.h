@@ -57,27 +57,27 @@ private:
 class JitterSample {
 public:
 
-    struct SampleSequence {
-        SampleSequence();
-        static const int SEQUENCE_LENGTH{ 16 };
-        glm::vec2 offsets[SEQUENCE_LENGTH + 1];
-        int sequenceLength{ SEQUENCE_LENGTH };
-        int currentIndex{ 0 };
-
+    enum {
+        SEQUENCE_LENGTH = 128 
     };
 
-    using JitterBuffer = gpu::StructBuffer<SampleSequence>;
-
     using Config = JitterSampleConfig;
-    using JobModel = render::Job::ModelO<JitterSample, JitterBuffer, Config>;
+    using JobModel = render::Job::Model<JitterSample, Config>;
 
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, JitterBuffer& jitterBuffer);
-
+    void run(const render::RenderContextPointer& renderContext);
 
 private:
 
-    JitterBuffer _jitterBuffer;
+    struct SampleSequence {
+        SampleSequence();
+
+        glm::vec2 offsets[SEQUENCE_LENGTH + 1];
+        int sequenceLength{ SEQUENCE_LENGTH };
+        int currentIndex{ 0 };
+    };
+
+    SampleSequence _sampleSequence;
     float _scale{ 1.0 };
     bool _freeze{ false };
 };
@@ -86,12 +86,10 @@ private:
 class AntialiasingConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(float blend MEMBER blend NOTIFY dirty)
+    Q_PROPERTY(float sharpen MEMBER sharpen NOTIFY dirty)
     Q_PROPERTY(float covarianceGamma MEMBER covarianceGamma NOTIFY dirty)
  
-    Q_PROPERTY(bool unjitter MEMBER unjitter NOTIFY dirty)
     Q_PROPERTY(bool constrainColor MEMBER constrainColor NOTIFY dirty)
-    Q_PROPERTY(bool covarianceClipColor MEMBER covarianceClipColor NOTIFY dirty)
-    Q_PROPERTY(bool clipExactColor MEMBER clipExactColor NOTIFY dirty)
     Q_PROPERTY(bool feedbackColor MEMBER feedbackColor NOTIFY dirty)
 
     Q_PROPERTY(bool debug MEMBER debug NOTIFY dirty)
@@ -102,20 +100,16 @@ class AntialiasingConfig : public render::Job::Config {
     Q_PROPERTY(glm::vec2 debugCursorTexcoord MEMBER debugCursorTexcoord NOTIFY dirty)
     Q_PROPERTY(float debugOrbZoom MEMBER debugOrbZoom NOTIFY dirty)
 
-    Q_PROPERTY(bool showJitterSequence MEMBER showJitterSequence NOTIFY dirty)
     Q_PROPERTY(bool showClosestFragment MEMBER showClosestFragment NOTIFY dirty)
 
 public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
-    float blend{ 0.1f };
+    float blend{ 0.05f };
+    float sharpen{ 0.15f };
 
-
-    bool unjitter{ false };
     bool constrainColor{ true };
-    bool covarianceClipColor{ true };
-    float covarianceGamma{ 1.0f };
-    bool clipExactColor{ false };
+    float covarianceGamma{ 0.9f };
     bool feedbackColor{ false };
 
     float debugX{ 0.0f };
@@ -126,7 +120,6 @@ public:
 
     bool debug { false };
     bool showCursorPixel { false };
-    bool showJitterSequence{ false };
     bool showClosestFragment{ false };
 
 signals:
@@ -138,7 +131,7 @@ signals:
 
 struct TAAParams {
     float nope{ 0.0f };
-    float blend{ 0.1f };
+    float blend{ 0.05f };
     float covarianceGamma{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
 
@@ -146,17 +139,8 @@ struct TAAParams {
     glm::vec4 pixelInfo{ 0.5f, 0.5f, 2.0f, 0.0f };
     glm::vec4 regionInfo{ 0.0f, 0.0f, 1.0f, 0.0f };
 
-    void setUnjitter(bool enabled) { SET_BIT(flags.y, 0, enabled); }
-    bool isUnjitter() const { return (bool)GET_BIT(flags.y, 0); }
-
     void setConstrainColor(bool enabled) { SET_BIT(flags.y, 1, enabled); }
     bool isConstrainColor() const { return (bool)GET_BIT(flags.y, 1); }
-
-    void setCovarianceClipColor(bool enabled) { SET_BIT(flags.y, 2, enabled); }
-    bool isCovarianceClipColor() const { return (bool)GET_BIT(flags.y, 2); }
-
-    void setClipExactColor(bool enabled) { SET_BIT(flags.y, 3, enabled); }
-    bool isClipExactColor() const { return (bool)GET_BIT(flags.y, 3); }
 
     void setFeedbackColor(bool enabled) { SET_BIT(flags.y, 4, enabled); }
     bool isFeedbackColor() const { return (bool)GET_BIT(flags.y, 4); }
@@ -173,16 +157,14 @@ struct TAAParams {
     void setDebugOrbZoom(float orbZoom) { pixelInfo.z = orbZoom; }
     float getDebugOrbZoom() const { return pixelInfo.z; }
 
-    void setShowJitterSequence(bool enabled) { SET_BIT(flags.x, 2, enabled); }
     void setShowClosestFragment(bool enabled) { SET_BIT(flags.x, 3, enabled); }
-
 
 };
 using TAAParamsBuffer = gpu::StructBuffer<TAAParams>;
 
 class Antialiasing {
 public:
-    using Inputs = render::VaryingSet5 < DeferredFrameTransformPointer, JitterSample::JitterBuffer, gpu::FramebufferPointer, LinearDepthFramebufferPointer, VelocityFramebufferPointer > ;
+    using Inputs = render::VaryingSet4 < DeferredFrameTransformPointer, gpu::FramebufferPointer, LinearDepthFramebufferPointer, VelocityFramebufferPointer > ;
     using Config = AntialiasingConfig;
     using JobModel = render::Job::ModelI<Antialiasing, Inputs, Config>;
 
@@ -197,18 +179,16 @@ public:
 
 private:
 
-    // Uniforms for AA
-    gpu::int32 _texcoordOffsetLoc;
-
-    gpu::FramebufferPointer _antialiasingBuffer[2];
-    gpu::TexturePointer _antialiasingTexture[2];
+    gpu::FramebufferSwapChainPointer _antialiasingBuffers;
+    gpu::TexturePointer _antialiasingTextures[2];
 
     gpu::PipelinePointer _antialiasingPipeline;
     gpu::PipelinePointer _blendPipeline;
     gpu::PipelinePointer _debugBlendPipeline;
 
     TAAParamsBuffer _params;
-    int _currentFrame{ 0 };
+    float _sharpen{ 0.15f };
+    int _sharpenLoc{ -1 };
 };
 
 

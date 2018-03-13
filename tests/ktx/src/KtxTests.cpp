@@ -149,7 +149,8 @@ static const QString TEST_FOLDER { "H:/ktx_cacheold" };
 static const QString EXTENSIONS { "*.ktx" };
 
 int mainTemp(int, char**) {
-    qInstallMessageHandler(messageHandler);
+    setupHifiApplication("KTX Tests");
+
     auto fileInfoList = QDir { TEST_FOLDER }.entryInfoList(QStringList  { EXTENSIONS });
     for (auto fileInfo : fileInfoList) {
         qDebug() << fileInfo.filePath();

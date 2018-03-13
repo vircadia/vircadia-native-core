@@ -389,19 +389,6 @@ QString OffscreenUi::getItem(const Icon icon, const QString& title, const QStrin
     return result.toString();
 }
 
-QVariant OffscreenUi::getCustomInfo(const Icon icon, const QString& title, const QVariantMap& config, bool* ok) {
-    if (ok) {
-        *ok = false;
-    }
-
-    QVariant result = DependencyManager::get<OffscreenUi>()->customInputDialog(icon, title, config);
-    if (ok && result.isValid()) {
-        *ok = true;
-    }
-
-    return result;
-}
-
 ModalDialogListener* OffscreenUi::getTextAsync(const Icon icon, const QString& title, const QString& label, const QString& text) {
     return DependencyManager::get<OffscreenUi>()->inputDialogAsync(icon, title, label, text);
 }
@@ -421,10 +408,6 @@ ModalDialogListener* OffscreenUi::getItemAsync(const Icon icon, const QString& t
     offscreenUi->getModalDialogListeners().push_back(qobject_cast<QObject*>(inputDialogListener));
 
     return inputDialogListener;
-}
-
-ModalDialogListener* OffscreenUi::getCustomInfoAsync(const Icon icon, const QString& title, const QVariantMap& config) {
-    return DependencyManager::get<OffscreenUi>()->customInputDialogAsync(icon, title, config);
 }
 
 QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const QString& label, const QVariant& current) {
@@ -642,8 +625,7 @@ private:
         auto windows = qApp->topLevelWindows();
         QWindow* result = nullptr;
         for (auto window : windows) {
-            QVariant isMainWindow = window->property("MainWindow");
-            if (!qobject_cast<QQuickWindow*>(window)) {
+            if (window->objectName().contains("MainWindow")) {
                 result = window;
                 break;
             }

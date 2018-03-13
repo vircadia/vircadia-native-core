@@ -25,13 +25,16 @@ var ICON_FOR_TYPE = {
     Zone: "o",
     PolyVox: "&#xe005;",
     Multiple: "&#xe000;",
-    PolyLine: "&#xe01b;"
+    PolyLine: "&#xe01b;",
+    Material: "&#xe00b;"
 };
 
 var EDITOR_TIMEOUT_DURATION = 1500;
 var KEY_P = 80; // Key code for letter p used for Parenting hotkey.
-var colorPickers = [];
+var colorPickers = {};
 var lastEntityID = null;
+
+var MATERIAL_PREFIX_STRING = "mat::";
 
 function debugPrint(message) {
     EventBridge.emitWebEvent(
@@ -70,21 +73,19 @@ function enableProperties() {
 function disableProperties() {
     disableChildren(document.getElementById("properties-list"), "input, textarea, checkbox, .dropdown dl, .color-picker");
     disableChildren(document, ".colpick");
-    for (var i = 0; i < colorPickers.length; i++) {
-        colorPickers[i].colpickHide();
+    for (var pickKey in colorPickers) {
+        colorPickers[pickKey].colpickHide();
     }
     var elLocked = document.getElementById("property-locked");
 
     if ($('#userdata-editor').css('display') === "block" && elLocked.checked === true) {
         showStaticUserData();
     }
-
 }
 
 function showElements(els, show) {
     for (var i = 0; i < els.length; i++) {
         els[i].style.display = (show) ? 'table' : 'none';
-
     }
 }
 
@@ -170,6 +171,17 @@ function createEmitGroupTextPropertyUpdateFunction(group, propertyName) {
         var properties = {};
         properties[group] = {};
         properties[group][propertyName] = this.value;
+        updateProperties(properties);
+    };
+}
+
+function createEmitVec2PropertyUpdateFunction(property, elX, elY) {
+    return function () {
+        var properties = {};
+        properties[property] = {
+            x: elX.value,
+            y: elY.value
+        };
         updateProperties(properties);
     };
 }
@@ -309,22 +321,19 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
     }
     var keys = Object.keys(updateKeyPair);
     keys.forEach(function (key) {
-        delete parsedData[groupName][key];
         if (updateKeyPair[key] !== null && updateKeyPair[key] !== "null") {
             if (updateKeyPair[key] instanceof Element) {
                 if (updateKeyPair[key].type === "checkbox") {
-                    if (updateKeyPair[key].checked !== defaults[key]) {
-                        parsedData[groupName][key] = updateKeyPair[key].checked;
-                    }
+                    parsedData[groupName][key] = updateKeyPair[key].checked;
                 } else {
                     var val = isNaN(updateKeyPair[key].value) ? updateKeyPair[key].value : parseInt(updateKeyPair[key].value);
-                    if (val !== defaults[key]) {
-                        parsedData[groupName][key] = val;
-                    }
+                    parsedData[groupName][key] = val;
                 }
             } else {
                 parsedData[groupName][key] = updateKeyPair[key];
             }
+        } else if (defaults[key] !== null && defaults[key] !== "null") {
+            parsedData[groupName][key] = defaults[key];
         }
     });
     if (Object.keys(parsedData[groupName]).length === 0) {
@@ -480,7 +489,6 @@ function bindAllNonJSONEditorElements() {
             } else {
                 if ($('#userdata-editor').css('height') !== "0px") {
                     saveJSONUserData(true);
-
                 }
             }
         });
@@ -497,12 +505,15 @@ function unbindAllInputs() {
     }
 }
 
-function clearSelection() {
-    if (document.selection && document.selection.empty) {
-        document.selection.empty();
-    } else if (window.getSelection) {
-        var sel = window.getSelection();
-        sel.removeAllRanges();
+function showParentMaterialNameBox(number, elNumber, elString) {
+    if (number) {
+        $('#property-parent-material-id-number-container').show();
+        $('#property-parent-material-id-string-container').hide();
+        elString.value = "";
+    } else {
+        $('#property-parent-material-id-string-container').show();
+        $('#property-parent-material-id-number-container').hide();
+        elNumber.value = 0;
     }
 }
 
@@ -602,6 +613,8 @@ function loaded() {
 
         var elShape = document.getElementById("property-shape");
 
+        var elCanCastShadow = document.getElementById("property-can-cast-shadow");
+
         var elLightSpotLight = document.getElementById("property-light-spot-light");
         var elLightColor = document.getElementById("property-light-color");
         var elLightColorRed = document.getElementById("property-light-color-red");
@@ -627,6 +640,18 @@ function loaded() {
         var elModelAnimationAllowTranslation = document.getElementById("property-model-animation-allow-translation");
         var elModelTextures = document.getElementById("property-model-textures");
         var elModelOriginalTextures = document.getElementById("property-model-original-textures");
+
+        var elMaterialURL = document.getElementById("property-material-url");
+        //var elMaterialMappingMode = document.getElementById("property-material-mapping-mode");
+        var elPriority = document.getElementById("property-priority");
+        var elParentMaterialNameString = document.getElementById("property-parent-material-id-string");
+        var elParentMaterialNameNumber = document.getElementById("property-parent-material-id-number");
+        var elParentMaterialNameCheckbox = document.getElementById("property-parent-material-id-checkbox");
+        var elMaterialMappingPosX = document.getElementById("property-material-mapping-pos-x");
+        var elMaterialMappingPosY = document.getElementById("property-material-mapping-pos-y");
+        var elMaterialMappingScaleX = document.getElementById("property-material-mapping-scale-x");
+        var elMaterialMappingScaleY = document.getElementById("property-material-mapping-scale-y");
+        var elMaterialMappingRot = document.getElementById("property-material-mapping-rot");
 
         var elImageURL = document.getElementById("property-image-url");
 
@@ -660,6 +685,8 @@ function loaded() {
         var elZoneKeyLightIntensity = document.getElementById("property-zone-key-intensity");
         var elZoneKeyLightDirectionX = document.getElementById("property-zone-key-light-direction-x");
         var elZoneKeyLightDirectionY = document.getElementById("property-zone-key-light-direction-y");
+
+        var elZoneKeyLightCastShadows = document.getElementById("property-zone-key-light-cast-shadows");
 
         // Skybox
         var elZoneSkyboxModeInherit = document.getElementById("property-zone-skybox-mode-inherit");
@@ -791,8 +818,10 @@ function loaded() {
                         if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
                             saveJSONUserData(true);
                         }
-                        // the event bridge and json parsing handle our avatar id string differently.
 
+                        var doSelectElement = lastEntityID === '"' + properties.id + '"';
+
+                        // the event bridge and json parsing handle our avatar id string differently.
                         lastEntityID = '"' + properties.id + '"';
                         elID.value = properties.id;
 
@@ -815,7 +844,6 @@ function loaded() {
                         elTypeIcon.style.display = "inline-block";
 
                         elLocked.checked = properties.locked;
-
 
                         elName.value = properties.name;
 
@@ -983,6 +1011,12 @@ function loaded() {
                                                                      properties.color.green + "," + properties.color.blue + ")";
                         }
 
+                        if (properties.type === "Model" ||
+                            properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
+
+                            elCanCastShadow.checked = properties.canCastShadow;
+                        }
+
                         if (properties.type === "Model") {
                             elModelURL.value = properties.modelURL;
                             elShapeType.value = properties.shapeType;
@@ -1032,7 +1066,6 @@ function loaded() {
                             elLightFalloffRadius.value = properties.falloffRadius.toFixed(1);
                             elLightExponent.value = properties.exponent.toFixed(2);
                             elLightCutoff.value = properties.cutoff.toFixed(2);
-
                         } else if (properties.type === "Zone") {
                             // Key light
                             elZoneKeyLightModeInherit.checked = (properties.keyLightMode === 'inherit');
@@ -1047,6 +1080,8 @@ function loaded() {
                             elZoneKeyLightIntensity.value = properties.keyLight.intensity.toFixed(2);
                             elZoneKeyLightDirectionX.value = properties.keyLight.direction.x.toFixed(2);
                             elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
+
+                            elZoneKeyLightCastShadows.checked = properties.keyLight.castShadows;
 
                             // Skybox
                             elZoneSkyboxModeInherit.checked = (properties.skyboxMode === 'inherit');
@@ -1111,13 +1146,15 @@ function loaded() {
                             // Show/hide sections as required
                             showElements(document.getElementsByClassName('skybox-section'),
                                 elZoneSkyboxModeEnabled.checked);
+
                             showElements(document.getElementsByClassName('keylight-section'),
                                 elZoneKeyLightModeEnabled.checked);
+
                             showElements(document.getElementsByClassName('ambient-section'),
                                 elZoneAmbientLightModeEnabled.checked);
+
                             showElements(document.getElementsByClassName('haze-section'),
                                 elZoneHazeModeEnabled.checked);
-
                         } else if (properties.type === "PolyVox") {
                             elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
                             elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
@@ -1127,6 +1164,34 @@ function loaded() {
                             elXTextureURL.value = properties.xTextureURL;
                             elYTextureURL.value = properties.yTextureURL;
                             elZTextureURL.value = properties.zTextureURL;
+                        } else if (properties.type === "Material") {
+                            elMaterialURL.value = properties.materialURL;
+                            //elMaterialMappingMode.value = properties.materialMappingMode;
+                            //setDropdownText(elMaterialMappingMode);
+                            elPriority.value = properties.priority;
+                            if (properties.parentMaterialName.startsWith(MATERIAL_PREFIX_STRING)) {
+                                elParentMaterialNameString.value = properties.parentMaterialName.replace(MATERIAL_PREFIX_STRING, "");
+                                showParentMaterialNameBox(false, elParentMaterialNameNumber, elParentMaterialNameString);
+                                elParentMaterialNameCheckbox.checked = false;
+                            } else {
+                                elParentMaterialNameNumber.value = parseInt(properties.parentMaterialName);
+                                showParentMaterialNameBox(true, elParentMaterialNameNumber, elParentMaterialNameString);
+                                elParentMaterialNameCheckbox.checked = true;
+                            }
+                            elMaterialMappingPosX.value = properties.materialMappingPos.x.toFixed(4);
+                            elMaterialMappingPosY.value = properties.materialMappingPos.y.toFixed(4);
+                            elMaterialMappingScaleX.value = properties.materialMappingScale.x.toFixed(4);
+                            elMaterialMappingScaleY.value = properties.materialMappingScale.y.toFixed(4);
+                            elMaterialMappingRot.value = properties.materialMappingRot.toFixed(2);
+                        }
+
+                        // Only these types can cast a shadow
+                        if (properties.type === "Model" ||
+                            properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
+
+                            showElements(document.getElementsByClassName('can-cast-shadow-section'), true);
+                        } else {
+                            showElements(document.getElementsByClassName('can-cast-shadow-section'), false);
                         }
 
                         if (properties.locked) {
@@ -1138,12 +1203,10 @@ function loaded() {
                         }
 
                         var activeElement = document.activeElement;
-
-                        if (typeof activeElement.select !== "undefined") {
+                        if (doSelectElement && typeof activeElement.select !== "undefined") {
                             activeElement.select();
                         }
                     }
-                    clearSelection();
                 }
             });
         }
@@ -1236,7 +1299,7 @@ function loaded() {
             if (elCloneable.checked) {
                 elGrabbable.checked = false;
             }
-            userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, properties.dynamic);
+            userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, true);
         });
         elCloneableDynamic.addEventListener('change', function(event) {
             userDataChanger("grabbableKey", "cloneDynamic", event.target, elUserData, -1);
@@ -1326,13 +1389,19 @@ function loaded() {
         elColorRed.addEventListener('change', colorChangeFunction);
         elColorGreen.addEventListener('change', colorChangeFunction);
         elColorBlue.addEventListener('change', colorChangeFunction);
-        colorPickers.push($('#property-color-control2').colpick({
+        colorPickers['#property-color-control2'] = $('#property-color-control2').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-color-control2').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-color-control2'].colpickSetColor({ 
+                    "r": elColorRed.value, 
+                    "g": elColorGreen.value, 
+                    "b": elColorBlue.value});
             },
             onHide: function(colpick) {
                 $('#property-color-control2').attr('active', 'false');
@@ -1341,7 +1410,7 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
             }
-        }));
+        });
 
         elLightSpotLight.addEventListener('change', createEmitCheckedPropertyUpdateFunction('isSpotlight'));
 
@@ -1350,13 +1419,20 @@ function loaded() {
         elLightColorRed.addEventListener('change', lightColorChangeFunction);
         elLightColorGreen.addEventListener('change', lightColorChangeFunction);
         elLightColorBlue.addEventListener('change', lightColorChangeFunction);
-        colorPickers.push($('#property-light-color').colpick({
+        colorPickers['#property-light-color'] = $('#property-light-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-light-color').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-light-color'].colpickSetColor({
+                    "r": elLightColorRed.value,
+                    "g": elLightColorGreen.value,
+                    "b": elLightColorBlue.value
+                });
             },
             onHide: function(colpick) {
                 $('#property-light-color').attr('active', 'false');
@@ -1365,7 +1441,7 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
             }
-        }));
+        });
 
         elLightIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('intensity', 1));
         elLightFalloffRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('falloffRadius', 1));
@@ -1374,6 +1450,8 @@ function loaded() {
 
         elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
 
+        elCanCastShadow.addEventListener('change', createEmitCheckedPropertyUpdateFunction('canCastShadow'));
+ 
         elImageURL.addEventListener('change', createImageURLUpdateFunction('textures'));
 
         elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
@@ -1399,6 +1477,30 @@ function loaded() {
 
         elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 
+        elMaterialURL.addEventListener('change', createEmitTextPropertyUpdateFunction('materialURL'));
+        //elMaterialMappingMode.addEventListener('change', createEmitTextPropertyUpdateFunction('materialMappingMode'));
+        elPriority.addEventListener('change', createEmitNumberPropertyUpdateFunction('priority', 0));
+
+        elParentMaterialNameString.addEventListener('change', function () { updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + this.value); });
+        elParentMaterialNameNumber.addEventListener('change', function () { updateProperty("parentMaterialName", this.value); });
+        elParentMaterialNameCheckbox.addEventListener('change', function () {
+            if (this.checked) {
+                updateProperty("parentMaterialName", elParentMaterialNameNumber.value);
+                showParentMaterialNameBox(true, elParentMaterialNameNumber, elParentMaterialNameString);
+            } else {
+                updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + elParentMaterialNameString.value);
+                showParentMaterialNameBox(false, elParentMaterialNameNumber, elParentMaterialNameString);
+            }
+        });
+
+        var materialMappingPosChangeFunction = createEmitVec2PropertyUpdateFunction('materialMappingPos', elMaterialMappingPosX, elMaterialMappingPosY);
+        elMaterialMappingPosX.addEventListener('change', materialMappingPosChangeFunction);
+        elMaterialMappingPosY.addEventListener('change', materialMappingPosChangeFunction);
+        var materialMappingScaleChangeFunction = createEmitVec2PropertyUpdateFunction('materialMappingScale', elMaterialMappingScaleX, elMaterialMappingScaleY);
+        elMaterialMappingScaleX.addEventListener('change', materialMappingScaleChangeFunction);
+        elMaterialMappingScaleY.addEventListener('change', materialMappingScaleChangeFunction);
+        elMaterialMappingRot.addEventListener('change', createEmitNumberPropertyUpdateFunction('materialMappingRot', 2));
+
         elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
         elTextFaceCamera.addEventListener('change', createEmitCheckedPropertyUpdateFunction('faceCamera'));
         elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
@@ -1407,13 +1509,20 @@ function loaded() {
         elTextTextColorRed.addEventListener('change', textTextColorChangeFunction);
         elTextTextColorGreen.addEventListener('change', textTextColorChangeFunction);
         elTextTextColorBlue.addEventListener('change', textTextColorChangeFunction);
-        colorPickers.push($('#property-text-text-color').colpick({
+        colorPickers['#property-text-text-color'] = $('#property-text-text-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-text-text-color').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-text-text-color'].colpickSetColor({
+                    "r": elTextTextColorRed.value,
+                    "g": elTextTextColorGreen.value,
+                    "b": elTextTextColorBlue.value
+                });
             },
             onHide: function(colpick) {
                 $('#property-text-text-color').attr('active', 'false');
@@ -1423,7 +1532,7 @@ function loaded() {
                 $(el).attr('active', 'false');
                 emitColorPropertyUpdate('textColor', rgb.r, rgb.g, rgb.b);
             }
-        }));
+        });
 
         var textBackgroundColorChangeFunction = createEmitColorPropertyUpdateFunction(
             'backgroundColor', elTextBackgroundColorRed, elTextBackgroundColorGreen, elTextBackgroundColorBlue);
@@ -1431,13 +1540,20 @@ function loaded() {
         elTextBackgroundColorRed.addEventListener('change', textBackgroundColorChangeFunction);
         elTextBackgroundColorGreen.addEventListener('change', textBackgroundColorChangeFunction);
         elTextBackgroundColorBlue.addEventListener('change', textBackgroundColorChangeFunction);
-        colorPickers.push($('#property-text-background-color').colpick({
+        colorPickers['#property-text-background-color'] = $('#property-text-background-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-text-background-color').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-text-background-color'].colpickSetColor({
+                    "r": elTextBackgroundColorRed.value,
+                    "g": elTextBackgroundColorGreen.value,
+                    "b": elTextBackgroundColorBlue.value
+                });
             },
             onHide: function(colpick) {
                 $('#property-text-background-color').attr('active', 'false');
@@ -1446,7 +1562,7 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 emitColorPropertyUpdate('backgroundColor', rgb.r, rgb.g, rgb.b);
             }
-        }));
+        });
 
         // Key light
         var keyLightModeChanged = createZoneComponentModeChangedFunction('keyLightMode',
@@ -1456,13 +1572,20 @@ function loaded() {
         elZoneKeyLightModeDisabled.addEventListener('change', keyLightModeChanged);
         elZoneKeyLightModeEnabled.addEventListener('change', keyLightModeChanged);
 
-        colorPickers.push($('#property-zone-key-light-color').colpick({
+        colorPickers['#property-zone-key-light-color'] = $('#property-zone-key-light-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-zone-key-light-color').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-zone-key-light-color'].colpickSetColor({
+                    "r": elZoneKeyLightColorRed.value,
+                    "g": elZoneKeyLightColorGreen.value,
+                    "b": elZoneKeyLightColorBlue.value
+                });
             },
             onHide: function(colpick) {
                 $('#property-zone-key-light-color').attr('active', 'false');
@@ -1471,7 +1594,7 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'keyLight');
             }
-        }));
+        });
         var zoneKeyLightColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('keyLight', 'color', 
             elZoneKeyLightColorRed, elZoneKeyLightColorGreen, elZoneKeyLightColorBlue);
 
@@ -1486,6 +1609,9 @@ function loaded() {
 
         elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
+
+        elZoneKeyLightCastShadows.addEventListener('change',
+            createEmitGroupCheckedPropertyUpdateFunction('keyLight', 'castShadows'));
 
         // Skybox
         var skyboxModeChanged = createZoneComponentModeChangedFunction('skyboxMode',
@@ -1525,13 +1651,20 @@ function loaded() {
 
         elZoneHazeRange.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeRange'));
 
-        colorPickers.push($('#property-zone-haze-color').colpick({
+        colorPickers['#property-zone-haze-color'] = $('#property-zone-haze-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-zone-haze-color').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-zone-haze-color'].colpickSetColor({
+                    "r": elZoneHazeColorRed.value,
+                    "g": elZoneHazeColorGreen.value,
+                    "b": elZoneHazeColorBlue.value
+                });
             },
             onHide: function(colpick) {
                 $('#property-zone-haze-color').attr('active', 'false');
@@ -1540,7 +1673,7 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 emitColorPropertyUpdate('hazeColor', rgb.r, rgb.g, rgb.b, 'haze');
             }
-        }));
+        });
         var zoneHazeColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('haze', 'hazeColor', 
             elZoneHazeColorRed, 
             elZoneHazeColorGreen, 
@@ -1550,13 +1683,20 @@ function loaded() {
         elZoneHazeColorGreen.addEventListener('change', zoneHazeColorChangeFunction);
         elZoneHazeColorBlue.addEventListener('change', zoneHazeColorChangeFunction);
 
-        colorPickers.push($('#property-zone-haze-glare-color').colpick({
+        colorPickers['#property-zone-haze-glare-color'] = $('#property-zone-haze-glare-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-zone-haze-glare-color').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-zone-haze-glare-color'].colpickSetColor({
+                    "r": elZoneHazeGlareColorRed.value,
+                    "g": elZoneHazeGlareColorGreen.value,
+                    "b": elZoneHazeGlareColorBlue.value
+                });
             },
             onHide: function(colpick) {
                 $('#property-zone-haze-glare-color').attr('active', 'false');
@@ -1565,7 +1705,7 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 emitColorPropertyUpdate('hazeGlareColor', rgb.r, rgb.g, rgb.b, 'haze');
             }
-        }));
+        });
         var zoneHazeGlareColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('haze', 'hazeGlareColor', 
             elZoneHazeGlareColorRed, 
             elZoneHazeGlareColorGreen, 
@@ -1592,13 +1732,20 @@ function loaded() {
         elZoneSkyboxColorRed.addEventListener('change', zoneSkyboxColorChangeFunction);
         elZoneSkyboxColorGreen.addEventListener('change', zoneSkyboxColorChangeFunction);
         elZoneSkyboxColorBlue.addEventListener('change', zoneSkyboxColorChangeFunction);
-        colorPickers.push($('#property-zone-skybox-color').colpick({
+        colorPickers['#property-zone-skybox-color'] = $('#property-zone-skybox-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-zone-skybox-color').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-zone-skybox-color'].colpickSetColor({
+                    "r": elZoneSkyboxColorRed.value,
+                    "g": elZoneSkyboxColorGreen.value,
+                    "b": elZoneSkyboxColorBlue.value
+                });
             },
             onHide: function(colpick) {
                 $('#property-zone-skybox-color').attr('active', 'false');
@@ -1607,7 +1754,7 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'skybox');
             }
-        }));
+        });
 
         elZoneSkyboxURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('skybox', 'url'));
 
@@ -1682,34 +1829,13 @@ function loaded() {
         };
 
         // For input and textarea elements, select all of the text on focus
-        // WebKit-based browsers, such as is used with QWebView, have a quirk
-        // where the mouseup event comes after the focus event, causing the
-        // text to be deselected immediately after selecting all of the text.
-        // To make this work we block the first mouseup event after the elements
-        // received focus.  If we block all mouseup events the user will not
-        // be able to click within the selected text.
-        // We also check to see if the value has changed to make sure we aren't
-        // blocking a mouse-up event when clicking on an input spinner.
         var els = document.querySelectorAll("input, textarea");
         for (var i = 0; i < els.length; i++) {
-            var clicked = false;
-            var originalText;
-            // TODO FIXME: (JSHint) Functions declared within loops referencing 
-            //             an outer scoped variable may lead to confusing semantics.
-            els[i].onfocus = function(e) {
-                originalText = this.value;
-                this.select();
-                clicked = false;
-            };
-            // TODO FIXME: (JSHint) Functions declared within loops referencing 
-            //             an outer scoped variable may lead to confusing semantics.
-            els[i].onmouseup = function(e) {
-                if (!clicked && originalText === this.value) {
-                    e.preventDefault();
-                }
-                clicked = true;
+            els[i].onfocus = function (e) {
+                e.target.select();
             };
         }
+
         bindAllNonJSONEditorElements();
     });
 

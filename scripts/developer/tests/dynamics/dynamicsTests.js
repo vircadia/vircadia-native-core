@@ -186,7 +186,7 @@
         var prevEntityID = null;
         for (var i = 0; i < 7; i++) {
             var newID = Entities.addEntity({
-                name: "hinge test " + i,
+                name: "slider test " + i,
                 type: "Box",
                 color: { blue: 128, green: 40 * i, red: 20 },
                 dimensions: { x: 0.2, y: 0.1, z: 0.2 },

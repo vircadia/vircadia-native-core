@@ -36,6 +36,8 @@
 #include "SimulationFlags.h"
 #include "EntityDynamicInterface.h"
 
+#include "graphics/Material.h"
+
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
@@ -47,7 +49,6 @@ typedef std::shared_ptr<EntityTree> EntityTreePointer;
 typedef std::shared_ptr<EntityDynamicInterface> EntityDynamicPointer;
 typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
 using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElementExtraEncodeData>;
-
 
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
@@ -158,7 +159,7 @@ public:
 
     virtual bool supportsDetailedRayIntersection() const { return false; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance,
+                         OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const { return true; }
 
@@ -273,6 +274,10 @@ public:
 
     bool getVisible() const;
     void setVisible(bool value);
+
+    bool getCanCastShadow() const;
+    void setCanCastShadow(bool value);
+
     inline bool isVisible() const { return getVisible(); }
     inline bool isInvisible() const { return !getVisible(); }
 
@@ -443,10 +448,10 @@ public:
     void scriptHasUnloaded() { _loadedScript = ""; _loadedScriptTimestamp = 0; }
 
     bool getClientOnly() const { return _clientOnly; }
-    void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
+    virtual void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
     // if this entity is client-only, which avatar is it associated with?
     QUuid getOwningAvatarID() const { return _owningAvatarID; }
-    void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
+    virtual void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
 
     virtual bool wantsHandControllerPointerEvents() const { return false; }
     virtual bool wantsKeyboardFocus() const { return false; }
@@ -476,6 +481,13 @@ public:
 
     void setCauterized(bool value) { _cauterized = value; }
     bool getCauterized() const { return _cauterized; }
+
+    virtual void preDelete();
+    virtual void postParentFixup() {}
+
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
+    std::unordered_map<std::string, graphics::MultiMaterial> getMaterials();
 
 signals:
     void requestRenderUpdate();
@@ -543,6 +555,7 @@ protected:
     glm::vec3 _registrationPoint { ENTITY_ITEM_DEFAULT_REGISTRATION_POINT };
     float _angularDamping { ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING };
     bool _visible { ENTITY_ITEM_DEFAULT_VISIBLE };
+    bool _canCastShadow{ ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
     bool _collisionless { ENTITY_ITEM_DEFAULT_COLLISIONLESS };
     uint8_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
     bool _dynamic { ENTITY_ITEM_DEFAULT_DYNAMIC };
@@ -631,6 +644,11 @@ protected:
     quint64 _lastUpdatedQueryAACubeTimestamp { 0 };
 
     bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
+
+private:
+    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
+    std::mutex _materialsLock;
+
 };
 
 #endif // hifi_EntityItem_h

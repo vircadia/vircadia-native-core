@@ -32,7 +32,7 @@ namespace render { namespace entities {
 class PolyVoxEntityRenderer;
 } } 
 
-class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
+class RenderablePolyVoxEntityItem : public PolyVoxEntityItem, public scriptable::ModelProvider {
     friend class render::entities::PolyVoxEntityRenderer;
 
 public:
@@ -53,7 +53,7 @@ public:
 
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                        bool& keepSearching, OctreeElementPointer& element, float& distance,
+                        OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         QVariantMap& extraInfo, bool precisionPicking) const override;
 
@@ -113,7 +113,8 @@ public:
 
     void setVolDataDirty() { withWriteLock([&] { _volDataDirty = true; _meshReady = false; }); }
 
-    bool getMeshes(MeshProxyList& result) override;
+    bool getMeshes(MeshProxyList& result) override; // deprecated
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
 private:
     bool updateOnCount(const ivec3& v, uint8_t toValue);
@@ -163,6 +164,9 @@ class PolyVoxEntityRenderer : public TypedEntityRenderer<RenderablePolyVoxEntity
 
 public:
     PolyVoxEntityRenderer(const EntityItemPointer& entity);
+    virtual scriptable::ScriptableModelBase getScriptableModel() override {
+        return asTypedEntity<RenderablePolyVoxEntityItem>()->getScriptableModel();
+    }
     
 protected:
     virtual ItemKey getKey() override { return ItemKey::Builder::opaqueShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1); }

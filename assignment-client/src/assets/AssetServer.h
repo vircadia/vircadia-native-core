@@ -21,12 +21,7 @@
 #include "AssetUtils.h"
 #include "ReceivedMessage.h"
 
-namespace std {
-    template <>
-    struct hash<QString> {
-        size_t operator()(const QString& v) const { return qHash(v); }
-    };
-}
+#include "RegisteredMetaTypes.h"
 
 struct AssetMeta {
     int bakeVersion { 0 };
@@ -49,6 +44,7 @@ public slots:
 private slots:
     void completeSetup();
 
+    void queueRequests(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetGetInfo(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetGet(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetUpload(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer senderNode);
@@ -57,6 +53,8 @@ private slots:
     void sendStatsPacket() override;
 
 private:
+    void replayRequests();
+
     void handleGetMappingOperation(ReceivedMessage& message, NLPacketList& replyPacket);
     void handleGetAllMappingOperation(NLPacketList& replyPacket);
     void handleSetMappingOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket);
@@ -84,6 +82,9 @@ private:
 
     /// Delete any unmapped files from the local asset directory
     void cleanupUnmappedFiles();
+
+    /// Delete any baked files for assets removed from the local asset directory
+    void cleanupBakedFilesForDeletedAssets();
 
     QString getPathToAssetHash(const AssetUtils::AssetHash& assetHash);
 
@@ -119,6 +120,11 @@ private:
 
     QHash<AssetUtils::AssetHash, std::shared_ptr<BakeAssetTask>> _pendingBakes;
     QThreadPool _bakingTaskPool;
+
+    QMutex _queuedRequestsMutex;
+    bool _isQueueingRequests { true };
+    using RequestQueue = QVector<QPair<QSharedPointer<ReceivedMessage>, SharedNodePointer>>;
+    RequestQueue _queuedRequests;
 
     bool _wasColorTextureCompressionEnabled { false };
     bool _wasGrayscaleTextureCompressionEnabled { false  };

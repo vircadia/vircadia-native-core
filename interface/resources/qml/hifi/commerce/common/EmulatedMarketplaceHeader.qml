@@ -37,9 +37,9 @@ Item {
         onWalletStatusResult: {
             if (walletStatus === 0) {
                 sendToParent({method: "needsLogIn"});
-            } else if (walletStatus === 3) {
+            } else if (walletStatus === 5) {
                 Commerce.getSecurityImage();
-            } else if (walletStatus > 3) {
+            } else if (walletStatus > 5) {
                 console.log("ERROR in EmulatedMarketplaceHeader.qml: Unknown wallet status: " + walletStatus);
             }
         }
@@ -141,10 +141,9 @@ Item {
                 }
             }
 
-            FontLoader { id: ralewayRegular; source: "../../../../fonts/Raleway-Regular.ttf"; }
             TextMetrics {
                 id: textMetrics;
-                font.family: ralewayRegular.name
+                font.family: "Raleway"
                 text: usernameText.text;
             }
 
