@@ -62,6 +62,16 @@ macro(GENERATE_INSTALLERS)
     if (CLIENT_ONLY OR SERVER_ONLY)
       set(CPACK_MONOLITHIC_INSTALL 1)
     endif ()
+
+    # setup conditional checks for server component selection depending on
+    # the inclusion of the server component at all
+    if (CLIENT_ONLY)
+      set(SERVER_COMPONENT_CONDITIONAL "0 == 1")
+      set(CLIENT_COMPONENT_CONDITIONAL "1 == 1")
+    else ()
+      set(SERVER_COMPONENT_CONDITIONAL "\\\${SectionIsSelected} \\\${${SERVER_COMPONENT}}")
+      set(CLIENT_COMPONENT_CONDITIONAL "\\\${SectionIsSelected} \\\${${CLIENT_COMPONENT}}")
+    endif ()
   elseif (APPLE)
     # produce a drag and drop DMG on OS X
     set(CPACK_GENERATOR "DragNDrop")

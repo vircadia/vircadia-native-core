@@ -156,14 +156,6 @@ macro(SET_PACKAGING_PARAMETERS)
     set(CUSTOM_INSTALL_REG_KEY "CustomInstall")
     set(CLIENT_ID_REG_KEY "ClientGUID")
     set(GA_TRACKING_ID $ENV{GA_TRACKING_ID})
-
-    # setup conditional checks for server component selection depending on
-    # the inclusion of the server component at all
-    if (CLIENT_ONLY)
-      set(SERVER_COMPONENT_CONDITIONAL "0 == 1")
-    else ()
-      set(SERVER_COMPONENT_CONDITIONAL "\${SectionIsSelected} \${${SERVER_COMPONENT_NAME}}")
-    endif ()
   endif ()
 
   # print out some results for testing this new build feature

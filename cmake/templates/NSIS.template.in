@@ -649,7 +649,7 @@ Function PostInstallOptionsPage
   StrCpy $CurrentOffset 0
   StrCpy $OffsetUnits u
 
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @INTERFACE_HF_SHORTCUT_NAME@"
     Pop $DesktopClientCheckbox
     IntOp $CurrentOffset $CurrentOffset + 15
@@ -681,7 +681,7 @@ Function PostInstallOptionsPage
     IntOp $CurrentOffset $CurrentOffset + 15
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @INTERFACE_HF_SHORTCUT_NAME@ after install"
     Pop $LaunchClientNowCheckbox
     IntOp $CurrentOffset $CurrentOffset + 30
@@ -711,7 +711,7 @@ Function PostInstallOptionsPage
 
   ${If} @PR_BUILD@ == 1
     ; a PR build defaults all install options expect LaunchServerNowCheckbox, LaunchClientNowCheckbox and the settings copy to unchecked
-    ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+    ${If} @CLIENT_COMPONENT_CONDITIONAL@
       ${NSD_SetState} $DesktopClientCheckbox ${BST_UNCHECKED}
     ${EndIf}
 
@@ -774,7 +774,7 @@ Function ReadInstallTypes
 FunctionEnd
 
 Function ReadPostInstallOptions
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if the user asked for a desktop shortcut to High Fidelity
     ${NSD_GetState} $DesktopClientCheckbox $DesktopClientState
   ${EndIf}
@@ -797,19 +797,19 @@ Function ReadPostInstallOptions
     ${NSD_GetState} $LaunchServerNowCheckbox $LaunchServerNowState
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if we need to launch the client post-install
     ${NSD_GetState} $LaunchClientNowCheckbox $LaunchClientNowState
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if the user asked for a clean install
     ${NSD_GetState} $CleanInstallCheckbox $CleanInstallState
   ${EndIf}
 FunctionEnd
 
 Function HandlePostInstallOptions
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if the user asked for a desktop shortcut to High Fidelity
     ${If} $DesktopClientState == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@INTERFACE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
@@ -849,7 +849,7 @@ Function HandlePostInstallOptions
     ${EndIf}
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if the user asked for a clean install
     ${If} $CleanInstallState == ${BST_CHECKED}
       SetShellVarContext current
@@ -1026,7 +1026,7 @@ Section "-Core installation"
 @CPACK_NSIS_CREATE_ICONS_EXTRA@
 
   ; Conditional handling for Interface specific options
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" \
       "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
 
@@ -1185,7 +1185,7 @@ Function .onSelChange
   !insertmacro SectionList MaybeSelectionChanged
 
   ; if neither component is selected, disable the install button
-  ${IfNot} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${IfNot} @CLIENT_COMPONENT_CONDITIONAL@
   ${AndIfNot} @SERVER_COMPONENT_CONDITIONAL@
     GetDlgItem $0 $HWNDPARENT 1
     EnableWindow $0 0
