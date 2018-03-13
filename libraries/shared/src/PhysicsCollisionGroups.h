@@ -64,6 +64,25 @@ const int16_t BULLET_COLLISION_MASK_OTHER_AVATAR = BULLET_COLLISION_MASK_DEFAULT
 // COLLISIONLESS gets an empty mask.
 const int16_t BULLET_COLLISION_MASK_COLLISIONLESS = 0;
 
+/**jsdoc
+ * <p>An entity may collide with the following types of items:</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>1</code></td><td>Static entities &mdash; non-dynamic entities with no velocity.</td></tr>
+ *     <tr><td><code>2</code></td><td>Dynamic entities &mdash; entities that have their <code>dynamic</code> property set to 
+ *         <code>true</code>.</td></tr>
+ *     <tr><td><code>4</code></td><td>Kinematic entities &mdash; non-dynamic entities with velocity.</td></tr>
+ *     <tr><td><code>8</code></td><td>My avatar.</td></tr>
+ *     <tr><td><code>16</code></td><td>Other avatars.</td></tr>
+ *   </tbody>
+ * </table>
+ * <p>The values for the collision types that are enabled are added together to give the CollisionMask value. For example, a 
+ * value of <code>31</code> means that an entity will collide with all item types.</p>
+ * @typedef {number} Entities.CollisionMask
+ */
 
 // The USER collision groups are exposed to script and can be used to generate per-object collision masks.
 // They are not necessarily the same as the BULLET_COLLISION_GROUPS, but we start them off with matching numbers.

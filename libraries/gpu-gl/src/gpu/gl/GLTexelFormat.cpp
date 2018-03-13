@@ -146,7 +146,51 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                 case gpu::RGB:
                 case gpu::RGBA:
                 case gpu::XY:
-                    result = GL_RG8;
+                    switch (dstFormat.getType()) {
+                    case gpu::UINT32:
+                        result = GL_RG32UI;
+                        break;
+                    case gpu::INT32:
+                        result = GL_RG32I;
+                        break;
+                    case gpu::FLOAT:
+                        result = GL_RG32F;
+                        break;
+                    case gpu::UINT16:
+                        result = GL_RG16UI;
+                        break;
+                    case gpu::INT16:
+                        result = GL_RG16I;
+                        break;
+                    case gpu::NUINT16:
+                        result = GL_RG16;
+                        break;
+                    case gpu::NINT16:
+                        result = GL_RG16_SNORM;
+                        break;
+                    case gpu::HALF:
+                        result = GL_RG16F;
+                        break;
+                    case gpu::UINT8:
+                        result = GL_RG8UI;
+                        break;
+                    case gpu::INT8:
+                        result = GL_RG8I;
+                        break;
+                    case gpu::NUINT8:
+                        result = GL_RG8;
+                        break;
+                    case gpu::NINT8:
+                        result = GL_RG8_SNORM;
+                        break;
+                    case gpu::NUINT32:
+                    case gpu::NINT32:
+                    case gpu::NUINT2:
+                    case gpu::NINT2_10_10_10:
+                    case gpu::COMPRESSED:
+                    case gpu::NUM_TYPES: // quiet compiler
+                        Q_UNREACHABLE();
+                    }
                     break;
                 default:
                     qCWarning(gpugllogging) << "Unknown combination of texel format";
@@ -581,7 +625,52 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             case gpu::RGB:
             case gpu::RGBA:
             case gpu::XY:
-                texel.internalFormat = GL_RG8;
+                switch (dstFormat.getType()) {
+                case gpu::UINT32:
+                    texel.internalFormat = GL_RG32UI;
+                    break;
+                case gpu::INT32:
+                    texel.internalFormat = GL_RG32I;
+                    break;
+                case gpu::FLOAT:
+                    texel.internalFormat = GL_RG32F;
+                    break;
+                case gpu::UINT16:
+                    texel.internalFormat = GL_RG16UI;
+                    break;
+                case gpu::INT16:
+                    texel.internalFormat = GL_RG16I;
+                    break;
+                case gpu::NUINT16:
+                    texel.internalFormat = GL_RG16;
+                    break;
+                case gpu::NINT16:
+                    texel.internalFormat = GL_RG16_SNORM;
+                    break;
+                case gpu::HALF:
+                    texel.type = GL_FLOAT;
+                    texel.internalFormat = GL_RG16F;
+                    break;
+                case gpu::UINT8:
+                    texel.internalFormat = GL_RG8UI;
+                    break;
+                case gpu::INT8:
+                    texel.internalFormat = GL_RG8I;
+                    break;
+                case gpu::NUINT8:
+                    texel.internalFormat = GL_RG8;
+                    break;
+                case gpu::NINT8:
+                    texel.internalFormat = GL_RG8_SNORM;
+                    break;
+                case gpu::NUINT32:
+                case gpu::NINT32:
+                case gpu::NUINT2:
+                case gpu::NINT2_10_10_10:
+                case gpu::COMPRESSED:
+                case gpu::NUM_TYPES: // quiet compiler
+                    Q_UNREACHABLE();
+                }
                 break;
             default:
                 qCWarning(gpugllogging) << "Unknown combination of texel format";

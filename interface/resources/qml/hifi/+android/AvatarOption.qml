@@ -26,13 +26,13 @@ ColumnLayout {
     property string methodName: "";
     property string actionText: "";
 
-    spacing: 4*3
+    spacing: 4 * 3
     signal sendToParentQml(var message);
 
     Image {
         id: itemImage
-        Layout.preferredWidth: 250*3
-        Layout.preferredHeight: 140*3
+        Layout.preferredWidth: 250 * 3
+        Layout.preferredHeight: 140 * 3
         source: thumbnailUrl
         asynchronous: true
         fillMode: Image.PreserveAspectFit
@@ -81,7 +81,7 @@ ColumnLayout {
     HifiControlsUit.ImageButton {
         width: 140*3
         height: 35*3
-        text: type=="extra"? actionText: "CHOOSE"
+        text: type=="extra" ? actionText: "CHOOSE"
         source: "../../../../icons/button.svg"
         hoverSource: "../../../../icons/button-a.svg"
         fontSize: 18*3
@@ -102,8 +102,8 @@ ColumnLayout {
 
     Image {
         id: tickImage
-        width: 35*3
-        height: 35*3
+        width: 35 * 3
+        height: 35 * 3
         source: "../../../icons/tick.svg"
         anchors {
             horizontalCenter: itemName.horizontalCenter

@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  skin_model_fade.vert
+//  skin_model_fade_dq.vert
 //  vertex shader
 //
 //  Created by Olivier Prat on 06/045/17.
@@ -38,7 +38,7 @@ void main(void) {
     skinPositionNormal(inSkinClusterIndex, inSkinClusterWeight, inPosition, inNormal.xyz, position, interpolatedNormal);
 
     // pass along the color
-    _color = colorToLinearRGB(inColor.rgb);
+    _color = color_sRGBToLinear(inColor.rgb);
     _alpha = inColor.a;
 
     TexMapArray texMapArray = getTexMapArray();

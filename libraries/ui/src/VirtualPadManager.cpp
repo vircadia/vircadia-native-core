@@ -34,6 +34,11 @@ namespace VirtualPad {
         return _currentTouch;
     }
 
+    const float Manager::DPI = 534.0f;
+    const float Manager::PIXEL_SIZE = 512.0f;
+    const float Manager::STICK_RADIUS = 105.0f;
+    const float Manager::BASE_MARGIN = 59.0f;
+
     Manager::Manager() {
 
     }
