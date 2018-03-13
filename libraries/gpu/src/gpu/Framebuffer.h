@@ -12,6 +12,7 @@
 #define hifi_gpu_Framebuffer_h
 
 #include "Texture.h"
+#include "ResourceSwapChain.h"
 #include <memory>
 
 class Transform; // Texcood transform util
@@ -177,6 +178,8 @@ protected:
     Framebuffer() {}
 };
 typedef std::shared_ptr<Framebuffer> FramebufferPointer;
+typedef ResourceSwapChain<Framebuffer> FramebufferSwapChain;
+typedef std::shared_ptr<FramebufferSwapChain> FramebufferSwapChainPointer;
 
 }
 

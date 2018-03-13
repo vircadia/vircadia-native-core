@@ -440,6 +440,707 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     return changedProperties;
 }
 
+/**jsdoc
+ * Different entity types have different properties: some common to all entities (listed below) and some specific to each 
+ * {@link Entities.EntityType|EntityType} (linked to below). The properties are accessed as an object of property names and 
+ * values.
+ *
+ * @typedef {object} Entities.EntityProperties
+ * @property {Uuid} id - The ID of the entity. <em>Read-only.</em>
+ * @property {string} name="" - A name for the entity. Need not be unique.
+ * @property {Entities.EntityType} type - The entity type. You cannot change the type of an entity after it's created. (Though 
+ *     its value may switch among <code>"Box"</code>, <code>"Shape"</code>, and <code>"Sphere"</code> depending on changes to 
+ *     the <code>shape</code> property set for entities of these types.) <em>Read-only.</em>
+ * @property {boolean} clientOnly=false - If <code>true</code> then the entity is an avatar entity, otherwise it is a server
+ *     entity. <em>Read-only.</em>
+ * @property {Uuid} owningAvatarID=Uuid.NULL - The session ID of the owning avatar if <code>clientOnly</code> is 
+ *     <code>true</code>, otherwise {@link Uuid|Uuid.NULL}. <em>Read-only.</em>
+ *
+ * @property {string} created - The UTC date and time that the entity was created, in ISO 8601 format as
+ *     <code>yyyy-MM-ddTHH:mm:ssZ</code>. <em>Read-only.</em>
+ * @property {number} age - The age of the entity in seconds since it was created. <em>Read-only.</em>
+ * @property {string} ageAsText - The age of the entity since it was created, formatted as <code>h hours m minutes s 
+ *     seconds</code>.
+ * @property {number} lifetime=-1 - How long an entity lives for, in seconds, before being automatically deleted. A value of
+ *     <code>-1</code> means that the entity lives for ever.
+ * @property {number} lastEdited - When the entity was last edited, expressed as the number of microseconds since
+ *     1970-01-01T00:00:00 UTC. <em>Read-only.</em>
+ * @property {Uuid} lastEditedBy - The session ID of the avatar or agent that most recently created or edited the entity.
+ *     <em>Read-only.</em>
+ *
+ * @property {boolean} locked=false - Whether or not the entity can be edited or deleted. If <code>true</code> then the 
+ *     entity's properties other than <code>locked</code> cannot be changed, and the entity cannot be deleted.
+ * @property {boolean} visible=true - Whether or not the entity is rendered. If <code>true</code> then the entity is rendered.
+ * @property {boolean} canCastShadows=true - Whether or not the entity casts shadows. Currently applicable only to 
+ *     {@link Entities.EntityType|Model} and {@link Entities.EntityType|Shape} entities. Shadows are cast if inside a 
+ *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its {@link Entities.EntityProperties-Zone|keyLight} property.
+ *
+ * @property {Vec3} position=0,0,0 - The position of the entity.
+ * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
+ * @property {Vec3} registrationPoint=0.5,0.5,0.5 - The point in the entity that is set to the entity's position and is rotated 
+ *      about, {@link Vec3|Vec3.ZERO} &ndash; {@link Vec3|Vec3.ONE}. A value of {@link Vec3|Vec3.ZERO} is the entity's
+ *      minimum x, y, z corner; a value of {@link Vec3|Vec3.ONE} is the entity's maximum x, y, z corner.
+ *
+ * @property {Vec3} naturalPosition=0,0,0 - The center of the entity's unscaled mesh model if it has one, otherwise
+ *     {@link Vec3|Vec3.ZERO}. <em>Read-only.</em>
+ * @property {Vec3} naturalDimensions - The dimensions of the entity's unscaled mesh model if it has one, otherwise 
+ *     {@link Vec3|Vec3.ONE}. <em>Read-only.</em>
+ *
+ * @property {Vec3} velocity=0,0,0 - The linear velocity of the entity in m/s with respect to world coordinates.
+ * @property {number} damping=0.39347 - How much to slow down the linear velocity of an entity over time, <code>0.0</code> 
+ *     &ndash; <code>1.0</code>. A higher damping value slows down the entity more quickly. The default value is for an 
+ *     exponential decay timescale of 2.0s, where it takes 2.0s for the movement to slow to <code>1/e = 0.368</code> of its 
+ *     initial value.
+ * @property {Vec3} angularVelocity=0,0,0 - The angular velocity of the entity in rad/s with respect to its axes, about its
+ *     registration point.
+ * @property {number} angularDamping=0.39347 - How much to slow down the angular velocity of an entity over time, 
+ *     <code>0.0</code> &ndash; <code>1.0</code>. A higher damping value slows down the entity more quickly. The default value 
+ *     is for an exponential decay timescale of 2.0s, where it takes 2.0s for the movement to slow to <code>1/e = 0.368</code> 
+ *     of its initial value.
+ *
+ * @property {Vec3} gravity=0,0,0 - The acceleration due to gravity in m/s<sup>2</sup> that the entity should move with, in 
+ *     world coordinates. Set to <code>{ x: 0, y: -9.8, z: 0 }</code> to simulate Earth's gravity. Gravity is applied to an 
+ *     entity's motion only if its <code>dynamic</code> property is <code>true</code>. If changing an entity's 
+ *     <code>gravity</code> from {@link Vec3|Vec3.ZERO}, you need to give it a small <code>velocity</code> in order to kick off 
+ *     physics simulation.
+ *     The <code>gravity</code> value is applied in addition to the <code>acceleration</code> value.
+ * @property {Vec3} acceleration=0,0,0 - A general acceleration in m/s<sup>2</sup> that the entity should move with, in world 
+ *     coordinates. The acceleration is applied to an entity's motion only if its <code>dynamic</code> property is 
+ *     <code>true</code>. If changing an entity's <code>acceleration</code> from {@link Vec3|Vec3.ZERO}, you need to give it a 
+ *     small <code>velocity</code> in order to kick off physics simulation.
+ *     The <code>acceleration</code> value is applied in addition to the <code>gravity</code> value.
+ * @property {number} restitution=0.5 - The "bounciness" of an entity when it collides, <code>0.0</code> &ndash; 
+ *     <code>0.99</code>. The higher the value, the more bouncy.
+ * @property {number} friction=0.5 - How much to slow down an entity when it's moving against another, <code>0.0</code> &ndash; 
+ *     <code>10.0</code>. The higher the value, the more quickly it slows down. Examples: <code>0.1</code> for ice, 
+ *     <code>0.9</code> for sandpaper.
+ * @property {number} density=1000 - The density of the entity in kg/m<sup>3</sup>, <code>100</code> for balsa wood &ndash; 
+ *     <code>10000</code> for silver. The density is used in conjunction with the entity's bounding box volume to work out its 
+ *     mass in the application of physics.
+ *
+ * @property {boolean} collisionless=false - Whether or not the entity should collide with items per its 
+ *     <code>collisionMask<code> property. If <code>true</code> then the entity does not collide.
+ * @property {boolean} ignoreForCollisions=false - Synonym for <code>collisionless</code>.
+ * @property {Entities.CollisionMask} collisionMask=31 - What types of items the entity should collide with.
+ * @property {string} collidesWith="static,dynamic,kinematic,myAvatar,otherAvatar," - Synonym for <code>collisionMask</code>,
+ *     in text format.
+ * @property {string} collisionSoundURL="" - The sound to play when the entity experiences a collision. Valid file formats are
+ *     as per the {@link SoundCache} object.
+ * @property {boolean} dynamic=false - Whether or not the entity should be affected by collisions. If <code>true</code> then 
+ *     the entity's movement is affected by collisions.
+ * @property {boolean} collisionsWillMove=false - Synonym for <code>dynamic</code>.
+ *
+ * @property {string} href="" - A "hifi://" metaverse address that a user is taken to when they click on the entity.
+ * @property {string} description="" - A description of the <code>href</code> property value.
+ *
+ * @property {string} userData="" - Used to store extra data about the entity in JSON format. WARNING: Other apps such as the 
+ *     Create app can also use this property, so make sure you handle data stored by other apps &mdash; edit only your bit and 
+ *     leave the rest of the data intact. You can use <code>JSON.parse()</code> to parse the string into a JavaScript object 
+ *     which you can manipulate the properties of, and use <code>JSON.stringify()</code> to convert the object into a string to 
+ *     put in the property.
+ *
+ * @property {string} script="" - The URL of the client entity script, if any, that is attached to the entity.
+ * @property {number} scriptTimestamp=0 - Intended to be used to indicate when the client entity script was loaded. Should be 
+ *     an integer number of milliseconds since midnight GMT on January 1, 1970 (e.g., as supplied by <code>Date.now()</code>. 
+ *     If you update the property's value, the <code>script</code> is re-downloaded and reloaded. This is how the "reload" 
+ *     button beside the "script URL" field in properties tab of the Create app works.
+ * @property {string} serverScripts="" - The URL of the server entity script, if any, that is attached to the entity.
+ *
+ * @property {Uuid} parentID=Uuid.NULL - The ID of the entity or avatar that this entity is parented to. {@link Uuid|Uuid.NULL} 
+ *     if the entity is not parented.
+ * @property {number} parentJointIndex=65535 - The joint of the entity or avatar that this entity is parented to. Use 
+ *     <code>65535</code> or <code>-1</code> to parent to the entity or avatar's position and orientation rather than a joint.
+ * @property {Vec3} localPosition=0,0,0 - The position of the entity relative to its parent if the entity is parented, 
+ *     otherwise the same value as <code>position</code>. If the entity is parented to an avatar and is <code>clientOnly</code> 
+ *     so that it scales with the avatar, this value remains the original local position value while the avatar scale changes.
+ * @property {Quat} localRotation=0,0,0,1 - The rotation of the entity relative to its parent if the entity is parented, 
+ *     otherwise the same value as <code>rotation</code>.
+ * @property {Vec3} localVelocity=0,0,0 - The velocity of the entity relative to its parent if the entity is parented, 
+ *     otherwise the same value as <code>velocity</code>.
+ * @property {Vec3} localAngularVelocity=0,0,0 - The angular velocity of the entity relative to its parent if the entity is 
+ *     parented, otherwise the same value as <code>position</code>.
+ * @property {Vec3} localDimensions - The dimensions of the entity. If the entity is parented to an avatar and is 
+ *     <code>clientOnly</code> so that it scales with the avatar, this value remains the original dimensions value while the 
+ *     avatar scale changes.
+ *
+ * @property {Entities.BoundingBox} boundingBox - The axis-aligned bounding box that tightly encloses the entity. 
+ *     <em>Read-only.</em>
+ * @property {AACube} queryAACube - The axis-aligned cube that determines where the entity lives in the entity server's octree. 
+ *     The cube may be considerably larger than the entity in some situations, e.g., when the entity is grabbed by an avatar: 
+ *     the position of the entity is determined through avatar mixer updates and so the AA cube is expanded in order to reduce 
+ *     unnecessary entity server updates. Scripts should not change this property's value.
+ *
+ * @property {string} actionData="" - Base-64 encoded compressed dump of the actions associated with the entity. This property
+ *     is typically not used in scripts directly; rather, functions that manipulate an entity's actions update it.
+ *     The size of this property increases with the number of actions. Because this property value has to fit within a High 
+ *     Fidelity datagram packet there is a limit to the number of actions that an entity can have, and edits which would result 
+ *     in overflow are rejected.
+ *     <em>Read-only.</em>
+ * @property {Entities.RenderInfo} renderInfo - Information on the cost of rendering the entity. Currently information is only 
+ *     provided for <code>Model</code> entities. <em>Read-only.</em>
+ *
+ * @property {string} itemName="" - Certifiable name of the Marketplace item.
+ * @property {string} itemDescription="" - Certifiable description of the Marketplace item.
+ * @property {string} itemCategories="" - Certifiable category of the Marketplace item.
+ * @property {string} itemArtist="" - Certifiable  artist that created the Marketplace item.
+ * @property {string} itemLicense="" - Certifiable license URL for the Marketplace item.
+ * @property {number} limitedRun=4294967295 - Certifiable maximum integer number of editions (copies) of the Marketplace item 
+ *     allowed to be sold.
+ * @property {number} editionNumber=0 - Certifiable integer edition (copy) number or the Marketplace item. Each copy sold in 
+ *     the Marketplace is numbered sequentially, starting at 1.
+ * @property {number} entityInstanceNumber=0 - Certifiable integer instance number for identical entities in a Marketplace 
+ *     item. A Marketplace item may have identical parts. If so, then each is numbered sequentially with an instance number.
+ * @property {string} marketplaceID="" - Certifiable UUID for the Marketplace item, as used in the URL of the item's download
+ *     and its Marketplace Web page.
+ * @property {string} certificateID="" - Hash of the entity's static certificate JSON, signed by the artist's private key.
+ * @property {number} staticCertificateVersion=0 - The version of the method used to generate the <code>certificateID</code>.
+ *
+ * @see The different entity types have additional properties as follows:
+ * @see {@link Entities.EntityProperties-Box|EntityProperties-Box}
+ * @see {@link Entities.EntityProperties-Light|EntityProperties-Light}
+ * @see {@link Entities.EntityProperties-Line|EntityProperties-Line}
+ * @see {@link Entities.EntityProperties-Material|EntityProperties-Material}
+ * @see {@link Entities.EntityProperties-Model|EntityProperties-Model}
+ * @see {@link Entities.EntityProperties-ParticleEffect|EntityProperties-ParticleEffect}
+ * @see {@link Entities.EntityProperties-PolyLine|EntityProperties-PolyLine}
+ * @see {@link Entities.EntityProperties-PolyVox|EntityProperties-PolyVox}
+ * @see {@link Entities.EntityProperties-Shape|EntityProperties-Shape}
+ * @see {@link Entities.EntityProperties-Sphere|EntityProperties-Sphere}
+ * @see {@link Entities.EntityProperties-Text|EntityProperties-Text}
+ * @see {@link Entities.EntityProperties-Web|EntityProperties-Web}
+ * @see {@link Entities.EntityProperties-Zone|EntityProperties-Zone}
+ */
+
+/**jsdoc
+ * The <code>"Box"</code> {@link Entities.EntityType|EntityType} is the same as the <code>"Shape"</code>
+ * {@link Entities.EntityType|EntityType} except that its <code>shape</code> value is always set to <code>"Cube"</code>
+ * when the entity is created. If its <code>shape</code> property value is subsequently changed then the entity's 
+ * <code>type</code> will be reported as <code>"Sphere"</code> if the <code>shape</code> is set to <code>"Sphere"</code>, 
+ * otherwise it will be reported as <code>"Shape"</code>.
+ * @typedef {object} Entities.EntityProperties-Box
+ */
+
+/**jsdoc
+ * The <code>"Light"</code> {@link Entities.EntityType|EntityType} adds local lighting effects.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Light
+ * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity. Entity surface outside these dimensions are not lit 
+ *     by the light.
+ * @property {Color} color=255,255,255 - The color of the light emitted.
+ * @property {number} intensity=1 - The brightness of the light.
+ * @property {number} falloffRadius=0.1 - The distance from the light's center at which intensity is reduced by 25%.
+ * @property {boolean} isSpotlight=false - If <code>true</code> then the light is directional, emitting along the entity's
+ *     local negative z-axis; otherwise the light is a point light which emanates in all directions.
+ * @property {number} exponent=0 - Affects the softness of the spotlight beam: the higher the value the softer the beam.
+ * @property {number} cutoff=1.57 - Affects the size of the spotlight beam: the higher the value the larger the beam.
+ * @example <caption>Create a spotlight pointing at the ground.</caption>
+ * Entities.addEntity({
+ *     type: "Light",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -4 })),
+ *     rotation: Quat.fromPitchYawRollDegrees(-75, 0, 0),
+ *     dimensions: { x: 5, y: 5, z: 5 },
+ *     intensity: 100,
+ *     falloffRadius: 0.3,
+ *     isSpotlight: true,
+ *     exponent: 20,
+ *     cutoff: 30,
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Line"</code> {@link Entities.EntityType|EntityType} draws thin, straight lines between a sequence of two or more 
+ * points.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Line
+ * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity. Must be sufficient to contain all the 
+ *     <code>linePoints</code>.
+ * @property {Vec3[]} linePoints=[]] - The sequence of points to draw lines between. The values are relative to the entity's
+ *     position. A maximum of 70 points can be specified. The property's value is set only if all the <code>linePoints</code> 
+ *     lie within the entity's <code>dimensions</code>.
+ * @property {number} lineWidth=2 - <em>Currently not used.</em>
+ * @property {Color} color=255,255,255 - The color of the line.
+ * @example <caption>Draw lines in a "V".</caption>
+ * var entity = Entities.addEntity({
+ *     type: "Line",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -5 })),
+ *     rotation: MyAvatar.orientation,
+ *     dimensions: { x: 2, y: 2, z: 1 },
+ *     linePoints: [
+ *         { x: -1, y: 1, z: 0 },
+ *         { x: 0, y: -1, z: 0 },
+ *         { x: 1, y: 1, z: 0 },
+ *     ],
+ *     color: { red: 255, green: 0, blue: 0 },
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Material"</code> {@link Entities.EntityType|EntityType} modifies the existing materials on
+ * {@link Entities.EntityType|Model} entities, {@link Entities.EntityType|Shape} entities (albedo only), 
+ * {@link Overlays.OverlayType|model overlays}, and avatars.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.<br />
+ * To apply a material to an entity or overlay, set the material entity's <code>parentID</code> property to the entity or 
+ * overlay's ID.
+ * To apply a material to an avatar, set the material entity's <code>parentID</code> property to the avatar's session UUID.
+ * To apply a material to your avatar such that it persists across domains and log-ins, create the material as an avatar entity 
+ * by setting the <code>clientOnly</code> parameter in {@link Entities.addEntity} to <code>true</code>.
+ * Material entities render as non-scalable spheres if they don't have their parent set.
+ * @typedef {object} Entities.EntityProperties-Material
+ * @property {string} materialURL="" - URL to a {@link MaterialResource}. If you append <code>?name</code> to the URL, the 
+ *     material with that name in the {@link MaterialResource} will be applied to the entity. <br />
+ *     Alternatively, set the property value to <code>"userData"</code> to use the {@link Entities.EntityProperties|userData} 
+ *     entity property to live edit the material resource values.
+ * @property {number} priority=0 - The priority for applying the material to its parent. Only the highest priority material is 
+ *     applied, with materials of the same priority randomly assigned. Materials that come with the model have a priority of 
+ *     <code>0</code>.
+ * @property {string|number} parentMaterialName="0" - Selects the submesh or submeshes within the parent to apply the material 
+ *     to. If in the format <code>"mat::string"</code>, all submeshes with material name <code>"string"</code> are replaced. 
+ *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh index to modify. Invalid values are 
+ *     parsed to <code>0</code>.
+ * @property {string} materialMappingMode="uv" - How the material is mapped to the entity. Either <code>"uv"</code> or 
+ *     <code>"projected"</code>. <em>Currently, only <code>"uv"</code> is supported.
+ * @property {Vec2} materialMappingPos=0,0 - Offset position in UV-space of the top left of the material, range 
+ *     <code>{ x: 0, y: 0 }</code> &ndash; <code>{ x: 1, y: 1 }</code>.
+ * @property {Vec2} materialMappingScale=1,1 - How much to scale the material within the parent's UV-space.
+ * @property {number} materialMappingRot=0 - How much to rotate the material within the parent's UV-space, in degrees.
+ * @example <caption>Color a sphere using a Material entity.</caption>
+ * var entityID = Entities.addEntity({
+ *     type: "Sphere",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+ *     dimensions: { x: 1, y: 1, z: 1 },
+ *     color: { red: 128, green: 128, blue: 128 },
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ *
+ * var materialID = Entities.addEntity({
+ *     type: "Material",
+ *     parentID: entityID,
+ *     materialURL: "userData",
+ *     priority: 1,
+ *     userData: JSON.stringify({
+ *         materials: {
+ *             // Can only set albedo on a Shape entity.
+ *             // Value overrides entity's "color" property.
+ *             albedo: [1.0, 0, 0]
+ *         }
+ *     }),
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Model"</code> {@link Entities.EntityType|EntityType} displays an FBX or OBJ model.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Model
+ * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity. When adding an entity, if no <code>dimensions</code> 
+ *     value is specified then the model is automatically sized to its 
+ *     <code>{@link Entities.EntityProperties|naturalDimensions}</code>.
+ * @property {Color} color=255,255,255 - <em>Currently not used.</em>
+ * @property {string} modelURL="" - The URL of the FBX of OBJ model. Baked FBX models' URLs end in ".baked.fbx".<br />
+ *     Note: If the name ends with <code>"default-image-model.fbx"</code> then the entity is considered to be an "Image" 
+ *     entity, in which case the <code>textures</code> property should be set per the example.
+ * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
+ *     model's original textures. Use a texture name from the <code>originalTextures</code> property to override that texture. 
+ *     Only the texture names and URLs to be overridden need be specified; original textures are used where there are no 
+ *     overrides. You can use <code>JSON.stringify()</code> to convert a JavaScript object of name, URL pairs into a JSON 
+ *     string.
+ * @property {string} originalTextures="{}" - A JSON string of texture name, URL pairs used in the model. The property value is 
+ *     filled in after the entity has finished rezzing (i.e., textures have loaded). You can use <code>JSON.parse()</code> to 
+ *     parse the JSON string into a JavaScript object of name, URL pairs. <em>Read-only.</em>
+ *
+ * @property {ShapeType} shapeType="none" - The shape of the collision hull used if collisions are enabled.
+ * @property {string} compoundShapeURL="" - The OBJ file to use for the compound shape if <code>shapeType</code> is
+ *     <code>"compound"</code>.
+ *
+ * @property {Entities.AnimationProperties} animation - An animation to play on the model.
+ *
+ * @property {Quat[]} jointRotations=[]] - Joint rotations applied to the model; <code>[]</code> if none are applied or the 
+ *     model hasn't loaded. The array indexes are per {@link Entities.getJointIndex|getJointIndex}. Rotations are relative to 
+ *     each joint's parent.<br />
+ *     Joint rotations can be set by {@link Entities.setLocalJointRotation|setLocalJointRotation} and similar functions, or by
+ *     setting the value of this property. If you set a joint rotation using this property you also need to set the 
+ *     corresponding <code>jointRotationsSet</code> value to <code>true</code>.
+ * @property {boolean[]} jointRotationsSet=[]] - <code>true</code> values for joints that have had rotations applied, 
+ *     <code>false</code> otherwise; <code>[]</code> if none are applied or the model hasn't loaded. The array indexes are per 
+ *     {@link Entities.getJointIndex|getJointIndex}.
+ * @property {Vec3[]} jointTranslations=[]] - Joint translations applied to the model; <code>[]</code> if none are applied or 
+ *     the model hasn't loaded. The array indexes are per {@link Entities.getJointIndex|getJointIndex}. Rotations are relative 
+ *     to each joint's parent.<br />
+ *     Joint translations can be set by {@link Entities.setLocalJointTranslation|setLocalJointTranslation} and similar 
+ *     functions, or by setting the value of this property. If you set a joint translation using this property you also need to 
+ *     set the corresponding <code>jointTranslationsSet</code> value to <code>true</code>.
+ * @property {boolean[]} jointTranslationsSet=[]] - <code>true</code> values for joints that have had translations applied, 
+ *     <code>false</code> otherwise; <code>[]</code> if none are applied or the model hasn't loaded. The array indexes are per 
+ *     {@link Entities.getJointIndex|getJointIndex}.
+ * @property {boolean} relayParentJoints=false - If <code>true</code> and the entity is parented to an avatar, then the 
+ *     avatar's joint rotations are applied to the entity's joints.
+ *
+ * @example <caption>Rez a Vive tracker puck.</caption>
+ * var entity = Entities.addEntity({
+ *     type: "Model",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -2 })),
+ *     rotation: MyAvatar.orientation,
+ *     modelURL: "http://content.highfidelity.com/seefo/production/puck-attach/vive_tracker_puck.obj",
+ *     dimensions: { x: 0.0945, y: 0.0921, z: 0.0423 },
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ * @example <caption>Create an "Image" entity like you can in the Create app.</caption>
+ * var IMAGE_MODEL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
+ * var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
+ * var entity = Entities.addEntity({
+ *     type: "Model",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -3 })),
+ *     rotation: MyAvatar.orientation,
+ *     dimensions: {
+ *         x: 0.5385,
+ *         y: 0.2819,
+ *         z: 0.0092
+ *     },
+ *     shapeType: "box",
+ *     collisionless: true,
+ *     modelURL: IMAGE_MODEL,
+ *     textures: JSON.stringify({ "tex.picture": DEFAULT_IMAGE }),
+ *     lifetime: 300  // Delete after 5 minutes
+ * });
+ */
+
+/**jsdoc
+ * The <code>"ParticleEffect"</code> {@link Entities.EntityType|EntityType} displays a particle system that can be used to 
+ * simulate things such as fire, smoke, snow, magic spells, etc. The particles emanate from an ellipsoid or part thereof.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-ParticleEffect
+
+ * @property {boolean} isEmitting=true - If <code>true</code> then particles are emitted.
+ * @property {number} maxParticles=1000 - The maximum number of particles to render at one time. Older particles are deleted if 
+ *     necessary when new ones are created.
+ * @property {number} lifespan=3s - How long, in seconds, each particle lives.
+ * @property {number} emitRate=15 - The number of particles per second to emit.
+ * @property {number} emitSpeed=5 - The speed, in m/s, that each particle is emitted at.
+ * @property {number} speedSpread=1 - The spread in speeds at which particles are emitted at. If <code>emitSpeed == 5</code> 
+ *     and <code>speedSpread == 1</code>, particles will be emitted with speeds in the range 4m/s &ndash; 6m/s.
+ * @property {vec3} emitAcceleration=0,-9.8,0 - The acceleration that is applied to each particle during its lifetime. The 
+ *     default is Earth's gravity value.
+ * @property {vec3} accelerationSpread=0,0,0 - The spread in accelerations that each particle is given. If
+ *     <code>emitAccelerations == {x: 0, y: -9.8, z: 0}</code> and <code>accelerationSpread ==
+ *     {x: 0, y: 1, z: 0}</code>, each particle will have an acceleration in the range, <code>{x: 0, y: -10.8, z: 0}</code> 
+ *     &ndash; <code>{x: 0, y: -8.8, z: 0}</code>.
+ * @property {Vec3} dimensions - The dimensions of the particle effect, i.e., a bounding box containing all the particles
+ *     during their lifetimes, assuming that <code>emitterShouldTrail</code> is <code>false</code>. <em>Read-only.</em>
+ * @property {boolean} emitterShouldTrail=false - If <code>true</code> then particles are "left behind" as the emitter moves,
+ *     otherwise they stay with the entity's dimensions.
+ *
+ * @property {Quat} emitOrientation=-0.707,0,0,0.707 - The orientation of particle emission relative to the entity's axes. By
+ *     default, particles emit along the entity's local z-axis, and <code>azimuthStart</code> and <code>azimuthFinish</code> 
+ *     are relative to the entity's local x-axis. The default value is a rotation of -90 degrees about the local x-axis, i.e., 
+ *     the particles emit vertically.
+ * @property {vec3} emitDimensions=0,0,0 - The dimensions of the ellipsoid from which particles are emitted.
+ * @property {number} emitRadiusStart=1 - The starting radius within the ellipsoid at which particles start being emitted;
+ *     range <code>0.0</code> &ndash; <code>1.0</code> for the ellipsoid center to the ellipsoid surface, respectively.
+ *     Particles are emitted from the portion of the ellipsoid that lies between <code>emitRadiusStart</code> and the 
+ *     ellipsoid's surface.
+ * @property {number} polarStart=0 - The angle in radians from the entity's local z-axis at which particles start being emitted 
+ *     within the ellipsoid; range <code>0</code> &ndash; <code>Math.PI</code>. Particles are emitted from the portion of the 
+ *     ellipsoid that lies between <code>polarStart<code> and <code>polarFinish</code>.
+ * @property {number} polarFinish=0 - The angle in radians from the entity's local z-axis at which particles stop being emitted 
+ *     within the ellipsoid; range <code>0</code> &ndash; <code>Math.PI</code>. Particles are emitted from the portion of the 
+ *     ellipsoid that lies between <code>polarStart<code> and <code>polarFinish</code>.
+ * @property {number} azimuthStart=-Math.PI - The angle in radians from the entity's local x-axis about the entity's local 
+ *     z-axis at which particles start being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are 
+ *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
+ * @property {number} azimuthFinish=Math.PI - The angle in radians from the entity's local x-axis about the entity's local 
+ *     z-axis at which particles stop being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are 
+ *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
+ *
+ * @property {string} textures="" - The URL of a JPG or PNG image file to display for each particle. If you want transparency, 
+ *     use PNG format.
+ * @property {number} particleRadius=0.025 - The radius of each particle at the middle of its life.
+ * @property {number} radiusStart=0.025 - The radius of each particle at the start of its life. If not explicitly set, the 
+ *     <code>particleRadius</code> value is used.
+ * @property {number} radiusFinish=0.025 - The radius of each particle at the end of its life. If not explicitly set, the 
+ *     <code>particleRadius</code> value is used.
+ * @property {number} radiusSpread=0 - <em>Currently not used.</em>
+ * @property {Color} color=255,255,255 - The color of each particle at the middle of its life.
+ * @property {Color} colorStart=255,255,255 - The color of each particle at the start of its life. If not explicitly set, the 
+ *     <code>color</code> value is used.
+ * @property {Color} colorFinish=255,255,255 - The color of each particle at the end of its life. If not explicitly set, the 
+ *     <code>color</code> value is used.
+ * @property {Color} colorSpread=0,0,0 - <em>Currently not used.</em>
+ * @property {number} alpha=1 - The alpha of each particle at the middle of its life.
+ * @property {number} alphaStart=1 - The alpha of each particle at the start of its life. If not explicitly set, the 
+ *     <code>alpha</code> value is used.
+ * @property {number} alphaFinish=1 - The alpha of each particle at the end of its life. If not explicitly set, the 
+ *     <code>alpha</code> value is used.
+ * @property {number} alphaSpread=0 - <em>Currently not used.</em>
+ *
+ * @property {ShapeType} shapeType="none" - <em>Currently not used.</em> <em>Read-only.</em>
+ *
+ * @example <caption>Create a ball of green smoke.</caption>
+ * particles = Entities.addEntity({
+ *     type: "ParticleEffect",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -4 })),
+ *     lifespan: 5,
+ *     emitRate: 10,
+ *     emitSpeed: 0.02,
+ *     speedSpread: 0.01,
+ *     emitAcceleration: { x: 0, y: 0.02, z: 0 },
+ *     polarFinish: Math.PI,
+ *     textures: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png",
+ *     particleRadius: 0.1,
+ *     color: { red: 0, green: 255, blue: 0 },
+ *     alphaFinish: 0,
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"PolyLine"</code> {@link Entities.EntityType|EntityType} draws textured, straight lines between a sequence of 
+ * points.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-PolyLine
+ * @property {Vec3} dimensions=1,1,1 - The dimensions of the entity, i.e., the size of the bounding box that contains the 
+ *     lines drawn.
+ * @property {Vec3[]} linePoints=[]] - The sequence of points to draw lines between. The values are relative to the entity's
+ *     position. A maximum of 70 points can be specified. Must be specified in order for the entity to render.
+ * @property {Vec3[]} normals=[]] - The normal vectors for the line's surface at the <code>linePoints</code>. The values are 
+ *     relative to the entity's orientation. Must be specified in order for the entity to render.
+ * @property {number[]} strokeWidths=[]] - The widths, in m, of the line at the <code>linePoints</code>. Must be specified in 
+ *     order for the entity to render.
+ * @property {number} lineWidth=2 - <em>Currently not used.</code>
+ * @property {Vec3[]} strokeColors=[]] - <em>Currently not used.</em>
+ * @property {Color} color=255,255,255 - The base color of the line, which is multiplied with the color of the texture for
+ *     rendering.
+ * @property {string} textures="" - The URL of a JPG or PNG texture to use for the lines. If you want transparency, use PNG
+ *     format.
+ * @property {boolean} isUVModeStretch=true - If <code>true</code>, the texture is stretched to fill the whole line, otherwise 
+ *     the texture repeats along the line.
+ * @example <caption>Draw a textured "V".</caption>
+ * var entity = Entities.addEntity({
+ *     type: "PolyLine",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -5 })),
+ *     rotation: MyAvatar.orientation,
+ *     linePoints: [
+ *         { x: -1, y: 0.5, z: 0 },
+ *         { x: 0, y: 0, z: 0 },
+ *         { x: 1, y: 0.5, z: 0 }
+ *     ],
+ *     normals: [
+ *         { x: 0, y: 0, z: 1 },
+ *         { x: 0, y: 0, z: 1 },
+ *         { x: 0, y: 0, z: 1 }
+ *     ],
+ *     strokeWidths: [ 0.1, 0.1, 0.1 ],
+ *     color: { red: 255, green: 0, blue: 0 },  // Use just the red channel from the image.
+ *     textures: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flowArts/trails.png",
+ *     isUVModeStretch: true,
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"PolyVox"</code> {@link Entities.EntityType|EntityType} displays a set of textured voxels. 
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * If you have two or more neighboring PolyVox entities of the same size abutting each other, you can display them as joined by
+ * configuring their <code>voxelSurfaceStyle</code> and neighbor ID properties.<br />
+ * PolyVox entities uses a library from <a href="http://www.volumesoffun.com/">Volumes of Fun</a>. Their
+ * <a href="http://www.volumesoffun.com/polyvox-documentation/">library documentation</a> may be useful to read.
+ * @typedef {object} Entities.EntityProperties-PolyVox
+ * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity.
+ * @property {Vec3} voxelVolumeSize=32,32,32 - Integer number of voxels along each axis of the entity, in the range 
+ *     <code>1,1,1</code> to <code>128,128,128</code>. The dimensions of each voxel is 
+ *     <code>dimensions / voxelVolumesize</code>.
+ * @property {string} voxelData="ABAAEAAQAAAAHgAAEAB42u3BAQ0AAADCoPdPbQ8HFAAAAPBuEAAAAQ==" - Base-64 encoded compressed dump of 
+ *     the PolyVox data. This property is typically not used in scripts directly; rather, functions that manipulate a PolyVox 
+ *     entity update it.<br />
+ *     The size of this property increases with the size and complexity of the PolyVox entity, with the size depending on how 
+ *     the particular entity's voxels compress. Because this property value has to fit within a High Fidelity datagram packet 
+ *     there is a limit to the size and complexity of a PolyVox entity, and edits which would result in an overflow are 
+ *     rejected.
+ * @property {Entities.PolyVoxSurfaceStyle} voxelSurfaceStyle=2 - The style of rendering the voxels' surface and how 
+ *     neighboring PolyVox entities are joined.
+ * @property {string} xTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's local x-axis. JPG or
+ *     PNG format. If no texture is specified the surfaces display white.
+ * @property {string} yTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's local y-axis. JPG or 
+ *     PNG format. If no texture is specified the surfaces display white.
+ * @property {string} zTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's local z-axis. JPG or 
+ *     PNG format. If no texture is specified the surfaces display white.
+ * @property {Uuid} xNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local x-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} yNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local y-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} zNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local z-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} xPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local x-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} yPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local y-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} zPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local z-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @example <caption>Create a textured PolyVox sphere.</caption>
+ * var position = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -8 }));
+ * var texture = "http://public.highfidelity.com/cozza13/tuscany/Concrete2.jpg";
+ * var polyVox = Entities.addEntity({
+ *     type: "PolyVox",
+ *     position: position,
+ *     dimensions: { x: 2, y: 2, z: 2 },
+ *     xTextureURL: texture,
+ *     yTextureURL: texture,
+ *     zTextureURL: texture,
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ * Entities.setVoxelSphere(polyVox, position, 0.8, 255);
+ */
+
+/**jsdoc
+ * The <code>"Shape"</code> {@link Entities.EntityType|EntityType} displays an entity of a specified <code>shape</code>.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Shape
+ * @property {Entities.Shape} shape="Sphere" - The shape of the entity.
+ * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity.
+ * @property {Color} color=255,255,255 - The color of the entity.
+ * @example <caption>Create a cylinder.</caption>
+ * var shape = Entities.addEntity({
+ *     type: "Shape",
+ *     shape: "Cylinder",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+ *     dimensions: { x: 0.4, y: 0.6, z: 0.4 },
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Sphere"</code> {@link Entities.EntityType|EntityType} is the same as the <code>"Shape"</code>
+ * {@link Entities.EntityType|EntityType} except that its <code>shape</code> value is always set to <code>"Sphere"</code>
+ * when the entity is created. If its <code>shape</code> property value is subsequently changed then the entity's 
+ * <code>type</code> will be reported as <code>"Box"</code> if the <code>shape</code> is set to <code>"Cube"</code>, 
+ * otherwise it will be reported as <code>"Shape"</code>.
+ * @typedef {object} Entities.EntityProperties-Sphere
+ */
+
+/**jsdoc
+ * The <code>"Text"</code> {@link Entities.EntityType|EntityType} displays a 2D rectangle of text in the domain.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Text
+ * @property {Vec3} dimensions=0.1,0.1,0.01 - The dimensions of the entity.
+ * @property {string} text="" - The text to display on the face of the entity. Text wraps if necessary to fit. New lines can be
+ *     created using <code>\n</code>. Overflowing lines are not displayed.
+ * @property {number} lineHeight=0.1 - The height of each line of text (thus determining the font size).
+ * @property {Color} textColor=255,255,255 - The color of the text.
+ * @property {Color} backgroundColor=0,0,0 - The color of the background rectangle.
+ * @property {boolean} faceCamera=false - If <code>true</code>, the entity is oriented to face each user's camera (i.e., it
+ *     differs for each user present).
+ * @example <caption>Create a text entity.</caption>
+ * var text = Entities.addEntity({
+ *     type: "Text",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+ *     dimensions: { x: 0.6, y: 0.3, z: 0.01 },
+ *     lineHeight: 0.12,
+ *     text: "Hello\nthere!",
+ *     faceCamera: true,
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Web"</code> {@link Entities.EntityType|EntityType} displays a browsable Web page. Each user views their own copy 
+ * of the Web page: if one user navigates to another page on the entity, other users do not see the change; if a video is being 
+ * played, users don't see it in sync.
+ * The entity has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Web
+ * @property {Vec3} dimensions=0.1,0.1,0.01 - The dimensions of the entity.
+ * @property {string} sourceUrl="" - The URL of the Web page to display. This value does not change as you or others navigate 
+ *     on the Web entity.
+ * @property {number} dpi=30 - The resolution to display the page at, in dots per inch. If you convert this to dots per meter 
+ *     (multiply by 1 / 0.0254 = 39.3701) then multiply <code>dimensions.x</code> and <code>dimensions.y</code> by that value 
+ *     you get the resolution in pixels.
+ * @example <caption>Create a Web entity displaying at 1920 x 1080 resolution.</caption>
+ * var METERS_TO_INCHES = 39.3701;
+ * var entity = Entities.addEntity({
+ *     type: "Web",
+ *     sourceUrl: "https://highfidelity.com/",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -4 })),
+ *     rotation: MyAvatar.orientation,
+ *     dimensions: {
+ *         x: 3,
+ *         y: 3 * 1080 / 1920,
+ *         z: 0.01
+ *     },
+ *     dpi: 1920 / (3 * METERS_TO_INCHES),
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Zone"</code> {@link Entities.EntityType|EntityType} is a volume of lighting effects and avatar permissions.
+ * Avatar interaction events such as {@link Entities.enterEntity} are also often used with a Zone entity.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Zone
+ * @property {Vec3} dimensions=0.1,0.1,0.1 - The size of the volume in which the zone's lighting effects and avatar permissions 
+ *     have effect.
+ *
+ * @property {ShapeType} shapeType="box" - The shape of the volume in which the zone's lighting effects and avatar 
+ *     permissions have effect. Reverts to the default value if set to <code>"none"</code>, or set to <code>"compound"</code> 
+ *     and <code>compoundShapeURL</code> is <code>""</code>.
+  * @property {string} compoundShapeURL="" - The OBJ file to use for the compound shape if <code>shapeType</code> is 
+ *     <code>"compound"</code>.
+ *
+ * @property {string} keyLightMode="inherit" - Configures the key light in the zone. Possible values:<br />
+ *     <code>"inherit"</code>: The key light from any enclosing zone continues into this zone.<br />
+ *     <code>"disabled"</code>: The key light from any enclosing zone and the key light of this zone are disabled in this 
+ *         zone.<br />
+ *     <code>"enabled"</code>: The key light properties of this zone are enabled, overriding the key light of from any 
+ *         enclosing zone.
+ * @property {Entities.KeyLight} keyLight - The key light properties of the zone.
+ *
+ * @property {string} ambientLightMode="inherit" - Configures the ambient light in the zone. Possible values:<br />
+ *     <code>"inherit"</code>: The ambient light from any enclosing zone continues into this zone.<br />
+ *     <code>"disabled"</code>: The ambient light from any enclosing zone and the ambient light of this zone are disabled in 
+ *         this zone.<br />
+ *     <code>"enabled"</code>: The ambient light properties of this zone are enabled, overriding the ambient light from any 
+ *         enclosing zone.
+ * @property {Entities.AmbientLight} ambientLight - The ambient light properties of the zone.
+ *
+ * @property {string} skyboxMode="inherit" - Configures the skybox displayed in the zone. Possible values:<br />
+ *     <code>"inherit"</code>: The skybox from any enclosing zone is dislayed in this zone.<br />
+ *     <code>"disabled"</code>: The skybox from any enclosing zone and the skybox of this zone are disabled in this zone.<br />
+ *     <code>"enabled"</code>: The skybox properties of this zone are enabled, overriding the skybox from any enclosing zone.
+ * @property {Entities.Skybox} skybox - The skybox properties of the zone.
+ *
+ * @property {string} hazeMode="inherit" - Configures the haze in the zone. Possible values:<br />
+ *     <code>"inherit"</code>: The haze from any enclosing zone continues into this zone.<br />
+ *     <code>"disabled"</code>: The haze from any enclosing zone and the haze of this zone are disabled in this zone.<br />
+ *     <code>"enabled"</code>: The haze properties of this zone are enabled, overriding the haze from any enclosing zone.
+ * @property {Entities.Haze} haze - The haze properties of the zone.
+ *
+ * @property {boolean} flyingAllowed=true - If <code>true</code> then visitors can fly in the zone; otherwise they cannot.
+ * @property {boolean} ghostingAllowed=true - If <code>true</code> then visitors with avatar collisions turned off will not 
+ *     collide with content in the zone; otherwise visitors will always collide with content in the zone.
+ 
+ * @property {string} filterURL="" - The URL of a JavaScript file that filters changes to properties of entities within the 
+ *     zone. It is periodically executed for each entity in the zone. It can, for example, be used to not allow changes to 
+ *     certain properties.<br />
+ * <pre>
+ * function filter(properties) {
+ *     // Test and edit properties object values,
+ *     // e.g., properties.modelURL, as required.
+ *     return properties;
+ * }
+ * </pre>
+ *
+ * @example <caption>Create a zone that casts a red key light along the x-axis.</caption>
+ * var zone = Entities.addEntity({
+ *     type: "Zone",
+ *     position: MyAvatar.position,
+ *     dimensions: { x: 100, y: 100, z: 100 },
+ *     keyLightMode: "enabled",
+ *     keyLight: {
+ *         "color": { "red": 255, "green": 0, "blue": 0 },
+ *         "direction": { "x": 1, "y": 0, "z": 0 }
+ *     },
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
 QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime, bool strictSemantics) const {
     // If strictSemantics is true and skipDefaults is false, then all and only those properties are copied for which the property flag
     // is included in _desiredProperties, or is one of the specially enumerated ALWAYS properties below.
@@ -491,7 +1192,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_VELOCITY, angularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_DAMPING, angularDamping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE, visible);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);  // Relevant to Shape and Model entities only.
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISIONLESS, collisionless);
     COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_COLLISIONLESS, collisionless, ignoreForCollisions, getCollisionless()); // legacy support
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_MASK, collisionMask);
@@ -500,7 +1201,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_DYNAMIC, dynamic, collisionsWillMove, getDynamic()); // legacy support
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_HREF, href);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DESCRIPTION, description);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FACE_CAMERA, faceCamera);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FACE_CAMERA, faceCamera);  // Text only.
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ACTION_DATA, actionData);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCKED, locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USER_DATA, userData);
@@ -521,7 +1222,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NAME, name);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
 
-    // Boxes, Spheres, Light, Line, Model(??), Particle, PolyLine
+    // Light, Line, Model, ParticleEffect, PolyLine, Shape
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR, color);
 
     // Particles only
@@ -569,12 +1270,15 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (_type == EntityTypes::Model || _type == EntityTypes::Zone || _type == EntityTypes::ParticleEffect) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, getShapeTypeAsString());
     }
+    
+    // FIXME: Shouldn't provide a shapeType property for Box and Sphere entities.
     if (_type == EntityTypes::Box) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, QString("Box"));
     }
     if (_type == EntityTypes::Sphere) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, QString("Sphere"));
     }
+
     if (_type == EntityTypes::Box || _type == EntityTypes::Sphere || _type == EntityTypes::Shape) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SHAPE, shape);
     }
@@ -653,11 +1357,11 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (_type == EntityTypes::Line || _type == EntityTypes::PolyLine) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_WIDTH, lineWidth);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_POINTS, linePoints);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NORMALS, normals);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_COLORS, strokeColors);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_WIDTHS, strokeWidths);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NORMALS, normals);  // Polyline only.
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_COLORS, strokeColors);  // Polyline only.
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_WIDTHS, strokeWidths);  // Polyline only.
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);  // Polyline only.
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);  // Polyline only.
     }
 
     // Materials
@@ -671,6 +1375,14 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
     }
 
+    /**jsdoc
+     * The axis-aligned bounding box of an entity.
+     * @typedef Entities.BoundingBox
+     * @property {Vec3} brn - The bottom right near (minimum axes values) corner of the AA box.
+     * @property {Vec3} tfl - The top far left (maximum axes values) corner of the AA box.
+     * @property {Vec3} center - The center of the AA box.
+     * @property {Vec3} dimensions - The dimensions of the AA box.
+     */
     if (!skipDefaults && !strictSemantics) {
         AABox aaBox = getAABox();
         QScriptValue boundingBox = engine->newObject();
@@ -692,6 +1404,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_ID, parentID);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_JOINT_INDEX, parentJointIndex);
+
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_QUERY_AA_CUBE, queryAACube);
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
@@ -700,13 +1413,23 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_DIMENSIONS, localDimensions);
 
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);  // Gettable but not settable
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);  // Gettable but not settable
 
     // Rendering info
     if (!skipDefaults && !strictSemantics) {
         QScriptValue renderInfo = engine->newObject();
 
+        /**jsdoc
+         * Information on how an entity is rendered. Properties are only filled in for <code>Model</code> entities; other 
+         * entity types have an empty object, <code>{}</code>.
+         * @typedef {object} Entities.RenderInfo
+         * @property {number} verticesCount - The number of vertices in the entity.
+         * @property {number} texturesCount  - The number of textures in the entity.
+         * @property {number} textureSize - The total size of the textures in the entity, in bytes.
+         * @property {boolean} hasTransparent - Is <code>true</code> if any of the textures has transparency.
+         * @property {number} drawCalls - The number of draw calls required to render the entity.
+         */
         // currently only supported by models
         if (_type == EntityTypes::Model) {
             renderInfo.setProperty("verticesCount", (int)getRenderInfoVertexCount()); // FIXME - theoretically the number of vertex could be > max int
@@ -719,6 +1442,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(renderInfo, renderInfo);  // Gettable but not settable
     }
 
+    // FIXME: These properties should already have been set above.
     properties.setProperty("clientOnly", convertScriptValue(engine, getClientOnly()));
     properties.setProperty("owningAvatarID", convertScriptValue(engine, getOwningAvatarID()));
 

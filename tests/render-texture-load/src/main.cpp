@@ -563,12 +563,12 @@ private:
     void render() {
         auto& gpuContext = _renderThread._gpuContext;
         gpuContext->beginFrame();
-        gpu::doInBatch(gpuContext, [&](gpu::Batch& batch) {
+        gpu::doInBatch("RenderThread::render::begin", gpuContext, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
         auto framebuffer = DependencyManager::get<FramebufferCache>()->getFramebuffer();
 
-        gpu::doInBatch(gpuContext, [&](gpu::Batch& batch) {
+        gpu::doInBatch("RenderThread::render", gpuContext, [&](gpu::Batch& batch) {
             batch.enableStereo(false);
             batch.setFramebuffer(framebuffer);
             batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(1, 0, 0, 1));

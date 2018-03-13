@@ -342,6 +342,11 @@ void OffscreenSurface::finishQmlLoad(QQmlComponent* qmlComponent,
         // Make sure we make items focusable (critical for
         // supporting keyboard shortcuts)
         newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
+#ifdef DEBUG
+        for (auto frame : newObject->findChildren<QQuickItem *>("Frame")) {
+            frame->setProperty("qmlFile", qmlComponent->url());
+        }
+#endif
     }
 
     bool rootCreated = getRootItem() != nullptr;

@@ -981,6 +981,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qInstallMessageHandler(messageHandler);
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/fontawesome-webfont.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/hifi-glyphs.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/AnonymousPro-Regular.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/FiraSans-Regular.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/FiraSans-SemiBold.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Light.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Regular.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Bold.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-SemiBold.ttf");
     _window->setWindowTitle("High Fidelity Interface");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
@@ -1998,20 +2007,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(_window, SIGNAL(windowMinimizedChanged(bool)), this, SLOT(windowMinimizedChanged(bool)));
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
 
-    {
-        PROFILE_RANGE(render, "Process Default Skybox");
-        auto textureCache = DependencyManager::get<TextureCache>();
-
-        QFileSelector fileSelector;
-        fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
-        auto skyboxUrl = fileSelector.select(PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.ktx");
-
-        _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl.toStdString());
-        _defaultSkyboxAmbientTexture = _defaultSkyboxTexture;
-
-        _defaultSkybox->setCubemap(_defaultSkyboxTexture);
-    }
-
     EntityTreeRenderer::setEntitiesShouldFadeFunction([this]() {
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
         return entityServerNode && !isPhysicsEnabled();
@@ -2461,7 +2456,6 @@ void Application::initializeGL() {
     DeadlockWatchdogThread::withPause([&] {
         // Set up the render engine
         render::CullFunctor cullFunctor = LODManager::shouldRender;
-        static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
         _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
 #ifndef Q_OS_ANDROID
         _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !DISABLE_DEFERRED);
@@ -5422,7 +5416,7 @@ void Application::update(float deltaTime) {
 
     editRenderArgs([this, deltaTime](AppRenderArgs& appRenderArgs) {
         PerformanceTimer perfTimer("editRenderArgs");
-        appRenderArgs._headPose= getHMDSensorPose();
+        appRenderArgs._headPose = getHMDSensorPose();
 
         auto myAvatar = getMyAvatar();
 
@@ -5442,10 +5436,10 @@ void Application::update(float deltaTime) {
             {
                 QMutexLocker viewLocker(&_viewMutex);
                 // adjust near clip plane to account for sensor scaling.
-                auto adjustedProjection = glm::perspective(_viewFrustum.getFieldOfView(),
-                    _viewFrustum.getAspectRatio(),
-                    DEFAULT_NEAR_CLIP * sensorToWorldScale,
-                    _viewFrustum.getFarClip());
+                auto adjustedProjection = glm::perspective(glm::radians(_fieldOfView.get()),
+                                                           getActiveDisplayPlugin()->getRecommendedAspectRatio(),
+                                                           DEFAULT_NEAR_CLIP * sensorToWorldScale,
+                                                           DEFAULT_FAR_CLIP);
                 _viewFrustum.setProjection(adjustedProjection);
                 _viewFrustum.calculate();
             }
@@ -5527,6 +5521,7 @@ void Application::update(float deltaTime) {
         {
             QMutexLocker viewLocker(&_viewMutex);
             _myCamera.loadViewFrustum(_displayViewFrustum);
+            appRenderArgs._view = glm::inverse(_displayViewFrustum.getView());
         }
 
         {

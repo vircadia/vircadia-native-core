@@ -22,7 +22,6 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QDebug>
 #include <QtCore/QMutexLocker>
-#include <QtCore/QRegExp>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 
@@ -92,12 +91,13 @@ void LogHandler::setShouldDisplayMilliseconds(bool shouldDisplayMilliseconds) {
 
 void LogHandler::flushRepeatedMessages() {
     QMutexLocker lock(&_mutex);
-    QHash<QString, int>::iterator message = _repeatMessageCountHash.begin();
-    while (message != _repeatMessageCountHash.end()) {
+    for(auto& message: _repeatedMessages) {
 
-        if (message.value() > 0) {
+        if (message.messageCount > 1) {
             QString repeatMessage = QString("%1 repeated log entries matching \"%2\" - Last entry: \"%3\"")
-            .arg(message.value()).arg(message.key()).arg(_lastRepeatedMessage.value(message.key()));
+                .arg(message.messageCount - 1)
+                .arg(message.regexp.pattern())
+                .arg(message.lastMessage);
 
             QMessageLogContext emptyContext;
             lock.unlock();
@@ -105,8 +105,7 @@ void LogHandler::flushRepeatedMessages() {
             lock.relock();
         }
 
-        _lastRepeatedMessage.remove(message.key());
-        message = _repeatMessageCountHash.erase(message);
+        message.messageCount = 0;
     }
 }
 
@@ -118,36 +117,24 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
 
     if (type == LogDebug) {
         // for debug messages, check if this matches any of our regexes for repeated log messages
-        foreach(const QString& regexString, getInstance()._repeatedMessageRegexes) {
-            QRegExp repeatRegex(regexString);
-            if (repeatRegex.indexIn(message) != -1) {
-
-                if (!_repeatMessageCountHash.contains(regexString)) {
-                    // we have a match but didn't have this yet - output the first one
-                    _repeatMessageCountHash[regexString] = 0;
-
-                    // break the foreach so we output the first match
+        for (auto& repeatRegex : _repeatedMessages) {
+            if (repeatRegex.regexp.indexIn(message) != -1) {
+                // If we've printed the first one then return out.
+                if (repeatRegex.messageCount++ == 0) {
                     break;
-                } else {
-                    // we have a match - add 1 to the count of repeats for this message and set this as the last repeated message
-                    _repeatMessageCountHash[regexString] += 1;
-                    _lastRepeatedMessage[regexString] = message;
-
-                    // return out, we're not printing this one
-                    return QString();
                 }
+                repeatRegex.lastMessage = message;
+                return QString();
             }
         }
     }
+
     if (type == LogDebug) {
         // see if this message is one we should only print once
-        foreach(const QString& regexString, getInstance()._onlyOnceMessageRegexes) {
-            QRegExp onlyOnceRegex(regexString);
-            if (onlyOnceRegex.indexIn(message) != -1) {
-                if (!_onlyOnceMessageCountHash.contains(message)) {
+        for (auto& onceOnly : _onetimeMessages) {
+            if (onceOnly.regexp.indexIn(message) != -1) {
+                if (onceOnly.messageCount++ == 0) {
                     // we have a match and haven't yet printed this message.
-                    _onlyOnceMessageCountHash[message] = 1;
-                    // break the foreach so we output the first match
                     break;
                 } else {
                     // We've already printed this message, don't print it again.
@@ -217,10 +204,16 @@ const QString& LogHandler::addRepeatedMessageRegex(const QString& regexString) {
     QMetaObject::invokeMethod(this, "setupRepeatedMessageFlusher");
 
     QMutexLocker lock(&_mutex);
-    return *_repeatedMessageRegexes.insert(regexString);
+    RepeatedMessage repeatRecord;
+    repeatRecord.regexp = QRegExp(regexString);
+    _repeatedMessages.push_back(repeatRecord);
+    return regexString;
 }
 
 const QString& LogHandler::addOnlyOnceMessageRegex(const QString& regexString) {
     QMutexLocker lock(&_mutex);
-    return *_onlyOnceMessageRegexes.insert(regexString);
+    OnceOnlyMessage onetimeMessage;
+    onetimeMessage.regexp = QRegExp(regexString);
+    _onetimeMessages.push_back(onetimeMessage);
+    return regexString;
 }
