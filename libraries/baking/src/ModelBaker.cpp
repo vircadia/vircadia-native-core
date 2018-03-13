@@ -405,6 +405,8 @@ void ModelBaker::handleAbortedTexture() {
     // grab the texture bake that was aborted and remove it from our hash since we don't need to track it anymore
     TextureBaker* bakedTexture = qobject_cast<TextureBaker*>(sender());
 
+    qDebug() << "Texture aborted: " << bakedTexture->getTextureURL();
+
     if (bakedTexture) {
         _bakingTextures.remove(bakedTexture->getTextureURL());
     }

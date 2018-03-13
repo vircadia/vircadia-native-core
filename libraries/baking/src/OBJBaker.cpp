@@ -45,6 +45,16 @@ void OBJBaker::bake() {
 }
 
 void OBJBaker::loadOBJ() {
+    if (!QDir().mkpath(_bakedOutputDir)) {
+        handleError("Failed to create baked OBJ output folder " + _bakedOutputDir);
+        return;
+    }
+
+    if (!QDir().mkpath(_originalOutputDir)) {
+        handleError("Failed to create original OBJ output folder " + _originalOutputDir);
+        return;
+    }
+
     // check if the OBJ is local or it needs to be downloaded
     if (_modelURL.isLocalFile()) {
         // loading the local OBJ
@@ -149,16 +159,6 @@ void OBJBaker::bakeOBJ() {
     auto bakedFilename = baseName + ".baked.fbx";
 
     _bakedModelFilePath = _bakedOutputDir + "/" + bakedFilename;
-
-    if (!QDir().mkpath(_bakedOutputDir)) {
-        handleError("Failed to create baked OBJ output folder " + _bakedOutputDir);
-        return;
-    }
-
-    if (!QDir().mkpath(_originalOutputDir)) {
-        handleError("Failed to create original OBJ output folder " + _originalOutputDir);
-        return;
-    }
 
     QFile bakedFile;
     bakedFile.setFileName(_bakedModelFilePath);
