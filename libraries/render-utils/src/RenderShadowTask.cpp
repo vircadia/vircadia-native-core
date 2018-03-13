@@ -140,7 +140,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     args->popViewFrustum();
     args->pushViewFrustum(adjustedShadowFrustum);
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("RenderShadowMap::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
         batch.enableStereo(false);
 

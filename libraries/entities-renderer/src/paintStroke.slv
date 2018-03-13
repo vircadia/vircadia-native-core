@@ -30,7 +30,7 @@ void main(void) {
     varTexcoord = inTexCoord0.st;
     
     // pass along the diffuse color
-    varColor = colorToLinearRGBA(inColor);
+    varColor = color_sRGBAToLinear(inColor);
 
 
     // standard transform

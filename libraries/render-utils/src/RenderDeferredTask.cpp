@@ -34,6 +34,7 @@
 #include "DeferredFramebuffer.h"
 #include "DeferredLightingEffect.h"
 #include "SurfaceGeometryPass.h"
+#include "VelocityBufferPass.h"
 #include "FramebufferCache.h"
 #include "TextureCache.h"
 #include "ZoneRenderer.h"
@@ -94,9 +95,12 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     fadeEffect->build(task, opaques);
 
+    task.addJob<JitterSample>("JitterCam");
+
     // Prepare deferred, generate the shared Deferred Frame Transform
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
     const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
+    
 
     // GPU jobs: Start preparing the primary, deferred and lighting buffer
     const auto primaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
@@ -142,6 +146,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto ambientOcclusionFramebuffer = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(0);
     const auto ambientOcclusionUniforms = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(1);
 
+    // Velocity
+    const auto velocityBufferInputs = VelocityBufferPass::Inputs(deferredFrameTransform, deferredFramebuffer).asVarying();
+    const auto velocityBufferOutputs = task.addJob<VelocityBufferPass>("VelocityBuffer", velocityBufferInputs);
+    const auto velocityBuffer = velocityBufferOutputs.getN<VelocityBufferPass::Outputs>(0);
+
     // Clear Light, Haze and Skybox Stages and render zones from the general metas bucket
     const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
 
@@ -161,6 +170,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters, hazeModel).asVarying();
     
     task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
+
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
     task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
@@ -220,10 +230,30 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DrawBounds>("DrawSelectionBounds", selectedItems);
     }
 
-     // Debugging stages
+    // Layered Overlays
+    const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, Item::LAYER_3D_FRONT);
+    const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, Item::LAYER_3D_FRONT);
+    const auto overlaysInFrontOpaque =  filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
+    const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
+
+    const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel).asVarying();
+    const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel).asVarying();
+    task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true);
+    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, false);
+
+    { // Debug the bounds of the rendered Overlay items that are marked drawInFront, still look at the zbuffer
+        task.addJob<DrawBounds>("DrawOverlayInFrontOpaqueBounds", overlaysInFrontOpaque);
+        task.addJob<DrawBounds>("DrawOverlayInFrontTransparentBounds", overlaysInFrontTransparent);
+    }
+
+    // AA job
+    const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, primaryFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
+    task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
+
+    // Debugging stages
     {
         // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, deferredFrameTransform));
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, velocityBuffer, deferredFrameTransform));
         task.addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         const auto debugSubsurfaceScatteringInputs = DebugSubsurfaceScattering::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
@@ -249,25 +279,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
         task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
     }
-
-    // Layered Overlays
-    const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, Item::LAYER_3D_FRONT);
-    const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, Item::LAYER_3D_FRONT);
-    const auto overlaysInFrontOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
-    const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
-
-    const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel).asVarying();
-    const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel).asVarying();
-    task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true);
-    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, false);
-
-    { // Debug the bounds of the rendered Overlay items that are marked drawInFront, still look at the zbuffer
-        task.addJob<DrawBounds>("DrawOverlayInFrontOpaqueBounds", overlaysInFrontOpaque);
-        task.addJob<DrawBounds>("DrawOverlayInFrontTransparentBounds", overlaysInFrontTransparent);
-    }
-
-    // AA job to be revisited
-    task.addJob<Antialiasing>("Antialiasing", primaryFramebuffer);
 
     // Composite the HUD and HUD overlays
     task.addJob<CompositeHUD>("HUD");
@@ -304,7 +315,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
 
     RenderArgs* args = renderContext->args;
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawDeferred::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
         
         // Setup camera, projection and viewport for all items
@@ -371,7 +382,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
 
     RenderArgs* args = renderContext->args;
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawStateSortDeferred::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
         // Setup camera, projection and viewport for all items
@@ -409,4 +420,3 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
 
     config->setNumDrawn((int)inItems.size());
 }
-

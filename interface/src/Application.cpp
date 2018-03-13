@@ -5429,7 +5429,7 @@ void Application::update(float deltaTime) {
 
     editRenderArgs([this, deltaTime](AppRenderArgs& appRenderArgs) {
         PerformanceTimer perfTimer("editRenderArgs");
-        appRenderArgs._headPose= getHMDSensorPose();
+        appRenderArgs._headPose = getHMDSensorPose();
 
         auto myAvatar = getMyAvatar();
 
@@ -5449,10 +5449,10 @@ void Application::update(float deltaTime) {
             {
                 QMutexLocker viewLocker(&_viewMutex);
                 // adjust near clip plane to account for sensor scaling.
-                auto adjustedProjection = glm::perspective(_viewFrustum.getFieldOfView(),
-                    _viewFrustum.getAspectRatio(),
-                    DEFAULT_NEAR_CLIP * sensorToWorldScale,
-                    _viewFrustum.getFarClip());
+                auto adjustedProjection = glm::perspective(glm::radians(_fieldOfView.get()),
+                                                           getActiveDisplayPlugin()->getRecommendedAspectRatio(),
+                                                           DEFAULT_NEAR_CLIP * sensorToWorldScale,
+                                                           DEFAULT_FAR_CLIP);
                 _viewFrustum.setProjection(adjustedProjection);
                 _viewFrustum.calculate();
             }
@@ -5534,6 +5534,7 @@ void Application::update(float deltaTime) {
         {
             QMutexLocker viewLocker(&_viewMutex);
             _myCamera.loadViewFrustum(_displayViewFrustum);
+            appRenderArgs._view = glm::inverse(_displayViewFrustum.getView());
         }
 
         {

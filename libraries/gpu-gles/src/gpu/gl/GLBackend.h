@@ -65,7 +65,7 @@ public:
 
     virtual ~GLBackend();
 
-    void setCameraCorrection(const Mat4& correction);
+    void setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView, bool reset = false);
     void render(const Batch& batch) final override;
 
     // This call synchronize the Full Backend cache with the current GLState
@@ -303,6 +303,8 @@ protected:
     struct CameraCorrection {
         Mat4 correction;
         Mat4 correctionInverse;
+        Mat4 prevView;
+        Mat4 prevViewInverse;
     };
 
     struct TransformStageState {
