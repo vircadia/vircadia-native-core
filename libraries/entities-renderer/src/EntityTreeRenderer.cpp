@@ -281,8 +281,11 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
             }
             if (entity->getSpaceIndex() == -1) {
                 std::unique_lock<std::mutex> lock(_spaceLock);
-                workload::Space::Sphere sphere(entity->getWorldPosition(), entity->getBoundingRadius());
-                int32_t spaceIndex = _space->createProxy(sphere);
+                auto spaceIndex = _space->allocateID();
+                workload::Sphere sphere(entity->getWorldPosition(), entity->getBoundingRadius());
+                workload::Transaction transaction;
+                transaction.reset(spaceIndex, sphere);
+                _space->enqueueTransaction(transaction);
                 entity->setSpaceIndex(spaceIndex);
                 connect(entity.get(), &EntityItem::spaceUpdate, this, &EntityTreeRenderer::handleSpaceUpdate, Qt::QueuedConnection);
             }
@@ -427,17 +430,19 @@ void EntityTreeRenderer::update(bool simulate) {
                 scene->enqueueTransaction(transaction);
             }
         }
+        workload::Transaction spaceTransaction;
         {   // update proxies in the workload::Space
             std::unique_lock<std::mutex> lock(_spaceLock);
-            _space->updateProxies(_spaceUpdates);
+            spaceTransaction.update(_spaceUpdates);
             _spaceUpdates.clear();
         }
         {
             std::vector<int32_t> staleProxies;
             tree->swapStaleProxies(staleProxies);
+            spaceTransaction.remove(staleProxies);
             {
                 std::unique_lock<std::mutex> lock(_spaceLock);
-                _space->deleteProxies(staleProxies);
+                _space->enqueueTransaction(spaceTransaction);
             }
         }
 
@@ -458,7 +463,7 @@ void EntityTreeRenderer::update(bool simulate) {
 
 void EntityTreeRenderer::handleSpaceUpdate(std::pair<int32_t, glm::vec4> proxyUpdate) {
     std::unique_lock<std::mutex> lock(_spaceLock);
-    _spaceUpdates.push_back(proxyUpdate);
+    _spaceUpdates.emplace_back(proxyUpdate.first, proxyUpdate.second);
 }
 
 bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar) {

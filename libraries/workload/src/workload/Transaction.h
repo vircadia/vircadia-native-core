@@ -38,7 +38,7 @@ namespace workload {
             Index _nextNewIndex{ 0 };
 
             bool checkIndex(Index index) const { return ((index >= 0) && (index < _nextNewIndex)); }
-            Index getNumIndices() const { return _nextNewIndex - (Index)_freeIndices.size(); }
+            Index getNumLiveIndices() const { return _nextNewIndex - (Index)_freeIndices.size(); }
             Index getNumFreeIndices() const { return (Index)_freeIndices.size(); }
             Index getNumAllocatedIndices() const { return _nextNewIndex; }
 
@@ -64,6 +64,7 @@ namespace workload {
             void freeIndex(Index index) {
                 if (checkIndex(index)) {
                     _freeIndices.push_back(index);
+                    //std::sort(_freeIndices.begin(), _freeIndices.end());
                 }
             }
 
@@ -79,7 +80,7 @@ namespace workload {
     using IndexVector = indexed_container::Indices;
 
     using ProxyID = Index;
-
+    const ProxyID INVALID_PROXY_ID{ indexed_container ::INVALID_INDEX };
 
 // Transaction is the mechanism to make any change to the Space.
 // Whenever a new proxy need to be reset,
@@ -94,16 +95,27 @@ class Transaction {
 public:
     using ProxyPayload = Sphere;
 
+    using Reset = std::tuple<ProxyID, ProxyPayload>;
+    using Remove = ProxyID;
+    using Update = std::tuple<ProxyID, ProxyPayload>;
+
+    using Resets = std::vector<Reset>;
+    using Removes = std::vector<Remove>;
+    using Updates = std::vector<Update>;
+
     Transaction() {}
     ~Transaction() {}
 
     // Proxy transactions
     void reset(ProxyID id, const ProxyPayload& sphere);
+    void reset(const Resets& resets);
     void remove(ProxyID id);
+    void remove(const Removes& removes);
     bool hasRemovals() const { return !_removedItems.empty(); }
 
     void update(ProxyID id, const ProxyPayload& sphere);
-    
+    void update(const Updates& updates);
+
     void reserve(const std::vector<Transaction>& transactionContainer);
     void merge(const std::vector<Transaction>& transactionContainer);
     void merge(std::vector<Transaction>&& transactionContainer);
@@ -113,13 +125,6 @@ public:
     
 protected:
 
-    using Reset = std::tuple<ProxyID, ProxyPayload>;
-    using Remove = ProxyID;
-    using Update = std::tuple<ProxyID, ProxyPayload>;
-
-    using Resets = std::vector<Reset>;
-    using Removes = std::vector<Remove>;
-    using Updates = std::vector<Update>;
 
     Resets _resetItems;
     Removes _removedItems;
@@ -129,6 +134,8 @@ typedef std::vector<Transaction> TransactionQueue;
 
 class Collection {
 public:
+    Collection();
+    ~Collection();
 
     // This call is thread safe, can be called from anywhere to allocate a new ID
     ProxyID allocateID();
@@ -149,7 +156,7 @@ public:
     uint32_t enqueueFrame();
 
     // Process the pending transactions queued
-    void processTransactionQueue();
+    virtual void processTransactionQueue();
 
 protected:
 
@@ -168,7 +175,7 @@ protected:
     uint32_t _transactionFrameNumber{ 0 };
 
     // Process one transaction frame 
-    void processTransactionFrame(const Transaction& transaction);
+    virtual void processTransactionFrame(const Transaction& transaction) = 0;
 };
 
 } // namespace workload

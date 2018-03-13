@@ -13,21 +13,16 @@
 using namespace workload;
 
 
-void Transaction::resetItem(ItemID id, PayloadPointer& payload) {
-    if (payload) {
-        _resetItems.emplace_back(Reset{ id, payload });
-    } else {
-        qCDebug(renderlogging) << "WARNING: Transaction::resetItem with a null payload!";
-        removeItem(id);
-    }
+void Transaction::reset(ProxyID id, const ProxyPayload& payload) {
+    _resetItems.emplace_back(Reset{ id, payload });
 }
 
-void Transaction::removeItem(ItemID id) {
+void Transaction::remove(ProxyID id) {
     _removedItems.emplace_back(id);
 }
 
-void Transaction::updateItem(ItemID id, const UpdateFunctorPointer& functor) {
-    _updatedItems.emplace_back(id, functor);
+void Transaction::update(ProxyID id, const ProxyPayload& payload) {
+    _updatedItems.emplace_back(id, payload);
 }
 
 void Transaction::reserve(const std::vector<Transaction>& transactionContainer) {
@@ -77,6 +72,18 @@ void copyElements(T& target, const T& source) {
 }
 
 
+void Transaction::reset(const Resets& resets) {
+    copyElements(_resetItems, resets);
+}
+
+void Transaction::remove(const Removes& removes) {
+    copyElements(_removedItems, removes);
+}
+
+void Transaction::update(const Updates& updates) {
+    copyElements(_updatedItems, updates);
+}
+
 void Transaction::merge(Transaction&& transaction) {
     moveElements(_resetItems, transaction._resetItems);
     moveElements(_removedItems, transaction._removedItems);
@@ -99,23 +106,22 @@ void Transaction::clear() {
 
 
 Collection::Collection() {
-    _items.push_back(Item()); // add the itemID #0 to nothing
+    //_items.push_back(Item()); // add the ProxyID #0 to nothing
 }
 
 Collection::~Collection() {
-    qCDebug(renderlogging) << "Scene::~Scene()";
 }
 
-ItemID Collection::allocateID() {
-    // Just increment and return the proevious value initialized at 0
-    return _IDAllocator.fetch_add(1);
+ProxyID Collection::allocateID() {
+    // Just increment and return the previous value initialized at 0
+    return _IDAllocator.allocateIndex();
 }
 
-bool Collection::isAllocatedID(const ItemID& id) const {
-    return Item::isValidID(id) && (id < _numAllocatedItems.load());
+bool Collection::isAllocatedID(const ProxyID& id) const {
+    return _IDAllocator.checkIndex(id);
 }
 
-/// Enqueue change batch to the scene
+/// Enqueue change batch to the Collection
 void Collection::enqueueTransaction(const Transaction& transaction) {
     std::unique_lock<std::mutex> lock(_transactionQueueMutex);
     _transactionQueue.emplace_back(transaction);
@@ -127,7 +133,6 @@ void Collection::enqueueTransaction(Transaction&& transaction) {
 }
 
 uint32_t Collection::enqueueFrame() {
-    PROFILE_RANGE(render, __FUNCTION__);
     TransactionQueue localTransactionQueue;
     {
         std::unique_lock<std::mutex> lock(_transactionQueueMutex);
@@ -146,8 +151,6 @@ uint32_t Collection::enqueueFrame() {
 
 
 void Collection::processTransactionQueue() {
-    PROFILE_RANGE(render, __FUNCTION__);
-
     static TransactionFrames queuedFrames;
     {
         // capture the queued frames and clear the queue
@@ -163,13 +166,12 @@ void Collection::processTransactionQueue() {
     queuedFrames.clear();
 }
 
-void Collection::processTransactionFrame(const Transaction& transaction) {
-    PROFILE_RANGE(render, __FUNCTION__);
-    {
+//void Collection::processTransactionFrame(const Transaction& transaction) {
+   /**
         std::unique_lock<std::mutex> lock(_itemsMutex);
-        // Here we should be able to check the value of last ItemID allocated 
+        // Here we should be able to check the value of last ProxyID allocated 
         // and allocate new items accordingly
-        ItemID maxID = _IDAllocator.load();
+        ProxyID maxID = _IDAllocator.getNumAllocatedIndices();
         if (maxID > _items.size()) {
             _items.resize(maxID + 100); // allocate the maxId and more
         }
@@ -195,32 +197,32 @@ void Collection::processTransactionFrame(const Transaction& transaction) {
 
         // Update the numItemsAtomic counter AFTER the pending changes went through
         _numAllocatedItems.exchange(maxID);
-    }
-}
+    }*/
+//}
 
-void Collection::resetItems(const Transaction::Resets& transactions) {
-    for (auto& reset : transactions) {
+//void Collection::resetItems(const Transaction::Resets& transactions) {
+ /*   for (auto& reset : transactions) {
         // Access the true item
-        auto itemId = std::get<0>(reset);
-        auto& item = _items[itemId];
+        auto ProxyID = std::get<0>(reset);
+        auto& item = _items[ProxyID];
 
         // Reset the item with a new payload
         item.resetPayload(std::get<1>(reset));
-    }
-}
+    }*/
+//}
 
-void Collection::removeItems(const Transaction::Removes& transactions) {
-    for (auto removedID : transactions) {
+//void Collection::removeItems(const Transaction::Removes& transactions) {
+  /*  for (auto removedID : transactions) {
         // Access the true item
         auto& item = _items[removedID];
 
         // Kill it
         item.kill();
-    }
-}
+    }*/
+//}
 
-void Collection::updateItems(const Transaction::Updates& transactions) {
-    for (auto& update : transactions) {
+//void Collection::updateItems(const Transaction::Updates& transactions) {
+  /*  for (auto& update : transactions) {
         auto updateID = std::get<0>(update);
         if (updateID == Item::INVALID_ITEM_ID) {
             continue;
@@ -231,5 +233,5 @@ void Collection::updateItems(const Transaction::Updates& transactions) {
 
         // Update the item
         item.update(std::get<1>(update));
-    }
-}
+    }*/
+//}

@@ -21,10 +21,12 @@ public:
     Proxy(const Sphere& s) : sphere(s) {}
 
     Sphere sphere;
-    uint8_t region{ Region::UNKNOWN };
-    uint8_t prevRegion{ Region::UNKNOWN };
+    uint8_t region{ Region::INVALID };
+    uint8_t prevRegion{ Region::INVALID };
     uint16_t _padding;
     uint32_t _paddings[3];
+
+    using Vector = std::vector<Proxy>;
 };
 
 
