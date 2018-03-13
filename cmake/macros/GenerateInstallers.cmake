@@ -22,12 +22,11 @@ macro(GENERATE_INSTALLERS)
   set(CPACK_PACKAGE_FILE_NAME "HighFidelity-Beta-${BUILD_VERSION}")
   set(CPACK_NSIS_DISPLAY_NAME ${_DISPLAY_NAME})
   set(CPACK_NSIS_PACKAGE_NAME ${_DISPLAY_NAME})
-
   if (PR_BUILD)
     set(CPACK_NSIS_COMPRESSOR "bzip2")
   endif ()
-
   set(CPACK_PACKAGE_INSTALL_DIRECTORY ${_DISPLAY_NAME})
+
 
   if (WIN32)
     set(CPACK_NSIS_MUI_ICON "${HF_CMAKE_DIR}/installer/installer.ico")
@@ -59,6 +58,10 @@ macro(GENERATE_INSTALLERS)
     set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ${INTERFACE_INSTALL_DIR})
     set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT ${CLIENT_COMPONENT})
     include(InstallRequiredSystemLibraries)
+
+    if (CLIENT_ONLY OR SERVER_ONLY)
+      set(CPACK_MONOLITHIC_INSTALL 1)
+    endif ()
   elseif (APPLE)
     # produce a drag and drop DMG on OS X
     set(CPACK_GENERATOR "DragNDrop")
