@@ -398,6 +398,7 @@ Item {
             //
             Item {
                 id: filterBarContainer;
+                visible: !connectionInstructions.visible;
                 // Size
                 height: 40;
                 // Anchors
@@ -493,6 +494,78 @@ Item {
                                 connectionsList.currentIndex = index;
                             }
                         }
+                    }
+                }
+                
+                // "Make a Connection" instructions
+                Rectangle {
+                    id: connectionInstructions;
+                    visible: connectionsModel.count === 0 && !connectionsLoading.visible;
+                    anchors.fill: parent;
+                    color: "white";
+
+                    RalewayRegular {
+                        id: makeAConnectionText;
+                        // Properties
+                        text: "Make a Connection";
+                        // Anchors
+                        anchors.top: parent.top;
+                        anchors.topMargin: 20;
+                        anchors.left: parent.left;
+                        anchors.right: parent.right;
+                        // Text Size
+                        size: 24;
+                        // Text Positioning
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: Text.AlignHCenter;
+                        // Style
+                        color: hifi.colors.darkGray;
+                    }
+
+                    Image {
+                        id: connectionImage;
+                        source: "qrc:/icons/connection.svg";
+                        width: 150;
+                        height: 150;
+                        mipmap: true;
+                        // Anchors
+                        anchors.top: makeAConnectionText.bottom;
+                        anchors.topMargin: 15;
+                        anchors.horizontalCenter: parent.horizontalCenter;
+                    }
+
+                    FontLoader { id: ralewayRegular; source: "qrc:/fonts/Raleway-Regular.ttf"; }
+                    Text {
+                        id: connectionHelpText;
+                        // Anchors
+                        anchors.top: connectionImage.bottom;
+                        anchors.topMargin: 15;
+                        anchors.left: parent.left
+                        anchors.leftMargin: 40;
+                        anchors.right: parent.right
+                        anchors.rightMargin: 40;
+                        // Text alignment
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: Text.AlignHLeft
+                        // Style
+                        font.pixelSize: 18;
+                        font.family: ralewayRegular.name
+                        color: hifi.colors.darkGray
+                        wrapMode: Text.Wrap
+                        textFormat: Text.StyledText;
+                        property string instructions:
+                            "<b>When you meet someone you want to remember later, you can <font color='purple'>connect</font> with a handshake:</b><br><br>"
+                        property string hmdMountedInstructions:
+                            "1. Put your hand out onto their hand and squeeze your controller's grip button on its side.<br>" +
+                            "2. Once the other person puts their hand onto yours, you'll see your connection form.<br>" +
+                            "3. After about 3 seconds, you're connected!"
+                        property string hmdNotMountedInstructions:
+                            "1. Press and hold the 'x' key to extend your arm.<br>" +
+                            "2. Once the other person puts their hand onto yours, you'll see your connection form.<br>" +
+                            "3. After about 3 seconds, you're connected!";
+                        // Text
+                        text:
+                            HMD.mounted ? instructions + hmdMountedInstructions : instructions + hmdNotMountedInstructions
                     }
                 }
             }
@@ -924,14 +997,13 @@ Item {
             anchors.right: parent.right;
             anchors.rightMargin: 20;
             height: 95;
-                
-            FontLoader { id: firaSansSemiBold; source: "qrc:/fonts/FiraSans-SemiBold.ttf"; }
+
             TextArea {
                 id: optionalMessage;
                 property int maximumLength: 72;
                 property string previousText: text;
                 placeholderText: "<i>Optional Public Message (" + maximumLength + " character limit)</i>";
-                font.family: firaSansSemiBold.name;
+                font.family: "Fira Sans SemiBold";
                 font.pixelSize: 20;
                 // Anchors
                 anchors.fill: parent;

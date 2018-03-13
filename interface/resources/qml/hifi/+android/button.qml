@@ -40,6 +40,8 @@ Item {
     property bool isActive: false
 
     signal clicked()
+    signal entered()
+    signal exited()
 
     onIsActiveChanged: {
         if (button.isEntered) {
@@ -118,6 +120,7 @@ Item {
         }
         onEntered: {
             button.isEntered = true;
+            button.entered();
             if (button.isActive) {
                 button.state = "hover active state";
             } else {
@@ -126,6 +129,7 @@ Item {
         }
         onExited: {
             button.isEntered = false;
+            button.exited()
             if (button.isActive) {
                 button.state = "active state";
             } else {
