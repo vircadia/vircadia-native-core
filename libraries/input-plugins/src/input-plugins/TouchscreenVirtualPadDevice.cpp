@@ -282,35 +282,28 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
             // valid if it's an ongoing touch
             moveTouchFound = true;
             moveTouchUpdate(thisPoint);
-            thisPointConsumed = true;
+            continue;
         }
-
-        if (thisPointConsumed) continue;
 
         if (!viewTouchFound && _viewHasValidTouch && _viewCurrentTouchId == thisPointId) {
             // valid if it's an ongoing touch
             viewTouchFound = true;
             viewTouchUpdate(thisPoint);
-            thisPointConsumed = true;
+            continue;
         }
 
-        if (thisPointConsumed) continue;
-
-        if (!moveTouchFound && idxMoveStartingPointCandidate==-1 && moveTouchBeginIsValid(thisPoint) &&
+        if (!moveTouchFound && idxMoveStartingPointCandidate == -1 && moveTouchBeginIsValid(thisPoint) &&
                 (!_unusedTouches.count(thisPointId) || _unusedTouches[thisPointId] == MOVE )) {
             idxMoveStartingPointCandidate = i;
-            thisPointConsumed = true;
+            continue;
         }
 
-        if (thisPointConsumed) continue;
-
-        if (!viewTouchFound && idxViewStartingPointCandidate==-1 && viewTouchBeginIsValid(thisPoint) &&
+        if (!viewTouchFound && idxViewStartingPointCandidate == -1 && viewTouchBeginIsValid(thisPoint) &&
                 (!_unusedTouches.count(thisPointId) || _unusedTouches[thisPointId] == VIEW )) {
             idxViewStartingPointCandidate = i;
             thisPointConsumed = true;
+            continue;
         }
-
-        if (thisPointConsumed) continue;
 
         if (moveTouchBeginIsValid(thisPoint)) {
             unusedTouchesInEvent[thisPointId] = MOVE;
@@ -323,7 +316,7 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
     processUnusedTouches(unusedTouchesInEvent);
 
     if (!moveTouchFound) {
-        if (idxMoveStartingPointCandidate!=-1) {
+        if (idxMoveStartingPointCandidate != -1) {
             _moveCurrentTouchId = tPoints[idxMoveStartingPointCandidate].id();
             _unusedTouches.erase(_moveCurrentTouchId);
             moveTouchBegin(thisPoint);
@@ -332,7 +325,7 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
         }
     }
     if (!viewTouchFound) {
-        if (idxViewStartingPointCandidate!=-1) {
+        if (idxViewStartingPointCandidate != -1) {
             _viewCurrentTouchId = tPoints[idxViewStartingPointCandidate].id();
             _unusedTouches.erase(_viewCurrentTouchId);
             viewTouchBegin(thisPoint);

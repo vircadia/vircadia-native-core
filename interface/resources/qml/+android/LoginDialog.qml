@@ -53,8 +53,8 @@ ModalWindow {
 
     Component.onCompleted: {
         this.anchors.centerIn = undefined;
-        this.y=150;
-        this.x=(parent.width - this.width)/2;
+        this.y = 150;
+        this.x = (parent.width - this.width) / 2;
         Controller.setVPadHidden(true);
     }
 
