@@ -62,6 +62,12 @@ public:
     const std::shared_ptr<InputDevice>& getInputDevice() const { return _inputDevice; }
 
 protected:
+
+    enum TouchType {
+        MOVE = 1,
+        VIEW
+    };
+
     float _lastPinchScale;
     float _pinchScale;
     float _screenDPI;
@@ -77,6 +83,8 @@ protected:
     glm::vec2 _viewRefTouchPoint;
     glm::vec2 _viewCurrentTouchPoint;
     int _viewCurrentTouchId;
+
+    std::map<int, TouchType> _unusedTouches;
 
     int _touchPointCount;
     int _screenWidthCenter;
@@ -102,6 +110,8 @@ protected:
 
     void processInputDeviceForMove(VirtualPad::Manager& virtualPadManager);
     glm::vec2 clippedPointInCircle(float radius, glm::vec2 origin, glm::vec2 touchPoint);
+
+    void processUnusedTouches(std::map<int, TouchType> unusedTouchesInEvent);
 
     void processInputDeviceForView();
 // just for debug
