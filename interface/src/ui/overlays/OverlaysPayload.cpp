@@ -49,7 +49,11 @@ namespace render {
             builder.withInvisible();
         }
 
-        builder.withTagBits(render::ItemKey::TAG_BITS_0); // Only draw overlays in main view
+        uint32_t viewTaskBits = overlay->isVisibleInSecondaryCamera() ?
+            render::ItemKey::TAG_BITS_ALL : // draw in all views
+            render::ItemKey::TAG_BITS_0; // only the main view
+
+        builder.withTagBits(viewTaskBits);
 
         return builder.build();
     }

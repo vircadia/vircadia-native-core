@@ -90,7 +90,9 @@ void ModelOverlay::update(float deltatime) {
     if (_visibleDirty) {
         _visibleDirty = false;
         // don't show overlays in mirrors
-        _model->setVisibleInScene(getVisible(), scene, render::ItemKey::TAG_BITS_0, false);
+        _model->setVisibleInScene(getVisible(), scene,
+                                  _isVisibleInSecondaryCamera ? render::ItemKey::TAG_BITS_ALL : render::ItemKey::TAG_BITS_0,
+                                  false);
     }
     if (_drawInFrontDirty) {
         _drawInFrontDirty = false;
