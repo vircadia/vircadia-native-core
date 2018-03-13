@@ -19,28 +19,13 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-#include "View.h"
-
+#include "Transaction.h"
 
 namespace workload {
 
-using IndexVector = std::vector<int32_t>;
-
 class Space {
 public:
-    using Sphere = glm::vec4; // <x,y,z> = center, w = radius
     using ProxyUpdate = std::pair<int32_t, Sphere>;
-
-    class Proxy {
-    public:
-        Proxy() : sphere(0.0f) {}
-        Proxy(const Sphere& s) : sphere(s) {}
-        Sphere sphere;
-        uint8_t region { Region::UNKNOWN };
-        uint8_t prevRegion { Region::UNKNOWN };
-        uint16_t _padding;
-        uint32_t _paddings[3];
-    };
 
     class Change {
     public:
@@ -52,10 +37,27 @@ public:
 
     Space() {}
 
-    void clear();
-    int32_t createProxy(const Sphere& sphere);
-    void deleteProxies(const IndexVector& deadIndices);
-    void updateProxies(const std::vector<ProxyUpdate>& changedProxies);
+    // This call is thread safe, can be called from anywhere to allocate a new ID
+    ProxyID allocateID();
+
+    // Check that the ID is valid and allocated for this space, this a threadsafe call
+    bool isAllocatedID(const ProxyID& id) const;
+
+    // THis is the total number of allocated proxies, this a threadsafe call
+    Index getNumAllocatedProxies() const { return _numAllocatedProxies.load(); }
+
+    // Enqueue transaction to the space
+    void enqueueTransaction(const Transaction& transaction);
+
+    // Enqueue transaction to the space
+    void enqueueTransaction(Transaction&& transaction);
+
+    // Enqueue end of frame transactions boundary
+    uint32_t enqueueFrame();
+
+    // Process the pending transactions queued
+    void processTransactionQueue();
+
     void setViews(const std::vector<View>& views);
 
     uint32_t getNumViews() const { return (uint32_t)(_views.size()); }
@@ -69,6 +71,13 @@ public:
     uint32_t copyProxyValues(Proxy* proxies, uint32_t numDestProxies) const;
 
 private:
+
+
+    void clear();
+    int32_t createProxy(const Sphere& sphere);
+    void deleteProxies(const IndexVector& deadIndices);
+    void updateProxies(const std::vector<ProxyUpdate>& changedProxies);
+
     void deleteProxy(int32_t proxyId);
     void updateProxy(int32_t proxyId, const Sphere& sphere);
 
