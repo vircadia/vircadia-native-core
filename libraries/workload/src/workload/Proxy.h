@@ -15,11 +15,6 @@
 
 namespace workload {
 
-using Index = int32_t;
-using ProxyID = Index;
-
-using IndexVector = std::vector<Index>;
-
 class Proxy {
 public:
     Proxy() : sphere(0.0f) {}

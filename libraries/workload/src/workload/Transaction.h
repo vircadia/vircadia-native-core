@@ -12,6 +12,8 @@
 #ifndef hifi_workload_Transaction_h
 #define hifi_workload_Transaction_h
 
+#include <atomic>
+#include <mutex>
 #include <memory>
 #include <vector>
 #include <glm/glm.hpp>
@@ -20,6 +22,64 @@
 
 
 namespace workload {
+
+    namespace indexed_container {
+
+        using Index = int32_t;
+        const Index MAXIMUM_INDEX{ 1 << 30 };
+        const Index INVALID_INDEX{ -1 };
+        using Indices = std::vector< Index >;
+
+        template <Index MaxNumElements = MAXIMUM_INDEX>
+        class Allocator {
+        public:
+            Allocator() {}
+            Indices _freeIndices;
+            Index _nextNewIndex{ 0 };
+
+            bool checkIndex(Index index) const { return ((index >= 0) && (index < _nextNewIndex)); }
+            Index getNumIndices() const { return _nextNewIndex - (Index)_freeIndices.size(); }
+            Index getNumFreeIndices() const { return (Index)_freeIndices.size(); }
+            Index getNumAllocatedIndices() const { return _nextNewIndex; }
+
+            Index allocateIndex() {
+                if (_freeIndices.empty()) {
+                    Index index = _nextNewIndex;
+                    if (index >= MaxNumElements) {
+                        // abort! we are trying to go overboard with the total number of allocated elements
+                        assert(false);
+                        // This should never happen because Bricks are allocated along with the cells and there
+                        // is already a cap on the cells allocation
+                        return INVALID_INDEX;
+                    }
+                    _nextNewIndex++;
+                    return index;
+                } else {
+                    Index index = _freeIndices.back();
+                    _freeIndices.pop_back();
+                    return index;
+                }
+            }
+
+            void freeIndex(Index index) {
+                if (checkIndex(index)) {
+                    _freeIndices.push_back(index);
+                }
+            }
+
+            void clear() {
+                _freeIndices.clear();
+                _nextNewIndex = 0;
+            }
+        };
+    }
+
+
+    using Index = indexed_container::Index;
+    using IndexVector = indexed_container::Indices;
+
+    using ProxyID = Index;
+
 
 // Transaction is the mechanism to make any change to the Space.
 // Whenever a new proxy need to be reset,
@@ -67,58 +127,6 @@ protected:
 };
 typedef std::vector<Transaction> TransactionQueue;
 
-namespace indexed_container {
-
-    using Index = int32_t;
-    const Index MAXIMUM_INDEX{ 1 << 30 };
-    const Index INVALID_INDEX{ -1 };
-    using Indices = std::vector< Index >;
-
-    template <Index MaxNumElements = MAXIMUM_INDEX>
-    class Allocator {
-    public:
-        Allocator() {}
-        Indices _freeIndices;
-        std::atomic<int32_t> _nextNewIndex{ 0 };
-        std::atomic<int32_t> _numFreeIndices{ 0 };
-
-        bool checkIndex(Index index) const { return ((index >= 0) && (index < _nextNewIndex.load())); }
-        Index getNumIndices() const { return _nextNewIndex - (Index)_freeIndices.size(); }
-        Index getNumFreeIndices() const { return (Index)_freeIndices.size(); }
-        Index getNumAllocatedIndices() const { return _nextNewIndex.load(); }
-
-        Index allocateIndex() {
-            if (_freeIndices.empty()) {
-                Index index = _nextNewIndex;
-                if (index >= MaxNumElements) {
-                    // abort! we are trying to go overboard with the total number of allocated elements
-                    assert(false);
-                    // This should never happen because Bricks are allocated along with the cells and there
-                    // is already a cap on the cells allocation
-                    return INVALID_INDEX;
-                }
-                _nextNewIndex++;
-                return index;
-            } else {
-                Index index = _freeIndices.back();
-                _freeIndices.pop_back();
-                return index;
-            }
-        }
-
-        void freeIndex(Index index) {
-            if (checkIndex(index)) {
-                _freeIndices.push_back(index);
-            }
-        }
-
-        void clear() {
-            _freeIndices.clear();
-            _nextNewIndex = 0;
-        }
-    };
-}
-
 class Collection {
 public:
 
@@ -129,7 +137,7 @@ public:
     bool isAllocatedID(const ProxyID& id) const;
 
     // THis is the total number of allocated proxies, this a threadsafe call
-    Index getNumAllocatedProxies() const { return _numAllocatedProxies.load(); }
+    Index getNumAllocatedProxies() const { return _IDAllocator.getNumAllocatedIndices(); }
 
     // Enqueue transaction to the space
     void enqueueTransaction(const Transaction& transaction);
@@ -146,8 +154,10 @@ public:
 protected:
 
     // Thread safe elements that can be accessed from anywhere
-    std::atomic<unsigned int> _IDAllocator{ 1 }; // first valid itemID will be One
-    std::atomic<unsigned int> _numAllocatedItems{ 1 }; // num of allocated items, matching the _items.size()
+    indexed_container::Allocator<> _IDAllocator;
+
+    //std::atomic<unsigned int> _IDAllocator{ 1 }; // first valid itemID will be One
+    //std::atomic<unsigned int> _numAllocatedItems{ 1 }; // num of allocated items, matching the _items.size()
     std::mutex _transactionQueueMutex;
     TransactionQueue _transactionQueue;
 
