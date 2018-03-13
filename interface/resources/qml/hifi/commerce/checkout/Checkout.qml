@@ -144,7 +144,7 @@ Rectangle {
                     // OR the ID of an "updated" item, we're updating.
                     if (root.itemId === result.data.updates[i].item_id ||
                         root.itemId === result.data.updates[i].updated_item_id) {
-                        if (root.itemEdition !== -1 && root.itemEdition !== result.data.updates[i].edition_number) {
+                        if (root.itemEdition !== -1 && root.itemEdition !== parseInt(result.data.updates[i].edition_number)) {
                             continue;
                         }
                         root.isUpdating = true;
