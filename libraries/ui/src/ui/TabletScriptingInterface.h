@@ -78,7 +78,7 @@ public:
 
     QObject* getFlags();
 signals:
-    /** jsdoc
+    /**jsdoc
      * Signaled when a tablet message or dialog is created
      * @function TabletProxy#tabletNotification
      * @returns {Signal}
@@ -205,7 +205,7 @@ public:
 
     
 
-    /** jsdoc
+    /**jsdoc
      * Check if the tablet has a message dialog open
      * @function TabletProxy#isMessageDialogOpen
      */
@@ -291,7 +291,7 @@ signals:
      */
     void screenChanged(QVariant type, QVariant url);
 
-    /** jsdoc
+    /**jsdoc
     * Signaled when the tablet becomes visible or becomes invisible
     * @function TabletProxy#isTabletShownChanged
     * @returns {Signal}

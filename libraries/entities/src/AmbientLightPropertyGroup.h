@@ -27,6 +27,14 @@ class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 
+/**jsdoc
+ * Ambient light is defined by the following properties.
+ * @typedef {object} Entities.AmbientLight
+ * @property {number} ambientIntensity=0.5 - The intensity of the light.
+ * @property {string} ambientURL="" - A cube map image that defines the color of the light coming from each direction. If 
+ *     <code>""</code> then the entity's {@link Entities.Skybox|Skybox} <code>url</code> property value is used, unless that also is <code>""</code> in which 
+ *     case the entity's <code>ambientLightMode</code> property is set to <code>"inherit"</code>.
+ */
 class AmbientLightPropertyGroup : public PropertyGroup {
 public:
     // EntityItemProperty related helpers

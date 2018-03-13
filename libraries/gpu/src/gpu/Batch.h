@@ -91,7 +91,7 @@ public:
     void captureDrawCallInfo();
     void captureNamedDrawCallInfo(std::string name);
 
-    Batch();
+    Batch(const char* name = nullptr);
     Batch(const Batch& batch);
     ~Batch();
 
@@ -187,11 +187,14 @@ public:
 
     void setResourceTexture(uint32 slot, const TexturePointer& texture);
     void setResourceTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
-
+    void setResourceFramebufferSwapChainTexture(uint32 slot, const FramebufferSwapChainPointer& framebuffer, unsigned int swpaChainIndex, unsigned int renderBufferSlot = 0U); // not a command, just a shortcut from a TextureView
 
     // Ouput Stage
     void setFramebuffer(const FramebufferPointer& framebuffer);
- 
+    void setFramebufferSwapChain(const FramebufferSwapChainPointer& framebuffer, unsigned int swapChainIndex);
+
+    void advance(const SwapChainPointer& swapChain);
+
     // Clear framebuffer layers
     // Targets can be any of the render buffers contained in the currnetly bound Framebuffer
     // Optionally the scissor test can be enabled locally for this command and to restrict the clearing command to the pixels contained in the scissor rectangle
@@ -299,11 +302,15 @@ public:
         COMMAND_setUniformBuffer,
         COMMAND_setResourceBuffer,
         COMMAND_setResourceTexture,
+        COMMAND_setResourceFramebufferSwapChainTexture,
 
         COMMAND_setFramebuffer,
+        COMMAND_setFramebufferSwapChain,
         COMMAND_clearFramebuffer,
         COMMAND_blit,
         COMMAND_generateTextureMips,
+
+        COMMAND_advance,
 
         COMMAND_beginQuery,
         COMMAND_endQuery,
@@ -421,6 +428,7 @@ public:
     typedef Cache<Transform>::Vector TransformCaches;
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
     typedef Cache<FramebufferPointer>::Vector FramebufferCaches;
+    typedef Cache<SwapChainPointer>::Vector SwapChainCaches;
     typedef Cache<QueryPointer>::Vector QueryCaches;
     typedef Cache<std::string>::Vector StringCaches;
     typedef Cache<std::function<void()>>::Vector LambdaCache;
@@ -475,6 +483,7 @@ public:
     TransformCaches _transforms;
     PipelineCaches _pipelines;
     FramebufferCaches _framebuffers;
+    SwapChainCaches _swapChains;
     QueryCaches _queries;
     LambdaCache _lambdas;
     StringCaches _profileRanges;
@@ -486,6 +495,11 @@ public:
     bool _enableSkybox { false };
 
 protected:
+
+#ifdef DEBUG
+    std::string _name;
+#endif
+
     friend class Context;
     friend class Frame;
 

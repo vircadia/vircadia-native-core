@@ -161,7 +161,7 @@ public:
 
     const std::string& getBackendVersion() const;
 
-    void beginFrame(const glm::mat4& renderPose = glm::mat4());
+    void beginFrame(const glm::mat4& renderView = glm::mat4(), const glm::mat4& renderPose = glm::mat4());
     void appendFrameBatch(Batch& batch);
     FramePointer endFrame();
 
@@ -274,8 +274,8 @@ protected:
 typedef std::shared_ptr<Context> ContextPointer;
 
 template<typename F>
-void doInBatch(std::shared_ptr<gpu::Context> context, F f) {
-    gpu::Batch batch;
+void doInBatch(const char* name, std::shared_ptr<gpu::Context> context, F f) {
+    gpu::Batch batch(name);
     f(batch);
     context->appendFrameBatch(batch);
 }

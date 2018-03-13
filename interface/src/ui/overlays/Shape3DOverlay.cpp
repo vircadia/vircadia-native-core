@@ -67,6 +67,32 @@ Shape3DOverlay* Shape3DOverlay::createClone() const {
 }
 
 
+/**jsdoc
+ * <p>A <code>shape</code> {@link Overlays.OverlayType|OverlayType} may display as one of the following geometrical shapes:</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Dimensions</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"Circle"</code></td><td>2D</td><td>A circle oriented in 3D.</td></td></tr>
+ *     <tr><td><code>"Cone"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Cube"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Cylinder"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Dodecahedron"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Hexagon"</code></td><td>3D</td><td>A hexagonal prism.</td></tr>
+ *     <tr><td><code>"Icosahedron"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Line"</code></td><td>1D</td><td>A line oriented in 3D.</td></tr>
+ *     <tr><td><code>"Octagon"</code></td><td>3D</td><td>An octagonal prism.</td></tr>
+ *     <tr><td><code>"Octahedron"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Quad"</code></td><td>2D</td><td>A square oriented in 3D.</tr>
+ *     <tr><td><code>"Sphere"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Tetrahedron"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Torus"</code></td><td>3D</td><td><em>Not implemented.</em></td></tr>
+ *     <tr><td><code>"Triangle"</code></td><td>3D</td><td>A triangular prism.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Overlays.Shape
+ */
 static const std::array<QString, GeometryCache::Shape::NUM_SHAPES> shapeStrings { {
     "Line",
     "Triangle",
@@ -80,7 +106,7 @@ static const std::array<QString, GeometryCache::Shape::NUM_SHAPES> shapeStrings 
     "Octahedron",
     "Dodecahedron",
     "Icosahedron",
-    "Torus",
+    "Torus",  // Not implemented yet.
     "Cone",
     "Cylinder"
 } };
@@ -145,7 +171,7 @@ void Shape3DOverlay::setProperties(const QVariantMap& properties) {
  *
  * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
  *
- * @property {Shape} shape=Hexagon - The geometrical shape of the overlay.
+ * @property {Overlays.Shape} shape=Hexagon - The geometrical shape of the overlay.
  */
 QVariant Shape3DOverlay::getProperty(const QString& property) {
     if (property == "shape") {

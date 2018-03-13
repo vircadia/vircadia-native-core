@@ -35,7 +35,7 @@
  * of gimbal lock.
  * @namespace Quat
  * @variation 0
- * @property IDENTITY {Quat} The identity rotation, i.e., no rotation.
+ * @property IDENTITY {Quat} The identity rotation, i.e., no rotation. Its value is <code>{ x: 0, y: 0, z: 0, w: 1 }</code>.
  * @example <caption>Print the <code>IDENTITY</code> value.</caption>
  * print(JSON.stringify(Quat.IDENTITY)); // { x: 0, y: 0, z: 0, w: 1 }
  * print(JSON.stringify(Quat.safeEulerAngles(Quat.IDENTITY))); // { x: 0, y: 0, z: 0 }
