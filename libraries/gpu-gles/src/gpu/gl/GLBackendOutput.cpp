@@ -37,6 +37,19 @@ void GLBackend::resetOutputStage() {
 
 void GLBackend::do_setFramebuffer(const Batch& batch, size_t paramOffset) {
     auto framebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
+    setFramebuffer(framebuffer);
+}
+
+void GLBackend::do_setFramebufferSwapChain(const Batch& batch, size_t paramOffset) {
+    auto swapChain = batch._swapChains.get(batch._params[paramOffset]._uint);
+    if (swapChain) {
+        auto index = batch._params[paramOffset + 1]._uint;
+        FramebufferPointer framebuffer = static_cast<const FramebufferSwapChain*>(swapChain.get())->get(index);
+        setFramebuffer(framebuffer);
+    }
+}
+
+void GLBackend::setFramebuffer(const FramebufferPointer& framebuffer) {
     if (_output._framebuffer != framebuffer) {
         auto newFBO = getFramebufferID(framebuffer);
         if (_output._drawFBO != newFBO) {
@@ -44,6 +57,13 @@ void GLBackend::do_setFramebuffer(const Batch& batch, size_t paramOffset) {
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, newFBO);
         }
         _output._framebuffer = framebuffer;
+    }
+}
+
+void GLBackend::do_advance(const Batch& batch, size_t paramOffset) {
+    auto ringbuffer = batch._swapChains.get(batch._params[paramOffset]._uint);
+    if (ringbuffer) {
+        ringbuffer->advance();
     }
 }
 
