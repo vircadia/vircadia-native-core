@@ -88,17 +88,17 @@
 //    (15) When an entity is still active but the owner no longer wants to own it, it will drop its priority
 //         to YIELD (=1, less than VOLUNTEER) thereby signalling to other participants to bid for it.
 //
-const quint8 VOLUNTEER_SIMULATION_PRIORITY = 0x01;
-const quint8 RECRUIT_SIMULATION_PRIORITY = VOLUNTEER_SIMULATION_PRIORITY + 1;
+const uint8_t VOLUNTEER_SIMULATION_PRIORITY = 0x01;
+const uint8_t RECRUIT_SIMULATION_PRIORITY = VOLUNTEER_SIMULATION_PRIORITY + 1;
 
 // When poking objects with scripts an observer will bid at SCRIPT_EDIT priority.
-const quint8 SCRIPT_GRAB_SIMULATION_PRIORITY = 0x80;
-const quint8 SCRIPT_POKE_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY - 1;
-const quint8 AVATAR_ENTITY_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY + 1;
+const uint8_t SCRIPT_GRAB_SIMULATION_PRIORITY = 0x80;
+const uint8_t SCRIPT_POKE_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY - 1;
+const uint8_t AVATAR_ENTITY_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY + 1;
 
 // PERSONAL priority (needs a better name) is the level at which a simulation observer owns its own avatar
 // which really just means: things that collide with it will be bid at a priority level one lower
-const quint8 PERSONAL_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY;
+const uint8_t PERSONAL_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY;
 
 
 class SimulationOwner {
@@ -106,25 +106,25 @@ public:
     static const int NUM_BYTES_ENCODED;
 
     SimulationOwner();
-    SimulationOwner(const QUuid& id, quint8 priority);
+    SimulationOwner(const QUuid& id, uint8_t priority);
 
     const QUuid& getID() const { return _id; }
     const quint64& getExpiry() const { return _expiry; }
-    quint8 getPriority() const { return _priority; }
+    uint8_t getPriority() const { return _priority; }
 
     QByteArray toByteArray() const;
     bool fromByteArray(const QByteArray& data);
 
     void clear();
 
-    void setPriority(quint8 priority);
-    void promotePriority(quint8 priority);
+    void setPriority(uint8_t priority);
+    void promotePriority(uint8_t priority);
 
     // return true if id is changed
     bool setID(const QUuid& id);
-    bool set(const QUuid& id, quint8 priority);
+    bool set(const QUuid& id, uint8_t priority);
     bool set(const SimulationOwner& owner);
-    void setPendingPriority(quint8 priority, const quint64& timestamp);
+    void setPendingPriority(uint8_t priority, const quint64& timestamp);
 
     bool isNull() const { return _id.isNull(); }
     bool matchesValidID(const QUuid& id) const { return _id == id && !_id.isNull(); }
@@ -138,7 +138,7 @@ public:
     bool pendingTake(const quint64& timestamp); // return true if valid pending TAKE
     void clearCurrentOwner();
 
-    bool operator>=(quint8 priority) const { return _priority >= priority; }
+    bool operator>=(uint8_t priority) const { return _priority >= priority; }
     bool operator==(const SimulationOwner& other) { return (_id == other._id && _priority == other._priority); }
 
     bool operator!=(const SimulationOwner& other);
@@ -153,9 +153,9 @@ private:
     QUuid _id; // owner
     quint64 _expiry; // time when ownership can transition at equal priority
     quint64 _pendingBidTimestamp; // time when pending bid was set
-    quint8 _priority; // priority of current owner
-    quint8 _pendingBidPriority; // priority at which we'd like to own it
-    quint8 _pendingState; // NOTHING, TAKE, or RELEASE
+    uint8_t _priority; // priority of current owner
+    uint8_t _pendingBidPriority; // priority at which we'd like to own it
+    uint8_t _pendingState; // NOTHING, TAKE, or RELEASE
 };
 
 
