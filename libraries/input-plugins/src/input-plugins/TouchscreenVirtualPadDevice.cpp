@@ -267,7 +267,6 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
     int idxMoveStartingPointCandidate = -1;
     int idxViewStartingPointCandidate = -1;
 
-    bool thisPointConsumed = false;
     glm::vec2 thisPoint;
     int thisPointId;
     std::map<int, TouchType> unusedTouchesInEvent;
@@ -276,7 +275,6 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
         thisPoint.x = tPoints[i].pos().x();
         thisPoint.y = tPoints[i].pos().y();
         thisPointId = tPoints[i].id();
-        thisPointConsumed = false;
 
         if (!moveTouchFound && _moveHasValidTouch && _moveCurrentTouchId == thisPointId) {
             // valid if it's an ongoing touch
@@ -301,7 +299,6 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
         if (!viewTouchFound && idxViewStartingPointCandidate == -1 && viewTouchBeginIsValid(thisPoint) &&
                 (!_unusedTouches.count(thisPointId) || _unusedTouches[thisPointId] == VIEW )) {
             idxViewStartingPointCandidate = i;
-            thisPointConsumed = true;
             continue;
         }
 
