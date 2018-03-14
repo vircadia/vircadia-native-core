@@ -56,7 +56,7 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
         return;
     }
 
-    std::vector<workload::Space::Proxy> proxies(space->getNumAllocatedProxies());
+    workload::Proxy::Vector proxies(space->getNumAllocatedProxies());
     space->copyProxyValues(proxies.data(), (uint32_t)proxies.size());
 
     workload::Views views(space->getNumViews());
@@ -130,9 +130,9 @@ void GameWorkloadRenderItem::showViews(bool show) {
 }
 
 
-void GameWorkloadRenderItem::setAllProxies(const std::vector<workload::Space::Proxy>& proxies) {
+void GameWorkloadRenderItem::setAllProxies(const workload::Proxy::Vector& proxies) {
     _myOwnProxies = proxies;
-    static const uint32_t sizeOfProxy = sizeof(workload::Space::Proxy);
+    static const uint32_t sizeOfProxy = sizeof(workload::Proxy);
     if (!_allProxiesBuffer) {
         _allProxiesBuffer = std::make_shared<gpu::Buffer>(sizeOfProxy);
     }

@@ -19,28 +19,13 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-#include "View.h"
-
+#include "Transaction.h"
 
 namespace workload {
 
-using IndexVector = std::vector<int32_t>;
-
-class Space {
+class Space : public Collection {
 public:
-    using Sphere = glm::vec4; // <x,y,z> = center, w = radius
     using ProxyUpdate = std::pair<int32_t, Sphere>;
-
-    class Proxy {
-    public:
-        Proxy() : sphere(0.0f) {}
-        Proxy(const Sphere& s) : sphere(s) {}
-        Sphere sphere;
-        uint8_t region { Region::UNKNOWN };
-        uint8_t prevRegion { Region::UNKNOWN };
-        uint16_t _padding;
-        uint32_t _paddings[3];
-    };
 
     class Change {
     public:
@@ -50,31 +35,40 @@ public:
         uint8_t prevRegion { 0 };
     };
 
-    Space() {}
+    Space();
 
-    void clear();
-    int32_t createProxy(const Sphere& sphere);
-    void deleteProxies(const IndexVector& deadIndices);
-    void updateProxies(const std::vector<ProxyUpdate>& changedProxies);
-    void setViews(const std::vector<View>& views);
+    void setViews(const Views& views);
 
     uint32_t getNumViews() const { return (uint32_t)(_views.size()); }
     void copyViews(std::vector<View>& copy) const;
 
-
-    uint32_t getNumObjects() const { return (uint32_t)(_proxies.size() - _freeIndices.size()); }
-    uint32_t getNumAllocatedProxies() const { return (uint32_t)(_proxies.size()); }
+    uint32_t getNumObjects() const { return _IDAllocator.getNumLiveIndices(); } // (uint32_t)(_proxies.size() - _freeIndices.size()); }
+    uint32_t getNumAllocatedProxies() const { return (uint32_t)(_IDAllocator.getNumAllocatedIndices()); }
 
     void categorizeAndGetChanges(std::vector<Change>& changes);
     uint32_t copyProxyValues(Proxy* proxies, uint32_t numDestProxies) const;
 
+    void clear();
 private:
-    void deleteProxy(int32_t proxyId);
-    void updateProxy(int32_t proxyId, const Sphere& sphere);
 
-    std::vector<Proxy> _proxies;
+    void processTransactionFrame(const Transaction& transaction) override;
+    void processResets(const Transaction::Resets& transactions);
+    void processRemoves(const Transaction::Removes& transactions);
+    void processUpdates(const Transaction::Updates& transactions);
+
+  //  int32_t createProxy(const Sphere& sphere);
+ //   void deleteProxies(const IndexVector& deadIndices);
+ //   void updateProxies(const std::vector<ProxyUpdate>& changedProxies);
+
+ //   void deleteProxy(int32_t proxyId);
+ //   void updateProxy(int32_t proxyId, const Sphere& sphere);
+
+
+    // The database of proxies is protected for editing by a mutex
+    mutable std::mutex _proxiesMutex;
+    Proxy::Vector _proxies;
+
     Views _views;
-    IndexVector _freeIndices;
 };
 
 using SpacePointer = std::shared_ptr<Space>;

@@ -270,7 +270,7 @@ private:
 
     mutable std::mutex _spaceLock;
     workload::SpacePointer _space{ new workload::Space() };
-    std::vector<workload::Space::ProxyUpdate> _spaceUpdates;
+    workload::Transaction::Updates _spaceUpdates;
 };
 
 

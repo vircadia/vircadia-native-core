@@ -50,6 +50,24 @@ namespace workload {
     };
     using EnginePointer = std::shared_ptr<Engine>;
 
+    class PerformSpaceTransactionConfig : public Job::Config {
+        Q_OBJECT
+    public:
+    signals :
+         void dirty();
+
+    protected:
+    };
+
+    class PerformSpaceTransaction {
+    public:
+        using Config = PerformSpaceTransactionConfig;
+        using JobModel = Job::Model<PerformSpaceTransaction, Config>;
+
+        void configure(const Config& config);
+        void run(const WorkloadContextPointer& context);
+    protected:
+    };
 } // namespace workload
 
 #endif // hifi_workload_Space_h
