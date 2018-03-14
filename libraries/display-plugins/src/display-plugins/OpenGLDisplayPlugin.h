@@ -98,8 +98,6 @@ protected:
     virtual void compositePointer();
     virtual void compositeExtra() {};
 
-    virtual bool hasFocus() const override;
-
     // These functions must only be called on the presentation thread
     virtual void customizeContext();
     virtual void uncustomizeContext();
