@@ -162,6 +162,7 @@ public:
     glm::vec2 getDeviceSize() const;
     bool hasFocus() const;
     void setFocus();
+    void raise();
 
     void showCursor(const Cursor::Icon& cursor);
 

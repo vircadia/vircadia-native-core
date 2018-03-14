@@ -7362,9 +7362,20 @@ void Application::setFocus() {
     // flashes the taskbar icon.
     auto window = qApp->getWindow();
     window->activateWindow();
-    
-    // Do NOT do the following because it takes focus away from the _displayPlugin.
-    //window->setFocus();
+}
+
+void Application::raise() {
+    auto windowState = qApp->getWindow()->windowState();
+    if (windowState & Qt::WindowMinimized) {
+        if (windowState & Qt::WindowMaximized) {
+            qApp->getWindow()->showMaximized();
+        } else if (windowState & Qt::WindowFullScreen) {
+            qApp->getWindow()->showFullScreen();
+        } else {
+            qApp->getWindow()->showNormal();
+        }
+    }
+    qApp->getWindow()->raise();
 }
 
 void Application::setMaxOctreePacketsPerSecond(int maxOctreePPS) {

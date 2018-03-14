@@ -81,7 +81,7 @@ void WindowScriptingInterface::setFocus() {
 void WindowScriptingInterface::raiseMainWindow() {
     // It's forbidden to call raise() from another thread.
     qApp->postLambdaEvent([] {
-        qApp->getWindow()->raise();
+        qApp->raise();
     });
 }
 

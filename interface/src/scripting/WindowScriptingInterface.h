@@ -69,7 +69,7 @@ public slots:
     void setFocus();
 
     /**jsdoc
-     * Raise the Interface window if it is minimized, and give it focus.
+     * Raise the Interface window if it is minimized. If raised, the window gains focus.
      * @function Window.raiseMainWindow
      */
     void raiseMainWindow();
