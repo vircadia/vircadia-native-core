@@ -111,7 +111,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     if (!_geometryID) {
         _geometryID = geometryCache->allocateID();
     }
-    geometryCache->bindSimpleProgram(batch, false, transparent, false, false, false, false);
+    geometryCache->bindSimpleProgram(batch, false, transparent, false, false, false);
     geometryCache->renderQuad(batch, minCorner, maxCorner, backgroundColor, _geometryID);
     
     float scale = _lineHeight / _textRenderer->getFontSize();
