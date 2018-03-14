@@ -565,7 +565,6 @@ Windows.ScrollingWindow {
             }
 
             onSortIndicatorOrderChanged: {
-                console.log("sort indicator changed");
                 Assets.sortProxyModel(sortIndicatorColumn, sortIndicatorOrder);
             }
 
