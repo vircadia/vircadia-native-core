@@ -30,6 +30,7 @@
     var userIsLoggedIn = false;
     var walletNeedsSetup = false;
     var marketplaceBaseURL = "https://highfidelity.com";
+    var messagesWaiting = false;
 
     function injectCommonCode(isDirectoryPage) {
 
@@ -205,7 +206,11 @@
 
             purchasesElement.id = "purchasesButton";
             purchasesElement.setAttribute('href', "#");
-            purchasesElement.innerHTML = "My Purchases";
+            purchasesElement.innerHTML = "";
+            if (messagesWaiting) {
+                purchasesElement.innerHTML += "<span style='width:10px;height:10px;background-color:red;border-radius:50%;display:inline-block;'></span> ";
+            }
+            purchasesElement.innerHTML += "My Purchases";
             // FRONTEND WEBDEV RANT: The username dropdown should REALLY not be programmed to be on the same
             //     line as the search bar, overlaid on top of the search bar, floated right, and then relatively bumped up using "top:-50px".
             purchasesElement.style = "height:100%;margin-top:18px;font-weight:bold;float:right;margin-right:" + (dropDownElement.offsetWidth + 30) +
@@ -705,6 +710,7 @@
                         if (marketplaceBaseURL.indexOf('metaverse.') !== -1) {
                             marketplaceBaseURL = marketplaceBaseURL.replace('metaverse.', '');
                         }
+                        messagesWaiting = parsedJsonMessage.data.messagesWaiting;
                         injectCode();
                     }
                 }

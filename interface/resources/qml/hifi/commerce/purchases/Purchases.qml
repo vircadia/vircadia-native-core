@@ -64,6 +64,7 @@ Rectangle {
                     root.activeView = "purchasesMain";
                     root.installedApps = Commerce.getInstalledApps();
                     Commerce.inventory();
+                    Commerce.getAvailableUpdates();
                 }
             } else {
                 console.log("ERROR in Purchases.qml: Unknown wallet status: " + walletStatus);
@@ -118,6 +119,14 @@ Rectangle {
             }
 
             root.pendingInventoryReply = false;
+        }
+
+        onAvailableUpdatesResult: {
+            if (result.status !== 'success') {
+                console.log("Failed to get Available Updates", result.data.message);
+            } else {
+                sendToScript({method: 'purchases_availableUpdatesReceived', numUpdates: result.data.updates.length });
+            }
         }
     }
 
@@ -273,6 +282,7 @@ Rectangle {
                         root.activeView = "purchasesMain";
                         root.installedApps = Commerce.getInstalledApps();
                         Commerce.inventory();
+                        Commerce.getAvailableUpdates();
                     break;
                 }
             }
@@ -617,6 +627,7 @@ Rectangle {
                 console.log("Refreshing Purchases...");
                 root.pendingInventoryReply = true;
                 Commerce.inventory();
+                Commerce.getAvailableUpdates();
             }
         }
     }
