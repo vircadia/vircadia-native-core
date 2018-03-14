@@ -831,7 +831,8 @@ Rectangle {
                 root.isShowingMyItems = true;
             break;
             case 'showUpdates':
-                filterBar.changeFilterByDisplayName("Updatable");
+                // Uncomment and/or change this once we figure out what the correct behavior is.
+                //filterBar.changeFilterByDisplayName("Updatable");
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
