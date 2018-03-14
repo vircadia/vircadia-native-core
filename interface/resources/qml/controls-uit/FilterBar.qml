@@ -156,7 +156,7 @@ Item {
                 HiFiGlyphs {
                     id: searchIcon;
                     text: hifi.glyphs.search
-                    color: textColor
+                    color: textField.color
                     size: 40;
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
@@ -166,7 +166,7 @@ Item {
                 // Carat
                 HiFiGlyphs {
                     text: hifi.glyphs.caratDn;
-                    color: textColor;
+                    color: textField.color;
                     size: 40;
                     anchors.left: parent.left;
                     anchors.leftMargin: 15;
@@ -216,7 +216,7 @@ Item {
             // "Clear" button
             HiFiGlyphs {
                 text: hifi.glyphs.error
-                color: textColor
+                color: textField.color
                 size: 40
                 anchors.right: parent.right
                 anchors.rightMargin: hifi.dimensions.textPadding - 2
@@ -235,7 +235,6 @@ Item {
             }
         }
 
-        //placeholderTextColor: isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray
         selectedTextColor: hifi.colors.black
         selectionColor: hifi.colors.primaryHighlight
         leftPadding: 44 + (root.primaryFilter_index === -1 ? 0 : primaryFilterTextMetrics.tightBoundingRect.width + 20);
@@ -307,5 +306,16 @@ Item {
         color: Qt.rgba(0, 0, 0, 0.25);
         source: dropdownContainer;
         visible: dropdownContainer.visible;
+    }
+
+    function changeFilterByDisplayName(name) {
+        for (var i = 0; i < filterBarModel.count; i++) {
+            if (filterBarModel.get(i).displayName === name) {
+                root.primaryFilter_index = i;
+                return;
+            }
+        }
+
+        console.log("Passed displayName not found in filterBarModel! primaryFilter unchanged.");
     }
 }

@@ -123,11 +123,11 @@ Item {
                 id: messagesWaitingLight;
                 visible: root.messagesWaiting;
                 anchors.right: myPurchasesLink.left;
-                anchors.rightMargin: 4;
                 anchors.verticalCenter: parent.verticalCenter;
                 height: 10;
                 width: height;
                 radius: height/2;
+                color: "red";
             }
 
             Rectangle {
@@ -155,7 +155,7 @@ Item {
                     anchors.fill: parent;
                     hoverEnabled: enabled;
                     onClicked: {
-                        sendToParent({method: 'header_goToPurchases'});
+                        sendToParent({ method: 'header_goToPurchases', hasUpdates: root.messagesWaiting });
                     }
                     onEntered: myPurchasesText.color = hifi.colors.blueHighlight;
                     onExited: myPurchasesText.color = hifi.colors.blueAccent;

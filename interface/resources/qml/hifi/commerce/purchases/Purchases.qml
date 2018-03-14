@@ -529,7 +529,11 @@ Rectangle {
 
         Item {
             id: noItemsAlertContainer;
-            visible: !purchasesContentsList.visible && root.purchasesReceived && root.isShowingMyItems && filterBar.text === "";
+            visible: !purchasesContentsList.visible &&
+                root.purchasesReceived &&
+                root.isShowingMyItems &&
+                filterBar.text === "" &&
+                filterBar.primaryFilter_displayName === "";
             anchors.top: filterBarContainer.bottom;
             anchors.topMargin: 12;
             anchors.left: parent.left;
@@ -575,7 +579,11 @@ Rectangle {
 
         Item {
             id: noPurchasesAlertContainer;
-            visible: !purchasesContentsList.visible && root.purchasesReceived && !root.isShowingMyItems && filterBar.text === "";
+            visible: !purchasesContentsList.visible &&
+                root.purchasesReceived &&
+                !root.isShowingMyItems &&
+                filterBar.text === "" &&
+                filterBar.primaryFilter_displayName === "";
             anchors.top: filterBarContainer.bottom;
             anchors.topMargin: 12;
             anchors.left: parent.left;
@@ -734,8 +742,8 @@ Rectangle {
             }
 
             if (filterBar.primaryFilter_displayName !== "" &&
-                (filterBar.primaryFilter_displayName.toLowerCase() !== currentItemType.toLowerCase())) { //|| UNCOMMENT WHEN UPGRADES ARE IN
-                //(filterBar.primaryFilter_displayName === "Updatable" && tempPurchasesModel.get(i).upgradeUrl !== "")) {
+                ((filterBar.primaryFilter_displayName === "Updatable" && tempPurchasesModel.get(i).upgradeUrl === "") ||
+                (filterBar.primaryFilter_displayName !== "Updatable" && filterBar.primaryFilter_displayName.toLowerCase() !== currentItemType.toLowerCase()))) {
                 tempPurchasesModel.remove(i);
                 i--;
             } else {
@@ -824,7 +832,7 @@ Rectangle {
                 root.isShowingMyItems = true;
             break;
             case 'showUpdates':
-                //primaryFilter;
+                filterBar.changeFilterByDisplayName("Updatable");
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));

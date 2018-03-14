@@ -88,8 +88,8 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var NORMAL_ICON = "icons/tablet-icons/market-i.svg";
     var NORMAL_ACTIVE = "icons/tablet-icons/market-a.svg";
-    var WAITING_ICON = "icons/tablet-icons/market-msg-i.svg";
-    var WAITING_ACTIVE = "icons/tablet-icons/market-msg-a.svg";
+    var WAITING_ICON = "icons/tablet-icons/market-i-msg.svg";
+    var WAITING_ACTIVE = "icons/tablet-icons/market-a-msg.svg";
     var marketplaceButton = tablet.addButton({
         icon: NORMAL_ICON,
         activeIcon: NORMAL_ACTIVE,
@@ -98,7 +98,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
     });
 
     function messagesWaiting(isWaiting) {
-        button.editProperties({
+        marketplaceButton.editProperties({
             icon: (isWaiting ? WAITING_ICON : NORMAL_ICON),
             activeIcon: (isWaiting ? WAITING_ACTIVE : NORMAL_ACTIVE)
         });
@@ -553,6 +553,13 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 //tablet.popFromStack();
                 break;
             case 'header_goToPurchases':
+                if (message.hasUpdates) {
+                    wireEventBridge(true);
+                    tablet.sendToQml({
+                        method: 'showUpdates'
+                    });
+                }
+                // Fall through.
             case 'checkout_goToPurchases':
                 referrerURL = MARKETPLACE_URL_INITIAL;
                 filterText = message.filterText;
