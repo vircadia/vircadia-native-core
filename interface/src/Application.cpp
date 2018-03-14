@@ -3111,10 +3111,10 @@ bool Application::isServerlessMode() const {
     return false;
 }
 
-void Application::setIsServerlessDomain(bool isHifiScheme) {
+void Application::setIsServerlessDomain(bool serverlessDomain) {
     auto tree = getEntities()->getTree();
     if (tree) {
-        tree->setIsServerlessMode(!isHifiScheme);
+        tree->setIsServerlessMode(serverlessDomain);
     }
 }
 

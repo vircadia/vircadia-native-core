@@ -406,7 +406,7 @@ signals:
      */
     void goForwardPossible(bool isPossible);
 
-    void urlHandled(bool isHifiScheme);
+    void urlHandled(bool isNonHifiScheme);
 
 private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
