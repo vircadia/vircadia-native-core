@@ -51,7 +51,7 @@ public:
     void clear();
 private:
 
-    virtual void processTransactionFrame(const Transaction& transaction);
+    void processTransactionFrame(const Transaction& transaction) override;
     void processResets(const Transaction::Resets& transactions);
     void processRemoves(const Transaction::Removes& transactions);
     void processUpdates(const Transaction::Updates& transactions);

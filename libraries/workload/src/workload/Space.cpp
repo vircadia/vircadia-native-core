@@ -30,7 +30,7 @@ void Space::processTransactionFrame(const Transaction& transaction) {
     // Here we should be able to check the value of last ProxyID allocated
     // and allocate new proxies accordingly
     ProxyID maxID = _IDAllocator.getNumAllocatedIndices();
-    if (maxID > _proxies.size()) {
+    if (maxID > (Index) _proxies.size()) {
         _proxies.resize(maxID + 100); // allocate the maxId and more
     }
     // Now we know for sure that we have enough items in the array to
