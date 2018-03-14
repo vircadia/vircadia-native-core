@@ -742,7 +742,7 @@ Rectangle {
             }
 
             if (filterBar.primaryFilter_displayName !== "" &&
-                ((filterBar.primaryFilter_displayName === "Updatable" && tempPurchasesModel.get(i).upgradeUrl === "") ||
+                ((filterBar.primaryFilter_displayName === "Updatable" && tempPurchasesModel.get(i).upgradeUrl !== "") ||
                 (filterBar.primaryFilter_displayName !== "Updatable" && filterBar.primaryFilter_displayName.toLowerCase() !== currentItemType.toLowerCase()))) {
                 tempPurchasesModel.remove(i);
                 i--;
