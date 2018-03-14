@@ -368,7 +368,7 @@ Item {
 
         Item {
             id: statusContainer;
-            visible: root.purchaseStatus === "pending" || root.purchaseStatus === "invalidated" || root.purchaseStatusChanged;
+            visible: root.purchaseStatus === "pending" || root.purchaseStatus === "invalidated" || root.purchaseStatusChanged || root.numberSold > -1;
             anchors.left: itemName.left;
             anchors.top: certificateContainer.bottom;
             anchors.topMargin: 8;
@@ -387,7 +387,7 @@ Item {
                             "PENDING..."
                         } else if (root.purchaseStatus === "invalidated") {
                             "INVALIDATED"
-                        } else if (root.numberSold !== -1) {
+                        } else if (root.numberSold > -1) {
                             ("Sales: " + root.numberSold + "/" + (root.limitedRun === -1 ? "\u221e" : root.limitedRun))
                         } else {
                             ""

@@ -588,7 +588,7 @@ Rectangle {
             HifiControlsUit.Button {
                 id: buyButton;
                 visible: !((root.itemType === "avatar" || root.itemType === "app") && viewInMyPurchasesButton.visible)
-                enabled: (root.balanceAfterPurchase >= 0 && ownershipStatusReceived && balanceReceived && availableUpdatesReceived) || (!root.isCertified);
+                enabled: (root.balanceAfterPurchase >= 0 && ownershipStatusReceived && balanceReceived && availableUpdatesReceived) || (!root.isCertified) || root.isUpdating;
                 color: viewInMyPurchasesButton.visible ? hifi.buttons.white : hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: viewInMyPurchasesButton.visible ? viewInMyPurchasesButton.bottom :
@@ -1063,7 +1063,7 @@ Rectangle {
                 root.itemHref = message.params.itemHref;
                 root.referrer = message.params.referrer;
                 root.itemAuthor = message.params.itemAuthor;
-                root.itemEdition = message.params.itemEdition;
+                root.itemEdition = message.params.itemEdition || -1;
                 refreshBuyUI();
             break;
             default:

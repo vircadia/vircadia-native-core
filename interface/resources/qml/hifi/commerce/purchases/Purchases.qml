@@ -740,9 +740,8 @@ Rectangle {
             } else {
                 currentItemType = "unknown";
             }
-
             if (filterBar.primaryFilter_displayName !== "" &&
-                ((filterBar.primaryFilter_displayName === "Updatable" && tempPurchasesModel.get(i).upgradeUrl !== "") ||
+                ((filterBar.primaryFilter_displayName === "Updatable" && tempPurchasesModel.get(i).upgrade_url === "") ||
                 (filterBar.primaryFilter_displayName !== "Updatable" && filterBar.primaryFilter_filterName.toLowerCase() !== currentItemType.toLowerCase()))) {
                 tempPurchasesModel.remove(i);
                 i--;
