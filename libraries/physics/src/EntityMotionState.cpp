@@ -621,7 +621,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         _entity->setPendingOwnershipPriority(_outgoingPriority, now);
     } else if (!isLocallyOwned()) {
         // we don't own the simulation for this entity yet, but we're sending a bid for it
-        quint8 bidPriority = glm::max<uint8_t>(_outgoingPriority, VOLUNTEER_SIMULATION_PRIORITY);
+        uint8_t bidPriority = glm::max<uint8_t>(_outgoingPriority, VOLUNTEER_SIMULATION_PRIORITY);
         properties.setSimulationOwner(Physics::getSessionUUID(), bidPriority);
         _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;
         // copy _outgoingPriority into pendingPriority...
