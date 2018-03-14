@@ -133,8 +133,10 @@ void AddressManager::storeCurrentAddress() {
     auto url = currentAddress();
 
     if (url.scheme() == URL_SCHEME_FILE ||
-        url.scheme() == URL_SCHEME_HTTP ||
-        url.scheme() == URL_SCHEME_HTTPS ||
+        // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
+        // be loaded over http(s)
+        // url.scheme() == URL_SCHEME_HTTP ||
+        // url.scheme() == URL_SCHEME_HTTPS ||
         !url.host().isEmpty()) {
         currentAddressHandle.set(url);
     } else {
@@ -286,8 +288,10 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         emit lookupResultsFinished();
 
         return true;
-    } else if (lookupUrl.scheme() == URL_SCHEME_HTTP ||
-               lookupUrl.scheme() == URL_SCHEME_HTTPS ||
+    } else if (// TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
+               // be loaded over http(s)
+               // lookupUrl.scheme() == URL_SCHEME_HTTP ||
+               // lookupUrl.scheme() == URL_SCHEME_HTTPS ||
                lookupUrl.scheme() == URL_SCHEME_FILE) {
         _previousLookup.clear();
         QUrl domainUrl = PathUtils::expandToLocalDataAbsolutePath(lookupUrl);

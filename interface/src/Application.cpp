@@ -516,9 +516,12 @@ bool isDomainURL(QUrl url) {
     if (url.scheme() == URL_SCHEME_HIFI) {
         return true;
     }
-    if (url.scheme() != URL_SCHEME_FILE &&
-        url.scheme() != URL_SCHEME_HTTP &&
-        url.scheme() != URL_SCHEME_HTTPS) {
+    if (url.scheme() != URL_SCHEME_FILE
+        // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
+        // be loaded over http(s)
+        // && url.scheme() != URL_SCHEME_HTTP &&
+        // url.scheme() != URL_SCHEME_HTTPS
+        ) {
         return false;
     }
     if (url.path().endsWith(".json", Qt::CaseInsensitive) ||
