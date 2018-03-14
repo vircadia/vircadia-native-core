@@ -108,7 +108,7 @@ void SimulationOwner::setPendingPriority(uint8_t priority, const quint64& timest
 }
 
 void SimulationOwner::updateExpiry() {
-    const quint64 OWNERSHIP_LOCKOUT_EXPIRY = USECS_PER_SECOND / 5;
+    const quint64 OWNERSHIP_LOCKOUT_EXPIRY = 200 * USECS_PER_MSEC;
     _expiry = usecTimestampNow() + OWNERSHIP_LOCKOUT_EXPIRY;
 }
 

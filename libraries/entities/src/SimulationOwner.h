@@ -88,11 +88,12 @@
 //    (15) When an entity is still active but the owner no longer wants to own it, it will drop its priority
 //         to YIELD (=1, less than VOLUNTEER) thereby signalling to other participants to bid for it.
 //
-const uint8_t VOLUNTEER_SIMULATION_PRIORITY = 0x01;
+const uint8_t YIELD_SIMULATION_PRIORITY = 1;
+const uint8_t VOLUNTEER_SIMULATION_PRIORITY = YIELD_SIMULATION_PRIORITY + 1;
 const uint8_t RECRUIT_SIMULATION_PRIORITY = VOLUNTEER_SIMULATION_PRIORITY + 1;
 
 // When poking objects with scripts an observer will bid at SCRIPT_EDIT priority.
-const uint8_t SCRIPT_GRAB_SIMULATION_PRIORITY = 0x80;
+const uint8_t SCRIPT_GRAB_SIMULATION_PRIORITY = 128;
 const uint8_t SCRIPT_POKE_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY - 1;
 const uint8_t AVATAR_ENTITY_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY + 1;
 
