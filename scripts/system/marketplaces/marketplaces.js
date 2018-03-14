@@ -445,6 +445,12 @@ var selectionDisplay = null; // for gridTool.js to ignore
             } else if (parsedJsonMessage.type === "PURCHASES") {
                 referrerURL = parsedJsonMessage.referrerURL;
                 filterText = "";
+                if (parsedJsonMessage.hasUpdates) {
+                    wireEventBridge(true);
+                    tablet.sendToQml({
+                        method: 'showUpdates'
+                    });
+                }
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
             } else if (parsedJsonMessage.type === "LOGIN") {
                 openLoginWindow();

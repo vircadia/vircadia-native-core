@@ -768,6 +768,9 @@ Rectangle {
             case 'purchases_showMyItems':
                 root.isShowingMyItems = true;
             break;
+            case 'showUpdates':
+                //primaryFilter;
+            break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
         }

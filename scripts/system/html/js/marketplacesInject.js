@@ -213,13 +213,15 @@
             purchasesElement.innerHTML += "My Purchases";
             // FRONTEND WEBDEV RANT: The username dropdown should REALLY not be programmed to be on the same
             //     line as the search bar, overlaid on top of the search bar, floated right, and then relatively bumped up using "top:-50px".
+            $('.navbar-brand').css('margin-right', '10px');
             purchasesElement.style = "height:100%;margin-top:18px;font-weight:bold;float:right;margin-right:" + (dropDownElement.offsetWidth + 30) +
                 "px;position:relative;z-index:999;";
             navbarBrandElement.parentNode.insertAdjacentElement('beforeend', purchasesElement);
             $('#purchasesButton').on('click', function () {
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: "PURCHASES",
-                    referrerURL: window.location.href
+                    referrerURL: window.location.href,
+                    hasUpdates: messagesWaiting
                 }));
             });
         }
