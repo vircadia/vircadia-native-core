@@ -476,6 +476,7 @@ void EntityScriptServer::clear() {
         // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
         _entitiesScriptEngine->unloadAllEntityScripts();
         _entitiesScriptEngine->stop();
+        _entitiesScriptEngine->waitTillDoneRunning();
     }
 
     _entityViewer.clear();
