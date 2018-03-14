@@ -181,7 +181,17 @@ bool OffscreenSurface::eventFilter(QObject* originalDestination, QEvent* event) 
             }
             break;
         }
-        case QEvent::InputMethod:
+        case QEvent::InputMethod: {
+            auto window = getWindow();
+            if (window && window->activeFocusItem()) {
+                event->ignore();
+                if (QCoreApplication::sendEvent(window->activeFocusItem(), event)) {
+                    return event->isAccepted();
+                }
+                return false;
+            }
+            break;
+        }
         case QEvent::InputMethodQuery: {
             auto window = getWindow();
             if (window && window->activeFocusItem()) {
