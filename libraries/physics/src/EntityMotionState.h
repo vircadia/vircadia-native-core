@@ -25,6 +25,7 @@
 class EntityMotionState : public ObjectMotionState {
 public:
 
+    EntityMotionState() = delete;
     EntityMotionState(btCollisionShape* shape, EntityItemPointer item);
     virtual ~EntityMotionState();
 

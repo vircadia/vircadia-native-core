@@ -67,6 +67,7 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     _accelerationNearlyGravityCount(0),
     _numInactiveUpdates(1)
 {
+    // EntityMotionState keeps a SharedPointer to its EntityItem which is only set in the CTOR
     _type = MOTIONSTATE_TYPE_ENTITY;
     assert(_entity);
     assert(entityTreeIsLocked());
@@ -80,6 +81,7 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
 
 EntityMotionState::~EntityMotionState() {
     if (_entity) {
+        // EntityMotionState keeps a SharedPointer to its EntityItem which is only cleared in the DTOR
         assert(_entity->getPhysicsInfo() == this);
         _entity->setPhysicsInfo(nullptr);
         _entity.reset();
@@ -127,7 +129,7 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
 
     if (flags & Simulation::DIRTY_SIMULATOR_ID) {
         if (_entity->getSimulatorID().isNull()) {
-            // simulation ownership has been removed by an external simulator
+            // simulation ownership has been removed
             if (glm::length2(_entity->getWorldVelocity()) == 0.0f) {
                 // this object is coming to rest --> clear the ACTIVATION flag and _outgoingPriority
                 flags &= ~Simulation::DIRTY_PHYSICS_ACTIVATION;
@@ -630,7 +632,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         _entity->rememberHasSimulationOwnershipBid();
         // ...then reset _outgoingPriority
         _outgoingPriority = 0;
-        // _outgoingPrioriuty will be re-computed before next bid,
+        // _outgoingPriority will be re-computed before next bid,
         // or will be set to agree with ownership priority should we win the bid
     } else if (_outgoingPriority != _entity->getSimulationPriority()) {
         // we own the simulation but our desired priority has changed
