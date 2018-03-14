@@ -67,7 +67,6 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     _accelerationNearlyGravityCount(0),
     _numInactiveUpdates(1)
 {
-    // EntityMotionState keeps a SharedPointer to its EntityItem which is only set in the CTOR
     _type = MOTIONSTATE_TYPE_ENTITY;
     assert(_entity);
     assert(entityTreeIsLocked());
@@ -81,7 +80,6 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
 
 EntityMotionState::~EntityMotionState() {
     if (_entity) {
-        // EntityMotionState keeps a SharedPointer to its EntityItem which is only cleared in the DTOR
         assert(_entity->getPhysicsInfo() == this);
         _entity->setPhysicsInfo(nullptr);
         _entity.reset();

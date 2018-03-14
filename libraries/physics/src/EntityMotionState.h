@@ -99,12 +99,8 @@ protected:
     void setShape(const btCollisionShape* shape) override;
     void setMotionType(PhysicsMotionType motionType) override;
 
-    // In the glorious future (when entities lib depends on physics lib) the EntityMotionState will be
-    // properly "owned" by the EntityItem and will be deleted by it in the dtor.  In pursuit of that
-    // state of affairs we can't keep a real EntityItemPointer as data member (it would produce a
-    // recursive dependency).  Instead we keep a EntityItemWeakPointer to break that dependency while
-    // still granting us the capability to generate EntityItemPointers as necessary (for external data
-    // structures that use the MotionState to get to the EntityItem).
+    // EntityMotionState keeps a SharedPointer to its EntityItem which is only set in the CTOR
+    // and is only cleared in the DTOR
     EntityItemPointer _entity;
 
     bool _serverVariablesSet { false };
