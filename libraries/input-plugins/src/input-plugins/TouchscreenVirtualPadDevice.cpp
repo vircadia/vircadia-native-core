@@ -60,6 +60,8 @@ void TouchscreenVirtualPadDevice::init() {
     if (_fixedPosition) {
         virtualPadManager.getLeftVirtualPad()->setShown(virtualPadManager.isEnabled() && !virtualPadManager.isHidden()); // Show whenever it's enabled
     }
+
+    KeyboardMouseDevice::enableTouch(false); // Touch for view controls is managed by this plugin
 }
 
 void TouchscreenVirtualPadDevice::setupFixedCenter(VirtualPad::Manager& virtualPadManager, bool force) {
@@ -212,7 +214,6 @@ void TouchscreenVirtualPadDevice::touchBeginEvent(const QTouchEvent* event) {
     if (!virtualPadManager.isEnabled() && !virtualPadManager.isHidden()) {
         return;
     }
-    KeyboardMouseDevice::enableTouch(false);
 }
 
 void TouchscreenVirtualPadDevice::touchEndEvent(const QTouchEvent* event) {
@@ -225,7 +226,6 @@ void TouchscreenVirtualPadDevice::touchEndEvent(const QTouchEvent* event) {
     // touch end here is a big reset -> resets both pads
     _touchPointCount = 0;
     _unusedTouches.clear();
-    KeyboardMouseDevice::enableTouch(true);
     debugPoints(event, " END ----------------");
     moveTouchEnd();
     viewTouchEnd();
