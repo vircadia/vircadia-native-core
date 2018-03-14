@@ -365,15 +365,6 @@ Var GAClientID
 !macro InitGAClientID
   ; Generate a new GUID on every run for now
   !insertmacro CreateGUID $GAClientID
-
-  ; Push $0
-  ; ReadRegStr $GAClientID HKLM "@REGISTRY_HKLM_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "@CLIENT_ID_REG_KEY@"
-  ; ${REMatches} $0 "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" $GAClientID 0
-  ; ${If} $0 == false
-  ;   !insertmacro CreateGUID $GAClientID
-  ;   WriteRegStr HKLM "@REGISTRY_HKLM_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "@CLIENT_ID_REG_KEY@" $GAClientID
-  ; ${EndIf}
-  ; Pop $0
 !macroend
 
 !macro GoogleAnalytics Category Action Label Value
@@ -1103,7 +1094,7 @@ SectionEnd
         /SD IDCANCEL IDRETRY Prompt_${UniqueID} IDCANCEL 0
       ${EndIf}
 
-      !insertmacro GoogleAnalytics "Installer" "Abort" "AppRunning" "${displayName}"
+      !insertmacro GoogleAnalytics "Installer" "Abort" "${displayName} Running" ""
 
       ; If the user decided to cancel, stop the current installer/uninstaller
       Abort
