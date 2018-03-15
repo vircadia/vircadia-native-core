@@ -117,8 +117,19 @@ var selectionDisplay = null; // for gridTool.js to ignore
 
     var onWalletScreen = false;
     var onCommerceScreen = false;
+    var tabletShouldBeVisibleInSecondaryCamera = false;
 
     function setTabletVisibleInSecondaryCamera(visibleInSecondaryCam) {
+        if (visibleInSecondaryCam) {
+            // if we're potentially showing the tablet, only do so if it was visible before
+            if (!tabletShouldBeVisibleInSecondaryCamera) {
+                return;
+            }
+        } else {
+            // if we're hiding the tablet, check to see if it was visible in the first place
+            tabletShouldBeVisibleInSecondaryCamera = Overlays.getProperty(HMD.tabletID, "isVisibleInSecondaryCamera");
+        }
+
         Overlays.editOverlay(HMD.tabletID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
         Overlays.editOverlay(HMD.homeButtonID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
         Overlays.editOverlay(HMD.homeButtonHighlightIDtabletID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
