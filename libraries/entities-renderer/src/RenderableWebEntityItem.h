@@ -47,15 +47,19 @@ private:
     bool buildWebSurface(const TypedEntityPointer& entity);
     void destroyWebSurface();
     bool hasWebSurface();
-    void loadSourceURL();
     glm::vec2 getWindowSize(const TypedEntityPointer& entity) const;
 
+
     int _geometryId{ 0 };
-    enum contentType {
-        htmlContent,
-        qmlContent
+    enum class ContentType {
+        NoContent,
+        HtmlContent,
+        QmlContent
     };
-    contentType _contentType;
+
+    static ContentType getContentType(const QString& urlString);
+
+    ContentType _contentType{ ContentType::NoContent };
     QSharedPointer<OffscreenQmlSurface> _webSurface;
     glm::vec3 _contextPosition;
     gpu::TexturePointer _texture;

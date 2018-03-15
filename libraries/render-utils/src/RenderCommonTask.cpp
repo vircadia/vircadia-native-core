@@ -98,6 +98,12 @@ void CompositeHUD::run(const RenderContextPointer& renderContext) {
     // Grab the HUD texture
 #if !defined(DISABLE_QML)
     gpu::doInBatch("CompositeHUD", renderContext->args->_context, [&](gpu::Batch& batch) {
+        glm::mat4 projMat;
+        Transform viewMat;
+        renderContext->args->getViewFrustum().evalProjectionMatrix(projMat);
+        renderContext->args->getViewFrustum().evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat, true);
         if (renderContext->args->_hudOperator) {
             renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
         }

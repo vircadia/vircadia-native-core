@@ -17,7 +17,7 @@ var currentSelectedBtn;
 
 var SETTING_CURRENT_MODE_KEY = 'Android/Mode';
 var MODE_VR = "VR", MODE_RADAR = "RADAR", MODE_MY_VIEW = "MY VIEW";
-var DEFAULT_MODE = MODE_RADAR;
+var DEFAULT_MODE = MODE_MY_VIEW;
 var logEnabled = true;
 
 var radar = Script.require('./radar.js');
