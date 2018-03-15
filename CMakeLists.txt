@@ -1,4 +1,4 @@
-# If we're running under the gradle build, HIFI_ANDROID will be set here, but 
+# If we're running under the gradle build, HIFI_ANDROID will be set here, but
 # ANDROID will not be set until after the `project` statement.  This is the *ONLY*
 # place you need to use `HIFI_ANDROID` instead of `ANDROID`
 if (WIN32 AND NOT HIFI_ANDROID)
@@ -60,8 +60,6 @@ else()
     option(DISABLE_QML "Disable QML" OFF)
 endif()
 option(DISABLE_KTX_CACHE "Disable KTX Cache" OFF)
-
-
 
 set(PLATFORM_QT_GL OpenGL)
 
@@ -132,8 +130,8 @@ set_packaging_parameters()
 
 # FIXME hack to work on the proper Android toolchain
 if (ANDROID)
-    add_subdirectory(android/app)
-    return()
+  add_subdirectory(android/app)
+  return()
 endif()
 
 # add subdirectories for all targets
@@ -148,16 +146,18 @@ if (BUILD_SERVER)
 endif()
 
 if (BUILD_CLIENT)
-    add_subdirectory(interface)
-    set_target_properties(interface PROPERTIES FOLDER "Apps")
-    if (ANDROID)
-        add_subdirectory(gvr-interface)
-        set_target_properties(gvr-interface PROPERTIES FOLDER "Apps")
-    endif()
+  add_subdirectory(interface)
+  set_target_properties(interface PROPERTIES FOLDER "Apps")
+  if (ANDROID)
+    add_subdirectory(gvr-interface)
+    set_target_properties(gvr-interface PROPERTIES FOLDER "Apps")
+  endif()
+
+  option(USE_SIXENSE "Build Interface with sixense library/plugin" OFF)
 endif()
 
 if (BUILD_CLIENT OR BUILD_SERVER)
-    add_subdirectory(plugins)
+  add_subdirectory(plugins)
 endif()
 
 # BUILD_TOOLS option will be handled inside the tools's CMakeLists.txt because 'scribe' tool is required for build anyway
