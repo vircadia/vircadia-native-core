@@ -120,7 +120,6 @@ void EntityMotionState::handleDeactivation() {
 
 // virtual
 void EntityMotionState::handleEasyChanges(uint32_t& flags) {
-    assert(_entity);
     assert(entityTreeIsLocked());
     updateServerPhysicsVariables();
     ObjectMotionState::handleEasyChanges(flags);
@@ -177,7 +176,6 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
 
 // virtual
 bool EntityMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
-    assert(_entity);
     updateServerPhysicsVariables();
     return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
 }
@@ -255,7 +253,6 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
 // This callback is invoked by the physics simulation at the end of each simulation step...
 // iff the corresponding RigidBody is DYNAMIC and ACTIVE.
 void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
-    assert(_entity);
     assert(entityTreeIsLocked());
     measureBodyAcceleration();
 
@@ -327,17 +324,24 @@ void EntityMotionState::setShape(const btCollisionShape* shape) {
 
 bool EntityMotionState::isCandidateForOwnership() const {
     assert(_body);
-    assert(_entity);
     assert(entityTreeIsLocked());
-    return _outgoingPriority != 0
-        || isLocallyOwned()
-        || _entity->dynamicDataNeedsTransmit();
+    if (isLocallyOwned()) {
+        return true;
+    } else if (_entity->getClientOnly()) {
+        // don't send updates for someone else's avatarEntities
+        return false;
+    }
+    return _outgoingPriority != 0 || _entity->dynamicDataNeedsTransmit();
 }
 
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
-    DETAILED_PROFILE_RANGE(simulation_physics, "CheckOutOfSync");
     // NOTE: we only get here if we think we own the simulation
+    DETAILED_PROFILE_RANGE(simulation_physics, "CheckOutOfSync");
     assert(_body);
+
+    // Since we own the simulation: make sure _outgoingPriority is not less than current owned priority
+    // because: an _outgoingPriority of zero indicates that we should drop ownership when we have it.
+    upgradeOutgoingPriority(_entity->getSimulationPriority());
 
     bool parentTransformSuccess;
     Transform localToWorld = _entity->getParentTransform(parentTransformSuccess);
@@ -417,10 +421,6 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         return true;
     }
 
-    if (_entity->shouldSuppressLocationEdits()) {
-        return false;
-    }
-
     // Else we measure the error between current and extrapolated transform (according to expected behavior
     // of remote EntitySimulation) and return true if the error is significant.
 
@@ -491,14 +491,11 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     DETAILED_PROFILE_RANGE(simulation_physics, "ShouldSend");
     // NOTE: we expect _entity and _body to be valid in this context, since shouldSendUpdate() is only called
     // after doesNotNeedToSendUpdate() returns false and that call should return 'true' if _entity or _body are NULL.
-    assert(_entity);
     assert(_body);
     assert(entityTreeIsLocked());
 
-    if (_entity->getClientOnly() && _entity->getOwningAvatarID() != Physics::getSessionUUID()) {
-        // don't send updates for someone else's avatarEntities
-        return false;
-    }
+    // this case prevented by isCandidateForOwnership()
+    assert(!(_entity->getClientOnly() && _entity->getOwningAvatarID() != Physics::getSessionUUID()));
 
     if (_entity->dynamicDataNeedsTransmit() || _entity->queryAACubeNeedsUpdate()) {
         return true;
@@ -523,10 +520,6 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
             _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
         }
         return shouldBid;
-    } else {
-        // When we own the simulation: make sure _outgoingPriority is not less than current owned priority
-        // because: an _outgoingPriority of zero indicates that we should drop ownership when we have it.
-        upgradeOutgoingPriority(_entity->getSimulationPriority());
     }
 
     return remoteSimulationOutOfSync(simulationStep);
@@ -534,7 +527,6 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step) {
     DETAILED_PROFILE_RANGE(simulation_physics, "Send");
-    assert(_entity);
     assert(entityTreeIsLocked());
 
     if (!_body->isActive()) {
@@ -807,7 +799,6 @@ QString EntityMotionState::getName() const {
 
 // virtual
 void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
-    assert(_entity);
     _entity->computeCollisionGroupAndFinalMask(group, mask);
 }
 
