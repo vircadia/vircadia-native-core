@@ -20,6 +20,7 @@
 #include <QJsonArray>
 #include <QProcess>
 #include <QSharedMemory>
+#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QTimer>
 #include <QUrlQuery>
@@ -2133,9 +2134,10 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             _contentManager->getAllBackupsAndStatus(deferred);
             return true;
         } else if (url.path().startsWith(URI_API_BACKUPS_ID)) {
+            constexpr const char* CONTENT_TYPE_ZIP = "application/zip";
             auto id = url.path().mid(QString(URI_API_BACKUPS_ID).length());
             auto deferred = makePromise("consolidateBackup");
-            deferred->then([connectionPtr, JSON_MIME_TYPE](QString error, QVariantMap result) {
+            deferred->then([connectionPtr, JSON_MIME_TYPE, id](QString error, QVariantMap result) {
                 if (!connectionPtr) {
                     return;
                 }
@@ -2146,7 +2148,12 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     auto path = result["backupFilePath"].toString();
                     auto file { std::unique_ptr<QFile>(new QFile(path)) };
                     if (file->open(QIODevice::ReadOnly)) {
-                        connectionPtr->respond(HTTPConnection::StatusCode200, std::move(file));
+                        auto downloadedFilename = id;
+                        downloadedFilename.replace(QRegularExpression(".zip$"), ".content.zip");
+                        auto contentDisposition = "attachment; filename=\"" + downloadedFilename + "\"";
+                        connectionPtr->respond(HTTPConnection::StatusCode200, std::move(file), CONTENT_TYPE_ZIP, {
+                            { "Content-Disposition", contentDisposition.toUtf8() }
+                        });
                     } else {
                         qCritical(domain_server) << "Unable to load consolidated backup at:" << path << result;
                         connectionPtr->respond(HTTPConnection::StatusCode500, "Error opening backup");
