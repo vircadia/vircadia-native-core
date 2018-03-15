@@ -135,12 +135,12 @@ void TouchscreenVirtualPadDevice::processInputDeviceForView() {
     rightDistanceScaleX = (_viewCurrentTouchPoint.x - _viewRefTouchPoint.x) / _screenDPIScale.x;
     rightDistanceScaleY = (_viewCurrentTouchPoint.y - _viewRefTouchPoint.y) / _screenDPIScale.y;
 
-    rightDistanceScaleX = clip(rightDistanceScaleX, -STICK_RADIUS_INCHES, STICK_RADIUS_INCHES);
-    rightDistanceScaleY = clip(rightDistanceScaleY, -STICK_RADIUS_INCHES, STICK_RADIUS_INCHES);
+    rightDistanceScaleX = clip(rightDistanceScaleX, -_viewStickRadiusInches, _viewStickRadiusInches);
+    rightDistanceScaleY = clip(rightDistanceScaleY, -_viewStickRadiusInches, _viewStickRadiusInches);
 
     // NOW BETWEEN -1 1
-    rightDistanceScaleX /= STICK_RADIUS_INCHES;
-    rightDistanceScaleY /= STICK_RADIUS_INCHES;
+    rightDistanceScaleX /= _viewStickRadiusInches;
+    rightDistanceScaleY /= _viewStickRadiusInches;
 
     _inputDevice->_axisStateMap[controller::RX] = rightDistanceScaleX;
     _inputDevice->_axisStateMap[controller::RY] = rightDistanceScaleY;
