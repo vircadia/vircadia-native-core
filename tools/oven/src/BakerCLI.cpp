@@ -28,7 +28,7 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
 
     // if the URL doesn't have a scheme, assume it is a local file
     if (inputUrl.scheme() != "http" && inputUrl.scheme() != "https" && inputUrl.scheme() != "ftp") {
-        inputUrl.setScheme("file");
+        inputUrl = QUrl::fromLocalFile(inputUrl.toString());
     }
 
     qDebug() << "Baking file type: " << type;
