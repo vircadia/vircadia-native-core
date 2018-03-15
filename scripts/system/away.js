@@ -38,7 +38,7 @@ var OVERLAY_DATA_HMD = {
     localRotation: {x: 0, y: 0, z: 0, w: 1},
     width: OVERLAY_WIDTH,
     height: OVERLAY_HEIGHT,
-	imageURL: Script.resolvePath("assets/images/Overlay-Viz-blank.png"),
+	url: Script.resolvePath("assets/images/Overlay-Viz-blank.png"),
     color: {red: 255, green: 255, blue: 255},
     alpha: 1,
     scale: 2 * MyAvatar.sensorToWorldScale,
