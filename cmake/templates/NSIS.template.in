@@ -855,6 +855,9 @@ Section "-Core installation"
   ; Rename the incorrectly cased Raleway font
   Rename "$INSTDIR\resources\qml\styles-uit\RalewaySemibold.qml" "$INSTDIR\resources\qml\styles-uit\RalewaySemiBold.qml"
 
+  ; Remove the Old Interface directory and vcredist_x64.exe (from installs prior to Server Console)
+  RMDir /r "$INSTDIR\Interface"
+
   ;Use the entire tree produced by the INSTALL target.  Keep the
   ;list of directories here in sync with the RMDir commands below.
   SetOutPath "$INSTDIR"
@@ -970,7 +973,7 @@ SectionEnd
     ${If} $R0 == 0
 
       ; the process is running, ask the user to close it
-      
+
       ${If} "${displayName}" == "@CONSOLE_DISPLAY_NAME@"
       MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION \
         "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nPlease close it in the system tray and click Retry to continue." \
