@@ -2134,7 +2134,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             _contentManager->getAllBackupsAndStatus(deferred);
             return true;
         } else if (url.path().startsWith(URI_API_BACKUPS_ID)) {
-            constexpr const char* CONTENT_TYPE_ZIP = "application/zip";
             auto id = url.path().mid(QString(URI_API_BACKUPS_ID).length());
             auto deferred = makePromise("consolidateBackup");
             deferred->then([connectionPtr, JSON_MIME_TYPE, id](QString error, QVariantMap result) {
@@ -2148,6 +2147,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     auto path = result["backupFilePath"].toString();
                     auto file { std::unique_ptr<QFile>(new QFile(path)) };
                     if (file->open(QIODevice::ReadOnly)) {
+                        constexpr const char* CONTENT_TYPE_ZIP = "application/zip";
+
                         auto downloadedFilename = id;
                         downloadedFilename.replace(QRegularExpression(".zip$"), ".content.zip");
                         auto contentDisposition = "attachment; filename=\"" + downloadedFilename + "\"";
