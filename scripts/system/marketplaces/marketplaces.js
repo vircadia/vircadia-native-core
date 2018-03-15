@@ -9,7 +9,8 @@
 //
 
 /* global Tablet, Script, HMD, UserActivityLogger, Entities, Account, Wallet, ContextOverlay, Settings, Camera, Vec3,
-   Quat, MyAvatar, Clipboard, Menu, Grid, Uuid, GlobalServices, openLoginWindow */
+   Quat, MyAvatar, Clipboard, Menu, Grid, Uuid, GlobalServices, openLoginWindow, Overlays, SoundCache,
+   DesktopPreviewProvider */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 var selectionDisplay = null; // for gridTool.js to ignore
@@ -117,6 +118,13 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var onWalletScreen = false;
     var onCommerceScreen = false;
 
+    function setTabletVisibleInSecondaryCamera(visibleInSecondaryCam) {
+        Overlays.editOverlay(HMD.tabletID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
+        Overlays.editOverlay(HMD.homeButtonID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
+        Overlays.editOverlay(HMD.homeButtonHighlightIDtabletID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
+        Overlays.editOverlay(HMD.tabletScreenID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
+    }
+
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
         var onWalletScreenNow = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
@@ -127,6 +135,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
             if (isHmdPreviewDisabledBySecurity) {
                 DesktopPreviewProvider.setPreviewDisabledReason("USER");
                 Menu.setIsOptionChecked("Disable Preview", false);
+                setTabletVisibleInSecondaryCamera(true);
                 isHmdPreviewDisabledBySecurity = false;
             }
         }
@@ -245,7 +254,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
         var wearableDimensions = null;
 
         if (itemType === "contentSet") {
-            console.log("Item is a content set; codepath shouldn't go here.")
+            console.log("Item is a content set; codepath shouldn't go here.");
             return;
         }
 
@@ -575,6 +584,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 if (!isHmdPreviewDisabled) {
                     DesktopPreviewProvider.setPreviewDisabledReason("SECURE_SCREEN");
                     Menu.setIsOptionChecked("Disable Preview", true);
+                    setTabletVisibleInSecondaryCamera(false);
                     isHmdPreviewDisabledBySecurity = true;
                 }
                 break;
@@ -582,6 +592,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 if (isHmdPreviewDisabledBySecurity) {
                     DesktopPreviewProvider.setPreviewDisabledReason("USER");
                     Menu.setIsOptionChecked("Disable Preview", false);
+                    setTabletVisibleInSecondaryCamera(true);
                     isHmdPreviewDisabledBySecurity = false;
                 }
                 break;
