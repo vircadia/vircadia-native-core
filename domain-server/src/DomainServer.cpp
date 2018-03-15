@@ -727,7 +727,7 @@ void DomainServer::setupNodeListAndAssignments() {
     packetReceiver.registerListener(PacketType::OctreeDataPersist, this, "processOctreeDataPersistMessage");
 
     packetReceiver.registerListener(PacketType::OctreeFileReplacement, this, "handleOctreeFileReplacementRequest");
-    packetReceiver.registerListener(PacketType::OctreeFileReplacementFromUrl, this, "handleOctreeFileReplacementFromURLRequest");
+    packetReceiver.registerListener(PacketType::DomainContentReplacementFromUrl, this, "handleDomainContentReplacementFromURLRequest");
 
     // set a custom packetVersionMatch as the verify packet operator for the udt::Socket
     nodeList->setPacketFilterOperator(&DomainServer::isPacketVerified);
@@ -736,7 +736,6 @@ void DomainServer::setupNodeListAndAssignments() {
     auto assetClient = DependencyManager::set<AssetClient>();
     assetClient->moveToThread(&_assetClientThread);
     _assetClientThread.start();
-
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
 }
@@ -3429,13 +3428,10 @@ void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
     }
 }
 
-void DomainServer::handleOctreeFileReplacementFromURLRequest(QSharedPointer<ReceivedMessage> message) {
+void DomainServer::handleDomainContentReplacementFromURLRequest(QSharedPointer<ReceivedMessage> message) {
     qInfo() << "Received request to replace content from a url";
     auto node = DependencyManager::get<LimitedNodeList>()->findNodeWithAddr(message->getSenderSockAddr());
-    if (node) {
-        qDebug() << "Found node: " << node->getCanReplaceContent();
-    }
-    if (node->getCanReplaceContent()) {
+    if (node && node->getCanReplaceContent()) {
         // Convert message data into our URL
         QString url(message->getMessage());
         QUrl modelsURL = QUrl(url, QUrl::StrictMode);
@@ -3448,16 +3444,18 @@ void DomainServer::handleOctreeFileReplacementFromURLRequest(QSharedPointer<Rece
         connect(reply, &QNetworkReply::finished, [this, reply, modelsURL]() {
             QNetworkReply::NetworkError networkError = reply->error();
             if (networkError == QNetworkReply::NoError) {
-                handleOctreeFileReplacement(reply->readAll());
+                if (modelsURL.fileName().endsWith(".json.gz")) {
+                    handleOctreeFileReplacement(reply->readAll());
+                } else if (modelsURL.fileName().endsWith(".zip")) {
+                    auto deferred = makePromise("recoverFromUploadedBackup");
+                    _contentManager->recoverFromUploadedBackup(deferred, reply->readAll());
+                }
             } else {
                 qDebug() << "Error downloading JSON from specified file: " << modelsURL;
             }
         });
     }
 }
-
-
-
 
 void DomainServer::handleOctreeFileReplacementRequest(QSharedPointer<ReceivedMessage> message) {
     auto node = DependencyManager::get<NodeList>()->nodeWithUUID(message->getSourceID());
