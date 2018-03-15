@@ -3048,15 +3048,9 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 #if !defined(Q_OS_ANDROID)
         showHelp();
 #endif
-        if (sandboxIsRunning) {
-            qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-            DependencyManager::get<AddressManager>()->goToLocalSandbox();
-            sentTo = SENT_TO_SANDBOX;
-        } else {
-            qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-            DependencyManager::get<AddressManager>()->goToEntry();
-            sentTo = SENT_TO_ENTRY;
-        }
+        qCDebug(interfaceapp) << "going to Entry.";
+        DependencyManager::get<AddressManager>()->goToEntry();
+        sentTo = SENT_TO_ENTRY;
         firstRun.set(false);
 
     } else {
