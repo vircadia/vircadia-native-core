@@ -266,8 +266,9 @@ public:
 
     float getGameLoopRate() const { return _gameLoopCounter.rate(); }
 
-    void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f);
-    void takeSecondaryCameraSnapshot();
+    void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
+    void takeSecondaryCameraSnapshot(const QString& filename = QString());
+
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
     graphics::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
@@ -283,6 +284,8 @@ public:
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
     void saveNextPhysicsStats(QString filename);
+
+    void replaceDomainContent(const QString& url);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -317,11 +320,11 @@ public slots:
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
     void addAssetToWorldFromURLRequestFinished();
-    void addAssetToWorld(QString filePath, QString zipFile, bool isZip, bool isBlocks);
+    void addAssetToWorld(QString filePath, QString zipFile, bool isZip = false, bool isBlocks = false);
     void addAssetToWorldUnzipFailure(QString filePath);
-    void addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy);
-    void addAssetToWorldUpload(QString filePath, QString mapping);
-    void addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash);
+    void addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy, bool isZip = false, bool isBlocks = false);
+    void addAssetToWorldUpload(QString filePath, QString mapping, bool isZip = false, bool isBlocks = false);
+    void addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash, bool isZip = false, bool isBlocks = false);
     void addAssetToWorldAddEntity(QString filePath, QString mapping);
 
     void handleUnzip(QString sourceFile, QStringList destinationFile, bool autoAdd, bool isZip, bool isBlocks);
@@ -365,6 +368,7 @@ public slots:
     void updateHeartbeat() const;
 
     static void deadlockApplication();
+    static void unresponsiveApplication(); // cause main thread to be unresponsive for 35 seconds
 
     void rotationModeChanged() const;
 
@@ -389,6 +393,8 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
 private slots:
+    void onDesktopRootItemCreated(QQuickItem* qmlContext);
+    void onDesktopRootContextCreated(QQmlContext* qmlContext);
     void showDesktop();
     void clearDomainOctreeDetails();
     void clearDomainAvatars();
@@ -469,6 +475,7 @@ private:
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
     bool importFromZIP(const QString& filePath);
+    bool importImage(const QString& urlString);
 
     bool nearbyEntitiesAreReadyForPhysics();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);

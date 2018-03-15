@@ -19,7 +19,7 @@ public: \
 private: \
     type _##name{ initialValue };
 
-class AvatarInputs : public QQuickItem {
+class AvatarInputs : public QObject {
     Q_OBJECT
     HIFI_QML_DECL
 
@@ -32,7 +32,7 @@ class AvatarInputs : public QQuickItem {
 public:
     static AvatarInputs* getInstance();
     Q_INVOKABLE float loudnessToAudioLevel(float loudness);
-    AvatarInputs(QQuickItem* parent = nullptr);
+    AvatarInputs(QObject* parent = nullptr);
     void update();
     bool showAudioTools() const   { return _showAudioTools; }
 

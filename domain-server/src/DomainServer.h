@@ -18,6 +18,7 @@
 #include <QtCore/QQueue>
 #include <QtCore/QSharedPointer>
 #include <QtCore/QStringList>
+#include <QtCore/QThread>
 #include <QtCore/QUrl>
 #include <QAbstractNativeEventFilter>
 
@@ -25,13 +26,19 @@
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
 
+#include "AssetsBackupHandler.h"
 #include "DomainGatekeeper.h"
 #include "DomainMetadata.h"
 #include "DomainServerSettingsManager.h"
 #include "DomainServerWebSessionData.h"
 #include "WalletTransaction.h"
+#include "DomainContentBackupManager.h"
 
 #include "PendingAssignedNodeData.h"
+
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(domain_server)
 
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
@@ -63,6 +70,8 @@ public:
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
     bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
 
+    static const QString REPLACEMENT_FILE_EXTENSION;
+
 public slots:
     /// Called by NodeList to inform us a node has been added
     void nodeAdded(SharedNodePointer node);
@@ -82,6 +91,13 @@ private slots:
     void processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message);
     void processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> message);
 
+    void handleOctreeFileReplacementFromURLRequest(QSharedPointer<ReceivedMessage> message);
+    void handleOctreeFileReplacementRequest(QSharedPointer<ReceivedMessage> message);
+    void handleOctreeFileReplacement(QByteArray octreeFile);
+
+    void processOctreeDataRequestMessage(QSharedPointer<ReceivedMessage> message);
+    void processOctreeDataPersistMessage(QSharedPointer<ReceivedMessage> message);
+
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
 
@@ -89,8 +105,7 @@ private slots:
     void sendHeartbeatToMetaverse() { sendHeartbeatToMetaverse(QString()); }
     void sendHeartbeatToIceServer();
 
-    void handleConnectedNode(SharedNodePointer newNode);
-
+    void handleConnectedNode(SharedNodePointer newNode); 
     void handleTempDomainSuccess(QNetworkReply& requestReply);
     void handleTempDomainError(QNetworkReply& requestReply);
 
@@ -107,8 +122,6 @@ private slots:
     void handleSuccessfulICEServerAddressUpdate(QNetworkReply& requestReply);
     void handleFailedICEServerAddressUpdate(QNetworkReply& requestReply);
 
-    void handleOctreeFileReplacement(QByteArray octreeFile);
-
     void updateReplicatedNodes();
     void updateDownstreamNodes();
     void updateUpstreamNodes();
@@ -124,6 +137,13 @@ signals:
 private:
     const QUuid& getID();
     void parseCommandLine();
+
+    QString getContentBackupDir();
+    QString getEntitiesDirPath();
+    QString getEntitiesFilePath();
+    QString getEntitiesReplacementFilePath();
+
+    void maybeHandleReplacementEntityFile();
 
     void setupNodeListAndAssignments();
     bool optionallySetupOAuth();
@@ -250,7 +270,11 @@ private:
     bool _sendICEServerAddressToMetaverseAPIInProgress { false };
     bool _sendICEServerAddressToMetaverseAPIRedo { false };
 
+    std::unique_ptr<DomainContentBackupManager> _contentManager { nullptr };
+
     QHash<QUuid, QPointer<HTTPSConnection>> _pendingOAuthConnections;
+
+    QThread _assetClientThread;
 };
 
 

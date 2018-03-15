@@ -75,8 +75,8 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
     ) {
 
     // Rotate surface normal and eye direction
-    vec3 ambientSpaceSurfaceNormal = (ambient.transform * vec4(surface.normal,   0.0)).xyz;
-    vec3 ambientSpaceSurfaceEyeDir = (ambient.transform * vec4(surface.eyeDir,   0.0)).xyz;
+    vec3 ambientSpaceSurfaceNormal = (ambient.transform * vec4(surface.normal, 0.0)).xyz;
+    vec3 ambientSpaceSurfaceEyeDir = (ambient.transform * vec4(surface.eyeDir, 0.0)).xyz;
 <@if supportScattering@>
     vec3 ambientSpaceLowNormal = (ambient.transform * vec4(lowNormalCurvature.xyz, 0.0)).xyz;
 <@endif@>

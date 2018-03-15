@@ -923,15 +923,14 @@ Item {
             anchors.leftMargin: 20;
             anchors.right: parent.right;
             anchors.rightMargin: 20;
-            height: 140;
-                
-            FontLoader { id: firaSansSemiBold; source: "../../../../../fonts/FiraSans-SemiBold.ttf"; }
+            height: 95;
+
             TextArea {
                 id: optionalMessage;
                 property int maximumLength: 72;
                 property string previousText: text;
                 placeholderText: "<i>Optional Public Message (" + maximumLength + " character limit)</i>";
-                font.family: firaSansSemiBold.name;
+                font.family: "Fira Sans SemiBold";
                 font.pixelSize: 20;
                 // Anchors
                 anchors.fill: parent;
@@ -947,8 +946,14 @@ Item {
                 wrapMode: TextEdit.Wrap;
                 activeFocusOnPress: true;
                 activeFocusOnTab: true;
-                // Workaround for no max length on TextAreas
                 onTextChanged: {
+                    // Don't allow tabs or newlines
+                    if ((/[\n\r\t]/g).test(text)) {
+                        var cursor = cursorPosition;
+                        text = text.replace(/[\n\r\t]/g, '');
+                        cursorPosition = cursor-1;
+                    }
+                    // Workaround for no max length on TextAreas
                     if (text.length > maximumLength) {
                         var cursor = cursorPosition;
                         text = previousText;

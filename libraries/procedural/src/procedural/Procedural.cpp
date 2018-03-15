@@ -241,7 +241,7 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         std::string fragmentShaderSource = _fragmentSource;
         size_t replaceIndex = fragmentShaderSource.find(PROCEDURAL_COMMON_BLOCK);
         if (replaceIndex != std::string::npos) {
-            fragmentShaderSource.replace(replaceIndex, PROCEDURAL_COMMON_BLOCK.size(), ProceduralCommon_frag);
+            fragmentShaderSource.replace(replaceIndex, PROCEDURAL_COMMON_BLOCK.size(), ProceduralCommon_frag::getSource());
         }
 
         replaceIndex = fragmentShaderSource.find(PROCEDURAL_VERSION);

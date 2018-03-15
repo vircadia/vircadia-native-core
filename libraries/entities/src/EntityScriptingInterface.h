@@ -145,6 +145,12 @@ public slots:
     Q_INVOKABLE bool canWriteAssets();
 
     /**jsdoc
+    * @function Entities.canReplaceContent
+    * @return {bool} `true` if the DomainServer will allow this Node/Avatar to replace the domain's content set
+    */
+    Q_INVOKABLE bool canReplaceContent();
+
+    /**jsdoc
      * Add a new entity with the specified properties. If `clientOnly` is true, the entity will
      * not be sent to the server and will only be visible/accessible on the local client.
      *
@@ -158,7 +164,7 @@ public slots:
 
     /// temporary method until addEntity can be used from QJSEngine
     /// Deliberately not adding jsdoc, only used internally.
-    Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const QString& shapeType, bool dynamic,
+    Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const QString& textures, const QString& shapeType, bool dynamic,
                                      const glm::vec3& position, const glm::vec3& gravity);
 
     /**jsdoc

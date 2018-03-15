@@ -33,7 +33,7 @@ size_t FileCacheTests::getCacheDirectorySize() const {
     return result;
 }
 
-FileCachePointer makeFileCache(QString& location) {
+FileCachePointer makeFileCache(QString location) {
     auto result = std::make_shared<FileCache>(location.toStdString(), "tmp");
     result->initialize();
     result->setMaxSize(MAX_UNUSED_SIZE);
@@ -53,7 +53,7 @@ void FileCacheTests::testUnusedFiles() {
             auto file = cache->writeFile(TEST_DATA.data(), FileCache::Metadata(key, TEST_DATA.size()));
             QVERIFY(file->_locked);
             inUseFiles.push_back(file);
-            
+
             QThread::msleep(10);
         }
         QCOMPARE(cache->getNumCachedFiles(), (size_t)0);
@@ -100,13 +100,13 @@ void FileCacheTests::testUnusedFiles() {
             inUseFiles.push_back(file);
 
             if (i == 94) {
-                // Each access touches the file, so we need to sleep here to ensure that the the last 5 files 
+                // Each access touches the file, so we need to sleep here to ensure that the the last 5 files
                 // have later times for cache ejection priority, otherwise the test runs too fast to reliably
-                // differentiate 
+                // differentiate
                 QThread::msleep(1000);
             }
         }
-        
+
         QCOMPARE(cache->getNumCachedFiles(), (size_t)0);
         QCOMPARE(cache->getNumTotalFiles(), (size_t)10);
         inUseFiles.clear();
@@ -119,7 +119,7 @@ size_t FileCacheTests::getFreeSpace() const {
     return QStorageInfo(_testDir.path()).bytesFree();
 }
 
-// FIXME if something else is changing the amount of free space on the target drive concurrently with this test 
+// FIXME if something else is changing the amount of free space on the target drive concurrently with this test
 // running, then it may fail
 void FileCacheTests::testFreeSpacePreservation() {
     QCOMPARE(getCacheDirectorySize(), MAX_UNUSED_SIZE);

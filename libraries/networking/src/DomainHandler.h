@@ -49,7 +49,7 @@ public:
     const QHostAddress& getIP() const { return _sockAddr.getAddress(); }
     void setIPToLocalhost() { _sockAddr.setAddress(QHostAddress(QHostAddress::LocalHost)); }
 
-    const HifiSockAddr& getSockAddr() { return _sockAddr; }
+    const HifiSockAddr& getSockAddr() const { return _sockAddr; }
     void setSockAddr(const HifiSockAddr& sockAddr, const QString& hostname);
 
     unsigned short getPort() const { return _sockAddr.getPort(); }

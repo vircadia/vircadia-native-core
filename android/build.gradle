@@ -137,16 +137,16 @@ def packages = [
 def scribeLocalFile='scribe' + EXEC_SUFFIX
 
 def scribeFile='scribe_linux_x86_64'
-def scribeChecksum='c98678d9726bd8bbf1bab792acf3ff6c'
-def scribeVersion='onfeBkJWcJiTwiGOyZPVBjlyhoYQ4Axn'
+def scribeChecksum='ca4b904f52f4f993c29175ba96798fa6'
+def scribeVersion='wgpf4dB2Ltzg4Lb2jJ4nPFsHoDkmK_OO'
 if (Os.isFamily(Os.FAMILY_MAC)) {
     scribeFile = 'scribe_osx_x86_64'
-    scribeChecksum='a137ad62c1bf7cca739da219544a9a16'
-    scribeVersion='kU.Aq512HVe65uRnkFEWQEqeQfaYF2c0'
+    scribeChecksum='72db9d32d4e1e50add755570ac5eb749'
+    scribeVersion='o_NbPrktzEYtBkQf3Tn7zc1nZWzM52w6'
 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
     scribeFile = 'scribe_win32_x86_64.exe'
-    scribeChecksum='75c2ce9ed45d17de375e3988bfaba816'
-    scribeVersion='24TfWFh1FBY.t6i_LdzAXZYeQOtmQNZp'
+    scribeChecksum='678e43d290c90fda670c6fefe038a06d'
+    scribeVersion='GCCJxlmd2irvNOFWfZR0U1UCLHndHQrC'
 }
 
 def options = [

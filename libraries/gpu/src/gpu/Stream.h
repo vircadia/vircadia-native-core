@@ -23,6 +23,8 @@
 
 namespace gpu {
 
+class Element;
+
 // Stream namespace class
 class Stream {
 public:
@@ -48,6 +50,8 @@ public:
     };
 
     typedef uint8 Slot;
+
+    static const std::array<Element, InputSlot::NUM_INPUT_SLOTS>& getDefaultElements();
 
     // Frequency describer
     enum Frequency {
