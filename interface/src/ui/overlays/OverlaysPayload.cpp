@@ -49,9 +49,9 @@ namespace render {
             builder.withInvisible();
         }
 
-        uint32_t viewTaskBits = overlay->getIsVisibleInSecondaryCamera() ?
-            render::ItemKey::TAG_BITS_ALL : // draw in all views
-            render::ItemKey::TAG_BITS_0; // only the main view
+        // always visible in primary view.  if isVisibleInSecondaryCamera, also draw in secondary view
+        uint32_t viewTaskBits = render::ItemKey::TAG_BITS_0 |
+            overlay->getIsVisibleInSecondaryCamera() ? render::ItemKey::TAG_BITS_1 : render::ItemKey::TAG_BITS_NONE;
 
         builder.withTagBits(viewTaskBits);
 
