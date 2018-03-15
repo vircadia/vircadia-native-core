@@ -71,6 +71,7 @@ public slots:
 protected:
     void makeRequest() override;
     void makeLocalRequest();
+    Q_INVOKABLE void handleLocalRequestCompleted();
 
     virtual bool isCacheable() const override { return _loaded; }
 

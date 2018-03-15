@@ -53,7 +53,7 @@ Enter the repository `android` directory
 
 Execute a gradle pre-build setup.  This step should only need to be done once
 
-`gradle setupDepedencies`
+`gradle setupDependencies`
 
 
 # Building & Running

@@ -44,6 +44,12 @@ namespace VirtualPad {
         void hide(bool hide);
         int extraBottomMargin();
         void setExtraBottomMargin(int margin);
+
+        static const float DPI;
+        static const float PIXEL_SIZE;
+        static const float STICK_RADIUS;
+        static const float BASE_MARGIN;
+
     private:
         Instance _leftVPadInstance;
         bool _enabled;

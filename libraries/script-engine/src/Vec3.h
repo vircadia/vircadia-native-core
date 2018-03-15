@@ -25,27 +25,36 @@
  * A 2-dimensional vector.
  *
  * @typedef {object} Vec2
- * @property {float} x X-coordinate of the vector.
- * @property {float} y Y-coordinate of the vector.
+ * @property {number} x - X-coordinate of the vector.
+ * @property {number} y - Y-coordinate of the vector.
  */
 
 /**jsdoc
  * A 3-dimensional vector.
  *
  * @typedef {object} Vec3
- * @property {float} x X-coordinate of the vector.
- * @property {float} y Y-coordinate of the vector.
- * @property {float} z Z-coordinate of the vector.
+ * @property {number} x - X-coordinate of the vector.
+ * @property {number} y - Y-coordinate of the vector.
+ * @property {number} z - Z-coordinate of the vector.
  */
 
 /**jsdoc
  * A 4-dimensional vector.
  *
  * @typedef {object} Vec4
- * @property {float} x X-coordinate of the vector.
- * @property {float} y Y-coordinate of the vector.
- * @property {float} z Z-coordinate of the vector.
- * @property {float} w W-coordinate of the vector.
+ * @property {number} x - X-coordinate of the vector.
+ * @property {number} y - Y-coordinate of the vector.
+ * @property {number} z - Z-coordinate of the vector.
+ * @property {number} w - W-coordinate of the vector.
+ */
+
+/**jsdoc
+ * A color vector.
+ *
+ * @typedef {object} Vec3Color
+ * @property {number} x - Red component value. Integer in the range <code>0</code> - <code>255</code>.
+ * @property {number} y - Green component value. Integer in the range <code>0</code> - <code>255</code>.
+ * @property {number} z - Blue component value. Integer in the range <code>0</code> - <code>255</code>.
  */
 
 /// Scriptable interface a Vec3ernion helper class object. Used exclusively in the JavaScript API
