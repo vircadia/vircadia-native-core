@@ -46,6 +46,14 @@ macro(GENERATE_INSTALLERS)
     set(UNINSTALLER_HEADER_IMAGE "")
     fix_path_for_nsis(${_UNINSTALLER_HEADER_BAD_PATH} UNINSTALLER_HEADER_IMAGE)
 
+    # we use external libraries that still need the 120 (VS2013) redistributables
+    # so we include them as well until those external libraries are updated
+    # to use the redistributables that match what we build our applications for
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS
+      "C:/Windows/System32/msvcp120.dll"
+      "C:/Windows/System32/msvcr120.dll"
+    )
+
     set(CMAKE_INSTALL_UCRT_LIBRARIES TRUE)
     set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ${INTERFACE_INSTALL_DIR})
     set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT ${CLIENT_COMPONENT})
