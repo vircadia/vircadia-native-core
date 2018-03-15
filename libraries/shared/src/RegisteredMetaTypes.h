@@ -363,12 +363,13 @@ public:
 
     /**jsdoc
      * Get the position of a vertex in the mesh.
-     * @function MeshProxy#getPos3
+     * @function MeshProxy#getPos
      * @param {number} index - Integer index of the mesh vertex.
      * @returns {Vec3} Local position of the vertex relative to the mesh.
      * @deprecated Use the {@link Graphics} API instead.
      */
-    Q_INVOKABLE virtual glm::vec3 getPos3(int index) const = 0;
+    Q_INVOKABLE virtual glm::vec3 getPos(int index) const = 0;
+    Q_INVOKABLE virtual glm::vec3 getPos3(int index) const { return getPos(index); } // deprecated
 };
 
 Q_DECLARE_METATYPE(MeshProxy*);
