@@ -56,7 +56,7 @@ public:
     virtual void setDrawInFront(bool value) { _drawInFront = value; }
     virtual void setDrawHUDLayer(bool value) { _drawHUDLayer = value; }
     void setIsGrabbable(bool value) { _isGrabbable = value; }
-    void setIsVisibleInSecondaryCamera(bool value) { _isVisibleInSecondaryCamera = value; }
+    virtual void setIsVisibleInSecondaryCamera(bool value) { _isVisibleInSecondaryCamera = value; }
 
     virtual AABox getBounds() const override = 0;
 
