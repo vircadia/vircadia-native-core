@@ -1114,7 +1114,8 @@ void MyAvatar::setEnableDebugDrawIKChains(bool isEnabled) {
 }
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
-    _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE, true);
+    // TODO: This should tell the main MetaRenderItem of the Avatar to be hidden to control vsisiblity since the model is culled by the MetaRI.
+    _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, true);
 }
 
 void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
