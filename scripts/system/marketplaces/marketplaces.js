@@ -445,12 +445,6 @@ var selectionDisplay = null; // for gridTool.js to ignore
             } else if (parsedJsonMessage.type === "PURCHASES") {
                 referrerURL = parsedJsonMessage.referrerURL;
                 filterText = "";
-                if (parsedJsonMessage.hasUpdates) {
-                    wireEventBridge(true);
-                    tablet.sendToQml({
-                        method: 'showUpdates'
-                    });
-                }
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
             } else if (parsedJsonMessage.type === "LOGIN") {
                 openLoginWindow();
@@ -553,13 +547,6 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 //tablet.popFromStack();
                 break;
             case 'header_goToPurchases':
-                if (message.hasUpdates) {
-                    wireEventBridge(true);
-                    tablet.sendToQml({
-                        method: 'showUpdates'
-                    });
-                }
-                // Fall through.
             case 'checkout_goToPurchases':
                 referrerURL = MARKETPLACE_URL_INITIAL;
                 filterText = message.filterText;

@@ -38,6 +38,7 @@ Rectangle {
     property int pendingItemCount: 0;
     property string installedApps;
     property bool keyboardRaised: false;
+    property int numUpdatesAvailable: 0;
     // Style
     color: hifi.colors.white;
     Connections {
@@ -127,6 +128,7 @@ Rectangle {
                 console.log("Failed to get Available Updates", result.data.message);
             } else {
                 sendToScript({method: 'purchases_availableUpdatesReceived', numUpdates: result.data.updates.length });
+                root.numUpdatesAvailable = result.data.updates.length;
             }
         }
     }
@@ -527,6 +529,64 @@ Rectangle {
             }
         }
 
+        Rectangle {
+            id: updatesAvailableBanner;
+            visible: true;
+            anchors.bottom: parent.bottom;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            height: 75;
+            color: "#B5EAFF";
+            
+            Rectangle {
+                id: updatesAvailableGlyph;
+                anchors.verticalCenter: parent.verticalCenter;
+                anchors.left: parent.left;
+                anchors.leftMargin: 16;
+                // Size
+                width: 10;
+                height: width;
+                radius: width/2;
+                // Style
+                color: "red";
+            }
+
+            RalewaySemiBold {
+                text: "You have " + root.numUpdatesAvailable + " item updates available.";
+                // Text size
+                size: 18;
+                // Anchors
+                anchors.left: updatesAvailableGlyph.right;
+                anchors.leftMargin: 12;
+                height: parent.height;
+                width: paintedWidth;
+                // Style
+                color: hifi.colors.black;
+                // Alignment
+                verticalAlignment: Text.AlignVCenter;
+            }
+
+            MouseArea {
+                anchors.fill: parent;
+                hoverEnabled: true;
+                propagateComposedEvents: false;
+            }
+
+            HifiControlsUit.Button {
+                color: hifi.buttons.white;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.verticalCenter: parent.verticalCenter;
+                anchors.right: parent.right;
+                anchors.rightMargin: 12;
+                width: 100;
+                height: 40;
+                text: "SHOW ME";
+                onClicked: {
+                    filterBar.changeFilterByDisplayName("Updatable");
+                }
+            }
+        }
+
         Item {
             id: noItemsAlertContainer;
             visible: !purchasesContentsList.visible &&
@@ -829,10 +889,6 @@ Rectangle {
             break;
             case 'purchases_showMyItems':
                 root.isShowingMyItems = true;
-            break;
-            case 'showUpdates':
-                // Uncomment and/or change this once we figure out what the correct behavior is.
-                //filterBar.changeFilterByDisplayName("Updatable");
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));

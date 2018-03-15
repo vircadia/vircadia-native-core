@@ -655,7 +655,7 @@ Item {
             anchors.bottom: parent.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            color: "#E7F8FB";
+            color: "#B5EAFF";
 
             RalewayRegular {
                 id: updateAvailableText;
