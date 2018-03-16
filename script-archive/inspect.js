@@ -56,7 +56,6 @@ var mode = noMode;
 var mouseLastX = 0;
 var mouseLastY = 0;
 
-
 var center = {
     x: 0,
     y: 0,
@@ -259,16 +258,16 @@ function mousePressEvent(event) {
         // Compute trajectories related values
         var pickRay = Camera.computePickRay(mouseLastX, mouseLastY);
         var modelIntersection = Entities.findRayIntersection(pickRay, true);
+        var avatarIntersection = AvatarList.findRayIntersection(pickRay);
 
         position = Camera.getPosition();
 
-        var distance = -1;
-        var string = "";
-
-        if (modelIntersection.intersects && modelIntersection.accurate) {
-            distance = modelIntersection.distance;
-            center = modelIntersection.intersection;
-            string = "Inspecting model";
+        if (avatarIntersection.intersects || (modelIntersection.intersects && modelIntersection.accurate)) {
+            if (avatarIntersection.intersects) {
+                center = avatarIntersection.intersection;
+            } else {
+                center = modelIntersection.intersection;
+            }
             // We've selected our target, now orbit towards it automatically
             rotatingTowardsTarget = true;
             // calculate our target cam rotation
@@ -284,7 +283,6 @@ function mousePressEvent(event) {
 
             isActive = true;
         }
-
     }
 }
 
