@@ -437,6 +437,12 @@ SectionEnd
   !define MUI_PAGE_CUSTOMFUNCTION_PRE PageComponentsPre
   @CPACK_NSIS_PAGE_COMPONENTS@
 
+  ; the MUI_PAGE_CUSTOMFUNCTION_PRE shouldn't be defined here
+  ; which can happen for a component-less (like client only) install
+  !ifdef MUI_PAGE_CUSTOMFUNCTION_PRE
+  !undef MUI_PAGE_CUSTOMFUNCTION_PRE
+  !endif
+
   Page custom PostInstallOptionsPage ReadPostInstallOptions
 
   !define MUI_PAGE_CUSTOMFUNCTION_PRE PageInstallFilesPre
