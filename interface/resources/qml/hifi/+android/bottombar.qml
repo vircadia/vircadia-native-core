@@ -25,7 +25,7 @@ import "."
 Item {
     id: bar
     x:0
-    height: 255;
+    height: 255
 
     property bool shown: true
 
