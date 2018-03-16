@@ -22,8 +22,20 @@ bool HmacAuth::setKey(const char * keyValue, int keyLen) {
 
     switch (_authMethod)
     {
+    case MD5:
+        sslStruct = EVP_md5();
+        break;
+
     case SHA1:
         sslStruct = EVP_sha1();
+        break;
+
+    case SHA224:
+        sslStruct = EVP_sha224();
+        break;
+
+    case SHA256:
+        sslStruct = EVP_sha256();
         break;
 
     case RIPEMD160:

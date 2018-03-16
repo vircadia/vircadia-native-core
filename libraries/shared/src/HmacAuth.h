@@ -13,10 +13,10 @@ class QUuid;
 
 class HmacAuth {
 public:
-    enum AuthMethod { SHA1, RIPEMD160 };
+    enum AuthMethod { MD5, SHA1, SHA224, SHA256, RIPEMD160 };
     typedef std::vector<unsigned char> HmacHash;
     
-    HmacAuth(AuthMethod authMethod = SHA1);
+    explicit HmacAuth(AuthMethod authMethod = MD5);
     ~HmacAuth();
 
     bool setKey(const char * keyValue, int keyLen);
@@ -26,7 +26,7 @@ public:
 
 private:
     std::unique_ptr<hmac_ctx_st> _hmacContext;
-    AuthMethod _authMethod { SHA1 };
+    AuthMethod _authMethod { MD5 };
 };
 
 #endif  // hifi_HmacAuth_h
