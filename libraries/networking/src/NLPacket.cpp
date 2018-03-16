@@ -11,6 +11,8 @@
 
 #include "NLPacket.h"
 
+#include "HmacAuth.h"
+
 int NLPacket::localHeaderSize(PacketType type) {
     bool nonSourced = PacketTypeEnum::getNonSourcedPackets().contains(type);
     bool nonVerified = PacketTypeEnum::getNonVerifiedPackets().contains(type);
@@ -150,6 +152,14 @@ QByteArray NLPacket::verificationHashInHeader(const udt::Packet& packet) {
 }
 
 QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret) {
+    HmacAuth hash;
+    int offset = Packet::totalHeaderSize(packet.isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion)
+        + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
+    hash.setKey(connectionSecret);
+    hash.addData(packet.getData() + offset, packet.getDataSize() - offset);
+    auto hashResult(hash.result());
+    return QByteArray((const char*) hashResult.data(), (int) hashResult.size());
+    /*
     QCryptographicHash hash(QCryptographicHash::Md5);
     
     int offset = Packet::totalHeaderSize(packet.isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion)
@@ -161,6 +171,8 @@ QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, const QUu
     
     // return the hash
     return hash.result();
+    */
+
 }
 
 void NLPacket::writeTypeAndVersion() {
