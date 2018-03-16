@@ -45,10 +45,10 @@ Item {
         anchors.fill: parent
     }
 
-	Rectangle {
+    Rectangle {
         id: background
         anchors.fill : parent
- 		color: "#FF000000"
+        color: "#FF000000"
         border.color: "#FFFFFF"
         anchors.bottomMargin: -1
         anchors.leftMargin: -1
@@ -104,13 +104,26 @@ Item {
                 }
             }
         }
-	}
+    }
+
+    function relocateAndResize(newWindowWidth, newWindowHeight) {
+        width = newWindowWidth;
+        y = newWindowHeight - height;
+    }
+
+    function onWindowGeometryChanged(rect) {
+        relocateAndResize(rect.width, rect.height);
+    }
 
     Component.onCompleted: {
         // put on bottom
-        width = Window.innerWidth;
         height = 255;
-        y = Window.innerHeight - height;
+        relocateAndResize(Window.innerWidth, Window.innerHeight);
+        Window.geometryChanged.connect(onWindowGeometryChanged); // In devices with bars appearing at startup we should listen for this
+    }
+
+    Component.onDestruction: {
+        Window.geometryChanged.disconnect(onWindowGeometryChanged);
     }
     
     function addButton(properties) {
