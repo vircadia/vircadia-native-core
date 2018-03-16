@@ -354,6 +354,15 @@ public:
     /// Set a batch to the simple pipeline, returning the previous pipeline
     void useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend = false);
 
+    struct ShapeVertex {
+        ShapeVertex(const vec3& pos, const vec3& normal, const vec2& uv, const vec3& tangent) : pos(pos), normal(normal), uv(uv), tangent(tangent) {}
+
+        vec3 pos;
+        vec3 normal;
+        vec2 uv;
+        vec3 tangent;
+    };
+
     struct ShapeData {
         gpu::BufferView _positionView;
         gpu::BufferView _normalView;
@@ -362,7 +371,7 @@ public:
         gpu::BufferView _indicesView;
         gpu::BufferView _wireIndicesView;
 
-        void setupVertices(gpu::BufferPointer& vertexBuffer, const std::vector<float>& vertices);
+        void setupVertices(gpu::BufferPointer& vertexBuffer, const std::vector<ShapeVertex>& vertices);
         void setupIndices(gpu::BufferPointer& indexBuffer, const geometry::IndexVector& indices, const geometry::IndexVector& wireIndices);
         void setupBatch(gpu::Batch& batch) const;
         void draw(gpu::Batch& batch) const;
