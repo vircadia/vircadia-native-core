@@ -25,6 +25,7 @@ import "."
 Item {
     id: bar
     x:0
+    height: 255;
 
     property bool shown: true
 
@@ -117,7 +118,6 @@ Item {
 
     Component.onCompleted: {
         // put on bottom
-        height = 255;
         relocateAndResize(Window.innerWidth, Window.innerHeight);
         Window.geometryChanged.connect(onWindowGeometryChanged); // In devices with bars appearing at startup we should listen for this
     }
