@@ -174,7 +174,9 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         }
         
         if (urlChanged) {
-            _webSurface->getRootItem()->setProperty("url", _lastSourceUrl);
+            if (_webSurface->getRootItem()) {
+                _webSurface->getRootItem()->setProperty("url", _lastSourceUrl);
+            }
         }
 
         if (_contextPosition != entity->getWorldPosition()) {
