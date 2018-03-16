@@ -612,9 +612,10 @@ Function InstallTypesPage
 
   ${If} $CustomInstallTemporaryState == ${BST_UNCHECKED}
     ${NSD_Check} $ExpressInstallRadioButton
+    Call ChangeExpressLabel
+  ${Else}
+    Call ChangeCustomLabel
   ${EndIf}
-
-  Call ChangeExpressLabel
 
   nsDialogs::Show
 FunctionEnd
