@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DomainBaker.h"
+
 #include <QtConcurrent>
 #include <QtCore/QEventLoop>
 #include <QtCore/QFile>
@@ -17,10 +19,9 @@
 #include <QtCore/QJsonObject>
 
 #include "Gzip.h"
-
 #include "Oven.h"
-
-#include "DomainBaker.h"
+#include "FBXBaker.h"
+#include "OBJBaker.h"
 
 DomainBaker::DomainBaker(const QUrl& localModelFileURL, const QString& domainName,
                          const QString& baseOutputPath, const QUrl& destinationPath,
@@ -167,15 +168,18 @@ void DomainBaker::enumerateEntities() {
                 // check if the file pointed to by this URL is a bakeable model, by comparing extensions
                 auto modelFileName = modelURL.fileName();
 
-                static const QString BAKEABLE_MODEL_EXTENSION { ".fbx" };
+                static const QString BAKEABLE_MODEL_FBX_EXTENSION { ".fbx" };
+                static const QString BAKEABLE_MODEL_OBJ_EXTENSION { ".obj" };
                 static const QString BAKED_MODEL_EXTENSION = ".baked.fbx";
 
-                bool isBakedFBX = modelFileName.endsWith(BAKED_MODEL_EXTENSION, Qt::CaseInsensitive);
-                bool isUnbakedFBX = modelFileName.endsWith(BAKEABLE_MODEL_EXTENSION, Qt::CaseInsensitive) && !isBakedFBX;
+                bool isBakedModel = modelFileName.endsWith(BAKED_MODEL_EXTENSION, Qt::CaseInsensitive);
+                bool isBakeableFBX = modelFileName.endsWith(BAKEABLE_MODEL_FBX_EXTENSION, Qt::CaseInsensitive);
+                bool isBakeableOBJ = modelFileName.endsWith(BAKEABLE_MODEL_OBJ_EXTENSION, Qt::CaseInsensitive);
+                bool isBakeable = isBakeableFBX || isBakeableOBJ;
 
-                if (isUnbakedFBX || (_shouldRebakeOriginals && isBakedFBX)) {
+                if (isBakeable || (_shouldRebakeOriginals && isBakedModel)) {
 
-                    if (isBakedFBX) {
+                    if (isBakedModel) {
                         // grab a URL to the original, that we assume is stored a directory up, in the "original" folder
                         // with just the fbx extension
                         qDebug() << "Re-baking original for" << modelURL;
@@ -190,7 +194,7 @@ void DomainBaker::enumerateEntities() {
                         modelURL = modelURL.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
                     }
 
-                    // setup an FBXBaker for this URL, as long as we don't already have one
+                    // setup a ModelBaker for this URL, as long as we don't already have one
                     if (!_modelBakers.contains(modelURL)) {
                         auto filename = modelURL.fileName();
                         auto baseName = filename.left(filename.lastIndexOf('.'));
@@ -199,12 +203,23 @@ void DomainBaker::enumerateEntities() {
                         while (QDir(_contentOutputPath + subDirName).exists()) {
                             subDirName = "/" + baseName + "-" + QString::number(i++);
                         }
-                        QSharedPointer<FBXBaker> baker {
-                            new FBXBaker(modelURL, []() -> QThread* {
-                                return Oven::instance().getNextWorkerThread();
-                            }, _contentOutputPath + subDirName + "/baked", _contentOutputPath + subDirName + "/original"),
-                            &FBXBaker::deleteLater
-                        };
+
+                        QSharedPointer<ModelBaker> baker;
+                        if (isBakeableFBX) {
+                            baker = {
+                                new FBXBaker(modelURL, []() -> QThread* {
+                                    return Oven::instance().getNextWorkerThread();
+                                }, _contentOutputPath + subDirName + "/baked", _contentOutputPath + subDirName + "/original"),
+                                &FBXBaker::deleteLater
+                            };
+                        } else {
+                            baker = {
+                                new OBJBaker(modelURL, []() -> QThread* {
+                                    return Oven::instance().getNextWorkerThread();
+                                }, _contentOutputPath + subDirName + "/baked", _contentOutputPath + subDirName + "/original"),
+                                &OBJBaker::deleteLater
+                            };
+                        }
 
                         // make sure our handler is called when the baker is done
                         connect(baker.data(), &Baker::finished, this, &DomainBaker::handleFinishedModelBaker);
@@ -299,16 +314,16 @@ void DomainBaker::bakeSkybox(QUrl skyboxURL, QJsonValueRef entity) {
 }
 
 void DomainBaker::handleFinishedModelBaker() {
-    auto baker = qobject_cast<FBXBaker*>(sender());
+    auto baker = qobject_cast<ModelBaker*>(sender());
 
     if (baker) {
         if (!baker->hasErrors()) {
             // this FBXBaker is done and everything went according to plan
-            qDebug() << "Re-writing entity references to" << baker->getFBXUrl();
+            qDebug() << "Re-writing entity references to" << baker->getModelURL();
 
             // enumerate the QJsonRef values for the URL of this FBX from our multi hash of
             // entity objects needing a URL re-write
-            for (QJsonValueRef entityValue : _entitiesNeedingRewrite.values(baker->getFBXUrl())) {
+            for (QJsonValueRef entityValue : _entitiesNeedingRewrite.values(baker->getModelURL())) {
 
                 // convert the entity QJsonValueRef to a QJsonObject so we can modify its URL
                 auto entity = entityValue.toObject();
@@ -317,7 +332,7 @@ void DomainBaker::handleFinishedModelBaker() {
                 QUrl oldModelURL { entity[ENTITY_MODEL_URL_KEY].toString() };
 
                 // setup a new URL using the prefix we were passed
-                auto relativeFBXFilePath = baker->getBakedFBXFilePath().remove(_contentOutputPath);
+                auto relativeFBXFilePath = baker->getBakedModelFilePath().remove(_contentOutputPath);
                 if (relativeFBXFilePath.startsWith("/")) {
                     relativeFBXFilePath = relativeFBXFilePath.right(relativeFBXFilePath.length() - 1);
                 }
@@ -370,10 +385,10 @@ void DomainBaker::handleFinishedModelBaker() {
         }
 
         // remove the baked URL from the multi hash of entities needing a re-write
-        _entitiesNeedingRewrite.remove(baker->getFBXUrl());
+        _entitiesNeedingRewrite.remove(baker->getModelURL());
 
         // drop our shared pointer to this baker so that it gets cleaned up
-        _modelBakers.remove(baker->getFBXUrl());
+        _modelBakers.remove(baker->getModelURL());
 
         // emit progress to tell listeners how many models we have baked
         emit bakeProgress(++_completedSubBakes, _totalNumberOfSubBakes);
