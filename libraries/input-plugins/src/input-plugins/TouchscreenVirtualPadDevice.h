@@ -94,7 +94,7 @@ protected:
     float _fixedRadiusForCalc;
     int _extraBottomMargin {0};
 
-    float _viewStickRadiusInches {0.17495f}; // agreed default
+    float _viewStickRadiusInches {0.1333f}; // agreed default
 
     void moveTouchBegin(glm::vec2 touchPoint);
     void moveTouchUpdate(glm::vec2 touchPoint);
