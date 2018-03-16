@@ -429,7 +429,7 @@ Rectangle {
             anchors.top: separator.bottom;
             anchors.topMargin: 12;
             anchors.left: parent.left;
-            anchors.bottom: parent.bottom;
+            anchors.bottom: updatesAvailableBanner.visible ? updatesAvailableBanner.top : parent.bottom;
             width: parent.width;
             delegate: PurchasedItem {
                 itemName: title;
