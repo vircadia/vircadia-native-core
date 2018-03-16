@@ -220,6 +220,7 @@ void CauterizedModel::updateRenderItems() {
             bool isLayeredInFront = self->isLayeredInFront();
             bool isLayeredInHUD = self->isLayeredInHUD();
             bool enableCauterization = self->getEnableCauterization();
+            bool isGroupCulled = self->isGroupCulled();
 
             render::Transaction transaction;
             for (int i = 0; i < (int)self->_modelMeshRenderItemIDs.size(); i++) {
@@ -234,7 +235,7 @@ void CauterizedModel::updateRenderItems() {
                 bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
                 transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,
-                        isWireframe, isVisible, isLayeredInFront, isLayeredInHUD, canCastShadow, enableCauterization](CauterizedMeshPartPayload& data) {
+                        isWireframe, isVisible, isLayeredInFront, isLayeredInHUD, canCastShadow, enableCauterization, isGroupCulled](CauterizedMeshPartPayload& data) {
                     if (useDualQuaternionSkinning) {
                         data.updateClusterBuffer(meshState.clusterDualQuaternions,
                                                  cauterizedMeshState.clusterDualQuaternions);
@@ -276,7 +277,7 @@ void CauterizedModel::updateRenderItems() {
                     data.updateTransformForCauterizedMesh(renderTransform);
 
                     data.setEnableCauterization(enableCauterization);
-                    data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, canCastShadow, render::ItemKey::TAG_BITS_ALL);
+                    data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, canCastShadow, render::ItemKey::TAG_BITS_ALL, isGroupCulled);
                     data.setLayer(isLayeredInFront, isLayeredInHUD);
                     data.setShapeKey(invalidatePayloadShapeKey, isWireframe, useDualQuaternionSkinning);
                 });
