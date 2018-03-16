@@ -531,7 +531,7 @@ Rectangle {
 
         Rectangle {
             id: updatesAvailableBanner;
-            visible: true;
+            visible: root.numUpdatesAvailable > 0 && !root.isShowingMyItems;
             anchors.bottom: parent.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
