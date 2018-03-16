@@ -271,12 +271,10 @@ void PhysicalEntitySimulation::handleChangedMotionStates(const VectorOfMotionSta
             assert(state);
             if (state->getType() == MOTIONSTATE_TYPE_ENTITY) {
                 EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
-                EntityItemPointer entity = entityState->getEntity();
-                assert(entity.get());
                 if (entityState->isCandidateForOwnership()) {
                     _outgoingChanges.insert(entityState);
                 }
-                _entitiesToSort.insert(entity);
+                _entitiesToSort.insert(entityState->getEntity());
             }
         }
     }
