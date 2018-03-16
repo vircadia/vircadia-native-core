@@ -1573,7 +1573,8 @@ void Model::createVisibleRenderItemSet() {
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
-            _modelMeshMaterialNames.push_back(getGeometry()->getShapeMaterial(shapeID)->getName());
+            auto material = getGeometry()->getShapeMaterial(shapeID);
+            _modelMeshMaterialNames.push_back(material ? material->getName() : "");
             _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
             shapeID++;
         }
