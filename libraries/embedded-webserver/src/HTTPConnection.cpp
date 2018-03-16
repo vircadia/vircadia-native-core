@@ -251,7 +251,7 @@ void HTTPConnection::readHeaders() {
         if (trimmed.isEmpty()) {
             _socket->disconnect(this, SLOT(readHeaders()));
 
-            QByteArray clength = _requestHeaders.value("content-length");
+            QByteArray clength = requestHeader("Content-Length");
             if (clength.isEmpty()) {
                 _parentManager->handleHTTPRequest(this, _requestUrl);
 
