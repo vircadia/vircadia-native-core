@@ -963,7 +963,11 @@ void EntityItem::setHref(QString value) {
 
     // If the string has something and doesn't start with with "hifi://" it shouldn't be set
     // We allow the string to be empty, because that's the initial state of this property
-    if ( !(value.toLower().startsWith("hifi://")) && !value.isEmpty()) {
+    if (!value.isEmpty() &&
+        !(value.toLower().startsWith("hifi://")) &&
+        !(value.toLower().startsWith("file://"))
+        // TODO: serverless-domains will eventually support http and https also
+        ) {
         return;
     }
     withWriteLock([&] {
