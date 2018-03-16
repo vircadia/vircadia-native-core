@@ -282,6 +282,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         }
     }
 
+    // ADEBUG: move this _loopsWithoutOwner stuff out of EntityMotionState
     if (_entity->getSimulatorID().isNull()) {
         _loopsWithoutOwner++;
         if (_loopsWithoutOwner > LOOPS_FOR_SIMULATION_ORPHAN && usecTimestampNow() > _nextOwnershipBid) {
