@@ -183,6 +183,7 @@ void Web3DOverlay::buildWebSurface() {
             _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
         } else {
             _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), qmlSurfaceDeleter);
+            _webSurface->load(_url);
             _cachedWebSurface = false;
             setupQmlSurface();
         }
