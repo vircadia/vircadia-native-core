@@ -86,9 +86,10 @@ NodeType_t NodeType::fromString(QString type) {
 
 
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-           const HifiSockAddr& localSocket, QObject* parent) :
+    const HifiSockAddr& localSocket, QObject* parent) :
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
+    _authenticateHash(new HmacAuth),
     _pingMs(-1),  // "Uninitialized"
     _clockSkewUsec(0),
     _mutex(),
@@ -191,4 +192,8 @@ QDebug operator<<(QDebug debug, const Node& node) {
     debug << " " << node.getUUID().toString().toLocal8Bit().constData() << " ";
     debug.nospace() << node.getPublicSocket() << "/" << node.getLocalSocket();
     return debug.nospace();
+}
+
+void Node::_updateAuthenticateHash() {
+    _authenticateHash->setKey(_connectionSecret);
 }

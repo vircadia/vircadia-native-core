@@ -46,6 +46,7 @@ bool HmacAuth::setKey(const char * keyValue, int keyLen) {
         return false;
     }
 
+    QMutexLocker lock(&_lock);
     return (bool) HMAC_Init(_hmacContext.get(), keyValue, keyLen, sslStruct);
 }
 
@@ -55,13 +56,17 @@ bool HmacAuth::setKey(const QUuid& uidKey) {
 }
 
 bool HmacAuth::addData(const char * data, int dataLen) {
+    QMutexLocker lock(&_lock);
     return (bool) HMAC_Update(_hmacContext.get(), reinterpret_cast<const unsigned char*>(data), dataLen);
 }
 
 HmacAuth::HmacHash HmacAuth::result() {
     HmacHash hashValue(EVP_MAX_MD_SIZE);
     unsigned int  hashLen;
+    QMutexLocker lock(&_lock);
     HMAC_Final(_hmacContext.get(), &hashValue[0], &hashLen);
     hashValue.resize((size_t) hashLen);
+    // Clear state for possible reuse.
+    HMAC_Init(_hmacContext.get(), nullptr, 0, nullptr);
     return hashValue;
 }

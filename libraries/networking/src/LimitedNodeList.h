@@ -132,18 +132,18 @@ public:
     // either to a node (via its active socket) or to a manual sockaddr
     qint64 sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode);
     qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
-                                const QUuid& connectionSecret = QUuid());
+                                HmacAuth& hmacAuth = HmacAuth(), const QUuid& connectionSecret = QUuid());
 
     // use sendPacket to send a moved unreliable or reliable NL packet to a node's active socket or manual sockaddr
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode);
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr,
-                      const QUuid& connectionSecret = QUuid());
+                      HmacAuth& hmacAuth = HmacAuth(), const QUuid& connectionSecret = QUuid());
 
     // use sendUnreliableUnorderedPacketList to unreliably send separate packets from the packet list
     // either to a node's active socket or to a manual sockaddr
     qint64 sendUnreliableUnorderedPacketList(NLPacketList& packetList, const Node& destinationNode);
     qint64 sendUnreliableUnorderedPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
-                          const QUuid& connectionSecret = QUuid());
+                                             HmacAuth& hmacAuth = HmacAuth(), const QUuid& connectionSecret = QUuid());
 
     // use sendPacketList to send reliable packet lists (ordered or unordered) to a node's active socket
     // or to a manual sock addr
@@ -364,7 +364,7 @@ protected:
     qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
                        const QUuid& connectionSecret = QUuid());
     void collectPacketStats(const NLPacket& packet);
-    void fillPacketHeader(const NLPacket& packet, const QUuid& connectionSecret = QUuid());
+    void fillPacketHeader(const NLPacket& packet, HmacAuth& hmacAuth, const QUuid& connectionSecret = QUuid());
 
     void setLocalSocket(const HifiSockAddr& sockAddr);
 
