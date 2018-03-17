@@ -140,6 +140,9 @@ void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr, const QString& hos
 
     // some callers may pass a hostname, this is not to be used for lookup but for DTLS certificate verification
     _domainURL = QUrl();
+    _domainURL.setScheme(URL_SCHEME_HIFI);
+    _domainURL.setHost(hostname);
+    _domainURL.setPort(_sockAddr.getPort());
 }
 
 void DomainHandler::setUUID(const QUuid& uuid) {
