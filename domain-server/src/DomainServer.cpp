@@ -2209,7 +2209,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             const QString ASSIGNMENT_INSTANCES_HEADER = "ASSIGNMENT-INSTANCES";
             const QString ASSIGNMENT_POOL_HEADER = "ASSIGNMENT-POOL";
 
-            QByteArray assignmentInstancesValue = connection->requestHeaders().value(ASSIGNMENT_INSTANCES_HEADER.toLocal8Bit());
+            QByteArray assignmentInstancesValue = connection->requestHeader(ASSIGNMENT_INSTANCES_HEADER.toLocal8Bit());
 
             int numInstances = 1;
 
@@ -2221,7 +2221,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             }
 
             QString assignmentPool = emptyPool;
-            QByteArray assignmentPoolValue = connection->requestHeaders().value(ASSIGNMENT_POOL_HEADER.toLocal8Bit());
+            QByteArray assignmentPoolValue = connection->requestHeader(ASSIGNMENT_POOL_HEADER.toLocal8Bit());
 
             if (!assignmentPoolValue.isEmpty()) {
                 // specific pool requested, set that on the created assignment
@@ -2619,7 +2619,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
 
     if (!_oauthProviderURL.isEmpty()
         && (adminUsersVariant.isValid() || adminRolesVariant.isValid())) {
-        QString cookieString = connection->requestHeaders().value(HTTP_COOKIE_HEADER_KEY);
+        QString cookieString = connection->requestHeader(HTTP_COOKIE_HEADER_KEY);
 
         const QString COOKIE_UUID_REGEX_STRING = HIFI_SESSION_COOKIE_KEY + "=([\\d\\w-]+)($|;)";
         QRegExp cookieUUIDRegex(COOKIE_UUID_REGEX_STRING);
@@ -2664,7 +2664,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             static const QByteArray REQUESTED_WITH_HEADER = "X-Requested-With";
             static const QString XML_REQUESTED_WITH = "XMLHttpRequest";
 
-            if (connection->requestHeaders().value(REQUESTED_WITH_HEADER) == XML_REQUESTED_WITH) {
+            if (connection->requestHeader(REQUESTED_WITH_HEADER) == XML_REQUESTED_WITH) {
                 // unauthorized XHR requests get a 401 and not a 302, since there isn't an XHR
                 // path to OAuth authorize
                 connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY);
@@ -2695,7 +2695,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
         const QByteArray BASIC_AUTH_HEADER_KEY = "Authorization";
 
         // check if a username and password have been provided with the request
-        QString basicAuthString = connection->requestHeaders().value(BASIC_AUTH_HEADER_KEY);
+        QString basicAuthString = connection->requestHeader(BASIC_AUTH_HEADER_KEY);
 
         if (!basicAuthString.isEmpty()) {
             QStringList splitAuthString = basicAuthString.split(' ');
