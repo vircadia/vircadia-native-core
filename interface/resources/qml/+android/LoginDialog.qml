@@ -38,7 +38,8 @@ ModalWindow {
     keyboardOverride: true  // Disable ModalWindow's keyboard.
 
     function tryDestroy() {
-        root.destroy()
+        Controller.setVPadHidden(false);
+        root.destroy();
     }
 
     LoginDialog {
@@ -52,8 +53,9 @@ ModalWindow {
 
     Component.onCompleted: {
         this.anchors.centerIn = undefined;
-        this.y=150;
-        this.x=(parent.width - this.width)/2;
+        this.y = 150;
+        this.x = (parent.width - this.width) / 2;
+        Controller.setVPadHidden(true);
     }
 
     Keys.onPressed: {
