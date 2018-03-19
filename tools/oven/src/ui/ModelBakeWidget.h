@@ -16,8 +16,6 @@
 
 #include <SettingHandle.h>
 
-#include <FBXBaker.h>
-
 #include "BakeWidget.h"
 
 class QLineEdit;
