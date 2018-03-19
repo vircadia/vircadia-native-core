@@ -121,13 +121,11 @@ QUrl PathUtils::resourcesUrl(const QString& relativeUrl) {
 }
 
 QUrl PathUtils::expandToLocalDataAbsolutePath(const QUrl& fileUrl) {
-    QUrl url = fileUrl;
     QString path = fileUrl.path();
     if (path.startsWith("/~/")) {
-        path.replace(0, 3, resourcesPath());
-        url = QUrl::fromLocalFile(path);
+        return resourcesUrl(path.mid(3));
     }
-    return url;
+    return fileUrl;
 }
 
 const QString& PathUtils::qmlBaseUrl() {

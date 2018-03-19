@@ -294,9 +294,9 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
                // lookupUrl.scheme() == URL_SCHEME_HTTPS ||
                lookupUrl.scheme() == URL_SCHEME_FILE) {
         _previousLookup.clear();
-        QUrl domainUrl = PathUtils::expandToLocalDataAbsolutePath(lookupUrl);
+        QUrl domainURL = PathUtils::expandToLocalDataAbsolutePath(lookupUrl);
         emit urlHandled(true);
-        setDomainInfo(domainUrl, trigger);
+        setDomainInfo(domainURL, trigger);
         DependencyManager::get<NodeList>()->getDomainHandler().setIsConnected(true);
         emit lookupResultsFinished();
         handlePath(DOMAIN_SPAWNING_POINT, LookupTrigger::Internal, false);
