@@ -42,11 +42,11 @@ Rectangle {
     property int itemPrice: -1;
     property bool isCertified;
     property string itemType;
-    property var itemTypesArray: ["entity", "wearable", "contentSet", "app", "avatar"];
-    property var itemTypesText: ["entity", "wearable", "content set", "app", "avatar"];
-    property var buttonTextNormal: ["REZ", "WEAR", "REPLACE CONTENT SET", "INSTALL", "WEAR"];
-    property var buttonTextClicked: ["REZZED!", "WORN!", "CONTENT SET REPLACED!", "INSTALLED!", "AVATAR CHANGED!"]
-    property var buttonGlyph: [hifi.glyphs.wand, hifi.glyphs.hat, hifi.glyphs.globe, hifi.glyphs.install, hifi.glyphs.avatar];
+    property var itemTypesArray: ["entity", "wearable", "contentSet", "app", "avatar", "unknown"];
+    property var itemTypesText: ["entity", "wearable", "content set", "app", "avatar", "item"];
+    property var buttonTextNormal: ["REZ", "WEAR", "REPLACE CONTENT SET", "INSTALL", "WEAR", "REZ"];
+    property var buttonTextClicked: ["REZZED!", "WORN!", "CONTENT SET REPLACED!", "INSTALLED!", "AVATAR CHANGED!", "REZZED!"]
+    property var buttonGlyph: [hifi.glyphs.wand, hifi.glyphs.hat, hifi.glyphs.globe, hifi.glyphs.install, hifi.glyphs.avatar, hifi.glyphs.wand];
     property bool shouldBuyWithControlledFailure: false;
     property bool debugCheckoutSuccess: false;
     property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
@@ -1072,39 +1072,72 @@ Rectangle {
     }
     signal sendToScript(var message);
 
+    function canBuyAgain() {
+        return (root.itemType === "entity" || root.itemType === "wearable" || root.itemType === "contentSet" || root.itemType === "unknown");
+    }
+
+    function handleContentSets() {
+        if (root.itemType === "contentSet" && !Entities.canReplaceContent()) {
+            buyText.text = "The domain owner must enable 'Replace Content' permissions for you in this " +
+                "<b>domain's server settings</b> before you can replace this domain's content with <b>" + root.itemName + "</b>";
+            buyTextContainer.color = "#FFC3CD";
+            buyTextContainer.border.color = "#F3808F";
+            buyGlyph.text = hifi.glyphs.alert;
+            buyGlyph.size = 54;
+        }
+    }
+
+    function handleBuyAgainLogic() {
+        // If you can buy this item again...
+        if (canBuyAgain()) {
+            // If you can't afford another copy of the item...
+            if (root.balanceAfterPurchase < 0) {
+                // If you already own the item...
+                if (root.alreadyOwned) {
+                    buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item again.</b>";
+                // Else if you don't already own the item...
+                } else {
+                    buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item.</b>";
+                }
+                buyTextContainer.color = "#FFC3CD";
+                buyTextContainer.border.color = "#F3808F";
+                buyGlyph.text = hifi.glyphs.alert;
+                buyGlyph.size = 54;
+            // If you CAN afford another copy of the item...
+            } else {
+                handleContentSets();
+            }
+        }
+    }
+
     function refreshBuyUI() {
         if (root.isCertified) {
             if (root.ownershipStatusReceived && root.balanceReceived && root.availableUpdatesReceived) {
-                if (root.balanceAfterPurchase < 0 && !root.isUpdating) {
-                    if (root.alreadyOwned) {
-                        buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item again.</b>";
-                        viewInMyPurchasesButton.visible = true;
-                    } else {
-                        buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item.</b>";
-                    }
-                    buyTextContainer.color = "#FFC3CD";
-                    buyTextContainer.border.color = "#F3808F";
-                    buyGlyph.text = hifi.glyphs.alert;
-                    buyGlyph.size = 54;
-                } else {
-                    if (root.alreadyOwned && !root.isUpdating) {
-                        viewInMyPurchasesButton.visible = true;
-                    } else {
-                        buyText.text = "";
-                    }
+                buyText.text = "";
 
-                    if (root.isUpdating) {
+                // If the user IS on the checkout page for the updated version of an owned item...
+                if (root.isUpdating) {
+                    // If the user HAS already selected a specific edition to update...
+                    if (root.itemEdition > 0) {
                         buyText.text = "By pressing \"Confirm Update\", you agree to trade in your old item for the updated item that replaces it.";
                         buyTextContainer.color = "#FFFFFF";
                         buyTextContainer.border.color = "#FFFFFF";
-                    } else if (root.itemType === "contentSet" && !Entities.canReplaceContent()) {
-                        buyText.text = "The domain owner must enable 'Replace Content' permissions for you in this " +
-                            "<b>domain's server settings</b> before you can replace this domain's content with <b>" + root.itemName + "</b>";
-                        buyTextContainer.color = "#FFC3CD";
-                        buyTextContainer.border.color = "#F3808F";
-                        buyGlyph.text = hifi.glyphs.alert;
-                        buyGlyph.size = 54;
+                    // Else if the user HAS NOT selected a specific edition to update...
+                    } else {
+                        viewInMyPurchasesButton.text = "UPDATE TO THIS ITEM FOR FREE";
+                        viewInMyPurchasesButton.visible = true;
+
+                        handleBuyAgainLogic();
+                    }     
+                // If the user IS NOT on the checkout page for the updated verison of an owned item...
+                // (i.e. they are checking out an item "normally")
+                } else {
+                    if (root.alreadyOwned) {
+                        viewInMyPurchasesButton.text = "VIEW IN MY PURCHASES";
+                        viewInMyPurchasesButton.visible = true;
                     }
+                    
+                    handleBuyAgainLogic();
                 }
             } else {
                 buyText.text = "";
@@ -1123,6 +1156,12 @@ Rectangle {
             root.activeView = "checkoutMain";
         } else {
             root.activeView = "checkoutSuccess";
+            root.ownershipStatusReceived = false;
+            Commerce.alreadyOwned(root.itemId);
+            root.availableUpdatesReceived = false;
+            Commerce.getAvailableUpdates(root.itemId);
+            root.balanceReceived = false;
+            Commerce.balance();
         }
     }
 
