@@ -299,7 +299,7 @@ public:
      * (such as look at vectors, hand sensors etc.). Each animation specified in the avatar-animation.json file is known as an animation role.
      * Animation roles map to easily understandable actions that the avatar can perform, such as "idleStand", "idleTalk", or "walkFwd."
      * getAnimationRoles() is used get the list of animation roles defined in the avatar-animation.json.
-     * @function MyAvatar.getAnimatationRoles
+     * @function MyAvatar.getAnimationRoles
      * @example <caption>This example prints the list of animation roles defined in the avatar's avatar-animation.json file to the debug log.</caption>
      * var roles = MyAvatar.getAnimationRoles();
      * print("Animation Roles:");
