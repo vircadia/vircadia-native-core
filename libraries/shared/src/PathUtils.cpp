@@ -127,16 +127,15 @@ QUrl PathUtils::expandToLocalDataAbsolutePath(const QUrl& fileUrl) {
         // this results in a qrc:// url...
         // return resourcesUrl(path.mid(3));
 
-        // find Resources/ directory relative to executable path, but don't convert to qrc:// url
-#if defined(Q_OS_OSX)
-        char buffer[8192];
-        uint32_t bufferSize = sizeof(buffer);
-        _NSGetExecutablePath(buffer, &bufferSize);
-        QString resourcesDir = QDir::cleanPath(QFileInfo(buffer).dir().absoluteFilePath("../Resources")) + "/";
+#ifdef Q_OS_MAC
+        static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+#elif defined (ANDROID)
+        static const QString staticResourcePath =
+            QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources/";
 #else
-        QString resourcesDir = projectRootPath() + "/interface/resources/";
+        static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif
-        path.replace(0, 3, resourcesDir);
+        path.replace(0, 3, staticResourcePath);
         QUrl expandedURL = QUrl::fromLocalFile(path);
         return expandedURL;
     }
