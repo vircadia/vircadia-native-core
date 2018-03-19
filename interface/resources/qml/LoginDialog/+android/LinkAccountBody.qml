@@ -224,7 +224,7 @@ Item {
 
             onClicked: {
                 Qt.inputMethod.hide();
-                root.destroy();
+                root.tryDestroy();
             }
         }
     }
