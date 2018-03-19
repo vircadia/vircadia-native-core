@@ -24,6 +24,8 @@ public:
     bool addData(const char * data, int dataLen);
     HmacHash result();
 
+    static HmacAuth nullHmacAuth;
+
 private:
     QMutex _lock;
     std::unique_ptr<struct hmac_ctx_st> _hmacContext;

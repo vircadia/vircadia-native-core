@@ -7,6 +7,8 @@
 
 #include <QUuid>
 
+HmacAuth HmacAuth::nullHmacAuth;
+
 HmacAuth::HmacAuth(AuthMethod authMethod)
     : _hmacContext(new(HMAC_CTX))
     , _authMethod(authMethod) {
