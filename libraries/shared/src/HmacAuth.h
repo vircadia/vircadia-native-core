@@ -9,7 +9,6 @@
 #include <memory>
 #include <QtCore/QMutex>
 
-struct hmac_ctx_st;
 class QUuid;
 
 class HmacAuth {
@@ -27,7 +26,7 @@ public:
 
 private:
     QMutex _lock;
-    std::unique_ptr<hmac_ctx_st> _hmacContext;
+    std::unique_ptr<struct hmac_ctx_st> _hmacContext;
     AuthMethod _authMethod { MD5 };
 };
 
