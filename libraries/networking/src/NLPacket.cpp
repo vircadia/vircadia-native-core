@@ -13,12 +13,6 @@
 
 #include "HmacAuth.h"
 
-#define HIFI_HASH_TIMINGS
-#ifdef HIFI_HASH_TIMINGS
-#include "NetworkLogging.h"
-#include "SharedUtil.h"
-#endif
-
 int NLPacket::localHeaderSize(PacketType type) {
     bool nonSourced = PacketTypeEnum::getNonSourcedPackets().contains(type);
     bool nonVerified = PacketTypeEnum::getNonVerifiedPackets().contains(type);
@@ -220,19 +214,8 @@ void NLPacket::writeVerificationHashGivenSecret(HmacAuth& hmacAuth) const {
     
     auto offset = Packet::totalHeaderSize(isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion)
                 + NUM_BYTES_RFC4122_UUID;
-#ifdef HIFI_HASH_TIMINGS
-    static quint64 totalTime = 0;
-    static int timedHashes = 0;
-    quint64 startTime = usecTimestampNow();
-#endif
+
     QByteArray verificationHash = hashForPacketAndSecret(*this, hmacAuth);
-#ifdef HIFI_HASH_TIMINGS
-    quint64 endTime = usecTimestampNow();
-    totalTime += endTime - startTime;
-    if ((++timedHashes % 20) == 0) {
-        qCDebug(networking) << "Average packet hash time " << (totalTime / timedHashes / 1000.0f) << " ms";
-    }
-#endif
     
     memcpy(_packet.get() + offset, verificationHash.data(), verificationHash.size());
 }
