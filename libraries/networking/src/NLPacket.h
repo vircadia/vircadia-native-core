@@ -73,7 +73,7 @@ public:
     
     static QUuid sourceIDInHeader(const udt::Packet& packet);
     static QByteArray verificationHashInHeader(const udt::Packet& packet);
-    static QByteArray hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret, HmacAuth& hash);
+    static QByteArray hashForPacketAndSecret(const udt::Packet & packet, HmacAuth & hash);
     
     PacketType getType() const { return _type; }
     void setType(PacketType type);
@@ -84,7 +84,7 @@ public:
     const QUuid& getSourceID() const { return _sourceID; }
     
     void writeSourceID(const QUuid& sourceID) const;
-    void writeVerificationHashGivenSecret(HmacAuth& hmacAuth, const QUuid& connectionSecret) const;
+    void writeVerificationHashGivenSecret(HmacAuth& hmacAuth) const;
 
 protected:
     

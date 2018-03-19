@@ -157,27 +157,12 @@ QByteArray NLPacket::verificationHashInHeader(const udt::Packet& packet) {
     return QByteArray(packet.getData() + offset, NUM_BYTES_MD5_HASH);
 }
 
-QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret, HmacAuth& hash) {
-#define HIFI_USE_HMAC
-#ifdef HIFI_USE_HMAC
+QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, HmacAuth& hash) {
     int offset = Packet::totalHeaderSize(packet.isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion)
         + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
     hash.addData(packet.getData() + offset, packet.getDataSize() - offset);
     auto hashResult(hash.result());
     return QByteArray((const char*) hashResult.data(), (int) hashResult.size());
-#else
-    QCryptographicHash hash(QCryptographicHash::Md5);
-    
-    int offset = Packet::totalHeaderSize(packet.isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion)
-        + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
-    
-    // add the packet payload and the connection UUID
-    hash.addData(packet.getData() + offset, packet.getDataSize() - offset);
-    hash.addData(connectionSecret.toRfc4122());
-    
-    // return the hash
-    return hash.result();
-#endif
 }
 
 void NLPacket::writeTypeAndVersion() {
@@ -229,7 +214,7 @@ void NLPacket::writeSourceID(const QUuid& sourceID) const {
     _sourceID = sourceID;
 }
 
-void NLPacket::writeVerificationHashGivenSecret(HmacAuth& hmacAuth, const QUuid& connectionSecret) const {
+void NLPacket::writeVerificationHashGivenSecret(HmacAuth& hmacAuth) const {
     Q_ASSERT(!PacketTypeEnum::getNonSourcedPackets().contains(_type) &&
              !PacketTypeEnum::getNonVerifiedPackets().contains(_type));
     
@@ -240,7 +225,7 @@ void NLPacket::writeVerificationHashGivenSecret(HmacAuth& hmacAuth, const QUuid&
     static int timedHashes = 0;
     quint64 startTime = usecTimestampNow();
 #endif
-    QByteArray verificationHash = hashForPacketAndSecret(*this, connectionSecret, hmacAuth);
+    QByteArray verificationHash = hashForPacketAndSecret(*this, hmacAuth);
 #ifdef HIFI_HASH_TIMINGS
     quint64 endTime = usecTimestampNow();
     totalTime += endTime - startTime;

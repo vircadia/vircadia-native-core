@@ -1,13 +1,19 @@
 //
 // HmacAuth.cpp
+// libraries/shared/src
+//
+//  Created by Simon Walton on 3/19/2018.
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #include <openssl/hmac.h>
 
 #include "HmacAuth.h"
 
 #include <QUuid>
-
-HmacAuth HmacAuth::nullHmacAuth;
 
 HmacAuth::HmacAuth(AuthMethod authMethod)
     : _hmacContext(new(HMAC_CTX))
