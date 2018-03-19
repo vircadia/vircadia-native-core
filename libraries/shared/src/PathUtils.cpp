@@ -122,9 +122,27 @@ QUrl PathUtils::resourcesUrl(const QString& relativeUrl) {
 
 QUrl PathUtils::expandToLocalDataAbsolutePath(const QUrl& fileUrl) {
     QString path = fileUrl.path();
+
     if (path.startsWith("/~/")) {
-        return resourcesUrl(path.mid(3));
+        // this results in a qrc:// url...
+        // return resourcesUrl(path.mid(3));
+
+        // find Resources/ directory relative to executable path, but don't convert to qrc:// url
+#if defined(Q_OS_OSX)
+        char buffer[8192];
+        uint32_t bufferSize = sizeof(buffer);
+        _NSGetExecutablePath(buffer, &bufferSize);
+        QString resourcesDir = QDir::cleanPath(QFileInfo(buffer).dir().absoluteFilePath("../Resources")) + "/";
+#else
+        QString resourcesDir = projectRootPath() + "/interface/resources/";
+#endif
+        path.replace(0, 3, resourcesDir);
+        QUrl expandedURL = QUrl::fromLocalFile(path);
+        return expandedURL;
     }
+
+    QUrl::fromLocalFile(resourcesPath()).toString();
+
     return fileUrl;
 }
 
