@@ -150,6 +150,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(SERVER_LAUNCH_NOW_REG_KEY "ServerLaunchAfterInstall")
     set(CUSTOM_INSTALL_REG_KEY "CustomInstall")
     set(CLIENT_ID_REG_KEY "ClientGUID")
+    set(GA_TRACKING_ID $ENV{GA_TRACKING_ID})
   endif ()
 
   # setup component categories for installer
