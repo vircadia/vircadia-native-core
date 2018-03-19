@@ -893,7 +893,8 @@ Function HandlePostInstallOptions
     ${EndIf}
   ${EndIf}
 
-  ${If} $LaunchServerNowState == ${BST_CHECKED}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
+  ${AndIf} $LaunchServerNowState == ${BST_CHECKED}
     !insertmacro WriteInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ YES
 
     ; both launches use the explorer trick in case the user has elevated permissions for the installer
@@ -907,7 +908,7 @@ Function HandlePostInstallOptions
       Exec '"$WINDIR\explorer.exe" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"'
     ${EndIf}
 
-  ${Else}
+  ${ElseIf} @CLIENT_COMPONENT_CONDITIONAL@
     !insertmacro WriteInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ NO
 
     ; launch uses the explorer trick in case the user has elevated permissions for the installer
