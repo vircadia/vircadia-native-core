@@ -31,6 +31,7 @@ Rectangle {
     property bool ownershipStatusReceived: false;
     property bool balanceReceived: false;
     property bool availableUpdatesReceived: false;
+    property string baseItemName: "";
     property string itemName;
     property string itemId;
     property string itemHref;
@@ -148,6 +149,7 @@ Rectangle {
                             continue;
                         }
                         root.isUpdating = true;
+                        root.baseItemName = result.data.updates[i].base_item_title;
                         // This CertID is the one corresponding to the base item CertID that the user already owns
                         root.certificateId = result.data.updates[i].certificate_id;
                         if (root.itemType === "app") {
@@ -460,7 +462,7 @@ Rectangle {
                 // "HFC" balance label
                 HiFiGlyphs {
                     id: itemPriceTextLabel;
-                    visible: !root.isUpdating;
+                    visible: !(root.isUpdating && root.itemEdition > 0);
                     text: hifi.glyphs.hfc;
                     // Size
                     size: 30;
@@ -476,9 +478,9 @@ Rectangle {
                 }
                 FiraSansSemiBold {
                     id: itemPriceText;
-                    text: root.isUpdating ? "FREE\nUPGRADE" : ((root.itemPrice === -1) ? "--" : root.itemPrice);
+                    text: (root.isUpdating && root.itemEdition > 0) ? "FREE\nUPDATE" : ((root.itemPrice === -1) ? "--" : root.itemPrice);
                     // Text size
-                    size: root.isUpdating ? 20 : 26;
+                    size: (root.isUpdating && root.itemEdition > 0) ? 20 : 26;
                     // Anchors
                     anchors.top: parent.top;
                     anchors.right: parent.right;
@@ -578,9 +580,13 @@ Rectangle {
                 height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                text: "VIEW THIS ITEM IN MY PURCHASES";
+                text: root.isUpdating ? "UPDATE TO THIS ITEM FOR FREE" : "VIEW THIS ITEM IN MY PURCHASES";
                 onClicked: {
-                    sendToScript({method: 'checkout_goToPurchases', filterText: root.itemName});
+                    if (root.isUpdating) {
+                        sendToScript({method: 'checkout_goToPurchases', filterText: root.baseItemName});
+                    } else {
+                        sendToScript({method: 'checkout_goToPurchases', filterText: root.itemName});
+                    }
                 }
             }
 
@@ -597,15 +603,17 @@ Rectangle {
                 height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                text: root.isUpdating ? "CONFIRM UPDATE" : (((root.isCertified) ? ((ownershipStatusReceived && balanceReceived && availableUpdatesReceived) ?
-                    (viewInMyPurchasesButton.visible ? "Buy It Again" : "Confirm Purchase") : "--") : "Get Item"));
+                text: (root.isUpdating && root.itemEdition > 0) ? "CONFIRM UPDATE" : (((root.isCertified) ? ((ownershipStatusReceived && balanceReceived && availableUpdatesReceived) ?
+                    ((viewInMyPurchasesButton.visible && !root.isUpdating) ? "Buy It Again" : "Confirm Purchase") : "--") : "Get Item"));
                 onClicked: {
-                    if (root.isUpdating) {
+                    if (root.isUpdating && root.itemEdition > 0) {
                         // If we're updating an app, the existing app needs to be uninstalled.
                         // This call will fail/return `false` if the app isn't installed, but that's OK.
                         if (root.itemType === "app") {
                             Commerce.uninstallApp(root.baseAppURL);
                         }
+                        buyButton.enabled = false;
+                        loading.visible = true;
                         Commerce.updateItem(root.certificateId);
                     } else if (root.isCertified) {
                         if (!root.shouldBuyWithControlledFailure) {
@@ -1124,7 +1132,6 @@ Rectangle {
                         buyTextContainer.border.color = "#FFFFFF";
                     // Else if the user HAS NOT selected a specific edition to update...
                     } else {
-                        viewInMyPurchasesButton.text = "UPDATE TO THIS ITEM FOR FREE";
                         viewInMyPurchasesButton.visible = true;
 
                         handleBuyAgainLogic();
@@ -1133,7 +1140,6 @@ Rectangle {
                 // (i.e. they are checking out an item "normally")
                 } else {
                     if (root.alreadyOwned) {
-                        viewInMyPurchasesButton.text = "VIEW IN MY PURCHASES";
                         viewInMyPurchasesButton.visible = true;
                     }
                     

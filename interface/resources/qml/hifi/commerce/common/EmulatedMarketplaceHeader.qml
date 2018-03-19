@@ -120,17 +120,6 @@ Item {
             anchors.rightMargin: 6;
 
             Rectangle {
-                id: messagesWaitingLight;
-                visible: root.messagesWaiting;
-                anchors.right: myPurchasesLink.left;
-                anchors.verticalCenter: parent.verticalCenter;
-                height: 10;
-                width: height;
-                radius: height/2;
-                color: "red";
-            }
-
-            Rectangle {
                 id: myPurchasesLink;
                 anchors.right: myUsernameButton.left;
                 anchors.rightMargin: 8;
@@ -160,6 +149,18 @@ Item {
                     onEntered: myPurchasesText.color = hifi.colors.blueHighlight;
                     onExited: myPurchasesText.color = hifi.colors.blueAccent;
                 }
+            }
+
+            Rectangle {
+                id: messagesWaitingLight;
+                visible: root.messagesWaiting;
+                anchors.right: myPurchasesLink.left;
+                anchors.rightMargin: -2;
+                anchors.verticalCenter: parent.verticalCenter;
+                height: 10;
+                width: height;
+                radius: height/2;
+                color: "red";
             }
 
             TextMetrics {

@@ -582,6 +582,7 @@ Rectangle {
                 height: 40;
                 text: "SHOW ME";
                 onClicked: {
+                    filterBar.text = "";
                     filterBar.changeFilterByDisplayName("Updatable");
                 }
             }
