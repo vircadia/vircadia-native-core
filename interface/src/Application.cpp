@@ -351,6 +351,7 @@ static const QString OBJ_EXTENSION = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
 static const QString WEB_VIEW_TAG = "noDownload=true";
 static const QString ZIP_EXTENSION = ".zip";
+static const QString CONTENT_ZIP_EXTENSION = ".content.zip";
 
 static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 
@@ -378,7 +379,7 @@ static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 
 static const QString DOMAIN_SPAWNING_POINT = "/0, -10, 0";
 
-const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
+const std::vector<std::pair<QString, Application::AcceptURLMethod>> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
     { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl },
@@ -386,6 +387,7 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { JS_EXTENSION, &Application::askToLoadScript },
     { FST_EXTENSION, &Application::askToSetAvatarUrl },
     { JSON_GZ_EXTENSION, &Application::askToReplaceDomainContent },
+    { CONTENT_ZIP_EXTENSION, &Application::askToReplaceDomainContent },
     { ZIP_EXTENSION, &Application::importFromZIP },
     { JPG_EXTENSION, &Application::importImage },
     { PNG_EXTENSION, &Application::importImage }
@@ -6173,11 +6175,9 @@ bool Application::canAcceptURL(const QString& urlString) const {
     } else if (urlString.startsWith(HIFI_URL_SCHEME)) {
         return true;
     }
-    QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);
     QString lowerPath = url.path().toLower();
-    while (i.hasNext()) {
-        i.next();
-        if (lowerPath.endsWith(i.key(), Qt::CaseInsensitive)) {
+    for (auto& pair : _acceptedExtensions) {
+        if (lowerPath.endsWith(pair.first, Qt::CaseInsensitive)) {
             return true;
         }
     }
@@ -6194,12 +6194,10 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     }
 
     QUrl url(urlString);
-    QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);
     QString lowerPath = url.path().toLower();
-    while (i.hasNext()) {
-        i.next();
-        if (lowerPath.endsWith(i.key(), Qt::CaseInsensitive)) {
-            AcceptURLMethod method = i.value();
+    for (auto& pair : _acceptedExtensions) {
+        if (lowerPath.endsWith(pair.first, Qt::CaseInsensitive)) {
+            AcceptURLMethod method = pair.second;
             return (this->*method)(urlString);
         }
     }
@@ -6386,13 +6384,11 @@ void Application::replaceDomainContent(const QString& url) {
     QByteArray urlData(url.toUtf8());
     auto limitedNodeList = DependencyManager::get<NodeList>();
     const auto& domainHandler = limitedNodeList->getDomainHandler();
-    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
-        return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-    }, [&urlData, limitedNodeList, &domainHandler](const SharedNodePointer& octreeNode) {
-        auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
-        octreeFilePacket->write(urlData);
-        limitedNodeList->sendPacket(std::move(octreeFilePacket), domainHandler.getSockAddr());
-    });
+
+    auto octreeFilePacket = NLPacket::create(PacketType::DomainContentReplacementFromUrl, urlData.size(), true);
+    octreeFilePacket->write(urlData);
+    limitedNodeList->sendPacket(std::move(octreeFilePacket), domainHandler.getSockAddr());
+
     auto addressManager = DependencyManager::get<AddressManager>();
     addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
     QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
