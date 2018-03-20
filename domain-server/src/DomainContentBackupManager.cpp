@@ -55,9 +55,9 @@ DomainContentBackupManager::DomainContentBackupManager(const QString& backupDire
                                                        const QVariantList& backupRules,
                                                        std::chrono::milliseconds persistInterval,
                                                        bool debugTimestampNow) :
+    _consolidatedBackupDirectory(PathUtils::generateTemporaryDir()),
     _backupDirectory(backupDirectory), _persistInterval(persistInterval), _lastCheck(p_high_resolution_clock::now())
 {
-
     setObjectName("DomainContentBackupManager");
 
     // Make sure the backup directory exists.
@@ -498,23 +498,63 @@ void DomainContentBackupManager::backup() {
     }
 }
 
-void DomainContentBackupManager::consolidateBackup(MiniPromise::Promise promise, QString fileName) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "consolidateBackup", Q_ARG(MiniPromise::Promise, promise),
-                                  Q_ARG(QString, fileName));
-        return;
+ConsolidatedBackupInfo DomainContentBackupManager::consolidateBackup(QString fileName) {
+    {
+        std::lock_guard<std::mutex> lock { _consolidatedBackupsMutex };
+        auto it = _consolidatedBackups.find(fileName);
+
+        if (it != _consolidatedBackups.end()) {
+            return it->second;
+        }
+    }
+    QMetaObject::invokeMethod(this, "consolidateBackupInternal", Q_ARG(QString, fileName));
+    return {
+        ConsolidatedBackupInfo::CONSOLIDATING,
+        "",
+        ""
+    };
+}
+
+void DomainContentBackupManager::consolidateBackupInternal(QString fileName) {
+    auto markFailure = [this, &fileName](QString error) {
+        qWarning() << "Failed to consolidate backup:" << fileName << error;
+        {
+            std::lock_guard<std::mutex> lock { _consolidatedBackupsMutex };
+            auto& consolidatedBackup = _consolidatedBackups[fileName];
+            consolidatedBackup.state = ConsolidatedBackupInfo::COMPLETE_WITH_ERROR;
+            consolidatedBackup.error = error;
+        }
+    };
+
+    {
+        std::lock_guard<std::mutex> lock { _consolidatedBackupsMutex };
+
+        auto it = _consolidatedBackups.find(fileName);
+        if (it != _consolidatedBackups.end()) {
+            return;
+        }
+
+        _consolidatedBackups[fileName] = {
+            ConsolidatedBackupInfo::CONSOLIDATING,
+            "",
+            ""
+        };
     }
 
     QDir backupDir { _backupDirectory };
     if (!backupDir.exists()) {
-        qCritical() << "Backup directory does not exist, bailing consolidation of backup";
-        promise->resolve({ { "success", false } });
+        markFailure("Backup directory does not exist, bailing consolidation of backup");
         return;
     }
 
     auto filePath = backupDir.absoluteFilePath(fileName);
+    
+    if (!QFile::exists(filePath)) {
+        markFailure("Backup does not exist");
+        return;
+    }
 
-    auto copyFilePath = QDir::tempPath() + "/" + fileName;
+    auto copyFilePath = _consolidatedBackupDirectory + "/" + fileName;
 
     {
         QFile copyFile(copyFilePath);
@@ -523,8 +563,7 @@ void DomainContentBackupManager::consolidateBackup(MiniPromise::Promise promise,
     }
     auto copySuccess = QFile::copy(filePath, copyFilePath);
     if (!copySuccess) {
-        qCritical() << "Failed to create copy of backup.";
-        promise->resolve({ { "success", false } });
+        markFailure("Failed to create copy of backup.");
         return;
     }
 
@@ -532,7 +571,7 @@ void DomainContentBackupManager::consolidateBackup(MiniPromise::Promise promise,
     if (!zip.open(QuaZip::mdAdd)) {
         qCritical() << "Could not open backup archive:" << filePath;
         qCritical() << "    ERROR:" << zip.getZipError();
-        promise->resolve({ { "success", false } });
+        markFailure("Could not open backup archive");
         return;
     }
 
@@ -544,14 +583,17 @@ void DomainContentBackupManager::consolidateBackup(MiniPromise::Promise promise,
 
     if (zip.getZipError() != UNZ_OK) {
         qCritical() << "Failed to consolidate backup: " << zip.getZipError();
-        promise->resolve({ { "success", false } });
+        markFailure("Failed to consolidate backup");
         return;
     }
 
-    promise->resolve({
-        { "success", true },
-        { "backupFilePath", copyFilePath }
-    });
+    {
+        std::lock_guard<std::mutex> lock { _consolidatedBackupsMutex };
+        auto& consolidatedBackup = _consolidatedBackups[fileName];
+        consolidatedBackup.state = ConsolidatedBackupInfo::COMPLETE_WITH_SUCCESS;
+        consolidatedBackup.absoluteFilePath = copyFilePath;
+    }
+
 }
 
 void DomainContentBackupManager::createManualBackup(MiniPromise::Promise promise, const QString& name) {

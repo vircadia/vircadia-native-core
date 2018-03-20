@@ -15,9 +15,14 @@
 #ifndef hifi_DomainContentBackupManager_h
 #define hifi_DomainContentBackupManager_h
 
+#include <RegisteredMetaTypes.h>
+
 #include <QString>
 #include <QVector>
 #include <QDateTime>
+
+#include <mutex>
+#include <unordered_map>
 
 #include <GenericThread.h>
 
@@ -36,6 +41,17 @@ struct BackupItemInfo {
     QString absolutePath;
     QDateTime createdAt;
     bool isManualBackup;
+};
+
+struct ConsolidatedBackupInfo {
+    enum State {
+        CONSOLIDATING,
+        COMPLETE_WITH_ERROR,
+        COMPLETE_WITH_SUCCESS
+    };
+    State state;
+    QString error;
+    QString absoluteFilePath;
 };
 
 class DomainContentBackupManager : public GenericThread {
@@ -61,6 +77,7 @@ public:
     void addBackupHandler(BackupHandlerPointer handler);
     void aboutToFinish();  /// call this to inform the persist thread that the owner is about to finish to support final persist
     void replaceData(QByteArray data);
+    ConsolidatedBackupInfo consolidateBackup(QString fileName);
 
 public slots:
     void getAllBackupsAndStatus(MiniPromise::Promise promise);
@@ -68,7 +85,6 @@ public slots:
     void recoverFromBackup(MiniPromise::Promise promise, const QString& backupName);
     void recoverFromUploadedBackup(MiniPromise::Promise promise, QByteArray uploadedBackup);
     void deleteBackup(MiniPromise::Promise promise, const QString& backupName);
-    void consolidateBackup(MiniPromise::Promise promise, QString fileName);
 
 signals:
     void loadCompleted();
@@ -91,10 +107,17 @@ protected:
 
     bool recoverFromBackupZip(const QString& backupName, QuaZip& backupZip);
 
+private slots:
+    void consolidateBackupInternal(QString fileName);
+
 private:
+    const QString _consolidatedBackupDirectory;
     const QString _backupDirectory;
     std::vector<BackupHandlerPointer> _backupHandlers;
     std::chrono::milliseconds _persistInterval { 0 };
+
+    std::mutex _consolidatedBackupsMutex;
+    std::unordered_map<QString, ConsolidatedBackupInfo> _consolidatedBackups;
 
     std::atomic<bool> _isRecovering { false };
     QString _recoveryFilename { };
