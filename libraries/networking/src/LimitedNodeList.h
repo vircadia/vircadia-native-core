@@ -140,7 +140,8 @@ public:
     // use sendUnreliableUnorderedPacketList to unreliably send separate packets from the packet list
     // either to a node's active socket or to a manual sockaddr
     qint64 sendUnreliableUnorderedPacketList(NLPacketList& packetList, const Node& destinationNode);
-    qint64 sendUnreliableUnorderedPacketList(NLPacketList & packetList, const HifiSockAddr & sockAddr, HmacAuth * hmacAuth);
+    qint64 sendUnreliableUnorderedPacketList(NLPacketList & packetList, const HifiSockAddr & sockAddr,
+        HmacAuth * hmacAuth = nullptr);
 
     // use sendPacketList to send reliable packet lists (ordered or unordered) to a node's active socket
     // or to a manual sock addr
