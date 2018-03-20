@@ -12,12 +12,17 @@ using namespace gpu;
 using namespace gpu::gl;
 
 #if defined(USE_GLES)
+// Missing GL formats
 #define GL_R16 GL_R16_EXT
 #define GL_R16_SNORM GL_R16_SNORM_EXT
+#define GL_RG16 GL_RG16_EXT
+#define GL_RG16_SNORM GL_RG16_SNORM_EXT
+#define GL_RGBA2 GL_RGBA8
 #define GL_RGBA16 GL_RGBA16_EXT
 #define GL_RGBA16_SNORM GL_RGBA16_SNORM_EXT
 #define GL_DEPTH_COMPONENT32 GL_DEPTH_COMPONENT32_OES
-#define GL_RGBA2 GL_RGBA8
+#define GL_SLUMINANCE8_EXT GL_SLUMINANCE8_NV
+// Missing GL compressed formats
 #define GL_COMPRESSED_RED_RGTC1 0x8DBB
 #define GL_COMPRESSED_SIGNED_RED_RGTC1 0x8DBC
 #define GL_COMPRESSED_RG_RGTC2 0x8DBD
@@ -26,7 +31,6 @@ using namespace gpu::gl;
 #define GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM 0x8E8D
 #define GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT 0x8E8E
 #define GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT 0x8E8F
-#define GL_SLUMINANCE8_EXT GL_SLUMINANCE8_NV
 #endif
 
 bool GLTexelFormat::isCompressed() const {
@@ -604,11 +608,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 }
                 case gpu::NUINT8: {
                     if ((dstFormat.getSemantic() == gpu::SRGB || dstFormat.getSemantic() == gpu::SRGBA)) {
-#if defined(USE_GLES)
-                        texel.internalFormat = GL_SLUMINANCE8_NV;
-#else
                         texel.internalFormat = GL_SLUMINANCE8_EXT;
-#endif
                     } else {
                         texel.internalFormat = GL_R8;
                     }
@@ -642,21 +642,13 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
 
             case gpu::DEPTH:
                 texel.format = GL_DEPTH_COMPONENT; // It's depth component to load it
-#if defined(USE_GLES)
-                texel.internalFormat = GL_DEPTH_COMPONENT32_OES;
-#else
                 texel.internalFormat = GL_DEPTH_COMPONENT32;
-#endif
                 switch (dstFormat.getType()) {
                 case gpu::UINT32:
                 case gpu::INT32:
                 case gpu::NUINT32:
                 case gpu::NINT32: {
-#if defined(USE_GLES)
-                    texel.internalFormat = GL_DEPTH_COMPONENT32_OES;
-#else
                     texel.internalFormat = GL_DEPTH_COMPONENT32;
-#endif
                     break;
                 }
                 case gpu::FLOAT: {
