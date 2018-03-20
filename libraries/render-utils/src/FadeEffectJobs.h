@@ -190,7 +190,6 @@ private:
     bool _isEditEnabled{ false };
     render::ItemID _editedItem{ render::Item::INVALID_ITEM_ID };
 
-    render::ItemID findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const;
 };
 
 class FadeJob {

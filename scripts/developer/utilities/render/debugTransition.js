@@ -71,7 +71,7 @@
         
     button.clicked.connect(onClicked);
     tablet.screenChanged.connect(onScreenChanged);
-
+    
     Script.scriptEnding.connect(function () {
         if (onScreen) {
             tablet.gotoHomeScreen();
@@ -80,5 +80,53 @@
         tablet.screenChanged.disconnect(onScreenChanged);
         tablet.removeButton(button);
     });
+
+
+    // Create a Laser pointer used to pick and add objects to selections
+    var END_DIMENSIONS = { x: 0.05, y: 0.05, z: 0.05 };
+    var COLOR1 = {red: 255, green: 0, blue: 0}; 
+    var COLOR2 = {red: 0, green: 255, blue: 0};
+    var end1 = {
+        type: "sphere",
+        dimensions: END_DIMENSIONS,
+        color: COLOR1,
+        ignoreRayIntersection: true
+    }
+    var end2 = {
+        type: "sphere",
+        dimensions: END_DIMENSIONS,
+        color: COLOR2,
+        ignoreRayIntersection: true
+    }
+    var laser = Pointers.createPointer(PickType.Ray, {
+        joint: "Mouse",
+        filter: Picks.PICK_ENTITIES,
+        renderStates: [{name: "one", end: end1}],
+        defaultRenderStates: [{name: "one", end: end2, distance: 2.0}],
+        enabled: true
+    });
+    Pointers.setRenderState(laser, "one");
+
+    var currentSelectionName = ""
+    var SelectionList = "TransitionEdit"
+    var selectedEntity = null
+    Pointers.enablePointer(laser)
+    Selection.enableListToScene(SelectionList)
+    Selection.clearSelectedItemsList(SelectionList)
+
+    Entities.clickDownOnEntity.connect(function (id, event) {
+        if (selectedEntity) {
+            Selection.removeFromSelectedItemsList(SelectionList, "entity", selectedEntity)
+        }
+        selectedEntity = id
+        Selection.addToSelectedItemsList(SelectionList, "entity", selectedEntity)
+    })
+  
+    function cleanup() {
+        Pointers.disablePointer(laser)
+        Pointers.removePointer(ray);
+        Selection.removeListFromMap(SelectionList)
+        Selection.disableListToScene(SelectionList);
+    }
 
 }()); 
