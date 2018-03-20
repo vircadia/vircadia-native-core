@@ -43,6 +43,7 @@ public:
     const AnimPose& getPostRotationPose(int jointIndex) const;
 
     int getParentIndex(int jointIndex) const;
+    std::vector<int> getChildrenOfJoint(int jointIndex) const;
 
     AnimPose getAbsolutePose(int jointIndex, const AnimPoseVec& relativePoses) const;
 

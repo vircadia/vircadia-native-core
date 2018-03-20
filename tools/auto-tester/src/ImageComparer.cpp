@@ -17,13 +17,13 @@
 double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) const {
     // Make sure the image is 8 bits per colour
     QImage::Format format = expectedImage.format();
-    if (format != QImage::Format::Format_RGB32) {
+    if (format != QImage::Format::Format_ARGB32) {
         throw -1;
     }
 
     const int L = 255; // (2^number of bits per pixel) - 1
-    const double K1{ 0.01 };
-    const double K2{ 0.03 };
+    const double K1 { 0.01 };
+    const double K2 { 0.03 };
     const double c1 = pow((K1 * L), 2);
     const double c2 = pow((K2 * L), 2);
 

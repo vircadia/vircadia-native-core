@@ -76,33 +76,33 @@ Item {
         HifiStyles.RalewayRegular {
             id: notice
             text: "YOUR LOCATION"
-            font.pixelSize: (hifi.fonts.pixelSize * 2.15)*(android.dimen.atLeast1440p?1:.75);
+            font.pixelSize: (hifi.fonts.pixelSize * 2.15) * (android.dimen.atLeast1440p ? 1 : .75);
             color: "#2CD7FF"
             anchors {
                 bottom: addressBackground.top
-                bottomMargin: android.dimen.atLeast1440p?45:34
+                bottomMargin: android.dimen.atLeast1440p ? 45 : 34
                 left: addressBackground.left
-                leftMargin: android.dimen.atLeast1440p?60:45
+                leftMargin: android.dimen.atLeast1440p ? 60 : 45
             }
 
         }
 
-        property int inputAreaHeight: android.dimen.atLeast1440p?210:156
+        property int inputAreaHeight: android.dimen.atLeast1440p ? 210 : 156
         property int inputAreaStep: (height - inputAreaHeight) / 2
 
         ToolbarButton {
             id: homeButton
-            y: android.dimen.atLeast1440p?280:210
+            y: android.dimen.atLeast1440p ? 280 : 210
             imageURL: "../../icons/home.svg"
             onClicked: {
                 addressBarDialog.loadHome();
                 bar.shown = false;
             }
             anchors {
-                leftMargin: android.dimen.atLeast1440p?75:56
+                leftMargin: android.dimen.atLeast1440p ? 75 : 56
                 left: parent.left
             }
-            size: android.dimen.atLeast1440p?150:150//112
+            size: android.dimen.atLeast1440p ? 150 : 150//112
         }
 
         ToolbarButton {
@@ -111,10 +111,10 @@ Item {
             onClicked: addressBarDialog.loadBack();
             anchors {
                 left: homeButton.right
-                leftMargin: android.dimen.atLeast1440p?70:52
+                leftMargin: android.dimen.atLeast1440p ? 70 : 52
                 verticalCenter: homeButton.verticalCenter
             }
-            size: android.dimen.atLeast1440p?150:150
+            size: android.dimen.atLeast1440p ? 150 : 150
         }
         ToolbarButton {
             id: forwardArrow;
@@ -122,10 +122,10 @@ Item {
             onClicked: addressBarDialog.loadForward();
             anchors {
                 left: backArrow.right
-                leftMargin: android.dimen.atLeast1440p?60:45
+                leftMargin: android.dimen.atLeast1440p ? 60 : 45
                 verticalCenter: homeButton.verticalCenter
             }
-            size: android.dimen.atLeast1440p?150:150
+            size: android.dimen.atLeast1440p ? 150 : 150
         }
 
         HifiStyles.FiraSansRegular {
@@ -140,25 +140,22 @@ Item {
 
         Rectangle {
             id: addressBackground
-            x: android.dimen.atLeast1440p?780:585
-            y: android.dimen.atLeast1440p?280:235 // tweaking by hand
-            width: android.dimen.atLeast1440p?1270:952
-            height: android.dimen.atLeast1440p?150:112
+            x: android.dimen.atLeast1440p ? 780 : 585
+            y: android.dimen.atLeast1440p ? 280 : 235 // tweaking by hand
+            width: android.dimen.atLeast1440p ? 1270 : 952
+            height: android.dimen.atLeast1440p ? 150 : 112
             color: "#FFFFFF"
         }
 
         TextInput {
             id: addressLine
             focus: true
-            x: android.dimen.atLeast1440p?870:652
-            y: android.dimen.atLeast1440p?300:245 // tweaking by hand
-            width: android.dimen.atLeast1440p?1200:900
-            height: android.dimen.atLeast1440p?120:90
+            x: android.dimen.atLeast1440p ? 870 : 652
+            y: android.dimen.atLeast1440p ? 300 : 245 // tweaking by hand
+            width: android.dimen.atLeast1440p ? 1200 : 900
+            height: android.dimen.atLeast1440p ? 120 : 90
             inputMethodHints: Qt.ImhNoPredictiveText
             //helperText: "Hint is here"
-            anchors {
-                //verticalCenter: addressBackground.verticalCenter
-            }
             font.pixelSize: hifi.fonts.pixelSize * 3.75
             onTextChanged: {
                 //filterChoicesByText();

@@ -25,7 +25,7 @@ out vec2 _texCoord0;
 out vec4 _position;
 
 void main(void) {
-    _color = colorToLinearRGBA(inColor);
+    _color = color_sRGBAToLinear(inColor);
     _texCoord0 = inTexCoord0.st;
     _position = inPosition;
     _modelNormal = inNormal.xyz;

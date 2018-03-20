@@ -689,6 +689,15 @@ QScriptValue qColorToScriptValue(QScriptEngine* engine, const QColor& color) {
     return object;
 }
 
+/**jsdoc
+ * An axis-aligned cube, defined as the bottom right near (minimum axes values) corner of the cube plus the dimension of its 
+ * sides.
+ * @typedef {object} AACube
+ * @property {number} x - X coordinate of the brn corner of the cube.
+ * @property {number} y - Y coordinate of the brn corner of the cube.
+ * @property {number} z - Z coordinate of the brn corner of the cube.
+ * @property {number} scale - The dimensions of each side of the cube.
+ */
 QScriptValue aaCubeToScriptValue(QScriptEngine* engine, const AACube& aaCube) {
     QScriptValue obj = engine->newObject();
     const glm::vec3& corner = aaCube.getCorner();
@@ -765,6 +774,15 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
     }
 }
 
+/**jsdoc
+ * @typedef {object} Collision
+ * @property {ContactEventType} type - The contact type of the collision event.
+ * @property {Uuid} idA - The ID of one of the entities in the collision.
+ * @property {Uuid} idB - The ID of the other of the entities in the collision.
+ * @property {Vec3} penetration - The amount of penetration between the two entities.
+ * @property {Vec3} contactPoint - The point of contact.
+ * @property {Vec3} velocityChange - The change in relative velocity of the two entities, in m/s.
+ */
 QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("type", collision.type);
