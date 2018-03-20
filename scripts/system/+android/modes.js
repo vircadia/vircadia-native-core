@@ -23,6 +23,8 @@ var logEnabled = true;
 var radar = Script.require('./radar.js');
 var uniqueColor = Script.require('./uniqueColor.js');
 
+var modesInterface = {};
+
 function printd(str) {
     if (logEnabled) {       
         print("[modes.js] " + str);
@@ -184,32 +186,43 @@ function onButtonClicked(clickedButton, whatToDo, hideAllAfter) {
 }
 
 function isRadarModeValidTouch(coords) {
+    if (!modesInterface.isRadarModeValidTouch(coords)) {
+        printd("isRadarModeValidTouch- false because of modesInterface");
+        return false;
+    }
+    printd("isRadarModeValidTouch- modesInterface is true, evaluating modesbar qmls..");
+
     var qmlFragments = [modesbar.qmlFragment];
     var windows = [];
     for (var i=0; i < qmlFragments.length; i++) {
         var aQmlFrag = qmlFragments[i];
         if (aQmlFrag != null && aQmlFrag.isVisible() &&
-            coords.x >= aQmlFrag.position.x * 3 && coords.x <= aQmlFrag.position.x * 3 + aQmlFrag.size.x * 3 &&
-            coords.y >= aQmlFrag.position.y * 3 && coords.y <= aQmlFrag.position.y * 3 + aQmlFrag.size.y * 3
+            coords.x >= aQmlFrag.position.x && coords.x <= aQmlFrag.position.x + aQmlFrag.size.x &&
+            coords.y >= aQmlFrag.position.y && coords.y <= aQmlFrag.position.y + aQmlFrag.size.y
            ) {
-            printd("godViewModeTouchValid- false because of qmlFragments!? idx " + i);
+            printd("isRadarModeValidTouch- false because of qmlFragments!? idx " + i);
             return false;
         }
     }
 
     for (var i=0; i < windows.length; i++) {
         var aWin = windows[i];
-        if (aWin != null && aWin.position() != null &&
-            coords.x >= aWin.position().x * 3 && coords.x <= aWin.position().x * 3 + aWin.width() * 3 &&
-            coords.y >= aWin.position().y * 3 && coords.y <= aWin.position().y * 3 + aWin.height() * 3
+        if (aWin != null && aWin.position() != null && aWin.isVisible() &&
+            coords.x >= aWin.position().x && coords.x <= aWin.position().x + aWin.width() &&
+            coords.y >= aWin.position().y && coords.y <= aWin.position().y + aWin.height()
         ) {
-            printd("godViewModeTouchValid- false because of windows!?");
+            printd("isRadarModeValidTouch- false because of windows!? idx " + i);
             return false;
         }
     }
-    printd("godViewModeTouchValid- true by default ");
+    printd("isRadarModeValidTouch- true by default ");
     return true;
 }
+
+// default
+modesInterface.isRadarModeValidTouch = function(coords) {return true;};
+
+module.exports = modesInterface;
 
 Script.scriptEnding.connect(function () {
     shutdown();
