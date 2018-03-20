@@ -3118,6 +3118,9 @@ bool Application::isServerlessMode() const {
 
 void Application::setIsServerlessDomain(bool serverlessDomain) {
     auto tree = getEntities()->getTree();
+    if (tree->isServerlessMode() && !serverlessDomain) {
+        disconnectFromDomain();
+    }
     if (tree) {
         tree->setIsServerlessMode(serverlessDomain);
     }
@@ -3129,12 +3132,7 @@ void Application::loadServerlessDomain(QUrl domainURL) {
         return;
     }
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    clearDomainOctreeDetails();
-    getMyAvatar()->setSessionUUID(QUuid()); // clear the sessionID
-    NodePermissions permissions; // deny all permissions
-    permissions.setAll(false);
-    nodeList->setPermissions(permissions);
+    disconnectFromDomain();
 
     if (domainURL.isEmpty()) {
         return;
@@ -3142,9 +3140,11 @@ void Application::loadServerlessDomain(QUrl domainURL) {
 
     QUuid serverlessSessionID = QUuid::createUuid();
     getMyAvatar()->setSessionUUID(serverlessSessionID);
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setSessionUUID(serverlessSessionID);
 
     // there is no domain-server to tell us our permissions, so enable all
+    NodePermissions permissions;
     permissions.setAll(true);
     nodeList->setPermissions(permissions);
 
@@ -3162,6 +3162,15 @@ void Application::loadServerlessDomain(QUrl domainURL) {
     }
 
     _fullSceneReceivedCounter++;
+}
+
+void Application::disconnectFromDomain() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    clearDomainOctreeDetails();
+    getMyAvatar()->setSessionUUID(QUuid()); // clear the sessionID
+    NodePermissions permissions; // deny all permissions
+    permissions.setAll(false);
+    nodeList->setPermissions(permissions);
 }
 
 bool Application::importImage(const QString& urlString) {

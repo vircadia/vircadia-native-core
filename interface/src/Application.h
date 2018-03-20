@@ -392,6 +392,7 @@ public slots:
 
     void setIsServerlessDomain(bool serverlessDomain);
     void loadServerlessDomain(QUrl domainURL);
+    void disconnectFromDomain();
 
     Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
 
