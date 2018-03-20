@@ -21,15 +21,26 @@
 class NLPacket : public udt::Packet {
     Q_OBJECT
 public:
-
+    //
+    //    |      BYTE     |      BYTE     |      BYTE     |      BYTE     |
+    //
     //     0                   1                   2                   3
     //     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //    |          Packet Type          |        Packet Version         |
-    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //    |          Node UUID            |    Hash (only if verified)    |  Optional (only if sourced)
-    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //
+    //    |  Packet Type  |    Version    |                               |
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
+    //    |                                                               |
+    //    |                       Node UUID - 16 bytes                    |
+    //    |                   (ONLY FOR SOURCED PACKETS)                  |
+    //    |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //    |                               |                               |
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
+    //    |                                                               |
+    //    |                   MD5 Verification - 16 bytes                 |
+    //    |                   (ONLY FOR VERIFIED PACKETS)                 |
+    //    |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //    |                               |                               |
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
     //    NLPacket Header Format
 
     // this is used by the Octree classes - must be known at compile time

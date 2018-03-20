@@ -112,6 +112,7 @@ Rectangle {
 
             // mute is in its own row
             RowLayout {
+                spacing: (margins.sizeCheckBox - 10.5) * 3;
                 AudioControls.CheckBox {
                     id: muteMic
                     text: qsTr("Mute microphone");
@@ -121,6 +122,19 @@ Rectangle {
                     onClicked: {
                         AudioScriptingInterface.muted = checked;
                         checked = Qt.binding(function() { return AudioScriptingInterface.muted; }); // restore binding
+                    }
+                }
+
+                AudioControls.CheckBox {
+                    id: stereoMic
+                    spacing: muteMic.spacing;
+                    text: qsTr("Enable stereo input");
+                    checked: AudioScriptingInterface.isStereoInput();
+                    onClicked: {
+                        var success = AudioScriptingInterface.setStereoInput(checked);
+                        if (!success) {
+                            checked = !checked;
+                        }
                     }
                 }
             }
@@ -204,6 +218,8 @@ Rectangle {
                     text: devicename
                     onPressed: {
                         if (!checked) {
+                            stereoMic.checked = false;
+                            AudioScriptingInterface.setStereoInput(false); // the next selected audio device might not support stereo
                             AudioScriptingInterface.setInputDevice(info, bar.currentIndex === 1);
                         }
                     }

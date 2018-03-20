@@ -88,7 +88,7 @@ class AntialiasingConfig : public render::Job::Config {
     Q_PROPERTY(float blend MEMBER blend NOTIFY dirty)
     Q_PROPERTY(float sharpen MEMBER sharpen NOTIFY dirty)
     Q_PROPERTY(float covarianceGamma MEMBER covarianceGamma NOTIFY dirty)
- 
+
     Q_PROPERTY(bool constrainColor MEMBER constrainColor NOTIFY dirty)
     Q_PROPERTY(bool feedbackColor MEMBER feedbackColor NOTIFY dirty)
 

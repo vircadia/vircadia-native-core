@@ -163,8 +163,10 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
 
         auto shadowPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
         auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
+        auto shadowSkinnedDQPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned().withDualQuatSkinned());
 
         std::vector<ShapeKey> skinnedShapeKeys{};
+        std::vector<ShapeKey> skinnedDQShapeKeys{};
         std::vector<ShapeKey> ownPipelineShapeKeys{};
 
         // Iterate through all inShapes and render the unskinned
@@ -172,7 +174,11 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
         batch.setPipeline(shadowPipeline->pipeline);
         for (auto items : inShapes) {
             if (items.first.isSkinned()) {
-                skinnedShapeKeys.push_back(items.first);
+                if (items.first.isDualQuatSkinned()) {
+                    skinnedDQShapeKeys.push_back(items.first);
+                } else {
+                    skinnedShapeKeys.push_back(items.first);
+                }
             } else if (!items.first.hasOwnPipeline()) {
                 renderItems(renderContext, items.second);
             } else {
@@ -184,6 +190,13 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
         args->_shapePipeline = shadowSkinnedPipeline;
         batch.setPipeline(shadowSkinnedPipeline->pipeline);
         for (const auto& key : skinnedShapeKeys) {
+            renderItems(renderContext, inShapes.at(key));
+        }
+
+        // Reiterate to render the DQ skinned
+        args->_shapePipeline = shadowSkinnedDQPipeline;
+        batch.setPipeline(shadowSkinnedDQPipeline->pipeline);
+        for (const auto& key : skinnedDQShapeKeys) {
             renderItems(renderContext, inShapes.at(key));
         }
 
@@ -218,7 +231,10 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup");
     const auto queryResolution = setupOutput.getN<RenderShadowSetup::Outputs>(2);
     // Fetch and cull the items from the scene
-    static const auto shadowCasterFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(tagBits, tagMask);
+
+    // Enable models to not cast shadows (otherwise, models will always cast shadows)
+    static const auto shadowCasterFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(tagBits, tagMask).withShadowCaster();
+
     const auto fetchInput = FetchSpatialTree::Inputs(shadowCasterFilter, queryResolution).asVarying();
     const auto shadowSelection = task.addJob<FetchSpatialTree>("FetchShadowTree", fetchInput);
     const auto selectionInputs = FetchSpatialSelection::Inputs(shadowSelection, shadowCasterFilter).asVarying();
@@ -297,8 +313,14 @@ void RenderShadowSetup::setSlopeBias(int cascadeIndex, float value) {
 }
 
 void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {
+    // Abort all jobs if not casting shadows
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
+    if (!lightStage->getCurrentKeyLight() || !lightStage->getCurrentKeyLight()->getCastShadows()) {
+        renderContext->taskFlow.abortTask();
+        return;
+    }
+
     // Cache old render args
     RenderArgs* args = renderContext->args;
 
@@ -378,12 +400,13 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
 void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
+
     // Cache old render args
     RenderArgs* args = renderContext->args;
 
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow && _cascadeIndex<globalShadow->getCascadeCount()) {
-        output.edit0() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(_tagBits, _tagMask);
+        output.edit0() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(_tagBits, _tagMask).withShadowCaster();
 
         // Set the keylight render args
         auto& cascade = globalShadow->getCascade(_cascadeIndex);

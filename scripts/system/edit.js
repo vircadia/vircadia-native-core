@@ -565,11 +565,12 @@ var toolBar = (function () {
             createNewEntity({
                 type: "Model",
                 dimensions: {
-                    x: 4.16,
-                    y: 0.02,
-                    z: 2.58
+                    x: 0.5385,
+                    y: 0.2819,
+                    z: 0.0092
                 },
                 shapeType: "box",
+                collisionless: true,
                 modelURL: IMAGE_MODEL,
                 textures: JSON.stringify({ "tex.picture": DEFAULT_IMAGE })
             });

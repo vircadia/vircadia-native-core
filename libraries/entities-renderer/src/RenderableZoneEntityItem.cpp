@@ -330,6 +330,7 @@ void ZoneEntityRenderer::updateKeySunFromEntity(const TypedEntityPointer& entity
     sunLight->setColor(ColorUtils::toVec3(_keyLightProperties.getColor()));
     sunLight->setIntensity(_keyLightProperties.getIntensity());
     sunLight->setDirection(entity->getTransform().getRotation() * _keyLightProperties.getDirection());
+    sunLight->setCastShadows(_keyLightProperties.getCastShadows());
 }
 
 void ZoneEntityRenderer::updateAmbientLightFromEntity(const TypedEntityPointer& entity) {
@@ -432,7 +433,7 @@ void ZoneEntityRenderer::setAmbientURL(const QString& ambientUrl) {
         _ambientTexture = textureCache->getTexture(_ambientTextureURL, image::TextureUsage::CUBE_TEXTURE);
 
         // keep whatever is assigned on the ambient map/sphere until texture is loaded
-}
+    }
 }
 
 void ZoneEntityRenderer::updateAmbientMap() {

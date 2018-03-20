@@ -77,8 +77,8 @@ if (Os.isFamily(Os.FAMILY_MAC)) {
     qtVersionId='HygCmtMLPYioyil0DfXckGVzhw2SXZA9'
 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
     qtFile = 'qt-5.9.3_win_armv8-libcpp_openssl.tgz'
-    qtChecksum='a93d22c0c59aa112fda18c4c6d157d17'
-    qtVersionId='0Bl9NSUWb5CBKLT_NXaxTt75SNBBZ9sB'
+    qtChecksum='c3e25db64002d0f43cf565e0ef708911'
+    qtVersionId='HeVObSVLCBoc7yY7He1oBMvPIH0VkClT'
 }
 
 def packages = [
@@ -112,6 +112,13 @@ def packages = [
         versionId: 'UTberAIFraEfF9IVjoV66u1DTPTopgeY',
         checksum: '57fd02baa069176ba18597a29b6b4fc7',
     ],
+    nvtt: [
+        file: 'nvtt_armv8-libcpp.zip',
+        versionId: 'vLqrqThvpq4gp75BHMAqO6HhfTXaa0An',
+        checksum: 'eb46d0b683e66987190ed124aabf8910',
+        sharedLibFolder: 'lib',
+        includeLibs: ['libnvtt.so', 'libnvmath.so', 'libnvimage.so', 'libnvcore.so'],
+    ],
     openssl: [
         file: 'openssl-1.1.0g_armv8.tgz',
         versionId: 'DmahmSGFS4ltpHyTdyQvv35WOeUOiib9',
@@ -130,6 +137,13 @@ def packages = [
         checksum: '20768f298f53b195e71b414b0ae240c4',
         sharedLibFolder: 'lib/release',
         includeLibs: ['libtbb.so', 'libtbbmalloc.so'],
+    ],
+    hifiAC: [
+        file: 'libplugins_libhifiCodec.zip',
+        versionId: 'mzKhsRCgVmloqq5bvE.0IwYK1NjGQc_G',
+        checksum: '9412a8e12c88a4096c1fc843bb9fe52d',
+        sharedLibFolder: '',
+        includeLibs: ['libplugins_libhifiCodec.so']
     ]
 ]
 
@@ -346,6 +360,7 @@ task verifyGvr(type: Verify) { def p = packages['gvr']; src new File(baseFolder,
 task verifyOpenSSL(type: Verify) { def p = packages['openssl']; src new File(baseFolder, p['file']);  checksum p['checksum'] }
 task verifyPolyvox(type: Verify) { def p = packages['polyvox']; src new File(baseFolder, p['file']); checksum p['checksum'] }
 task verifyTBB(type: Verify) { def p = packages['tbb']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+task verifyHifiAC(type: Verify) { def p = packages['hifiAC']; src new File(baseFolder, p['file']); checksum p['checksum'] }
 
 task verifyDependencyDownloads(dependsOn: downloadDependencies) { }
 verifyDependencyDownloads.dependsOn verifyQt
@@ -355,6 +370,7 @@ verifyDependencyDownloads.dependsOn verifyGvr
 verifyDependencyDownloads.dependsOn verifyOpenSSL
 verifyDependencyDownloads.dependsOn verifyPolyvox
 verifyDependencyDownloads.dependsOn verifyTBB
+verifyDependencyDownloads.dependsOn verifyHifiAC
 
 task extractDependencies(dependsOn: verifyDependencyDownloads) {
     doLast {

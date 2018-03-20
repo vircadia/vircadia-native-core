@@ -140,7 +140,7 @@ public:
  *
  * @typedef {object} PickRay
  * @property {Vec3} origin - The starting position of the PickRay.
- * @property {Quat} direction - The direction that the PickRay travels.
+ * @property {Vec3} direction - The direction that the PickRay travels.
  */
 class PickRay : public MathPick {
 public:
@@ -265,6 +265,20 @@ namespace std {
     };
 }
 
+/**jsdoc
+ * <p>The type of a collision contact event.
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>0</code></td><td>Start of the collision.</td></tr>
+ *     <tr><td><code>1</code></td><td>Continuation of the collision.</td></tr>
+ *     <tr><td><code>2</code></td><td>End of the collision.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {number} ContactEventType
+ */
 enum ContactEventType {
     CONTACT_EVENT_TYPE_START,
     CONTACT_EVENT_TYPE_CONTINUE,
@@ -328,14 +342,34 @@ namespace graphics {
 
 using MeshPointer = std::shared_ptr<graphics::Mesh>;
 
-
+/**jsdoc
+ * A handle for a mesh in an entity, such as returned by {@link Entities.getMeshes}.
+ * @class MeshProxy
+ * @deprecated Use the {@link Graphics} API instead.
+ */
 class MeshProxy : public QObject {
     Q_OBJECT
 
 public:
     virtual MeshPointer getMeshPointer() const = 0;
+    
+    /**jsdoc
+     * Get the number of vertices in the mesh.
+     * @function MeshProxy#getNumVertices
+     * @returns {number} Integer number of vertices in the mesh.
+     * @deprecated Use the {@link Graphics} API instead.
+     */
     Q_INVOKABLE virtual int getNumVertices() const = 0;
-    Q_INVOKABLE virtual glm::vec3 getPos3(int index) const = 0;
+
+    /**jsdoc
+     * Get the position of a vertex in the mesh.
+     * @function MeshProxy#getPos
+     * @param {number} index - Integer index of the mesh vertex.
+     * @returns {Vec3} Local position of the vertex relative to the mesh.
+     * @deprecated Use the {@link Graphics} API instead.
+     */
+    Q_INVOKABLE virtual glm::vec3 getPos(int index) const = 0;
+    Q_INVOKABLE virtual glm::vec3 getPos3(int index) const { return getPos(index); } // deprecated
 };
 
 Q_DECLARE_METATYPE(MeshProxy*);

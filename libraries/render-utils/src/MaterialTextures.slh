@@ -154,7 +154,7 @@ vec3 fetchLightmapMap(vec2 uv) {
     vec3 normalizedTangent = normalize(<$interpolatedTangent$>.xyz);
     vec3 normalizedBitangent = normalize(cross(normalizedNormal, normalizedTangent));
     vec3 localNormal = <$fetchedNormal$>;
-    <$normal$> = vec3(normalizedTangent * localNormal.x + normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z);
+    <$normal$> = vec3(normalizedTangent * localNormal.x + normalizedNormal * localNormal.y + normalizedBitangent * localNormal.z);
 }
 <@endfunc@>
 
