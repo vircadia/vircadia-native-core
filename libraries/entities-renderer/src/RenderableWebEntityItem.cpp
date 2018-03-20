@@ -239,7 +239,7 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
 }
 
 bool WebEntityRenderer::hasWebSurface() {
-    return (bool)_webSurface;
+    return (bool)_webSurface && _webSurface->getRootItem();
 }
 
 bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
@@ -303,7 +303,7 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
     _fadeStartTime = usecTimestampNow();
     _webSurface->resume();
 
-    return true;
+    return _webSurface->getRootItem();
 }
 
 void WebEntityRenderer::destroyWebSurface() {
