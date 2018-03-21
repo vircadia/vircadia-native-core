@@ -251,10 +251,6 @@ bool AssetServer::needsToBeBaked(const AssetUtils::AssetPath& path, const AssetU
         return false;
     }
 
-    if (meta.bakeVersion < currentVersion) {
-        return true;
-    }
-
     return !bakedMappingExists || (meta.bakeVersion < currentVersion);
 }
 
