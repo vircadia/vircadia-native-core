@@ -1557,8 +1557,13 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
                params.primaryControllerPoses[PrimaryControllerType_LeftFoot], params.primaryControllerPoses[PrimaryControllerType_RightFoot]);
 
 
-    // Always relax IK chains toward joint limit centers.
-    _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToLimitCenterPoses);
+    if (headEnabled) {
+        // Blend IK chains toward the joint limit centers, this should stablize head and hand ik.
+        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToLimitCenterPoses);
+    } else {
+        // Blend IK chains toward the UnderPoses, so some of the animaton motion is present in the IK solution.
+        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToUnderPoses);
+    }
 
     // if the hips or the feet are being controlled.
     if (hipsEnabled || rightFootEnabled || leftFootEnabled) {
