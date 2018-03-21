@@ -47,6 +47,8 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
+const graphics::MaterialPointer MeshPartPayload::DEFAULT_MATERIAL = std::make_shared<graphics::Material>();
+
 MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material) {
     updateMeshPart(mesh, partIndex);
     addMaterial(graphics::MaterialLayer(material, 0));
@@ -95,7 +97,7 @@ void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits,
         builder.withSubMetaCulled();
     }
 
-    if (_drawMaterials.top().material) {
+    if (topMaterialExists()) {
         auto matKey = _drawMaterials.top().material->getKey();
         if (matKey.isTranslucent()) {
             builder.withTransparent();
@@ -115,7 +117,7 @@ Item::Bound MeshPartPayload::getBound() const {
 
 ShapeKey MeshPartPayload::getShapeKey() const {
     graphics::MaterialKey drawMaterialKey;
-    if (_drawMaterials.top().material) {
+    if (topMaterialExists()) {
         drawMaterialKey = _drawMaterials.top().material->getKey();
     }
 
@@ -170,7 +172,7 @@ void MeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // apply material properties
-    RenderPipelines::bindMaterial(_drawMaterials.top().material, batch, args->_enableTexturing);
+    RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
     args->_details._materialSwitches++;
 
     // Draw!
@@ -350,7 +352,7 @@ void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tag
         builder.withDeformed();
     }
 
-    if (_drawMaterials.top().material) {
+    if (topMaterialExists()) {
         auto matKey = _drawMaterials.top().material->getKey();
         if (matKey.isTranslucent()) {
             builder.withTransparent();
@@ -381,7 +383,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     }
 
     graphics::MaterialKey drawMaterialKey;
-    if (_drawMaterials.top().material) {
+    if (topMaterialExists()) {
         drawMaterialKey = _drawMaterials.top().material->getKey();
     }
 
@@ -467,7 +469,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // apply material properties
-    RenderPipelines::bindMaterial(_drawMaterials.top().material, batch, args->_enableTexturing);
+    RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
     args->_details._materialSwitches++;
 
     // Draw!
