@@ -5897,7 +5897,6 @@ void Application::resettingDomain() {
 
     auto nodeList = DependencyManager::get<NodeList>();
     clearDomainOctreeDetails();
-    getMyAvatar()->setSessionUUID(QUuid()); // clear the sessionID
     NodePermissions permissions; // deny all permissions
     permissions.setAll(false);
     nodeList->setPermissions(permissions);
