@@ -17,8 +17,7 @@ std::string GLBackend::getBackendShaderHeader() const {
 
 #if defined(USE_GLES)
     static const std::string header(
-R"SHADER(
-#version 310 es
+R"SHADER(#version 310 es
 #extension GL_EXT_texture_buffer : enable
 precision lowp float; // check precision 2
 precision lowp samplerBuffer;
@@ -26,8 +25,7 @@ precision lowp sampler2DShadow;
 )SHADER");
 #else
     static const std::string header(
-R"SHADER(
-#version 410 core
+R"SHADER(#version 410 core
 )SHADER");
 #endif
 
