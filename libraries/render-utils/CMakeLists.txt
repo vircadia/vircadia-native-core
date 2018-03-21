@@ -8,6 +8,9 @@ include_hifi_library_headers(audio)
 include_hifi_library_headers(networking)
 include_hifi_library_headers(octree)
 
+# tell CMake to exclude qrc_fonts.cpp for policy CMP0071
+set_property(SOURCE qrc_fonts.cpp PROPERTY SKIP_AUTOMOC ON)
+
 if (NOT ANDROID)
   target_nsight()
 endif ()

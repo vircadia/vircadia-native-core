@@ -442,12 +442,16 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
         PrioritizedEntity queuedItem = _sendQueue.top();
         EntityItemPointer entity = queuedItem.getEntity();
         if (entity) {
-            // Only send entities that match the jsonFilters, but keep track of everything we've tried to send so we don't try to send it again
+            const QUuid& entityID = entity->getID();
+            // Only send entities that match the jsonFilters, but keep track of everything we've tried to send so we don't try to send it again;
+            // also send if we previously matched since this represents change to a matched item.
             bool entityMatchesFilters = entity->matchesJSONFilters(jsonFilters);
-            if (entityMatchesFilters || entityNodeData->isEntityFlaggedAsExtra(entity->getID())) {
+            bool entityPreviouslyMatchedFilter = entityNodeData->sentFilteredEntity(entityID);
+
+            if (entityMatchesFilters || entityNodeData->isEntityFlaggedAsExtra(entityID) || entityPreviouslyMatchedFilter) {
                 if (!jsonFilters.isEmpty() && entityMatchesFilters) {
                     // Record explicitly filtered-in entity so that extra entities can be flagged.
-                    entityNodeData->insertSentFilteredEntity(entity->getID());
+                    entityNodeData->insertSentFilteredEntity(entityID);
                 }
                 OctreeElement::AppendState appendEntityState = entity->appendEntityData(&_packetData, params, _extraEncodeData);
 
@@ -457,6 +461,10 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
                     }
                     params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
                     break;
+                }
+
+                if (entityPreviouslyMatchedFilter && !entityMatchesFilters) {
+                    entityNodeData->removeSentFilteredEntity(entityID);
                 }
                 ++_numEntities;
             }

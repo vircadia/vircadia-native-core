@@ -20,6 +20,7 @@ Overlay {
             font.family: "Helvetica"
             font.pixelSize: 18
             lineHeight: 18
+            clip: true
         }
     }
 

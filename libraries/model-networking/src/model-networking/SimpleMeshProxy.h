@@ -26,8 +26,8 @@ public:
 
     int getNumVertices() const override;
 
-    glm::vec3 getPos3(int index) const override;
-
+    glm::vec3 getPos(int index) const override;
+    glm::vec3 getPos3(int index) const override { return getPos(index); } // deprecated
 
 protected:
     const MeshPointer _mesh;

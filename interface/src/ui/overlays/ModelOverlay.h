@@ -36,6 +36,11 @@ public:
     void clearSubRenderItemIDs();
     void setSubRenderItemIDs(const render::ItemIDs& ids);
 
+    virtual void setIsVisibleInSecondaryCamera(bool value) override {
+        Base3DOverlay::setIsVisibleInSecondaryCamera(value);
+        _visibleDirty = true;
+    }
+
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,

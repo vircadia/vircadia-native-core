@@ -20,9 +20,10 @@
 InputPluginList getInputPlugins() {
     InputPlugin* PLUGIN_POOL[] = {
         new KeyboardMouseDevice(),
-        new TouchscreenDevice(),
 #if defined(Q_OS_ANDROID)
         new TouchscreenVirtualPadDevice(),
+#else
+        new TouchscreenDevice(), // Touchscreen and Controller Scripts take care on Android
 #endif
         nullptr
     };

@@ -33,7 +33,7 @@ public:
     // these can only be called from the OctreeSendThread for the given Node
     void insertSentFilteredEntity(const QUuid& entityID) { _sentFilteredEntities.insert(entityID); }
     void removeSentFilteredEntity(const QUuid& entityID) { _sentFilteredEntities.remove(entityID); }
-    bool sentFilteredEntity(const QUuid& entityID) { return _sentFilteredEntities.contains(entityID); }
+    bool sentFilteredEntity(const QUuid& entityID) const { return _sentFilteredEntities.contains(entityID); }
     QSet<QUuid> getSentFilteredEntities() { return _sentFilteredEntities; }
 
     // the following flagged extra entity methods can only be called from the OctreeSendThread for the given Node
