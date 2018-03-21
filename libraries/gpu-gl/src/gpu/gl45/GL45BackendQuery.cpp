@@ -10,7 +10,7 @@
 //
 #include "GL45Backend.h"
 
-#include "../gl/GLQuery.h"
+#include <gpu/gl/GLQuery.h>
 
 namespace gpu { namespace gl45 { 
 
