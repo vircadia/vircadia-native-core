@@ -2814,7 +2814,7 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
         }
         else {
             auto userInputMapper = DependencyManager::get<UserInputMapper>();
-            const float YAW_SPEED = TWO_PI / 10.0f;
+            const float YAW_SPEED = TWO_PI / 5.0f;
             float deltaYaw = userInputMapper->getActionState(controller::Action::YAW) * YAW_SPEED * deltaTime;
             _mirrorYawOffset += deltaYaw;
             _myCamera.setOrientation(myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _mirrorYawOffset, 0.0f)));
