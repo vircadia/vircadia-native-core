@@ -831,11 +831,6 @@ glm::uvec2 OpenGLDisplayPlugin::getSurfaceSize() const {
     return result;
 }
 
-bool OpenGLDisplayPlugin::hasFocus() const {
-    auto window = _container->getPrimaryWidget();
-    return window ? window->hasFocus() : false;
-}
-
 void OpenGLDisplayPlugin::assertNotPresentThread() const {
     Q_ASSERT(QThread::currentThread() != _presentThread);
 }
