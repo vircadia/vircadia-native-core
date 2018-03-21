@@ -36,13 +36,15 @@ R"SHADER(
 
 
 // Shader domain
-static const size_t NUM_SHADER_DOMAINS = 2;
+static const size_t NUM_SHADER_DOMAINS = 3;
+static_assert(Shader::Type::NUM_DOMAINS == NUM_SHADER_DOMAINS, "GL shader domains must equal defined GPU shader domains");
 
 // GL Shader type enums
 // Must match the order of type specified in gpu::Shader::Type
 static const std::array<GLenum, NUM_SHADER_DOMAINS> SHADER_DOMAINS{ {
     GL_VERTEX_SHADER,
     GL_FRAGMENT_SHADER,
+    GL_GEOMETRY_SHADER,
 } };
 
 // Domain specific defines
@@ -50,6 +52,7 @@ static const std::array<GLenum, NUM_SHADER_DOMAINS> SHADER_DOMAINS{ {
 static const std::array<std::string, NUM_SHADER_DOMAINS> DOMAIN_DEFINES{ {
     "#define GPU_VERTEX_SHADER",
     "#define GPU_PIXEL_SHADER",
+    "#define GPU_GEOMETRY_SHADER",
 } };
 
 // Stereo specific defines
