@@ -922,7 +922,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
     _preferredCursor("preferredCursor", DEFAULT_CURSOR_NAME),
     _scaleMirror(1.0f),
-    _rotateMirror(0.0f),
+    _mirrorYawOffset(0.0f),
     _raiseMirror(0.0f),
     _enableProcessOctreeThread(true),
     _lastNackTime(usecTimestampNow()),
@@ -2790,7 +2790,7 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
         _thirdPersonHMDCameraBoomValid= false;
 
         if (isHMDMode()) {
-            auto mirrorBodyOrientation = myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
+            auto mirrorBodyOrientation = myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _mirrorYawOffset, 0.0f));
 
             glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
             // Mirror HMD yaw and roll
@@ -2814,20 +2814,13 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
         }
         else {
             auto userInputMapper = DependencyManager::get<UserInputMapper>();
-            const float YAW_SPEED = 70.0f;
-            float targetSpeed = userInputMapper->getActionState(controller::Action::YAW) * YAW_SPEED;
-            if (targetSpeed != 0.0f) {
-                const float ROTATION_TIMESCALE = 20.0f;
-                float blend = deltaTime / ROTATION_TIMESCALE;
-                if (blend > 1.0f) {
-                    blend = 1.0f;
-                }
-                _rotateMirror = (1.0f - blend) * _rotateMirror + blend * targetSpeed;
-            }
-            _myCamera.setOrientation(myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+            const float YAW_SPEED = TWO_PI / 10.0f;
+            float deltaYaw = userInputMapper->getActionState(controller::Action::YAW) * YAW_SPEED * deltaTime;
+            _mirrorYawOffset += deltaYaw;
+            _myCamera.setOrientation(myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _mirrorYawOffset, 0.0f)));
             _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                 + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
-                + (myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                + (myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, _mirrorYawOffset, 0.0f))) *
                 glm::vec3(0.0f, 0.0f, -1.0f) * myAvatar->getBoomLength() * _scaleMirror);
         }
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
@@ -3459,13 +3452,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Left:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _rotateMirror += PI / 20.0f;
+                    _mirrorYawOffset += PI / 20.0f;
                 }
                 break;
 
             case Qt::Key_Right:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _rotateMirror -= PI / 20.0f;
+                    _mirrorYawOffset -= PI / 20.0f;
                 }
                 break;
 
@@ -4836,7 +4829,7 @@ void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
         if (!isHMDMode() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
-            _rotateMirror = 0.0f;
+            _mirrorYawOffset = 0.0f;
             _myCamera.setMode(CAMERA_MODE_MIRROR);
             getMyAvatar()->reset(false, false, false); // to reset any active MyAvatar::FollowHelpers
             getMyAvatar()->setBoomLength(MyAvatar::ZOOM_DEFAULT);

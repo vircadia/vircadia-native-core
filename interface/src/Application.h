@@ -569,7 +569,7 @@ private:
     Setting::Handle<QString> _preferredCursor;
 
     float _scaleMirror;
-    float _rotateMirror;
+    float _mirrorYawOffset;
     float _raiseMirror;
 
     QSet<int> _keysPressed;
