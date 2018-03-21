@@ -31,6 +31,8 @@ import android.view.View;
 
 public class InterfaceActivity extends QtActivity {
 
+    public static final String DOMAIN_URL = "url";
+
     //public static native void handleHifiURL(String hifiURLString);
     private native long nativeOnCreate(InterfaceActivity instance, AssetManager assetManager);
     //private native void nativeOnPause();
@@ -57,11 +59,13 @@ public class InterfaceActivity extends QtActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        Intent intent = getIntent();
+        if (intent.hasExtra(DOMAIN_URL) && !intent.getStringExtra(DOMAIN_URL).isEmpty()) {
+            intent.putExtra("applicationArguments", "--url "+intent.getStringExtra(DOMAIN_URL));
+        }
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        
-        // Get the intent that started this activity in case we have a hifi:// URL to parse
-        Intent intent = getIntent();
+
         if (intent.getAction() == Intent.ACTION_VIEW) {
             Uri data = intent.getData();
 

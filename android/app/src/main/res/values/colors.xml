@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="white_opaque">#ffffff</color>
+    <color name="colorPrimary">#272727</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#54D7FD</color>
+    <color name="tabs">#1EB5EC</color>
+    <color name="backgroundDark">#333333</color>
+    <color name="backgroundLight">#4F4F4F</color>
 </resources>
