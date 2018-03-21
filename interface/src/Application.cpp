@@ -1183,8 +1183,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
-    connect(addressManager.data(), &AddressManager::urlHandled, this, &Application::setIsServerlessDomain);
-
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
     connect(this, &Application::activeDisplayPluginChanged, this, [](){
         qApp->setProperty(hifi::properties::HMD, qApp->isHMDMode());
@@ -3119,11 +3117,8 @@ bool Application::isServerlessMode() const {
     return false;
 }
 
-void Application::setIsServerlessDomain(bool serverlessDomain) {
+void Application::setIsServerlessMode(bool serverlessDomain) {
     auto tree = getEntities()->getTree();
-    if (tree->isServerlessMode() && !serverlessDomain) {
-        disconnectFromDomain();
-    }
     if (tree) {
         tree->setIsServerlessMode(serverlessDomain);
     }
@@ -3134,8 +3129,6 @@ void Application::loadServerlessDomain(QUrl domainURL) {
         QMetaObject::invokeMethod(this, "loadServerlessDomain", Q_ARG(QUrl, domainURL));
         return;
     }
-
-    disconnectFromDomain();
 
     if (domainURL.isEmpty()) {
         return;
@@ -3165,15 +3158,6 @@ void Application::loadServerlessDomain(QUrl domainURL) {
     }
 
     _fullSceneReceivedCounter++;
-}
-
-void Application::disconnectFromDomain() {
-    auto nodeList = DependencyManager::get<NodeList>();
-    clearDomainOctreeDetails();
-    getMyAvatar()->setSessionUUID(QUuid()); // clear the sessionID
-    NodePermissions permissions; // deny all permissions
-    permissions.setAll(false);
-    nodeList->setPermissions(permissions);
 }
 
 bool Application::importImage(const QString& urlString) {
@@ -5898,17 +5882,25 @@ void Application::clearDomainAvatars() {
 }
 
 void Application::domainURLChanged(QUrl domainURL) {
-    updateWindowTitle();
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
-    if (domainURL.scheme() != URL_SCHEME_HIFI) {
+    setIsServerlessMode(domainURL.scheme() != URL_SCHEME_HIFI);
+    if (isServerlessMode()) {
         loadServerlessDomain(domainURL);
     }
+    updateWindowTitle();
 }
 
 
 void Application::resettingDomain() {
     _notifiedPacketVersionMismatchThisDomain = false;
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    clearDomainOctreeDetails();
+    getMyAvatar()->setSessionUUID(QUuid()); // clear the sessionID
+    NodePermissions permissions; // deny all permissions
+    permissions.setAll(false);
+    nodeList->setPermissions(permissions);
 }
 
 void Application::nodeAdded(SharedNodePointer node) const {

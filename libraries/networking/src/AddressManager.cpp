@@ -210,7 +210,6 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 
         qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
 
-        emit urlHandled(false);
         DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::LookupAddress);
 
         // there are 4 possible lookup strings
@@ -295,7 +294,6 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
                lookupUrl.scheme() == URL_SCHEME_FILE) {
         _previousLookup.clear();
         QUrl domainURL = PathUtils::expandToLocalDataAbsolutePath(lookupUrl);
-        emit urlHandled(true);
         setDomainInfo(domainURL, trigger);
         DependencyManager::get<NodeList>()->getDomainHandler().setIsConnected(true);
         emit lookupResultsFinished();

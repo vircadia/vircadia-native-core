@@ -192,12 +192,6 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
 
 void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id) {
 
-    if (isServerless()) {
-        // if we were connected to a serverless domain, clear the octree, etc
-        _domainURL = QUrl();
-        emit domainURLChanged(_domainURL);
-    }
-
     if (_iceServerSockAddr.getAddress().toString() != iceServerHostname || id != _pendingDomainID) {
         // re-set the domain info to connect to new domain
         hardReset();
@@ -232,6 +226,7 @@ void DomainHandler::activateICELocalSocket() {
     _sockAddr = _icePeer.getLocalSocket();
     _domainURL.setScheme(URL_SCHEME_HIFI);
     _domainURL.setHost(_sockAddr.getAddress().toString());
+    emit domainURLChanged(_domainURL);
     emit completedSocketDiscovery();
 }
 
@@ -240,6 +235,7 @@ void DomainHandler::activateICEPublicSocket() {
     _sockAddr = _icePeer.getPublicSocket();
     _domainURL.setScheme(URL_SCHEME_HIFI);
     _domainURL.setHost(_sockAddr.getAddress().toString());
+    emit domainURLChanged(_domainURL);
     emit completedSocketDiscovery();
 }
 

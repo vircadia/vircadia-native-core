@@ -392,9 +392,8 @@ public slots:
     const QString getPreferredCursor() const { return _preferredCursor.get(); }
     void setPreferredCursor(const QString& cursor);
 
-    void setIsServerlessDomain(bool serverlessDomain);
+    void setIsServerlessMode(bool serverlessDomain);
     void loadServerlessDomain(QUrl domainURL);
-    void disconnectFromDomain();
 
     Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
 
