@@ -88,6 +88,7 @@ private:
 
     InputMode _inputMode { Touch };
     QSharedPointer<OffscreenQmlSurface> _webSurface;
+    bool _cachedWebSurface{ false };
     gpu::TexturePointer _texture;
     QString _url;
     QString _scriptURL;

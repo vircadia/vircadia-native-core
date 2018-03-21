@@ -10,7 +10,7 @@
 //
 #include "GL41Backend.h"
 
-#include "../gl/GLQuery.h"
+#include <gpu/gl/GLQuery.h>
 
 using namespace gpu;
 using namespace gpu::gl;
