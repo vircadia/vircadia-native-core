@@ -1,6 +1,6 @@
 //
-// HmacAuth.h
-// libraries/shared/src
+//  HMACAuth.h
+//  libraries/shared/src
 //
 //  Created by Simon Walton on 3/19/2018.
 //  Copyright 2018 High Fidelity, Inc.
@@ -18,23 +18,23 @@
 
 class QUuid;
 
-class HmacAuth {
+class HMACAuth {
 public:
     enum AuthMethod { MD5, SHA1, SHA224, SHA256, RIPEMD160 };
-    using HmacHash = std::vector<unsigned char>;
+    using HMACHash = std::vector<unsigned char>;
     
-    explicit HmacAuth(AuthMethod authMethod = MD5);
-    ~HmacAuth();
+    explicit HMACAuth(AuthMethod authMethod = MD5);
+    ~HMACAuth();
 
     bool setKey(const char * keyValue, int keyLen);
     bool setKey(const QUuid& uidKey);
     bool addData(const char * data, int dataLen);
-    HmacHash result();
+    HMACHash result();
 
 private:
     QMutex _lock;
     std::unique_ptr<struct hmac_ctx_st> _hmacContext;
-    AuthMethod _authMethod { MD5 };
+    AuthMethod _authMethod;
 };
 
 #endif  // hifi_HmacAuth_h

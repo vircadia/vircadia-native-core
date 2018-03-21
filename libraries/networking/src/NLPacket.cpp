@@ -11,7 +11,7 @@
 
 #include "NLPacket.h"
 
-#include "HmacAuth.h"
+#include "HMACAuth.h"
 
 int NLPacket::localHeaderSize(PacketType type) {
     bool nonSourced = PacketTypeEnum::getNonSourcedPackets().contains(type);
@@ -151,11 +151,11 @@ QByteArray NLPacket::verificationHashInHeader(const udt::Packet& packet) {
     return QByteArray(packet.getData() + offset, NUM_BYTES_MD5_HASH);
 }
 
-QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, HmacAuth& hash) {
+QByteArray NLPacket::hashForPacketAndHMAC(const udt::Packet& packet, HMACAuth& hash) {
     int offset = Packet::totalHeaderSize(packet.isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion)
         + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
     hash.addData(packet.getData() + offset, packet.getDataSize() - offset);
-    auto hashResult(hash.result());
+    auto hashResult { hash.result() };
     return QByteArray((const char*) hashResult.data(), (int) hashResult.size());
 }
 
@@ -208,14 +208,14 @@ void NLPacket::writeSourceID(const QUuid& sourceID) const {
     _sourceID = sourceID;
 }
 
-void NLPacket::writeVerificationHashGivenSecret(HmacAuth& hmacAuth) const {
+void NLPacket::writeVerificationHash(HMACAuth& hmacAuth) const {
     Q_ASSERT(!PacketTypeEnum::getNonSourcedPackets().contains(_type) &&
              !PacketTypeEnum::getNonVerifiedPackets().contains(_type));
     
     auto offset = Packet::totalHeaderSize(isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion)
                 + NUM_BYTES_RFC4122_UUID;
 
-    QByteArray verificationHash = hashForPacketAndSecret(*this, hmacAuth);
+    QByteArray verificationHash = hashForPacketAndHMAC(*this, hmacAuth);
     
     memcpy(_packet.get() + offset, verificationHash.data(), verificationHash.size());
 }

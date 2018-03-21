@@ -33,7 +33,7 @@
 #include "SimpleMovingAverage.h"
 #include "MovingPercentile.h"
 #include "NodePermissions.h"
-#include "HmacAuth.h"
+#include "HMACAuth.h"
 
 class Node : public NetworkPeer {
     Q_OBJECT
@@ -57,7 +57,7 @@ public:
 
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret);
-    HmacAuth& getAuthenticateHash() const { return *_authenticateHash; }
+    HMACAuth& getAuthenticateHash() const { return *_authenticateHash; }
 
     NodeData* getLinkedData() const { return _linkedData.get(); }
     void setLinkedData(std::unique_ptr<NodeData> linkedData) { _linkedData = std::move(linkedData); }
@@ -99,7 +99,7 @@ private:
     NodeType_t _type;
 
     QUuid _connectionSecret;
-    std::unique_ptr<HmacAuth> _authenticateHash;
+    std::unique_ptr<HMACAuth> _authenticateHash;
     std::unique_ptr<NodeData> _linkedData;
     bool _isReplicated { false };
     int _pingMs;

@@ -1,5 +1,5 @@
 //
-// HmacAuth.cpp
+// HMACAuth.cpp
 // libraries/shared/src
 //
 //  Created by Simon Walton on 3/19/2018.
@@ -11,25 +11,24 @@
 
 #include <openssl/hmac.h>
 
-#include "HmacAuth.h"
+#include "HMACAuth.h"
 
 #include <QUuid>
 
-HmacAuth::HmacAuth(AuthMethod authMethod)
+HMACAuth::HMACAuth(AuthMethod authMethod)
     : _hmacContext(new(HMAC_CTX))
     , _authMethod(authMethod) {
     HMAC_CTX_init(_hmacContext.get());
 }
 
-HmacAuth::~HmacAuth() {
+HMACAuth::~HMACAuth() {
     HMAC_CTX_cleanup(_hmacContext.get());
 }
 
-bool HmacAuth::setKey(const char * keyValue, int keyLen) {
-    const EVP_MD * sslStruct = nullptr;
+bool HMACAuth::setKey(const char * keyValue, int keyLen) {
+    const EVP_MD* sslStruct = nullptr;
 
-    switch (_authMethod)
-    {
+    switch (_authMethod) {
     case MD5:
         sslStruct = EVP_md5();
         break;
@@ -58,18 +57,18 @@ bool HmacAuth::setKey(const char * keyValue, int keyLen) {
     return (bool) HMAC_Init_ex(_hmacContext.get(), keyValue, keyLen, sslStruct, nullptr);
 }
 
-bool HmacAuth::setKey(const QUuid& uidKey) {
+bool HMACAuth::setKey(const QUuid& uidKey) {
     const QByteArray rfcBytes(uidKey.toRfc4122());
     return setKey(rfcBytes.constData(), rfcBytes.length());
 }
 
-bool HmacAuth::addData(const char * data, int dataLen) {
+bool HMACAuth::addData(const char * data, int dataLen) {
     QMutexLocker lock(&_lock);
     return (bool) HMAC_Update(_hmacContext.get(), reinterpret_cast<const unsigned char*>(data), dataLen);
 }
 
-HmacAuth::HmacHash HmacAuth::result() {
-    HmacHash hashValue(EVP_MAX_MD_SIZE);
+HMACAuth::HMACHash HMACAuth::result() {
+    HMACHash hashValue(EVP_MAX_MD_SIZE);
     unsigned int  hashLen;
     QMutexLocker lock(&_lock);
     HMAC_Final(_hmacContext.get(), &hashValue[0], &hashLen);
