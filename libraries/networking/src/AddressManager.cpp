@@ -133,14 +133,14 @@ void AddressManager::storeCurrentAddress() {
     auto url = currentAddress();
 
     if (url.scheme() == URL_SCHEME_FILE ||
+        (url.scheme() == URL_SCHEME_HIFI && !url.host().isEmpty())) {
         // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
         // be loaded over http(s)
         // url.scheme() == URL_SCHEME_HTTP ||
         // url.scheme() == URL_SCHEME_HTTPS ||
-        !url.host().isEmpty()) {
         currentAddressHandle.set(url);
     } else {
-        qCWarning(networking) << "Ignoring attempt to save current address with an empty host" << url;
+        qCWarning(networking) << "Ignoring attempt to save current address with an invalid url:" << url;
     }
 }
 
@@ -307,7 +307,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 bool isPossiblePlaceName(QString possiblePlaceName) {
     bool result { false };
     int length = possiblePlaceName.length();
-    static const int MINIMUM_PLACENAME_LENGTH = 2;
+    static const int MINIMUM_PLACENAME_LENGTH = 1;
     static const int MAXIMUM_PLACENAME_LENGTH = 64;
     if (possiblePlaceName.toLower() != "localhost" &&
         length >= MINIMUM_PLACENAME_LENGTH && length <= MAXIMUM_PLACENAME_LENGTH) {
