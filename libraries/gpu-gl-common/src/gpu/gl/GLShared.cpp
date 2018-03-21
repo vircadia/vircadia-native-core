@@ -24,6 +24,7 @@ namespace gpu { namespace gl {
 
 gpu::Size getFreeDedicatedMemory() {
     Size result { 0 };
+#if !defined(USE_GLES)
     static bool nvidiaMemorySupported { true };
     static bool atiMemorySupported { true };
     if (nvidiaMemorySupported) {
@@ -45,6 +46,7 @@ gpu::Size getFreeDedicatedMemory() {
             atiMemorySupported = false;
         }
     }
+#endif
     return result;
 }
 
@@ -144,6 +146,9 @@ State::BlendArg blendArgFromGL(GLenum blendArg) {
 
 void getCurrentGLState(State::Data& state) {
     {
+#if defined(USE_GLES)
+        state.fillMode = State::FILL_FACE;
+#else
         GLint modes[2];
         glGetIntegerv(GL_POLYGON_MODE, modes);
         if (modes[0] == GL_FILL) {
@@ -155,6 +160,7 @@ void getCurrentGLState(State::Data& state) {
                 state.fillMode = State::FILL_POINT;
             }
         }
+#endif
     }
     {
         if (glIsEnabled(GL_CULL_FACE)) {
@@ -169,10 +175,16 @@ void getCurrentGLState(State::Data& state) {
         GLint winding;
         glGetIntegerv(GL_FRONT_FACE, &winding);
         state.frontFaceClockwise = (winding == GL_CW);
-        state.depthClampEnable = glIsEnabled(GL_DEPTH_CLAMP);
-        state.scissorEnable = glIsEnabled(GL_SCISSOR_TEST);
+#if defined(USE_GLES)
+        state.multisampleEnable = glIsEnabled(GL_MULTISAMPLE_EXT);
+        state.antialisedLineEnable = false;
+        state.depthClampEnable = false;
+#else
         state.multisampleEnable = glIsEnabled(GL_MULTISAMPLE);
         state.antialisedLineEnable = glIsEnabled(GL_LINE_SMOOTH);
+        state.depthClampEnable = glIsEnabled(GL_DEPTH_CLAMP);
+#endif
+        state.scissorEnable = glIsEnabled(GL_SCISSOR_TEST);
     }
     {
         if (glIsEnabled(GL_POLYGON_OFFSET_FILL)) {
@@ -268,6 +280,7 @@ void getCurrentGLState(State::Data& state) {
 
     (void)CHECK_GL_ERROR();
 }
+
 
 void serverWait() {
     auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);

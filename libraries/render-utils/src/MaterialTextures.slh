@@ -148,25 +148,25 @@ vec3 fetchLightmapMap(vec2 uv) {
 }
 <@endfunc@>
 
-<@func tangentToViewSpace(fetchedNormal, interpolatedNormal, interpolatedTangent, normal)@>
+<@func evalMaterialNormal(fetchedNormal, interpolatedNormal, interpolatedTangent, normal)@>
 {
     vec3 normalizedNormal = normalize(<$interpolatedNormal$>.xyz);
     vec3 normalizedTangent = normalize(<$interpolatedTangent$>.xyz);
-    vec3 normalizedBitangent = normalize(cross(normalizedNormal, normalizedTangent));
+    vec3 normalizedBitangent = cross(normalizedNormal, normalizedTangent);
     vec3 localNormal = <$fetchedNormal$>;
-    <$normal$> = vec3(normalizedTangent * localNormal.x + normalizedNormal * localNormal.y + normalizedBitangent * localNormal.z);
+    <$normal$> = vec3(normalizedBitangent * localNormal.x + normalizedNormal * localNormal.y + normalizedTangent * localNormal.z);
 }
 <@endfunc@>
 
-<@func tangentToViewSpaceLOD(fragPos, fetchedNormal, interpolatedNormal, interpolatedTangent, normal)@>
+<@func evalMaterialNormalLOD(fragPos, fetchedNormal, interpolatedNormal, interpolatedTangent, normal)@>
 {
     vec3 normalizedNormal = normalize(<$interpolatedNormal$>.xyz);
     vec3 normalizedTangent = normalize(<$interpolatedTangent$>.xyz);
-    vec3 normalizedBitangent = normalize(cross(normalizedNormal, normalizedTangent));
+    vec3 normalizedBitangent = cross(normalizedNormal, normalizedTangent);
     // attenuate the normal map divergence from the mesh normal based on distance
-    // THe attenuation range [20,100] meters from the eye is arbitrary for now
+    // The attenuation range [20,100] meters from the eye is arbitrary for now
     vec3 localNormal = mix(<$fetchedNormal$>, vec3(0.0, 1.0, 0.0), smoothstep(20.0, 100.0, (-<$fragPos$>).z));
-    <$normal$> = vec3(normalizedTangent * localNormal.x + normalizedNormal * localNormal.y + normalizedBitangent * localNormal.z);
+    <$normal$> = vec3(normalizedBitangent * localNormal.x + normalizedNormal * localNormal.y + normalizedTangent * localNormal.z);
 }
 <@endfunc@>
 

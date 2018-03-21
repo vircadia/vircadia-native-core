@@ -70,6 +70,7 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
     }
 #endif
 
+#if !defined(USE_GLES)
     if (gl::Context::enableDebugLogger()) {
         _context->makeCurrent(_offscreenSurface);
         QOpenGLDebugLogger *logger = new QOpenGLDebugLogger(this);
@@ -79,6 +80,7 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
         logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
         _context->doneCurrent();
     }
+#endif
 
     return true;
 }

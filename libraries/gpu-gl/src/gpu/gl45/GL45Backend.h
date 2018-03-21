@@ -12,8 +12,9 @@
 #ifndef hifi_gpu_45_GL45Backend_h
 #define hifi_gpu_45_GL45Backend_h
 
-#include "../gl/GLBackend.h"
-#include "../gl/GLTexture.h"
+#include <gpu/gl/GLBackend.h>
+#include <gpu/gl/GLTexture.h>
+
 #include <thread>
 
 #define INCREMENTAL_TRANSFER 0
