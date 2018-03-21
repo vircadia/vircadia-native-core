@@ -581,7 +581,7 @@ void FadeJob::run(const render::RenderContextPointer& renderContext, FadeJob::Ou
         if (update(*jobConfig, scene, transaction, state, deltaTime)) {
             hasTransaction = true;
         }
-        if (isFirstItem && jobConfig->manualFade && (state.threshold != jobConfig->threshold)) {
+        if (isFirstItem && (state.threshold != jobConfig->threshold)) {
             jobConfig->setProperty("threshold", state.threshold);
             isFirstItem = false;
         }

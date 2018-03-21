@@ -66,7 +66,81 @@
         wireEventBridge(onScreen);
     }
 
+    var isEditEnabled = false
+    var noiseSphere
+    var gradientSphere
+    var selectedEntity
+    var editedCategory
+
+    var FADE_MIN_SCALE = 0.001
+    var FADE_MAX_SCALE = 10000.0
+
+    function parameterToValuePow(parameter, minValue, maxOverMinValue) {
+        return minValue * Math.pow(maxOverMinValue, parameter);
+        //return parameter
+    }
+
+    function update(dt) {
+        var gradientProperties = Entities.getEntityProperties(selectedEntity, ["position", "dimensions"]);
+        if (gradientProperties!=undefined) {
+            var pos = gradientProperties.position
+            if (pos!=undefined) {
+                var config = Render.getConfig("RenderMainView.Fade")
+                //print("Center at "+pos.x+" "+pos.y+" "+pos.z)
+                var dim = {x:config.baseSizeX, y:config.baseSizeY, z:config.baseSizeZ}
+                dim.x = parameterToValuePow(dim.x, FADE_MIN_SCALE, FADE_MAX_SCALE/ FADE_MIN_SCALE)
+                dim.y = parameterToValuePow(dim.y, FADE_MIN_SCALE, FADE_MAX_SCALE/ FADE_MIN_SCALE)
+                dim.z = parameterToValuePow(dim.z, FADE_MIN_SCALE, FADE_MAX_SCALE/ FADE_MIN_SCALE)
+                if (editedCategory==4 || editedCategory==5) {
+                    dim.y = gradientProperties.dimensions.y
+                    pos.y = pos.y - gradientProperties.dimensions.y/2
+                }
+                Overlays.editOverlay(gradientSphere, { position: pos, dimensions: dim, alpha: config.baseLevel })
+                dim.x = parameterToValuePow(config.noiseSizeX, FADE_MIN_SCALE, FADE_MAX_SCALE/ FADE_MIN_SCALE)
+                dim.y = parameterToValuePow(config.noiseSizeY, FADE_MIN_SCALE, FADE_MAX_SCALE/ FADE_MIN_SCALE)
+                dim.z = parameterToValuePow(config.noiseSizeZ, FADE_MIN_SCALE, FADE_MAX_SCALE/ FADE_MIN_SCALE)
+                Overlays.editOverlay(noiseSphere, { position: pos, dimensions: dim, alpha: config.noiseLevel })
+            }
+        }
+    }
+
+    Script.update.connect(update);
+
     function fromQml(message) {
+        tokens = message.split(' ')
+        print("Received '"+message+"' from transition.qml")
+        if (tokens[0]=="edit") {
+            isEditEnabled = (tokens[1]=="true")
+            if (isEditEnabled) {
+                if (gradientSphere==undefined) {
+                    gradientSphere = Overlays.addOverlay("sphere", {
+                        position: MyAvatar.position,
+                        rotation: Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0),
+                        dimensions: { x: 1.0, y: 1.0, z: 1.0 },
+                        color: { red: 100, green: 150, blue: 255},
+                        alpha: 0.2,
+                        solid: false
+                    });                
+                }
+                if (noiseSphere==undefined) {
+                    noiseSphere = Overlays.addOverlay("sphere", {
+                        position: MyAvatar.position,
+                        rotation: Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0),
+                        dimensions: { x: 1.0, y: 1.0, z: 1.0 },
+                        color: { red: 255, green: 150, blue: 100},
+                        alpha: 0.2,
+                        solid: false
+                    });                
+                }
+            } else if (!isEditEnabled) {
+                Overlays.deleteOverlay(noiseSphere);
+                Overlays.deleteOverlay(gradientSphere);
+                noiseSphere = undefined                
+                gradientSphere = undefined
+            }
+        } else if (tokens[0]=="category") {
+            editedCategory = parseInt(tokens[1])
+        }      
     }
         
     button.clicked.connect(onClicked);
@@ -109,7 +183,6 @@
 
     var currentSelectionName = ""
     var SelectionList = "TransitionEdit"
-    var selectedEntity = null
     Pointers.enablePointer(laser)
     Selection.enableListToScene(SelectionList)
     Selection.clearSelectedItemsList(SelectionList)
@@ -120,6 +193,7 @@
         }
         selectedEntity = id
         Selection.addToSelectedItemsList(SelectionList, "entity", selectedEntity)
+        update()
     })
   
     function cleanup() {
@@ -127,6 +201,8 @@
         Pointers.removePointer(ray);
         Selection.removeListFromMap(SelectionList)
         Selection.disableListToScene(SelectionList);
+        Overlays.deleteOverlay(noiseSphere);
+        Overlays.deleteOverlay(gradientSphere);
     }
-
+    Script.scriptEnding.connect(cleanup);
 }()); 

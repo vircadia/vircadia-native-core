@@ -22,6 +22,8 @@ Rectangle {
     id: root
     anchors.margins: hifi.dimensions.contentMargin.x
     
+    signal sendToScript(var message);
+
     color: hifi.colors.baseGray;
 
     property var config: Render.getConfig("RenderMainView.Fade");
@@ -48,7 +50,7 @@ Rectangle {
                 checked: root.configEdit["editFade"]
                 onCheckedChanged: {
                     root.configEdit["editFade"] = checked;
-                    Render.getConfig("RenderMainView.DrawFadedOpaqueBounds").enabled = checked;
+                    root.sendToScript("edit "+checked);
                 }
             }
             HifiControls.ComboBox {
@@ -70,6 +72,7 @@ Rectangle {
                     paramWidgetLoader.sourceComponent = undefined;
                     postpone.interval = 100
                     postpone.start()
+                    root.sendToScript("category "+currentIndex)
                 }
             }
         }
