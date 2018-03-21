@@ -155,6 +155,10 @@ void DomainHandler::setUUID(const QUuid& uuid) {
 void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
     _pendingDomainID = domainID;
 
+    if (domainURL.scheme() != URL_SCHEME_HIFI) {
+        _sockAddr.clear();
+    }
+
     if (_domainURL != domainURL || _sockAddr.getPort() != domainURL.port()) {
         // re-set the domain info so that auth information is reloaded
         hardReset();
