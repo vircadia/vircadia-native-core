@@ -605,7 +605,7 @@ private:
     GLCanvas* _glWidget{ nullptr };
 
     typedef bool (Application::* AcceptURLMethod)(const QString &);
-    static const QHash<QString, AcceptURLMethod> _acceptedExtensions;
+    static const std::vector<std::pair<QString, Application::AcceptURLMethod>> _acceptedExtensions;
 
     glm::uvec2 _renderResolution;
 

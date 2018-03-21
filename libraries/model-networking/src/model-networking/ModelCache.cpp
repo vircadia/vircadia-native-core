@@ -556,58 +556,58 @@ graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& url, im
     return nullptr;
 }
 
-void NetworkMaterial::setAlbedoMap(const QString& url, bool useAlphaChannel) {
-    auto map = fetchTextureMap(QUrl(url), image::TextureUsage::ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
+void NetworkMaterial::setAlbedoMap(const QUrl& url, bool useAlphaChannel) {
+    auto map = fetchTextureMap(url, image::TextureUsage::ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
     if (map) {
         map->setUseAlphaChannel(useAlphaChannel);
         setTextureMap(MapChannel::ALBEDO_MAP, map);
     }
 }
 
-void NetworkMaterial::setNormalMap(const QString& url, bool isBumpmap) {
-    auto map = fetchTextureMap(QUrl(url), isBumpmap ? image::TextureUsage::BUMP_TEXTURE : image::TextureUsage::NORMAL_TEXTURE, MapChannel::NORMAL_MAP);
+void NetworkMaterial::setNormalMap(const QUrl& url, bool isBumpmap) {
+    auto map = fetchTextureMap(url, isBumpmap ? image::TextureUsage::BUMP_TEXTURE : image::TextureUsage::NORMAL_TEXTURE, MapChannel::NORMAL_MAP);
     if (map) {
         setTextureMap(MapChannel::NORMAL_MAP, map);
     }
 }
 
-void NetworkMaterial::setRoughnessMap(const QString& url, bool isGloss) {
-    auto map = fetchTextureMap(QUrl(url), isGloss ? image::TextureUsage::GLOSS_TEXTURE : image::TextureUsage::ROUGHNESS_TEXTURE, MapChannel::ROUGHNESS_MAP);
+void NetworkMaterial::setRoughnessMap(const QUrl& url, bool isGloss) {
+    auto map = fetchTextureMap(url, isGloss ? image::TextureUsage::GLOSS_TEXTURE : image::TextureUsage::ROUGHNESS_TEXTURE, MapChannel::ROUGHNESS_MAP);
     if (map) {
         setTextureMap(MapChannel::ROUGHNESS_MAP, map);
     }
 }
 
-void NetworkMaterial::setMetallicMap(const QString& url, bool isSpecular) {
-    auto map = fetchTextureMap(QUrl(url), isSpecular ? image::TextureUsage::SPECULAR_TEXTURE : image::TextureUsage::METALLIC_TEXTURE, MapChannel::METALLIC_MAP);
+void NetworkMaterial::setMetallicMap(const QUrl& url, bool isSpecular) {
+    auto map = fetchTextureMap(url, isSpecular ? image::TextureUsage::SPECULAR_TEXTURE : image::TextureUsage::METALLIC_TEXTURE, MapChannel::METALLIC_MAP);
     if (map) {
         setTextureMap(MapChannel::METALLIC_MAP, map);
     }
 }
 
-void NetworkMaterial::setOcclusionMap(const QString& url) {
-    auto map = fetchTextureMap(QUrl(url), image::TextureUsage::OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
+void NetworkMaterial::setOcclusionMap(const QUrl& url) {
+    auto map = fetchTextureMap(url, image::TextureUsage::OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
     if (map) {
         setTextureMap(MapChannel::OCCLUSION_MAP, map);
     }
 }
 
-void NetworkMaterial::setEmissiveMap(const QString& url) {
-    auto map = fetchTextureMap(QUrl(url), image::TextureUsage::EMISSIVE_TEXTURE, MapChannel::EMISSIVE_MAP);
+void NetworkMaterial::setEmissiveMap(const QUrl& url) {
+    auto map = fetchTextureMap(url, image::TextureUsage::EMISSIVE_TEXTURE, MapChannel::EMISSIVE_MAP);
     if (map) {
         setTextureMap(MapChannel::EMISSIVE_MAP, map);
     }
 }
 
-void NetworkMaterial::setScatteringMap(const QString& url) {
-    auto map = fetchTextureMap(QUrl(url), image::TextureUsage::SCATTERING_TEXTURE, MapChannel::SCATTERING_MAP);
+void NetworkMaterial::setScatteringMap(const QUrl& url) {
+    auto map = fetchTextureMap(url, image::TextureUsage::SCATTERING_TEXTURE, MapChannel::SCATTERING_MAP);
     if (map) {
         setTextureMap(MapChannel::SCATTERING_MAP, map);
     }
 }
 
-void NetworkMaterial::setLightmapMap(const QString& url) {
-    auto map = fetchTextureMap(QUrl(url), image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
+void NetworkMaterial::setLightmapMap(const QUrl& url) {
+    auto map = fetchTextureMap(url, image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
     if (map) {
         //map->setTextureTransform(_lightmapTransform);
         //map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
