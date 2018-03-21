@@ -236,6 +236,15 @@ public slots:
     QString getOverlayType(OverlayID overlayId);
 
     /**jsdoc
+     * Get the overlay script object.
+     * @function Overlays.getOverlayObject
+     * @deprecated This function is deprecated and will soon be removed.
+     * @param {Uuid} overlayID - The ID of the overlay to get the script object of.
+     * @returns {object} The script object for the overlay if found.
+     */
+    QObject* getOverlayObject(OverlayID id);
+
+    /**jsdoc
      * Get the ID of the 2D overlay at a particular point on the screen or HUD.
      * @function Overlays.getOverlayAtPoint
      * @param {Vec2} point - The point to check for an overlay.
