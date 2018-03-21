@@ -109,6 +109,7 @@ void Node::setType(char type) {
     _symmetricSocket.setObjectName(typeString);
 }
 
+
 void Node::updateClockSkewUsec(qint64 clockSkewSample) {
     _clockSkewMovingPercentile.updatePercentile(clockSkewSample);
     _clockSkewUsec = (quint64)_clockSkewMovingPercentile.getValueAtPercentile();
@@ -194,6 +195,11 @@ QDebug operator<<(QDebug debug, const Node& node) {
     return debug.nospace();
 }
 
-void Node::_updateAuthenticateHash() {
+void Node::setConnectionSecret(const QUuid & connectionSecret) {
+    if (_connectionSecret == connectionSecret) {
+        return;
+    }
+
+    _connectionSecret = connectionSecret;
     _authenticateHash->setKey(_connectionSecret);
 }

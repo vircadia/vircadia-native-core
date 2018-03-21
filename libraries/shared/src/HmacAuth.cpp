@@ -55,7 +55,7 @@ bool HmacAuth::setKey(const char * keyValue, int keyLen) {
     }
 
     QMutexLocker lock(&_lock);
-    return (bool) HMAC_Init(_hmacContext.get(), keyValue, keyLen, sslStruct);
+    return (bool) HMAC_Init_ex(_hmacContext.get(), keyValue, keyLen, sslStruct, nullptr);
 }
 
 bool HmacAuth::setKey(const QUuid& uidKey) {

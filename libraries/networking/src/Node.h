@@ -56,7 +56,7 @@ public:
     void setIsUpstream(bool isUpstream) { _isUpstream = isUpstream; }
 
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
-    void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; _updateAuthenticateHash(); }
+    void setConnectionSecret(const QUuid& connectionSecret);
     HmacAuth& getAuthenticateHash() const { return *_authenticateHash; }
 
     NodeData* getLinkedData() const { return _linkedData.get(); }
@@ -95,8 +95,6 @@ private:
     // privatize copy and assignment operator to disallow Node copying
     Node(const Node &otherNode);
     Node& operator=(Node otherNode);
-
-    void _updateAuthenticateHash();
 
     NodeType_t _type;
 

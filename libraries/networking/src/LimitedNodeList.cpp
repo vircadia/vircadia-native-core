@@ -439,14 +439,14 @@ qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetLi
 
     if (activeSocket) {
         qint64 bytesSent = 0;
-        auto connectionSecret = destinationNode.getConnectionSecret();
+        auto& connectionHash = destinationNode.getAuthenticateHash();
 
         // close the last packet in the list
         packetList.closeCurrentPacket();
 
         while (!packetList._packets.empty()) {
             bytesSent += sendPacket(packetList.takeFront<NLPacket>(), *activeSocket,
-                &destinationNode.getAuthenticateHash());
+                &connectionHash);
         }
 
         emit dataSent(destinationNode.getType(), bytesSent);

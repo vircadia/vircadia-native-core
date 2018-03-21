@@ -73,7 +73,7 @@ public:
     
     static QUuid sourceIDInHeader(const udt::Packet& packet);
     static QByteArray verificationHashInHeader(const udt::Packet& packet);
-    static QByteArray hashForPacketAndSecret(const udt::Packet & packet, HmacAuth & hash);
+    static QByteArray hashForPacketAndSecret(const udt::Packet& packet, HmacAuth& hash);
     
     PacketType getType() const { return _type; }
     void setType(PacketType type);
