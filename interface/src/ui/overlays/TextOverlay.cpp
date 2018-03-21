@@ -40,8 +40,10 @@ QUrl const TextOverlay::URL(QString("hifi/overlays/TextOverlay.qml"));
  *
  * @property {number} margin=0 - Sets the <code>leftMargin</code> and <code>topMargin</code> values, in pixels.
  *     <em>Write-only.</em>
- * @property {number} leftMargin=0 - The left margin's size, in pixels. <em>Write-only.</em>
- * @property {number} topMargin=0 - The top margin's size, in pixels. <em>Write-only.</em>
+ * @property {number} leftMargin=0 - The left margin's size, in pixels. This value is also used for the right margin. 
+ *     <em>Write-only.</em>
+ * @property {number} topMargin=0 - The top margin's size, in pixels. This value is also used for the bottom margin. 
+ *     <em>Write-only.</em>
  * @property {string} text="" - The text to display. Text does not automatically wrap; use <code>\n</code> for a line break. Text
  *     is clipped to the <code>bounds</code>. <em>Write-only.</em>
  * @property {number} font.size=18 - The size of the text, in pixels. <em>Write-only.</em>

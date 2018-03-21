@@ -34,7 +34,7 @@ class ResourceManager: public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    ResourceManager();
+    ResourceManager(bool atpSupportEnabled = true);
 
     void setUrlPrefixOverride(const QString& prefix, const QString& replacement);
     QString normalizeURL(const QString& urlString);
@@ -57,6 +57,7 @@ private:
 
     using PrefixMap = std::map<QString, QString>;
 
+    bool _atpSupportEnabled;
     PrefixMap _prefixMap;
     QMutex _prefixMapLock;
 

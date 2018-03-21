@@ -93,9 +93,7 @@ class HmdDisplay : public StereoDisplay {
 public:
     // HMD specific methods
     // TODO move these into another class?
-    virtual glm::mat4 getEyeToHeadTransform(Eye eye) const {
-        static const glm::mat4 transform; return transform;
-    }
+    virtual glm::mat4 getEyeToHeadTransform(Eye eye) const;
 
     // returns a copy of the most recent head pose, computed via updateHeadPose
     virtual glm::mat4 getHeadPose() const {

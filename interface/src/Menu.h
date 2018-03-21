@@ -205,7 +205,7 @@ namespace MenuOption {
     const QString DesktopTabletToToolbar = "Desktop Tablet Becomes Toolbar";
     const QString HMDTabletToToolbar = "HMD Tablet Becomes Toolbar";
     const QString Shadows = "Shadows";
-    const QString AmbientOcclusion = "AmbientOcclusion";
+    const QString AmbientOcclusion = "Ambient Occlusion";
 }
 
 #endif // hifi_Menu_h

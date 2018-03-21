@@ -14,6 +14,9 @@
 
 #include <atomic>
 #include <memory>
+#include <vector>
+
+class QThread;
 
 class Oven {
 
@@ -31,7 +34,7 @@ private:
 
     std::vector<std::unique_ptr<QThread>> _workerThreads;
 
-    std::atomic<uint> _nextWorkerThreadIndex;
+    std::atomic<uint32_t> _nextWorkerThreadIndex;
     int _numWorkerThreads;
 
     static Oven* _staticInstance;

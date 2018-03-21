@@ -643,13 +643,13 @@ done:
 }
 
 
-FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, bool combineParts, const QUrl& url) {
+FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, bool combineParts, const QUrl& url) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
     QBuffer buffer { &model };
     buffer.open(QIODevice::ReadOnly);
 
-    FBXGeometry* geometryPtr = new FBXGeometry();
-    FBXGeometry& geometry = *geometryPtr;
+    auto geometryPtr { std::make_shared<FBXGeometry>() };
+    FBXGeometry& geometry { *geometryPtr };
     OBJTokenizer tokenizer { &buffer };
     float scaleGuess = 1.0f;
 

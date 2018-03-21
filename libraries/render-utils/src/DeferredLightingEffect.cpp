@@ -431,7 +431,7 @@ void PrepareDeferred::run(const RenderContextPointer& renderContext, const Input
     outputs.edit0() = _deferredFramebuffer;
     outputs.edit1() = _deferredFramebuffer->getLightingFramebuffer();
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("PrepareDeferred::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);

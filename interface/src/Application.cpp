@@ -2007,20 +2007,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(_window, SIGNAL(windowMinimizedChanged(bool)), this, SLOT(windowMinimizedChanged(bool)));
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
 
-    {
-        PROFILE_RANGE(render, "Process Default Skybox");
-        auto textureCache = DependencyManager::get<TextureCache>();
-
-        QFileSelector fileSelector;
-        fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
-        auto skyboxUrl = fileSelector.select(PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.ktx");
-
-        _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl.toStdString());
-        _defaultSkyboxAmbientTexture = _defaultSkyboxTexture;
-
-        _defaultSkybox->setCubemap(_defaultSkyboxTexture);
-    }
-
     EntityTreeRenderer::setEntitiesShouldFadeFunction([this]() {
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
         return entityServerNode && !isPhysicsEnabled();
@@ -2470,7 +2456,6 @@ void Application::initializeGL() {
     DeadlockWatchdogThread::withPause([&] {
         // Set up the render engine
         render::CullFunctor cullFunctor = LODManager::shouldRender;
-        static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
         _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
 #ifndef Q_OS_ANDROID
         _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !DISABLE_DEFERRED);
@@ -2732,10 +2717,12 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 
 void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     Stats::show();
-    AvatarInputs::show();
     auto surfaceContext = DependencyManager::get<OffscreenUi>()->getSurfaceContext();
     surfaceContext->setContextProperty("Stats", Stats::getInstance());
-    surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
+    offscreenUi->show(qml, "AvatarInputsBar");
 }
 
 void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
@@ -5444,7 +5431,7 @@ void Application::update(float deltaTime) {
 
     editRenderArgs([this, deltaTime](AppRenderArgs& appRenderArgs) {
         PerformanceTimer perfTimer("editRenderArgs");
-        appRenderArgs._headPose= getHMDSensorPose();
+        appRenderArgs._headPose = getHMDSensorPose();
 
         auto myAvatar = getMyAvatar();
 
@@ -5464,10 +5451,10 @@ void Application::update(float deltaTime) {
             {
                 QMutexLocker viewLocker(&_viewMutex);
                 // adjust near clip plane to account for sensor scaling.
-                auto adjustedProjection = glm::perspective(_viewFrustum.getFieldOfView(),
-                    _viewFrustum.getAspectRatio(),
-                    DEFAULT_NEAR_CLIP * sensorToWorldScale,
-                    _viewFrustum.getFarClip());
+                auto adjustedProjection = glm::perspective(glm::radians(_fieldOfView.get()),
+                                                           getActiveDisplayPlugin()->getRecommendedAspectRatio(),
+                                                           DEFAULT_NEAR_CLIP * sensorToWorldScale,
+                                                           DEFAULT_FAR_CLIP);
                 _viewFrustum.setProjection(adjustedProjection);
                 _viewFrustum.calculate();
             }
@@ -5549,6 +5536,7 @@ void Application::update(float deltaTime) {
         {
             QMutexLocker viewLocker(&_viewMutex);
             _myCamera.loadViewFrustum(_displayViewFrustum);
+            appRenderArgs._view = glm::inverse(_displayViewFrustum.getView());
         }
 
         {
