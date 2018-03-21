@@ -287,11 +287,11 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         emit lookupResultsFinished();
 
         return true;
-    } else if (// TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
-               // be loaded over http(s)
-               // lookupUrl.scheme() == URL_SCHEME_HTTP ||
-               // lookupUrl.scheme() == URL_SCHEME_HTTPS ||
-               lookupUrl.scheme() == URL_SCHEME_FILE) {
+    } else if (lookupUrl.scheme() == URL_SCHEME_FILE) {
+        // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
+        // be loaded over http(s)
+        // lookupUrl.scheme() == URL_SCHEME_HTTP ||
+        // lookupUrl.scheme() == URL_SCHEME_HTTPS ||
         _previousLookup.clear();
         QUrl domainURL = PathUtils::expandToLocalDataAbsolutePath(lookupUrl);
         setDomainInfo(domainURL, trigger);
