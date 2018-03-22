@@ -67,7 +67,7 @@ bool HMACAuth::setKey(const QUuid& uidKey) {
     return setKey(rfcBytes.constData(), rfcBytes.length());
 }
 
-bool HMACAuth::addData(const char * data, int dataLen) {
+bool HMACAuth::addData(const char* data, int dataLen) {
     QMutexLocker lock(&_lock);
     return (bool) HMAC_Update(_hmacContext.get(), reinterpret_cast<const unsigned char*>(data), dataLen);
 }
