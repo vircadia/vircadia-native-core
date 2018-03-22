@@ -161,6 +161,8 @@ public:
     QRect getRecommendedHUDRect() const;
     glm::vec2 getDeviceSize() const;
     bool hasFocus() const;
+    void setFocus();
+    void raise();
 
     void showCursor(const Cursor::Icon& cursor);
 
@@ -282,6 +284,8 @@ public:
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
     void saveNextPhysicsStats(QString filename);
 
+    bool isServerlessMode() const;
+
     void replaceDomainContent(const QString& url);
 
 signals:
@@ -293,7 +297,6 @@ signals:
     void activeDisplayPluginChanged();
 
     void uploadRequest(QString path);
-    void receivedHifiSchemeURL(const QString& url);
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
@@ -389,6 +392,9 @@ public slots:
     const QString getPreferredCursor() const { return _preferredCursor.get(); }
     void setPreferredCursor(const QString& cursor);
 
+    void setIsServerlessMode(bool serverlessDomain);
+    void loadServerlessDomain(QUrl domainURL);
+
     Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
 
 private slots:
@@ -423,7 +429,7 @@ private slots:
 
     void setSessionUUID(const QUuid& sessionUUID) const;
 
-    void domainChanged(const QString& domainHostname);
+    void domainURLChanged(QUrl domainURL);
     void updateWindowTitle() const;
     void nodeAdded(SharedNodePointer node) const;
     void nodeActivated(SharedNodePointer node);

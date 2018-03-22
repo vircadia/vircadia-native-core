@@ -62,13 +62,14 @@ public slots:
     QScriptValue hasFocus();
 
     /**jsdoc
-     * Make the Interface window have focus.
+     * Make the Interface window have focus. On Windows, if Interface doesn't already have focus, the task bar icon flashes to 
+     * indicate that Interface wants attention but focus isn't taken away from the application that the user is using.
      * @function Window.setFocus
      */
     void setFocus();
 
     /**jsdoc
-     * Raise the Interface window if it is minimized, and give it focus.
+     * Raise the Interface window if it is minimized. If raised, the window gains focus.
      * @function Window.raiseMainWindow
      */
     void raiseMainWindow();
@@ -523,7 +524,7 @@ signals:
      * Triggered when you change the domain you're visiting. <strong>Warning:</strong> Is not emitted if you go to domain that 
      * isn't running.
      * @function Window.domainChanged
-     * @param {string} domain - The domain's IP address.
+     * @param {string} domainURL - The domain's URL.
      * @returns {Signal}
      * @example <caption>Report when you change domains.</caption>
      * function onDomainChanged(domain) {
@@ -532,7 +533,7 @@ signals:
      *
      * Window.domainChanged.connect(onDomainChanged);
      */
-    void domainChanged(const QString& domain);
+    void domainChanged(QUrl domainURL);
 
     /**jsdoc
      * Triggered when you try to navigate to a *.json, *.svo, or *.svo.json URL in a Web browser within Interface.

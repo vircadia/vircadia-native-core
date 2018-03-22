@@ -596,7 +596,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                     shouldDelete = false;
                 } else {
                     // only delete local entities, server entities will round trip through the server filters
-                    if (entity->getClientOnly()) {
+                    if (entity->getClientOnly() || _entityTree->isServerlessMode()) {
                         _entityTree->deleteEntity(entityID);
                     }
                 }
@@ -1285,10 +1285,10 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
         }
 
         doTransmit = actor(simulation, entity);
+        _entityTree->entityChanged(entity);
         if (doTransmit) {
             properties.setClientOnly(entity->getClientOnly());
             properties.setOwningAvatarID(entity->getOwningAvatarID());
-            _entityTree->entityChanged(entity);
         }
     });
 

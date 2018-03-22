@@ -2864,6 +2864,9 @@ void EntityItemProperties::markAllChanged() {
     _ambientLight.markAllChanged();
     _skybox.markAllChanged();
 
+    _keyLightModeChanged = true;
+    _skyboxModeChanged = true;
+    _ambientLightModeChanged = true;
     _hazeModeChanged = true;
 
     _animation.markAllChanged();

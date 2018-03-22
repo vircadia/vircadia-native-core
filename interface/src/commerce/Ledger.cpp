@@ -52,6 +52,8 @@ Handler(inventory)
 Handler(transferHfcToNode)
 Handler(transferHfcToUsername)
 Handler(alreadyOwned)
+Handler(availableUpdates)
+Handler(updateItem)
 
 void Ledger::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request) {
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -375,4 +377,24 @@ void Ledger::alreadyOwned(const QString& marketplaceId) {
     } else {
         qDebug(commerce) << "User attempted to use the alreadyOwned endpoint, but cachedPublicKeys was empty!";
     }
+}
+
+void Ledger::getAvailableUpdates(const QString& itemId) {
+    auto wallet = DependencyManager::get<Wallet>();
+    QString endpoint = "available_updates";
+    QJsonObject request;
+    request["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
+    if (!itemId.isEmpty()) {
+        request["marketplace_item_id"] = itemId;
+    }
+    send(endpoint, "availableUpdatesSuccess", "availableUpdatesFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
+}
+
+void Ledger::updateItem(const QString& hfc_key, const QString& certificate_id) {
+    QJsonObject transaction;
+    transaction["public_key"] = hfc_key;
+    transaction["certificate_id"] = certificate_id;
+    QJsonDocument transactionDoc{ transaction };
+    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+    signedSend("transaction", transactionString, hfc_key, "update_item", "updateItemSuccess", "updateItemFailure");
 }

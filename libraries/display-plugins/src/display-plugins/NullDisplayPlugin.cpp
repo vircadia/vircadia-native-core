@@ -21,10 +21,6 @@ glm::uvec2 NullDisplayPlugin::getRecommendedRenderSize() const {
     return glm::uvec2(100, 100);
 }
 
-bool NullDisplayPlugin::hasFocus() const {
-    return false;
-}
-
 void NullDisplayPlugin::submitFrame(const gpu::FramePointer& frame) {
     if (frame) {
         _gpuContext->consumeFrameUpdates(frame);

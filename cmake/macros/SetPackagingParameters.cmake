@@ -27,6 +27,11 @@ macro(SET_PACKAGING_PARAMETERS)
   message(STATUS "The BRANCH environment variable is: $ENV{BRANCH}")
   message(STATUS "The RELEASE_TYPE variable is: ${RELEASE_TYPE}")
 
+  # setup component categories for installer
+  set(DDE_COMPONENT dde)
+  set(CLIENT_COMPONENT client)
+  set(SERVER_COMPONENT server)
+
   if (RELEASE_TYPE STREQUAL "PRODUCTION")
     set(DEPLOY_PACKAGE TRUE)
     set(PRODUCTION_BUILD 1)
@@ -152,11 +157,6 @@ macro(SET_PACKAGING_PARAMETERS)
     set(CLIENT_ID_REG_KEY "ClientGUID")
     set(GA_TRACKING_ID $ENV{GA_TRACKING_ID})
   endif ()
-
-  # setup component categories for installer
-  set(DDE_COMPONENT dde)
-  set(CLIENT_COMPONENT client)
-  set(SERVER_COMPONENT server)
 
   # print out some results for testing this new build feature
   message(STATUS "The BUILD_GLOBAL_SERVICES variable is: ${BUILD_GLOBAL_SERVICES}")

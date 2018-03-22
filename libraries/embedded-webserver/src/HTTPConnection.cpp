@@ -55,7 +55,7 @@ HTTPConnection::~HTTPConnection() {
 
 QHash<QString, QString> HTTPConnection::parseUrlEncodedForm() {
     // make sure we have the correct MIME type
-    QList<QByteArray> elements = _requestHeaders.value("Content-Type").split(';');
+    QList<QByteArray> elements = requestHeader("Content-Type").split(';');
 
     QString contentType = elements.at(0).trimmed();
     if (contentType != "application/x-www-form-urlencoded") {
@@ -75,7 +75,7 @@ QHash<QString, QString> HTTPConnection::parseUrlEncodedForm() {
 
 QList<FormData> HTTPConnection::parseFormData() const {
     // make sure we have the correct MIME type
-    QList<QByteArray> elements = _requestHeaders.value("Content-Type").split(';');
+    QList<QByteArray> elements = requestHeader("Content-Type").split(';');
 
     QString contentType = elements.at(0).trimmed();
 
@@ -251,7 +251,7 @@ void HTTPConnection::readHeaders() {
         if (trimmed.isEmpty()) {
             _socket->disconnect(this, SLOT(readHeaders()));
 
-            QByteArray clength = _requestHeaders.value("Content-Length");
+            QByteArray clength = requestHeader("Content-Length");
             if (clength.isEmpty()) {
                 _parentManager->handleHTTPRequest(this, _requestUrl);
 
@@ -275,7 +275,7 @@ void HTTPConnection::readHeaders() {
             respond("400 Bad Request", "The header was malformed.");
             return;
         }
-        _lastRequestHeader = trimmed.left(idx);
+        _lastRequestHeader = trimmed.left(idx).toLower();
         QByteArray& value = _requestHeaders[_lastRequestHeader];
         if (!value.isEmpty()) {
             value.append(", ");
