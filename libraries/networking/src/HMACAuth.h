@@ -26,14 +26,14 @@ public:
     explicit HMACAuth(AuthMethod authMethod = MD5);
     ~HMACAuth();
 
-    bool setKey(const char * keyValue, int keyLen);
+    bool setKey(const char* keyValue, int keyLen);
     bool setKey(const QUuid& uidKey);
-    bool addData(const char * data, int dataLen);
+    bool addData(const char* data, int dataLen);
     HMACHash result();
 
 private:
     QMutex _lock;
-    std::unique_ptr<struct hmac_ctx_st> _hmacContext;
+    struct hmac_ctx_st * _hmacContext;
     AuthMethod _authMethod;
 };
 

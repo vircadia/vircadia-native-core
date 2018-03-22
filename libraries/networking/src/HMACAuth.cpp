@@ -21,18 +21,22 @@ HMACAuth::HMACAuth(AuthMethod authMethod)
     : _hmacContext(HMAC_CTX_new())
     , _authMethod(authMethod) { }
 
-HMACAuth::~HMACAuth() { }
+HMACAuth::~HMACAuth()
+{
+    HMAC_CTX_free(_hmacContext);
+}
 
 #else
 
 HMACAuth::HMACAuth(AuthMethod authMethod)
     : _hmacContext(new(HMAC_CTX))
     , _authMethod(authMethod) {
-    HMAC_CTX_init(_hmacContext.get());
+    HMAC_CTX_init(_hmacContext);
 }
 
 HMACAuth::~HMACAuth() {
-    HMAC_CTX_cleanup(_hmacContext.get());
+    HMAC_CTX_cleanup(_hmacContext);
+    delete _hmacContext;
 }
 #endif
 
@@ -65,7 +69,7 @@ bool HMACAuth::setKey(const char* keyValue, int keyLen) {
     }
 
     QMutexLocker lock(&_lock);
-    return (bool) HMAC_Init_ex(_hmacContext.get(), keyValue, keyLen, sslStruct, nullptr);
+    return (bool) HMAC_Init_ex(_hmacContext, keyValue, keyLen, sslStruct, nullptr);
 }
 
 bool HMACAuth::setKey(const QUuid& uidKey) {
@@ -75,16 +79,16 @@ bool HMACAuth::setKey(const QUuid& uidKey) {
 
 bool HMACAuth::addData(const char* data, int dataLen) {
     QMutexLocker lock(&_lock);
-    return (bool) HMAC_Update(_hmacContext.get(), reinterpret_cast<const unsigned char*>(data), dataLen);
+    return (bool) HMAC_Update(_hmacContext, reinterpret_cast<const unsigned char*>(data), dataLen);
 }
 
 HMACAuth::HMACHash HMACAuth::result() {
     HMACHash hashValue(EVP_MAX_MD_SIZE);
     unsigned int  hashLen;
     QMutexLocker lock(&_lock);
-    HMAC_Final(_hmacContext.get(), &hashValue[0], &hashLen);
+    HMAC_Final(_hmacContext, &hashValue[0], &hashLen);
     hashValue.resize((size_t) hashLen);
     // Clear state for possible reuse.
-    HMAC_Init_ex(_hmacContext.get(), nullptr, 0, nullptr, nullptr);
+    HMAC_Init_ex(_hmacContext, nullptr, 0, nullptr, nullptr);
     return hashValue;
 }
