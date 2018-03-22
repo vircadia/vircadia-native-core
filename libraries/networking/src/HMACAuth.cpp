@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <openssl/opensslv.h>
 #include <openssl/hmac.h>
 
 #include "HMACAuth.h"
@@ -16,7 +17,11 @@
 #include <QUuid>
 
 HMACAuth::HMACAuth(AuthMethod authMethod)
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
+    : _hmacContext(HMAC_CTX_new())
+#else
     : _hmacContext(new(HMAC_CTX))
+#endif
     , _authMethod(authMethod) {
     HMAC_CTX_init(_hmacContext.get());
 }
