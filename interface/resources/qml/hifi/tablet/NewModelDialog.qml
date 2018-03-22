@@ -71,6 +71,10 @@ Rectangle {
             onAccepted: {
                 newModelDialog.keyboardEnabled = false;
             }
+
+            onTextChanged : {
+                 button1.enabled = true;
+            }
             
             MouseArea {
                 anchors.fill: parent
@@ -117,13 +121,6 @@ Rectangle {
                     width: 200
                     height: 400
                     spacing: 20
-
-                    Image {
-                        id: image1
-                        width: 30
-                        height: 30
-                        source: "qrc:/qtquickplugin/images/template_image.png"
-                    }
 
                     Text {
                         id: text2
@@ -200,6 +197,7 @@ Rectangle {
                         id: button1
                         text: qsTr("Add")
                         z: -1
+                        enabled: false
                         onClicked: {
                             newModelDialog.sendToScript({
                                 method: "newModelDialogAdd",
