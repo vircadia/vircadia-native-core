@@ -134,7 +134,7 @@ $(document).ready(function(){
 
   $('body').on('click',  '.' + BACKUP_DOWNLOAD_LINK_CLASS, function(ev) {
     ev.preventDefault();
-    var backupID = $(this).data('backup-id')
+    var backupID = $(this).data('backup-id');
 
     showSpinnerAlert("Preparing backup...");
     function checkBackupStatus() {
