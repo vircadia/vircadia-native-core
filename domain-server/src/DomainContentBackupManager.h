@@ -20,6 +20,7 @@
 #include <QString>
 #include <QVector>
 #include <QDateTime>
+#include <QTimer>
 
 #include <mutex>
 #include <unordered_map>
@@ -52,6 +53,7 @@ struct ConsolidatedBackupInfo {
     State state;
     QString error;
     QString absoluteFilePath;
+    std::chrono::system_clock::time_point createdAt;
 };
 
 class DomainContentBackupManager : public GenericThread {
@@ -108,9 +110,12 @@ protected:
     bool recoverFromBackupZip(const QString& backupName, QuaZip& backupZip);
 
 private slots:
+    void removeOldConsolidatedBackups();
     void consolidateBackupInternal(QString fileName);
 
 private:
+    QTimer _consolidatedBackupCleanupTimer;
+
     const QString _consolidatedBackupDirectory;
     const QString _backupDirectory;
     std::vector<BackupHandlerPointer> _backupHandlers;

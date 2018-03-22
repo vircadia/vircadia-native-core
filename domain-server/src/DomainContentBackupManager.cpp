@@ -64,6 +64,11 @@ DomainContentBackupManager::DomainContentBackupManager(const QString& backupDire
     QDir(_backupDirectory).mkpath(".");
 
     parseBackupRules(backupRules);
+
+    constexpr int CONSOLIDATED_BACKUP_CLEANER_INTERVAL_MSECS = 30 * 1000;
+    _consolidatedBackupCleanupTimer.setInterval(CONSOLIDATED_BACKUP_CLEANER_INTERVAL_MSECS);
+    connect(&_consolidatedBackupCleanupTimer, &QTimer::timeout, this, &DomainContentBackupManager::removeOldConsolidatedBackups);
+    _consolidatedBackupCleanupTimer.start();
 }
 
 void DomainContentBackupManager::parseBackupRules(const QVariantList& backupRules) {
@@ -498,6 +503,28 @@ void DomainContentBackupManager::backup() {
     }
 }
 
+void DomainContentBackupManager::removeOldConsolidatedBackups() {
+    constexpr std::chrono::minutes MAX_TIME_TO_KEEP_CONSOLIDATED_BACKUP { 30 };
+    auto now = std::chrono::system_clock::now();
+    auto it = _consolidatedBackups.begin();
+    while (it != _consolidatedBackups.end()) {
+        auto& backup = it->second;
+        auto diff = now - backup.createdAt;
+        if (diff > MAX_TIME_TO_KEEP_CONSOLIDATED_BACKUP) {
+            QFile oldBackup(backup.absoluteFilePath);
+            if (!oldBackup.exists() || oldBackup.remove()) {
+                qDebug() << "Removed old consolidated backup: " << backup.absoluteFilePath;
+                it = _consolidatedBackups.erase(it);
+            } else {
+                qDebug() << "Failed to remove old consolidated backup: " << backup.absoluteFilePath;
+                it++;
+            }
+        } else {
+            it++;
+        }
+    }
+}
+
 ConsolidatedBackupInfo DomainContentBackupManager::consolidateBackup(QString fileName) {
     {
         std::lock_guard<std::mutex> lock { _consolidatedBackupsMutex };
@@ -511,7 +538,8 @@ ConsolidatedBackupInfo DomainContentBackupManager::consolidateBackup(QString fil
     return {
         ConsolidatedBackupInfo::CONSOLIDATING,
         "",
-        ""
+        "",
+        std::chrono::system_clock::now()
     };
 }
 
@@ -537,7 +565,8 @@ void DomainContentBackupManager::consolidateBackupInternal(QString fileName) {
         _consolidatedBackups[fileName] = {
             ConsolidatedBackupInfo::CONSOLIDATING,
             "",
-            ""
+            "",
+            std::chrono::system_clock::now()
         };
     }
 
