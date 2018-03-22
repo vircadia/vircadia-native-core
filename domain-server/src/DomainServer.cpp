@@ -164,6 +164,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _iceServerAddr(ICE_SERVER_DEFAULT_HOSTNAME),
     _iceServerPort(ICE_SERVER_DEFAULT_PORT)
 {
+    PathUtils::removeTemporaryApplicationDirs();
+
     parseCommandLine();
 
     DependencyManager::set<tracing::Tracer>();
@@ -1933,6 +1935,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_API_DOMAINS_ID = "/api/domains/";
     const QString URI_API_BACKUPS = "/api/backups";
     const QString URI_API_BACKUPS_ID = "/api/backups/";
+    const QString URI_API_BACKUPS_DOWNLOAD_ID = "/api/backups/download/";
     const QString URI_API_BACKUPS_RECOVER = "/api/backups/recover/";
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -2133,37 +2136,40 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             });
             _contentManager->getAllBackupsAndStatus(deferred);
             return true;
+        } else if (url.path().startsWith(URI_API_BACKUPS_DOWNLOAD_ID)) {
+            auto id = url.path().mid(QString(URI_API_BACKUPS_DOWNLOAD_ID).length());
+            auto info = _contentManager->consolidateBackup(id);
+
+            if (info.state == ConsolidatedBackupInfo::COMPLETE_WITH_SUCCESS) {
+                auto file { std::unique_ptr<QFile>(new QFile(info.absoluteFilePath)) };
+                if (file->open(QIODevice::ReadOnly)) {
+                    constexpr const char* CONTENT_TYPE_ZIP = "application/zip";
+                    auto downloadedFilename = id;
+                    downloadedFilename.replace(QRegularExpression(".zip$"), ".content.zip");
+                    auto contentDisposition = "attachment; filename=\"" + downloadedFilename + "\"";
+                    connectionPtr->respond(HTTPConnection::StatusCode200, std::move(file), CONTENT_TYPE_ZIP, {
+                        { "Content-Disposition", contentDisposition.toUtf8() }
+                    });
+                } else {
+                    qCritical(domain_server) << "Unable to load consolidated backup at:" << info.absoluteFilePath;
+                    connectionPtr->respond(HTTPConnection::StatusCode500, "Error opening backup");
+                }
+            } else if (info.state == ConsolidatedBackupInfo::COMPLETE_WITH_ERROR) {
+                connectionPtr->respond(HTTPConnection::StatusCode500, ("Error creating backup: " + info.error).toUtf8());
+            } else {
+                connectionPtr->respond(HTTPConnection::StatusCode400, "Backup unavailable");
+            }
+            return true;
         } else if (url.path().startsWith(URI_API_BACKUPS_ID)) {
             auto id = url.path().mid(QString(URI_API_BACKUPS_ID).length());
-            auto deferred = makePromise("consolidateBackup");
-            deferred->then([connectionPtr, JSON_MIME_TYPE, id](QString error, QVariantMap result) {
-                if (!connectionPtr) {
-                    return;
-                }
+            auto info = _contentManager->consolidateBackup(id);
 
-                QJsonObject rootJSON;
-                auto success = result["success"].toBool();
-                if (success) {
-                    auto path = result["backupFilePath"].toString();
-                    auto file { std::unique_ptr<QFile>(new QFile(path)) };
-                    if (file->open(QIODevice::ReadOnly)) {
-                        constexpr const char* CONTENT_TYPE_ZIP = "application/zip";
-
-                        auto downloadedFilename = id;
-                        downloadedFilename.replace(QRegularExpression(".zip$"), ".content.zip");
-                        auto contentDisposition = "attachment; filename=\"" + downloadedFilename + "\"";
-                        connectionPtr->respond(HTTPConnection::StatusCode200, std::move(file), CONTENT_TYPE_ZIP, {
-                            { "Content-Disposition", contentDisposition.toUtf8() }
-                        });
-                    } else {
-                        qCritical(domain_server) << "Unable to load consolidated backup at:" << path << result;
-                        connectionPtr->respond(HTTPConnection::StatusCode500, "Error opening backup");
-                    }
-                } else {
-                    connectionPtr->respond(HTTPConnection::StatusCode400);
-                }
-            });
-            _contentManager->consolidateBackup(deferred, id);
+            QJsonObject rootJSON {
+                { "complete", info.state == ConsolidatedBackupInfo::COMPLETE_WITH_SUCCESS },
+                { "error", info.error }
+            };
+            QJsonDocument docJSON { rootJSON };
+            connectionPtr->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
 
             return true;
         } else if (url.path() == URI_RESTART) {
