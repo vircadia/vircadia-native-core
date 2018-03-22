@@ -131,17 +131,17 @@ public:
     // use sendUnreliablePacket to send an unreliable packet (that you do not need to move)
     // either to a node (via its active socket) or to a manual sockaddr
     qint64 sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode);
-    qint64 sendUnreliablePacket(const NLPacket & packet, const HifiSockAddr & sockAddr, HMACAuth * hmacAuth = nullptr);
+    qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr, HMACAuth* hmacAuth = nullptr);
 
     // use sendPacket to send a moved unreliable or reliable NL packet to a node's active socket or manual sockaddr
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode);
-    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr & sockAddr, HMACAuth * hmacAuth = nullptr);
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr, HMACAuth* hmacAuth = nullptr);
 
     // use sendUnreliableUnorderedPacketList to unreliably send separate packets from the packet list
     // either to a node's active socket or to a manual sockaddr
     qint64 sendUnreliableUnorderedPacketList(NLPacketList& packetList, const Node& destinationNode);
-    qint64 sendUnreliableUnorderedPacketList(NLPacketList & packetList, const HifiSockAddr & sockAddr,
-        HMACAuth * hmacAuth = nullptr);
+    qint64 sendUnreliableUnorderedPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
+        HMACAuth* hmacAuth = nullptr);
 
     // use sendPacketList to send reliable packet lists (ordered or unordered) to a node's active socket
     // or to a manual sock addr

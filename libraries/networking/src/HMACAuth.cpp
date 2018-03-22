@@ -1,6 +1,6 @@
 //
-// HMACAuth.cpp
-// libraries/shared/src
+//  HMACAuth.cpp
+//  libraries/networking/src
 //
 //  Created by Simon Walton on 3/19/2018.
 //  Copyright 2018 High Fidelity, Inc.
