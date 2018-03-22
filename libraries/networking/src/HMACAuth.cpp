@@ -30,7 +30,7 @@ HMACAuth::~HMACAuth() {
     HMAC_CTX_cleanup(_hmacContext.get());
 }
 
-bool HMACAuth::setKey(const char * keyValue, int keyLen) {
+bool HMACAuth::setKey(const char* keyValue, int keyLen) {
     const EVP_MD* sslStruct = nullptr;
 
     switch (_authMethod) {

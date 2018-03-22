@@ -392,7 +392,7 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node&
 }
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
-        HMACAuth * hmacAuth) {
+        HMACAuth* hmacAuth) {
     Q_ASSERT(!packet.isPartOfMessage());
     Q_ASSERT_X(!packet.isReliable(), "LimitedNodeList::sendUnreliablePacket",
                "Trying to send a reliable packet unreliably.");

@@ -1,6 +1,6 @@
 //
 //  HMACAuth.h
-//  libraries/shared/src
+//  libraries/networking/src
 //
 //  Created by Simon Walton on 3/19/2018.
 //  Copyright 2018 High Fidelity, Inc.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_HmacAuth_h
-#define hifi_HmacAuth_h
+#ifndef hifi_HMACAuth_h
+#define hifi_HMACAuth_h
 
 #include <vector>
 #include <memory>
@@ -37,4 +37,4 @@ private:
     AuthMethod _authMethod;
 };
 
-#endif  // hifi_HmacAuth_h
+#endif  // hifi_HMACAuth_h
