@@ -46,8 +46,8 @@ void main(void) {
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
-    vec3 viewNormal;
-    <$tangentToViewSpaceLOD(_position, normalTex, _normal, _tangent, viewNormal)$>
+    vec3 fragNormal;
+    <$evalMaterialNormalLOD(_position, normalTex, _normal, _tangent, fragNormal)$>
 
     float metallic = getMaterialMetallic(mat);
     <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
@@ -56,7 +56,7 @@ void main(void) {
     <$evalMaterialScattering(scatteringTex, scattering, matKey, scattering)$>;
 
     packDeferredFragment(
-        normalize(viewNormal.xyz), 
+        normalize(fragNormal.xyz),
         opacity,
         albedo,
         roughness,

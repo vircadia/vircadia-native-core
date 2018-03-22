@@ -161,6 +161,8 @@ public:
     QRect getRecommendedHUDRect() const;
     glm::vec2 getDeviceSize() const;
     bool hasFocus() const;
+    void setFocus();
+    void raise();
 
     void showCursor(const Cursor::Icon& cursor);
 
@@ -603,7 +605,7 @@ private:
     GLCanvas* _glWidget{ nullptr };
 
     typedef bool (Application::* AcceptURLMethod)(const QString &);
-    static const QHash<QString, AcceptURLMethod> _acceptedExtensions;
+    static const std::vector<std::pair<QString, Application::AcceptURLMethod>> _acceptedExtensions;
 
     glm::uvec2 _renderResolution;
 

@@ -43,11 +43,11 @@ void main(void) {
     <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedo, roughness, normalTexel, metallicTex)$>
     <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmapVal)$>
     
-    vec3 viewNormal;
-    <$tangentToViewSpaceLOD(_position, normalTexel, _normal, _tangent, viewNormal)$>
+    vec3 fragNormal;
+    <$evalMaterialNormalLOD(_position, normalTexel, _normal, _tangent, fragNormal)$>
 
     packDeferredFragmentLightmap(
-        normalize(viewNormal.xyz), 
+        normalize(fragNormal.xyz),
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
         getMaterialAlbedo(mat) * albedo.rgb * _color,
         getMaterialRoughness(mat) * roughness,

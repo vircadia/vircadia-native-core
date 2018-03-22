@@ -164,14 +164,14 @@ public:
     NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl);
     NetworkMaterial(const NetworkMaterial& material);
 
-    void setAlbedoMap(const QString& url, bool useAlphaChannel);
-    void setNormalMap(const QString& url, bool isBumpmap);
-    void setRoughnessMap(const QString& url, bool isGloss);
-    void setMetallicMap(const QString& url, bool isSpecular);
-    void setOcclusionMap(const QString& url);
-    void setEmissiveMap(const QString& url);
-    void setScatteringMap(const QString& url);
-    void setLightmapMap(const QString& url);
+    void setAlbedoMap(const QUrl& url, bool useAlphaChannel);
+    void setNormalMap(const QUrl& url, bool isBumpmap);
+    void setRoughnessMap(const QUrl& url, bool isGloss);
+    void setMetallicMap(const QUrl& url, bool isSpecular);
+    void setOcclusionMap(const QUrl& url);
+    void setEmissiveMap(const QUrl& url);
+    void setScatteringMap(const QUrl& url);
+    void setLightmapMap(const QUrl& url);
 
 protected:
     friend class Geometry;
