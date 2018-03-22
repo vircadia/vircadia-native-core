@@ -16,12 +16,17 @@
 
 #include <QUuid>
 
-HMACAuth::HMACAuth(AuthMethod authMethod)
 #if OPENSSL_VERSION_NUMBER >= 0x10100000
+HMACAuth::HMACAuth(AuthMethod authMethod)
     : _hmacContext(HMAC_CTX_new())
+    , _authMethod(authMethod) { }
+
+HMACAuth::~HMACAuth() { }
+
 #else
+
+HMACAuth::HMACAuth(AuthMethod authMethod)
     : _hmacContext(new(HMAC_CTX))
-#endif
     , _authMethod(authMethod) {
     HMAC_CTX_init(_hmacContext.get());
 }
@@ -29,6 +34,7 @@ HMACAuth::HMACAuth(AuthMethod authMethod)
 HMACAuth::~HMACAuth() {
     HMAC_CTX_cleanup(_hmacContext.get());
 }
+#endif
 
 bool HMACAuth::setKey(const char* keyValue, int keyLen) {
     const EVP_MD* sslStruct = nullptr;
@@ -79,6 +85,6 @@ HMACAuth::HMACHash HMACAuth::result() {
     HMAC_Final(_hmacContext.get(), &hashValue[0], &hashLen);
     hashValue.resize((size_t) hashLen);
     // Clear state for possible reuse.
-    HMAC_Init(_hmacContext.get(), nullptr, 0, nullptr);
+    HMAC_Init_ex(_hmacContext.get(), nullptr, 0, nullptr, nullptr);
     return hashValue;
 }
