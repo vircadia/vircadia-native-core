@@ -698,6 +698,9 @@
                     Window.location = "hifi://BankOfHighFidelity";
                 }
                 break;
+            case 'wallet_availableUpdatesReceived':
+                // NOP
+                break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));
         }
