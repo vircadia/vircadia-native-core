@@ -33,7 +33,7 @@ public:
 
 private:
     QMutex _lock;
-    struct hmac_ctx_st * _hmacContext;
+    struct hmac_ctx_st* _hmacContext;
     AuthMethod _authMethod;
 };
 
