@@ -122,6 +122,13 @@ Rectangle {
                     height: 400
                     spacing: 20
 
+                     Image {	
+                        id: image1	
+                        width: 30	
+                        height: 30	
+                        source: "qrc:/qtquickplugin/images/template_image.png"	
+                    }
+
                     Text {
                         id: text2
                         width: 160
