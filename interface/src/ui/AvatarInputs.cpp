@@ -16,19 +16,19 @@
 #include "Application.h"
 #include "Menu.h"
 
-HIFI_QML_DEF(AvatarInputs)
-
 static AvatarInputs* INSTANCE{ nullptr };
 
 Setting::Handle<bool> showAudioToolsSetting { QStringList { "AvatarInputs", "showAudioTools" }, false };
 
 AvatarInputs* AvatarInputs::getInstance() {
-    Q_ASSERT(INSTANCE);
+    if (!INSTANCE) {
+        INSTANCE = new AvatarInputs();
+        Q_ASSERT(INSTANCE);
+    }
     return INSTANCE;
 }
 
-AvatarInputs::AvatarInputs(QQuickItem* parent) :  QQuickItem(parent) {
-    INSTANCE = this;
+AvatarInputs::AvatarInputs(QObject* parent) : QObject(parent) {
     _showAudioTools = showAudioToolsSetting.get();
 }
 

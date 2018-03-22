@@ -22,6 +22,7 @@ namespace geometry {
     using Index = uint32_t;
     using Vec = glm::vec3;
     using VertexVector = std::vector<Vec>;
+    using TexCoordVector = std::vector<glm::vec2>;
     using IndexVector = std::vector<Index>;
 
     template <size_t N>
@@ -33,6 +34,7 @@ namespace geometry {
     template <size_t N>
     struct Solid {
         VertexVector vertices;
+        TexCoordVector texCoords;
         FaceVector<N> faces;
 
         Solid<N>& fitDimension(float newMaxDimension) {

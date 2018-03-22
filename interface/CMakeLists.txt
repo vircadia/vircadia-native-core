@@ -26,17 +26,17 @@ generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources 
 if (ANDROID)
   # on Android, don't compress the rcc binary
   add_custom_command(
-      OUTPUT ${RESOURCES_RCC}
-      DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-      COMMAND "${QT_DIR}/bin/rcc"
-      ARGS ${RESOURCES_QRC} -no-compress -binary -o ${RESOURCES_RCC}
+    OUTPUT ${RESOURCES_RCC}
+    DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
+    COMMAND "${QT_DIR}/bin/rcc"
+    ARGS ${RESOURCES_QRC} -no-compress -binary -o ${RESOURCES_RCC}
   )
 else ()
   add_custom_command(
-      OUTPUT ${RESOURCES_RCC}
-      DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-      COMMAND "${QT_DIR}/bin/rcc"
-      ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
+    OUTPUT ${RESOURCES_RCC}
+    DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
+    COMMAND "${QT_DIR}/bin/rcc"
+    ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
   )
 endif()
 
@@ -191,19 +191,17 @@ add_dependencies(${TARGET_NAME} resources)
 if (WIN32)
   # These are external plugins, but we need to do the 'add dependency' here so that their
   # binary directories get added to the fixup path
-  add_dependency_external_projects(sixense)
+
+  if (USE_SIXENSE)
+    add_dependency_external_projects(sixense)
+  endif ()
+
   add_dependency_external_projects(sdl2)
   add_dependency_external_projects(OpenVR)
   add_dependency_external_projects(neuron)
   add_dependency_external_projects(wasapi)
   add_dependency_external_projects(steamworks)
 endif()
-
-# include OPENSSL
-include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
-
-# append OpenSSL to our list of libraries to link
-target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES})
 
 # disable /OPT:REF and /OPT:ICF for the Debug builds
 # This will prevent the following linker warnings
@@ -227,6 +225,9 @@ link_hifi_libraries(
 
 # include the binary directory of render-utils for shader includes
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries/render-utils")
+
+# include OpenSSL
+target_openssl()
 
 target_bullet()
 target_opengl()
@@ -328,13 +329,13 @@ if (APPLE)
 else()
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E copy_if_different 
-    "${RESOURCES_RCC}" 
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+    "${RESOURCES_RCC}"
     "$<TARGET_FILE_DIR:interface>"
     # FIXME, the edit script code loads HTML from the scripts folder
     # which in turn relies on CSS that refers to the fonts.  In theory
-    # we should be able to modify the CSS to reference the QRC path to 
-    # the ttf files, but doing so generates a CORS policy violation, 
+    # we should be able to modify the CSS to reference the QRC path to
+    # the ttf files, but doing so generates a CORS policy violation,
     # so we have to retain a copy of the fonts outside of the resources binary
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${PROJECT_SOURCE_DIR}/resources/fonts"
@@ -389,3 +390,6 @@ endif()
 add_dependency_external_projects(GifCreator)
 find_package(GifCreator REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GIFCREATOR_INCLUDE_DIRS})
+
+# tell CMake to exclude ui_console.h for policy CMP0071
+set_property(SOURCE ui_console.h PROPERTY SKIP_AUTOMOC ON)

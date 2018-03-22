@@ -41,18 +41,17 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, FBXGeometry& result) {
     }
     try {
         QByteArray fbxContents = fbx.readAll();
-        FBXGeometry* geom;
+        FBXGeometry::Pointer geom;
         if (filename.toLower().endsWith(".obj")) {
             bool combineParts = false;
             geom = OBJReader().readOBJ(fbxContents, QVariantHash(), combineParts);
         } else if (filename.toLower().endsWith(".fbx")) {
-            geom = readFBX(fbxContents, QVariantHash(), filename);
+            geom.reset(readFBX(fbxContents, QVariantHash(), filename));
         } else {
             qWarning() << "file has unknown extension" << filename;
             return false;
         }
         result = *geom;
-        delete geom;
 
         reSortFBXGeometryMeshes(result);
     } catch (const QString& error) {
