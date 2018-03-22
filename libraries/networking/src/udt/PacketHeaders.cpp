@@ -25,29 +25,30 @@ int packetTypeMetaTypeId = qRegisterMetaType<PacketType>();
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
         case PacketType::DomainList:
-            return static_cast<PacketVersion>(DomainListVersion::UseHmacAuthentication);
+            return static_cast<PacketVersion>(DomainListVersion::GetMachineFingerprintFromUUIDSupport);
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return static_cast<PacketVersion>(EntityVersion::UseHmacAuthentication);
+            return static_cast<PacketVersion>(EntityVersion::ShadowControl);
         case PacketType::EntityQuery:
-            return static_cast<PacketVersion>(EntityQueryPacketVersion::UseHmacAuthentication);
+            return static_cast<PacketVersion>(EntityQueryPacketVersion::RemovedJurisdictions);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::UseHmacAuthentication);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::FBXReaderNodeReparenting);
         case PacketType::MessagesData:
-            return static_cast<PacketVersion>(MessageDataVersion::UseHmacAuthentication);
+            return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
         case PacketType::AssetMappingOperation:
         case PacketType::AssetMappingOperationReply:
+            return static_cast<PacketVersion>(AssetServerPacketVersion::RedirectedMappings);
         case PacketType::AssetGetInfo:
         case PacketType::AssetGet:
         case PacketType::AssetUpload:
-            return static_cast<PacketVersion>(AssetServerPacketVersion::UseHmacAuthentication);
+            return static_cast<PacketVersion>(AssetServerPacketVersion::RangeRequestSupport);
         case PacketType::NodeIgnoreRequest:
             return 18; // Introduction of node ignore request (which replaced an unused packet tpye)
 
@@ -58,10 +59,10 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(DomainConnectRequestVersion::AlwaysHasMachineFingerprint);
 
         case PacketType::DomainServerAddedNode:
-            return static_cast<PacketVersion>(DomainServerAddedNodeVersion::UseHmacAuthentication);
+            return static_cast<PacketVersion>(DomainServerAddedNodeVersion::PermissionsGrid);
 
         case PacketType::EntityScriptCallMethod:
-            return static_cast<PacketVersion>(EntityScriptCallMethodVersion::UseHmacAuthentication);
+            return static_cast<PacketVersion>(EntityScriptCallMethodVersion::ClientCallable);
 
         case PacketType::MixedAudio:
         case PacketType::SilentAudioFrame:
@@ -69,7 +70,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::MicrophoneAudioNoEcho:
         case PacketType::MicrophoneAudioWithEcho:
         case PacketType::AudioStreamStats:
-            return static_cast<PacketVersion>(AudioVersion::UseHmacAuthentication);
+            return static_cast<PacketVersion>(AudioVersion::HighDynamicRangeVolume);
         case PacketType::ICEPing:
             return static_cast<PacketVersion>(IcePingVersion::SendICEPeerID);
         case PacketType::DomainSettings:

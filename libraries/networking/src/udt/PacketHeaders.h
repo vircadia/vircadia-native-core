@@ -231,29 +231,25 @@ enum class EntityVersion : PacketVersion {
     ZoneStageRemoved,
     SoftEntities,
     MaterialEntities,
-    ShadowControl,
-    UseHmacAuthentication
+    ShadowControl
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
     ServerCallable = 18,
-    ClientCallable = 19,
-    UseHmacAuthentication = 20
+    ClientCallable = 19
 };
 
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
     JSONFilterWithFamilyTree = 19,
     ConnectionIdentifier = 20,
-    RemovedJurisdictions = 21,
-    UseHmacAuthentication = 22
+    RemovedJurisdictions = 21
 };
 
 enum class AssetServerPacketVersion: PacketVersion {
     VegasCongestionControl = 19,
     RangeRequestSupport,
-    RedirectedMappings,
-    UseHmacAuthentication
+    RedirectedMappings
 };
 
 enum class AvatarMixerPacketVersion : PacketVersion {
@@ -278,8 +274,7 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarIdentityLookAtSnapping,
     UpdatedMannequinDefaultAvatar,
     AvatarJointDefaultPoseFlags,
-    FBXReaderNodeReparenting,
-    UseHmacAuthentication
+    FBXReaderNodeReparenting
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
@@ -299,16 +294,14 @@ enum class DomainConnectionDeniedVersion : PacketVersion {
 
 enum class DomainServerAddedNodeVersion : PacketVersion {
     PrePermissionsGrid = 17,
-    PermissionsGrid,
-    UseHmacAuthentication
+    PermissionsGrid
 };
 
 enum class DomainListVersion : PacketVersion {
     PrePermissionsGrid = 18,
     PermissionsGrid,
     GetUsernameFromUUIDSupport,
-    GetMachineFingerprintFromUUIDSupport,
-    UseHmacAuthentication
+    GetMachineFingerprintFromUUIDSupport
 };
 
 enum class AudioVersion : PacketVersion {
@@ -319,12 +312,10 @@ enum class AudioVersion : PacketVersion {
     SpaceBubbleChanges,
     HasPersonalMute,
     HighDynamicRangeVolume,
-    UseHmacAuthentication,
 };
 
 enum class MessageDataVersion : PacketVersion {
-    TextOrBinaryData = 18,
-    UseHmacAuthentication
+    TextOrBinaryData = 18
 };
 
 enum class IcePingVersion : PacketVersion {
