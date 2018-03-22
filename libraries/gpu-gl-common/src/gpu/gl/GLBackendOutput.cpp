@@ -17,6 +17,11 @@
 using namespace gpu;
 using namespace gpu::gl;
 
+#if defined(USE_GLES)
+#define GL_FRAMEBUFFER_SRGB GL_FRAMEBUFFER_SRGB_EXT
+#define glClearDepth glClearDepthf
+#endif
+
 void GLBackend::syncOutputStateCache() {
     GLint currentFBO;
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentFBO);
@@ -32,11 +37,24 @@ void GLBackend::resetOutputStage() {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     }
 
-    glEnable(GL_FRAMEBUFFER_SRGB_EXT);
+    glEnable(GL_FRAMEBUFFER_SRGB);
 }
 
 void GLBackend::do_setFramebuffer(const Batch& batch, size_t paramOffset) {
     auto framebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
+    setFramebuffer(framebuffer);
+}
+
+void GLBackend::do_setFramebufferSwapChain(const Batch& batch, size_t paramOffset) {
+    auto swapChain = batch._swapChains.get(batch._params[paramOffset]._uint);
+    if (swapChain) {
+        auto index = batch._params[paramOffset + 1]._uint;
+        FramebufferPointer framebuffer = static_cast<const FramebufferSwapChain*>(swapChain.get())->get(index);
+        setFramebuffer(framebuffer);
+    }
+}
+
+void GLBackend::setFramebuffer(const FramebufferPointer& framebuffer) {
     if (_output._framebuffer != framebuffer) {
         auto newFBO = getFramebufferID(framebuffer);
         if (_output._drawFBO != newFBO) {
@@ -44,6 +62,13 @@ void GLBackend::do_setFramebuffer(const Batch& batch, size_t paramOffset) {
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, newFBO);
         }
         _output._framebuffer = framebuffer;
+    }
+}
+
+void GLBackend::do_advance(const Batch& batch, size_t paramOffset) {
+    auto ringbuffer = batch._swapChains.get(batch._params[paramOffset]._uint);
+    if (ringbuffer) {
+        ringbuffer->advance();
     }
 }
 
@@ -68,16 +93,17 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     if (masks & Framebuffer::BUFFER_STENCIL) {
         glClearStencil(stencil);
         glmask |= GL_STENCIL_BUFFER_BIT;
+
         cacheStencilMask = _pipeline._stateCache.stencilActivation.getWriteMaskFront();
         if (cacheStencilMask != 0xFF) {
             restoreStencilMask = true;
-            glStencilMask(0xFF);
+            glStencilMask( 0xFF);
         }
     }
 
     bool restoreDepthMask = false;
     if (masks & Framebuffer::BUFFER_DEPTH) {
-        glClearDepthf(depth);
+        glClearDepth(depth);
         glmask |= GL_DEPTH_BUFFER_BIT;
         
         bool cacheDepthMask = _pipeline._stateCache.depthTest.getWriteMask();
@@ -160,8 +186,12 @@ void GLBackend::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, co
           qCWarning(gpugllogging) << "GLBackend::downloadFramebuffer : destImage is too small to receive the region of the framebuffer";
           return;
     }
-    
+
+#if defined(USE_GLES)    
     GLenum format = GL_RGBA;
+#else
+    GLenum format = GL_BGRA;
+#endif
     if (destImage.format() != QImage::Format_ARGB32) {
           qCWarning(gpugllogging) << "GLBackend::downloadFramebuffer : destImage format must be FORMAT_ARGB32 to receive the region of the framebuffer";
           return;

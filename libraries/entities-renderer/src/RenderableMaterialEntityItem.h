@@ -40,20 +40,6 @@ private:
     Transform _renderTransform;
 
     std::shared_ptr<NetworkMaterial> _drawMaterial;
-
-    static int _numVertices;
-    static std::shared_ptr<gpu::Stream::Format> _streamFormat;
-    static std::shared_ptr<gpu::BufferStream> _stream;
-    static std::shared_ptr<gpu::Buffer> _verticesBuffer;
-
-    void generateMesh();
-    void addTriangleFan(std::vector<float>& buffer, int stack, int step);
-    static glm::vec3 getVertexPos(float phi, float theta);
-    static glm::vec3 getTangent(float phi, float theta);
-    static void addVertex(std::vector<float>& buffer, const glm::vec3& pos, const glm::vec3& tan, const glm::vec2 uv);
-    const int SLICES = 15;
-    const int STACKS = 9;
-    const float M_PI_TIMES_2 = 2.0f * (float)M_PI;
 };
 
 } } 

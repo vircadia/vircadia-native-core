@@ -121,13 +121,28 @@ QUrl PathUtils::resourcesUrl(const QString& relativeUrl) {
 }
 
 QUrl PathUtils::expandToLocalDataAbsolutePath(const QUrl& fileUrl) {
-    QUrl url = fileUrl;
     QString path = fileUrl.path();
+
     if (path.startsWith("/~/")) {
-        path.replace(0, 3, resourcesPath());
-        url = QUrl::fromLocalFile(path);
+        // this results in a qrc:// url...
+        // return resourcesUrl(path.mid(3));
+
+#ifdef Q_OS_MAC
+        static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+#elif defined (ANDROID)
+        static const QString staticResourcePath =
+            QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources/";
+#else
+        static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
+#endif
+        path.replace(0, 3, staticResourcePath);
+        QUrl expandedURL = QUrl::fromLocalFile(path);
+        return expandedURL;
     }
-    return url;
+
+    QUrl::fromLocalFile(resourcesPath()).toString();
+
+    return fileUrl;
 }
 
 const QString& PathUtils::qmlBaseUrl() {

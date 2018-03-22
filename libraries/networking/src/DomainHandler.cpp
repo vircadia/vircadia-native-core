@@ -140,6 +140,9 @@ void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr, const QString& hos
 
     // some callers may pass a hostname, this is not to be used for lookup but for DTLS certificate verification
     _domainURL = QUrl();
+    _domainURL.setScheme(URL_SCHEME_HIFI);
+    _domainURL.setHost(hostname);
+    _domainURL.setPort(_sockAddr.getPort());
 }
 
 void DomainHandler::setUUID(const QUuid& uuid) {
@@ -151,6 +154,10 @@ void DomainHandler::setUUID(const QUuid& uuid) {
 
 void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
     _pendingDomainID = domainID;
+
+    if (domainURL.scheme() != URL_SCHEME_HIFI) {
+        _sockAddr.clear();
+    }
 
     if (_domainURL != domainURL || _sockAddr.getPort() != domainURL.port()) {
         // re-set the domain info so that auth information is reloaded
@@ -189,12 +196,6 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
 
 void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id) {
 
-    if (isServerless()) {
-        // if we were connected to a serverless domain, clear the octree, etc
-        _domainURL = QUrl();
-        emit domainURLChanged(_domainURL);
-    }
-
     if (_iceServerSockAddr.getAddress().toString() != iceServerHostname || id != _pendingDomainID) {
         // re-set the domain info to connect to new domain
         hardReset();
@@ -229,6 +230,7 @@ void DomainHandler::activateICELocalSocket() {
     _sockAddr = _icePeer.getLocalSocket();
     _domainURL.setScheme(URL_SCHEME_HIFI);
     _domainURL.setHost(_sockAddr.getAddress().toString());
+    emit domainURLChanged(_domainURL);
     emit completedSocketDiscovery();
 }
 
@@ -237,6 +239,7 @@ void DomainHandler::activateICEPublicSocket() {
     _sockAddr = _icePeer.getPublicSocket();
     _domainURL.setScheme(URL_SCHEME_HIFI);
     _domainURL.setHost(_sockAddr.getAddress().toString());
+    emit domainURLChanged(_domainURL);
     emit completedSocketDiscovery();
 }
 

@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "GL45Backend.h"
-#include "../gl/GLFramebuffer.h"
-#include "../gl/GLTexture.h"
+#include <gpu/gl/GLFramebuffer.h>
+#include <gpu/gl/GLTexture.h>
 
 #include <QtGui/QImage>
 

@@ -130,12 +130,14 @@ void AddressManager::storeCurrentAddress() {
     auto url = currentAddress();
 
     if (url.scheme() == URL_SCHEME_FILE ||
-        url.scheme() == URL_SCHEME_HTTP ||
-        url.scheme() == URL_SCHEME_HTTPS ||
-        !url.host().isEmpty()) {
+        (url.scheme() == URL_SCHEME_HIFI && !url.host().isEmpty())) {
+        // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
+        // be loaded over http(s)
+        // url.scheme() == URL_SCHEME_HTTP ||
+        // url.scheme() == URL_SCHEME_HTTPS ||
         currentAddressHandle.set(url);
     } else {
-        qCWarning(networking) << "Ignoring attempt to save current address with an empty host" << url;
+        qCWarning(networking) << "Ignoring attempt to save current address with an invalid url:" << url;
     }
 }
 
@@ -205,7 +207,6 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 
         qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
 
-        emit urlHandled(true);
         DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::LookupAddress);
 
         // there are 4 possible lookup strings
@@ -283,14 +284,14 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         emit lookupResultsFinished();
 
         return true;
-    } else if (lookupUrl.scheme() == URL_SCHEME_HTTP ||
-               lookupUrl.scheme() == URL_SCHEME_HTTPS ||
-               lookupUrl.scheme() == URL_SCHEME_FILE) {
+    } else if (lookupUrl.scheme() == URL_SCHEME_FILE) {
+        // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
+        // be loaded over http(s)
+        // lookupUrl.scheme() == URL_SCHEME_HTTP ||
+        // lookupUrl.scheme() == URL_SCHEME_HTTPS ||
         _previousLookup.clear();
-        QUrl domainUrl = PathUtils::expandToLocalDataAbsolutePath(lookupUrl);
-        emit urlHandled(false);
-        setDomainInfo(domainUrl, trigger);
-        DependencyManager::get<NodeList>()->getDomainHandler().setIsConnected(true);
+        QUrl domainURL = PathUtils::expandToLocalDataAbsolutePath(lookupUrl);
+        setDomainInfo(domainURL, trigger);
         emit lookupResultsFinished();
         handlePath(DOMAIN_SPAWNING_POINT, LookupTrigger::Internal, false);
         return true;
@@ -302,7 +303,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 bool isPossiblePlaceName(QString possiblePlaceName) {
     bool result { false };
     int length = possiblePlaceName.length();
-    static const int MINIMUM_PLACENAME_LENGTH = 2;
+    static const int MINIMUM_PLACENAME_LENGTH = 1;
     static const int MAXIMUM_PLACENAME_LENGTH = 64;
     if (possiblePlaceName.toLower() != "localhost" &&
         length >= MINIMUM_PLACENAME_LENGTH && length <= MAXIMUM_PLACENAME_LENGTH) {

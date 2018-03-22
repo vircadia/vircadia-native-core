@@ -12,8 +12,8 @@
 
 #include <QtGui/QImage>
 
-#include "../gl/GLFramebuffer.h"
-#include "../gl/GLTexture.h"
+#include <gpu/gl/GLFramebuffer.h>
+#include <gpu/gl/GLTexture.h>
 
 namespace gpu { namespace gl41 { 
 

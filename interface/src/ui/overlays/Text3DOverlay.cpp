@@ -114,7 +114,7 @@ void Text3DOverlay::render(RenderArgs* args) {
 
     glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
     glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, quadColor.a < 1.0f, false, false, false, false);
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, quadColor.a < 1.0f, false, false, false);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor, _geometryId);
 
     // Same font properties as textSize()

@@ -61,7 +61,7 @@ private:
 
     QJsonArray _entities;
 
-    QHash<QUrl, QSharedPointer<FBXBaker>> _modelBakers;
+    QHash<QUrl, QSharedPointer<ModelBaker>> _modelBakers;
     QHash<QUrl, QSharedPointer<TextureBaker>> _skyboxBakers;
     
     QMultiHash<QUrl, QJsonValueRef> _entitiesNeedingRewrite;

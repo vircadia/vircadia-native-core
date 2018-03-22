@@ -161,6 +161,8 @@ public:
     QRect getRecommendedHUDRect() const;
     glm::vec2 getDeviceSize() const;
     bool hasFocus() const;
+    void setFocus();
+    void raise();
 
     void showCursor(const Cursor::Icon& cursor);
 
@@ -390,7 +392,7 @@ public slots:
     const QString getPreferredCursor() const { return _preferredCursor.get(); }
     void setPreferredCursor(const QString& cursor);
 
-    void setIsServerlessDomain(bool serverlessDomain);
+    void setIsServerlessMode(bool serverlessDomain);
     void loadServerlessDomain(QUrl domainURL);
 
     Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
@@ -607,7 +609,7 @@ private:
     GLCanvas* _glWidget{ nullptr };
 
     typedef bool (Application::* AcceptURLMethod)(const QString &);
-    static const QHash<QString, AcceptURLMethod> _acceptedExtensions;
+    static const std::vector<std::pair<QString, Application::AcceptURLMethod>> _acceptedExtensions;
 
     glm::uvec2 _renderResolution;
 
