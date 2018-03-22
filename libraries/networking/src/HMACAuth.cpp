@@ -29,7 +29,7 @@ HMACAuth::~HMACAuth()
 #else
 
 HMACAuth::HMACAuth(AuthMethod authMethod)
-    : _hmacContext(new(HMAC_CTX))
+    : _hmacContext(new HMAC_CTX())
     , _authMethod(authMethod) {
     HMAC_CTX_init(_hmacContext);
 }
