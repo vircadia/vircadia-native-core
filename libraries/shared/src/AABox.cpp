@@ -287,6 +287,15 @@ bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     return false;
 }
 
+bool AABox::rayHitsBoundingSphere(const glm::vec3& origin, const glm::vec3& direction) const {
+    glm::vec3 localCenter = calcCenter() - origin;
+    float distance = glm::dot(localCenter, direction);
+    const float ONE_OVER_TWO_SQUARED = 0.25f;
+    float radiusSquared = ONE_OVER_TWO_SQUARED * glm::length2(_scale);
+    return (glm::length2(localCenter) < radiusSquared
+            || (glm::abs(distance) > 0.0f && glm::distance2(distance * direction, localCenter) < radiusSquared));
+}
+
 bool AABox::touchesSphere(const glm::vec3& center, float radius) const {
     // Avro's algorithm from this paper: http://www.mrtc.mdh.se/projects/3Dgraphics/paperF.pdf
     glm::vec3 e = glm::max(_corner - center, Vectors::ZERO) + glm::max(center - _corner - _scale, Vectors::ZERO);

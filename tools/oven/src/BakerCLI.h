@@ -14,11 +14,12 @@
 
 #include <QtCore/QObject>
 #include <QDir>
+#include <QUrl>
 
 #include <memory>
 
 #include "Baker.h"
-#include "Oven.h"
+#include "OvenCLIApplication.h"
 
 static const int OVEN_STATUS_CODE_SUCCESS { 0 };
 static const int OVEN_STATUS_CODE_FAIL { 1 };
@@ -27,10 +28,12 @@ static const int OVEN_STATUS_CODE_ABORT { 2 };
 static const QString OVEN_ERROR_FILENAME = "errors.txt";
 
 class BakerCLI : public QObject {
-    Q_OBJECT   
+    Q_OBJECT
 
 public:
-    BakerCLI(Oven* parent);
+    BakerCLI(OvenCLIApplication* parent);
+
+public slots:
     void bakeFile(QUrl inputUrl, const QString& outputPath, const QString& type = QString::null);
 
 private slots:

@@ -19,6 +19,8 @@
 #include "render-utils/simple_vert.h"
 #include "render-utils/simple_frag.h"
 
+#include "RenderPipelines.h"
+
 //#define SHAPE_ENTITY_USE_FADE_EFFECT
 #ifdef SHAPE_ENTITY_USE_FADE_EFFECT
 #include <FadeEffect.h>
@@ -108,9 +110,92 @@ bool ShapeEntityRenderer::isTransparent() const {
     if (_procedural.isEnabled() && _procedural.isFading()) {
         return Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) < 1.0f;
     }
-    
-    //        return _entity->getLocalRenderAlpha() < 1.0f || Parent::isTransparent();
+
+    auto mat = _materials.find("0");
+    if (mat != _materials.end()) {
+        if (mat->second.top().material) {
+            auto matKey = mat->second.top().material->getKey();
+            if (matKey.isTranslucent()) {
+                return true;
+            }
+        }
+    }
+
     return Parent::isTransparent();
+}
+
+ItemKey ShapeEntityRenderer::getKey() {
+    ItemKey::Builder builder;
+    builder.withTypeShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+
+    withReadLock([&] {
+        if (isTransparent()) {
+            builder.withTransparent();
+        }
+    });
+
+    return builder.build();
+}
+
+bool ShapeEntityRenderer::useMaterialPipeline() const {
+    bool proceduralReady = resultWithReadLock<bool>([&] {
+        return _procedural.isReady();
+    });
+    if (proceduralReady) {
+        return false;
+    }
+
+    graphics::MaterialKey drawMaterialKey;
+    auto mat = _materials.find("0");
+    if (mat != _materials.end() && mat->second.top().material) {
+        drawMaterialKey = mat->second.top().material->getKey();
+    }
+
+    if (drawMaterialKey.isEmissive() || drawMaterialKey.isUnlit() || drawMaterialKey.isMetallic() || drawMaterialKey.isScattering()) {
+        return true;
+    }
+
+    // If the material is using any map, we need to use a material ShapeKey
+    for (int i = 0; i < graphics::Material::MapChannel::NUM_MAP_CHANNELS; i++) {
+        if (drawMaterialKey.isMapChannel(graphics::Material::MapChannel(i))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+ShapeKey ShapeEntityRenderer::getShapeKey() {
+    if (useMaterialPipeline()) {
+        graphics::MaterialKey drawMaterialKey;
+        if (_materials["0"].top().material) {
+            drawMaterialKey = _materials["0"].top().material->getKey();
+        }
+
+        bool isTranslucent = drawMaterialKey.isTranslucent();
+        bool hasTangents = drawMaterialKey.isNormalMap();
+        bool hasLightmap = drawMaterialKey.isLightmapMap();
+        bool isUnlit = drawMaterialKey.isUnlit();
+
+        ShapeKey::Builder builder;
+        builder.withMaterial();
+
+        if (isTranslucent) {
+            builder.withTranslucent();
+        }
+        if (hasTangents) {
+            builder.withTangents();
+        }
+        if (hasLightmap) {
+            builder.withLightmap();
+        }
+        if (isUnlit) {
+            builder.withUnlit();
+        }
+
+        return builder.build();
+    } else {
+        return Parent::getShapeKey();
+    }
 }
 
 void ShapeEntityRenderer::doRender(RenderArgs* args) {
@@ -149,7 +234,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         } else {
             geometryCache->renderShape(batch, geometryShape, outColor);
         }
-    } else {
+    } else if (!useMaterialPipeline()) {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         auto pipeline = outColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
@@ -158,6 +243,11 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         } else {
             geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);
         }
+    } else {
+        RenderPipelines::bindMaterial(mat, batch, args->_enableTexturing);
+        args->_details._materialSwitches++;
+
+        geometryCache->renderShape(batch, geometryShape);
     }
 
     const auto triCount = geometryCache->getShapeTriangleCount(geometryShape);
@@ -169,8 +259,12 @@ scriptable::ScriptableModelBase ShapeEntityRenderer::getScriptableModel()  {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto geometryShape = geometryCache->getShapeForEntityShape(_shape);
     glm::vec3 vertexColor;
-    if (_materials["0"].top().material) {
-        vertexColor = _materials["0"].top().material->getAlbedo();
+    {
+        std::lock_guard<std::mutex> lock(_materialsLock);
+        result.appendMaterials(_materials);
+        if (_materials["0"].top().material) {
+            vertexColor = _materials["0"].top().material->getAlbedo();
+        }
     }
     if (auto mesh = geometryCache->meshFromShape(geometryShape, vertexColor)) {
         result.objectID = getEntity()->getID();

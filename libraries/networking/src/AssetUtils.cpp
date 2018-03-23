@@ -20,6 +20,7 @@
 
 #include "NetworkAccessManager.h"
 #include "NetworkLogging.h"
+#include "NetworkingConstants.h"
 
 #include "ResourceManager.h"
 

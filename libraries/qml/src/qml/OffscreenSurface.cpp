@@ -183,10 +183,20 @@ bool OffscreenSurface::eventFilter(QObject* originalDestination, QEvent* event) 
         }
         case QEvent::InputMethod:
         case QEvent::InputMethodQuery: {
-            if (_sharedObject->getWindow() && _sharedObject->getWindow()->activeFocusItem()) {
+            auto window = getWindow();
+            if (window && window->activeFocusItem()) {
                 event->ignore();
-                if (QCoreApplication::sendEvent(_sharedObject->getWindow()->activeFocusItem(), event)) {
-                    return event->isAccepted();
+                if (QCoreApplication::sendEvent(window->activeFocusItem(), event)) {
+                    bool eventAccepted = event->isAccepted();
+                    if (event->type() == QEvent::InputMethodQuery) {
+                        QInputMethodQueryEvent *imqEvent = static_cast<QInputMethodQueryEvent *>(event);
+                        // this block disables the selection cursor in android which appears in
+                        // the top-left corner of the screen
+                        if (imqEvent->queries() & Qt::ImEnabled) {
+                            imqEvent->setValue(Qt::ImEnabled, QVariant(false));
+                        }
+                    }
+                    return eventAccepted;
                 }
                 return false;
             }
@@ -334,6 +344,11 @@ void OffscreenSurface::finishQmlLoad(QQmlComponent* qmlComponent,
         // Make sure we make items focusable (critical for
         // supporting keyboard shortcuts)
         newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
+#ifdef DEBUG
+        for (auto frame : newObject->findChildren<QQuickItem *>("Frame")) {
+            frame->setProperty("qmlFile", qmlComponent->url());
+        }
+#endif
     }
 
     bool rootCreated = getRootItem() != nullptr;

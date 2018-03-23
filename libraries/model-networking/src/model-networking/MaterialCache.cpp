@@ -11,6 +11,8 @@
 #include "QJsonDocument"
 #include "QJsonArray"
 
+#include "RegisteredMetaTypes.h"
+
 NetworkMaterialResource::NetworkMaterialResource(const QUrl& url) :
     Resource(url) {}
 
@@ -18,7 +20,7 @@ void NetworkMaterialResource::downloadFinished(const QByteArray& data) {
     parsedMaterials.reset();
 
     if (_url.toString().contains(".json")) {
-        parsedMaterials = parseJSONMaterials(QJsonDocument::fromJson(data));
+        parsedMaterials = parseJSONMaterials(QJsonDocument::fromJson(data), _url);
     }
 
     // TODO: parse other material types
@@ -26,6 +28,25 @@ void NetworkMaterialResource::downloadFinished(const QByteArray& data) {
     finishedLoading(true);
 }
 
+/**jsdoc
+ * <p>An RGB or SRGB color value.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Index</th><th>Type</th><th>Attributes</th><th>Default</th><th>Value</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>0</code></td><td>number</td><td></td><td></td>
+ *       <td>Red component value. Number in the range <code>0.0</code> &ndash; <code>1.0</code>.</td></tr>
+ *     <tr><td><code>1</code></td><td>number</td><td></td><td></td>
+ *       <td>Green component value. Number in the range <code>0.0</code> &ndash; <code>1.0</code>.</td></tr>
+ *     <tr><td><code>2</code></td><td>number</td><td></td><td></td>
+ *       <td>Blue component value. Number in the range <code>0.0</code> &ndash; <code>1.0</code>.</td></tr>
+ *     <tr><td><code>3</code></td><td>boolean</td><td>&lt;optional&gt;</td><td>false</td>
+ *       <td>If <code>true</code> then the color is an SRGB color.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {array} RGBS
+ */
 bool NetworkMaterialResource::parseJSONColor(const QJsonValue& array, glm::vec3& color, bool& isSRGB) {
     if (array.isArray()) {
         QJsonArray colorArray = array.toArray();
@@ -39,11 +60,22 @@ bool NetworkMaterialResource::parseJSONColor(const QJsonValue& array, glm::vec3&
             color = glm::vec3(colorArray[0].toDouble(), colorArray[1].toDouble(), colorArray[2].toDouble());
             return true;
         }
+    } else if (array.isObject()) {
+        bool toReturn;
+        isSRGB = true;
+        color = vec3FromVariant(array.toObject(), toReturn);
+        return toReturn;
     }
     return false;
 }
 
-NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMaterials(const QJsonDocument& materialJSON) {
+/**jsdoc
+ * A material or set of materials such as may be used by a {@link Entities.EntityType|Material} entity.
+ * @typedef {object} MaterialResource
+ * @property {number} materialVersion=1 - The version of the material. <em>Currently not used.</em>
+ * @property {Material|Material[]} materials - The details of the material or materials.
+ */
+NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMaterials(const QJsonDocument& materialJSON, const QUrl& baseUrl) {
     ParsedMaterials toReturn;
     if (!materialJSON.isNull() && materialJSON.isObject()) {
         QJsonObject materialJSONObject = materialJSON.object();
@@ -59,13 +91,13 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
                     QJsonArray materials = materialsValue.toArray();
                     for (auto material : materials) {
                         if (!material.isNull() && material.isObject()) {
-                            auto parsedMaterial = parseJSONMaterial(material.toObject());
+                            auto parsedMaterial = parseJSONMaterial(material.toObject(), baseUrl);
                             toReturn.networkMaterials[parsedMaterial.first] = parsedMaterial.second;
                             toReturn.names.push_back(parsedMaterial.first);
                         }
                     }
                 } else if (materialsValue.isObject()) {
-                    auto parsedMaterial = parseJSONMaterial(materialsValue.toObject());
+                    auto parsedMaterial = parseJSONMaterial(materialsValue.toObject(), baseUrl);
                     toReturn.networkMaterials[parsedMaterial.first] = parsedMaterial.second;
                     toReturn.names.push_back(parsedMaterial.first);
                 }
@@ -76,7 +108,37 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
     return toReturn;
 }
 
-std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::parseJSONMaterial(const QJsonObject& materialJSON) {
+/**jsdoc
+ * A material such as may be used by a {@link Entities.EntityType|Material} entity.
+ * @typedef {object} Material
+ * @property {string} name="" - A name for the material.
+ * @property {string} model="hifi_pbr" - <em>Currently not used.</em>
+ * @property {Vec3Color|RGBS} emissive - The emissive color, i.e., the color that the material emits. A {@link Vec3Color} value 
+ *     is treated as sRGB. A {@link RGBS} value can be either RGB or sRGB.
+ * @property {number} opacity=1.0 - The opacity, <code>0.0</code> &ndash; <code>1.0</code>.
+ * @property {boolean} unlit=false - If <code>true</code>, the material is not lit.
+ * @property {Vec3Color|RGBS} albedo - The albedo color. A {@link Vec3Color} value is treated as sRGB. A {@link RGBS} value can 
+ *     be either RGB or sRGB.
+ * @property {number} roughness - The roughness, <code>0.0</code> &ndash; <code>1.0</code>.
+ * @property {number} metallic - The metallicness, <code>0.0</code> &ndash; <code>1.0</code>.
+ * @property {number} scattering - The scattering, <code>0.0</code> &ndash; <code>1.0</code>.
+ * @property {string} emissiveMap - URL of emissive texture image.
+ * @property {string} albedoMap - URL of albedo texture image.
+ * @property {string} opacityMap - URL of opacity texture image. Set value the same as the <code>albedoMap</code> value for 
+ *     transparency.
+ * @property {string} roughnessMap - URL of roughness texture image. Can use this or <code>glossMap</code>, but not both.
+ * @property {string} glossMap - URL of gloss texture image. Can use this or <code>roughnessMap</code>, but not both.
+ * @property {string} metallicMap - URL of metallic texture image. Can use this or <code>specularMap</code>, but not both.
+ * @property {string} specularMap - URL of specular texture image. Can use this or <code>metallicMap</code>, but not both.
+ * @property {string} normalMap - URL of normal texture image. Can use this or <code>bumpMap</code>, but not both.
+ * @property {string} bumpMap - URL of bump texture image. Can use this or <code>normalMap</code>, but not both.
+ * @property {string} occlusionMap - URL of occlusion texture image.
+ * @property {string} scatteringMap - URL of scattering texture image. Only used if <code>normalMap</code> or 
+ *     <code>bumpMap</code> is specified.
+ * @property {string} lightMap - URL of light map texture image. <em>Currently not used.</em>
+ */
+// Note: See MaterialEntityItem.h for default values used in practice.
+std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::parseJSONMaterial(const QJsonObject& materialJSON, const QUrl& baseUrl) {
     std::string name = "";
     std::shared_ptr<NetworkMaterial> material = std::make_shared<NetworkMaterial>();
     for (auto& key : materialJSON.keys()) {
@@ -137,57 +199,58 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
         } else if (key == "albedoMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
+                QString urlString = value.toString();
                 bool useAlphaChannel = false;
                 auto opacityMap = materialJSON.find("opacityMap");
-                if (opacityMap != materialJSON.end() && opacityMap->isString() && opacityMap->toString() == value.toString()) {
+                if (opacityMap != materialJSON.end() && opacityMap->isString() && opacityMap->toString() == urlString) {
                     useAlphaChannel = true;
                 }
-                material->setAlbedoMap(value.toString(), useAlphaChannel);
+                material->setAlbedoMap(baseUrl.resolved(urlString), useAlphaChannel);
             }
         } else if (key == "roughnessMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setRoughnessMap(value.toString(), false);
+                material->setRoughnessMap(baseUrl.resolved(value.toString()), false);
             }
         } else if (key == "glossMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setRoughnessMap(value.toString(), true);
+                material->setRoughnessMap(baseUrl.resolved(value.toString()), true);
             }
         } else if (key == "metallicMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setMetallicMap(value.toString(), false);
+                material->setMetallicMap(baseUrl.resolved(value.toString()), false);
             }
         } else if (key == "specularMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setMetallicMap(value.toString(), true);
+                material->setMetallicMap(baseUrl.resolved(value.toString()), true);
             }
         } else if (key == "normalMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setNormalMap(value.toString(), false);
+                material->setNormalMap(baseUrl.resolved(value.toString()), false);
             }
         } else if (key == "bumpMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setNormalMap(value.toString(), true);
+                material->setNormalMap(baseUrl.resolved(value.toString()), true);
             }
         } else if (key == "occlusionMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setOcclusionMap(value.toString());
+                material->setOcclusionMap(baseUrl.resolved(value.toString()));
             }
         } else if (key == "scatteringMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setScatteringMap(value.toString());
+                material->setScatteringMap(baseUrl.resolved(value.toString()));
             }
         } else if (key == "lightMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setLightmapMap(value.toString());
+                material->setLightmapMap(baseUrl.resolved(value.toString()));
             }
         }
     }

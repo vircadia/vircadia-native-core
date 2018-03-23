@@ -15,17 +15,17 @@
 #include <controllers/InputDevice.h>
 #include "InputPlugin.h"
 #include <QtGui/qtouchdevice.h>
+#include "VirtualPadManager.h"
 
 class QTouchEvent;
 class QGestureEvent;
-
-const float STICK_RADIUS_INCHES = .3f;
 
 class TouchscreenVirtualPadDevice : public InputPlugin {
 Q_OBJECT
 public:
 
     // Plugin functions
+    virtual void init() override;
     virtual bool isSupported() const override;
     virtual const QString getName() const override { return NAME; }
 
@@ -60,26 +60,60 @@ public:
     const std::shared_ptr<InputDevice>& getInputDevice() const { return _inputDevice; }
 
 protected:
-    qreal _lastPinchScale;
-    qreal _pinchScale;
-    qreal _screenDPI;
+
+    enum TouchType {
+        MOVE = 1,
+        VIEW
+    };
+
+    float _lastPinchScale;
+    float _pinchScale;
+    float _screenDPI;
+    qreal _screenDPIProvided;
     glm::vec2 _screenDPIScale;
-    bool _validTouchLeft;
-    glm::vec2 _firstTouchLeftPoint;
-    glm::vec2 _currentTouchLeftPoint;
-    bool _validTouchRight;
-    glm::vec2 _firstTouchRightPoint;
-    glm::vec2 _currentTouchRightPoint;
+
+    bool _moveHasValidTouch;
+    glm::vec2 _moveRefTouchPoint;
+    glm::vec2 _moveCurrentTouchPoint;
+    int _moveCurrentTouchId;
+
+    bool _viewHasValidTouch;
+    glm::vec2 _viewRefTouchPoint;
+    glm::vec2 _viewCurrentTouchPoint;
+    int _viewCurrentTouchId;
+
+    std::map<int, TouchType> _unusedTouches;
+
     int _touchPointCount;
     int _screenWidthCenter;
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
 
-    void touchLeftBegin(glm::vec2 touchPoint);
-    void touchLeftUpdate(glm::vec2 touchPoint);
-    void touchLeftEnd();
-    void touchRightBegin(glm::vec2 touchPoint);
-    void touchRightUpdate(glm::vec2 touchPoint);
-    void touchRightEnd();
+    bool _fixedPosition;
+    glm::vec2 _fixedCenterPosition;
+    float _fixedRadius;
+    float _fixedRadiusForCalc;
+    int _extraBottomMargin {0};
+
+    float _viewStickRadiusInches {0.1333f}; // agreed default
+
+    void moveTouchBegin(glm::vec2 touchPoint);
+    void moveTouchUpdate(glm::vec2 touchPoint);
+    void moveTouchEnd();
+    bool moveTouchBeginIsValid(glm::vec2 touchPoint);
+
+    void viewTouchBegin(glm::vec2 touchPoint);
+    void viewTouchUpdate(glm::vec2 touchPoint);
+    void viewTouchEnd();
+    bool viewTouchBeginIsValid(glm::vec2 touchPoint);
+
+    void setupFixedCenter(VirtualPad::Manager& virtualPadManager, bool force = false);
+
+    void processInputDeviceForMove(VirtualPad::Manager& virtualPadManager);
+    glm::vec2 clippedPointInCircle(float radius, glm::vec2 origin, glm::vec2 touchPoint);
+
+    void processUnusedTouches(std::map<int, TouchType> unusedTouchesInEvent);
+
+    void processInputDeviceForView();
 // just for debug
 private:
     void debugPoints(const QTouchEvent* event, QString who);

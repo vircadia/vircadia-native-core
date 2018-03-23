@@ -38,7 +38,8 @@ QmlCommerce::QmlCommerce() {
     connect(ledger.data(), &Ledger::updateCertificateStatus, this, &QmlCommerce::updateCertificateStatus);
     connect(ledger.data(), &Ledger::transferHfcToNodeResult, this, &QmlCommerce::transferHfcToNodeResult);
     connect(ledger.data(), &Ledger::transferHfcToUsernameResult, this, &QmlCommerce::transferHfcToUsernameResult);
-    connect(ledger.data(), &Ledger::transferHfcToUsernameResult, this, &QmlCommerce::transferHfcToUsernameResult);
+    connect(ledger.data(), &Ledger::availableUpdatesResult, this, &QmlCommerce::availableUpdatesResult);
+    connect(ledger.data(), &Ledger::updateItemResult, this, &QmlCommerce::updateItemResult);
     
     auto accountManager = DependencyManager::get<AccountManager>();
     connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
@@ -136,6 +137,11 @@ void QmlCommerce::changePassphrase(const QString& oldPassphrase, const QString& 
 void QmlCommerce::setSoftReset() {
     auto wallet = DependencyManager::get<Wallet>();
     wallet->setSoftReset();
+}
+
+void QmlCommerce::clearWallet() {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->clear();
 }
 
 void QmlCommerce::setPassphrase(const QString& passphrase) {
@@ -343,4 +349,21 @@ bool QmlCommerce::openApp(const QString& itemHref) {
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
 
     return true;
+}
+
+void QmlCommerce::getAvailableUpdates(const QString& itemId) {
+    auto ledger = DependencyManager::get<Ledger>();
+    ledger->getAvailableUpdates(itemId);
+}
+
+void QmlCommerce::updateItem(const QString& certificateId) {
+    auto ledger = DependencyManager::get<Ledger>();
+    auto wallet = DependencyManager::get<Wallet>();
+    QStringList keys = wallet->listPublicKeys();
+    if (keys.count() == 0) {
+        QJsonObject result{ { "status", "fail" },{ "message", "Uninitialized Wallet." } };
+        return emit updateItemResult(result);
+    }
+    QString key = keys[0];
+    ledger->updateItem(key, certificateId);
 }

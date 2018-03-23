@@ -78,6 +78,8 @@ TAGS
 node_modules
 npm-debug.log
 
+# ignore qmlc files generated from qml as cache
+*.qmlc
 # Android studio files
 *___jb_old___
 

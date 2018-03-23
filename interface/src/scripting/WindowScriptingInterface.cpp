@@ -74,16 +74,14 @@ QScriptValue WindowScriptingInterface::hasFocus() {
 void WindowScriptingInterface::setFocus() {
     // It's forbidden to call focus() from another thread.
     qApp->postLambdaEvent([] {
-        auto window = qApp->getWindow();
-        window->activateWindow();
-        window->setFocus();
+        qApp->setFocus();
     });
 }
 
 void WindowScriptingInterface::raiseMainWindow() {
     // It's forbidden to call raise() from another thread.
     qApp->postLambdaEvent([] {
-        qApp->getWindow()->raise();
+        qApp->raise();
     });
 }
 
@@ -126,7 +124,7 @@ void WindowScriptingInterface::promptAsync(const QString& message, const QString
 }
 
 void WindowScriptingInterface::disconnectedFromDomain() {
-    emit domainChanged("");
+    emit domainChanged(QUrl());
 }
 
 QString fixupPathForMac(const QString& directory) {
@@ -259,7 +257,6 @@ void WindowScriptingInterface::browseAsync(const QString& title, const QString& 
             setPreviousBrowseLocation(QFileInfo(result).absolutePath());
         }
         emit browseChanged(result);
-        emit openFileChanged(result); // Deprecated signal; to be removed in due course.
     });
 }
 

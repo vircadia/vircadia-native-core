@@ -85,7 +85,7 @@ public:
     QString currentMaterialName;
     QHash<QString, OBJMaterial> materials;
 
-    FBXGeometry* readOBJ(QByteArray& model, const QVariantHash& mapping, bool combineParts, const QUrl& url = QUrl());
+    FBXGeometry::Pointer readOBJ(QByteArray& model, const QVariantHash& mapping, bool combineParts, const QUrl& url = QUrl());
 
 private:
     QUrl _url;

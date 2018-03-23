@@ -34,9 +34,7 @@ TextField {
 
     placeholderText: textField.placeholderText
 
-    FontLoader { id: firaSansRegular; source: "qrc:/fonts/FiraSans-Regular.ttf"; }
-    FontLoader { id: hifiGlyphs; source: "qrc:/fonts/hifi-glyphs.ttf"; }
-    font.family: firaSansRegular.name
+    font.family: "Fira Sans"
     font.pixelSize: hifi.fontSizes.textFieldInput
     height: implicitHeight + 3  // Make surrounding box higher so that highlight is vertically centered.
     property alias textFieldLabel: textFieldLabel
@@ -165,8 +163,10 @@ TextField {
         text: textField.label
         colorScheme: textField.colorScheme
         anchors.left: parent.left
+        anchors.right: parent.right
         anchors.bottom: parent.top
         anchors.bottomMargin: 3
+        wrapMode: Text.WordWrap
         visible: label != ""
     }
 }

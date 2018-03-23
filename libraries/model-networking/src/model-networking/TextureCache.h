@@ -71,6 +71,7 @@ public slots:
 protected:
     void makeRequest() override;
     void makeLocalRequest();
+    Q_INVOKABLE void handleLocalRequestCompleted();
 
     virtual bool isCacheable() const override { return _loaded; }
 
@@ -133,6 +134,8 @@ private:
 };
 
 using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
+
+Q_DECLARE_METATYPE(QWeakPointer<NetworkTexture>)
 
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {

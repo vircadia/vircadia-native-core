@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  skin_model_normal_map.vert
+//  skin_model_normal_map_fade_dq.vert
 //  vertex shader
 //
 //  Created by Andrzej Kapolka on 10/29/13.
@@ -40,7 +40,7 @@ void main(void) {
     skinPositionNormalTangent(inSkinClusterIndex, inSkinClusterWeight, inPosition, inNormal.xyz, inTangent.xyz, position, interpolatedNormal.xyz, interpolatedTangent.xyz);
 
     // pass along the color
-    _color = colorToLinearRGB(inColor.rgb);
+    _color = color_sRGBToLinear(inColor.rgb);
     _alpha = inColor.a;
 
     TexMapArray texMapArray = getTexMapArray();

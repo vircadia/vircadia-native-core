@@ -32,7 +32,7 @@ public:
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    virtual void updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled = false);
+    virtual void updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled = false);
 
     virtual void updateMeshPart(const std::shared_ptr<const graphics::Mesh>& drawMesh, int partIndex);
 
@@ -65,15 +65,18 @@ public:
     graphics::Mesh::Part _drawPart;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
-    size_t getMaterialTextureSize() { return _drawMaterials.top().material ? _drawMaterials.top().material->getTextureSize() : 0; }
-    int getMaterialTextureCount() { return _drawMaterials.top().material ? _drawMaterials.top().material->getTextureCount() : 0; }
-    bool hasTextureInfo() const { return _drawMaterials.top().material ? _drawMaterials.top().material->hasTextureInfo() : false; }
+    size_t getMaterialTextureSize() { return topMaterialExists() ? _drawMaterials.top().material->getTextureSize() : 0; }
+    int getMaterialTextureCount() { return topMaterialExists() ? _drawMaterials.top().material->getTextureCount() : 0; }
+    bool hasTextureInfo() const { return topMaterialExists() ? _drawMaterials.top().material->hasTextureInfo() : false; }
 
     void addMaterial(graphics::MaterialLayer material);
     void removeMaterial(graphics::MaterialPointer material);
 
 protected:
+    static const graphics::MaterialPointer DEFAULT_MATERIAL;
     render::ItemKey _itemKey{ render::ItemKey::Builder::opaqueShape().build() };
+
+    bool topMaterialExists() const { return !_drawMaterials.empty() && _drawMaterials.top().material; }
 };
 
 namespace render {
@@ -92,7 +95,7 @@ public:
 
     void notifyLocationChanged() override;
 
-    void updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled = false) override;
+    void updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled = false) override;
 
     // matrix palette skinning
     void updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices);

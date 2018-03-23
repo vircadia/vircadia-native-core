@@ -44,6 +44,19 @@ bool operator!=(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b
 }
 
 
+/**jsdoc
+ * The AnimationProperties are used to configure an animation.
+ * @typedef Entities.AnimationProperties
+ * @property {string} url="" - The URL of the FBX file that has the animation.
+ * @property {number} fps=30 - The speed in frames/s that the animation is played at.
+ * @property {number} firstFrame=0 - The first frame to play in the animation.
+ * @property {number} lastFrame=100000 - The last frame to play in the animation.
+ * @property {number} currentFrame=0 - The current frame being played in the animation.
+ * @property {boolean} running=false - If <code>true</code> then the animation should play.
+ * @property {boolean} loop=true - If <code>true</code> then the animation should be continuously repeated in a loop.
+ * @property {boolean} hold=false - If <code>true</code> then the rotations and translations of the last frame played should be
+ *     maintained when the animation stops playing.
+ */
 void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_URL, Animation, animation, URL, url);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_ALLOW_TRANSLATION, Animation, animation, AllowTranslation, allowTranslation);

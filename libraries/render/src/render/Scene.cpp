@@ -435,44 +435,47 @@ void Scene::queryTransitionItems(const Transaction::TransitionQueries& transacti
 
 void Scene::resetHighlights(const Transaction::HighlightResets& transactions) {
     auto outlineStage = getStage<HighlightStage>(HighlightStage::getName());
+    if (outlineStage) {
+        for (auto& transaction : transactions) {
+            const auto& selectionName = std::get<0>(transaction);
+            const auto& newStyle = std::get<1>(transaction);
+            auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
 
-    for (auto& transaction : transactions) {
-        const auto& selectionName = std::get<0>(transaction);
-        const auto& newStyle = std::get<1>(transaction);
-        auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
-
-        if (HighlightStage::isIndexInvalid(outlineId)) {
-            outlineStage->addHighlight(selectionName, newStyle);
-        } else {
-            outlineStage->editHighlight(outlineId)._style = newStyle;
+            if (HighlightStage::isIndexInvalid(outlineId)) {
+                outlineStage->addHighlight(selectionName, newStyle);
+            } else {
+                outlineStage->editHighlight(outlineId)._style = newStyle;
+            }
         }
     }
 }
 
 void Scene::removeHighlights(const Transaction::HighlightRemoves& transactions) {
     auto outlineStage = getStage<HighlightStage>(HighlightStage::getName());
+    if (outlineStage) {
+        for (auto& selectionName : transactions) {
+            auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
 
-    for (auto& selectionName : transactions) {
-        auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
-
-        if (!HighlightStage::isIndexInvalid(outlineId)) {
-            outlineStage->removeHighlight(outlineId);
+            if (!HighlightStage::isIndexInvalid(outlineId)) {
+                outlineStage->removeHighlight(outlineId);
+            }
         }
     }
 }
 
 void Scene::queryHighlights(const Transaction::HighlightQueries& transactions) {
     auto outlineStage = getStage<HighlightStage>(HighlightStage::getName());
+    if (outlineStage) {
+        for (auto& transaction : transactions) {
+            const auto& selectionName = std::get<0>(transaction);
+            const auto& func = std::get<1>(transaction);
+            auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
 
-    for (auto& transaction : transactions) {
-        const auto& selectionName = std::get<0>(transaction);
-        const auto& func = std::get<1>(transaction);
-        auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
-
-        if (!HighlightStage::isIndexInvalid(outlineId)) {
-            func(&outlineStage->editHighlight(outlineId)._style);
-        } else {
-            func(nullptr);
+            if (!HighlightStage::isIndexInvalid(outlineId)) {
+                func(&outlineStage->editHighlight(outlineId)._style);
+            } else {
+                func(nullptr);
+            }
         }
     }
 }

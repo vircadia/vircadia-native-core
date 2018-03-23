@@ -13,8 +13,8 @@
 
 #include <gl/Config.h>
 
-#include "../gl/GLBackend.h"
-#include "../gl/GLTexture.h"
+#include <gpu/gl/GLBackend.h>
+#include <gpu/gl/GLTexture.h>
 
 
 namespace gpu { namespace gles {

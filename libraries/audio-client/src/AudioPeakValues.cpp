@@ -43,14 +43,19 @@ void AudioClient::checkPeakValues() {
     // prepare the windows environment
     CoInitialize(NULL);
 
+    std::unique_lock<std::mutex> lock(_deviceMutex, std::defer_lock);
+
     // if disabled, clean up active clients
     if (!_enablePeakValues) {
-        activeClients.clear();
+        if (lock.try_lock()) {
+            // deferred, if timer callbacks overlap
+            activeClients.clear();
+        }
         return;
     }
 
     // lock the devices so the _inputDevices list is static
-    std::unique_lock<std::mutex> lock(_deviceMutex);
+    lock.lock();
     HRESULT result;
 
     // initialize the payload

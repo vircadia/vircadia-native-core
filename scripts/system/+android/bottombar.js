@@ -14,8 +14,12 @@
 var bottombar;
 var bottomHudOptionsBar;
 var gotoBtn;
+var avatarBtn;
+var bubbleBtn;
+var loginBtn;
 
 var gotoScript = Script.require('./goto.js');
+var avatarSelection = Script.require('./avatarSelection.js');
 
 var logEnabled = false;
 
@@ -34,15 +38,20 @@ function init() {
             hideAddressBar();
         }
     });
+    avatarSelection.init();
+    App.fullAvatarURLChanged.connect(processedNewAvatar);
 
 	setupBottomBar();
 	setupBottomHudOptionsBar();
 
     raiseBottomBar();
 
+    GlobalServices.connected.connect(handleLogin);
+    GlobalServices.disconnected.connect(handleLogout);
 }
 
 function shutdown() {
+    App.fullAvatarURLChanged.disconnect(processedNewAvatar);
 }
 
 function setupBottomBar() {
@@ -60,6 +69,32 @@ function setupBottomBar() {
         }
     });
 
+    avatarBtn = bottombar.addButton({
+        icon: "icons/avatar-i.svg",
+        activeIcon: "icons/avatar-a.svg",
+        bgOpacity: 0,
+        height: 240,
+        width: 294,
+        hoverBgOpacity: 0,
+        activeBgOpacity: 0,
+        activeHoverBgOpacity: 0,
+        iconSize: 108,
+        textSize: 45,
+        text: "AVATAR"
+    });
+    avatarBtn.clicked.connect(function() {
+        printd("Avatar button clicked");
+        if (!avatarSelection.isVisible()) {
+            showAvatarSelection();
+        } else {
+            hideAvatarSelection();
+        }
+    });
+    avatarSelection.onHidden = function() {
+        if (avatarBtn) {
+            avatarBtn.isActive = false;
+        }
+    };
 
     gotoBtn = bottombar.addButton({
         icon: "icons/goto-i.svg",
@@ -69,7 +104,7 @@ function setupBottomBar() {
         activeBgOpacity: 0,
         activeHoverBgOpacity: 0,
         height: 240,
-        width: 300,
+        width: 294,
         iconSize: 108,
         textSize: 45,
         text: "GO TO"
@@ -80,6 +115,44 @@ function setupBottomBar() {
             showAddressBar();
         } else {
             hideAddressBar();
+        }
+    });
+
+    bubbleBtn = bottombar.addButton({
+        icon: "icons/bubble-i.svg",
+        activeIcon: "icons/bubble-a.svg",
+        bgOpacity: 0,
+        hoverBgOpacity: 0,
+        activeBgOpacity: 0,
+        activeHoverBgOpacity: 0,
+        height: 240,
+        width: 294,
+        iconSize: 108,
+        textSize: 45,
+        text: "BUBBLE"
+    });
+
+    bubbleBtn.editProperties({isActive: Users.getIgnoreRadiusEnabled()});
+
+    bubbleBtn.clicked.connect(function() {
+        Users.toggleIgnoreRadius();
+        bubbleBtn.editProperties({isActive: Users.getIgnoreRadiusEnabled()});
+    });
+
+    loginBtn = bottombar.addButton({
+        icon: "icons/login-i.svg",
+        activeIcon: "icons/login-a.svg",
+        height: 240,
+        width: 294,
+        iconSize: 108,
+        textSize: 45,
+        text: Account.isLoggedIn() ? "LOG OUT" : "LOG IN"
+    });
+    loginBtn.clicked.connect(function() {
+        if (!Account.isLoggedIn()) {
+            Account.checkAndSignalForAccessToken();
+        } else {
+            Menu.triggerOption("Login / Sign Up");
         }
     });
 
@@ -125,6 +198,7 @@ function lowerBottomBar() {
     if (bottomHudOptionsBar) {
         bottomHudOptionsBar.show();
     }
+    Controller.setVPadExtraBottomMargin(0);
 }
 
 function raiseBottomBar() {
@@ -135,6 +209,7 @@ function raiseBottomBar() {
     if (bottomHudOptionsBar) {
         bottomHudOptionsBar.hide();
     }
+    Controller.setVPadExtraBottomMargin(255); // Height in bottombar.qml
     print('[bottombar.js] raiseBottomBar end');
 }
 
@@ -148,10 +223,43 @@ function hideAddressBar() {
     gotoBtn.isActive = false;
 }
 
+function showAvatarSelection() {
+    avatarSelection.show();
+    avatarBtn.isActive = true;
+}
 
+function hideAvatarSelection() {
+    avatarSelection.hide();
+    avatarBtn.isActive = false;
+}
+
+// TODO: Move to avatarSelection.js and make it possible to hide the window from there AND switch the button state here too
+function processedNewAvatar(url, modelName) {
+    avatarSelection.refreshSelectedAvatar(url);
+    hideAvatarSelection();
+}
+
+function handleLogin() {
+    Script.setTimeout(function() {
+        if (Account.isLoggedIn()) {
+            MyAvatar.displayName=Account.getUsername();
+        }
+    }, 2000);
+    if (loginBtn) {
+        loginBtn.editProperties({text: "LOG OUT"});
+    }
+}
+function handleLogout() {
+    MyAvatar.displayName="";
+    if (loginBtn) {
+        loginBtn.editProperties({text: "LOG IN"});
+    }
+}
 
 Script.scriptEnding.connect(function () {
 	shutdown();
+    GlobalServices.connected.disconnect(handleLogin);
+    GlobalServices.disconnected.disconnect(handleLogout);
 });
 
 init();
