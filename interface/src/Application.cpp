@@ -3526,18 +3526,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
 
-            case Qt::Key_Left:
-                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _mirrorYawOffset += PI / 20.0f;
-                }
-                break;
-
-            case Qt::Key_Right:
-                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _mirrorYawOffset -= PI / 20.0f;
-                }
-                break;
-
 #if 0
             case Qt::Key_I:
                 if (isShifted) {
