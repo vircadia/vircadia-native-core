@@ -54,19 +54,37 @@
         },
 
         { "from": { "makeAxis" : [
-                ["Keyboard.A", "Keyboard.Left", "Keyboard.TouchpadLeft"],
-                ["Keyboard.D", "Keyboard.Right", "Keyboard.TouchpadRight"]
-            ]
+                ["Keyboard.Left"],
+                ["Keyboard.Right"]
+             ]
           },
           "when": ["Application.CameraFirstPerson", "!Keyboard.Shift"],
           "to": "Actions.Yaw"
         },
+
         { "from": { "makeAxis" : [
-                ["Keyboard.A", "Keyboard.Left", "Keyboard.TouchpadLeft"],
-                ["Keyboard.D", "Keyboard.Right", "Keyboard.TouchpadRight"]
-            ]
+                ["Keyboard.Left"],
+                ["Keyboard.Right"]
+             ]
           },
           "when": ["Application.CameraThirdPerson", "!Keyboard.Shift"],
+          "to": "Actions.Yaw"
+        },
+
+        { "from": { "makeAxis" : [
+                ["Keyboard.A", "Keyboard.TouchpadLeft"],
+                ["Keyboard.D", "Keyboard.TouchpadRight"]
+            ]
+          },
+          "when": "Application.CameraFirstPerson",
+          "to": "Actions.Yaw"
+        },
+        { "from": { "makeAxis" : [
+                ["Keyboard.A", "Keyboard.TouchpadLeft"],
+                ["Keyboard.D", "Keyboard.TouchpadRight"]
+            ]
+          },
+          "when": "Application.CameraThirdPerson",
           "to": "Actions.Yaw"
         },
         { "from": { "makeAxis" : ["Keyboard.MouseMoveLeft", "Keyboard.MouseMoveRight"] },
