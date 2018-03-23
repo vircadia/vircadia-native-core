@@ -264,7 +264,7 @@ GridTool = function (opts) {
         } else if (data.type == "update") {
             horizontalGrid.update(data);
             for (var i = 0; i < listeners.length; i++) {
-                [i] && listeners[i](data);
+                listeners[i] && listeners[i](data);
             }
         } else if (data.type == "action") {
             var action = data.action;
