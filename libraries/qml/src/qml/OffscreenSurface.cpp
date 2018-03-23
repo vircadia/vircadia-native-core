@@ -166,18 +166,33 @@ bool OffscreenSurface::eventFilter(QObject* originalDestination, QEvent* event) 
         case QEvent::TouchUpdate:
         case QEvent::TouchEnd: {
             QTouchEvent *originalEvent = static_cast<QTouchEvent *>(event);
-            QTouchEvent fakeEvent(*originalEvent);
-            auto newTouchPoints = fakeEvent.touchPoints();
-            for (size_t i = 0; i < newTouchPoints.size(); ++i) {
-                const auto &originalPoint = originalEvent->touchPoints()[i];
-                auto &newPoint = newTouchPoints[i];
-                newPoint.setPos(originalPoint.pos());
+            QEvent::Type fakeMouseEventType = QEvent::None;
+            Qt::MouseButton fakeMouseButton = Qt::NoButton;
+            Qt::MouseButtons fakeMouseButtons = Qt::NoButton;
+            switch (event->type()) {
+                case QEvent::TouchBegin:
+                    fakeMouseEventType = QEvent::MouseButtonPress;
+                    fakeMouseButton = Qt::LeftButton;
+                    fakeMouseButtons = Qt::LeftButton;
+                    break;
+                case QEvent::TouchUpdate:
+                    fakeMouseEventType = QEvent::MouseMove;
+                    fakeMouseButton = Qt::LeftButton;
+                    fakeMouseButtons = Qt::LeftButton;
+                    break;
+                case QEvent::TouchEnd:
+                    fakeMouseEventType = QEvent::MouseButtonRelease;
+                    fakeMouseButton = Qt::LeftButton;
+                    fakeMouseButtons = Qt::NoButton;
+                    break;
             }
-            fakeEvent.setTouchPoints(newTouchPoints);
-            if (QCoreApplication::sendEvent(_sharedObject->getWindow(), &fakeEvent)) {
-                qInfo() << __FUNCTION__ << "sent fake touch event:" << fakeEvent.type()
-                        << "_quickWindow handled it... accepted:" << fakeEvent.isAccepted();
-                return false; //event->isAccepted();
+            if (fakeMouseEventType == QEvent::None) break;
+            QMouseEvent fakeMouseEvent(fakeMouseEventType, originalEvent->touchPoints()[0].pos(), fakeMouseButton, fakeMouseButtons, Qt::NoModifier);
+            fakeMouseEvent.ignore();
+            if (QCoreApplication::sendEvent(_sharedObject->getWindow(), &fakeMouseEvent)) {
+                qInfo() << __FUNCTION__ << "sent fake touch event:" << fakeMouseEvent.type()
+                        << "_quickWindow handled it... accepted:" << fakeMouseEvent.isAccepted();
+                return fakeMouseEvent.isAccepted();
             }
             break;
         }
