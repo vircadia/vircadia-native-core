@@ -54,7 +54,7 @@
         },
 
         { "from": { "makeAxis" : [
-                ["Keyboard.A", "Keyboar.Left", "Keyboard.TouchpadLeft"],
+                ["Keyboard.A", "Keyboard.Left", "Keyboard.TouchpadLeft"],
                 ["Keyboard.D", "Keyboard.Right", "Keyboard.TouchpadRight"]
             ]
           },
