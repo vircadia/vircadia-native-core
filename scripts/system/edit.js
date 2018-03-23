@@ -116,10 +116,18 @@ var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 var MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "Show Lights and Particle Systems in Create Mode";
 var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Create Mode";
 
+var MENU_CREATE_ENTITIES_GRABBABLE = "Create Entities As Grabbable (except Zones, Particles, and Lights)";
+var MENU_ALLOW_SELECTION_LARGE = "Allow Selecting of Large Models";
+var MENU_ALLOW_SELECTION_SMALL = "Allow Selecting of Small Models";
+var MENU_ALLOW_SELECTION_LIGHTS = "Allow Selecting of Lights";
+
 var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "showLightsAndParticlesInEditMode";
 var SETTING_SHOW_ZONES_IN_EDIT_MODE = "showZonesInEditMode";
+
+var SETTING_EDIT_PREFIX = "Edit/";
+
 
 var CREATE_ENABLED_ICON = "icons/tablet-icons/edit-i.svg";
 var CREATE_DISABLED_ICON = "icons/tablet-icons/edit-disabled.svg";
@@ -226,10 +234,7 @@ function adjustPositionPerBoundingBox(position, direction, registration, dimensi
 
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
-var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable (except Zones, Particles, and Lights)";
-var ALLOW_SELECTION_LARGE = "Allow Selecting of Large Models";
-var ALLOW_SELECTION_SMALL = "Allow Selecting of Small Models";
-var ALLOW_SELECTION_LIGHTS = "Allow Selecting of Lights";
+
 
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditing"; // for communication with other scripts
@@ -283,7 +288,7 @@ var toolBar = (function () {
 
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions);
             properties.position = position;
-            if (Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM) &&
+            if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
                 !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
             } else {
@@ -341,7 +346,7 @@ var toolBar = (function () {
         if (systemToolbar) {
             systemToolbar.removeButton(EDIT_TOGGLE_BUTTON);
         }
-        Menu.removeMenuItem(GRABBABLE_ENTITIES_MENU_CATEGORY, GRABBABLE_ENTITIES_MENU_ITEM);
+        Menu.removeMenuItem(GRABBABLE_ENTITIES_MENU_CATEGORY, MENU_CREATE_ENTITIES_GRABBABLE);
     }
 
     var buttonHandlers = {}; // only used to tablet mode
@@ -1146,35 +1151,35 @@ function setupModelMenus() {
 
     Menu.addMenuItem({
         menuName: GRABBABLE_ENTITIES_MENU_CATEGORY,
-        menuItemName: GRABBABLE_ENTITIES_MENU_ITEM,
+        menuItemName: MENU_CREATE_ENTITIES_GRABBABLE,
         afterItem: "Unparent Entity",
         isCheckable: true,
-        isChecked: Settings.getValue(GRABBABLE_ENTITIES_MENU_CATEGORY + "/" + GRABBABLE_ENTITIES_MENU_ITEM),
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE) !== false,
         grouping: "Advanced"
     });
 
     Menu.addMenuItem({
         menuName: "Edit",
-        menuItemName: ALLOW_SELECTION_LARGE,
-        afterItem: GRABBABLE_ENTITIES_MENU_ITEM,
+        menuItemName: MENU_ALLOW_SELECTION_LARGE,
+        afterItem: MENU_CREATE_ENTITIES_GRABBABLE,
         isCheckable: true,
-        isChecked:  Settings.getValue(GRABBABLE_ENTITIES_MENU_CATEGORY + "/" + ALLOW_SELECTION_LARGE),
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE) !== false,
         grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
-        menuItemName: ALLOW_SELECTION_SMALL,
-        afterItem: ALLOW_SELECTION_LARGE,
+        menuItemName: MENU_ALLOW_SELECTION_SMALL,
+        afterItem: MENU_ALLOW_SELECTION_LARGE,
         isCheckable: true,
-        isChecked: Settings.getValue(GRABBABLE_ENTITIES_MENU_CATEGORY + "/" + ALLOW_SELECTION_SMALL),
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_SMALL) !== false,
         grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
-        menuItemName: ALLOW_SELECTION_LIGHTS,
-        afterItem: ALLOW_SELECTION_SMALL,
+        menuItemName: MENU_ALLOW_SELECTION_LIGHTS,
+        afterItem: MENU_ALLOW_SELECTION_SMALL,
         isCheckable: true,
-        isChecked: Settings.getValue(GRABBABLE_ENTITIES_MENU_CATEGORY + "/" + ALLOW_SELECTION_LIGHTS),
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LIGHTS),
         grouping: "Advanced"
     });
     Menu.addMenuItem({
@@ -1278,6 +1283,12 @@ Script.scriptEnding.connect(function () {
     Settings.setValue(SETTING_EASE_ON_FOCUS, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
     Settings.setValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     Settings.setValue(SETTING_SHOW_ZONES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+
+    Settings.setValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE));
+    Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE, Menu.isOptionChecked(MENU_ALLOW_SELECTION_LARGE));
+    Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_SMALL, Menu.isOptionChecked(MENU_ALLOW_SELECTION_SMALL));
+    Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LIGHTS, Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM));
+
 
     progressDialog.cleanup();
     cleanupModelMenus();
