@@ -120,6 +120,20 @@ private:
     void getGroupMemberships(const QString& username);
     // void getIsGroupMember(const QString& username, const QUuid groupID);
     void getDomainOwnerFriendsList();
+
+    // Local ID management.
+    void initLocalIDManagement();
+    Node::LocalID findOrCreateLocalID(const QUuid& uuid);
+    struct UuidHash {
+        size_t operator()(const QUuid& uuid) const { return qHash(uuid); }
+    };
+    using UUIDToLocalID = std::unordered_map<QUuid, Node::LocalID, UuidHash> ;
+    using LocalIDToUUID = std::unordered_map<Node::LocalID, QUuid>;
+    UUIDToLocalID _uuidToLocalID;
+    LocalIDToUUID _localIDToUUID;
+
+    Node::LocalID _currentLocalID;
+    quint16 _idIncrement;
 };
 
 

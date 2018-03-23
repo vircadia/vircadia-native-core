@@ -39,6 +39,10 @@ public:
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
 
+    using LocalID = quint16;
+    LocalID getLocalID() const { return _localID; }
+    void setLocalID(LocalID localID) { _localID = localID; }
+
     void softReset();
     void reset();
 
@@ -99,6 +103,7 @@ protected:
     void setActiveSocket(HifiSockAddr* discoveredSocket);
 
     QUuid _uuid;
+    LocalID _localID { 0 };
 
     HifiSockAddr _publicSocket;
     HifiSockAddr _localSocket;
