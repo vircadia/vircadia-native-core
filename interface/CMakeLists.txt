@@ -331,19 +331,22 @@ else()
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-    "${RESOURCES_RCC}"
-    "$<TARGET_FILE_DIR:interface>"
+      "${RESOURCES_RCC}"
+      "$<TARGET_FILE_DIR:interface>"
     # FIXME, the edit script code loads HTML from the scripts folder
     # which in turn relies on CSS that refers to the fonts.  In theory
     # we should be able to modify the CSS to reference the QRC path to
     # the ttf files, but doing so generates a CORS policy violation,
     # so we have to retain a copy of the fonts outside of the resources binary
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-    "${PROJECT_SOURCE_DIR}/resources/fonts"
-    "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/fonts"
+      "${PROJECT_SOURCE_DIR}/resources/fonts"
+      "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/fonts"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-    "${CMAKE_SOURCE_DIR}/scripts"
-    "${RESOURCES_DEV_DIR}/scripts"
+      "${CMAKE_SOURCE_DIR}/scripts"
+      "${RESOURCES_DEV_DIR}/scripts"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+      "${PROJECT_SOURCE_DIR}/resources/serverless/tutorial.json"
+      "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/serverless/tutorial.json"
   )
 
   # link target to external libraries
@@ -388,15 +391,6 @@ if (DOWNLOAD_SERVERLESS_CONTENT)
       "${SOURCE_DIR}/serverless/"
       "${RESOURCES_DEV_DIR}/serverless"
   )
-
-  # for installs, put the serverless content in the resources folder beside the executable
-  if (RESOURCES_INSTALL_DIR)
-    install(
-      DIRECTORY "${SOURCE_DIR}/serverless"
-      DESTINATION "${RESOURCES_INSTALL_DIR}"
-      COMPONENT ${CLIENT_COMPONENT}
-    )
-  endif ()
 endif ()
 
 if (WIN32)
