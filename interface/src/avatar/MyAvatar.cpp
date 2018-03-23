@@ -71,7 +71,6 @@ const float YAW_SPEED_DEFAULT = 100.0f;   // degrees/sec
 const float PITCH_SPEED_DEFAULT = 75.0f; // degrees/sec
 
 const float MAX_BOOST_SPEED = 0.5f * DEFAULT_AVATAR_MAX_WALKING_SPEED; // action motor gets additive boost below this speed
-const float AVATAR_RUN_SPEED = DEFAULT_AVATAR_MAX_WALKING_SPEED  * 3.0f;
 const float MIN_AVATAR_SPEED = 0.05f;
 const float MIN_AVATAR_SPEED_SQUARED = MIN_AVATAR_SPEED * MIN_AVATAR_SPEED; // speed is set to zero below this
 
@@ -2187,11 +2186,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     glm::vec3 direction = forward + right;
     if (state == CharacterController::State::Hover ||
             _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
-        // we can fly --> support vertical motion
-        const float SPRINT_IMPULSE = 4.0f;
-        const float WALK_IMPULSE = 1.0f;
-        float impulse = _sprint ? SPRINT_IMPULSE : WALK_IMPULSE;
-        glm::vec3 up = (getDriveKey(TRANSLATE_Y) * impulse) * IDENTITY_UP;
+        glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
         direction += up;
     }
 
@@ -2208,12 +2203,11 @@ void MyAvatar::updateActionMotor(float deltaTime) {
 
     if (state == CharacterController::State::Hover) {
         // we're flying --> complex acceleration curve that builds on top of current motor speed and caps at some max speed
-        const float WALK_SPEED_FACTOR = 1.8f;
-        const float SPRINT_SPEED_FACTOR = 5.0f;
+
         float motorSpeed = glm::length(_actionMotorVelocity);
-        float finalMaxMotorSpeed = getSensorToWorldScale() * DEFAULT_AVATAR_MAX_FLYING_SPEED;
+        float finalMaxMotorSpeed = getSensorToWorldScale() * DEFAULT_AVATAR_MAX_FLYING_SPEED * _walkSpeedScalar;
         float speedGrowthTimescale  = 2.0f;
-        float speedIncreaseFactor = _sprint ? SPRINT_SPEED_FACTOR : WALK_SPEED_FACTOR;
+        float speedIncreaseFactor = 1.8f * _walkSpeedScalar;
         motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale, 0.0f, 1.0f) * speedIncreaseFactor;
         const float maxBoostSpeed = getSensorToWorldScale() * MAX_BOOST_SPEED;
 
@@ -2229,7 +2223,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = motorSpeed * direction;
     } else {
         // we're interacting with a floor --> simple horizontal speed and exponential decay
-        _actionMotorVelocity = getSensorToWorldScale() * _walkSpeed.get() * direction;
+        _actionMotorVelocity = getSensorToWorldScale() * (_walkSpeed.get() * _walkSpeedScalar)  * direction;
     }
 
     float boomChange = getDriveKey(ZOOM);
@@ -2522,7 +2516,7 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
 
 // If position is not reliably safe from being stuck by physics, answer true and place a candidate better position in betterPositionOut.
 bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& betterPositionOut) {
-    // We begin with utilities and tests. The Algorithm in four parts is below.
+    // We begin with utilities and tests. The Algorithm infour parts is below.
     auto halfHeight = _characterController.getCapsuleHalfHeight() + _characterController.getCapsuleRadius();
     if (halfHeight == 0) {
         return false; // zero height avatar
@@ -2822,17 +2816,11 @@ float MyAvatar::getUserEyeHeight() const {
 }
 
 float MyAvatar::getWalkSpeed() const {
-    return _walkSpeed.get();
+    return _walkSpeed.get() * _walkSpeedScalar;
 }
 
 void MyAvatar::setSprintMode(bool sprint) {
-    _sprint = sprint;
-
-    if (_sprint) {
-        _walkSpeed.set(AVATAR_RUN_SPEED);
-    } else {
-        _walkSpeed.set(DEFAULT_AVATAR_MAX_WALKING_SPEED);
-    }
+    _walkSpeedScalar = sprint ? AVATAR_SPRINT_SPEED_SCALAR : AVATAR_WALK_SPEED_SCALAR;
 }
 
 void MyAvatar::setWalkSpeed(float value) {
