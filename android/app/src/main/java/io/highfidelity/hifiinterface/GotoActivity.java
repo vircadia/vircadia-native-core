@@ -1,6 +1,8 @@
 package io.highfidelity.hifiinterface;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -15,14 +17,15 @@ import android.view.View;
 import android.widget.TabHost;
 import android.widget.TabWidget;
 import android.widget.TextView;
-import android.widget.Toast;
 
+import io.highfidelity.hifiinterface.QtPreloader.QtPreloader;
 import io.highfidelity.hifiinterface.view.DomainAdapter;
 
 public class GotoActivity extends AppCompatActivity {
 
     private DomainAdapter domainAdapter;
     private DrawerLayout mDrawerLayout;
+    private ProgressDialog mDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,8 +76,6 @@ public class GotoActivity extends AppCompatActivity {
 
             @Override
             public void onItemClick(View view, int position, DomainAdapter.Domain domain) {
-                Toast.makeText(GotoActivity.this, "" + domain.url,
-                        Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(GotoActivity.this, InterfaceActivity.class);
                 intent.putExtra(InterfaceActivity.DOMAIN_URL, domain.url);
                 GotoActivity.this.finish();
@@ -83,6 +84,46 @@ public class GotoActivity extends AppCompatActivity {
         });
         domainsView.setAdapter(domainAdapter);
 
+        preloadQt();
+
+        showActivityIndicator();
+    }
+
+    private void showActivityIndicator() {
+        if (mDialog == null) {
+            mDialog = new ProgressDialog(this);
+        }
+        mDialog.setMessage("Please wait...");
+        mDialog.setCancelable(false);
+        mDialog.show();
+        preloadQt();
+    }
+
+    private void cancelActivityIndicator() {
+        if (mDialog != null) {
+            mDialog.cancel();
+        }
+    }
+
+    private AsyncTask preloadTask;
+
+    private void preloadQt() {
+        if (preloadTask == null) {
+            preloadTask = new AsyncTask() {
+                @Override
+                protected Object doInBackground(Object[] objects) {
+                    new QtPreloader(GotoActivity.this).initQt();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            cancelActivityIndicator();
+                        }
+                    });
+                    return null;
+                }
+            };
+            preloadTask.execute();
+        }
     }
 
     @Override

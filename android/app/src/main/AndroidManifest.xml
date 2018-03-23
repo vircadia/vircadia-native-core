@@ -41,6 +41,7 @@
         <activity
             android:name=".GotoActivity"
             android:label="@string/go_to"
+            android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar">
         </activity>
         <activity
