@@ -2516,7 +2516,7 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
 
 // If position is not reliably safe from being stuck by physics, answer true and place a candidate better position in betterPositionOut.
 bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& betterPositionOut) {
-    // We begin with utilities and tests. The Algorithm infour parts is below.
+    // We begin with utilities and tests. The Algorithm in four parts is below.
     auto halfHeight = _characterController.getCapsuleHalfHeight() + _characterController.getCapsuleRadius();
     if (halfHeight == 0) {
         return false; // zero height avatar
