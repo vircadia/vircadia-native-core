@@ -227,6 +227,9 @@ function adjustPositionPerBoundingBox(position, direction, registration, dimensi
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
 var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable (except Zones, Particles, and Lights)";
+var ALLOW_SELECTION_LARGE = "Allow Selecting of Large Models";
+var ALLOW_SELECTION_SMALL = "Allow Selecting of Small Models";
+var ALLOW_SELECTION_LIGHTS = "Allow Selecting of Lights";
 
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditing"; // for communication with other scripts
@@ -1146,31 +1149,32 @@ function setupModelMenus() {
         menuItemName: GRABBABLE_ENTITIES_MENU_ITEM,
         afterItem: "Unparent Entity",
         isCheckable: true,
-        isChecked: true,
+        isChecked: Settings.getValue(GRABBABLE_ENTITIES_MENU_CATEGORY + "/" + GRABBABLE_ENTITIES_MENU_ITEM),
         grouping: "Advanced"
     });
 
     Menu.addMenuItem({
         menuName: "Edit",
-        menuItemName: "Allow Selecting of Large Models",
+        menuItemName: ALLOW_SELECTION_LARGE,
         afterItem: GRABBABLE_ENTITIES_MENU_ITEM,
         isCheckable: true,
-        isChecked: true,
+        isChecked:  Settings.getValue(GRABBABLE_ENTITIES_MENU_CATEGORY + "/" + ALLOW_SELECTION_LARGE),
         grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
-        menuItemName: "Allow Selecting of Small Models",
-        afterItem: "Allow Selecting of Large Models",
+        menuItemName: ALLOW_SELECTION_SMALL,
+        afterItem: ALLOW_SELECTION_LARGE,
         isCheckable: true,
-        isChecked: true,
+        isChecked: Settings.getValue(GRABBABLE_ENTITIES_MENU_CATEGORY + "/" + ALLOW_SELECTION_SMALL),
         grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
-        menuItemName: "Allow Selecting of Lights",
-        afterItem: "Allow Selecting of Small Models",
+        menuItemName: ALLOW_SELECTION_LIGHTS,
+        afterItem: ALLOW_SELECTION_SMALL,
         isCheckable: true,
+        isChecked: Settings.getValue(GRABBABLE_ENTITIES_MENU_CATEGORY + "/" + ALLOW_SELECTION_LIGHTS),
         grouping: "Advanced"
     });
     Menu.addMenuItem({
