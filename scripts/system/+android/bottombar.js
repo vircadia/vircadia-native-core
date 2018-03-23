@@ -21,9 +21,7 @@ var loginBtn;
 var gotoScript = Script.require('./goto.js');
 var avatarSelection = Script.require('./avatarSelection.js');
 
-var bottombarInterface = [];
-
-var logEnabled = true;
+var logEnabled = false;
 
 function printd(str) {
     if (logEnabled) {    	
@@ -263,40 +261,6 @@ Script.scriptEnding.connect(function () {
     GlobalServices.connected.disconnect(handleLogin);
     GlobalServices.disconnected.disconnect(handleLogout);
 });
-
-function isRadarModeValidTouch(coords) {
-    var qmlFragments = [bottombar, bottomHudOptionsBar.qmlFragment];
-    var windows = [gotoScript, avatarSelection];
-    for (var i=0; i < qmlFragments.length; i++) {
-        var aQmlFrag = qmlFragments[i];
-        if (aQmlFrag != null && aQmlFrag.isVisible() &&
-            coords.x >= aQmlFrag.position.x && coords.x <= aQmlFrag.position.x  + aQmlFrag.size.x &&
-            coords.y >= aQmlFrag.position.y && coords.y <= aQmlFrag.position.y + aQmlFrag.size.y
-           ) {
-            printd("isRadarModeValidTouch- false because of qmlFragments!? idx " + i);
-            return false;
-        }
-    }
-
-    for (var i=0; i < windows.length; i++) {
-        var aWin = windows[i];
-        if (aWin != null && aWin.position() != null && aWin.isVisible() &&
-            coords.x >= aWin.position().x && coords.x <= aWin.position().x + aWin.width() &&
-            coords.y >= aWin.position().y && coords.y <= aWin.position().y + aWin.height()
-        ) {
-            printd("isRadarModeValidTouch- false because of windows!? idx " + i);
-            return false;
-        } else {
-            printd("isRadarModeValidTouch- discarded of window idx " + i + " visible= " + aWin.isVisible());
-        }
-    }
-    printd("isRadarModeValidTouch- true by default ");
-    return true;
-}
-
-bottombarInterface.isRadarModeValidTouch = isRadarModeValidTouch;
-
-module.exports = bottombarInterface;
 
 init();
 

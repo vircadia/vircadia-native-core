@@ -13,7 +13,7 @@
 
 var radarModeInterface = {};
 
-var logEnabled = true;
+var logEnabled = false;
 function printd(str) {
     if (logEnabled) {
         print("[radar.js] " + str);
@@ -1389,6 +1389,10 @@ radarModeInterface.init = function() {
 radarModeInterface.setUniqueColor = function(c) {
     uniqueColor = c;
 };
+
+radarModeInterface.isTouchValid = function(coords) {
+    return true; // by default
+}
 
 module.exports = radarModeInterface;
 

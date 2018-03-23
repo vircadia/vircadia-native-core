@@ -23,8 +23,6 @@ var logEnabled = true;
 var radar = Script.require('./radar.js');
 var uniqueColor = Script.require('./uniqueColor.js');
 
-var modesInterface = {};
-
 function printd(str) {
     if (logEnabled) {       
         print("[modes.js] " + str);
@@ -35,7 +33,6 @@ function init() {
     radar.setUniqueColor(uniqueColor);
     radar.init();
     setupModesBar();
-    radar.isTouchValid = isRadarModeValidTouch;
 }
 
 function shutdown() {
@@ -184,45 +181,6 @@ function onButtonClicked(clickedButton, whatToDo, hideAllAfter) {
         switchModeButtons(clickedButton, hideAllAfter);
     }
 }
-
-function isRadarModeValidTouch(coords) {
-    if (!modesInterface.isRadarModeValidTouch(coords)) {
-        printd("isRadarModeValidTouch- false because of modesInterface");
-        return false;
-    }
-    printd("isRadarModeValidTouch- modesInterface is true, evaluating modesbar qmls..");
-
-    var qmlFragments = [modesbar.qmlFragment];
-    var windows = [];
-    for (var i=0; i < qmlFragments.length; i++) {
-        var aQmlFrag = qmlFragments[i];
-        if (aQmlFrag != null && aQmlFrag.isVisible() &&
-            coords.x >= aQmlFrag.position.x && coords.x <= aQmlFrag.position.x + aQmlFrag.size.x &&
-            coords.y >= aQmlFrag.position.y && coords.y <= aQmlFrag.position.y + aQmlFrag.size.y
-           ) {
-            printd("isRadarModeValidTouch- false because of qmlFragments!? idx " + i);
-            return false;
-        }
-    }
-
-    for (var i=0; i < windows.length; i++) {
-        var aWin = windows[i];
-        if (aWin != null && aWin.position() != null && aWin.isVisible() &&
-            coords.x >= aWin.position().x && coords.x <= aWin.position().x + aWin.width() &&
-            coords.y >= aWin.position().y && coords.y <= aWin.position().y + aWin.height()
-        ) {
-            printd("isRadarModeValidTouch- false because of windows!? idx " + i);
-            return false;
-        }
-    }
-    printd("isRadarModeValidTouch- true by default ");
-    return true;
-}
-
-// default
-modesInterface.isRadarModeValidTouch = function(coords) {return true;};
-
-module.exports = modesInterface;
 
 Script.scriptEnding.connect(function () {
     shutdown();
