@@ -81,7 +81,7 @@ const QString& PathUtils::resourcesPath() {
 #else
         staticResourcePath = ":/";
 #endif
-        
+
 #if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
         if (USE_SOURCE_TREE_RESOURCES()) {
             // For dev builds, optionally load content from the Git source tree
@@ -118,6 +118,31 @@ const QString& PathUtils::resourcesUrl() {
 
 QUrl PathUtils::resourcesUrl(const QString& relativeUrl) {
     return QUrl(resourcesUrl() + relativeUrl);
+}
+
+QUrl PathUtils::expandToLocalDataAbsolutePath(const QUrl& fileUrl) {
+    QString path = fileUrl.path();
+
+    if (path.startsWith("/~/")) {
+        // this results in a qrc:// url...
+        // return resourcesUrl(path.mid(3));
+
+#ifdef Q_OS_MAC
+        static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+#elif defined (ANDROID)
+        static const QString staticResourcePath =
+            QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources/";
+#else
+        static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
+#endif
+        path.replace(0, 3, staticResourcePath);
+        QUrl expandedURL = QUrl::fromLocalFile(path);
+        return expandedURL;
+    }
+
+    QUrl::fromLocalFile(resourcesPath()).toString();
+
+    return fileUrl;
 }
 
 const QString& PathUtils::qmlBaseUrl() {

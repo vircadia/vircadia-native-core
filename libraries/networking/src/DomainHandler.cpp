@@ -38,7 +38,7 @@ DomainHandler::DomainHandler(QObject* parent) :
 
     // if we get a socket that make sure our NetworkPeer ping timer stops
     connect(this, &DomainHandler::completedSocketDiscovery, &_icePeer, &NetworkPeer::stopPingTimer);
-    
+
     // setup a timeout for failure on settings requests
     static const int DOMAIN_SETTINGS_TIMEOUT_MS = 5000;
     _settingsTimer.setInterval(DOMAIN_SETTINGS_TIMEOUT_MS); // 5s, Qt::CoarseTimer acceptable
@@ -60,11 +60,11 @@ void DomainHandler::disconnect() {
     if (_isConnected) {
         sendDisconnectPacket();
     }
-    
+
     // clear member variables that hold the connection state to a domain
     _uuid = QUuid();
     _connectionToken = QUuid();
-    
+
     _icePeer.reset();
 
     if (requiresICE()) {
@@ -78,10 +78,10 @@ void DomainHandler::disconnect() {
 void DomainHandler::sendDisconnectPacket() {
     // The DomainDisconnect packet is not verified - we're relying on the eventual addition of DTLS to the
     // domain-server connection to stop greifing here
-    
+
     // construct the disconnect packet once (an empty packet but sourced with our current session UUID)
     static auto disconnectPacket = NLPacket::create(PacketType::DomainDisconnectRequest, 0);
-    
+
     // send the disconnect packet to the current domain server
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->sendUnreliablePacket(*disconnectPacket, _sockAddr);
@@ -94,7 +94,7 @@ void DomainHandler::clearSettings() {
 void DomainHandler::softReset() {
     qCDebug(networking) << "Resetting current domain connection information.";
     disconnect();
-    
+
     clearSettings();
 
     _connectionDenialsSinceKeypairRegen = 0;
@@ -115,8 +115,8 @@ void DomainHandler::hardReset() {
     qCDebug(networking) << "Hard reset in NodeList DomainHandler.";
     _pendingDomainID = QUuid();
     _iceServerSockAddr = HifiSockAddr();
-    _hostname = QString();
     _sockAddr.clear();
+    _domainURL = QUrl();
 
     _domainConnectionRefusals.clear();
 
@@ -139,7 +139,10 @@ void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr, const QString& hos
     }
 
     // some callers may pass a hostname, this is not to be used for lookup but for DTLS certificate verification
-    _hostname = hostname;
+    _domainURL = QUrl();
+    _domainURL.setScheme(URL_SCHEME_HIFI);
+    _domainURL.setHost(hostname);
+    _domainURL.setPort(_sockAddr.getPort());
 }
 
 void DomainHandler::setUUID(const QUuid& uuid) {
@@ -149,36 +152,45 @@ void DomainHandler::setUUID(const QUuid& uuid) {
     }
 }
 
-void DomainHandler::setSocketAndID(const QString& hostname, quint16 port, const QUuid& domainID) {
-
+void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
     _pendingDomainID = domainID;
 
-    if (hostname != _hostname || _sockAddr.getPort() != port) {
+    if (domainURL.scheme() != URL_SCHEME_HIFI) {
+        _sockAddr.clear();
+    }
+
+    if (_domainURL != domainURL || _sockAddr.getPort() != domainURL.port()) {
         // re-set the domain info so that auth information is reloaded
         hardReset();
 
-        if (hostname != _hostname) {
-            // set the new hostname
-            _hostname = hostname;
+        QString previousHost = _domainURL.host();
+        _domainURL = domainURL;
 
-            qCDebug(networking) << "Updated domain hostname to" << _hostname;
+        if (domainURL.scheme() != URL_SCHEME_HIFI) {
+            setIsConnected(true);
+        } else if (previousHost != domainURL.host()) {
+            qCDebug(networking) << "Updated domain hostname to" << domainURL.host();
 
-            // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
-            qCDebug(networking, "Looking up DS hostname %s.", _hostname.toLocal8Bit().constData());
-            QHostInfo::lookupHost(_hostname, this, SLOT(completedHostnameLookup(const QHostInfo&)));
+            if (!domainURL.host().isEmpty()) {
+                // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
+                qCDebug(networking, "Looking up DS hostname %s.", domainURL.host().toLocal8Bit().constData());
+                QHostInfo::lookupHost(domainURL.host(), this, SLOT(completedHostnameLookup(const QHostInfo&)));
 
-            DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetDomainHostname);
+                DependencyManager::get<NodeList>()->flagTimeForConnectionStep(
+                    LimitedNodeList::ConnectionStep::SetDomainHostname);
 
-            UserActivityLogger::getInstance().changedDomain(_hostname);
-            emit hostnameChanged(_hostname);
+                UserActivityLogger::getInstance().changedDomain(domainURL.host());
+            }
         }
 
-        if (_sockAddr.getPort() != port) {
-            qCDebug(networking) << "Updated domain port to" << port;
+        emit domainURLChanged(_domainURL);
+
+        if (_sockAddr.getPort() != domainURL.port()) {
+            qCDebug(networking) << "Updated domain port to" << domainURL.port();
         }
 
         // grab the port by reading the string after the colon
-        _sockAddr.setPort(port);
+        _sockAddr.setPort(domainURL.port());
     }
 }
 
@@ -187,10 +199,10 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
     if (_iceServerSockAddr.getAddress().toString() != iceServerHostname || id != _pendingDomainID) {
         // re-set the domain info to connect to new domain
         hardReset();
-        
+
         // refresh our ICE client UUID to something new
         _iceClientID = QUuid::createUuid();
-        
+
         _pendingDomainID = id;
 
         HifiSockAddr* replaceableSockAddr = &_iceServerSockAddr;
@@ -216,14 +228,18 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
 void DomainHandler::activateICELocalSocket() {
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetDomainSocket);
     _sockAddr = _icePeer.getLocalSocket();
-    _hostname = _sockAddr.getAddress().toString();
+    _domainURL.setScheme(URL_SCHEME_HIFI);
+    _domainURL.setHost(_sockAddr.getAddress().toString());
+    emit domainURLChanged(_domainURL);
     emit completedSocketDiscovery();
 }
 
 void DomainHandler::activateICEPublicSocket() {
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetDomainSocket);
     _sockAddr = _icePeer.getPublicSocket();
-    _hostname = _sockAddr.getAddress().toString();
+    _domainURL.setScheme(URL_SCHEME_HIFI);
+    _domainURL.setHost(_sockAddr.getAddress().toString());
+    emit domainURLChanged(_domainURL);
     emit completedSocketDiscovery();
 }
 
@@ -234,7 +250,7 @@ void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
 
             DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetDomainSocket);
 
-            qCDebug(networking, "DS at %s is at %s", _hostname.toLocal8Bit().constData(),
+            qCDebug(networking, "DS at %s is at %s", _domainURL.host().toLocal8Bit().constData(),
                    _sockAddr.getAddress().toString().toLocal8Bit().constData());
 
             emit completedSocketDiscovery();
@@ -261,10 +277,12 @@ void DomainHandler::setIsConnected(bool isConnected) {
         _isConnected = isConnected;
 
         if (_isConnected) {
-            emit connectedToDomain(_hostname);
+            emit connectedToDomain(_domainURL);
 
-            // we've connected to new domain - time to ask it for global settings
-            requestDomainSettings();
+            if (_domainURL.scheme() == URL_SCHEME_HIFI && !_domainURL.host().isEmpty()) {
+                // we've connected to new domain - time to ask it for global settings
+                requestDomainSettings();
+            }
 
         } else {
             emit disconnectedFromDomain();

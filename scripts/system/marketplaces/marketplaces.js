@@ -87,12 +87,23 @@ var selectionDisplay = null; // for gridTool.js to ignore
     }
 
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var NORMAL_ICON = "icons/tablet-icons/market-i.svg";
+    var NORMAL_ACTIVE = "icons/tablet-icons/market-a.svg";
+    var WAITING_ICON = "icons/tablet-icons/market-i-msg.svg";
+    var WAITING_ACTIVE = "icons/tablet-icons/market-a-msg.svg";
     var marketplaceButton = tablet.addButton({
-        icon: "icons/tablet-icons/market-i.svg",
-        activeIcon: "icons/tablet-icons/market-a.svg",
+        icon: NORMAL_ICON,
+        activeIcon: NORMAL_ACTIVE,
         text: "MARKET",
         sortOrder: 9
     });
+
+    function messagesWaiting(isWaiting) {
+        marketplaceButton.editProperties({
+            icon: (isWaiting ? WAITING_ICON : NORMAL_ICON),
+            activeIcon: (isWaiting ? WAITING_ACTIVE : NORMAL_ACTIVE)
+        });
+    }
 
     function onCanWriteAssetsChanged() {
         var message = CAN_WRITE_ASSETS + " " + Entities.canWriteAssets();
@@ -198,6 +209,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
         }
     }
 
+    var userHasUpdates = false;
     function sendCommerceSettings() {
         tablet.emitScriptEvent(JSON.stringify({
             type: "marketplaces",
@@ -206,7 +218,8 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 commerceMode: Settings.getValue("commerce", true),
                 userIsLoggedIn: Account.loggedIn,
                 walletNeedsSetup: Wallet.walletStatus === 1,
-                metaverseServerURL: Account.metaverseServerURL
+                metaverseServerURL: Account.metaverseServerURL,
+                messagesWaiting: userHasUpdates
             }
         }));
     }
@@ -583,6 +596,10 @@ var selectionDisplay = null; // for gridTool.js to ignore
             case 'purchases_goToMarketplaceClicked':
                 tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
+            case 'updateItemClicked':
+                tablet.gotoWebScreen(message.upgradeUrl + "?edition=" + message.itemEdition,
+                    MARKETPLACES_INJECT_SCRIPT_URL);
+                break;
             case 'passphrasePopup_cancelClicked':
             case 'needsLogIn_cancelClicked':
                 tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
@@ -636,6 +653,11 @@ var selectionDisplay = null; // for gridTool.js to ignore
             case 'disable_ChooseRecipientNearbyMode':
             case 'sendMoney_sendPublicly':
                 // NOP
+                break;
+            case 'wallet_availableUpdatesReceived':
+            case 'purchases_availableUpdatesReceived':
+                userHasUpdates = message.numUpdates > 0;
+                messagesWaiting(userHasUpdates);
                 break;
             default:
                 print('Unrecognized message from Checkout.qml or Purchases.qml: ' + JSON.stringify(message));
