@@ -54,7 +54,7 @@ signals:
 
 protected slots:
     void onDeviceChanged(const QAudioDeviceInfo& device, bool isHMD);
-    void onDevicesChanged(const QList<QAudioDeviceInfo>& devices, bool isHMD);
+    void onDevicesChanged(const QList<QAudioDeviceInfo>& devices);
 
 protected:
     friend class AudioDevices;

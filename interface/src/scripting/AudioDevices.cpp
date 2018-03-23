@@ -200,28 +200,34 @@ void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device, bool isHMD
     emit dataChanged(createIndex(0, 0), createIndex(rowCount() - 1, 0));
 }
 
-void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices, bool isHMD) {
-    QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
-
-    const QString& savedDeviceName = isHMD ? _hmdSavedDeviceName : _desktopSavedDeviceName;
+void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
     beginResetModel();
 
     _devices.clear();
 
     foreach(const QAudioDeviceInfo& deviceInfo, devices) {
         AudioDevice device;
-        bool &isSelected = isHMD ? device.selectedHMD : device.selectedDesktop;
         device.info = deviceInfo;
         device.display = device.info.deviceName()
             .replace("High Definition", "HD")
             .remove("Device")
             .replace(" )", ")");
-        if (!selectedDevice.isNull()) {
-            isSelected = (device.info == selectedDevice);
-        } else {
-            //no selected device for context. fallback to saved
-            isSelected = (device.info.deviceName() == savedDeviceName);
+
+        for (bool isHMD : {false, true})
+        {
+            QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
+            bool &isSelected = isHMD ? device.selectedHMD : device.selectedDesktop;
+
+            if (!selectedDevice.isNull()) {
+                isSelected = (device.info == selectedDevice);
+            }
+            else {
+                //no selected device for context. fallback to saved
+                const QString& savedDeviceName = isHMD ? _hmdSavedDeviceName : _desktopSavedDeviceName;
+                isSelected = (device.info.deviceName() == savedDeviceName);
+            }
         }
+
         qDebug() << "adding audio device:" << device.display << device.selectedDesktop << device.selectedHMD << _mode;
         _devices.push_back(newDevice(device));
     }
@@ -271,12 +277,10 @@ AudioDevices::AudioDevices(bool& contextIsHMD) : _contextIsHMD(contextIsHMD) {
     // connections are made after client is initialized, so we must also fetch the devices
     const QList<QAudioDeviceInfo>& devicesInput = client->getAudioDevices(QAudio::AudioInput);
     const QList<QAudioDeviceInfo>& devicesOutput = client->getAudioDevices(QAudio::AudioOutput);
-    //setup HMD devices
-    _inputs.onDevicesChanged(devicesInput, true);
-    _outputs.onDevicesChanged(devicesOutput, true);
-    //setup Desktop devices
-    _inputs.onDevicesChanged(devicesInput, false);
-    _outputs.onDevicesChanged(devicesOutput, false);
+
+    //setup devices
+    _inputs.onDevicesChanged(devicesInput);
+    _outputs.onDevicesChanged(devicesOutput);
 }
 
 AudioDevices::~AudioDevices() {}
@@ -375,11 +379,9 @@ void AudioDevices::onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceI
 
     //set devices for both contexts
     if (mode == QAudio::AudioInput) {
-        _inputs.onDevicesChanged(devices, _contextIsHMD);
-        _inputs.onDevicesChanged(devices, !_contextIsHMD);
+        _inputs.onDevicesChanged(devices);
     } else { // if (mode == QAudio::AudioOutput)
-        _outputs.onDevicesChanged(devices, _contextIsHMD);
-        _outputs.onDevicesChanged(devices, !_contextIsHMD);
+        _outputs.onDevicesChanged(devices);
     }
 }
 
