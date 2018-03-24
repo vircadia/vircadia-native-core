@@ -41,7 +41,6 @@ Window {
     readonly property real verticalScrollWidth: 10
     readonly property real verticalScrollShaft: 8
 
-
     // Scrollable window content.
     // FIXME this should not define any visual content in this type.  The base window
     // type should only consist of logic sized areas, with nothing drawn (although the
@@ -79,11 +78,10 @@ Window {
 
         Flickable {
             id: scrollView
-            children: [ content ]
-            //contentItem: content
-            //onContentItemChanged: console.log("content item", contentItem)
+            contentItem.children: [ content ]
+            contentHeight: content.height
+            boundsBehavior: Flickable.StopAtBounds
 
-            //ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
             clip: true
 
             anchors.rightMargin: parent.isScrolling ? verticalScrollWidth : 0
@@ -92,7 +90,7 @@ Window {
 
             ScrollBar.vertical: ScrollBar {
                 policy: scrollView.contentHeight > scrollView.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
-                parent: scrollView
+                parent: scrollView.parent
                 anchors.top: scrollView.top
                 anchors.right: scrollView.right
                 anchors.bottom: scrollView.bottom
