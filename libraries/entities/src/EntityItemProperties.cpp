@@ -451,8 +451,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.EntityType} type - The entity type. You cannot change the type of an entity after it's created. (Though 
  *     its value may switch among <code>"Box"</code>, <code>"Shape"</code>, and <code>"Sphere"</code> depending on changes to 
  *     the <code>shape</code> property set for entities of these types.) <em>Read-only.</em>
- * @property {boolean} clientOnly=false - If <code>true</code> then the entity is an avatar entity, otherwise it is a server
- *     entity. <em>Read-only.</em>
+ * @property {boolean} clientOnly=false - If <code>true</code> then the entity is an avatar entity; otherwise it is a server
+ *     entity. An avatar entity follows you to each domain you visit, rendering at the same world coordinates unless it's 
+ *     parented to your avatar. <em>Value cannot be changed after the entity is created.</em><br />
+ *     The value can also be set at entity creation by using the <code>clientOnly</code> parameter in 
+ *     {@link Entities.addEntity}.
  * @property {Uuid} owningAvatarID=Uuid.NULL - The session ID of the owning avatar if <code>clientOnly</code> is 
  *     <code>true</code>, otherwise {@link Uuid|Uuid.NULL}. <em>Read-only.</em>
  *
@@ -1413,7 +1416,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_DIMENSIONS, localDimensions);
 
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);  // Gettable but not settable
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);  // Gettable but not settable except at entity creation
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);  // Gettable but not settable
 
     // Rendering info
@@ -2864,6 +2867,9 @@ void EntityItemProperties::markAllChanged() {
     _ambientLight.markAllChanged();
     _skybox.markAllChanged();
 
+    _keyLightModeChanged = true;
+    _skyboxModeChanged = true;
+    _ambientLightModeChanged = true;
     _hazeModeChanged = true;
 
     _animation.markAllChanged();

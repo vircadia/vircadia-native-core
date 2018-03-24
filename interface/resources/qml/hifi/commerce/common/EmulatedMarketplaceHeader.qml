@@ -27,6 +27,7 @@ Item {
     property string referrerURL: (Account.metaverseServerURL + "/marketplace?");
     readonly property int additionalDropdownHeight: usernameDropdown.height - myUsernameButton.anchors.bottomMargin;
     property alias usernameDropdownVisible: usernameDropdown.visible;
+    property bool messagesWaiting: false;
 
     height: mainContainer.height + additionalDropdownHeight;
 
@@ -37,6 +38,7 @@ Item {
             if (walletStatus === 0) {
                 sendToParent({method: "needsLogIn"});
             } else if (walletStatus === 5) {
+                Commerce.getAvailableUpdates();
                 Commerce.getSecurityImage();
             } else if (walletStatus > 5) {
                 console.log("ERROR in EmulatedMarketplaceHeader.qml: Unknown wallet status: " + walletStatus);
@@ -55,6 +57,14 @@ Item {
             if (exists) {
                 securityImage.source = "";
                 securityImage.source = "image://security/securityImage";
+            }
+        }
+
+        onAvailableUpdatesResult: {
+            if (result.status !== 'success') {
+                console.log("Failed to get Available Updates", result.data.message);
+            } else {
+                root.messagesWaiting = result.data.updates.length > 0;
             }
         }
     }
@@ -133,11 +143,23 @@ Item {
                     anchors.fill: parent;
                     hoverEnabled: enabled;
                     onClicked: {
-                        sendToParent({method: 'header_goToPurchases'});
+                        sendToParent({ method: 'header_goToPurchases', hasUpdates: root.messagesWaiting });
                     }
                     onEntered: myPurchasesText.color = hifi.colors.blueHighlight;
                     onExited: myPurchasesText.color = hifi.colors.blueAccent;
                 }
+            }
+
+            Rectangle {
+                id: messagesWaitingLight;
+                visible: root.messagesWaiting;
+                anchors.right: myPurchasesLink.left;
+                anchors.rightMargin: -2;
+                anchors.verticalCenter: parent.verticalCenter;
+                height: 10;
+                width: height;
+                radius: height/2;
+                color: "red";
             }
 
             TextMetrics {

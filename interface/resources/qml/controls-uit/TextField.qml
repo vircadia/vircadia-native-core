@@ -178,8 +178,10 @@ TextField {
         text: textField.label
         colorScheme: textField.colorScheme
         anchors.left: parent.left
+        anchors.right: parent.right
         anchors.bottom: parent.top
         anchors.bottomMargin: 3
+        wrapMode: Text.WordWrap
         visible: label != ""
     }
 }

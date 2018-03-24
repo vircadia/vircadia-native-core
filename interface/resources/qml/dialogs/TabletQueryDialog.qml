@@ -64,34 +64,33 @@ TabletModalWindow {
         id: modalWindowItem
         width: parent.width - 12
         height: 240
-        anchors {
-            verticalCenter: parent.verticalCenter
-            horizontalCenter: parent.horizontalCenter
-        }
+        anchors.horizontalCenter: parent.horizontalCenter
         
        QtObject {
             id: d
-            readonly property int minWidth: 470
-            readonly property int maxWidth: 470
+            readonly property int minWidth: modalWindowItem.width
+            readonly property int maxWidth: modalWindowItem.width
             readonly property int minHeight: 120
             readonly property int maxHeight: 720
 
             function resize() {
-                var targetWidth = Math.max(titleWidth, 470)
+                var targetWidth = Math.max(titleWidth, modalWindowItem.width)
                 var targetHeight = (items ? comboBox.controlHeight : textResult.controlHeight) + 5 * hifi.dimensions.contentSpacing.y + buttons.height
                 modalWindowItem.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth);
-                modalWindowItem.height = ((targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ? d.maxHeight : targetHeight)) + ((keyboardEnabled && keyboardRaised) ? (keyboard.raisedHeight + 2 * hifi.dimensions.contentSpacing.y) : 0) + modalWindowItem.frameMarginTop
+                modalWindowItem.height = ((targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ? d.maxHeight : targetHeight)) + modalWindowItem.frameMarginTop
+                modalWindowItem.y = (root.height - (modalWindowItem.height + ((keyboardEnabled && keyboardRaised) ? (keyboard.raisedHeight + 2 * hifi.dimensions.contentSpacing.y) : 0))) / 2
             }
         }
         
         Item {
             anchors {
                 top: parent.top
-                bottom: keyboard.top;
+                bottom: buttons.top;
                 left: parent.left;
                 right: parent.right;
                 margins: 0
                 bottomMargin: 2 * hifi.dimensions.contentSpacing.y
+                topMargin: modalWindowItem.frameMarginTop
             }
 
             // FIXME make a text field type that can be bound to a history for autocompletion
@@ -105,6 +104,7 @@ TabletModalWindow {
                     right: parent.right;
                     bottom: parent.bottom
                     leftMargin: 5
+                    rightMargin: 5
                 }
             }
 
@@ -123,22 +123,6 @@ TabletModalWindow {
             }
         }
         
-        property alias keyboardOverride: root.keyboardOverride
-        property alias keyboardRaised: root.keyboardRaised
-        property alias punctuationMode: root.punctuationMode
-        
-        Keyboard {
-            id: keyboard
-            raised: keyboardEnabled && keyboardRaised
-            numeric: punctuationMode
-            anchors {
-                left: parent.left
-                right: parent.right
-                bottom: buttons.top
-                bottomMargin: raised ? 2 * hifi.dimensions.contentSpacing.y : 0
-            }
-        }
-       
         Flow {
             id: buttons
             focus: true
@@ -149,6 +133,7 @@ TabletModalWindow {
                 bottom: parent.bottom
                 right: parent.right
                 margins: 0
+                rightMargin: hifi.dimensions.borderRadius
                 bottomMargin: hifi.dimensions.contentSpacing.y
             }
             Button { action: cancelAction }
@@ -176,7 +161,17 @@ TabletModalWindow {
         }
     }
 
-   Keys.onPressed: {
+    Keyboard {
+        id: keyboard
+        raised: keyboardEnabled && keyboardRaised
+        numeric: punctuationMode
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: modalWindowItem.bottom
+        }
+    }
+    Keys.onPressed: {
         if (!visible) {
             return
         }
