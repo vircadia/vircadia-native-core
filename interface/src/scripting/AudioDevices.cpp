@@ -202,8 +202,7 @@ void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device, bool isHMD
 void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
     beginResetModel();
 
-    _devices.clear();
-
+    QList<std::shared_ptr<AudioDevice>> newDevices;
     foreach(const QAudioDeviceInfo& deviceInfo, devices) {
         AudioDevice device;
         device.info = deviceInfo;
@@ -225,12 +224,28 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
                 const QString& savedDeviceName = isHMD ? _hmdSavedDeviceName : _desktopSavedDeviceName;
                 isSelected = (device.info.deviceName() == savedDeviceName);
             }
+
+            if (isSelected) {
+                // check if this device *is not* in old devices list - it means it was just re-plugged so needs to be selected explicitly
+                bool isNewDevice = true;
+                for (auto& oldDevice : _devices) {
+                    if (oldDevice->info.deviceName() == device.info.deviceName()) {
+                        isNewDevice = false;
+                        break;
+                    }
+                }
+
+                if (isNewDevice) {
+                    emit selectedDevicePlugged(device.info, isHMD);
+                }
+            }
         }
 
         qDebug() << "adding audio device:" << device.display << device.selectedDesktop << device.selectedHMD << _mode;
-        _devices.push_back(newDevice(device));
+        newDevices.push_back(newDevice(device));
     }
 
+    _devices.swap(newDevices);
     endResetModel();
 }
 
@@ -379,8 +394,18 @@ void AudioDevices::onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceI
     //set devices for both contexts
     if (mode == QAudio::AudioInput) {
         _inputs.onDevicesChanged(devices);
+
+        static std::once_flag onceAfterInputDevicesChanged;
+        std::call_once(onceAfterInputDevicesChanged, [&] { // we only want 'selectedDevicePlugged' signal to be handled after initial list of input devices was populated
+            connect(&_inputs, &AudioDeviceList::selectedDevicePlugged, this, &AudioDevices::chooseInputDevice);
+        });
     } else { // if (mode == QAudio::AudioOutput)
         _outputs.onDevicesChanged(devices);
+
+        static std::once_flag onceAfterOutputDevicesChanged;
+        std::call_once(onceAfterOutputDevicesChanged, [&] { // we only want 'selectedDevicePlugged' signal to be handled after initial list of output devices was populated
+            connect(&_outputs, &AudioDeviceList::selectedDevicePlugged, this, &AudioDevices::chooseOutputDevice);
+        });
     }
 }
 
