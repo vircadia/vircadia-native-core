@@ -10,6 +10,7 @@
 //
 
 #include <map>
+#include <algorithm>
 
 #include <shared/QtHelpers.h>
 #include <plugins/DisplayPlugin.h>
@@ -199,10 +200,74 @@ void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device, bool isHMD
     emit dataChanged(createIndex(0, 0), createIndex(rowCount() - 1, 0));
 }
 
+// Function returns 'strings similarity' as a number. The lesser number - the more similar strings are. Absolutely equal strings should return 0.
+// Optimized version kindly provided by Ken
+int levenshteinDistance(const QString& s1, const QString& s2) {
+    const int m = s1.size();
+    const int n = s2.size();
+
+    if (m == 0) {
+        return n;
+    }
+    if (n == 0) {
+        return m;
+    }
+
+    auto cost = (int*)alloca((n + 1) * sizeof(int));
+
+    for (int j = 0; j <= n; j++) {
+        cost[j] = j;
+    }
+
+    for (int i = 0; i < m; i++) {
+
+        int prev = i;
+        cost[0] = i + 1;
+
+        for (int j = 0; j < n; j++) {
+
+            int temp = cost[j + 1];
+            cost[j + 1] = (s1[i] == s2[j]) ? prev : std::min(cost[j], std::min(temp, prev)) + 1;
+            prev = temp;
+        }
+    }
+    return cost[n];
+}
+
+std::shared_ptr<scripting::AudioDevice> getSimilarDevice(const QString& deviceName, const QList<std::shared_ptr<scripting::AudioDevice>>& devices) {
+
+    int minDistance = INT_MAX;
+    int minDistanceIndex = 0;
+
+    for (auto i = 0; i < devices.length(); ++i) {
+        auto distance = levenshteinDistance(deviceName, devices[i]->info.deviceName());
+        if (distance < minDistance) {
+            minDistance = distance;
+            minDistanceIndex = i;
+        }
+    }
+
+    return devices[minDistanceIndex];
+}
+
 void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
     beginResetModel();
 
     QList<std::shared_ptr<AudioDevice>> newDevices;
+    bool hmdIsSelected = false;
+    bool desktopIsSelected = false;
+
+    foreach(const QAudioDeviceInfo& deviceInfo, devices) {
+        for (bool isHMD : {false, true}) {
+            auto &backupSelectedDeviceName = isHMD ? _backupSelectedHMDDeviceName : _backupSelectedDesktopDeviceName;
+            if (deviceInfo.deviceName() == backupSelectedDeviceName) {
+                QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
+                selectedDevice = deviceInfo;
+                backupSelectedDeviceName.clear();
+            }
+        }
+    }
+
     foreach(const QAudioDeviceInfo& deviceInfo, devices) {
         AudioDevice device;
         device.info = deviceInfo;
@@ -211,8 +276,7 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
             .remove("Device")
             .replace(" )", ")");
 
-        for (bool isHMD : {false, true})
-        {
+        for (bool isHMD : {false, true}) {
             QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
             bool &isSelected = isHMD ? device.selectedHMD : device.selectedDesktop;
 
@@ -226,6 +290,12 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
             }
 
             if (isSelected) {
+                if (isHMD) {
+                    hmdIsSelected = isSelected;
+                } else {
+                    desktopIsSelected = isSelected;
+                }
+
                 // check if this device *is not* in old devices list - it means it was just re-plugged so needs to be selected explicitly
                 bool isNewDevice = true;
                 for (auto& oldDevice : _devices) {
@@ -243,6 +313,21 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
 
         qDebug() << "adding audio device:" << device.display << device.selectedDesktop << device.selectedHMD << _mode;
         newDevices.push_back(newDevice(device));
+    }
+
+    if (!newDevices.isEmpty()) {
+        if (!hmdIsSelected) {
+            _backupSelectedHMDDeviceName = !_selectedHMDDevice.isNull() ? _selectedHMDDevice.deviceName() : _hmdSavedDeviceName;
+            auto device = getSimilarDevice(_backupSelectedHMDDeviceName, newDevices);
+            device->selectedHMD = true;
+            emit selectedDevicePlugged(device->info, true);
+        }
+        if (!desktopIsSelected) {
+            _backupSelectedDesktopDeviceName = !_selectedDesktopDevice.isNull() ? _selectedDesktopDevice.deviceName() : _desktopSavedDeviceName;
+            auto device = getSimilarDevice(_backupSelectedDesktopDeviceName, newDevices);
+            device->selectedDesktop = true;
+            emit selectedDevicePlugged(device->info, false);
+        }
     }
 
     _devices.swap(newDevices);

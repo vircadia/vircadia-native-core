@@ -65,6 +65,8 @@ protected:
     const QAudio::Mode _mode;
     QAudioDeviceInfo _selectedDesktopDevice;
     QAudioDeviceInfo _selectedHMDDevice;
+    QString _backupSelectedDesktopDeviceName;
+    QString _backupSelectedHMDDeviceName;
     QList<std::shared_ptr<AudioDevice>> _devices;
     QString _hmdSavedDeviceName;
     QString _desktopSavedDeviceName;
