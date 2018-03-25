@@ -182,7 +182,6 @@ void AudioDeviceList::resetDevice(bool contextIsHMD) {
 }
 
 void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device, bool isHMD) {
-    auto oldDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
     QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
     selectedDevice = device;
 
