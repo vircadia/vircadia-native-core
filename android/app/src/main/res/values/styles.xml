@@ -15,6 +15,24 @@
 
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
+    <!-- Customizing GoTo ActionBar -->
+    <style name="GotoActionBarTitleStyle"
+        parent="@android:style/TextAppearance.Material.Widget.ActionBar.Title">
+        <item name="android:textSize">18dp</item>
+        <item name="android:paddingLeft">0dp</item>
+        <item name="android:fontFamily">@font/raleway_bold</item>
+        <item name="android:layout_marginLeft">0dp</item>
+    </style>
+
+    <style name="TabText">
+        <item name="android:fontFamily">@font/raleway_medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/tabs</item>
+        <item name="android:height">30dp</item>
+        <item name="android:layout_margin">0dp</item>
+        <item name="android:padding">0dp</item>
+    </style>
+
     <!-- Overriding text size so it's not so big in portrait -->
     <style name="ActionBarTitleStyle"
         parent="@android:style/TextAppearance.Material.Widget.ActionBar.Title">

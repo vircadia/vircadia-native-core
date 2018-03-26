@@ -37,7 +37,7 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
 
     // references to our domains
     private Domain[] mDomains = {
-            new Domain("dev-master-mobile", "hifi://dev-mobile-master", 0),
+            new Domain("dev-mobile-master", "hifi://dev-mobile-master", 0),
             new Domain("dev-mobile", "hifi://dev-mobile", 0),
             new Domain("dev-welcome", "hifi://dev-welcome", 0),
     };

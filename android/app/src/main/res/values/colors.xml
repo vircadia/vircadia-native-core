@@ -2,9 +2,10 @@
 <resources>
     <color name="white_opaque">#ffffff</color>
     <color name="colorPrimary">#272727</color>
-    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorPrimaryDark">#000000</color>
     <color name="colorAccent">#54D7FD</color>
     <color name="tabs">#1EB5EC</color>
     <color name="backgroundDark">#333333</color>
     <color name="backgroundLight">#4F4F4F</color>
+    <color name="backgroundSearch">#33999999</color>
 </resources>

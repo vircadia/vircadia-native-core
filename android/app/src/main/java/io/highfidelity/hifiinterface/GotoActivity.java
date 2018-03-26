@@ -32,6 +32,7 @@ public class GotoActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_goto);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitleTextAppearance(this, R.style.GotoActionBarTitleStyle);
         setSupportActionBar(toolbar);
 
         ActionBar actionbar = getSupportActionBar();
@@ -63,7 +64,7 @@ public class GotoActivity extends AppCompatActivity {
         TabWidget tabwidget=tabs.getTabWidget();
         for(int i=0;i<tabwidget.getChildCount();i++){
             TextView tv=(TextView) tabwidget.getChildAt(i).findViewById(android.R.id.title);
-            tv.setTextColor(getColor(R.color.tabs));
+            tv.setTextAppearance(R.style.TabText);
         }
 
 

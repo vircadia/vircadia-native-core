@@ -47,6 +47,7 @@ function init() {
     raiseBottomBar();
 
     GlobalServices.connected.connect(handleLogin);
+    GlobalServices.myUsernameChanged.connect(onUsernameChanged);
     GlobalServices.disconnected.connect(handleLogout);
 }
 
@@ -240,15 +241,17 @@ function processedNewAvatar(url, modelName) {
 }
 
 function handleLogin() {
-    Script.setTimeout(function() {
-        if (Account.isLoggedIn()) {
-            MyAvatar.displayName=Account.getUsername();
-        }
-    }, 2000);
     if (loginBtn) {
         loginBtn.editProperties({text: "LOG OUT"});
     }
 }
+
+function onUsernameChanged(username) {
+    if (Account.isLoggedIn()) {
+        MyAvatar.displayName=username;
+    }
+}
+
 function handleLogout() {
     MyAvatar.displayName="";
     if (loginBtn) {
@@ -257,9 +260,10 @@ function handleLogout() {
 }
 
 Script.scriptEnding.connect(function () {
-	shutdown();
+    shutdown();
     GlobalServices.connected.disconnect(handleLogin);
     GlobalServices.disconnected.disconnect(handleLogout);
+    GlobalServices.myUsernameChanged.disconnect(onUsernameChanged);
 });
 
 init();
