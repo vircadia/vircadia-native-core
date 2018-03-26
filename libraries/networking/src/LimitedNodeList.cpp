@@ -131,6 +131,15 @@ void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
     }
 }
 
+Node::LocalID LimitedNodeList::getSessionLocalID() const {
+    return _sessionLocalID;
+}
+
+void LimitedNodeList::setSessionLocalID(Node::LocalID sessionLocalID) {
+    QWriteLocker lock { &_sessionUUIDLock };    // Necessary?
+    _sessionLocalID = sessionLocalID;
+}
+
 void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
     NodePermissions originalPermissions = _permissions;
 

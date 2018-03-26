@@ -594,9 +594,13 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
         return;
     }
 
-    // pull our owner UUID from the packet, it's always the first thing
+    // pull our owner (ie. session) UUID from the packet, it's always the first thing
+    // The short (16 bit) ID comes next.
     QUuid newUUID;
+    Node::LocalID newLocalID;
     packetStream >> newUUID;
+    packetStream >> newLocalID;
+    setSessionLocalID(newLocalID);
     setSessionUUID(newUUID);
 
     // if this was the first domain-server list from this domain, we've now connected
@@ -638,12 +642,14 @@ void NodeList::processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> me
 void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     // setup variables to read into from QDataStream
     qint8 nodeType;
-    QUuid nodeUUID, connectionUUID;
+    QUuid nodeUUID, connectionSecretUUID;
     HifiSockAddr nodePublicSocket, nodeLocalSocket;
     NodePermissions permissions;
     bool isReplicated;
+    Node::LocalID sessionLocalID;
 
-    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions >> isReplicated;
+    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions
+        >> isReplicated >> sessionLocalID;
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
@@ -651,10 +657,11 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
         nodePublicSocket.setAddress(_domainHandler.getIP());
     }
 
-    packetStream >> connectionUUID;
+    packetStream >> connectionSecretUUID;
 
     SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
-                                             nodeLocalSocket, isReplicated, false, connectionUUID, permissions);
+                                             nodeLocalSocket, isReplicated, false, connectionSecretUUID, permissions);
+    node->setLocalID(sessionLocalID);
 
     // nodes that are downstream or upstream of our own type are kept alive when we hear about them from the domain server
     // and always have their public socket as their active socket

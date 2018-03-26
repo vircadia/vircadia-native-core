@@ -691,6 +691,10 @@ void DomainServer::setupNodeListAndAssignments() {
         }
     }
 
+    // Create our own short session ID.
+    Node::LocalID serverSessionLocalID = _gatekeeper.findOrCreateLocalID(nodeList->getSessionUUID());
+    nodeList->setSessionLocalID(serverSessionLocalID);
+
     if (isMetaverseDomain) {
         // see if we think we're a temp domain (we have an API key) or a full domain
         const auto& temporaryDomainKey = DependencyManager::get<AccountManager>()->getTemporaryDomainKey(getID());
@@ -1165,6 +1169,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
 
     extendedHeaderStream << limitedNodeList->getSessionUUID();
     extendedHeaderStream << node->getUUID();
+    extendedHeaderStream << node->getLocalID();
     extendedHeaderStream << node->getPermissions();
 
     auto domainListPackets = NLPacketList::create(PacketType::DomainList, extendedHeader);

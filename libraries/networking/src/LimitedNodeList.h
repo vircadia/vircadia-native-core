@@ -106,6 +106,8 @@ public:
     Q_ENUM(ConnectionStep);
     QUuid getSessionUUID() const;
     void setSessionUUID(const QUuid& sessionUUID);
+    Node::LocalID getSessionLocalID() const;
+    void setSessionLocalID(Node::LocalID localID);
 
     void setPermissions(const NodePermissions& newPermissions);
     bool isAllowedEditor() const { return _permissions.can(NodePermissions::Permission::canAdjustLocks); }
@@ -427,6 +429,7 @@ private slots:
 private:
     mutable QReadWriteLock _sessionUUIDLock;
     QUuid _sessionUUID;
+    Node::LocalID _sessionLocalID { 0 };
 };
 
 #endif // hifi_LimitedNodeList_h

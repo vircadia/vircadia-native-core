@@ -41,6 +41,8 @@ public:
     
     void removeICEPeer(const QUuid& peerUUID) { _icePeers.remove(peerUUID); }
 
+    Node::LocalID findOrCreateLocalID(const QUuid& uuid);
+
     static void sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr);
 public slots:
     void processConnectRequestPacket(QSharedPointer<ReceivedMessage> message);
@@ -123,7 +125,6 @@ private:
 
     // Local ID management.
     void initLocalIDManagement();
-    Node::LocalID findOrCreateLocalID(const QUuid& uuid);
     struct UuidHash {
         size_t operator()(const QUuid& uuid) const { return qHash(uuid); }
     };
