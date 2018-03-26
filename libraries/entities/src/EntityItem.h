@@ -222,6 +222,10 @@ public:
 
     quint64 getCreated() const; /// get the created-time in useconds for the entity
     void setCreated(quint64 value); /// set the created-time in useconds for the entity
+    float getCreatedAgo() const /// Elapsed seconds since this entity was created
+    {
+        return (float)(usecTimestampNow() - getCreated()) / (float)USECS_PER_SECOND;
+    }
 
     /// is this entity immortal, in that it has no lifetime set, and will exist until manually deleted
     bool isImmortal() const { return getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME; }
