@@ -772,7 +772,7 @@ Rectangle {
                     lightboxPopup.button1text = "CANCEL";
                     lightboxPopup.button1method = "root.visible = false;"
                     lightboxPopup.button2text = "CONFIRM";
-                    lightboxPopup.button2method = "Commerce.replaceContentSet('" + root.itemHref + "');" + 
+                    lightboxPopup.button2method = "Commerce.replaceContentSet('" + root.itemHref + "', '" + root.certificateId + "');" + 
                     "root.visible = false;rezzedNotifContainer.visible = true; rezzedNotifContainerTimer.start();" + 
                     "UserActivityLogger.commerceEntityRezzed('" + root.itemId + "', 'checkout', '" + root.itemType + "');";
                     lightboxPopup.visible = true;
