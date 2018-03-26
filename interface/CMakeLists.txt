@@ -26,17 +26,17 @@ generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources 
 if (ANDROID)
   # on Android, don't compress the rcc binary
   add_custom_command(
-      OUTPUT ${RESOURCES_RCC}
-      DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-      COMMAND "${QT_DIR}/bin/rcc"
-      ARGS ${RESOURCES_QRC} -no-compress -binary -o ${RESOURCES_RCC}
+    OUTPUT ${RESOURCES_RCC}
+    DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
+    COMMAND "${QT_DIR}/bin/rcc"
+    ARGS ${RESOURCES_QRC} -no-compress -binary -o ${RESOURCES_RCC}
   )
 else ()
   add_custom_command(
-      OUTPUT ${RESOURCES_RCC}
-      DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-      COMMAND "${QT_DIR}/bin/rcc"
-      ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
+    OUTPUT ${RESOURCES_RCC}
+    DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
+    COMMAND "${QT_DIR}/bin/rcc"
+    ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
   )
 endif()
 
@@ -203,12 +203,6 @@ if (WIN32)
   add_dependency_external_projects(steamworks)
 endif()
 
-# include OPENSSL
-include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
-
-# append OpenSSL to our list of libraries to link
-target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES})
-
 # disable /OPT:REF and /OPT:ICF for the Debug builds
 # This will prevent the following linker warnings
 # LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/OPT:ICF' specification
@@ -231,6 +225,9 @@ link_hifi_libraries(
 
 # include the binary directory of render-utils for shader includes
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries/render-utils")
+
+# include OpenSSL
+target_openssl()
 
 target_bullet()
 target_opengl()

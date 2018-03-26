@@ -23,7 +23,7 @@ macro(GENERATE_INSTALLERS)
   set(CPACK_NSIS_DISPLAY_NAME ${_DISPLAY_NAME})
   set(CPACK_NSIS_PACKAGE_NAME ${_DISPLAY_NAME})
   if (PR_BUILD)
-    set(CPACK_NSIS_COMPRESSOR "/SOLID bzip2")
+    set(CPACK_NSIS_COMPRESSOR "bzip2")
   endif ()
   set(CPACK_PACKAGE_INSTALL_DIRECTORY ${_DISPLAY_NAME})
 
@@ -58,6 +58,23 @@ macro(GENERATE_INSTALLERS)
     set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ${INTERFACE_INSTALL_DIR})
     set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT ${CLIENT_COMPONENT})
     include(InstallRequiredSystemLibraries)
+
+    if (CLIENT_ONLY OR SERVER_ONLY)
+      set(CPACK_MONOLITHIC_INSTALL 1)
+    endif ()
+
+    # setup conditional checks for server component selection depending on
+    # the inclusion of the server component at all
+    if (CLIENT_ONLY)
+      set(SERVER_COMPONENT_CONDITIONAL "0 == 1")
+      set(CLIENT_COMPONENT_CONDITIONAL "1 == 1")
+    elseif (SERVER_ONLY)
+      set(SERVER_COMPONENT_CONDITIONAL "1 == 1")
+      set(CLIENT_COMPONENT_CONDITIONAL "0 == 1")
+    else ()
+      set(SERVER_COMPONENT_CONDITIONAL "\\\${SectionIsSelected} \\\${${SERVER_COMPONENT}}")
+      set(CLIENT_COMPONENT_CONDITIONAL "\\\${SectionIsSelected} \\\${${CLIENT_COMPONENT}}")
+    endif ()
   elseif (APPLE)
     # produce a drag and drop DMG on OS X
     set(CPACK_GENERATOR "DragNDrop")
@@ -88,8 +105,13 @@ macro(GENERATE_INSTALLERS)
 
   set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
-  cpack_add_component(${CLIENT_COMPONENT} DISPLAY_NAME "High Fidelity Interface")
-  cpack_add_component(${SERVER_COMPONENT} DISPLAY_NAME "High Fidelity Sandbox")
+  if (BUILD_CLIENT)
+    cpack_add_component(${CLIENT_COMPONENT} DISPLAY_NAME "High Fidelity Interface")
+  endif ()
+
+  if (BUILD_SERVER)
+    cpack_add_component(${SERVER_COMPONENT} DISPLAY_NAME "High Fidelity Sandbox")
+  endif ()
 
   include(CPack)
 endmacro()

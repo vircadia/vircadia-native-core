@@ -91,6 +91,11 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
         return;
     }
 
+    if (entityTree && entityTree->isServerlessMode()) {
+        // if we are in a serverless domain, don't send edit packets
+        return;
+    }
+
     QByteArray bufferOut(NLPacket::maxPayloadSize(type), 0);
 
     if (type == PacketType::EntityAdd) {

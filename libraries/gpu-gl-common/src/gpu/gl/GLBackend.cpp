@@ -1,9 +1,9 @@
 //
 //  GLBackend.cpp
-//  libraries/gpu-gl-android/src/gpu/gl
+//  libraries/gpu/src/gpu
 //
-//  Created by Cristian Duarte & Gabriel Calero on 9/21/2016.
-//  Copyright 2016 High Fidelity, Inc.
+//  Created by Sam Gateau on 10/27/2014.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -16,55 +16,17 @@
 #include <functional>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "../gles/GLESBackend.h"
-
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
 #endif
 
-#include <shared/GlobalAppProperties.h>
 #include <GPUIdent.h>
-#include <gl/QOpenGLContextWrapper.h>
-#include <QtCore/QProcessEnvironment>
 
 #include "GLTexture.h"
 #include "GLShader.h"
 
 using namespace gpu;
 using namespace gpu::gl;
-
-static GLBackend* INSTANCE{ nullptr };
-
-BackendPointer GLBackend::createBackend() {
-    // FIXME provide a mechanism to override the backend for testing
-    // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
-    //auto version = QOpenGLContextWrapper::currentContextVersion();
-    std::shared_ptr<GLBackend> result;
-    
-    qDebug() << "Using OpenGL ES backend";
-    result = std::make_shared<gpu::gles::GLESBackend>();
-
-    result->initInput();
-    result->initTransform();
-    result->initTextureManagementStage();
-
-    INSTANCE = result.get();
-    void* voidInstance = &(*result);
-    qApp->setProperty(hifi::properties::gl::BACKEND, QVariant::fromValue(voidInstance));
-    return result;
-}
-
-GLBackend& getBackend() {
-    if (!INSTANCE) {
-        INSTANCE = static_cast<GLBackend*>(qApp->property(hifi::properties::gl::BACKEND).value<void*>());
-    }
-    return *INSTANCE;
-}
-
-bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindings, const Shader::CompilationHandler& handler) {
-    return GLShader::makeProgram(getBackend(), shader, slotBindings, handler);
-}
-
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
@@ -151,6 +113,9 @@ void GLBackend::init() {
         qCDebug(gpugllogging) << "\tcard:" << gpu->getName();
         qCDebug(gpugllogging) << "\tdriver:" << gpu->getDriver();
         qCDebug(gpugllogging) << "\tdedicated memory:" << gpu->getMemory() << "MB";
+#if !defined(USE_GLES)
+        qCDebug(gpugllogging, "V-Sync is %s\n", (::gl::getSwapInterval() > 0 ? "ON" : "OFF"));
+#endif
 #if THREADED_TEXTURE_BUFFERING
         // This has to happen on the main thread in order to give the thread 
         // pool a reasonable parent object
@@ -228,7 +193,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync the transform buffers
-        PROFILE_RANGE(render_gpu_gl_detail, "transferGPUTransform");
+        PROFILE_RANGE(render_gpu_gl_detail, "syncGPUTransform");
         transferTransformState(batch);
     }
 
@@ -296,7 +261,7 @@ void GLBackend::render(const Batch& batch) {
 
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
     if (_stereo.isStereo()) {
-        glEnable(GL_CLIP_DISTANCE0_EXT);
+        glEnable(GL_CLIP_DISTANCE0);
     }
 #endif
     {
@@ -305,7 +270,7 @@ void GLBackend::render(const Batch& batch) {
     }
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
     if (_stereo.isStereo()) {
-        glDisable(GL_CLIP_DISTANCE0_EXT);
+        glDisable(GL_CLIP_DISTANCE0);
     }
 #endif
 
