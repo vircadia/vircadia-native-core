@@ -792,7 +792,7 @@ Rectangle {
                 currentItemType = "avatar";
             } else if (currentCategories.indexOf("Wearables") > -1) {
                 currentItemType = "wearable";
-            } else if (currentRootFileUrl.endsWith('.json.gz')) {
+            } else if (currentRootFileUrl.endsWith('.json.gz') || currentRootFileUrl.endsWith('.content.zip')) {
                 currentItemType = "contentSet";
             } else if (currentRootFileUrl.endsWith('.app.json')) {
                 currentItemType = "app";

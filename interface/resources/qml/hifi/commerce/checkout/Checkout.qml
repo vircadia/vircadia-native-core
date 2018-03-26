@@ -188,7 +188,7 @@ Rectangle {
     onItemHrefChanged: {
         if (root.itemHref.indexOf(".fst") > -1) {
             root.itemType = "avatar";
-        } else if (root.itemHref.indexOf('.json.gz') > -1) {
+        } else if (root.itemHref.indexOf('.json.gz') > -1 || root.itemHref.indexOf('.content.zip') > -1) {
             root.itemType = "contentSet";
         } else if (root.itemHref.indexOf('.app.json') > -1) {
             root.itemType = "app";
