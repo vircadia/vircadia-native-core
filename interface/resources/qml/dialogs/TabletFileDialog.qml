@@ -13,6 +13,7 @@ import Qt.labs.folderlistmodel 2.1
 import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import QtQuick.Controls 1.4 as QQC1
+import QtQuick.Controls 2.3
 
 import ".."
 import "../controls-uit"

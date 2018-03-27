@@ -10,6 +10,7 @@
 
 import QtQuick 2.7;
 import QtQuick.Dialogs 1.2 as OriginalDialogs;
+import QtQuick.Controls 2.3
 
 import "../controls-uit";
 import "../styles-uit";
@@ -265,7 +266,7 @@ ModalWindow {
         Action {
             id: cancelAction;
             text: qsTr("Cancel");
-            shortcut: Qt.Key_Escape;
+            shortcut: "Esc";
             onTriggered: {
                 root.result = null;
                 root.canceled();
@@ -276,7 +277,7 @@ ModalWindow {
         Action {
             id: acceptAction;
             text: qsTr("Add");
-            shortcut: Qt.Key_Return;
+            shortcut: "Return"
             onTriggered: {
                 var result = {};
                 if (textInput) {

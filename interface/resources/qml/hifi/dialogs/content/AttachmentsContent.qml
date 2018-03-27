@@ -1,5 +1,5 @@
 import QtQuick 2.7
-import QtQuick.Controls 2.2
+import QtQuick.Controls 2.3
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 
 import "../../../styles-uit"
@@ -256,7 +256,7 @@ Item {
                 }
             }
 
-            HifiControls.Action {
+            Action {
                 id: cancelAction
                 text: "Cancel"
                 onTriggered: {
@@ -265,7 +265,7 @@ Item {
                 }
             }
 
-            HifiControls.Action {
+            Action {
                 id: okAction
                 text: "OK"
                 onTriggered: {

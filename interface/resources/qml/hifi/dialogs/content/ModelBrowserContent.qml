@@ -1,4 +1,5 @@
-import QtQuick 2.5
+import QtQuick 2.7
+import QtQuick.Controls 2.3
 
 import "../../../controls-uit" as HifiControls
 
@@ -39,21 +40,21 @@ Column {
             HifiControls.Button { action: cancelAction ;  color: hifi.buttons.black; colorScheme: hifi.colorSchemes.dark }
         }
 
-        HifiControls.Action {
+        Action {
             id: acceptAction
             text: qsTr("OK")
             enabled: root.result ? true : false
-            shortcut: Qt.Key_Return
+            shortcut: "Return"
             onTriggered: {
                 root.selected(root.result);
                 root.destroy();
             }
         }
 
-        HifiControls.Action {
+        Action {
             id: cancelAction
             text: qsTr("Cancel")
-            shortcut: Qt.Key_Escape
+            shortcut: "Esc"
             onTriggered: {
                 root.canceled();
                 root.destroy();

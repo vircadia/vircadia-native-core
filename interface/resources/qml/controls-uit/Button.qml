@@ -9,7 +9,7 @@
 //
 
 import QtQuick 2.7
-import QtQuick.Controls 2.2 as Original
+import QtQuick.Controls 2.3 as Original
 import TabletScriptingInterface 1.0
 
 import "../styles-uit"
@@ -20,8 +20,6 @@ Original.Button {
     property int color: 0
     property int colorScheme: hifi.colorSchemes.light
     property string buttonGlyph: "";
-
-    property Action action: null
 
     width: hifi.dimensions.buttonWidth
     height: hifi.dimensions.controlLineHeight
@@ -40,17 +38,8 @@ Original.Button {
         }
     }
     
-    onActionChanged: {
-        if (action !== null && action.text !== "") {
-            control.text = action.text
-        }
-    }
-
     onClicked: {
         Tablet.playSound(TabletEnums.ButtonClick);
-        if (action !== null) {
-            action.triggered()
-        }
     }
 
     background: Rectangle {

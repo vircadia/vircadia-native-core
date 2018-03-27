@@ -2,6 +2,8 @@ import QtQuick 2.7
 import QtWebEngine 1.5;
 import Qt.labs.settings 1.0
 
+import QtQuick.Controls 2.3
+
 import "../desktop" as OriginalDesktop
 import ".."
 import "."

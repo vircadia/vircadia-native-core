@@ -24,16 +24,9 @@ Original.Button {
     width: 120
     height: 28
 
-    property Action action: null
-
     onHoveredChanged: {
         if (hovered) {
             Tablet.playSound(TabletEnums.ButtonHover);
-        }
-    }
-    onActionChanged: {
-        if (action !== null && action.text !== "") {
-            control.text = action.text
         }
     }
 
@@ -45,9 +38,6 @@ Original.Button {
 
     onClicked: {
         Tablet.playSound(TabletEnums.ButtonClick);
-        if (action !== null) {
-            action.triggered()
-        }
     }
 
     background: Rectangle {

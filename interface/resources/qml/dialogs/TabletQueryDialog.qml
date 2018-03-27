@@ -10,6 +10,7 @@
 
 import QtQuick 2.7
 import QtQuick.Dialogs 1.2 as OriginalDialogs
+import QtQuick.Controls 2.3
 
 import "../controls-uit"
 import "../styles-uit"
@@ -143,7 +144,7 @@ TabletModalWindow {
         Action {
             id: cancelAction
             text: qsTr("Cancel")
-            shortcut: Qt.Key_Escape
+            shortcut: "Esc"
             onTriggered: {
                 root.canceled();
                 root.destroy();
@@ -152,7 +153,7 @@ TabletModalWindow {
         Action {
             id: acceptAction
             text: qsTr("OK")
-            shortcut: Qt.Key_Return
+            shortcut: "Return"
             onTriggered: {
                 root.result = items ? comboBox.currentText : textResult.text
                 root.selected(root.result);
