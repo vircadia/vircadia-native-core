@@ -2,11 +2,21 @@ package io.highfidelity.hifiinterface.view;
 
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import io.highfidelity.hifiinterface.R;
 
@@ -15,20 +25,17 @@ import io.highfidelity.hifiinterface.R;
  */
 public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder> {
 
+    private static final java.lang.String DOMAINS_FILE = "hifi_domains.json";
+    private static final String TAG = "HiFi Interface";
     private Context mContext;
     private LayoutInflater mInflater;
     private ItemClickListener mClickListener;
 
-    public DomainAdapter(Context c) {
-        mContext = c;
-        this.mInflater = LayoutInflater.from(mContext);
-    }
-
     public class Domain {
         public String name;
         public String url;
-        public Integer thumbnail;
-        Domain(String name, String url, Integer thumbnail) {
+        public String thumbnail;
+        Domain(String name, String url, String thumbnail) {
             this.name = name;
             this.thumbnail = thumbnail;
             this.url = url;
@@ -36,11 +43,46 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
     }
 
     // references to our domains
-    private Domain[] mDomains = {
-            new Domain("dev-mobile-master", "hifi://dev-mobile-master", 0),
-            new Domain("dev-mobile", "hifi://dev-mobile", 0),
-            new Domain("dev-welcome", "hifi://dev-welcome", 0),
-    };
+    private Domain[] mDomains = {};
+
+    public DomainAdapter(Context c) {
+        mContext = c;
+        this.mInflater = LayoutInflater.from(mContext);
+        loadDomains();
+    }
+
+    private void loadDomains() {
+        try {
+            JSONObject json = new JSONObject(loadJSONFromAsset());
+            JSONArray hifiDomains = json.getJSONArray("hifi_domains");
+            List<Domain> domains = new ArrayList<>();
+            for (int i = 0; i < hifiDomains.length(); i++) {
+                JSONObject jDomain = hifiDomains.getJSONObject(i);
+
+                String domainName = jDomain.getString("name");
+                String domainUrl = jDomain.getString("url");
+                String domainThumb = jDomain.getString("thumbnail");
+
+                domains.add(new Domain(domainName, domainUrl, domainThumb));
+            }
+            mDomains = domains.toArray(mDomains);
+        } catch (IOException e) {
+            Log.e(TAG, "Error loading domains from local file", e);
+        } catch (JSONException e) {
+            Log.e(TAG, "Error loading domains from local file", e);
+        }
+    }
+
+    public String loadJSONFromAsset() throws IOException {
+        String json = null;
+        InputStream is = mContext.getAssets().open(DOMAINS_FILE);
+        int size = is.available();
+        byte[] buffer = new byte[size];
+        is.read(buffer);
+        is.close();
+        json = new String(buffer, "UTF-8");
+        return json;
+    }
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
