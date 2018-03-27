@@ -29,9 +29,14 @@
                 android:background="@color/backgroundDark"/>
 
             <SearchView
+                android:id="@+id/searchView"
                 android:layout_width="match_parent"
                 android:layout_height="42dp"
-                android:background="@drawable/search_bg"/>
+                android:background="@drawable/search_bg"
+                android:gravity="right"
+                android:layout_gravity="right"
+                
+                />
             <FrameLayout
                 android:id="@android:id/tabcontent"
                 android:layout_width="match_parent"

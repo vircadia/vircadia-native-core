@@ -2,6 +2,7 @@ package io.highfidelity.hifiinterface;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.view.GravityCompat;
@@ -14,6 +15,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.SearchView;
 import android.widget.TabHost;
 import android.widget.TabWidget;
 import android.widget.TextView;
@@ -84,6 +86,16 @@ public class GotoActivity extends AppCompatActivity {
             }
         });
         domainsView.setAdapter(domainAdapter);
+
+        SearchView searchView = findViewById(R.id.searchView);
+        int searchPlateId = searchView.getContext().getResources().getIdentifier("android:id/search_plate", null, null);
+        View searchPlate = searchView.findViewById(searchPlateId);
+        if (searchPlate!=null) {
+            searchPlate.setBackgroundColor (Color.TRANSPARENT);
+            int searchTextId = searchPlate.getContext ().getResources ().getIdentifier ("android:id/search_src_text", null, null);
+            TextView searchTextView = searchView.findViewById(searchTextId);
+            searchTextView.setTextAppearance(R.style.SearchText);
+        }
 
         preloadQt();
 

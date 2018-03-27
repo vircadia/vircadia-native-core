@@ -33,6 +33,11 @@
         <item name="android:padding">0dp</item>
     </style>
 
+    <style name="SearchText">
+        <item name="android:fontFamily">@font/raleway_light_italic</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
     <!-- Overriding text size so it's not so big in portrait -->
     <style name="ActionBarTitleStyle"
         parent="@android:style/TextAppearance.Material.Widget.ActionBar.Title">
