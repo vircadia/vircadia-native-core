@@ -476,7 +476,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} visible=true - Whether or not the entity is rendered. If <code>true</code> then the entity is rendered.
  * @property {boolean} canCastShadows=true - Whether or not the entity casts shadows. Currently applicable only to 
  *     {@link Entities.EntityType|Model} and {@link Entities.EntityType|Shape} entities. Shadows are cast if inside a 
- *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its {@link Entities.EntityProperties-Zone|keyLight} property.
+ *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its 
+ *     {@link Entities.EntityProperties-Zone|keyLight} property.
  *
  * @property {Vec3} position=0,0,0 - The position of the entity.
  * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
