@@ -39,6 +39,7 @@ Item {
             root.noMoreHistoryData = false;
             root.historyRequestPending = true;
             Commerce.history(root.currentHistoryPage);
+            Commerce.getAvailableUpdates();
         } else {
             refreshTimer.stop();
         }
@@ -131,6 +132,14 @@ Item {
             // and there is more data to grab
             if (transactionHistory.atYBeginning && !root.noMoreHistoryData) {
                 refreshTimer.start();
+            }
+        }
+
+        onAvailableUpdatesResult: {
+            if (result.status !== 'success') {
+                console.log("Failed to get Available Updates", result.data.message);
+            } else {
+                sendToScript({method: 'wallet_availableUpdatesReceived', numUpdates: result.data.updates.length });
             }
         }
     }

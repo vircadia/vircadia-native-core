@@ -1,5 +1,5 @@
 //
-//  workload.qml
+//  _workload.qml
 //
 //  Created by Sam Gateau on 3/1/2018
 //  Copyright 2018 High Fidelity, Inc.
@@ -17,12 +17,12 @@ import  "../render/configSlider"
 
 Rectangle {
     HifiConstants { id: hifi;}
-    id: workload;   
+    id: _workload;   
     anchors.margins: hifi.dimensions.contentMargin.x
     
     color: hifi.colors.baseGray;
-    property var setupViews: Workload.getConfig("setupViews")
-    property var spaceToRender: Workload.getConfig("SpaceToRender")
+    property var setupViews: Workload.getConfig("setupViews");
+    property var spaceToRender: Workload.getConfig("SpaceToRender");
    
     Column {
         spacing: 5
@@ -37,8 +37,8 @@ Rectangle {
         HifiControls.CheckBox {
             boxSize: 20
             text: "Freeze Views"
-            checked: workload.setupViews["freezeViews"]
-            onCheckedChanged: { workload.spaceToRender["freezeViews"] = checked, workload.setupViews["freezeViews"] = checked; }
+            checked: Workload.getConfig("setupViews")["freezeViews"]
+            onCheckedChanged: { Workload.getConfig("SpaceToRender")["freezeViews"] = checked, Workload.getConfig("setupViews")["freezeViews"] = checked; }
         }
 
         RowLayout {
@@ -59,7 +59,7 @@ Rectangle {
                     ]
                     ConfigSlider {
                         label: qsTr(modelData.split(":")[0])
-                        config:  workload.setupViews
+                        config:  Workload.getConfig("setupViews")
                         property: modelData.split(":")[1]
                         max: modelData.split(":")[2]
                         min: modelData.split(":")[3]
@@ -86,7 +86,7 @@ Rectangle {
                     ]
                     ConfigSlider {
                         showLabel: false
-                        config:  workload.setupViews
+                        config:  Workload.getConfig("setupViews")
                         property: modelData.split(":")[0]
                         max: modelData.split(":")[1]
                         min: modelData.split(":")[2]
@@ -106,14 +106,14 @@ Rectangle {
         HifiControls.CheckBox {
             boxSize: 20
             text: "Show Proxies"
-            checked: workload.spaceToRender["showProxies"]
-            onCheckedChanged: { workload.spaceToRender["showProxies"] = checked }
+            checked: Workload.getConfig("SpaceToRender")["showProxies"]
+            onCheckedChanged: { Workload.getConfig("SpaceToRender")["showProxies"] = checked }
         }
         HifiControls.CheckBox {
             boxSize: 20
             text: "Show Views"
-            checked: workload.spaceToRender["showViews"]
-            onCheckedChanged: { workload.spaceToRender["showViews"] = checked }
+            checked: Workload.getConfig("SpaceToRender")["showViews"]
+            onCheckedChanged: { Workload.getConfig("SpaceToRender")["showViews"] = checked }
         }
         Separator {}
     }

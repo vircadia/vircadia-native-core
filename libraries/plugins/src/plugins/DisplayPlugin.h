@@ -140,9 +140,6 @@ public:
     virtual void setContext(const gpu::ContextPointer& context) final { _gpuContext = context; }
     virtual void submitFrame(const gpu::FramePointer& newFrame) = 0;
 
-    // Does the rendering surface have current focus?
-    virtual bool hasFocus() const = 0;
-
     // The size of the rendering target (may be larger than the device size due to distortion)
     virtual glm::uvec2 getRecommendedRenderSize() const = 0;
 

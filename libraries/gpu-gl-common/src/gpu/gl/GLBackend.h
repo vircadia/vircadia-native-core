@@ -1,12 +1,15 @@
 //
-//  Created by Cristian Duarte & Gabriel Calero on 09/21/2016
-//  Copyright 2016 High Fidelity, Inc.
+//  GLBackend.h
+//  libraries/gpu/src/gpu
+//
+//  Created by Sam Gateau on 10/27/2014.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#ifndef hifi_gpu_gles_Backend_h
-#define hifi_gpu_gles_Backend_h
+#ifndef hifi_gpu_gl_GLBackend_h
+#define hifi_gpu_gl_GLBackend_h
 
 #include <assert.h>
 #include <functional>
@@ -29,9 +32,13 @@
 
 // Different versions for the stereo drawcall
 // Current preferred is  "instanced" which draw the shape twice but instanced and rely on clipping plane to draw left/right side only
+#if defined(USE_GLES)
 #define GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
+#else
 //#define GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
-//#define GPU_STEREO_TECHNIQUE_INSTANCED
+#define GPU_STEREO_TECHNIQUE_INSTANCED
+#endif
+
 
 
 // Let these be configured by the one define picked above
@@ -61,7 +68,7 @@ protected:
     explicit GLBackend(bool syncCache);
     GLBackend();
 public:
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& slotBindings = Shader::BindingSet(), const Shader::CompilationHandler& handler = nullptr);
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& slotBindings, const Shader::CompilationHandler& handler);
 
     virtual ~GLBackend();
 
@@ -306,11 +313,12 @@ protected:
     // Allows for correction of the camera pose to account for changes
     // between the time when a was recorded and the time(s) when it is 
     // executed
+    // Prev is the previous correction used at previous frame
     struct CameraCorrection {
-        Mat4 correction;
-        Mat4 correctionInverse;
-        Mat4 prevView;
-        Mat4 prevViewInverse;
+        mat4 correction;
+        mat4 correctionInverse;
+        mat4 prevView;
+        mat4 prevViewInverse;
     };
 
     struct TransformStageState {

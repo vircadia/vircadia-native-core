@@ -437,6 +437,12 @@ SectionEnd
   !define MUI_PAGE_CUSTOMFUNCTION_PRE PageComponentsPre
   @CPACK_NSIS_PAGE_COMPONENTS@
 
+  ; the MUI_PAGE_CUSTOMFUNCTION_PRE shouldn't be defined here
+  ; which can happen for a component-less (like client only) install
+  !ifdef MUI_PAGE_CUSTOMFUNCTION_PRE
+  !undef MUI_PAGE_CUSTOMFUNCTION_PRE
+  !endif
+
   Page custom PostInstallOptionsPage ReadPostInstallOptions
 
   !define MUI_PAGE_CUSTOMFUNCTION_PRE PageInstallFilesPre
@@ -612,9 +618,10 @@ Function InstallTypesPage
 
   ${If} $CustomInstallTemporaryState == ${BST_UNCHECKED}
     ${NSD_Check} $ExpressInstallRadioButton
+    Call ChangeExpressLabel
+  ${Else}
+    Call ChangeCustomLabel
   ${EndIf}
-
-  Call ChangeExpressLabel
 
   nsDialogs::Show
 FunctionEnd
@@ -649,7 +656,7 @@ Function PostInstallOptionsPage
   StrCpy $CurrentOffset 0
   StrCpy $OffsetUnits u
 
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @INTERFACE_HF_SHORTCUT_NAME@"
     Pop $DesktopClientCheckbox
     IntOp $CurrentOffset $CurrentOffset + 15
@@ -658,7 +665,7 @@ Function PostInstallOptionsPage
     !insertmacro SetInstallOption $DesktopClientCheckbox @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ ${BST_CHECKED}
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @CONSOLE_HF_SHORTCUT_NAME@"
     Pop $DesktopServerCheckbox
     IntOp $CurrentOffset $CurrentOffset + 15
@@ -667,7 +674,7 @@ Function PostInstallOptionsPage
     !insertmacro SetInstallOption $DesktopServerCheckbox @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ ${BST_UNCHECKED}
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ after install"
     Pop $LaunchServerNowCheckbox
 
@@ -681,7 +688,7 @@ Function PostInstallOptionsPage
     IntOp $CurrentOffset $CurrentOffset + 15
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @INTERFACE_HF_SHORTCUT_NAME@ after install"
     Pop $LaunchClientNowCheckbox
     IntOp $CurrentOffset $CurrentOffset + 30
@@ -694,7 +701,7 @@ Function PostInstallOptionsPage
     ${EndIf}
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ on startup"
     Pop $ServerStartupCheckbox
     IntOp $CurrentOffset $CurrentOffset + 15
@@ -703,7 +710,7 @@ Function PostInstallOptionsPage
     !insertmacro SetInstallOption $ServerStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Perform a clean install (Delete older settings and content)"
     Pop $CleanInstallCheckbox
     IntOp $CurrentOffset $CurrentOffset + 15
@@ -711,11 +718,11 @@ Function PostInstallOptionsPage
 
   ${If} @PR_BUILD@ == 1
     ; a PR build defaults all install options expect LaunchServerNowCheckbox, LaunchClientNowCheckbox and the settings copy to unchecked
-    ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+    ${If} @CLIENT_COMPONENT_CONDITIONAL@
       ${NSD_SetState} $DesktopClientCheckbox ${BST_UNCHECKED}
     ${EndIf}
 
-    ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    ${If} @SERVER_COMPONENT_CONDITIONAL@
       ${NSD_SetState} $DesktopServerCheckbox ${BST_UNCHECKED}
       ${NSD_SetState} $ServerStartupCheckbox ${BST_UNCHECKED}
     ${EndIf}
@@ -774,12 +781,12 @@ Function ReadInstallTypes
 FunctionEnd
 
 Function ReadPostInstallOptions
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if the user asked for a desktop shortcut to High Fidelity
     ${NSD_GetState} $DesktopClientCheckbox $DesktopClientState
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     ; check if the user asked for a desktop shortcut to Sandbox
     ${NSD_GetState} $DesktopServerCheckbox $DesktopServerState
 
@@ -792,24 +799,24 @@ Function ReadPostInstallOptions
     ${NSD_GetState} $CopyFromProductionCheckbox $CopyFromProductionState
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     ; check if we need to launch the server post-install
     ${NSD_GetState} $LaunchServerNowCheckbox $LaunchServerNowState
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if we need to launch the client post-install
     ${NSD_GetState} $LaunchClientNowCheckbox $LaunchClientNowState
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if the user asked for a clean install
     ${NSD_GetState} $CleanInstallCheckbox $CleanInstallState
   ${EndIf}
 FunctionEnd
 
 Function HandlePostInstallOptions
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if the user asked for a desktop shortcut to High Fidelity
     ${If} $DesktopClientState == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@INTERFACE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
@@ -820,7 +827,7 @@ Function HandlePostInstallOptions
 
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     ; check if the user asked for a desktop shortcut to Sandbox
     ${If} $DesktopServerState == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
@@ -849,7 +856,7 @@ Function HandlePostInstallOptions
     ${EndIf}
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     ; check if the user asked for a clean install
     ${If} $CleanInstallState == ${BST_CHECKED}
       SetShellVarContext current
@@ -886,7 +893,8 @@ Function HandlePostInstallOptions
     ${EndIf}
   ${EndIf}
 
-  ${If} $LaunchServerNowState == ${BST_CHECKED}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
+  ${AndIf} $LaunchServerNowState == ${BST_CHECKED}
     !insertmacro WriteInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ YES
 
     ; both launches use the explorer trick in case the user has elevated permissions for the installer
@@ -900,7 +908,7 @@ Function HandlePostInstallOptions
       Exec '"$WINDIR\explorer.exe" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"'
     ${EndIf}
 
-  ${Else}
+  ${ElseIf} @CLIENT_COMPONENT_CONDITIONAL@
     !insertmacro WriteInstallOption @SERVER_LAUNCH_NOW_REG_KEY@ NO
 
     ; launch uses the explorer trick in case the user has elevated permissions for the installer
@@ -1026,7 +1034,7 @@ Section "-Core installation"
 @CPACK_NSIS_CREATE_ICONS_EXTRA@
 
   ; Conditional handling for Interface specific options
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} @CLIENT_COMPONENT_CONDITIONAL@
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" \
       "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
 
@@ -1041,7 +1049,7 @@ Section "-Core installation"
   ${EndIf}
 
   ; Conditional handling for server console shortcut
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${If} @SERVER_COMPONENT_CONDITIONAL@
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
       "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
   ${EndIf}
@@ -1185,8 +1193,8 @@ Function .onSelChange
   !insertmacro SectionList MaybeSelectionChanged
 
   ; if neither component is selected, disable the install button
-  ${IfNot} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
-  ${AndIfNot} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+  ${IfNot} @CLIENT_COMPONENT_CONDITIONAL@
+  ${AndIfNot} @SERVER_COMPONENT_CONDITIONAL@
     GetDlgItem $0 $HWNDPARENT 1
     EnableWindow $0 0
   ${Else}

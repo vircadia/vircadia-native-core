@@ -43,6 +43,8 @@ signals:
     void accountResult(QJsonObject result);
     void certificateInfoResult(QJsonObject result);
     void alreadyOwnedResult(QJsonObject result);
+    void availableUpdatesResult(QJsonObject result);
+    void updateItemResult(QJsonObject result);
 
     void updateCertificateStatus(const QString& certID, uint certStatus);
 
@@ -88,6 +90,9 @@ protected:
     Q_INVOKABLE bool installApp(const QString& appHref);
     Q_INVOKABLE bool uninstallApp(const QString& appHref);
     Q_INVOKABLE bool openApp(const QString& appHref);
+
+    Q_INVOKABLE void getAvailableUpdates(const QString& itemId = "");
+    Q_INVOKABLE void updateItem(const QString& certificateId);
 
 private:
     QString _appsPath;
