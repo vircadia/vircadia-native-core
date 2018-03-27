@@ -530,7 +530,11 @@ void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::Textur
     batch.setStateScissorRect(scissor);
     batch.setViewportTransform(viewport);
     batch.setResourceTexture(0, texture);
+#ifndef USE_GLES
     batch.setPipeline(_presentPipeline);
+#else
+    batch.setPipeline(_simplePipeline);
+#endif
     batch.draw(gpu::TRIANGLE_STRIP, 4);
     if (copyFbo) {
         gpu::Vec4i copyFboRect(0, 0, copyFbo->getWidth(), copyFbo->getHeight());
