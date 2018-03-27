@@ -157,10 +157,11 @@ public:
     size_t size() const { QReadLocker readLock(&_nodeMutex); return _nodeHash.size(); }
 
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
+    SharedNodePointer nodeWithLocalID(Node::LocalID localID) const;
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                      bool isReplicated = false, bool isUpstream = false,
+                                      Node::LocalID localID = 0, bool isReplicated = false, bool isUpstream = false,
                                       const QUuid& connectionSecret = QUuid(),
                                       const NodePermissions& permissions = DEFAULT_AGENT_PERMISSIONS);
 
@@ -429,6 +430,8 @@ private slots:
 private:
     mutable QReadWriteLock _sessionUUIDLock;
     QUuid _sessionUUID;
+    using LocalIDMapping = std::unordered_map<Node::LocalID, SharedNodePointer>;
+    LocalIDMapping _localIDMap;
     Node::LocalID _sessionLocalID { 0 };
 };
 

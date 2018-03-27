@@ -96,7 +96,7 @@ void OctreeProcessor::processDatagram(ReceivedMessage& message, SharedNodePointe
         quint64 totalUncompress = 0;
         quint64 totalReadBitsteam = 0;
 
-        const QUuid& sourceUUID = message.getSourceID();
+        const QUuid& sourceUUID = sourceNode->getUUID();
         
         int subsection = 1;
         

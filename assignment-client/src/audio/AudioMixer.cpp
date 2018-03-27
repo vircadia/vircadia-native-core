@@ -118,7 +118,11 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
     // make sure we have a replicated node for the original sender of the packet
     auto nodeList = DependencyManager::get<NodeList>();
 
-    QUuid nodeID =  QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    QUuid nodeID;
+    SharedNodePointer sourceNode = nodeList->nodeWithLocalID(message->getSourceID());
+    if (sourceNode) {
+        nodeID = sourceNode->getUUID();
+    }
 
     auto replicatedNode = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
                                                     message->getSenderSockAddr(), message->getSenderSockAddr(),
@@ -136,7 +140,7 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
 
     auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(audioData, rewrittenType,
                                                                      versionForPacketType(rewrittenType),
-                                                                     message->getSenderSockAddr(), nodeID);
+                                                                     message->getSenderSockAddr(), message->getSourceID());
 
     getOrCreateClientData(replicatedNode.data())->queuePacket(replicatedMessage, replicatedNode);
 }

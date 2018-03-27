@@ -524,9 +524,10 @@ SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const Node
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
+    Node::LocalID newLocalID = findOrCreateLocalID(nodeID);
     SharedNodePointer newNode = limitedNodeList->addOrUpdateNode(nodeID, nodeConnection.nodeType,
-                                                                 nodeConnection.publicSockAddr, nodeConnection.localSockAddr);
-    newNode->setLocalID(findOrCreateLocalID(nodeID));
+                                                                 nodeConnection.publicSockAddr, nodeConnection.localSockAddr,
+                                                                 newLocalID);
 
     // So that we can send messages to this node at will - we need to activate the correct socket on this node now
     newNode->activateMatchingOrNewSymmetricSocket(discoveredSocket);

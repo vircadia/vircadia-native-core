@@ -112,8 +112,12 @@ void AvatarMixer::handleReplicatedPacket(QSharedPointer<ReceivedMessage> message
 void AvatarMixer::handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessage> message) {
     while (message->getBytesLeftToRead()) {
         // first, grab the node ID for this replicated avatar
-        auto nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-
+        QUuid nodeID;
+        auto nodeList = DependencyManager::get<NodeList>();
+        SharedNodePointer sourceNode = nodeList->nodeWithLocalID(message->getSourceID());
+        if (sourceNode) {
+            nodeID = sourceNode->getUUID();
+        }
         // make sure we have an upstream replicated node that matches
         auto replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
 
@@ -127,7 +131,7 @@ void AvatarMixer::handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessag
         // construct a "fake" avatar data received message from the byte array and packet list information
         auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(avatarByteArray, PacketType::AvatarData,
                                                                          versionForPacketType(PacketType::AvatarData),
-                                                                         message->getSenderSockAddr(), nodeID);
+                                                                         message->getSenderSockAddr(), message->getSourceID());
 
         // queue up the replicated avatar data with the client data for the replicated node
         auto start = usecTimestampNow();

@@ -593,8 +593,9 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
 
     if (!PacketTypeEnum::getNonSourcedPackets().contains(headerType)) {
         // this is a sourced packet - first check if we have a node that matches
-        QUuid sourceID = NLPacket::sourceIDInHeader(packet);
-        SharedNodePointer sourceNode = nodeList->nodeWithUUID(sourceID);
+        //QUuid sourceID = NLPacket::sourceIDInHeader(packet);
+        Node::LocalID localSourceID = NLPacket::sourceIDInHeader(packet);
+        SharedNodePointer sourceNode = nodeList->nodeWithLocalID(localSourceID);
 
         if (sourceNode) {
             // unverified DS packets (due to a lack of connection secret between DS + node)
@@ -616,17 +617,17 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
                     = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
 
                 qDebug() << "Packet of type" << headerType
-                    << "received from unmatched IP for UUID" << uuidStringWithoutCurlyBraces(sourceID);
+                    << "received from unmatched IP for UUID" << uuidStringWithoutCurlyBraces(sourceNode->getUUID());
 
                 return false;
             }
         } else {
-            static const QString UNKNOWN_REGEX = "Packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unknown node with UUID";
+            static const QString UNKNOWN_REGEX = "Packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unknown node with Local ID";
             static QString repeatedMessage
                 = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
 
             qDebug() << "Packet of type" << headerType
-                << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID);
+                << "received from unknown node with Local ID" << localSourceID;
 
             return false;
         }
@@ -3203,13 +3204,12 @@ void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMes
     // This packet has been matched to a source node and they're asking not to be in the domain anymore
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
-    const QUuid& nodeUUID = message->getSourceID();
-
-    qDebug() << "Received a disconnect request from node with UUID" << nodeUUID;
+    auto localID = message->getSourceID();
+    qDebug() << "Received a disconnect request from node with local ID" << localID;
 
     // we want to check what type this node was before going to kill it so that we can avoid sending the RemovedNode
     // packet to nodes that don't care about this type
-    auto nodeToKill = limitedNodeList->nodeWithUUID(nodeUUID);
+    auto nodeToKill = limitedNodeList->nodeWithLocalID(localID);
 
     if (nodeToKill) {
         handleKillNode(nodeToKill);
@@ -3477,7 +3477,7 @@ void DomainServer::handleDomainContentReplacementFromURLRequest(QSharedPointer<R
 }
 
 void DomainServer::handleOctreeFileReplacementRequest(QSharedPointer<ReceivedMessage> message) {
-    auto node = DependencyManager::get<NodeList>()->nodeWithUUID(message->getSourceID());
+    auto node = DependencyManager::get<NodeList>()->nodeWithLocalID(message->getSourceID());
     if (node->getCanReplaceContent()) {
         handleOctreeFileReplacement(message->readAll());
     }
