@@ -62,16 +62,6 @@ Rectangle {
             Layout.fillWidth: true
             id: root_col
 
-            HifiControls.CheckBox {
-                anchors.verticalCenter: parent.verticalCenter
-                boxSize: 20
-                text: "Edit"
-                checked: root.configEdit["editFade"]
-                onCheckedChanged: {
-                    root.configEdit["editFade"] = checked;
-                    root.sendToScript("edit*"+checked);
-                }
-            }
             HifiControls.ComboBox {
                 anchors.verticalCenter: parent.verticalCenter
                 Layout.fillWidth: true

@@ -40,6 +40,71 @@
 
     var hasEventBridge = false;
 
+    function enableSphereVisualization() {
+        if (gradientSphere==undefined) {
+            gradientSphere = Overlays.addOverlay("sphere", {
+                position: MyAvatar.position,
+                rotation: Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0),
+                dimensions: { x: 1.0, y: 1.0, z: 1.0 },
+                color: { red: 100, green: 150, blue: 255},
+                alpha: 0.2,
+                solid: false
+            });                
+        }
+        if (noiseSphere==undefined) {
+            noiseSphere = Overlays.addOverlay("sphere", {
+                position: MyAvatar.position,
+                rotation: Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0),
+                dimensions: { x: 1.0, y: 1.0, z: 1.0 },
+                color: { red: 255, green: 150, blue: 100},
+                alpha: 0.2,
+                solid: false
+            });                
+        }
+    }
+
+    function disableSphereVisualization() {
+        Overlays.deleteOverlay(noiseSphere);
+        Overlays.deleteOverlay(gradientSphere);
+        noiseSphere = undefined                
+        gradientSphere = undefined
+    }
+
+    // Create a Laser pointer used to pick and add objects to selections
+    var END_DIMENSIONS = { x: 0.05, y: 0.05, z: 0.05 };
+    var COLOR1 = {red: 255, green: 0, blue: 0}; 
+    var COLOR2 = {red: 0, green: 255, blue: 0};
+    var end1 = {
+        type: "sphere",
+        dimensions: END_DIMENSIONS,
+        color: COLOR1,
+        ignoreRayIntersection: true
+    }
+    var end2 = {
+        type: "sphere",
+        dimensions: END_DIMENSIONS,
+        color: COLOR2,
+        ignoreRayIntersection: true
+    }
+    var laser
+
+    function enablePointer() {
+        laser = Pointers.createPointer(PickType.Ray, {
+            joint: "Mouse",
+            filter: Picks.PICK_ENTITIES,
+            renderStates: [{name: "one", end: end1}],
+            defaultRenderStates: [{name: "one", end: end2, distance: 2.0}],
+            enabled: true
+        });
+        Pointers.setRenderState(laser, "one");
+        Pointers.enablePointer(laser)
+    }
+
+    function disablePointer()  {
+        Pointers.disablePointer(laser)
+        Pointers.removePointer(laser);
+    }
+
     function wireEventBridge(on) {
         if (!tablet) {
             print("Warning in wireEventBridge(): 'tablet' undefined!");
@@ -49,11 +114,15 @@
             if (!hasEventBridge) {
                 tablet.fromQml.connect(fromQml);
                 hasEventBridge = true;
+                enablePointer();
+                Render.getConfig("RenderMainView.FadeEdit")["editFade"] = true
             }
         } else {
             if (hasEventBridge) {
                 tablet.fromQml.disconnect(fromQml);
                 hasEventBridge = false;
+                disablePointer();
+                Render.getConfig("RenderMainView.FadeEdit")["editFade"] = false
             }
         }
     }
@@ -121,38 +190,9 @@
 
     function fromQml(message) {
         tokens = message.split('*')
-        print("Received '"+message+"' from transition.qml")
+        //print("Received '"+message+"' from transition.qml")
         command = tokens[0].toLowerCase()
-        if (command=="edit") {
-            isEditEnabled = (tokens[1]=="true")
-            if (isEditEnabled) {
-                if (gradientSphere==undefined) {
-                    gradientSphere = Overlays.addOverlay("sphere", {
-                        position: MyAvatar.position,
-                        rotation: Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0),
-                        dimensions: { x: 1.0, y: 1.0, z: 1.0 },
-                        color: { red: 100, green: 150, blue: 255},
-                        alpha: 0.2,
-                        solid: false
-                    });                
-                }
-                if (noiseSphere==undefined) {
-                    noiseSphere = Overlays.addOverlay("sphere", {
-                        position: MyAvatar.position,
-                        rotation: Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0),
-                        dimensions: { x: 1.0, y: 1.0, z: 1.0 },
-                        color: { red: 255, green: 150, blue: 100},
-                        alpha: 0.2,
-                        solid: false
-                    });                
-                }
-            } else if (!isEditEnabled) {
-                Overlays.deleteOverlay(noiseSphere);
-                Overlays.deleteOverlay(gradientSphere);
-                noiseSphere = undefined                
-                gradientSphere = undefined
-            }
-        } else if (command=="category") {
+        if (command=="category") {
             editedCategory = parseInt(tokens[1])
         } else if (command=="save") {
             var filePath = tokens[1]
@@ -189,35 +229,9 @@
     });
 
 
-    // Create a Laser pointer used to pick and add objects to selections
-    var END_DIMENSIONS = { x: 0.05, y: 0.05, z: 0.05 };
-    var COLOR1 = {red: 255, green: 0, blue: 0}; 
-    var COLOR2 = {red: 0, green: 255, blue: 0};
-    var end1 = {
-        type: "sphere",
-        dimensions: END_DIMENSIONS,
-        color: COLOR1,
-        ignoreRayIntersection: true
-    }
-    var end2 = {
-        type: "sphere",
-        dimensions: END_DIMENSIONS,
-        color: COLOR2,
-        ignoreRayIntersection: true
-    }
-    
-    var laser = Pointers.createPointer(PickType.Ray, {
-        joint: "Mouse",
-        filter: Picks.PICK_ENTITIES,
-        renderStates: [{name: "one", end: end1}],
-        defaultRenderStates: [{name: "one", end: end2, distance: 2.0}],
-        enabled: true
-    });
-    Pointers.setRenderState(laser, "one");
-
     var currentSelectionName = ""
     var SelectionList = "TransitionEdit"
-    Pointers.enablePointer(laser)
+
     Selection.enableListToScene(SelectionList)
     Selection.clearSelectedItemsList(SelectionList)
 
@@ -231,8 +245,7 @@
     })
   
     function cleanup() {
-        Pointers.disablePointer(laser)
-        Pointers.removePointer(ray);
+        disablePointer();
         Selection.removeListFromMap(SelectionList)
         Selection.disableListToScene(SelectionList);
         Overlays.deleteOverlay(noiseSphere);
