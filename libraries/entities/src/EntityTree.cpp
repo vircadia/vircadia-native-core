@@ -493,7 +493,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
 
     if (!properties.getClientOnly() && getIsClient() &&
         !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp() &&
-        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified()) {
+        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified() && !_serverlessDomain) {
         return nullptr;
     }
 
@@ -1509,7 +1509,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             }
 
             if (isAdd && properties.getLocked() && !senderNode->isAllowedEditor()) {
-                // if a node can't change locks, don't allow them to create an already-locked entity
+                // if a node can't change locks, don't allow it to create an already-locked entity -- automatically
+                // clear the locked property and allow the unlocked entity to be created.
                 properties.setLocked(false);
                 bumpTimestamp(properties);
             }
@@ -2181,23 +2182,25 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
         localTree->recurseTreeWithOperator(&moveOperator);
     }
 
-    // send add-entity packets to the server
-    i = map.begin();
-    while (i != map.end()) {
-        EntityItemID newID = i.value();
-        EntityItemPointer entity = localTree->findEntityByEntityItemID(newID);
-        if (entity) {
-            // queue the packet to send to the server
-            entity->updateQueryAACube();
-            EntityItemProperties properties = entity->getProperties();
-            properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
-            packetSender->queueEditEntityMessage(PacketType::EntityAdd, localTree, newID, properties);
-            i++;
-        } else {
-            i = map.erase(i);
+    if (!_serverlessDomain) {
+        // send add-entity packets to the server
+        i = map.begin();
+        while (i != map.end()) {
+            EntityItemID newID = i.value();
+            EntityItemPointer entity = localTree->findEntityByEntityItemID(newID);
+            if (entity) {
+                // queue the packet to send to the server
+                entity->updateQueryAACube();
+                EntityItemProperties properties = entity->getProperties();
+                properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
+                packetSender->queueEditEntityMessage(PacketType::EntityAdd, localTree, newID, properties);
+                i++;
+            } else {
+                i = map.erase(i);
+            }
         }
+        packetSender->releaseQueuedMessages();
     }
-    packetSender->releaseQueuedMessages();
 
     return map.values().toVector();
 }

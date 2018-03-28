@@ -203,9 +203,9 @@ public slots:
      * Add a new entity with specified properties.
      * @function Entities.addEntity
      * @param {Entities.EntityProperties} properties - The properties of the entity to create.
-     * @param {boolean} [clientOnly=false] - If <code>true</code>, the entity is created as an avatar entity, otherwise it
-     *     is created on the server. An avatar entity follows you to each domain you visit, rendering at the same world 
-     *     coordinates unless it's parented to your avatar.
+     * @param {boolean} [clientOnly=false] - If <code>true</code>, or if <code>clientOnly</code> is set <code>true</code> in 
+     *     the properties, the entity is created as an avatar entity; otherwise it is created on the server. An avatar entity 
+     *     follows you to each domain you visit, rendering at the same world coordinates unless it's parented to your avatar.
      * @returns {Uuid} The ID of the entity if successfully created, otherwise {@link Uuid|Uuid.NULL}.
      * @example <caption>Create a box entity in front of your avatar.</caption>
      * var entityID = Entities.addEntity({

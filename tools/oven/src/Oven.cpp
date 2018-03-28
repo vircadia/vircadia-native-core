@@ -40,6 +40,8 @@ Oven::Oven() {
 }
 
 Oven::~Oven() {
+    DependencyManager::get<ResourceManager>()->cleanup();
+
     // quit all worker threads and wait on them
     for (auto& thread : _workerThreads) {
         thread->quit();

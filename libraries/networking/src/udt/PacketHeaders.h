@@ -121,7 +121,7 @@ public:
         ReplicatedAvatarIdentity,
         ReplicatedKillAvatar,
         ReplicatedBulkAvatarData,
-        OctreeFileReplacementFromUrl,
+        DomainContentReplacementFromUrl,
         ChallengeOwnership,
         EntityScriptCallMethod,
         ChallengeOwnershipRequest,
@@ -171,7 +171,7 @@ public:
             << PacketTypeEnum::Value::DomainServerPathResponse << PacketTypeEnum::Value::DomainServerAddedNode
             << PacketTypeEnum::Value::DomainServerConnectionToken << PacketTypeEnum::Value::DomainSettingsRequest
             << PacketTypeEnum::Value::OctreeDataFileRequest << PacketTypeEnum::Value::OctreeDataFileReply
-            << PacketTypeEnum::Value::OctreeDataPersist << PacketTypeEnum::Value::OctreeFileReplacementFromUrl
+            << PacketTypeEnum::Value::OctreeDataPersist << PacketTypeEnum::Value::DomainContentReplacementFromUrl
             << PacketTypeEnum::Value::DomainSettings << PacketTypeEnum::Value::ICEServerPeerInformation
             << PacketTypeEnum::Value::ICEServerQuery << PacketTypeEnum::Value::ICEServerHeartbeat
             << PacketTypeEnum::Value::ICEServerHeartbeatACK << PacketTypeEnum::Value::ICEPing

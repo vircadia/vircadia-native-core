@@ -14,6 +14,7 @@
 
 #include <QtCore/QObject>
 #include <QDir>
+#include <QUrl>
 
 #include <memory>
 
@@ -31,6 +32,8 @@ class BakerCLI : public QObject {
 
 public:
     BakerCLI(OvenCLIApplication* parent);
+
+public slots:
     void bakeFile(QUrl inputUrl, const QString& outputPath, const QString& type = QString::null);
 
 private slots:

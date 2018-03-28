@@ -24,6 +24,7 @@ Windows.ScrollingWindow {
     objectName: "AssetServer"
     title: "Asset Browser"
     resizable: true
+    opacity: parent.opacity
     destroyOnHidden: true
     implicitWidth: 384; implicitHeight: 640
     minSize: Qt.vector2d(200, 300)

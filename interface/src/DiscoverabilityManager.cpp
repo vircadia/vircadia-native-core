@@ -49,7 +49,7 @@ void DiscoverabilityManager::updateLocation() {
     auto accountManager = DependencyManager::get<AccountManager>();
     auto addressManager = DependencyManager::get<AddressManager>();
     auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
-    bool discoverable = (_mode.get() != Discoverability::None);
+    bool discoverable = (_mode.get() != Discoverability::None) && !domainHandler.isServerless();
 
 
     if (accountManager->isLoggedIn()) {

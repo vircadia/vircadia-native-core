@@ -38,11 +38,13 @@
 #include <NumericalConstants.h>
 #include <shared/NsightHelpers.h>
 #include <shared/FileUtils.h>
+#include <PathUtils.h>
 #include <Finally.h>
 #include <Profile.h>
 
 #include "NetworkLogging.h"
 #include "ModelNetworkingLogging.h"
+#include "NetworkingConstants.h"
 #include <Trace.h>
 #include <StatTracker.h>
 
@@ -467,7 +469,7 @@ void NetworkTexture::makeLocalRequest() {
     const QString scheme = _url.scheme();
     QString path;
     if (scheme == URL_SCHEME_FILE) {
-        path = _url.toLocalFile();
+        path = PathUtils::expandToLocalDataAbsolutePath(_url).toLocalFile();
     } else {
         path = ":" + _url.path();
     }

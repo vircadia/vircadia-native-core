@@ -351,8 +351,9 @@ static const QString OBJ_EXTENSION = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
 static const QString WEB_VIEW_TAG = "noDownload=true";
 static const QString ZIP_EXTENSION = ".zip";
+static const QString CONTENT_ZIP_EXTENSION = ".content.zip";
 
-static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
+static const float MIRROR_FULLSCREEN_DISTANCE = 0.789f;
 
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
@@ -376,9 +377,7 @@ static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 
-static const QString DOMAIN_SPAWNING_POINT = "/0, -10, 0";
-
-const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
+const std::vector<std::pair<QString, Application::AcceptURLMethod>> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
     { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl },
@@ -386,6 +385,7 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { JS_EXTENSION, &Application::askToLoadScript },
     { FST_EXTENSION, &Application::askToSetAvatarUrl },
     { JSON_GZ_EXTENSION, &Application::askToReplaceDomainContent },
+    { CONTENT_ZIP_EXTENSION, &Application::askToReplaceDomainContent },
     { ZIP_EXTENSION, &Application::importFromZIP },
     { JPG_EXTENSION, &Application::importImage },
     { PNG_EXTENSION, &Application::importImage }
@@ -511,6 +511,27 @@ std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
 std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
 ThreadSafeMovingAverage<int, DeadlockWatchdogThread::HEARTBEAT_SAMPLES> DeadlockWatchdogThread::_movingAverage;
 
+bool isDomainURL(QUrl url) {
+    if (!url.isValid()) {
+        return false;
+    }
+    if (url.scheme() == URL_SCHEME_HIFI) {
+        return true;
+    }
+    if (url.scheme() != URL_SCHEME_FILE) {
+        // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
+        // be loaded over http(s)
+        // && url.scheme() != URL_SCHEME_HTTP &&
+        // url.scheme() != URL_SCHEME_HTTPS
+        return false;
+    }
+    if (url.path().endsWith(".json", Qt::CaseInsensitive) ||
+        url.path().endsWith(".json.gz", Qt::CaseInsensitive)) {
+        return true;
+    }
+    return false;
+}
+
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
 public:
@@ -540,7 +561,7 @@ public:
             if (message->message == WM_COPYDATA) {
                 COPYDATASTRUCT* pcds = (COPYDATASTRUCT*)(message->lParam);
                 QUrl url = QUrl((const char*)(pcds->lpData));
-                if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
+                if (isDomainURL(url)) {
                     DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
                     return true;
                 }
@@ -920,7 +941,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
     _preferredCursor("preferredCursor", DEFAULT_CURSOR_NAME),
     _scaleMirror(1.0f),
-    _rotateMirror(0.0f),
+    _mirrorYawOffset(0.0f),
     _raiseMirror(0.0f),
     _enableProcessOctreeThread(true),
     _lastNackTime(usecTimestampNow()),
@@ -937,6 +958,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
+
+    _entityClipboard->setIsServerlessMode(true);
 
     {
         const QString TEST_SCRIPT = "--testScript";
@@ -1033,7 +1056,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(this);
-    connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
+    connect(domainCheckInTimer, &QTimer::timeout, [this, nodeList] {
+        if (!isServerlessMode()) {
+            nodeList->sendDomainServerCheckIn();
+        }
+    });
     domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
     connect(this, &QCoreApplication::aboutToQuit, [domainCheckInTimer] {
         domainCheckInTimer->stop();
@@ -1095,9 +1122,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
-    connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&domainHandler, SIGNAL(domainURLChanged(QUrl)), SLOT(domainURLChanged(QUrl)));
     connect(&domainHandler, SIGNAL(resetting()), SLOT(resettingDomain()));
-    connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
+    connect(&domainHandler, SIGNAL(connectedToDomain(QUrl)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &Application::clearDomainAvatars);
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this]() {
@@ -2044,7 +2071,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&_addAssetToWorldErrorTimer, &QTimer::timeout, this, &Application::addAssetToWorldErrorTimeout);
 
     connect(this, &QCoreApplication::aboutToQuit, this, &Application::addAssetToWorldMessageClose);
-    connect(&domainHandler, &DomainHandler::hostnameChanged, this, &Application::addAssetToWorldMessageClose);
+    connect(&domainHandler, &DomainHandler::domainURLChanged, this, &Application::addAssetToWorldMessageClose);
 
     updateSystemTabletMode();
 
@@ -2704,6 +2731,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 
     surfaceContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
+    surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
     surfaceContext->setContextProperty("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     surfaceContext->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
@@ -2785,8 +2813,9 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
     }
     else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _thirdPersonHMDCameraBoomValid= false;
+
         if (isHMDMode()) {
-            auto mirrorBodyOrientation = myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
+            auto mirrorBodyOrientation = myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _mirrorYawOffset, 0.0f));
 
             glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
             // Mirror HMD yaw and roll
@@ -2809,12 +2838,15 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
                 + mirrorBodyOrientation * hmdOffset);
         }
         else {
-            _myCamera.setOrientation(myAvatar->getWorldOrientation()
-                * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            const float YAW_SPEED = TWO_PI / 5.0f;
+            float deltaYaw = userInputMapper->getActionState(controller::Action::YAW) * YAW_SPEED * deltaTime;
+            _mirrorYawOffset += deltaYaw;
+            _myCamera.setOrientation(myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _mirrorYawOffset, 0.0f)));
             _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                 + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
-                + (myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+                + (myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, _mirrorYawOffset, 0.0f))) *
+                glm::vec3(0.0f, 0.0f, -1.0f) * myAvatar->getBoomLength() * _scaleMirror);
         }
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
@@ -3020,27 +3052,27 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     QString sentTo;
 
-        // If this is a first run we short-circuit the address passed in
-        if (firstRun.get()) {
+    // If this is a first run we short-circuit the address passed in
+    if (firstRun.get()) {
 #if !defined(Q_OS_ANDROID)
-            showHelp();
-#endif            
-            if (sandboxIsRunning) {
-                qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-                DependencyManager::get<AddressManager>()->goToLocalSandbox();
-                sentTo = SENT_TO_SANDBOX;
-            } else {
-                qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-                DependencyManager::get<AddressManager>()->goToEntry();
-                sentTo = SENT_TO_ENTRY;
-            }
-            firstRun.set(false);
-
+        showHelp();
+#endif
+        if (sandboxIsRunning) {
+            qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
+            DependencyManager::get<AddressManager>()->goToLocalSandbox();
+            sentTo = SENT_TO_SANDBOX;
         } else {
-            qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
-            DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
-            sentTo = SENT_TO_PREVIOUS_LOCATION;
+            qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
+            DependencyManager::get<AddressManager>()->goToEntry();
+            sentTo = SENT_TO_ENTRY;
         }
+        firstRun.set(false);
+
+    } else {
+        qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
+        DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+        sentTo = SENT_TO_PREVIOUS_LOCATION;
+    }
 
     UserActivityLogger::getInstance().logAction("startup_sent_to", {
         { "sent_to", sentTo },
@@ -3078,6 +3110,57 @@ bool Application::importFromZIP(const QString& filePath) {
         qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true, false);
     }
     return true;
+}
+
+bool Application::isServerlessMode() const {
+    auto tree = getEntities()->getTree();
+    if (tree) {
+        return tree->isServerlessMode();
+    }
+    return false;
+}
+
+void Application::setIsServerlessMode(bool serverlessDomain) {
+    auto tree = getEntities()->getTree();
+    if (tree) {
+        tree->setIsServerlessMode(serverlessDomain);
+    }
+}
+
+void Application::loadServerlessDomain(QUrl domainURL) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "loadServerlessDomain", Q_ARG(QUrl, domainURL));
+        return;
+    }
+
+    if (domainURL.isEmpty()) {
+        return;
+    }
+
+    QUuid serverlessSessionID = QUuid::createUuid();
+    getMyAvatar()->setSessionUUID(serverlessSessionID);
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->setSessionUUID(serverlessSessionID);
+
+    // there is no domain-server to tell us our permissions, so enable all
+    NodePermissions permissions;
+    permissions.setAll(true);
+    nodeList->setPermissions(permissions);
+
+    // we can't import directly into the main tree because we would need to lock it, and
+    // Octree::readFromURL calls loop.exec which can run code which will also attempt to lock the tree.
+    EntityTreePointer tmpTree(new EntityTree());
+    tmpTree->setIsServerlessMode(true);
+    tmpTree->createRootElement();
+    auto myAvatar = getMyAvatar();
+    tmpTree->setMyAvatar(myAvatar);
+    bool success = tmpTree->readFromURL(domainURL.toString());
+    if (success) {
+        tmpTree->reaverageOctreeElements();
+        tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), 0, 0, 0);
+    }
+
+    _fullSceneReceivedCounter++;
 }
 
 bool Application::importImage(const QString& urlString) {
@@ -3321,8 +3404,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     } else {
                         setFullscreen(nullptr);
                     }
-                } else {
-                    Menu::getInstance()->triggerOption(MenuOption::AddressBar);
                 }
                 break;
 
@@ -3384,13 +3465,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_F: {
-                if (isOption) {
-                    _physicsEngine->dumpNextStats();
-                }
-                break;
-            }
-
             case Qt::Key_Asterisk:
                 Menu::getInstance()->triggerOption(MenuOption::DefaultSkybox);
                 break;
@@ -3410,21 +3484,24 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_S:
                 if (isShifted && isMeta && !isOption) {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
-                } else if (!isOption && !isShifted && isMeta) {
-                    AudioInjectorOptions options;
-                    options.localOnly = true;
-                    options.stereo = true;
-
-                    if (_snapshotSoundInjector) {
-                        _snapshotSoundInjector->setOptions(options);
-                        _snapshotSoundInjector->restart();
-                    } else {
-                        QByteArray samples = _snapshotSound->getByteArray();
-                        _snapshotSoundInjector = AudioInjector::playSound(samples, options);
-                    }
-                    takeSnapshot(true);
                 }
                 break;
+
+            case Qt::Key_P: {
+                AudioInjectorOptions options;
+                options.localOnly = true;
+                options.stereo = true;
+
+                if (_snapshotSoundInjector) {
+                    _snapshotSoundInjector->setOptions(options);
+                    _snapshotSoundInjector->restart();
+                } else {
+                    QByteArray samples = _snapshotSound->getByteArray();
+                    _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+                }
+                takeSnapshot(true);
+                break;
+            }
 
             case Qt::Key_Apostrophe: {
                 if (isMeta) {
@@ -3447,38 +3524,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Backslash:
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
-                break;
-
-            case Qt::Key_Up:
-                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    if (!isShifted) {
-                        _scaleMirror *= 0.95f;
-                    } else {
-                        _raiseMirror += 0.05f;
-                    }
-                }
-                break;
-
-            case Qt::Key_Down:
-                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    if (!isShifted) {
-                        _scaleMirror *= 1.05f;
-                    } else {
-                        _raiseMirror -= 0.05f;
-                    }
-                }
-                break;
-
-            case Qt::Key_Left:
-                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _rotateMirror += PI / 20.0f;
-                }
-                break;
-
-            case Qt::Key_Right:
-                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _rotateMirror -= PI / 20.0f;
-                }
                 break;
 
 #if 0
@@ -4580,7 +4625,7 @@ void Application::initDisplay() {
 }
 
 void Application::init() {
-    
+
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
     if (!DISABLE_DEFERRED) {
@@ -4605,7 +4650,9 @@ void Application::init() {
     qCDebug(interfaceapp) << "Loaded settings";
 
     // fire off an immediate domain-server check in now that settings are loaded
-    DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
+    if (!isServerlessMode()) {
+        DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
+    }
 
     // This allows collision to be set up properly for shape entities supported by GeometryCache.
     // This is before entity setup to ensure that it's ready for whenever instance collision is initialized.
@@ -4848,8 +4895,10 @@ void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
         if (!isHMDMode() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
+            _mirrorYawOffset = 0.0f;
             _myCamera.setMode(CAMERA_MODE_MIRROR);
             getMyAvatar()->reset(false, false, false); // to reset any active MyAvatar::FollowHelpers
+            getMyAvatar()->setBoomLength(MyAvatar::ZOOM_DEFAULT);
         }
     } else if (menu->isOptionChecked(MenuOption::FirstPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
@@ -5129,7 +5178,7 @@ void Application::update(float deltaTime) {
         // FIXME can we drop drive keys and just have the avatar read the action states directly?
         myAvatar->clearDriveKeys();
         if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
-            if (!_controllerScriptingInterface->areActionsCaptured()) {
+            if (!_controllerScriptingInterface->areActionsCaptured() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_Z, -1.0f * userInputMapper->getActionState(controller::Action::TRANSLATE_Z));
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_X, userInputMapper->getActionState(controller::Action::TRANSLATE_X));
@@ -5142,6 +5191,7 @@ void Application::update(float deltaTime) {
             myAvatar->setDriveKey(MyAvatar::ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
         }
 
+        myAvatar->setSprintMode((bool)userInputMapper->getActionState(controller::Action::SPRINT));
         static const std::vector<controller::Action> avatarControllerActions = {
             controller::Action::LEFT_HAND,
             controller::Action::RIGHT_HAND,
@@ -5739,10 +5789,15 @@ void Application::updateWindowTitle() const {
 
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
     QString username = accountManager->getAccountInfo().getUsername();
-    QString currentPlaceName = DependencyManager::get<AddressManager>()->getHost();
 
-    if (currentPlaceName.isEmpty()) {
-        currentPlaceName = nodeList->getDomainHandler().getHostname();
+    QString currentPlaceName;
+    if (isServerlessMode()) {
+        currentPlaceName = "serverless: " + DependencyManager::get<AddressManager>()->getDomainURL().toString();
+    } else {
+        currentPlaceName = DependencyManager::get<AddressManager>()->getDomainURL().host();
+        if (currentPlaceName.isEmpty()) {
+            currentPlaceName = nodeList->getDomainHandler().getHostname();
+        }
     }
 
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
@@ -5755,7 +5810,7 @@ void Application::updateWindowTitle() const {
     _window->setWindowTitle(title);
 
     // updateTitleWindow gets called whenever there's a change regarding the domain, so rather
-    // than placing this within domainChanged, it's placed here to cover the other potential cases.
+    // than placing this within domainURLChanged, it's placed here to cover the other potential cases.
     DependencyManager::get< MessagesClient >()->sendLocalMessage("Toolbar-DomainChanged", "");
 }
 
@@ -5794,15 +5849,22 @@ void Application::clearDomainAvatars() {
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
 }
 
-void Application::domainChanged(const QString& domainHostname) {
-    updateWindowTitle();
+void Application::domainURLChanged(QUrl domainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
+    setIsServerlessMode(domainURL.scheme() != URL_SCHEME_HIFI);
+    if (isServerlessMode()) {
+        loadServerlessDomain(domainURL);
+    }
+    updateWindowTitle();
 }
 
 
 void Application::resettingDomain() {
     _notifiedPacketVersionMismatchThisDomain = false;
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    clearDomainOctreeDetails();
 }
 
 void Application::nodeAdded(SharedNodePointer node) const {
@@ -5919,22 +5981,22 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
     AABox avatarBox(getMyAvatar()->getWorldPosition() - glm::vec3(PHYSICS_READY_RANGE), glm::vec3(2 * PHYSICS_READY_RANGE));
     // create two functions that use avatarBox (entityScan and elementScan), the second calls the first
     std::function<bool (EntityItemPointer&)> entityScan = [=](EntityItemPointer& entity) {
-            if (entity->shouldBePhysical()) {
-                bool success = false;
-                AABox entityBox = entity->getAABox(success);
-                // important: bail for entities that cannot supply a valid AABox
-                return success && avatarBox.touches(entityBox);
-            }
-            return false;
-        };
+        if (entity->shouldBePhysical()) {
+            bool success = false;
+            AABox entityBox = entity->getAABox(success);
+            // important: bail for entities that cannot supply a valid AABox
+            return success && avatarBox.touches(entityBox);
+        }
+        return false;
+    };
     std::function<bool(const OctreeElementPointer&, void*)> elementScan = [&](const OctreeElementPointer& element, void* unused) {
-            if (element->getAACube().touches(avatarBox)) {
-                EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-                entityTreeElement->getEntities(entityScan, entities);
-                return true;
-            }
-            return false;
-        };
+        if (element->getAACube().touches(avatarBox)) {
+            EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
+            entityTreeElement->getEntities(entityScan, entities);
+            return true;
+        }
+        return false;
+    };
 
     entityTree->withReadLock([&] {
         // Pass the second function to the general-purpose EntityTree::findEntities()
@@ -6170,14 +6232,12 @@ bool Application::canAcceptURL(const QString& urlString) const {
     QUrl url(urlString);
     if (url.query().contains(WEB_VIEW_TAG)) {
         return false;
-    } else if (urlString.startsWith(HIFI_URL_SCHEME)) {
+    } else if (urlString.startsWith(URL_SCHEME_HIFI)) {
         return true;
     }
-    QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);
     QString lowerPath = url.path().toLower();
-    while (i.hasNext()) {
-        i.next();
-        if (lowerPath.endsWith(i.key(), Qt::CaseInsensitive)) {
+    for (auto& pair : _acceptedExtensions) {
+        if (lowerPath.endsWith(pair.first, Qt::CaseInsensitive)) {
             return true;
         }
     }
@@ -6185,21 +6245,18 @@ bool Application::canAcceptURL(const QString& urlString) const {
 }
 
 bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
-    if (urlString.startsWith(HIFI_URL_SCHEME)) {
-        // this is a hifi URL - have the AddressManager handle it
-        emit receivedHifiSchemeURL(urlString);
+    QUrl url(urlString);
+    if (isDomainURL(url)) {
+        // this is a URL for a domain, either hifi:// or serverless - have the AddressManager handle it
         QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
                                   Qt::AutoConnection, Q_ARG(const QString&, urlString));
         return true;
     }
 
-    QUrl url(urlString);
-    QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);
     QString lowerPath = url.path().toLower();
-    while (i.hasNext()) {
-        i.next();
-        if (lowerPath.endsWith(i.key(), Qt::CaseInsensitive)) {
-            AcceptURLMethod method = i.value();
+    for (auto& pair : _acceptedExtensions) {
+        if (lowerPath.endsWith(pair.first, Qt::CaseInsensitive)) {
+            AcceptURLMethod method = pair.second;
             return (this->*method)(urlString);
         }
     }
@@ -6386,13 +6443,11 @@ void Application::replaceDomainContent(const QString& url) {
     QByteArray urlData(url.toUtf8());
     auto limitedNodeList = DependencyManager::get<NodeList>();
     const auto& domainHandler = limitedNodeList->getDomainHandler();
-    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
-        return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-    }, [&urlData, limitedNodeList, &domainHandler](const SharedNodePointer& octreeNode) {
-        auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
-        octreeFilePacket->write(urlData);
-        limitedNodeList->sendPacket(std::move(octreeFilePacket), domainHandler.getSockAddr());
-    });
+
+    auto octreeFilePacket = NLPacket::create(PacketType::DomainContentReplacementFromUrl, urlData.size(), true);
+    octreeFilePacket->write(urlData);
+    limitedNodeList->sendPacket(std::move(octreeFilePacket), domainHandler.getSockAddr());
+
     auto addressManager = DependencyManager::get<AddressManager>();
     addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
     QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
@@ -7036,7 +7091,7 @@ void Application::packageModel() {
 
 void Application::openUrl(const QUrl& url) const {
     if (!url.isEmpty()) {
-        if (url.scheme() == HIFI_URL_SCHEME) {
+        if (url.scheme() == URL_SCHEME_HIFI) {
             DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
         } else {
             // address manager did not handle - ask QDesktopServices to handle
@@ -7350,10 +7405,35 @@ bool Application::isThrottleRendering() const {
 }
 
 bool Application::hasFocus() const {
-    if (_displayPlugin) {
-        return getActiveDisplayPlugin()->hasFocus();
+    bool result = (QApplication::activeWindow() != nullptr);
+#if defined(Q_OS_WIN)
+    // On Windows, QWidget::activateWindow() - as called in setFocus() - makes the application's taskbar icon flash but doesn't 
+    // take user focus away from their current window. So also check whether the application is the user's current foreground 
+    // window.
+    result = result && (HWND)QApplication::activeWindow()->winId() == GetForegroundWindow();
+#endif
+    return result;
+}
+
+void Application::setFocus() {
+    // Note: Windows doesn't allow a user focus to be taken away from another application. Instead, it changes the color of and 
+    // flashes the taskbar icon.
+    auto window = qApp->getWindow();
+    window->activateWindow();
+}
+
+void Application::raise() {
+    auto windowState = qApp->getWindow()->windowState();
+    if (windowState & Qt::WindowMinimized) {
+        if (windowState & Qt::WindowMaximized) {
+            qApp->getWindow()->showMaximized();
+        } else if (windowState & Qt::WindowFullScreen) {
+            qApp->getWindow()->showFullScreen();
+        } else {
+            qApp->getWindow()->showNormal();
+        }
     }
-    return (QApplication::activeWindow() != nullptr);
+    qApp->getWindow()->raise();
 }
 
 void Application::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
