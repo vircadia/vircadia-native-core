@@ -46,8 +46,6 @@ Window {
     // type should only consist of logic sized areas, with nothing drawn (although the
     // default value for the frame property does include visual decorations)
     property var pane: Item {
-        property bool isScrolling: Qt.binding(function() { return scrollView.contentHeight > scrollView.height; });
-
         property int contentWidth: scrollView.width
         property int scrollHeight: scrollView.height
 
@@ -81,15 +79,16 @@ Window {
             contentItem.children: [ content ]
             contentHeight: content.height
             boundsBehavior: Flickable.StopAtBounds
+            property bool isScrolling: (contentHeight - height) > 10 ? true : false
 
             clip: true
 
-            anchors.rightMargin: parent.isScrolling ? verticalScrollWidth : 0
+            anchors.rightMargin: isScrolling ? verticalScrollWidth : 0
             anchors.fill: parent
             anchors.bottomMargin: footerPane.height
 
             ScrollBar.vertical: ScrollBar {
-                policy: scrollView.contentHeight > scrollView.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+                policy: scrollView.isScrolling ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
                 parent: scrollView.parent
                 anchors.top: scrollView.top
                 anchors.right: scrollView.right

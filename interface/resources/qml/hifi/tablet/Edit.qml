@@ -1,5 +1,5 @@
 import QtQuick 2.7
-import QtQuick.Controls 2.2
+import QtQuick.Controls 2.3
 
 StackView {
     id: editRoot
@@ -8,6 +8,9 @@ StackView {
     signal sendToScript(var message);
 
     topPadding: 40
+    leftPadding: 0
+    rightPadding: 0
+    bottomPadding: 0
 
     property var itemProperties: {"y": editRoot.topPadding,
                                   "width": editRoot.availableWidth,
@@ -20,6 +23,7 @@ StackView {
         color: "#404040" //default background color
         EditTabView {
             id: tab
+            anchors.fill: parent
             currentIndex: -1
             onCurrentIndexChanged: {
                 editRoot.replace(null, tab.itemAt(currentIndex).visualItem,
