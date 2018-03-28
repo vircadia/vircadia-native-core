@@ -28,7 +28,7 @@ public:
     void clearOwnership(const QUuid& ownerID);
 
 protected:
-    virtual void updateEntitiesInternal(const quint64& now) override;
+    virtual void updateEntitiesInternal(const uint64_t& now) override;
     virtual void addEntityInternal(EntityItemPointer entity) override;
     virtual void removeEntityInternal(EntityItemPointer entity) override;
     virtual void changeEntityInternal(EntityItemPointer entity) override;
@@ -38,7 +38,7 @@ protected:
 
     SetOfEntities _entitiesWithSimulationOwner;
     SetOfEntities _entitiesThatNeedSimulationOwner;
-    quint64 _nextOwnerlessExpiry { 0 };
+    uint64_t _nextOwnerlessExpiry { 0 };
 };
 
 #endif // hifi_SimpleEntitySimulation_h

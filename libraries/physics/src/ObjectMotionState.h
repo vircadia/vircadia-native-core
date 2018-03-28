@@ -164,7 +164,7 @@ public:
     void clearInternalKinematicChanges() { _hasInternalKinematicChanges = false; }
 
     virtual bool isLocallyOwned() const { return false; }
-    virtual bool shouldBeLocallyOwned() const { return false; }
+    virtual bool isLocallyOwnedOrShouldBe() const { return false; } // aka shouldEmitCollisionEvents()
 
     friend class PhysicsEngine;
 

@@ -44,7 +44,7 @@ const int DIRTY_SIMULATION_FLAGS =
 
 class EntitySimulation : public QObject, public std::enable_shared_from_this<EntitySimulation> {
 public:
-    EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL), _nextExpiry(quint64(-1)) { }
+    EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL), _nextExpiry(uint64_t(-1)) { }
     virtual ~EntitySimulation() { setEntityTree(NULL); }
 
     inline EntitySimulationPointer getThisPointer() const {
@@ -71,7 +71,7 @@ public:
 
     void clearEntities();
 
-    void moveSimpleKinematics(const quint64& now);
+    void moveSimpleKinematics(const uint64_t& now);
 
     EntityTreePointer getEntityTree() { return _entityTree; }
 
@@ -83,14 +83,14 @@ public:
 protected:
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class
     // calls them in the right places.
-    virtual void updateEntitiesInternal(const quint64& now) = 0;
+    virtual void updateEntitiesInternal(const uint64_t& now) = 0;
     virtual void addEntityInternal(EntityItemPointer entity) = 0;
     virtual void removeEntityInternal(EntityItemPointer entity);
     virtual void changeEntityInternal(EntityItemPointer entity) = 0;
     virtual void clearEntitiesInternal() = 0;
 
-    void expireMortalEntities(const quint64& now);
-    void callUpdateOnEntitiesThatNeedIt(const quint64& now);
+    void expireMortalEntities(const uint64_t& now);
+    void callUpdateOnEntitiesThatNeedIt(const uint64_t& now);
     virtual void sortEntitiesThatMoved();
 
     QMutex _mutex{ QMutex::Recursive };
@@ -114,7 +114,7 @@ private:
     // An entity may be in more than one list.
     SetOfEntities _allEntities; // tracks all entities added the simulation
     SetOfEntities _mortalEntities; // entities that have an expiry
-    quint64 _nextExpiry;
+    uint64_t _nextExpiry;
 
 
     SetOfEntities _entitiesToUpdate; // entities that need to call EntityItem::update()

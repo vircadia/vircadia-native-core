@@ -45,11 +45,14 @@ signals:
 
 protected: // only called by EntitySimulation
     // overrides for EntitySimulation
-    virtual void updateEntitiesInternal(const quint64& now) override;
+    virtual void updateEntitiesInternal(const uint64_t& now) override;
     virtual void addEntityInternal(EntityItemPointer entity) override;
     virtual void removeEntityInternal(EntityItemPointer entity) override;
     virtual void changeEntityInternal(EntityItemPointer entity) override;
     virtual void clearEntitiesInternal() override;
+
+    void removeOwnershipData(EntityMotionState* motionState);
+    void clearOwnershipData();
 
 public:
     virtual void prepareEntityForDelete(EntityItemPointer entity) override;
@@ -67,20 +70,28 @@ public:
 
     EntityEditPacketSender* getPacketSender() { return _entityPacketSender; }
 
+    void addOwnershipBid(EntityMotionState* motionState);
+    void addOwnership(EntityMotionState* motionState);
+    void sendOwnershipBids(uint32_t numSubsteps);
+    void sendOwnedUpdates(uint32_t numSubsteps);
+
 private:
     SetOfEntities _entitiesToAddToPhysics;
     SetOfEntities _entitiesToRemoveFromPhysics;
 
     VectorOfMotionStates _objectsToDelete;
 
-    SetOfEntityMotionStates _pendingChanges; // EntityMotionStates already in PhysicsEngine that need their physics changed
-    SetOfEntityMotionStates _outgoingChanges; // EntityMotionStates for which we may need to send updates to entity-server
+    SetOfEntityMotionStates _incomingChanges; // EntityMotionStates that have changed from external sources
+                                              // and need their RigidBodies updated
 
     SetOfMotionStates _physicalObjects; // MotionStates of entities in PhysicsEngine
 
     PhysicsEnginePointer _physicsEngine = nullptr;
     EntityEditPacketSender* _entityPacketSender = nullptr;
 
+    std::vector<EntityMotionState*> _owned;
+    std::vector<EntityMotionState*> _bids;
+    uint64_t _nextBidExpiry;
     uint32_t _lastStepSendPackets { 0 };
 };
 

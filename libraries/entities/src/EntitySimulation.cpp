@@ -20,7 +20,7 @@
 void EntitySimulation::setEntityTree(EntityTreePointer tree) {
     if (_entityTree && _entityTree != tree) {
         _mortalEntities.clear();
-        _nextExpiry = quint64(-1);
+        _nextExpiry = uint64_t(-1);
         _entitiesToUpdate.clear();
         _entitiesToSort.clear();
         _simpleKinematicEntities.clear();
@@ -30,7 +30,7 @@ void EntitySimulation::setEntityTree(EntityTreePointer tree) {
 
 void EntitySimulation::updateEntities() {
     QMutexLocker lock(&_mutex);
-    quint64 now = usecTimestampNow();
+    uint64_t now = usecTimestampNow();
 
     // these methods may accumulate entries in _entitiesToBeDeleted
     expireMortalEntities(now);
@@ -70,16 +70,16 @@ void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
 }
 
 // protected
-void EntitySimulation::expireMortalEntities(const quint64& now) {
+void EntitySimulation::expireMortalEntities(const uint64_t& now) {
     if (now > _nextExpiry) {
         PROFILE_RANGE_EX(simulation_physics, "ExpireMortals", 0xffff00ff, (uint64_t)_mortalEntities.size());
         // only search for expired entities if we expect to find one
-        _nextExpiry = quint64(-1);
+        _nextExpiry = uint64_t(-1);
         QMutexLocker lock(&_mutex);
         SetOfEntities::iterator itemItr = _mortalEntities.begin();
         while (itemItr != _mortalEntities.end()) {
             EntityItemPointer entity = *itemItr;
-            quint64 expiry = entity->getExpiry();
+            uint64_t expiry = entity->getExpiry();
             if (expiry < now) {
                 itemItr = _mortalEntities.erase(itemItr);
                 entity->die();
@@ -99,7 +99,7 @@ void EntitySimulation::expireMortalEntities(const quint64& now) {
 }
 
 // protected
-void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const quint64& now) {
+void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const uint64_t& now) {
     PerformanceTimer perfTimer("updatingEntities");
     QMutexLocker lock(&_mutex);
     SetOfEntities::iterator itemItr = _entitiesToUpdate.begin();
@@ -153,7 +153,7 @@ void EntitySimulation::addEntity(EntityItemPointer entity) {
     entity->deserializeActions();
     if (entity->isMortal()) {
         _mortalEntities.insert(entity);
-        quint64 expiry = entity->getExpiry();
+        uint64_t expiry = entity->getExpiry();
         if (expiry < _nextExpiry) {
             _nextExpiry = expiry;
         }
@@ -200,7 +200,7 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
     if (dirtyFlags & Simulation::DIRTY_LIFETIME) {
         if (entity->isMortal()) {
             _mortalEntities.insert(entity);
-            quint64 expiry = entity->getExpiry();
+            uint64_t expiry = entity->getExpiry();
             if (expiry < _nextExpiry) {
                 _nextExpiry = expiry;
             }
@@ -220,7 +220,7 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
 void EntitySimulation::clearEntities() {
     QMutexLocker lock(&_mutex);
     _mortalEntities.clear();
-    _nextExpiry = quint64(-1);
+    _nextExpiry = uint64_t(-1);
     _entitiesToUpdate.clear();
     _entitiesToSort.clear();
     _simpleKinematicEntities.clear();
@@ -231,7 +231,7 @@ void EntitySimulation::clearEntities() {
     _deadEntities.clear();
 }
 
-void EntitySimulation::moveSimpleKinematics(const quint64& now) {
+void EntitySimulation::moveSimpleKinematics(const uint64_t& now) {
     PROFILE_RANGE_EX(simulation_physics, "MoveSimples", 0xffff00ff, (uint64_t)_simpleKinematicEntities.size());
     SetOfEntities::iterator itemItr = _simpleKinematicEntities.begin();
     while (itemItr != _simpleKinematicEntities.end()) {

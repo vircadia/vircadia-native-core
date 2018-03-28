@@ -24,12 +24,17 @@
 
 class EntityMotionState : public ObjectMotionState {
 public:
+    enum class OwnershipState {
+        NotLocallyOwned = 0,
+        PendingBid,
+        LocallyOwned,
+        Unownable
+    };
 
     EntityMotionState() = delete;
     EntityMotionState(btCollisionShape* shape, EntityItemPointer item);
     virtual ~EntityMotionState();
 
-    void updateServerPhysicsVariables();
     void handleDeactivation();
     virtual void handleEasyChanges(uint32_t& flags) override;
     virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) override;
@@ -45,9 +50,8 @@ public:
     // this relays outgoing position/rotation to the EntityItem
     virtual void setWorldTransform(const btTransform& worldTrans) override;
 
-    bool isCandidateForOwnership() const;
-    bool remoteSimulationOutOfSync(uint32_t simulationStep);
     bool shouldSendUpdate(uint32_t simulationStep);
+    void sendBid(OctreeEditPacketSender* packetSender, uint32_t step);
     void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step);
 
     virtual uint32_t getIncomingDirtyFlags() override;
@@ -80,15 +84,24 @@ public:
 
     virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
 
+    bool shouldSendBid();
     bool isLocallyOwned() const override;
-    bool shouldBeLocallyOwned() const override;
+    bool isLocallyOwnedOrShouldBe() const override; // aka shouldEmitCollisionEvents()
 
     friend class PhysicalEntitySimulation;
+    OwnershipState getOwnershipState() const { return _ownershipState; }
 
 protected:
-    // changes _outgoingPriority only if priority is larger
-    void upgradeOutgoingPriority(uint8_t priority);
-    void zeroCleanObjectVelocities() const;
+    uint64_t getNextBidExpiry() const { return _nextBidExpiry; }
+    void initForBid();
+    void initForOwned();
+    void clearOwnershipState() { _ownershipState = OwnershipState::NotLocallyOwned; }
+    void updateServerPhysicsVariables();
+    bool remoteSimulationOutOfSync(uint32_t simulationStep);
+
+    // changes _bidPriority only if priority is larger
+    void upgradeBidPriority(uint8_t priority);
+    void clearObjectVelocities() const;
 
     #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
     bool entityTreeIsLocked() const;
@@ -103,7 +116,17 @@ protected:
     // and is only cleared in the DTOR
     EntityItemPointer _entity;
 
-    bool _serverVariablesSet { false };
+    // These "_serverFoo" variables represent what we think the server knows.
+    // They are used in two different modes:
+    //
+    // (1) For remotely owned simulation: we store the last values recieved from the server.
+    //     When the body comes to rest and goes inactive we slam its final transforms to agree with the last server
+    //     update. This to reduce state synchronization errors when the local simulation deviated from remote.
+    //
+    // (2) For locally owned simulation: we store the last values sent to the server, integrated forward over time
+    //     according to how we think the server doing it.  We calculate the error between the true local transform
+    //     and the remote to decide when to send another update.
+    //
     glm::vec3 _serverPosition;    // in simulation-frame (not world-frame)
     glm::quat _serverRotation;
     glm::vec3 _serverVelocity;
@@ -114,16 +137,18 @@ protected:
 
     glm::vec3 _lastVelocity;
     glm::vec3 _measuredAcceleration;
-    quint64 _nextOwnershipBid { 0 };
+    quint64 _nextBidExpiry { 0 };
 
     float _measuredDeltaTime;
     uint32_t _lastMeasureStep;
     uint32_t _lastStep; // last step of server extrapolation
 
+    OwnershipState _ownershipState { OwnershipState::NotLocallyOwned };
     uint8_t _loopsWithoutOwner;
     mutable uint8_t _accelerationNearlyGravityCount;
     uint8_t _numInactiveUpdates { 1 };
-    uint8_t _outgoingPriority { 0 };
+    uint8_t _bidPriority { 0 };
+    bool _serverVariablesSet { false };
 };
 
 #endif // hifi_EntityMotionState_h
