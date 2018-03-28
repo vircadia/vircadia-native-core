@@ -1,5 +1,3 @@
-"use strict";
-
 //
 //  debugTransition.js
 //  developer/utilities/render
@@ -12,12 +10,17 @@
 //
 
 (function() {
+    "use strict";
+
     var TABLET_BUTTON_NAME = "Transition";
     var QMLAPP_URL = Script.resolvePath("./transition.qml");
     var ICON_URL = Script.resolvePath("../../../system/assets/images/transition-i.svg");
     var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/transition-a.svg");
 
-   
+    Script.include([
+        Script.resolvePath("../../../system/libraries/stringHelpers.js"),
+    ]);
+
     var onScreen = false;
 
     function onClicked() {
@@ -106,10 +109,21 @@
 
     Script.update.connect(update);
 
+    function loadConfiguration(fileUrl) {
+        var config = Render.getConfig("RenderMainView.Fade")
+        config.load(fileUrl)
+    }
+
+    function saveConfiguration(fileUrl) {
+        var config = Render.getConfig("RenderMainView.Fade")
+        config.save(fileUrl)
+    }
+
     function fromQml(message) {
-        tokens = message.split(' ')
+        tokens = message.split('*')
         print("Received '"+message+"' from transition.qml")
-        if (tokens[0]=="edit") {
+        command = tokens[0].toLowerCase()
+        if (command=="edit") {
             isEditEnabled = (tokens[1]=="true")
             if (isEditEnabled) {
                 if (gradientSphere==undefined) {
@@ -138,9 +152,28 @@
                 noiseSphere = undefined                
                 gradientSphere = undefined
             }
-        } else if (tokens[0]=="category") {
+        } else if (command=="category") {
             editedCategory = parseInt(tokens[1])
-        }      
+        } else if (command=="save") {
+            var filePath = tokens[1]
+            print("Raw token = "+filePath)
+            if (filePath.startsWith("file:///")) {
+                filePath = filePath.substr(8)
+                print("Saving configuration to "+filePath)
+                saveConfiguration(filePath)
+            } else {
+                print("Configurations can only be saved to local files")
+            }
+        } else if (command=="load") {
+            var filePath = tokens[1]
+            if (filePath.startsWith("file:///")) {
+                filePath = filePath.substr(8)
+                print("Loading configuration from "+filePath)
+                loadConfiguration(filePath)
+            } else {
+                print("Configurations can only be loaded from local files")
+            }
+        }
     }
         
     button.clicked.connect(onClicked);
@@ -172,6 +205,7 @@
         color: COLOR2,
         ignoreRayIntersection: true
     }
+    
     var laser = Pointers.createPointer(PickType.Ray, {
         joint: "Mouse",
         filter: Picks.PICK_ENTITIES,

@@ -11,6 +11,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
+import QtQuick.Dialogs 1.0
 
 import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
@@ -28,6 +29,24 @@ Rectangle {
 
     property var config: Render.getConfig("RenderMainView.Fade");
     property var configEdit: Render.getConfig("RenderMainView.FadeEdit");
+
+    FileDialog {
+        id: fileDialog
+        title: "Please choose a file"
+        folder: shortcuts.documents
+        nameFilters: [ "JSON files (*.json)", "All files (*)" ]
+        onAccepted: {
+            root.sendToScript(title.split(" ")[0]+"*"+fileUrl.toString())
+            // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
+            // by setting the loader source to Null and then recreate it 500ms later
+            paramWidgetLoader.sourceComponent = undefined;
+            postpone.interval = 500
+            postpone.start()
+        }
+        onRejected: {
+        }
+        Component.onCompleted: visible = false
+    }
 
     ColumnLayout {
         spacing: 3
@@ -50,7 +69,7 @@ Rectangle {
                 checked: root.configEdit["editFade"]
                 onCheckedChanged: {
                     root.configEdit["editFade"] = checked;
-                    root.sendToScript("edit "+checked);
+                    root.sendToScript("edit*"+checked);
                 }
             }
             HifiControls.ComboBox {
@@ -72,7 +91,7 @@ Rectangle {
                     paramWidgetLoader.sourceComponent = undefined;
                     postpone.interval = 100
                     postpone.start()
-                    root.sendToScript("category "+currentIndex)
+                    root.sendToScript("category*"+currentIndex)
                 }
             }
         }
@@ -107,19 +126,18 @@ Rectangle {
             id: saveAction
             text: "Save"
             onTriggered: {
-                root.config.save()
+                fileDialog.title = "Save configuration..."
+                fileDialog.selectExisting = false
+                fileDialog.open()
             }
         }
         Action {
             id: loadAction
             text: "Load"
             onTriggered: {
-                root.config.load()
-                // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
-                // by setting the loader source to Null and then recreate it 500ms later
-                paramWidgetLoader.sourceComponent = undefined;
-                postpone.interval = 500
-                postpone.start()
+                fileDialog.title = "Load configuration..."
+                fileDialog.selectExisting = true
+                fileDialog.open()
             }
         }
 

@@ -160,8 +160,8 @@ public:
     float manualThreshold{ 0.f };
     bool manualFade{ false };
 
-    Q_INVOKABLE void save() const;
-    Q_INVOKABLE void load();
+    Q_INVOKABLE void save(const QString& filePath) const;
+    Q_INVOKABLE void load(const QString& filePath);
 
     static QString eventNames[FADE_CATEGORY_COUNT];
 

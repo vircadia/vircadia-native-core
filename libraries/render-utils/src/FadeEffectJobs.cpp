@@ -340,11 +340,9 @@ QString FadeConfig::eventNames[FADE_CATEGORY_COUNT] = {
     "avatar_change",
 };
 
-void FadeConfig::save() const {
-    // Save will only work if the HIFI_USE_SOURCE_TREE_RESOURCES environment variable is set
+void FadeConfig::save(const QString& configFilePath) const {
     assert(editedCategory < FADE_CATEGORY_COUNT);
     QJsonObject lProperties;
-    const QString configFilePath = PathUtils::resourcesPath() + "config/" + eventNames[editedCategory] + ".json";
     QFile file(configFilePath);
     if (!file.open(QFile::WriteOnly | QFile::Text)) {
         qWarning() << "Fade event configuration file " << configFilePath << " cannot be opened";
@@ -369,8 +367,7 @@ void FadeConfig::save() const {
     }
 }
 
-void FadeConfig::load() {
-    const QString configFilePath = PathUtils::resourcesPath() + "config/" + eventNames[editedCategory] + ".json";
+void FadeConfig::load(const QString& configFilePath) {
     QFile file(configFilePath);
     if (!file.exists()) {
         qWarning() << "Fade event configuration file " << configFilePath << " does not exist";
