@@ -2760,6 +2760,27 @@ bool MyAvatar::isDriveKeyDisabled(DriveKeys key) const {
     }
 }
 
+void MyAvatar::triggerVerticalRecenter() {
+    //do something here
+    _follow._forceActivateVertical = true;
+
+
+}
+
+void MyAvatar::triggerHorizontalRecenter() {
+    //do something here
+    _follow._forceActivateHorizontal = true;
+
+
+}
+
+void MyAvatar::triggerRotationRecenter() {
+    //do something here
+    _follow._forceActivateRotation = true;
+
+
+}
+
 // old school meat hook style
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     glm::vec3 headPosition;
@@ -2953,7 +2974,9 @@ void MyAvatar::FollowHelper::decrementTimeRemaining(float dt) {
 bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
     const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f); // 30 degrees
     glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
+    
     return glm::dot(-myAvatar.getHeadControllerFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
+    
 }
 
 bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
@@ -2970,13 +2993,16 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, 
     const float MAX_FORWARD_LEAN = 0.15f;
     const float MAX_BACKWARD_LEAN = 0.1f;
 
+
     if (forwardLeanAmount > 0 && forwardLeanAmount > MAX_FORWARD_LEAN) {
         return true;
-    } else if (forwardLeanAmount < 0 && forwardLeanAmount < -MAX_BACKWARD_LEAN) {
+    }
+    else if (forwardLeanAmount < 0 && forwardLeanAmount < -MAX_BACKWARD_LEAN) {
         return true;
     }
 
     return fabs(lateralLeanAmount) > MAX_LATERAL_LEAN;
+
 }
 
 bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
@@ -2984,6 +3010,7 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, co
     const float CYLINDER_BOTTOM = -1.5f;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
+
     return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
 }
 
@@ -3000,6 +3027,23 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         }
         if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Vertical);
+        }
+    }
+    else {
+        if (!isActive(Rotation) && _forceActivateRotation) {
+            activate(Rotation);
+            _forceActivateRotation = false;
+            qCDebug(interfaceapp) << "the rotation property is activated+++++++++++++++++++++++" << endl;
+        }
+        if (!isActive(Horizontal) && _forceActivateHorizontal) {
+            activate(Horizontal);
+            _forceActivateHorizontal = false;
+            qCDebug(interfaceapp) << "the horizontal property is activated+++++++++++++++++++++++" << endl;
+        }
+        if (!isActive(Vertical) && _forceActivateVertical) {
+            activate(Vertical);
+            _forceActivateVertical = false;
+            qCDebug(interfaceapp) << "the vertical property is activated+++++++++++++++++++++++" << endl;
         }
     }
 
