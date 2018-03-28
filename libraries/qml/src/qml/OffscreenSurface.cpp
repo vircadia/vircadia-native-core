@@ -167,31 +167,28 @@ bool OffscreenSurface::eventFilter(QObject* originalDestination, QEvent* event) 
         case QEvent::TouchEnd: {
             QTouchEvent *originalEvent = static_cast<QTouchEvent *>(event);
             QEvent::Type fakeMouseEventType = QEvent::None;
-            Qt::MouseButton fakeMouseButton = Qt::NoButton;
+            Qt::MouseButton fakeMouseButton = Qt::LeftButton;
             Qt::MouseButtons fakeMouseButtons = Qt::NoButton;
             switch (event->type()) {
                 case QEvent::TouchBegin:
                     fakeMouseEventType = QEvent::MouseButtonPress;
-                    fakeMouseButton = Qt::LeftButton;
                     fakeMouseButtons = Qt::LeftButton;
                     break;
                 case QEvent::TouchUpdate:
                     fakeMouseEventType = QEvent::MouseMove;
-                    fakeMouseButton = Qt::LeftButton;
                     fakeMouseButtons = Qt::LeftButton;
                     break;
                 case QEvent::TouchEnd:
                     fakeMouseEventType = QEvent::MouseButtonRelease;
-                    fakeMouseButton = Qt::LeftButton;
                     fakeMouseButtons = Qt::NoButton;
                     break;
             }
-            if (fakeMouseEventType == QEvent::None) break;
+            // Same case as OffscreenUi.cpp::eventFilter: touch events are always being accepted so we now use mouse events and consider one touch, touchPoints()[0].
             QMouseEvent fakeMouseEvent(fakeMouseEventType, originalEvent->touchPoints()[0].pos(), fakeMouseButton, fakeMouseButtons, Qt::NoModifier);
             fakeMouseEvent.ignore();
             if (QCoreApplication::sendEvent(_sharedObject->getWindow(), &fakeMouseEvent)) {
-                qInfo() << __FUNCTION__ << "sent fake touch event:" << fakeMouseEvent.type()
-                        << "_quickWindow handled it... accepted:" << fakeMouseEvent.isAccepted();
+                /*qInfo() << __FUNCTION__ << "sent fake touch event:" << fakeMouseEvent.type()
+                        << "_quickWindow handled it... accepted:" << fakeMouseEvent.isAccepted();*/
                 return fakeMouseEvent.isAccepted();
             }
             break;
