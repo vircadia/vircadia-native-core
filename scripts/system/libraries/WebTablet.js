@@ -307,6 +307,10 @@ WebTablet.prototype.setScriptURL = function (scriptURL) {
     Overlays.editOverlay(this.webOverlayID, { scriptURL: scriptURL });
 };
 
+WebTablet.prototype.getOverlayObject = function () {
+    return Overlays.getOverlayObject(this.webOverlayID);
+};
+
 WebTablet.prototype.setWidth = function (width) {
     // imported from libraries/utils.js
     resizeTablet(width);
