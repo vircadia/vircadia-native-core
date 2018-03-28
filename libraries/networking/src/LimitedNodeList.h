@@ -66,6 +66,10 @@ const QHostAddress DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME = QHostAddress::Lo
 
 const QString USERNAME_UUID_REPLACEMENT_STATS_KEY = "$username";
 
+using ConnectionID = int64_t;
+const ConnectionID NULL_CONNECTION_ID { -1 };
+const ConnectionID INITIAL_CONNECTION_ID { 0 };
+
 typedef std::pair<QUuid, SharedNodePointer> UUIDNodePair;
 typedef tbb::concurrent_unordered_map<QUuid, SharedNodePointer, UUIDHasher> NodeHash;
 
@@ -180,7 +184,7 @@ public:
     void getPacketStats(float& packetsInPerSecond, float& bytesInPerSecond, float& packetsOutPerSecond, float& bytesOutPerSecond);
     void resetPacketStats();
 
-    std::unique_ptr<NLPacket> constructPingPacket(PingType_t pingType = PingType::Agnostic);
+    std::unique_ptr<NLPacket> constructPingPacket(const QUuid& nodeId, PingType_t pingType = PingType::Agnostic);
     std::unique_ptr<NLPacket> constructPingReplyPacket(ReceivedMessage& message);
 
     static std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
@@ -319,7 +323,7 @@ public slots:
     void startSTUNPublicSocketUpdate();
     virtual void sendSTUNRequest();
 
-    bool killNodeWithUUID(const QUuid& nodeUUID);
+    bool killNodeWithUUID(const QUuid& nodeUUID, ConnectionID newConnectionID = NULL_CONNECTION_ID);
 
 signals:
     void dataSent(quint8 channelType, int bytes);
@@ -371,7 +375,7 @@ protected:
     bool packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet, Node* sourceNode = nullptr);
     void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
 
-    void handleNodeKill(const SharedNodePointer& node);
+    void handleNodeKill(const SharedNodePointer& node, ConnectionID newConnectionID = NULL_CONNECTION_ID);
 
     void stopInitialSTUNUpdate(bool success);
 
@@ -418,6 +422,7 @@ protected:
         }
     }
 
+    std::unordered_map<QUuid, ConnectionID> _connectionIDs;
 
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);

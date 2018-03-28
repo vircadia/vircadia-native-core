@@ -214,6 +214,20 @@ void NodeList::processPingPacket(QSharedPointer<ReceivedMessage> message, Shared
             sendingNode->setSymmetricSocket(senderSockAddr);
         }
     }
+
+    int64_t connectionId;
+
+    message->readPrimitive(&connectionId);
+
+    auto it = _connectionIDs.find(sendingNode->getUUID());
+    if (it != _connectionIDs.end()) {
+        if (connectionId > it->second) {
+            qDebug() << "Received a ping packet with a larger connection id (" << connectionId << ">" << it->second << ") from "
+                     << sendingNode->getUUID();
+            killNodeWithUUID(sendingNode->getUUID(), connectionId);
+        }
+    }
+
 }
 
 void NodeList::processPingReplyPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
@@ -705,16 +719,18 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
     if (node->getConnectionAttempts() > 0 && node->getConnectionAttempts() % NUM_DEBUG_CONNECTION_ATTEMPTS == 0) {
         qCDebug(networking) << "No response to UDP hole punch pings for node" << node->getUUID() << "in last second.";
     }
+    
+    auto nodeId = node->getUUID();
 
     // send the ping packet to the local and public sockets for this node
-    auto localPingPacket = constructPingPacket(PingType::Local);
+    auto localPingPacket = constructPingPacket(nodeId, PingType::Local);
     sendPacket(std::move(localPingPacket), *node, node->getLocalSocket());
 
-    auto publicPingPacket = constructPingPacket(PingType::Public);
+    auto publicPingPacket = constructPingPacket(nodeId, PingType::Public);
     sendPacket(std::move(publicPingPacket), *node, node->getPublicSocket());
 
     if (!node->getSymmetricSocket().isNull()) {
-        auto symmetricPingPacket = constructPingPacket(PingType::Symmetric);
+        auto symmetricPingPacket = constructPingPacket(nodeId, PingType::Symmetric);
         sendPacket(std::move(symmetricPingPacket), *node, node->getSymmetricSocket());
     }
 
@@ -784,7 +800,7 @@ void NodeList::sendKeepAlivePings() {
         auto type = node->getType();
         return !node->isUpstream() && _nodeTypesOfInterest.contains(type) && !NodeType::isDownstream(type);
     }, [&](const SharedNodePointer& node) {
-        sendPacket(constructPingPacket(), *node);
+        sendPacket(constructPingPacket(node->getUUID()), *node);
     });
 }
 
