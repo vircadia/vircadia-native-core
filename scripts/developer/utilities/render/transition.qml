@@ -58,7 +58,7 @@ Rectangle {
         }
 
         RowLayout {
-            spacing: 20
+            spacing: 8
             Layout.fillWidth: true
             id: root_col
 
@@ -83,6 +83,18 @@ Rectangle {
                     postpone.start()
                     root.sendToScript("category*"+currentIndex)
                 }
+            }
+            HifiControls.Button {
+                action: saveAction
+                Layout.fillWidth: true
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+            }
+            HifiControls.Button {
+                action: loadAction
+                Layout.fillWidth: true
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
             }
         }
 
@@ -375,20 +387,6 @@ Rectangle {
             id: paramWidgetLoader
             sourceComponent: paramWidgets
         }
-
-        Row {
-            anchors.left: parent.left
-            anchors.right: parent.right 
-
-            Button {
-                action: saveAction
-            }
-            Button {
-                action: loadAction
-            }
-        }
-
-
         
     }
 }
