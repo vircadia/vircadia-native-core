@@ -30,12 +30,7 @@
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
-#if USE_STABLE_GLOBAL_SERVICES
-const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome/hello";
-#else
-const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome/hello";
-#endif
-
+const QString DEFAULT_HIFI_ADDRESS = "file:///~/serverless/tutorial.json";
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 

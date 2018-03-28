@@ -1160,14 +1160,14 @@ Rectangle {
     function authSuccessStep() {
         if (!root.debugCheckoutSuccess) {
             root.activeView = "checkoutMain";
-        } else {
-            root.activeView = "checkoutSuccess";
             root.ownershipStatusReceived = false;
             Commerce.alreadyOwned(root.itemId);
             root.availableUpdatesReceived = false;
             Commerce.getAvailableUpdates(root.itemId);
             root.balanceReceived = false;
             Commerce.balance();
+        } else {
+            root.activeView = "checkoutSuccess";
         }
     }
 

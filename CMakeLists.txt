@@ -39,6 +39,7 @@ set(BUILD_TOOLS_OPTION ON)
 set(BUILD_INSTALLER_OPTION ON)
 set(GLES_OPTION OFF)
 set(DISABLE_QML_OPTION OFF)
+set(DOWNLOAD_SERVERLESS_CONTENT_OPTION OFF)
 
 if (ANDROID OR UWP)
   set(BUILD_SERVER_OPTION OFF)
@@ -74,6 +75,11 @@ option(BUILD_INSTALLER "Build installer" ${BUILD_INSTALLER_OPTION})
 option(USE_GLES "Use OpenGL ES" ${GLES_OPTION})
 option(DISABLE_QML "Disable QML" ${DISABLE_QML_OPTION})
 option(DISABLE_KTX_CACHE "Disable KTX Cache" OFF)
+option(
+  DOWNLOAD_SERVERLESS_CONTENT
+  "Download and setup default serverless content beside Interface"
+  ${DOWNLOAD_SERVERLESS_CONTENT_OPTION}
+)
 
 set(PLATFORM_QT_GL OpenGL)
 
@@ -88,12 +94,13 @@ foreach(PLATFORM_QT_COMPONENT ${PLATFORM_QT_COMPONENTS})
   list(APPEND PLATFORM_QT_LIBRARIES "Qt5::${PLATFORM_QT_COMPONENT}")
 endforeach()
 
-MESSAGE(STATUS "Build server:    " ${BUILD_SERVER})
-MESSAGE(STATUS "Build client:    " ${BUILD_CLIENT})
-MESSAGE(STATUS "Build tests:     " ${BUILD_TESTS})
-MESSAGE(STATUS "Build tools:     " ${BUILD_TOOLS})
-MESSAGE(STATUS "Build installer: " ${BUILD_INSTALLER})
-MESSAGE(STATUS "GL ES:           " ${USE_GLES})
+MESSAGE(STATUS "Build server:          " ${BUILD_SERVER})
+MESSAGE(STATUS "Build client:          " ${BUILD_CLIENT})
+MESSAGE(STATUS "Build tests:           " ${BUILD_TESTS})
+MESSAGE(STATUS "Build tools:           " ${BUILD_TOOLS})
+MESSAGE(STATUS "Build installer:       " ${BUILD_INSTALLER})
+MESSAGE(STATUS "GL ES:                 " ${USE_GLES})
+MESSAGE(STATUS "DL serverless content: " ${DOWNLOAD_SERVERLESS_CONTENT})
 
 if (DISABLE_QML)
   MESSAGE(STATUS "QML disabled!")
