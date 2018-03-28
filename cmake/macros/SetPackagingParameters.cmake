@@ -73,6 +73,11 @@ macro(SET_PACKAGING_PARAMETERS)
     add_definitions(-DDEV_BUILD)
   endif ()
 
+  if (DEPLOY_PACKAGE)
+    # for deployed packages always grab the serverless content
+    set(DOWNLOAD_SERVERLESS_CONTENT ON)
+  endif ()
+
   if (APPLE)
     set(DMG_SUBFOLDER_NAME "${BUILD_ORGANIZATION}")
 
