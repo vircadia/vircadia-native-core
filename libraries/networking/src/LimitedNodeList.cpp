@@ -315,10 +315,10 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             sourceNode = matchingNode.data();
         }
         
-        QUuid sourceID = sourceNode->getUUID();
+        QUuid sourceID = sourceNode ? sourceNode->getUUID() : QUuid();
 
         if (!sourceNode &&
-            sourceID == getDomainUUID() &&
+            /*sourceID == getDomainUUID() &&*/
             packet.getSenderSockAddr() == getDomainSockAddr() &&
             PacketTypeEnum::getDomainSourcedPackets().contains(headerType)) {
             // This is a packet sourced by the domain server

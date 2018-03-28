@@ -18,6 +18,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
 
+#include "UUID.h"
 #include "HifiSockAddr.h"
 
 const QString ICE_SERVER_HOSTNAME = "localhost";
@@ -39,7 +40,7 @@ public:
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
 
-    using LocalID = quint16;
+    using LocalID = NetworkLocalID;
     LocalID getLocalID() const { return _localID; }
     void setLocalID(LocalID localID) { _localID = localID; }
 

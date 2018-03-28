@@ -1159,7 +1159,8 @@ void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
 }
 
 void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr &senderSockAddr) {
-    const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NUM_BYTES_RFC4122_UUID + 2;
+    const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID + 
+        NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID + 2;
 
     // setup the extended header for the domain list packets
     // this data is at the beginning of each of the domain list packets
@@ -1169,6 +1170,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
     extendedHeaderStream << limitedNodeList->getSessionUUID();
+    extendedHeaderStream << limitedNodeList->getSessionLocalID();
     extendedHeaderStream << node->getUUID();
     extendedHeaderStream << node->getLocalID();
     extendedHeaderStream << node->getPermissions();

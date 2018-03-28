@@ -117,16 +117,13 @@ void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, Share
 void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> message) {
     // make sure we have a replicated node for the original sender of the packet
     auto nodeList = DependencyManager::get<NodeList>();
-
-    QUuid nodeID;
-    SharedNodePointer sourceNode = nodeList->nodeWithLocalID(message->getSourceID());
-    if (sourceNode) {
-        nodeID = sourceNode->getUUID();
-    }
+    
+    // Node ID is now part of user data, since replicated audio packets are non-sourced.
+    QUuid nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
     auto replicatedNode = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
                                                     message->getSenderSockAddr(), message->getSenderSockAddr(),
-                                                    true, true);
+                                                    0, true, true);
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
 
     // construct a "fake" audio received message from the byte array and packet list information
@@ -140,7 +137,7 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
 
     auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(audioData, rewrittenType,
                                                                      versionForPacketType(rewrittenType),
-                                                                     message->getSenderSockAddr(), message->getSourceID());
+                                                                     message->getSenderSockAddr(), nodeList->getSessionLocalID());
 
     getOrCreateClientData(replicatedNode.data())->queuePacket(replicatedMessage, replicatedNode);
 }

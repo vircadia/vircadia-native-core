@@ -1037,7 +1037,7 @@ Node::LocalID DomainGatekeeper::findOrCreateLocalID(const QUuid& uuid) {
     do {
         newLocalID = _currentLocalID;
         _currentLocalID += _idIncrement;
-    } while (_localIDToUUID.find(newLocalID) != _localIDToUUID.end());
+    } while (newLocalID == 0 || _localIDToUUID.find(newLocalID) != _localIDToUUID.end());
 
     _uuidToLocalID.emplace(uuid, newLocalID);
     _localIDToUUID.emplace(newLocalID, uuid);

@@ -74,7 +74,7 @@ SharedNodePointer addOrUpdateReplicatedNode(const QUuid& nodeID, const HifiSockA
     auto replicatedNode = DependencyManager::get<NodeList>()->addOrUpdateNode(nodeID, NodeType::Agent,
                                                                               senderSockAddr,
                                                                               senderSockAddr,
-                                                                              true, true);
+                                                                              0, true, true);
 
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
 
@@ -112,12 +112,8 @@ void AvatarMixer::handleReplicatedPacket(QSharedPointer<ReceivedMessage> message
 void AvatarMixer::handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessage> message) {
     while (message->getBytesLeftToRead()) {
         // first, grab the node ID for this replicated avatar
-        QUuid nodeID;
-        auto nodeList = DependencyManager::get<NodeList>();
-        SharedNodePointer sourceNode = nodeList->nodeWithLocalID(message->getSourceID());
-        if (sourceNode) {
-            nodeID = sourceNode->getUUID();
-        }
+        // Node ID is now part of user data, since ReplicatedBulkAvatarPacket is non-sourced.
+        auto nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
         // make sure we have an upstream replicated node that matches
         auto replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
 

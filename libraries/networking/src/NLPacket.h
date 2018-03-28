@@ -43,7 +43,7 @@ public:
     //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
     //    NLPacket Header Format
 
-    using LocalID = qint16;
+    using LocalID = NetworkLocalID;
     static const int NUM_BYTES_LOCALID = sizeof(LocalID);
     // this is used by the Octree classes - must be known at compile time
     static const int MAX_PACKET_HEADER_SIZE =
@@ -83,7 +83,7 @@ public:
 
     LocalID getSourceID() const { return _sourceID; }
     
-    void writeSourceID(qint16 sourceID) const;
+    void writeSourceID(LocalID sourceID) const;
     void writeVerificationHashGivenSecret(const QUuid& connectionSecret) const;
 
 protected:

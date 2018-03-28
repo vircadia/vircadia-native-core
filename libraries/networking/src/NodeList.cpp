@@ -594,6 +594,9 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
         return;
     }
 
+    Node::LocalID domainLocalID;
+    packetStream >> domainLocalID;
+
     // pull our owner (ie. session) UUID from the packet, it's always the first thing
     // The short (16 bit) ID comes next.
     QUuid newUUID;
