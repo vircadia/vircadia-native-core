@@ -608,6 +608,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
 
     // if this was the first domain-server list from this domain, we've now connected
     if (!_domainHandler.isConnected()) {
+        _domainHandler.setLocalID(newLocalID);
         _domainHandler.setUUID(domainUUID);
         _domainHandler.setIsConnected(true);
 

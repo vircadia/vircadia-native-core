@@ -593,7 +593,6 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
 
     if (!PacketTypeEnum::getNonSourcedPackets().contains(headerType)) {
         // this is a sourced packet - first check if we have a node that matches
-        //QUuid sourceID = NLPacket::sourceIDInHeader(packet);
         Node::LocalID localSourceID = NLPacket::sourceIDInHeader(packet);
         SharedNodePointer sourceNode = nodeList->nodeWithLocalID(localSourceID);
 

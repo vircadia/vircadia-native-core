@@ -305,11 +305,11 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             return true;
         }
     } else {
-
+        NLPacket::LocalID sourceLocalID = 0;
         // check if we were passed a sourceNode hint or if we need to look it up
         if (!sourceNode) {
             // figure out which node this is from
-            NLPacket::LocalID sourceLocalID = NLPacket::sourceIDInHeader(packet);
+            sourceLocalID = NLPacket::sourceIDInHeader(packet);
 
             SharedNodePointer matchingNode = nodeWithLocalID(sourceLocalID);
             sourceNode = matchingNode.data();
@@ -318,7 +318,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
         QUuid sourceID = sourceNode ? sourceNode->getUUID() : QUuid();
 
         if (!sourceNode &&
-            /*sourceID == getDomainUUID() &&*/
+            sourceLocalID == getDomainLocalID() &&
             packet.getSenderSockAddr() == getDomainSockAddr() &&
             PacketTypeEnum::getDomainSourcedPackets().contains(headerType)) {
             // This is a packet sourced by the domain server
@@ -567,9 +567,6 @@ SharedNodePointer LimitedNodeList::nodeWithLocalID(Node::LocalID localID) const 
     QReadLocker readLocker(&_nodeMutex);
 
     LocalIDMapping::const_iterator idIter = _localIDMap.find(localID);
-    if (idIter == _localIDMap.cend()) {
-        qCDebug(networking) << "No such Node with local ID " << localID;
-    }
     return idIter == _localIDMap.cend() ? nullptr : idIter->second;
 }
 

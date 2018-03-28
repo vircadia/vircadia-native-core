@@ -128,6 +128,7 @@ public:
 
     virtual bool isDomainServer() const { return true; }
     virtual QUuid getDomainUUID() const { assert(false); return QUuid(); }
+    virtual Node::LocalID getDomainLocalID() const { assert(false); return 0; }
     virtual HifiSockAddr getDomainSockAddr() const { assert(false); return HifiSockAddr(); }
 
     // use sendUnreliablePacket to send an unrelaible packet (that you do not need to move)

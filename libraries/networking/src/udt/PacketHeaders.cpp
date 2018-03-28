@@ -76,7 +76,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::DomainSettings:
             return 18;  // replace min_avatar_scale and max_avatar_scale with min_avatar_height and max_avatar_height
         default:
-            return 17;
+            return 19;
     }
 }
 
