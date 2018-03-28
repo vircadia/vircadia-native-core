@@ -2991,8 +2991,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, 
 
     if (forwardLeanAmount > 0 && forwardLeanAmount > MAX_FORWARD_LEAN) {
         return true;
-    }
-    else if (forwardLeanAmount < 0 && forwardLeanAmount < -MAX_BACKWARD_LEAN) {
+    } else if (forwardLeanAmount < 0 && forwardLeanAmount < -MAX_BACKWARD_LEAN) {
         return true;
     }
 
@@ -3024,7 +3023,6 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             activate(Vertical);
         }
     } else {
-        //qCDebug(interfaceapp) << "turned off the recenter" << endl;
         if (!isActive(Rotation) && getForceActivateRotation()) {
             activate(Rotation);
             setForceActivateRotation(false);
@@ -3086,7 +3084,7 @@ glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(const MyAvatar& myAvatar, co
     }
 }
 
-bool MyAvatar::FollowHelper::getForceActivateRotation() {
+bool MyAvatar::FollowHelper::getForceActivateRotation() const {
     return _forceActivateRotation;
 }
 
@@ -3094,7 +3092,7 @@ void MyAvatar::FollowHelper::setForceActivateRotation(bool val) {
     _forceActivateRotation = val;
 }
 
-bool MyAvatar::FollowHelper::getForceActivateVertical() {
+bool MyAvatar::FollowHelper::getForceActivateVertical() const {
     return _forceActivateVertical;
 }
 
@@ -3102,7 +3100,7 @@ void MyAvatar::FollowHelper::setForceActivateVertical(bool val) {
     _forceActivateVertical = val;
 }
 
-bool MyAvatar::FollowHelper::getForceActivateHorizontal() {
+bool MyAvatar::FollowHelper::getForceActivateHorizontal() const {
     return _forceActivateHorizontal;
 }
 

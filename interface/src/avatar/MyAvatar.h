@@ -807,15 +807,15 @@ private:
         bool shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput);
         glm::mat4 postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
-        bool getForceActivateRotation();
+        bool getForceActivateRotation() const;
         void setForceActivateRotation(bool val);
-        bool getForceActivateVertical();
+        bool getForceActivateVertical() const;
         void setForceActivateVertical(bool val);
-        bool getForceActivateHorizontal();
+        bool getForceActivateHorizontal() const;
         void setForceActivateHorizontal(bool val);
-        bool _forceActivateRotation{ false };
-        bool _forceActivateVertical{ false };
-        bool _forceActivateHorizontal{ false };
+        std::atomic<bool> _forceActivateRotation{ false };
+        std::atomic<bool> _forceActivateVertical{ false };
+        std::atomic<bool> _forceActivateHorizontal{ false };
     };
     FollowHelper _follow;
 
