@@ -169,7 +169,9 @@ ModalWindow {
             shortcut: Qt.Key_Escape
             onTriggered: {
                 root.canceled();
-                root.destroy();
+                // FIXME we are leaking memory to avoid a crash
+                // root.destroy();
+                visible = false;
             }
         }
         Action {
@@ -179,7 +181,9 @@ ModalWindow {
             onTriggered: {
                 root.result = items ? comboBox.currentText : textResult.text
                 root.selected(root.result);
-                root.destroy();
+                // FIXME we are leaking memory to avoid a crash
+                // root.destroy();
+                visible = false;
             }
         }
     }
