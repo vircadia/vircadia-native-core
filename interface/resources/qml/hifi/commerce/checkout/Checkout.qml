@@ -96,6 +96,7 @@ Rectangle {
                 root.activeView = "checkoutFailure";
                 UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned, result.message);
             } else {
+                root.certificateId = result.data.certificate_id;
                 root.itemHref = result.data.download_url;
                 if (result.data.categories.indexOf("Wearables") > -1) {
                     root.itemType = "wearable";
