@@ -39,7 +39,7 @@ public slots:
     /// runs the avatar mixer
     void run() override;
 
-    void nodeKilled(SharedNodePointer killedNode);
+    void handleAvatarKilled(SharedNodePointer killedNode);
 
     void sendStatsPacket() override;
 

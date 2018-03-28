@@ -158,7 +158,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
     nodeList->startThread();
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
-    connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&domainHandler, SIGNAL(domainURLChanged(QUrl)), SLOT(domainChanged(QUrl)));
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ATPClientApp::domainConnectionRefused);
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &ATPClientApp::nodeAdded);
@@ -227,7 +227,7 @@ void ATPClientApp::domainConnectionRefused(const QString& reasonMessage, int rea
     }
 }
 
-void ATPClientApp::domainChanged(const QString& domainHostname) {
+void ATPClientApp::domainChanged(QUrl domainURL) {
     if (_verbose) {
         qDebug() << "domainChanged";
     }

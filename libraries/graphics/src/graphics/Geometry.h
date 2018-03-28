@@ -74,7 +74,7 @@ public:
     size_t getNumIndices() const { return _indexBuffer.getNumElements(); }
 
     // Access vertex position value
-    const Vec3& getPos3(Index index) const { return _vertexBuffer.get<Vec3>(index); }
+    const Vec3& getPos(Index index) const { return _vertexBuffer.get<Vec3>(index); }
 
     enum Topology {
         POINTS = 0,
