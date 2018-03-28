@@ -183,6 +183,7 @@ namespace controller {
             makeButtonPair(Action::ACTION2, "ACTION2"),
             makeButtonPair(Action::CONTEXT_MENU, "CONTEXT_MENU"),
             makeButtonPair(Action::TOGGLE_MUTE, "TOGGLE_MUTE"),
+            makeButtonPair(Action::SPRINT, "SPRINT")
         };
         return availableInputs;
     }

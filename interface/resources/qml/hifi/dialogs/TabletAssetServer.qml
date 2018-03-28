@@ -58,7 +58,7 @@ Rectangle {
     Component.onDestruction: {
         assetMappingsModel.autoRefreshEnabled = false;
     }
-    
+
     function letterbox(headerGlyph, headerText, message) {
         letterboxMessage.headerGlyph = headerGlyph;
         letterboxMessage.headerText = headerText;
@@ -66,7 +66,7 @@ Rectangle {
         letterboxMessage.visible = true;
         letterboxMessage.popupRadius = 0;
     }
-    
+
     function errorMessageBox(message) {
         return tabletRoot.messageBox({
             icon: hifi.icons.warning,
@@ -145,7 +145,7 @@ Rectangle {
 
     function canAddToWorld(path) {
         var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i, /\.jpg\b/i, /\.png\b/i];
-        
+
         if (selectedItemCount > 1) {
             return false;
         }
@@ -154,8 +154,8 @@ Rectangle {
             return total | new RegExp(current).test(path);
         }, false);
     }
-    
-    function canRename() {    
+
+    function canRename() {
         if (treeView.selection.hasSelection && selectedItemCount == 1) {
             return true;
         } else {
@@ -199,7 +199,7 @@ Rectangle {
             var SHAPE_TYPE_STATIC_MESH = 3;
             var SHAPE_TYPE_BOX = 4;
             var SHAPE_TYPE_SPHERE = 5;
-        
+
             var SHAPE_TYPES = [];
             SHAPE_TYPES[SHAPE_TYPE_NONE] = "No Collision";
             SHAPE_TYPES[SHAPE_TYPE_SIMPLE_HULL] = "Basic - Whole model";
@@ -207,7 +207,7 @@ Rectangle {
             SHAPE_TYPES[SHAPE_TYPE_STATIC_MESH] = "Exact - All polygons";
             SHAPE_TYPES[SHAPE_TYPE_BOX] = "Box";
             SHAPE_TYPES[SHAPE_TYPE_SPHERE] = "Sphere";
-        
+
             var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_SIMPLE_COMPOUND;
             var DYNAMIC_DEFAULT = false;
             var prompt = tabletRoot.customInputDialog({
@@ -349,14 +349,14 @@ Rectangle {
     }
     function deleteFile(index) {
         var paths = [];
-        
+
         if (!index) {
             for (var i = 0; i < selectedItemCount; ++i) {
                  index = treeView.selection.selectedIndexes[i];
                  paths[i] = assetProxyModel.data(index, 0x100);
             }
         }
-        
+
         if (!paths) {
             return;
         }
@@ -365,7 +365,7 @@ Rectangle {
         var items = selectedItemCount.toString();
         var isFolder = assetProxyModel.data(treeView.selection.currentIndex, 0x101);
         var typeString = isFolder ? 'folder' : 'file';
-        
+
         if (selectedItemCount > 1) {
             modalMessage = "You are about to delete " + items + " items \nDo you want to continue?";
         } else {
@@ -476,7 +476,7 @@ Rectangle {
             });
         }
     }
-    
+
     // The letterbox used for popup messages
     LetterboxMessage {
         id: letterboxMessage;
@@ -540,7 +540,7 @@ Rectangle {
             anchors.margins: hifi.dimensions.contentMargin.x + 2  // Extra for border
             anchors.left: parent.left
             anchors.right: parent.right
-            
+
             treeModel: assetProxyModel
             selectionMode: SelectionMode.ExtendedSelection
             headerVisible: true
@@ -560,9 +560,13 @@ Rectangle {
                 id: bakedColumn
                 title: "Use Baked?"
                 role: "baked"
-                width: 100
+                width: 170
             }
-    
+
+            onSortIndicatorOrderChanged: {
+                Assets.sortProxyModel(sortIndicatorColumn, sortIndicatorOrder);
+            }
+
             itemDelegate: Loader {
                 id: itemDelegateLoader
 
@@ -598,7 +602,7 @@ Rectangle {
 
                 }
                 sourceComponent: getComponent()
-        
+
                 Component {
                     id: labelComponent
                     FiraSansSemiBold {
@@ -607,15 +611,15 @@ Rectangle {
                         color: colorScheme == hifi.colorSchemes.light
                                 ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
                                 : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
-                       
+
                         horizontalAlignment: styleData.column === 1 ? TextInput.AlignHCenter : TextInput.AlignLeft
-                        
+
                         elide: Text.ElideMiddle
 
                         MouseArea {
                             id: mouseArea
                             anchors.fill: parent
-                            
+
                             acceptedButtons: Qt.NoButton
                             hoverEnabled: true
 
@@ -637,7 +641,7 @@ Rectangle {
                         color: colorScheme == hifi.colorSchemes.light
                                 ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
                                 : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
-                       
+
                         elide: Text.ElideRight
                         horizontalAlignment: TextInput.AlignHCenter
 
@@ -724,7 +728,7 @@ Rectangle {
                     size: hifi.fontSizes.tableText
                     color: colorScheme == hifi.colorSchemes.light ? hifi.colors.black : hifi.colors.lightGrayText
                 }
-                
+
                 Timer {
                     id: showTimer
                     interval: 1000
@@ -743,7 +747,7 @@ Rectangle {
                     treeLabelToolTip.visible = false;
                 }
             }// End_OF( treeLabelToolTip )
-            
+
             MouseArea {
                 propagateComposedEvents: true
                 anchors.fill: parent
@@ -801,7 +805,7 @@ Rectangle {
             anchors.left: treeView.left
             anchors.right: treeView.right
             anchors.bottomMargin: hifi.dimensions.contentSpacing.y
-            
+
             RalewayRegular {
                 anchors.verticalCenter: parent.verticalCenter
 
@@ -845,7 +849,7 @@ Rectangle {
 
                     checked = Qt.binding(isChecked);
                 }
-                
+
                 function isEnabled() {
                     if (!treeView.selection.hasSelection) {
                         return false;
@@ -869,7 +873,7 @@ Rectangle {
                         }
                     }
 
-                    return true; 
+                    return true;
                 }
                 function isChecked() {
                     if (!treeView.selection.hasSelection) {
@@ -877,10 +881,10 @@ Rectangle {
                     }
 
                     var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
-                    return isEnabled() && status !== "Not Baked"; 
-                }  
+                    return isEnabled() && status !== "Not Baked";
+                }
             }
-            
+
             Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: infoGlyph.size;
@@ -904,7 +908,7 @@ Rectangle {
                                             "What is baking?",
                                             "Baking compresses and optimizes files for faster network transfer and display. We recommend you bake your content to reduce initial load times for your visitors.");
                     }
-            } 
+            }
         }// End_OF( infoRow )
 
         HifiControls.TabletContentSection {

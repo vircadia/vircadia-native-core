@@ -396,6 +396,7 @@ public:
     //  Set what driving keys are being pressed to control thrust levels
     void clearDriveKeys();
     void setDriveKey(DriveKeys key, float val);
+    void setSprintMode(bool sprint);
     float getDriveKey(DriveKeys key) const;
     Q_INVOKABLE float getRawDriveKey(DriveKeys key) const;
     void relayDriveKeysToCharacterController();
@@ -840,7 +841,8 @@ private:
     std::map<controller::Action, controller::Pose> _controllerPoseMap;
     mutable std::mutex _controllerPoseMapMutex;
 
-    bool _hmdLeanRecenterEnabled = true;
+    bool _hmdLeanRecenterEnabled { true };
+    bool _sprint { false };
     AnimPose _prePhysicsRoomPose;
     std::mutex _holdActionsMutex;
     std::vector<AvatarActionHold*> _holdActions;
@@ -870,6 +872,7 @@ private:
 
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
+    float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
