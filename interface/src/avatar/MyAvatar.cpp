@@ -2761,24 +2761,15 @@ bool MyAvatar::isDriveKeyDisabled(DriveKeys key) const {
 }
 
 void MyAvatar::triggerVerticalRecenter() {
-    //do something here
-    _follow._forceActivateVertical = true;
-
-
+    _follow.setForceActivateVertical(true);
 }
 
 void MyAvatar::triggerHorizontalRecenter() {
-    //do something here
-    _follow._forceActivateHorizontal = true;
-
-
+    _follow.setForceActivateHorizontal(true);
 }
 
 void MyAvatar::triggerRotationRecenter() {
-    //do something here
-    _follow._forceActivateRotation = true;
-
-
+    _follow.setForceActivateRotation(true);
 }
 
 // old school meat hook style
@@ -3028,22 +3019,19 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Vertical);
         }
-    }
-    else {
-        if (!isActive(Rotation) && _forceActivateRotation) {
+    } else {
+        //qCDebug(interfaceapp) << "turned off the recenter" << endl;
+        if (!isActive(Rotation) && getForceActivateRotation()) {
             activate(Rotation);
-            _forceActivateRotation = false;
-            qCDebug(interfaceapp) << "the rotation property is activated+++++++++++++++++++++++" << endl;
+            setForceActivateRotation(false);
         }
-        if (!isActive(Horizontal) && _forceActivateHorizontal) {
+        if (!isActive(Horizontal) && getForceActivateHorizontal()) {
             activate(Horizontal);
-            _forceActivateHorizontal = false;
-            qCDebug(interfaceapp) << "the horizontal property is activated+++++++++++++++++++++++" << endl;
+            setForceActivateHorizontal(false);
         }
-        if (!isActive(Vertical) && _forceActivateVertical) {
+        if (!isActive(Vertical) && getForceActivateVertical()) {
             activate(Vertical);
-            _forceActivateVertical = false;
-            qCDebug(interfaceapp) << "the vertical property is activated+++++++++++++++++++++++" << endl;
+            setForceActivateVertical(false);
         }
     }
 
@@ -3092,6 +3080,30 @@ glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(const MyAvatar& myAvatar, co
     } else {
         return currentBodyMatrix;
     }
+}
+
+bool MyAvatar::FollowHelper::getForceActivateRotation() {
+    return _forceActivateRotation;
+}
+
+void MyAvatar::FollowHelper::setForceActivateRotation(bool val) {
+    _forceActivateRotation = val;
+}
+
+bool MyAvatar::FollowHelper::getForceActivateVertical() {
+    return _forceActivateVertical;
+}
+
+void MyAvatar::FollowHelper::setForceActivateVertical(bool val) {
+    _forceActivateVertical = val;
+}
+
+bool MyAvatar::FollowHelper::getForceActivateHorizontal() {
+    return _forceActivateHorizontal;
+}
+
+void MyAvatar::FollowHelper::setForceActivateHorizontal(bool val) {
+    _forceActivateHorizontal = val;
 }
 
 float MyAvatar::getAccelerationEnergy() {

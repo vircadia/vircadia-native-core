@@ -104,9 +104,6 @@ class MyAvatar : public Avatar {
      * @property rightHandTipPose {Pose} READ-ONLY. Returns a pose offset 30 cm from MyAvatar.rightHandPose
      * @property hmdLeanRecenterEnabled {bool} This can be used disable the hmd lean recenter behavior.  This behavior is what causes your avatar
      *   to follow your HMD as you walk around the room, in room scale VR.  Disabling this is useful if you desire to pin the avatar to a fixed location.
-     * @property hmdVerticalRecenterEnabled {bool}  This can be used to turn vertical recenter off and on.
-     * @property hmdHorizontalRecenterEnabled {bool} This can be used to turn horizontal recenter off and on.
-     * @property hmdRotationRecenterEnabled {bool}   This can be used to turn rotational recenter off and on.
      * @property collisionsEnabled {bool} This can be used to disable collisions between the avatar and the world.
      * @property useAdvancedMovementControls {bool} Stores the user preference only, does not change user mappings, this is done in the defaultScript
      *   "scripts/system/controllers/toggleAdvancedMovementForHandControllers.js".
@@ -152,9 +149,6 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool isAway READ getIsAway WRITE setAway)
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
-    Q_PROPERTY(bool hmdVerticalRecenterEnabled READ getHMDVerticalRecenterEnabled WRITE setHMDVerticalRecenterEnabled)
-    Q_PROPERTY(bool hmdHorizontalRecenterEnabled READ getHMDHorizontalRecenterEnabled WRITE setHMDHorizontalRecenterEnabled)
-    Q_PROPERTY(bool hmdRotationRecenterEnabled READ getHMDRotationRecenterEnabled WRITE setHMDRotationRecenterEnabled)
     Q_PROPERTY(bool collisionsEnabled READ getCollisionsEnabled WRITE setCollisionsEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
     Q_PROPERTY(bool useAdvancedMovementControls READ useAdvancedMovementControls WRITE setUseAdvancedMovementControls)
@@ -379,15 +373,6 @@ public:
 
     Q_INVOKABLE void setHMDLeanRecenterEnabled(bool value) { _hmdLeanRecenterEnabled = value; }
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
-
-    Q_INVOKABLE void setHMDVerticalRecenterEnabled(bool value) { _hmdVerticalRecenterEnabled = value; }
-    Q_INVOKABLE bool getHMDVerticalRecenterEnabled() const { return _hmdVerticalRecenterEnabled; }
-
-    Q_INVOKABLE void setHMDHorizontalRecenterEnabled(bool value) { _hmdHorizontalRecenterEnabled = value; }
-    Q_INVOKABLE bool getHMDHorizontalRecenterEnabled() const { return _hmdHorizontalRecenterEnabled; }
-
-    Q_INVOKABLE void setHMDRotationRecenterEnabled(bool value) { _hmdRotationRecenterEnabled = value; }
-    Q_INVOKABLE bool getHMDRotationRecenterEnabled() const { return _hmdRotationRecenterEnabled; }
 
     bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
     void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
@@ -822,8 +807,11 @@ private:
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput);
         glm::mat4 postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
         bool getForceActivateRotation();
+        void setForceActivateRotation(bool val);
         bool getForceActivateVertical();
+        void setForceActivateVertical(bool val);
         bool getForceActivateHorizontal();
+        void setForceActivateHorizontal(bool val);
         bool _forceActivateRotation{ false };
         bool _forceActivateVertical{ false };
         bool _forceActivateHorizontal{ false };
@@ -862,9 +850,7 @@ private:
     mutable std::mutex _controllerPoseMapMutex;
 
     bool _hmdLeanRecenterEnabled = true;
-    bool _hmdVerticalRecenterEnabled = true;
-    bool _hmdHorizontalRecenterEnabled = true;
-    bool _hmdRotationRecenterEnabled = true;
+    
     AnimPose _prePhysicsRoomPose;
     std::mutex _holdActionsMutex;
     std::vector<AvatarActionHold*> _holdActions;
