@@ -7488,7 +7488,7 @@ DisplayPluginPointer Application::getActiveDisplayPlugin() const {
         return _displayPlugin;
     }
 
-    if (!_displayPlugin) {
+    if (!_aboutToQuit && !_displayPlugin) {
         const_cast<Application*>(this)->updateDisplayMode();
         Q_ASSERT(_displayPlugin);
     }
