@@ -404,6 +404,28 @@ public:
     Q_INVOKABLE void enableDriveKey(DriveKeys key);
     Q_INVOKABLE bool isDriveKeyDisabled(DriveKeys key) const;
 
+    /**jsdoc
+    *The triggerVerticalRecenter function activates one time the recentering 
+    *behaviour in the vertical direction. This call is only takes effect when the property
+    *MyAvatar.hmdLeanRecenterEnabled is set to false.
+    *@function MyAvatar.triggerVerticalRecenter
+    *
+    */
+
+    /**jsdoc
+    *The triggerHorizontalRecenter function activates one time the recentering behaviour
+    *in the horizontal direction. This call is only takes effect when the property
+    *MyAvatar.hmdLeanRecenterEnabled is set to false.
+    *@function MyAvatar.triggerHorizontalRecenter
+    */
+
+    /**jsdoc
+    *The triggerRotationRecenter function activates one time the recentering behaviour
+    *in the rotation of the root of the avatar. This call is only takes effect when the property
+    *MyAvatar.hmdLeanRecenterEnabled is set to false.
+    *@function MyAvatar.triggerRotationRecenter
+    */
+
     Q_INVOKABLE void triggerVerticalRecenter();
     Q_INVOKABLE void triggerHorizontalRecenter();
     Q_INVOKABLE void triggerRotationRecenter();
