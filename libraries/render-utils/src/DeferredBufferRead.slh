@@ -127,9 +127,8 @@ vec4 unpackDeferredPosition(DeferredFrameTransform deferredTransform, float dept
         }
         texcoord.x *= 2.0;
     }
-    float Zeye = evalZeyeFromZdb(depthValue);
 
-    return vec4(evalEyePositionFromZeye(side, Zeye, texcoord), 1.0);
+    return vec4(evalEyePositionFromZdb(side, depthValue, texcoord), 1.0);
 }
 
 vec4 unpackDeferredPositionFromZeye(vec2 texcoord) {

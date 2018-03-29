@@ -123,7 +123,6 @@ float evalZeyeFromZdb(float depth) {
 }
 
 vec3 evalEyeNormal(vec3 C) {
-    //return normalize(cross(dFdy(C), dFdx(C)));
     return normalize(cross(dFdx(C), dFdy(C)));
 }
 
