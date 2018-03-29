@@ -73,7 +73,11 @@ Rectangle {
             }
 
             onTextChanged : {
-                 button1.enabled = true;
+                if (modelURL.text.length === 0){
+                    button1.enabled = false;
+                } else {
+                    button1.enabled = true;
+                }
             }
             
             MouseArea {
