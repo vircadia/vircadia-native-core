@@ -69,6 +69,7 @@ SharedObject::SharedObject() {
     _quickWindow->setColor(QColor(255, 255, 255, 0));
     _quickWindow->setClearBeforeRendering(true);
 
+
     QObject::connect(qApp, &QCoreApplication::aboutToQuit, this, &SharedObject::onAboutToQuit);
 }
 
@@ -124,6 +125,7 @@ void SharedObject::setRootItem(QQuickItem* rootItem) {
     _renderThread->setObjectName(objectName());
     _renderThread->start();
 
+
     // Create event handler for the render thread
     _renderObject = new RenderEventHandler(this, _renderThread);
     QCoreApplication::postEvent(this, new OffscreenEvent(OffscreenEvent::Initialize));
@@ -152,9 +154,16 @@ void SharedObject::destroy() {
     QObject::disconnect(_renderControl);
     QObject::disconnect(qApp);
 
-    QMutexLocker lock(&_mutex);
-    _quit = true;
-    QCoreApplication::postEvent(_renderObject, new OffscreenEvent(OffscreenEvent::Quit));
+    {
+        QMutexLocker lock(&_mutex);
+        _quit = true;
+        QCoreApplication::postEvent(_renderObject, new OffscreenEvent(OffscreenEvent::Quit), Qt::HighEventPriority);
+    }
+    // Block until the rendering thread has stopped
+    // FIXME this is undesirable because this is blocking the main thread,
+    // but I haven't found a reliable way to do this only at application 
+    // shutdown
+    _renderThread->wait();
 }
 
 
