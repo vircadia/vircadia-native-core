@@ -170,16 +170,6 @@ void setupPreferences() {
         // which can't be changed across domain switches. Having these values loaded up when you load the Dialog each time
         // is a way around this, therefore they're not specified here but in the QML.
     }
-    {
-        auto getter = [=]()->float { return myAvatar->getUserHeight(); };
-        auto setter = [=](float value) { myAvatar->setUserHeight(value); };
-        auto preference = new SpinnerPreference(AVATAR_TUNING, "User height (meters)", getter, setter);
-        preference->setMin(1.0f);
-        preference->setMax(2.2f);
-        preference->setDecimals(3);
-        preference->setStep(0.001f);
-        preferences->addPreference(preference);
-    }
 
     {
         auto getter = [=]()->QString { return myAvatar->getAnimGraphOverrideUrl().toString(); };
@@ -214,6 +204,17 @@ void setupPreferences() {
         auto getter = [=]()->bool { return myAvatar->useAdvancedMovementControls(); };
         auto setter = [=](bool value) { myAvatar->setUseAdvancedMovementControls(value); };
         preferences->addPreference(new CheckPreference(MOVEMENT, "Advanced movement for hand controllers", getter, setter));
+    }
+
+    {
+        auto getter = [=]()->float { return myAvatar->getUserHeight(); };
+        auto setter = [=](float value) { myAvatar->setUserHeight(value); };
+        auto preference = new SpinnerPreference(MOVEMENT, "User real-world height (meters)", getter, setter);
+        preference->setMin(1.0f);
+        preference->setMax(2.2f);
+        preference->setDecimals(3);
+        preference->setStep(0.001f);
+        preferences->addPreference(preference);
     }
 
     static const QString AVATAR_CAMERA{ "Mouse Sensitivity" };
