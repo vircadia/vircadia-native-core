@@ -358,6 +358,7 @@ void PhysicalEntitySimulation::sendOwnershipBids(uint32_t numSubsteps) {
                 // in the EntityMotionState::_serverFoo variables (please see comments in EntityMotionState.h)
                 // therefore we need to immediately send an update so that the values stored are what we're
                 // "telling" the server rather than what we've been "hearing" from the server.
+                _bids[i]->slaveBidPriority();
                 _bids[i]->sendUpdate(_entityPacketSender, numSubsteps);
 
                 addOwnership(_bids[i]);

@@ -101,6 +101,10 @@ protected:
 
     // changes _bidPriority only if priority is larger
     void upgradeBidPriority(uint8_t priority);
+
+    // upgradeBidPriority to value stored in _entity
+    void slaveBidPriority();
+
     void clearObjectVelocities() const;
 
     #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS

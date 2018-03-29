@@ -710,6 +710,10 @@ uint8_t EntityMotionState::getSimulationPriority() const {
     return _entity->getSimulationPriority();
 }
 
+void EntityMotionState::slaveBidPriority() {
+    upgradeBidPriority(_entity->getSimulationPriority());
+}
+
 // virtual
 QUuid EntityMotionState::getSimulatorID() const {
     assert(entityTreeIsLocked());
