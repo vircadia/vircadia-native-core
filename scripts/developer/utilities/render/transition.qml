@@ -75,6 +75,14 @@ Rectangle {
                     }
                 }
                 onCurrentIndexChanged: {
+                    var descriptions = [
+                        "Time based threshold, gradients centered on object",
+                        "Fixed threshold, gradients centered on owner avatar",
+                        "Position based threshold (increases when trespasser moves closer to avatar), gradients centered on trespasser avatar",
+                        "Time based threshold, gradients centered on bottom of object",
+                        "UNSUPPORTED"
+                    ]
+                    description.text = descriptions[currentIndex]
                     root.config["editedCategory"] = currentIndex;
                     // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
                     // by setting the loader source to Null and then recreate it 100ms later
@@ -96,6 +104,13 @@ Rectangle {
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
             }
+        }
+
+        HifiControls.Label {
+            id: description
+            text: "..."
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap 
         }
 
         RowLayout {
