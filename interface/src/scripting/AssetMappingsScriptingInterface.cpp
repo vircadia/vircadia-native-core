@@ -152,6 +152,10 @@ void AssetMappingsScriptingInterface::deleteMappings(QStringList paths, QJSValue
     request->start();
 }
 
+void AssetMappingsScriptingInterface::sortProxyModel(int column, Qt::SortOrder order) {
+    _proxyModel.sort(column, order);
+}
+
 void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetAllMappingsRequest();
@@ -287,7 +291,7 @@ void AssetMappingModel::refresh() {
                         item->setData(parts[i], Qt::UserRole + 2);
                         item->setData("atp:" + fullPath, Qt::UserRole + 3);
                         item->setData(fullPath, Qt::UserRole + 4);
-                        
+
                         if (lastItem) {
                             lastItem->appendRow(item);
                         } else {
