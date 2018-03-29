@@ -695,6 +695,7 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
 
                 auto oldSoloNode = previousSoloIt->second;
 
+                _localIDMap.erase(oldSoloNode->getLocalID());
                 _nodeHash.unsafe_erase(previousSoloIt);
                 handleNodeKill(oldSoloNode);
 
@@ -850,6 +851,9 @@ void LimitedNodeList::removeSilentNodes() {
     });
 
     foreach(const SharedNodePointer& killedNode, killedNodes) {
+        _nodeMutex.lockForWrite();
+        _localIDMap.erase(killedNode->getLocalID());
+        _nodeMutex.unlock();
         handleNodeKill(killedNode);
     }
 }

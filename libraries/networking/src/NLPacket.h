@@ -22,6 +22,22 @@ class NLPacket : public udt::Packet {
     Q_OBJECT
 public:
     //
+    //    Current NLPacket format:
+    //
+    //    |      BYTE     |      BYTE     |      BYTE     |      BYTE     |
+    //     0                   1                   2                   3
+    //     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //    |  Packet Type  |    Version    | Local Node ID - sourced only  |
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //    |                                                               |
+    //    |                 MD5 Verification - 16 bytes                   |
+    //    |                 (ONLY FOR VERIFIED PACKETS)                   |
+    //    |                                                               |
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+    //    Old NLPacket format:
+    //
     //    |      BYTE     |      BYTE     |      BYTE     |      BYTE     |
     //
     //     0                   1                   2                   3
@@ -41,7 +57,7 @@ public:
     //    |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     //    |                               |                               |
     //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
-    //    NLPacket Header Format
+    //
 
     using LocalID = NetworkLocalID;
     static const int NUM_BYTES_LOCALID = sizeof(LocalID);

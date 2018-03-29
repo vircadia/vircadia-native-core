@@ -1033,13 +1033,15 @@ Node::LocalID DomainGatekeeper::findOrCreateLocalID(const QUuid& uuid) {
         return existingLocalIDIt->second;
     }
 
+    assert(_localIDs.size() < std::numeric_limits<LocalIDs::value_type>::max() - 2);
+
     Node::LocalID newLocalID;
     do {
         newLocalID = _currentLocalID;
         _currentLocalID += _idIncrement;
-    } while (newLocalID == 0 || _localIDToUUID.find(newLocalID) != _localIDToUUID.end());
+    } while (newLocalID == 0 || _localIDs.find(newLocalID) != _localIDs.end());
 
     _uuidToLocalID.emplace(uuid, newLocalID);
-    _localIDToUUID.emplace(newLocalID, uuid);
+    _localIDs.insert(newLocalID);
     return newLocalID;
 }

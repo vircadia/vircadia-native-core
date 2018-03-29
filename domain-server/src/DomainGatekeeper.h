@@ -15,6 +15,7 @@
 #define hifi_DomainGatekeeper_h
 
 #include <unordered_map>
+#include <unordered_set>
 
 #include <QtCore/QObject>
 #include <QtNetwork/QNetworkReply>
@@ -129,9 +130,9 @@ private:
         size_t operator()(const QUuid& uuid) const { return qHash(uuid); }
     };
     using UUIDToLocalID = std::unordered_map<QUuid, Node::LocalID, UuidHash> ;
-    using LocalIDToUUID = std::unordered_map<Node::LocalID, QUuid>;
+    using LocalIDs = std::unordered_set<Node::LocalID>;
+    LocalIDs _localIDs;
     UUIDToLocalID _uuidToLocalID;
-    LocalIDToUUID _localIDToUUID;
 
     Node::LocalID _currentLocalID;
     quint16 _idIncrement;
