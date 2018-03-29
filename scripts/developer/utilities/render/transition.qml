@@ -72,6 +72,8 @@ Rectangle {
                     interval: 100; running: false; repeat: false
                     onTriggered: { 
                         paramWidgetLoader.sourceComponent = paramWidgets
+                        var isTimeBased = categoryBox.currentIndex==0 || categoryBox.currentIndex==3
+                        paramWidgetLoader.item.isTimeBased = isTimeBased
                     }
                 }
                 onCurrentIndexChanged: {
@@ -82,6 +84,7 @@ Rectangle {
                         "Time based threshold, gradients centered on bottom of object",
                         "UNSUPPORTED"
                     ]
+
                     description.text = descriptions[currentIndex]
                     root.config["editedCategory"] = currentIndex;
                     // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
@@ -166,7 +169,7 @@ Rectangle {
             ColumnLayout {
                 spacing: 3
                 width: root_col.width
-
+                property bool isTimeBased
 
                 RowLayout {
                     Layout.fillWidth: true
@@ -327,6 +330,8 @@ Rectangle {
                             Layout.fillWidth: true
 
                             ConfigSlider {
+                                enabled: isTimeBased
+                                opacity: isTimeBased ? 1.0 : 0.0
                                 anchors.left: undefined
                                 anchors.right: undefined
                                 Layout.fillWidth: true
@@ -339,6 +344,8 @@ Rectangle {
                                 min: 0.1
                             }
                             HifiControls.ComboBox {
+                                enabled: isTimeBased
+                                opacity: isTimeBased ? 1.0 : 0.0
                                 Layout.fillWidth: true
                                 model: ["Linear", "Ease In", "Ease Out", "Ease In / Out"]
                                 currentIndex: root.config["timing"]
