@@ -118,7 +118,7 @@ Item {
                 tabletRoot.playButtonClickSound();
             }*/
         }
-        onEntered: {
+        onPressed: {
             button.isEntered = true;
             button.entered();
             if (button.isActive) {
@@ -127,7 +127,7 @@ Item {
                 button.state = "hover state";
             }
         }
-        onExited: {
+        onReleased: {
             button.isEntered = false;
             button.exited()
             if (button.isActive) {
