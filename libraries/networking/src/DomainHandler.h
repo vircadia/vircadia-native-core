@@ -45,7 +45,7 @@ public:
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid);
 
-    const Node::LocalID getLocalID() const { return _localID; }
+    Node::LocalID getLocalID() const { return _localID; }
     void setLocalID(Node::LocalID localID) { _localID = localID; }
 
     QString getHostname() const { return _domainURL.host(); }
