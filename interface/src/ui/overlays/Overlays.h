@@ -724,6 +724,7 @@ private:
     unsigned int _stackOrder { 1 };
 
     bool _enabled = true;
+    std::atomic<bool> _shuttingDown{ false };
 
     PointerEvent calculateOverlayPointerEvent(OverlayID overlayID, PickRay ray, RayToOverlayIntersectionResult rayPickResult,
         QMouseEvent* event, PointerEvent::EventType eventType);
