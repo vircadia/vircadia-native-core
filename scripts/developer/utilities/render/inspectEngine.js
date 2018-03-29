@@ -1,17 +1,27 @@
 (function() { // BEGIN LOCAL_SCOPE
 
-function traverse(root, functor, depth) {
+function task_traverse(root, functor, depth) {
     var subs = root.findChildren(/.*/)
     depth++;
     for (var i = 0; i <subs.length; i++) {
         functor(subs[i], depth, i)
-        traverse(subs[i], functor, depth)
+        task_traverse(subs[i], functor, depth)
     }    
 }   
 
-function traverseTree(root, functor) {
-    traverse(root, functor, 0);    
-}   
+function task_traverseTree(root, functor) {
+    task_traverse(root, functor, 0);    
+} 
+
+function task_jobProps(job) {
+    var keys = Object.keys(job)
+    var props = [];
+    for (var k=0; k < keys.length;p++) {
+        var prop = keys[p]
+        
+    }   
+    return props; 
+} 
 
 function printJob(job, depth, index) {
     var tab = "  "
@@ -25,7 +35,7 @@ function printJob(job, depth, index) {
     }
 }
 
-//traverseTree(Render, printJob);
+task_traverseTree(Render, printJob);
 
 var qml = Script.resolvePath('inspectEngine.qml');
 var window = new OverlayWindow({
