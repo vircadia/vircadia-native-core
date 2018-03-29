@@ -254,11 +254,6 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     propertiesWithSimID = convertPropertiesFromScriptSemantics(propertiesWithSimID, scalesWithParent);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
-    auto dimensions = propertiesWithSimID.getDimensions();
-    float volume = dimensions.x * dimensions.y * dimensions.z;
-    auto density = propertiesWithSimID.getDensity();
-    auto newVelocity = propertiesWithSimID.getVelocity().length();
-
     EntityItemID id = EntityItemID(QUuid::createUuid());
 
     // If we have a local entity tree set, then also update it.
@@ -370,12 +365,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
     EntityItemProperties properties = scriptSideProperties;
 
-    auto dimensions = properties.getDimensions();
-    float volume = dimensions.x * dimensions.y * dimensions.z;
-    auto density = properties.getDensity();
-    auto newVelocity = properties.getVelocity().length();
-    float oldVelocity = { 0.0f };
-
     EntityItemID entityID(id);
     if (!_entityTree) {
         queueEntityMessage(PacketType::EntityEdit, entityID, properties);
@@ -399,9 +388,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         if (scriptSideProperties.parentRelatedPropertyChanged()) {
             // All of parentID, parentJointIndex, position, rotation are needed to make sense of any of them.
             // If any of these changed, pull any missing properties from the entity.
-
-            //existing entity, retrieve old velocity for check down below
-            oldVelocity = entity->getWorldVelocity().length();
 
             if (!scriptSideProperties.parentIDChanged()) {
                 properties.setParentID(entity->getParentID());
@@ -544,11 +530,6 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                     shouldDelete = false;
                     return;
                 }
-
-                auto dimensions = entity->getScaledDimensions();
-                float volume = dimensions.x * dimensions.y * dimensions.z;
-                auto density = entity->getDensity();
-                auto velocity = entity->getWorldVelocity().length();
 
                 if (entity->getLocked()) {
                     shouldDelete = false;
@@ -1768,10 +1749,6 @@ void EntityScriptingInterface::emitScriptEvent(const EntityItemID& entityID, con
             }
         });
     }
-}
-
-float EntityScriptingInterface::calculateCost(float mass, float oldVelocity, float newVelocity) {
-    return std::abs(mass * (newVelocity - oldVelocity));
 }
 
 // TODO move this someplace that makes more sense...
