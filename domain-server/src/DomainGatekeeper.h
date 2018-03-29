@@ -135,7 +135,7 @@ private:
     UUIDToLocalID _uuidToLocalID;
 
     Node::LocalID _currentLocalID;
-    quint16 _idIncrement;
+    Node::LocalID _idIncrement;
 };
 
 

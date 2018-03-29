@@ -136,7 +136,7 @@ Node::LocalID LimitedNodeList::getSessionLocalID() const {
 }
 
 void LimitedNodeList::setSessionLocalID(Node::LocalID sessionLocalID) {
-    QWriteLocker lock { &_sessionUUIDLock };    // Necessary?
+    QWriteLocker lock { &_sessionUUIDLock };
     _sessionLocalID = sessionLocalID;
 }
 

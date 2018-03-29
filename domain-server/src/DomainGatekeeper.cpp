@@ -1021,7 +1021,7 @@ void DomainGatekeeper::refreshGroupsCache() {
 void DomainGatekeeper::initLocalIDManagement() {
     std::uniform_int_distribution<quint16> sixteenBitRand;
     std::random_device randomDevice;
-    std::default_random_engine engine {randomDevice()};
+    std::default_random_engine engine { randomDevice() };
     _currentLocalID = sixteenBitRand(engine);
     // Ensure increment is odd.
     _idIncrement = sixteenBitRand(engine) | 1;

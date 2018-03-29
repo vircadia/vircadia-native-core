@@ -1159,7 +1159,7 @@ void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
 
 void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr &senderSockAddr) {
     const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID + 
-        NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID + 2;
+        NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID + 4;
 
     // setup the extended header for the domain list packets
     // this data is at the beginning of each of the domain list packets
