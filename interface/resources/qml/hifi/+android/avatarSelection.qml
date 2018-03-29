@@ -58,6 +58,10 @@ Item {
         width: parent ? parent.width : 0
         height: parent ? parent.height : 0
 
+        MouseArea {
+            anchors.fill: parent
+        }
+
         gradient: Gradient {
             GradientStop { position: 0.0; color: android.color.gradientTop }
             GradientStop { position: 1.0; color: android.color.gradientBottom }

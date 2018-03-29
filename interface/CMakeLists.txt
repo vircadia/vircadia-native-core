@@ -312,7 +312,7 @@ if (APPLE)
     COMPONENT ${CLIENT_COMPONENT}
   )
 
-  set(RESOURCES_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
+  set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
   set(RESOURCES_DEV_DIR "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources")
 
   # copy script files beside the executable
@@ -326,13 +326,14 @@ if (APPLE)
   fixup_interface()
 
 else()
-  set(RESOURCES_DEV_DIR "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources")
+  set(INTERFACE_EXEC_DIR "$<TARGET_FILE_DIR:${TARGET_NAME}>")
+  set(RESOURCES_DEV_DIR "${INTERFACE_EXEC_DIR}/resources")
 
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${RESOURCES_RCC}"
-      "$<TARGET_FILE_DIR:interface>"
+      "${INTERFACE_EXEC_DIR}"
     # FIXME, the edit script code loads HTML from the scripts folder
     # which in turn relies on CSS that refers to the fonts.  In theory
     # we should be able to modify the CSS to reference the QRC path to
@@ -340,13 +341,13 @@ else()
     # so we have to retain a copy of the fonts outside of the resources binary
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${PROJECT_SOURCE_DIR}/resources/fonts"
-      "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/fonts"
+      "${RESOURCES_DEV_DIR}/fonts"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_SOURCE_DIR}/scripts"
-      "${RESOURCES_DEV_DIR}/scripts"
+      "${INTERFACE_EXEC_DIR}/scripts"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/tutorial.json"
-      "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/serverless/tutorial.json"
+      "${RESOURCES_DEV_DIR}/serverless/tutorial.json"
   )
 
   # link target to external libraries
@@ -363,7 +364,7 @@ else()
       PATTERN "*.exp" EXCLUDE
     )
 
-    set(RESOURCES_INSTALL_DIR "${INTERFACE_INSTALL_DIR}")
+    set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_DIR}")
 
     set(EXECUTABLE_COMPONENT ${CLIENT_COMPONENT})
 
@@ -371,11 +372,11 @@ else()
   endif()
 endif()
 
-if (RESOURCES_INSTALL_DIR)
+if (SCRIPTS_INSTALL_DIR)
   # setup install of scripts beside interface executable
   install(
     DIRECTORY "${CMAKE_SOURCE_DIR}/scripts/"
-    DESTINATION ${RESOURCES_INSTALL_DIR}/scripts
+    DESTINATION ${SCRIPTS_INSTALL_DIR}/scripts
     COMPONENT ${CLIENT_COMPONENT}
   )
 endif()

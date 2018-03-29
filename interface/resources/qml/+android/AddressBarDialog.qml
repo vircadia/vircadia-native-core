@@ -67,6 +67,10 @@ Item {
             fill: parent
         }
 
+        MouseArea {
+            anchors.fill: parent
+        }
+
         QmlHifi.WindowHeader {
             id: header
             iconSource: "../../../icons/goto-i.svg"
