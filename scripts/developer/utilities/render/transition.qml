@@ -152,12 +152,7 @@ Rectangle {
                 spacing: 3
                 width: root_col.width
 
-                HifiControls.CheckBox {
-                    text: "Invert"
-                    boxSize: 20
-                    checked: root.config["isInverted"]
-                    onCheckedChanged: { root.config["isInverted"] = checked }
-                }
+
                 RowLayout {
                     Layout.fillWidth: true
 
@@ -219,16 +214,32 @@ Rectangle {
                     }
                 }
 
-
-                ConfigSlider {
+                RowLayout {
+                    spacing: 20
                     height: 36
-                    label: "Edge Width"
-                    integral: false
-                    config: root.config
-                    property: "edgeWidth"
-                    max: 1.0
-                    min: 0.0
+
+                    HifiControls.CheckBox {
+                        text: "Invert gradient"
+                        anchors.verticalCenter: parent.verticalCenter
+                        boxSize: 20
+                        checked: root.config["isInverted"]
+                        onCheckedChanged: { root.config["isInverted"] = checked }
+                    }
+                    ConfigSlider {
+                        anchors.left: undefined
+                        anchors.verticalCenter: parent.verticalCenter
+                        height: 36
+                        width: 300
+                        label: "Edge Width"
+                        integral: false
+                        config: root.config
+                        property: "edgeWidth"
+                        max: 1.0
+                        min: 0.0
+                    }
                 }
+
+
                 RowLayout {
                     Layout.fillWidth: true
 
