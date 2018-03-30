@@ -2,7 +2,7 @@ if (typeof Settings === "undefined") {
   Settings = {};
 }
 
-Object.assign(Settings, {
+$.extend(Settings, {
   DEPRECATED_CLASS: 'deprecated-setting',
   TRIGGER_CHANGE_CLASS: 'trigger-change',
   DATA_ROW_CLASS: 'value-row',

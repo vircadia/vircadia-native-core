@@ -48,11 +48,14 @@ Item {
     property bool hasPermissionToRezThis;
     property bool permissionExplanationCardVisible;
     property bool isInstalled;
+    property string upgradeUrl;
+    property string upgradeTitle;
+    property bool isShowingMyItems;
 
     property string originalStatusText;
     property string originalStatusColor;
 
-    height: 110;
+    height: (root.upgradeUrl === "" || root.isShowingMyItems) ? 110 : 150;
     width: parent.width;
 
     Connections {
@@ -136,6 +139,14 @@ Item {
         anchors.rightMargin: 16;
         anchors.verticalCenter: parent.verticalCenter;
         height: root.height - 10;
+
+    // START "incorrect indentation to prevent insane diffs"
+    Item {
+        id: itemContainer;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+        anchors.top: parent.top;
+        height: 100;
 
         Image {
             id: itemPreviewImage;
@@ -357,7 +368,7 @@ Item {
 
         Item {
             id: statusContainer;
-            visible: root.purchaseStatus === "pending" || root.purchaseStatus === "invalidated" || root.purchaseStatusChanged;
+            visible: root.purchaseStatus === "pending" || root.purchaseStatus === "invalidated" || root.purchaseStatusChanged || root.numberSold > -1;
             anchors.left: itemName.left;
             anchors.top: certificateContainer.bottom;
             anchors.topMargin: 8;
@@ -376,7 +387,7 @@ Item {
                             "PENDING..."
                         } else if (root.purchaseStatus === "invalidated") {
                             "INVALIDATED"
-                        } else if (root.numberSold !== -1) {
+                        } else if (root.numberSold > -1) {
                             ("Sales: " + root.numberSold + "/" + (root.limitedRun === -1 ? "\u221e" : root.limitedRun))
                         } else {
                             ""
@@ -631,6 +642,48 @@ Item {
                         horizontalAlignment: Text.AlignHCenter
                         text: MyAvatar.skeletonModelURL === root.itemHref ? "CURRENT" : (root.buttonTextNormal)[itemTypesArray.indexOf(root.itemType)];
                     }
+                }
+            }
+        }
+        }
+        // END "incorrect indentation to prevent insane diffs"
+
+        Rectangle {
+            id: upgradeAvailableContainer;
+            visible: root.upgradeUrl !== "" && !root.isShowingMyItems;
+            anchors.top: itemContainer.bottom;
+            anchors.bottom: parent.bottom;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            color: "#B5EAFF";
+
+            RalewayRegular {
+                id: updateAvailableText;
+                text: "UPDATE AVAILABLE";
+                size: 13;
+                anchors.left: parent.left;
+                anchors.leftMargin: 12;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                width: paintedWidth;
+                color: hifi.colors.black;
+                verticalAlignment: Text.AlignVCenter;
+            }
+
+            RalewaySemiBold {
+                id: updateNowText;
+                text: "<font color='#0093C5'><a href='#'>Update this item now</a></font>";
+                size: 13;
+                anchors.left: updateAvailableText.right;
+                anchors.leftMargin: 16;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                width: paintedWidth;
+                color: hifi.colors.black;
+                verticalAlignment: Text.AlignVCenter;
+
+                onLinkActivated: {
+                    sendToPurchases({method: 'updateItemClicked', itemId: root.itemId, itemEdition: root.itemEdition, upgradeUrl: root.upgradeUrl});
                 }
             }
         }

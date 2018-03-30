@@ -124,7 +124,7 @@ void WindowScriptingInterface::promptAsync(const QString& message, const QString
 }
 
 void WindowScriptingInterface::disconnectedFromDomain() {
-    emit domainChanged("");
+    emit domainChanged(QUrl());
 }
 
 QString fixupPathForMac(const QString& directory) {
