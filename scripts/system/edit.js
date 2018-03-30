@@ -1154,7 +1154,7 @@ function setupModelMenus() {
         menuItemName: MENU_CREATE_ENTITIES_GRABBABLE,
         afterItem: "Unparent Entity",
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE) !== false,
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, true),
         grouping: "Advanced"
     });
 
@@ -1163,7 +1163,7 @@ function setupModelMenus() {
         menuItemName: MENU_ALLOW_SELECTION_LARGE,
         afterItem: MENU_CREATE_ENTITIES_GRABBABLE,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE) !== false,
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE, true),
         grouping: "Advanced"
     });
     Menu.addMenuItem({
@@ -1171,7 +1171,7 @@ function setupModelMenus() {
         menuItemName: MENU_ALLOW_SELECTION_SMALL,
         afterItem: MENU_ALLOW_SELECTION_LARGE,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_SMALL) !== false,
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_SMALL, true),
         grouping: "Advanced"
     });
     Menu.addMenuItem({
@@ -1179,7 +1179,7 @@ function setupModelMenus() {
         menuItemName: MENU_ALLOW_SELECTION_LIGHTS,
         afterItem: MENU_ALLOW_SELECTION_SMALL,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LIGHTS),
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LIGHTS, false),
         grouping: "Advanced"
     });
     Menu.addMenuItem({
