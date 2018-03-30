@@ -21,7 +21,7 @@ function printd(str) {
 }
 
 var radar = false;
-var radarHeight = 10; // camera position meters above the avatar
+var radarHeight = MyAvatar.position.y + 10; // camera position (absolute y)
 var tablet;
 
 var RADAR_CAMERA_OFFSET = -1; // 1 meter below the avatar
@@ -46,11 +46,11 @@ var uniqueColor;
 function moveTo(position) {
     if (radar) {
         MyAvatar.position = position;
-        Camera.position = Vec3.sum(MyAvatar.position, {
-            x : 0,
+        Camera.position = {
+            x : MyAvatar.position.x,
             y : radarHeight,
-            z : 0
-        });
+            z : MyAvatar.position.z
+        };
     }
 }
 
@@ -386,12 +386,12 @@ function pinchUpdate(event) {
             radarHeight -= pinchIncrement;
         }
     }
-    var deltaHeight = avatarY + radarHeight - Camera.position.y;
-    Camera.position = Vec3.sum(Camera.position, {
-        x : 0,
-        y : deltaHeight,
-        z : 0
-    });
+    Camera.position = { 
+        x: Camera.position.x, 
+        y:radarHeight, 
+        z:Camera.position.z 
+    };
+
     if (!draggingCamera) {
         startedDraggingCamera = true;
         draggingCamera = true;
@@ -401,7 +401,8 @@ function pinchUpdate(event) {
 }
 
 function isInsideSquare(coords0, coords1, halfside) {
-    return Math.abs(coords0.x - coords1.x) <= halfside
+    return coords0 != undefined && coords1!= undefined &&
+            Math.abs(coords0.x - coords1.x) <= halfside
             && Math.abs(coords0.y - coords1.y) <= halfside;
 }
 
@@ -412,7 +413,7 @@ function dragScrollUpdate(event) {
     // drag management
     var pickRay = Camera.computePickRay(event.x, event.y);
     var dragAt = Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction,
-            radarHeight));
+            radarHeight-MyAvatar.position.y));
 
     if (lastDragAt === undefined || lastDragAt === null) {
         lastDragAt = dragAt;
@@ -722,7 +723,7 @@ function Teleporter() {
     return {
         dragTeleportBegin : function(event) {
             printd("[newTeleport] TELEPORT began");
-            var overlayDimensions = entityIconModelDimensions();
+            var overlayDimensions = entityIconModelDimensions(MyAvatar.position.y);
             // var destination = computeDestination(event, MyAvatar.position,
             // Camera.position, radarHeight);
             // Dimension teleport and cancel overlays (not show them yet)
@@ -843,7 +844,7 @@ var avatarIconDimensionsVal = {
 };
 function avatarIconPlaneDimensions() {
     // given the current height, give a size
-    var xy = -0.003531 * radarHeight + 0.1;
+    var xy = -0.003531 * (radarHeight - MyAvatar.position.y) + 0.1;
     avatarIconDimensionsVal.x = Math.abs(xy);
     avatarIconDimensionsVal.y = Math.abs(xy);
     // reuse object
@@ -1165,9 +1166,10 @@ var entityIconModelDimensionsVal = {
     y : 0.00001,
     z : 0
 };
-function entityIconModelDimensions() {
+function entityIconModelDimensions(y) {
     // given the current height, give a size
-    var xz = -0.002831 * radarHeight + 0.1;
+    // TODO: receive entity.position.y and substract to radarHeight
+    var xz = -0.002831 * (radarHeight - y) + 0.1;
     entityIconModelDimensionsVal.x = xz;
     entityIconModelDimensionsVal.z = xz;
     // reuse object
@@ -1177,8 +1179,8 @@ function entityIconModelDimensions() {
  * entityIconPlaneDimensions: similar to entityIconModelDimensions but using xy
  * plane
  */
-function entityIconPlaneDimensions() {
-    var dim = entityIconModelDimensions();
+function entityIconPlaneDimensions(y) {
+    var dim = entityIconModelDimensions(y);
     var z = dim.z;
     dim.z = dim.y;
     dim.y = z;
@@ -1255,15 +1257,15 @@ function hideAllEntitiesIcons() {
 function renderAllEntitiesIcons() {
     var entityPos;
     var entityProps;
-    var iconDimensions = entityIconModelDimensions();
-    var planeDimensions = entityIconPlaneDimensions(); // plane overlays uses
-                                                        // xy instead of xz
+
     for ( var QUuid in entitiesData) {
         if (entitiesData.hasOwnProperty(QUuid)) {
             entityProps = Entities.getEntityProperties(QUuid, [ "position",
                     "visible" ]);
             if (entityProps != null) {
                 entityPos = entityProps.position;
+                var planeDimensions = entityIconPlaneDimensions(entityPos.y);  // plane overlays uses
+                                                                    // xy instead of xz
                 if (entitiesData[QUuid].icon != undefined && entityPos) {
                     var iconPos = findLineToHeightIntersectionCoords(
                             entityPos.x,
@@ -1276,6 +1278,7 @@ function renderAllEntitiesIcons() {
                         printd("entity icon pos bad for " + QUuid);
                         continue;
                     }
+                    var iconDimensions = entityIconModelDimensions(entityPos.y);
                     var dimensions = entitiesData[QUuid].planar ? planeDimensions
                             : iconDimensions;
                     Overlays.editOverlay(entitiesData[QUuid].icon, {
