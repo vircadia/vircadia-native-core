@@ -475,7 +475,7 @@ Script.include("/~/system/libraries/Xform.js");
                         entityID = targetEntity.id;
                         targetProps = targetEntity.props;
 
-                        if (entityIsGrabbable(targetProps)) {
+                        if (entityIsGrabbable(targetProps) || entityIsGrabbable(this.targetObject.entityProps)) {
                             if (!entityIsDistanceGrabbable(targetProps)) {
                                 this.targetObject.makeDynamic();
                             }
