@@ -219,7 +219,29 @@ bool Procedural::isReady() const {
     return true;
 }
 
-void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation) {
+std::string Procedural::replaceProceduralBlock(const std::string& fragmentSource) {
+    std::string fragmentShaderSource = fragmentSource;
+    size_t replaceIndex = fragmentShaderSource.find(PROCEDURAL_COMMON_BLOCK);
+    if (replaceIndex != std::string::npos) {
+        fragmentShaderSource.replace(replaceIndex, PROCEDURAL_COMMON_BLOCK.size(), ProceduralCommon_frag::getSource());
+    }
+
+    replaceIndex = fragmentShaderSource.find(PROCEDURAL_VERSION);
+    if (replaceIndex != std::string::npos) {
+        if (_data.version == 1) {
+            fragmentShaderSource.replace(replaceIndex, PROCEDURAL_VERSION.size(), "#define PROCEDURAL_V1 1");
+        } else if (_data.version == 2) {
+            fragmentShaderSource.replace(replaceIndex, PROCEDURAL_VERSION.size(), "#define PROCEDURAL_V2 1");
+        }
+    }
+    replaceIndex = fragmentShaderSource.find(PROCEDURAL_BLOCK);
+    if (replaceIndex != std::string::npos) {
+        fragmentShaderSource.replace(replaceIndex, PROCEDURAL_BLOCK.size(), _shaderSource.toLocal8Bit().data());
+    }
+    return fragmentShaderSource;
+}
+
+void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation, const glm::vec4& color) {
     _entityDimensions = size;
     _entityPosition = position;
     _entityOrientation = glm::mat3_cast(orientation);
@@ -242,49 +264,36 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         }
 
         // Build the fragment shader
-        std::string fragmentShaderSource = _fragmentSource;
-        size_t replaceIndex = fragmentShaderSource.find(PROCEDURAL_COMMON_BLOCK);
-        if (replaceIndex != std::string::npos) {
-            fragmentShaderSource.replace(replaceIndex, PROCEDURAL_COMMON_BLOCK.size(), ProceduralCommon_frag::getSource());
-        }
-
-        replaceIndex = fragmentShaderSource.find(PROCEDURAL_VERSION);
-        if (replaceIndex != std::string::npos) {
-            if (_data.version == 1) {
-                fragmentShaderSource.replace(replaceIndex, PROCEDURAL_VERSION.size(), "#define PROCEDURAL_V1 1");
-            } else if (_data.version == 2) {
-                fragmentShaderSource.replace(replaceIndex, PROCEDURAL_VERSION.size(), "#define PROCEDURAL_V2 1");
-            }
-        }
-        replaceIndex = fragmentShaderSource.find(PROCEDURAL_BLOCK);
-        if (replaceIndex != std::string::npos) {
-            fragmentShaderSource.replace(replaceIndex, PROCEDURAL_BLOCK.size(), _shaderSource.toLocal8Bit().data());
-        }
+        std::string opaqueShaderSource = replaceProceduralBlock(_opaquefragmentSource);
+        std::string transparentShaderSource = replaceProceduralBlock(_transparentfragmentSource);
 
         // Leave this here for debugging
         // qCDebug(procedural) << "FragmentShader:\n" << fragmentShaderSource.c_str();
 
-        _fragmentShader = gpu::Shader::createPixel(fragmentShaderSource);
-        _shader = gpu::Shader::createProgram(_vertexShader, _fragmentShader);
+        _opaqueFragmentShader = gpu::Shader::createPixel(opaqueShaderSource);
+        _opaqueShader = gpu::Shader::createProgram(_vertexShader, _opaqueFragmentShader);
+        _transparentFragmentShader = gpu::Shader::createPixel(transparentShaderSource);
+        _transparentShader = gpu::Shader::createProgram(_vertexShader, _transparentFragmentShader);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("iChannel0"), 0));
         slotBindings.insert(gpu::Shader::Binding(std::string("iChannel1"), 1));
         slotBindings.insert(gpu::Shader::Binding(std::string("iChannel2"), 2));
         slotBindings.insert(gpu::Shader::Binding(std::string("iChannel3"), 3));
-        gpu::Shader::makeProgram(*_shader, slotBindings);
+        gpu::Shader::makeProgram(*_opaqueShader, slotBindings);
+        gpu::Shader::makeProgram(*_transparentShader, slotBindings);
 
-        _opaquePipeline = gpu::Pipeline::create(_shader, _opaqueState);
-        _transparentPipeline = gpu::Pipeline::create(_shader, _transparentState);
+        _opaquePipeline = gpu::Pipeline::create(_opaqueShader, _opaqueState);
+        _transparentPipeline = gpu::Pipeline::create(_transparentShader, _transparentState);
         for (size_t i = 0; i < NUM_STANDARD_UNIFORMS; ++i) {
             const std::string& name = STANDARD_UNIFORM_NAMES[i];
-            _standardUniformSlots[i] = _shader->getUniforms().findLocation(name);
+            _standardUniformSlots[i] = _opaqueShader->getUniforms().findLocation(name);
         }
         _start = usecTimestampNow();
         _frameCount = 0;
     }
 
-    batch.setPipeline(isFading() ? _transparentPipeline : _opaquePipeline);
+    batch.setPipeline(color.a < 1.0f ? _transparentPipeline : _opaquePipeline);
 
     if (_shaderDirty || _uniformsDirty) {
         setupUniforms();
@@ -324,7 +333,7 @@ void Procedural::setupUniforms() {
     // Set any userdata specified uniforms 
     foreach(QString key, _data.uniforms.keys()) {
         std::string uniformName = key.toLocal8Bit().data();
-        int32_t slot = _shader->getUniforms().findLocation(uniformName);
+        int32_t slot = _opaqueShader->getUniforms().findLocation(uniformName);
         if (gpu::Shader::INVALID_LOCATION == slot) {
             continue;
         }

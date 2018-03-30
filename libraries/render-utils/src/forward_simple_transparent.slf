@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  simple.frag
+//  forward_simple_transparent.frag
 //  fragment shader
 //
 //  Created by Andrzej Kapolka on 9/15/14.
@@ -11,15 +11,22 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+<@include DefaultMaterials.slh@>
 
-<@include DeferredBufferWrite.slh@>
+<@include ForwardGlobalLight.slh@>
+<$declareEvalGlobalLightingAlphaBlended()$>
+
+<@include gpu/Transform.slh@>
+<$declareStandardCameraTransform()$>
 
 // the interpolated normal
 in vec3 _normal;
 in vec3 _modelNormal;
 in vec4 _color;
 in vec2 _texCoord0;
-in vec4 _position;
+in vec4 _eyePosition;
+
+layout(location = 0) out vec4 _fragColor0;
 
 //PROCEDURAL_COMMON_BLOCK
 
@@ -47,24 +54,34 @@ void main(void) {
 
 #endif
 
+    TransformCamera cam = getTransformCamera();
+    vec3 fragPosition = _eyePosition.xyz;
+
     if (emissiveAmount > 0.0) {
-        packDeferredFragmentLightmap(
-            normal,
+        _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
+            cam._viewInverse,
             1.0,
-            diffuse,
-            max(0.0, 1.0 - shininess / 128.0),
-            DEFAULT_METALLIC,
-            specular,
-            vec3(clamp(emissiveAmount, 0.0, 1.0)));
-    } else {
-        packDeferredFragment(
-            normal,
-            1.0,
-            diffuse,
-            max(0.0, 1.0 - shininess / 128.0),
-            length(specular),
-            DEFAULT_EMISSIVE,
             DEFAULT_OCCLUSION,
-            DEFAULT_SCATTERING);
+            fragPosition,
+            normal,
+            specular,
+            DEFAULT_FRESNEL,
+            DEFAULT_METALLIC,
+            DEFAULT_EMISSIVE,
+            DEFAULT_ROUGHNESS, _color.a),
+            _color.a);
+    } else {
+        _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
+            cam._viewInverse,
+            1.0,
+            DEFAULT_OCCLUSION,
+            fragPosition,
+            normal,
+            diffuse,
+            DEFAULT_FRESNEL,
+            DEFAULT_METALLIC,
+            DEFAULT_EMISSIVE,
+            DEFAULT_ROUGHNESS, _color.a),
+            _color.a);
     }
 }
