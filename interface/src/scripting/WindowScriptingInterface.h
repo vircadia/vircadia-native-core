@@ -70,7 +70,14 @@ public slots:
 
     /**jsdoc
      * Raise the Interface window if it is minimized. If raised, the window gains focus.
+     * @function Window.raise
+     */
+    void raise();
+
+    /**jsdoc
+     * Raise the Interface window if it is minimized. If raised, the window gains focus.
      * @function Window.raiseMainWindow
+     * @deprecated Use {@link Window.raise|raise} instead.
      */
     void raiseMainWindow();
 
