@@ -64,7 +64,8 @@ Rectangle {
 
             HifiControls.ComboBox {
                 anchors.verticalCenter: parent.verticalCenter
-                Layout.fillWidth: true
+                anchors.left : parent.left
+                width: 300
                 id: categoryBox
                 model: ["Elements enter/leave domain", "Bubble isect. - Owner POV", "Bubble isect. - Trespasser POV", "Another user leaves/arrives", "Changing an avatar"]
                 Timer {
