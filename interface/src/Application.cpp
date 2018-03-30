@@ -353,7 +353,7 @@ static const QString WEB_VIEW_TAG = "noDownload=true";
 static const QString ZIP_EXTENSION = ".zip";
 static const QString CONTENT_ZIP_EXTENSION = ".content.zip";
 
-static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
+static const float MIRROR_FULLSCREEN_DISTANCE = 0.789f;
 
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
@@ -941,7 +941,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
     _preferredCursor("preferredCursor", DEFAULT_CURSOR_NAME),
     _scaleMirror(1.0f),
-    _rotateMirror(0.0f),
+    _mirrorYawOffset(0.0f),
     _raiseMirror(0.0f),
     _enableProcessOctreeThread(true),
     _lastNackTime(usecTimestampNow()),
@@ -958,8 +958,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
-
-    _entityClipboard->setIsServerlessMode(true);
 
     {
         const QString TEST_SCRIPT = "--testScript";
@@ -2813,8 +2811,9 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
     }
     else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _thirdPersonHMDCameraBoomValid= false;
+
         if (isHMDMode()) {
-            auto mirrorBodyOrientation = myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
+            auto mirrorBodyOrientation = myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _mirrorYawOffset, 0.0f));
 
             glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
             // Mirror HMD yaw and roll
@@ -2837,12 +2836,15 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
                 + mirrorBodyOrientation * hmdOffset);
         }
         else {
-            _myCamera.setOrientation(myAvatar->getWorldOrientation()
-                * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            const float YAW_SPEED = TWO_PI / 5.0f;
+            float deltaYaw = userInputMapper->getActionState(controller::Action::YAW) * YAW_SPEED * deltaTime;
+            _mirrorYawOffset += deltaYaw;
+            _myCamera.setOrientation(myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _mirrorYawOffset, 0.0f)));
             _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                 + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
-                + (myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+                + (myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, _mirrorYawOffset, 0.0f))) *
+                glm::vec3(0.0f, 0.0f, -1.0f) * myAvatar->getBoomLength() * _scaleMirror);
         }
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
@@ -3403,8 +3405,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     } else {
                         setFullscreen(nullptr);
                     }
-                } else {
-                    Menu::getInstance()->triggerOption(MenuOption::AddressBar);
                 }
                 break;
 
@@ -3466,13 +3466,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_F: {
-                if (isOption) {
-                    _physicsEngine->dumpNextStats();
-                }
-                break;
-            }
-
             case Qt::Key_Asterisk:
                 Menu::getInstance()->triggerOption(MenuOption::DefaultSkybox);
                 break;
@@ -3492,21 +3485,24 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_S:
                 if (isShifted && isMeta && !isOption) {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
-                } else if (!isOption && !isShifted && isMeta) {
-                    AudioInjectorOptions options;
-                    options.localOnly = true;
-                    options.stereo = true;
-
-                    if (_snapshotSoundInjector) {
-                        _snapshotSoundInjector->setOptions(options);
-                        _snapshotSoundInjector->restart();
-                    } else {
-                        QByteArray samples = _snapshotSound->getByteArray();
-                        _snapshotSoundInjector = AudioInjector::playSound(samples, options);
-                    }
-                    takeSnapshot(true);
                 }
                 break;
+
+            case Qt::Key_P: {
+                AudioInjectorOptions options;
+                options.localOnly = true;
+                options.stereo = true;
+
+                if (_snapshotSoundInjector) {
+                    _snapshotSoundInjector->setOptions(options);
+                    _snapshotSoundInjector->restart();
+                } else {
+                    QByteArray samples = _snapshotSound->getByteArray();
+                    _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+                }
+                takeSnapshot(true);
+                break;
+            }
 
             case Qt::Key_Apostrophe: {
                 if (isMeta) {
@@ -3529,38 +3525,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Backslash:
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
-                break;
-
-            case Qt::Key_Up:
-                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    if (!isShifted) {
-                        _scaleMirror *= 0.95f;
-                    } else {
-                        _raiseMirror += 0.05f;
-                    }
-                }
-                break;
-
-            case Qt::Key_Down:
-                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    if (!isShifted) {
-                        _scaleMirror *= 1.05f;
-                    } else {
-                        _raiseMirror -= 0.05f;
-                    }
-                }
-                break;
-
-            case Qt::Key_Left:
-                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _rotateMirror += PI / 20.0f;
-                }
-                break;
-
-            case Qt::Key_Right:
-                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _rotateMirror -= PI / 20.0f;
-                }
                 break;
 
 #if 0
@@ -4932,8 +4896,10 @@ void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
         if (!isHMDMode() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
+            _mirrorYawOffset = 0.0f;
             _myCamera.setMode(CAMERA_MODE_MIRROR);
             getMyAvatar()->reset(false, false, false); // to reset any active MyAvatar::FollowHelpers
+            getMyAvatar()->setBoomLength(MyAvatar::ZOOM_DEFAULT);
         }
     } else if (menu->isOptionChecked(MenuOption::FirstPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
@@ -5213,7 +5179,7 @@ void Application::update(float deltaTime) {
         // FIXME can we drop drive keys and just have the avatar read the action states directly?
         myAvatar->clearDriveKeys();
         if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
-            if (!_controllerScriptingInterface->areActionsCaptured()) {
+            if (!_controllerScriptingInterface->areActionsCaptured() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_Z, -1.0f * userInputMapper->getActionState(controller::Action::TRANSLATE_Z));
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_X, userInputMapper->getActionState(controller::Action::TRANSLATE_X));
@@ -5226,6 +5192,7 @@ void Application::update(float deltaTime) {
             myAvatar->setDriveKey(MyAvatar::ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
         }
 
+        myAvatar->setSprintMode((bool)userInputMapper->getActionState(controller::Action::SPRINT));
         static const std::vector<controller::Action> avatarControllerActions = {
             controller::Action::LEFT_HAND,
             controller::Action::RIGHT_HAND,
@@ -7491,7 +7458,7 @@ DisplayPluginPointer Application::getActiveDisplayPlugin() const {
         return _displayPlugin;
     }
 
-    if (!_displayPlugin) {
+    if (!_aboutToQuit && !_displayPlugin) {
         const_cast<Application*>(this)->updateDisplayMode();
         Q_ASSERT(_displayPlugin);
     }
