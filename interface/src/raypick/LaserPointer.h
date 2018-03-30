@@ -103,7 +103,7 @@ private:
     LockEndObject _lockEndObject;
 
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
-    void updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay, bool defaultState);
+    void updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay);
     void disableRenderState(const RenderState& renderState);
 
     struct TriggerState {
