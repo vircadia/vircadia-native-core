@@ -550,7 +550,7 @@ void EntityMotionState::sendBid(OctreeEditPacketSender* packetSender, uint32_t s
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step) {
     DETAILED_PROFILE_RANGE(simulation_physics, "Send");
     assert(entityTreeIsLocked());
-    assert(_entity->isLocallyOwned());
+    assert(isLocallyOwned());
 
     if (!_body->isActive()) {
         // make sure all derivatives are zero
