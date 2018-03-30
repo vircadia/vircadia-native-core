@@ -254,8 +254,7 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveOverlay(const OverlayID&
 
 void ContextOverlayInterface::contextOverlays_hoverEnterEntity(const EntityItemID& entityID, const PointerEvent& event) {
     bool isMouse = event.getID() == PointerManager::MOUSE_POINTER_ID || DependencyManager::get<PointerManager>()->isMouse(event.getID());
-    if (_currentEntityWithContextOverlay == entityID && contextOverlayFilterPassed(entityID)
-        && _enabled && !isMouse) {
+    if (contextOverlayFilterPassed(entityID) && _enabled && !isMouse) {
         enableEntityHighlight(entityID);
     }
 }

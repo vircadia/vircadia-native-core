@@ -81,6 +81,50 @@ void LaserPointer::editRenderState(const std::string& state, const QVariant& sta
     });
 }
 
+PickResultPointer LaserPointer::getVisualPickResult(const PickResultPointer& pickResult) {
+    PickResultPointer visualPickResult = pickResult;
+    auto rayPickResult = std::static_pointer_cast<RayPickResult>(visualPickResult);
+    IntersectionType type = rayPickResult ? rayPickResult->type : IntersectionType::NONE;
+
+    if (type != IntersectionType::HUD) {
+        if (!_lockEndObject.id.isNull()) {
+            PickRay pickRay = rayPickResult ? PickRay(rayPickResult->pickVariant) : PickRay();
+            glm::vec3 endVec;
+            glm::vec3 pos;
+            glm::quat rot;
+            glm::vec3 dim;
+            glm::vec3 registrationPoint;
+            if (_lockEndObject.isOverlay) {
+                pos = vec3FromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "position").value);
+                rot = quatFromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "rotation").value);
+                dim = vec3FromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "dimensions").value);
+                registrationPoint = glm::vec3(0.5f);
+            } else {
+                EntityItemProperties props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(_lockEndObject.id);
+                glm::mat4 entityMat = createMatFromQuatAndPos(props.getRotation(), props.getPosition());
+                glm::mat4 finalPosAndRotMat = entityMat * _lockEndObject.offsetMat;
+                pos = extractTranslation(finalPosAndRotMat);
+                rot = glmExtractRotation(finalPosAndRotMat);
+                dim = props.getDimensions();
+                registrationPoint = props.getRegistrationPoint();
+            }
+            const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f);
+            endVec = pos + rot * (dim * (DEFAULT_REGISTRATION_POINT - registrationPoint));
+            glm::vec3 direction = endVec - pickRay.origin;
+            float distance = glm::distance(pickRay.origin, endVec);
+            glm::vec3 normalizedDirection = glm::normalize(direction);
+
+            rayPickResult->type = _lockEndObject.isOverlay ? IntersectionType::OVERLAY : IntersectionType::ENTITY;
+            rayPickResult->objectID = _lockEndObject.id;
+            rayPickResult->intersection = endVec;
+            rayPickResult->distance = distance;
+            rayPickResult->surfaceNormal = -normalizedDirection;
+            rayPickResult->pickVariant["direction"] = vec3toVariant(normalizedDirection);
+        }
+    }
+    return visualPickResult;
+}
+
 void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant& props) {
     if (!id.isNull() && props.isValid()) {
         QVariantMap propMap = props.toMap();
@@ -102,26 +146,7 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         endVec = pickRay.origin + pickRay.direction * distance;
     } else {
         if (!_lockEndObject.id.isNull()) {
-            glm::vec3 pos;
-            glm::quat rot;
-            glm::vec3 dim;
-            glm::vec3 registrationPoint;
-            if (_lockEndObject.isOverlay) {
-                pos = vec3FromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "position").value);
-                rot = quatFromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "rotation").value);
-                dim = vec3FromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "dimensions").value);
-                registrationPoint = glm::vec3(0.5f);
-            } else {
-                EntityItemProperties props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(_lockEndObject.id);
-                glm::mat4 entityMat = createMatFromQuatAndPos(props.getRotation(), props.getPosition());
-                glm::mat4 finalPosAndRotMat = entityMat * _lockEndObject.offsetMat;
-                pos = extractTranslation(finalPosAndRotMat);
-                rot = glmExtractRotation(finalPosAndRotMat);
-                dim = props.getDimensions();
-                registrationPoint = props.getRegistrationPoint();
-            }
-            const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f);
-            endVec = pos + rot * (dim * (DEFAULT_REGISTRATION_POINT - registrationPoint));
+            endVec = pickRay.origin + pickRay.direction * distance;
         } else {
             if (type == IntersectionType::ENTITY) {
                 endVec = DependencyManager::get<EntityScriptingInterface>()->getEntityTransform(objectID)[3];
@@ -132,7 +157,6 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
             }
         }
     }
-    
     QVariant end = vec3toVariant(endVec);
     if (!renderState.getPathID().isNull()) {
         QVariantMap pathProps;
@@ -195,7 +219,7 @@ void LaserPointer::updateVisuals(const PickResultPointer& pickResult) {
     IntersectionType type = rayPickResult ? rayPickResult->type : IntersectionType::NONE;
     if (_enabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
             (type != IntersectionType::NONE || _laserLength > 0.0f || !_lockEndObject.id.isNull())) {
-        PickRay pickRay(rayPickResult->pickVariant);
+        PickRay pickRay = rayPickResult ? PickRay(rayPickResult->pickVariant): PickRay();
         QUuid uid = rayPickResult->objectID;
         float distance = _laserLength > 0.0f ? _laserLength : rayPickResult->distance;
         updateRenderState(_renderStates[_currentRenderState], type, distance, uid, pickRay, false);
