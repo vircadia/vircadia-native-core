@@ -489,7 +489,7 @@ void EntityServer::startDynamicDomainVerification() {
 
                     if (networkReply->error() == QNetworkReply::NoError) {
                         if (jsonObject["domain_id"].toString() != thisDomainID) {
-                            if (entity->getCreatedAgo() > (_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS/MSECS_PER_SECOND)) {
+                            if (entity->getAge() > (_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS/MSECS_PER_SECOND)) {
                                 qCDebug(entities) << "Entity's cert's domain ID" << jsonObject["domain_id"].toString()
                                     << "doesn't match the current Domain ID" << thisDomainID << "; deleting entity" << i.value();
                                 tree->deleteEntity(i.value(), true);
