@@ -453,10 +453,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     return remoteSimulationOutOfSync(simulationStep);
 }
 
-void EntityMotionState::sendBid(OctreeEditPacketSender* packetSender, uint32_t step) {
-    DETAILED_PROFILE_RANGE(simulation_physics, "Bid");
-    assert(entityTreeIsLocked());
-
+void EntityMotionState::updateSendVelocities() {
     if (!_body->isActive()) {
         // make sure all derivatives are zero
         clearObjectVelocities();
@@ -491,6 +488,13 @@ void EntityMotionState::sendBid(OctreeEditPacketSender* packetSender, uint32_t s
         }
         _numInactiveUpdates = 0;
     }
+}
+
+void EntityMotionState::sendBid(OctreeEditPacketSender* packetSender, uint32_t step) {
+    DETAILED_PROFILE_RANGE(simulation_physics, "Bid");
+    assert(entityTreeIsLocked());
+
+    updateSendVelocities();
 
     EntityItemProperties properties;
     Transform localTransform;
@@ -552,40 +556,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     assert(entityTreeIsLocked());
     assert(isLocallyOwned());
 
-    if (!_body->isActive()) {
-        // make sure all derivatives are zero
-        clearObjectVelocities();
-        _numInactiveUpdates++;
-    } else {
-        glm::vec3 gravity = _entity->getGravity();
-
-        // if this entity has been accelerated at close to gravity for a certain number of simulation-steps, let
-        // the entity server's estimates include gravity.
-        const uint8_t STEPS_TO_DECIDE_BALLISTIC = 4;
-        if (_accelerationNearlyGravityCount >= STEPS_TO_DECIDE_BALLISTIC) {
-            _entity->setAcceleration(gravity);
-        } else {
-            _entity->setAcceleration(Vectors::ZERO);
-        }
-
-        if (!_body->isStaticOrKinematicObject()) {
-            const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
-            const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
-
-            bool movingSlowlyLinear =
-                glm::length2(_entity->getWorldVelocity()) < (DYNAMIC_LINEAR_VELOCITY_THRESHOLD * DYNAMIC_LINEAR_VELOCITY_THRESHOLD);
-            bool movingSlowlyAngular = glm::length2(_entity->getWorldAngularVelocity()) <
-                    (DYNAMIC_ANGULAR_VELOCITY_THRESHOLD * DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
-            bool movingSlowly = movingSlowlyLinear && movingSlowlyAngular && _entity->getAcceleration() == Vectors::ZERO;
-
-            if (movingSlowly) {
-                // velocities might not be zero, but we'll fake them as such, which will hopefully help convince
-                // other simulating observers to deactivate their own copies
-                clearObjectVelocities();
-            }
-        }
-        _numInactiveUpdates = 0;
-    }
+    updateSendVelocities();
 
     // remember _serverFoo data for local prediction of server state
     Transform localTransform;

@@ -92,6 +92,7 @@ public:
     OwnershipState getOwnershipState() const { return _ownershipState; }
 
 protected:
+    void updateSendVelocities();
     uint64_t getNextBidExpiry() const { return _nextBidExpiry; }
     void initForBid();
     void initForOwned();
