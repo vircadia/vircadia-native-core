@@ -36,7 +36,6 @@ signals:
     void backEnabledChanged();
     void forwardEnabledChanged();
     void useFeedChanged();
-    void receivedHifiSchemeURL(const QString& url);
     void hostChanged();
 
 protected:

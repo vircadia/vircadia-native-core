@@ -45,7 +45,6 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &AddressBarDialog::hostChanged);
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &AddressBarDialog::hostChanged);
     connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::setUseFeed, this, &AddressBarDialog::setUseFeed);
-    connect(qApp, &Application::receivedHifiSchemeURL, this, &AddressBarDialog::receivedHifiSchemeURL);
 }
 
 void AddressBarDialog::loadAddress(const QString& address, bool fromSuggestions) {

@@ -56,6 +56,8 @@ public:
     bool isLoaded() { return _isLoaded; }
     bool getVisible() const { return _visible; }
     virtual bool isTransparent() { return getAlphaPulse() != 0.0f || getAlpha() != 1.0f; };
+    virtual bool getIsVisibleInSecondaryCamera() const { return false; }
+
     xColor getColor();
     float getAlpha();
 

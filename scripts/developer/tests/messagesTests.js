@@ -5,7 +5,7 @@ Messages.subscribe(channelName);
 
 //messageReceived(QString channel, QString message, QUuid senderUUID, bool localOnly);
 Messages.messageReceived.connect(function(channel, message, sender, local) {
-    print("message recieved on ", channel, " message:", message, " from:", sender, " local:", local);
+    print("message received on ", channel, " message:", message, " from:", sender, " local:", local);
 });
 
 Messages.dataReceived.connect(function(channel, data, sender, local) {
@@ -17,7 +17,7 @@ Messages.dataReceived.connect(function(channel, data, sender, local) {
         }
         dataAsString += int8data[i];
     }
-    print("data recieved on ", channel, " from:", sender, " local:", local, "length of data:", int8data.length, " data:", dataAsString);
+    print("data received on ", channel, " from:", sender, " local:", local, "length of data:", int8data.length, " data:", dataAsString);
 });
 
 var counter = 0;

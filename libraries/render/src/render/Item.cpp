@@ -118,9 +118,15 @@ uint32_t Item::fetchMetaSubItemBounds(ItemBounds& subItemBounds, Scene& scene) c
     auto numSubs = fetchMetaSubItems(subItems);
 
     for (auto id : subItems) {
-        auto& item = scene.getItem(id);
-        if (item.exist()) {
-            subItemBounds.emplace_back(id, item.getBound());
+        // TODO: Adding an extra check here even thought we shouldn't have too.
+        // We have cases when the id returned by fetchMetaSubItems is not allocated
+        if (scene.isAllocatedID(id)) {
+            auto& item = scene.getItem(id);
+            if (item.exist()) {
+                subItemBounds.emplace_back(id, item.getBound());
+            } else {
+                numSubs--;
+            }
         } else {
             numSubs--;
         }

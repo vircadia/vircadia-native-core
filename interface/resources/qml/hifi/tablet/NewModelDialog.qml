@@ -71,6 +71,14 @@ Rectangle {
             onAccepted: {
                 newModelDialog.keyboardEnabled = false;
             }
+
+            onTextChanged : {
+                if (modelURL.text.length === 0){
+                    button1.enabled = false;
+                } else {
+                    button1.enabled = true;
+                }
+            }
             
             MouseArea {
                 anchors.fill: parent
@@ -200,6 +208,7 @@ Rectangle {
                         id: button1
                         text: qsTr("Add")
                         z: -1
+                        enabled: false
                         onClicked: {
                             newModelDialog.sendToScript({
                                 method: "newModelDialogAdd",

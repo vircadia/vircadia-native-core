@@ -22,8 +22,6 @@
 
 #include "AccountManager.h"
 
-const QString HIFI_URL_SCHEME = "hifi";
-
 extern const QString DEFAULT_HIFI_ADDRESS;
 
 const QString SANDBOX_HIFI_ADDRESS = "hifi://localhost";
@@ -147,7 +145,7 @@ public:
     };
 
     bool isConnected();
-    const QString& getProtocol() { return HIFI_URL_SCHEME; };
+    const QString& getProtocol() { return URL_SCHEME_HIFI; };
 
     QUrl currentAddress(bool domainOnly = false) const;
     QUrl currentFacingAddress() const;
@@ -157,10 +155,10 @@ public:
     QString currentFacingPath() const;
 
     const QUuid& getRootPlaceID() const { return _rootPlaceID; }
-    const QString& getPlaceName() const { return _shareablePlaceName.isEmpty() ? _placeName : _shareablePlaceName; }
+    QString getPlaceName() const;
     QString getDomainID() const;
 
-    const QString& getHost() const { return _host; }
+    QString getHost() const;
 
     void setPositionGetter(PositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(OrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
@@ -169,6 +167,8 @@ public:
 
     const QStack<QUrl>& getBackStack() const { return _backStack; }
     const QStack<QUrl>& getForwardStack() const { return _forwardStack; }
+
+    QUrl getDomainURL() { return _domainURL; }
 
 public slots:
     /**jsdoc
@@ -302,13 +302,12 @@ signals:
     /**jsdoc
      * Triggered when a request is made to go to an IP address.
      * @function location.possibleDomainChangeRequired
-     * @param {string} hostName - The name of the domain to go do.
-     * @param {number} port - The integer number of the network port to connect to.
+     * @param {Url} domainURL - URL for domain
      * @param {Uuid} domainID - The UUID of the domain to go to.
      * @returns {Signal}
      */
     // No example because this function isn't typically used in scripts.
-    void possibleDomainChangeRequired(const QString& newHostname, quint16 newPort, const QUuid& domainID);
+    void possibleDomainChangeRequired(QUrl domainURL, QUuid domainID);
 
     /**jsdoc
      * Triggered when a request is made to go to a named domain or user.
@@ -360,7 +359,7 @@ signals:
      * location.pathChangeRequired.connect(onPathChangeRequired);
      */
     void pathChangeRequired(const QString& newPath);
-    
+
     /**jsdoc
      * Triggered when you navigate to a new domain.
      * @function location.hostChanged
@@ -392,7 +391,7 @@ signals:
     void goBackPossible(bool isPossible);
 
     /**jsdoc
-     * Triggered when there's a change in whether or not there's a forward location that can be navigated to using 
+     * Triggered when there's a change in whether or not there's a forward location that can be navigated to using
      * {@link location.goForward|goForward}. (Reflects changes in the state of the "Goto" dialog's forward arrow.)
      * @function location.goForwardPossible
      * @param {boolean} isPossible - <code>true</code> if there's a forward location to navigate to, otherwise
@@ -407,8 +406,6 @@ signals:
      */
     void goForwardPossible(bool isPossible);
 
-protected:
-    AddressManager();
 private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
@@ -420,7 +417,7 @@ private:
 
     // Set host and port, and return `true` if it was changed.
     bool setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);
-    bool setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger);
+    bool setDomainInfo(const QUrl& domainURL, LookupTrigger trigger);
 
     const JSONCallbackParameters& apiCallbackParameters();
 
@@ -438,9 +435,8 @@ private:
 
     void addCurrentAddressToHistory(LookupTrigger trigger);
 
-    QString _host;
-    quint16 _port;
-    QString _placeName;
+    QUrl _domainURL;
+
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;
@@ -452,7 +448,7 @@ private:
     quint64 _lastBackPush = 0;
 
     QString _newHostLookupPath;
-    
+
     QUrl _previousLookup;
 };
 

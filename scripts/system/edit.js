@@ -777,9 +777,12 @@ function findClickedEntity(event) {
     }
 
     var pickRay = Camera.computePickRay(event.x, event.y);
-    var overlayResult = Overlays.findRayIntersection(pickRay, true, getMainTabletIDs());
-    if (overlayResult.intersects) {
-        return null;
+    var tabletIDs = getMainTabletIDs();
+    if (tabletIDs.length > 0) {
+        var overlayResult = Overlays.findRayIntersection(pickRay, true, tabletIDs);
+        if (overlayResult.intersects) {
+            return null;
+        }
     }
 
     var entityResult = Entities.findRayIntersection(pickRay, true); // want precision picking
@@ -968,8 +971,13 @@ function mouseReleaseEvent(event) {
 
 function wasTabletClicked(event) {
     var rayPick = Camera.computePickRay(event.x, event.y);
-    var result = Overlays.findRayIntersection(rayPick, true, getMainTabletIDs());
-    return result.intersects;
+    var tabletIDs = getMainTabletIDs();
+    if (tabletIDs.length === 0) {
+        return false;
+    } else {
+        var result = Overlays.findRayIntersection(rayPick, true, getMainTabletIDs());
+        return result.intersects;
+    }
 }
 
 function mouseClickEvent(event) {

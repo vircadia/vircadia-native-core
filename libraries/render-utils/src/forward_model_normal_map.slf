@@ -58,7 +58,7 @@ void main(void) {
 
     vec3 fragPosition = _position.xyz;
     vec3 fragNormal;
-    <$tangentToViewSpace(normalTex, _normal, _tangent, fragNormal)$>
+    <$evalMaterialNormal(normalTex, _normal, _tangent, fragNormal)$>
 
     TransformCamera cam = getTransformCamera();
 

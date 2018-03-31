@@ -71,7 +71,7 @@ void main(void) {
     vec3 fragPosition = _position.xyz;
     // Lighting is done in world space
     vec3 fragNormal;
-    <$tangentToViewSpaceLOD(_position, normalTex, _normal, _tangent, fragNormal)$>
+    <$evalMaterialNormalLOD(_position, normalTex, _normal, _tangent, fragNormal)$>
 
     TransformCamera cam = getTransformCamera();
     vec3 fragEyeVector = vec3(cam._viewInverse * vec4(-fragPosition, 0.0));

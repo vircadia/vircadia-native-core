@@ -91,7 +91,7 @@ private slots:
     void processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message);
     void processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> message);
 
-    void handleOctreeFileReplacementFromURLRequest(QSharedPointer<ReceivedMessage> message);
+    void handleDomainContentReplacementFromURLRequest(QSharedPointer<ReceivedMessage> message);
     void handleOctreeFileReplacementRequest(QSharedPointer<ReceivedMessage> message);
     void handleOctreeFileReplacement(QByteArray octreeFile);
 
