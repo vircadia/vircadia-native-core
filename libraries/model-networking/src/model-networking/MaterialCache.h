@@ -37,8 +37,8 @@ public:
 
     ParsedMaterials parsedMaterials;
 
-    static ParsedMaterials parseJSONMaterials(const QJsonDocument& materialJSON);
-    static std::pair<std::string, std::shared_ptr<NetworkMaterial>> parseJSONMaterial(const QJsonObject& materialJSON);
+    static ParsedMaterials parseJSONMaterials(const QJsonDocument& materialJSON, const QUrl& baseUrl);
+    static std::pair<std::string, std::shared_ptr<NetworkMaterial>> parseJSONMaterial(const QJsonObject& materialJSON, const QUrl& baseUrl);
 
 private:
     static bool parseJSONColor(const QJsonValue& array, glm::vec3& color, bool& isSRGB);

@@ -157,7 +157,7 @@ void MaterialEntityItem::setMaterialURL(const QString& materialURLString, bool u
         }
 
         if (usingUserData) {
-            _parsedMaterials = NetworkMaterialResource::parseJSONMaterials(QJsonDocument::fromJson(getUserData().toUtf8()));
+            _parsedMaterials = NetworkMaterialResource::parseJSONMaterials(QJsonDocument::fromJson(getUserData().toUtf8()), materialURLString);
 
             // Since our material changed, the current name might not be valid anymore, so we need to update
             setCurrentMaterialName(_currentMaterialName);

@@ -270,7 +270,9 @@ ModalWindow {
             onTriggered: {
                 root.result = null;
                 root.canceled();
-                root.destroy();
+                // FIXME we are leaking memory to avoid a crash
+                // root.destroy();
+                visible = false;
             }
         }
 
@@ -292,7 +294,9 @@ ModalWindow {
                 }
                 root.result = JSON.stringify(result);
                 root.selected(root.result);
-                root.destroy();
+                // FIXME we are leaking memory to avoid a crash
+                // root.destroy();
+                visible = false;
             }
         }
     }

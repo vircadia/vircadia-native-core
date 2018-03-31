@@ -17,6 +17,8 @@ To produce an executable installer on Windows, the following are required:
 - [Nullsoft Scriptable Install System](http://nsis.sourceforge.net/Download) - 3.0b3
 - [UAC Plug-in for Nullsoft](http://nsis.sourceforge.net/UAC_plug-in) - 0.2.4c
 - [nsProcess Plug-in for Nullsoft](http://nsis.sourceforge.net/NsProcess_plugin) - 1.6
+- [Inetc Plug-in for Nullsoft](http://nsis.sourceforge.net/Inetc_plug-in) - 1.0
+- [NSISpcre Plug-in for Nullsoft](http://nsis.sourceforge.net/NSISpcre_plug-in) - 1.0
 
 Run the `package` target to create an executable installer using the Nullsoft Scriptable Install System.
 
