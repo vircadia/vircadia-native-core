@@ -418,7 +418,6 @@ private:
     static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToOverlayOperator;
     static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromOverlayOperator;
 
-
     std::vector<int32_t> _staleProxies;
 
     bool _serverlessDomain { false };
