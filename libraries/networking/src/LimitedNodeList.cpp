@@ -132,6 +132,7 @@ void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
 }
 
 Node::LocalID LimitedNodeList::getSessionLocalID() const {
+    QReadLocker readLock { &_sessionUUIDLock };
     return _sessionLocalID;
 }
 
@@ -578,7 +579,7 @@ void LimitedNodeList::eraseAllNodes() {
         // and then remove them from the hash
         QWriteLocker writeLocker(&_nodeMutex);
 
-        _localIDMap.erase(_localIDMap.begin(), _localIDMap.end());
+        _localIDMap.clear();
 
         if (_nodeHash.size() > 0) {
             qCDebug(networking) << "LimitedNodeList::eraseAllNodes() removing all nodes from NodeList.";
@@ -851,9 +852,10 @@ void LimitedNodeList::removeSilentNodes() {
     });
 
     foreach(const SharedNodePointer& killedNode, killedNodes) {
-        _nodeMutex.lockForWrite();
-        _localIDMap.erase(killedNode->getLocalID());
-        _nodeMutex.unlock();
+        {
+            QWriteLocker writeLock { &_nodeMutex };
+            _localIDMap.erase(killedNode->getLocalID());
+        }
         handleNodeKill(killedNode);
     }
 }

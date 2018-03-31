@@ -137,7 +137,7 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
 
     auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(audioData, rewrittenType,
                                                                      versionForPacketType(rewrittenType),
-                                                                     message->getSenderSockAddr(), nodeList->getSessionLocalID());
+                                                                     message->getSenderSockAddr(), message->getSourceID());
 
     getOrCreateClientData(replicatedNode.data())->queuePacket(replicatedMessage, replicatedNode);
 }
