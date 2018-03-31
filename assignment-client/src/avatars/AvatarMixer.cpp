@@ -127,7 +127,7 @@ void AvatarMixer::handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessag
         // construct a "fake" avatar data received message from the byte array and packet list information
         auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(avatarByteArray, PacketType::AvatarData,
                                                                          versionForPacketType(PacketType::AvatarData),
-                                                                         message->getSenderSockAddr(), message->getSourceID());
+                                                                         message->getSenderSockAddr(), Node::NULL_LOCAL_ID);
 
         // queue up the replicated avatar data with the client data for the replicated node
         auto start = usecTimestampNow();

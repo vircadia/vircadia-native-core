@@ -38,6 +38,8 @@ public:
     //
 
     using LocalID = NetworkLocalID;
+    static const LocalID NULL_LOCAL_ID = 0;
+    
     static const int NUM_BYTES_LOCALID = sizeof(LocalID);
     // this is used by the Octree classes - must be known at compile time
     static const int MAX_PACKET_HEADER_SIZE =

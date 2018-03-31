@@ -41,6 +41,8 @@ public:
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
 
     using LocalID = NetworkLocalID;
+    static const LocalID NULL_LOCAL_ID = 0;
+
     LocalID getLocalID() const { return _localID; }
     void setLocalID(LocalID localID) { _localID = localID; }
 

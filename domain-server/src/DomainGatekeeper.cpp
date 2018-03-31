@@ -1039,7 +1039,7 @@ Node::LocalID DomainGatekeeper::findOrCreateLocalID(const QUuid& uuid) {
     do {
         newLocalID = _currentLocalID;
         _currentLocalID += _idIncrement;
-    } while (newLocalID == 0 || _localIDs.find(newLocalID) != _localIDs.end());
+    } while (newLocalID == Node::NULL_LOCAL_ID || _localIDs.find(newLocalID) != _localIDs.end());
 
     _uuidToLocalID.emplace(uuid, newLocalID);
     _localIDs.insert(newLocalID);

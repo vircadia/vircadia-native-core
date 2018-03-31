@@ -25,7 +25,7 @@ public:
     ReceivedMessage(const NLPacketList& packetList);
     ReceivedMessage(NLPacket& packet);
     ReceivedMessage(QByteArray byteArray, PacketType packetType, PacketVersion packetVersion,
-                    const HifiSockAddr& senderSockAddr, NLPacket::LocalID sourceID = 0);
+                    const HifiSockAddr& senderSockAddr, NLPacket::LocalID sourceID = NLPacket::NULL_LOCAL_ID);
 
     QByteArray getMessage() const { return _data; }
     const char* getRawMessage() const { return _data.constData(); }
@@ -93,7 +93,7 @@ private:
     std::atomic<qint64> _position { 0 };
     std::atomic<qint64> _numPackets { 0 };
 
-    NLPacket::LocalID _sourceID;
+    NLPacket::LocalID _sourceID { NLPacket::NULL_LOCAL_ID };
     PacketType _packetType;
     PacketVersion _packetVersion;
     HifiSockAddr _senderSockAddr;
