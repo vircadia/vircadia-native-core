@@ -18,6 +18,8 @@
 
 using namespace task;
 
+int nakedJobConfigPointerTypeId = qRegisterMetaType<JobConfig*>();
+
 void JobConfig::setPresetList(const QJsonObject& object) {
     for (auto it = object.begin(); it != object.end(); it++) {
         JobConfig* child = findChild<JobConfig*>(it.key(), Qt::FindDirectChildrenOnly);

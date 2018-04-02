@@ -19,6 +19,7 @@ GameWorkloadContext::~GameWorkloadContext() {
 
 
 GameWorkload::GameWorkload() {
+
 }
 
 GameWorkload::~GameWorkload() {

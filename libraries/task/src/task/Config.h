@@ -86,17 +86,19 @@ protected:
 // A default Config is always on; to create an enableable Config, use the ctor JobConfig(bool enabled)
 class JobConfig : public QObject {
     Q_OBJECT
-    Q_PROPERTY(double cpuRunTime READ getCPURunTime NOTIFY newStats()) //ms
-    Q_PROPERTY(bool enabled READ isEnabled WRITE setEnabled NOTIFY dirtyEnabled())
+        Q_PROPERTY(double cpuRunTime READ getCPURunTime NOTIFY newStats()) //ms
+        Q_PROPERTY(bool enabled READ isEnabled WRITE setEnabled NOTIFY dirtyEnabled())
 
-    double _msCPURunTime{ 0.0 };
+        double _msCPURunTime{ 0.0 };
 public:
     using Persistent = PersistentConfig<JobConfig>;
+    using QConfigList = QList<JobConfig*>;
 
     JobConfig() = default;
+ //   JobConfig(const JobConfig& src) = default;
     JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
-    bool isEnabled() const { return alwaysEnabled || enabled; }
+    bool isEnabled() { return alwaysEnabled || enabled; }
     void setEnabled(bool enable) { enabled = alwaysEnabled || enable; emit dirtyEnabled(); }
 
     bool alwaysEnabled{ true };
@@ -113,7 +115,12 @@ public:
     void setCPURunTime(double mstime) { _msCPURunTime = mstime; emit newStats(); }
     double getCPURunTime() const { return _msCPURunTime; }
 
-public slots:
+    Q_INVOKABLE virtual bool isTask() const { return false; }
+    Q_INVOKABLE virtual QConfigList getSubConfigs() const { return QConfigList(); }
+    Q_INVOKABLE virtual int getNumSubs() const { return 0; }
+    Q_INVOKABLE virtual JobConfig* getSubConfig(int i) const { return nullptr; }
+
+    public slots:
     void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); emit loaded(); }
 
 signals:
@@ -121,6 +128,8 @@ signals:
     void newStats();
     void dirtyEnabled();
 };
+
+using QConfigPointer = std::shared_ptr<JobConfig>;
 
 class TConfigProxy {
 public:
@@ -130,11 +139,12 @@ public:
 class TaskConfig : public JobConfig {
     Q_OBJECT
 public:
-    using QConfigPointer = std::shared_ptr<QObject>;
+    using QConfigList = QList<JobConfig*>;
 
     using Persistent = PersistentConfig<TaskConfig>;
 
-    TaskConfig() = default ;
+    TaskConfig() = default;
+  //  TaskConfig(const TaskConfig& src) = default;
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
 
@@ -156,7 +166,8 @@ public:
 
         if (tokens.empty()) {
             tokens.push_back(QString());
-        } else {
+        }
+        else {
             while (tokens.size() > 1) {
                 auto name = tokens.front();
                 tokens.pop_front();
@@ -170,6 +181,22 @@ public:
         return root->findChild<typename T::Config*>(tokens.front());
     }
 
+    Q_INVOKABLE bool isTask() const override { return true; }
+    Q_INVOKABLE QConfigList getSubConfigs() const override {
+        auto list = findChildren<JobConfig*>(QRegExp(".*"), Qt::FindDirectChildrenOnly);
+        QConfigList returned;
+        for (int i = 0; i < list.size(); i++) {
+            returned.push_back(list[i]);
+        }
+        return returned;
+    }
+
+    Q_INVOKABLE int getNumSubs() const override { return getSubConfigs().size(); }
+    Q_INVOKABLE JobConfig* getSubConfig(int i) const override {
+        auto subs = getSubConfigs();
+        return ((i < 0 || i >= subs.size()) ? nullptr : subs[i] );
+    }
+
     void connectChildConfig(QConfigPointer childConfig, const std::string& name);
     void transferChildrenConfigs(QConfigPointer source);
 
@@ -179,8 +206,8 @@ public slots:
     void refresh();
 };
 
-using QConfigPointer = std::shared_ptr<QObject>;
-
 }
+
+Q_DECLARE_METATYPE(task::JobConfig*);
 
 #endif // hifi_task_Config_h

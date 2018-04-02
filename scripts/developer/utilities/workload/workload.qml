@@ -21,9 +21,7 @@ Rectangle {
     anchors.margins: hifi.dimensions.contentMargin.x
     
     color: hifi.colors.baseGray;
-    property var setupViews: Workload.getConfig("setupViews");
-    property var spaceToRender: Workload.getConfig("SpaceToRender");
-   
+     
     Column {
         spacing: 5
         anchors.left: parent.left
@@ -34,6 +32,13 @@ Rectangle {
         HifiControls.Label {
             text: "Workload"       
         }
+
+        CheckBox {
+            text: "Show Views"
+            checked: Workload.getConfig("SpaceToRender")["showViews"]
+            onCheckedChanged: { Workload.getConfig("SpaceToRender")["showViews"] = checked }
+        }
+
         HifiControls.CheckBox {
             boxSize: 20
             text: "Freeze Views"
@@ -41,7 +46,7 @@ Rectangle {
             onCheckedChanged: { Workload.getConfig("SpaceToRender")["freezeViews"] = checked, Workload.getConfig("setupViews")["freezeViews"] = checked; }
         }
 
-        RowLayout {
+        /*RowLayout {
             anchors.left: parent.left
             anchors.right: parent.right 
             Column {
@@ -115,6 +120,6 @@ Rectangle {
             checked: Workload.getConfig("SpaceToRender")["showViews"]
             onCheckedChanged: { Workload.getConfig("SpaceToRender")["showViews"] = checked }
         }
-        Separator {}
+        Separator {}*/
     }
 }
