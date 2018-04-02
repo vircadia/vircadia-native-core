@@ -120,7 +120,7 @@ PickResultPointer LaserPointer::getVisualPickResult(const PickResultPointer& pic
             rayPickResult->distance = distance;
             rayPickResult->surfaceNormal = -normalizedDirection;
             rayPickResult->pickVariant["direction"] = vec3toVariant(normalizedDirection);
-        } else if (_lockEnd) {
+        } else if (type != IntersectionType::NONE && _lockEnd) {
             if (type == IntersectionType::ENTITY) {
                 endVec = DependencyManager::get<EntityScriptingInterface>()->getEntityTransform(rayPickResult->objectID)[3];
             } else if (type == IntersectionType::OVERLAY) {
