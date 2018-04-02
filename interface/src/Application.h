@@ -78,6 +78,10 @@
 
 #include "Sound.h"
 
+#if defined(Q_OS_ANDROID)
+#include "AndroidHelper.h"
+#endif
+
 class OffscreenGLCanvas;
 class GLCanvas;
 class FaceTracker;
@@ -396,6 +400,8 @@ public slots:
     void loadServerlessDomain(QUrl domainURL);
 
     Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
+
+    Q_INVOKABLE void openAndroidActivity(const QString& activityName);
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);

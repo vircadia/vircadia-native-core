@@ -99,8 +99,8 @@ Item {
             y: android.dimen.atLeast1440p ? 280 : 210
             imageURL: "../../icons/home.svg"
             onClicked: {
-                addressBarDialog.loadHome();
-                bar.shown = false;
+                sendToScript({method: 'openAndroidActivity', params: {}});
+                hide();
             }
             anchors {
                 leftMargin: android.dimen.atLeast1440p ? 75 : 56

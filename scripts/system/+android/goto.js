@@ -33,6 +33,9 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         module.exports.hide();
         module.exports.onHidden();
         break;
+    case 'openAndroidActivity':
+        App.openAndroidActivity("Hello");
+        break;
     default:
         print('[goto-android.js] Unrecognized message from AddressBarDialog.qml:', JSON.stringify(message));
     }
@@ -43,6 +46,7 @@ function sendToQml(message) {
 }
 
 var isVisible = false;
+var qmlConnected = false;
 var notifyShownChange;
 module.exports = {
     init: function() {
@@ -52,17 +56,25 @@ module.exports = {
         });
     },
     show: function() {
+        if (isVisible) return;
         Controller.setVPadHidden(true);
         if (window) {
-            window.fromQml.connect(fromQml);
+            if (!qmlConnected) {
+                window.fromQml.connect(fromQml);                
+                qmlConnected = true;
+            }
             window.setVisible(true);
             isVisible = true;
         }
     },
     hide: function() {
+        if (!isVisible) return;
         Controller.setVPadHidden(false);
         if (window) {
-            window.fromQml.disconnect(fromQml);
+            if (qmlConnected) {
+                window.fromQml.disconnect(fromQml);
+                qmlConnected = false;
+            }
             window.setVisible(false);
         }
         isVisible = false;

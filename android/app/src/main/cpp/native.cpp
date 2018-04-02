@@ -17,6 +17,13 @@
 #include <android/asset_manager_jni.h>
 
 #include <shared/Storage.h>
+#include <QApplication.h>
+#include <QObject>
+
+#include <AddressManager.h>
+#include "AndroidHelper.h"
+
+QAndroidJniObject __activity;
 
 void tempMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (!message.isEmpty()) {
@@ -133,14 +140,34 @@ void unpackAndroidAssets() {
     }
 }
 
+void openGotoActivity(const QString& a) {
+    __activity.callMethod<void>("openGotoActivity", "()V");
+}
+
 extern "C" {
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCreate(JNIEnv* env, jobject obj, jobject instance, jobject asset_mgr) {
     qDebug() << "nativeOnCreate On thread " << QThread::currentThreadId();
     g_assetManager = AAssetManager_fromJava(env, asset_mgr);
+    __activity = QAndroidJniObject(instance);
     auto oldMessageHandler = qInstallMessageHandler(tempMessageHandler);
     unpackAndroidAssets();
     qInstallMessageHandler(oldMessageHandler);
+
+    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::androidActivityRequested, [](const QString& a) {
+        __activity.callMethod<void>("openGotoActivity", "()V");
+    });
+}
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnDestroy(JNIEnv* env, jobject obj) {
+    QObject::disconnect(&AndroidHelper::instance(), &AndroidHelper::androidActivityRequested,
+                        nullptr, nullptr);
+
+}
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeGotoUrl(JNIEnv* env, jobject obj, jstring url) {
+    QAndroidJniObject jniUrl("java/lang/String", "(Ljava/lang/String;)V", url);
+    DependencyManager::get<AddressManager>()->handleLookupString(jniUrl.toString());
 }
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnPause(JNIEnv* env, jobject obj) {

@@ -7865,4 +7865,10 @@ void Application::saveNextPhysicsStats(QString filename) {
     _physicsEngine->saveNextPhysicsStats(filename);
 }
 
+void Application::openAndroidActivity(const QString& activityName) {
+#if defined(Q_OS_ANDROID)
+    AndroidHelper::instance().requestActivity(activityName);
+#endif
+}
+
 #include "Application.moc"

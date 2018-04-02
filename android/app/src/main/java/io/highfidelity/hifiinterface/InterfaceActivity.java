@@ -37,6 +37,8 @@ public class InterfaceActivity extends QtActivity {
     private native long nativeOnCreate(InterfaceActivity instance, AssetManager assetManager);
     //private native void nativeOnPause();
     //private native void nativeOnResume();
+    private native void nativeOnDestroy();
+    private native void nativeGotoUrl(String url);
     //private native void nativeOnStop();
     //private native void nativeOnStart();
     //private native void saveRealScreenSize(int width, int height);
@@ -138,6 +140,12 @@ public class InterfaceActivity extends QtActivity {
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        nativeOnDestroy();
+    }
+
+    @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         // Checks the orientation of the screen
@@ -177,6 +185,20 @@ public class InterfaceActivity extends QtActivity {
 
             getWindow().getDecorView().setSystemUiVisibility(uiOptions);
         }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (intent.hasExtra(DOMAIN_URL)) {
+            nativeGotoUrl(intent.getStringExtra(DOMAIN_URL));
+        }
+    }
+
+    public void openGotoActivity() {
+        Intent intent = new Intent(this, GotoActivity.class);
+        intent.putExtra(GotoActivity.PARAM_NOT_START_INTERFACE_ACTIVITY, true);
+        startActivity(intent);
     }
 
 }
