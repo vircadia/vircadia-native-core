@@ -52,6 +52,23 @@ Rectangle {
         onCertificateInfoResult: {
             if (result.status !== 'success') {
                 console.log("Failed to get certificate info", result.message);
+                // We should still tell the user that static cert verification failed
+                if (root.certificateStatus !== 3) { // CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED
+                    root.useGoldCert = false;
+                    root.certTitleTextColor = hifi.colors.redHighlight;
+                    root.certTextColor = hifi.colors.redHighlight;
+                    root.infoTextColor = hifi.colors.redHighlight;
+                    titleBarText.text = "Certificate Unavailable";
+                    popText.text = "";
+                    showInMarketplaceButton.visible = false;
+                    root.certInfoReplaceMode = 0;
+                    root.itemName = "";
+                    root.itemEdition = "";
+                    root.itemOwner = "";
+                    root.dateOfPurchase = "";
+                    root.itemCost = "";
+                    errorText.text = "Information about this certificate is currently unavailable. Please try again later.";
+                }
             } else {
                 root.marketplaceUrl = result.data.marketplace_item_url;
                 root.isMyCert = result.isMyCert ? result.isMyCert : false;
