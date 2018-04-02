@@ -334,7 +334,13 @@ void Ledger::certificateInfoSuccess(QNetworkReply& reply) {
     qInfo(commerce) << "certificateInfo" << "response" << QJsonDocument(replyObject).toJson(QJsonDocument::Compact);
     emit certificateInfoResult(replyObject);
 }
-void Ledger::certificateInfoFailure(QNetworkReply& reply) { failResponse("certificateInfo", reply); }
+void Ledger::certificateInfoFailure(QNetworkReply& reply) {
+    QByteArray response = reply.readAll();
+    QJsonObject replyObject = QJsonDocument::fromJson(response).object();
+
+    failResponse("certificateInfo", reply);
+    emit certificateInfoResult(replyObject);
+}
 void Ledger::certificateInfo(const QString& certificateId) {
     QString endpoint = "proof_of_purchase_status/transfer";
     QJsonObject request;
