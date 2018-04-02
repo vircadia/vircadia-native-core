@@ -89,14 +89,8 @@
         bubbleOverlayTimestamp = nowTimestamp;
         Script.update.connect(update);
         updateConnected = true;
-
-        // Flash button
-        if (!bubbleFlashTimer) {
-            bubbleFlashTimer = Script.setInterval(function () {
-                writeButtonProperties(bubbleButtonFlashState);
-                bubbleButtonFlashState = !bubbleButtonFlashState;
-            }, 500);
-        }
+        writeButtonProperties(bubbleButtonFlashState);
+        bubbleButtonFlashState = !bubbleButtonFlashState;
     }
 
     // Called from the C++ scripting interface to show the bubble overlay
