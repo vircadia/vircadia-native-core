@@ -84,7 +84,7 @@
     var NOTIFICATION_MENU_ITEM_POST = " Notifications";
     var PLAY_NOTIFICATION_SOUNDS_SETTING = "play_notification_sounds";
     var PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE = "play_notification_sounds_type_";
-     var NOTIFICATIONS_MESSAGE_CHANNEL = "Hifi-Notifications";
+    var NOTIFICATIONS_MESSAGE_CHANNEL = "Hifi-Notifications";
 
     var NotificationType = {
         UNKNOWN: 0,
