@@ -696,7 +696,7 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
 
                 auto oldSoloNode = previousSoloIt->second;
 
-                _localIDMap.erase(oldSoloNode->getLocalID());
+                _localIDMap.unsafe_erase(oldSoloNode->getLocalID());
                 _nodeHash.unsafe_erase(previousSoloIt);
                 handleNodeKill(oldSoloNode);
 
@@ -840,6 +840,7 @@ void LimitedNodeList::removeSilentNodes() {
         if (!node->isForcedNeverSilent()
             && (usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * USECS_PER_MSEC)) {
             // call the NodeHash erase to get rid of this node
+            _localIDMap.unsafe_erase(node->getLocalID());
             it = _nodeHash.unsafe_erase(it);
 
             killedNodes.insert(node);
@@ -852,10 +853,6 @@ void LimitedNodeList::removeSilentNodes() {
     });
 
     foreach(const SharedNodePointer& killedNode, killedNodes) {
-        {
-            QWriteLocker writeLock { &_nodeMutex };
-            _localIDMap.erase(killedNode->getLocalID());
-        }
         handleNodeKill(killedNode);
     }
 }

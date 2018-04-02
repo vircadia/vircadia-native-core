@@ -431,7 +431,7 @@ private slots:
 private:
     mutable QReadWriteLock _sessionUUIDLock;
     QUuid _sessionUUID;
-    using LocalIDMapping = std::unordered_map<Node::LocalID, SharedNodePointer>;
+    using LocalIDMapping = tbb::concurrent_unordered_map<Node::LocalID, SharedNodePointer>;
     LocalIDMapping _localIDMap;
     Node::LocalID _sessionLocalID { 0 };
 };
