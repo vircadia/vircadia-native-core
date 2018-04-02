@@ -86,11 +86,6 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
                 if (_octreeSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
                     _octreeSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
                 }
-                // DEBUG: Less is more, avoid logging all the time
-                /* qCDebug(interfaceapp) << "adjusting LOD DOWN"
-                    << "fps =" << currentFPS
-                    << "targetFPS =" << getLODDecreaseFPS()
-                    << "octreeSizeScale =" << _octreeSizeScale; */
                 emit LODDecreased();
                 // Assuming the LOD adjustment will work: we optimistically reset _avgRenderTime
                 // to provide an FPS just above the decrease threshold.  It will drift close to its
@@ -112,11 +107,6 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
                 if (_octreeSizeScale > ADJUST_LOD_MAX_SIZE_SCALE) {
                     _octreeSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
                 }
-                // DEBUG: Less is more, avoid logging all the time
-                /*    qCDebug(interfaceapp) << "adjusting LOD UP"
-                    << "fps =" << currentFPS
-                    << "targetFPS =" << getLODDecreaseFPS()
-                    << "octreeSizeScale =" << _octreeSizeScale; */
                 emit LODIncreased();
                 // Assuming the LOD adjustment will work: we optimistically reset _avgRenderTime
                 // to provide an FPS just below the increase threshold.  It will drift close to its
