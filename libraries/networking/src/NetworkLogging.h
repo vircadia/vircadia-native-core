@@ -27,7 +27,8 @@ Q_DECLARE_LOGGING_CATEGORY(messages_client)
             QString logString_; \
             QDebug debugString_(&logString_); \
             debugString_ << msg; \
-            LogHandler::getInstance().printRepeatedMessage(repeatedMessageID_, LogDebug, QMessageLogContext(), logString_); \
+            LogHandler::getInstance().printRepeatedMessage(repeatedMessageID_, LogDebug, QMessageLogContext(__FILE__, \
+                __LINE__, __func__, category().categoryName()), logString_); \
         } \
     } while (false)
 

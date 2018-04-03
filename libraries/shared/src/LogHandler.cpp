@@ -112,8 +112,8 @@ void LogHandler::flushRepeatedMessages() {
     for (int m = 0; m < (int)_repeatCounts.size(); ++m) {
         int repeatCount = _repeatCounts[m];
         if (repeatCount > 1) {
-            QString repeatLogMessage = QString(repeatCount) + " repeated log entries - Last entry: \"" + _repeatedMessageStrings[m]
-                + "\"";
+            QString repeatLogMessage = QString().setNum(repeatCount) + " repeated log entries - Last entry: \"" 
+                    + _repeatedMessageStrings[m] + "\"";
             printMessage(LogSuppressed, QMessageLogContext(), repeatLogMessage);
             _repeatCounts[m] = 0;
             _repeatedMessageStrings[m] = QString();
@@ -239,8 +239,8 @@ int LogHandler::newRepeatedMessageID() {
     return newMessageId;
 }
 
-void LogHandler::printRepeatedMessage(int messageID, LogMsgType type, const QMessageLogContext & context,
-                                      const QString & message) {
+void LogHandler::printRepeatedMessage(int messageID, LogMsgType type, const QMessageLogContext& context,
+                                      const QString& message) {
     QMutexLocker lock(&_mutex);
     if (messageID >= _currentMessageID) {
         return;
