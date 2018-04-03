@@ -80,7 +80,7 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
     auto result = offscreenUi->inputDialog(OffscreenUi::ICON_INFORMATION, "Specify Asset Path",
                                            dropEvent ? dropHelpText : helpText, mapping);
 
-    if (!result.isValid()) {
+    if (!result.isValid() || result.toString() == "") {
         completedCallback.call({ -1 });
         return;
     }
