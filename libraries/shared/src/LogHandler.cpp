@@ -25,7 +25,7 @@
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 
-QMutex LogHandler::_mutex;
+QMutex LogHandler::_mutex(QMutex::Recursive);
 
 LogHandler& LogHandler::getInstance() {
     static LogHandler staticInstance;
@@ -107,13 +107,25 @@ void LogHandler::flushRepeatedMessages() {
 
         message.messageCount = 0;
     }
+
+    // New repeat-supress scheme:
+    for (int m = 0; m < (int)_repeatCounts.size(); ++m) {
+        int repeatCount = _repeatCounts[m];
+        if (m > 1) {
+            QString repeatLogMessage = QString(m) + " repeated log entries - Last entry: \"" + _repeatedMessageStrings[m]
+                + "\"";
+            printMessage(LogSuppressed, QMessageLogContext(), repeatLogMessage);
+            _repeatCounts[m] = 0;
+            _repeatedMessageStrings[m] = QString();
+        }
+    }
 }
 
 QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& context, const QString& message) {
-    QMutexLocker lock(&_mutex);
     if (message.isEmpty()) {
         return QString();
     }
+    QMutexLocker lock(&_mutex);
 
     if (type == LogDebug) {
         // for debug messages, check if this matches any of our regexes for repeated log messages
@@ -216,4 +228,29 @@ const QString& LogHandler::addOnlyOnceMessageRegex(const QString& regexString) {
     onetimeMessage.regexp = QRegExp(regexString);
     _onetimeMessages.push_back(onetimeMessage);
     return regexString;
+}
+
+int LogHandler::newRepeatedMessageID() {
+    QMutexLocker lock(&_mutex);
+    int newMessageId = _currentMessageID;
+    ++_currentMessageID;
+    _repeatCounts.push_back(0);
+    _repeatedMessageStrings.resize(_currentMessageID);
+    return newMessageId;
+}
+
+void LogHandler::printRepeatedMessage(int messageID, LogMsgType type, const QMessageLogContext & context,
+                                      const QString & message) {
+    QMutexLocker lock(&_mutex);
+    if (messageID >= _currentMessageID) {
+        return;
+    }
+
+    if (_repeatCounts[messageID] == 0) {
+        printMessage(type, context, message);
+    } else {
+        _repeatedMessageStrings[messageID] = message;
+    }
+ 
+    ++_repeatCounts[messageID];
 }

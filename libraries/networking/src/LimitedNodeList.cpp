@@ -345,12 +345,17 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             return true;
 
         } else {
-            static const QString UNKNOWN_REGEX = "Packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unknown node with UUID";
-            static QString repeatedMessage
-                = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
+            //static const QString UNKNOWN_REGEX = "Packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unknown node with UUID";
+            //static QString repeatedMessage
+            //    = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
+            //qCDebug(networking) << "Packet of type" << headerType
+            //    << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID);
 
-            qCDebug(networking) << "Packet of type" << headerType
-                << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID);
+            static const int repeatedIDUnknownNode = LogHandler::getInstance().newRepeatedMessageID();
+            QString logString;
+            QDebug debugString(&logString);
+            debugString << "Packet of type" << headerType << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID);
+            LogHandler::getInstance().printRepeatedMessage(repeatedIDUnknownNode, LogDebug, QMessageLogContext(), logString);
         }
     }
 

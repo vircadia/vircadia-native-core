@@ -53,6 +53,8 @@ public:
 
     const QString& addRepeatedMessageRegex(const QString& regexString);
     const QString& addOnlyOnceMessageRegex(const QString& regexString);
+    int newRepeatedMessageID();
+    void printRepeatedMessage(int messageID, LogMsgType type, const QMessageLogContext& context, const QString &message);
 
 private slots:
     void setupRepeatedMessageFlusher();
@@ -81,6 +83,9 @@ private:
     };
     std::vector<OnceOnlyMessage> _onetimeMessages;
 
+    int _currentMessageID { 0 };
+    std::vector<int> _repeatCounts;
+    std::vector<QString> _repeatedMessageStrings;
     static QMutex _mutex;
 };
 
