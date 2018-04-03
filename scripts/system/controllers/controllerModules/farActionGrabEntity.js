@@ -14,7 +14,7 @@
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
    DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
    getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
-   Picks, makeLaserLockInfo Xform, makeLaserParams, AddressManager, getEntityParents
+   Picks, makeLaserLockInfo Xform, makeLaserParams, AddressManager, getEntityParents, Selection
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -467,15 +467,17 @@ Script.include("/~/system/libraries/Xform.js");
                             Script.clearTimeout(this.contextOverlayTimer);
                         }
                         this.contextOverlayTimer = false;
-                        if (entityID !== this.entityWithContextOverlay) {
+                        if (entityID === this.entityWithContextOverlay) {
                             this.destroyContextOverlay();
+                        } else {
+                            Selection.removeFromSelectedItemsList("contextOverlayHighlightList", "entity", entityID);
                         }
 
                         var targetEntity = this.targetObject.getTargetEntity();
                         entityID = targetEntity.id;
                         targetProps = targetEntity.props;
 
-                        if (entityIsGrabbable(targetProps)) {
+                        if (entityIsGrabbable(targetProps) || entityIsGrabbable(this.targetObject.entityProps)) {
                             if (!entityIsDistanceGrabbable(targetProps)) {
                                 this.targetObject.makeDynamic();
                             }
