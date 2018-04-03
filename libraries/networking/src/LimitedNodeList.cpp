@@ -351,11 +351,8 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             //qCDebug(networking) << "Packet of type" << headerType
             //    << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID);
 
-            static const int repeatedIDUnknownNode = LogHandler::getInstance().newRepeatedMessageID();
-            QString logString;
-            QDebug debugString(&logString);
-            debugString << "Packet of type" << headerType << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID);
-            LogHandler::getInstance().printRepeatedMessage(repeatedIDUnknownNode, LogDebug, QMessageLogContext(), logString);
+            HIFI_FDEBUG(networking,
+                "Packet of type" << headerType << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID));
         }
     }
 

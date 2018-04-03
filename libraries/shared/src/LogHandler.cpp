@@ -111,8 +111,8 @@ void LogHandler::flushRepeatedMessages() {
     // New repeat-supress scheme:
     for (int m = 0; m < (int)_repeatCounts.size(); ++m) {
         int repeatCount = _repeatCounts[m];
-        if (m > 1) {
-            QString repeatLogMessage = QString(m) + " repeated log entries - Last entry: \"" + _repeatedMessageStrings[m]
+        if (repeatCount > 1) {
+            QString repeatLogMessage = QString(repeatCount) + " repeated log entries - Last entry: \"" + _repeatedMessageStrings[m]
                 + "\"";
             printMessage(LogSuppressed, QMessageLogContext(), repeatLogMessage);
             _repeatCounts[m] = 0;
