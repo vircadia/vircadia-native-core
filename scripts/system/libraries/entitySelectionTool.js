@@ -1618,6 +1618,8 @@ SelectionDisplay = (function() {
                 grid.snapToGrid(Vec3.sum(cornerPosition, vector), constrainMajorOnly),
                 cornerPosition);
 
+            // editing a parent will cause all the children to automatically follow along, so don't
+            // edit any entity who has an ancestor in SelectionManager.selections
             var toMove = SelectionManager.selections.filter(function (selection) {
                 if (SelectionManager.selections.indexOf(SelectionManager.savedProperties[selection].parentID) >= 0) {
                     return false; // a parent is also being moved, so don't issue an edit for this entity
@@ -1735,9 +1737,19 @@ SelectionDisplay = (function() {
                     Vec3.print("        newIntersection:", newIntersection);
                     Vec3.print("                 vector:", vector);
                 }
-    
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var id = SelectionManager.selections[i];
+
+                // editing a parent will cause all the children to automatically follow along, so don't
+                // edit any entity who has an ancestor in SelectionManager.selections
+                var toMove = SelectionManager.selections.filter(function (selection) {
+                    if (SelectionManager.selections.indexOf(SelectionManager.savedProperties[selection].parentID) >= 0) {
+                        return false; // a parent is also being moved, so don't issue an edit for this entity
+                    } else {
+                        return true;
+                    }
+                });
+
+                for (var i = 0; i < toMove.length; i++) {
+                    var id = toMove[i];
                     var properties = SelectionManager.savedProperties[id];
                     var newPosition = Vec3.sum(properties.position, vector);
                     Entities.editEntity(id, { position: newPosition });
@@ -2174,8 +2186,19 @@ SelectionDisplay = (function() {
         // the selections center point.  Otherwise, the rotation will be around the entities
         // registration point which does not need repositioning.
         var reposition = (SelectionManager.selections.length > 1);
-        for (var i = 0; i < SelectionManager.selections.length; i++) {
-            var entityID = SelectionManager.selections[i];
+
+        // editing a parent will cause all the children to automatically follow along, so don't
+        // edit any entity who has an ancestor in SelectionManager.selections
+        var toRotate = SelectionManager.selections.filter(function (selection) {
+            if (SelectionManager.selections.indexOf(SelectionManager.savedProperties[selection].parentID) >= 0) {
+                return false; // a parent is also being moved, so don't issue an edit for this entity
+            } else {
+                return true;
+            }
+        });
+
+        for (var i = 0; i < toRotate.length; i++) {
+            var entityID = toRotate[i];
             var initialProperties = SelectionManager.savedProperties[entityID];
 
             var newProperties = {
