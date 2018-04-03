@@ -5,6 +5,8 @@
 
         { "from": "TouchscreenVirtualPad.LX", "when": "!Application.CameraIndependent", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Actions.TranslateX" },
 
+        { "from": "TouchscreenVirtualPad.JUMP_BUTTON_PRESS", "when": "!Application.CameraIndependent", "to": "Actions.VERTICAL_UP" },
+
         { "from": "TouchscreenVirtualPad.RX",  "when": "!Application.CameraIndependent", "filters": [ {"type": "deadZone", "min": 0.05} , "invert" ], "to": "Actions.Yaw" },
 
         { "from": "TouchscreenVirtualPad.RY", "when": "!Application.CameraIndependent", "filters": [ {"type": "deadZone", "min": 0.05}, "invert" ], "to": "Actions.Pitch" }

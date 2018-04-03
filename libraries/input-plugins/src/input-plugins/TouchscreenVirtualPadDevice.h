@@ -41,6 +41,17 @@ public:
 
     static const char* NAME;
 
+    enum TouchAxisChannel {
+        LX,
+        LY,
+        RX,
+        RY
+    };
+
+    enum TouchButtonChannel {
+        JUMP_BUTTON_PRESS = LY + 1,
+    };
+
 protected:
 
     class InputDevice : public controller::InputDevice {
@@ -54,6 +65,9 @@ protected:
         virtual void focusOutEvent() override;
 
         friend class TouchscreenVirtualPadDevice;
+
+        controller::Input makeInput(TouchAxisChannel axis) const;
+        controller::Input makeInput(TouchButtonChannel button) const;
     };
 
 public:
@@ -63,7 +77,8 @@ protected:
 
     enum TouchType {
         MOVE = 1,
-        VIEW
+        VIEW,
+        JUMP
     };
 
     float _lastPinchScale;
@@ -82,6 +97,9 @@ protected:
     glm::vec2 _viewCurrentTouchPoint;
     int _viewCurrentTouchId;
 
+    bool _jumpHasValidTouch;
+    int _jumpCurrentTouchId;
+
     std::map<int, TouchType> _unusedTouches;
 
     int _touchPointCount;
@@ -93,6 +111,9 @@ protected:
     float _fixedRadius;
     float _fixedRadiusForCalc;
     int _extraBottomMargin {0};
+
+    glm::vec2 _jumpButtonPosition;
+    float _jumpButtonRadius;
 
     float _viewStickRadiusInches {0.1333f}; // agreed default
 
@@ -106,7 +127,13 @@ protected:
     void viewTouchEnd();
     bool viewTouchBeginIsValid(glm::vec2 touchPoint);
 
+    void jumpTouchBegin(glm::vec2 touchPoint);
+    void jumpTouchUpdate(glm::vec2 touchPoint);
+    void jumpTouchEnd();
+    bool jumpTouchBeginIsValid(glm::vec2 touchPoint);
+
     void setupFixedCenter(VirtualPad::Manager& virtualPadManager, bool force = false);
+    void setupJumpButton(VirtualPad::Manager& virtualPadManager);
 
     void processInputDeviceForMove(VirtualPad::Manager& virtualPadManager);
     glm::vec2 clippedPointInCircle(float radius, glm::vec2 origin, glm::vec2 touchPoint);
