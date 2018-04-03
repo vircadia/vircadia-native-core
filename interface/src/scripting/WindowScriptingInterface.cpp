@@ -390,11 +390,13 @@ glm::vec2 WindowScriptingInterface::getDeviceSize() const {
 }
 
 int WindowScriptingInterface::getX() {
-    return qApp->getWindow()->x();
+    return qApp->getWindow()->geometry().x();
 }
 
 int WindowScriptingInterface::getY() {
-    return qApp->getWindow()->y();
+    auto menu = qApp->getPrimaryMenu();
+    int menuHeight = menu ? menu->geometry().height() : 0;
+    return qApp->getWindow()->geometry().y() + menuHeight;
 }
 
 void WindowScriptingInterface::onWindowGeometryChanged(const QRect& windowGeometry) {
