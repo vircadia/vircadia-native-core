@@ -470,7 +470,6 @@ void EntityServer::startDynamicDomainVerification() {
                 // Delete the entity if it doesn't pass static certificate verification
                 tree->deleteEntity(i.value(), true);
             } else {
-
                 QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
                 QNetworkRequest networkRequest;
                 networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
@@ -490,9 +489,13 @@ void EntityServer::startDynamicDomainVerification() {
 
                     if (networkReply->error() == QNetworkReply::NoError) {
                         if (jsonObject["domain_id"].toString() != thisDomainID) {
-                            qCDebug(entities) << "Entity's cert's domain ID" << jsonObject["domain_id"].toString()
-                                << "doesn't match the current Domain ID" << thisDomainID << "; deleting entity" << i.value();
-                            tree->deleteEntity(i.value(), true);
+                            if (entity->getAge() > (_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS/MSECS_PER_SECOND)) {
+                                qCDebug(entities) << "Entity's cert's domain ID" << jsonObject["domain_id"].toString()
+                                    << "doesn't match the current Domain ID" << thisDomainID << "; deleting entity" << i.value();
+                                tree->deleteEntity(i.value(), true);
+                            } else {
+                                qCDebug(entities) << "Entity failed dynamic domain verification, but was created too recently to necessitate deletion:" << i.value();
+                            }
                         } else {
                             qCDebug(entities) << "Entity passed dynamic domain verification:" << i.value();
                         }
