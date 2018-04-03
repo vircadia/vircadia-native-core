@@ -401,7 +401,7 @@ void WindowScriptingInterface::onWindowGeometryChanged(const QRect& windowGeomet
     auto geometry = windowGeometry;
     auto menu = qApp->getPrimaryMenu();
     if (menu) {
-        geometry.setHeight(geometry.height() - menu->geometry().height());
+        geometry.setY(geometry.y() + menu->geometry().height());
     }
     emit geometryChanged(geometry);
 }
