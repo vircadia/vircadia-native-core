@@ -17,7 +17,6 @@
 #include <android/asset_manager_jni.h>
 
 #include <shared/Storage.h>
-#include <QApplication.h>
 #include <QObject>
 
 #include <AddressManager.h>
