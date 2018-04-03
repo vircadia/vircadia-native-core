@@ -115,6 +115,17 @@ Size GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
             case GL_COMPRESSED_RG_RGTC2:
             case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
             case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
+            // TODO: confirm that these work on mac
+            case GL_COMPRESSED_RGB8_ETC2:
+            case GL_COMPRESSED_SRGB8_ETC2:
+            case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+            case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+            case GL_COMPRESSED_RGBA8_ETC2_EAC:
+            case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+            case GL_COMPRESSED_R11_EAC:
+            case GL_COMPRESSED_SIGNED_R11_EAC:
+            case GL_COMPRESSED_RG11_EAC:
+            case GL_COMPRESSED_SIGNED_RG11_EAC:
                 glCompressedTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, internalFormat,
                                           static_cast<GLsizei>(sourceSize), sourcePointer);
                 break;
@@ -133,6 +144,17 @@ Size GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
             case GL_COMPRESSED_RG_RGTC2:
             case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
             case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
+            // TODO: confirm that these work on mac
+            case GL_COMPRESSED_RGB8_ETC2:
+            case GL_COMPRESSED_SRGB8_ETC2:
+            case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+            case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+            case GL_COMPRESSED_RGBA8_ETC2_EAC:
+            case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+            case GL_COMPRESSED_R11_EAC:
+            case GL_COMPRESSED_SIGNED_R11_EAC:
+            case GL_COMPRESSED_RG11_EAC:
+            case GL_COMPRESSED_SIGNED_RG11_EAC:
                 glCompressedTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, internalFormat,
                                           static_cast<GLsizei>(sourceSize), sourcePointer);
                 break;
