@@ -20,16 +20,4 @@ Q_DECLARE_LOGGING_CATEGORY(asset_client)
 Q_DECLARE_LOGGING_CATEGORY(entity_script_client)
 Q_DECLARE_LOGGING_CATEGORY(messages_client)
 
-#define HIFI_FDEBUG(category, msg) \
-    do { \
-        if (category().isDebugEnabled()) { \
-            static int repeatedMessageID_ = LogHandler::getInstance().newRepeatedMessageID(); \
-            QString logString_; \
-            QDebug debugString_(&logString_); \
-            debugString_ << msg; \
-            LogHandler::getInstance().printRepeatedMessage(repeatedMessageID_, LogDebug, QMessageLogContext(__FILE__, \
-                __LINE__, __func__, category().categoryName()), logString_); \
-        } \
-    } while (false)
-
 #endif // hifi_NetworkLogging_h

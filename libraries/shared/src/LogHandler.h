@@ -89,4 +89,27 @@ private:
     static QMutex _mutex;
 };
 
+#define HIFI_FDEBUG(category, message) \
+    do { \
+        if (category().isDebugEnabled()) { \
+            static int repeatedMessageID_ = LogHandler::getInstance().newRepeatedMessageID(); \
+            QString logString_; \
+            QDebug debugStringReceiver_(&logString_); \
+            debugStringReceiver_ << message; \
+            LogHandler::getInstance().printRepeatedMessage(repeatedMessageID_, LogDebug, QMessageLogContext(__FILE__, \
+                __LINE__, __func__, category().categoryName()), logString_); \
+        } \
+    } while (false)
+
+#define HIFI_FDEBUG_ID(category, messageID, message) \
+    do { \
+        if (category().isDebugEnabled()) { \
+            QString logString_; \
+            QDebug debugStringReceiver_(&logString_); \
+            debugStringReceiver_ << message; \
+            LogHandler::getInstance().printRepeatedMessage(messageID, LogDebug, QMessageLogContext(__FILE__, \
+                __LINE__, __func__, category().categoryName()), logString_); \
+        } \
+    } while (false)
+
 #endif // hifi_LogHandler_h
