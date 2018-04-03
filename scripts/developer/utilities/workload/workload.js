@@ -12,7 +12,7 @@
 
 (function() {
     var TABLET_BUTTON_NAME = "Workload";
-    var QMLAPP_URL = Script.resolvePath("./workload.qml");
+    var QMLAPP_URL = Script.resolvePath("./workloadInspector.qml");
     var ICON_URL = Script.resolvePath("../../../system/assets/images/luci-i.svg");
     var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/luci-a.svg");
 

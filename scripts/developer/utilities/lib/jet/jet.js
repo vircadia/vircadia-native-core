@@ -9,96 +9,44 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 "use strict";
-/*function Jet() {
-};
-Jet.prototype = {
-    // traverse task tree
-    task_traverse: function(root, functor, depth) {
-        var subs = root.findChildren(/.*//*)
-        depth++;
-        for (var i = 0; i <subs.length; i++) {
-            if (functor(subs[i], depth, i)) {
-                this.task_traverse(subs[i], functor, depth)
-            }
-        }    
-    },   
-    task_traverseTree: function(root, functor) {
-        if (functor(root, 0, 0)) {
-            this.task_traverse(root, functor, 0)
-        } 
-    },
 
-    // Access job properties
-    job_propKeys: function(job) {
-        var keys = Object.keys(job)
-        var propKeys = [];
-        for (var k=0; k < keys.length;k++) {
-            // Filter for relevant property
-            var key = keys[k]
-            if ((typeof job[key]) !== "function") {
-                if ((key !== "objectName") && (key !== "cpuRunTime") && (key !== "enabled")) {
-                    propKeys.push(keys[k]);
-                }
-            }
-        }   
-        return propKeys; 
-    }
-};
-
-jet = Jet();
-
-// Functors
-jet.job_print_functor = function (printout, maxDepth) {
-    if (maxDepth === undefined) maxDepth = 100
-    return function (job, depth, index) {
-        var tab = "    "
-        var depthTab = "";
-        for (var d = 0; d < depth; d++) { depthTab += tab }
-        printout(depthTab + index + " " + job.objectName + " " + (job.enabled ? "on" : "off")) 
-        var keys = jet.job_propKeys(job);
-        for (var p=0; p < keys.length;p++) {
-            var prop = job[keys[p]]
-            printout(depthTab + tab + tab + typeof prop + " " + keys[p] + " " + prop);
-        }
-
-        return depth < maxDepth;
-    }
-} 
-*/
  // traverse task tree
-task_traverse = function (root, functor, depth) {
-    //if (root.isTask()) { 
-        var subs = root.getSubConfigs()
+function task_traverse(root, functor, depth) {
+   // if (root.isTask()) { 
         depth++;
-        for (var i = 0; i <subs.length; i++) {
-            if (functor(subs[i], depth, i)) {
-                task_traverse(subs[i], functor, depth)
+        for (var i = 0; i <root.getNumSubs(); i++) {
+            var sub = root.getSubConfig(i);
+            if (functor(sub, depth, i)) {
+                task_traverse(sub, functor, depth)
             }
         }
    // }    
 }
-task_traverseTree = function (root, functor) {
+function task_traverseTree(root, functor) {
     if (functor(root, 0, 0)) {
         task_traverse(root, functor, 0)
     }   
 }
 
 // Access job properties
-job_propKeys = function (job) {
-var keys = Object.keys(job)
-var propKeys = [];
-for (var k=0; k < keys.length;k++) {
-    // Filter for relevant property
-    var key = keys[k]
-    if ((typeof job[key]) !== "function") {
-        if ((key !== "objectName") && (key !== "cpuRunTime") && (key !== "enabled")) {
-            propKeys.push(keys[k]);
+// return all the properties of a job
+function job_propKeys(job) {
+    var keys = Object.keys(job)
+    var propKeys = [];
+    for (var k=0; k < keys.length;k++) {
+        // Filter for relevant property
+        var key = keys[k]
+        if ((typeof job[key]) !== "function") {
+            if ((key !== "objectName") && (key !== "cpuRunTime") && (key !== "enabled")) {
+                propKeys.push(keys[k]);
+            }
         }
-    }
-}   
-return propKeys; 
+    }   
+    return propKeys; 
 }
-job_print_functor = function (printout, maxDepth) {
+
+// Use this function to create a functor that will print the content of the Job visited calling the  specified 'printout' function
+function job_print_functor(printout, maxDepth) {
     if (maxDepth === undefined) maxDepth = 100
     return function (job, depth, index) {
         var tab = "    "
@@ -116,4 +64,9 @@ job_print_functor = function (printout, maxDepth) {
     }
 } 
 
-//jet.task_traverseTree(Render, jet.job_print_functor);
+// Expose functions for regular js including this files through the 'Jet' object
+Jet = {}
+Jet.task_traverse = task_traverse
+Jet.task_traverseTree = task_traverseTree
+Jet.job_propKeys = job_propKeys
+Jet.job_print_functor = job_print_functor

@@ -15,6 +15,9 @@ import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
 import  "../render/configSlider"
 
+//import "../lib/jet";
+
+
 Rectangle {
     HifiConstants { id: hifi;}
     id: _workload;   
@@ -33,12 +36,6 @@ Rectangle {
             text: "Workload"       
         }
 
-        CheckBox {
-            text: "Show Views"
-            checked: Workload.getConfig("SpaceToRender")["showViews"]
-            onCheckedChanged: { Workload.getConfig("SpaceToRender")["showViews"] = checked }
-        }
-
         HifiControls.CheckBox {
             boxSize: 20
             text: "Freeze Views"
@@ -46,7 +43,7 @@ Rectangle {
             onCheckedChanged: { Workload.getConfig("SpaceToRender")["freezeViews"] = checked, Workload.getConfig("setupViews")["freezeViews"] = checked; }
         }
 
-        /*RowLayout {
+        RowLayout {
             anchors.left: parent.left
             anchors.right: parent.right 
             Column {
@@ -120,6 +117,6 @@ Rectangle {
             checked: Workload.getConfig("SpaceToRender")["showViews"]
             onCheckedChanged: { Workload.getConfig("SpaceToRender")["showViews"] = checked }
         }
-        Separator {}*/
+        Separator {}
     }
 }

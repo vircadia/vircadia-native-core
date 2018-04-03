@@ -1,4 +1,4 @@
-//Script.include('../lib/jet/jet.js');
+Script.include('../lib/jet/jet.js');
 
 
 
@@ -6,20 +6,18 @@
 (function() { // BEGIN LOCAL_SCOPE
     //jet.task_traverseTree(Render, printJob);
     var message = "test";
- /*   var functor = job_print_functor(function (line) { message += line + "\n"; });
+    var functor = Jet.job_print_functor(function (line) { message += line + "\n"; });
         
-    task_traverseTree(Workload, functor
-    );
-   */ 
+    Jet.task_traverseTree(Render, functor); 
     
-    print(message)
+  //  print(message)*/
 
 var qml = Script.resolvePath('../lib/jet/TaskList.qml');
 var window = new OverlayWindow({
     title: 'Inspect Engine',
     source: qml,
-    width: 250, 
-    height: 300
+    width: 400, 
+    height: 500
 });
 
 window.sendToQml(message)

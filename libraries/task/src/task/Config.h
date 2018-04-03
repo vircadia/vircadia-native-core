@@ -92,10 +92,8 @@ class JobConfig : public QObject {
         double _msCPURunTime{ 0.0 };
 public:
     using Persistent = PersistentConfig<JobConfig>;
-    using QConfigList = QList<JobConfig*>;
 
     JobConfig() = default;
- //   JobConfig(const JobConfig& src) = default;
     JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
     bool isEnabled() { return alwaysEnabled || enabled; }
@@ -110,15 +108,17 @@ public:
     Q_INVOKABLE QString toJSON() { return QJsonDocument(toJsonValue(*this).toObject()).toJson(QJsonDocument::Compact); }
     Q_INVOKABLE void load(const QVariantMap& map) { qObjectFromJsonValue(QJsonObject::fromVariantMap(map), *this); emit loaded(); }
 
+    Q_INVOKABLE QObject* getConfig(const QString& name) { return nullptr; }
+
     // Running Time measurement
     // The new stats signal is emitted once per run time of a job when stats  (cpu runtime) are updated
     void setCPURunTime(double mstime) { _msCPURunTime = mstime; emit newStats(); }
     double getCPURunTime() const { return _msCPURunTime; }
 
     Q_INVOKABLE virtual bool isTask() const { return false; }
-    Q_INVOKABLE virtual QConfigList getSubConfigs() const { return QConfigList(); }
+    Q_INVOKABLE virtual QObjectList getSubConfigs() const { return QObjectList(); }
     Q_INVOKABLE virtual int getNumSubs() const { return 0; }
-    Q_INVOKABLE virtual JobConfig* getSubConfig(int i) const { return nullptr; }
+    Q_INVOKABLE virtual QObject* getSubConfig(int i) const { return nullptr; }
 
     public slots:
     void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); emit loaded(); }
@@ -139,12 +139,9 @@ public:
 class TaskConfig : public JobConfig {
     Q_OBJECT
 public:
-    using QConfigList = QList<JobConfig*>;
-
     using Persistent = PersistentConfig<TaskConfig>;
 
     TaskConfig() = default;
-  //  TaskConfig(const TaskConfig& src) = default;
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
 
@@ -182,9 +179,9 @@ public:
     }
 
     Q_INVOKABLE bool isTask() const override { return true; }
-    Q_INVOKABLE QConfigList getSubConfigs() const override {
+    Q_INVOKABLE QObjectList getSubConfigs() const override {
         auto list = findChildren<JobConfig*>(QRegExp(".*"), Qt::FindDirectChildrenOnly);
-        QConfigList returned;
+        QObjectList returned;
         for (int i = 0; i < list.size(); i++) {
             returned.push_back(list[i]);
         }
@@ -192,7 +189,7 @@ public:
     }
 
     Q_INVOKABLE int getNumSubs() const override { return getSubConfigs().size(); }
-    Q_INVOKABLE JobConfig* getSubConfig(int i) const override {
+    Q_INVOKABLE QObject* getSubConfig(int i) const override {
         auto subs = getSubConfigs();
         return ((i < 0 || i >= subs.size()) ? nullptr : subs[i] );
     }
@@ -207,7 +204,5 @@ public slots:
 };
 
 }
-
-Q_DECLARE_METATYPE(task::JobConfig*);
 
 #endif // hifi_task_Config_h
