@@ -486,7 +486,7 @@ Rectangle {
                             lightboxPopup.button1text = "CANCEL";
                             lightboxPopup.button1method = "root.visible = false;"
                             lightboxPopup.button2text = "CONFIRM";
-                            lightboxPopup.button2method = "Commerce.replaceContentSet('" + msg.itemHref + "'); root.visible = false;";
+                            lightboxPopup.button2method = "Commerce.replaceContentSet('" + msg.itemHref + "', '" + msg.certID + "'); root.visible = false;";
                             lightboxPopup.visible = true;
                         } else if (msg.method === "showChangeAvatarLightbox") {
                             lightboxPopup.titleText = "Change Avatar";
@@ -792,7 +792,7 @@ Rectangle {
                 currentItemType = "avatar";
             } else if (currentCategories.indexOf("Wearables") > -1) {
                 currentItemType = "wearable";
-            } else if (currentRootFileUrl.endsWith('.json.gz')) {
+            } else if (currentRootFileUrl.endsWith('.json.gz') || currentRootFileUrl.endsWith('.content.zip')) {
                 currentItemType = "contentSet";
             } else if (currentRootFileUrl.endsWith('.app.json')) {
                 currentItemType = "app";
