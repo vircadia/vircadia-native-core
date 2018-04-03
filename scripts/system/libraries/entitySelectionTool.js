@@ -1618,8 +1618,16 @@ SelectionDisplay = (function() {
                 grid.snapToGrid(Vec3.sum(cornerPosition, vector), constrainMajorOnly),
                 cornerPosition);
 
-            for (var i = 0; i < SelectionManager.selections.length; i++) {
-                var properties = SelectionManager.savedProperties[SelectionManager.selections[i]];
+            var toMove = SelectionManager.selections.filter(function (selection) {
+                if (SelectionManager.selections.indexOf(SelectionManager.savedProperties[selection].parentID) >= 0) {
+                    return false; // a parent is also being moved, so don't issue an edit for this entity
+                } else {
+                    return true;
+                }
+            });
+
+            for (var i = 0; i < toMove.length; i++) {
+                var properties = SelectionManager.savedProperties[toMove[i]];
                 if (!properties) {
                     continue;
                 }
@@ -1628,7 +1636,7 @@ SelectionDisplay = (function() {
                     y: 0,
                     z: vector.z
                 });
-                Entities.editEntity(SelectionManager.selections[i], {
+                Entities.editEntity(toMove[i], {
                     position: newPosition
                 });
 
