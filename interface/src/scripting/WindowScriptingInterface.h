@@ -522,6 +522,7 @@ public slots:
     void closeMessageBox(int id);
 
 private slots:
+    void onWindowGeometryChanged(const QRect& geometry);
     void onMessageBoxSelected(int button);
     void disconnectedFromDomain();
 

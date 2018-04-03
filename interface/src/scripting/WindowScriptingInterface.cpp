@@ -51,7 +51,7 @@ WindowScriptingInterface::WindowScriptingInterface() {
         }
     });
 
-    connect(qApp->getWindow(), &MainWindow::windowGeometryChanged, this, &WindowScriptingInterface::geometryChanged);
+    connect(qApp->getWindow(), &MainWindow::windowGeometryChanged, this, &WindowScriptingInterface::onWindowGeometryChanged);
 }
 
 WindowScriptingInterface::~WindowScriptingInterface() {
@@ -395,6 +395,15 @@ int WindowScriptingInterface::getX() {
 
 int WindowScriptingInterface::getY() {
     return qApp->getWindow()->y();
+}
+
+void WindowScriptingInterface::onWindowGeometryChanged(const QRect& windowGeometry) {
+    auto geometry = windowGeometry;
+    auto menu = qApp->getPrimaryMenu();
+    if (menu) {
+        geometry.setHeight(geometry.height() - menu->geometry().height());
+    }
+    emit geometryChanged(geometry);
 }
 
 void WindowScriptingInterface::copyToClipboard(const QString& text) {
