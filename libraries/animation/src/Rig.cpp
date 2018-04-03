@@ -1246,6 +1246,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
                       const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
                       const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo) {
 
+    const bool ENABLE_POLE_VECTORS = false;
     const float ELBOW_POLE_VECTOR_BLEND_FACTOR = 0.95f;
 
     int hipsIndex = indexOfJoint("Hips");
@@ -1268,7 +1269,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int handJointIndex = _animSkeleton->nameToJointIndex("LeftHand");
         int armJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
         int elbowJointIndex = _animSkeleton->nameToJointIndex("LeftForeArm");
-        if (!leftArmEnabled && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
+        if (ENABLE_POLE_VECTORS && !leftArmEnabled && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
             glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, true);
 
             // smooth toward desired pole vector from previous pole vector...  to reduce jitter
@@ -1315,7 +1316,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int handJointIndex = _animSkeleton->nameToJointIndex("RightHand");
         int armJointIndex = _animSkeleton->nameToJointIndex("RightArm");
         int elbowJointIndex = _animSkeleton->nameToJointIndex("RightForeArm");
-        if (!rightArmEnabled && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
+        if (ENABLE_POLE_VECTORS && !rightArmEnabled && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
             glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, false);
 
             // smooth toward desired pole vector from previous pole vector...  to reduce jitter
@@ -1555,18 +1556,21 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     updateFeet(leftFootEnabled, rightFootEnabled,
                params.primaryControllerPoses[PrimaryControllerType_LeftFoot], params.primaryControllerPoses[PrimaryControllerType_RightFoot]);
 
+
+    if (headEnabled) {
+        // Blend IK chains toward the joint limit centers, this should stablize head and hand ik.
+        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToLimitCenterPoses);
+    } else {
+        // Blend IK chains toward the UnderPoses, so some of the animaton motion is present in the IK solution.
+        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToUnderPoses);
+    }
+
     // if the hips or the feet are being controlled.
     if (hipsEnabled || rightFootEnabled || leftFootEnabled) {
-        // for more predictable IK solve from the center of the joint limits, not from the underpose
-        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToLimitCenterPoses);
-
         // replace the feet animation with the default pose, this is to prevent unexpected toe wiggling.
         _animVars.set("defaultPoseOverlayAlpha", 1.0f);
         _animVars.set("defaultPoseOverlayBoneSet", (int)AnimOverlay::BothFeetBoneSet);
     } else {
-        // augment the IK with the underPose.
-        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToUnderPoses);
-
         // feet should follow source animation
         _animVars.unset("defaultPoseOverlayAlpha");
         _animVars.unset("defaultPoseOverlayBoneSet");
