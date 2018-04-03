@@ -295,6 +295,7 @@ Script.include("/~/system/libraries/Xform.js");
             this.actionID = null;
             this.grabbedThingID = null;
             this.targetObject = null;
+            this.potentialEntityWithContextOverlay = false;
         };
 
         this.updateRecommendedArea = function() {
