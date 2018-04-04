@@ -13,14 +13,16 @@ import QtQuick.Layouts 1.3
 
 import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
-import  "../render/configSlider"
-
-//import "../lib/jet";
+import "../render/configSlider"
+import "../lib/jet/qml" as Jet
 
 
 Rectangle {
     HifiConstants { id: hifi;}
     id: _workload;   
+
+    width: parent ? parent.width : 400
+    height: parent ? parent.height : 600
     anchors.margins: hifi.dimensions.contentMargin.x
     
     color: hifi.colors.baseGray;
@@ -118,5 +120,13 @@ Rectangle {
             onCheckedChanged: { Workload.getConfig("SpaceToRender")["showViews"] = checked }
         }
         Separator {}
+
+        Jet.TaskList {
+            rootConfig: Workload
+            anchors.left: parent.left
+            anchors.right: parent.right 
+        
+            height: 300
+        }
     }
 }

@@ -15,24 +15,13 @@ import QtQuick.Controls.Styles 1.4
 import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
 
-//import QtQuick 2.7
-//import QtQuick.Controls 1.4 as Original
-//import QtQuick.Controls.Styles 1.4
-
-//import QtQuick 2.5
-//import QtQuick.Controls 1.4
-//import Hifi 1.0 as Hifi
-
-//import "qrc:///qml/styles-uit"
-//import "qrc:///qml/controls-uit" as HifiControls
-
-import "jet.js" as Jet
+import "../jet.js" as Jet
 
 Rectangle {
     id: root
-    width: parent ? parent.width : 200
-    height: parent ? parent.height : 400
-    property var rootConfig
+ //   width: parent ? parent.width : 200
+ //   height: parent ? parent.height : 400
+    property var rootConfig : Workload
 
     Original.TextArea {
         id: textArea
@@ -44,7 +33,7 @@ Rectangle {
     Component.onCompleted: {
         var message = ""
         var functor = Jet.job_print_functor(function (line) { message += line + "\n"; });
-        Jet.task_traverseTree(Workload, functor);
+        Jet.task_traverseTree(rootConfig, functor);
         textArea.append(message);
      }
     function fromScript(mope) {

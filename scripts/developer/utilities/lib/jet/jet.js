@@ -65,8 +65,9 @@ function job_print_functor(printout, maxDepth) {
 } 
 
 // Expose functions for regular js including this files through the 'Jet' object
-Jet = {}
+/*Jet = {}
 Jet.task_traverse = task_traverse
 Jet.task_traverseTree = task_traverseTree
 Jet.job_propKeys = job_propKeys
 Jet.job_print_functor = job_print_functor
+*/
