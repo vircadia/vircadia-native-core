@@ -87,7 +87,7 @@ EntityDynamicPointer InterfaceDynamicFactory::factoryBA(EntityItemPointer ownerE
     if (dynamic) {
         dynamic->deserialize(data);
         if (dynamic->lifetimeIsOver()) {
-            HIFI_FDEBUG((*QLoggingCategory::defaultCategory()), "InterfaceDynamicFactory::factoryBA lifetimeIsOver during dynamic creation --"
+            HIFI_FDEBUG("InterfaceDynamicFactory::factoryBA lifetimeIsOver during dynamic creation --"
                      << dynamic->getExpires() << "<" << usecTimestampNow());
             return nullptr;
         }

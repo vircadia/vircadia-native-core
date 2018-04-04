@@ -611,13 +611,13 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
                 // let the NodeList do its checks now (but pass it the sourceNode so it doesn't need to look it up again)
                 return nodeList->isPacketVerifiedWithSource(packet, sourceNode.data());
             } else {
-                HIFI_FDEBUG((*QLoggingCategory::defaultCategory()), "Packet of type" << headerType
+                HIFI_FDEBUG("Packet of type" << headerType
                     << "received from unmatched IP for UUID" << uuidStringWithoutCurlyBraces(sourceID));
 
                 return false;
             }
         } else {
-            HIFI_FDEBUG((*QLoggingCategory::defaultCategory()), "Packet of type" << headerType
+            HIFI_FDEBUG("Packet of type" << headerType
                 << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID));
 
             return false;
@@ -1268,7 +1268,7 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage
 
     auto it = find_if(_acSubnetWhitelist.begin(), _acSubnetWhitelist.end(), isHostAddressInSubnet);
     if (it == _acSubnetWhitelist.end()) {
-        HIFI_FDEBUG((*QLoggingCategory::defaultCategory()),  "Received an assignment connect request from a disallowed ip address:"
+        HIFI_FDEBUG("Received an assignment connect request from a disallowed ip address:"
             << senderAddr.toString());
         return;
     }

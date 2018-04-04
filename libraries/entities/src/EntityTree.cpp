@@ -1630,7 +1630,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                     }
                 } else {
-                    HIFI_FDEBUG(entities(), "Edit failed. [" << message.getType() <<"] " <<
+                    HIFI_FCDEBUG(entities(), "Edit failed. [" << message.getType() <<"] " <<
                             "entity id:" << entityItemID << 
                             "existingEntity pointer:" << existingEntity.get());
                 }

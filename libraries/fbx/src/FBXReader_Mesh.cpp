@@ -572,12 +572,12 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     }
 
     if (!totalSourceIndices) {
-        HIFI_FDEBUG(modelformat(), "buildModelMesh failed -- no indices, url = " << url);
+        HIFI_FCDEBUG(modelformat(), "buildModelMesh failed -- no indices, url = " << url);
         return;
     }
 
     if (extractedMesh.vertices.size() == 0) {
-        HIFI_FDEBUG(modelformat(), "buildModelMesh failed -- no vertices, url = " << url);
+        HIFI_FCDEBUG(modelformat(), "buildModelMesh failed -- no vertices, url = " << url);
         return;
     }
 

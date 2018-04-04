@@ -229,7 +229,7 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
 
     if (bytesWritten < 0) {
         // when saturating a link this isn't an uncommon message - suppress it so it doesn't bomb the debug
-        HIFI_FDEBUG(networking(), "Socket::writeDatagram" << _udpSocket.error() << "-" << qPrintable(_udpSocket.errorString()) );
+        HIFI_FCDEBUG(networking(), "Socket::writeDatagram" << _udpSocket.error() << "-" << qPrintable(_udpSocket.errorString()) );
     }
 
     return bytesWritten;
@@ -513,7 +513,7 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
 }
 
 void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
-    HIFI_FDEBUG(networking(), "udt::Socket error - " << socketError << _udpSocket.errorString());
+    HIFI_FCDEBUG(networking(), "udt::Socket error - " << socketError << _udpSocket.errorString());
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {

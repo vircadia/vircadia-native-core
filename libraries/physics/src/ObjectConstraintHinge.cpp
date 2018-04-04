@@ -97,7 +97,7 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
 
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
-        HIFI_FDEBUG(physics(), "ObjectConstraintHinge::getConstraint -- no rigidBodyA");
+        HIFI_FCDEBUG(physics(), "ObjectConstraintHinge::getConstraint -- no rigidBodyA");
         return nullptr;
     }
 
@@ -112,7 +112,7 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         // This hinge is between two entities... find the other rigid body.
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
-            HIFI_FDEBUG(physics(), "ObjectConstraintHinge::getConstraint -- no rigidBodyB");
+            HIFI_FCDEBUG(physics(), "ObjectConstraintHinge::getConstraint -- no rigidBodyB");
             return nullptr;
         }
 

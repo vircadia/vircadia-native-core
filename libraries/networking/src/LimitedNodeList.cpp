@@ -277,7 +277,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
                 emit dataReceived(sendingNodeType, packet.getPayloadSize());
                 return true;
             } else {
-                HIFI_FDEBUG(networking(), "Replicated packet of type" << headerType
+                HIFI_FCDEBUG(networking(), "Replicated packet of type" << headerType
                     << "received from unknown upstream" << packet.getSenderSockAddr());
                 
                 return false;
@@ -340,7 +340,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             return true;
 
         } else {
-            HIFI_FDEBUG(networking(),
+            HIFI_FCDEBUG(networking(),
                 "Packet of type" << headerType << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID));
         }
     }

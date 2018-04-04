@@ -89,7 +89,7 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
 
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
-        HIFI_FDEBUG(physics(), "ObjectConstraintSlider::getConstraint -- no rigidBodyA");
+        HIFI_FCDEBUG(physics(), "ObjectConstraintSlider::getConstraint -- no rigidBodyA");
         return nullptr;
     }
 
@@ -118,7 +118,7 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
 
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
-            HIFI_FDEBUG(physics(), "ObjectConstraintSlider::getConstraint -- no rigidBodyB");
+            HIFI_FCDEBUG(physics(), "ObjectConstraintSlider::getConstraint -- no rigidBodyB");
             return nullptr;
         }
 

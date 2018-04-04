@@ -81,7 +81,7 @@ private:
     static QMutex _mutex;
 };
 
-#define HIFI_FDEBUG(category, message) \
+#define HIFI_FCDEBUG(category, message) \
     do { \
         if (category.isDebugEnabled()) { \
             static int repeatedMessageID_ = LogHandler::getInstance().newRepeatedMessageID(); \
@@ -93,9 +93,11 @@ private:
         } \
     } while (false)
 
-#define HIFI_FDEBUG_ID(category, messageID, message) \
+#define HIFI_FDEBUG(message) HIFI_FCDEBUG((*QLoggingCategory::defaultCategory()), message)
+   
+#define HIFI_FCDEBUG_ID(category, messageID, message) \
     do { \
-        if (category().isDebugEnabled()) { \
+        if (category.isDebugEnabled()) { \
             QString logString_; \
             QDebug debugStringReceiver_(&logString_); \
             debugStringReceiver_ << message; \
@@ -103,5 +105,7 @@ private:
                 __LINE__, __func__, category().categoryName()), logString_); \
         } \
     } while (false)
+
+#define HIFI_FDEBUG_ID(message) HIFI_FCDEBUG_ID((*QLoggingCategory::defaultCategory()), message)
 
 #endif // hifi_LogHandler_h

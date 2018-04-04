@@ -401,7 +401,7 @@ OctreeElementPointer OctreeElement::addChildAtIndex(int childIndex) {
 bool OctreeElement::safeDeepDeleteChildAtIndex(int childIndex, int recursionCount) {
     bool deleteApproved = false;
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        HIFI_FDEBUG(octree(), "OctreeElement::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
+        HIFI_FCDEBUG(octree(), "OctreeElement::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
         return deleteApproved;
     }
     OctreeElementPointer childToDelete = getChildAtIndex(childIndex);

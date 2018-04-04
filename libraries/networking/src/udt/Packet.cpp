@@ -107,7 +107,7 @@ Packet::Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& se
                                           QString::number(getMessagePartNumber()));
         }
 
-        HIFI_FDEBUG(networking(), debugString);
+        HIFI_FCDEBUG(networking(), debugString);
 #endif
 
         obfuscate(NoObfuscation); // Undo obfuscation

@@ -81,7 +81,7 @@ int PositionalAudioStream::parsePositionalData(const QByteArray& positionalByteA
 
     // if the client sends us a bad position, flag it so that we don't consider this stream for mixing
     if (glm::isnan(_position.x) || glm::isnan(_position.y) || glm::isnan(_position.z)) {
-        HIFI_FDEBUG((*QLoggingCategory::defaultCategory()), "PositionalAudioStream unpacked invalid position for node" << uuidStringWithoutCurlyBraces(getNodeID()) );
+        HIFI_FDEBUG("PositionalAudioStream unpacked invalid position for node" << uuidStringWithoutCurlyBraces(getNodeID()) );
 
         _hasValidPosition = false;
     } else {

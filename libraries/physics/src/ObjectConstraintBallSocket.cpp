@@ -87,7 +87,7 @@ btTypedConstraint* ObjectConstraintBallSocket::getConstraint() {
 
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
-        HIFI_FDEBUG(physics(), "ObjectConstraintBallSocket::getConstraint -- no rigidBodyA");
+        HIFI_FCDEBUG(physics(), "ObjectConstraintBallSocket::getConstraint -- no rigidBodyA");
         return nullptr;
     }
 
@@ -96,7 +96,7 @@ btTypedConstraint* ObjectConstraintBallSocket::getConstraint() {
 
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
-            HIFI_FDEBUG(physics(), "ObjectConstraintBallSocket::getConstraint -- no rigidBodyB");
+            HIFI_FCDEBUG(physics(), "ObjectConstraintBallSocket::getConstraint -- no rigidBodyB");
             return nullptr;
         }
 

@@ -164,7 +164,7 @@ int AudioRingBufferTemplate<T>::writeData(const char* data, int maxSize) {
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
 
-        HIFI_FDEBUG(audio(), RING_BUFFER_OVERFLOW_DEBUG);
+        HIFI_FCDEBUG(audio(), RING_BUFFER_OVERFLOW_DEBUG);
         qPrintable(RING_BUFFER_OVERFLOW_DEBUG);
     }
 
@@ -222,7 +222,7 @@ int AudioRingBufferTemplate<T>::addSilentSamples(int silentSamples) {
     if (numWriteSamples > samplesRoomFor) {
         numWriteSamples = samplesRoomFor;
 
-        HIFI_FDEBUG(audio(), DROPPED_SILENT_DEBUG);
+        HIFI_FCDEBUG(audio(), DROPPED_SILENT_DEBUG);
     }
 
     if (_endOfLastWrite + numWriteSamples > _buffer + _bufferLength) {
@@ -273,7 +273,7 @@ int AudioRingBufferTemplate<T>::writeSamples(ConstIterator source, int maxSample
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        HIFI_FDEBUG(audio(), RING_BUFFER_OVERFLOW_DEBUG);
+        HIFI_FCDEBUG(audio(), RING_BUFFER_OVERFLOW_DEBUG);
     }
 
     Sample* bufferLast = _buffer + _bufferLength - 1;
@@ -295,7 +295,7 @@ int AudioRingBufferTemplate<T>::writeSamplesWithFade(ConstIterator source, int m
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        HIFI_FDEBUG(audio(), RING_BUFFER_OVERFLOW_DEBUG);
+        HIFI_FCDEBUG(audio(), RING_BUFFER_OVERFLOW_DEBUG);
     }
 
     Sample* bufferLast = _buffer + _bufferLength - 1;

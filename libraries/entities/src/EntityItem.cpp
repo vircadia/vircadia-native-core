@@ -2197,7 +2197,7 @@ void EntityItem::deserializeActionsInternal() {
                 entity->addActionInternal(simulation, action);
                 updated << actionID;
             } else {
-                HIFI_FDEBUG(entities(), "EntityItem::deserializeActionsInternal -- action creation failed for"
+                HIFI_FCDEBUG(entities(), "EntityItem::deserializeActionsInternal -- action creation failed for"
                         << getID() << _name); // getName();
                 removeActionInternal(actionID, nullptr);
             }

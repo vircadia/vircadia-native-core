@@ -55,7 +55,7 @@ void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, cons
     } else if (key.hasOwnPipeline()) {
         item.render(args);
     } else {
-        HIFI_FDEBUG(renderlogging(), "Item could not be rendered with invalid key" << key);
+        HIFI_FCDEBUG(renderlogging(), "Item could not be rendered with invalid key" << key);
     }
     args->_itemShapeKey = 0;
 }
@@ -106,7 +106,7 @@ void render::renderStateSortShapes(const RenderContextPointer& renderContext,
             } else if (key.hasOwnPipeline()) {
                 ownPipelineBucket.push_back( std::make_tuple(item, key) );
             } else {
-                HIFI_FDEBUG(renderlogging(), "Item could not be rendered with invalid key" << key);
+                HIFI_FCDEBUG(renderlogging(), "Item could not be rendered with invalid key" << key);
             }
         }
     }

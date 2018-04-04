@@ -479,7 +479,7 @@ bool SendQueue::maybeResendPacket() {
                         debugString = debugString.arg(QString::number(resendPacket.getMessageNumber()),
                                                       QString::number(resendPacket.getMessagePartNumber()));
                     }
-                    HIFI_FDEBUG((*QLoggingCategory::defaultCategory()), debugString);
+                    HIFI_FDEBUG(debugString);
 #endif
 
                     // Create copy of the packet
