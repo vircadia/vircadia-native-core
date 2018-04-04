@@ -75,6 +75,8 @@ public:
     virtual QUuid getSimulatorID() const override;
     virtual void bump(uint8_t priority) override;
 
+    // getEntity() returns a smart-pointer by reference because it is only ever used
+    // to insert into lists of smart pointers, and the lists will make their own copies
     const EntityItemPointer& getEntity() const { return _entity; }
 
     void resetMeasuredBodyAcceleration();
