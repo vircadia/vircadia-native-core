@@ -22,6 +22,8 @@
    DISPATCHER_PROPERTIES:true,
    HAPTIC_PULSE_STRENGTH:true,
    HAPTIC_PULSE_DURATION:true,
+   DISPATCHER_HOVERING_LIST:true,
+   DISPATCHER_HOVERING_STYLE:true,
    Entities,
    makeDispatcherModuleParameters:true,
    makeRunningValues:true,
@@ -88,6 +90,19 @@ NEAR_GRAB_RADIUS = 1.0;
 TEAR_AWAY_DISTANCE = 0.1; // ungrab an entity if its bounding-box moves this far from the hand
 TEAR_AWAY_COUNT = 2; // multiply by TEAR_AWAY_CHECK_TIME to know how long the item must be away
 TEAR_AWAY_CHECK_TIME = 0.15; // seconds, duration between checks
+DISPATCHER_HOVERING_LIST = "dispactherHoveringList";
+DISPATCHER_HOVERING_STYLE = {
+    isOutlineSmooth: true,
+    outlineWidth: 5,
+    outlineUnoccludedColor: {red: 255, green: 128, blue: 128},
+    outlineUnoccludedAlpha: 0.88,
+    outlineOccludedColor: {red: 255, green: 128, blue: 128},
+    outlineOccludedAlpha:0.5,
+    fillUnoccludedColor: {red: 26, green: 0, blue: 0},
+    fillUnoccludedAlpha: 0.0,
+    fillOccludedColor: {red: 26, green: 0, blue: 0},
+    fillOccludedAlpha: 0.0
+};
 
 DISPATCHER_PROPERTIES = [
     "position",
@@ -400,6 +415,7 @@ if (typeof module !== 'undefined') {
         projectOntoOverlayXYPlane: projectOntoOverlayXYPlane,
         projectOntoEntityXYPlane: projectOntoEntityXYPlane,
         TRIGGER_OFF_VALUE: TRIGGER_OFF_VALUE,
-        TRIGGER_ON_VALUE: TRIGGER_ON_VALUE
+        TRIGGER_ON_VALUE: TRIGGER_ON_VALUE,
+        DISPATCHER_HOVERING_LIST: DISPATCHER_HOVERING_LIST
     };
 }
