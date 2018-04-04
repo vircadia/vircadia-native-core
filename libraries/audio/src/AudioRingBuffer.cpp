@@ -153,7 +153,7 @@ int AudioRingBufferTemplate<T>::appendData(char *data, int maxSize) {
 
 namespace {
     int repeatedOverflowMessageID = 0;
-    std::atomic<int> messageIDInit = 0;
+    std::once_flag messageIDFlag;
 }
 
 template <class T>
@@ -169,9 +169,8 @@ int AudioRingBufferTemplate<T>::writeData(const char* data, int maxSize) {
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
 
-        if (++messageIDInit == 1) {
-            repeatedOverflowMessageID = LogHandler::getInstance().newRepeatedMessageID();
-        }
+        std::call_once(messageIDFlag, [](int& id) { id = LogHandler::getInstance().newRepeatedMessageID(); },
+            repeatedOverflowMessageID);
         HIFI_FCDEBUG_ID(audio(), repeatedOverflowMessageID, RING_BUFFER_OVERFLOW_DEBUG);
     }
 
@@ -281,9 +280,8 @@ int AudioRingBufferTemplate<T>::writeSamples(ConstIterator source, int maxSample
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
 
-        if (++messageIDInit == 1) {
-            repeatedOverflowMessageID = LogHandler::getInstance().newRepeatedMessageID();
-        }
+        std::call_once(messageIDFlag, [](int& id) { id = LogHandler::getInstance().newRepeatedMessageID(); },
+            repeatedOverflowMessageID);
         HIFI_FCDEBUG_ID(audio(), repeatedOverflowMessageID, RING_BUFFER_OVERFLOW_DEBUG);
     }
 
@@ -307,9 +305,8 @@ int AudioRingBufferTemplate<T>::writeSamplesWithFade(ConstIterator source, int m
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
 
-        if (++messageIDInit == 1) {
-            repeatedOverflowMessageID = LogHandler::getInstance().newRepeatedMessageID();
-        }
+        std::call_once(messageIDFlag, [](int& id) { id = LogHandler::getInstance().newRepeatedMessageID(); },
+            repeatedOverflowMessageID);
         HIFI_FCDEBUG_ID(audio(), repeatedOverflowMessageID, RING_BUFFER_OVERFLOW_DEBUG);
     }
 
