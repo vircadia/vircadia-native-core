@@ -38,9 +38,10 @@ namespace VirtualPad {
     const float Manager::BASE_DIAMETER_PIXELS = 512.0f;
     const float Manager::BASE_MARGIN_PIXELS = 59.0f;
     const float Manager::STICK_RADIUS_PIXELS = 105.0f;
-    const float Manager::JUMP_BTN_TOP_MARGIN_PIXELS = 59.0f;
-    const float Manager::JUMP_BTN_TRIMMED_RADIUS_PIXELS = 105.0f;
-    const float Manager::JUMP_BTN_FULL_PIXELS = 512.0f;
+    const float Manager::JUMP_BTN_TRIMMED_RADIUS_PIXELS = 67.0f;
+    const float Manager::JUMP_BTN_FULL_PIXELS = 134.0f;
+    const float Manager::JUMP_BTN_BOTTOM_MARGIN_PIXELS = 67.0f;
+    const float Manager::JUMP_BTN_LEFT_MARGIN_PIXELS = 547.0f;
 
     Manager::Manager() {
 

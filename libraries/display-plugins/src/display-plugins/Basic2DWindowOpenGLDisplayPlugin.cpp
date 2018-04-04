@@ -71,13 +71,14 @@ void Basic2DWindowOpenGLDisplayPlugin::customizeContext() {
     }
 
     _virtualPadJumpBtnPixelSize = dpi * VirtualPad::Manager::JUMP_BTN_FULL_PIXELS / VirtualPad::Manager::DPI;
-    iconPath = PathUtils::resourcesPath() + "images/analog_stick.png";
+    iconPath = PathUtils::resourcesPath() + "images/fly.png";
     image = QImage(iconPath);
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }
     if ((image.width() > 0) && (image.height() > 0)) {
         image = image.scaled(_virtualPadJumpBtnPixelSize, _virtualPadJumpBtnPixelSize, Qt::KeepAspectRatio);
+        image = image.mirrored();
 
         _virtualPadJumpBtnTexture = gpu::Texture::createStrict(
                 gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),

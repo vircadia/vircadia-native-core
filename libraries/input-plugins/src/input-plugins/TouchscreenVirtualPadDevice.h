@@ -132,8 +132,7 @@ protected:
     void jumpTouchEnd();
     bool jumpTouchBeginIsValid(glm::vec2 touchPoint);
 
-    void setupFixedCenter(VirtualPad::Manager& virtualPadManager, bool force = false);
-    void setupJumpButton(VirtualPad::Manager& virtualPadManager);
+    void setupControlsPositions(VirtualPad::Manager& virtualPadManager, bool force = false);
 
     void processInputDeviceForMove(VirtualPad::Manager& virtualPadManager);
     glm::vec2 clippedPointInCircle(float radius, glm::vec2 origin, glm::vec2 touchPoint);
