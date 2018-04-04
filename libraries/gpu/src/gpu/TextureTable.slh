@@ -1,0 +1,38 @@
+<!
+//  gpu/TextureTable.slh
+//
+//  Created by Sam Gateau on 1/25/17.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not GPU_TEXTURE_TABLE_SLH@>
+<@def GPU_TEXTURE_TABLE_SLH@>
+
+#ifdef GPU_TEXTURE_TABLE_BINDLESS
+#define GPU_TEXTURE_TABLE_MAX_NUM_TEXTURES 8
+
+struct GPUTextureTable {
+    uvec4 _textures[GPU_TEXTURE_TABLE_MAX_NUM_TEXTURES];
+};
+
+#define TextureTable(index, name) layout (std140) uniform gpu_resourceTextureTable##index { GPUTextureTable name; }
+
+#define tableTex(name, slot) sampler2D(name._textures[slot].xy)
+#define tableTexMinLod(name, slot) float(name._textures[slot].z)
+
+#define tableTexValue(name, slot, uv) \
+    tableTexValueLod(tableTex(matTex, albedoMap), tableTexMinLod(matTex, albedoMap), uv)
+    
+vec4 tableTexValueLod(sampler2D sampler, float minLod, vec2 uv) {
+    float queryLod = textureQueryLod(sampler, uv).x;
+    queryLod = max(minLod, queryLod);
+    return textureLod(sampler, uv, queryLod);
+}
+ 
+#else
+
+#endif
+
+<@endif@>
