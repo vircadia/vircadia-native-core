@@ -6256,8 +6256,9 @@ bool Application::canAcceptURL(const QString& urlString) const {
 
 bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     QUrl url(urlString);
-    if (isDomainURL(url)) {
-        // this is a URL for a domain, either hifi:// or serverless - have the AddressManager handle it
+
+    if (url.scheme() == URL_SCHEME_HIFI) {
+        // this is a hifi URL - have the AddressManager handle it
         QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
                                   Qt::AutoConnection, Q_ARG(const QString&, urlString));
         return true;
