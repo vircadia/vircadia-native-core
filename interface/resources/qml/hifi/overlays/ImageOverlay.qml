@@ -62,6 +62,7 @@ Overlay {
                 case "height": image.ySize = value; break;
             }
         }
+        image.resizer.start();
     }
 
     function updatePropertiesFromScript(properties) {
