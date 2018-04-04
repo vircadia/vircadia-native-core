@@ -2926,7 +2926,7 @@ void DomainServer::updateReplicatedNodes() {
     }
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
-    nodeList->eachMatchingNode([this](const SharedNodePointer& otherNode) -> bool {
+    nodeList->eachMatchingNode([](const SharedNodePointer& otherNode) -> bool {
             return otherNode->getType() == NodeType::Agent;
         }, [this](const SharedNodePointer& otherNode) {
             auto shouldReplicate = shouldReplicateNode(*otherNode);
