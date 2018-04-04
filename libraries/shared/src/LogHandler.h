@@ -51,7 +51,6 @@ public:
     /// prints various process, message type, and time information
     static void verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message);
 
-    const QString& addOnlyOnceMessageRegex(const QString& regexString);
     int newRepeatedMessageID();
     void printRepeatedMessage(int messageID, LogMsgType type, const QMessageLogContext& context, const QString &message);
 
@@ -68,12 +67,6 @@ private:
     bool _shouldOutputProcessID { false };
     bool _shouldOutputThreadID { false };
     bool _shouldDisplayMilliseconds { false };
-
-    struct OnceOnlyMessage {
-        QRegExp regexp;
-        int messageCount { 0 };
-    };
-    std::vector<OnceOnlyMessage> _onetimeMessages;
 
     int _currentMessageID { 0 };
     struct RepeatedMessageRecord {

@@ -1284,10 +1284,10 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage
 
     const qint64 NOISY_MESSAGE_INTERVAL_MSECS = 5 * 1000;
 
-    if (requestAssignment.getType() != Assignment::AgentType
-        || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
-        static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
-            ("Received a request for assignment type [^ ]+ from [^ ]+");
+    static bool printedAssignmentTypeMessage = false;
+    if (!printedAssignmentTypeMessage && (requestAssignment.getType() != Assignment::AgentType
+        || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS)) {
+        printedAssignmentTypeMessage = true;
         qDebug() << "Received a request for assignment type" << requestAssignment.getType()
                  << "from" << message->getSenderSockAddr();
         noisyMessageTimer.restart();
@@ -1324,10 +1324,10 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage
         _gatekeeper.addPendingAssignedNode(uniqueAssignment.getUUID(), assignmentToDeploy->getUUID(),
                                            requestAssignment.getWalletUUID(), requestAssignment.getNodeVersion());
     } else {
-        if (requestAssignment.getType() != Assignment::AgentType
-            || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
-            static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
-                ("Unable to fulfill assignment request of type [^ ]+ from [^ ]+");
+        static bool printedAssignmentRequestMessage = false;
+        if (!printedAssignmentRequestMessage && (requestAssignment.getType() != Assignment::AgentType
+            || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS)) {
+            printedAssignmentRequestMessage = true;
             qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
                 << "from" << message->getSenderSockAddr();
             noisyMessageTimer.restart();
@@ -1576,10 +1576,12 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
     callbackParameters.jsonCallbackReceiver = this;
     callbackParameters.jsonCallbackMethod = "handleSuccessfulICEServerAddressUpdate";
 
-    static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
-        ("Updating ice-server address in High Fidelity Metaverse API to [^ \n]+");
-    qDebug() << "Updating ice-server address in High Fidelity Metaverse API to"
-             << (_iceServerSocket.isNull() ? "" : _iceServerSocket.getAddress().toString());
+    static bool printedIceServerMessage = false;
+    if (!printedIceServerMessage) {
+        printedIceServerMessage = true;
+        qDebug() << "Updating ice-server address in High Fidelity Metaverse API to"
+            << (_iceServerSocket.isNull() ? "" : _iceServerSocket.getAddress().toString());
+    }
 
     static const QString DOMAIN_ICE_ADDRESS_UPDATE = "/api/v1/domains/%1/ice_server_address";
 

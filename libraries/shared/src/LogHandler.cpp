@@ -114,21 +114,6 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
     }
     QMutexLocker lock(&_mutex);
 
-    if (type == LogDebug) {
-        // see if this message is one we should only print once
-        for (auto& onceOnly : _onetimeMessages) {
-            if (onceOnly.regexp.indexIn(message) != -1) {
-                if (onceOnly.messageCount++ == 0) {
-                    // we have a match and haven't yet printed this message.
-                    break;
-                } else {
-                    // We've already printed this message, don't print it again.
-                    return QString();
-                }
-            }
-        }
-    }
-
     // log prefix is in the following format
     // [TIMESTAMP] [DEBUG] [PID] [TID] [TARGET] logged string
 
@@ -182,14 +167,6 @@ void LogHandler::setupRepeatedMessageFlusher() {
         connect(logFlushTimer, &QTimer::timeout, this, &LogHandler::flushRepeatedMessages);
         logFlushTimer->start(VERBOSE_LOG_INTERVAL_SECONDS * 1000);
     });
-}
-
-const QString& LogHandler::addOnlyOnceMessageRegex(const QString& regexString) {
-    QMutexLocker lock(&_mutex);
-    OnceOnlyMessage onetimeMessage;
-    onetimeMessage.regexp = QRegExp(regexString);
-    _onetimeMessages.push_back(onetimeMessage);
-    return regexString;
 }
 
 int LogHandler::newRepeatedMessageID() {
