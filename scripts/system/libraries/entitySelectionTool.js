@@ -1663,11 +1663,11 @@ SelectionDisplay = (function() {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
                 if (direction === TRANSLATE_DIRECTION.X) {
-                    pickNormal = { x:0, y:0, z:1 };
+                    pickNormal = { x:0, y:1, z:1 };
                 } else if (direction === TRANSLATE_DIRECTION.Y) {
-                    pickNormal = { x:1, y:0, z:0 };
+                    pickNormal = { x:1, y:0, z:1 };
                 } else if (direction === TRANSLATE_DIRECTION.Z) {
-                    pickNormal = { x:0, y:1, z:0 };
+                    pickNormal = { x:1, y:1, z:0 };
                 }
 
                 var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
@@ -1711,7 +1711,6 @@ SelectionDisplay = (function() {
             onMove: function(event) {
                 pickRay = generalComputePickRay(event.x, event.y);
     
-                // translate mode left/right based on view toward entity
                 var newIntersection = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, pickNormal);
                 var vector = Vec3.subtract(newIntersection, lastPick);
                 
@@ -1729,7 +1728,7 @@ SelectionDisplay = (function() {
                 var dotVector = Vec3.dot(vector, projectionVector);
                 vector = Vec3.multiply(dotVector, projectionVector);
                 vector = grid.snapToGrid(vector);
-    
+                
                 var wantDebug = false;
                 if (wantDebug) {
                     print("translateUpDown... ");
@@ -2037,10 +2036,10 @@ SelectionDisplay = (function() {
             vector = grid.snapToSpacing(vector);
     
             var changeInDimensions = Vec3.multiply(NEGATE_VECTOR, vec3Mult(localSigns, vector));
-            if (directionEnum === STRETCH_DIRECTION.ALL) {	
-                var toCameraDistance = getDistanceToCamera(position);	
-                var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE;	
-                changeInDimensions = Vec3.multiply(changeInDimensions, dimensionsMultiple);	
+            if (directionEnum === STRETCH_DIRECTION.ALL) {  
+                var toCameraDistance = getDistanceToCamera(position);   
+                var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE; 
+                changeInDimensions = Vec3.multiply(changeInDimensions, dimensionsMultiple); 
             }
 
             var newDimensions;
