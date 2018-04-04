@@ -27,6 +27,17 @@ class PhysicalEntitySimulation;
 using PhysicalEntitySimulationPointer = std::shared_ptr<PhysicalEntitySimulation>;
 using SetOfEntityMotionStates = QSet<EntityMotionState*>;
 
+class VectorOfEntityMotionStates: public std::vector<EntityMotionState*> {
+public:
+    void remove(uint32_t index) {
+        assert(index < size());
+        if (index < size() - 1) {
+            (*this)[index] = back();
+        }
+        pop_back();
+    }
+};
+
 class PhysicalEntitySimulation : public EntitySimulation {
     Q_OBJECT
 public:
@@ -89,8 +100,8 @@ private:
     PhysicsEnginePointer _physicsEngine = nullptr;
     EntityEditPacketSender* _entityPacketSender = nullptr;
 
-    std::vector<EntityMotionState*> _owned;
-    std::vector<EntityMotionState*> _bids;
+    VectorOfEntityMotionStates _owned;
+    VectorOfEntityMotionStates _bids;
     uint64_t _nextBidExpiry;
     uint32_t _lastStepSendPackets { 0 };
 };

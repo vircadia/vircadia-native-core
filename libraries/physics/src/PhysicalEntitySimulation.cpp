@@ -79,20 +79,14 @@ void PhysicalEntitySimulation::removeOwnershipData(EntityMotionState* motionStat
         for (uint32_t i = 0; i < _owned.size(); ++i) {
             if (_owned[i] == motionState) {
                 _owned[i]->clearOwnershipState();
-                if (i < _owned.size() - 1) {
-                    _owned[i] = _owned.back();
-                }
-                _owned.pop_back();
+                _owned.remove(i);
             }
         }
     } else if (motionState->getOwnershipState() == EntityMotionState::OwnershipState::PendingBid) {
         for (uint32_t i = 0; i < _bids.size(); ++i) {
             if (_bids[i] == motionState) {
                 _bids[i]->clearOwnershipState();
-                if (i < _bids.size() - 1) {
-                    _bids[i] = _bids.back();
-                }
-                _bids.pop_back();
+                _bids.remove(i);
             }
         }
     }
@@ -368,10 +362,7 @@ void PhysicalEntitySimulation::sendOwnershipBids(uint32_t numSubsteps) {
                 _bids[i]->clearOwnershipState();
             }
             if (removeBid) {
-                if (i < _bids.size() - 1) {
-                    _bids[i] = _bids.back();
-                }
-                _bids.pop_back();
+                _bids.remove(i);
             } else {
                 if (now > _bids[i]->getNextBidExpiry()) {
                     _bids[i]->sendBid(_entityPacketSender, numSubsteps);
@@ -393,10 +384,7 @@ void PhysicalEntitySimulation::sendOwnedUpdates(uint32_t numSubsteps) {
             } else {
                 _owned[i]->clearOwnershipState();
             }
-            if (i < _owned.size() - 1) {
-                _owned[i] = _owned.back();
-            }
-            _owned.pop_back();
+            _owned.remove(i);
         } else {
             if (_owned[i]->shouldSendUpdate(numSubsteps)) {
                 _owned[i]->sendUpdate(_entityPacketSender, numSubsteps);
