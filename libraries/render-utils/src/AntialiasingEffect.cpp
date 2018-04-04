@@ -380,6 +380,8 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, nullptr);
         batch.setResourceTexture(AntialiasingPass_NextMapSlot, nullptr);
     });
+    
+    args->popViewFrustum();
 }
 
 
@@ -520,7 +522,7 @@ void JitterSample::run(const render::RenderContextPointer& renderContext) {
 
         viewFrustum.setProjection(projMat);
         viewFrustum.calculate();
-        args->setViewFrustum(viewFrustum);
+        args->pushViewFrustum(viewFrustum);
     } else {
         mat4 projMats[2];
         args->_context->getStereoProjections(projMats);

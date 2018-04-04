@@ -17,8 +17,10 @@
 #include <QMetaType>
 #include <QUrl>
 
+#include <functional>
 #include <shared/Storage.h>
 #include <shared/FileCache.h>
+#include <RegisteredMetaTypes.h>
 #include "Forward.h"
 #include "Resource.h"
 #include "Metric.h"
@@ -126,12 +128,23 @@ public:
         uint8 _wrapModeV = WRAP_REPEAT;
         uint8 _wrapModeW = WRAP_REPEAT;
             
-        uint8 _mipOffset = 0;
         uint8 _minMip = 0;
         uint8 _maxMip = MAX_MIP_LEVEL;
 
         Desc() {}
         Desc(const Filter filter, const WrapMode wrap = WRAP_REPEAT) : _filter(filter), _wrapModeU(wrap), _wrapModeV(wrap), _wrapModeW(wrap) {}
+
+        bool operator==(const Desc& other) const {
+            return _borderColor == other._borderColor &&
+                _maxAnisotropy == other._maxAnisotropy &&
+                _filter == other._filter &&
+                _comparisonFunc == other._comparisonFunc &&
+                _wrapModeU == other._wrapModeU &&
+                _wrapModeV == other._wrapModeV &&
+                _wrapModeW == other._wrapModeW &&
+                _minMip == other._minMip &&
+                _maxMip == other._maxMip;
+        }
     };
 
     Sampler() {}
@@ -151,11 +164,17 @@ public:
     ComparisonFunction getComparisonFunction() const { return ComparisonFunction(_desc._comparisonFunc); }
     bool doComparison() const { return getComparisonFunction() != ALWAYS; }
 
-    uint8 getMipOffset() const { return _desc._mipOffset; }
     uint8 getMinMip() const { return _desc._minMip; }
     uint8 getMaxMip() const { return _desc._maxMip; }
 
     const Desc& getDesc() const { return _desc; }
+
+    bool operator==(const Sampler& other) const {
+        return _desc == other._desc;
+    }
+    bool operator!=(const Sampler& other) const {
+        return !(*this == other);
+    }
 protected:
     Desc _desc;
 };
@@ -665,6 +684,17 @@ protected:
 typedef std::shared_ptr< TextureSource > TextureSourcePointer;
 
 };
+
+namespace std {
+    template<> struct hash<gpu::Sampler> {
+        size_t operator()(const gpu::Sampler& sampler) const noexcept {
+            size_t result = 0;
+            const auto& desc = sampler.getDesc();
+            hash_combine(result, desc._comparisonFunc, desc._filter, desc._maxAnisotropy, desc._maxMip, desc._minMip, desc._wrapModeU, desc._wrapModeV, desc._wrapModeW);
+            return result;
+        }
+    };
+}
 
 Q_DECLARE_METATYPE(gpu::TexturePointer)
 

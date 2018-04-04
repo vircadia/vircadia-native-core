@@ -427,8 +427,8 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
             if (!childEntity) {
                 continue;
             }
-            EntityTreeElementPointer containingElement = childEntity->getElement();
-            if (!containingElement) {
+            EntityTreeElementPointer childContainingElement = childEntity->getElement();
+            if (!childContainingElement) {
                 continue;
             }
 
@@ -442,7 +442,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                 addToNeedsParentFixupList(childEntity);
             }
 
-            UpdateEntityOperator theChildOperator(getThisPointer(), containingElement, childEntity, queryCube);
+            UpdateEntityOperator theChildOperator(getThisPointer(), childContainingElement, childEntity, queryCube);
             recurseTreeWithOperator(&theChildOperator);
             foreach (SpatiallyNestablePointer childChild, childEntity->getChildren()) {
                 if (childChild && childChild->getNestableType() == NestableType::Entity) {
