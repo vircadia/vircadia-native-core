@@ -48,6 +48,74 @@ TexMapArray getTexMapArray() {
 
 <@func declareMaterialTextures(withAlbedo, withRoughness, withNormal, withMetallic, withEmissive, withOcclusion, withScattering)@>
 
+<@include gpu/TextureTable.slh@>
+
+#ifdef GPU_TEXTURE_TABLE_BINDLESS
+
+TextureTable(0, matTex);
+<!
+    ALBEDO = 0,
+    NORMAL, 1
+    METALLIC, 2
+    EMISSIVE_LIGHTMAP, 3
+    ROUGHNESS, 4
+    OCCLUSION, 5
+    SCATTERING, 6
+!>
+
+<@if withAlbedo@>
+#define albedoMap 0
+vec4 fetchAlbedoMap(vec2 uv) {
+    return tableTexValue(matTex, albedoMap, uv);
+}
+<@endif@>
+
+<@if withRoughness@>
+#define roughnessMap 4
+float fetchRoughnessMap(vec2 uv) {
+    return tableTexValue(matTex, roughnessMap, uv).r;
+}
+<@endif@>
+
+<@if withNormal@>
+#define normalMap 1
+vec3 fetchNormalMap(vec2 uv) {
+    return tableTexValue(matTex, normalMap, uv).xyz;
+}
+<@endif@>
+
+<@if withMetallic@>
+#define metallicMap 2
+float fetchMetallicMap(vec2 uv) {
+    return tableTexValue(matTex, metallicMap, uv).r;
+}
+<@endif@>
+
+<@if withEmissive@>
+#define emissiveMap 3
+vec3 fetchEmissiveMap(vec2 uv) {
+    return tableTexValue(matTex, emissiveMap, uv).rgb;
+}
+<@endif@>
+
+<@if withOcclusion@>
+#define occlusionMap 5
+float fetchOcclusionMap(vec2 uv) {
+    return tableTexValue(matTex, occlusionMap, uv).r;
+}
+<@endif@>
+
+<@if withScattering@>
+#define scatteringMap 6
+float fetchScatteringMap(vec2 uv) {
+    float scattering = texture(tableTex(matTex, scatteringMap), uv).r; // boolean scattering for now
+    return max(((scattering - 0.1) / 0.9), 0.0);
+    return tableTexValue(matTex, scatteringMap, uv).r; // boolean scattering for now
+}
+<@endif@>
+
+#else
+
 <@if withAlbedo@>
 uniform sampler2D albedoMap;
 vec4 fetchAlbedoMap(vec2 uv) {
@@ -101,6 +169,8 @@ float fetchScatteringMap(vec2 uv) {
     return texture(scatteringMap, uv).r; // boolean scattering for now
 }
 <@endif@>
+
+#endif
 
 <@endfunc@>
 

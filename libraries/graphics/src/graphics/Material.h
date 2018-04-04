@@ -20,6 +20,7 @@
 #include <ColorUtils.h>
 
 #include <gpu/Resource.h>
+#include <gpu/TextureTable.h>
 
 class Transform;
 
@@ -361,6 +362,8 @@ public:
     const std::string& getModel() const { return _model; }
     void setModel(const std::string& model) { _model = model; }
 
+    const gpu::TextureTablePointer& getTextureTable() const { return _textureTable; }
+
 protected:
     std::string _name { "" };
 
@@ -368,6 +371,7 @@ private:
     mutable MaterialKey _key;
     mutable UniformBufferView _schemaBuffer;
     mutable UniformBufferView _texMapArrayBuffer;
+    mutable gpu::TextureTablePointer _textureTable{ std::make_shared<gpu::TextureTable>() };
 
     TextureMaps _textureMaps;
 
