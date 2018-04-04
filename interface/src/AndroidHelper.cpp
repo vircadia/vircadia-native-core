@@ -14,3 +14,7 @@
 void AndroidHelper::requestActivity(const QString &activityName) {
     emit androidActivityRequested(activityName);
 }
+
+void AndroidHelper::goBackFromAndroidActivity() {
+    emit backFromAndroidActivity();
+}

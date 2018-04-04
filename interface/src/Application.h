@@ -454,6 +454,8 @@ private slots:
     void handleSandboxStatus(QNetworkReply* reply);
     void switchDisplayMode();
 
+    void restoreAfterAndroidActivity();
+
 private:
     static void initDisplay();
     void init();

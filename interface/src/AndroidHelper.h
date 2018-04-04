@@ -22,10 +22,13 @@ public:
             return instance;
     }
     void requestActivity(const QString &activityName);
+    void goBackFromAndroidActivity();
+
     AndroidHelper(AndroidHelper const&)  = delete;
     void operator=(AndroidHelper const&) = delete;
 signals:
     void androidActivityRequested(const QString &activityName);
+    void backFromAndroidActivity();
 
 private:
     AndroidHelper() {}

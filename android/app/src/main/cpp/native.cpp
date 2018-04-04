@@ -139,10 +139,6 @@ void unpackAndroidAssets() {
     }
 }
 
-void openGotoActivity(const QString& a) {
-    __activity.callMethod<void>("openGotoActivity", "()V");
-}
-
 extern "C" {
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCreate(JNIEnv* env, jobject obj, jobject instance, jobject asset_mgr) {
@@ -154,7 +150,8 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCrea
     qInstallMessageHandler(oldMessageHandler);
 
     QObject::connect(&AndroidHelper::instance(), &AndroidHelper::androidActivityRequested, [](const QString& a) {
-        __activity.callMethod<void>("openGotoActivity", "()V");
+        QAndroidJniObject string = QAndroidJniObject::fromString(a);
+        __activity.callMethod<void>("openGotoActivity", "(Ljava/lang/String;)V", string.object<jstring>());
     });
 }
 
@@ -181,6 +178,8 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnExit
     qDebug() << "nativeOnCreate On thread " << QThread::currentThreadId();
 }
 
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeGoBackFromAndroidActivity(JNIEnv *env, jobject instance) {
+    AndroidHelper::instance().goBackFromAndroidActivity();
 }
 
-
+}

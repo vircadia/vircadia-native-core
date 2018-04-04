@@ -106,8 +106,6 @@ public class GotoActivity extends AppCompatActivity {
             searchTextView.setTextAppearance(R.style.SearchText);
         }
 
-        preloadQt();
-
         if (getIntent() == null ||
                 !getIntent().hasExtra(PARAM_NOT_START_INTERFACE_ACTIVITY) ||
                 !getIntent().getBooleanExtra(PARAM_NOT_START_INTERFACE_ACTIVITY, false)) {

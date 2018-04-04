@@ -32,6 +32,7 @@ import android.view.View;
 public class InterfaceActivity extends QtActivity {
 
     public static final String DOMAIN_URL = "url";
+    private static final String TAG = "Interface";
 
     //public static native void handleHifiURL(String hifiURLString);
     private native long nativeOnCreate(InterfaceActivity instance, AssetManager assetManager);
@@ -39,6 +40,7 @@ public class InterfaceActivity extends QtActivity {
     //private native void nativeOnResume();
     private native void nativeOnDestroy();
     private native void nativeGotoUrl(String url);
+    private native void nativeGoBackFromAndroidActivity();
     //private native void nativeOnStop();
     //private native void nativeOnStart();
     //private native void saveRealScreenSize(int width, int height);
@@ -193,12 +195,22 @@ public class InterfaceActivity extends QtActivity {
         if (intent.hasExtra(DOMAIN_URL)) {
             nativeGotoUrl(intent.getStringExtra(DOMAIN_URL));
         }
+        nativeGoBackFromAndroidActivity();
     }
 
-    public void openGotoActivity() {
-        Intent intent = new Intent(this, GotoActivity.class);
-        intent.putExtra(GotoActivity.PARAM_NOT_START_INTERFACE_ACTIVITY, true);
-        startActivity(intent);
+    public void openGotoActivity(String activityName) {
+        switch (activityName) {
+            case "Goto": {
+                Intent intent = new Intent(this, GotoActivity.class);
+                intent.putExtra(GotoActivity.PARAM_NOT_START_INTERFACE_ACTIVITY, true);
+                startActivity(intent);
+                break;
+            }
+            default: {
+                Log.w(TAG, "Could not open activity by name " + activityName);
+                break;
+            }
+        }
     }
 
 }

@@ -34,7 +34,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         module.exports.onHidden();
         break;
     case 'openAndroidActivity':
-        App.openAndroidActivity("Hello");
+        App.openAndroidActivity("Goto");
         break;
     default:
         print('[goto-android.js] Unrecognized message from AddressBarDialog.qml:', JSON.stringify(message));

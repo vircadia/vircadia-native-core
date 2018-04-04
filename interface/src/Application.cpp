@@ -7868,7 +7868,18 @@ void Application::saveNextPhysicsStats(QString filename) {
 
 void Application::openAndroidActivity(const QString& activityName) {
 #if defined(Q_OS_ANDROID)
+    getActiveDisplayPlugin()->deactivate();
     AndroidHelper::instance().requestActivity(activityName);
+    connect(&AndroidHelper::instance(), &AndroidHelper::backFromAndroidActivity, this, &Application::restoreAfterAndroidActivity);
+#endif
+}
+
+void Application::restoreAfterAndroidActivity() {
+#if defined(Q_OS_ANDROID)
+    if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
+        qWarning() << "Could not re-activate display plugin";
+    }
+    disconnect(&AndroidHelper::instance(), &AndroidHelper::backFromAndroidActivity, this, &Application::restoreAfterAndroidActivity);
 #endif
 }
 
