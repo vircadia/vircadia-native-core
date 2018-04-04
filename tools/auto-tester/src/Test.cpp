@@ -638,7 +638,7 @@ void Test::createMDFile() {
     stream << "Press space bar to advance step by step\n\n";
 
     int snapShotIndex { 0 };
-    for (int i = 0; i < testScriptLines.stepList.size(); ++i) {
+    for (size_t i = 0; i < testScriptLines.stepList.size(); ++i) {
         stream << "### Step " << QString::number(i) << "\n";
         stream << "- " << testScriptLines.stepList[i]->text << "\n";
         if (testScriptLines.stepList[i]->takeSnapshot) {
