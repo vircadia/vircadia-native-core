@@ -323,6 +323,16 @@ FocusScope {
         return false;
     }
 
+    function hideDesktopWindows() {
+        for (var index = 0; index < desktop.visibleChildren.length; index++) {
+            var child = desktop.visibleChildren[index];
+            if (child.topLevelWindow && child.hasOwnProperty("modality")) {
+                console.log(child);
+                child.setShown(false);
+            }
+        }
+    }
+
     function setPinned(newPinned) {
         pinned = newPinned
     }
