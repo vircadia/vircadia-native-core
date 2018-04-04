@@ -86,10 +86,10 @@ protected:
 // A default Config is always on; to create an enableable Config, use the ctor JobConfig(bool enabled)
 class JobConfig : public QObject {
     Q_OBJECT
-        Q_PROPERTY(double cpuRunTime READ getCPURunTime NOTIFY newStats()) //ms
-        Q_PROPERTY(bool enabled READ isEnabled WRITE setEnabled NOTIFY dirtyEnabled())
+    Q_PROPERTY(double cpuRunTime READ getCPURunTime NOTIFY newStats()) //ms
+    Q_PROPERTY(bool enabled READ isEnabled WRITE setEnabled NOTIFY dirtyEnabled())
 
-        double _msCPURunTime{ 0.0 };
+    double _msCPURunTime{ 0.0 };
 public:
     using Persistent = PersistentConfig<JobConfig>;
 
@@ -120,7 +120,7 @@ public:
     Q_INVOKABLE virtual int getNumSubs() const { return 0; }
     Q_INVOKABLE virtual QObject* getSubConfig(int i) const { return nullptr; }
 
-    public slots:
+public slots:
     void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); emit loaded(); }
 
 signals:
