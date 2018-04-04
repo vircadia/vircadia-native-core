@@ -54,7 +54,7 @@ void SimpleEntitySimulation::updateEntitiesInternal(uint64_t now) {
     if (now > _nextOwnerlessExpiry) {
         // search for ownerless objects that have expired
         QMutexLocker lock(&_mutex);
-        _nextOwnerlessExpiry = -1;
+        _nextOwnerlessExpiry = std::numeric_limits<uint64_t>::max();
         SetOfEntities::iterator itemItr = _entitiesThatNeedSimulationOwner.begin();
         while (itemItr != _entitiesThatNeedSimulationOwner.end()) {
             EntityItemPointer entity = *itemItr;

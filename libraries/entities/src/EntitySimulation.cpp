@@ -20,7 +20,7 @@
 void EntitySimulation::setEntityTree(EntityTreePointer tree) {
     if (_entityTree && _entityTree != tree) {
         _mortalEntities.clear();
-        _nextExpiry = uint64_t(-1);
+        _nextExpiry = std::numeric_limits<uint64_t>::max();
         _entitiesToUpdate.clear();
         _entitiesToSort.clear();
         _simpleKinematicEntities.clear();
@@ -74,7 +74,7 @@ void EntitySimulation::expireMortalEntities(uint64_t now) {
     if (now > _nextExpiry) {
         PROFILE_RANGE_EX(simulation_physics, "ExpireMortals", 0xffff00ff, (uint64_t)_mortalEntities.size());
         // only search for expired entities if we expect to find one
-        _nextExpiry = uint64_t(-1);
+        _nextExpiry = std::numeric_limits<uint64_t>::max();
         QMutexLocker lock(&_mutex);
         SetOfEntities::iterator itemItr = _mortalEntities.begin();
         while (itemItr != _mortalEntities.end()) {
@@ -220,7 +220,7 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
 void EntitySimulation::clearEntities() {
     QMutexLocker lock(&_mutex);
     _mortalEntities.clear();
-    _nextExpiry = uint64_t(-1);
+    _nextExpiry = std::numeric_limits<uint64_t>::max();
     _entitiesToUpdate.clear();
     _entitiesToSort.clear();
     _simpleKinematicEntities.clear();

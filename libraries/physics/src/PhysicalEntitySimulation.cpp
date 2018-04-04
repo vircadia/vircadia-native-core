@@ -343,7 +343,7 @@ void PhysicalEntitySimulation::sendOwnershipBids(uint32_t numSubsteps) {
     uint64_t now = usecTimestampNow();
     if (now > _nextBidExpiry) {
         PROFILE_RANGE_EX(simulation_physics, "Bid", 0x00000000, (uint64_t)_bids.size());
-        _nextBidExpiry = (uint64_t)(-1);
+        _nextBidExpiry = std::numeric_limits<uint64_t>::max();
         uint32_t i = 0;
         while (i < _bids.size()) {
             bool removeBid = false;

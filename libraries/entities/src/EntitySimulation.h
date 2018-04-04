@@ -12,6 +12,8 @@
 #ifndef hifi_EntitySimulation_h
 #define hifi_EntitySimulation_h
 
+#include <limits>
+
 #include <QtCore/QObject>
 #include <QSet>
 #include <QVector>
@@ -44,7 +46,7 @@ const int DIRTY_SIMULATION_FLAGS =
 
 class EntitySimulation : public QObject, public std::enable_shared_from_this<EntitySimulation> {
 public:
-    EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL), _nextExpiry(uint64_t(-1)) { }
+    EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL), _nextExpiry(std::numeric_limits<uint64_t>::max()) { }
     virtual ~EntitySimulation() { setEntityTree(NULL); }
 
     inline EntitySimulationPointer getThisPointer() const {
