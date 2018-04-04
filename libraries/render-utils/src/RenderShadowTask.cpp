@@ -149,9 +149,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
         batch.setStateScissorRect(viewport);
 
         batch.setFramebuffer(fbo);
-        batch.clearFramebuffer(
-            gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH,
-            vec4(vec3(1.0, 1.0, 1.0), 0.0), 1.0, 0, true);
+        batch.clearDepthFramebuffer(1.0, false);
 
         glm::mat4 projMat;
         Transform viewMat;
