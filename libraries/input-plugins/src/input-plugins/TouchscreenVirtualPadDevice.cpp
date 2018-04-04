@@ -57,8 +57,7 @@ void TouchscreenVirtualPadDevice::init() {
     }
 
     auto& virtualPadManager = VirtualPad::Manager::instance();
-    setupFixedCenter(virtualPadManager, true);
-    setupJumpButton(virtualPadManager);
+    setupControlsPositions(virtualPadManager, true);
 
     if (_fixedPosition) {
         virtualPadManager.getLeftVirtualPad()->setShown(virtualPadManager.isEnabled() && !virtualPadManager.isHidden()); // Show whenever it's enabled
@@ -67,24 +66,22 @@ void TouchscreenVirtualPadDevice::init() {
     KeyboardMouseDevice::enableTouch(false); // Touch for view controls is managed by this plugin
 }
 
-void TouchscreenVirtualPadDevice::setupFixedCenter(VirtualPad::Manager& virtualPadManager, bool force) {
-    if (!_fixedPosition) return;
-
+void TouchscreenVirtualPadDevice::setupControlsPositions(VirtualPad::Manager& virtualPadManager, bool force) {
     if (_extraBottomMargin == virtualPadManager.extraBottomMargin() && !force) return; // Our only criteria to decide a center change is the bottom margin
 
-    _extraBottomMargin = virtualPadManager.extraBottomMargin();
-    float margin = _screenDPI * VirtualPad::Manager::BASE_MARGIN_PIXELS / VirtualPad::Manager::DPI;
     QScreen* eventScreen = qApp->primaryScreen(); // do not call every time
-    _fixedCenterPosition = glm::vec2( _fixedRadius + margin, eventScreen->size().height() - margin - _fixedRadius - _extraBottomMargin);
+    _extraBottomMargin = virtualPadManager.extraBottomMargin();
 
+    // Movement stick
+    float margin = _screenDPI * VirtualPad::Manager::BASE_MARGIN_PIXELS / VirtualPad::Manager::DPI;
+    _fixedCenterPosition = glm::vec2( _fixedRadius + margin, eventScreen->size().height() - margin - _fixedRadius - _extraBottomMargin);
     _moveRefTouchPoint = _fixedCenterPosition;
     virtualPadManager.getLeftVirtualPad()->setFirstTouch(_moveRefTouchPoint);
-}
 
-void TouchscreenVirtualPadDevice::setupJumpButton(VirtualPad::Manager& virtualPadManager) {
-    QScreen* screen = qApp->primaryScreen();
-    float topMargin = _screenDPI * VirtualPad::Manager::JUMP_BTN_TOP_MARGIN_PIXELS / VirtualPad::Manager::DPI;
-    _jumpButtonPosition = glm::vec2( screen->size().width() / 2 + _jumpButtonRadius/2, topMargin + _jumpButtonRadius);
+    // Jump button
+    float leftMargin = _screenDPI * VirtualPad::Manager::JUMP_BTN_LEFT_MARGIN_PIXELS / VirtualPad::Manager::DPI;
+    float bottomMargin = _screenDPI * VirtualPad::Manager::JUMP_BTN_BOTTOM_MARGIN_PIXELS/ VirtualPad::Manager::DPI;
+    _jumpButtonPosition = glm::vec2( _jumpButtonRadius + leftMargin, eventScreen->size().height() - bottomMargin - _jumpButtonRadius - _extraBottomMargin);
     virtualPadManager.setJumpButtonPosition(_jumpButtonPosition);
 }
 
@@ -165,7 +162,7 @@ void TouchscreenVirtualPadDevice::pluginUpdate(float deltaTime, const controller
     });
 
     auto& virtualPadManager = VirtualPad::Manager::instance();
-    setupFixedCenter(virtualPadManager);
+    setupControlsPositions(virtualPadManager);
 
     if (_moveHasValidTouch) {
         processInputDeviceForMove(virtualPadManager);
