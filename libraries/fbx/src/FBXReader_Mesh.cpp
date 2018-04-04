@@ -566,20 +566,18 @@ glm::vec3 FBXReader::normalizeDirForPacking(const glm::vec3& dir) {
 }
 
 void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
-    static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("buildModelMesh failed -- .*");
-
     unsigned int totalSourceIndices = 0;
     foreach(const FBXMeshPart& part, extractedMesh.parts) {
         totalSourceIndices += (part.quadTrianglesIndices.size() + part.triangleIndices.size());
     }
 
     if (!totalSourceIndices) {
-        qCDebug(modelformat) << "buildModelMesh failed -- no indices, url = " << url;
+        HIFI_FDEBUG(modelformat(), "buildModelMesh failed -- no indices, url = " << url);
         return;
     }
 
     if (extractedMesh.vertices.size() == 0) {
-        qCDebug(modelformat) << "buildModelMesh failed -- no vertices, url = " << url;
+        HIFI_FDEBUG(modelformat(), "buildModelMesh failed -- no vertices, url = " << url);
         return;
     }
 

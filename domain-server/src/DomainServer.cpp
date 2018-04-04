@@ -611,22 +611,14 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
                 // let the NodeList do its checks now (but pass it the sourceNode so it doesn't need to look it up again)
                 return nodeList->isPacketVerifiedWithSource(packet, sourceNode.data());
             } else {
-                static const QString UNKNOWN_REGEX = "Packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unmatched IP for UUID";
-                static QString repeatedMessage
-                    = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
-
-                qDebug() << "Packet of type" << headerType
-                    << "received from unmatched IP for UUID" << uuidStringWithoutCurlyBraces(sourceID);
+                HIFI_FDEBUG((*QLoggingCategory::defaultCategory()), "Packet of type" << headerType
+                    << "received from unmatched IP for UUID" << uuidStringWithoutCurlyBraces(sourceID));
 
                 return false;
             }
         } else {
-            static const QString UNKNOWN_REGEX = "Packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unknown node with UUID";
-            static QString repeatedMessage
-                = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
-
-            qDebug() << "Packet of type" << headerType
-                << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID);
+            HIFI_FDEBUG((*QLoggingCategory::defaultCategory()), "Packet of type" << headerType
+                << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID));
 
             return false;
         }
@@ -1276,10 +1268,8 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage
 
     auto it = find_if(_acSubnetWhitelist.begin(), _acSubnetWhitelist.end(), isHostAddressInSubnet);
     if (it == _acSubnetWhitelist.end()) {
-        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(
-            "Received an assignment connect request from a disallowed ip address: [^ ]+");
-        qDebug() << "Received an assignment connect request from a disallowed ip address:"
-            << senderAddr.toString();
+        HIFI_FDEBUG((*QLoggingCategory::defaultCategory()),  "Received an assignment connect request from a disallowed ip address:"
+            << senderAddr.toString());
         return;
     }
 

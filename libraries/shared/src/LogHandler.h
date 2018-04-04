@@ -51,7 +51,6 @@ public:
     /// prints various process, message type, and time information
     static void verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message);
 
-    const QString& addRepeatedMessageRegex(const QString& regexString);
     const QString& addOnlyOnceMessageRegex(const QString& regexString);
     int newRepeatedMessageID();
     void printRepeatedMessage(int messageID, LogMsgType type, const QMessageLogContext& context, const QString &message);
@@ -70,13 +69,6 @@ private:
     bool _shouldOutputThreadID { false };
     bool _shouldDisplayMilliseconds { false };
 
-    struct RepeatedMessage {
-        QRegExp regexp;
-        int messageCount { 0 };
-        QString lastMessage;
-    };
-    std::vector<RepeatedMessage> _repeatedMessages;
-
     struct OnceOnlyMessage {
         QRegExp regexp;
         int messageCount { 0 };
@@ -91,7 +83,7 @@ private:
 
 #define HIFI_FDEBUG(category, message) \
     do { \
-        if (category().isDebugEnabled()) { \
+        if (category.isDebugEnabled()) { \
             static int repeatedMessageID_ = LogHandler::getInstance().newRepeatedMessageID(); \
             QString logString_; \
             QDebug debugStringReceiver_(&logString_); \

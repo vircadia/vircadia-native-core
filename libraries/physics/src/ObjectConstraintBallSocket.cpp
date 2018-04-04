@@ -85,12 +85,9 @@ btTypedConstraint* ObjectConstraintBallSocket::getConstraint() {
         return constraint;
     }
 
-    static QString repeatedBallSocketNoRigidBody = LogHandler::getInstance().addRepeatedMessageRegex(
-        "ObjectConstraintBallSocket::getConstraint -- no rigidBody.*");
-
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
-        qCDebug(physics) << "ObjectConstraintBallSocket::getConstraint -- no rigidBodyA";
+        HIFI_FDEBUG(physics(), "ObjectConstraintBallSocket::getConstraint -- no rigidBodyA");
         return nullptr;
     }
 
@@ -99,7 +96,7 @@ btTypedConstraint* ObjectConstraintBallSocket::getConstraint() {
 
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
-            qCDebug(physics) << "ObjectConstraintBallSocket::getConstraint -- no rigidBodyB";
+            HIFI_FDEBUG(physics(), "ObjectConstraintBallSocket::getConstraint -- no rigidBodyB");
             return nullptr;
         }
 

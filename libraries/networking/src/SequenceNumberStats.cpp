@@ -89,10 +89,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
         } else if (absGap > MAX_REASONABLE_SEQUENCE_GAP) {
             arrivalInfo._status = Unreasonable;
 
-            static const QString UNREASONABLE_SEQUENCE_REGEX { "unreasonable sequence number: \\d+ previous: \\d+" };
-            static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(UNREASONABLE_SEQUENCE_REGEX);
-
-            qCDebug(networking) << "unreasonable sequence number:" << incoming << "previous:" << _lastReceivedSequence;
+            HIFI_FDEBUG(networking(), "unreasonable sequence number:" << incoming << "previous:" << _lastReceivedSequence);
 
             _stats._unreasonable++;
             
@@ -154,10 +151,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
 
                 arrivalInfo._status = Unreasonable;
 
-                static const QString UNREASONABLE_SEQUENCE_REGEX { "unreasonable sequence number: \\d+ \\(possible duplicate\\)" };
-                static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(UNREASONABLE_SEQUENCE_REGEX);
-
-                qCDebug(networking) << "unreasonable sequence number:" << incoming << "(possible duplicate)";
+                HIFI_FDEBUG(networking(), "unreasonable sequence number:" << incoming << "(possible duplicate)");
 
                 _stats._unreasonable++;
 

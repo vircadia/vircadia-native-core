@@ -39,9 +39,6 @@ AudioRingBufferTemplate<T>::AudioRingBufferTemplate(int numFrameSamples, int num
         _nextOutput = _buffer;
         _endOfLastWrite = _buffer;
     }
-
-    static QString repeatedOverflowMessage = LogHandler::getInstance().addRepeatedMessageRegex(RING_BUFFER_OVERFLOW_DEBUG);
-    static QString repeatedDroppedMessage = LogHandler::getInstance().addRepeatedMessageRegex(DROPPED_SILENT_DEBUG);
 }
 
 template <class T>
@@ -167,7 +164,8 @@ int AudioRingBufferTemplate<T>::writeData(const char* data, int maxSize) {
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
 
-        qCDebug(audio) << qPrintable(RING_BUFFER_OVERFLOW_DEBUG);
+        HIFI_FDEBUG(audio(), RING_BUFFER_OVERFLOW_DEBUG);
+        qPrintable(RING_BUFFER_OVERFLOW_DEBUG);
     }
 
     if (_endOfLastWrite + numWriteSamples > _buffer + _bufferLength) {
@@ -224,7 +222,7 @@ int AudioRingBufferTemplate<T>::addSilentSamples(int silentSamples) {
     if (numWriteSamples > samplesRoomFor) {
         numWriteSamples = samplesRoomFor;
 
-        qCDebug(audio) << qPrintable(DROPPED_SILENT_DEBUG);
+        HIFI_FDEBUG(audio(), DROPPED_SILENT_DEBUG);
     }
 
     if (_endOfLastWrite + numWriteSamples > _buffer + _bufferLength) {
@@ -275,7 +273,7 @@ int AudioRingBufferTemplate<T>::writeSamples(ConstIterator source, int maxSample
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        qCDebug(audio) << qPrintable(RING_BUFFER_OVERFLOW_DEBUG);
+        HIFI_FDEBUG(audio(), RING_BUFFER_OVERFLOW_DEBUG);
     }
 
     Sample* bufferLast = _buffer + _bufferLength - 1;
@@ -297,7 +295,7 @@ int AudioRingBufferTemplate<T>::writeSamplesWithFade(ConstIterator source, int m
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        qCDebug(audio) << qPrintable(RING_BUFFER_OVERFLOW_DEBUG);
+        HIFI_FDEBUG(audio(), RING_BUFFER_OVERFLOW_DEBUG);
     }
 
     Sample* bufferLast = _buffer + _bufferLength - 1;

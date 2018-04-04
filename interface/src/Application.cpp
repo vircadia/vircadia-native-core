@@ -6018,9 +6018,7 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
         bool result = true;
         foreach (EntityItemPointer entity, entities) {
             if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
-                static QString repeatedMessage =
-                    LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
-                qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
+                HIFI_FDEBUG(interfaceapp(), "Physics disabled until entity loads: " << entity->getID() << entity->getName());
                 // don't break here because we want all the relevant entities to start their downloads
                 result = false;
             }
