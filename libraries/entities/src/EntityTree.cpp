@@ -648,7 +648,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         emit deletingEntityPointer(existingEntity.get());
     }
 
-    if (theOperator.getEntities().size() > 0) {
+    if (!theOperator.getEntities().empty()) {
         recurseTreeWithOperator(&theOperator);
         processRemovedEntities(theOperator);
         _isDirty = true;
@@ -1802,7 +1802,7 @@ void EntityTree::update(bool simulate) {
                 PROFILE_RANGE(simulation_physics, "Deletes");
                 SetOfEntities deadEntities;
                 _simulation->takeDeadEntities(deadEntities);
-                if (deadEntities.size() > 0) {
+                if (!deadEntities.empty()) {
                     // translate into list of ID's
                     QSet<EntityItemID> idsToDelete;
 
