@@ -537,7 +537,7 @@ void EntityMotionState::sendBid(OctreeEditPacketSender* packetSender, uint32_t s
     EntityItemID id(_entity->getID());
     EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
     entityPacketSender->queueEditEntityMessage(PacketType::EntityPhysics, tree, id, properties);
-    _entity->setLastBroadcast(now); // ffor debug/physics status icons
+    _entity->setLastBroadcast(now); // for debug/physics status icons
 
     // NOTE: we don't descend to children for ownership bid.  Instead, if we win ownership of the parent
     // then in sendUpdate() we'll walk descendents and send updates for their QueryAACubes if necessary.
