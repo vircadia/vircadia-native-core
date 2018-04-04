@@ -101,22 +101,22 @@ bool SimulationOwner::set(const SimulationOwner& owner) {
     return setID(owner._id) || oldPriority != _priority;
 }
 
-void SimulationOwner::setPendingPriority(uint8_t priority, const quint64& timestamp) {
+void SimulationOwner::setPendingPriority(uint8_t priority, uint64_t timestamp) {
     _pendingBidPriority = priority;
     _pendingBidTimestamp = timestamp;
     _pendingState = (_pendingBidPriority == 0) ? PENDING_STATE_RELEASE : PENDING_STATE_TAKE;
 }
 
 void SimulationOwner::updateExpiry() {
-    const quint64 OWNERSHIP_LOCKOUT_EXPIRY = 200 * USECS_PER_MSEC;
+    const uint64_t OWNERSHIP_LOCKOUT_EXPIRY = 200 * USECS_PER_MSEC;
     _expiry = usecTimestampNow() + OWNERSHIP_LOCKOUT_EXPIRY;
 }
 
-bool SimulationOwner::pendingRelease(const quint64& timestamp) {
+bool SimulationOwner::pendingRelease(uint64_t timestamp) {
     return _pendingBidPriority == 0 && _pendingState == PENDING_STATE_RELEASE && _pendingBidTimestamp >= timestamp;
 }
 
-bool SimulationOwner::pendingTake(const quint64& timestamp) {
+bool SimulationOwner::pendingTake(uint64_t timestamp) {
     return _pendingBidPriority > 0 && _pendingState == PENDING_STATE_TAKE && _pendingBidTimestamp >= timestamp;
 }
 

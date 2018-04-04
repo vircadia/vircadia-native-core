@@ -71,7 +71,7 @@ public:
 
     void clearEntities();
 
-    void moveSimpleKinematics(const uint64_t& now);
+    void moveSimpleKinematics(uint64_t now);
 
     EntityTreePointer getEntityTree() { return _entityTree; }
 
@@ -83,14 +83,14 @@ public:
 protected:
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class
     // calls them in the right places.
-    virtual void updateEntitiesInternal(const uint64_t& now) = 0;
+    virtual void updateEntitiesInternal(uint64_t now) = 0;
     virtual void addEntityInternal(EntityItemPointer entity) = 0;
     virtual void removeEntityInternal(EntityItemPointer entity);
     virtual void changeEntityInternal(EntityItemPointer entity) = 0;
     virtual void clearEntitiesInternal() = 0;
 
-    void expireMortalEntities(const uint64_t& now);
-    void callUpdateOnEntitiesThatNeedIt(const uint64_t& now);
+    void expireMortalEntities(uint64_t now);
+    void callUpdateOnEntitiesThatNeedIt(uint64_t now);
     virtual void sortEntitiesThatMoved();
 
     QMutex _mutex{ QMutex::Recursive };

@@ -28,7 +28,7 @@ public:
     void clearOwnership(const QUuid& ownerID);
 
 protected:
-    virtual void updateEntitiesInternal(const uint64_t& now) override;
+    virtual void updateEntitiesInternal(uint64_t now) override;
     virtual void addEntityInternal(EntityItemPointer entity) override;
     virtual void removeEntityInternal(EntityItemPointer entity) override;
     virtual void changeEntityInternal(EntityItemPointer entity) override;

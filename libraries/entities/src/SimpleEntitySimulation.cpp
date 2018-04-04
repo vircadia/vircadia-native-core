@@ -50,7 +50,7 @@ void SimpleEntitySimulation::clearOwnership(const QUuid& ownerID) {
     }
 }
 
-void SimpleEntitySimulation::updateEntitiesInternal(const uint64_t& now) {
+void SimpleEntitySimulation::updateEntitiesInternal(uint64_t now) {
     if (now > _nextOwnerlessExpiry) {
         // search for ownerless objects that have expired
         QMutexLocker lock(&_mutex);

@@ -40,7 +40,7 @@ void PhysicalEntitySimulation::init(
 }
 
 // begin EntitySimulation overrides
-void PhysicalEntitySimulation::updateEntitiesInternal(const uint64_t& now) {
+void PhysicalEntitySimulation::updateEntitiesInternal(uint64_t now) {
     // Do nothing here because the "internal" update the PhysicsEngine::stepSimualtion() which is done elsewhere.
 }
 
