@@ -151,6 +151,11 @@ int AudioRingBufferTemplate<T>::appendData(char *data, int maxSize) {
     return numReadSamples * SampleSize;
 }
 
+namespace {
+    int repeatedOverflowMessageID = 0;
+    std::atomic<int> messageIDInit = 0;
+}
+
 template <class T>
 int AudioRingBufferTemplate<T>::writeData(const char* data, int maxSize) {
     // only copy up to the number of samples we have capacity for
@@ -164,8 +169,10 @@ int AudioRingBufferTemplate<T>::writeData(const char* data, int maxSize) {
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
 
-        HIFI_FCDEBUG(audio(), RING_BUFFER_OVERFLOW_DEBUG);
-        qPrintable(RING_BUFFER_OVERFLOW_DEBUG);
+        if (++messageIDInit == 1) {
+            repeatedOverflowMessageID = LogHandler::getInstance().newRepeatedMessageID();
+        }
+        HIFI_FCDEBUG_ID(audio(), repeatedOverflowMessageID, RING_BUFFER_OVERFLOW_DEBUG);
     }
 
     if (_endOfLastWrite + numWriteSamples > _buffer + _bufferLength) {
@@ -273,7 +280,11 @@ int AudioRingBufferTemplate<T>::writeSamples(ConstIterator source, int maxSample
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        HIFI_FCDEBUG(audio(), RING_BUFFER_OVERFLOW_DEBUG);
+
+        if (++messageIDInit == 1) {
+            repeatedOverflowMessageID = LogHandler::getInstance().newRepeatedMessageID();
+        }
+        HIFI_FCDEBUG_ID(audio(), repeatedOverflowMessageID, RING_BUFFER_OVERFLOW_DEBUG);
     }
 
     Sample* bufferLast = _buffer + _bufferLength - 1;
@@ -295,7 +306,11 @@ int AudioRingBufferTemplate<T>::writeSamplesWithFade(ConstIterator source, int m
         int samplesToDelete = samplesToCopy - samplesRoomFor;
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
-        HIFI_FCDEBUG(audio(), RING_BUFFER_OVERFLOW_DEBUG);
+
+        if (++messageIDInit == 1) {
+            repeatedOverflowMessageID = LogHandler::getInstance().newRepeatedMessageID();
+        }
+        HIFI_FCDEBUG_ID(audio(), repeatedOverflowMessageID, RING_BUFFER_OVERFLOW_DEBUG);
     }
 
     Sample* bufferLast = _buffer + _bufferLength - 1;

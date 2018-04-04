@@ -96,9 +96,11 @@ btTypedConstraint* ObjectConstraintConeTwist::getConstraint() {
         return constraint;
     }
 
+    static int repeatMessageID = LogHandler::getInstance().newRepeatedMessageID();
+
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
-        HIFI_FCDEBUG(physics(), "ObjectConstraintConeTwist::getConstraint -- no rigidBodyA");
+        HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintConeTwist::getConstraint -- no rigidBodyA");
         return nullptr;
     }
 
@@ -127,7 +129,7 @@ btTypedConstraint* ObjectConstraintConeTwist::getConstraint() {
 
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
-            HIFI_FCDEBUG(physics(), "ObjectConstraintConeTwist::getConstraint -- no rigidBodyB");
+            HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintConeTwist::getConstraint -- no rigidBodyB");
             return nullptr;
         }
 

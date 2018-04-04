@@ -76,8 +76,11 @@ private:
     std::vector<OnceOnlyMessage> _onetimeMessages;
 
     int _currentMessageID { 0 };
-    std::vector<int> _repeatCounts;
-    std::vector<QString> _repeatedMessageStrings;
+    struct RepeatedMessageRecord {
+        int repeatCount;
+        QString repeatString;
+    };
+    std::vector<RepeatedMessageRecord> _repeatedMessageRecords;
     static QMutex _mutex;
 };
 
@@ -106,6 +109,6 @@ private:
         } \
     } while (false)
 
-#define HIFI_FDEBUG_ID(message) HIFI_FCDEBUG_ID((*QLoggingCategory::defaultCategory()), message)
+#define HIFI_FDEBUG_ID(messageID, message) HIFI_FCDEBUG_ID((*QLoggingCategory::defaultCategory()), messageID, message)
 
 #endif // hifi_LogHandler_h

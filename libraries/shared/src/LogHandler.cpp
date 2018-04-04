@@ -92,15 +92,15 @@ void LogHandler::setShouldDisplayMilliseconds(bool shouldDisplayMilliseconds) {
 void LogHandler::flushRepeatedMessages() {
     QMutexLocker lock(&_mutex);
 
-    // New repeat-supress scheme:
-    for (int m = 0; m < (int)_repeatCounts.size(); ++m) {
-        int repeatCount = _repeatCounts[m];
+    // New repeat-suppress scheme:
+    for (int m = 0; m < (int)_repeatedMessageRecords.size(); ++m) {
+        int repeatCount = _repeatedMessageRecords[m].repeatCount;
         if (repeatCount > 1) {
             QString repeatLogMessage = QString().setNum(repeatCount) + " repeated log entries - Last entry: \"" 
-                    + _repeatedMessageStrings[m] + "\"";
+                    + _repeatedMessageRecords[m].repeatString + "\"";
             printMessage(LogSuppressed, QMessageLogContext(), repeatLogMessage);
-            _repeatCounts[m] = 0;
-            _repeatedMessageStrings[m] = QString();
+            _repeatedMessageRecords[m].repeatCount = 0;
+            _repeatedMessageRecords[m].repeatString = QString();
         }
     }
 }
@@ -193,8 +193,8 @@ int LogHandler::newRepeatedMessageID() {
     QMutexLocker lock(&_mutex);
     int newMessageId = _currentMessageID;
     ++_currentMessageID;
-    _repeatCounts.push_back(0);
-    _repeatedMessageStrings.resize(_currentMessageID);
+    RepeatedMessageRecord newRecord { 0 };
+    _repeatedMessageRecords.push_back(newRecord);
     return newMessageId;
 }
 
@@ -205,11 +205,11 @@ void LogHandler::printRepeatedMessage(int messageID, LogMsgType type, const QMes
         return;
     }
 
-    if (_repeatCounts[messageID] == 0) {
+    if (_repeatedMessageRecords[messageID].repeatCount == 0) {
         printMessage(type, context, message);
     } else {
-        _repeatedMessageStrings[messageID] = message;
+        _repeatedMessageRecords[messageID].repeatString = message;
     }
  
-    ++_repeatCounts[messageID];
+    ++_repeatedMessageRecords[messageID].repeatCount;
 }
