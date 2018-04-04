@@ -1273,24 +1273,11 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage
         return;
     }
 
-    // Suppress these for Assignment::AgentType to once per 5 seconds
-    static QElapsedTimer noisyMessageTimer;
-    static bool wasNoisyTimerStarted = false;
-
-    if (!wasNoisyTimerStarted) {
-        noisyMessageTimer.start();
-        wasNoisyTimerStarted = true;
-    }
-
-    const qint64 NOISY_MESSAGE_INTERVAL_MSECS = 5 * 1000;
-
     static bool printedAssignmentTypeMessage = false;
-    if (!printedAssignmentTypeMessage && (requestAssignment.getType() != Assignment::AgentType
-        || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS)) {
+    if (!printedAssignmentTypeMessage && requestAssignment.getType() != Assignment::AgentType) {
         printedAssignmentTypeMessage = true;
         qDebug() << "Received a request for assignment type" << requestAssignment.getType()
                  << "from" << message->getSenderSockAddr();
-        noisyMessageTimer.restart();
     }
 
     SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
@@ -1325,12 +1312,10 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage
                                            requestAssignment.getWalletUUID(), requestAssignment.getNodeVersion());
     } else {
         static bool printedAssignmentRequestMessage = false;
-        if (!printedAssignmentRequestMessage && (requestAssignment.getType() != Assignment::AgentType
-            || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS)) {
+        if (!printedAssignmentRequestMessage && requestAssignment.getType() != Assignment::AgentType) {
             printedAssignmentRequestMessage = true;
             qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
                 << "from" << message->getSenderSockAddr();
-            noisyMessageTimer.restart();
         }
     }
 }
