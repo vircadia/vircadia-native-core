@@ -327,7 +327,10 @@ FocusScope {
         for (var index = 0; index < desktop.visibleChildren.length; index++) {
             var child = desktop.visibleChildren[index];
             if (child.topLevelWindow && child.hasOwnProperty("modality")) {
-                child.setShown(false);
+                var TOOLBAR_NAME = "com.highfidelity.interface.toolbar.system"
+                if (child.objectName !== TOOLBAR_NAME) {
+                    child.setShown(false);
+                }
             }
         }
     }
