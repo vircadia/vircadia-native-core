@@ -265,6 +265,9 @@ public:
     render::EnginePointer getRenderEngine() override { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
+
+    const GameWorkload& getGameWorkload() const { return _gameWorkload; }
+
     virtual void pushPostUpdateLambda(void* key, std::function<void()> func) override;
 
     void updateMyAvatarLookAtPosition();
