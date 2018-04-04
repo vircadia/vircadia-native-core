@@ -93,14 +93,14 @@ TEAR_AWAY_CHECK_TIME = 0.15; // seconds, duration between checks
 DISPATCHER_HOVERING_LIST = "dispactherHoveringList";
 DISPATCHER_HOVERING_STYLE = {
     isOutlineSmooth: true,
-    outlineWidth: 5,
+    outlineWidth: 0,
     outlineUnoccludedColor: {red: 255, green: 128, blue: 128},
-    outlineUnoccludedAlpha: 0.88,
+    outlineUnoccludedAlpha: 0,
     outlineOccludedColor: {red: 255, green: 128, blue: 128},
-    outlineOccludedAlpha:0.5,
-    fillUnoccludedColor: {red: 26, green: 0, blue: 0},
-    fillUnoccludedAlpha: 0.0,
-    fillOccludedColor: {red: 26, green: 0, blue: 0},
+    outlineOccludedAlpha:0.0,
+    fillUnoccludedColor: {red: 255, green: 255, blue: 255},
+    fillUnoccludedAlpha: 0.15,
+    fillOccludedColor: {red: 255, green: 255, blue: 255},
     fillOccludedAlpha: 0.0
 };
 

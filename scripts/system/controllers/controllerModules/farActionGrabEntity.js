@@ -402,6 +402,8 @@ Script.include("/~/system/libraries/Xform.js");
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE ||
                 this.notPointingAtEntity(controllerData) || this.targetIsNull()) {
                 this.endNearGrabAction();
+                Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
+                    this.highlightedEntity);
                 return makeRunningValues(false, [], []);
             }
             this.intersectionDistance = controllerData.rayPicks[this.hand].distance;
@@ -571,6 +573,8 @@ Script.include("/~/system/libraries/Xform.js");
             if (disableModule) {
                 if (disableModule.disableModules) {
                     this.endNearGrabAction();
+                    Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
+                        this.highlightedEntity);
                     return makeRunningValues(false, [], []);
                 }
             }
