@@ -24,6 +24,18 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
+    
+    // This will cause a bug -- if you bring up passphrase selection in HUD mode while
+    // in HMD while having HMD preview enabled, then move, then finish passphrase selection,
+    // HMD preview will stay off.
+    // TODO: Fix this unlikely bug
+    onVisibleChanged: {
+        if (visible) {
+            sendSignalToWallet({method: 'disableHmdPreview'});
+        } else {
+            sendSignalToWallet({method: 'maybeEnableHmdPreview'});
+        }
+    }
 
     // Username Text
     RalewayRegular {
