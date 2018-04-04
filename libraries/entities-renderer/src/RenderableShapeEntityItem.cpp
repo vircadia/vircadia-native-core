@@ -131,6 +131,8 @@ ItemKey ShapeEntityRenderer::getKey() {
     withReadLock([&] {
         if (isTransparent()) {
             builder.withTransparent();
+        } else if (_canCastShadow) {
+            builder.withShadowCaster();
         }
     });
 
