@@ -30,7 +30,7 @@ using OctalCodePtrList = std::vector<OctalCodePtr>;
 void printOctalCode(const unsigned char* octalCode);
 size_t bytesRequiredForCodeLength(unsigned char threeBitCodes);
 int branchIndexWithDescendant(const unsigned char* ancestorOctalCode, const unsigned char* descendantOctalCode);
-unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNumber);
+unsigned char* childOctalCode(const unsigned char* parentOctalCode, int childNumber);
 
 const int OVERFLOWED_OCTCODE_BUFFER = -1;
 const int UNKNOWN_OCTCODE_LENGTH = -2;

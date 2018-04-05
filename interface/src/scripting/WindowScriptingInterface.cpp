@@ -78,11 +78,15 @@ void WindowScriptingInterface::setFocus() {
     });
 }
 
-void WindowScriptingInterface::raiseMainWindow() {
+void WindowScriptingInterface::raise() {
     // It's forbidden to call raise() from another thread.
     qApp->postLambdaEvent([] {
         qApp->raise();
     });
+}
+
+void WindowScriptingInterface::raiseMainWindow() {
+    raise();
 }
 
 /// Display an alert box

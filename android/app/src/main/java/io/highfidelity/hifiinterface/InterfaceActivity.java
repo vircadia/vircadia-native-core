@@ -32,11 +32,15 @@ import android.view.View;
 public class InterfaceActivity extends QtActivity {
 
     public static final String DOMAIN_URL = "url";
+    private static final String TAG = "Interface";
 
     //public static native void handleHifiURL(String hifiURLString);
     private native long nativeOnCreate(InterfaceActivity instance, AssetManager assetManager);
     //private native void nativeOnPause();
     //private native void nativeOnResume();
+    private native void nativeOnDestroy();
+    private native void nativeGotoUrl(String url);
+    private native void nativeGoBackFromAndroidActivity();
     //private native void nativeOnStop();
     //private native void nativeOnStart();
     //private native void saveRealScreenSize(int width, int height);
@@ -138,6 +142,12 @@ public class InterfaceActivity extends QtActivity {
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        nativeOnDestroy();
+    }
+
+    @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         // Checks the orientation of the screen
@@ -176,6 +186,30 @@ public class InterfaceActivity extends QtActivity {
                 | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
 
             getWindow().getDecorView().setSystemUiVisibility(uiOptions);
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (intent.hasExtra(DOMAIN_URL)) {
+            nativeGotoUrl(intent.getStringExtra(DOMAIN_URL));
+        }
+        nativeGoBackFromAndroidActivity();
+    }
+
+    public void openGotoActivity(String activityName) {
+        switch (activityName) {
+            case "Goto": {
+                Intent intent = new Intent(this, GotoActivity.class);
+                intent.putExtra(GotoActivity.PARAM_NOT_START_INTERFACE_ACTIVITY, true);
+                startActivity(intent);
+                break;
+            }
+            default: {
+                Log.w(TAG, "Could not open activity by name " + activityName);
+                break;
+            }
         }
     }
 

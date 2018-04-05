@@ -25,6 +25,10 @@ import io.highfidelity.hifiinterface.view.DomainAdapter;
 
 public class GotoActivity extends AppCompatActivity {
 
+    /**
+     * Set this intent extra param to NOT start a new InterfaceActivity after a domain is selected"
+     */
+    public static final String PARAM_NOT_START_INTERFACE_ACTIVITY = "not_start_interface_activity";
     private DomainAdapter domainAdapter;
     private DrawerLayout mDrawerLayout;
     private ProgressDialog mDialog;
@@ -82,6 +86,11 @@ public class GotoActivity extends AppCompatActivity {
                 Intent intent = new Intent(GotoActivity.this, InterfaceActivity.class);
                 intent.putExtra(InterfaceActivity.DOMAIN_URL, domain.url);
                 GotoActivity.this.finish();
+                if (getIntent() != null &&
+                    getIntent().hasExtra(PARAM_NOT_START_INTERFACE_ACTIVITY) &&
+                    getIntent().getBooleanExtra(PARAM_NOT_START_INTERFACE_ACTIVITY, false)) {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                }
                 startActivity(intent);
             }
         });
@@ -97,9 +106,13 @@ public class GotoActivity extends AppCompatActivity {
             searchTextView.setTextAppearance(R.style.SearchText);
         }
 
-        preloadQt();
+        if (getIntent() == null ||
+                !getIntent().hasExtra(PARAM_NOT_START_INTERFACE_ACTIVITY) ||
+                !getIntent().getBooleanExtra(PARAM_NOT_START_INTERFACE_ACTIVITY, false)) {
+            preloadQt();
+            showActivityIndicator();
+        }
 
-        showActivityIndicator();
     }
 
     private void showActivityIndicator() {
@@ -109,7 +122,6 @@ public class GotoActivity extends AppCompatActivity {
         mDialog.setMessage("Please wait...");
         mDialog.setCancelable(false);
         mDialog.show();
-        preloadQt();
     }
 
     private void cancelActivityIndicator() {

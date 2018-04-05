@@ -33,7 +33,11 @@ void AutoTester::on_createRecursiveScriptsRecursivelyButton_clicked() {
 }
 
 void AutoTester::on_createTestButton_clicked() {
-    test->createTest();
+	test->createTest();
+}
+
+void AutoTester::on_createMDFileButton_clicked() {
+	test->createMDFile();
 }
 
 void AutoTester::on_closeButton_clicked() {

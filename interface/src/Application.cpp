@@ -6247,8 +6247,9 @@ bool Application::canAcceptURL(const QString& urlString) const {
 
 bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     QUrl url(urlString);
-    if (isDomainURL(url)) {
-        // this is a URL for a domain, either hifi:// or serverless - have the AddressManager handle it
+
+    if (url.scheme() == URL_SCHEME_HIFI) {
+        // this is a hifi URL - have the AddressManager handle it
         QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
                                   Qt::AutoConnection, Q_ARG(const QString&, urlString));
         return true;
@@ -7458,7 +7459,7 @@ DisplayPluginPointer Application::getActiveDisplayPlugin() const {
         return _displayPlugin;
     }
 
-    if (!_displayPlugin) {
+    if (!_aboutToQuit && !_displayPlugin) {
         const_cast<Application*>(this)->updateDisplayMode();
         Q_ASSERT(_displayPlugin);
     }
@@ -7863,6 +7864,23 @@ void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {
 
 void Application::saveNextPhysicsStats(QString filename) {
     _physicsEngine->saveNextPhysicsStats(filename);
+}
+
+void Application::openAndroidActivity(const QString& activityName) {
+#if defined(Q_OS_ANDROID)
+    getActiveDisplayPlugin()->deactivate();
+    AndroidHelper::instance().requestActivity(activityName);
+    connect(&AndroidHelper::instance(), &AndroidHelper::backFromAndroidActivity, this, &Application::restoreAfterAndroidActivity);
+#endif
+}
+
+void Application::restoreAfterAndroidActivity() {
+#if defined(Q_OS_ANDROID)
+    if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
+        qWarning() << "Could not re-activate display plugin";
+    }
+    disconnect(&AndroidHelper::instance(), &AndroidHelper::backFromAndroidActivity, this, &Application::restoreAfterAndroidActivity);
+#endif
 }
 
 #include "Application.moc"
