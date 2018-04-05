@@ -137,20 +137,8 @@ void TouchscreenVirtualPadDevice::processInputDeviceForMove(VirtualPad::Manager&
 }
 
 void TouchscreenVirtualPadDevice::processInputDeviceForView() {
-    float rightDistanceScaleX, rightDistanceScaleY;
-    rightDistanceScaleX = (_viewCurrentTouchPoint.x - _viewRefTouchPoint.x) / _screenDPIScale.x;
-    rightDistanceScaleY = (_viewCurrentTouchPoint.y - _viewRefTouchPoint.y) / _screenDPIScale.y;
-
-    rightDistanceScaleX = clip(rightDistanceScaleX, -_viewStickRadiusInches, _viewStickRadiusInches);
-    rightDistanceScaleY = clip(rightDistanceScaleY, -_viewStickRadiusInches, _viewStickRadiusInches);
-
-    // NOW BETWEEN -1 1
-    rightDistanceScaleX /= _viewStickRadiusInches;
-    rightDistanceScaleY /= _viewStickRadiusInches;
-
-    _inputDevice->_axisStateMap[controller::RX] = rightDistanceScaleX;
-    _inputDevice->_axisStateMap[controller::RY] = rightDistanceScaleY;
-
+    _inputDevice->_axisStateMap[controller::RX] = _viewCurrentTouchPoint.x - _viewRefTouchPoint.x;
+    _inputDevice->_axisStateMap[controller::RY] = _viewCurrentTouchPoint.y - _viewRefTouchPoint.y;
     // after use, save last touch point as ref
     _viewRefTouchPoint = _viewCurrentTouchPoint;
 }
@@ -396,7 +384,6 @@ void TouchscreenVirtualPadDevice::jumpTouchBegin(glm::vec2 touchPoint) {
 
         auto input = _inputDevice->makeInput(TouchButtonChannel::JUMP_BUTTON_PRESS);
         _inputDevice->_buttonPressedMap.insert(input.getChannel());
-        qDebug() << "[TVPD] TouchscreenVirtualPadDevice::jumpTouchBegin buttonsMapSize " << _inputDevice->_buttonPressedMap.size();
     }
 }
 
@@ -408,7 +395,6 @@ void TouchscreenVirtualPadDevice::jumpTouchEnd() {
 
         auto input = _inputDevice->makeInput(TouchButtonChannel::JUMP_BUTTON_PRESS);
         _inputDevice->_buttonPressedMap.erase(input.getChannel());
-        qDebug() << "[TVPD] TouchscreenVirtualPadDevice::jumpTouchEnd buttonsMapSize " << _inputDevice->_buttonPressedMap.size();
     }    
 }
 

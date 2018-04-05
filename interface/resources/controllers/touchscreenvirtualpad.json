@@ -7,8 +7,23 @@
 
         { "from": "TouchscreenVirtualPad.JUMP_BUTTON_PRESS", "when": "!Application.CameraIndependent", "to": "Actions.VERTICAL_UP" },
 
-        { "from": "TouchscreenVirtualPad.RX",  "when": "!Application.CameraIndependent", "filters": [ {"type": "deadZone", "min": 0.05} , "invert" ], "to": "Actions.Yaw" },
+        { "from": "TouchscreenVirtualPad.RX",  "when": "!Application.CameraIndependent",
+            "filters": [
+                { "type": "deadZone", "min": 0.000 },
+                { "type": "scale", "scale": 0.014175 },
+                "invert"
+            ],
+            "to": "Actions.Yaw"
+		},
 
-        { "from": "TouchscreenVirtualPad.RY", "when": "!Application.CameraIndependent", "filters": [ {"type": "deadZone", "min": 0.05}, "invert" ], "to": "Actions.Pitch" }
+        { "from": "TouchscreenVirtualPad.RY",  "when": "!Application.CameraIndependent",
+            "filters": [
+                { "type": "deadZone", "min": 0.000 },
+                { "type": "scale", "scale": 0.014175 },
+                "invert"
+            ],
+            "to": "Actions.Pitch"
+        }
+
     ]
 }
