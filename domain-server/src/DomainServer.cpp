@@ -1042,41 +1042,7 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
 
 bool DomainServer::isInInterestSet(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB) {
     auto nodeAData = static_cast<DomainServerNodeData*>(nodeA->getLinkedData());
-    auto nodeBData = static_cast<DomainServerNodeData*>(nodeB->getLinkedData());
-
-    // if we have no linked data for node A then B can't possibly be in the interest set
-    if (!nodeAData) {
-        return false;
-    }
-
-    // first check if the general interest set A contains the type for B
-    if (nodeAData->getNodeInterestSet().contains(nodeB->getType())) {
-        // given that there is a match in the general interest set, do any special checks
-
-        // (1/19/17) Agents only need to connect to Entity Script Servers to perform administrative tasks
-        // related to entity server scripts. Only agents with rez permissions should be doing that, so
-        // if the agent does not have those permissions, we do not want them and the server to incur the
-        // overhead of connecting to one another. Additionally we exclude agents that do not care about the
-        // Entity Script Server and won't attempt to connect to it.
-
-        bool isAgentWithoutRights = nodeA->getType() == NodeType::Agent
-            && nodeB->getType() == NodeType::EntityScriptServer
-            && !nodeA->getCanRez() && !nodeA->getCanRezTmp()
-            && !nodeA->getCanRezCertified() && !nodeA->getCanRezTmpCertified();
-
-        if (isAgentWithoutRights) {
-            return false;
-        }
-
-        bool isScriptServerForIneffectiveAgent =
-            (nodeA->getType() == NodeType::EntityScriptServer && nodeB->getType() == NodeType::Agent)
-            && ((nodeBData && !nodeBData->getNodeInterestSet().contains(NodeType::EntityScriptServer))
-                || (!nodeB->getCanRez() && !nodeB->getCanRezTmp() && !nodeB->getCanRezCertified() && !nodeB->getCanRezTmpCertified()));
-
-        return !isScriptServerForIneffectiveAgent;
-    } else {
-        return false;
-    }
+    return nodeAData && nodeAData->getNodeInterestSet().contains(nodeB->getType());
 }
 
 unsigned int DomainServer::countConnectedUsers() {

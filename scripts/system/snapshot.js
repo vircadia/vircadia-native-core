@@ -411,8 +411,6 @@ function snapshotUploaded(isError, reply) {
         } else {
             print('Ignoring snapshotUploaded() callback for stale ' + (isGif ? 'GIF' : 'Still' ) + ' snapshot. Stale story ID:', storyID);
         }
-    } else {
-        print(reply);
     }
     isUploadingPrintableStill = false;
 }
