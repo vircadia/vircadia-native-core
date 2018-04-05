@@ -113,7 +113,7 @@ public:
     ViewFrustum getViewFrustum() const { return _currentViewFrustum; }
 
     uint64_t getLastOtherAvatarEncodeTime(QUuid otherAvatar) const;
-    void setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, const uint64_t& time);
+    void setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, uint64_t time);
 
     QVector<JointData>& getLastOtherAvatarSentJoints(QUuid otherAvatar) {
         auto& lastOtherAvatarSentJoints = _lastOtherAvatarSentJoints[otherAvatar];
