@@ -60,7 +60,6 @@ QUrl AddressManager::currentFacingAddress() const {
 }
 
 QUrl AddressManager::currentShareableAddress(bool domainOnly) const {
-    QUrl shareableAddress;
     if (!_shareablePlaceName.isEmpty()) {
         // if we have a shareable place name use that instead of whatever the current host is
         QUrl hifiURL;
@@ -72,17 +71,22 @@ QUrl AddressManager::currentShareableAddress(bool domainOnly) const {
             hifiURL.setPath(currentPath());
         }
 
-        shareableAddress = hifiURL;
+        return hifiURL;
     } else {
-        shareableAddress = currentAddress(domainOnly);
+        return currentAddress(domainOnly);
     }
+}
 
+QUrl AddressManager::currentPublicAddress(bool domainOnly) const {
+    // return an address that can be used by others to visit this client's current location.  If
+    // in a serverless domain (which can't be visited) return an empty URL.
+    QUrl shareableAddress = currentShareableAddress(domainOnly);
     if (shareableAddress.scheme() != URL_SCHEME_HIFI) {
-        return QUrl(); // file: urls aren't shareable
+        return QUrl(); // file: urls aren't public
     }
-
     return shareableAddress;
 }
+
 
 QUrl AddressManager::currentFacingShareableAddress() const {
     auto hifiURL = currentShareableAddress();
@@ -92,6 +96,17 @@ QUrl AddressManager::currentFacingShareableAddress() const {
 
     return hifiURL;
 }
+
+QUrl AddressManager::currentFacingPublicAddress() const {
+    // return an address that can be used by others to visit this client's current location.  If
+    // in a serverless domain (which can't be visited) return an empty URL.
+    QUrl shareableAddress = currentFacingShareableAddress();
+    if (shareableAddress.scheme() != URL_SCHEME_HIFI) {
+        return QUrl(); // file: urls aren't public
+    }
+    return shareableAddress;
+}
+
 
 void AddressManager::loadSettings(const QString& lookupString) {
 #if defined(USE_GLES) && defined(Q_OS_WIN)
@@ -825,8 +840,8 @@ void AddressManager::copyAddress() {
         return;
     }
 
-    // currentShareableAddress will be blank for serverless domains, so use currentFacingAddress here
-    QGuiApplication::clipboard()->setText(currentFacingAddress().toString());
+    // assume that the address is being copied because the user wants a shareable address
+    QGuiApplication::clipboard()->setText(currentShareableAddress().toString());
 }
 
 void AddressManager::copyPath() {
