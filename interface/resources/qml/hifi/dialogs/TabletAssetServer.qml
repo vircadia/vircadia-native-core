@@ -40,6 +40,7 @@ Rectangle {
     property var assetMappingsModel: Assets.mappingModel;
     property var currentDirectory;
     property var selectedItemCount: treeView.selection.selectedIndexes.length;
+    property int updatesCount: 0; // this is used for notifying model-dependent bindings about model updates
 
     Settings {
         category: "Overlay.AssetServer"
@@ -51,6 +52,9 @@ Rectangle {
         ApplicationInterface.uploadRequest.connect(uploadClicked);
         assetMappingsModel.errorGettingMappings.connect(handleGetMappingsError);
         assetMappingsModel.autoRefreshEnabled = true;
+        assetMappingsModel.updated.connect(function() {
+            ++updatesCount;
+        });
 
         reload();
     }
@@ -850,12 +854,17 @@ Rectangle {
                     checked = Qt.binding(isChecked);
                 }
 
+                function getStatus() {
+                    // kind of hack for ensuring getStatus() will be re-evaluated on updatesCount changes
+                    return updatesCount, assetProxyModel.data(treeView.selection.currentIndex, 0x105);
+                }
+
                 function isEnabled() {
                     if (!treeView.selection.hasSelection) {
                         return false;
                     }
 
-                    var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
+                    var status = getStatus();
                     if (status === "--") {
                         return false;
                     }
@@ -880,7 +889,7 @@ Rectangle {
                         return false;
                     }
 
-                    var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
+                    var status = getStatus();
                     return isEnabled() && status !== "Not Baked";
                 }
             }

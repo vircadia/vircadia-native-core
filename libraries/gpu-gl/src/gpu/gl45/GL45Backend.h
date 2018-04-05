@@ -16,9 +16,11 @@
 #include <gpu/gl/GLTexture.h>
 
 #include <thread>
+#include <gpu/TextureTable.h>
 
 #define INCREMENTAL_TRANSFER 0
 #define GPU_SSBO_TRANSFORM_OBJECT 1
+#define GPU_BINDLESS_TEXTURES 0
 
 namespace gpu { namespace gl45 {
     
@@ -31,6 +33,9 @@ class GL45Backend : public GLBackend {
     friend class Context;
 
 public:
+#if GPU_BINDLESS_TEXTURES
+    virtual bool supportsBindless() const override { return true; }
+#endif
 
 #ifdef GPU_SSBO_TRANSFORM_OBJECT
     static const GLint TRANSFORM_OBJECT_SLOT  { 14 }; // SSBO binding slot
@@ -58,7 +63,61 @@ public:
         void generateMips() const override;
         Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
         void syncSampler() const override;
+
+#if GPU_BINDLESS_TEXTURES
+        bool isBindless() const {
+            return _bindless.operator bool();
+        }
+
+        struct Bindless {
+            uint64_t handle{ 0 };
+            uint32_t minMip{ 0 };
+            uint32_t sampler{ 0 };
+
+            bool operator==(const Bindless& other) const {
+                return handle == other.handle && minMip == other.minMip && sampler == other.sampler;
+            }
+
+            bool operator!=(const Bindless& other) const {
+                return !(*this == other);
+            }
+
+            operator bool() const {
+                return handle != 0;
+            }
+        };
+
+        virtual const Bindless& getBindless() const;
+        void releaseBindless() const;
+        void recreateBindless() const;
+    private:
+        mutable Bindless _bindless;
+#endif
+
+        static Sampler getInvalidSampler();
+
+        // This stores the texture handle (64 bits) in xy, the min mip available in z, and the sampler ID in w
+        mutable Sampler _cachedSampler{ getInvalidSampler() };
     };
+
+#if GPU_BINDLESS_TEXTURES 
+    class GL45TextureTable : public GLObject<TextureTable> {
+        static GLuint allocate();
+        using Parent = GLObject<TextureTable>;
+    public:
+        using BindlessArray = std::array<GL45Texture::Bindless, TextureTable::COUNT>;
+
+        GL45TextureTable(const std::weak_ptr<GLBackend>& backend, const TextureTable& texture);
+        ~GL45TextureTable();
+
+        void update(const BindlessArray& newHandles);
+
+        // FIXME instead of making a buffer for each table, there should be a global buffer of all materials
+        // and we should store an offset into that buffer
+        BindlessArray _handles;
+    };
+#endif
+
 
     //
     // Textures that have fixed allocation sizes and cannot be managed at runtime
@@ -74,6 +133,7 @@ public:
 
     protected:
         Size size() const override { return _size; }
+
         void allocateStorage() const;
         void syncSampler() const override;
         const Size _size { 0 };
@@ -104,7 +164,6 @@ public:
         friend class GL45Backend;
         using PromoteLambda = std::function<void()>;
 
-
     protected:
         GL45VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
         ~GL45VariableAllocationTexture();
@@ -114,6 +173,9 @@ public:
         Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
         void copyTextureMipsInGPUMem(GLuint srcId, GLuint destId, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) override;
 
+#if GPU_BINDLESS_TEXTURES
+        virtual const Bindless& getBindless() const override;
+#endif
     };
 
     class GL45ResourceTexture : public GL45VariableAllocationTexture {
@@ -182,6 +244,7 @@ protected:
     GLuint getQueryID(const QueryPointer& query) override;
     GLQuery* syncGPUObject(const Query& query) override;
 
+
     // Draw Stage
     void do_draw(const Batch& batch, size_t paramOffset) override;
     void do_drawIndexed(const Batch& batch, size_t paramOffset) override;
@@ -213,6 +276,12 @@ protected:
 
     // Texture Management Stage
     void initTextureManagementStage() override;
+
+#if GPU_BINDLESS_TEXTURES
+    GL45TextureTable* syncGPUObject(const TextureTablePointer& textureTable);
+    // Resource stage
+    void do_setResourceTextureTable(const Batch& batch, size_t paramOffset) override;
+#endif
 };
 
 } }
