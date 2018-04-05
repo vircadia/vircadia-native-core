@@ -32,6 +32,7 @@
 #include "model_lightmap_fade_vert.h"
 #include "model_lightmap_normal_map_fade_vert.h"
 #include "model_translucent_vert.h"
+#include "model_translucent_normal_map_vert.h"
 #include "skin_model_fade_vert.h"
 #include "skin_model_normal_map_fade_vert.h"
 #include "skin_model_fade_dq_vert.h"
@@ -68,11 +69,13 @@
 #include "model_lightmap_normal_map_frag.h"
 #include "model_translucent_frag.h"
 #include "model_translucent_unlit_frag.h"
+#include "model_translucent_normal_map_frag.h"
 
 #include "model_lightmap_fade_frag.h"
 #include "model_lightmap_normal_map_fade_frag.h"
 #include "model_translucent_fade_frag.h"
 #include "model_translucent_unlit_fade_frag.h"
+#include "model_translucent_normal_map_fade_frag.h"
 
 #include "overlay3D_vert.h"
 #include "overlay3D_frag.h"
@@ -187,6 +190,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     auto modelLightmapVertex = model_lightmap_vert::getShader();
     auto modelLightmapNormalMapVertex = model_lightmap_normal_map_vert::getShader();
     auto modelTranslucentVertex = model_translucent_vert::getShader();
+    auto modelTranslucentNormalMapVertex = model_translucent_normal_map_vert::getShader();
     auto modelShadowVertex = model_shadow_vert::getShader();
 
     auto modelLightmapFadeVertex = model_lightmap_fade_vert::getShader();
@@ -227,6 +231,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     auto modelNormalMapPixel = model_normal_map_frag::getShader();
     auto modelTranslucentPixel = model_translucent_frag::getShader();
     auto modelTranslucentUnlitPixel = model_translucent_unlit_frag::getShader();
+    auto modelTranslucentNormalMapPixel = model_translucent_normal_map_frag::getShader();
     auto modelShadowPixel = model_shadow_frag::getShader();
     auto modelLightmapPixel = model_lightmap_frag::getShader();
     auto modelLightmapNormalMapPixel = model_lightmap_normal_map_frag::getShader();
@@ -239,6 +244,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     auto modelShadowFadePixel = model_shadow_fade_frag::getShader();
     auto modelTranslucentFadePixel = model_translucent_fade_frag::getShader();
     auto modelTranslucentUnlitFadePixel = model_translucent_unlit_fade_frag::getShader();
+    auto modelTranslucentNormalMapFadePixel = model_translucent_normal_map_fade_frag::getShader(); 
     auto simpleFadePixel = simple_textured_fade_frag::getShader();
     auto simpleUnlitFadePixel = simple_textured_unlit_fade_frag::getShader();
     auto simpleTranslucentFadePixel = simple_transparent_textured_fade_frag::getShader();
@@ -296,7 +302,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         simpleVertex, simpleTranslucentUnlitPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents(),
-        modelTranslucentVertex, modelTranslucentPixel, nullptr, nullptr);
+        modelTranslucentNormalMapVertex, modelTranslucentNormalMapPixel, nullptr, nullptr);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
         Key::Builder().withMaterial().withTranslucent().withLightmap(),
@@ -316,7 +322,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         simpleFadeVertex, simpleTranslucentUnlitFadePixel, batchSetter, itemSetter);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents().withFade(),
-        modelNormalMapFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+        modelTranslucentNormalMapVertex, modelTranslucentNormalMapFadePixel, batchSetter, itemSetter);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
         Key::Builder().withMaterial().withTranslucent().withLightmap().withFade(),
@@ -358,14 +364,14 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         skinModelTranslucentVertex, modelTranslucentPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents(),
-        skinModelNormalMapTranslucentVertex, modelTranslucentPixel, nullptr, nullptr);
+        skinModelNormalMapTranslucentVertex, modelTranslucentNormalMapPixel, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTranslucent().withFade(),
         skinModelFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents().withFade(),
-        skinModelNormalMapFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+        skinModelNormalMapFadeVertex, modelTranslucentNormalMapFadePixel, batchSetter, itemSetter);
 
     // dual quaternion skinned
     addPipeline(
@@ -388,14 +394,14 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         skinModelTranslucentDualQuatVertex, modelTranslucentPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withTangents(),
-        skinModelNormalMapTranslucentDualQuatVertex, modelTranslucentPixel, nullptr, nullptr);
+        skinModelNormalMapTranslucentDualQuatVertex, modelTranslucentNormalMapPixel, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withFade(),
         skinModelFadeDualQuatVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withTangents().withFade(),
-        skinModelNormalMapFadeDualQuatVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+        skinModelNormalMapFadeDualQuatVertex, modelTranslucentNormalMapFadePixel, batchSetter, itemSetter);
 
     // Depth-only
     addPipeline(
