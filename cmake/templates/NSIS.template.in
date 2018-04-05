@@ -710,11 +710,9 @@ Function PostInstallOptionsPage
     !insertmacro SetInstallOption $ServerStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
   ${EndIf}
 
-  ${If} @SERVER_COMPONENT_CONDITIONAL@
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Perform a clean install (Delete older settings and content)"
-    Pop $CleanInstallCheckbox
-    IntOp $CurrentOffset $CurrentOffset + 15
-  ${EndIf}
+  ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Perform a clean install (Delete older settings and content)"
+  Pop $CleanInstallCheckbox
+  IntOp $CurrentOffset $CurrentOffset + 15
 
   ${If} @PR_BUILD@ == 1
     ; a PR build defaults all install options expect LaunchServerNowCheckbox, LaunchClientNowCheckbox and the settings copy to unchecked
@@ -809,10 +807,8 @@ Function ReadPostInstallOptions
     ${NSD_GetState} $LaunchClientNowCheckbox $LaunchClientNowState
   ${EndIf}
 
-  ${If} @CLIENT_COMPONENT_CONDITIONAL@
-    ; check if the user asked for a clean install
-    ${NSD_GetState} $CleanInstallCheckbox $CleanInstallState
-  ${EndIf}
+  ; check if the user asked for a clean install
+  ${NSD_GetState} $CleanInstallCheckbox $CleanInstallState
 FunctionEnd
 
 Function HandlePostInstallOptions
@@ -856,13 +852,23 @@ Function HandlePostInstallOptions
     ${EndIf}
   ${EndIf}
 
-  ${If} @CLIENT_COMPONENT_CONDITIONAL@
-    ; check if the user asked for a clean install
-    ${If} $CleanInstallState == ${BST_CHECKED}
-      SetShellVarContext current
-      RMDir /r "$APPDATA\@BUILD_ORGANIZATION@"
-      RMDir /r "$LOCALAPPDATA\@BUILD_ORGANIZATION@"
+  ; check if the user asked for a clean install
+  ${If} $CleanInstallState == ${BST_CHECKED}
+    SetShellVarContext current
+
+    ${If} @SERVER_COMPONENT_CONDITIONAL@
+      RMDir /r "$APPDATA\@BUILD_ORGANIZATION@\Server Console"
+      RMDir /r "$APPDATA\@BUILD_ORGANIZATION@\assignment-client"
+      RMDir /r "$APPDATA\@BUILD_ORGANIZATION@\domain-server"
+      Delete "$APPDATA\@BUILD_ORGANIZATION@\domain-server.json"
     ${EndIf}
+
+    ${If} @CLIENT_COMPONENT_CONDITIONAL@
+      Delete "$APPDATA\@BUILD_ORGANIZATION@\Interface\AccountInfo.bin"
+      Delete "$APPDATA\@BUILD_ORGANIZATION@\Interface.json"
+    ${EndIf}
+
+    RMDir /r "$LOCALAPPDATA\@BUILD_ORGANIZATION@"
   ${EndIf}
 
   ${If} @PR_BUILD@ == 1
