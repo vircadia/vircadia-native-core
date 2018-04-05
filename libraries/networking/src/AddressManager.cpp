@@ -77,7 +77,7 @@ QUrl AddressManager::currentShareableAddress(bool domainOnly) const {
         shareableAddress = currentAddress(domainOnly);
     }
 
-    if (shareableAddress.scheme() == URL_SCHEME_HIFI) {
+    if (shareableAddress.scheme() != URL_SCHEME_HIFI) {
         return QUrl(); // file: urls aren't shareable
     }
 
