@@ -21,7 +21,8 @@ function printd(str) {
 }
 
 var radar = false;
-var radarHeight = MyAvatar.position.y + 10; // camera position (absolute y)
+var RADAR_HEIGHT_INIT_DELTA = 10;
+var radarHeight = MyAvatar.position.y + RADAR_HEIGHT_INIT_DELTA; // camera position (absolute y)
 var tablet;
 
 var RADAR_CAMERA_OFFSET = -1; // 1 meter below the avatar
@@ -386,6 +387,7 @@ function pinchUpdate(event) {
             radarHeight -= pinchIncrement;
         }
     }
+
     Camera.position = { 
         x: Camera.position.x, 
         y:radarHeight, 
@@ -654,6 +656,7 @@ function Teleporter() {
             draggingCamera = false;
             return;
         }
+
 
         Camera.position = Vec3.sum(Camera.position, {
             x : xDelta,
@@ -1301,11 +1304,12 @@ function startRadar() {
     saveAllOthersAvatarsData();
     Camera.mode = "independent";
 
-    Camera.position = Vec3.sum(MyAvatar.position, {
-        x : 0,
-        y : radarHeight,
-        z : 0
-    });
+    Camera.position = {
+            x : MyAvatar.position.x,
+            y : radarHeight,
+            z : MyAvatar.position.z
+        };
+
     Camera.orientation = Quat.fromPitchYawRollDegrees(-90, 0, 0);
     radar = true;
 
@@ -1394,15 +1398,25 @@ function connectRadarModeEvents() {
     Controller.keyPressEvent.connect(keyPressEvent);
     Controller.mousePressEvent.connect(mousePress); // single click/touch
     Controller.touchUpdateEvent.connect(touchUpdate);
+    Window.domainChanged.connect(domainChanged);
     MyAvatar.positionGoneTo.connect(positionGoneTo);
 }
 
-function positionGoneTo() {
-    Camera.position = Vec3.sum(MyAvatar.position, {
-        x : 0,
+function domainChanged() {
+   radarHeight = MyAvatar.position.y + RADAR_HEIGHT_INIT_DELTA;
+   Camera.position = {
+        x : MyAvatar.position.x,
         y : radarHeight,
-        z : 0
-    });
+        z : MyAvatar.position.z
+    };
+}
+
+function positionGoneTo() {
+    Camera.position = {
+            x : MyAvatar.position.x,
+            y : radarHeight,
+            z : MyAvatar.position.z
+        };
 }
 
 function disconnectRadarModeEvents() {
@@ -1411,6 +1425,7 @@ function disconnectRadarModeEvents() {
     Controller.mousePressEvent.disconnect(mousePress);
     Controller.touchUpdateEvent.disconnect(touchUpdate);
     MyAvatar.positionGoneTo.disconnect(positionGoneTo);
+    Window.domainChanged.disconnect(domainChanged);
 }
 
 function init() {
