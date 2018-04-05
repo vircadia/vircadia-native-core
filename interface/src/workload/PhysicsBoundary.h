@@ -49,15 +49,15 @@ public:
         if (!space) {
             return;
         }
-        uint32_t listSize = inputs.size();
+        uint32_t listSize = (uint32_t)inputs.size();
         uint32_t totalTransitions = 0;
         for (uint32_t i = 0; i < listSize; ++i) {
-            totalTransitions += inputs[i].size();
+            totalTransitions += (uint32_t)inputs[i].size();
         }
         // we're interested in things entering/leaving R3
         uint32_t regionIndex = workload::Region::R3;
         uint32_t exitIndex = 2 * regionIndex;
-        uint32_t numExits = inputs[exitIndex].size();
+        uint32_t numExits = (uint32_t)inputs[exitIndex].size();
         for (uint32_t i = 0; i < numExits; ++i) {
             int32_t proxyID = inputs[exitIndex][i];
             void* owner = space->getOwner(proxyID).get();
@@ -71,7 +71,7 @@ public:
         }
 
         uint32_t enterIndex = exitIndex + 1;
-        uint32_t numEntries = inputs[enterIndex].size();
+        uint32_t numEntries = (uint32_t)inputs[enterIndex].size();
         for (uint32_t i = 0; i < numEntries; ++i) {
             int32_t proxyID = inputs[enterIndex][i];
             void* owner = space->getOwner(proxyID).get();
