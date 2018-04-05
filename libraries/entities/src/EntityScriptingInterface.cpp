@@ -734,6 +734,24 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesByType(const QString entity
     return result;
 }
 
+QVector<QUuid> EntityScriptingInterface::findEntitiesByName(const QString entityName, const glm::vec3& center, float radius) const {
+    
+    QVector<QUuid> result;
+    if (_entityTree) {
+        QVector<EntityItemPointer> entities;
+        _entityTree->withReadLock([&] {
+            _entityTree->findEntities(center, radius, entities);
+        });
+
+        foreach(EntityItemPointer entity, entities) {
+            if (entity->getName() == entityName) {
+                result << entity->getEntityItemID();
+            }
+        }
+    }
+    return result;
+}
+
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, 
                 const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
     QVector<EntityItemID> entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
