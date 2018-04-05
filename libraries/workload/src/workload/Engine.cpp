@@ -28,16 +28,20 @@ namespace workload {
         void build(JobModel& model, const Varying& in, Varying& out) {
             model.addJob<SetupViews>("setupViews", in);
             model.addJob<PerformSpaceTransaction>("updateSpace");
-            const auto regionChanges = model.addJob<RegionTracker>("regionTracker");
+            const auto regionTrackerOut = model.addJob<RegionTracker>("regionTracker");
+            const auto regionChanges = regionTrackerOut.getN<RegionTracker::Outputs>(1);
             model.addJob<RegionState>("regionState", regionChanges);
-            out = regionChanges;
+            out = regionTrackerOut;
         }
     };
 
-    Engine::Engine(const WorkloadContextPointer& context) : Task("Engine", EngineBuilder::JobModel::create()),
-            _context(context) {
+    Engine::Engine() : Task("Engine", EngineBuilder::JobModel::create()),
+            _context(nullptr) {
     }
 
+    void Engine::reset(const WorkloadContextPointer& context) {
+        _context = context;
+    }
 
     void PerformSpaceTransaction::configure(const Config& config) {
 

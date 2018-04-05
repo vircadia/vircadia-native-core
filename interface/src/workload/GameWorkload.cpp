@@ -35,7 +35,7 @@ GameWorkload::~GameWorkload() {
 void GameWorkload::startup(const workload::SpacePointer& space,
         const render::ScenePointer& scene,
         const PhysicalEntitySimulationPointer& simulation) {
-    _engine.reset(new workload::Engine(std::make_shared<GameWorkloadContext>(space, scene, simulation)));
+    _engine->reset(std::make_shared<GameWorkloadContext>(space, scene, simulation));
 
     auto output = _engine->getOutput();
     _engine->addJob<GameSpaceToRender>("SpaceToRender");

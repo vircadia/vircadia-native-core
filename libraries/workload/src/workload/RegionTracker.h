@@ -29,7 +29,7 @@ namespace workload {
     class RegionTracker {
     public:
         using Config = RegionTrackerConfig;
-        using Outputs = IndexVectors;
+        using Outputs = VaryingSet2<Changes, IndexVectors>;
         using JobModel = workload::Job::ModelO<RegionTracker, Outputs, Config>;
 
         RegionTracker() {}
