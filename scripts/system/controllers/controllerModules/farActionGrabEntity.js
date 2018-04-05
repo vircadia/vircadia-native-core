@@ -404,6 +404,7 @@ Script.include("/~/system/libraries/Xform.js");
                 this.endNearGrabAction();
                 Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
                     this.highlightedEntity);
+                this.highlightedEntity = null;
                 return makeRunningValues(false, [], []);
             }
             this.intersectionDistance = controllerData.rayPicks[this.hand].distance;
@@ -575,6 +576,7 @@ Script.include("/~/system/libraries/Xform.js");
                     this.endNearGrabAction();
                     Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
                         this.highlightedEntity);
+                    this.highlightedEntity = null;
                     return makeRunningValues(false, [], []);
                 }
             }

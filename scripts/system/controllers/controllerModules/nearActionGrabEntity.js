@@ -10,7 +10,7 @@
    propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, entityIsGrabbable,
    Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation, makeDispatcherModuleParameters, makeRunningValues,
    TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS, findGroupParent, entityIsCloneable, propsAreCloneDynamic, cloneEntity,
-   HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE
+   HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, unhighlightTargetEntity
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -114,6 +114,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "startNearGrab", args);
+            unhighlightTargetEntity(this.targetEntityID);
         };
 
         // this is for when the action is going to time-out

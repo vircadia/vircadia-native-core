@@ -11,7 +11,8 @@
    TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS,
    findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH,
    HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, findHandChildEntities, TEAR_AWAY_DISTANCE, MSECS_PER_SEC, TEAR_AWAY_CHECK_TIME,
-   TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox
+   TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox, print, Selection, DISPATCHER_HOVERING_LIST, Uuid,
+   highlightTargetEntity, unhighlightTargetEntity
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -34,6 +35,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.autoUnequipCounter = 0;
         this.lastUnexpectedChildrenCheckTime = 0;
         this.robbed = false;
+        this.highlightedEntity = null;
 
         this.parameters = makeDispatcherModuleParameters(
             500,
@@ -87,7 +89,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
         this.startNearParentingGrabEntity = function (controllerData, targetProps) {
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-
+            unhighlightTargetEntity(this.targetEntityID);
             var handJointIndex;
             // if (this.ignoreIK) {
             //     handJointIndex = this.controllerJointIndex;
@@ -158,6 +160,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 grabbedEntity: this.targetEntityID,
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
+            unhighlightTargetEntity(this.targetEntityID);
             this.grabbing = false;
             this.targetEntityID = null;
             this.robbed = false;
@@ -280,6 +283,8 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                     return makeRunningValues(false, [], []); // let nearActionGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;
+                    this.highlightedEntity = this.targetEntityID;
+                    highlightTargetEntity(this.targetEntityID);
                     return makeRunningValues(true, [this.targetEntityID], []);
                 }
             } else {
@@ -300,6 +305,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 var props = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
                 if (!props) {
                     // entity was deleted
+                    unhighlightTargetEntity(this.targetEntityID);
                     this.grabbing = false;
                     this.targetEntityID = null;
                     this.hapticTargetID = null;
@@ -321,6 +327,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 var readiness = this.isReady(controllerData);
                 if (!readiness.active) {
                     this.robbed = false;
+                    unhighlightTargetEntity(this.highlightedEntity);
                     return readiness;
                 }
                 if (controllerData.triggerClicks[this.hand] || controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {

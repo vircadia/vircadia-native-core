@@ -32,6 +32,7 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/hudOverlayPointer.js",
     "controllerModules/mouseHMD.js",
     "controllerModules/scaleEntity.js",
+    "controllerModules/highlightNearbyEntities.js",
     "controllerModules/nearGrabHyperLinkEntity.js"
 ];
 
