@@ -640,7 +640,7 @@ void Test::createMDFile() {
     int snapShotIndex { 0 };
     for (size_t i = 0; i < testScriptLines.stepList.size(); ++i) {
         stream << "### Step " << QString::number(i) << "\n";
-        stream << "- " << testScriptLines.stepList[i]->text << "\n";
+        stream << "- " << testScriptLines.stepList[i + 1]->text << "\n";
         if (testScriptLines.stepList[i]->takeSnapshot) {
             stream << "- ![](./ExpectedImage_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png)\n";
             ++snapShotIndex;
