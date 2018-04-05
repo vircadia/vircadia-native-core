@@ -825,7 +825,7 @@ void AddressManager::copyAddress() {
         return;
     }
 
-    // assume that the address is being copied because the user wants a shareable address
+    // currentShareableAddress will be blank for serverless domains, so use currentFacingAddress here
     QGuiApplication::clipboard()->setText(currentFacingAddress().toString());
 }
 
