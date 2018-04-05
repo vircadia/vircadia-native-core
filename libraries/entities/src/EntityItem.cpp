@@ -1911,7 +1911,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
     }
 }
 
-void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
+void EntityItem::setSimulationOwner(const QUuid& id, uint8_t priority) {
     if (wantTerseEditLogging() && (id != _simulationOwner.getID() || priority != _simulationOwner.getPriority())) {
         qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << id << priority;
     }
@@ -1942,7 +1942,7 @@ void EntityItem::clearSimulationOwnership() {
 
 }
 
-void EntityItem::setPendingOwnershipPriority(quint8 priority, const quint64& timestamp) {
+void EntityItem::setPendingOwnershipPriority(uint8_t priority, const quint64& timestamp) {
     _simulationOwner.setPendingPriority(priority, timestamp);
 }
 
@@ -2967,13 +2967,6 @@ void EntityItem::retrieveMarketplacePublicKey() {
 }
 
 void EntityItem::preDelete() {
-    // clear out any left-over actions
-    EntityTreeElementPointer element = _element; // use local copy of _element for logic below
-    EntityTreePointer entityTree = element ? element->getTree() : nullptr;
-    EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
-    if (simulation) {
-        clearActions(simulation);
-    }
 }
 
 void EntityItem::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {

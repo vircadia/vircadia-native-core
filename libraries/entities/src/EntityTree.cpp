@@ -94,7 +94,6 @@ OctreeElementPointer EntityTree::createNewElement(unsigned char* octalCode) {
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     emit clearingEntities();
 
-    // this would be a good place to clean up our entities...
     if (_simulation) {
         _simulation->clearEntities();
     }
@@ -455,12 +454,13 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
 
         uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
         if (newFlags) {
-            if (_simulation) {
+            if (entity->isSimulated()) {
+                assert((bool)_simulation);
                 if (newFlags & DIRTY_SIMULATION_FLAGS) {
                     _simulation->changeEntity(entity);
                 }
             } else {
-                // normally the _simulation clears ALL updateFlags, but since there is none we do it explicitly
+                // normally the _simulation clears ALL dirtyFlags, but when not possible we do it explicitly
                 entity->clearDirtyFlags();
             }
         }
@@ -471,7 +471,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
         if (entityScriptBefore != entityScriptAfter || reload) {
             emitEntityScriptChanging(entity->getEntityItemID(), reload); // the entity script has changed
         }
-     }
+    }
 
     // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
     if (!entity->getElement()) {
@@ -553,8 +553,6 @@ void EntityTree::setSimulation(EntitySimulationPointer simulation) {
             assert(simulation->getEntityTree().get() == this);
         }
         if (_simulation && _simulation != simulation) {
-            // It's important to clearEntities() on the simulation since taht will update each
-            // EntityItem::_simulationState correctly so as to not confuse the next _simulation.
             _simulation->clearEntities();
         }
         _simulation = simulation;
@@ -652,7 +650,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         emit deletingEntityPointer(existingEntity.get());
     }
 
-    if (theOperator.getEntities().size() > 0) {
+    if (!theOperator.getEntities().empty()) {
         recurseTreeWithOperator(&theOperator);
         processRemovedEntities(theOperator);
         _isDirty = true;
@@ -694,7 +692,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             trackDeletedEntity(theEntity->getEntityItemID());
         }
 
-        if (_simulation) {
+        if (theEntity->isSimulated()) {
             _simulation->prepareEntityForDelete(theEntity);
         }
 
@@ -1696,7 +1694,7 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
 }
 
 void EntityTree::entityChanged(EntityItemPointer entity) {
-    if (_simulation) {
+    if (entity->isSimulated()) {
         _simulation->changeEntity(entity);
     }
 }
@@ -1810,13 +1808,13 @@ void EntityTree::update(bool simulate) {
             _simulation->updateEntities();
             {
                 PROFILE_RANGE(simulation_physics, "Deletes");
-                VectorOfEntities pendingDeletes;
-                _simulation->takeEntitiesToDelete(pendingDeletes);
-                if (pendingDeletes.size() > 0) {
+                SetOfEntities deadEntities;
+                _simulation->takeDeadEntities(deadEntities);
+                if (!deadEntities.empty()) {
                     // translate into list of ID's
                     QSet<EntityItemID> idsToDelete;
 
-                    for (auto entity : pendingDeletes) {
+                    for (auto entity : deadEntities) {
                         idsToDelete.insert(entity->getEntityItemID());
                     }
 
