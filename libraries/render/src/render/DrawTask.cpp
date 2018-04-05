@@ -60,8 +60,8 @@ void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, cons
     } else if (key.hasOwnPipeline()) {
         item.render(args);
     } else {
-        std::call_once(messageIDFlag, [](int& id) { id = LogHandler::getInstance().newRepeatedMessageID(); },
-                           repeatedInvalidKeyMessageID);
+        std::call_once(messageIDFlag, [](int* id) { *id = LogHandler::getInstance().newRepeatedMessageID(); },
+                           &repeatedInvalidKeyMessageID);
         HIFI_FCDEBUG_ID(renderlogging(), repeatedInvalidKeyMessageID, "Item could not be rendered with invalid key" << key);
     }
     args->_itemShapeKey = 0;
@@ -113,8 +113,8 @@ void render::renderStateSortShapes(const RenderContextPointer& renderContext,
             } else if (key.hasOwnPipeline()) {
                 ownPipelineBucket.push_back( std::make_tuple(item, key) );
             } else {
-                std::call_once(messageIDFlag, [](int& id) { id = LogHandler::getInstance().newRepeatedMessageID(); },
-                    repeatedInvalidKeyMessageID);
+                std::call_once(messageIDFlag, [](int* id) { *id = LogHandler::getInstance().newRepeatedMessageID(); },
+                    &repeatedInvalidKeyMessageID);
                 HIFI_FCDEBUG_ID(renderlogging(), repeatedInvalidKeyMessageID, "Item could not be rendered with invalid key" << key);
             }
         }

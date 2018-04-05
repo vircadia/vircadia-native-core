@@ -169,8 +169,8 @@ int AudioRingBufferTemplate<T>::writeData(const char* data, int maxSize) {
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
 
-        std::call_once(messageIDFlag, [](int& id) { id = LogHandler::getInstance().newRepeatedMessageID(); },
-            repeatedOverflowMessageID);
+        std::call_once(messageIDFlag, [](int* id) { *id = LogHandler::getInstance().newRepeatedMessageID(); },
+            &repeatedOverflowMessageID);
         HIFI_FCDEBUG_ID(audio(), repeatedOverflowMessageID, RING_BUFFER_OVERFLOW_DEBUG);
     }
 
@@ -280,8 +280,8 @@ int AudioRingBufferTemplate<T>::writeSamples(ConstIterator source, int maxSample
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
 
-        std::call_once(messageIDFlag, [](int& id) { id = LogHandler::getInstance().newRepeatedMessageID(); },
-            repeatedOverflowMessageID);
+        std::call_once(messageIDFlag, [](int* id) { *id = LogHandler::getInstance().newRepeatedMessageID(); },
+            &repeatedOverflowMessageID);
         HIFI_FCDEBUG_ID(audio(), repeatedOverflowMessageID, RING_BUFFER_OVERFLOW_DEBUG);
     }
 
@@ -305,8 +305,8 @@ int AudioRingBufferTemplate<T>::writeSamplesWithFade(ConstIterator source, int m
         _nextOutput = shiftedPositionAccomodatingWrap(_nextOutput, samplesToDelete);
         _overflowCount++;
 
-        std::call_once(messageIDFlag, [](int& id) { id = LogHandler::getInstance().newRepeatedMessageID(); },
-            repeatedOverflowMessageID);
+        std::call_once(messageIDFlag, [](int* id) { *id = LogHandler::getInstance().newRepeatedMessageID(); },
+            &repeatedOverflowMessageID);
         HIFI_FCDEBUG_ID(audio(), repeatedOverflowMessageID, RING_BUFFER_OVERFLOW_DEBUG);
     }
 
