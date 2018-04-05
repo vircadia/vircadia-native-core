@@ -45,21 +45,22 @@ public:
     }
 
     void run(const workload::WorkloadContextPointer& context, const Inputs& inputs) {
+        const auto& regionChanges = inputs.get1();
         auto space = context->_space;
         if (!space) {
             return;
         }
-        uint32_t listSize = (uint32_t)inputs.size();
+        uint32_t listSize = (uint32_t)regionChanges.size();
         uint32_t totalTransitions = 0;
         for (uint32_t i = 0; i < listSize; ++i) {
-            totalTransitions += (uint32_t)inputs[i].size();
+            totalTransitions += (uint32_t)regionChanges[i].size();
         }
         // we're interested in things entering/leaving R3
         uint32_t regionIndex = workload::Region::R3;
         uint32_t exitIndex = 2 * regionIndex;
-        uint32_t numExits = (uint32_t)inputs[exitIndex].size();
+        uint32_t numExits = (uint32_t)regionChanges[exitIndex].size();
         for (uint32_t i = 0; i < numExits; ++i) {
-            int32_t proxyID = inputs[exitIndex][i];
+            int32_t proxyID = regionChanges[exitIndex][i];
             void* owner = space->getOwner(proxyID).get();
             if (owner) {
                 EntityItem* entity = static_cast<EntityItem*>(owner);
@@ -71,9 +72,9 @@ public:
         }
 
         uint32_t enterIndex = exitIndex + 1;
-        uint32_t numEntries = (uint32_t)inputs[enterIndex].size();
+        uint32_t numEntries = (uint32_t)regionChanges[enterIndex].size();
         for (uint32_t i = 0; i < numEntries; ++i) {
-            int32_t proxyID = inputs[enterIndex][i];
+            int32_t proxyID = regionChanges[enterIndex][i];
             void* owner = space->getOwner(proxyID).get();
             if (owner) {
                 EntityItem* entity = static_cast<EntityItem*>(owner);

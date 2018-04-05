@@ -39,7 +39,7 @@ public:
 
     void updateViews(const ViewFrustum& frustum);
 
-    workload::EnginePointer _engine;
+    workload::EnginePointer _engine { std::make_shared<workload::Engine>() };
 };
 
 #endif // hifi_GameWorkload_h

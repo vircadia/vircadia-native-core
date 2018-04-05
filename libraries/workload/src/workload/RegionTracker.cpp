@@ -21,22 +21,29 @@ void RegionTracker::configure(const Config& config) {
 }
 
 void RegionTracker::run(const WorkloadContextPointer& context, Outputs& outputs) {
-    outputs.clear();
+    auto& outChanges = outputs.edit0();
+    auto& outRegionChanges = outputs.edit1();
+
+
+    outChanges.clear();
+    outRegionChanges.clear();
+
     auto space = context->_space;
     if (space) {
-        Changes changes;
-        space->categorizeAndGetChanges(changes);
+        //Changes changes;
+        space->categorizeAndGetChanges(outChanges);
+
         // use exit/enter lists for each region less than Region::UNKNOWN
-        outputs.resize(2 * (workload::Region::NUM_CLASSIFICATIONS - 1));
-        for (uint32_t i = 0; i < changes.size(); ++i) {
-            Space::Change& change = changes[i];
+        outRegionChanges.resize(2 * (workload::Region::NUM_CLASSIFICATIONS - 1));
+        for (uint32_t i = 0; i < outChanges.size(); ++i) {
+            Space::Change& change = outChanges[i];
             if (change.prevRegion < Region::UNKNOWN) {
                 // EXIT list index = 2 * regionIndex
-                outputs[2 * change.prevRegion].push_back(change.proxyId);
+                outRegionChanges[2 * change.prevRegion].push_back(change.proxyId);
             }
             if (change.region < Region::UNKNOWN) {
                 // ENTER list index = 2 * regionIndex + 1
-                outputs[2 * change.region + 1].push_back(change.proxyId);
+                outRegionChanges[2 * change.region + 1].push_back(change.proxyId);
             }
         }
     }

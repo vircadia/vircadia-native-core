@@ -37,10 +37,12 @@ namespace workload {
 
     class Engine : public Task {
     public:
-        Engine(const WorkloadContextPointer& context);
+        Engine();
         ~Engine() = default;
 
-        void run() { assert(_context); run(_context); }
+        void reset(const WorkloadContextPointer& context);
+
+        void run() { if (_context) { run(_context); } }
 
     protected:
         void run(const WorkloadContextPointer& context) override { assert(_context); Task::run(_context); }
