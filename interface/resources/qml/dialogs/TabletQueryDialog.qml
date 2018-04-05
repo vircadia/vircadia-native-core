@@ -89,9 +89,9 @@ TabletModalWindow {
                 bottom: buttons.top;
                 left: parent.left;
                 right: parent.right;
-                leftMargin: 12
-                rightMargin: 12
+                margins: 0
                 bottomMargin: 2 * hifi.dimensions.contentSpacing.y
+                topMargin: modalWindowItem.frameMarginTop
             }
 
             // FIXME make a text field type that can be bound to a history for autocompletion
@@ -104,6 +104,8 @@ TabletModalWindow {
                     left: parent.left;
                     right: parent.right;
                     bottom: parent.bottom
+                    leftMargin: 5
+                    rightMargin: 5
                 }
             }
 
@@ -131,8 +133,8 @@ TabletModalWindow {
             anchors {
                 bottom: parent.bottom
                 right: parent.right
-                leftMargin: 12
-                rightMargin: 12
+                margins: 0
+                rightMargin: hifi.dimensions.borderRadius
                 bottomMargin: hifi.dimensions.contentSpacing.y
             }
             Button { action: cancelAction }
