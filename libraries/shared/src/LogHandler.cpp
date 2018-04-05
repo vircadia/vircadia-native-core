@@ -173,7 +173,7 @@ int LogHandler::newRepeatedMessageID() {
     QMutexLocker lock(&_mutex);
     int newMessageId = _currentMessageID;
     ++_currentMessageID;
-    RepeatedMessageRecord newRecord { 0 };
+    RepeatedMessageRecord newRecord { 0, QString() };
     _repeatedMessageRecords.push_back(newRecord);
     return newMessageId;
 }
