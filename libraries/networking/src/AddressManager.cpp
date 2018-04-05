@@ -60,6 +60,7 @@ QUrl AddressManager::currentFacingAddress() const {
 }
 
 QUrl AddressManager::currentShareableAddress(bool domainOnly) const {
+    QUrl shareableAddress;
     if (!_shareablePlaceName.isEmpty()) {
         // if we have a shareable place name use that instead of whatever the current host is
         QUrl hifiURL;
@@ -71,10 +72,16 @@ QUrl AddressManager::currentShareableAddress(bool domainOnly) const {
             hifiURL.setPath(currentPath());
         }
 
-        return hifiURL;
+        shareableAddress = hifiURL;
     } else {
-        return currentAddress(domainOnly);
+        shareableAddress = currentAddress(domainOnly);
     }
+
+    if (shareableAddress.scheme() == URL_SCHEME_HIFI) {
+        return QUrl(); // file: urls aren't shareable
+    }
+
+    return shareableAddress;
 }
 
 QUrl AddressManager::currentFacingShareableAddress() const {
@@ -288,6 +295,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         // lookupUrl.scheme() == URL_SCHEME_HTTP ||
         // lookupUrl.scheme() == URL_SCHEME_HTTPS ||
         _previousLookup.clear();
+        _shareablePlaceName.clear();
         QUrl domainURL = PathUtils::expandToLocalDataAbsolutePath(lookupUrl);
         setDomainInfo(domainURL, trigger);
         emit lookupResultsFinished();
@@ -818,7 +826,7 @@ void AddressManager::copyAddress() {
     }
 
     // assume that the address is being copied because the user wants a shareable address
-    QGuiApplication::clipboard()->setText(currentShareableAddress().toString());
+    QGuiApplication::clipboard()->setText(currentFacingAddress().toString());
 }
 
 void AddressManager::copyPath() {
