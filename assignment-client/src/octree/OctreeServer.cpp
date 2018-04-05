@@ -1055,17 +1055,6 @@ void OctreeServer::readConfiguration() {
         readOptionInt(QString("persistInterval"), settingsSectionObject, _persistInterval);
         qDebug() << "persistInterval=" << _persistInterval;
 
-        bool noBackup;
-        readOptionBool(QString("NoBackup"), settingsSectionObject, noBackup);
-        _wantBackup = !noBackup;
-        qDebug() << "wantBackup=" << _wantBackup;
-
-        if (!readOptionString("backupDirectoryPath", settingsSectionObject, _backupDirectoryPath)) {
-            _backupDirectoryPath = "";
-        }
-
-        qDebug() << "backupDirectoryPath=" << _backupDirectoryPath;
-
         readOptionBool(QString("persistFileDownload"), settingsSectionObject, _persistFileDownload);
         qDebug() << "persistFileDownload=" << _persistFileDownload;
 
@@ -1288,38 +1277,10 @@ void OctreeServer::beginRunning(QByteArray replaceData) {
         }
 
         auto persistFileDirectory = QFileInfo(_persistAbsoluteFilePath).absolutePath();
-        if (_backupDirectoryPath.isEmpty()) {
-            // Use the persist file's directory to store backups
-            _backupDirectoryPath = persistFileDirectory;
-        } else {
-            // The backup directory has been set.
-            //   If relative, make it relative to the entities directory in the application data directory
-            //   If absolute, no resolution is necessary
-            QDir backupDirectory { _backupDirectoryPath };
-            QString absoluteBackupDirectory;
-            if (backupDirectory.isRelative()) {
-                absoluteBackupDirectory = QDir(PathUtils::getAppDataFilePath("entities/")).absoluteFilePath(_backupDirectoryPath);
-                absoluteBackupDirectory = QDir(absoluteBackupDirectory).absolutePath();
-            } else {
-                absoluteBackupDirectory = backupDirectory.absolutePath();
-            }
-            backupDirectory = QDir(absoluteBackupDirectory);
-            if (!backupDirectory.exists()) {
-                if (backupDirectory.mkpath(".")) {
-                    qDebug() << "Created backup directory";
-                } else {
-                    qDebug() << "ERROR creating backup directory, using persist file directory";
-                    _backupDirectoryPath = persistFileDirectory;
-                }
-            } else {
-                _backupDirectoryPath = absoluteBackupDirectory;
-            }
-        }
-        qDebug() << "Backups will be stored in: " << _backupDirectoryPath;
 
         // now set up PersistThread
-        _persistThread = new OctreePersistThread(_tree, _persistAbsoluteFilePath, _backupDirectoryPath, _persistInterval,
-                                                 _wantBackup, _settings, _debugTimestampNow, _persistAsFileType, replaceData);
+        _persistThread = new OctreePersistThread(_tree, _persistAbsoluteFilePath, _persistInterval, _debugTimestampNow,
+                                                 _persistAsFileType, replaceData);
         _persistThread->initialize(true);
     }
 

@@ -190,7 +190,6 @@ protected:
     QString _persistFilePath;
     QString _persistAbsoluteFilePath;
     QString _persistAsFileType;
-    QString _backupDirectoryPath;
     int _packetsPerClientPerInterval;
     int _packetsTotalPerInterval;
     OctreePointer _tree; // this IS a reaveraging tree
@@ -203,10 +202,7 @@ protected:
     OctreePersistThread* _persistThread;
 
     int _persistInterval;
-    bool _wantBackup;
     bool _persistFileDownload;
-    QString _backupExtensionFormat;
-    int _backupInterval;
     int _maxBackupVersions;
 
     time_t _started;
