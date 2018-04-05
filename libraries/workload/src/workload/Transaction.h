@@ -89,13 +89,13 @@ namespace workload {
 // These changes must be expressed through the corresponding command from the Transaction
 // The Transaction is then queued on the Space so all the pending transactions can be consolidated and processed at the time
 // of updating the space at the Frame boundary.
-// 
+//
 class Transaction {
     friend class Space;
 public:
     using ProxyPayload = Sphere;
 
-    using Reset = std::tuple<ProxyID, ProxyPayload>;
+    using Reset = std::tuple<ProxyID, ProxyPayload, Owner>;
     using Remove = ProxyID;
     using Update = std::tuple<ProxyID, ProxyPayload>;
 
@@ -107,7 +107,7 @@ public:
     ~Transaction() {}
 
     // Proxy transactions
-    void reset(ProxyID id, const ProxyPayload& sphere);
+    void reset(ProxyID id, const ProxyPayload& sphere, const Owner& owner);
     void reset(const Resets& resets);
     void remove(ProxyID id);
     void remove(const Removes& removes);
@@ -122,7 +122,7 @@ public:
     void merge(const Transaction& transaction);
     void merge(Transaction&& transaction);
     void clear();
-    
+
 protected:
 
 
@@ -174,7 +174,7 @@ protected:
     TransactionFrames _transactionFrames;
     uint32_t _transactionFrameNumber{ 0 };
 
-    // Process one transaction frame 
+    // Process one transaction frame
     virtual void processTransactionFrame(const Transaction& transaction) = 0;
 };
 

@@ -13,8 +13,8 @@
 using namespace workload;
 
 
-void Transaction::reset(ProxyID id, const ProxyPayload& payload) {
-    _resetItems.emplace_back(Reset{ id, payload });
+void Transaction::reset(ProxyID id, const ProxyPayload& payload, const Owner& owner) {
+    _resetItems.emplace_back(Reset{ id, payload, owner });
 }
 
 void Transaction::remove(ProxyID id) {

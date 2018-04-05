@@ -5,9 +5,6 @@
 //  Created by Andrew Meadows 2018.02.08
 //  Copyright 2018 High Fidelity, Inc.
 //
-//  Originally from lighthouse3d. Modified to utilize glm::vec3 and clean up to our coding standards
-//  Simple plane class.
-//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -26,13 +23,14 @@ namespace workload {
     class EngineBuilder {
     public:
         using Inputs = Views;
-        using JobModel = Task::ModelI<EngineBuilder, Inputs>;
+        using Outputs = RegionTracker::Outputs;
+        using JobModel = Task::ModelIO<EngineBuilder, Inputs, Outputs>;
         void build(JobModel& model, const Varying& in, Varying& out) {
             model.addJob<SetupViews>("setupViews", in);
             model.addJob<PerformSpaceTransaction>("updateSpace");
             const auto regionChanges = model.addJob<RegionTracker>("regionTracker");
             model.addJob<RegionState>("regionState", regionChanges);
-
+            out = regionChanges;
         }
     };
 
