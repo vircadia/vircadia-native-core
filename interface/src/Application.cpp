@@ -2495,8 +2495,6 @@ void Application::initializeGL() {
         DependencyManager::get<GeometryCache>()->initializeShapePipelines();
     });
 
-    _gameWorkload.startup(getEntities()->getWorkloadSpace(), _main3DScene);
-
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->setObjectName("MainThreadContext");
     _offscreenContext->create(_glWidget->qglContext());
@@ -4705,6 +4703,8 @@ void Application::init() {
             avatar->setCollisionSound(sound);
         }
     }, Qt::QueuedConnection);
+
+    _gameWorkload.startup(getEntities()->getWorkloadSpace(), _main3DScene, _entitySimulation);
 }
 
 void Application::updateLOD(float deltaTime) const {

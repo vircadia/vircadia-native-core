@@ -15,6 +15,18 @@
 
 namespace workload {
 
+class Owner {
+public:
+    Owner() = default;
+    Owner(void* data) : _data(data) {}
+    Owner(const Owner& other) = default;
+    Owner& operator=(const Owner& other) = default;
+    ~Owner() {}
+    void* get() const { return _data; }
+private:
+    void* _data { nullptr };
+};
+
 class Proxy {
 public:
     Proxy() : sphere(0.0f) {}

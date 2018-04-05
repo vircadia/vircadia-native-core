@@ -48,6 +48,8 @@ public:
     void categorizeAndGetChanges(std::vector<Change>& changes);
     uint32_t copyProxyValues(Proxy* proxies, uint32_t numDestProxies) const;
 
+    const Owner getOwner(int32_t proxyID) const;
+
     void clear();
 private:
 
@@ -56,17 +58,10 @@ private:
     void processRemoves(const Transaction::Removes& transactions);
     void processUpdates(const Transaction::Updates& transactions);
 
-  //  int32_t createProxy(const Sphere& sphere);
- //   void deleteProxies(const IndexVector& deadIndices);
- //   void updateProxies(const std::vector<ProxyUpdate>& changedProxies);
-
- //   void deleteProxy(int32_t proxyId);
- //   void updateProxy(int32_t proxyId, const Sphere& sphere);
-
-
     // The database of proxies is protected for editing by a mutex
     mutable std::mutex _proxiesMutex;
     Proxy::Vector _proxies;
+    std::vector<Owner> _owners;
 
     Views _views;
 };
