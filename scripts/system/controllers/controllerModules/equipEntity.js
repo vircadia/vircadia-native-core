@@ -23,6 +23,27 @@ var DEFAULT_SPHERE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/eq
 var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
 
 
+var EQUIPPING_OUTER_COLOR = { red: 0, green: 100, blue: 0 };
+var EQUIPPING_INNER_COLOR = { red: 0, green: 150, blue: 0 };
+var UNEQUIPPING_OUTER_COLOR = { red: 100, green: 0, blue: 0 };
+var UNEQUIPPING_INNER_COLOR = { red: 150, green: 0, blue: 0 };
+
+var CIRCLE_3D_PROPERTIES = {
+    solid: true,
+    innerRadius: 0.0,
+    outerRadius: 1.0,
+    startAt: 0,
+    endAt: 180,
+    outerColor: EQUIPPING_OUTER_COLOR,
+    innerColor: EQUIPPING_INNER_COLOR,
+    alpha: 1.0,
+    innerAlpha: 0.9,
+    Alpha: 1.0
+};
+
+var EQUIP_TIME = 3000;
+var UNEQUIP_TIME = 4000;
+
 // Each overlayInfoSet describes a single equip hotspot.
 // It is an object with the following keys:
 //   timestamp - last time this object was updated, used to delete stale hotspot overlays.
@@ -158,6 +179,29 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     }
 };
 
+
+function EquipTimer(hand) {
+    this.hand = hand;
+    this.controllerTriggerPressed = false;
+    this.equipTime = EQUIP_TIME;
+    this.currentTimeLapse = 0;
+    this.equip = true;
+    this.finished = false;
+    this.circle3dProperties = CIRCLE_3D_PROPERTIES;
+    this.circle3dOverlay = Overlays.addOverlay("circle3d", this.circle3dProperties);
+}
+
+EquipTimer.prototype.update = function(deltaTime, timestamp, controllerData) {
+};
+
+EquipTimer.prototype.finished = function() {
+    return this.finished;
+};
+
+EquipTimer.prototype.cleanup = function() {
+    Overlays.deleteOverlay(this.circle3dOverlay);
+};
+
 (function() {
 
     var ATTACH_POINT_SETTINGS = "io.highfidelity.attachPoints";
@@ -278,6 +322,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             100);
 
         var equipHotspotBuddy = new EquipHotspotBuddy();
+
+        this.equipTimer = new EquipTimer(this.hand);
 
         this.setMessageGrabData = function(entityProperties) {
             if (entityProperties) {
@@ -621,8 +667,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             // if the potentialHotspot os not cloneable and locked return null
 
             if (potentialEquipHotspot &&
-                (((this.triggerSmoothedSqueezed() || this.secondarySmoothedSqueezed()) && !this.waitForTriggerRelease) ||
-                 this.messageGrabEntity)) {
+                (((this.triggerSmoothedSqueezed() || this.secondarySmoothedSqueezed()) && !this.waitForTriggerRelease &&
+                  this.equipTimer.finished()) || this.messageGrabEntity)) {
                 this.grabbedHotspot = potentialEquipHotspot;
                 this.targetEntityID = this.grabbedHotspot.entityID;
                 this.startEquipEntity(controllerData);
