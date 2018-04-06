@@ -51,7 +51,7 @@ Rectangle {
 
         onCertificateInfoResult: {
             if (result.status !== 'success') {
-                console.log("Failed to get certificate info", result.message);
+                console.log("Failed to get certificate info", result.data.message);
                 // We should still tell the user that static cert verification failed
                 if (root.certificateStatus !== 3) { // CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED
                     root.useGoldCert = false;
