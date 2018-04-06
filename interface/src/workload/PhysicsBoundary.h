@@ -15,19 +15,6 @@
 
 #include "render/Scene.h"
 
-/*
-class FooJobConfig : public workload::Job::Config {
-    Q_OBJECT
-    Q_PROPERTY(bool fubar MEMBER fubar NOTIFY dirty)
-public:
-    bool fubar{ false };
-signals:
-    void dirty();
-protected:
-};
-*/
-
-#include <iostream> // adebug
 #include <workload/RegionTracker.h>
 #include <EntityItem.h>
 #include "PhysicalEntitySimulation.h"
@@ -45,43 +32,20 @@ public:
     }
 
     void run(const workload::WorkloadContextPointer& context, const Inputs& inputs) {
-        const auto& regionChanges = inputs.get1();
         auto space = context->_space;
         if (!space) {
             return;
         }
-        uint32_t listSize = (uint32_t)regionChanges.size();
-        uint32_t totalTransitions = 0;
-        for (uint32_t i = 0; i < listSize; ++i) {
-            totalTransitions += (uint32_t)regionChanges[i].size();
-        }
-        // we're interested in things entering/leaving R3
-        uint32_t regionIndex = workload::Region::R3;
-        uint32_t exitIndex = 2 * regionIndex;
-        uint32_t numExits = (uint32_t)regionChanges[exitIndex].size();
-        for (uint32_t i = 0; i < numExits; ++i) {
-            int32_t proxyID = regionChanges[exitIndex][i];
-            auto owner = space->getOwner(proxyID).get<EntityItemPointer>();
-            if (owner) {
-                //EntityItem* entity = static_cast<EntityItem*>(owner);
-                std::cout << "adebug  - "
-                    //<< owner
-                    << "  '" << owner->getName().toStdString() << "'"
-                    << std::endl;     // adebug
-            }
-        }
-
-        uint32_t enterIndex = exitIndex + 1;
-        uint32_t numEntries = (uint32_t)regionChanges[enterIndex].size();
-        for (uint32_t i = 0; i < numEntries; ++i) {
-            int32_t proxyID = regionChanges[enterIndex][i];
-            auto owner = space->getOwner(proxyID).get<EntityItemPointer>();
-            if (owner) {
-              //  EntityItem* entity = static_cast<EntityItem*>(owner);
-                std::cout << "adebug  + "
-                    //<< owner
-                    << "  '" << owner->getName().toStdString() << "'"
-                    << std::endl;     // adebug
+        GameWorkloadContext* gameContext = static_cast<GameWorkloadContext*>(context.get());
+        PhysicalEntitySimulationPointer simulation = gameContext->_simulation;
+        const auto& regionChanges = inputs.get0();
+        for (uint32_t i = 0; i < (uint32_t)regionChanges.size(); ++i) {
+            const workload::Space::Change& change = regionChanges[i];
+            auto entity = space->getOwner(change.proxyId).get<EntityItemPointer>();
+            if (entity) {
+                simulation->changeEntity(entity);
+                qCDebug("physics") << change.proxyId << " : " << "'" << entity->getName() << "' "
+                    << (uint32_t)(change.prevRegion) << " --> " << (uint32_t)(change.region);
             }
         }
     }

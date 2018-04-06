@@ -120,8 +120,10 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     QMutexLocker lock(&_mutex);
     assert(entity);
     EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+    uint8_t region = _space->getRegion(entity->getSpaceIndex());
+    bool shouldBePhysical = region < workload::Region::R3 && entity->shouldBePhysical();
     if (motionState) {
-        if (!entity->shouldBePhysical()) {
+        if (!shouldBePhysical) {
             // the entity should be removed from the physical simulation
             _incomingChanges.remove(motionState);
             _physicalObjects.remove(motionState);
@@ -133,7 +135,7 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
         } else {
             _incomingChanges.insert(motionState);
         }
-    } else if (entity->shouldBePhysical()) {
+    } else if (shouldBePhysical) {
         // The intent is for this object to be in the PhysicsEngine, but it has no MotionState yet.
         // Perhaps it's shape has changed and it can now be added?
         _entitiesToAddToPhysics.insert(entity);

@@ -4705,6 +4705,7 @@ void Application::init() {
     }, Qt::QueuedConnection);
 
     _gameWorkload.startup(getEntities()->getWorkloadSpace(), _main3DScene, _entitySimulation);
+    _entitySimulation->setWorkloadSpace(getEntities()->getWorkloadSpace());
 }
 
 void Application::updateLOD(float deltaTime) const {
