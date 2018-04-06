@@ -982,6 +982,13 @@ Section "-Core installation"
   ;Store installation folder
   WriteRegStr HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "" $INSTDIR
 
+  ;Write some information about this install to the installation folder
+  FileOpen $0 "$INSTDIR\installer.ini" w
+  FileWrite $0 "type=@INSTALLER_TYPE@$\r$\n"
+  FileWrite $0 "campaign=$CampaignName$\r$\n"
+  FileWrite $0 "exepath=$EXEPATH$\r$\n"
+  FileClose $0
+
   ;Package the signed uninstaller produced by the inner loop
   !ifndef INNER
     ; this packages the signed uninstaller
