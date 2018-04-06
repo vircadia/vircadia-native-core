@@ -128,7 +128,10 @@ const Owner Space::getOwner(int32_t proxyID) const {
 }
 
 uint8_t Space::getRegion(int32_t proxyID) const {
-    return _IDAllocator.checkIndex(proxyID) ?  _proxies[proxyID].region : Region::INVALID;
+    if (_IDAllocator.checkIndex(proxyID)) {
+        return _proxies[proxyID].region;
+    }
+    return (uint8_t)Region::INVALID;
 }
 
 void Space::clear() {
