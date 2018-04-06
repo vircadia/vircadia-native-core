@@ -4679,7 +4679,7 @@ void Application::init() {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
-    connect(_entitySimulation.get(), &EntitySimulation::entityCollisionWithEntity,
+    connect(_entitySimulation.get(), &PhysicalEntitySimulation::entityCollisionWithEntity,
             getEntities().data(), &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
@@ -5274,11 +5274,13 @@ void Application::update(float deltaTime) {
             {
                 PROFILE_RANGE(simulation_physics, "PreStep");
                 PerformanceTimer perfTimer("preStep)");
-                static VectorOfMotionStates motionStates;
-                _entitySimulation->getObjectsToRemoveFromPhysics(motionStates);
-                _physicsEngine->removeObjects(motionStates);
-                _entitySimulation->deleteObjectsRemovedFromPhysics();
+                {
+                    const VectorOfMotionStates& motionStates = _entitySimulation->getObjectsToRemoveFromPhysics();
+                    _physicsEngine->removeObjects(motionStates);
+                    _entitySimulation->deleteObjectsRemovedFromPhysics();
+                }
 
+                VectorOfMotionStates motionStates;
                 getEntities()->getTree()->withReadLock([&] {
                     _entitySimulation->getObjectsToAddToPhysics(motionStates);
                     _physicsEngine->addObjects(motionStates);
@@ -5292,7 +5294,7 @@ void Application::update(float deltaTime) {
 
                 _entitySimulation->applyDynamicChanges();
 
-                 avatarManager->getObjectsToRemoveFromPhysics(motionStates);
+                avatarManager->getObjectsToRemoveFromPhysics(motionStates);
                 _physicsEngine->removeObjects(motionStates);
                 avatarManager->getObjectsToAddToPhysics(motionStates);
                 _physicsEngine->addObjects(motionStates);

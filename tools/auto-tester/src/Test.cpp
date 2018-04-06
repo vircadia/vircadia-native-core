@@ -554,7 +554,7 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
 // The folder selected must contain a script named "test.js", the file produced is named "test.md"
 void Test::createMDFile() {
     // Folder selection
-    QString testDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
+    QString testDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test", ".", QFileDialog::ShowDirsOnly);
     if (testDirectory == "") {
         return;
     }
@@ -571,7 +571,7 @@ void Test::createMDFile() {
 
     QString mdFilename(testDirectory + "/" + "test.md");
     QFile mdFile(mdFilename);
-    if (!mdFile.open(QIODevice::ReadWrite)) {
+    if (!mdFile.open(QIODevice::WriteOnly)) {
         messageBox.critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + mdFilename);
         exit(-1);
     }
@@ -640,7 +640,7 @@ void Test::createMDFile() {
     int snapShotIndex { 0 };
     for (size_t i = 0; i < testScriptLines.stepList.size(); ++i) {
         stream << "### Step " << QString::number(i) << "\n";
-        stream << "- " << testScriptLines.stepList[i]->text << "\n";
+        stream << "- " << testScriptLines.stepList[i + 1]->text << "\n";
         if (testScriptLines.stepList[i]->takeSnapshot) {
             stream << "- ![](./ExpectedImage_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png)\n";
             ++snapShotIndex;
