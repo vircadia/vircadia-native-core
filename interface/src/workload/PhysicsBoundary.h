@@ -1,7 +1,7 @@
 //
 //  PhysicsBoundary.h
 //
-//  Created by Sam Gateau on 2/16/2018.
+//  Created by Andrew Meadows 2018.04.05
 //  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -10,13 +10,10 @@
 #ifndef hifi_PhysicsGatekeeper_h
 #define hifi_PhysicsGatekeeper_h
 
-#include "workload/Space.h"
-#include "workload/Engine.h"
-
-#include "render/Scene.h"
-
-#include <workload/RegionTracker.h>
 #include <EntityItem.h>
+#include <workload/Engine.h>
+#include <workload/RegionTracker.h>
+
 #include "PhysicalEntitySimulation.h"
 
 class PhysicsBoundary {
@@ -27,28 +24,8 @@ public:
     using JobModel = workload::Job::ModelI<PhysicsBoundary, Inputs, Config>; // this doesn't work
 
     PhysicsBoundary() {}
-
-    void configure(const Config& config) {
-    }
-
-    void run(const workload::WorkloadContextPointer& context, const Inputs& inputs) {
-        auto space = context->_space;
-        if (!space) {
-            return;
-        }
-        GameWorkloadContext* gameContext = static_cast<GameWorkloadContext*>(context.get());
-        PhysicalEntitySimulationPointer simulation = gameContext->_simulation;
-        const auto& regionChanges = inputs.get0();
-        for (uint32_t i = 0; i < (uint32_t)regionChanges.size(); ++i) {
-            const workload::Space::Change& change = regionChanges[i];
-            auto entity = space->getOwner(change.proxyId).get<EntityItemPointer>();
-            if (entity) {
-                simulation->changeEntity(entity);
-                qCDebug("physics") << change.proxyId << " : " << "'" << entity->getName() << "' "
-                    << (uint32_t)(change.prevRegion) << " --> " << (uint32_t)(change.region);
-            }
-        }
-    }
+    void configure(const Config& config) { }
+    void run(const workload::WorkloadContextPointer& context, const Inputs& inputs);
 };
 
 #endif // hifi_PhysicsGatekeeper_h
