@@ -48,7 +48,9 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     QMutexLocker lock(&_mutex);
     assert(entity);
     assert(!entity->isDead());
-    if (entity->shouldBePhysical()) {
+    uint8_t region = _space->getRegion(entity->getSpaceIndex());
+    bool shouldBePhysical = region < workload::Region::R3 && entity->shouldBePhysical();
+    if (shouldBePhysical) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (!motionState) {
             _entitiesToAddToPhysics.insert(entity);
