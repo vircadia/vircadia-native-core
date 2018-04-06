@@ -165,6 +165,11 @@ void GL45Backend::makeProgramBindings(ShaderObject& shaderObject) {
         shaderObject.transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
     }
 
+    loc = glGetUniformBlockIndex(glprogram, "gpu_resourceTextureTable0");
+    if (loc >= 0) {
+        glUniformBlockBinding(glprogram, loc, RESOURCE_TABLE_TEXTURE_SLOT_OFFSET);
+    }
+
     (void)CHECK_GL_ERROR();
 }
 

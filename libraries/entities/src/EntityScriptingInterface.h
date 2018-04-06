@@ -94,8 +94,6 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
  * Interface has displayed and so knows about.
  *
  * @namespace Entities
- * @property {number} currentAvatarEnergy - <strong>Deprecated</strong>
- * @property {number} costMultiplier - <strong>Deprecated</strong>
  * @property {Uuid} keyboardFocusEntity - Get or set the {@link Entities.EntityType|Web} entity that has keyboard focus.
  *     If no entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
  *     clear keyboard focus.
@@ -104,8 +102,6 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
     Q_OBJECT
 
-    Q_PROPERTY(float currentAvatarEnergy READ getCurrentAvatarEnergy WRITE setCurrentAvatarEnergy)
-    Q_PROPERTY(float costMultiplier READ getCostMultiplier WRITE setCostMultiplier)
     Q_PROPERTY(QUuid keyboardFocusEntity READ getKeyboardFocusEntity WRITE setKeyboardFocusEntity)
 
     friend EntityPropertyMetadataRequest;
@@ -126,7 +122,6 @@ public:
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
     void setEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine);
-    float calculateCost(float mass, float oldVelocity, float newVelocity);
 
     void resetActivityTracking();
     ActivityTracking getActivityTracking() const { return _activityTracking; }
@@ -1835,14 +1830,6 @@ signals:
     void clearingEntities();
     
     /**jsdoc
-     * @function Entities.debitEnergySource
-     * @param {number} value - The amount to debit.
-     * @returns {Signal}
-     * @deprecated This function is deprecated and will soon be removed.
-     */
-    void debitEnergySource(float value);
-
-    /**jsdoc
      * Triggered in when a script in a {@link Entities.EntityType|Web} entity's Web page script sends an event over the 
      * script's <code>EventBridge</code>.
      * @function Entities.webEventReceived
@@ -1882,14 +1869,8 @@ private:
     QSharedPointer<EntitiesScriptEngineProvider> _entitiesScriptEngine;
 
     bool _bidOnSimulationOwnership { false };
-    float _currentAvatarEnergy = { FLT_MAX };
-    float getCurrentAvatarEnergy() { return _currentAvatarEnergy; }
-    void setCurrentAvatarEnergy(float energy);
 
     ActivityTracking _activityTracking;
-    float costMultiplier = { 0.01f };
-    float getCostMultiplier();
-    void setCostMultiplier(float value);
 };
 
 #endif // hifi_EntityScriptingInterface_h

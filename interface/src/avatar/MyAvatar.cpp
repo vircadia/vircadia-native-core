@@ -67,8 +67,8 @@ using namespace std;
 
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
-const float YAW_SPEED_DEFAULT = 100.0f;   // degrees/sec
-const float PITCH_SPEED_DEFAULT = 75.0f; // degrees/sec
+const float YAW_SPEED_DEFAULT = 75.0f;   // degrees/sec
+const float PITCH_SPEED_DEFAULT = 50.0f; // degrees/sec
 
 const float MAX_BOOST_SPEED = 0.5f * DEFAULT_AVATAR_MAX_WALKING_SPEED; // action motor gets additive boost below this speed
 const float MIN_AVATAR_SPEED = 0.05f;
@@ -2227,7 +2227,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     }
 
     float boomChange = getDriveKey(ZOOM);
-    _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
+    _boomLength += 4.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
 }
 
@@ -2760,6 +2760,18 @@ bool MyAvatar::isDriveKeyDisabled(DriveKeys key) const {
     }
 }
 
+void MyAvatar::triggerVerticalRecenter() {
+    _follow.setForceActivateVertical(true);
+}
+
+void MyAvatar::triggerHorizontalRecenter() {
+    _follow.setForceActivateHorizontal(true);
+}
+
+void MyAvatar::triggerRotationRecenter() {
+    _follow.setForceActivateRotation(true);
+}
+
 // old school meat hook style
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     glm::vec3 headPosition;
@@ -2957,7 +2969,9 @@ void MyAvatar::FollowHelper::decrementTimeRemaining(float dt) {
 bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
     const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f); // 30 degrees
     glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
+    
     return glm::dot(-myAvatar.getHeadControllerFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
+    
 }
 
 bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
@@ -2974,6 +2988,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, 
     const float MAX_FORWARD_LEAN = 0.15f;
     const float MAX_BACKWARD_LEAN = 0.1f;
 
+
     if (forwardLeanAmount > 0 && forwardLeanAmount > MAX_FORWARD_LEAN) {
         return true;
     } else if (forwardLeanAmount < 0 && forwardLeanAmount < -MAX_BACKWARD_LEAN) {
@@ -2981,6 +2996,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, 
     }
 
     return fabs(lateralLeanAmount) > MAX_LATERAL_LEAN;
+
 }
 
 bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
@@ -2988,6 +3004,7 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, co
     const float CYLINDER_BOTTOM = -1.5f;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
+
     return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
 }
 
@@ -3004,6 +3021,19 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         }
         if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Vertical);
+        }
+    } else {
+        if (!isActive(Rotation) && getForceActivateRotation()) {
+            activate(Rotation);
+            setForceActivateRotation(false);
+        }
+        if (!isActive(Horizontal) && getForceActivateHorizontal()) {
+            activate(Horizontal);
+            setForceActivateHorizontal(false);
+        }
+        if (!isActive(Vertical) && getForceActivateVertical()) {
+            activate(Vertical);
+            setForceActivateVertical(false);
         }
     }
 
@@ -3052,6 +3082,30 @@ glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(const MyAvatar& myAvatar, co
     } else {
         return currentBodyMatrix;
     }
+}
+
+bool MyAvatar::FollowHelper::getForceActivateRotation() const {
+    return _forceActivateRotation;
+}
+
+void MyAvatar::FollowHelper::setForceActivateRotation(bool val) {
+    _forceActivateRotation = val;
+}
+
+bool MyAvatar::FollowHelper::getForceActivateVertical() const {
+    return _forceActivateVertical;
+}
+
+void MyAvatar::FollowHelper::setForceActivateVertical(bool val) {
+    _forceActivateVertical = val;
+}
+
+bool MyAvatar::FollowHelper::getForceActivateHorizontal() const {
+    return _forceActivateHorizontal;
+}
+
+void MyAvatar::FollowHelper::setForceActivateHorizontal(bool val) {
+    _forceActivateHorizontal = val;
 }
 
 float MyAvatar::getAccelerationEnergy() {

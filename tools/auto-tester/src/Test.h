@@ -19,6 +19,24 @@
 #include "ImageComparer.h"
 #include "ui/MismatchWindow.h"
 
+class Step {
+public:
+	QString text;
+	bool takeSnapshot;
+};
+
+using StepList = std::vector<Step*>;
+
+class ExtractedText {
+public:
+    QString title;
+    QString platform;
+    QString display;
+    QString cpu;
+    QString gpu;
+    StepList stepList;
+};
+
 class Test {
 public: 
     Test();
@@ -31,7 +49,7 @@ public:
     void createRecursiveScript(QString topLevelDirectory, bool interactiveMode);
 
     void createTest();
-    void deleteOldSnapshots();
+    void createMDFile();
 
     bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
 
@@ -47,7 +65,7 @@ public:
     void zipAndDeleteTestResultsFolder();
 
     bool isAValidDirectory(QString pathname);
-
+	QString extractPathFromTestsDown(QString fullPath);
     QString getExpectedImageDestinationDirectory(QString filename);
     QString getExpectedImagePartialSourceDirectory(QString filename);
 
@@ -61,8 +79,6 @@ private:
     QMessageBox messageBox;
 
     QDir imageDirectory;
-
-    QRegularExpression expectedImageFilenameFormat;
 
     MismatchWindow mismatchWindow;
 
@@ -81,9 +97,11 @@ private:
     QStringList resultImagesFullFilenames;
 
     // Used for accessing GitHub
-    const QString user { "NissimHadar" };
-    const QString branch { "addRecursionToAutotester" };
+    const QString githubUser{ "highfidelity" };
+    const QString gitHubBranch { "master" };
 	const QString DATETIME_FORMAT { "yyyy-MM-dd_hh-mm-ss" };
+
+	ExtractedText getTestScriptLines(QString testFileName);
 };
 
 #endif // hifi_test_h
