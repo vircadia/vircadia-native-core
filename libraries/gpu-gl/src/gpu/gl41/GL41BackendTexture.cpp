@@ -19,6 +19,24 @@ using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl41;
 
+bool GL41Backend::supportedTextureFormat(const gpu::Element& format) {
+    switch (format.getSemantic()) {
+        case gpu::Semantic::COMPRESSED_ETC2_RGB:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGB:
+        case gpu::Semantic::COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA:
+        case gpu::Semantic::COMPRESSED_ETC2_RGBA:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGBA:
+        case gpu::Semantic::COMPRESSED_EAC_RED:
+        case gpu::Semantic::COMPRESSED_EAC_RED_SIGNED:
+        case gpu::Semantic::COMPRESSED_EAC_XY:
+        case gpu::Semantic::COMPRESSED_EAC_XY_SIGNED:
+            return false;
+        default:
+            return true;
+    }
+}
+
 GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
     if (!texturePointer) {
         return nullptr;
@@ -31,6 +49,11 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
 
     if (!texture.isDefined()) {
         // NO texture definition yet so let's avoid thinking
+        return nullptr;
+    }
+
+    // Check whether the texture is in a format we can deal with
+    if (!supportedTextureFormat(texture.getTexelFormat())) {
         return nullptr;
     }
 
@@ -115,17 +138,6 @@ Size GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
             case GL_COMPRESSED_RG_RGTC2:
             case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
             case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
-            // TODO: confirm that these work on mac
-            case GL_COMPRESSED_RGB8_ETC2:
-            case GL_COMPRESSED_SRGB8_ETC2:
-            case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-            case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-            case GL_COMPRESSED_RGBA8_ETC2_EAC:
-            case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
-            case GL_COMPRESSED_R11_EAC:
-            case GL_COMPRESSED_SIGNED_R11_EAC:
-            case GL_COMPRESSED_RG11_EAC:
-            case GL_COMPRESSED_SIGNED_RG11_EAC:
                 glCompressedTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, internalFormat,
                                           static_cast<GLsizei>(sourceSize), sourcePointer);
                 break;
@@ -144,17 +156,6 @@ Size GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
             case GL_COMPRESSED_RG_RGTC2:
             case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
             case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
-            // TODO: confirm that these work on mac
-            case GL_COMPRESSED_RGB8_ETC2:
-            case GL_COMPRESSED_SRGB8_ETC2:
-            case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-            case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-            case GL_COMPRESSED_RGBA8_ETC2_EAC:
-            case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
-            case GL_COMPRESSED_R11_EAC:
-            case GL_COMPRESSED_SIGNED_R11_EAC:
-            case GL_COMPRESSED_RG11_EAC:
-            case GL_COMPRESSED_SIGNED_RG11_EAC:
                 glCompressedTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, internalFormat,
                                           static_cast<GLsizei>(sourceSize), sourcePointer);
                 break;
