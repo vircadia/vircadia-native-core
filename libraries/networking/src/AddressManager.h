@@ -150,7 +150,9 @@ public:
     QUrl currentAddress(bool domainOnly = false) const;
     QUrl currentFacingAddress() const;
     QUrl currentShareableAddress(bool domainOnly = false) const;
+    QUrl currentPublicAddress(bool domainOnly = false) const;
     QUrl currentFacingShareableAddress() const;
+    QUrl currentFacingPublicAddress() const;
     QString currentPath(bool withOrientation = true) const;
     QString currentFacingPath() const;
 
