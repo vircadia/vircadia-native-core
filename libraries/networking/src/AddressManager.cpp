@@ -22,7 +22,6 @@
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
 #include <UUID.h>
-#include <PathUtils.h>
 
 #include "AddressManager.h"
 #include "NodeList.h"
@@ -311,8 +310,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         // lookupUrl.scheme() == URL_SCHEME_HTTPS ||
         _previousLookup.clear();
         _shareablePlaceName.clear();
-        QUrl domainURL = PathUtils::expandToLocalDataAbsolutePath(lookupUrl);
-        setDomainInfo(domainURL, trigger);
+        setDomainInfo(lookupUrl, trigger);
         emit lookupResultsFinished();
         handlePath(DOMAIN_SPAWNING_POINT, LookupTrigger::Internal, false);
         return true;
