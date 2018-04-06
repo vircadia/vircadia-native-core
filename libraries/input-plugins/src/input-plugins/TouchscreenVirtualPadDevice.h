@@ -41,6 +41,7 @@ public:
 
     static const char* NAME;
 
+    int _viewTouchUpdateCount;
     enum TouchAxisChannel {
         LX,
         LY,

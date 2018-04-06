@@ -41,6 +41,7 @@ bool TouchscreenVirtualPadDevice::isSupported() const {
 
 void TouchscreenVirtualPadDevice::init() {
     _fixedPosition = true; // This should be config
+    _viewTouchUpdateCount = 0;
 
     QScreen* eventScreen = qApp->primaryScreen();
     if (_screenDPIProvided != eventScreen->physicalDotsPerInch()) {
@@ -137,10 +138,15 @@ void TouchscreenVirtualPadDevice::processInputDeviceForMove(VirtualPad::Manager&
 }
 
 void TouchscreenVirtualPadDevice::processInputDeviceForView() {
-    _inputDevice->_axisStateMap[controller::RX] = _viewCurrentTouchPoint.x - _viewRefTouchPoint.x;
-    _inputDevice->_axisStateMap[controller::RY] = _viewCurrentTouchPoint.y - _viewRefTouchPoint.y;
+    // We use average across how many times we've got touchUpdate events.
+    // Using the average instead of the full deltaX and deltaY, makes deltaTime in MyAvatar dont't accelerate rotation when there is a low touchUpdate rate (heavier domains).
+    // (Because it multiplies this input value by deltaTime (with a coefficient)).
+    _inputDevice->_axisStateMap[controller::RX] = _viewTouchUpdateCount==0?0:(_viewCurrentTouchPoint.x - _viewRefTouchPoint.x)/_viewTouchUpdateCount++;
+    _inputDevice->_axisStateMap[controller::RY] = _viewTouchUpdateCount==0?0:(_viewCurrentTouchPoint.y - _viewRefTouchPoint.y)/_viewTouchUpdateCount++;
+
     // after use, save last touch point as ref
     _viewRefTouchPoint = _viewCurrentTouchPoint;
+    _viewTouchUpdateCount = 0;
 }
 
 void TouchscreenVirtualPadDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
@@ -427,12 +433,14 @@ void TouchscreenVirtualPadDevice::viewTouchBegin(glm::vec2 touchPoint) {
     if (virtualPadManager.isEnabled() && !virtualPadManager.isHidden()) {
         _viewRefTouchPoint = touchPoint;
         _viewCurrentTouchPoint = touchPoint;
+        _viewTouchUpdateCount++;
         _viewHasValidTouch = true;
     }
 }
 
 void TouchscreenVirtualPadDevice::viewTouchUpdate(glm::vec2 touchPoint) {
     _viewCurrentTouchPoint = touchPoint;
+    _viewTouchUpdateCount++;
 }
 
 void TouchscreenVirtualPadDevice::viewTouchEnd() {
