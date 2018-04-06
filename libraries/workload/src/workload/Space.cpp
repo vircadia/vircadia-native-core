@@ -127,6 +127,10 @@ const Owner Space::getOwner(int32_t proxyID) const {
     return Owner();
 }
 
+uint8_t Space::getRegion(int32_t proxyID) const {
+    return _IDAllocator.checkIndex(proxyID) ?  _proxies[proxyID].region : Region::INVALID;
+}
+
 void Space::clear() {
     std::unique_lock<std::mutex> lock(_proxiesMutex);
     _IDAllocator.clear();

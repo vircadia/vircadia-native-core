@@ -121,7 +121,7 @@ public:
     static bool shouldRenderDebugHulls() { return _renderDebugHullsOperator(); }
 
     // Access the workload Space
-    const workload::SpacePointer getWorkloadSpace() const { return _space; }
+    workload::SpacePointer getWorkloadSpace() const { return _space; }
 
 signals:
     void enterEntity(const EntityItemID& entityItemID);
