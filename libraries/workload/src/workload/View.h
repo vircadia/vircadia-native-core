@@ -15,6 +15,7 @@
 #include <memory>
 #include <vector>
 #include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 
 #include "Region.h"
 
@@ -38,7 +39,7 @@ public:
     float maxRadius{ FLT_MAX };
 
     // Fov stores the half field of view angle, and tan/cos/sin ready to go, default is fov of 90deg
-    glm::vec4 fov_halfAngle_tan_cos_sin { (float) M_PI_4, 1.0f, (float) (M_SQRT2 * 0.5), (float) (M_SQRT2 * 0.5) };
+    glm::vec4 fov_halfAngle_tan_cos_sin { glm::quarter_pi<float>(), 1.0f, glm::root_two<float>() * 0.5f, glm::root_two<float>() * 0.5f};
 
     // Origin position 
     glm::vec3 origin{ 0.0f };
