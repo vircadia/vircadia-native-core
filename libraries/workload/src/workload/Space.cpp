@@ -121,14 +121,15 @@ uint32_t Space::copyProxyValues(Proxy* proxies, uint32_t numDestProxies) const {
 
 const Owner Space::getOwner(int32_t proxyID) const {
     std::unique_lock<std::mutex> lock(_proxiesMutex);
-    if (_IDAllocator.checkIndex(proxyID)) {
+    if (isAllocatedID(proxyID) && (proxyID < (Index)_proxies.size())) {
         return _owners[proxyID];
     }
     return Owner();
 }
 
 uint8_t Space::getRegion(int32_t proxyID) const {
-    if (_IDAllocator.checkIndex(proxyID)) {
+    std::unique_lock<std::mutex> lock(_proxiesMutex);
+    if (isAllocatedID(proxyID) && (proxyID < (Index)_proxies.size())) {
         return _proxies[proxyID].region;
     }
     return (uint8_t)Region::INVALID;
