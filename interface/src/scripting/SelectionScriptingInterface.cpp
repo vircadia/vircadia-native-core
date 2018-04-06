@@ -110,6 +110,7 @@ bool SelectionScriptingInterface::enableListHighlight(const QString& listName, c
     }
 
     if (!(*highlightStyle).isBoundToList()) {
+        enableListToScene(listName);
         (*highlightStyle).setBoundToList(true);
     }
 
@@ -133,6 +134,7 @@ bool SelectionScriptingInterface::disableListHighlight(const QString& listName) 
     auto highlightStyle = _highlightStyleMap.find(listName);
     if (highlightStyle != _highlightStyleMap.end()) {
         if ((*highlightStyle).isBoundToList()) {
+            disableListToScene(listName);
         }
 
         _highlightStyleMap.erase(highlightStyle);
