@@ -49,6 +49,7 @@ public:
     uint32_t copyProxyValues(Proxy* proxies, uint32_t numDestProxies) const;
 
     const Owner getOwner(int32_t proxyID) const;
+    uint8_t getRegion(int32_t proxyID) const;
 
     void clear();
 private:
