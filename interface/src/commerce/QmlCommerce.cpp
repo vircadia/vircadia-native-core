@@ -190,7 +190,9 @@ void QmlCommerce::transferHfcToUsername(const QString& username, const int& amou
     ledger->transferHfcToUsername(key, username, amount, optionalMessage);
 }
 
-void QmlCommerce::replaceContentSet(const QString& itemHref) {
+void QmlCommerce::replaceContentSet(const QString& itemHref, const QString& certificateID) {
+    auto ledger = DependencyManager::get<Ledger>();
+    ledger->updateLocation(certificateID, DependencyManager::get<AddressManager>()->getPlaceName(), true);
     qApp->replaceDomainContent(itemHref);
     QJsonObject messageProperties = {
         { "status", "SuccessfulRequestToReplaceContent" },

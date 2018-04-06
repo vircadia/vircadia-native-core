@@ -1618,8 +1618,18 @@ SelectionDisplay = (function() {
                 grid.snapToGrid(Vec3.sum(cornerPosition, vector), constrainMajorOnly),
                 cornerPosition);
 
-            for (var i = 0; i < SelectionManager.selections.length; i++) {
-                var properties = SelectionManager.savedProperties[SelectionManager.selections[i]];
+            // editing a parent will cause all the children to automatically follow along, so don't
+            // edit any entity who has an ancestor in SelectionManager.selections
+            var toMove = SelectionManager.selections.filter(function (selection) {
+                if (SelectionManager.selections.indexOf(SelectionManager.savedProperties[selection].parentID) >= 0) {
+                    return false; // a parent is also being moved, so don't issue an edit for this entity
+                } else {
+                    return true;
+                }
+            });
+
+            for (var i = 0; i < toMove.length; i++) {
+                var properties = SelectionManager.savedProperties[toMove[i]];
                 if (!properties) {
                     continue;
                 }
@@ -1628,7 +1638,7 @@ SelectionDisplay = (function() {
                     y: 0,
                     z: vector.z
                 });
-                Entities.editEntity(SelectionManager.selections[i], {
+                Entities.editEntity(toMove[i], {
                     position: newPosition
                 });
 
@@ -1653,11 +1663,11 @@ SelectionDisplay = (function() {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
                 if (direction === TRANSLATE_DIRECTION.X) {
-                    pickNormal = { x:0, y:0, z:1 };
+                    pickNormal = { x:0, y:1, z:1 };
                 } else if (direction === TRANSLATE_DIRECTION.Y) {
-                    pickNormal = { x:1, y:0, z:0 };
+                    pickNormal = { x:1, y:0, z:1 };
                 } else if (direction === TRANSLATE_DIRECTION.Z) {
-                    pickNormal = { x:0, y:1, z:0 };
+                    pickNormal = { x:1, y:1, z:0 };
                 }
 
                 var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
@@ -1701,7 +1711,6 @@ SelectionDisplay = (function() {
             onMove: function(event) {
                 pickRay = generalComputePickRay(event.x, event.y);
     
-                // translate mode left/right based on view toward entity
                 var newIntersection = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, pickNormal);
                 var vector = Vec3.subtract(newIntersection, lastPick);
                 
@@ -1719,7 +1728,7 @@ SelectionDisplay = (function() {
                 var dotVector = Vec3.dot(vector, projectionVector);
                 vector = Vec3.multiply(dotVector, projectionVector);
                 vector = grid.snapToGrid(vector);
-    
+                
                 var wantDebug = false;
                 if (wantDebug) {
                     print("translateUpDown... ");
@@ -1727,9 +1736,19 @@ SelectionDisplay = (function() {
                     Vec3.print("        newIntersection:", newIntersection);
                     Vec3.print("                 vector:", vector);
                 }
-    
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var id = SelectionManager.selections[i];
+
+                // editing a parent will cause all the children to automatically follow along, so don't
+                // edit any entity who has an ancestor in SelectionManager.selections
+                var toMove = SelectionManager.selections.filter(function (selection) {
+                    if (SelectionManager.selections.indexOf(SelectionManager.savedProperties[selection].parentID) >= 0) {
+                        return false; // a parent is also being moved, so don't issue an edit for this entity
+                    } else {
+                        return true;
+                    }
+                });
+
+                for (var i = 0; i < toMove.length; i++) {
+                    var id = toMove[i];
                     var properties = SelectionManager.savedProperties[id];
                     var newPosition = Vec3.sum(properties.position, vector);
                     Entities.editEntity(id, { position: newPosition });
@@ -2017,10 +2036,10 @@ SelectionDisplay = (function() {
             vector = grid.snapToSpacing(vector);
     
             var changeInDimensions = Vec3.multiply(NEGATE_VECTOR, vec3Mult(localSigns, vector));
-            if (directionEnum === STRETCH_DIRECTION.ALL) {	
-                var toCameraDistance = getDistanceToCamera(position);	
-                var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE;	
-                changeInDimensions = Vec3.multiply(changeInDimensions, dimensionsMultiple);	
+            if (directionEnum === STRETCH_DIRECTION.ALL) {  
+                var toCameraDistance = getDistanceToCamera(position);   
+                var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE; 
+                changeInDimensions = Vec3.multiply(changeInDimensions, dimensionsMultiple); 
             }
 
             var newDimensions;
@@ -2166,8 +2185,19 @@ SelectionDisplay = (function() {
         // the selections center point.  Otherwise, the rotation will be around the entities
         // registration point which does not need repositioning.
         var reposition = (SelectionManager.selections.length > 1);
-        for (var i = 0; i < SelectionManager.selections.length; i++) {
-            var entityID = SelectionManager.selections[i];
+
+        // editing a parent will cause all the children to automatically follow along, so don't
+        // edit any entity who has an ancestor in SelectionManager.selections
+        var toRotate = SelectionManager.selections.filter(function (selection) {
+            if (SelectionManager.selections.indexOf(SelectionManager.savedProperties[selection].parentID) >= 0) {
+                return false; // a parent is also being moved, so don't issue an edit for this entity
+            } else {
+                return true;
+            }
+        });
+
+        for (var i = 0; i < toRotate.length; i++) {
+            var entityID = toRotate[i];
             var initialProperties = SelectionManager.savedProperties[entityID];
 
             var newProperties = {

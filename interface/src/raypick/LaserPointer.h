@@ -82,6 +82,7 @@ public:
 protected:
     PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, const std::string& button = "", bool hover = true) override;
 
+    PickResultPointer getVisualPickResult(const PickResultPointer& pickResult) override;
     PickedObject getHoveredObject(const PickResultPointer& pickResult) override;
     Pointer::Buttons getPressedButtons(const PickResultPointer& pickResult) override;
 
@@ -102,7 +103,7 @@ private:
     LockEndObject _lockEndObject;
 
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
-    void updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay, bool defaultState);
+    void updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay);
     void disableRenderState(const RenderState& renderState);
 
     struct TriggerState {

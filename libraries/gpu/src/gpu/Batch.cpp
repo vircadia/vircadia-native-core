@@ -75,6 +75,7 @@ Batch::Batch(const Batch& batch_) {
 
     _buffers._items.swap(batch._buffers._items);
     _textures._items.swap(batch._textures._items);
+    _textureTables._items.swap(batch._textureTables._items);
     _streamFormats._items.swap(batch._streamFormats._items);
     _transforms._items.swap(batch._transforms._items);
     _pipelines._items.swap(batch._pipelines._items);
@@ -113,6 +114,7 @@ void Batch::clear() {
     _data.clear();
     _buffers.clear();
     _textures.clear();
+    _textureTables.clear();
     _streamFormats.clear();
     _transforms.clear();
     _pipelines.clear();
@@ -335,6 +337,12 @@ void Batch::setResourceTexture(uint32 slot, const TexturePointer& texture) {
 
 void Batch::setResourceTexture(uint32 slot, const TextureView& view) {
     setResourceTexture(slot, view._texture);
+}
+
+void Batch::setResourceTextureTable(const TextureTablePointer& textureTable, uint32 slot) {
+    ADD_COMMAND(setResourceTextureTable);
+    _params.emplace_back(_textureTables.cache(textureTable));
+    _params.emplace_back(slot);
 }
 
 void Batch::setResourceFramebufferSwapChainTexture(uint32 slot, const FramebufferSwapChainPointer& framebuffer, unsigned int swapChainIndex, unsigned int renderBufferSlot) {

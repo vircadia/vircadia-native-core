@@ -29,8 +29,9 @@ private slots:
     void on_evaluateTestsButton_clicked();
     void on_createRecursiveScriptButton_clicked();
     void on_createRecursiveScriptsRecursivelyButton_clicked();
-    void on_createTestButton_clicked();
-    void on_closeButton_clicked();
+	void on_createTestButton_clicked();
+	void on_createMDFileButton_clicked();
+	void on_closeButton_clicked();
 
     void saveImage(int index);
 
