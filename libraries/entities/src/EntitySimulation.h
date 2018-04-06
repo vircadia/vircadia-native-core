@@ -12,6 +12,8 @@
 #ifndef hifi_EntitySimulation_h
 #define hifi_EntitySimulation_h
 
+#include <limits>
+
 #include <QtCore/QObject>
 #include <QSet>
 #include <QVector>
@@ -43,9 +45,8 @@ const int DIRTY_SIMULATION_FLAGS =
         Simulation::DIRTY_SIMULATOR_ID;
 
 class EntitySimulation : public QObject, public std::enable_shared_from_this<EntitySimulation> {
-Q_OBJECT
 public:
-    EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL), _nextExpiry(quint64(-1)) { }
+    EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL), _nextExpiry(std::numeric_limits<uint64_t>::max()) { }
     virtual ~EntitySimulation() { setEntityTree(NULL); }
 
     inline EntitySimulationPointer getThisPointer() const {
@@ -56,8 +57,6 @@ public:
     void setEntityTree(EntityTreePointer tree);
 
     void updateEntities();
-
-//    friend class EntityTree;
 
     virtual void addDynamic(EntityDynamicPointer dynamic);
     virtual void removeDynamic(const QUuid dynamicID);
@@ -74,29 +73,26 @@ public:
 
     void clearEntities();
 
-    void moveSimpleKinematics(const quint64& now);
+    void moveSimpleKinematics(uint64_t now);
 
     EntityTreePointer getEntityTree() { return _entityTree; }
 
-    virtual void takeEntitiesToDelete(VectorOfEntities& entitiesToDelete);
+    virtual void takeDeadEntities(SetOfEntities& entitiesToDelete);
 
     /// \param entity pointer to EntityItem that needs to be put on the entitiesToDelete list and removed from others.
     virtual void prepareEntityForDelete(EntityItemPointer entity);
 
-signals:
-    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
-
 protected:
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class
     // calls them in the right places.
-    virtual void updateEntitiesInternal(const quint64& now) = 0;
-    virtual void addEntityInternal(EntityItemPointer entity);
-    virtual void removeEntityInternal(EntityItemPointer entity) = 0;
-    virtual void changeEntityInternal(EntityItemPointer entity);
+    virtual void updateEntitiesInternal(uint64_t now) = 0;
+    virtual void addEntityInternal(EntityItemPointer entity) = 0;
+    virtual void removeEntityInternal(EntityItemPointer entity);
+    virtual void changeEntityInternal(EntityItemPointer entity) = 0;
     virtual void clearEntitiesInternal() = 0;
 
-    void expireMortalEntities(const quint64& now);
-    void callUpdateOnEntitiesThatNeedIt(const quint64& now);
+    void expireMortalEntities(uint64_t now);
+    void callUpdateOnEntitiesThatNeedIt(uint64_t now);
     virtual void sortEntitiesThatMoved();
 
     QMutex _mutex{ QMutex::Recursive };
@@ -108,7 +104,7 @@ protected:
     QMutex _dynamicsMutex { QMutex::Recursive };
 
 protected:
-    SetOfEntities _entitiesToDelete; // entities simulation decided needed to be deleted (EntityTree will actually delete)
+    SetOfEntities _deadEntities;
 
 private:
     void moveSimpleKinematics();
@@ -120,11 +116,10 @@ private:
     // An entity may be in more than one list.
     SetOfEntities _allEntities; // tracks all entities added the simulation
     SetOfEntities _mortalEntities; // entities that have an expiry
-    quint64 _nextExpiry;
+    uint64_t _nextExpiry;
 
 
     SetOfEntities _entitiesToUpdate; // entities that need to call EntityItem::update()
-
 };
 
 #endif // hifi_EntitySimulation_h

@@ -76,6 +76,12 @@ Item {
         var currentStepNumber = root.activeView.substring(5);
         UserActivityLogger.commerceWalletSetupProgress(timestamp, root.setupAttemptID,
             Math.round((timestamp - root.startingTimestamp)/1000), currentStepNumber, root.setupStepNames[currentStepNumber - 1]);
+
+        if (root.activeView === "step_2" || root.activeView === "step_3") {
+            sendSignalToWallet({method: 'disableHmdPreview'});
+        } else {
+            sendSignalToWallet({method: 'maybeEnableHmdPreview'});
+        }
     }
 
     //
@@ -441,7 +447,7 @@ Item {
     }
     Item {
         id: choosePassphraseContainer;
-        visible: root.hasShownSecurityImageTip && root.activeView === "step_3";
+        visible: root.activeView === "step_3";
         // Anchors
         anchors.top: titleBarContainer.bottom;
         anchors.topMargin: 30;
@@ -451,10 +457,7 @@ Item {
 
         onVisibleChanged: {
             if (visible) {
-                sendSignalToWallet({method: 'disableHmdPreview'});
                 Commerce.getWalletAuthenticatedStatus();
-            } else {
-                sendSignalToWallet({method: 'maybeEnableHmdPreview'});
             }
         }
 
