@@ -30,6 +30,7 @@ var UNEQUIPPING_INNER_COLOR = { red: 150, green: 0, blue: 0 };
 
 var CIRCLE_3D_PROPERTIES = {
     solid: true,
+    visible: false,
     innerRadius: 0.0,
     outerRadius: 1.0,
     startAt: 0,
@@ -182,7 +183,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
 function EquipTimer(hand) {
     this.hand = hand;
-    this.controllerTriggerPressed = false;
+    this.primaryTriggerPressed = false;
+    this.secondaryTriggerPressed = false;
     this.equipTime = EQUIP_TIME;
     this.currentTimeLapse = 0;
     this.equip = true;
@@ -192,6 +194,14 @@ function EquipTimer(hand) {
 }
 
 EquipTimer.prototype.update = function(deltaTime, timestamp, controllerData) {
+    /*var TRIGGER_ON_VALUE = 0.105;
+    var BUMPER_ON_VALUE = 0.5;
+    var primaryTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE;
+    var secondaryTriggerPressed = controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE;
+
+    if (primaryTriggerPressed || secondaryTriggerPressed) {
+        if (primaryTriggerPressed === this.primaryTriggerPressed &&
+            */
 };
 
 EquipTimer.prototype.finished = function() {
@@ -662,7 +672,7 @@ EquipTimer.prototype.cleanup = function() {
             }
 
             equipHotspotBuddy.update(deltaTime, timestamp, controllerData);
-
+            this.equiptTimer.update(deltaTime, timestamp, controllerData);
             // if the potentialHotspot is cloneable, clone it and return it
             // if the potentialHotspot os not cloneable and locked return null
 

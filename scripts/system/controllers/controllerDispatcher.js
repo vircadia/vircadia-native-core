@@ -125,6 +125,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         Selection.enableListHighlight(DISPATCHER_HOVERING_LIST, DISPATCHER_HOVERING_STYLE);
+        Selection.enableListToScene(DISPATCHER_HOVERING_LIST);
 
         this.updateTimings = function () {
             _this.intervalCount++;

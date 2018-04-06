@@ -45,8 +45,7 @@
 
         this.highlightEntities = function(controllerData) {
             if (this.highlightedEntities.length > 0) {
-                //print("-----> clearing 
-                //dispatcherUtils.clearHighlightedEntities();
+                dispatcherUtils.clearHighlightedEntities();
                 this.highlightedEntities = [];
             }
 
