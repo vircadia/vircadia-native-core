@@ -18,13 +18,32 @@ namespace workload {
 class Owner {
 public:
     Owner() = default;
-    Owner(void* data) : _data(data) {}
     Owner(const Owner& other) = default;
     Owner& operator=(const Owner& other) = default;
+
+    template <class T> Owner(const T& data) : _concept(std::make_shared<Model<T>>(data)) {}
+
     ~Owner() {}
-    void* get() const { return _data; }
+
+    template <class T> const T get() const { return std::static_pointer_cast<const Model<T>>(_concept)->_data; }
+
+protected:
+    class Concept {
+    public:
+        virtual ~Concept() = default;
+        
+    };
+    template <class T> class Model : public Concept {
+    public:
+        using Data = T;
+        Data _data;
+
+        Model(const Data& data) : _data(data) {}
+        virtual ~Model() = default;
+    };
+
 private:
-    void* _data { nullptr };
+    std::shared_ptr<Concept> _concept;
 };
 
 class Proxy {

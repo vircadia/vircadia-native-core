@@ -61,12 +61,12 @@ public:
         uint32_t numExits = (uint32_t)regionChanges[exitIndex].size();
         for (uint32_t i = 0; i < numExits; ++i) {
             int32_t proxyID = regionChanges[exitIndex][i];
-            void* owner = space->getOwner(proxyID).get();
+            auto owner = space->getOwner(proxyID).get<EntityItemPointer>();
             if (owner) {
-                EntityItem* entity = static_cast<EntityItem*>(owner);
+                //EntityItem* entity = static_cast<EntityItem*>(owner);
                 std::cout << "adebug  - "
                     //<< owner
-                    << "  '" << entity->getName().toStdString() << "'"
+                    << "  '" << owner->getName().toStdString() << "'"
                     << std::endl;     // adebug
             }
         }
@@ -75,12 +75,12 @@ public:
         uint32_t numEntries = (uint32_t)regionChanges[enterIndex].size();
         for (uint32_t i = 0; i < numEntries; ++i) {
             int32_t proxyID = regionChanges[enterIndex][i];
-            void* owner = space->getOwner(proxyID).get();
+            auto owner = space->getOwner(proxyID).get<EntityItemPointer>();
             if (owner) {
-                EntityItem* entity = static_cast<EntityItem*>(owner);
+              //  EntityItem* entity = static_cast<EntityItem*>(owner);
                 std::cout << "adebug  + "
                     //<< owner
-                    << "  '" << entity->getName().toStdString() << "'"
+                    << "  '" << owner->getName().toStdString() << "'"
                     << std::endl;     // adebug
             }
         }
