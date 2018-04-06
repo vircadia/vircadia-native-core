@@ -9,12 +9,13 @@
 /* global Script, Controller, RIGHT_HAND, LEFT_HAND, MyAvatar, getGrabPointSphereOffset,
    makeRunningValues, Entities, enableDispatcherModule, disableDispatcherModule, makeDispatcherModuleParameters,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   DEFAULT_SEARCH_SPHERE_DISTANCE, getGrabbableData, makeLaserParams
+   DEFAULT_SEARCH_SPHERE_DISTANCE, getGrabbableData, makeLaserParams, entityIsCloneable
 */
 
 (function () {
     Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     Script.include("/~/system/libraries/controllers.js");
+    Script.include("/~/system/libraries/cloneEntityUtils.js");
     var dispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
     function HighlightNearbyEntities(hand) {
         this.hand = hand;
@@ -28,7 +29,7 @@
 
 
         this.isGrabable = function(controllerData, props) {
-            if (dispatcherUtils.entityIsGrabbable(props) || dispatcherUtils.entityIsCloneable(props)) {
+            if (dispatcherUtils.entityIsGrabbable(props) || entityIsCloneable(props)) {
                 // if we've attempted to grab a child, roll up to the root of the tree
                 var groupRootProps = dispatcherUtils.findGroupParent(controllerData, props);
                 if (dispatcherUtils.entityIsGrabbable(groupRootProps)) {

@@ -30,7 +30,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
 
     var PROFILE = false;
-    var DEBUG = true;
+    var DEBUG = false;
 
     if (typeof Test !== "undefined") {
         PROFILE = true;

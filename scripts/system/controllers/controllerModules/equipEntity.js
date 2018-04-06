@@ -183,29 +183,60 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
 function EquipTimer(hand) {
     this.hand = hand;
+    this.timelapsed = 0;
     this.primaryTriggerPressed = false;
     this.secondaryTriggerPressed = false;
-    this.equipTime = EQUIP_TIME;
-    this.currentTimeLapse = 0;
-    this.equip = true;
+    this.targetTime = EQUIP_TIME;
     this.finished = false;
     this.circle3dProperties = CIRCLE_3D_PROPERTIES;
     this.circle3dOverlay = Overlays.addOverlay("circle3d", this.circle3dProperties);
 }
 
-EquipTimer.prototype.update = function(deltaTime, timestamp, controllerData) {
-    /*var TRIGGER_ON_VALUE = 0.105;
+EquipTimer.prototype.update = function(deltaTime, targetEntityID, controllerData) {
+    var TRIGGER_ON_VALUE = 0.105;
     var BUMPER_ON_VALUE = 0.5;
     var primaryTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE;
     var secondaryTriggerPressed = controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE;
 
     if (primaryTriggerPressed || secondaryTriggerPressed) {
-        if (primaryTriggerPressed === this.primaryTriggerPressed &&
-            */
+        if ((primaryTriggerPressed === this.primaryTriggerPressed) &&
+            (secondaryTriggerPressed === this.secondaryTriggerPressed)) {
+            this.timelapsed += deltaTime * 1000; // convert to ms
+            // update overlay
+
+            var entityProperties = Entities.getEntityProperties(targetEntityID, ["position", "rotation"]);
+            if (entityProperties) {
+                var PI = 3.14159;
+                var TWO_PI = PI * 2;
+                var FORWARD_OFFSET = 0.1 * MyAvatar.sensorToWorldScale;
+                var direction = Vec3.subtract(entityProperties.position - HMD.position);
+                var overlayPosition = Vec3.sum(entityProperties.position, Vec3.multiply(FORWARD_OFFSET, direction));
+            }
+            if (this.timelapsed >= this.targetTime) {
+                print("finished");
+                this.finished = true;
+            }
+
+            return;
+        }
+
+        this.reset();
+        this.primaryTriggerPressed = primaryTriggerPressed;
+        this.secondaryTriggerPressed = secondaryTriggerPressed;
+    } else {
+        this.reset();
+    }
 };
 
-EquipTimer.prototype.finished = function() {
+EquipTimer.prototype.done = function() {
     return this.finished;
+};
+
+EquipTimer.prototype.reset = function() {
+    this.finished = false;
+    this.timelapsed = 0;
+    this.primaryTriggerPressed = false;
+    this.secondaryTriggerPressed = false;
 };
 
 EquipTimer.prototype.cleanup = function() {
@@ -324,6 +355,7 @@ EquipTimer.prototype.cleanup = function() {
         this.shouldSendStart = false;
         this.equipedWithSecondary = false;
         this.handHasBeenRightsideUp = false;
+        this.equipAtRun = false;
 
         this.parameters = makeDispatcherModuleParameters(
             300,
@@ -672,20 +704,23 @@ EquipTimer.prototype.cleanup = function() {
             }
 
             equipHotspotBuddy.update(deltaTime, timestamp, controllerData);
-            this.equiptTimer.update(deltaTime, timestamp, controllerData);
             // if the potentialHotspot is cloneable, clone it and return it
             // if the potentialHotspot os not cloneable and locked return null
 
             if (potentialEquipHotspot &&
-                (((this.triggerSmoothedSqueezed() || this.secondarySmoothedSqueezed()) && !this.waitForTriggerRelease &&
-                  this.equipTimer.finished()) || this.messageGrabEntity)) {
+                (((this.triggerSmoothedSqueezed() || this.secondarySmoothedSqueezed()) && !this.waitForTriggerRelease) || this.messageGrabEntity)) {
                 this.grabbedHotspot = potentialEquipHotspot;
                 this.targetEntityID = this.grabbedHotspot.entityID;
-                this.startEquipEntity(controllerData);
+                this.equipAtRun = true;
                 this.messageGrabEntity = false;
-                this.equipedWithSecondary = this.secondarySmoothedSqueezed();
+                if (this.messageGrabEntity) {
+                    this.startEquipEntity(controllerData);
+                    this.equipedWithSecondary = this.secondarySmoothedSqueezed();
+                    this.equipAtRun = false;
+                }
                 return makeRunningValues(true, [potentialEquipHotspot.entityID], []);
             } else {
+                this.equipAtRun = false;
                 return makeRunningValues(false, [], []);
             }
         };
@@ -705,6 +740,19 @@ EquipTimer.prototype.cleanup = function() {
         this.run = function (controllerData, deltaTime) {
             var timestamp = Date.now();
             this.updateInputs(controllerData);
+
+            if (this.equipAtRun) {
+                if ((this.triggerSmoothedSqueezed() || this.secondarySmoothedSqueezed()) && !this.waitForTriggerRelease) {
+                    this.equipTimer.update(deltaTime, this.targetEntityID, controllerData);
+                    if (this.equipTimer.done()) {
+                        this.equipAtRun = false;
+                        this.startEquipEntity(controllerData);
+                        this.equipedWithSecondary = this.secondarySmoothedSqueezed();
+                        this.equipTimer.reset();
+                    }
+                    return makeRunningValues(true, [], []);
+                }
+            }
 
             if (!this.isTargetIDValid(controllerData)) {
                 this.endEquipEntity();
