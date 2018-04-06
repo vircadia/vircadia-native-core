@@ -165,6 +165,8 @@ public:
     * @param listName {string} name of the selection
     * @param highlightStyle {jsObject} highlight style fields (see Selection.getListHighlightStyle for a detailed description of the highlightStyle).
     * @returns {bool} true if the selection was successfully enabled for highlight.
+    *
+    * Note: This function will implicitly call Selection.enableListToScene
     */
     Q_INVOKABLE bool enableListHighlight(const QString& listName, const QVariantMap& highlightStyle);
 
@@ -175,8 +177,10 @@ public:
     * @function Selection.disableListHighlight
     * @param listName {string} name of the selection
     * @returns {bool} true if the selection was successfully disabled for highlight, false otherwise.
+    *
+    * Note: This function will implicitly call Selection.disableListToScene
     */
-    Q_INVOKABLE bool disableListHighlight(const QString& listName);  
+    Q_INVOKABLE bool disableListHighlight(const QString& listName);
     /**jsdoc
     * Enable scene selection for the named selection.
     * If the Selection doesn't exist, it will be created.
@@ -246,7 +250,7 @@ private:
     void setupHandler(const QString& selectionName);
     void removeHandler(const QString& selectionName);
 
-    
+
 };
 
 #endif // hifi_SelectionScriptingInterface_h
