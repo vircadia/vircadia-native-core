@@ -77,6 +77,17 @@ QUrl AddressManager::currentShareableAddress(bool domainOnly) const {
     }
 }
 
+QUrl AddressManager::currentPublicAddress(bool domainOnly) const {
+    // return an address that can be used by others to visit this client's current location.  If
+    // in a serverless domain (which can't be visited) return an empty URL.
+    QUrl shareableAddress = currentShareableAddress(domainOnly);
+    if (shareableAddress.scheme() != URL_SCHEME_HIFI) {
+        return QUrl(); // file: urls aren't public
+    }
+    return shareableAddress;
+}
+
+
 QUrl AddressManager::currentFacingShareableAddress() const {
     auto hifiURL = currentShareableAddress();
     if (hifiURL.scheme() == URL_SCHEME_HIFI) {
@@ -85,6 +96,17 @@ QUrl AddressManager::currentFacingShareableAddress() const {
 
     return hifiURL;
 }
+
+QUrl AddressManager::currentFacingPublicAddress() const {
+    // return an address that can be used by others to visit this client's current location.  If
+    // in a serverless domain (which can't be visited) return an empty URL.
+    QUrl shareableAddress = currentFacingShareableAddress();
+    if (shareableAddress.scheme() != URL_SCHEME_HIFI) {
+        return QUrl(); // file: urls aren't public
+    }
+    return shareableAddress;
+}
+
 
 void AddressManager::loadSettings(const QString& lookupString) {
 #if defined(USE_GLES) && defined(Q_OS_WIN)
@@ -288,6 +310,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         // lookupUrl.scheme() == URL_SCHEME_HTTP ||
         // lookupUrl.scheme() == URL_SCHEME_HTTPS ||
         _previousLookup.clear();
+        _shareablePlaceName.clear();
         QUrl domainURL = PathUtils::expandToLocalDataAbsolutePath(lookupUrl);
         setDomainInfo(domainURL, trigger);
         emit lookupResultsFinished();

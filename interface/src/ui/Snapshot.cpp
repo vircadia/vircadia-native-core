@@ -95,7 +95,7 @@ QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {
 QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QString& userSelectedFilename) {
 
     // adding URL to snapshot
-    QUrl currentURL = DependencyManager::get<AddressManager>()->currentShareableAddress();
+    QUrl currentURL = DependencyManager::get<AddressManager>()->currentPublicAddress();
     shot.setText(URL, currentURL.toString());
 
     QString username = DependencyManager::get<AccountManager>()->getAccountInfo().getUsername();
