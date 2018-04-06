@@ -34,7 +34,7 @@ static const QString WEB_ENTITY_QML = "controls/WebEntityView.qml";
 
 const float METERS_TO_INCHES = 39.3701f;
 static uint32_t _currentWebCount{ 0 };
-// Don't allow more than 100 concurrent web views
+// Don't allow more than 20 concurrent web views
 static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 20;
 // If a web-view hasn't been rendered for 30 seconds, de-allocate the framebuffer
 static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
@@ -88,8 +88,14 @@ bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointe
         return true;
     }
 
-    if (uvec2(getWindowSize(entity)) != toGlm(_webSurface->size())) {
-        return true;
+    {
+        QSharedPointer<OffscreenQmlSurface> webSurface;
+        withReadLock([&] {
+            webSurface = _webSurface;
+        });
+        if (webSurface && uvec2(getWindowSize(entity)) != toGlm(webSurface->size())) {
+            return true;
+        }
     }
 
     if (_lastSourceUrl != entity->getSourceUrl()) {
@@ -108,9 +114,15 @@ bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointe
 }
 
 bool WebEntityRenderer::needsRenderUpdate() const {
-    if (!_webSurface) {
-        // If we have rendered recently, and there is no web surface, we're going to create one
-        return true;
+    {
+        QSharedPointer<OffscreenQmlSurface> webSurface;
+        withReadLock([&] {
+            webSurface = _webSurface;
+        });
+        if (!webSurface) {
+            // If we have rendered recently, and there is no web surface, we're going to create one
+            return true;
+        }
     }
 
     return Parent::needsRenderUpdate();
