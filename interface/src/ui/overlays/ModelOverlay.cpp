@@ -358,15 +358,15 @@ vectorType ModelOverlay::mapJoints(mapFunction<itemType> function) const {
  * @property {Vec3} dimensions - The dimensions of the overlay. Synonym: <code>size</code>.
  * @property {Vec3} scale - The scale factor applied to the model's dimensions.
  * @property {object.<name, url>} textures - Maps the named textures in the model to the JPG or PNG images in the urls.
- * @property {Array.<string>} jointNames - The names of the joints - if any - in the model. <em>Read-only</em>
+ * @property {Array.<string>} jointNames - The names of the joints - if any - in the model. <em>Read-only.</em>
  * @property {Array.<Quat>} jointRotations - The relative rotations of the model's joints. <em>Not copied if overlay is 
  *     cloned.</em>
  * @property {Array.<Vec3>} jointTranslations - The relative translations of the model's joints. <em>Not copied if overlay is 
  *     cloned.</em>
  * @property {Array.<Quat>} jointOrientations - The absolute orientations of the model's joints, in world coordinates.
- *     <em>Read-only</em>
+ *     <em>Read-only.</em>
  * @property {Array.<Vec3>} jointPositions - The absolute positions of the model's joints, in world coordinates.
- *     <em>Read-only</em>
+ *     <em>Read-only.</em>
  * @property {string} animationSettings.url="" - The URL of an FBX file containing an animation to play.
  * @property {number} animationSettings.fps=0 - The frame rate (frames/sec) to play the animation at. 
  * @property {number} animationSettings.firstFrame=0 - The frame to start playing at.
