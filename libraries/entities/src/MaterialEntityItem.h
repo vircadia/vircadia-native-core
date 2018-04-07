@@ -25,7 +25,7 @@ public:
     ALLOW_INSTANTIATION // This class can be instantiated
 
     void update(const quint64& now) override;
-    bool needsToCallUpdate() const override { return _retryApply; }
+    bool needsToCallUpdate() const override { return true; }
 
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
