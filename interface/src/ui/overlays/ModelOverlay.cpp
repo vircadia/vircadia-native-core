@@ -353,6 +353,8 @@ vectorType ModelOverlay::mapJoints(mapFunction<itemType> function) const {
  *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
  *
  * @property {string} url - The URL of the FBX or OBJ model used for the overlay.
+ * @property {number} loadPriority=0.0 - The priority for loading and displaying the overlay. Overlays with higher values load 
+ *     first.
  * @property {Vec3} dimensions - The dimensions of the overlay. Synonym: <code>size</code>.
  * @property {Vec3} scale - The scale factor applied to the model's dimensions.
  * @property {object.<name, url>} textures - Maps the named textures in the model to the JPG or PNG images in the urls.
@@ -394,6 +396,10 @@ QVariant ModelOverlay::getProperty(const QString& property) {
         } else {
             return QVariant();
         }
+    }
+
+    if (property == "loadPriority") {
+        return _loadPriority;
     }
 
     if (property == "jointNames") {
