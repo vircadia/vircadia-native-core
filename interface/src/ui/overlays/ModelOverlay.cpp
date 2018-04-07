@@ -35,7 +35,19 @@ ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
     _url(modelOverlay->_url),
     _updateModel(false),
     _scaleToFit(modelOverlay->_scaleToFit),
-    _loadPriority(modelOverlay->_loadPriority)
+    _loadPriority(modelOverlay->_loadPriority),
+
+    _animationURL(modelOverlay->_animationURL),
+    _animationFPS(modelOverlay->_animationFPS),
+    _animationCurrentFrame(modelOverlay->_animationCurrentFrame),
+    _animationFirstFrame(modelOverlay->_animationFirstFrame),
+    _animationLastFrame(modelOverlay->_animationLastFrame),
+    _animationRunning(modelOverlay->_animationRunning),
+    _animationLoop(modelOverlay->_animationLoop),
+    _animationHold(modelOverlay->_animationHold),
+    _animationAllowTranslation(modelOverlay->_animationAllowTranslation)
+
+    // Joint translations and rotations aren't copied because the model needs to load before they can be applied.
 {
     _model->setLoadingPriority(_loadPriority);
     if (_url.isValid()) {
