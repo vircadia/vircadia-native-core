@@ -195,53 +195,43 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
 // added update function back for property fix
 void ModelEntityItem::update(const quint64& now) {
+    auto currentAnimationProperties = this->getAnimationProperties();
+    if (_previousAnimationProperties != currentAnimationProperties) {
+        withWriteLock([&] {
+            // if we hit start animation or change the first or last frame then restart the animation
+            if ((currentAnimationProperties.getFirstFrame() != _previousAnimationProperties.getFirstFrame()) ||
+                (currentAnimationProperties.getLastFrame() != _previousAnimationProperties.getLastFrame()) ||
+                (currentAnimationProperties.getRunning() && !_previousAnimationProperties.getRunning())) {
 
-    {
-        auto currentAnimationProperties = this->getAnimationProperties();
-
-        if (_previousAnimationProperties != currentAnimationProperties) {
-            withWriteLock([&] {
-                // if we hit start animation or change the first or last frame then restart the animation
-                if ((currentAnimationProperties.getFirstFrame() != _previousAnimationProperties.getFirstFrame()) || 
-                    (currentAnimationProperties.getLastFrame() != _previousAnimationProperties.getLastFrame()) || 
-                    (currentAnimationProperties.getRunning() && !_previousAnimationProperties.getRunning())) {
-
-                    // when we start interface and the property is are set then the current frame is initialized to -1
-                    if (_currentFrame < 0) {
-                        // don't reset _lastAnimated here because we need the timestamp from the ModelEntityItem constructor for when the properties were set
-                        _currentFrame = currentAnimationProperties.getCurrentFrame();
-                        setAnimationCurrentFrame(_currentFrame);
-                    } else {
-                        _lastAnimated =  usecTimestampNow();
-                        _currentFrame = currentAnimationProperties.getFirstFrame();
-                        setAnimationCurrentFrame(currentAnimationProperties.getFirstFrame());
-                    }
-                } else if (!currentAnimationProperties.getRunning() && _previousAnimationProperties.getRunning()) {
-                    _currentFrame = currentAnimationProperties.getFirstFrame();
-                    setAnimationCurrentFrame(_currentFrame);
-                } else if (currentAnimationProperties.getCurrentFrame() != _previousAnimationProperties.getCurrentFrame()) {
-                    // don't reset _lastAnimated here because the currentFrame was set with the previous setting of _lastAnimated
+                // when we start interface and the property is are set then the current frame is initialized to -1
+                if (_currentFrame < 0) {
+                    // don't reset _lastAnimated here because we need the timestamp from the ModelEntityItem constructor for when the properties were set
                     _currentFrame = currentAnimationProperties.getCurrentFrame();
+                    setAnimationCurrentFrame(_currentFrame);
+                } else {
+                    _lastAnimated =  usecTimestampNow();
+                    _currentFrame = currentAnimationProperties.getFirstFrame();
+                    setAnimationCurrentFrame(currentAnimationProperties.getFirstFrame());
                 }
-                
-            });
-            _previousAnimationProperties = this->getAnimationProperties();
-
-        }
-        
-        if (isAnimatingSomething()) {
-            if (!(getAnimationFirstFrame() < 0) && !(getAnimationFirstFrame() > getAnimationLastFrame())) {
-                updateFrameCount();
+            } else if (!currentAnimationProperties.getRunning() && _previousAnimationProperties.getRunning()) {
+                _currentFrame = currentAnimationProperties.getFirstFrame();
+                setAnimationCurrentFrame(_currentFrame);
+            } else if (currentAnimationProperties.getCurrentFrame() != _previousAnimationProperties.getCurrentFrame()) {
+                // don't reset _lastAnimated here because the currentFrame was set with the previous setting of _lastAnimated
+                _currentFrame = currentAnimationProperties.getCurrentFrame();
             }
-        }
-    }
 
+        });
+        _previousAnimationProperties = this->getAnimationProperties();
+    }
+    if (!(getAnimationFirstFrame() < 0) && !(getAnimationFirstFrame() > getAnimationLastFrame())) {
+        updateFrameCount();
+    }
     EntityItem::update(now);
 }
 
 bool ModelEntityItem::needsToCallUpdate() const {
-
-     return true;
+    return isAnimatingSomething();
 }
 
 void ModelEntityItem::updateFrameCount() {
@@ -713,7 +703,6 @@ float ModelEntityItem::getAnimationFPS() const {
         return _animationProperties.getFPS();
     });
 }
-
 
 bool ModelEntityItem::isAnimatingSomething() const {
     return resultWithReadLock<bool>([&] {
