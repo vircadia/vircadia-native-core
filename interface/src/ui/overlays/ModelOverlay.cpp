@@ -40,10 +40,10 @@ ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
     _animationURL(modelOverlay->_animationURL),
     _animationFPS(modelOverlay->_animationFPS),
     _animationCurrentFrame(modelOverlay->_animationCurrentFrame),
-    _animationFirstFrame(modelOverlay->_animationFirstFrame),
-    _animationLastFrame(modelOverlay->_animationLastFrame),
     _animationRunning(modelOverlay->_animationRunning),
     _animationLoop(modelOverlay->_animationLoop),
+    _animationFirstFrame(modelOverlay->_animationFirstFrame),
+    _animationLastFrame(modelOverlay->_animationLastFrame),
     _animationHold(modelOverlay->_animationHold),
     _animationAllowTranslation(modelOverlay->_animationAllowTranslation)
 
