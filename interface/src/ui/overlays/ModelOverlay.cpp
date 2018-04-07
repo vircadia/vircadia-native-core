@@ -369,6 +369,7 @@ vectorType ModelOverlay::mapJoints(mapFunction<itemType> function) const {
  * @property {number} animationSettings.fps=0 - The frame rate (frames/sec) to play the animation at. 
  * @property {number} animationSettings.firstFrame=0 - The frame to start playing at.
  * @property {number} animationSettings.lastFrame=0 - The frame to finish playing at.
+ * @property {number} animationSettings.currentFrame=0 - The current frame being played.
  * @property {boolean} animationSettings.running=false - Whether or not the animation is playing.
  * @property {boolean} animationSettings.loop=false - Whether or not the animation should repeat in a loop.
  * @property {boolean} animationSettings.hold=false - Whether or not when the animation finishes, the rotations and 
