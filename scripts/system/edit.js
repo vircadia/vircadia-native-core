@@ -457,6 +457,7 @@ var toolBar = (function () {
         Window.domainChanged.connect(function () {
             that.setActive(false);
             that.clearEntityList();
+            tablet.gotoHomeScreen();
         });
 
         Entities.canAdjustLocksChanged.connect(function (canAdjustLocks) {
