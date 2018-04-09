@@ -768,14 +768,6 @@ bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16
     return false;
 }
 
-QString AddressManager::getHost() const {
-    if (isPossiblePlaceName(_domainURL.host())) {
-        return QString();
-    }
-
-    return _domainURL.host();
-}
-
 bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger) {
     const QString hostname = domainURL.host();
     quint16 port = domainURL.port();
