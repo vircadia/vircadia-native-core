@@ -460,6 +460,10 @@ var toolBar = (function () {
             tablet.gotoHomeScreen();
         });
 
+        Window.domainConnectionRefused.connect(function() {
+            tablet.gotoHomeScreen();
+        });
+
         Entities.canAdjustLocksChanged.connect(function (canAdjustLocks) {
             if (isActive && !canAdjustLocks) {
                 that.setActive(false);
