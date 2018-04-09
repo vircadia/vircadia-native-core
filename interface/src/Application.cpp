@@ -959,6 +959,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
 
+#if 0
     {
         const QString TEST_SCRIPT = "--testScript";
         const QString TRACE_FILE = "--traceFile";
@@ -976,6 +977,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             }
         }
     }
+#endif
 
     // make sure the debug draw singleton is initialized on the main thread.
     DebugDraw::getInstance().removeMarker("");

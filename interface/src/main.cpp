@@ -42,9 +42,18 @@ extern "C" {
 int main(int argc, const char* argv[]) {
     setupHifiApplication(BuildInfo::INTERFACE_NAME);
     auto tracer = DependencyManager::set<tracing::Tracer>();
-    tracer->startTracing();
+    const char * traceFile = "";
+    {
+        for (int a = 1; a < argc; ++a) {
+            if (strcmp(argv[a], "--traceFile") == 0 && argc > a + 1) {
+                traceFile = argv[a + 1];
+                tracer->startTracing();
+                break;
+            }
+        }
+    }
     PROFILE_SYNC_BEGIN(startup, "main startup", "");
-    
+
 #ifdef Q_OS_LINUX
     QApplication::setAttribute(Qt::AA_DontUseNativeMenuBar);
 #endif
@@ -283,7 +292,7 @@ int main(int argc, const char* argv[]) {
         server.close();
 
         tracer->stopTracing();
-        tracer->serialize(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/Traces/trace-startup.json.gz");
+        tracer->serialize(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/" + traceFile);
     }
 
     Application::shutdownPlugins();
