@@ -46,11 +46,11 @@ var uniqueColor;
 
 function moveTo(position) {
     if (radar) {
-        MyAvatar.position = position;
+        MyAvatar.goToLocation(position, false);
         Camera.position = {
-            x : MyAvatar.position.x,
+            x : position.x,
             y : radarHeight,
-            z : MyAvatar.position.z
+            z : position.z
         };
     }
 }
