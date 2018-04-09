@@ -36,6 +36,7 @@ EntityItemProperties MaterialEntityItem::getProperties(EntityPropertyFlags desir
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialMappingPos, getMaterialMappingPos);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialMappingScale, getMaterialMappingScale);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialMappingRot, getMaterialMappingRot);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialData, getMaterialData);
     return properties;
 }
 
@@ -49,6 +50,7 @@ bool MaterialEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialMappingPos, setMaterialMappingPos);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialMappingScale, setMaterialMappingScale);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialMappingRot, setMaterialMappingRot);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialData, setMaterialData);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -78,6 +80,7 @@ int MaterialEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
     READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_POS, glm::vec2, setMaterialMappingPos);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, glm::vec2, setMaterialMappingScale);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
+    READ_ENTITY_PROPERTY(PROP_MATERIAL_DATA, QString, setMaterialData);
 
     return bytesRead;
 }
@@ -93,6 +96,7 @@ EntityPropertyFlags MaterialEntityItem::getEntityProperties(EncodeBitstreamParam
     requestedProperties += PROP_MATERIAL_MAPPING_POS;
     requestedProperties += PROP_MATERIAL_MAPPING_SCALE;
     requestedProperties += PROP_MATERIAL_MAPPING_ROT;
+    requestedProperties += PROP_MATERIAL_DATA;
     return requestedProperties;
 }
 
@@ -112,6 +116,7 @@ void MaterialEntityItem::appendSubclassData(OctreePacketData* packetData, Encode
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_POS, getMaterialMappingPos());
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, getMaterialMappingScale());
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, getMaterialMappingRot());
+    APPEND_ENTITY_PROPERTY(PROP_MATERIAL_DATA, getMaterialData());
 }
 
 void MaterialEntityItem::debugDump() const {
@@ -145,9 +150,9 @@ std::shared_ptr<NetworkMaterial> MaterialEntityItem::getMaterial() const {
     }
 }
 
-void MaterialEntityItem::setMaterialURL(const QString& materialURLString, bool userDataChanged) {
-    bool usingUserData = materialURLString.startsWith("userData");
-    if (_materialURL != materialURLString || (usingUserData && userDataChanged)) {
+void MaterialEntityItem::setMaterialURL(const QString& materialURLString, bool materialDataChanged) {
+    bool usingMaterialData = materialDataChanged || materialURLString.startsWith("materialData");
+    if (_materialURL != materialURLString || (usingMaterialData && materialDataChanged)) {
         removeMaterial();
         _materialURL = materialURLString;
 
@@ -156,8 +161,8 @@ void MaterialEntityItem::setMaterialURL(const QString& materialURLString, bool u
             _currentMaterialName = split.last().toStdString();
         }
 
-        if (usingUserData) {
-            _parsedMaterials = NetworkMaterialResource::parseJSONMaterials(QJsonDocument::fromJson(getUserData().toUtf8()), materialURLString);
+        if (usingMaterialData) {
+            _parsedMaterials = NetworkMaterialResource::parseJSONMaterials(QJsonDocument::fromJson(getMaterialData().toUtf8()), materialURLString);
 
             // Since our material changed, the current name might not be valid anymore, so we need to update
             setCurrentMaterialName(_currentMaterialName);
@@ -191,11 +196,11 @@ void MaterialEntityItem::setCurrentMaterialName(const std::string& currentMateri
     }
 }
 
-void MaterialEntityItem::setUserData(const QString& userData) {
-    if (_userData != userData) {
-        EntityItem::setUserData(userData);
-        if (_materialURL.startsWith("userData")) {
-            // Trigger material update when user data changes
+void MaterialEntityItem::setMaterialData(const QString& materialData) {
+    if (_materialData != materialData) {
+        _materialData = materialData;
+        if (_materialURL.startsWith("materialData")) {
+            // Trigger material update when material data changes
             setMaterialURL(_materialURL, true);
         }
     }

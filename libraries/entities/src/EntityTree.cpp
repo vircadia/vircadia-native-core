@@ -2376,6 +2376,30 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             }
         }
 
+        // Convert old materials so that they use materialData instead of userData
+        if (contentVersion < (int)EntityVersion::MaterialData && properties.getType() == EntityTypes::EntityType::Material) {
+            if (properties.getMaterialURL().startsWith("userData")) {
+                QString materialURL = properties.getMaterialURL();
+                properties.setMaterialURL(materialURL.replace("userData", "materialData"));
+
+                QJsonObject userData = QJsonDocument::fromJson(properties.getUserData().toUtf8()).object();
+                QJsonObject materialData;
+                QJsonValue materialVersion = userData["materialVersion"];
+                if (!materialVersion.isNull()) {
+                    materialData.insert("materialVersion", materialVersion);
+                    userData.remove("materialVersion");
+                }
+                QJsonValue materials = userData["materials"];
+                if (!materials.isNull()) {
+                    materialData.insert("materials", materials);
+                    userData.remove("materials");
+                }
+
+                properties.setMaterialData(QJsonDocument(materialData).toJson());
+                properties.setUserData(QJsonDocument(userData).toJson());
+            }
+        }
+
         EntityItemPointer entity = addEntity(entityItemID, properties);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
