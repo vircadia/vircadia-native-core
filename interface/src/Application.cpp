@@ -5586,7 +5586,7 @@ void Application::update(float deltaTime) {
     });
 
     {
-        PerformanceTimer perfTimer("limitless");
+        PerformanceTimer perfTimer("AnimDebugDraw");
         AnimDebugDraw::getInstance().update();
     }
 
