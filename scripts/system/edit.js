@@ -460,7 +460,7 @@ var toolBar = (function () {
             tablet.gotoHomeScreen();
         });
 
-        Window.domainConnectionRefused.connect(function() {
+        Window.domainConnectionRefused.connect(function () {
             tablet.gotoHomeScreen();
         });
 
