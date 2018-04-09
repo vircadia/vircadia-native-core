@@ -76,6 +76,7 @@ const render::Varying RenderDeferredTask::addSelectItemJobs(JobModel& task, cons
 }
 
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
+    PROFILE_RANGE(startup, "RenderDeferredTask::build");
     const auto& items = input.get<Input>();
     auto fadeEffect = DependencyManager::get<FadeEffect>();
 

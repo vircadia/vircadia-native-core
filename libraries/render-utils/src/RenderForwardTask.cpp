@@ -40,6 +40,7 @@ extern void initForwardPipelines(ShapePlumber& plumber,
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
+    PROFILE_RANGE(startup, "RenderForwardTask::build");
     auto items = input.get<Input>();
     auto fadeEffect = DependencyManager::get<FadeEffect>();
 

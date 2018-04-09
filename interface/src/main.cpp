@@ -31,6 +31,8 @@
 #include "UserActivityLogger.h"
 #include "MainWindow.h"
 
+#include "Profile.h"
+
 #ifdef Q_OS_WIN
 extern "C" {
     typedef int(__stdcall * CHECKMINSPECPROC) ();
@@ -39,7 +41,10 @@ extern "C" {
 
 int main(int argc, const char* argv[]) {
     setupHifiApplication(BuildInfo::INTERFACE_NAME);
-
+    auto tracer = DependencyManager::set<tracing::Tracer>();
+    tracer->startTracing();
+    PROFILE_SYNC_BEGIN(startup, "main startup", "");
+    
 #ifdef Q_OS_LINUX
     QApplication::setAttribute(Qt::AA_DontUseNativeMenuBar);
 #endif
@@ -235,7 +240,10 @@ int main(int argc, const char* argv[]) {
         argvExtended.push_back("--ignore-gpu-blacklist");
         int argcExtended = (int)argvExtended.size();
 
+        PROFILE_SYNC_END(startup, "main startup", "");
+        PROFILE_SYNC_BEGIN(startup, "app full ctor", "");
         Application app(argcExtended, const_cast<char**>(argvExtended.data()), startupTime, runningMarkerExisted);
+        PROFILE_SYNC_END(startup, "app full ctor", "");
 
 #if 0
         // If we failed the OpenGLVersion check, log it.
@@ -273,6 +281,9 @@ int main(int argc, const char* argv[]) {
         qCDebug(interfaceapp, "Created QT Application.");
         exitCode = app.exec();
         server.close();
+
+        tracer->stopTracing();
+        tracer->serialize(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/Traces/trace-startup.json.gz");
     }
 
     Application::shutdownPlugins();

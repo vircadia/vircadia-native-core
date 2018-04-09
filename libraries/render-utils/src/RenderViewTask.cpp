@@ -17,6 +17,7 @@
 void RenderViewTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, bool isDeferred, uint8_t tagBits, uint8_t tagMask) {
    // auto items = input.get<Input>();
 
+    PROFILE_RANGE(startup, "RenderViewTask::build");
     // Warning : the cull functor passed to the shadow pass should only be testing for LOD culling. If frustum culling
     // is performed, then casters not in the view frustum will be removed, which is not what we wish.
     task.addJob<RenderShadowTask>("RenderShadowTask", cullFunctor, tagBits, tagMask);

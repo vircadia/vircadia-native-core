@@ -19,6 +19,7 @@
 #include "DeferredLightingEffect.h"
 
 void UpdateSceneTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
+    PROFILE_RANGE(startup, "UpdateSceneTask::build");
     task.addJob<LightStageSetup>("LightStageSetup");
     task.addJob<BackgroundStageSetup>("BackgroundStageSetup");
     task.addJob<HazeStageSetup>("HazeStageSetup");
