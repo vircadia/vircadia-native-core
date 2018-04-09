@@ -9,7 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DomainHandler.h"
+
 #include <math.h>
+
+#include <PathUtils.h>
 
 #include <QtCore/QJsonDocument>
 #include <QtCore/QDataStream>
@@ -24,8 +28,6 @@
 #include "SharedUtil.h"
 #include "UserActivityLogger.h"
 #include "NetworkLogging.h"
-
-#include "DomainHandler.h"
 
 DomainHandler::DomainHandler(QObject* parent) :
     QObject(parent),
@@ -157,6 +159,11 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
 
     if (domainURL.scheme() != URL_SCHEME_HIFI) {
         _sockAddr.clear();
+
+        // if this is a file URL we need to see if it has a ~ for us to expand
+        if (domainURL.scheme() == URL_SCHEME_FILE) {
+            domainURL = PathUtils::expandToLocalDataAbsolutePath(domainURL);
+        }
     }
 
     if (_domainURL != domainURL || _sockAddr.getPort() != domainURL.port()) {
