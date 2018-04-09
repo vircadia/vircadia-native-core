@@ -41,8 +41,8 @@ public class InterfaceActivity extends QtActivity {
     private native void nativeOnDestroy();
     private native void nativeGotoUrl(String url);
     private native void nativeGoBackFromAndroidActivity();
-    //private native void nativeOnStop();
-    //private native void nativeOnStart();
+    private native void nativeEnterBackground();
+    private native void nativeEnterForeground();
     //private native void saveRealScreenSize(int width, int height);
     //private native void setAppVersion(String version);
     private native long nativeOnExitVr();
@@ -124,14 +124,13 @@ public class InterfaceActivity extends QtActivity {
     @Override
     protected void onStart() {
         super.onStart();
-//        nativeOnStart();
+        nativeEnterForeground();
     }
 
     @Override
     protected void onStop() {
-        Log.d("[Background]","Calling nativeOnStop from InterfaceActivity");
-//        nativeOnStop();
         super.onStop();
+        nativeEnterBackground();
     }
 
     @Override
