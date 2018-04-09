@@ -3047,28 +3047,20 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     static const QString SENT_TO_PREVIOUS_LOCATION = "previous_location";
     static const QString SENT_TO_ENTRY = "entry";
-    static const QString SENT_TO_SANDBOX = "sandbox";
 
     QString sentTo;
 
     // If this is a first run we short-circuit the address passed in
     if (firstRun.get()) {
 #if defined(Q_OS_ANDROID)
-            qCDebug(interfaceapp) << "First run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("default location") : addressLookupString);
-            DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+        qCDebug(interfaceapp) << "First run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("default location") : addressLookupString);
+        DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
 #else
-            showHelp();
-            if (sandboxIsRunning) {
-                qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-                DependencyManager::get<AddressManager>()->goToLocalSandbox();
-                sentTo = SENT_TO_SANDBOX;
-            } else {
-                qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-                DependencyManager::get<AddressManager>()->goToEntry();
-                sentTo = SENT_TO_ENTRY;
-            }
+        showHelp();
+        DependencyManager::get<AddressManager>()->goToEntry();
+        sentTo = SENT_TO_ENTRY;
 #endif
-            firstRun.set(false);
+        firstRun.set(false);
 
     } else {
         qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
