@@ -50,7 +50,7 @@ public:
     };
 
     enum TouchButtonChannel {
-        JUMP_BUTTON_PRESS = LY + 1,
+        JUMP_BUTTON_PRESS
     };
 
 protected:

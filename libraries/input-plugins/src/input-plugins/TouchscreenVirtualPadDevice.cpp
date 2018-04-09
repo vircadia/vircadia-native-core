@@ -141,8 +141,8 @@ void TouchscreenVirtualPadDevice::processInputDeviceForView() {
     // We use average across how many times we've got touchUpdate events.
     // Using the average instead of the full deltaX and deltaY, makes deltaTime in MyAvatar dont't accelerate rotation when there is a low touchUpdate rate (heavier domains).
     // (Because it multiplies this input value by deltaTime (with a coefficient)).
-    _inputDevice->_axisStateMap[controller::RX] = _viewTouchUpdateCount==0?0:(_viewCurrentTouchPoint.x - _viewRefTouchPoint.x)/_viewTouchUpdateCount++;
-    _inputDevice->_axisStateMap[controller::RY] = _viewTouchUpdateCount==0?0:(_viewCurrentTouchPoint.y - _viewRefTouchPoint.y)/_viewTouchUpdateCount++;
+    _inputDevice->_axisStateMap[controller::RX] = _viewTouchUpdateCount == 0 ? 0 : (_viewCurrentTouchPoint.x - _viewRefTouchPoint.x) / _viewTouchUpdateCount;
+    _inputDevice->_axisStateMap[controller::RY] = _viewTouchUpdateCount == 0 ? 0 : (_viewCurrentTouchPoint.y - _viewRefTouchPoint.y) / _viewTouchUpdateCount;
 
     // after use, save last touch point as ref
     _viewRefTouchPoint = _viewCurrentTouchPoint;
@@ -371,7 +371,7 @@ bool TouchscreenVirtualPadDevice::viewTouchBeginIsValid(glm::vec2 touchPoint) {
 bool TouchscreenVirtualPadDevice::moveTouchBeginIsValid(glm::vec2 touchPoint) {
     if (_fixedPosition) {
         // inside circle
-        return pow(touchPoint.x - _fixedCenterPosition.x,2.0) + pow(touchPoint.y - _fixedCenterPosition.y, 2.0) < pow(_fixedRadius, 2.0);
+        return glm::distance2(touchPoint, _fixedCenterPosition) < _fixedRadius * _fixedRadius;
     } else {
         // left side
         return touchPoint.x < _screenWidthCenter;
@@ -380,7 +380,7 @@ bool TouchscreenVirtualPadDevice::moveTouchBeginIsValid(glm::vec2 touchPoint) {
 
 bool TouchscreenVirtualPadDevice::jumpTouchBeginIsValid(glm::vec2 touchPoint) {
     // position of button and boundaries
-    return pow(touchPoint.x - _jumpButtonPosition.x, 2.0) + pow(touchPoint.y - _jumpButtonPosition.y, 2.0) < pow(_jumpButtonRadius, 2.0);
+    return glm::distance2(touchPoint, _jumpButtonPosition) < _jumpButtonRadius * _jumpButtonRadius;
 }
 
 void TouchscreenVirtualPadDevice::jumpTouchBegin(glm::vec2 touchPoint) {
@@ -388,8 +388,7 @@ void TouchscreenVirtualPadDevice::jumpTouchBegin(glm::vec2 touchPoint) {
     if (virtualPadManager.isEnabled() && !virtualPadManager.isHidden()) {
         _jumpHasValidTouch = true;
 
-        auto input = _inputDevice->makeInput(TouchButtonChannel::JUMP_BUTTON_PRESS);
-        _inputDevice->_buttonPressedMap.insert(input.getChannel());
+        _inputDevice->_buttonPressedMap.insert(TouchButtonChannel::JUMP_BUTTON_PRESS);
     }
 }
 
@@ -399,8 +398,7 @@ void TouchscreenVirtualPadDevice::jumpTouchEnd() {
     if (_jumpHasValidTouch) {
         _jumpHasValidTouch = false;
 
-        auto input = _inputDevice->makeInput(TouchButtonChannel::JUMP_BUTTON_PRESS);
-        _inputDevice->_buttonPressedMap.erase(input.getChannel());
+        _inputDevice->_buttonPressedMap.erase(TouchButtonChannel::JUMP_BUTTON_PRESS);
     }    
 }
 
