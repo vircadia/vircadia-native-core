@@ -142,7 +142,10 @@ StackView {
             bottom: parent.bottom
         }
 
-        onHostChanged: updateLocationTextTimer.restart();
+        onHostChanged: {
+            updateLocationTextTimer.restart();
+            DialogsManager.hideAddressBar();
+        }
 
         Rectangle {
             id: navBar
