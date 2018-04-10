@@ -90,46 +90,6 @@ function keyPressEvent(event) {
     }
 }
 
-function actionOnObjectFromEvent(event) {
-    var rayIntersection = findRayIntersection(Camera.computePickRay(event.x,
-            event.y));
-    if (rayIntersection && rayIntersection.intersects
-            && rayIntersection.overlayID) {
-        printd("found overlayID touched " + rayIntersection.overlayID);
-        if (entitiesByOverlayID[rayIntersection.overlayID]) {
-            var entity = Entities.getEntityProperties(
-                    entitiesByOverlayID[rayIntersection.overlayID],
-                    [ "sourceUrl" ]);
-            App.openUrl(entity.sourceUrl);
-            return true;
-        }
-    }
-    if (rayIntersection && rayIntersection.intersects
-            && rayIntersection.entityID && rayIntersection.properties) {
-        printd("found " + rayIntersection.entityID + " of type "
-                + rayIntersection.properties.type);
-        if (rayIntersection.properties.type == "Web") {
-            printd("found web element to "
-                    + rayIntersection.properties.sourceUrl);
-            App.openUrl(rayIntersection.properties.sourceUrl);
-            return true;
-        }
-    }
-    return false;
-}
-
-function mousePress(event) {
-    mousePressOrTouchEnd(event);
-}
-
-function mousePressOrTouchEnd(event) {
-    if (radar) {
-        if (actionOnObjectFromEvent(event)) {
-            return;
-        }
-    }
-}
-
 function toggleRadarMode() {
     if (radar) {
         endRadar();
@@ -230,9 +190,6 @@ function touchEnd(event) {
     if (analyzeDoubleTap(event))
         return; // double tap detected, finish
 
-    if (radar) {
-        mousePressOrTouchEnd(event);
-    }
 }
 
 /**
@@ -726,7 +683,7 @@ function Teleporter() {
     return {
         dragTeleportBegin : function(event) {
             printd("[newTeleport] TELEPORT began");
-            var overlayDimensions = entityIconModelDimensions(MyAvatar.position.y);
+            var overlayDimensions = teleportIconModelDimensions(MyAvatar.position.y);
             // var destination = computeDestination(event, MyAvatar.position,
             // Camera.position, radarHeight);
             // Dimension teleport and cancel overlays (not show them yet)
@@ -1125,39 +1082,10 @@ function renderAllOthersAvatarIcons() {
     }
 }
 
-function entityAdded(entityID) {
-    printd("Entity added " + entityID);
-    var props = Entities.getEntityProperties(entityID, [ "type" ]);
-    printd("Entity added " + entityID + " PROPS " + JSON.stringify(props));
-    if (props && props.type == "Web") {
-        printd("Entity Web added " + entityID);
-        saveEntityData(entityID, true);
-    }
-}
-
-function entityRemoved(entityID) {
-    printd("Entity removed " + entityID);
-    var props = Entities.getEntityProperties(entityID, [ "type" ]);
-    if (props && props.type == "Web") {
-        print("Entity Web removed " + entityID);
-        removeEntityData(entityID);
-    }
-}
-
 /*******************************************************************************
  * Entities (to remark) cache structure for showing entities markers
  ******************************************************************************/
 
-var entitiesData = {}; // by entityID
-var entitiesByOverlayID = {}; // by overlayID
-var entitiesIcons = []; // a parallel list of icons (overlays) to easily run
-                        // through
-
-var ICON_ENTITY_WEB_MODEL_URL = Script.resolvePath("../assets/images/web.svg");
-var ICON_ENTITY_IMG_MODEL_URL = Script
-        .resolvePath("../assets/models/teleport-cancel.fbx"); // FIXME - use
-                                                                // correct
-                                                                // model&texture
 var ICON_ENTITY_DEFAULT_DIMENSIONS = {
     x : 0.10,
     y : 0.00001,
@@ -1169,7 +1097,7 @@ var entityIconModelDimensionsVal = {
     y : 0.00001,
     z : 0
 };
-function entityIconModelDimensions(y) {
+function teleportIconModelDimensions(y) {
     // given the current height, give a size
     // TODO: receive entity.position.y and substract to radarHeight
     var xz = -0.002831 * (radarHeight - y) + 0.1;
@@ -1177,122 +1105,6 @@ function entityIconModelDimensions(y) {
     entityIconModelDimensionsVal.z = xz;
     // reuse object
     return entityIconModelDimensionsVal;
-}
-/*
- * entityIconPlaneDimensions: similar to entityIconModelDimensions but using xy
- * plane
- */
-function entityIconPlaneDimensions(y) {
-    var dim = entityIconModelDimensions(y);
-    var z = dim.z;
-    dim.z = dim.y;
-    dim.y = z;
-    return dim;
-}
-
-function currentOverlayForEntity(QUuid) {
-    if (entitiesData[QUuid] != undefined) {
-        return entitiesData[QUuid].icon;
-    } else {
-        return null;
-    }
-}
-
-function saveEntityData(QUuid, planar) {
-    if (QUuid == null)
-        return;
-    var entity = Entities.getEntityProperties(QUuid, [ "position" ]);
-    printd("entity added save entity " + QUuid);
-    if (entitiesData[QUuid] != undefined) {
-        entitiesData[QUuid].position = entity.position;
-    } else {
-        var entityIcon = Overlays.addOverlay("image3d", {
-            subImage : {
-                x : 0,
-                y : 0,
-                width : 150,
-                height : 150
-            },
-            url : ICON_ENTITY_WEB_MODEL_URL,
-            dimensions : ICON_ENTITY_DEFAULT_DIMENSIONS,
-            visible : false,
-            ignoreRayIntersection : false,
-            orientation : Quat.fromPitchYawRollDegrees(-90, 0, 0)
-        });
-
-        entitiesIcons.push(entityIcon);
-        entitiesData[QUuid] = {
-            position : entity.position,
-            icon : entityIcon
-        };
-        entitiesByOverlayID[entityIcon] = QUuid;
-    }
-}
-
-function removeEntityData(QUuid) {
-    if (QUuid == null)
-        return;
-
-    var itsOverlay = currentOverlayForEntity(QUuid);
-    if (itsOverlay != null) {
-        Overlays.deleteOverlay(itsOverlay);
-        delete entitiesByOverlayID[itsOverlay];
-    }
-    var idx = entitiesIcons.indexOf(itsOverlay);
-    entitiesIcons.splice(idx, 1);
-
-    delete entitiesData[QUuid];
-}
-
-/*******************************************************************************
- * Entities to remark Icon/Markers rendering
- ******************************************************************************/
-
-function hideAllEntitiesIcons() {
-    var len = entitiesIcons.length;
-    for (var i = 0; i < len; i++) {
-        Overlays.editOverlay(entitiesIcons[i], {
-            visible : false
-        });
-    }
-}
-
-function renderAllEntitiesIcons() {
-    var entityPos;
-    var entityProps;
-
-    for ( var QUuid in entitiesData) {
-        if (entitiesData.hasOwnProperty(QUuid)) {
-            entityProps = Entities.getEntityProperties(QUuid, [ "position",
-                    "visible" ]);
-            if (entityProps != null) {
-                entityPos = entityProps.position;
-                var planeDimensions = entityIconPlaneDimensions(entityPos.y);  // plane overlays uses
-                                                                    // xy instead of xz
-                if (entitiesData[QUuid].icon != undefined && entityPos) {
-                    var iconPos = findLineToHeightIntersectionCoords(
-                            entityPos.x,
-                            entityPos.y
-                                    + RADAR_ICONS_APPARENT_DISTANCE_TO_AVATAR_BASE,
-                            entityPos.z, Camera.position.x, Camera.position.y,
-                            Camera.position.z, Camera.position.y
-                                    - RADAR_CAMERA_DISTANCE_TO_ICONS);
-                    if (!iconPos) {
-                        printd("entity icon pos bad for " + QUuid);
-                        continue;
-                    }
-                    var iconDimensions = entityIconModelDimensions(entityPos.y);
-                    var dimensions = entitiesData[QUuid].planar ? planeDimensions
-                            : iconDimensions;
-                    Overlays.editOverlay(entitiesData[QUuid].icon, {
-                        visible : entityProps.visible,
-                        dimensions : dimensions,
-                        position : iconPos
-                    });
-                }
-            }
-        }
-    }
 }
 
 /*******************************************************************************
@@ -1304,11 +1116,7 @@ function startRadar() {
     saveAllOthersAvatarsData();
     Camera.mode = "independent";
 
-    Camera.position = {
-            x : MyAvatar.position.x,
-            y : radarHeight,
-            z : MyAvatar.position.z
-        };
+    initCameraOverMyAvatar();
 
     Camera.orientation = Quat.fromPitchYawRollDegrees(-90, 0, 0);
     radar = true;
@@ -1326,7 +1134,6 @@ function endRadar() {
     Controller.setVPadEnabled(true);
 
     disconnectRadarModeEvents();
-    hideAllEntitiesIcons();
     hideAllAvatarIcons();
 }
 
@@ -1360,12 +1167,10 @@ function updateRadar() {
     // Update avatar icons
     if (startedDraggingCamera) {
         hideAllAvatarIcons();
-        hideAllEntitiesIcons();
         startedDraggingCamera = false;
     } else if (!draggingCamera) {
         renderMyAvatarIcon();
         renderAllOthersAvatarIcons();
-        renderAllEntitiesIcons();
     }
 }
 
@@ -1373,42 +1178,25 @@ function valueIfDefined(value) {
     return value !== undefined ? value : "";
 }
 
-function entitiesAnalysis() {
-    var ids = Entities.findEntitiesInFrustum(Camera.frustum);
-    var entities = [];
-    for (var i = 0; i < ids.length; i++) {
-        var id = ids[i];
-        var properties = Entities.getEntityProperties(id);
-        entities.push({
-            id : id,
-            name : properties.name,
-            type : properties.type,
-            url : properties.type == "Model" ? properties.modelURL : "",
-            sourceUrl : properties.sourceUrl,
-            locked : properties.locked,
-            visible : properties.visible,
-            drawCalls : valueIfDefined(properties.renderInfo.drawCalls),
-            hasScript : properties.script !== ""
-        });
-    }
-}
-
 function connectRadarModeEvents() {
     Script.update.connect(updateRadar); // 60Hz loop
     Controller.keyPressEvent.connect(keyPressEvent);
-    Controller.mousePressEvent.connect(mousePress); // single click/touch
     Controller.touchUpdateEvent.connect(touchUpdate);
     Window.domainChanged.connect(domainChanged);
     MyAvatar.positionGoneTo.connect(positionGoneTo);
 }
 
-function domainChanged() {
+function initCameraOverMyAvatar() {
    radarHeight = MyAvatar.position.y + RADAR_HEIGHT_INIT_DELTA;
    Camera.position = {
         x : MyAvatar.position.x,
         y : radarHeight,
         z : MyAvatar.position.z
     };
+}
+
+function domainChanged() {
+    initCameraOverMyAvatar();
 }
 
 function positionGoneTo() {
@@ -1422,7 +1210,6 @@ function positionGoneTo() {
 function disconnectRadarModeEvents() {
     Script.update.disconnect(updateRadar);
     Controller.keyPressEvent.disconnect(keyPressEvent);
-    Controller.mousePressEvent.disconnect(mousePress);
     Controller.touchUpdateEvent.disconnect(touchUpdate);
     MyAvatar.positionGoneTo.disconnect(positionGoneTo);
     Window.domainChanged.disconnect(domainChanged);
@@ -1436,7 +1223,4 @@ function init() {
 
     AvatarList.avatarAddedEvent.connect(avatarAdded);
     AvatarList.avatarRemovedEvent.connect(avatarRemoved);
-
-    Entities.addingEntity.connect(entityAdded);
-    Entities.deletingEntity.connect(entityRemoved);
 }
