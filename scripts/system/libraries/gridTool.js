@@ -223,7 +223,7 @@ Grid = function(opts) {
         Overlays.deleteOverlay(gridOverlay);
     }
 
-    that.addListener = function (callback) {
+    that.addListener = function(callback) {
         that.onUpdate = callback;
     };
 
@@ -244,7 +244,7 @@ GridTool = function(opts) {
 
     var webView = null;
     webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    webView.setVisible = function (value) { };
+    webView.setVisible = function(value) { };
 
     horizontalGrid.addListener(function(data) {
         webView.emitScriptEvent(JSON.stringify(data));
