@@ -80,4 +80,26 @@
         tablet.removeButton(button);
     });
 
+
+    Script.include("./test_physics_scene.js")
+
+    function fromQml(message) {
+        switch (message.method) {
+        case "createScene":
+            createScene();
+            break;
+        case "clearScene":
+            clearScene();
+            break;
+        case "changeResolution":
+            changeResolution(message.params.count);
+            break;
+        }
+        
+    }
+
+    function sendToQml(message) {
+        tablet.sendToQml(message);
+    }
+
 }()); 

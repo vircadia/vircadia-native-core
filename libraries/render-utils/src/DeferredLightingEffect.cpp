@@ -522,20 +522,11 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         auto lightStage = renderContext->_scene->getStage<LightStage>();
         assert(lightStage);
         assert(lightStage->getNumLights() > 0);
-        auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow();
-        const auto& globalShadow = lightAndShadow.second;
 
-        // Bind the shadow buffers
-        if (globalShadow) {
-            for (unsigned int i = 0; i < globalShadow->getCascadeCount(); i++) {
-                batch.setResourceTexture(SHADOW_MAP_UNIT+i, globalShadow->getCascade(i).map);
-            }
-        }
-
-        auto& program = deferredLightingEffect->_directionalSkyboxLight;
+        auto program = deferredLightingEffect->_directionalSkyboxLight;
         LightLocationsPtr locations = deferredLightingEffect->_directionalSkyboxLightLocations;
 
-        auto keyLight = lightAndShadow.first;
+    //    auto keyLight = lightAndShadow.first;
 
         graphics::LightPointer ambientLight;
         if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
@@ -556,6 +547,18 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
             }
 
             if (deferredLightingEffect->_shadowMapEnabled && keyLightCastShadows) {
+                auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow();
+                const auto& globalShadow = lightAndShadow.second;
+
+                // Bind the shadow buffers
+                if (globalShadow) {
+                    for (unsigned int i = 0; i < globalShadow->getCascadeCount(); i++) {
+                        batch.setResourceTexture(SHADOW_MAP_UNIT + i, globalShadow->getCascade(i).map);
+                    }
+                    if (locations->shadowTransformBuffer >= 0) {
+                        batch.setUniformBuffer(locations->shadowTransformBuffer, globalShadow->getBuffer());
+                    }
+                }
 
                 // If the keylight has an ambient Map then use the Skybox version of the pass
                 // otherwise use the ambient sphere version
@@ -575,12 +578,6 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
                 } else {
                     program = deferredLightingEffect->_directionalAmbientSphereLight;
                     locations = deferredLightingEffect->_directionalAmbientSphereLightLocations;
-                }
-            }
-
-            if (locations->shadowTransformBuffer >= 0) {
-                if (globalShadow) {
-                    batch.setUniformBuffer(locations->shadowTransformBuffer, globalShadow->getBuffer());
                 }
             }
 

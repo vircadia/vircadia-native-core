@@ -26,7 +26,24 @@ Rectangle {
     anchors.margins: hifi.dimensions.contentMargin.x
     
     color: hifi.colors.baseGray;
-     
+
+    function broadcastCreateScene() {
+        sendToScript({method: "createScene", params: { count:2 }}); 
+    }
+
+    function broadcastClearScene() {
+        sendToScript({method: "clearScene", params: { count:2 }}); 
+    }
+
+    function broadcastChangeResolution(value) {
+        sendToScript({method: "changeResolution", params: { count:value }});         
+    }
+
+    function fromScript(message) {
+        switch (message.method) {
+        }
+    }
+  
     Column {
         spacing: 5
         anchors.left: parent.left
@@ -136,13 +153,49 @@ Rectangle {
             onCheckedChanged: { Workload.getConfig("SpaceToRender")["showViews"] = checked }
         }
         Separator {}
+         HifiControls.Label {
+            text: "Test"       
+        }
+        RowLayout {
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            HifiControls.Button {
+                text: "create scene"
+                onClicked: {
+                    print("pressed")
+                    _workload.broadcastCreateScene()
+                }
+            }
+            HifiControls.Button {
+                text: "clear scene"
+                onClicked: {
+                    print("pressed")
+                    _workload.broadcastClearScene()
+                }
+            }
+        }
+        HifiControls.Slider {
+            id: resolution
+            stepSize: 1.0
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            anchors.rightMargin: 0
+            anchors.top: root.top
+            anchors.topMargin: 0
+            minimumValue: 1
+            maximumValue: 10
 
-        Jet.TaskList {
+            onValueChanged: { _workload.broadcastChangeResolution(value) }
+        }
+
+        Separator {}
+        
+        /*Jet.TaskList {
             rootConfig: Workload
             anchors.left: parent.left
             anchors.right: parent.right 
         
             height: 300
-        }
+        }*/
     }
 }

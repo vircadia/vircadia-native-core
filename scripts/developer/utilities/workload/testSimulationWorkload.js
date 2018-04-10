@@ -9,21 +9,13 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-Script.include("./test_simulation_scene.js")
+Script.include("./test_physics_scene.js")
 
 (function() {
     var TABLET_BUTTON_NAME = "Test Sim";
     var QMLAPP_URL = Script.resolvePath("./testSimulationWorkload.qml");
     var ICON_URL = Script.resolvePath("../../../system/assets/images/luci-i.svg");
     var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/luci-a.svg");
-
-    var test = { scene:[] }
-    test.clearScene = function clearScene() {
-        for (var i = 0; i < this.scene.length; i++) {
-            Entities.deleteEntity(this.scene[i]);
-        }
-    }
-
    
     var onAppScreen = false;
 
@@ -72,13 +64,11 @@ Script.include("./test_simulation_scene.js")
         button.editProperties({isActive: onAppScreen});
         wireEventBridge(onAppScreen);
     }
-
-    function fromQml(message) {
-    }
         
     button.clicked.connect(onClicked);
     tablet.screenChanged.connect(onScreenChanged);
 
+     
     Script.scriptEnding.connect(function () {
         if (onAppScreen) {
             tablet.gotoHomeScreen();
@@ -88,5 +78,22 @@ Script.include("./test_simulation_scene.js")
         tablet.removeButton(button);
         clearScene();
     });
+
+
+    function fromQml(message) {
+        switch (message.method) {
+        case "createScene":
+            createScene();
+            break;
+        case "clearScene":
+            clearScene();
+            break;
+        }
+        
+    }
+
+    function sendToQml(message) {
+        tablet.sendToQml(message);
+    }
 
 }()); 

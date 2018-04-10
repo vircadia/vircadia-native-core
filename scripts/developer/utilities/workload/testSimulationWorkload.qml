@@ -14,7 +14,7 @@ import QtQuick.Layouts 1.3
 import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
 import "../render/configSlider"
-import "./test_simulation_scene.js" as Sim
+//import "./test_simulation_scene.js" as Sim
 
 
 Rectangle {
@@ -27,19 +27,22 @@ Rectangle {
     
     color: hifi.colors.baseGray;
 
-    property var scene : []
-
-    function clearScene() {
-        for (var i = 0; i < _test.scene.length; i++) {
-            Entities.deleteEntity(_test.scene[i]);
-        }
-    }
     Component.onCompleted: {
-        _test.scene = Sim.setupScene();
-
     }  
     Component.onDestruction: {
-        clearScene()
+    }
+
+    function broadcastCreateScene() {
+        sendToScript({method: "createScene", params: { count:2 }}); 
+    }
+
+    function broadcastClearScene() {
+        sendToScript({method: "clearScene", params: { count:2 }}); 
+    }
+
+    function fromScript(message) {
+        switch (message.method) {
+        }
     }
 
     Column {
@@ -55,6 +58,15 @@ Rectangle {
         HifiControls.Label {
             text: "Display"       
         }
+
+        HifiControls.Button {
+                    text: "create scene"
+                    onClicked: {
+                        print("pressed")
+                        _test.broadcastCreateScene()
+                    }
+                }
+
         Separator {}
 
     }

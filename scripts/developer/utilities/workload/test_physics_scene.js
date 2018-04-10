@@ -2,7 +2,7 @@
 var DEFAULT_LIFETIME = 120;
 
 var GRID_WORLD_SIZE = 100.0;
-var GRID_WORLD_RESOLUTION = 4.0;
+var GRID_WORLD_RESOLUTION = 2.0;
 
 var BACKDROP_SIZE = GRID_WORLD_SIZE / GRID_WORLD_RESOLUTION;
 var BACKDROP_HALFSIZE = BACKDROP_SIZE *0.5;
@@ -183,12 +183,28 @@ getStagePosOriAt = function (a, b, c) {
 }
 
 
-var scene = setupScene();
+var scene = []
 
+createScene = function() {
+    clearScene();
+    scene = setupScene();
+}
 
-// clean up after test
-Script.scriptEnding.connect(function () {
+clearScene = function() {
     for (var i = 0; i < scene.length; i++) {
         Entities.deleteEntity(scene[i]);
     }
+}
+
+changeResolution = function(res) {
+    GRID_WORLD_RESOLUTION = res;
+
+    BACKDROP_SIZE = GRID_WORLD_SIZE / GRID_WORLD_RESOLUTION;
+    BACKDROP_HALFSIZE = BACKDROP_SIZE *0.5;
+   
+    TILE_UNIT = GRID_WORLD_RESOLUTION;  
+}
+// clean up after test
+Script.scriptEnding.connect(function () {
+    clearScene()
 });
