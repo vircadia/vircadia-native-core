@@ -452,16 +452,15 @@ var toolBar = (function () {
         }
     }
 
+    function clearWindow() {
+        tablet.gotoHomeScreen();
+    };
+
     function initialize() {
         Script.scriptEnding.connect(cleanup);
         Window.domainChanged.connect(function () {
             that.setActive(false);
             that.clearEntityList();
-            tablet.gotoHomeScreen();
-        });
-
-        Window.domainConnectionRefused.connect(function () {
-            tablet.gotoHomeScreen();
         });
 
         Entities.canAdjustLocksChanged.connect(function (canAdjustLocks) {
@@ -723,6 +722,8 @@ var toolBar = (function () {
             cameraManager.disable();
             selectionDisplay.triggerMapping.disable();
             tablet.landscape = false;
+            Window.domainChanged.disconnect(clearWindow);
+            Window.domainConnectionRefused.disconnect(clearWindow);
         } else {
             tablet.loadQMLSource("hifi/tablet/Edit.qml", true);
             UserActivityLogger.enabledEdit();
@@ -734,6 +735,8 @@ var toolBar = (function () {
             print("starting tablet in landscape mode");
             tablet.landscape = true;
             entityIconOverlayManager.setIconsSelectable(null,false);
+            Window.domainChanged.connect(clearWindow);
+            Window.domainConnectionRefused.connect(clearWindow);
             // Not sure what the following was meant to accomplish, but it currently causes
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
