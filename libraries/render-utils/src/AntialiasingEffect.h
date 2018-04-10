@@ -106,10 +106,10 @@ public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
     float blend{ 0.1f };
-    float sharpen{ 0.15f };
+    float sharpen{ 0.1f };
 
     bool constrainColor{ true };
-    float covarianceGamma{ 0.9f };
+    float covarianceGamma{ 1.0f };
     bool feedbackColor{ false };
 
     float debugX{ 0.0f };
