@@ -1292,7 +1292,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QFileInfo check_tester_file(TESTER_FILE);
     isTester = check_tester_file.exists() && check_tester_file.isFile();
 #endif
-    QProcessEnvironment::systemEnvironment().insert(TESTER, "This Value is Great");
     auto gpuIdent = GPUIdent::getInstance();
     auto glContextData = getGLContextData();
     QJsonObject properties = {
