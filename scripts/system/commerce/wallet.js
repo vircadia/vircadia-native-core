@@ -691,18 +691,19 @@
     var isWired = false;
     var isUpdateOverlaysWired = false;
     function off() {
-        if (isWired) { // It is not ok to disconnect these twice, hence guard.
+        if (isWired) {
             Users.usernameFromIDReply.disconnect(usernameFromIDReply);
             Controller.mousePressEvent.disconnect(handleMouseEvent);
             Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
+            triggerMapping.disable();
+            triggerPressMapping.disable();
+
             isWired = false;
         }
         if (isUpdateOverlaysWired) {
             Script.update.disconnect(updateOverlays);
             isUpdateOverlaysWired = false;
         }
-        triggerMapping.disable(); // It's ok if we disable twice.
-        triggerPressMapping.disable(); // see above
         removeOverlays();
     }
     function shutdown() {
