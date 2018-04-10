@@ -17,8 +17,21 @@
     Script.include("/~/system/libraries/controllers.js");
     Script.include("/~/system/libraries/cloneEntityUtils.js");
     var dispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
+
+    function differenceInArrays(firstArray, secondArray) {
+        print("first " + firstArray);
+        print("second " + secondArray);
+        var differenceArray = firstArray.filter(function(element) {
+            return secondArray.indexOf(element) < 0;
+        });
+
+        return differenceArray;
+    }
+
     function HighlightNearbyEntities(hand) {
         this.hand = hand;
+        this.otherHand = hand === dispatcherUtils.RIGHT_HAND ? dispatcherUtils.LEFT_HAND :
+            dispatcherUtils.RIGHT_HAND;
         this.highlightedEntities = [];
 
         this.parameters = dispatcherUtils.makeDispatcherModuleParameters(
@@ -44,13 +57,20 @@
             return (props.href !== "" && props.href !== undefined);
         };
 
-        this.highlightEntities = function(controllerData) {
-            if (this.highlightedEntities.length > 0) {
-                dispatcherUtils.clearHighlightedEntities();
-                this.highlightedEntities = [];
-            }
+        this.getOtherModule = function() {
+            var otherModule = this.hand === dispatcherUtils.RIGHT_HAND ? leftHighlightNearbyEntities :
+                rightHighlightNearbyEntities;
+            return otherModule;
+        };
 
+        this.getOtherHandHighlightedEntities = function() {
+            return this.getOtherModule().highlightedEntities;
+        };
+
+        this.highlightEntities = function(controllerData) {
             var nearbyEntitiesProperties = controllerData.nearbyEntityProperties[this.hand];
+            var otherHandHighlightedEntities = this.getOtherHandHighlightedEntities();
+            var newHighlightedEntities = [];
             var sensorScaleFactor = MyAvatar.sensorToWorldScale;
             for (var i = 0; i < nearbyEntitiesProperties.length; i++) {
                 var props = nearbyEntitiesProperties[i];
@@ -59,9 +79,18 @@
                 }
                 if (this.isGrabable(controllerData, props) || this.hasHyperLink(props)) {
                     dispatcherUtils.highlightTargetEntity(props.id);
-                    this.highlightedEntities.push(props.id);
+                    newHighlightedEntities.push(props.id);
                 }
             }
+
+            var unhighlightEntities = differenceInArrays(this.highlightedEntities, newHighlightedEntities);
+
+            unhighlightEntities.forEach(function(entityID) {
+                if (otherHandHighlightedEntities.indexOf(entityID) < 0 ) {
+                    dispatcherUtils.unhighlightTargetEntity(entityID);
+                }
+            });
+            this.highlightedEntities = newHighlightedEntities;
         };
 
         this.isReady = function(controllerData) {
