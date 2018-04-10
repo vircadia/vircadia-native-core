@@ -129,7 +129,7 @@ void DiscoverabilityManager::updateLocation() {
 
     // Update Steam
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
-        steamClient->updateLocation(domainHandler.getHostname(), addressManager->currentFacingShareableAddress());
+        steamClient->updateLocation(domainHandler.getHostname(), addressManager->currentFacingPublicAddress());
     }
 }
 

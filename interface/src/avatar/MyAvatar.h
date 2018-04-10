@@ -404,6 +404,32 @@ public:
     Q_INVOKABLE void enableDriveKey(DriveKeys key);
     Q_INVOKABLE bool isDriveKeyDisabled(DriveKeys key) const;
 
+    /**jsdoc
+    *The triggerVerticalRecenter function activates one time the recentering 
+    *behaviour in the vertical direction. This call is only takes effect when the property
+    *MyAvatar.hmdLeanRecenterEnabled is set to false.
+    *@function MyAvatar.triggerVerticalRecenter
+    *
+    */
+
+    /**jsdoc
+    *The triggerHorizontalRecenter function activates one time the recentering behaviour
+    *in the horizontal direction. This call is only takes effect when the property
+    *MyAvatar.hmdLeanRecenterEnabled is set to false.
+    *@function MyAvatar.triggerHorizontalRecenter
+    */
+
+    /**jsdoc
+    *The triggerRotationRecenter function activates one time the recentering behaviour
+    *in the rotation of the root of the avatar. This call is only takes effect when the property
+    *MyAvatar.hmdLeanRecenterEnabled is set to false.
+    *@function MyAvatar.triggerRotationRecenter
+    */
+
+    Q_INVOKABLE void triggerVerticalRecenter();
+    Q_INVOKABLE void triggerHorizontalRecenter();
+    Q_INVOKABLE void triggerRotationRecenter();
+
     eyeContactTarget getEyeContactTarget();
 
     const MyHead* getMyHead() const;
@@ -803,6 +829,15 @@ private:
         bool shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput);
         glm::mat4 postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
+        bool getForceActivateRotation() const;
+        void setForceActivateRotation(bool val);
+        bool getForceActivateVertical() const;
+        void setForceActivateVertical(bool val);
+        bool getForceActivateHorizontal() const;
+        void setForceActivateHorizontal(bool val);
+        std::atomic<bool> _forceActivateRotation{ false };
+        std::atomic<bool> _forceActivateVertical{ false };
+        std::atomic<bool> _forceActivateHorizontal{ false };
     };
     FollowHelper _follow;
 
@@ -839,6 +874,7 @@ private:
 
     bool _hmdLeanRecenterEnabled { true };
     bool _sprint { false };
+
     AnimPose _prePhysicsRoomPose;
     std::mutex _holdActionsMutex;
     std::vector<AvatarActionHold*> _holdActions;

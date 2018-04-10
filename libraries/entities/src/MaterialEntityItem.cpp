@@ -267,8 +267,11 @@ void MaterialEntityItem::setOwningAvatarID(const QUuid& owningAvatarID) {
 
 void MaterialEntityItem::removeMaterial() {
     graphics::MaterialPointer material = getMaterial();
+    if (!material) {
+        return;
+    }
     QUuid parentID = getClientOnly() ? getOwningAvatarID() : getParentID();
-    if (!material || parentID.isNull()) {
+    if (parentID.isNull()) {
         return;
     }
 

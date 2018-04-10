@@ -293,7 +293,7 @@ void Ledger::account() {
 // The api/failResponse is called just for the side effect of logging.
 void Ledger::updateLocationSuccess(QNetworkReply& reply) { apiResponse("updateLocation", reply); }
 void Ledger::updateLocationFailure(QNetworkReply& reply) { failResponse("updateLocation", reply); }
-void Ledger::updateLocation(const QString& asset_id, const QString location, const bool controlledFailure) {
+void Ledger::updateLocation(const QString& asset_id, const QString& location, const bool& alsoUpdateSiblings, const bool controlledFailure) {
     auto wallet = DependencyManager::get<Wallet>();
     auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
     uint walletStatus = walletScriptingInterface->getWalletStatus();
@@ -308,6 +308,9 @@ void Ledger::updateLocation(const QString& asset_id, const QString location, con
             QJsonObject transaction;
             transaction["certificate_id"] = asset_id;
             transaction["place_name"] = location;
+            if (alsoUpdateSiblings) {
+                transaction["also_update_siblings"] = true;
+            }
             QJsonDocument transactionDoc{ transaction };
             auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
             signedSend("transaction", transactionString, key, "location", "updateLocationSuccess", "updateLocationFailure", controlledFailure);

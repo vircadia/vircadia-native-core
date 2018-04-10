@@ -171,6 +171,8 @@ ModalWindow {
                 root.canceled();
                 // FIXME we are leaking memory to avoid a crash
                 // root.destroy();
+
+                root.disableFade = true
                 visible = false;
             }
         }
@@ -183,6 +185,8 @@ ModalWindow {
                 root.selected(root.result);
                 // FIXME we are leaking memory to avoid a crash
                 // root.destroy();
+
+                root.disableFade = true
                 visible = false;
             }
         }

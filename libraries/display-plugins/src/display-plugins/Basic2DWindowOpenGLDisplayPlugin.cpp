@@ -25,11 +25,11 @@ static const QString FULLSCREEN = "Fullscreen";
 
 void Basic2DWindowOpenGLDisplayPlugin::customizeContext() {
 #if defined(Q_OS_ANDROID)
+    qreal dpi = getFullscreenTarget()->physicalDotsPerInch();
+    _virtualPadPixelSize = dpi * VirtualPad::Manager::BASE_DIAMETER_PIXELS / VirtualPad::Manager::DPI;
+
     auto iconPath = PathUtils::resourcesPath() + "images/analog_stick.png";
     auto image = QImage(iconPath);
-    qreal dpi = getFullscreenTarget()->physicalDotsPerInch();
-    _virtualPadPixelSize = dpi * VirtualPad::Manager::PIXEL_SIZE / VirtualPad::Manager::DPI;
-
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }
@@ -68,6 +68,29 @@ void Basic2DWindowOpenGLDisplayPlugin::customizeContext() {
         _virtualPadStickBaseTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
         _virtualPadStickBaseTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         _virtualPadStickBaseTexture->setAutoGenerateMips(true);
+    }
+
+    _virtualPadJumpBtnPixelSize = dpi * VirtualPad::Manager::JUMP_BTN_FULL_PIXELS / VirtualPad::Manager::DPI;
+    iconPath = PathUtils::resourcesPath() + "images/fly.png";
+    image = QImage(iconPath);
+    if (image.format() != QImage::Format_ARGB32) {
+        image = image.convertToFormat(QImage::Format_ARGB32);
+    }
+    if ((image.width() > 0) && (image.height() > 0)) {
+        image = image.scaled(_virtualPadJumpBtnPixelSize, _virtualPadJumpBtnPixelSize, Qt::KeepAspectRatio);
+        image = image.mirrored();
+
+        _virtualPadJumpBtnTexture = gpu::Texture::createStrict(
+                gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
+                image.width(), image.height(),
+                gpu::Texture::MAX_NUM_MIPS,
+                gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
+        _virtualPadJumpBtnTexture->setSource("virtualPad jump");
+        auto usage = gpu::Texture::Usage::Builder().withColor().withAlpha();
+        _virtualPadJumpBtnTexture->setUsage(usage.build());
+        _virtualPadJumpBtnTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
+        _virtualPadJumpBtnTexture->assignStoredMip(0, image.byteCount(), image.constBits());
+        _virtualPadJumpBtnTexture->setAutoGenerateMips(true);
     }
 #endif
     Parent::customizeContext();
@@ -121,6 +144,20 @@ void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
             batch.setResourceTexture(0, _virtualPadStickTexture);
             batch.resetViewTransform();
             batch.setModelTransform(stickTransform);
+            batch.setViewportTransform(ivec4(uvec2(0), getRecommendedRenderSize()));
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        });
+
+        // render stick head
+        auto jumpTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getJumpButtonPosition(),
+                                                                                                    _virtualPadJumpBtnPixelSize, _virtualPadJumpBtnPixelSize);
+        render([&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+            batch.setProjectionTransform(mat4());
+            batch.setPipeline(_cursorPipeline);
+            batch.setResourceTexture(0, _virtualPadJumpBtnTexture);
+            batch.resetViewTransform();
+            batch.setModelTransform(jumpTransform);
             batch.setViewportTransform(ivec4(uvec2(0), getRecommendedRenderSize()));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         });

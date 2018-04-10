@@ -27,7 +27,19 @@ class PhysicalEntitySimulation;
 using PhysicalEntitySimulationPointer = std::shared_ptr<PhysicalEntitySimulation>;
 using SetOfEntityMotionStates = QSet<EntityMotionState*>;
 
+class VectorOfEntityMotionStates: public std::vector<EntityMotionState*> {
+public:
+    void remove(uint32_t index) {
+        assert(index < size());
+        if (index < size() - 1) {
+            (*this)[index] = back();
+        }
+        pop_back();
+    }
+};
+
 class PhysicalEntitySimulation : public EntitySimulation {
+    Q_OBJECT
 public:
     PhysicalEntitySimulation();
     ~PhysicalEntitySimulation();
@@ -37,21 +49,28 @@ public:
     virtual void addDynamic(EntityDynamicPointer dynamic) override;
     virtual void applyDynamicChanges() override;
 
-    virtual void takeEntitiesToDelete(VectorOfEntities& entitiesToDelete) override;
+    virtual void takeDeadEntities(SetOfEntities& deadEntities) override;
+
+signals:
+    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 protected: // only called by EntitySimulation
     // overrides for EntitySimulation
-    virtual void updateEntitiesInternal(const quint64& now) override;
+    virtual void updateEntitiesInternal(uint64_t now) override;
     virtual void addEntityInternal(EntityItemPointer entity) override;
     virtual void removeEntityInternal(EntityItemPointer entity) override;
     virtual void changeEntityInternal(EntityItemPointer entity) override;
     virtual void clearEntitiesInternal() override;
 
+    void removeOwnershipData(EntityMotionState* motionState);
+    void clearOwnershipData();
+
 public:
     virtual void prepareEntityForDelete(EntityItemPointer entity) override;
 
-    void getObjectsToRemoveFromPhysics(VectorOfMotionStates& result);
+    const VectorOfMotionStates& getObjectsToRemoveFromPhysics();
     void deleteObjectsRemovedFromPhysics();
+
     void getObjectsToAddToPhysics(VectorOfMotionStates& result);
     void setObjectsToChange(const VectorOfMotionStates& objectsToChange);
     void getObjectsToChange(VectorOfMotionStates& result);
@@ -62,19 +81,28 @@ public:
 
     EntityEditPacketSender* getPacketSender() { return _entityPacketSender; }
 
-private:
-    SetOfEntities _entitiesToRemoveFromPhysics;
-    SetOfEntities _entitiesToRelease;
-    SetOfEntities _entitiesToAddToPhysics;
+    void addOwnershipBid(EntityMotionState* motionState);
+    void addOwnership(EntityMotionState* motionState);
+    void sendOwnershipBids(uint32_t numSubsteps);
+    void sendOwnedUpdates(uint32_t numSubsteps);
 
-    SetOfEntityMotionStates _pendingChanges; // EntityMotionStates already in PhysicsEngine that need their physics changed
-    SetOfEntityMotionStates _outgoingChanges; // EntityMotionStates for which we may need to send updates to entity-server
+private:
+    SetOfEntities _entitiesToAddToPhysics;
+    SetOfEntities _entitiesToRemoveFromPhysics;
+
+    VectorOfMotionStates _objectsToDelete;
+
+    SetOfEntityMotionStates _incomingChanges; // EntityMotionStates that have changed from external sources
+                                              // and need their RigidBodies updated
 
     SetOfMotionStates _physicalObjects; // MotionStates of entities in PhysicsEngine
 
     PhysicsEnginePointer _physicsEngine = nullptr;
     EntityEditPacketSender* _entityPacketSender = nullptr;
 
+    VectorOfEntityMotionStates _owned;
+    VectorOfEntityMotionStates _bids;
+    uint64_t _nextBidExpiry;
     uint32_t _lastStepSendPackets { 0 };
 };
 

@@ -3046,7 +3046,6 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     static const QString SENT_TO_PREVIOUS_LOCATION = "previous_location";
     static const QString SENT_TO_ENTRY = "entry";
-    static const QString SENT_TO_SANDBOX = "sandbox";
 
     QString sentTo;
 
@@ -3055,15 +3054,8 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 #if !defined(Q_OS_ANDROID)
         showHelp();
 #endif
-        if (sandboxIsRunning) {
-            qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-            DependencyManager::get<AddressManager>()->goToLocalSandbox();
-            sentTo = SENT_TO_SANDBOX;
-        } else {
-            qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-            DependencyManager::get<AddressManager>()->goToEntry();
-            sentTo = SENT_TO_ENTRY;
-        }
+        DependencyManager::get<AddressManager>()->goToEntry();
+        sentTo = SENT_TO_ENTRY;
         firstRun.set(false);
 
     } else {
@@ -4679,7 +4671,7 @@ void Application::init() {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
-    connect(_entitySimulation.get(), &EntitySimulation::entityCollisionWithEntity,
+    connect(_entitySimulation.get(), &PhysicalEntitySimulation::entityCollisionWithEntity,
             getEntities().data(), &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
@@ -5274,11 +5266,13 @@ void Application::update(float deltaTime) {
             {
                 PROFILE_RANGE(simulation_physics, "PreStep");
                 PerformanceTimer perfTimer("preStep)");
-                static VectorOfMotionStates motionStates;
-                _entitySimulation->getObjectsToRemoveFromPhysics(motionStates);
-                _physicsEngine->removeObjects(motionStates);
-                _entitySimulation->deleteObjectsRemovedFromPhysics();
+                {
+                    const VectorOfMotionStates& motionStates = _entitySimulation->getObjectsToRemoveFromPhysics();
+                    _physicsEngine->removeObjects(motionStates);
+                    _entitySimulation->deleteObjectsRemovedFromPhysics();
+                }
 
+                VectorOfMotionStates motionStates;
                 getEntities()->getTree()->withReadLock([&] {
                     _entitySimulation->getObjectsToAddToPhysics(motionStates);
                     _physicsEngine->addObjects(motionStates);
@@ -5292,7 +5286,7 @@ void Application::update(float deltaTime) {
 
                 _entitySimulation->applyDynamicChanges();
 
-                 avatarManager->getObjectsToRemoveFromPhysics(motionStates);
+                avatarManager->getObjectsToRemoveFromPhysics(motionStates);
                 _physicsEngine->removeObjects(motionStates);
                 avatarManager->getObjectsToAddToPhysics(motionStates);
                 _physicsEngine->addObjects(motionStates);
@@ -6244,8 +6238,9 @@ bool Application::canAcceptURL(const QString& urlString) const {
 
 bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     QUrl url(urlString);
-    if (isDomainURL(url)) {
-        // this is a URL for a domain, either hifi:// or serverless - have the AddressManager handle it
+
+    if (url.scheme() == URL_SCHEME_HIFI) {
+        // this is a hifi URL - have the AddressManager handle it
         QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
                                   Qt::AutoConnection, Q_ARG(const QString&, urlString));
         return true;

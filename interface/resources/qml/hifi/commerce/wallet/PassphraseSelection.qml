@@ -61,9 +61,6 @@ Item {
             if (root.shouldImmediatelyFocus) {
                 focusFirstTextField();
             }
-            sendMessageToLightbox({method: 'disableHmdPreview'});
-        } else {
-            sendMessageToLightbox({method: 'maybeEnableHmdPreview'});
         }
     }
     

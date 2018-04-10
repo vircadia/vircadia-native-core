@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>607</width>
-    <height>395</height>
+    <height>514</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,7 +18,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>300</y>
+      <y>420</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -44,7 +44,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>135</y>
+      <y>255</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -70,7 +70,7 @@
     <property name="geometry">
      <rect>
       <x>23</x>
-      <y>100</y>
+      <y>220</y>
       <width>131</width>
       <height>20</height>
      </rect>
@@ -86,7 +86,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>190</y>
+      <y>310</y>
       <width>255</width>
       <height>23</height>
      </rect>
@@ -106,6 +106,19 @@
     </property>
     <property name="text">
      <string>Create Recursive Scripts Recursively</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="createMDFileButton">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>90</y>
+      <width>220</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Create MD file</string>
     </property>
    </widget>
   </widget>
