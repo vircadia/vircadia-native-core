@@ -85,12 +85,16 @@ FBXTexture FBXReader::getTexture(const QString& textureID) {
     FBXTexture texture;
     const QByteArray& filepath = _textureFilepaths.value(textureID);
     texture.content = _textureContent.value(filepath);
+    qDebug() << "Getting texture: " << textureID << filepath << texture.content.length();
 
     if (texture.content.isEmpty()) { // the content is not inlined
+        qDebug() << "Texture is not inlined";
         texture.filename = _textureFilenames.value(textureID);
     } else { // use supplied filepath for inlined content
+        qDebug() << "Texture is inlined";
         texture.filename = filepath;
     }
+    qDebug() << "Path: " << texture.filename;
 
     texture.id = textureID;
     texture.name = _textureNames.value(textureID);

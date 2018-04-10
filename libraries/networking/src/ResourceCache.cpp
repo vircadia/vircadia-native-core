@@ -581,6 +581,7 @@ void Resource::refresh() {
         ResourceCache::requestCompleted(_self);
     }
     
+    _activeUrl = _url;
     init();
     ensureLoading();
     emit onRefresh();
@@ -618,7 +619,7 @@ void Resource::init(bool resetLoaded) {
         _loaded = false;
     }
     _attempts = 0;
-    _activeUrl = _url;
+    qDebug() << "Initting resource: " << _url;
     
     if (_url.isEmpty()) {
         _startedLoading = _loaded = true;
@@ -671,6 +672,7 @@ void Resource::makeRequest() {
 
     PROFILE_ASYNC_BEGIN(resource, "Resource:" + getType(), QString::number(_requestID), { { "url", _url.toString() }, { "activeURL", _activeUrl.toString() } });
 
+    qDebug() << "Making request to " << _activeUrl;
     _request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, _activeUrl);
 
     if (!_request) {
@@ -724,7 +726,7 @@ void Resource::handleReplyFinished() {
     auto result = _request->getResult();
     if (result == ResourceRequest::Success) {
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
-        qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
+        qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_activeUrl.toDisplayString(), extraInfo);
 
         auto relativePathURL = _request->getRelativePathUrl();
         if (!relativePathURL.isEmpty()) {

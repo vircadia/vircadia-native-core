@@ -70,15 +70,64 @@ void FBXBaker::bakeSourceCopy() {
         return;
     }
 
-    // export the FBX with re-written texture references
-    exportScene();
-
-    if (shouldStop()) {
-        return;
-    }
-
     // check if we're already done with textures (in case we had none to re-write)
     checkIfTexturesFinished();
+}
+
+void FBXBaker::embedTextureMetaData() {
+    std::vector<FBXNode> embeddedTextureNodes;
+
+    for (FBXNode& rootChild : _rootNode.children) {
+        if (rootChild.name == "Objects") {
+            qlonglong maxId = 0;
+            for (auto &child : rootChild.children) {
+                if (child.properties.length() == 3) {
+                    maxId = std::max(maxId, child.properties[0].toLongLong());
+                }
+            }
+
+            for (auto& object : rootChild.children) {
+                if (object.name == "Texture") {
+                    QVariant relativeFilename;
+                    for (auto& child : object.children) {
+                        if (child.name == "RelativeFilename") {
+                            relativeFilename = child.properties[0];
+                            break;
+                        }
+                    }
+
+                    if (relativeFilename.isNull() || !relativeFilename.toString().endsWith(BAKED_META_TEXTURE_SUFFIX)) {
+                        continue;
+                    }
+
+                    FBXNode videoNode;
+                    videoNode.name = "Video";
+                    videoNode.properties.append(++maxId);
+                    videoNode.properties.append(object.properties[1]);
+                    videoNode.properties.append("Clip");
+
+                    QString bakedTextureFilePath {
+                        _bakedOutputDir + "/" + relativeFilename.toString()
+                    };
+                    qDebug() << "Location of texture: " << bakedTextureFilePath;
+
+                    QFile textureFile { bakedTextureFilePath };
+                    if (!textureFile.open(QIODevice::ReadOnly)) {
+                        qWarning() << "Failed to open: " << bakedTextureFilePath;
+                        continue;
+                    }
+
+                    videoNode.children.append({ "RelativeFilename", { relativeFilename }, { } });
+                    videoNode.children.append({ "Content", { textureFile.readAll() }, { } });
+
+                    rootChild.children.append(videoNode);
+
+                    textureFile.close();
+                }
+            }
+        }
+    }
+
 }
 
 void FBXBaker::setupOutputFolder() {
@@ -351,28 +400,4 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
             }
         }
     }
-}
-
-void FBXBaker::exportScene() {
-    // save the relative path to this FBX inside our passed output folder
-    auto fileName = _modelURL.fileName();
-    auto baseName = fileName.left(fileName.lastIndexOf('.'));
-    auto bakedFilename = baseName + BAKED_FBX_EXTENSION;
-
-    _bakedModelFilePath = _bakedOutputDir + "/" + bakedFilename;
-
-    auto fbxData = FBXWriter::encodeFBX(_rootNode);
-
-    QFile bakedFile(_bakedModelFilePath);
-
-    if (!bakedFile.open(QIODevice::WriteOnly)) {
-        handleError("Error opening " + _bakedModelFilePath + " for writing");
-        return;
-    }
-
-    bakedFile.write(fbxData);
-
-    _outputFiles.push_back(_bakedModelFilePath);
-
-    qCDebug(model_baking) << "Exported" << _modelURL << "with re-written paths to" << _bakedModelFilePath;
 }

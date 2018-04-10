@@ -517,10 +517,11 @@ QUrl NetworkMaterial::getTextureUrl(const QUrl& baseUrl, const FBXTexture& textu
         // Inlined file: cache under the fbx file to avoid namespace clashes
         // NOTE: We cannot resolve the path because filename may be an absolute path
         assert(texture.filename.size() > 0);
+        auto baseUrlStripped = baseUrl.toDisplayString(QUrl::RemoveFragment | QUrl::RemoveQuery | QUrl::RemoveUserInfo);
         if (texture.filename.at(0) == '/') {
-            return baseUrl.toString() + texture.filename;
+            return baseUrlStripped + texture.filename;
         } else {
-            return baseUrl.toString() + '/' + texture.filename;
+            return baseUrlStripped + '/' + texture.filename;
         }
     }
 }
