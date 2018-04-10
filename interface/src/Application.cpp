@@ -959,10 +959,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
 
-#if 0
     {
         const QString TEST_SCRIPT = "--testScript";
-        const QString TRACE_FILE = "--traceFile";
         const QStringList args = arguments();
         for (int i = 0; i < args.size() - 1; ++i) {
             if (args.at(i) == TEST_SCRIPT) {
@@ -970,14 +968,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 if (QFileInfo(testScriptPath).exists()) {
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
                 }
-            } else if (args.at(i) == TRACE_FILE) {
-                QString traceFilePath = args.at(i + 1);
-                setProperty(hifi::properties::TRACING, traceFilePath);
-                DependencyManager::get<tracing::Tracer>()->startTracing();
             }
         }
     }
-#endif
 
     // make sure the debug draw singleton is initialized on the main thread.
     DebugDraw::getInstance().removeMarker("");

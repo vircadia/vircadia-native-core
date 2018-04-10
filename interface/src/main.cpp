@@ -41,17 +41,25 @@ extern "C" {
 
 int main(int argc, const char* argv[]) {
     setupHifiApplication(BuildInfo::INTERFACE_NAME);
+
+    // Early check for --traceFile argument 
     auto tracer = DependencyManager::set<tracing::Tracer>();
-    const char * traceFile = "";
-    {
-        for (int a = 1; a < argc; ++a) {
-            if (strcmp(argv[a], "--traceFile") == 0 && argc > a + 1) {
-                traceFile = argv[a + 1];
-                tracer->startTracing();
-                break;
+    const char * traceFile = nullptr;
+    const QString traceFileFlag("--traceFile");
+    float traceDuration = 0.0f;
+    for (int a = 1; a < argc; ++a) {
+        if (traceFileFlag == argv[a] && argc > a + 1) {
+            traceFile = argv[a + 1];
+            if (argc > a + 2) {
+                traceDuration = atof(argv[a + 2]);
             }
+            break;
         }
     }
+    if (traceFile != nullptr) {
+        tracer->startTracing();
+    }
+   
     PROFILE_SYNC_BEGIN(startup, "main startup", "");
 
 #ifdef Q_OS_LINUX
@@ -253,6 +261,14 @@ int main(int argc, const char* argv[]) {
         PROFILE_SYNC_BEGIN(startup, "app full ctor", "");
         Application app(argcExtended, const_cast<char**>(argvExtended.data()), startupTime, runningMarkerExisted);
         PROFILE_SYNC_END(startup, "app full ctor", "");
+        
+        
+        QTimer exitTimer;
+        if (traceDuration > 0.0) {
+            exitTimer.setSingleShot(true);
+            QObject::connect(&exitTimer, &QTimer::timeout, &app, &Application::quit);
+            exitTimer.start(int(1000 * traceDuration));
+        }
 
 #if 0
         // If we failed the OpenGLVersion check, log it.
@@ -291,8 +307,10 @@ int main(int argc, const char* argv[]) {
         exitCode = app.exec();
         server.close();
 
-        tracer->stopTracing();
-        tracer->serialize(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/" + traceFile);
+        if (traceFile != nullptr) {
+            tracer->stopTracing();
+            tracer->serialize(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/" + traceFile);
+        }
     }
 
     Application::shutdownPlugins();
