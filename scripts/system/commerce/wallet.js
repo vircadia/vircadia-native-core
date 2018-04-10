@@ -11,140 +11,16 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/*global XXX */
+/* global getConnectionData */
 
 (function () { // BEGIN LOCAL_SCOPE
     Script.include("/~/system/libraries/accountUtils.js");
-    var request = Script.require('request').request;
+    Script.include("/~/system/libraries/connectionUtils.js");
 
     var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
 
-    // Function Name: onButtonClicked()
-    //
-    // Description:
-    //   -Fired when the app button is pressed.
-    //
-    // Relevant Variables:
-    //   -WALLET_QML_SOURCE: The path to the Wallet QML
-    //   -onWalletScreen: true/false depending on whether we're looking at the app.
-    var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
-    var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
-    var onWalletScreen = false;
-    function onButtonClicked() {
-        if (!tablet) {
-            print("Warning in buttonClicked(): 'tablet' undefined!");
-            return;
-        }
-        if (onWalletScreen) {
-            // for toolbar-mode: go back to home screen, this will close the window.
-            tablet.gotoHomeScreen();
-        } else {
-            tablet.loadQMLSource(WALLET_QML_SOURCE);
-        }
-    }
 
-    // Function Name: sendToQml()
-    //
-    // Description:
-    //   -Use this function to send a message to the QML (i.e. to change appearances). The "message" argument is what is sent to
-    //    the QML in the format "{method, params}", like json-rpc. See also fromQml().
-    function sendToQml(message) {
-        tablet.sendToQml(message);
-    }
-
-    //***********************************************
-    //
-    // BEGIN Connection logic
-    //
-    //***********************************************
-    // Function Names:
-    //   - requestJSON
-    //   - getAvailableConnections
-    //   - getInfoAboutUser
-    //   - getConnectionData
-    //
-    // Description:
-    //   - Update all the usernames that I am entitled to see, using my login but not dependent on canKick.
-    var METAVERSE_BASE = Account.metaverseServerURL;
-    function requestJSON(url, callback) { // callback(data) if successfull. Logs otherwise.
-        request({
-            uri: url
-        }, function (error, response) {
-            if (error || (response.status !== 'success')) {
-                print("Error: unable to get", url, error || response.status);
-                return;
-            }
-            callback(response.data);
-        });
-    }
-    function getAvailableConnections(domain, callback) { // callback([{usename, location}...]) if successful. (Logs otherwise)
-        url = METAVERSE_BASE + '/api/v1/users?per_page=400&'
-        if (domain) {
-            url += 'status=' + domain.slice(1, -1); // without curly braces
-        } else {
-            url += 'filter=connections'; // regardless of whether online
-        }
-        requestJSON(url, function (connectionsData) {
-            callback(connectionsData.users);
-        });
-    }
-    function getInfoAboutUser(specificUsername, callback) {
-        url = METAVERSE_BASE + '/api/v1/users?filter=connections'
-        requestJSON(url, function (connectionsData) {
-            for (user in connectionsData.users) {
-                if (connectionsData.users[user].username === specificUsername) {
-                    callback(connectionsData.users[user]);
-                    return;
-                }
-            }
-            callback(false);
-        });
-    }
-    function getConnectionData(specificUsername, domain) { 
-        function frob(user) { // get into the right format
-            var formattedSessionId = user.location.node_id || '';
-            if (formattedSessionId !== '' && formattedSessionId.indexOf("{") != 0) {
-                formattedSessionId = "{" + formattedSessionId + "}";
-            }
-            return {
-                sessionId: formattedSessionId,
-                userName: user.username,
-                connection: user.connection,
-                profileUrl: user.images.thumbnail,
-                placeName: (user.location.root || user.location.domain || {}).name || ''
-            };
-        }
-        if (specificUsername) {
-            getInfoAboutUser(specificUsername, function (user) {
-                if (user) {
-                    updateUser(frob(user));
-                } else {
-                    print('Error: Unable to find information about ' + specificUsername + ' in connectionsData!');
-                }
-            });
-        } else {
-            getAvailableConnections(domain, function (users) {
-                if (domain) {
-                    users.forEach(function (user) {
-                        updateUser(frob(user));
-                    });
-                } else {
-                    sendToQml({ method: 'updateConnections', connections: users.map(frob) });
-                }
-            });
-        }
-    }
-    //***********************************************
-    //
-    // END Connection logic
-    //
-    //***********************************************
-
-    //***********************************************
-    //
-    // BEGIN Avatar Selector logic
-    //
-    //***********************************************
+    // BEGIN AVATAR SELECTOR LOGIC
     var UNSELECTED_TEXTURES = {
         "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png"),
         "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png")
@@ -415,7 +291,7 @@
                 userName: ''
             };
             sendToQml(message);
-            
+
             ExtendedOverlay.some(function (overlay) {
                 var id = overlay.key;
                 var selected = ExtendedOverlay.isSelected(id);
@@ -521,11 +397,40 @@
     triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
     triggerPressMapping.from(Controller.Standard.RT).peek().to(makePressHandler(Controller.Standard.RightHand));
     triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
-    //***********************************************
+    // END AVATAR SELECTOR LOGIC
+
+    // Function Name: onButtonClicked()
     //
-    // END Avatar Selector logic
+    // Description:
+    //   -Fired when the app button is pressed.
     //
-    //***********************************************
+    // Relevant Variables:
+    //   -WALLET_QML_SOURCE: The path to the Wallet QML
+    //   -onWalletScreen: true/false depending on whether we're looking at the app.
+    var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
+    var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
+    var onWalletScreen = false;
+    function onButtonClicked() {
+        if (!tablet) {
+            print("Warning in buttonClicked(): 'tablet' undefined!");
+            return;
+        }
+        if (onWalletScreen) {
+            // for toolbar-mode: go back to home screen, this will close the window.
+            tablet.gotoHomeScreen();
+        } else {
+            tablet.loadQMLSource(WALLET_QML_SOURCE);
+        }
+    }
+
+    // Function Name: sendToQml()
+    //
+    // Description:
+    //   -Use this function to send a message to the QML (i.e. to change appearances). The "message" argument is what is sent to
+    //    the QML in the format "{method, params}", like json-rpc. See also fromQml().
+    function sendToQml(message) {
+        tablet.sendToQml(message);
+    }
 
     var sendMoneyRecipient;
     var sendMoneyParticleEffectUpdateTimer;
@@ -678,18 +583,23 @@
                 }
                 removeOverlays();
                 break;
-            case 'sendMoney_sendPublicly':
-                deleteSendMoneyParticleEffect();
-                sendMoneyRecipient = message.recipient;
-                var amount = message.amount;
-                var props = SEND_MONEY_PARTICLE_PROPERTIES;
-                props.parentID = MyAvatar.sessionUUID;
-                props.position = MyAvatar.position;
-                props.position.y += 0.2;
-                sendMoneyParticleEffect = Entities.addEntity(props, true);
-                particleEffectTimestamp = Date.now();
-                updateSendMoneyParticleEffect();
-                sendMoneyParticleEffectUpdateTimer = Script.setInterval(updateSendMoneyParticleEffect, SEND_MONEY_PARTICLE_TIMER_UPDATE);
+            case 'sendAsset_sendPublicly':
+                if (message.assetName === "") {
+                    deleteSendMoneyParticleEffect();
+                    sendMoneyRecipient = message.recipient;
+                    var amount = message.amount;
+                    var props = SEND_MONEY_PARTICLE_PROPERTIES;
+                    props.parentID = MyAvatar.sessionUUID;
+                    props.position = MyAvatar.position;
+                    props.position.y += 0.2;
+                    if (message.effectImage) {
+                        props.textures = message.effectImage;
+                    }
+                    sendMoneyParticleEffect = Entities.addEntity(props, true);
+                    particleEffectTimestamp = Date.now();
+                    updateSendMoneyParticleEffect();
+                    sendMoneyParticleEffectUpdateTimer = Script.setInterval(updateSendMoneyParticleEffect, SEND_MONEY_PARTICLE_TIMER_UPDATE);
+                }
                 break;
             case 'transactionHistory_goToBank':
                 if (Account.metaverseServerURL.indexOf("staging") >= 0) {

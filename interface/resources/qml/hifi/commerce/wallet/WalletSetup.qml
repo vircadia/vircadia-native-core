@@ -151,7 +151,9 @@ Item {
                     lightboxPopup.bodyImageSource = titleBarSecurityImage.source;
                     lightboxPopup.bodyText = lightboxPopup.securityPicBodyText;
                     lightboxPopup.button1text = "CLOSE";
-                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button1method = function() {
+                        lightboxPopup.visible = false;
+                    }
                     lightboxPopup.visible = true;
                 }
             }
