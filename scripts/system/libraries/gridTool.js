@@ -1,6 +1,6 @@
 var GRID_CONTROLS_HTML_URL = Script.resolvePath('../html/gridControls.html');
 
-Grid = function (opts) {
+Grid = function(opts) {
     var that = {};
     var gridColor = { red: 0, green: 0, blue: 0 };
     var gridAlpha = 0.6;
@@ -29,52 +29,54 @@ Grid = function (opts) {
     that.visible = false;
     that.enabled = false;
 
-    that.getOrigin = function () {
+    that.getOrigin = function() {
         return origin;
     };
 
-    that.getMinorIncrement = function () {
+    that.getMinorIncrement = function() {
         return minorGridEvery;
     };
 
-    that.setMinorIncrement = function (value) {
+    that.setMinorIncrement = function(value) {
         minorGridEvery = value;
         updateGrid();
     };
 
-    that.getMajorIncrement = function () {
+    that.getMajorIncrement = function() {
         return majorGridEvery;
     };
 
-    that.setMajorIncrement = function (value) {
+    that.setMajorIncrement = function(value) {
         majorGridEvery = value;
         updateGrid();
     };
 
-    that.getColor = function () {
+    that.getColor = function() {
         return gridColor;
     };
 
-    that.setColor = function (value) {
+    that.setColor = function(value) {
         gridColor = value;
         updateGrid();
     };
 
-    that.getSnapToGrid = function () {
+    that.getSnapToGrid = function() {
         return snapToGrid;
     };
-    that.setSnapToGrid = function (value) {
+    that.setSnapToGrid = function(value) {
         snapToGrid = value;
         that.emitUpdate();
     };
 
-    that.setEnabled = function (enabled) {
+    that.setEnabled = function(enabled) {
         that.enabled = enabled;
         updateGrid();
     };
 
-    that.getVisible = function () { return that.visible; };
-    that.setVisible = function (visible, noUpdate) {
+    that.getVisible = function() { 
+        return that.visible; 
+    };
+    that.setVisible = function(visible, noUpdate) {
         that.visible = visible;
         updateGrid();
 
@@ -83,7 +85,7 @@ Grid = function (opts) {
         }
     };
 
-    that.snapToSurface = function (position, dimensions, registration) {
+    that.snapToSurface = function(position, dimensions, registration) {
         if (!snapToGrid) {
             return position;
         }
@@ -103,7 +105,7 @@ Grid = function (opts) {
         };
     };
 
-    that.snapToGrid = function (position, majorOnly, dimensions, registration) {
+    that.snapToGrid = function(position, majorOnly, dimensions, registration) {
         if (!snapToGrid) {
             return position;
         }
@@ -125,9 +127,9 @@ Grid = function (opts) {
         position.z = Math.round(position.z / spacing) * spacing;
 
         return Vec3.sum(Vec3.sum(position, Vec3.multiplyVbyV(registration, dimensions)), origin);
-    }
+    };
 
-    that.snapToSpacing = function (delta, majorOnly) {
+    that.snapToSpacing = function(delta, majorOnly) {
         if (!snapToGrid) {
             return delta;
         }
@@ -144,7 +146,7 @@ Grid = function (opts) {
     };
 
 
-    that.setPosition = function (newPosition, noUpdate) {
+    that.setPosition = function(newPosition, noUpdate) {
         origin = { x: 0, y: newPosition.y, z: 0 };
         updateGrid();
 
@@ -153,7 +155,7 @@ Grid = function (opts) {
         }
     };
 
-    that.emitUpdate = function () {
+    that.emitUpdate = function() {
         if (that.onUpdate) {
             that.onUpdate({
                 origin: origin,
@@ -166,7 +168,7 @@ Grid = function (opts) {
         }
     };
 
-    that.update = function (data) {
+    that.update = function(data) {
         if (data.snapToGrid !== undefined) {
             snapToGrid = data.snapToGrid;
         }
@@ -223,7 +225,7 @@ Grid = function (opts) {
 
     that.addListener = function (callback) {
         that.onUpdate = callback;
-    }
+    };
 
     Script.scriptEnding.connect(cleanup);
     updateGrid();
@@ -233,7 +235,7 @@ Grid = function (opts) {
     return that;
 };
 
-GridTool = function (opts) {
+GridTool = function(opts) {
     var that = {};
 
     var horizontalGrid = opts.horizontalGrid;
@@ -244,18 +246,18 @@ GridTool = function (opts) {
     webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     webView.setVisible = function (value) { };
 
-    horizontalGrid.addListener(function (data) {
+    horizontalGrid.addListener(function(data) {
         webView.emitScriptEvent(JSON.stringify(data));
         if (selectionDisplay) {
             selectionDisplay.updateHandles();
         }
     });
 
-    webView.webEventReceived.connect(function (data) {
+    webView.webEventReceived.connect(function(data) {
         try {
             data = JSON.parse(data);
         } catch (e) {
-            print("gridTool.js: Error parsing JSON: " + e.name + " data " + data)
+            print("gridTool.js: Error parsing JSON: " + e.name + " data " + data);
             return;
         }
 
@@ -282,13 +284,13 @@ GridTool = function (opts) {
         }
     });
 
-    that.addListener = function (callback) {
+    that.addListener = function(callback) {
         listeners.push(callback);
-    }
+    };
 
-    that.setVisible = function (visible) {
+    that.setVisible = function(visible) {
         webView.setVisible(visible);
-    }
+    };
 
     return that;
 };
