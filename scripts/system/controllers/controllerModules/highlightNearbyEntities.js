@@ -9,7 +9,7 @@
 /* global Script, Controller, RIGHT_HAND, LEFT_HAND, MyAvatar, getGrabPointSphereOffset,
    makeRunningValues, Entities, enableDispatcherModule, disableDispatcherModule, makeDispatcherModuleParameters,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   DEFAULT_SEARCH_SPHERE_DISTANCE, getGrabbableData, makeLaserParams, entityIsCloneable
+   DEFAULT_SEARCH_SPHERE_DISTANCE, getGrabbableData, makeLaserParams, entityIsCloneable, Messages, print
 */
 
 (function () {
@@ -19,8 +19,6 @@
     var dispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
 
     function differenceInArrays(firstArray, secondArray) {
-        print("first " + firstArray);
-        print("second " + secondArray);
         var differenceArray = firstArray.filter(function(element) {
             return secondArray.indexOf(element) < 0;
         });
@@ -55,6 +53,13 @@
 
         this.hasHyperLink = function(props) {
             return (props.href !== "" && props.href !== undefined);
+        };
+
+        this.removeEntityFromHighlightList = function(entityID) {
+            var index = this.highlightedEntities.indexOf(entityID);
+            if (index > -1) {
+                this.highlightedEntities.splice(index, 1);
+            }
         };
 
         this.getOtherModule = function() {
@@ -103,6 +108,25 @@
         };
     }
 
+    var handleMessage = function(channel, message, sender) {
+        var data;
+        if (sender === MyAvatar.sessionUUID) {
+            if (channel === 'Hifi-unhighlight-entity') {
+                try {
+                    data = JSON.parse(message);
+
+                    var hand = data.hand;
+                    if (hand === dispatcherUtils.LEFT_HAND) {
+                        leftHighlightNearbyEntities.removeEntityFromHighlightList(data.entityID);
+                    } else if (hand === dispatcherUtils.RIGHT_HAND) {
+                        rightHighlightNearbyEntities.removeEntityFromHighlightList(data.entityID);
+                    }
+                } catch (e) {
+                    print("Failed to parse message");
+                }
+            }
+        }
+    };
     var leftHighlightNearbyEntities = new HighlightNearbyEntities(dispatcherUtils.LEFT_HAND);
     var rightHighlightNearbyEntities = new HighlightNearbyEntities(dispatcherUtils.RIGHT_HAND);
 
@@ -113,6 +137,7 @@
         dispatcherUtils.disableDispatcherModule("LeftHighlightNearbyEntities");
         dispatcherUtils.disableDispatcherModule("RightHighlightNearbyEntities");
     }
-
+    Messages.subscribe('Hifi-unhighlight-entity');
+    Messages.messageReceived.connect(handleMessage);
     Script.scriptEnding.connect(cleanup);
 }());

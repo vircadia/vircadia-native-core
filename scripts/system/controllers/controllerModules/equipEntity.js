@@ -484,6 +484,12 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             this.clearEquipHaptics();
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
             unhighlightTargetEntity(this.targetEntityID);
+            var message = {
+                hand: this.hand,
+                entityID: this.targetEntityID
+            };
+
+            Messages.sendMessage('Hifi-unhighlight-entity', JSON.stringify(message));
             var grabbedProperties = Entities.getEntityProperties(this.targetEntityID);
 
             // if an object is "equipped" and has a predefined offset, use it.

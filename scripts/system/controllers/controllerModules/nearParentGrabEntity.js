@@ -90,6 +90,12 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.startNearParentingGrabEntity = function (controllerData, targetProps) {
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
             unhighlightTargetEntity(this.targetEntityID);
+            var message = {
+                hand: this.hand,
+                entityID: this.targetEntityID
+            };
+
+            Messages.sendMessage('Hifi-unhighlight-entity', JSON.stringify(message));
             var handJointIndex;
             // if (this.ignoreIK) {
             //     handJointIndex = this.controllerJointIndex;
