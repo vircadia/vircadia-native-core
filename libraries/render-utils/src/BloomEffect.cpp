@@ -98,10 +98,9 @@ BloomApply::BloomApply() : _intensities{ 1.0f, 1.0f, 1.0f } {
 }
 
 void BloomApply::configure(const Config& config) {
-	_intensities.x = 2.0f * M_PI * config.sigma * config.sigma;
-	_intensities.y = _intensities.x*_intensities.x;
-	_intensities.z = _intensities.y*_intensities.x;
-	_intensities *= config.intensity / 3.0f;
+	_intensities.x = config.intensity / 3.0f;
+	_intensities.y = _intensities.x;
+	_intensities.z = _intensities.x;
 }
 
 void BloomApply::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -109,10 +108,10 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
 
-    static auto BLUR0_SLOT = 0;
-    static auto BLUR1_SLOT = 1;
-    static auto BLUR2_SLOT = 2;
-    static auto INTENSITY_SLOT = 3;
+    static const auto BLUR0_SLOT = 0;
+    static const auto BLUR1_SLOT = 1;
+    static const auto BLUR2_SLOT = 2;
+    static const auto INTENSITY_SLOT = 3;
 
     if (!_pipeline) {
         auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
@@ -317,7 +316,7 @@ void BloomConfig::setSize(float value) {
         assert(blurJobIt != task->_jobs.end());
         auto& gaussianBlur = blurJobIt->edit<render::BlurGaussian>();
         auto gaussianBlurParams = gaussianBlur.getParameters();
-        gaussianBlurParams->setFilterGaussianTaps(5, sigma);
+        gaussianBlurParams->setFilterGaussianTaps(7, sigma);
     }
 	auto blurJobIt = task->getJob("BloomApply");
 	assert(blurJobIt != task->_jobs.end());

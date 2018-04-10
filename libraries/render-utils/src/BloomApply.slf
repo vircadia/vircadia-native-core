@@ -23,5 +23,5 @@ void main(void) {
     vec4 blur1 = texture(blurMap1, varTexCoord0);
     vec4 blur2 = texture(blurMap2, varTexCoord0);
 
-    outFragColor = vec4(blur0.rgb*intensity.x+blur1.rgb*intensity.y+blur2.rgb*intensity.z, 1.0f);
+    outFragColor = vec4(blur0.rgb*intensity.x + blur1.rgb*intensity.y + blur2.rgb*intensity.z, 1.0f);
 }
