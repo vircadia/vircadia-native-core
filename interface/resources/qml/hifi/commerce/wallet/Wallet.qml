@@ -19,7 +19,7 @@ import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../common" as HifiCommerceCommon
-import "./sendMoney"
+import "../common/sendAsset"
 
 Rectangle {
     HifiConstants { id: hifi; }
@@ -161,7 +161,9 @@ Rectangle {
                     lightboxPopup.bodyImageSource = titleBarSecurityImage.source;
                     lightboxPopup.bodyText = lightboxPopup.securityPicBodyText;
                     lightboxPopup.button1text = "CLOSE";
-                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button1method = function() {
+                        lightboxPopup.visible = false;
+                    }
                     lightboxPopup.visible = true;
                 }
             }
@@ -342,7 +344,7 @@ Rectangle {
         }
     }
 
-    SendMoney {
+    SendAsset {
         id: sendMoney;
         z: 997;
         visible: root.activeView === "sendMoney";
@@ -351,7 +353,7 @@ Rectangle {
         parentAppNavBarHeight: tabButtonsContainer.height;
 
         Connections {
-            onSendSignalToWallet: {
+            onSendSignalToParent: {
                 sendToScript(msg);
             }
         }
@@ -406,7 +408,7 @@ Rectangle {
     //
     Item {
         id: tabButtonsContainer;
-        visible: !needsLogIn.visible && root.activeView !== "passphraseChange" && root.activeView !== "securityImageChange" && sendMoney.currentActiveView !== "sendMoneyStep";
+        visible: !needsLogIn.visible && root.activeView !== "passphraseChange" && root.activeView !== "securityImageChange" && sendMoney.currentActiveView !== "sendAssetStep";
         property int numTabs: 5;
         // Size
         width: root.width;
