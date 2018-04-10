@@ -13,7 +13,7 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include "../gl/GLTexelFormat.h"
+#include <gpu/gl/GLTexelFormat.h>
 
 using namespace gpu;
 using namespace gpu::gl;
@@ -251,9 +251,6 @@ void GLESFixedAllocationTexture::allocateStorage() const {
 void GLESFixedAllocationTexture::syncSampler() const {
     Parent::syncSampler();
     const Sampler& sampler = _gpuObject.getSampler();
-    auto baseMip = std::max<uint16_t>(sampler.getMipOffset(), sampler.getMinMip());
-
-    glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, baseMip);
     glTexParameterf(_target, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
     glTexParameterf(_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.0f : sampler.getMaxMip()));
 }
@@ -459,7 +456,6 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
         sourceMip._size = (GLint)faceTargets.size() * sourceMip._faceSize;
         sourceMip._offset = bufferOffset;
         bufferOffset += sourceMip._size;
-        gpu::gl::checkGLError();
     }
     (void)CHECK_GL_ERROR();
 
@@ -505,7 +501,6 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
 #endif
             glCompressedTexSubImage2D(faceTargets[f], destLevel, 0, 0, sourceMip._width, sourceMip._height, internalFormat,
                 sourceMip._faceSize, BUFFER_OFFSET(sourceMip._offset + f * sourceMip._faceSize));
-            gpu::gl::checkGLError();
         }
     }
 

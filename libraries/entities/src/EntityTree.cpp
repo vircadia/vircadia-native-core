@@ -94,7 +94,6 @@ OctreeElementPointer EntityTree::createNewElement(unsigned char* octalCode) {
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     emit clearingEntities();
 
-    // this would be a good place to clean up our entities...
     if (_simulation) {
         _simulation->clearEntities();
     }
@@ -260,7 +259,7 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
             return;
         }
     }
-    
+
     // check to see if we need to simulate this entity..
     if (_simulation) {
         _simulation->addEntity(entity);
@@ -425,8 +424,8 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
             if (!childEntity) {
                 continue;
             }
-            EntityTreeElementPointer containingElement = childEntity->getElement();
-            if (!containingElement) {
+            EntityTreeElementPointer childContainingElement = childEntity->getElement();
+            if (!childContainingElement) {
                 continue;
             }
 
@@ -440,7 +439,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                 addToNeedsParentFixupList(childEntity);
             }
 
-            UpdateEntityOperator theChildOperator(getThisPointer(), containingElement, childEntity, queryCube);
+            UpdateEntityOperator theChildOperator(getThisPointer(), childContainingElement, childEntity, queryCube);
             recurseTreeWithOperator(&theChildOperator);
             foreach (SpatiallyNestablePointer childChild, childEntity->getChildren()) {
                 if (childChild && childChild->getNestableType() == NestableType::Entity) {
@@ -453,12 +452,13 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
 
         uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
         if (newFlags) {
-            if (_simulation) {
+            if (entity->isSimulated()) {
+                assert((bool)_simulation);
                 if (newFlags & DIRTY_SIMULATION_FLAGS) {
                     _simulation->changeEntity(entity);
                 }
             } else {
-                // normally the _simulation clears ALL updateFlags, but since there is none we do it explicitly
+                // normally the _simulation clears ALL dirtyFlags, but when not possible we do it explicitly
                 entity->clearDirtyFlags();
             }
         }
@@ -469,7 +469,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
         if (entityScriptBefore != entityScriptAfter || reload) {
             emitEntityScriptChanging(entity->getEntityItemID(), reload); // the entity script has changed
         }
-     }
+    }
 
     // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
     if (!entity->getElement()) {
@@ -493,7 +493,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
 
     if (!properties.getClientOnly() && getIsClient() &&
         !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp() &&
-        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified()) {
+        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified() && !_serverlessDomain) {
         return nullptr;
     }
 
@@ -551,8 +551,6 @@ void EntityTree::setSimulation(EntitySimulationPointer simulation) {
             assert(simulation->getEntityTree().get() == this);
         }
         if (_simulation && _simulation != simulation) {
-            // It's important to clearEntities() on the simulation since taht will update each
-            // EntityItem::_simulationState correctly so as to not confuse the next _simulation.
             _simulation->clearEntities();
         }
         _simulation = simulation;
@@ -650,7 +648,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         emit deletingEntityPointer(existingEntity.get());
     }
 
-    if (theOperator.getEntities().size() > 0) {
+    if (!theOperator.getEntities().empty()) {
         recurseTreeWithOperator(&theOperator);
         processRemovedEntities(theOperator);
         _isDirty = true;
@@ -692,7 +690,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             trackDeletedEntity(theEntity->getEntityItemID());
         }
 
-        if (_simulation) {
+        if (theEntity->isSimulated()) {
             _simulation->prepareEntityForDelete(theEntity);
         }
     }
@@ -1509,7 +1507,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             }
 
             if (isAdd && properties.getLocked() && !senderNode->isAllowedEditor()) {
-                // if a node can't change locks, don't allow them to create an already-locked entity
+                // if a node can't change locks, don't allow it to create an already-locked entity -- automatically
+                // clear the locked property and allow the unlocked entity to be created.
                 properties.setLocked(false);
                 bumpTimestamp(properties);
             }
@@ -1687,7 +1686,7 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
 }
 
 void EntityTree::entityChanged(EntityItemPointer entity) {
-    if (_simulation) {
+    if (entity->isSimulated()) {
         _simulation->changeEntity(entity);
     }
 }
@@ -1801,13 +1800,13 @@ void EntityTree::update(bool simulate) {
             _simulation->updateEntities();
             {
                 PROFILE_RANGE(simulation_physics, "Deletes");
-                VectorOfEntities pendingDeletes;
-                _simulation->takeEntitiesToDelete(pendingDeletes);
-                if (pendingDeletes.size() > 0) {
+                SetOfEntities deadEntities;
+                _simulation->takeDeadEntities(deadEntities);
+                if (!deadEntities.empty()) {
                     // translate into list of ID's
                     QSet<EntityItemID> idsToDelete;
 
-                    for (auto entity : pendingDeletes) {
+                    for (auto entity : deadEntities) {
                         idsToDelete.insert(entity->getEntityItemID());
                     }
 
@@ -2181,23 +2180,25 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
         localTree->recurseTreeWithOperator(&moveOperator);
     }
 
-    // send add-entity packets to the server
-    i = map.begin();
-    while (i != map.end()) {
-        EntityItemID newID = i.value();
-        EntityItemPointer entity = localTree->findEntityByEntityItemID(newID);
-        if (entity) {
-            // queue the packet to send to the server
-            entity->updateQueryAACube();
-            EntityItemProperties properties = entity->getProperties();
-            properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
-            packetSender->queueEditEntityMessage(PacketType::EntityAdd, localTree, newID, properties);
-            i++;
-        } else {
-            i = map.erase(i);
+    if (!_serverlessDomain) {
+        // send add-entity packets to the server
+        i = map.begin();
+        while (i != map.end()) {
+            EntityItemID newID = i.value();
+            EntityItemPointer entity = localTree->findEntityByEntityItemID(newID);
+            if (entity) {
+                // queue the packet to send to the server
+                entity->updateQueryAACube();
+                EntityItemProperties properties = entity->getProperties();
+                properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
+                packetSender->queueEditEntityMessage(PacketType::EntityAdd, localTree, newID, properties);
+                i++;
+            } else {
+                i = map.erase(i);
+            }
         }
+        packetSender->releaseQueuedMessages();
     }
-    packetSender->releaseQueuedMessages();
 
     return map.values().toVector();
 }

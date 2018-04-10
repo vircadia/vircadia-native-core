@@ -30,6 +30,7 @@
     var userIsLoggedIn = false;
     var walletNeedsSetup = false;
     var marketplaceBaseURL = "https://highfidelity.com";
+    var messagesWaiting = false;
 
     function injectCommonCode(isDirectoryPage) {
 
@@ -205,16 +206,22 @@
 
             purchasesElement.id = "purchasesButton";
             purchasesElement.setAttribute('href', "#");
-            purchasesElement.innerHTML = "My Purchases";
+            purchasesElement.innerHTML = "";
+            if (messagesWaiting) {
+                purchasesElement.innerHTML += "<span style='width:10px;height:10px;background-color:red;border-radius:50%;display:inline-block;'></span> ";
+            }
+            purchasesElement.innerHTML += "My Purchases";
             // FRONTEND WEBDEV RANT: The username dropdown should REALLY not be programmed to be on the same
             //     line as the search bar, overlaid on top of the search bar, floated right, and then relatively bumped up using "top:-50px".
+            $('.navbar-brand').css('margin-right', '10px');
             purchasesElement.style = "height:100%;margin-top:18px;font-weight:bold;float:right;margin-right:" + (dropDownElement.offsetWidth + 30) +
                 "px;position:relative;z-index:999;";
             navbarBrandElement.parentNode.insertAdjacentElement('beforeend', purchasesElement);
             $('#purchasesButton').on('click', function () {
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: "PURCHASES",
-                    referrerURL: window.location.href
+                    referrerURL: window.location.href,
+                    hasUpdates: messagesWaiting
                 }));
             });
         }
@@ -243,7 +250,7 @@
         });
     }
 
-    function buyButtonClicked(id, name, author, price, href, referrer) {
+    function buyButtonClicked(id, name, author, price, href, referrer, edition) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
             itemId: id,
@@ -251,7 +258,8 @@
             itemPrice: price ? parseInt(price, 10) : 0,
             itemHref: href,
             referrer: referrer,
-            itemAuthor: author
+            itemAuthor: author,
+            itemEdition: edition
         }));
     }
 
@@ -319,7 +327,8 @@
                 $(this).closest('.grid-item').find('.creator').find('.value').text(),
                 $(this).closest('.grid-item').find('.item-cost').text(),
                 $(this).attr('data-href'),
-                "mainPage");
+                "mainPage",
+                -1);
         });
     }
 
@@ -410,7 +419,11 @@
                 }
 
                 var cost = $('.item-cost').text();
-                if (availability !== 'available') {
+                var isUpdating = window.location.href.indexOf('edition=') > -1;
+                var urlParams = new URLSearchParams(window.location.search);
+                if (isUpdating) {
+                    purchaseButton.html('UPDATE FOR FREE');
+                } else if (availability !== 'available') {
                     purchaseButton.html('UNAVAILABLE (' + availability + ')');
                 } else if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
                     purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
@@ -418,13 +431,14 @@
                 }
 
                 purchaseButton.on('click', function () {
-                    if ('available' === availability) {
+                    if ('available' === availability || isUpdating) {
                         buyButtonClicked(window.location.pathname.split("/")[3],
                             $('#top-center').find('h1').text(),
                             $('#creator').find('.value').text(),
                             cost,
                             href,
-                            "itemPage");
+                            "itemPage",
+                            urlParams.get('edition'));
                         }
                     });
                 maybeAddPurchasesButton();
@@ -698,6 +712,7 @@
                         if (marketplaceBaseURL.indexOf('metaverse.') !== -1) {
                             marketplaceBaseURL = marketplaceBaseURL.replace('metaverse.', '');
                         }
+                        messagesWaiting = parsedJsonMessage.data.messagesWaiting;
                         injectCode();
                     }
                 }

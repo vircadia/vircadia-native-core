@@ -40,7 +40,7 @@
     }
 
     function onScreenChanged(type, url) {
-        onHelpScreen = type === "Web" && url.startsWith(HELP_URL);
+        onHelpScreen = type === "Web" && (url.indexOf(HELP_URL) === 0);
         button.editProperties({ isActive: onHelpScreen });
     }
 

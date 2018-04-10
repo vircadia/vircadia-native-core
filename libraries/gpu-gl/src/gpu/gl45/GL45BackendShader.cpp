@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "GL45Backend.h"
-#include "../gl/GLShader.h"
+#include <gpu/gl/GLShader.h>
 //#include <gl/GLShaders.h>
 
 using namespace gpu;
@@ -163,6 +163,11 @@ void GL45Backend::makeProgramBindings(ShaderObject& shaderObject) {
     if (loc >= 0) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
         shaderObject.transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
+    }
+
+    loc = glGetUniformBlockIndex(glprogram, "gpu_resourceTextureTable0");
+    if (loc >= 0) {
+        glUniformBlockBinding(glprogram, loc, RESOURCE_TABLE_TEXTURE_SLOT_OFFSET);
     }
 
     (void)CHECK_GL_ERROR();

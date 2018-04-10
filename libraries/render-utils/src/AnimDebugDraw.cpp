@@ -9,6 +9,7 @@
 
 #include "AnimDebugDraw.h"
 
+#include <qmath.h>
 #include <gpu/Batch.h>
 #include <GLMHelpers.h>
 
@@ -21,7 +22,6 @@
 
 #include "animdebugdraw_vert.h"
 #include "animdebugdraw_frag.h"
-
 class AnimDebugDrawData {
 public:
 

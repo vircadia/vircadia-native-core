@@ -65,7 +65,7 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
 
     } else {
         emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(true, contents);
-        delete this;
+        this->deleteLater();
     }
 }
 
@@ -75,23 +75,27 @@ void SnapshotUploader::uploadFailure(QNetworkReply& reply) {
     if (replyString.size() == 0) {
         replyString = reply.errorString();
     }
+    replyString = replyString.left(1000); // Only print first 1000 characters of error
+    qDebug() << "Snapshot upload reply error (truncated):" << replyString;
     emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(true, replyString); // maybe someday include _inWorldLocation, _filename?
-    delete this;
+    this->deleteLater();
 }
 
 void SnapshotUploader::createStorySuccess(QNetworkReply& reply) {
     QString replyString = reply.readAll();
     emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(false, replyString);
-    delete this;
+    this->deleteLater();
 }
 
 void SnapshotUploader::createStoryFailure(QNetworkReply& reply) {
     QString replyString = reply.readAll();
-    qDebug() << "Error " << reply.errorString() << " uploading snapshot " << _pathname << " from " << _inWorldLocation;
+    qDebug() << "Error " << reply.errorString() << " uploading snapshot story " << _pathname << " from " << _inWorldLocation;
     if (replyString.size() == 0) {
         replyString = reply.errorString();
     }
+    replyString = replyString.left(1000); // Only print first 1000 characters of error
+    qDebug() << "Snapshot story upload reply error (truncated):" << replyString;
     emit DependencyManager::get<WindowScriptingInterface>()->snapshotShared(true, replyString);
-    delete this;
+    this->deleteLater();
 }
 

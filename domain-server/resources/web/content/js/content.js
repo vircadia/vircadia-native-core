@@ -132,6 +132,41 @@ $(document).ready(function(){
   var ACTIVE_BACKUP_ROW_CLASS = 'active-backup';
   var CORRUPTED_ROW_CLASS = 'danger';
 
+  $('body').on('click',  '.' + BACKUP_DOWNLOAD_LINK_CLASS, function(ev) {
+    ev.preventDefault();
+    var backupID = $(this).data('backup-id');
+
+    showSpinnerAlert("Preparing backup...");
+    function checkBackupStatus() {
+      $.ajax({
+        url: "/api/backups/" + backupID,
+        dataType: 'json',
+        success: function(data) {
+          if (data.complete) {
+            if (data.error == '') {
+              location.href = "/api/backups/download/" + backupID;
+              swal.close();
+            } else {
+              showErrorMessage(
+                "Error",
+                "There was an error preparing your backup. Please refresh the page and try again."
+              );
+            }
+          } else {
+            setTimeout(checkBackupStatus, 500);
+          }
+        },
+        error: function() {
+          showErrorMessage(
+            "Error",
+            "There was an error preparing your backup."
+          );
+        },
+      });
+    }
+    checkBackupStatus();
+  });
+
   function reloadBackupInformation() {
     // make a GET request to get backup information to populate the table
     $.ajax({
@@ -164,7 +199,7 @@ $(document).ready(function(){
           + "<div class='dropdown'><div class='dropdown-toggle' data-toggle='dropdown' aria-expanded='false'><span class='glyphicon glyphicon-option-vertical'></span></div>"
           + "<ul class='dropdown-menu dropdown-menu-right'>"
           + "<li><a class='" + BACKUP_RESTORE_LINK_CLASS + "' href='#'>Restore from here</a></li><li class='divider'></li>"
-          + "<li><a class='" + BACKUP_DOWNLOAD_LINK_CLASS + "' href='/api/backups/" + backup.id + "'>Download</a></li><li class='divider'></li>"
+          + "<li><a class='" + BACKUP_DOWNLOAD_LINK_CLASS + "' data-backup-id='" + backup.id + "' href='#'>Download</a></li><li class='divider'></li>"
           + "<li><a class='" + BACKUP_DELETE_LINK_CLASS + "' href='#' target='_blank'>Delete</a></li></ul></div></td>";
       }
 

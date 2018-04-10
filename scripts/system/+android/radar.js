@@ -13,7 +13,7 @@
 
 var radarModeInterface = {};
 
-var logEnabled = true;
+var logEnabled = false;
 function printd(str) {
     if (logEnabled) {
         print("[radar.js] " + str);
@@ -118,19 +118,10 @@ function actionOnObjectFromEvent(event) {
 }
 
 function mousePress(event) {
-    if (!isTouchValid(coords)) {
-        currentTouchIsValid = false;
-        return;
-    } else {
-        currentTouchIsValid = true;
-    }
     mousePressOrTouchEnd(event);
 }
 
 function mousePressOrTouchEnd(event) {
-    if (!currentTouchIsValid) {
-        return;
-    }
     if (radar) {
         if (actionOnObjectFromEvent(event)) {
             return;
@@ -154,9 +145,6 @@ function fakeDoubleTap(event) {
     teleporter.dragTeleportUpdate(event);
     teleporter.dragTeleportRelease(event);
 }
-
-var currentTouchIsValid = false; // Currently used to know if touch hasn't
-                                    // started on a UI overlay
 
 var DOUBLE_TAP_TIME = 300;
 var fakeDoubleTapStart = Date.now();
@@ -235,12 +223,6 @@ function touchEnd(event) {
     }
     if (event.isMoved) {
         printd("touchEnd fail because isMoved");
-        return;
-    }
-
-    // if touch is invalid, cancel
-    if (!currentTouchIsValid) {
-        printd("touchEnd fail because !currentTouchIsValid");
         return;
     }
 
@@ -349,20 +331,6 @@ function computePointAtPlaneY(x, y, py) {
  * 
  ******************************************************************************/
 
-function isTouchValid(coords) {
-    // TODO: Extend to the detection of touches on new menu bars
-    var radarModeTouchValid = radarModeInterface.isTouchValid(coords);
-
-    // getItemAtPoint does not exist anymore, look for another way to know if we
-    // are touching buttons
-    // is it still needed?
-    return /* !tablet.getItemAtPoint(coords) && */radarModeTouchValid;
-}
-
-/*******************************************************************************
- * 
- ******************************************************************************/
-
 var touchStartingCoordinates = null;
 
 var KEEP_PRESSED_FOR_TELEPORT_MODE_TIME = 750;
@@ -373,16 +341,8 @@ function touchBegin(event) {
         x : event.x,
         y : event.y
     };
-    if (!isTouchValid(coords)) {
-        printd("analyze touch - RADAR_TOUCH - INVALID");
-        currentTouchIsValid = false;
-        touchStartingCoordinates = null;
-    } else {
-        printd("analyze touch - RADAR_TOUCH - ok");
-        currentTouchIsValid = true;
-        touchStartingCoordinates = coords;
-        touchBeginTime = Date.now();
-    }
+    touchStartingCoordinates = coords;
+    touchBeginTime = Date.now();
 }
 
 var startedDraggingCamera = false; // first time
@@ -848,9 +808,6 @@ function oneFingerTouchUpdate(event) {
 }
 
 function touchUpdate(event) {
-    if (!currentTouchIsValid) {
-        return; // avoid moving and zooming when tap is over UI entities
-    }
     if (event.isPinching || event.isPinchOpening) {
         pinchUpdate(event);
     } else {

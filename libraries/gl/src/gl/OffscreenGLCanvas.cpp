@@ -69,7 +69,7 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
         qFatal("Offscreen surface is invalid");
     }
 #endif
-
+    
     if (gl::Context::enableDebugLogger()) {
         _context->makeCurrent(_offscreenSurface);
         QOpenGLDebugLogger *logger = new QOpenGLDebugLogger(this);

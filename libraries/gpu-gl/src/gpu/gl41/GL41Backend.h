@@ -13,8 +13,8 @@
 
 #include <gl/Config.h>
 
-#include "../gl/GLBackend.h"
-#include "../gl/GLTexture.h"
+#include <gpu/gl/GLBackend.h>
+#include <gpu/gl/GLTexture.h>
 
 #define GPU_CORE_41 410
 #define GPU_CORE_43 430

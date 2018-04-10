@@ -20,6 +20,7 @@
 #include <QJsonArray>
 #include <QProcess>
 #include <QSharedMemory>
+#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QTimer>
 #include <QUrlQuery>
@@ -163,6 +164,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _iceServerAddr(ICE_SERVER_DEFAULT_HOSTNAME),
     _iceServerPort(ICE_SERVER_DEFAULT_PORT)
 {
+    PathUtils::removeTemporaryApplicationDirs();
+
     parseCommandLine();
 
     DependencyManager::set<tracing::Tracer>();
@@ -727,7 +730,7 @@ void DomainServer::setupNodeListAndAssignments() {
     packetReceiver.registerListener(PacketType::OctreeDataPersist, this, "processOctreeDataPersistMessage");
 
     packetReceiver.registerListener(PacketType::OctreeFileReplacement, this, "handleOctreeFileReplacementRequest");
-    packetReceiver.registerListener(PacketType::OctreeFileReplacementFromUrl, this, "handleOctreeFileReplacementFromURLRequest");
+    packetReceiver.registerListener(PacketType::DomainContentReplacementFromUrl, this, "handleDomainContentReplacementFromURLRequest");
 
     // set a custom packetVersionMatch as the verify packet operator for the udt::Socket
     nodeList->setPacketFilterOperator(&DomainServer::isPacketVerified);
@@ -736,7 +739,6 @@ void DomainServer::setupNodeListAndAssignments() {
     auto assetClient = DependencyManager::set<AssetClient>();
     assetClient->moveToThread(&_assetClientThread);
     _assetClientThread.start();
-
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
 }
@@ -1040,41 +1042,7 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
 
 bool DomainServer::isInInterestSet(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB) {
     auto nodeAData = static_cast<DomainServerNodeData*>(nodeA->getLinkedData());
-    auto nodeBData = static_cast<DomainServerNodeData*>(nodeB->getLinkedData());
-
-    // if we have no linked data for node A then B can't possibly be in the interest set
-    if (!nodeAData) {
-        return false;
-    }
-
-    // first check if the general interest set A contains the type for B
-    if (nodeAData->getNodeInterestSet().contains(nodeB->getType())) {
-        // given that there is a match in the general interest set, do any special checks
-
-        // (1/19/17) Agents only need to connect to Entity Script Servers to perform administrative tasks
-        // related to entity server scripts. Only agents with rez permissions should be doing that, so
-        // if the agent does not have those permissions, we do not want them and the server to incur the
-        // overhead of connecting to one another. Additionally we exclude agents that do not care about the
-        // Entity Script Server and won't attempt to connect to it.
-
-        bool isAgentWithoutRights = nodeA->getType() == NodeType::Agent
-            && nodeB->getType() == NodeType::EntityScriptServer
-            && !nodeA->getCanRez() && !nodeA->getCanRezTmp()
-            && !nodeA->getCanRezCertified() && !nodeA->getCanRezTmpCertified();
-
-        if (isAgentWithoutRights) {
-            return false;
-        }
-
-        bool isScriptServerForIneffectiveAgent =
-            (nodeA->getType() == NodeType::EntityScriptServer && nodeB->getType() == NodeType::Agent)
-            && ((nodeBData && !nodeBData->getNodeInterestSet().contains(NodeType::EntityScriptServer))
-                || (!nodeB->getCanRez() && !nodeB->getCanRezTmp() && !nodeB->getCanRezCertified() && !nodeB->getCanRezTmpCertified()));
-
-        return !isScriptServerForIneffectiveAgent;
-    } else {
-        return false;
-    }
+    return nodeAData && nodeAData->getNodeInterestSet().contains(nodeB->getType());
 }
 
 unsigned int DomainServer::countConnectedUsers() {
@@ -1933,6 +1901,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_API_DOMAINS_ID = "/api/domains/";
     const QString URI_API_BACKUPS = "/api/backups";
     const QString URI_API_BACKUPS_ID = "/api/backups/";
+    const QString URI_API_BACKUPS_DOWNLOAD_ID = "/api/backups/download/";
     const QString URI_API_BACKUPS_RECOVER = "/api/backups/recover/";
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -2133,30 +2102,40 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             });
             _contentManager->getAllBackupsAndStatus(deferred);
             return true;
+        } else if (url.path().startsWith(URI_API_BACKUPS_DOWNLOAD_ID)) {
+            auto id = url.path().mid(QString(URI_API_BACKUPS_DOWNLOAD_ID).length());
+            auto info = _contentManager->consolidateBackup(id);
+
+            if (info.state == ConsolidatedBackupInfo::COMPLETE_WITH_SUCCESS) {
+                auto file { std::unique_ptr<QFile>(new QFile(info.absoluteFilePath)) };
+                if (file->open(QIODevice::ReadOnly)) {
+                    constexpr const char* CONTENT_TYPE_ZIP = "application/zip";
+                    auto downloadedFilename = id;
+                    downloadedFilename.replace(QRegularExpression(".zip$"), ".content.zip");
+                    auto contentDisposition = "attachment; filename=\"" + downloadedFilename + "\"";
+                    connectionPtr->respond(HTTPConnection::StatusCode200, std::move(file), CONTENT_TYPE_ZIP, {
+                        { "Content-Disposition", contentDisposition.toUtf8() }
+                    });
+                } else {
+                    qCritical(domain_server) << "Unable to load consolidated backup at:" << info.absoluteFilePath;
+                    connectionPtr->respond(HTTPConnection::StatusCode500, "Error opening backup");
+                }
+            } else if (info.state == ConsolidatedBackupInfo::COMPLETE_WITH_ERROR) {
+                connectionPtr->respond(HTTPConnection::StatusCode500, ("Error creating backup: " + info.error).toUtf8());
+            } else {
+                connectionPtr->respond(HTTPConnection::StatusCode400, "Backup unavailable");
+            }
+            return true;
         } else if (url.path().startsWith(URI_API_BACKUPS_ID)) {
             auto id = url.path().mid(QString(URI_API_BACKUPS_ID).length());
-            auto deferred = makePromise("consolidateBackup");
-            deferred->then([connectionPtr, JSON_MIME_TYPE](QString error, QVariantMap result) {
-                if (!connectionPtr) {
-                    return;
-                }
+            auto info = _contentManager->consolidateBackup(id);
 
-                QJsonObject rootJSON;
-                auto success = result["success"].toBool();
-                if (success) {
-                    auto path = result["backupFilePath"].toString();
-                    auto file { std::unique_ptr<QFile>(new QFile(path)) };
-                    if (file->open(QIODevice::ReadOnly)) {
-                        connectionPtr->respond(HTTPConnection::StatusCode200, std::move(file));
-                    } else {
-                        qCritical(domain_server) << "Unable to load consolidated backup at:" << path << result;
-                        connectionPtr->respond(HTTPConnection::StatusCode500, "Error opening backup");
-                    }
-                } else {
-                    connectionPtr->respond(HTTPConnection::StatusCode400);
-                }
-            });
-            _contentManager->consolidateBackup(deferred, id);
+            QJsonObject rootJSON {
+                { "complete", info.state == ConsolidatedBackupInfo::COMPLETE_WITH_SUCCESS },
+                { "error", info.error }
+            };
+            QJsonDocument docJSON { rootJSON };
+            connectionPtr->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
 
             return true;
         } else if (url.path() == URI_RESTART) {
@@ -2209,7 +2188,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             const QString ASSIGNMENT_INSTANCES_HEADER = "ASSIGNMENT-INSTANCES";
             const QString ASSIGNMENT_POOL_HEADER = "ASSIGNMENT-POOL";
 
-            QByteArray assignmentInstancesValue = connection->requestHeaders().value(ASSIGNMENT_INSTANCES_HEADER.toLocal8Bit());
+            QByteArray assignmentInstancesValue = connection->requestHeader(ASSIGNMENT_INSTANCES_HEADER.toLocal8Bit());
 
             int numInstances = 1;
 
@@ -2221,7 +2200,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             }
 
             QString assignmentPool = emptyPool;
-            QByteArray assignmentPoolValue = connection->requestHeaders().value(ASSIGNMENT_POOL_HEADER.toLocal8Bit());
+            QByteArray assignmentPoolValue = connection->requestHeader(ASSIGNMENT_POOL_HEADER.toLocal8Bit());
 
             if (!assignmentPoolValue.isEmpty()) {
                 // specific pool requested, set that on the created assignment
@@ -2619,7 +2598,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
 
     if (!_oauthProviderURL.isEmpty()
         && (adminUsersVariant.isValid() || adminRolesVariant.isValid())) {
-        QString cookieString = connection->requestHeaders().value(HTTP_COOKIE_HEADER_KEY);
+        QString cookieString = connection->requestHeader(HTTP_COOKIE_HEADER_KEY);
 
         const QString COOKIE_UUID_REGEX_STRING = HIFI_SESSION_COOKIE_KEY + "=([\\d\\w-]+)($|;)";
         QRegExp cookieUUIDRegex(COOKIE_UUID_REGEX_STRING);
@@ -2664,7 +2643,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             static const QByteArray REQUESTED_WITH_HEADER = "X-Requested-With";
             static const QString XML_REQUESTED_WITH = "XMLHttpRequest";
 
-            if (connection->requestHeaders().value(REQUESTED_WITH_HEADER) == XML_REQUESTED_WITH) {
+            if (connection->requestHeader(REQUESTED_WITH_HEADER) == XML_REQUESTED_WITH) {
                 // unauthorized XHR requests get a 401 and not a 302, since there isn't an XHR
                 // path to OAuth authorize
                 connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY);
@@ -2695,7 +2674,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
         const QByteArray BASIC_AUTH_HEADER_KEY = "Authorization";
 
         // check if a username and password have been provided with the request
-        QString basicAuthString = connection->requestHeaders().value(BASIC_AUTH_HEADER_KEY);
+        QString basicAuthString = connection->requestHeader(BASIC_AUTH_HEADER_KEY);
 
         if (!basicAuthString.isEmpty()) {
             QStringList splitAuthString = basicAuthString.split(' ');
@@ -3429,13 +3408,10 @@ void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
     }
 }
 
-void DomainServer::handleOctreeFileReplacementFromURLRequest(QSharedPointer<ReceivedMessage> message) {
+void DomainServer::handleDomainContentReplacementFromURLRequest(QSharedPointer<ReceivedMessage> message) {
     qInfo() << "Received request to replace content from a url";
     auto node = DependencyManager::get<LimitedNodeList>()->findNodeWithAddr(message->getSenderSockAddr());
-    if (node) {
-        qDebug() << "Found node: " << node->getCanReplaceContent();
-    }
-    if (node->getCanReplaceContent()) {
+    if (node && node->getCanReplaceContent()) {
         // Convert message data into our URL
         QString url(message->getMessage());
         QUrl modelsURL = QUrl(url, QUrl::StrictMode);
@@ -3448,16 +3424,18 @@ void DomainServer::handleOctreeFileReplacementFromURLRequest(QSharedPointer<Rece
         connect(reply, &QNetworkReply::finished, [this, reply, modelsURL]() {
             QNetworkReply::NetworkError networkError = reply->error();
             if (networkError == QNetworkReply::NoError) {
-                handleOctreeFileReplacement(reply->readAll());
+                if (modelsURL.fileName().endsWith(".json.gz")) {
+                    handleOctreeFileReplacement(reply->readAll());
+                } else if (modelsURL.fileName().endsWith(".zip")) {
+                    auto deferred = makePromise("recoverFromUploadedBackup");
+                    _contentManager->recoverFromUploadedBackup(deferred, reply->readAll());
+                }
             } else {
                 qDebug() << "Error downloading JSON from specified file: " << modelsURL;
             }
         });
     }
 }
-
-
-
 
 void DomainServer::handleOctreeFileReplacementRequest(QSharedPointer<ReceivedMessage> message) {
     auto node = DependencyManager::get<NodeList>()->nodeWithUUID(message->getSourceID());
