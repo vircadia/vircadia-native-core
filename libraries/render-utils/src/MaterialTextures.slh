@@ -235,8 +235,8 @@ vec3 fetchLightmapMap(vec2 uv) {
     vec3 normalizedTangent = normalize(<$interpolatedTangent$>.xyz);
     vec3 normalizedBitangent = cross(normalizedNormal, normalizedTangent);
     // attenuate the normal map divergence from the mesh normal based on distance
-    // The attenuation range [100,300] meters from the eye is arbitrary for now
-    vec3 localNormal = mix(<$fetchedNormal$>, vec3(0.0, 1.0, 0.0), smoothstep(100.0, 300.0, (-<$fragPos$>).z));
+    // The attenuation range [50,200] meters from the eye is arbitrary for now
+    vec3 localNormal = mix(<$fetchedNormal$>, vec3(0.0, 1.0, 0.0), smoothstep(50.0, 200.0, (-<$fragPos$>).z));
     <$normal$> = vec3(normalizedBitangent * localNormal.x + normalizedNormal * localNormal.y + normalizedTangent * localNormal.z);
 }
 <@endfunc@>

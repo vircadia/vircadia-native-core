@@ -316,7 +316,7 @@ void BloomConfig::setSize(float value) {
         assert(blurJobIt != task->_jobs.end());
         auto& gaussianBlur = blurJobIt->edit<render::BlurGaussian>();
         auto gaussianBlurParams = gaussianBlur.getParameters();
-        gaussianBlurParams->setFilterGaussianTaps(7, sigma);
+        gaussianBlurParams->setFilterGaussianTaps(5, sigma);
     }
 	auto blurJobIt = task->getJob("BloomApply");
 	assert(blurJobIt != task->_jobs.end());
