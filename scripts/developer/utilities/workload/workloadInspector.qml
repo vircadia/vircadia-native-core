@@ -38,11 +38,27 @@ Rectangle {
             text: "Workload"       
         }
 
-        HifiControls.CheckBox {
-            boxSize: 20
-            text: "Freeze Views"
-            checked: Workload.getConfig("setupViews")["freezeViews"]
-            onCheckedChanged: { Workload.getConfig("SpaceToRender")["freezeViews"] = checked, Workload.getConfig("setupViews")["freezeViews"] = checked; }
+        RowLayout {
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            HifiControls.CheckBox {
+                boxSize: 20
+                text: "Freeze Views"
+                checked: Workload.getConfig("setupViews")["freezeViews"]
+                onCheckedChanged: { Workload.getConfig("SpaceToRender")["freezeViews"] = checked, Workload.getConfig("setupViews")["freezeViews"] = checked; }
+            }
+            HifiControls.CheckBox {
+                boxSize: 20
+                text: "Use Avatar View"
+                checked: Workload.getConfig("setupViews")["useAvatarView"]
+                onCheckedChanged: { Workload.getConfig("setupViews")["useAvatarView"] = checked; }
+            }
+            HifiControls.CheckBox {
+                boxSize: 20
+                text: "force View Horizontal"
+                checked: Workload.getConfig("setupViews")["forceViewHorizontal"]
+                onCheckedChanged: { Workload.getConfig("setupViews")["forceViewHorizontal"] = checked; }
+            }
         }
 
         RowLayout {

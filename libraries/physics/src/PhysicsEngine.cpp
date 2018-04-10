@@ -72,7 +72,7 @@ uint32_t PhysicsEngine::getNumSubsteps() {
 
 // private
 void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
-    qCDebug(physics) << "templog addObject" << (void*)(motionState); // TODO: remove this
+   // qCDebug(physics) << "templog addObject" << (void*)(motionState); // TODO: remove this
     assert(motionState);
 
     btVector3 inertia(0.0f, 0.0f, 0.0f);
@@ -194,7 +194,7 @@ void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
         if (body) {
-            qCDebug(physics) << "removeObject" << (void*)(body->getMotionState()); // TODO: remove this
+          //  qCDebug(physics) << "removeObject" << (void*)(body->getMotionState()); // TODO: remove this
             removeDynamicsForBody(body);
             _dynamicsWorld->removeRigidBody(body);
 
