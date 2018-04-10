@@ -23,6 +23,8 @@ namespace workload {
         Q_PROPERTY(float r3Front READ getR3Front WRITE setR3Front NOTIFY dirty)
         Q_PROPERTY(float r3Back READ getR3Back WRITE setR3Back NOTIFY dirty)
         Q_PROPERTY(bool freezeViews READ getFreezeView WRITE setFreezeView NOTIFY dirty)
+        Q_PROPERTY(bool useAvatarView READ useAvatarView WRITE setUseAvatarView NOTIFY dirty)
+        Q_PROPERTY(bool forceViewHorizontal READ forceViewHorizontal WRITE setForceViewHorizontal NOTIFY dirty)
     public:
 
 
@@ -42,6 +44,10 @@ namespace workload {
 
         bool getFreezeView() const { return data.freezeViews; }
         void setFreezeView(bool freeze) { data.freezeViews = freeze; emit dirty(); }
+        bool useAvatarView() const { return data.useAvatarView; }
+        void setUseAvatarView(bool use) { data.useAvatarView = use; emit dirty(); }
+        bool forceViewHorizontal() const { return data.forceViewHorizontal; }
+        void setForceViewHorizontal(bool use) { data.forceViewHorizontal = use; emit dirty(); }
 
         struct Data {
             float r1Back { 2.0f };
@@ -54,6 +60,8 @@ namespace workload {
             float r3Front{ 100.0f };
 
             bool freezeViews{ false };
+            bool useAvatarView{ false };
+            bool forceViewHorizontal{ false };
         } data;
 
     signals:

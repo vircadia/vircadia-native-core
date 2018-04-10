@@ -53,8 +53,10 @@ public:
     // Set fov properties from angle
     void setFov(float angleRad);
 
+    // Helper function to force the direction in the XZ plane
+    void makeHorizontal();
 
-    static View evalFromFrustum(const ViewFrustum& frustum);
+    static View evalFromFrustum(const ViewFrustum& frustum, const glm::vec3& offset = glm::vec3());
     static Sphere evalRegionSphere(const View& view, float originRadius, float maxDistance);
 
     static void updateRegions(View& view);

@@ -48,8 +48,9 @@ void GameWorkload::shutdown() {
     _engine.reset();
 }
 
-void GameWorkload::updateViews(const ViewFrustum& frustum) {
+void GameWorkload::updateViews(const ViewFrustum& frustum, const glm::vec3& headPosition) {
     workload::Views views;
+    views.emplace_back(workload::View::evalFromFrustum(frustum, headPosition - frustum.getPosition()));
     views.emplace_back(workload::View::evalFromFrustum(frustum));
     _engine->feedInput(views);
 }

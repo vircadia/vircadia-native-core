@@ -4291,7 +4291,7 @@ void Application::idle() {
     }
 
     {
-        _gameWorkload.updateViews(_viewFrustum);
+        _gameWorkload.updateViews(_viewFrustum, getMyAvatar()->getHeadPosition());
         _gameWorkload._engine->run();
     }
     {

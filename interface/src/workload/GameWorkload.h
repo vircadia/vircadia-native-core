@@ -37,7 +37,7 @@ public:
             const PhysicalEntitySimulationPointer& simulation);
     void shutdown();
 
-    void updateViews(const ViewFrustum& frustum);
+    void updateViews(const ViewFrustum& frustum, const glm::vec3& headPosition);
 
     workload::EnginePointer _engine { std::make_shared<workload::Engine>() };
 };

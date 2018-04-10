@@ -22,9 +22,13 @@ void View::setFov(float angleRad) {
     fov_halfAngle_tan_cos_sin.w = sinf(halfAngle);
 }
 
-View View::evalFromFrustum(const ViewFrustum& frustum) {
+void View::makeHorizontal() {
+    direction = glm::normalize(glm::vec3(direction.x, 0.0f, direction.z));
+}
+
+View View::evalFromFrustum(const ViewFrustum& frustum, const glm::vec3& offset) {
     View view;
-    view.origin = frustum.getPosition();
+    view.origin = frustum.getPosition() + offset;
     view.direction = frustum.getDirection();
     view.setFov(frustum.getFieldOfView());
 

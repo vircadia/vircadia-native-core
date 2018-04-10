@@ -23,12 +23,30 @@ void SetupViews::run(const WorkloadContextPointer& renderContext, const Input& i
         _views = inputs;
     }
 
+    // Filter the first view centerer on the avatar head if needed
+    Views usedViews;
+    if (_views.size() >= 2) {
+        if (data.useAvatarView) {
+            usedViews.push_back(_views[0]);
+            usedViews.insert(usedViews.end(), _views.begin() + 2, _views.end());
+        } else {
+            usedViews.insert(usedViews.end(), _views.begin() + 1, _views.end());
+        }
+    } else {
+        usedViews = _views;
+    }
+
+    // Force frutum orientation horizontal if needed
+    if (usedViews.size() > 0 && data.forceViewHorizontal) {
+        usedViews[0].makeHorizontal();
+    }
+
     // Update regions based on the current config
-    for (auto& v : _views) {
+    for (auto& v : usedViews) {
         View::updateRegions(v, (float*) &data);
     }
 
     // Views are setup, assign to the Space
-    renderContext->_space->setViews(_views);
+    renderContext->_space->setViews(usedViews);
 }
 
