@@ -77,8 +77,6 @@ public:
 
     void setUserData(const QString& userData) override;
     void setParentID(const QUuid& parentID) override;
-    void setClientOnly(bool clientOnly) override;
-    void setOwningAvatarID(const QUuid& owningAvatarID) override;
 
     void applyMaterial();
     void removeMaterial();

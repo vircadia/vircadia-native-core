@@ -18,7 +18,7 @@ bool MaterialEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityP
     if (entity->getMaterial() != _drawMaterial) {
         return true;
     }
-    if (entity->getParentID() != _parentID || entity->getClientOnly() != _clientOnly || entity->getOwningAvatarID() != _owningAvatarID) {
+    if (entity->getParentID() != _parentID) {
         return true;
     }
     if (entity->getMaterialMappingPos() != _materialMappingPos || entity->getMaterialMappingScale() != _materialMappingScale || entity->getMaterialMappingRot() != _materialMappingRot) {
@@ -31,8 +31,6 @@ void MaterialEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
     withWriteLock([&] {
         _drawMaterial = entity->getMaterial();
         _parentID = entity->getParentID();
-        _clientOnly = entity->getClientOnly();
-        _owningAvatarID = entity->getOwningAvatarID();
         _materialMappingPos = entity->getMaterialMappingPos();
         _materialMappingScale = entity->getMaterialMappingScale();
         _materialMappingRot = entity->getMaterialMappingRot();
@@ -102,7 +100,7 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
     graphics::MaterialPointer drawMaterial;
     Transform textureTransform;
     withReadLock([&] {
-        parentID = _clientOnly ? _owningAvatarID : _parentID;
+        parentID = _parentID;
         renderTransform = _renderTransform;
         drawMaterial = _drawMaterial;
         textureTransform.setTranslation(glm::vec3(_materialMappingPos, 0));

@@ -249,28 +249,12 @@ void MaterialEntityItem::setParentID(const QUuid& parentID) {
     }
 }
 
-void MaterialEntityItem::setClientOnly(bool clientOnly) {
-    if (getClientOnly() != clientOnly) {
-        removeMaterial();
-        EntityItem::setClientOnly(clientOnly);
-        applyMaterial();
-    }
-}
-
-void MaterialEntityItem::setOwningAvatarID(const QUuid& owningAvatarID) {
-    if (getOwningAvatarID() != owningAvatarID) {
-        removeMaterial();
-        EntityItem::setOwningAvatarID(owningAvatarID);
-        applyMaterial();
-    }
-}
-
 void MaterialEntityItem::removeMaterial() {
     graphics::MaterialPointer material = getMaterial();
     if (!material) {
         return;
     }
-    QUuid parentID = getClientOnly() ? getOwningAvatarID() : getParentID();
+    QUuid parentID = getParentID();
     if (parentID.isNull()) {
         return;
     }
@@ -294,7 +278,7 @@ void MaterialEntityItem::removeMaterial() {
 void MaterialEntityItem::applyMaterial() {
     _retryApply = false;
     graphics::MaterialPointer material = getMaterial();
-    QUuid parentID = getClientOnly() ? getOwningAvatarID() : getParentID();
+    QUuid parentID = getParentID();
     if (!material || parentID.isNull()) {
         return;
     }
