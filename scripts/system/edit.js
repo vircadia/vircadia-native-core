@@ -346,7 +346,6 @@ var toolBar = (function () {
         if (systemToolbar) {
             systemToolbar.removeButton(EDIT_TOGGLE_BUTTON);
         }
-        Menu.removeMenuItem(GRABBABLE_ENTITIES_MENU_CATEGORY, MENU_CREATE_ENTITIES_GRABBABLE);
     }
 
     var buttonHandlers = {}; // only used to tablet mode
