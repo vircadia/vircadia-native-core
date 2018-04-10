@@ -29,7 +29,7 @@
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
-const QString DEFAULT_HIFI_ADDRESS = "file:///~/serverless/tutorial.json";
+const QString DEFAULT_HIFI_ADDRESS = "file:///~/serverless/tutorial.json?location=/";
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 
@@ -312,7 +312,15 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         _shareablePlaceName.clear();
         setDomainInfo(lookupUrl, trigger);
         emit lookupResultsFinished();
-        handlePath(DOMAIN_SPAWNING_POINT, LookupTrigger::Internal, false);
+
+        QString path = DOMAIN_SPAWNING_POINT;
+        QUrlQuery queryArgs(lookupUrl);
+        const QString LOCATION_QUERY_KEY = "location";
+        if (queryArgs.hasQueryItem(LOCATION_QUERY_KEY)) {
+            path = queryArgs.queryItemValue(LOCATION_QUERY_KEY);
+        }
+
+        handlePath(path, LookupTrigger::Internal, false);
         return true;
     }
 

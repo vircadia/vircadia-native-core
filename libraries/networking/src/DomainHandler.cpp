@@ -173,9 +173,7 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
         QString previousHost = _domainURL.host();
         _domainURL = domainURL;
 
-        if (domainURL.scheme() != URL_SCHEME_HIFI) {
-            setIsConnected(true);
-        } else if (previousHost != domainURL.host()) {
+        if (previousHost != domainURL.host()) {
             qCDebug(networking) << "Updated domain hostname to" << domainURL.host();
 
             if (!domainURL.host().isEmpty()) {
@@ -250,6 +248,14 @@ void DomainHandler::activateICEPublicSocket() {
     emit completedSocketDiscovery();
 }
 
+QString DomainHandler::getViewPointFromNamedPath(QString namedPath) {
+    auto lookup = _namedPaths.find(namedPath);
+    if (lookup != _namedPaths.end()) {
+        return lookup->second;
+    }
+    return DOMAIN_SPAWNING_POINT;
+}
+
 void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
     for (int i = 0; i < hostInfo.addresses().size(); i++) {
         if (hostInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
@@ -279,7 +285,8 @@ void DomainHandler::completedIceServerHostnameLookup() {
     emit iceSocketAndIDReceived();
 }
 
-void DomainHandler::setIsConnected(bool isConnected) {
+void DomainHandler::setIsConnected(bool isConnected, std::map<QString, QString> namedPaths) {
+    _namedPaths = namedPaths;
     if (_isConnected != isConnected) {
         _isConnected = isConnected;
 

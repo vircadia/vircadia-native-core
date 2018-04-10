@@ -73,8 +73,10 @@ public:
     void activateICEPublicSocket();
 
     bool isConnected() const { return _isConnected; }
-    void setIsConnected(bool isConnected);
+    void setIsConnected(bool isConnected, std::map<QString, QString> namedPaths = std::map<QString, QString>());
     bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_HIFI; }
+
+    QString getViewPointFromNamedPath(QString namedPath);
 
     bool hasSettings() const { return !_settingsObject.isEmpty(); }
     void requestDomainSettings();
@@ -200,6 +202,8 @@ private:
     int _checkInPacketsSinceLastReply { 0 };
 
     QTimer _apiRefreshTimer;
+
+    std::map<QString, QString> _namedPaths;
 };
 
 const QString DOMAIN_SPAWNING_POINT { "/0, -10, 0" };
