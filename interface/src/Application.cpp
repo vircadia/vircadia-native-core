@@ -773,7 +773,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         steamClient->init();
     }
 
-    DependencyManager::set<tracing::Tracer>();
     PROFILE_SET_THREAD_NAME("Main Thread");
 
 #if defined(Q_OS_WIN)
