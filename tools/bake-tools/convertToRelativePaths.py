@@ -65,6 +65,15 @@ def main():
                     except:
                         value = handleURL(value)
 
+
+                if  prop == "ambientLight":
+                    for index in value:
+                        value[index] = handleURL(value[index])
+
+                if prop == "skybox":
+                    for index in value:
+                        value[index] = handleURL(value[index])
+
                 if prop == "serverScripts":
                     value = handleURL(value)
 

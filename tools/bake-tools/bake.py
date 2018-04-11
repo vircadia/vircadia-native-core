@@ -44,26 +44,34 @@ def groupKTXFiles(directory, filePath):
         originalFilePath.strip()
         shutil.move(originalFilePath, newFilePath)
 
-def bakeFile(filePath, outputDirectory):
+def bakeFile(filePath, outputDirectory, fileType):
     createDirectory(outputDirectory)
-    cmd = EXE + ' -i ' + filePath + ' -o ' + outputDirectory + ' -t fbx'
+    cmd = EXE + ' -i ' + filePath + ' -o ' + outputDirectory + ' -t ' + fileType
     args = shlex.split(cmd)
     process = subprocess.Popen(cmd, stdout=False, stderr=False)
     process.wait()
     bakedFile = os.path.splitext(filePath)[0]
-    groupKTXFiles(outputDirectory, bakedFile)
+    if fileType == 'fbx':
+        groupKTXFiles(outputDirectory, bakedFile)
 
 def bakeFilesInDirectory(directory, outputDirectory):
     rootDirectory = os.path.basename(os.path.normpath(directory))
     for root, subFolders, filenames in os.walk(directory):
         for filename in filenames:
             appendPath = getRelativePath(directory, root, rootDirectory);
+            name, ext = os.path.splitext('file.txt')
             if filename.endswith('.fbx'):
                 filePath = os.sep.join([root, filename])
                 absFilePath = os.path.abspath(filePath)
                 outputFolder = os.path.join(outputDirectory, appendPath)
                 print "Baking file: " + filename
-                bakeFile(absFilePath, outputFolder)
+                bakeFile(absFilePath, outputFolder, 'fbx')
+            elif os.path.basename(root) == 'skyboxes':
+                filePath = os.sep.join([root, filename])
+                absFilePath = os.path.abspath(filePath)
+                outputFolder = os.path.join(outputDirectory, appendPath)
+                print "Baking file: " + filename
+                bakeFile(absFilePath, outputFolder, 'png')
             else:
                 filePath = os.sep.join([root, filename])
                 absFilePath = os.path.abspath(filePath)
