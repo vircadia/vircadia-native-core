@@ -25,7 +25,7 @@ public:
 
     BloomConfig() : render::Task::Config(false) {}
 
-    float size{ 0.4f };
+    float size{ 0.7f };
 
     void setIntensity(float value);
     float getIntensity() const;
