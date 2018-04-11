@@ -106,7 +106,7 @@ public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
     float blend{ 0.1f };
-    float sharpen{ 0.1f };
+    float sharpen{ 0.05f };
 
     bool constrainColor{ true };
     float covarianceGamma{ 1.0f };
@@ -131,7 +131,7 @@ signals:
 
 struct TAAParams {
     float nope{ 0.0f };
-    float blend{ 0.05f };
+    float blend{ 0.15f };
     float covarianceGamma{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
 

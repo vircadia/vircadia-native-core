@@ -121,7 +121,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     task.addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
 
-
     // Opaque all rendered
 
     // Linear Depth Pass
@@ -188,6 +187,31 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
     }
 
+    const auto outlineRangeTimer = task.addJob<BeginGPURangeTimer>("BeginHighlightRangeTimer", "Highlight");
+    // Select items that need to be outlined
+    const auto selectionBaseName = "contextOverlayHighlightList";
+    const auto selectedItems = addSelectItemJobs(task, selectionBaseName, metas, opaques, transparents);
+
+    const auto outlineInputs = DrawHighlightTask::Inputs(items.get0(), deferredFramebuffer, lightingFramebuffer, deferredFrameTransform).asVarying();
+    task.addJob<DrawHighlightTask>("DrawHighlight", outlineInputs);
+
+    task.addJob<EndGPURangeTimer>("HighlightRangeTimer", outlineRangeTimer);
+
+    const auto overlaysInFrontRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOverlaysInFrontRangeTimer", "BeginOverlaysInFrontRangeTimer");
+
+    // Layered Overlays
+    const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, Item::LAYER_3D_FRONT);
+    const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, Item::LAYER_3D_FRONT);
+    const auto overlaysInFrontOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
+    const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
+
+    const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel).asVarying();
+    const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel).asVarying();
+    task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true);
+    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, false);
+
+    task.addJob<EndGPURangeTimer>("OverlaysInFrontRangeTimer", overlaysInFrontRangeTimer);
+
     const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
 
     // AA job before bloom to limit flickering
@@ -201,16 +225,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Lighting Buffer ready for tone mapping
     const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
-
-    const auto outlineRangeTimer = task.addJob<BeginGPURangeTimer>("BeginHighlightRangeTimer", "Highlight");
-    // Select items that need to be outlined
-    const auto selectionBaseName = "contextOverlayHighlightList";
-    const auto selectedItems = addSelectItemJobs(task, selectionBaseName, metas, opaques, transparents);
-
-    const auto outlineInputs = DrawHighlightTask::Inputs(items.get0(), deferredFramebuffer, primaryFramebuffer, deferredFrameTransform).asVarying();
-    task.addJob<DrawHighlightTask>("DrawHighlight", outlineInputs);
-
-    task.addJob<EndGPURangeTimer>("HighlightRangeTimer", outlineRangeTimer);
 
     { // Debug the bounds of the rendered items, still look at the zbuffer
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
@@ -233,17 +247,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true
         task.addJob<DrawBounds>("DrawSelectionBounds", selectedItems);
     }
-
-    // Layered Overlays
-    const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, Item::LAYER_3D_FRONT);
-    const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, Item::LAYER_3D_FRONT);
-    const auto overlaysInFrontOpaque =  filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
-    const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
-
-    const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel).asVarying();
-    const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel).asVarying();
-    task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true);
-    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, false);
 
     { // Debug the bounds of the rendered Overlay items that are marked drawInFront, still look at the zbuffer
         task.addJob<DrawBounds>("DrawOverlayInFrontOpaqueBounds", overlaysInFrontOpaque);
