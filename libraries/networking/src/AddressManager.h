@@ -39,7 +39,7 @@ const QString GET_PLACE = "/api/v1/places/%1";
  * @property {Uuid} domainId - Synonym for <code>domainId</code>. <em>Read-only.</em> <strong>Deprecated:</strong> This property
  *     is deprecated and will soon be removed.
  * @property {string} hostname - The name of the domain for your current metaverse address (e.g., <code>"AvatarIsland"</code>,
- *     <code>localhost</code>, or an IP address).
+ *     <code>localhost</code>, an IP address, or the file path to a serverless domain).
  *     <em>Read-only.</em>
  * @property {string} href - Your current metaverse address (e.g., <code>"hifi://avatarisland/15,-10,26/0,0,0,1"</code>)
  *     regardless of whether or not you're connected to the domain.
