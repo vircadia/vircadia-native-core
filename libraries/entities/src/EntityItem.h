@@ -304,14 +304,14 @@ public:
 
     // FIXME not thread safe?
     const SimulationOwner& getSimulationOwner() const { return _simulationOwner; }
-    void setSimulationOwner(const QUuid& id, quint8 priority);
+    void setSimulationOwner(const QUuid& id, uint8_t priority);
     void setSimulationOwner(const SimulationOwner& owner);
-    void promoteSimulationPriority(quint8 priority);
+    void promoteSimulationPriority(uint8_t priority);
 
-    quint8 getSimulationPriority() const { return _simulationOwner.getPriority(); }
+    uint8_t getSimulationPriority() const { return _simulationOwner.getPriority(); }
     QUuid getSimulatorID() const { return _simulationOwner.getID(); }
     void clearSimulationOwnership();
-    void setPendingOwnershipPriority(quint8 priority, const quint64& timestamp);
+    void setPendingOwnershipPriority(uint8_t priority, const quint64& timestamp);
     uint8_t getPendingOwnershipPriority() const { return _simulationOwner.getPendingPriority(); }
     void rememberHasSimulationOwnershipBid() const;
 

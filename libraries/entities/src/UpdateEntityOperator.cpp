@@ -288,7 +288,7 @@ OctreeElementPointer UpdateEntityOperator::possiblyCreateChildAt(const OctreeEle
             int indexOfChildContainingNewEntity = element->getMyChildContaining(_newEntityBox);
 
             if (childIndex == indexOfChildContainingNewEntity) {
-                return element->addChildAtIndex(childIndex);;
+                return element->addChildAtIndex(childIndex);
             }
         }
     }

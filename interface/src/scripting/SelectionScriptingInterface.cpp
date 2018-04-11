@@ -110,7 +110,7 @@ bool SelectionScriptingInterface::enableListHighlight(const QString& listName, c
     }
 
     if (!(*highlightStyle).isBoundToList()) {
-        setupHandler(listName);
+        enableListToScene(listName);
         (*highlightStyle).setBoundToList(true);
     }
 
@@ -134,6 +134,7 @@ bool SelectionScriptingInterface::disableListHighlight(const QString& listName) 
     auto highlightStyle = _highlightStyleMap.find(listName);
     if (highlightStyle != _highlightStyleMap.end()) {
         if ((*highlightStyle).isBoundToList()) {
+            disableListToScene(listName);
         }
 
         _highlightStyleMap.erase(highlightStyle);
@@ -170,6 +171,18 @@ render::HighlightStyle SelectionScriptingInterface::getHighlightStyle(const QStr
     } else {
         return (*highlightStyle).getStyle();
     }
+}
+
+bool SelectionScriptingInterface::enableListToScene(const QString& listName) {
+    setupHandler(listName);
+
+    return true;
+}
+
+bool SelectionScriptingInterface::disableListToScene(const QString& listName) {
+    removeHandler(listName);
+
+    return true;
 }
 
 template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const QString& listName, T idToAdd) {
@@ -301,6 +314,15 @@ void SelectionScriptingInterface::setupHandler(const QString& selectionName) {
     }
 
     (*handler)->initialize(selectionName);
+}
+
+void SelectionScriptingInterface::removeHandler(const QString& selectionName) {
+    QWriteLocker lock(&_selectionHandlersLock);
+    auto handler = _handlerMap.find(selectionName);
+    if (handler != _handlerMap.end()) {
+        delete handler.value();
+        _handlerMap.erase(handler);
+    }
 }
 
 void SelectionScriptingInterface::onSelectedItemsListChanged(const QString& listName) {

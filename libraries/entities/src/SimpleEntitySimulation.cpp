@@ -18,7 +18,7 @@
 #include "EntityItem.h"
 #include "EntitiesLogging.h"
 
-const quint64 MAX_OWNERLESS_PERIOD = 2 * USECS_PER_SECOND;
+const uint64_t MAX_OWNERLESS_PERIOD = 2 * USECS_PER_SECOND;
 
 void SimpleEntitySimulation::clearOwnership(const QUuid& ownerID) {
     QMutexLocker lock(&_mutex);
@@ -33,7 +33,7 @@ void SimpleEntitySimulation::clearOwnership(const QUuid& ownerID) {
             if (entity->getDynamic() && entity->hasLocalVelocity()) {
                 // it is still moving dynamically --> add to orphaned list
                 _entitiesThatNeedSimulationOwner.insert(entity);
-                quint64 expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
+                uint64_t expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
                 if (expiry < _nextOwnerlessExpiry) {
                     _nextOwnerlessExpiry = expiry;
                 }
@@ -50,15 +50,15 @@ void SimpleEntitySimulation::clearOwnership(const QUuid& ownerID) {
     }
 }
 
-void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
+void SimpleEntitySimulation::updateEntitiesInternal(uint64_t now) {
     if (now > _nextOwnerlessExpiry) {
         // search for ownerless objects that have expired
         QMutexLocker lock(&_mutex);
-        _nextOwnerlessExpiry = -1;
+        _nextOwnerlessExpiry = std::numeric_limits<uint64_t>::max();
         SetOfEntities::iterator itemItr = _entitiesThatNeedSimulationOwner.begin();
         while (itemItr != _entitiesThatNeedSimulationOwner.end()) {
             EntityItemPointer entity = *itemItr;
-            quint64 expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
+            uint64_t expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
             if (expiry < now) {
                 // no simulators have volunteered ownership --> remove from list
                 itemItr = _entitiesThatNeedSimulationOwner.erase(itemItr);
@@ -85,14 +85,18 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
 }
 
 void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
-    EntitySimulation::addEntityInternal(entity);
+    if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
+        QMutexLocker lock(&_mutex);
+        _simpleKinematicEntities.insert(entity);
+        entity->setLastSimulated(usecTimestampNow());
+    }
     if (!entity->getSimulatorID().isNull()) {
         QMutexLocker lock(&_mutex);
         _entitiesWithSimulationOwner.insert(entity);
     } else if (entity->getDynamic() && entity->hasLocalVelocity()) {
         QMutexLocker lock(&_mutex);
         _entitiesThatNeedSimulationOwner.insert(entity);
-        quint64 expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
+        uint64_t expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
         if (expiry < _nextOwnerlessExpiry) {
             _nextOwnerlessExpiry = expiry;
         }
@@ -101,19 +105,29 @@ void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
 
 void SimpleEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
     EntitySimulation::removeEntityInternal(entity);
-    QMutexLocker lock(&_mutex);
     _entitiesWithSimulationOwner.remove(entity);
     _entitiesThatNeedSimulationOwner.remove(entity);
 }
 
 void SimpleEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
-    EntitySimulation::changeEntityInternal(entity);
+    {
+        QMutexLocker lock(&_mutex);
+        if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
+            int numKinematicEntities = _simpleKinematicEntities.size();
+            _simpleKinematicEntities.insert(entity);
+            if (numKinematicEntities != _simpleKinematicEntities.size()) {
+                entity->setLastSimulated(usecTimestampNow());
+            }
+        } else {
+            _simpleKinematicEntities.remove(entity);
+        }
+    }
     if (entity->getSimulatorID().isNull()) {
         QMutexLocker lock(&_mutex);
         _entitiesWithSimulationOwner.remove(entity);
         if (entity->getDynamic() && entity->hasLocalVelocity()) {
             _entitiesThatNeedSimulationOwner.insert(entity);
-            quint64 expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
+            uint64_t expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
             if (expiry < _nextOwnerlessExpiry) {
                 _nextOwnerlessExpiry = expiry;
             }

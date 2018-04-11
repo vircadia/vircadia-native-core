@@ -113,7 +113,6 @@ StackView {
         id: addressBarDialog
 
         property bool keyboardEnabled: false
-        property bool keyboardRaised: false
         property bool punctuationMode: false
 
         width: parent.width
@@ -142,7 +141,10 @@ StackView {
             bottom: parent.bottom
         }
 
-        onHostChanged: updateLocationTextTimer.restart();
+        onHostChanged: {
+            updateLocationTextTimer.restart();
+            DialogsManager.hideAddressBar();
+        }
 
         Rectangle {
             id: navBar
@@ -401,11 +403,10 @@ StackView {
                 addressLine.text = "";
             }
         }
-           
 
         HifiControls.Keyboard {
             id: keyboard
-            raised: parent.keyboardEnabled && parent.keyboardRaised
+            raised: parent.keyboardEnabled
             numeric: parent.punctuationMode
             anchors {
                 bottom: parent.bottom
@@ -413,7 +414,7 @@ StackView {
                 right: parent.right
             }
         }
-        
+
     }
 
     function updateLocationText(enteringAddress) {

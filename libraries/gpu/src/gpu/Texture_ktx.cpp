@@ -504,6 +504,8 @@ TexturePointer Texture::build(const ktx::KTXDescriptor& descriptor) {
         gpuktxKeyValue._usage = Texture::Usage::Builder().withColor().withAlpha().build();
     }
 
+    auto samplerDesc = gpuktxKeyValue._samplerDesc;
+    samplerDesc._maxMip = gpu::Sampler::MAX_MIP_LEVEL;
     auto texture = create(gpuktxKeyValue._usageType,
         type,
         texelFormat,
@@ -513,7 +515,7 @@ TexturePointer Texture::build(const ktx::KTXDescriptor& descriptor) {
         1, // num Samples
         header.getNumberOfSlices(),
         header.getNumberOfLevels(),
-        gpuktxKeyValue._samplerDesc);
+        samplerDesc);
     texture->setUsage(gpuktxKeyValue._usage);
 
     // Assing the mips availables

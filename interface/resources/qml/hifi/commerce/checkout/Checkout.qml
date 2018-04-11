@@ -96,6 +96,7 @@ Rectangle {
                 root.activeView = "checkoutFailure";
                 UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned, result.message);
             } else {
+                root.certificateId = result.data.certificate_id;
                 root.itemHref = result.data.download_url;
                 if (result.data.categories.indexOf("Wearables") > -1) {
                     root.itemType = "wearable";
@@ -188,7 +189,7 @@ Rectangle {
     onItemHrefChanged: {
         if (root.itemHref.indexOf(".fst") > -1) {
             root.itemType = "avatar";
-        } else if (root.itemHref.indexOf('.json.gz') > -1) {
+        } else if (root.itemHref.indexOf('.json.gz') > -1 || root.itemHref.indexOf('.content.zip') > -1) {
             root.itemType = "contentSet";
         } else if (root.itemHref.indexOf('.app.json') > -1) {
             root.itemType = "app";
@@ -772,7 +773,7 @@ Rectangle {
                     lightboxPopup.button1text = "CANCEL";
                     lightboxPopup.button1method = "root.visible = false;"
                     lightboxPopup.button2text = "CONFIRM";
-                    lightboxPopup.button2method = "Commerce.replaceContentSet('" + root.itemHref + "');" + 
+                    lightboxPopup.button2method = "Commerce.replaceContentSet('" + root.itemHref + "', '" + root.certificateId + "');" + 
                     "root.visible = false;rezzedNotifContainer.visible = true; rezzedNotifContainerTimer.start();" + 
                     "UserActivityLogger.commerceEntityRezzed('" + root.itemId + "', 'checkout', '" + root.itemType + "');";
                     lightboxPopup.visible = true;
@@ -1160,14 +1161,14 @@ Rectangle {
     function authSuccessStep() {
         if (!root.debugCheckoutSuccess) {
             root.activeView = "checkoutMain";
-        } else {
-            root.activeView = "checkoutSuccess";
             root.ownershipStatusReceived = false;
             Commerce.alreadyOwned(root.itemId);
             root.availableUpdatesReceived = false;
             Commerce.getAvailableUpdates(root.itemId);
             root.balanceReceived = false;
             Commerce.balance();
+        } else {
+            root.activeView = "checkoutSuccess";
         }
     }
 
