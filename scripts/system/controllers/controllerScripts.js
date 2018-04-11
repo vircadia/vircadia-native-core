@@ -33,7 +33,8 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/mouseHMD.js",
     "controllerModules/scaleEntity.js",
     "controllerModules/highlightNearbyEntities.js",
-    "controllerModules/nearGrabHyperLinkEntity.js"
+    "controllerModules/nearGrabHyperLinkEntity.js",
+    "controllerModules/mouseHighlightEntities.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";

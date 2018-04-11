@@ -120,7 +120,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 entityID: this.targetEntityID
             };
 
-            Messages.sendMessage('Hifi-unhighlight-entity', JSON.stringify(message));
+            Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
         };
 
         // this is for when the action is going to time-out

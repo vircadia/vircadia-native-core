@@ -95,7 +95,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 entityID: this.targetEntityID
             };
 
-            Messages.sendMessage('Hifi-unhighlight-entity', JSON.stringify(message));
+            Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
             var handJointIndex;
             // if (this.ignoreIK) {
             //     handJointIndex = this.controllerJointIndex;

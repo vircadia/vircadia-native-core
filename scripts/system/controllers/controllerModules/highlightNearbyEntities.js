@@ -1,6 +1,8 @@
-"use strict";
-
+//
 //  highlightNearbyEntities.js
+//
+//  Created by Dante Ruiz 2018-4-10
+//  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -11,6 +13,8 @@
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
    DEFAULT_SEARCH_SPHERE_DISTANCE, getGrabbableData, makeLaserParams, entityIsCloneable, Messages, print
 */
+
+"use strict";
 
 (function () {
     Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -40,15 +44,16 @@
 
 
         this.isGrabable = function(controllerData, props) {
+            var entityIsGrabable = false;
             if (dispatcherUtils.entityIsGrabbable(props) || entityIsCloneable(props)) {
                 // if we've attempted to grab a child, roll up to the root of the tree
                 var groupRootProps = dispatcherUtils.findGroupParent(controllerData, props);
-                if (dispatcherUtils.entityIsGrabbable(groupRootProps)) {
-                    return true;
+                entityIsGrabable = true;
+                if (!dispatcherUtils.entityIsGrabbable(groupRootProps)) {
+                    entityIsGrabable = false;
                 }
-                return true;
             }
-            return false;
+            return entityIsGrabable;
         };
 
         this.hasHyperLink = function(props) {

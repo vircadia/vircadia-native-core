@@ -489,7 +489,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 entityID: this.targetEntityID
             };
 
-            Messages.sendMessage('Hifi-unhighlight-entity', JSON.stringify(message));
+            Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
             var grabbedProperties = Entities.getEntityProperties(this.targetEntityID);
 
             // if an object is "equipped" and has a predefined offset, use it.
