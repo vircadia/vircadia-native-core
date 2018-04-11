@@ -304,7 +304,7 @@ void Test::createRecursiveScript() {
 }
 
 // This method creates a `testRecursive.js` script in every sub-folder.
-void Test::createRecursiveScriptsRecursively() {
+void Test::createAllRecursiveScripts() {
     // Select folder to start recursing from
     QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select the root folder for the recursive scripts", ".", QFileDialog::ShowDirsOnly);
     if (topLevelDirectory == "") {
@@ -559,6 +559,44 @@ void Test::createMDFile() {
         return;
     }
 
+    createMDFile(testDirectory);
+}
+
+void Test::createAllMDFiles() {
+    // Select folder to start recursing from
+    QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select the root folder for the MD files", ".", QFileDialog::ShowDirsOnly);
+    if (topLevelDirectory == "") {
+        return;
+    }
+
+    // First test if top-level folder has a test.js file
+    const QString testPathname{ topLevelDirectory + "/" + TEST_FILENAME };
+    QFileInfo fileInfo(testPathname);
+    if (fileInfo.exists()) {
+        createMDFile(topLevelDirectory);
+    }
+
+    QDirIterator it(topLevelDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        QString directory = it.next();
+
+        // Only process directories
+        QDir dir;
+        if (!isAValidDirectory(directory)) {
+            continue;
+        }
+
+        const QString testPathname{ directory + "/" + TEST_FILENAME };
+        QFileInfo fileInfo(testPathname);
+        if (fileInfo.exists()) {
+            createMDFile(directory);
+        }
+    }
+
+    messageBox.information(0, "Success", "MD files have been created");
+}
+
+void Test::createMDFile(QString testDirectory) {
     // Verify folder contains test.js file
     QString testFileName(testDirectory + "/" + TEST_FILENAME);
     QFileInfo testFileInfo(testFileName);
@@ -639,8 +677,8 @@ void Test::createMDFile() {
 
     int snapShotIndex { 0 };
     for (size_t i = 0; i < testScriptLines.stepList.size(); ++i) {
-        stream << "### Step " << QString::number(i) << "\n";
-        stream << "- " << testScriptLines.stepList[i + 1]->text << "\n";
+        stream << "### Step " << QString::number(i + 1) << "\n";
+        stream << "- " << testScriptLines.stepList[i]->text << "\n";
         if (testScriptLines.stepList[i]->takeSnapshot) {
             stream << "- ![](./ExpectedImage_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png)\n";
             ++snapShotIndex;
