@@ -47,7 +47,7 @@ signals:
      * @example <caption>Report when the display mode changes.</caption>
      * HMD.displayModeChanged.connect(function (isHMDMode) {
      *     print("Display mode changed");
-     *     print("isHMD = " + isHMD);
+     *     print("isHMD = " + isHMDMode);
      *     print("HMD.active = " + HMD.active);
      *     print("HMD.mounted = " + HMD.mounted);
      * });

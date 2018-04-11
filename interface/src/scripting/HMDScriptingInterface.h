@@ -31,7 +31,7 @@ class QScriptEngine;
  * @property {Vec3} position - The position of the HMD if currently in VR display mode, otherwise 
  *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
  * @property {Quat} orientation - The orientation of the HMD if currently in VR display mode, otherwise 
- *     {@link Quat(0)|Quat.IDENTITY}.<em>Read-only.</em>
+ *     {@link Quat(0)|Quat.IDENTITY}. <em>Read-only.</em>
  * @property {boolean} active - <code>true</code> if the display mode is HMD, otherwise <code>false</code>. <em>Read-only.</em>
  * @property {boolean} mounted - <code>true</code> if currently in VR display mode and the HMD is being worn, otherwise
  *     <code>false</code>. <em>Read-only.</em>
@@ -74,6 +74,23 @@ public:
      * @param {Vec3} position - The origin of the ray.
      * @param {Vec3} direction - The direction of the ray.
      * @returns {Vec3} The point of intersection with the HUD overlay if it intersects, otherwise {@link Vec3(0)|Vec3.ZERO}.
+     * @example <caption>Draw a square on the HUD overlay in the direction you're looking.</caption>
+     * var hudIntersection = HMD.calculateRayUICollisionPoint(MyAvatar.getHeadPosition(),
+     *     Quat.getForward(MyAvatar.headOrientation));
+     * var hudPoint = HMD.overlayFromWorldPoint(hudIntersection);
+     *
+     * var DIMENSIONS = { x: 50, y: 50 };
+     * var square = Overlays.addOverlay("rectangle", {
+     *     x: hudPoint.x - DIMENSIONS.x / 2,
+     *     y: hudPoint.y - DIMENSIONS.y / 2,
+     *     width: DIMENSIONS.x,
+     *     height: DIMENSIONS.y,
+     *     color: { red: 255, green: 0, blue: 0 }
+     * });
+     *
+     * Script.scriptEnding.connect(function () {
+     *     Overlays.deleteOverlay(square);
+     * });
      */
     Q_INVOKABLE glm::vec3 calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const;
 
@@ -201,7 +218,7 @@ public:
     /**jsdoc
      * Check whether there are specific HMD controllers available.
      * @function HMD.isSubdeviceContainingNameAvailable
-     * @param {string} - The name of the HMD controller to check for, e.g., <code>"OculusTouch"</code>.
+     * @param {string} name - The name of the HMD controller to check for, e.g., <code>"OculusTouch"</code>.
      * @returns {boolean} <code>true</code> if an HMD controller with a name containing the specified <code>name</code> is 
      *     available, otherwise <code>false</code>.
      * @example <caption>Report if particular Oculus controllers are available.</caption>
@@ -240,15 +257,15 @@ public:
 
 
     /**jsdoc
-     * Causes the borders and decorations in HUD windows to be enlarged when the laser intersects them in HMD mode. By default, 
-     * borders and decorations are not enlarged.
+     * Causes the borders in HUD windows to be enlarged when the laser intersects them in HMD mode. By default, borders are not 
+     * enlarged.
      * @function HMD.activateHMDHandMouse
      */
     Q_INVOKABLE void activateHMDHandMouse();
 
     /**jsdoc
-     * Causes the border and decorations in HUD windows to no longer be enlarged when the laser intersects them in HMD mode. By 
-     * default, borders and decorations are not enlarged.
+     * Causes the border in HUD windows to no longer be enlarged when the laser intersects them in HMD mode. By default, 
+     * borders are not enlarged.
      * @function HMD.deactivateHMDHandMouse
     */
     Q_INVOKABLE void deactivateHMDHandMouse();
