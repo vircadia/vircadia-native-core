@@ -711,6 +711,7 @@ void Test::createTestsOutline() {
     // We need to know our current depth, as this isn't given by QDirIterator
     int rootDepth { testsRootDirectory.count('/') };
 
+    // Each test is shown as the folder name linking to the matching GitHub URL, and the path to the associated test.md file
     QDirIterator it(testsRootDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
     while (it.hasNext()) {
         QString directory = it.next();
@@ -726,12 +727,28 @@ void Test::createTestsOutline() {
             continue;
         }
 
+        // The prefix is the MarkDown prefix needed for correct indentation
+        // It consists of 2 spaces for each level of indentation, folled by a dash sign
         int currentDepth = directory.count('/') - rootDepth;
         QString prefix = QString(" ").repeated(2 * currentDepth - 1) + " - ";
-        stream << prefix;
-        stream << directory.right(directory.length() - directory.lastIndexOf("/") - 1);
-        QFileInfo fileInfo(directory + "/" + TEST_FILENAME);
-        if (fileInfo.exists()) {
+
+        // The directory name appears after the last slash (we are assured there is at least 1).
+        QString directoryName = directory.right(directory.length() - directory.lastIndexOf("/") - 1);
+
+        // autoTester is run on a clone of the repository.  We use relative paths, so we can use both local disk and GitHub
+        // For a test in "D:/GitHub/hifi_tests/tests/content/entity/zone/ambientLightInheritance" the
+        // GitHub URL  is "./content/entity/zone/ambientLightInheritance?raw=true"
+        QString partialPath = directory.right(directory.length() - (directory.lastIndexOf("/tests/") + QString("/tests").length() + 1));
+        QString url = "./" + partialPath;
+
+        stream << prefix << "[" << directoryName << "](" << url << "?raw=true" << ")";
+        QFileInfo fileInfo1(directory + "/test.md");
+        if (fileInfo1.exists()) {
+            stream << "  [(test description)](" << url << "/test.md)";
+        }
+
+        QFileInfo fileInfo2(directory + "/" + TEST_FILENAME);
+        if (fileInfo2.exists()) {
             stream << " (*)";
         }
         stream << "\n";
