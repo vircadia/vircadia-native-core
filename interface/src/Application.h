@@ -292,6 +292,11 @@ public:
 
     void replaceDomainContent(const QString& url);
 
+#if defined(Q_OS_ANDROID)
+    void enterBackground();
+    void enterForeground();
+#endif
+
 signals:
     void svoImportRequested(const QString& url);
 

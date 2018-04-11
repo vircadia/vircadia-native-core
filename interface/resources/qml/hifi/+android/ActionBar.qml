@@ -9,32 +9,46 @@ import "../../controls" as HifiControls
 import ".."
 
 Item {
-    id: modesbar
-    y:20
+    id: actionBar
+    x:0
+    y:0
+    width: 300
+    height: 300
+    z: -1
+
+    signal sendToScript(var message);
+    signal windowClosed();
+    
+    property bool shown: true
+
+    onShownChanged: {
+        actionBar.visible = shown;
+    }
+
 	Rectangle {
         anchors.fill : parent
- 		color: "transparent"
+        color: "transparent"
         Flow {
             id: flowMain
-            spacing: 0
+            spacing: 10
             flow: Flow.TopToBottom
             layoutDirection: Flow.TopToBottom
             anchors.fill: parent
             anchors.margins: 4
         }
-	}
+    }
 
     Component.onCompleted: {
-        width = 300; // That 30 is extra regardless the qty of items shown
+        // put on bottom
+        x = 50;
+        y = 0;
+        width = 300;
         height = 300;
-        x=parent.width - 540;
     }
     
     function addButton(properties) {
         var component = Qt.createComponent("button.qml");
-        console.log("load button");
         if (component.status == Component.Ready) {
-            console.log("load button 2");
             var button = component.createObject(flowMain);
             // copy all properites to button
             var keys = Object.keys(properties).forEach(function (key) {
@@ -46,28 +60,12 @@ Item {
         }
     }
 
-    function removeButton(name) {
-    }
-
     function urlHelper(src) {
-        if (src.match(/\bhttp/)) {
-            return src;
-        } else {
-            return "../../../" + src;
+            if (src.match(/\bhttp/)) {
+                return src;
+            } else {
+                return "../../../" + src;
+            }
         }
-    }
-
-    function fromScript(message) {
-        switch (message.type) {
-            case "allButtonsShown":
-                modesbar.height = flowMain.children.length * 300 + 30; // That 30 is extra regardless the qty of items shown
-            break;
-            case "inactiveButtonsHidden":
-                modesbar.height = 300 + 30;
-            break;
-            default:
-            break;
-        }
-    }
 
 }

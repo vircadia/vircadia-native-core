@@ -33,7 +33,7 @@ uint64_t AvatarMixerClientData::getLastOtherAvatarEncodeTime(QUuid otherAvatar) 
     return 0;
 }
 
-void AvatarMixerClientData::setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, const uint64_t& time) {
+void AvatarMixerClientData::setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, uint64_t time) {
     std::unordered_map<QUuid, uint64_t>::iterator itr = _lastOtherAvatarEncodeTime.find(otherAvatar);
     if (itr != _lastOtherAvatarEncodeTime.end()) {
         itr->second = time;

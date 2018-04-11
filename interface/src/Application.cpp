@@ -242,6 +242,7 @@ extern "C" {
 
 #if defined(Q_OS_ANDROID)
 #include <android/log.h>
+#include <QtAndroidExtras/QAndroidJniObject>
 #endif
 
 enum ApplicationEvent {
@@ -3046,28 +3047,20 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     static const QString SENT_TO_PREVIOUS_LOCATION = "previous_location";
     static const QString SENT_TO_ENTRY = "entry";
-    static const QString SENT_TO_SANDBOX = "sandbox";
 
     QString sentTo;
 
     // If this is a first run we short-circuit the address passed in
     if (firstRun.get()) {
 #if defined(Q_OS_ANDROID)
-            qCDebug(interfaceapp) << "First run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("default location") : addressLookupString);
-            DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+        qCDebug(interfaceapp) << "First run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("default location") : addressLookupString);
+        DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
 #else
-            showHelp();
-            if (sandboxIsRunning) {
-                qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-                DependencyManager::get<AddressManager>()->goToLocalSandbox();
-                sentTo = SENT_TO_SANDBOX;
-            } else {
-                qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-                DependencyManager::get<AddressManager>()->goToEntry();
-                sentTo = SENT_TO_ENTRY;
-            }
+        showHelp();
+        DependencyManager::get<AddressManager>()->goToEntry();
+        sentTo = SENT_TO_ENTRY;
 #endif
-            firstRun.set(false);
+        firstRun.set(false);
 
     } else {
         qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
@@ -4682,7 +4675,7 @@ void Application::init() {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
-    connect(_entitySimulation.get(), &EntitySimulation::entityCollisionWithEntity,
+    connect(_entitySimulation.get(), &PhysicalEntitySimulation::entityCollisionWithEntity,
             getEntities().data(), &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
@@ -5277,11 +5270,13 @@ void Application::update(float deltaTime) {
             {
                 PROFILE_RANGE(simulation_physics, "PreStep");
                 PerformanceTimer perfTimer("preStep)");
-                static VectorOfMotionStates motionStates;
-                _entitySimulation->getObjectsToRemoveFromPhysics(motionStates);
-                _physicsEngine->removeObjects(motionStates);
-                _entitySimulation->deleteObjectsRemovedFromPhysics();
+                {
+                    const VectorOfMotionStates& motionStates = _entitySimulation->getObjectsToRemoveFromPhysics();
+                    _physicsEngine->removeObjects(motionStates);
+                    _entitySimulation->deleteObjectsRemovedFromPhysics();
+                }
 
+                VectorOfMotionStates motionStates;
                 getEntities()->getTree()->withReadLock([&] {
                     _entitySimulation->getObjectsToAddToPhysics(motionStates);
                     _physicsEngine->addObjects(motionStates);
@@ -5295,7 +5290,7 @@ void Application::update(float deltaTime) {
 
                 _entitySimulation->applyDynamicChanges();
 
-                 avatarManager->getObjectsToRemoveFromPhysics(motionStates);
+                avatarManager->getObjectsToRemoveFromPhysics(motionStates);
                 _physicsEngine->removeObjects(motionStates);
                 avatarManager->getObjectsToAddToPhysics(motionStates);
                 _physicsEngine->addObjects(motionStates);
@@ -7868,7 +7863,8 @@ void Application::saveNextPhysicsStats(QString filename) {
 
 void Application::openAndroidActivity(const QString& activityName) {
 #if defined(Q_OS_ANDROID)
-    getActiveDisplayPlugin()->deactivate();
+    qDebug() << "[Background-HIFI] Application::openAndroidActivity";
+    //getActiveDisplayPlugin()->deactivate();
     AndroidHelper::instance().requestActivity(activityName);
     connect(&AndroidHelper::instance(), &AndroidHelper::backFromAndroidActivity, this, &Application::restoreAfterAndroidActivity);
 #endif
@@ -7876,11 +7872,63 @@ void Application::openAndroidActivity(const QString& activityName) {
 
 void Application::restoreAfterAndroidActivity() {
 #if defined(Q_OS_ANDROID)
-    if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
+    qDebug() << "[Background-HIFI] restoreAfterAndroidActivity: this wouldn't be needed";
+
+    /*if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
         qWarning() << "Could not re-activate display plugin";
-    }
+    }*/
     disconnect(&AndroidHelper::instance(), &AndroidHelper::backFromAndroidActivity, this, &Application::restoreAfterAndroidActivity);
 #endif
 }
+
+#if defined(Q_OS_ANDROID)
+void Application::enterBackground() {
+    qDebug() << "[Background-HIFI] enterBackground begin";
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
+                              "stop", Qt::BlockingQueuedConnection);
+    qDebug() << "[Background-HIFI] deactivating display plugin";
+    getActiveDisplayPlugin()->deactivate();
+    qDebug() << "[Background-HIFI] enterBackground end";
+}
+void Application::enterForeground() {
+    qDebug() << "[Background-HIFI] enterForeground qApp?" << (qApp?"yeah":"false");
+    if (qApp && DependencyManager::isSet<AudioClient>()) {
+        qDebug() << "[Background-HIFI] audioclient.start()";
+        QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
+                                  "start", Qt::BlockingQueuedConnection);
+    } else {
+        qDebug() << "[Background-HIFI] audioclient.start() not done";
+    }
+    if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
+        qWarning() << "[Background-HIFI] Could not re-activate display plugin";
+    }
+
+}
+
+extern "C" {
+
+
+JNIEXPORT void
+Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeEnterBackground(JNIEnv *env, jobject obj) {
+    qDebug() << "[Background-HIFI] nativeEnterBackground";
+    if (qApp) {
+        qDebug() << "[Background-HIFI] nativeEnterBackground begin (qApp)";
+        qApp->enterBackground();
+    }
+}
+
+JNIEXPORT void
+Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeEnterForeground(JNIEnv *env, jobject obj) {
+    qDebug() << "[Background-HIFI] nativeEnterForeground";
+    if (qApp) {
+        qDebug() << "[Background-HIFI] nativeEnterForeground begin (qApp)";
+        qApp->enterForeground();
+    }
+}
+
+
+}
+
+#endif
 
 #include "Application.moc"
