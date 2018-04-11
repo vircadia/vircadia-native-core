@@ -688,6 +688,60 @@ void Test::createMDFile(QString testDirectory) {
     mdFile.close();
 }
 
+void Test::createTestsOutline() {
+    QString testsRootDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select the tests root folder", ".", QFileDialog::ShowDirsOnly);
+    if (testsRootDirectory == "") {
+        return;
+    }
+
+    const QString testsOutlineFilename { "testsOutline.md" };
+    QString mdFilename(testsRootDirectory + "/" + testsOutlineFilename);
+    QFile mdFile(mdFilename);
+    if (!mdFile.open(QIODevice::WriteOnly)) {
+        messageBox.critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + mdFilename);
+        exit(-1);
+    }
+
+    QTextStream stream(&mdFile);
+
+    //Test title
+    stream << "# Outline of all tests\n";
+    stream << "Directories with an appended (*) have an automatic test\n\n";
+
+    // We need to know our current depth, as this isn't given by QDirIterator
+    int rootDepth { testsRootDirectory.count('/') };
+
+    QDirIterator it(testsRootDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        QString directory = it.next();
+
+        // Only process directories
+        QDir dir;
+        if (!isAValidDirectory(directory)) {
+            continue;
+        }
+
+        // Ignore the utils directory
+        if (directory.right(5) == "utils") {
+            continue;
+        }
+
+        int currentDepth = directory.count('/') - rootDepth;
+        QString prefix = QString(" ").repeated(2 * currentDepth - 1) + " - ";
+        stream << prefix;
+        stream << directory.right(directory.length() - directory.lastIndexOf("/") - 1);
+        QFileInfo fileInfo(directory + "/" + TEST_FILENAME);
+        if (fileInfo.exists()) {
+            stream << " (*)";
+        }
+        stream << "\n";
+    }
+
+    mdFile.close();
+
+    messageBox.information(0, "Success", "Test outline file " + testsOutlineFilename + " has been created");
+}
+
 void Test::copyJPGtoPNG(QString sourceJPGFullFilename, QString destinationPNGFullFilename) {
     QFile::remove(destinationPNGFullFilename);
 

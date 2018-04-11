@@ -44,6 +44,10 @@ void AutoTester::on_createAllMDFilesButton_clicked() {
     test->createAllMDFiles();
 }
 
+void AutoTester::on_createTestsOutlineButton_clicked() {
+    test->createTestsOutline();
+}
+
 void AutoTester::on_closeButton_clicked() {
     exit(0);
 }

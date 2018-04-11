@@ -53,6 +53,8 @@ public:
     void createAllMDFiles();
     void createMDFile(QString topLevelDirectory);
 
+    void createTestsOutline();
+
     bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
 
     QStringList createListOfAll_imagesInDirectory(QString imageFormat, QString pathToImageDirectory);
