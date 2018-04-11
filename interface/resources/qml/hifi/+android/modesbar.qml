@@ -15,7 +15,7 @@ Item {
     Component.onCompleted: {
         width = 300; // That 30 is extra regardless the qty of items shown
         height = 300;
-        x=parent.width - 540;
+        x=parent.width - 555;
     }
     
     function addButton(properties) {
