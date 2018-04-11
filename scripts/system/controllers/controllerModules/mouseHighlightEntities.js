@@ -29,9 +29,9 @@
 
         this.isReady = function(controllerData) {
             if (HMD.active) {
-                print("????");
                 if (this.highlightedEntity) {
-                    // unhighlight entity
+                    dispatcherUtils.unhighlightTargetEntity(this.highlightedEntity);
+                    this.highlightedEntity = null;
                 }
             } else {
                 var pickResult = controllerData.mouseRayPick;

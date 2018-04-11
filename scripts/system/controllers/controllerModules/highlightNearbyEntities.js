@@ -44,16 +44,16 @@
 
 
         this.isGrabable = function(controllerData, props) {
-            var entityIsGrabable = false;
+            var canGrabEntity = false;
             if (dispatcherUtils.entityIsGrabbable(props) || entityIsCloneable(props)) {
                 // if we've attempted to grab a child, roll up to the root of the tree
                 var groupRootProps = dispatcherUtils.findGroupParent(controllerData, props);
-                entityIsGrabable = true;
+                canGrabEntity = true;
                 if (!dispatcherUtils.entityIsGrabbable(groupRootProps)) {
-                    entityIsGrabable = false;
+                    canGrabEntity = false;
                 }
             }
-            return entityIsGrabable;
+            return canGrabEntity;
         };
 
         this.hasHyperLink = function(props) {
