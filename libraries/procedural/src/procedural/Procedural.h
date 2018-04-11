@@ -102,7 +102,8 @@ protected:
 
     // Rendering objects
     UniformLambdas _uniforms;
-    int32_t _standardUniformSlots[NUM_STANDARD_UNIFORMS];
+    int32_t _standardOpaqueUniformSlots[NUM_STANDARD_UNIFORMS];
+    int32_t _standardTransparentUniformSlots[NUM_STANDARD_UNIFORMS];
     NetworkTexturePointer _channels[MAX_PROCEDURAL_TEXTURE_CHANNELS];
     gpu::PipelinePointer _opaquePipeline;
     gpu::PipelinePointer _transparentPipeline;
@@ -119,8 +120,8 @@ protected:
 
 private:
     // This should only be called from the render thread, as it shares data with Procedural::prepare
-    void setupUniforms();
-    void setupChannels(bool shouldCreate);
+    void setupUniforms(bool transparent);
+    void setupChannels(bool shouldCreate, bool transparent);
 
     std::string replaceProceduralBlock(const std::string& fragmentSource);
 
@@ -128,6 +129,7 @@ private:
     mutable bool _hasStartedFade { false };
     mutable bool _isFading { false };
     bool _doesFade { true };
+    bool _prevTransparent { false };
 };
 
 #endif

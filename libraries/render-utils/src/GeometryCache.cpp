@@ -845,20 +845,6 @@ void GeometryCache::renderWireShape(gpu::Batch& batch, Shape shape, const glm::v
     _shapes[shape].drawWire(batch);
 }
 
-void GeometryCache::renderShapeColor(gpu::Batch& batch, Shape shape, const glm::vec4& color) {
-    batch.setInputFormat(getInstancedSolidStreamFormat());
-    // Color must be set after input format
-    batch._glColor4f(color.r, color.g, color.b, color.a);
-    _shapes[shape].draw(batch);
-}
-
-void GeometryCache::renderWireShapeColor(gpu::Batch& batch, Shape shape, const glm::vec4& color) {
-    batch.setInputFormat(getInstancedSolidStreamFormat());
-    // Color must be set after input format
-    batch._glColor4f(color.r, color.g, color.b, color.a);
-    _shapes[shape].drawWire(batch);
-}
-
 void setupBatchInstance(gpu::Batch& batch, gpu::BufferPointer colorBuffer) {
     gpu::BufferView colorView(colorBuffer, COLOR_ELEMENT);
     batch.setInputBuffer(gpu::Stream::COLOR, colorView);
@@ -2265,7 +2251,8 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
         std::call_once(once, [&]() {
             auto VS = simple_vert::getShader();
             auto PS = DISABLE_DEFERRED ? forward_simple_textured_frag::getShader() : simple_textured_frag::getShader();
-            auto PSTransparent = DISABLE_DEFERRED ? forward_simple_textured_transparent_frag::getShader() : simple_transparent_textured_frag::getShader();
+            // Use the forward pipeline for both here, otherwise transparents will be unlit
+            auto PSTransparent = DISABLE_DEFERRED ? forward_simple_textured_transparent_frag::getShader() : forward_simple_textured_transparent_frag::getShader();
             auto PSUnlit = DISABLE_DEFERRED ? forward_simple_textured_unlit_frag::getShader() : simple_textured_unlit_frag::getShader();
 
             _simpleShader = gpu::Shader::createProgram(VS, PS);

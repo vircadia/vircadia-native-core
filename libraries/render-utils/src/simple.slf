@@ -28,8 +28,8 @@ in vec4 _position;
 
 #line 2030
 void main(void) {
-    vec3 normal = normalize(_normal.xyz); 
-    vec3 diffuse = _color.rgb; 
+    vec3 normal = normalize(_normal.xyz);
+    vec3 diffuse = _color.rgb;
     vec3 specular = DEFAULT_SPECULAR;
     float shininess = DEFAULT_SHININESS;
     float emissiveAmount = 0.0;
@@ -41,7 +41,7 @@ void main(void) {
     // Procedural Shaders are expected to be Gamma corrected so let's bring back the RGB in linear space for the rest of the pipeline
     //specular = pow(specular, vec3(2.2));
     emissiveAmount = 1.0;
-#else 
+#else
     emissiveAmount = getProceduralColors(diffuse, specular, shininess);
 #endif
 

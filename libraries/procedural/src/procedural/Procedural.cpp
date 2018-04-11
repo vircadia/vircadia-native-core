@@ -287,22 +287,25 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         _transparentPipeline = gpu::Pipeline::create(_transparentShader, _transparentState);
         for (size_t i = 0; i < NUM_STANDARD_UNIFORMS; ++i) {
             const std::string& name = STANDARD_UNIFORM_NAMES[i];
-            _standardUniformSlots[i] = _opaqueShader->getUniforms().findLocation(name);
+            _standardOpaqueUniformSlots[i] = _opaqueShader->getUniforms().findLocation(name);
+            _standardTransparentUniformSlots[i] = _transparentShader->getUniforms().findLocation(name);
         }
         _start = usecTimestampNow();
         _frameCount = 0;
     }
 
-    batch.setPipeline(color.a < 1.0f ? _transparentPipeline : _opaquePipeline);
+    bool transparent = color.a < 1.0f;
+    batch.setPipeline(transparent ? _transparentPipeline : _opaquePipeline);
 
-    if (_shaderDirty || _uniformsDirty) {
-        setupUniforms();
+    if (_shaderDirty || _uniformsDirty || _prevTransparent != transparent) {
+        setupUniforms(transparent);
     }
 
-    if (_shaderDirty || _uniformsDirty || _channelsDirty) {
-        setupChannels(_shaderDirty || _uniformsDirty);
+    if (_shaderDirty || _uniformsDirty || _channelsDirty || _prevTransparent != transparent) {
+        setupChannels(_shaderDirty || _uniformsDirty, transparent);
     }
 
+    _prevTransparent = transparent;
     _shaderDirty = _uniformsDirty = _channelsDirty = false;
 
     for (auto lambda : _uniforms) {
@@ -328,12 +331,12 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
     }
 }
 
-void Procedural::setupUniforms() {
+void Procedural::setupUniforms(bool transparent) {
     _uniforms.clear();
     // Set any userdata specified uniforms 
     foreach(QString key, _data.uniforms.keys()) {
         std::string uniformName = key.toLocal8Bit().data();
-        int32_t slot = _opaqueShader->getUniforms().findLocation(uniformName);
+        int32_t slot = (transparent ? _transparentShader : _opaqueShader)->getUniforms().findLocation(uniformName);
         if (gpu::Shader::INVALID_LOCATION == slot) {
             continue;
         }
@@ -394,15 +397,17 @@ void Procedural::setupUniforms() {
         }
     }
 
-    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[TIME]) {
+    auto uniformSlots = transparent ? _standardTransparentUniformSlots : _standardOpaqueUniformSlots;
+
+    if (gpu::Shader::INVALID_LOCATION != uniformSlots[TIME]) {
         _uniforms.push_back([=](gpu::Batch& batch) {
             // Minimize floating point error by doing an integer division to milliseconds, before the floating point division to seconds
             float time = (float)((usecTimestampNow() - _start) / USECS_PER_MSEC) / MSECS_PER_SECOND;
-            batch._glUniform(_standardUniformSlots[TIME], time);
+            batch._glUniform(uniformSlots[TIME], time);
         });
     }
 
-    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[DATE]) {
+    if (gpu::Shader::INVALID_LOCATION != uniformSlots[DATE]) {
         _uniforms.push_back([=](gpu::Batch& batch) {
             QDateTime now = QDateTime::currentDateTimeUtc();
             QDate date = now.date();
@@ -415,40 +420,41 @@ void Procedural::setupUniforms() {
             v.z = date.day();
             float fractSeconds = (time.msec() / 1000.0f);
             v.w = (time.hour() * 3600) + (time.minute() * 60) + time.second() + fractSeconds;
-            batch._glUniform(_standardUniformSlots[DATE], v);
+            batch._glUniform(uniformSlots[DATE], v);
         });
     }
 
-    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[FRAME_COUNT]) {
+    if (gpu::Shader::INVALID_LOCATION != uniformSlots[FRAME_COUNT]) {
         _uniforms.push_back([=](gpu::Batch& batch) {
-            batch._glUniform(_standardUniformSlots[FRAME_COUNT], ++_frameCount);
+            batch._glUniform(uniformSlots[FRAME_COUNT], ++_frameCount);
         });
     }
 
-    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[SCALE]) {
+    if (gpu::Shader::INVALID_LOCATION != uniformSlots[SCALE]) {
         // FIXME move into the 'set once' section, since this doesn't change over time
         _uniforms.push_back([=](gpu::Batch& batch) {
-            batch._glUniform(_standardUniformSlots[SCALE], _entityDimensions);
+            batch._glUniform(uniformSlots[SCALE], _entityDimensions);
         });
     }
 
-    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[ORIENTATION]) {
+    if (gpu::Shader::INVALID_LOCATION != uniformSlots[ORIENTATION]) {
         // FIXME move into the 'set once' section, since this doesn't change over time
         _uniforms.push_back([=](gpu::Batch& batch) {
-            batch._glUniform(_standardUniformSlots[ORIENTATION], _entityOrientation);
+            batch._glUniform(uniformSlots[ORIENTATION], _entityOrientation);
         });
     }
 
-    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[POSITION]) {
+    if (gpu::Shader::INVALID_LOCATION != uniformSlots[POSITION]) {
         // FIXME move into the 'set once' section, since this doesn't change over time
         _uniforms.push_back([=](gpu::Batch& batch) {
-            batch._glUniform(_standardUniformSlots[POSITION], _entityPosition);
+            batch._glUniform(uniformSlots[POSITION], _entityPosition);
         });
     }
 }
 
-void Procedural::setupChannels(bool shouldCreate) {
-    if (gpu::Shader::INVALID_LOCATION != _standardUniformSlots[CHANNEL_RESOLUTION]) {
+void Procedural::setupChannels(bool shouldCreate, bool transparent) {
+    auto uniformSlots = transparent ? _standardTransparentUniformSlots : _standardOpaqueUniformSlots;
+    if (gpu::Shader::INVALID_LOCATION != uniformSlots[CHANNEL_RESOLUTION]) {
         if (!shouldCreate) {
             // Instead of modifying the last element, just remove and recreate it.
             _uniforms.pop_back();
@@ -460,7 +466,7 @@ void Procedural::setupChannels(bool shouldCreate) {
                     channelSizes[i] = vec3(_channels[i]->getWidth(), _channels[i]->getHeight(), 1.0);
                 }
             }
-            batch._glUniform3fv(_standardUniformSlots[CHANNEL_RESOLUTION], MAX_PROCEDURAL_TEXTURE_CHANNELS, &channelSizes[0].x);
+            batch._glUniform3fv(uniformSlots[CHANNEL_RESOLUTION], MAX_PROCEDURAL_TEXTURE_CHANNELS, &channelSizes[0].x);
         });
     }
 }

@@ -16,14 +16,12 @@
 <@include ForwardGlobalLight.slh@>
 <$declareEvalSkyboxGlobalColor()$>
 
-<@include gpu/Transform.slh@>
-<$declareStandardCameraTransform()$>
-
 // the interpolated normal
 in vec3 _normal;
 in vec3 _modelNormal;
 in vec4 _color;
 in vec2 _texCoord0;
+in vec4 _position;
 in vec4 _eyePosition;
 
 layout(location = 0) out vec4 _fragColor0;
@@ -35,12 +33,12 @@ layout(location = 0) out vec4 _fragColor0;
 
 #line 2030
 void main(void) {
-    vec3 normal = normalize(_normal.xyz); 
-    vec3 diffuse = _color.rgb; 
+    vec3 normal = normalize(_normal.xyz);
+    vec3 diffuse = _color.rgb;
     vec3 specular = DEFAULT_SPECULAR;
     float shininess = DEFAULT_SHININESS;
     float emissiveAmount = 0.0;
-    
+
 #ifdef PROCEDURAL
 
 #ifdef PROCEDURAL_V1
@@ -48,7 +46,7 @@ void main(void) {
     // Procedural Shaders are expected to be Gamma corrected so let's bring back the RGB in linear space for the rest of the pipeline
     //specular = pow(specular, vec3(2.2));
     emissiveAmount = 1.0;
-#else 
+#else
     emissiveAmount = getProceduralColors(diffuse, specular, shininess);
 #endif
 

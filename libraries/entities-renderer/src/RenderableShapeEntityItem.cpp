@@ -22,15 +22,6 @@
 #include "render-utils/forward_simple_frag.h"
 #include "render-utils/forward_simple_transparent_frag.h"
 
-#include <QProcess>
-
-#if defined(USE_GLES)
-static bool DISABLE_DEFERRED = true;
-#else
-static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
-static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
-#endif
-
 #include "RenderPipelines.h"
 
 //#define SHAPE_ENTITY_USE_FADE_EFFECT
@@ -47,8 +38,11 @@ static const float SPHERE_ENTITY_SCALE = 0.5f;
 
 ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
     _procedural._vertexSource = simple_vert::getSource();
-    _procedural._opaquefragmentSource = DISABLE_DEFERRED ? forward_simple_frag::getSource() : simple_frag::getSource();
-    _procedural._transparentfragmentSource = DISABLE_DEFERRED ? forward_simple_transparent_frag::getSource() : simple_transparent_frag::getSource();
+    // FIXME: Setup proper uniform slots and use correct pipelines for forward rendering
+    _procedural._opaquefragmentSource = simple_frag::getSource();
+    // FIXME: Transparent procedural entities only seem to work if they use the opaque pipelines
+    //_procedural._transparentfragmentSource = simple_transparent_frag::getSource();
+    _procedural._transparentfragmentSource = simple_frag::getSource();
     _procedural._opaqueState->setCullMode(gpu::State::CULL_NONE);
     _procedural._opaqueState->setDepthTest(true, true, gpu::LESS_EQUAL);
     PrepareStencil::testMaskDrawShape(*_procedural._opaqueState);
@@ -251,9 +245,9 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
 
     if (proceduralRender) {
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
-            geometryCache->renderWireShapeColor(batch, geometryShape, outColor);
+            geometryCache->renderWireShape(batch, geometryShape, outColor);
         } else {
-            geometryCache->renderShapeColor(batch, geometryShape, outColor);
+            geometryCache->renderShape(batch, geometryShape, outColor);
         }
     } else if (!useMaterialPipeline()) {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
