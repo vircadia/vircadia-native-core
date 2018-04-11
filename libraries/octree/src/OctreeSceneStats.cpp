@@ -284,10 +284,6 @@ void OctreeSceneStats::didntFit(const OctreeElementPointer& element) {
     }
 }
 
-void OctreeSceneStats::colorBitsWritten() {
-    _colorBitsWritten++;
-}
-
 void OctreeSceneStats::existsBitsWritten() {
     _existsBitsWritten++;
 }
