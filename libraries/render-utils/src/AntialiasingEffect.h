@@ -105,7 +105,7 @@ class AntialiasingConfig : public render::Job::Config {
 public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
-    float blend{ 0.1f };
+    float blend{ 0.25f };
     float sharpen{ 0.05f };
 
     bool constrainColor{ true };
