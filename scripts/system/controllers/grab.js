@@ -567,7 +567,7 @@ Grabber.prototype.moveEventProcess = function() {
     }
 
     if (!this.actionID) {
-        if (!entityIsGrabbedByOther(this.entityID)) {
+        if (!entityIsGrabbedByOther(this.entityID) ) && Entities.getEntityProperties(this.entityID, ['parentID']).parentID !== MyAvatar.SELF_ID) {
             this.actionID = Entities.addAction("far-grab", this.entityID, actionArgs);
         }
     } else {
