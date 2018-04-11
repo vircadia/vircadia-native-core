@@ -322,6 +322,11 @@ void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QU
 
     // stereo sources are not passed through HRTF
     if (streamToAdd.isStereo()) {
+
+        // apply the avatar gain adjustment
+        auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeID, streamToAdd.getStreamIdentifier());
+        gain *= hrtf.getGainAdjustment();
+
         for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
             _mixSamples[i] += float(streamPopOutput[i] * gain / AudioConstants::MAX_SAMPLE_VALUE);
         }
