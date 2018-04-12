@@ -34,6 +34,11 @@ TextField {
 
     placeholderText: textField.placeholderText
 
+    property bool rightAnchorSet: false;
+    anchors.onRightChanged: {
+        rightAnchorSet = true;
+    }
+
     font.family: "Fira Sans"
     font.pixelSize: hifi.fontSizes.textFieldInput
     height: implicitHeight + 3  // Make surrounding box higher so that highlight is vertically centered.
@@ -165,11 +170,11 @@ TextField {
         anchors.left: parent.left
 
         Binding on anchors.right {
-            when: parent.right
-            value: parent.right
+            when: rightAnchorSet
+            value: textField.right
         }
         Binding on wrapMode {
-            when: parent.right
+            when: rightAnchorSet
             value: Text.WordWrap
         }
 

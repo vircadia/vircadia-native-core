@@ -122,12 +122,6 @@ ModalWindow {
                 root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth);
                 root.height = (targetHeight < d.minHeight) ? d.minHeight : ((targetHeight > d.maxHeight) ?
                                                                             d.maxHeight : targetHeight);
-                if (checkBoxField.visible && comboBoxField.visible) {
-                    checkBoxField.width = extraInputs.width / 2;
-                    comboBoxField.width = extraInputs.width / 2;
-                } else if (!checkBoxField.visible && comboBoxField.visible) {
-                    comboBoxField.width = extraInputs.width;
-                }
             }
         }
 
@@ -198,6 +192,15 @@ ModalWindow {
                 label: root.comboBox.label;
                 focus: Boolean(root.comboBox);
                 visible: Boolean(root.comboBox);
+                Binding on x {
+                    when: comboBoxField.visible
+                    value: !checkBoxField.visible ? buttons.x : acceptButton.x
+                }
+
+                Binding on width {
+                    when: comboBoxField.visible
+                    value: !checkBoxField.visible ? buttons.width : buttons.width - acceptButton.x
+                }
                 anchors {
                     right: parent.right;
                     bottom: parent.bottom;
