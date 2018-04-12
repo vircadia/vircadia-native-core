@@ -56,5 +56,5 @@ void main(void) {
     Light light = getKeyLight();
     vec3 lightDirection = getLightDirection(light);
 
-    outFragColor = computeHazeColor(fragColor, eyeFragPos.xyz, worldFragPos.xyz, worldEyePos.y, lightDirection);
+    outFragColor = computeHazeColor(fragColor, eyeFragPos.xyz, worldFragPos.xyz, worldEyePos.xyz, lightDirection);
 }
