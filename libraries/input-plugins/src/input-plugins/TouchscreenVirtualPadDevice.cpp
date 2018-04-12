@@ -43,6 +43,18 @@ void TouchscreenVirtualPadDevice::init() {
     _fixedPosition = true; // This should be config
     _viewTouchUpdateCount = 0;
 
+    resize();
+
+    auto& virtualPadManager = VirtualPad::Manager::instance();
+
+    if (_fixedPosition) {
+        virtualPadManager.getLeftVirtualPad()->setShown(virtualPadManager.isEnabled() && !virtualPadManager.isHidden()); // Show whenever it's enabled
+    }
+
+    KeyboardMouseDevice::enableTouch(false); // Touch for view controls is managed by this plugin
+}
+
+void TouchscreenVirtualPadDevice::resize() {
     QScreen* eventScreen = qApp->primaryScreen();
     if (_screenDPIProvided != eventScreen->physicalDotsPerInch()) {
         _screenWidthCenter = eventScreen->size().width() / 2;
@@ -59,12 +71,6 @@ void TouchscreenVirtualPadDevice::init() {
 
     auto& virtualPadManager = VirtualPad::Manager::instance();
     setupControlsPositions(virtualPadManager, true);
-
-    if (_fixedPosition) {
-        virtualPadManager.getLeftVirtualPad()->setShown(virtualPadManager.isEnabled() && !virtualPadManager.isHidden()); // Show whenever it's enabled
-    }
-
-    KeyboardMouseDevice::enableTouch(false); // Touch for view controls is managed by this plugin
 }
 
 void TouchscreenVirtualPadDevice::setupControlsPositions(VirtualPad::Manager& virtualPadManager, bool force) {
