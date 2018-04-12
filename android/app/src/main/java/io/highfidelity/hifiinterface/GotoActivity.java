@@ -174,4 +174,10 @@ public class GotoActivity extends AppCompatActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+    @Override
+    protected void onDestroy() {
+        cancelActivityIndicator();
+        super.onDestroy();
+    }
 }
