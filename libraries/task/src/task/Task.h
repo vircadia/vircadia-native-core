@@ -160,7 +160,7 @@ public:
 
 
         void applyConfiguration() override {
-            Duration profileRange(trace_render(), ("configure::" + getName()).c_str());
+            Duration profileRange(trace_render(), ("configure::" + JobConcept::getName()).c_str());
 
             jobConfigure(_data, *std::static_pointer_cast<C>(Concept::_config));
         }

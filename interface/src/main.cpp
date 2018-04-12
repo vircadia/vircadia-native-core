@@ -264,7 +264,7 @@ int main(int argc, const char* argv[]) {
         
         
         QTimer exitTimer;
-        if (traceDuration > 0.0) {
+        if (traceDuration > 0.0f) {
             exitTimer.setSingleShot(true);
             QObject::connect(&exitTimer, &QTimer::timeout, &app, &Application::quit);
             exitTimer.start(int(1000 * traceDuration));
