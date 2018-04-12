@@ -87,19 +87,26 @@
         switch (message.method) {
         case "createScene":
             createScene();
+            sendToQml({method: "objectCount", params: { v: getNumObjects() }})
             break;
         case "clearScene":
             clearScene();
+            sendToQml({method: "objectCount", params: { v: getNumObjects() }})
             break;
         case "changeResolution":
             changeResolution(message.params.count);
+            sendToQml({method: "objectCount", params: { v: getNumObjects() }})
+            break;
+        case "bumpUpFloor":
+            bumpUpFloor();
             break;
         }
         
     }
 
+    sendToQml({method: "objectCount", params: { v: getNumObjects() }})
+
     function sendToQml(message) {
         tablet.sendToQml(message);
     }
-
 }()); 

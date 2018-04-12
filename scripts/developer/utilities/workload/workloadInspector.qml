@@ -39,8 +39,20 @@ Rectangle {
         sendToScript({method: "changeResolution", params: { count:value }});         
     }
 
+    function broadcastBumpUpFloor(value) {
+        sendToScript({method: "bumpUpFloor", params: { count:0 }});         
+    }
+
     function fromScript(message) {
         switch (message.method) {
+        case "resolution":
+            print("assigned value! " + message.params.v)
+            resolution.setValue(message.params.v)
+            break;
+        case "objectCount":
+            print("assigned objectCount! " + message.params.v)
+            objectCount.text = ("Num objects = " + message.params.v)
+            break;    
         }
     }
   
@@ -156,7 +168,7 @@ Rectangle {
          HifiControls.Label {
             text: "Test"       
         }
-        RowLayout {
+        Row {
             anchors.left: parent.left
             anchors.right: parent.right 
             HifiControls.Button {
@@ -173,6 +185,20 @@ Rectangle {
                     _workload.broadcastClearScene()
                 }
             }
+            HifiControls.Button {
+                text: "bump floor"
+                onClicked: {
+                    print("pressed")
+                    _workload.broadcastBumpUpFloor()
+                }
+            }
+        }
+    
+        HifiControls.Label {
+            id: objectCount
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            text: "Num objects"                       
         }
         HifiControls.Slider {
             id: resolution
@@ -180,14 +206,14 @@ Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right 
             anchors.rightMargin: 0
-            anchors.top: root.top
             anchors.topMargin: 0
-            minimumValue: 1
-            maximumValue: 10
+            minimumValue: 5
+            maximumValue: 50
+            value: 3
 
             onValueChanged: { _workload.broadcastChangeResolution(value) }
         }
-
+        
         Separator {}
         
         /*Jet.TaskList {

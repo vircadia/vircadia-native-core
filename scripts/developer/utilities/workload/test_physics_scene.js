@@ -1,22 +1,34 @@
 
-var DEFAULT_LIFETIME = 120;
+    var DEFAULT_LIFETIME = 120;
+    var GRID_WORLD_SIZE = 100.0;
+    var GRID_WORLD_MARGIN = 5.0;
+    var GRID_WORLD_RESOLUTION = 30.0;
 
-var GRID_WORLD_SIZE = 100.0;
-var GRID_WORLD_RESOLUTION = 2.0;
 
-var BACKDROP_SIZE = GRID_WORLD_SIZE / GRID_WORLD_RESOLUTION;
-var BACKDROP_HALFSIZE = BACKDROP_SIZE *0.5;
-var BACKDROP_MIN_C = -2;
+    var BACKDROP_SIZE = GRID_WORLD_RESOLUTION;
+    var BACKDROP_HALFSIZE = BACKDROP_SIZE *0.5;
+    var BACKDROP_MIN_C = -2;
 
-var ROOT_Z_OFFSET = -3;
-var ROOT_Y_OFFSET = -0.1;
+    var ROOT_Z_OFFSET = -3;
+    var ROOT_Y_OFFSET = -0.1;
 
-var TILE_UNIT = GRID_WORLD_RESOLUTION;
-var TILE_DIM = { x: TILE_UNIT, y: TILE_UNIT, z: TILE_UNIT};
-var GRID_TILE_OFFSET = Vec3.multiply(0.5, TILE_DIM);
+    var TILE_UNIT = GRID_WORLD_SIZE / BACKDROP_SIZE;
+    var TILE_DIM = { x: TILE_UNIT, y: TILE_UNIT, z: TILE_UNIT};
+    var GRID_TILE_OFFSET = Vec3.multiply(0.5, TILE_DIM);
 
-var OBJECT_DIM = { x: 0.5, y: 0.5, z: 0.5};
 
+    function updateWorldResolution(res) {
+        GRID_WORLD_RESOLUTION = res;
+
+        BACKDROP_SIZE = GRID_WORLD_RESOLUTION;
+        BACKDROP_HALFSIZE = BACKDROP_SIZE *0.5;
+        
+        TILE_UNIT = GRID_WORLD_SIZE / BACKDROP_SIZE;
+        TILE_DIM = { x: TILE_UNIT, y: TILE_UNIT, z: TILE_UNIT};
+        GRID_TILE_OFFSET = Vec3.multiply(0.5, TILE_DIM);
+    }
+
+    var OBJECT_DIM = { x: 0.5, y: 0.5, z: 0.5};
 
 var shapeTypes = [
     "none",
@@ -69,7 +81,7 @@ function addObjectGrid(backdrop, lifetime) {
 }
 
 function addFloor(lifetime) {
-    var floorDim = { x:BACKDROP_SIZE * TILE_DIM.x, y:TILE_DIM.y, z:BACKDROP_SIZE *TILE_DIM.x};
+    var floorDim = { x:GRID_WORLD_SIZE + 2 * GRID_WORLD_MARGIN, y:TILE_DIM.y, z:GRID_WORLD_SIZE + 2 * GRID_WORLD_MARGIN};
     var center = getStagePosOriAt(0, 0, -1).pos;
 
     return (Entities.addEntity({
@@ -87,15 +99,15 @@ function addFloor(lifetime) {
       //  gravity:{"x":0,"y":-9.8,"z":0},
        // velocity:{"x":0,"y":0.01,"z":0},
         restitution:0.999,
-        friction:0.000,
-        damping:0.0,
+        friction:0.001,
+        damping:0.3,
 
     })); 
 }
 
 function addZone(hasKeyLight, hasAmbient, lifetime) {
-    var zoneDim = Vec3.multiply(BACKDROP_SIZE, TILE_DIM);
-    var center = getStagePosOriAt(0, 0, 0).pos;
+    var zoneDim = { x:GRID_WORLD_SIZE + 2 * GRID_WORLD_MARGIN, y:GRID_WORLD_SIZE, z:GRID_WORLD_SIZE + 2 * GRID_WORLD_MARGIN};
+    var center = getStagePosOriAt(0, 0, -2).pos;
     
     var lightDir = Vec3.normalize(Vec3.sum(Vec3.multiply(-1, Quat.getUp(stageOrientation)), Vec3.multiply(-1, Quat.getRight(stageOrientation))))
 
@@ -197,14 +209,20 @@ clearScene = function() {
 }
 
 changeResolution = function(res) {
-    GRID_WORLD_RESOLUTION = res;
-
-    BACKDROP_SIZE = GRID_WORLD_SIZE / GRID_WORLD_RESOLUTION;
-    BACKDROP_HALFSIZE = BACKDROP_SIZE *0.5;
-   
-    TILE_UNIT = GRID_WORLD_RESOLUTION;  
+    updateWorldResolution(res);
 }
-// clean up after test
-Script.scriptEnding.connect(function () {
-    clearScene()
-});
+
+getResolution = function() {
+    return GRID_WORLD_RESOLUTION;
+}
+
+getNumObjects = function() {
+    return BACKDROP_SIZE * BACKDROP_SIZE;
+}
+
+bumpUpFloor = function() {
+    print("bumpUpFloor")
+    if (scene.length > 0) {
+        Entities.editEntity(scene[0],{ velocity: {x: 0, y:-2.0,z: 0}})
+    }
+}
