@@ -24,33 +24,28 @@ void GL45Backend::recycle() const {
     Parent::recycle();
 }
 
-void GL45Backend::do_draw(const Batch& batch, size_t paramOffset) {
-    Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
-    GLenum mode = gl::PRIMITIVE_TO_GL[primitiveType];
-    uint32 numVertices = batch._params[paramOffset + 1]._uint;
-    uint32 startVertex = batch._params[paramOffset + 0]._uint;
-
-    if (isStereo()) {
+void GL45Backend::draw(GLenum mode, uint32 numVertices, uint32 startVertex) {
+	if (isStereo()) {
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
-        glDrawArraysInstanced(mode, startVertex, numVertices, 2);
+		glDrawArraysInstanced(mode, startVertex, numVertices, 2);
 #else
-        setupStereoSide(0);
-        glDrawArrays(mode, startVertex, numVertices);
-        setupStereoSide(1);
-        glDrawArrays(mode, startVertex, numVertices);
+		setupStereoSide(0);
+		glDrawArrays(mode, startVertex, numVertices);
+		setupStereoSide(1);
+		glDrawArrays(mode, startVertex, numVertices);
 #endif
 
-        _stats._DSNumTriangles += 2 * numVertices / 3;
-        _stats._DSNumDrawcalls += 2;
+		_stats._DSNumTriangles += 2 * numVertices / 3;
+		_stats._DSNumDrawcalls += 2;
 
-    } else {
-        glDrawArrays(mode, startVertex, numVertices);
-        _stats._DSNumTriangles += numVertices / 3;
-        _stats._DSNumDrawcalls++;
-    }
-    _stats._DSNumAPIDrawcalls++;
+	} else {
+		glDrawArrays(mode, startVertex, numVertices);
+		_stats._DSNumTriangles += numVertices / 3;
+		_stats._DSNumDrawcalls++;
+	}
+	_stats._DSNumAPIDrawcalls++;
 
-    (void) CHECK_GL_ERROR();
+	(void)CHECK_GL_ERROR();
 }
 
 void GL45Backend::do_drawIndexed(const Batch& batch, size_t paramOffset) {

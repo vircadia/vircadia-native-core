@@ -313,6 +313,7 @@ float evalAO(in vec3 C, in vec3 n_C, in vec3 Q) {
 // the source occlusion texture
 uniform sampler2D occlusionMap;
 
+
 vec2 fetchOcclusionDepthRaw(ivec2 coords, out vec3 raw) {
     raw = texelFetch(occlusionMap, coords, 0).xyz;
     return unpackOcclusionDepth(raw);

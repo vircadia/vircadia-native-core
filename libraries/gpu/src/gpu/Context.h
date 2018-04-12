@@ -220,6 +220,8 @@ public:
     // Same as above but grabbed at every end of a frame
     void getFrameStats(ContextStats& stats) const;
 
+	static PipelinePointer createMipGenerationPipeline(const ShaderPointer& pixelShader, const gpu::Shader::BindingSet& slotBindings = gpu::Shader::BindingSet());
+
     double getFrameTimerGPUAverage() const;
     double getFrameTimerBatchAverage() const;
 

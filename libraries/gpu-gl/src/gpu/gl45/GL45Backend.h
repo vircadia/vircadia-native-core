@@ -231,6 +231,7 @@ public:
 
 protected:
 
+	void draw(GLenum mode, uint32 numVertices, uint32 startVertex) override;
     void recycle() const override;
 
     GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;
@@ -246,7 +247,6 @@ protected:
 
 
     // Draw Stage
-    void do_draw(const Batch& batch, size_t paramOffset) override;
     void do_drawIndexed(const Batch& batch, size_t paramOffset) override;
     void do_drawInstanced(const Batch& batch, size_t paramOffset) override;
     void do_drawIndexedInstanced(const Batch& batch, size_t paramOffset) override;

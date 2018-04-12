@@ -108,7 +108,7 @@ public:
 
 
     // Draw Stage
-    virtual void do_draw(const Batch& batch, size_t paramOffset) = 0;
+    virtual void do_draw(const Batch& batch, size_t paramOffset);
     virtual void do_drawIndexed(const Batch& batch, size_t paramOffset) = 0;
     virtual void do_drawInstanced(const Batch& batch, size_t paramOffset) = 0;
     virtual void do_drawIndexedInstanced(const Batch& batch, size_t paramOffset) = 0;
@@ -120,7 +120,8 @@ public:
     virtual void do_setInputBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_setIndexBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_setIndirectBuffer(const Batch& batch, size_t paramOffset) final;
-    virtual void do_generateTextureMips(const Batch& batch, size_t paramOffset) final;
+	virtual void do_generateTextureMips(const Batch& batch, size_t paramOffset) final;
+	virtual void do_generateTextureMipsWithPipeline(const Batch& batch, size_t paramOffset) final;
 
     // Transform Stage
     virtual void do_setModelTransform(const Batch& batch, size_t paramOffset) final;
@@ -233,6 +234,8 @@ public:
     bool isTextureManagementSparseEnabled() const override { return (_textureManagement._sparseCapable && Texture::getEnableSparseTextures()); }
 
 protected:
+
+	virtual void draw(GLenum mode, uint32 numVertices, uint32 startVertex) = 0;
 
     void recycle() const override;
 
@@ -491,6 +494,8 @@ protected:
         bool _sparseCapable { false };
     } _textureManagement;
     virtual void initTextureManagementStage() {}
+
+	GLuint _mipGenerationFramebufferId{ 0 };
 
     typedef void (GLBackend::*CommandCall)(const Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

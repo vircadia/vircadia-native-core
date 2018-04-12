@@ -14,6 +14,7 @@
 
 #include "Frame.h"
 #include "GPULogging.h"
+#include "StandardShaderLib.h"
 
 using namespace gpu;
 
@@ -316,4 +317,15 @@ Size Context::getTexturePendingGPUTransferMemSize() {
 
 Size Context::getTextureResourcePopulatedGPUMemSize() {
     return Backend::textureResourcePopulatedGPUMemSize.getValue();
+}
+
+PipelinePointer Context::createMipGenerationPipeline(const ShaderPointer& ps, const gpu::Shader::BindingSet& slotBindings) {
+	auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
+	static gpu::StatePointer state(new gpu::State());
+
+	gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+	gpu::Shader::makeProgram(*program, slotBindings);
+
+	// Good to go add the brand new pipeline
+	return gpu::Pipeline::create(program, state);
 }
