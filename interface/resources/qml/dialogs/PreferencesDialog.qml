@@ -9,7 +9,6 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 
 import "../controls-uit" as HifiControls
 import "../styles-uit"
@@ -27,7 +26,7 @@ ScrollingWindow {
     property var showCategories: []
     minSize: Qt.vector2d(400, 500)
 
-    HifiConstants { id: hifi }
+    //HifiConstants { id: hifi }
 
     function saveAll() {
         for (var i = 0; i < sections.length; ++i) {
@@ -97,19 +96,19 @@ ScrollingWindow {
         anchors {
             top: parent.top
             right: parent.right
-            rightMargin: hifi.dimensions.contentMargin.x
+            rightMargin: 10//hifi.dimensions.contentMargin.x
         }
-        spacing: hifi.dimensions.contentSpacing.x
+        spacing: 1//hifi.dimensions.contentSpacing.x
 
         HifiControls.Button {
             text: "Save changes"
-            color: hifi.buttons.blue
+            color: 1//hifi.buttons.blue
             onClicked: root.saveAll()
         }
 
         HifiControls.Button {
             text: "Cancel"
-            color: hifi.buttons.white
+            color: 2//hifi.buttons.white
             onClicked: root.restoreAll()
         }
     }

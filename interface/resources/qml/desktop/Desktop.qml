@@ -8,8 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
+import QtQuick 2.7
 import QtQuick.Controls 1.4
+import QtQuick.Controls 2.3 as QQC2
 
 import "../dialogs"
 import "../js/Utils.js" as Utils
@@ -565,7 +566,7 @@ FocusScope {
         ColorAnimation on color { from: "#7fffff00"; to: "#7f0000ff"; duration: 1000; loops: 9999 }
     }
 
-    Action {
+    QQC2.Action {
         text: "Toggle Focus Debugger"
         shortcut: "Ctrl+Shift+F"
         enabled: DebugQML
