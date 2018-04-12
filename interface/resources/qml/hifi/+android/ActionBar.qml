@@ -40,7 +40,7 @@ Item {
 
     Component.onCompleted: {
         // put on bottom
-        x = 50;
+        x = 30;
         y = 0;
         width = 300;
         height = 300;

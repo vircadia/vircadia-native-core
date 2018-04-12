@@ -80,9 +80,10 @@ void TouchscreenVirtualPadDevice::setupControlsPositions(VirtualPad::Manager& vi
     virtualPadManager.getLeftVirtualPad()->setFirstTouch(_moveRefTouchPoint);
 
     // Jump button
-    float leftMargin = _screenDPI * VirtualPad::Manager::JUMP_BTN_LEFT_MARGIN_PIXELS / VirtualPad::Manager::DPI;
+    float jumpBtnPixelSize = _screenDPI * VirtualPad::Manager::JUMP_BTN_FULL_PIXELS / VirtualPad::Manager::DPI;
+    float rightMargin = _screenDPI * VirtualPad::Manager::JUMP_BTN_RIGHT_MARGIN_PIXELS / VirtualPad::Manager::DPI;
     float bottomMargin = _screenDPI * VirtualPad::Manager::JUMP_BTN_BOTTOM_MARGIN_PIXELS/ VirtualPad::Manager::DPI;
-    _jumpButtonPosition = glm::vec2( _jumpButtonRadius + leftMargin, eventScreen->size().height() - bottomMargin - _jumpButtonRadius - _extraBottomMargin);
+    _jumpButtonPosition = glm::vec2( eventScreen->size().width() - rightMargin - jumpBtnPixelSize, eventScreen->size().height() - bottomMargin - _jumpButtonRadius - _extraBottomMargin);
     virtualPadManager.setJumpButtonPosition(_jumpButtonPosition);
 }
 
