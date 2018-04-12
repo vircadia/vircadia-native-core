@@ -30,8 +30,8 @@ function init() {
         activeIcon: "icons/+android/backward.svg",
         text: "",
         bgOpacity: 0.0,
-        activeBgOpacity: 0.0,
-        bgColor: "#FFFFFF"
+        hoverBgOpacity: 0.0,
+        activeBgOpacity: 0.0
     });
 
     backButton.clicked.connect(onBackPressed);

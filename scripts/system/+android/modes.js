@@ -49,8 +49,11 @@ function init() {
         activeHoverBgOpacity: 0.0,
         text: "MODE",
         height:240,
-        bottomMargin: 6,
-        textSize: 45
+        bottomMargin: 16,
+        textSize: 38,
+        fontFamily: "Raleway",
+        fontBold: true
+
     });
     
     switchToMode(getCurrentModeSetting());

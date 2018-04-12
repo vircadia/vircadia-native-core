@@ -10,12 +10,25 @@ import ".."
 
 Item {
     id: modesbar
-    y:20
+    y:5
+
+    function relocateAndResize(newWindowWidth, newWindowHeight) {
+        width = 300;
+        height = 300;
+        x=newWindowWidth - 565;
+    }
+
+    function onWindowGeometryChanged(rect) {
+        relocateAndResize(rect.width, rect.height);
+    }
 
     Component.onCompleted: {
-        width = 300; // That 30 is extra regardless the qty of items shown
-        height = 300;
-        x=parent.width - 555;
+        relocateAndResize(parent.width, parent.height);
+        Window.geometryChanged.connect(onWindowGeometryChanged); // In devices with bars appearing at startup we should listen for this
+    }
+
+    Component.onDestruction: {
+        Window.geometryChanged.disconnect(onWindowGeometryChanged);
     }
     
     function addButton(properties) {
