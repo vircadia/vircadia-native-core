@@ -200,8 +200,8 @@ public class InterfaceActivity extends QtActivity {
     public void openGotoActivity(String activityName) {
         switch (activityName) {
             case "Goto": {
-                Intent intent = new Intent(this, GotoActivity.class);
-                intent.putExtra(GotoActivity.PARAM_NOT_START_INTERFACE_ACTIVITY, true);
+                Intent intent = new Intent(this, HomeActivity.class);
+                intent.putExtra(HomeActivity.PARAM_NOT_START_INTERFACE_ACTIVITY, true);
                 startActivity(intent);
                 break;
             }

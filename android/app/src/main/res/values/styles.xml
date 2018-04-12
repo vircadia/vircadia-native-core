@@ -16,7 +16,7 @@
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
     <!-- Customizing GoTo ActionBar -->
-    <style name="GotoActionBarTitleStyle"
+    <style name="HomeActionBarTitleStyle"
         parent="@android:style/TextAppearance.Material.Widget.ActionBar.Title">
         <item name="android:textSize">18dp</item>
         <item name="android:paddingLeft">0dp</item>
