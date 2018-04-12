@@ -33,6 +33,7 @@
     }
 
     var OBJECT_DIM = { x: 0.5, y: 0.5, z: 0.5};
+    var OBJECT_SPIN = { x: 0.5, y: 0.5, z: 0.5};
 
 var shapeTypes = [
     "none",
@@ -51,7 +52,9 @@ function getTileColor(a, b, c) {
 }
 
 function addObject(a, b, c, lifetime) {
-    var center = getStagePosOriAt(a, b, v).pos;                                         
+    var center = getStagePosOriAt(a, b, c).pos;                                         
+    
+    
 
     return (Entities.addEntity({
         type: "Shape",
@@ -66,8 +69,9 @@ function addObject(a, b, c, lifetime) {
         dynamic: true,
         gravity:{"x":0,"y":-9.8,"z":0},
         velocity:{"x":0,"y":0.02,"z":0},
+        angularVelocity:OBJECT_SPIN,
         restitution:0.70,
-        friction:0.001,
+        friction:0.01,
         damping:0.001,
 
     }));
