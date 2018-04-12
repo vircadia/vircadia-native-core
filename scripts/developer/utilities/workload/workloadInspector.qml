@@ -208,8 +208,8 @@ Rectangle {
             anchors.rightMargin: 0
             anchors.topMargin: 0
             minimumValue: 5
-            maximumValue: 50
-            value: 3
+            maximumValue: 75
+            value: 5
 
             onValueChanged: { _workload.broadcastChangeResolution(value) }
         }

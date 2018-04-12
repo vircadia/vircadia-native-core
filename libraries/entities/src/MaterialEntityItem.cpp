@@ -27,6 +27,10 @@ MaterialEntityItem::MaterialEntityItem(const EntityItemID& entityItemID) : Entit
     _type = EntityTypes::Material;
 }
 
+MaterialEntityItem::~MaterialEntityItem() {
+    removeMaterial();
+}
+
 EntityItemProperties MaterialEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialURL, getMaterialURL);
@@ -249,28 +253,12 @@ void MaterialEntityItem::setParentID(const QUuid& parentID) {
     }
 }
 
-void MaterialEntityItem::setClientOnly(bool clientOnly) {
-    if (getClientOnly() != clientOnly) {
-        removeMaterial();
-        EntityItem::setClientOnly(clientOnly);
-        applyMaterial();
-    }
-}
-
-void MaterialEntityItem::setOwningAvatarID(const QUuid& owningAvatarID) {
-    if (getOwningAvatarID() != owningAvatarID) {
-        removeMaterial();
-        EntityItem::setOwningAvatarID(owningAvatarID);
-        applyMaterial();
-    }
-}
-
 void MaterialEntityItem::removeMaterial() {
     graphics::MaterialPointer material = getMaterial();
     if (!material) {
         return;
     }
-    QUuid parentID = getClientOnly() ? getOwningAvatarID() : getParentID();
+    QUuid parentID = getParentID();
     if (parentID.isNull()) {
         return;
     }
@@ -294,7 +282,7 @@ void MaterialEntityItem::removeMaterial() {
 void MaterialEntityItem::applyMaterial() {
     _retryApply = false;
     graphics::MaterialPointer material = getMaterial();
-    QUuid parentID = getClientOnly() ? getOwningAvatarID() : getParentID();
+    QUuid parentID = getParentID();
     if (!material || parentID.isNull()) {
         return;
     }
@@ -326,11 +314,6 @@ void MaterialEntityItem::applyMaterial() {
 void MaterialEntityItem::postParentFixup() {
     removeMaterial();
     applyMaterial();
-}
-
-void MaterialEntityItem::preDelete() {
-    EntityItem::preDelete();
-    removeMaterial();
 }
 
 void MaterialEntityItem::update(const quint64& now) {
