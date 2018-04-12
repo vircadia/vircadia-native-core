@@ -2626,6 +2626,9 @@ void Application::initializeUi() {
     offscreenUi->resume();
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
         resizeGL();
+        if (_touchscreenVirtualPadDevice) {
+            _touchscreenVirtualPadDevice->resize();
+        }
     });
 
     // This will set up the input plugins UI
