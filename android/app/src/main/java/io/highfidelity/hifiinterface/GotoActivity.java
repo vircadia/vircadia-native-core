@@ -1,13 +1,21 @@
 package io.highfidelity.hifiinterface;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.AppCompatButton;
 import android.support.v7.widget.Toolbar;
+import android.view.KeyEvent;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
 
 public class GotoActivity extends AppCompatActivity {
+
+    private EditText mUrlEditText;
+    private AppCompatButton mGoBtn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -20,6 +28,41 @@ public class GotoActivity extends AppCompatActivity {
 
         ActionBar actionbar = getSupportActionBar();
         actionbar.setDisplayHomeAsUpEnabled(true);
+
+        mUrlEditText = (EditText) findViewById(R.id.url_text);
+        mUrlEditText.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View view, int i, KeyEvent keyEvent) {
+                if (i == KeyEvent.KEYCODE_ENTER) {
+                    actionGo();
+                    return true;
+                }
+                return false;
+            }
+        });
+        mGoBtn = (AppCompatButton) findViewById(R.id.go_btn);
+
+        mGoBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                actionGo();
+            }
+        });
+    }
+
+    private void actionGo() {
+        String urlString = mUrlEditText.getText().toString();
+        if (!urlString.trim().isEmpty()) {
+            Intent intent = new Intent(this, InterfaceActivity.class);
+            intent.putExtra(InterfaceActivity.DOMAIN_URL, urlString);
+            finish();
+            if (getIntent() != null &&
+                    getIntent().hasExtra(HomeActivity.PARAM_NOT_START_INTERFACE_ACTIVITY) &&
+                    getIntent().getBooleanExtra(HomeActivity.PARAM_NOT_START_INTERFACE_ACTIVITY, false)) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            }
+            startActivity(intent);
+        }
     }
 
     @Override

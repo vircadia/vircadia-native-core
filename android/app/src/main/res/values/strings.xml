@@ -11,5 +11,7 @@
     <string name="bookmarks">BOOKMARKS</string>
     <string name="action_settings">Settings</string>
     <string name="action_goto">Go To</string>
+    <string name="goto_url_hint">Type a domain url</string>
+    <string name="go">Go</string>
 
 </resources>
