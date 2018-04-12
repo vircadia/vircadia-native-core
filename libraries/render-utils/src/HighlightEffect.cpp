@@ -476,7 +476,6 @@ void DrawHighlightTask::configure(const Config& config) {
 }
 
 void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {
-    PROFILE_RANGE(startup, "Bloom::build");
     const auto items = inputs.getN<Inputs>(0).get<RenderFetchCullSortTask::BucketList>();
     const auto sceneFrameBuffer = inputs.getN<Inputs>(1);
     const auto primaryFramebuffer = inputs.getN<Inputs>(2);

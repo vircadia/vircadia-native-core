@@ -286,7 +286,7 @@ void OffscreenSurface::loadInternal(const QUrl& qmlSource,
                                     bool createNewContext,
                                     QQuickItem* parent,
                                     const QmlContextObjectCallback& callback) {
-    PROFILE_RANGE(app, "loadInternal");
+    PROFILE_RANGE_EX(app, "OffscreenSurface::loadInternal", 0xffff00ff, 0, { std::make_pair("url", qmlSource.toDisplayString()) });
     if (QThread::currentThread() != thread()) {
         qFatal("Called load on a non-surface thread");
     }

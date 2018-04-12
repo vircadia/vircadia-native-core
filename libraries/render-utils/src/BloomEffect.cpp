@@ -326,7 +326,6 @@ Bloom::Bloom() {
 }
 
 void Bloom::configure(const Config& config) {
-    PROFILE_RANGE(startup, "Bloom::build");
     std::string blurName{ "BloomBlurN" };
 
     for (auto i = 0; i < BLOOM_BLUR_LEVEL_COUNT; i++) {

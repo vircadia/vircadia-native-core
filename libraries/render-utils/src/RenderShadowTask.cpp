@@ -215,7 +215,6 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
 
 void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cameraCullFunctor, uint8_t tagBits, uint8_t tagMask) {
     ::CullFunctor shadowCullFunctor = [this](const RenderArgs* args, const AABox& bounds) {
-        PROFILE_RANGE(startup, "RenderShadowTask::build");
         return _cullFunctor(args, bounds);
     };
 

@@ -20,7 +20,6 @@ using namespace render;
 void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varying& output, CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
-    PROFILE_RANGE(startup, "RenderFetchCullSortTask::build");
     // CPU jobs:
     // Fetch and cull the items from the scene
     const ItemFilter filter = ItemFilter::Builder::visibleWorldItems().withoutLayered().withTagBits(tagBits, tagMask);
