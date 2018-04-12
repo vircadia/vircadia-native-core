@@ -33,8 +33,10 @@
  * @property {number} innerHeight - The height of the drawable area of the Interface window (i.e., without borders or other
  *     chrome), in pixels. <em>Read-only.</em>
  * @property {object} location - Provides facilities for working with your current metaverse location. See {@link location}.
- * @property {number} x - The x coordinate of the top left corner of the Interface window on the display. <em>Read-only.</em>
- * @property {number} y - The y coordinate of the top left corner of the Interface window on the display. <em>Read-only.</em>
+ * @property {number} x - The x display coordinate of the top left corner of the drawable area of the Interface window. 
+ *     <em>Read-only.</em>
+ * @property {number} y - The y display coordinate of the top left corner of the drawable area of the Interface window. 
+ *     <em>Read-only.</em>
  */
 
 class WindowScriptingInterface : public QObject, public Dependency {
@@ -522,6 +524,7 @@ public slots:
     void closeMessageBox(int id);
 
 private slots:
+    void onWindowGeometryChanged(const QRect& geometry);
     void onMessageBoxSelected(int button);
     void disconnectedFromDomain();
 

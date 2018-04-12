@@ -35,12 +35,19 @@ QJsonObject Ledger::apiResponse(const QString& label, QNetworkReply& reply) {
 QJsonObject Ledger::failResponse(const QString& label, QNetworkReply& reply) {
     QString response = reply.readAll();
     qWarning(commerce) << "FAILED" << label << response;
-    QJsonObject result
-    {
-        { "status", "fail" },
-        { "message", response }
-    };
-    return result;
+
+    // tempResult will be NULL if the response isn't valid JSON.
+    QJsonDocument tempResult = QJsonDocument::fromJson(response.toLocal8Bit());
+    if (tempResult.isNull()) {
+        QJsonObject result
+        {
+            { "status", "fail" },
+            { "message", response }
+        };
+        return result;
+    } else {
+        return tempResult.object();
+    }
 }
 #define ApiHandler(NAME) void Ledger::NAME##Success(QNetworkReply& reply) { emit NAME##Result(apiResponse(#NAME, reply)); }
 #define FailHandler(NAME) void Ledger::NAME##Failure(QNetworkReply& reply) { emit NAME##Result(failResponse(#NAME, reply)); }
@@ -337,7 +344,9 @@ void Ledger::certificateInfoSuccess(QNetworkReply& reply) {
     qInfo(commerce) << "certificateInfo" << "response" << QJsonDocument(replyObject).toJson(QJsonDocument::Compact);
     emit certificateInfoResult(replyObject);
 }
-void Ledger::certificateInfoFailure(QNetworkReply& reply) { failResponse("certificateInfo", reply); }
+void Ledger::certificateInfoFailure(QNetworkReply& reply) {
+    emit certificateInfoResult(failResponse("certificateInfo", reply));
+}
 void Ledger::certificateInfo(const QString& certificateId) {
     QString endpoint = "proof_of_purchase_status/transfer";
     QJsonObject request;
