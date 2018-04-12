@@ -1,5 +1,5 @@
-import QtQuick 2.5
-import QtQuick.Controls 1.4
+import QtQuick 2.7
+import QtQuick.Controls 2.3
 
 import "../../../controls-uit" as HifiControls
 
@@ -44,7 +44,7 @@ Column {
             id: acceptAction
             text: qsTr("OK")
             enabled: root.result ? true : false
-            shortcut: Qt.Key_Return
+            shortcut: "Return"
             onTriggered: {
                 root.selected(root.result);
                 root.destroy();
@@ -54,7 +54,7 @@ Column {
         Action {
             id: cancelAction
             text: qsTr("Cancel")
-            shortcut: Qt.Key_Escape
+            shortcut: "Esc"
             onTriggered: {
                 root.canceled();
                 root.destroy();

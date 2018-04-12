@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-//#include <PerfStat.h>
-
 #include "SimpleEntitySimulation.h"
 
 #include <DirtyOctreeElementOperator.h>
@@ -27,16 +25,13 @@ void SimpleEntitySimulation::clearOwnership(const QUuid& ownerID) {
         EntityItemPointer entity = *itemItr;
         if (entity->getSimulatorID() == ownerID) {
             // the simulator has abandonded this object --> remove from owned list
-            qCDebug(entities) << "auto-removing simulation owner " << entity->getSimulatorID();
             itemItr = _entitiesWithSimulationOwner.erase(itemItr);
 
             if (entity->getDynamic() && entity->hasLocalVelocity()) {
                 // it is still moving dynamically --> add to orphaned list
                 _entitiesThatNeedSimulationOwner.insert(entity);
                 uint64_t expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
-                if (expiry < _nextOwnerlessExpiry) {
-                    _nextOwnerlessExpiry = expiry;
-                }
+                _nextOwnerlessExpiry = glm::min(_nextOwnerlessExpiry, expiry);
             }
 
             // remove ownership and dirty all the tree elements that contain the it
@@ -51,37 +46,8 @@ void SimpleEntitySimulation::clearOwnership(const QUuid& ownerID) {
 }
 
 void SimpleEntitySimulation::updateEntitiesInternal(uint64_t now) {
-    if (now > _nextOwnerlessExpiry) {
-        // search for ownerless objects that have expired
-        QMutexLocker lock(&_mutex);
-        _nextOwnerlessExpiry = std::numeric_limits<uint64_t>::max();
-        SetOfEntities::iterator itemItr = _entitiesThatNeedSimulationOwner.begin();
-        while (itemItr != _entitiesThatNeedSimulationOwner.end()) {
-            EntityItemPointer entity = *itemItr;
-            uint64_t expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
-            if (expiry < now) {
-                // no simulators have volunteered ownership --> remove from list
-                itemItr = _entitiesThatNeedSimulationOwner.erase(itemItr);
-
-                if (entity->getSimulatorID().isNull() && entity->getDynamic() && entity->hasLocalVelocity()) {
-                    // zero the derivatives
-                    entity->setVelocity(Vectors::ZERO);
-                    entity->setAngularVelocity(Vectors::ZERO);
-                    entity->setAcceleration(Vectors::ZERO);
-
-                    // dirty all the tree elements that contain it
-                    entity->markAsChangedOnServer();
-                    DirtyOctreeElementOperator op(entity->getElement());
-                    getEntityTree()->recurseTreeWithOperator(&op);
-                }
-            } else {
-                ++itemItr;
-                if (expiry < _nextOwnerlessExpiry) {
-                    _nextOwnerlessExpiry = expiry;
-                }
-            }
-        }
-    }
+    expireStaleOwnerships(now);
+    stopOwnerlessEntities(now);
 }
 
 void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
@@ -93,13 +59,12 @@ void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     if (!entity->getSimulatorID().isNull()) {
         QMutexLocker lock(&_mutex);
         _entitiesWithSimulationOwner.insert(entity);
+        _nextStaleOwnershipExpiry = glm::min(_nextStaleOwnershipExpiry, entity->getSimulationOwnershipExpiry());
     } else if (entity->getDynamic() && entity->hasLocalVelocity()) {
         QMutexLocker lock(&_mutex);
         _entitiesThatNeedSimulationOwner.insert(entity);
         uint64_t expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
-        if (expiry < _nextOwnerlessExpiry) {
-            _nextOwnerlessExpiry = expiry;
-        }
+        _nextOwnerlessExpiry = glm::min(_nextOwnerlessExpiry, expiry);
     }
 }
 
@@ -128,13 +93,12 @@ void SimpleEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
         if (entity->getDynamic() && entity->hasLocalVelocity()) {
             _entitiesThatNeedSimulationOwner.insert(entity);
             uint64_t expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
-            if (expiry < _nextOwnerlessExpiry) {
-                _nextOwnerlessExpiry = expiry;
-            }
+            _nextOwnerlessExpiry = glm::min(_nextOwnerlessExpiry, expiry);
         }
     } else {
         QMutexLocker lock(&_mutex);
         _entitiesWithSimulationOwner.insert(entity);
+        _nextStaleOwnershipExpiry = glm::min(_nextStaleOwnershipExpiry, entity->getSimulationOwnershipExpiry());
         _entitiesThatNeedSimulationOwner.remove(entity);
     }
     entity->clearDirtyFlags();
@@ -154,4 +118,59 @@ void SimpleEntitySimulation::sortEntitiesThatMoved() {
         ++itemItr;
     }
     EntitySimulation::sortEntitiesThatMoved();
+}
+
+void SimpleEntitySimulation::expireStaleOwnerships(uint64_t now) {
+    if (now > _nextStaleOwnershipExpiry) {
+        _nextStaleOwnershipExpiry = (uint64_t)(-1);
+        SetOfEntities::iterator itemItr = _entitiesWithSimulationOwner.begin();
+        while (itemItr != _entitiesWithSimulationOwner.end()) {
+            EntityItemPointer entity = *itemItr;
+            uint64_t expiry = entity->getSimulationOwnershipExpiry();
+            if (now > expiry) {
+                itemItr = _entitiesWithSimulationOwner.erase(itemItr);
+
+                // remove ownership and dirty all the tree elements that contain the it
+                entity->clearSimulationOwnership();
+                entity->markAsChangedOnServer();
+                DirtyOctreeElementOperator op(entity->getElement());
+                getEntityTree()->recurseTreeWithOperator(&op);
+            } else {
+                _nextStaleOwnershipExpiry = glm::min(_nextStaleOwnershipExpiry, expiry);
+                ++itemItr;
+            }
+        }
+    }
+}
+
+void SimpleEntitySimulation::stopOwnerlessEntities(uint64_t now) {
+    if (now > _nextOwnerlessExpiry) {
+        // search for ownerless objects that have expired
+        QMutexLocker lock(&_mutex);
+        _nextOwnerlessExpiry = (uint64_t)(-1);
+        SetOfEntities::iterator itemItr = _entitiesThatNeedSimulationOwner.begin();
+        while (itemItr != _entitiesThatNeedSimulationOwner.end()) {
+            EntityItemPointer entity = *itemItr;
+            uint64_t expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
+            if (expiry < now) {
+                // no simulators have volunteered ownership --> remove from list
+                itemItr = _entitiesThatNeedSimulationOwner.erase(itemItr);
+
+                if (entity->getSimulatorID().isNull() && entity->getDynamic() && entity->hasLocalVelocity()) {
+                    // zero the derivatives
+                    entity->setVelocity(Vectors::ZERO);
+                    entity->setAngularVelocity(Vectors::ZERO);
+                    entity->setAcceleration(Vectors::ZERO);
+
+                    // dirty all the tree elements that contain it
+                    entity->markAsChangedOnServer();
+                    DirtyOctreeElementOperator op(entity->getElement());
+                    getEntityTree()->recurseTreeWithOperator(&op);
+                }
+            } else {
+                _nextOwnerlessExpiry = glm::min(_nextOwnerlessExpiry, expiry);
+                ++itemItr;
+            }
+        }
+    }
 }

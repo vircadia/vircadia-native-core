@@ -370,12 +370,18 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                             simulationBlocked = false;
                         }
                     }
+                    if (!simulationBlocked) {
+                        entity->setSimulationOwnershipExpiry(usecTimestampNow() + MAX_INCOMING_SIMULATION_UPDATE_PERIOD);
+                    }
                 } else {
                     // the entire update is suspect --> ignore it
                     return false;
                 }
             } else if (simulationBlocked) {
                 simulationBlocked = senderID != entity->getSimulatorID();
+                if (!simulationBlocked) {
+                    entity->setSimulationOwnershipExpiry(usecTimestampNow() + MAX_INCOMING_SIMULATION_UPDATE_PERIOD);
+                }
             }
             if (simulationBlocked) {
                 // squash ownership and physics-related changes.
