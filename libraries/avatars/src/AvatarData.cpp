@@ -2060,22 +2060,30 @@ static const QString JSON_AVATAR_VERSION = QStringLiteral("version");
 
 static const int JSON_AVATAR_JOINT_ROTATIONS_IN_RELATIVE_FRAME_VERSION = 0;
 static const int JSON_AVATAR_JOINT_ROTATIONS_IN_ABSOLUTE_FRAME_VERSION = 1;
+static const int JSON_AVATAR_JOINT_DEFAULT_POSE_BITS_VERSION = 2;
 
 QJsonValue toJsonValue(const JointData& joint) {
     QJsonArray result;
     result.push_back(toJsonValue(joint.rotation));
     result.push_back(toJsonValue(joint.translation));
+    result.push_back(QJsonValue(joint.rotationIsDefaultPose));
+    result.push_back(QJsonValue(joint.translationIsDefaultPose));
     return result;
 }
 
-JointData jointDataFromJsonValue(const QJsonValue& json) {
+JointData jointDataFromJsonValue(int version, const QJsonValue& json) {
     JointData result;
     if (json.isArray()) {
         QJsonArray array = json.toArray();
         result.rotation = quatFromJsonValue(array[0]);
-        result.rotationIsDefaultPose = false;
         result.translation = vec3FromJsonValue(array[1]);
-        result.translationIsDefaultPose = false;
+        if (version >= JSON_AVATAR_JOINT_DEFAULT_POSE_BITS_VERSION) {
+            result.rotationIsDefaultPose = array[2].toBool();
+            result.translationIsDefaultPose = array[3].toBool();
+        } else {
+            result.rotationIsDefaultPose = false;
+            result.translationIsDefaultPose = false;
+        }
     }
     return result;
 }
@@ -2083,7 +2091,7 @@ JointData jointDataFromJsonValue(const QJsonValue& json) {
 QJsonObject AvatarData::toJson() const {
     QJsonObject root;
 
-    root[JSON_AVATAR_VERSION] = JSON_AVATAR_JOINT_ROTATIONS_IN_ABSOLUTE_FRAME_VERSION;
+    root[JSON_AVATAR_VERSION] = JSON_AVATAR_JOINT_DEFAULT_POSE_BITS_VERSION;
 
     if (!getSkeletonModelURL().isEmpty()) {
         root[JSON_AVATAR_BODY_MODEL] = getSkeletonModelURL().toString();
@@ -2247,7 +2255,7 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
             QJsonArray jointArrayJson = json[JSON_AVATAR_JOINT_ARRAY].toArray();
             jointArray.reserve(jointArrayJson.size());
             for (const auto& jointJson : jointArrayJson) {
-                auto joint = jointDataFromJsonValue(jointJson);
+                auto joint = jointDataFromJsonValue(version, jointJson);
                 jointArray.push_back(joint);
             }
             setRawJointData(jointArray);
