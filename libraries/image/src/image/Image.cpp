@@ -37,7 +37,7 @@ bool DEV_DECIMATE_TEXTURES = false;
 std::atomic<size_t> DECIMATED_TEXTURE_COUNT{ 0 };
 std::atomic<size_t> RECTIFIED_TEXTURE_COUNT{ 0 };
 
-static const auto& HDR_FORMAT = gpu::Element::COLOR_R11G11B10;
+static const auto HDR_FORMAT = gpu::Element::COLOR_R11G11B10;
 
 static std::atomic<bool> compressColorTextures { false };
 static std::atomic<bool> compressNormalTextures { false };
