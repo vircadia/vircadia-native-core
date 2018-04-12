@@ -158,7 +158,6 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(&(*stateItr));
         assert(motionState);
         EntityItemPointer entity = motionState->getEntity();
-        entity->setPhysicsInfo(nullptr);
         // TODO: someday when we invert the entities/physics lib dependencies we can let EntityItem delete its own PhysicsInfo
         // until then we must do it here
         delete motionState;
