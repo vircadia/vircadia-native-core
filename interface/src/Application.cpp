@@ -5277,7 +5277,7 @@ void Application::update(float deltaTime) {
         if (_physicsEnabled) {
             {
                 PROFILE_RANGE(simulation_physics, "PrePhysics");
-                PerformanceTimer perfTimer("prePhys)");
+                PerformanceTimer perfTimer("prePhysics)");
                 {
                     const VectorOfMotionStates& motionStates = _entitySimulation->getObjectsToRemoveFromPhysics();
                     _physicsEngine->removeObjects(motionStates);
