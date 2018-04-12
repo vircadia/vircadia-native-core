@@ -71,7 +71,8 @@ def bakeFilesInDirectory(directory, outputDirectory):
                 absFilePath = os.path.abspath(filePath)
                 outputFolder = os.path.join(outputDirectory, appendPath)
                 print "Baking file: " + filename
-                bakeFile(absFilePath, outputFolder, 'png')
+                bakeType = os.path.splitext(filename)[1][1:]
+                bakeFile(absFilePath, outputFolder, bakeType)
             else:
                 filePath = os.sep.join([root, filename])
                 absFilePath = os.path.abspath(filePath)
