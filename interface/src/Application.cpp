@@ -5272,12 +5272,12 @@ void Application::update(float deltaTime) {
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
 
     {
-        PROFILE_RANGE(simulation_physics, "Physics");
-        PerformanceTimer perfTimer("physics");
+        PROFILE_RANGE(simulation_physics, "Simulation");
+        PerformanceTimer perfTimer("simulation");
         if (_physicsEnabled) {
             {
-                PROFILE_RANGE(simulation_physics, "PreStep");
-                PerformanceTimer perfTimer("preStep)");
+                PROFILE_RANGE(simulation_physics, "PrePhysics");
+                PerformanceTimer perfTimer("prePhys)");
                 {
                     const VectorOfMotionStates& motionStates = _entitySimulation->getObjectsToRemoveFromPhysics();
                     _physicsEngine->removeObjects(motionStates);
@@ -5311,15 +5311,15 @@ void Application::update(float deltaTime) {
                 });
             }
             {
-                PROFILE_RANGE(simulation_physics, "Step");
-                PerformanceTimer perfTimer("step");
+                PROFILE_RANGE(simulation_physics, "StepPhysics");
+                PerformanceTimer perfTimer("stepPhysics");
                 getEntities()->getTree()->withWriteLock([&] {
                     _physicsEngine->stepSimulation();
                 });
             }
             {
-                PROFILE_RANGE(simulation_physics, "PostStep");
-                PerformanceTimer perfTimer("postStep");
+                PROFILE_RANGE(simulation_physics, "PostPhysics");
+                PerformanceTimer perfTimer("postPhysics");
                 if (_physicsEngine->hasOutgoingChanges()) {
                     // grab the collision events BEFORE handleOutgoingChanges() because at this point
                     // we have a better idea of which objects we own or should own.

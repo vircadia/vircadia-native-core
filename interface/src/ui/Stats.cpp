@@ -60,7 +60,7 @@ Stats::Stats(QQuickItem* parent) :  QQuickItem(parent) {
 bool Stats::includeTimingRecord(const QString& name) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
         if (name.startsWith("/idle/update/")) {
-            if (name.startsWith("/idle/update/physics/")) {
+            if (name.startsWith("/idle/update/simulation/")) {
                 return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming);
             } else if (name.startsWith("/idle/update/myAvatar/")) {
                 if (name.startsWith("/idle/update/myAvatar/simulate/")) {
@@ -75,7 +75,7 @@ bool Stats::includeTimingRecord(const QString& name) {
             return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
         } else if (name.startsWith("/paintGL/")) {
             return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
-        } else if (name.startsWith("step/")) {
+        } else if (name.startsWith("physics/")) {
             return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming);
         }
         return true;
@@ -479,7 +479,7 @@ void Stats::updateStats(bool force) {
             float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
             _gameUpdateStats = QString("/idle/update = %1 ms").arg(dt);
 
-            QVector<QString> categories = { "devices", "physics", "otherAvatars", "MyAvatar", "misc" };
+            QVector<QString> categories = { "devices", "simulation", "otherAvatars", "MyAvatar", "misc" };
             for (int32_t j = 0; j < categories.size(); ++j) {
                 QString recordKey = "/idle/update/" + categories[j];
                 itr = allRecords.find(recordKey);
