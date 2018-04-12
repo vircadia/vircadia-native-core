@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
@@ -23,7 +25,7 @@ import android.widget.TextView;
 import io.highfidelity.hifiinterface.QtPreloader.QtPreloader;
 import io.highfidelity.hifiinterface.view.DomainAdapter;
 
-public class HomeActivity extends AppCompatActivity {
+public class HomeActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     /**
      * Set this intent extra param to NOT start a new InterfaceActivity after a domain is selected"
@@ -32,6 +34,7 @@ public class HomeActivity extends AppCompatActivity {
     private DomainAdapter domainAdapter;
     private DrawerLayout mDrawerLayout;
     private ProgressDialog mDialog;
+    private NavigationView mNavigationView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +49,9 @@ public class HomeActivity extends AppCompatActivity {
         actionbar.setHomeAsUpIndicator(R.drawable.ic_menu);
 
         mDrawerLayout = findViewById(R.id.drawer_layout);
+
+        mNavigationView = (NavigationView) findViewById(R.id.nav_view);
+        mNavigationView.setNavigationItemSelectedListener(this);
 
         TabHost tabs=(TabHost)findViewById(R.id.tabhost);
         tabs.setup();
@@ -168,8 +174,6 @@ public class HomeActivity extends AppCompatActivity {
             case android.R.id.home:
                 mDrawerLayout.openDrawer(GravityCompat.START);
                 return true;
-            case R.id.action_settings:
-                return true;
         }
 
         return super.onOptionsItemSelected(item);
@@ -179,5 +183,18 @@ public class HomeActivity extends AppCompatActivity {
     protected void onDestroy() {
         cancelActivityIndicator();
         super.onDestroy();
+    }
+
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        switch(item.getItemId()) {
+            case R.id.action_goto:
+                Intent i = new Intent(this, GotoActivity.class);
+                startActivity(i);
+                return true;
+            case R.id.action_settings:
+                return true;
+        }
+        return false;
     }
 }
