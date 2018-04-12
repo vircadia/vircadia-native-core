@@ -1688,7 +1688,8 @@ void EntityItem::setScaledDimensions(const glm::vec3& value) {
 }
 
 void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
-    glm::vec3 newDimensions = glm::max(value, glm::vec3(0.0f)); // can never have negative dimensions
+    const float MIN_ENTITY_DIMENSION = 0.01f; // this value cubed should == MIN_VOLUME in setMass
+    glm::vec3 newDimensions = glm::max(value, glm::vec3(MIN_ENTITY_DIMENSION));
     if (getUnscaledDimensions() != newDimensions) {
         withWriteLock([&] {
             _unscaledDimensions = newDimensions;
