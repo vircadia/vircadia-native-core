@@ -21,7 +21,7 @@
             android:background="?attr/colorPrimary"
             android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
 
-        <include layout="@layout/content_goto" />
+        <include layout="@layout/content_home" />
 
     </android.support.design.widget.AppBarLayout>
 
@@ -32,7 +32,7 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:fitsSystemWindows="true"
-        app:menu="@menu/menu_goto"
+        app:menu="@menu/menu_home"
         />
 
 </android.support.v4.widget.DrawerLayout>

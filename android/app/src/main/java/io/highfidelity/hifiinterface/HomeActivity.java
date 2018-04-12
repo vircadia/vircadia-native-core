@@ -23,7 +23,7 @@ import android.widget.TextView;
 import io.highfidelity.hifiinterface.QtPreloader.QtPreloader;
 import io.highfidelity.hifiinterface.view.DomainAdapter;
 
-public class GotoActivity extends AppCompatActivity {
+public class HomeActivity extends AppCompatActivity {
 
     /**
      * Set this intent extra param to NOT start a new InterfaceActivity after a domain is selected"
@@ -36,9 +36,9 @@ public class GotoActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_goto);
+        setContentView(R.layout.activity_home);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        toolbar.setTitleTextAppearance(this, R.style.GotoActionBarTitleStyle);
+        toolbar.setTitleTextAppearance(this, R.style.HomeActionBarTitleStyle);
         setSupportActionBar(toolbar);
 
         ActionBar actionbar = getSupportActionBar();
@@ -83,9 +83,9 @@ public class GotoActivity extends AppCompatActivity {
 
             @Override
             public void onItemClick(View view, int position, DomainAdapter.Domain domain) {
-                Intent intent = new Intent(GotoActivity.this, InterfaceActivity.class);
+                Intent intent = new Intent(HomeActivity.this, InterfaceActivity.class);
                 intent.putExtra(InterfaceActivity.DOMAIN_URL, domain.url);
-                GotoActivity.this.finish();
+                HomeActivity.this.finish();
                 if (getIntent() != null &&
                     getIntent().hasExtra(PARAM_NOT_START_INTERFACE_ACTIVITY) &&
                     getIntent().getBooleanExtra(PARAM_NOT_START_INTERFACE_ACTIVITY, false)) {
@@ -137,7 +137,7 @@ public class GotoActivity extends AppCompatActivity {
             preloadTask = new AsyncTask() {
                 @Override
                 protected Object doInBackground(Object[] objects) {
-                    new QtPreloader(GotoActivity.this).initQt();
+                    new QtPreloader(HomeActivity.this).initQt();
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -154,7 +154,7 @@ public class GotoActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        //getMenuInflater().inflate(R.menu.menu_goto, menu);
+        //getMenuInflater().inflate(R.menu.menu_home, menu);
         return true;
     }
 
@@ -173,5 +173,11 @@ public class GotoActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onDestroy() {
+        cancelActivityIndicator();
+        super.onDestroy();
     }
 }

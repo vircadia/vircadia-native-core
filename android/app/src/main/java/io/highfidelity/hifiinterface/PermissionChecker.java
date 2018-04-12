@@ -11,7 +11,7 @@ import android.app.AlertDialog;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import android.util.Log;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -64,7 +64,7 @@ public class PermissionChecker extends Activity {
 
     private void launchActivityWithPermissions(){
         finish();
-        Intent i = new Intent(this, GotoActivity.class);
+        Intent i = new Intent(this, HomeActivity.class);
         startActivity(i);
         finish();
     }
