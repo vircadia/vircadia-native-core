@@ -73,7 +73,7 @@ class JobConcept {
 public:
     using Config = JobConfig;
 
-    JobConcept(const std::string& name, QConfigPointer config) : _name(name), _config(config) {}
+    JobConcept(const std::string& name, QConfigPointer config) : _config(config), _name(name) {}
     virtual ~JobConcept() = default;
     
     const std::string& getName() const { return _name; }
@@ -330,7 +330,7 @@ public:
         }
 
         void applyConfiguration() override {
-           Duration profileRange(trace_render(), ("configure::" + JobConcept::getName()).c_str());
+            Duration profileRange(trace_render(), ("configure::" + JobConcept::getName()).c_str());
             jobConfigure(_data, *std::static_pointer_cast<C>(Concept::_config));
             for (auto& job : TaskConcept::_jobs) {
                 job.applyConfiguration();
