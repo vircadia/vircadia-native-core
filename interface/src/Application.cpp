@@ -399,8 +399,7 @@ public:
     static const int HEARTBEAT_SAMPLES = 100000; // ~5 seconds worth of samples
 
     // Set the heartbeat on launch
-    DeadlockWatchdogThread(bool crashOnTrigger = true)
-        : _crashOnTrigger(crashOnTrigger) {
+    DeadlockWatchdogThread() {
         setObjectName("Deadlock Watchdog");
         // Give the heartbeat an initial value
         _heartbeat = usecTimestampNow();
@@ -491,9 +490,7 @@ public:
                 // Don't actually crash in debug builds, in case this apparent deadlock is simply from
                 // the developer actively debugging code
                 #ifdef NDEBUG
-                if (_crashOnTrigger) {
-                    deadlockDetectionCrash();
-                }
+                deadlockDetectionCrash();
                 #endif
             }
         }
@@ -504,8 +501,6 @@ public:
     static std::atomic<uint64_t> _maxElapsed;
     static std::atomic<int> _maxElapsedAverage;
     static ThreadSafeMovingAverage<int, HEARTBEAT_SAMPLES> _movingAverage;
-
-    const bool _crashOnTrigger;
 
     bool _quit { false };
 };
@@ -962,7 +957,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
-    bool watchdogCrashWhenTriggered = true;
     {
         const QString TEST_SCRIPT = "--testScript";
         const QStringList args = arguments();
@@ -972,8 +966,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 if (QFileInfo(testScriptPath).exists()) {
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
                 }
-            } else if (args.at(i) == QStringLiteral("--disableWatchdog")) {
-                watchdogCrashWhenTriggered = false;
             }
         }
     }
@@ -1019,9 +1011,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->startThread();
 
+    const char** constArgv = const_cast<const char**>(argv);
+    if (cmdOptionExists(argc, constArgv, "--disableWatchdog")) {
+        DISABLE_WATCHDOG = true;
+    }
     // Set up a watchdog thread to intentionally crash the application on deadlocks
     if (!DISABLE_WATCHDOG) {
-        (new DeadlockWatchdogThread(watchdogCrashWhenTriggered))->start();
+        (new DeadlockWatchdogThread())->start();
     }
 
     // Set File Logger Session UUID
@@ -1228,7 +1224,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
     connect(&_entityEditSender, &EntityEditPacketSender::addingEntityWithCertificate, this, &Application::addingEntityWithCertificate);
 
-    const char** constArgv = const_cast<const char**>(argv);
     QString concurrentDownloadsStr = getCmdOption(argc, constArgv, "--concurrent-downloads");
     bool success;
     int concurrentDownloads = concurrentDownloadsStr.toInt(&success);
