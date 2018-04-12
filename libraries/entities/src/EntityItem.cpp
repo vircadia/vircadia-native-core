@@ -62,7 +62,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
 EntityItem::~EntityItem() {
     // these pointers MUST be correct at delete, else we probably have a dangling backpointer
     // to this EntityItem in the corresponding data structure.
-    assert(!_simulated);
+    assert(!_simulated || (!_element && !_physicsInfo));
     assert(!_element);
     assert(!_physicsInfo);
 }

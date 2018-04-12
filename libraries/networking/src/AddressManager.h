@@ -160,7 +160,7 @@ public:
     QString getPlaceName() const;
     QString getDomainID() const;
 
-    QString getHost() const;
+    QString getHost() const { return _domainURL.host(); }
 
     void setPositionGetter(PositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(OrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }

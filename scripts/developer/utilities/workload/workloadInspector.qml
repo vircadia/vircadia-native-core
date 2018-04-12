@@ -26,7 +26,36 @@ Rectangle {
     anchors.margins: hifi.dimensions.contentMargin.x
     
     color: hifi.colors.baseGray;
-     
+
+    function broadcastCreateScene() {
+        sendToScript({method: "createScene", params: { count:2 }}); 
+    }
+
+    function broadcastClearScene() {
+        sendToScript({method: "clearScene", params: { count:2 }}); 
+    }
+
+    function broadcastChangeResolution(value) {
+        sendToScript({method: "changeResolution", params: { count:value }});         
+    }
+
+    function broadcastBumpUpFloor(value) {
+        sendToScript({method: "bumpUpFloor", params: { count:0 }});         
+    }
+
+    function fromScript(message) {
+        switch (message.method) {
+        case "resolution":
+            print("assigned value! " + message.params.v)
+            resolution.setValue(message.params.v)
+            break;
+        case "objectCount":
+            print("assigned objectCount! " + message.params.v)
+            objectCount.text = ("Num objects = " + message.params.v)
+            break;    
+        }
+    }
+  
     Column {
         spacing: 5
         anchors.left: parent.left
@@ -136,13 +165,63 @@ Rectangle {
             onCheckedChanged: { Workload.getConfig("SpaceToRender")["showViews"] = checked }
         }
         Separator {}
+         HifiControls.Label {
+            text: "Test"       
+        }
+        Row {
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            HifiControls.Button {
+                text: "create scene"
+                onClicked: {
+                    print("pressed")
+                    _workload.broadcastCreateScene()
+                }
+            }
+            HifiControls.Button {
+                text: "clear scene"
+                onClicked: {
+                    print("pressed")
+                    _workload.broadcastClearScene()
+                }
+            }
+            HifiControls.Button {
+                text: "bump floor"
+                onClicked: {
+                    print("pressed")
+                    _workload.broadcastBumpUpFloor()
+                }
+            }
+        }
+    
+        HifiControls.Label {
+            id: objectCount
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            text: "Num objects"                       
+        }
+        HifiControls.Slider {
+            id: resolution
+            stepSize: 1.0
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            anchors.rightMargin: 0
+            anchors.topMargin: 0
+            minimumValue: 5
+            maximumValue: 50
+            value: 3
 
-        Jet.TaskList {
+            onValueChanged: { _workload.broadcastChangeResolution(value) }
+        }
+        
+        Separator {}
+        
+        /*Jet.TaskList {
             rootConfig: Workload
             anchors.left: parent.left
             anchors.right: parent.right 
         
             height: 300
-        }
+        }*/
     }
 }

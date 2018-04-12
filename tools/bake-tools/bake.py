@@ -1,6 +1,16 @@
 import os, json, sys, shutil, subprocess, shlex, time
 EXE = os.environ['HIFI_OVEN']
 
+def getRelativePath(path1, path2, stop):
+    parts1 = path1.split('/');
+    parts2 = path2.split('/');
+    if len(parts1) <= len(parts2):
+        for part in parts1:
+            if part != stop and part != '':
+                index = parts2.index(part)
+                parts2.pop(index)
+    return os.path.join(*parts2)
+
 def listFiles(directory, extension):
     items = os.listdir(directory)
     fileList = []
@@ -44,18 +54,20 @@ def bakeFile(filePath, outputDirectory):
     groupKTXFiles(outputDirectory, bakedFile)
 
 def bakeFilesInDirectory(directory, outputDirectory):
+    rootDirectory = os.path.basename(os.path.normpath(directory))
     for root, subFolders, filenames in os.walk(directory):
         for filename in filenames:
+            appendPath = getRelativePath(directory, root, rootDirectory);
             if filename.endswith('.fbx'):
                 filePath = os.sep.join([root, filename])
                 absFilePath = os.path.abspath(filePath)
-                outputFolder = os.path.join(outputDirectory, os.path.relpath(root))
+                outputFolder = os.path.join(outputDirectory, appendPath)
                 print "Baking file: " + filename
                 bakeFile(absFilePath, outputFolder)
             else:
                 filePath = os.sep.join([root, filename])
                 absFilePath = os.path.abspath(filePath)
-                outputFolder = os.path.join(outputDirectory, os.path.relpath(root))
+                outputFolder = os.path.join(outputDirectory, appendPath)
                 newFilePath = os.sep.join([outputFolder, filename])
                 createDirectory(outputFolder)
                 print "moving file: " + filename + " to: " + outputFolder
