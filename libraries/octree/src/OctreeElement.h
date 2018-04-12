@@ -219,6 +219,9 @@ public:
     int getMyChildContaining(const AABox& box) const;
     int getMyChildContainingPoint(const glm::vec3& point) const;
 
+    void bumpChangedContent() { _lastChangedContent = usecTimestampNow(); }
+    uint64_t getLastChangedContent() const { return _lastChangedContent; }
+
 protected:
 
     void deleteAllChildren();
@@ -235,6 +238,7 @@ protected:
     } _octalCode;
 
     quint64 _lastChanged; /// Client and server, timestamp this node was last changed, 8 bytes
+    uint64_t _lastChangedContent { 0 };
 
     /// Client and server, pointers to child nodes, various encodings
 #ifdef SIMPLE_CHILD_ARRAY

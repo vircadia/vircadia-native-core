@@ -693,7 +693,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 // the entity-server is awarding us ownership which is what we want
                 _simulationOwner.set(newSimOwner);
             }
-        } else if (newSimOwner.matchesValidID(myNodeID) && !_hasBidOnSimulation) {
+        } else if (newSimOwner.matchesValidID(myNodeID) && !_simulationOwner.pendingTake(now)) {
             // entity-server tells us that we have simulation ownership while we never requested this for this EntityItem,
             // this could happen when the user reloads the cache and entity tree.
             markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
@@ -1944,10 +1944,6 @@ void EntityItem::clearSimulationOwnership() {
 
 void EntityItem::setPendingOwnershipPriority(uint8_t priority, const quint64& timestamp) {
     _simulationOwner.setPendingPriority(priority, timestamp);
-}
-
-void EntityItem::rememberHasSimulationOwnershipBid() const {
-    _hasBidOnSimulation = true;
 }
 
 QString EntityItem::actionsToDebugString() {

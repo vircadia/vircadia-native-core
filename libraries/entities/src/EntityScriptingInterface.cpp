@@ -454,7 +454,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     // we make a bid for simulation ownership
                     properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
                     entity->flagForOwnershipBid(SCRIPT_POKE_SIMULATION_PRIORITY);
-                    entity->rememberHasSimulationOwnershipBid();
                 }
             }
             if (properties.queryAACubeRelatedPropertyChanged()) {
