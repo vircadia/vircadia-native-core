@@ -103,7 +103,7 @@ DISPATCHER_HOVERING_STYLE = {
     outlineOccludedColor: {red: 255, green: 128, blue: 128},
     outlineOccludedAlpha:0.0,
     fillUnoccludedColor: {red: 255, green: 255, blue: 255},
-    fillUnoccludedAlpha: 0.15,
+    fillUnoccludedAlpha: 0.12,
     fillOccludedColor: {red: 255, green: 255, blue: 255},
     fillOccludedAlpha: 0.0
 };
