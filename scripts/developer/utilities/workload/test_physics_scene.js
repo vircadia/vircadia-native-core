@@ -3,29 +3,33 @@
     var GRID_WORLD_SIZE = 100.0;
     var GRID_WORLD_MARGIN = 5.0;
     var GRID_WORLD_RESOLUTION = 30.0;
+    var GRID_WORLD_DROP_HEIGHT = 5.0;
 
-
-    var BACKDROP_SIZE = GRID_WORLD_RESOLUTION;
-    var BACKDROP_HALFSIZE = BACKDROP_SIZE *0.5;
-    var BACKDROP_MIN_C = -2;
+    var GRID_SIZE = GRID_WORLD_RESOLUTION;
+    var GRID_HALFSIZE = GRID_SIZE *0.5;
 
     var ROOT_Z_OFFSET = -3;
     var ROOT_Y_OFFSET = -0.1;
 
-    var TILE_UNIT = GRID_WORLD_SIZE / BACKDROP_SIZE;
+    var TILE_UNIT = GRID_WORLD_SIZE / GRID_SIZE;
     var TILE_DIM = { x: TILE_UNIT, y: TILE_UNIT, z: TILE_UNIT};
     var GRID_TILE_OFFSET = Vec3.multiply(0.5, TILE_DIM);
 
+    var GRID_DROP_C = GRID_WORLD_DROP_HEIGHT / TILE_UNIT;
 
     function updateWorldResolution(res) {
         GRID_WORLD_RESOLUTION = res;
 
-        BACKDROP_SIZE = GRID_WORLD_RESOLUTION;
-        BACKDROP_HALFSIZE = BACKDROP_SIZE *0.5;
+        GRID_SIZE = GRID_WORLD_RESOLUTION;
+        GRID_HALFSIZE = GRID_SIZE *0.5;
         
-        TILE_UNIT = GRID_WORLD_SIZE / BACKDROP_SIZE;
+        TILE_UNIT = GRID_WORLD_SIZE / GRID_SIZE;
         TILE_DIM = { x: TILE_UNIT, y: TILE_UNIT, z: TILE_UNIT};
         GRID_TILE_OFFSET = Vec3.multiply(0.5, TILE_DIM);
+
+        GRID_DROP_C = GRID_WORLD_DROP_HEIGHT / TILE_UNIT;
+        print("TILE_UNIT = " + TILE_UNIT)    
+        print("GRID_DROP_C = " + GRID_DROP_C)    
     }
 
     var OBJECT_DIM = { x: 0.5, y: 0.5, z: 0.5};
@@ -47,9 +51,7 @@ function getTileColor(a, b, c) {
 }
 
 function addObject(a, b, c, lifetime) {
-    var center = Vec3.sum(stageTileRoot, Vec3.multiply(a, stageAxisA));
-    center = Vec3.sum(center, Vec3.multiply(b, stageAxisB));
-    center = Vec3.sum(center, Vec3.multiply(c, stageAxisC));                                           
+    var center = getStagePosOriAt(a, b, v).pos;                                         
 
     return (Entities.addEntity({
         type: "Shape",
@@ -72,17 +74,17 @@ function addObject(a, b, c, lifetime) {
 }
 
 function addObjectGrid(backdrop, lifetime) {
-    for (i = BACKDROP_HALFSIZE; i > -BACKDROP_HALFSIZE; i--) {
-        for (j = -BACKDROP_HALFSIZE; j < BACKDROP_HALFSIZE; j++) {
-            backdrop.push(addObject(i, j, BACKDROP_MIN_C + 2, lifetime));
+    for (i = GRID_HALFSIZE; i > -GRID_HALFSIZE; i--) {
+        for (j = -GRID_HALFSIZE; j < GRID_HALFSIZE; j++) {
+            backdrop.push(addObject(i, j, GRID_DROP_C, lifetime));
         }
     }
 
 }
 
 function addFloor(lifetime) {
-    var floorDim = { x:GRID_WORLD_SIZE + 2 * GRID_WORLD_MARGIN, y:TILE_DIM.y, z:GRID_WORLD_SIZE + 2 * GRID_WORLD_MARGIN};
-    var center = getStagePosOriAt(0, 0, -1).pos;
+    var floorDim = { x:GRID_WORLD_SIZE + 2 * GRID_WORLD_MARGIN, y: TILE_DIM.y, z:GRID_WORLD_SIZE + 2 * GRID_WORLD_MARGIN};
+    var center = getStagePosOriAt(0, 0, -0.5).pos;
 
     return (Entities.addEntity({
         type: "Shape",
@@ -107,7 +109,7 @@ function addFloor(lifetime) {
 
 function addZone(hasKeyLight, hasAmbient, lifetime) {
     var zoneDim = { x:GRID_WORLD_SIZE + 2 * GRID_WORLD_MARGIN, y:GRID_WORLD_SIZE, z:GRID_WORLD_SIZE + 2 * GRID_WORLD_MARGIN};
-    var center = getStagePosOriAt(0, 0, -2).pos;
+    var center = getStagePosOriAt(0, 0, -1).pos;
     
     var lightDir = Vec3.normalize(Vec3.sum(Vec3.multiply(-1, Quat.getUp(stageOrientation)), Vec3.multiply(-1, Quat.getRight(stageOrientation))))
 
@@ -162,7 +164,6 @@ function addTestScene(name, lifetime) {
 // Stage position and orientation initialised at setup
 stageOrientation = Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0);
 stageRoot = {"x":0.0,"y":0.0,"z":0.0};
-stageTileRoot = {"x":0.0,"y":0.0,"z":0.0};
 stageAxisA = Vec3.multiply(TILE_UNIT, Quat.getForward(stageOrientation));
 stageAxisB = Vec3.multiply(TILE_UNIT, Quat.getRight(stageOrientation));
 stageAxisC = Vec3.multiply(TILE_UNIT, Quat.getUp(stageOrientation));
@@ -181,7 +182,6 @@ setupScene = function (lifetime) {
 
     stageRoot = Vec3.sum(MyAvatar.position, Vec3.multiply(-ROOT_Z_OFFSET, Quat.getForward(orientation)));
     stageRoot = Vec3.sum(stageRoot, Vec3.multiply(ROOT_Y_OFFSET, Quat.getUp(orientation)));
-    stageTileRoot = Vec3.sum(stageRoot, GRID_TILE_OFFSET);
 
     return addTestScene("Physics_stage_backdrop", lifetime);
 }
@@ -217,7 +217,7 @@ getResolution = function() {
 }
 
 getNumObjects = function() {
-    return BACKDROP_SIZE * BACKDROP_SIZE;
+    return GRID_SIZE * GRID_SIZE;
 }
 
 bumpUpFloor = function() {
