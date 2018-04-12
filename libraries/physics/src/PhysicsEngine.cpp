@@ -415,7 +415,7 @@ void PhysicsEngine::harvestPerformanceStats() {
             if (QString(itr->Get_Current_Name()) == "stepSimulation") {
                 itr->Enter_Child(childIndex);
                 StatsHarvester harvester;
-                harvester.recurse(itr, "step/");
+                harvester.recurse(itr, "physics/");
                 break;
             }
             itr->Next();
