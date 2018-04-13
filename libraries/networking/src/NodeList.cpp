@@ -416,7 +416,9 @@ void NodeList::handleDSPathQuery(const QString& newPath) {
     if (_domainHandler.isServerless()) {
         if (_domainHandler.isConnected()) {
             auto viewpoint = _domainHandler.getViewPointFromNamedPath(newPath);
-            DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, newPath);
+            if (!newPath.isEmpty()) {
+                DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, newPath);
+            }
         } else {
             _domainHandler.setPendingPath(newPath);
         }
@@ -437,7 +439,9 @@ void NodeList::sendPendingDSPathQuery() {
 
         if (_domainHandler.isServerless()) {
             auto viewpoint = _domainHandler.getViewPointFromNamedPath(pendingPath);
-            DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pendingPath);
+            if (!pendingPath.isEmpty()) {
+                DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pendingPath);
+            }
         } else {
             qCDebug(networking) << "Attempting to send pending query to DS for path" << pendingPath;
             // this is a slot triggered if we just established a network link with a DS and want to send a path query
@@ -510,7 +514,7 @@ void NodeList::processDomainServerPathResponse(QSharedPointer<ReceivedMessage> m
     QString viewpoint = QString::fromUtf8(message->getRawMessage() + message->getPosition(), numViewpointBytes);
 
     // Hand it off to the AddressManager so it can handle it as a relative viewpoint
-    if (DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pathQuery)) {
+    if (!pathQuery.isEmpty() && DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pathQuery)) {
         qCDebug(networking) << "Going to viewpoint" << viewpoint << "which was the lookup result for path" << pathQuery;
     } else {
         qCDebug(networking) << "Could not go to viewpoint" << viewpoint
