@@ -466,7 +466,8 @@ void generateHDRMips(gpu::Texture* texture, QImage&& image, const std::atomic<bo
     nvtt::CompressionOptions compressionOptions;
     compressionOptions.setQuality(nvtt::Quality_Production);
 
-    if (mipFormat == gpu::Element::COLOR_COMPRESSED_HDR_RGB) {
+    // TODO: gles: generate ETC mips instead?
+    if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB) {
         compressionOptions.setFormat(nvtt::Format_BC6);
     } else if (mipFormat == gpu::Element::COLOR_RGB9E5) {
         compressionOptions.setFormat(nvtt::Format_RGB);
@@ -583,20 +584,21 @@ void generateLDRMips(gpu::Texture* texture, QImage&& image, const std::atomic<bo
     nvtt::CompressionOptions compressionOptions;
     compressionOptions.setQuality(nvtt::Quality_Production);
 
+    // TODO: gles: generate ETC mips instead?
     auto mipFormat = texture->getStoredMipFormat();
-    if (mipFormat == gpu::Element::COLOR_COMPRESSED_SRGB) {
+    if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_SRGB) {
         compressionOptions.setFormat(nvtt::Format_BC1);
-    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_SRGBA_MASK) {
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_SRGBA_MASK) {
         alphaMode = nvtt::AlphaMode_Transparency;
         compressionOptions.setFormat(nvtt::Format_BC1a);
-    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_SRGBA) {
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_SRGBA) {
         alphaMode = nvtt::AlphaMode_Transparency;
         compressionOptions.setFormat(nvtt::Format_BC3);
-    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_RED) {
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_RED) {
         compressionOptions.setFormat(nvtt::Format_BC4);
-    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_XY) {
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_XY) {
         compressionOptions.setFormat(nvtt::Format_BC5);
-    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_SRGBA_HIGH) {
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_SRGBA_HIGH) {
         alphaMode = nvtt::AlphaMode_Transparency;
         compressionOptions.setFormat(nvtt::Format_BC7);
     } else if (mipFormat == gpu::Element::COLOR_RGBA_32) {
@@ -736,13 +738,21 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
         gpu::Element formatMip;
         gpu::Element formatGPU;
         if (isColorTexturesCompressionEnabled()) {
+#ifndef USE_GLES
             if (validAlpha) {
                 // NOTE: This disables BC1a compression because it was producing odd artifacts on text textures
                 // for the tutorial. Instead we use BC3 (which is larger) but doesn't produce the same artifacts).
-                formatGPU = gpu::Element::COLOR_COMPRESSED_SRGBA;
+                formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_SRGBA;
             } else {
-                formatGPU = gpu::Element::COLOR_COMPRESSED_SRGB;
+                formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_SRGB;
             }
+#else
+            if (validAlpha) {
+                formatGPU = gpu::Element::COLOR_COMPRESSED_ETC2_SRGBA;
+            } else {
+                formatGPU = gpu::Element::COLOR_COMPRESSED_ETC2_SRGB;
+            }
+#endif
             formatMip = formatGPU;
         } else {
 #ifdef USE_GLES
@@ -869,8 +879,12 @@ gpu::TexturePointer TextureUsage::process2DTextureNormalMapFromImage(QImage&& sr
         gpu::Element formatMip = gpu::Element::VEC2NU8_XY;
         gpu::Element formatGPU = gpu::Element::VEC2NU8_XY;
         if (isNormalTexturesCompressionEnabled()) {
-            formatMip = gpu::Element::COLOR_COMPRESSED_XY;
-            formatGPU = gpu::Element::COLOR_COMPRESSED_XY;
+#ifndef USE_GLES
+            formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_XY;
+#else
+            formatGPU = gpu::Element::COLOR_COMPRESSED_EAC_XY;
+#endif
+            formatMip = formatGPU;
         }
 
         theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
@@ -903,8 +917,12 @@ gpu::TexturePointer TextureUsage::process2DTextureGrayscaleFromImage(QImage&& sr
         gpu::Element formatMip;
         gpu::Element formatGPU;
         if (isGrayscaleTexturesCompressionEnabled()) {
-            formatMip = gpu::Element::COLOR_COMPRESSED_RED;
-            formatGPU = gpu::Element::COLOR_COMPRESSED_RED;
+#ifndef USE_GLES
+            formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_RED;
+#else
+            formatGPU = gpu::Element::COLOR_COMPRESSED_EAC_RED;
+#endif
+            formatMip = formatGPU;
         } else {
             formatMip = gpu::Element::COLOR_R_8;
             formatGPU = gpu::Element::COLOR_R_8;
@@ -1271,8 +1289,9 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
     gpu::Element formatMip;
     gpu::Element formatGPU;
     if (isCubeTexturesCompressionEnabled()) {
-        formatMip = gpu::Element::COLOR_COMPRESSED_HDR_RGB;
-        formatGPU = gpu::Element::COLOR_COMPRESSED_HDR_RGB;
+        // TODO: gles: pick HDR ETC format
+        formatMip = gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB;
+        formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB;
     } else {
         formatMip = HDR_FORMAT;
         formatGPU = HDR_FORMAT;
