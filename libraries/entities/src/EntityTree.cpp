@@ -2303,6 +2303,16 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         _persistDataVersion = map["DataVersion"].toInt();
     }
 
+    _namedPaths.clear();
+    if (map.contains("Paths")) {
+        QVariantMap namedPathsMap = map["Paths"].toMap();
+        for(QVariantMap::const_iterator iter = namedPathsMap.begin(); iter != namedPathsMap.end(); ++iter) {
+            QString namedPathName = iter.key();
+            QString namedPathViewPoint = iter.value().toString();
+            _namedPaths[namedPathName] = namedPathViewPoint;
+        }
+    }
+
     // map will have a top-level list keyed as "Entities".  This will be extracted
     // and iterated over.  Each member of this list is converted to a QVariantMap, then
     // to a QScriptValue, and then to EntityItemProperties.  These properties are used

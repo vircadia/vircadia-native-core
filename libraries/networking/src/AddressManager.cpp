@@ -312,7 +312,17 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         _shareablePlaceName.clear();
         setDomainInfo(lookupUrl, trigger);
         emit lookupResultsFinished();
-        handlePath(DOMAIN_SPAWNING_POINT, LookupTrigger::Internal, false);
+
+        QString path = DOMAIN_SPAWNING_POINT;
+        QUrlQuery queryArgs(lookupUrl);
+        const QString LOCATION_QUERY_KEY = "location";
+        if (queryArgs.hasQueryItem(LOCATION_QUERY_KEY)) {
+            path = queryArgs.queryItemValue(LOCATION_QUERY_KEY);
+        } else {
+            path = DEFAULT_NAMED_PATH;
+        }
+
+        handlePath(path, LookupTrigger::Internal, false);
         return true;
     }
 
