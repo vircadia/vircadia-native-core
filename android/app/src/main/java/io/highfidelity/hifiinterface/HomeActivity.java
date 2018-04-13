@@ -31,6 +31,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
      * Set this intent extra param to NOT start a new InterfaceActivity after a domain is selected"
      */
     public static final String PARAM_NOT_START_INTERFACE_ACTIVITY = "not_start_interface_activity";
+
+    public static final int ENTER_DOMAIN_URL = 1;
+
     private DomainAdapter domainAdapter;
     private DrawerLayout mDrawerLayout;
     private ProgressDialog mDialog;
@@ -89,15 +92,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
             @Override
             public void onItemClick(View view, int position, DomainAdapter.Domain domain) {
-                Intent intent = new Intent(HomeActivity.this, InterfaceActivity.class);
-                intent.putExtra(InterfaceActivity.DOMAIN_URL, domain.url);
-                HomeActivity.this.finish();
-                if (getIntent() != null &&
-                    getIntent().hasExtra(PARAM_NOT_START_INTERFACE_ACTIVITY) &&
-                    getIntent().getBooleanExtra(PARAM_NOT_START_INTERFACE_ACTIVITY, false)) {
-                    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                }
-                startActivity(intent);
+                gotoDomain(domain.url);
             }
         });
         domainsView.setAdapter(domainAdapter);
@@ -119,6 +114,18 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             showActivityIndicator();
         }
 
+    }
+
+    private void gotoDomain(String domainUrl) {
+        Intent intent = new Intent(HomeActivity.this, InterfaceActivity.class);
+        intent.putExtra(InterfaceActivity.DOMAIN_URL, domainUrl);
+        HomeActivity.this.finish();
+        if (getIntent() != null &&
+                getIntent().hasExtra(PARAM_NOT_START_INTERFACE_ACTIVITY) &&
+                getIntent().getBooleanExtra(PARAM_NOT_START_INTERFACE_ACTIVITY, false)) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        }
+        startActivity(intent);
     }
 
     private void showActivityIndicator() {
@@ -190,11 +197,20 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         switch(item.getItemId()) {
             case R.id.action_goto:
                 Intent i = new Intent(this, GotoActivity.class);
-                startActivity(i);
+                startActivityForResult(i, ENTER_DOMAIN_URL);
                 return true;
             case R.id.action_settings:
                 return true;
         }
         return false;
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == ENTER_DOMAIN_URL && resultCode == RESULT_OK) {
+            gotoDomain(data.getStringExtra(GotoActivity.PARAM_DOMAIN_URL));
+        }
+    }
+
 }
