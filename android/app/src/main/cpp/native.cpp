@@ -182,4 +182,26 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeGoBack
     AndroidHelper::instance().goBackFromAndroidActivity();
 }
 
+// HifiUtils
+JNIEXPORT jstring JNICALL Java_io_highfidelity_hifiinterface_HifiUtils_getCurrentAddress(JNIEnv *env, jobject instance) {
+    QSharedPointer<AddressManager> addressManager = DependencyManager::get<AddressManager>();
+    if (!addressManager) {
+        return env->NewString(nullptr, 0);
+    }
+
+    QString str;
+    if (!addressManager->getPlaceName().isEmpty()) {
+        str = addressManager->getPlaceName();
+    } else if (!addressManager->getHost().isEmpty()) {
+        str = addressManager->getHost();
+    }
+
+    QRegExp pathRegEx("(\\/[^\\/]+)");
+    if (!addressManager->currentPath().isEmpty() && addressManager->currentPath().contains(pathRegEx) && pathRegEx.matchedLength() > 0) {
+        str += pathRegEx.cap(0);
+    }
+
+    return env->NewStringUTF(str.toLatin1().data());
+}
+
 }

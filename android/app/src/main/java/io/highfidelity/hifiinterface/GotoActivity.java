@@ -43,6 +43,9 @@ public class GotoActivity extends AppCompatActivity {
                 return false;
             }
         });
+
+        mUrlEditText.setText(HifiUtils.getInstance().getCurrentAddress());
+
         mGoBtn = (AppCompatButton) findViewById(R.id.go_btn);
 
         mGoBtn.setOnClickListener(new View.OnClickListener() {
