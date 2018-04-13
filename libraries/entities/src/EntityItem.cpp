@@ -942,9 +942,9 @@ void EntityItem::setMass(float mass) {
     float volume = _volumeMultiplier * dimensions.x * dimensions.y * dimensions.z;
 
     // compute new density
-    const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
+    const float MIN_VOLUME = 1.0e-9f; // 1mm^3
     float newDensity = 1.0f;
-    if (volume < 1.0e-6f) {
+    if (volume < MIN_VOLUME) {
         // avoid divide by zero
         newDensity = glm::min(mass / MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
     } else {
@@ -1688,7 +1688,7 @@ void EntityItem::setScaledDimensions(const glm::vec3& value) {
 }
 
 void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
-    const float MIN_ENTITY_DIMENSION = 0.01f; // this value cubed should == MIN_VOLUME in setMass
+    const float MIN_ENTITY_DIMENSION = 0.001f; // this value cubed should == MIN_VOLUME in setMass
     glm::vec3 newDimensions = glm::max(value, glm::vec3(MIN_ENTITY_DIMENSION));
     if (getUnscaledDimensions() != newDimensions) {
         withWriteLock([&] {
