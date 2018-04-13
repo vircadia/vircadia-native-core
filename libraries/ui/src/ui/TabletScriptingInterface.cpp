@@ -387,6 +387,8 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
             offscreenUi->hide("RunningScripts");
             _showRunningScripts = true;
         }
+
+        offscreenUi->hideDesktopWindows();
         // destroy desktop window
         if (_desktopWindow) {
             _desktopWindow->deleteLater();
