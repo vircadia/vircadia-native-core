@@ -47,14 +47,14 @@ void main(void) {
     }
 
     vec4 fragColor = texture(colorMap, varTexCoord0);
-    vec4 eyeFragPos = unpackPositionFromZeye(varTexCoord0);
+    vec4 fragPositionES = unpackPositionFromZeye(varTexCoord0);
 
     mat4 viewInverse = getViewInverse();
-    vec4 worldFragPos = viewInverse * eyeFragPos;
-    vec4 worldEyePos = viewInverse[3];
+    vec4 fragPositionWS = viewInverse * fragPositionES;
+    vec4 eyePositionWS = viewInverse[3];
 
     Light light = getKeyLight();
-    vec3 lightDirection = getLightDirection(light);
+    vec3 lightDirectionWS = getLightDirection(light);
 
-    outFragColor = computeHazeColor(fragColor, eyeFragPos.xyz, worldFragPos.xyz, worldEyePos.xyz, lightDirection);
+    outFragColor = computeHazeColor(fragColor, fragPositionES.xyz, fragPositionWS.xyz, eyePositionWS.xyz, lightDirectionWS);
 }

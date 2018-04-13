@@ -43,14 +43,14 @@ layout(std140) uniform hazeBuffer {
 
 // Input:
 //      color               - fragment original color
-//      lightDirection      - parameters of the keylight
-//      fragWorldPos        - fragment position in world coordinates
+//      lightDirectionWS    - parameters of the keylight
+//      fragPositionWS      - fragment position in world coordinates
 // Output:
 //      fragment colour after haze effect
 //
 // General algorithm taken from http://www.iquilezles.org/www/articles/fog/fog.htm, with permission
 //
-vec3 computeHazeColorKeyLightAttenuation(vec3 color, vec3 lightDirection, vec3 fragWorldPos) {
+vec3 computeHazeColorKeyLightAttenuation(vec3 color, vec3 lightDirectionWS, vec3 fragPositionWS) {
     // Directional light attenuation is simulated by assuming the light source is at a fixed height above the
     // fragment. This height is where the haze density is reduced by 95% from the haze at the fragment's height
     //
@@ -65,7 +65,7 @@ vec3 computeHazeColorKeyLightAttenuation(vec3 color, vec3 lightDirection, vec3 f
     }
 
     // Note that we need the sine to be positive
-    float sin_pitch = abs(lightDirection.y);
+    float sin_pitch = abs(lightDirectionWS.y);
             
     float distance;
     const float minimumSinPitch = 0.001;
@@ -79,7 +79,7 @@ vec3 computeHazeColorKeyLightAttenuation(vec3 color, vec3 lightDirection, vec3 f
     // Note that the haze base reference affects only the haze density as function of altitude
     float hazeDensityDistribution =  
         hazeParams.hazeKeyLightRangeFactor * 
-        exp(-hazeParams.hazeKeyLightAltitudeFactor * (fragWorldPos.y - hazeParams.hazeBaseReference));
+        exp(-hazeParams.hazeKeyLightAltitudeFactor * (fragPositionWS.y - hazeParams.hazeBaseReference));
 
     float hazeIntegral =  hazeDensityDistribution * distance;
 
@@ -92,27 +92,27 @@ vec3 computeHazeColorKeyLightAttenuation(vec3 color, vec3 lightDirection, vec3 f
 }
 
 // Input:
-//      fragColor      - fragment original color
-//      fragEyePos     - fragment position in eye   coordinates
-//      fragWorldPos   - fragment position in world coordinates
-//      eyeWorldPos    - eye      position in world coordinates
+//      fragColor        - fragment original color
+//      fragPositionES   - fragment position in eye   coordinates
+//      fragPositionWS   - fragment position in world coordinates
+//      eyePositionWS    - eye      position in world coordinates
 // Output:
 //      fragment colour after haze effect
 //
 // General algorithm taken from http://www.iquilezles.org/www/articles/fog/fog.htm, with permission
 //
-vec4 computeHazeColor(vec4 fragColor, vec3 fragEyePos, vec3 fragWorldPos, vec3 eyeWorldPos, vec3 lightDirection) {
+vec4 computeHazeColor(vec4 fragColor, vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePositionWS, vec3 lightDirectionWS) {
     // Distance to fragment 
-    float distance = length(fragEyePos);
-    float eyeWorldHeight = eyeWorldPos.y;
+    float distance = length(fragPositionES);
+    float eyeWorldHeight = eyePositionWS.y;
 
     // Convert haze colour from uniform into a vec4
     vec4 hazeColor  = vec4(hazeParams.hazeColor, 1.0);
 
     // Directional light component is a function of the angle from the eye, between the fragment and the sun
-    vec3 fragToEyeWorldDir = normalize(fragWorldPos-eyeWorldPos);
+    vec3 fragToEyeDirWS = normalize(fragPositionWS - eyePositionWS);
 
-    float glareComponent = max(0.0, dot(fragToEyeWorldDir, -lightDirection));
+    float glareComponent = max(0.0, dot(fragToEyeDirWS, -lightDirectionWS));
     float power = min(1.0, pow(glareComponent, hazeParams.hazeGlareBlend));
 
     vec4 glareColor = vec4(hazeParams.hazeGlareColor, 1.0);
@@ -140,7 +140,7 @@ vec4 computeHazeColor(vec4 fragColor, vec3 fragEyePos, vec3 fragWorldPos, vec3 e
         vec3 hazeIntegral = hazeDensityDistribution * distance;
 
         const float slopeThreshold = 0.01;
-        float deltaHeight = fragWorldPos.y - eyeWorldHeight;
+        float deltaHeight = fragPositionWS.y - eyeWorldHeight;
         if (abs(deltaHeight) > slopeThreshold) {
             float t = hazeParams.hazeHeightFactor * deltaHeight;
             hazeIntegral *= (1.0 - exp (-t)) / t;
@@ -168,7 +168,7 @@ vec4 computeHazeColor(vec4 fragColor, vec3 fragEyePos, vec3 fragWorldPos, vec3 e
         float hazeIntegral =  hazeDensityDistribution * distance;
 
         const float slopeThreshold = 0.01;
-        float deltaHeight = fragWorldPos.y - eyeWorldHeight;
+        float deltaHeight = fragPositionWS.y - eyeWorldHeight;
         if (abs(deltaHeight) > slopeThreshold) {
             float t = hazeParams.hazeHeightFactor * deltaHeight;
             // Protect from wild values
