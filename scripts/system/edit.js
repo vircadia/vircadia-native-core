@@ -416,6 +416,12 @@ var toolBar = (function () {
             //    default:
             //        shapeType = "uv";
             //}
+            var materialData = "";
+            if (materialURL.startsWith("materialData")) {
+                materialData = JSON.stringify({
+                    "materials": {}
+                })
+            }
 
             var DEFAULT_LAYERED_MATERIAL_PRIORITY = 1;
             if (materialURL) {
@@ -423,7 +429,8 @@ var toolBar = (function () {
                     type: "Material",
                     materialURL: materialURL,
                     //materialMappingMode: materialMappingMode,
-                    priority: DEFAULT_LAYERED_MATERIAL_PRIORITY
+                    priority: DEFAULT_LAYERED_MATERIAL_PRIORITY,
+                    materialData: materialData
                 });
             }
         }
@@ -2061,7 +2068,7 @@ var PropertiesTool = function (opts) {
             parentSelectedEntities();
         } else if (data.type === 'unparent') {
             unparentSelectedEntities();
-        } else if (data.type === 'saveUserData') {
+        } else if (data.type === 'saveUserData' || data.type === 'saveMaterialData') {
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
             Entities.editEntity(actualID, data.properties);

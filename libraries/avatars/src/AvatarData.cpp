@@ -2058,24 +2058,34 @@ static const QString JSON_AVATAR_ENTITIES = QStringLiteral("attachedEntities");
 static const QString JSON_AVATAR_SCALE = QStringLiteral("scale");
 static const QString JSON_AVATAR_VERSION = QStringLiteral("version");
 
-static const int JSON_AVATAR_JOINT_ROTATIONS_IN_RELATIVE_FRAME_VERSION = 0;
-static const int JSON_AVATAR_JOINT_ROTATIONS_IN_ABSOLUTE_FRAME_VERSION = 1;
+enum class JsonAvatarFrameVersion : int {
+    JointRotationsInRelativeFrame = 0,
+    JointRotationsInAbsoluteFrame,
+    JointDefaultPoseBits
+};
 
 QJsonValue toJsonValue(const JointData& joint) {
     QJsonArray result;
     result.push_back(toJsonValue(joint.rotation));
     result.push_back(toJsonValue(joint.translation));
+    result.push_back(QJsonValue(joint.rotationIsDefaultPose));
+    result.push_back(QJsonValue(joint.translationIsDefaultPose));
     return result;
 }
 
-JointData jointDataFromJsonValue(const QJsonValue& json) {
+JointData jointDataFromJsonValue(int version, const QJsonValue& json) {
     JointData result;
     if (json.isArray()) {
         QJsonArray array = json.toArray();
         result.rotation = quatFromJsonValue(array[0]);
-        result.rotationIsDefaultPose = false;
         result.translation = vec3FromJsonValue(array[1]);
-        result.translationIsDefaultPose = false;
+        if (version >= (int)JsonAvatarFrameVersion::JointDefaultPoseBits) {
+            result.rotationIsDefaultPose = array[2].toBool();
+            result.translationIsDefaultPose = array[3].toBool();
+        } else {
+            result.rotationIsDefaultPose = false;
+            result.translationIsDefaultPose = false;
+        }
     }
     return result;
 }
@@ -2083,7 +2093,7 @@ JointData jointDataFromJsonValue(const QJsonValue& json) {
 QJsonObject AvatarData::toJson() const {
     QJsonObject root;
 
-    root[JSON_AVATAR_VERSION] = JSON_AVATAR_JOINT_ROTATIONS_IN_ABSOLUTE_FRAME_VERSION;
+    root[JSON_AVATAR_VERSION] = (int)JsonAvatarFrameVersion::JointDefaultPoseBits;
 
     if (!getSkeletonModelURL().isEmpty()) {
         root[JSON_AVATAR_BODY_MODEL] = getSkeletonModelURL().toString();
@@ -2158,7 +2168,7 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         version = json[JSON_AVATAR_VERSION].toInt();
     } else {
         // initial data did not have a version field.
-        version = JSON_AVATAR_JOINT_ROTATIONS_IN_RELATIVE_FRAME_VERSION;
+        version = (int)JsonAvatarFrameVersion::JointRotationsInRelativeFrame;
     }
 
     if (json.contains(JSON_AVATAR_BODY_MODEL)) {
@@ -2235,7 +2245,7 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
     // }
 
     if (json.contains(JSON_AVATAR_JOINT_ARRAY)) {
-        if (version == JSON_AVATAR_JOINT_ROTATIONS_IN_RELATIVE_FRAME_VERSION) {
+        if (version == (int)JsonAvatarFrameVersion::JointRotationsInRelativeFrame) {
             // because we don't have the full joint hierarchy skeleton of the model,
             // we can't properly convert from relative rotations into absolute rotations.
             quint64 now = usecTimestampNow();
@@ -2247,7 +2257,7 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
             QJsonArray jointArrayJson = json[JSON_AVATAR_JOINT_ARRAY].toArray();
             jointArray.reserve(jointArrayJson.size());
             for (const auto& jointJson : jointArrayJson) {
-                auto joint = jointDataFromJsonValue(jointJson);
+                auto joint = jointDataFromJsonValue(version, jointJson);
                 jointArray.push_back(joint);
             }
             setRawJointData(jointArray);
