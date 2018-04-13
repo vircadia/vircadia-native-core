@@ -177,9 +177,11 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
             qCDebug(networking) << "Updated domain hostname to" << domainURL.host();
 
             if (!domainURL.host().isEmpty()) {
-                // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
-                qCDebug(networking, "Looking up DS hostname %s.", domainURL.host().toLocal8Bit().constData());
-                QHostInfo::lookupHost(domainURL.host(), this, SLOT(completedHostnameLookup(const QHostInfo&)));
+                if (domainURL.scheme() == URL_SCHEME_HIFI) {
+                    // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
+                    qCDebug(networking, "Looking up DS hostname %s.", domainURL.host().toLocal8Bit().constData());
+                    QHostInfo::lookupHost(domainURL.host(), this, SLOT(completedHostnameLookup(const QHostInfo&)));
+                }
 
                 DependencyManager::get<NodeList>()->flagTimeForConnectionStep(
                     LimitedNodeList::ConnectionStep::SetDomainHostname);
@@ -253,7 +255,10 @@ QString DomainHandler::getViewPointFromNamedPath(QString namedPath) {
     if (lookup != _namedPaths.end()) {
         return lookup->second;
     }
-    return DOMAIN_SPAWNING_POINT;
+    if (namedPath == DEFAULT_NAMED_PATH) {
+        return DOMAIN_SPAWNING_POINT;
+    }
+    return "";
 }
 
 void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
@@ -285,8 +290,7 @@ void DomainHandler::completedIceServerHostnameLookup() {
     emit iceSocketAndIDReceived();
 }
 
-void DomainHandler::setIsConnected(bool isConnected, std::map<QString, QString> namedPaths) {
-    _namedPaths = namedPaths;
+void DomainHandler::setIsConnected(bool isConnected) {
     if (_isConnected != isConnected) {
         _isConnected = isConnected;
 
@@ -302,6 +306,11 @@ void DomainHandler::setIsConnected(bool isConnected, std::map<QString, QString> 
             emit disconnectedFromDomain();
         }
     }
+}
+
+void DomainHandler::connectedToServerless(std::map<QString, QString> namedPaths) {
+    _namedPaths = namedPaths;
+    setIsConnected(true);
 }
 
 void DomainHandler::requestDomainSettings() {

@@ -3147,7 +3147,8 @@ void Application::loadServerlessDomain(QUrl domainURL) {
     }
 
     std::map<QString, QString> namedPaths = tmpTree->getNamedPaths();
-    nodeList->getDomainHandler().setIsConnected(true, namedPaths);
+    nodeList->getDomainHandler().connectedToServerless(namedPaths);
+
 
     _fullSceneReceivedCounter++;
 }
