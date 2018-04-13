@@ -73,8 +73,10 @@ public:
     void activateICEPublicSocket();
 
     bool isConnected() const { return _isConnected; }
-    void setIsConnected(bool isConnected, std::map<QString, QString> namedPaths = std::map<QString, QString>());
+    void setIsConnected(bool isConnected);
     bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_HIFI; }
+
+    void connectedToServerless(std::map<QString, QString> namedPaths);
 
     QString getViewPointFromNamedPath(QString namedPath);
 
@@ -207,6 +209,6 @@ private:
 };
 
 const QString DOMAIN_SPAWNING_POINT { "/0, -10, 0" };
-
+const QString DEFAULT_NAMED_PATH { "/" };
 
 #endif // hifi_DomainHandler_h
