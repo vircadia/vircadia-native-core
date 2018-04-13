@@ -81,7 +81,7 @@ private:
 
     LinearDepthFramebufferPointer _linearDepthFramebuffer;
 
-    const gpu::PipelinePointer& getLinearDepthPipeline();
+    const gpu::PipelinePointer& getLinearDepthPipeline(const render::RenderContextPointer& renderContext);
     gpu::PipelinePointer _linearDepthPipeline;
 
     const gpu::PipelinePointer& getDownsamplePipeline();
