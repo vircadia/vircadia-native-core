@@ -8,4 +8,6 @@
     <color name="backgroundDark">#333333</color>
     <color name="backgroundLight">#4F4F4F</color>
     <color name="backgroundSearch">#33999999</color>
+    <color name="editText">#212121</color>
+    <color name="editTextHint">#9e9e9e</color>
 </resources>
