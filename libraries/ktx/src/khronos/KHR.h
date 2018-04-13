@@ -358,6 +358,17 @@ namespace khronos {
                     case InternalFormat::COMPRESSED_RG_RGTC2: // BC5
                     case InternalFormat::COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT: // BC6
                     case InternalFormat::COMPRESSED_SRGB_ALPHA_BPTC_UNORM: // BC7
+                    // ETC2 / EAC
+                    case InternalFormat::COMPRESSED_RGB8_ETC2:
+                    case InternalFormat::COMPRESSED_SRGB8_ETC2:
+                    case InternalFormat::COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+                    case InternalFormat::COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+                    case InternalFormat::COMPRESSED_RGBA8_ETC2_EAC:
+                    case InternalFormat::COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+                    case InternalFormat::COMPRESSED_R11_EAC:
+                    case InternalFormat::COMPRESSED_SIGNED_R11_EAC:
+                    case InternalFormat::COMPRESSED_RG11_EAC:
+                    case InternalFormat::COMPRESSED_SIGNED_RG11_EAC:
                         return evalAlignedCompressedBlockCount<4>(value);
 
                     default:
@@ -370,12 +381,22 @@ namespace khronos {
                     case InternalFormat::COMPRESSED_SRGB_S3TC_DXT1_EXT:
                     case InternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
                     case InternalFormat::COMPRESSED_RED_RGTC1:
+                    case InternalFormat::COMPRESSED_RGB8_ETC2:
+                    case InternalFormat::COMPRESSED_SRGB8_ETC2:
+                    case InternalFormat::COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+                    case InternalFormat::COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+                    case InternalFormat::COMPRESSED_R11_EAC:
+                    case InternalFormat::COMPRESSED_SIGNED_R11_EAC:
                         return 8;
 
                     case InternalFormat::COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
                     case InternalFormat::COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
                     case InternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
                     case InternalFormat::COMPRESSED_RG_RGTC2:
+                    case InternalFormat::COMPRESSED_RGBA8_ETC2_EAC:
+                    case InternalFormat::COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+                    case InternalFormat::COMPRESSED_RG11_EAC:
+                    case InternalFormat::COMPRESSED_SIGNED_RG11_EAC:
                         return 16;
 
                     default:
