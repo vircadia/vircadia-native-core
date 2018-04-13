@@ -174,7 +174,7 @@ Item {
             }
         }
 
-        CheckBoxQQC2 {
+        CheckBox {
             id: showPassword
             text: "Show password"
         }

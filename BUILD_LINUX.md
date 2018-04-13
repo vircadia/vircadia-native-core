@@ -14,8 +14,8 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 
 Install qt:
 ```bash
-wget http://debian.highfidelity.com/pool/h/hi/hifi-qt5.6.1_5.6.1_amd64.deb
-sudo dpkg -i hifi-qt5.6.1_5.6.1_amd64.deb
+wget http://debian.highfidelity.com/pool/h/hi/hifi-qt5.10.1_5.10.1_amd64.deb
+sudo dpkg -i hifi-qt5.10.1_5.10.1_amd64.deb
 ```
 
 Install build dependencies:
@@ -66,7 +66,7 @@ cd hifi/build
 
 Prepare makefiles:
 ```bash
-cmake -DQT_CMAKE_PREFIX_PATH=/usr/local/Qt5.6.1/5.6/gcc_64/lib/cmake ..
+cmake -DQT_CMAKE_PREFIX_PATH=/usr/local/Qt5.10.1/5.10/gcc_64/lib/cmake ..
 ```
 
 Start compilation and get a cup of coffee:
@@ -74,7 +74,7 @@ Start compilation and get a cup of coffee:
 make domain-server assignment-client interface
 ```
 
-In a server does not make sense to compile interface 
+In a server does not make sense to compile interface
 
 ### Running the software
 

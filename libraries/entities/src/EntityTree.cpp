@@ -370,12 +370,18 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                             simulationBlocked = false;
                         }
                     }
+                    if (!simulationBlocked) {
+                        entity->setSimulationOwnershipExpiry(usecTimestampNow() + MAX_INCOMING_SIMULATION_UPDATE_PERIOD);
+                    }
                 } else {
                     // the entire update is suspect --> ignore it
                     return false;
                 }
             } else if (simulationBlocked) {
                 simulationBlocked = senderID != entity->getSimulatorID();
+                if (!simulationBlocked) {
+                    entity->setSimulationOwnershipExpiry(usecTimestampNow() + MAX_INCOMING_SIMULATION_UPDATE_PERIOD);
+                }
             }
             if (simulationBlocked) {
                 // squash ownership and physics-related changes.
@@ -2373,6 +2379,30 @@ bool EntityTree::readFromMap(QVariantMap& map) {
                 properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
             } else {
                 properties.setSkyboxMode(COMPONENT_MODE_INHERIT);
+            }
+        }
+
+        // Convert old materials so that they use materialData instead of userData
+        if (contentVersion < (int)EntityVersion::MaterialData && properties.getType() == EntityTypes::EntityType::Material) {
+            if (properties.getMaterialURL().startsWith("userData")) {
+                QString materialURL = properties.getMaterialURL();
+                properties.setMaterialURL(materialURL.replace("userData", "materialData"));
+
+                QJsonObject userData = QJsonDocument::fromJson(properties.getUserData().toUtf8()).object();
+                QJsonObject materialData;
+                QJsonValue materialVersion = userData["materialVersion"];
+                if (!materialVersion.isNull()) {
+                    materialData.insert("materialVersion", materialVersion);
+                    userData.remove("materialVersion");
+                }
+                QJsonValue materials = userData["materials"];
+                if (!materials.isNull()) {
+                    materialData.insert("materials", materials);
+                    userData.remove("materials");
+                }
+
+                properties.setMaterialData(QJsonDocument(materialData).toJson());
+                properties.setUserData(QJsonDocument(userData).toJson());
             }
         }
 
