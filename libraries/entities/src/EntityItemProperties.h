@@ -230,6 +230,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, glmVec2, glm::vec2(0, 0));
     DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, glmVec2, glm::vec2(1, 1));
     DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float, 0);
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_DATA, MaterialData, materialData, QString, "");
 
     // Certifiable Properties - related to Proof of Purchase certificates
     DEFINE_PROPERTY_REF(PROP_ITEM_NAME, ItemName, itemName, QString, ENTITY_ITEM_DEFAULT_ITEM_NAME);

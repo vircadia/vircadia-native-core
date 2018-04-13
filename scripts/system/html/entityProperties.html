@@ -781,6 +781,20 @@
                     <label for="property-material-url">Material URL</label>
                     <input type="text" id="property-material-url">
                 </div>
+
+                <div class="property textarea">
+                    <label for="property-material-data">Material data</label>
+                    <br><br>
+                    <div class="row">
+                        <input type="button" class="red" id="materialdata-clear" value="Clear Material Data">
+                        <input type="button" class="blue" id="materialdata-new-editor" value="Edit as JSON">
+                        <input disabled type="button" class="black" id="materialdata-save" value="Save Material Data">
+                        <span id="materialdata-saved" visible="false">Saved!</span>
+                    </div>
+                    <div id="static-naterialdata"></div>
+                    <div id="materialdata-editor"></div>
+                    <textarea id="property-material-data"></textarea>
+                </div>
             </fieldset>
             <fieldset class="minor">
                 <div class="material-group material-section property text" id="property-parent-material-id-string-container">
