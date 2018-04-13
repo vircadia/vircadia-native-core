@@ -2311,8 +2311,6 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             QString namedPathViewPoint = iter.value().toString();
             _namedPaths[namedPathName] = namedPathViewPoint;
         }
-    } else {
-        _namedPaths["/"] = "/";
     }
 
     // map will have a top-level list keyed as "Entities".  This will be extracted
