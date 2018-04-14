@@ -240,6 +240,7 @@ enum EntityPropertyList {
     PROP_MATERIAL_MAPPING_POS,
     PROP_MATERIAL_MAPPING_SCALE,
     PROP_MATERIAL_MAPPING_ROT,
+    PROP_MATERIAL_DATA,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

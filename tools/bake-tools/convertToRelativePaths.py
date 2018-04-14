@@ -6,7 +6,7 @@ def createAssetMapping(assetDirectory):
     baseDirectory = os.path.basename(os.path.normpath(assetDirectory))
     for root, subfolder, filenames in os.walk(assetDirectory):
         for filename in filenames:
-            if not filename.endswith('.ktx'):
+            if not filename.endswith('.ktx') or os.path.basename(root) == 'skyboxes':
                 substring = os.path.commonprefix([assetDirectory, root])
                 newPath = root.replace(substring, '');
                 filePath = os.sep.join([newPath, filename])
@@ -30,7 +30,7 @@ def handleURL(url):
         baseFilename = os.path.basename(url)
         filename = os.path.splitext(baseFilename)[0]
         newUrl = MAP[filename]
-    print newUrl
+    print url + ' -> ' + newUrl
     return newUrl
 
 def handleOptions():
@@ -43,8 +43,12 @@ def main():
     argsLength = len(sys.argv)
     if argsLength == 3:
         jsonFile = sys.argv[1]
-        gzipFile = jsonFile + '.gz'
         assetDirectory = sys.argv[2]
+        inputFilename = os.path.basename(jsonFile);
+        absPath = os.path.abspath(assetDirectory)
+        finalPath = absPath.replace('\\', '/');
+        gzipFile = finalPath + '/' + inputFilename + '.gz'
+        print gzipFile
         createAssetMapping(assetDirectory)
         f = open(jsonFile)
         data = json.load(f)
@@ -64,6 +68,15 @@ def main():
                         value = json.dumps(tmp)
                     except:
                         value = handleURL(value)
+
+
+                if  prop == "ambientLight":
+                    for index in value:
+                        value[index] = handleURL(value[index])
+
+                if prop == "skybox":
+                    for index in value:
+                        value[index] = handleURL(value[index])
 
                 if prop == "serverScripts":
                     value = handleURL(value)

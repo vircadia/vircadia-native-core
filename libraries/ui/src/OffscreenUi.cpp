@@ -154,6 +154,13 @@ void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(
     }
 }
 
+void OffscreenUi::hideDesktopWindows() {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "hideDesktopWindows");
+    }
+    QMetaObject::invokeMethod(_desktop, "hideDesktopWindows");
+}
+
 void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
     if (!item) {

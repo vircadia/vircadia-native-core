@@ -194,6 +194,17 @@ enum Semantic : uint8_t {
     COMPRESSED_BC6_RGB,
     COMPRESSED_BC7_SRGBA,
 
+    COMPRESSED_ETC2_RGB,
+    COMPRESSED_ETC2_SRGB,
+    COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA,
+    COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA,
+    COMPRESSED_ETC2_RGBA,
+    COMPRESSED_ETC2_SRGBA,
+    COMPRESSED_EAC_RED,
+    COMPRESSED_EAC_RED_SIGNED,
+    COMPRESSED_EAC_XY,
+    COMPRESSED_EAC_XY_SIGNED,
+
     _LAST_COMPRESSED,
 
     R11G11B10,
@@ -248,6 +259,17 @@ static const int SEMANTIC_SIZE_FACTOR[NUM_SEMANTICS] = {
     16, //COMPRESSED_BC5_XY, 1 byte/pixel * 4x4 pixels = 16 bytes
     16, //COMPRESSED_BC6_RGB, 1 byte/pixel * 4x4 pixels = 16 bytes
     16, //COMPRESSED_BC7_SRGBA, 1 byte/pixel * 4x4 pixels = 16 bytes
+
+    8,  //COMPRESSED_ETC2_RGB,
+    8,  //COMPRESSED_ETC2_SRGB,
+    8,  //COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA,
+    8,  //COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA,
+    16, //COMPRESSED_ETC2_RGBA,
+    16, //COMPRESSED_ETC2_SRGBA,
+    8,  //COMPRESSED_EAC_RED,
+    8,  //COMPRESSED_EAC_RED_SIGNED,
+    16, //COMPRESSED_EAC_XY,
+    16, //COMPRESSED_EAC_XY_SIGNED,
 
     1, //_LAST_COMPRESSED,
 
@@ -316,13 +338,23 @@ public:
     static const Element COLOR_RGBA_2;
     static const Element COLOR_R11G11B10;
     static const Element COLOR_RGB9E5;
-    static const Element COLOR_COMPRESSED_RED;
-    static const Element COLOR_COMPRESSED_SRGB;
-    static const Element COLOR_COMPRESSED_SRGBA_MASK;
-    static const Element COLOR_COMPRESSED_SRGBA;
-    static const Element COLOR_COMPRESSED_XY;
-    static const Element COLOR_COMPRESSED_SRGBA_HIGH;
-    static const Element COLOR_COMPRESSED_HDR_RGB;
+    static const Element COLOR_COMPRESSED_BCX_RED;
+    static const Element COLOR_COMPRESSED_BCX_SRGB;
+    static const Element COLOR_COMPRESSED_BCX_SRGBA_MASK;
+    static const Element COLOR_COMPRESSED_BCX_SRGBA;
+    static const Element COLOR_COMPRESSED_BCX_XY;
+    static const Element COLOR_COMPRESSED_BCX_SRGBA_HIGH;
+    static const Element COLOR_COMPRESSED_BCX_HDR_RGB;
+    static const Element COLOR_COMPRESSED_ETC2_RGB;
+    static const Element COLOR_COMPRESSED_ETC2_SRGB;
+    static const Element COLOR_COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA;
+    static const Element COLOR_COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA;
+    static const Element COLOR_COMPRESSED_ETC2_RGBA;
+    static const Element COLOR_COMPRESSED_ETC2_SRGBA;
+    static const Element COLOR_COMPRESSED_EAC_RED;
+    static const Element COLOR_COMPRESSED_EAC_RED_SIGNED;
+    static const Element COLOR_COMPRESSED_EAC_XY;
+    static const Element COLOR_COMPRESSED_EAC_XY_SIGNED;
     static const Element VEC2NU8_XY;
     static const Element VEC4F_COLOR_RGBA;
     static const Element VEC2F_UV;
