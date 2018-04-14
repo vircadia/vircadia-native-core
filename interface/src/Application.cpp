@@ -5302,52 +5302,56 @@ void Application::update(float deltaTime) {
                 });
             }
             {
-                PROFILE_RANGE(simulation_physics, "PostPhysics");
-                PerformanceTimer perfTimer("postPhysics");
                 if (_physicsEngine->hasOutgoingChanges()) {
-                    // grab the collision events BEFORE handleOutgoingChanges() because at this point
-                    // we have a better idea of which objects we own or should own.
-                    auto& collisionEvents = _physicsEngine->getCollisionEvents();
+                    {
+                        PROFILE_RANGE(simulation_physics, "PostPhysics");
+                        PerformanceTimer perfTimer("postPhysics");
+                        // grab the collision events BEFORE handleChangedMotionStates() because at this point
+                        // we have a better idea of which objects we own or should own.
+                        auto& collisionEvents = _physicsEngine->getCollisionEvents();
 
-                    getEntities()->getTree()->withWriteLock([&] {
-                        PROFILE_RANGE(simulation_physics, "HandleChanges");
-                        PerformanceTimer perfTimer("handleChanges");
+                        getEntities()->getTree()->withWriteLock([&] {
+                            PROFILE_RANGE(simulation_physics, "HandleChanges");
+                            PerformanceTimer perfTimer("handleChanges");
 
-                        const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
-                        _entitySimulation->handleChangedMotionStates(outgoingChanges);
-                        avatarManager->handleChangedMotionStates(outgoingChanges);
+                            const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
+                            _entitySimulation->handleChangedMotionStates(outgoingChanges);
+                            avatarManager->handleChangedMotionStates(outgoingChanges);
 
-                        const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
-                        _entitySimulation->handleDeactivatedMotionStates(deactivations);
-                    });
+                            const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
+                            _entitySimulation->handleDeactivatedMotionStates(deactivations);
+                        });
 
-                    if (!_aboutToQuit) {
-                        // handleCollisionEvents() AFTER handleOutgoingChanges()
-                        {
-                            PROFILE_RANGE(simulation_physics, "CollisionEvents");
-                            avatarManager->handleCollisionEvents(collisionEvents);
-                            // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
-                            // deadlock.)
-                            _entitySimulation->handleCollisionEvents(collisionEvents);
+                        if (!_aboutToQuit) {
+                            // handleCollisionEvents() AFTER handleChangedMotionStates()
+                            {
+                                PROFILE_RANGE(simulation_physics, "CollisionEvents");
+                                avatarManager->handleCollisionEvents(collisionEvents);
+                                // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
+                                // deadlock.)
+                                _entitySimulation->handleCollisionEvents(collisionEvents);
+                            }
                         }
 
+                        {
+                            PROFILE_RANGE(simulation_physics, "MyAvatar");
+                            myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
+                        }
+
+                        if (PerformanceTimer::isActive() &&
+                                Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
+                                Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsTiming)) {
+                            _physicsEngine->harvestPerformanceStats();
+                        }
+                        // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
+                        _physicsEngine->dumpStatsIfNecessary();
+                    }
+
+                    if (!_aboutToQuit) {
                         // NOTE: the getEntities()->update() call below will wait for lock
-                        // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
+                        // and will provide non-physical entity motion
                         getEntities()->update(true); // update the models...
                     }
-
-                    {
-                        PROFILE_RANGE(simulation_physics, "MyAvatar");
-                        myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
-                    }
-
-                    if (PerformanceTimer::isActive() &&
-                            Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
-                            Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming)) {
-                        _physicsEngine->harvestPerformanceStats();
-                    }
-                    // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
-                    _physicsEngine->dumpStatsIfNecessary();
                 }
             }
         } else {
