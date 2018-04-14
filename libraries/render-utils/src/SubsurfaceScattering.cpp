@@ -311,9 +311,6 @@ void diffuseProfileGPU(gpu::TexturePointer& profileMap, RenderArgs* args) {
         auto ps = subsurfaceScattering_makeProfile_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
-        //gpu::Shader::BindingSet slotBindings;
-        // gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         makePipeline = gpu::Pipeline::create(program, state);
@@ -346,10 +343,6 @@ void diffuseScatterGPU(const gpu::TexturePointer& profileMap, gpu::TexturePointe
     auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
     auto ps = subsurfaceScattering_makeLUT_frag::getShader();
     gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-    //gpu::Shader::BindingSet slotBindings;
-    //slotBindings.insert(gpu::Shader::Binding(std::string("scatteringProfile"), 0));
-    //gpu::Shader::makeProgram(*program, slotBindings);
-
 
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -389,9 +382,6 @@ void computeSpecularBeckmannGPU(gpu::TexturePointer& beckmannMap, RenderArgs* ar
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
         auto ps = subsurfaceScattering_makeSpecularBeckmann_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        //gpu::Shader::BindingSet slotBindings;
-        //gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 

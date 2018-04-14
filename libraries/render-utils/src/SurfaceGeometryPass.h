@@ -195,7 +195,7 @@ private:
 
     SurfaceGeometryFramebufferPointer _surfaceGeometryFramebuffer;
 
-    const gpu::PipelinePointer& getCurvaturePipeline();
+    const gpu::PipelinePointer& getCurvaturePipeline(const render::RenderContextPointer& renderContext);
 
     gpu::PipelinePointer _curvaturePipeline;
     
