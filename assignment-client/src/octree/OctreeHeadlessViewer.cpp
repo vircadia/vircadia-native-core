@@ -23,14 +23,7 @@ void OctreeHeadlessViewer::queryOctree() {
     char serverType = getMyNodeType();
     PacketType packetType = getMyQueryMessageType();
 
-    _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
-    _octreeQuery.setCameraOrientation(_viewFrustum.getOrientation());
-    _octreeQuery.setCameraFov(_viewFrustum.getFieldOfView());
-    _octreeQuery.setCameraAspectRatio(_viewFrustum.getAspectRatio());
-    _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
-    _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
-    _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
-    _octreeQuery.setCameraCenterRadius(_viewFrustum.getCenterRadius());
+    _octreeQuery.setMainViewFrustum(_viewFrustum);
     _octreeQuery.setOctreeSizeScale(_voxelSizeScale);
     _octreeQuery.setBoundaryLevelAdjust(_boundaryLevelAdjust);
 

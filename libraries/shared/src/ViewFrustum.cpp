@@ -134,7 +134,7 @@ const char* ViewFrustum::debugPlaneName (int plane) const {
     return "Unknown";
 }
 
-void ViewFrustum::fromByteArray(const QByteArray& input) {
+int ViewFrustum::fromByteArray(const QByteArray& input) {
 
     // From the wire!
     glm::vec3 cameraPosition;
@@ -176,6 +176,8 @@ void ViewFrustum::fromByteArray(const QByteArray& input) {
 
         calculate();
     }
+
+    return sourceBuffer - startPosition;
 }
 
 

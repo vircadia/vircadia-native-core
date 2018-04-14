@@ -41,8 +41,7 @@ private:
     bool addAncestorsToExtraFlaggedEntities(const QUuid& filteredEntityID, EntityItem& entityItem, EntityNodeData& nodeData);
     bool addDescendantsToExtraFlaggedEntities(const QUuid& filteredEntityID, EntityItem& entityItem, EntityNodeData& nodeData);
 
-    void startNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, 
-        bool usesViewFrustum);
+    void startNewTraversal(const DiffTraversal::View& viewFrustum, EntityTreeElementPointer root);
     bool traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params, const QJsonObject& jsonFilters) override;
 
     void preDistributionProcessing() override;

@@ -15,16 +15,17 @@
 #include <queue>
 
 #include <AACube.h>
+#include <DiffTraversal.h>
 #include <EntityTreeElement.h>
 
 const float SQRT_TWO_OVER_TWO = 0.7071067811865f;
 const float DEFAULT_VIEW_RADIUS = 10.0f;
 
 // ConicalView is an approximation of a ViewFrustum for fast calculation of sort priority.
-class ConicalView {
+class ConicalViewFrustum {
 public:
-    ConicalView() {}
-    ConicalView(const ViewFrustum& viewFrustum) { set(viewFrustum); }
+    ConicalViewFrustum() {}
+    ConicalViewFrustum(const ViewFrustum& viewFrustum) { set(viewFrustum); }
     void set(const ViewFrustum& viewFrustum);
     float computePriority(const AACube& cube) const;
 private:
@@ -33,6 +34,15 @@ private:
     float _sinAngle { SQRT_TWO_OVER_TWO };
     float _cosAngle { SQRT_TWO_OVER_TWO };
     float _radius { DEFAULT_VIEW_RADIUS };
+};
+
+class ConicalView {
+public:
+    ConicalView() {}
+    void set(const DiffTraversal::View& view);
+    float computePriority(const AACube& cube) const;
+private:
+    std::vector<ConicalViewFrustum> _conicalViewFrustums;
 };
 
 // PrioritizedEntity is a placeholder in a sorted queue.

@@ -5791,14 +5791,8 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
 
     ViewFrustum viewFrustum;
     copyViewFrustum(viewFrustum);
-    _octreeQuery.setCameraPosition(viewFrustum.getPosition());
-    _octreeQuery.setCameraOrientation(viewFrustum.getOrientation());
-    _octreeQuery.setCameraFov(viewFrustum.getFieldOfView());
-    _octreeQuery.setCameraAspectRatio(viewFrustum.getAspectRatio());
-    _octreeQuery.setCameraNearClip(viewFrustum.getNearClip());
-    _octreeQuery.setCameraFarClip(viewFrustum.getFarClip());
-    _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
-    _octreeQuery.setCameraCenterRadius(viewFrustum.getCenterRadius());
+    _octreeQuery.setMainViewFrustum(viewFrustum);
+
     auto lodManager = DependencyManager::get<LODManager>();
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());

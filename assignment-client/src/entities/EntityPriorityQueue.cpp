@@ -15,7 +15,7 @@ const float PrioritizedEntity::DO_NOT_SEND = -1.0e-6f;
 const float PrioritizedEntity::FORCE_REMOVE = -1.0e-5f;
 const float PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY = 1.0f;
 
-void ConicalView::set(const ViewFrustum& viewFrustum) {
+void ConicalViewFrustum::set(const ViewFrustum& viewFrustum) {
     // The ConicalView has two parts: a central sphere (same as ViewFrustum) and a circular cone that bounds the frustum part.
     // Why?  Because approximate intersection tests are much faster to compute for a cone than for a frustum.
     _position = viewFrustum.getPosition();
@@ -31,7 +31,7 @@ void ConicalView::set(const ViewFrustum& viewFrustum) {
     _radius = viewFrustum.getCenterRadius();
 }
 
-float ConicalView::computePriority(const AACube& cube) const {
+float ConicalViewFrustum::computePriority(const AACube& cube) const {
     glm::vec3 p = cube.calcCenter() - _position; // position of bounding sphere in view-frame
     float d = glm::length(p); // distance to center of bounding sphere
     float r = 0.5f * cube.getScale(); // radius of bounding sphere
@@ -50,4 +50,23 @@ float ConicalView::computePriority(const AACube& cube) const {
         return r / (d + AVOID_DIVIDE_BY_ZERO);
     }
     return PrioritizedEntity::DO_NOT_SEND;
+}
+
+
+void ConicalView::set(const DiffTraversal::View& view) {
+    auto size = view.viewFrustums.size();
+    _conicalViewFrustums.resize(size);
+    for (size_t i = 0; i < size; ++i) {
+        _conicalViewFrustums[i].set(view.viewFrustums[i]);
+    }
+}
+
+float ConicalView::computePriority(const AACube& cube) const {
+    float priority = PrioritizedEntity::DO_NOT_SEND;
+
+    for (const auto& view : _conicalViewFrustums) {
+        priority = std::max(priority, view.computePriority(cube));
+    }
+
+    return priority;
 }

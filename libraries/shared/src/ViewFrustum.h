@@ -147,7 +147,7 @@ public:
     void invalidate(); // causes all reasonable intersection tests to fail
 
     QByteArray toByteArray();
-    void fromByteArray(const QByteArray& input);
+    int fromByteArray(const QByteArray& input);
 
 private:
     glm::mat4 _view;
