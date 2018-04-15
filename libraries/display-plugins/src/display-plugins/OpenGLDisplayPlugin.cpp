@@ -361,7 +361,7 @@ void OpenGLDisplayPlugin::customizeContext() {
     auto presentThread = DependencyManager::get<PresentThread>();
     Q_ASSERT(thread() == presentThread->thread());
 
-    getGLBackend()->setCameraCorrection(mat4());
+    getGLBackend()->setCameraCorrection(mat4(), mat4(), true);
 
     for (auto& cursorValue : _cursorsData) {
         auto& cursorData = cursorValue.second;
@@ -530,7 +530,11 @@ void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::Textur
     batch.setStateScissorRect(scissor);
     batch.setViewportTransform(viewport);
     batch.setResourceTexture(0, texture);
+#ifndef USE_GLES
     batch.setPipeline(_presentPipeline);
+#else
+    batch.setPipeline(_simplePipeline);
+#endif
     batch.draw(gpu::TRIANGLE_STRIP, 4);
     if (copyFbo) {
         gpu::Vec4i copyFboRect(0, 0, copyFbo->getWidth(), copyFbo->getHeight());
@@ -692,6 +696,9 @@ void OpenGLDisplayPlugin::present() {
     incrementPresentCount();
 
     if (_currentFrame) {
+        auto correction = getViewCorrection();
+        getGLBackend()->setCameraCorrection(correction, _prevRenderView);
+        _prevRenderView = correction * _currentFrame->view;
         {
             withPresentThreadLock([&] {
                 _renderRate.increment();
@@ -826,11 +833,6 @@ glm::uvec2 OpenGLDisplayPlugin::getSurfaceSize() const {
         result = toGlm(window->geometry().size());
     }
     return result;
-}
-
-bool OpenGLDisplayPlugin::hasFocus() const {
-    auto window = _container->getPrimaryWidget();
-    return window ? window->hasFocus() : false;
 }
 
 void OpenGLDisplayPlugin::assertNotPresentThread() const {

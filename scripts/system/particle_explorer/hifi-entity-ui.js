@@ -439,8 +439,9 @@ HifiEntityUI.prototype = {
 
 
         $colPickContainer.colpick({
-            colorScheme: 'dark',
-            layout: 'hex',
+            colorScheme: (group.layoutColorScheme === undefined ? 'dark' : group.layoutColorScheme),
+            layout: (group.layoutType === undefined ? 'hex' : group.layoutType),
+            submit: (group.useSubmitButton === undefined ? true : group.useSubmitButton),
             color: {
                 r: domArray[0].value,
                 g: domArray[1].value,

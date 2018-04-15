@@ -40,6 +40,8 @@ Item {
     property bool isActive: false
 
     signal clicked()
+    signal entered()
+    signal exited()
 
     onIsActiveChanged: {
         if (button.isEntered) {
@@ -116,16 +118,18 @@ Item {
                 tabletRoot.playButtonClickSound();
             }*/
         }
-        onEntered: {
+        onPressed: {
             button.isEntered = true;
+            button.entered();
             if (button.isActive) {
                 button.state = "hover active state";
             } else {
                 button.state = "hover state";
             }
         }
-        onExited: {
+        onReleased: {
             button.isEntered = false;
+            button.exited()
             if (button.isActive) {
                 button.state = "active state";
             } else {

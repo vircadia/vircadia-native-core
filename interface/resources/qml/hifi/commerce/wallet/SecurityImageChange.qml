@@ -13,7 +13,6 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
@@ -44,6 +43,17 @@ Item {
         }
     }
     
+    // This will cause a bug -- if you bring up security image selection in HUD mode while
+    // in HMD while having HMD preview enabled, then move, then finish passphrase selection,
+    // HMD preview will stay off.
+    // TODO: Fix this unlikely bug
+    onVisibleChanged: {
+        if (visible) {
+            sendSignalToWallet({method: 'disableHmdPreview'});
+        } else {
+            sendSignalToWallet({method: 'maybeEnableHmdPreview'});
+        }
+    }    
 
     // Security Image
     Item {

@@ -34,6 +34,15 @@ namespace VirtualPad {
         return _currentTouch;
     }
 
+    const float Manager::DPI = 534.0f;
+    const float Manager::BASE_DIAMETER_PIXELS = 512.0f;
+    const float Manager::BASE_MARGIN_PIXELS = 59.0f;
+    const float Manager::STICK_RADIUS_PIXELS = 105.0f;
+    const float Manager::JUMP_BTN_TRIMMED_RADIUS_PIXELS = 67.0f;
+    const float Manager::JUMP_BTN_FULL_PIXELS = 134.0f;
+    const float Manager::JUMP_BTN_BOTTOM_MARGIN_PIXELS = 67.0f;
+    const float Manager::JUMP_BTN_LEFT_MARGIN_PIXELS = 547.0f;
+
     Manager::Manager() {
 
     }
@@ -51,8 +60,40 @@ namespace VirtualPad {
         return _enabled;
     }
 
+    void Manager::hide(bool hidden) {
+        _hidden = hidden;
+    }
+
+    bool Manager::isHidden() {
+        return _hidden;
+    }
+
+    int Manager::extraBottomMargin() {
+        return _extraBottomMargin;
+    }
+
+    void Manager::setExtraBottomMargin(int margin) {
+        _extraBottomMargin = margin;
+    }
+
+    glm::vec2 Manager::getJumpButtonPosition() {
+        return _jumpButtonPosition;
+    }
+
+    void Manager::setJumpButtonPosition(glm::vec2 point) {
+        _jumpButtonPosition = point;
+    }
+
     Instance* Manager::getLeftVirtualPad() {
         return &_leftVPadInstance;
+    }
+
+    bool Instance::isShown() {
+        return _shown;
+    }
+
+    void Instance::setShown(bool show) {
+        _shown = show;
     }
 
 }

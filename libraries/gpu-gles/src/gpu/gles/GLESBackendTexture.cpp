@@ -13,16 +13,28 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include "../gl/GLTexelFormat.h"
+#include <gpu/gl/GLTexelFormat.h>
 
 using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gles;
 
 bool GLESBackend::supportedTextureFormat(const gpu::Element& format) {
-    // FIXME distinguish between GLES and GL compressed formats after support 
-    // for the former is added to gpu::Element
-    return !format.isCompressed();
+    switch (format.getSemantic()) {
+        case gpu::Semantic::COMPRESSED_ETC2_RGB:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGB:
+        case gpu::Semantic::COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA:
+        case gpu::Semantic::COMPRESSED_ETC2_RGBA:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGBA:
+        case gpu::Semantic::COMPRESSED_EAC_RED:
+        case gpu::Semantic::COMPRESSED_EAC_RED_SIGNED:
+        case gpu::Semantic::COMPRESSED_EAC_XY:
+        case gpu::Semantic::COMPRESSED_EAC_XY_SIGNED:
+            return true;
+        default:
+            return !format.isCompressed();
+    }
 }
 
 GLTexture* GLESBackend::syncGPUObject(const TexturePointer& texturePointer) {
@@ -231,6 +243,29 @@ GLESFixedAllocationTexture::GLESFixedAllocationTexture(const std::weak_ptr<GLBac
 GLESFixedAllocationTexture::~GLESFixedAllocationTexture() {
 }
 
+GLsizei getCompressedImageSize(int width, int height, GLenum internalFormat) {
+    GLsizei blockSize;
+    switch (internalFormat) {
+        case GL_COMPRESSED_R11_EAC:
+        case GL_COMPRESSED_SIGNED_R11_EAC:
+        case GL_COMPRESSED_RGB8_ETC2:
+        case GL_COMPRESSED_SRGB8_ETC2:
+        case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+        case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+            blockSize = 8;
+            break;
+        case GL_COMPRESSED_RG11_EAC:
+        case GL_COMPRESSED_SIGNED_RG11_EAC:
+        case GL_COMPRESSED_RGBA8_ETC2_EAC:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+        default:
+            blockSize = 16;
+    }
+
+    // See https://www.khronos.org/registry/OpenGL-Refpages/es3.0/html/glCompressedTexImage2D.xhtml
+    return (GLsizei)ceil(width / 4.0f) * (GLsizei)ceil(height / 4.0f) * blockSize;
+}
+
 void GLESFixedAllocationTexture::allocateStorage() const {
     const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     const auto numMips = _gpuObject.getNumMips();
@@ -239,7 +274,12 @@ void GLESFixedAllocationTexture::allocateStorage() const {
     for (GLint level = 0; level < numMips; level++) {
         Vec3u dimensions = _gpuObject.evalMipDimensions(level);
         for (GLenum target : getFaceTargets(_target)) {
-            glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format, texelFormat.type, nullptr);
+            if (texelFormat.isCompressed()) {
+                glCompressedTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0,
+                                       getCompressedImageSize(dimensions.x, dimensions.y, texelFormat.internalFormat), nullptr);
+            } else {
+                glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format, texelFormat.type, nullptr);
+            }
         }
     }
 
@@ -251,9 +291,6 @@ void GLESFixedAllocationTexture::allocateStorage() const {
 void GLESFixedAllocationTexture::syncSampler() const {
     Parent::syncSampler();
     const Sampler& sampler = _gpuObject.getSampler();
-    auto baseMip = std::max<uint16_t>(sampler.getMipOffset(), sampler.getMinMip());
-
-    glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, baseMip);
     glTexParameterf(_target, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
     glTexParameterf(_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.0f : sampler.getMaxMip()));
 }
@@ -459,7 +496,6 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
         sourceMip._size = (GLint)faceTargets.size() * sourceMip._faceSize;
         sourceMip._offset = bufferOffset;
         bufferOffset += sourceMip._size;
-        gpu::gl::checkGLError();
     }
     (void)CHECK_GL_ERROR();
 
@@ -505,7 +541,6 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
 #endif
             glCompressedTexSubImage2D(faceTargets[f], destLevel, 0, 0, sourceMip._width, sourceMip._height, internalFormat,
                 sourceMip._faceSize, BUFFER_OFFSET(sourceMip._offset + f * sourceMip._faceSize));
-            gpu::gl::checkGLError();
         }
     }
 

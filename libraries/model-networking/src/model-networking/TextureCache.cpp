@@ -38,11 +38,13 @@
 #include <NumericalConstants.h>
 #include <shared/NsightHelpers.h>
 #include <shared/FileUtils.h>
+#include <PathUtils.h>
 #include <Finally.h>
 #include <Profile.h>
 
 #include "NetworkLogging.h"
 #include "ModelNetworkingLogging.h"
+#include "NetworkingConstants.h"
 #include <Trace.h>
 #include <StatTracker.h>
 
@@ -294,7 +296,7 @@ _type(),
 _sourceIsKTX(false),
 _maxNumPixels(100)
 {
-    _textureSource = std::make_shared<gpu::TextureSource>();
+    _textureSource = std::make_shared<gpu::TextureSource>(url);
     _lowestRequestedMipLevel = 0;
     _loaded = true;
 }
@@ -310,7 +312,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, 
     _sourceIsKTX(url.path().endsWith(".ktx")),
     _maxNumPixels(maxNumPixels)
 {
-    _textureSource = std::make_shared<gpu::TextureSource>();
+    _textureSource = std::make_shared<gpu::TextureSource>(url, (int)type);
     _lowestRequestedMipLevel = 0;
 
     _shouldFailOnRedirect = !_sourceIsKTX;
@@ -459,14 +461,20 @@ void NetworkTexture::makeRequest() {
 
 }
 
+void NetworkTexture::handleLocalRequestCompleted() {
+    TextureCache::requestCompleted(_self);
+}
+
 void NetworkTexture::makeLocalRequest() {
     const QString scheme = _url.scheme();
     QString path;
     if (scheme == URL_SCHEME_FILE) {
-        path = _url.toLocalFile();
+        path = PathUtils::expandToLocalDataAbsolutePath(_url).toLocalFile();
     } else {
         path = ":" + _url.path();
     }
+
+    connect(this, &Resource::finished, this, &NetworkTexture::handleLocalRequestCompleted);
 
     path = FileUtils::selectFile(path);
 
@@ -634,8 +642,12 @@ void NetworkTexture::ktxInitialDataRequestFinished() {
     }
 
     if (result == ResourceRequest::Success) {
+
+// This is an expensive operation that we do not want in release.
+#ifdef DEBUG
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
         qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
+#endif
 
         _ktxHeaderData = _ktxHeaderRequest->getData();
         _ktxHighMipData = _ktxMipRequest->getData();

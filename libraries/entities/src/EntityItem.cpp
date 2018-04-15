@@ -62,7 +62,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
 EntityItem::~EntityItem() {
     // these pointers MUST be correct at delete, else we probably have a dangling backpointer
     // to this EntityItem in the corresponding data structure.
-    assert(!_simulated);
+    assert(!_simulated || (!_element && !_physicsInfo));
     assert(!_element);
     assert(!_physicsInfo);
 }
@@ -91,6 +91,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_REGISTRATION_POINT;
     requestedProperties += PROP_ANGULAR_DAMPING;
     requestedProperties += PROP_VISIBLE;
+    requestedProperties += PROP_CAN_CAST_SHADOW;
     requestedProperties += PROP_COLLISIONLESS;
     requestedProperties += PROP_COLLISION_MASK;
     requestedProperties += PROP_DYNAMIC;
@@ -249,6 +250,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, getAngularDamping());
         APPEND_ENTITY_PROPERTY(PROP_VISIBLE, getVisible());
+        APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, getCanCastShadow());
         APPEND_ENTITY_PROPERTY(PROP_COLLISIONLESS, getCollisionless());
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_MASK, getCollisionMask());
         APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, getDynamic());
@@ -691,7 +693,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 // the entity-server is awarding us ownership which is what we want
                 _simulationOwner.set(newSimOwner);
             }
-        } else if (newSimOwner.matchesValidID(myNodeID) && !_hasBidOnSimulation) {
+        } else if (newSimOwner.matchesValidID(myNodeID) && !_simulationOwner.pendingTake(now)) {
             // entity-server tells us that we have simulation ownership while we never requested this for this EntityItem,
             // this could happen when the user reloads the cache and entity tree.
             markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
@@ -799,6 +801,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, setAngularDamping);
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
+    READ_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     READ_ENTITY_PROPERTY(PROP_COLLISIONLESS, bool, setCollisionless);
     READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint8_t, setCollisionMask);
     READ_ENTITY_PROPERTY(PROP_DYNAMIC, bool, setDynamic);
@@ -960,7 +963,11 @@ void EntityItem::setHref(QString value) {
 
     // If the string has something and doesn't start with with "hifi://" it shouldn't be set
     // We allow the string to be empty, because that's the initial state of this property
-    if ( !(value.toLower().startsWith("hifi://")) && !value.isEmpty()) {
+    if (!value.isEmpty() &&
+        !(value.toLower().startsWith("hifi://")) &&
+        !(value.toLower().startsWith("file://"))
+        // TODO: serverless-domains will eventually support http and https also
+        ) {
         return;
     }
     withWriteLock([&] {
@@ -1234,6 +1241,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularDamping, getAngularDamping);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRenderAlpha, getLocalRenderAlpha);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(visible, getVisible);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(canCastShadow, getCanCastShadow);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionless, getCollisionless);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionMask, getCollisionMask);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dynamic, getDynamic);
@@ -1346,6 +1354,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionSoundURL, setCollisionSoundURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(canCastShadow, setCanCastShadow);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
 
     // Certifiable Properties
@@ -1902,7 +1911,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
     }
 }
 
-void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
+void EntityItem::setSimulationOwner(const QUuid& id, uint8_t priority) {
     if (wantTerseEditLogging() && (id != _simulationOwner.getID() || priority != _simulationOwner.getPriority())) {
         qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << id << priority;
     }
@@ -1933,12 +1942,8 @@ void EntityItem::clearSimulationOwnership() {
 
 }
 
-void EntityItem::setPendingOwnershipPriority(quint8 priority, const quint64& timestamp) {
+void EntityItem::setPendingOwnershipPriority(uint8_t priority, const quint64& timestamp) {
     _simulationOwner.setPendingPriority(priority, timestamp);
-}
-
-void EntityItem::rememberHasSimulationOwnershipBid() const {
-    _hasBidOnSimulation = true;
 }
 
 QString EntityItem::actionsToDebugString() {
@@ -2723,6 +2728,28 @@ void EntityItem::setVisible(bool value) {
     }
 }
 
+bool EntityItem::getCanCastShadow() const {
+    bool result;
+    withReadLock([&] {
+        result = _canCastShadow;
+    });
+    return result;
+}
+
+void EntityItem::setCanCastShadow(bool value) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_canCastShadow != value) {
+            changed = true;
+            _canCastShadow = value;
+        }
+    });
+
+    if (changed) {
+        emit requestRenderUpdate();
+    }
+}
+
 bool EntityItem::isChildOfMyAvatar() const {
     QUuid ancestorID = findAncestorOfType(NestableType::Avatar);
     return !ancestorID.isNull() && (ancestorID == Physics::getSessionUUID() || ancestorID == AVATAR_SELF_ID);
@@ -2931,13 +2958,6 @@ void EntityItem::retrieveMarketplacePublicKey() {
 }
 
 void EntityItem::preDelete() {
-    // clear out any left-over actions
-    EntityTreeElementPointer element = _element; // use local copy of _element for logic below
-    EntityTreePointer entityTree = element ? element->getTree() : nullptr;
-    EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
-    if (simulation) {
-        clearActions(simulation);
-    }
 }
 
 void EntityItem::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {

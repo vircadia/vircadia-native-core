@@ -1,5 +1,4 @@
 import QtQuick 2.3
-import QtQuick.Controls 1.2
 
 import "."
 
@@ -20,6 +19,7 @@ Overlay {
             font.family: "Helvetica"
             font.pixelSize: 18
             lineHeight: 18
+            clip: true
         }
     }
 

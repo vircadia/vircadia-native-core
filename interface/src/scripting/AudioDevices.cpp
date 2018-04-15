@@ -10,6 +10,7 @@
 //
 
 #include <map>
+#include <algorithm>
 
 #include <shared/QtHelpers.h>
 #include <plugins/DisplayPlugin.h>
@@ -182,7 +183,6 @@ void AudioDeviceList::resetDevice(bool contextIsHMD) {
 }
 
 void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device, bool isHMD) {
-    auto oldDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
     QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
     selectedDevice = device;
 
@@ -200,32 +200,137 @@ void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device, bool isHMD
     emit dataChanged(createIndex(0, 0), createIndex(rowCount() - 1, 0));
 }
 
-void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices, bool isHMD) {
-    QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
+// Function returns 'strings similarity' as a number. The lesser number - the more similar strings are. Absolutely equal strings should return 0.
+// Optimized version kindly provided by Ken
+int levenshteinDistance(const QString& s1, const QString& s2) {
+    const int m = s1.size();
+    const int n = s2.size();
 
-    const QString& savedDeviceName = isHMD ? _hmdSavedDeviceName : _desktopSavedDeviceName;
+    if (m == 0) {
+        return n;
+    }
+    if (n == 0) {
+        return m;
+    }
+
+    auto cost = (int*)alloca((n + 1) * sizeof(int));
+
+    for (int j = 0; j <= n; j++) {
+        cost[j] = j;
+    }
+
+    for (int i = 0; i < m; i++) {
+
+        int prev = i;
+        cost[0] = i + 1;
+
+        for (int j = 0; j < n; j++) {
+
+            int temp = cost[j + 1];
+            cost[j + 1] = (s1[i] == s2[j]) ? prev : std::min(cost[j], std::min(temp, prev)) + 1;
+            prev = temp;
+        }
+    }
+    return cost[n];
+}
+
+std::shared_ptr<scripting::AudioDevice> getSimilarDevice(const QString& deviceName, const QList<std::shared_ptr<scripting::AudioDevice>>& devices) {
+
+    int minDistance = INT_MAX;
+    int minDistanceIndex = 0;
+
+    for (auto i = 0; i < devices.length(); ++i) {
+        auto distance = levenshteinDistance(deviceName, devices[i]->info.deviceName());
+        if (distance < minDistance) {
+            minDistance = distance;
+            minDistanceIndex = i;
+        }
+    }
+
+    return devices[minDistanceIndex];
+}
+
+void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
     beginResetModel();
 
-    _devices.clear();
+    QList<std::shared_ptr<AudioDevice>> newDevices;
+    bool hmdIsSelected = false;
+    bool desktopIsSelected = false;
+
+    foreach(const QAudioDeviceInfo& deviceInfo, devices) {
+        for (bool isHMD : {false, true}) {
+            auto &backupSelectedDeviceName = isHMD ? _backupSelectedHMDDeviceName : _backupSelectedDesktopDeviceName;
+            if (deviceInfo.deviceName() == backupSelectedDeviceName) {
+                QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
+                selectedDevice = deviceInfo;
+                backupSelectedDeviceName.clear();
+            }
+        }
+    }
 
     foreach(const QAudioDeviceInfo& deviceInfo, devices) {
         AudioDevice device;
-        bool &isSelected = isHMD ? device.selectedHMD : device.selectedDesktop;
         device.info = deviceInfo;
         device.display = device.info.deviceName()
             .replace("High Definition", "HD")
             .remove("Device")
             .replace(" )", ")");
-        if (!selectedDevice.isNull()) {
-            isSelected = (device.info == selectedDevice);
-        } else {
-            //no selected device for context. fallback to saved
-            isSelected = (device.info.deviceName() == savedDeviceName);
+
+        for (bool isHMD : {false, true}) {
+            QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
+            bool &isSelected = isHMD ? device.selectedHMD : device.selectedDesktop;
+
+            if (!selectedDevice.isNull()) {
+                isSelected = (device.info == selectedDevice);
+            }
+            else {
+                //no selected device for context. fallback to saved
+                const QString& savedDeviceName = isHMD ? _hmdSavedDeviceName : _desktopSavedDeviceName;
+                isSelected = (device.info.deviceName() == savedDeviceName);
+            }
+
+            if (isSelected) {
+                if (isHMD) {
+                    hmdIsSelected = isSelected;
+                } else {
+                    desktopIsSelected = isSelected;
+                }
+
+                // check if this device *is not* in old devices list - it means it was just re-plugged so needs to be selected explicitly
+                bool isNewDevice = true;
+                for (auto& oldDevice : _devices) {
+                    if (oldDevice->info.deviceName() == device.info.deviceName()) {
+                        isNewDevice = false;
+                        break;
+                    }
+                }
+
+                if (isNewDevice) {
+                    emit selectedDevicePlugged(device.info, isHMD);
+                }
+            }
         }
+
         qDebug() << "adding audio device:" << device.display << device.selectedDesktop << device.selectedHMD << _mode;
-        _devices.push_back(newDevice(device));
+        newDevices.push_back(newDevice(device));
     }
 
+    if (!newDevices.isEmpty()) {
+        if (!hmdIsSelected) {
+            _backupSelectedHMDDeviceName = !_selectedHMDDevice.isNull() ? _selectedHMDDevice.deviceName() : _hmdSavedDeviceName;
+            auto device = getSimilarDevice(_backupSelectedHMDDeviceName, newDevices);
+            device->selectedHMD = true;
+            emit selectedDevicePlugged(device->info, true);
+        }
+        if (!desktopIsSelected) {
+            _backupSelectedDesktopDeviceName = !_selectedDesktopDevice.isNull() ? _selectedDesktopDevice.deviceName() : _desktopSavedDeviceName;
+            auto device = getSimilarDevice(_backupSelectedDesktopDeviceName, newDevices);
+            device->selectedDesktop = true;
+            emit selectedDevicePlugged(device->info, false);
+        }
+    }
+
+    _devices.swap(newDevices);
     endResetModel();
 }
 
@@ -271,12 +376,10 @@ AudioDevices::AudioDevices(bool& contextIsHMD) : _contextIsHMD(contextIsHMD) {
     // connections are made after client is initialized, so we must also fetch the devices
     const QList<QAudioDeviceInfo>& devicesInput = client->getAudioDevices(QAudio::AudioInput);
     const QList<QAudioDeviceInfo>& devicesOutput = client->getAudioDevices(QAudio::AudioOutput);
-    //setup HMD devices
-    _inputs.onDevicesChanged(devicesInput, true);
-    _outputs.onDevicesChanged(devicesOutput, true);
-    //setup Desktop devices
-    _inputs.onDevicesChanged(devicesInput, false);
-    _outputs.onDevicesChanged(devicesOutput, false);
+
+    //setup devices
+    _inputs.onDevicesChanged(devicesInput);
+    _outputs.onDevicesChanged(devicesOutput);
 }
 
 AudioDevices::~AudioDevices() {}
@@ -375,11 +478,19 @@ void AudioDevices::onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceI
 
     //set devices for both contexts
     if (mode == QAudio::AudioInput) {
-        _inputs.onDevicesChanged(devices, _contextIsHMD);
-        _inputs.onDevicesChanged(devices, !_contextIsHMD);
+        _inputs.onDevicesChanged(devices);
+
+        static std::once_flag onceAfterInputDevicesChanged;
+        std::call_once(onceAfterInputDevicesChanged, [&] { // we only want 'selectedDevicePlugged' signal to be handled after initial list of input devices was populated
+            connect(&_inputs, &AudioDeviceList::selectedDevicePlugged, this, &AudioDevices::chooseInputDevice);
+        });
     } else { // if (mode == QAudio::AudioOutput)
-        _outputs.onDevicesChanged(devices, _contextIsHMD);
-        _outputs.onDevicesChanged(devices, !_contextIsHMD);
+        _outputs.onDevicesChanged(devices);
+
+        static std::once_flag onceAfterOutputDevicesChanged;
+        std::call_once(onceAfterOutputDevicesChanged, [&] { // we only want 'selectedDevicePlugged' signal to be handled after initial list of output devices was populated
+            connect(&_outputs, &AudioDeviceList::selectedDevicePlugged, this, &AudioDevices::chooseOutputDevice);
+        });
     }
 }
 

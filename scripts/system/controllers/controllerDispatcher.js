@@ -43,6 +43,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.totalVariance = 0;
         this.highVarianceCount = 0;
         this.veryhighVarianceCount = 0;
+        this.orderedPluginNames = [];
         this.tabletID = null;
         this.blacklist = [];
         this.pointerManager = new PointerManager();

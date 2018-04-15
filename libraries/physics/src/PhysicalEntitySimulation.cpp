@@ -40,7 +40,7 @@ void PhysicalEntitySimulation::init(
 }
 
 // begin EntitySimulation overrides
-void PhysicalEntitySimulation::updateEntitiesInternal(const quint64& now) {
+void PhysicalEntitySimulation::updateEntitiesInternal(uint64_t now) {
     // Do nothing here because the "internal" update the PhysicsEngine::stepSimualtion() which is done elsewhere.
 }
 
@@ -61,33 +61,58 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
 void PhysicalEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
     if (entity->isSimulated()) {
         EntitySimulation::removeEntityInternal(entity);
-        QMutexLocker lock(&_mutex);
         _entitiesToAddToPhysics.remove(entity);
 
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (motionState) {
-            _outgoingChanges.remove(motionState);
+            removeOwnershipData(motionState);
             _entitiesToRemoveFromPhysics.insert(entity);
-        } else {
-            _entitiesToDelete.insert(entity);
+        } else if (entity->isDead() && entity->getElement()) {
+            _deadEntities.insert(entity);
         }
     }
 }
 
-void PhysicalEntitySimulation::takeEntitiesToDelete(VectorOfEntities& entitiesToDelete) {
-    QMutexLocker lock(&_mutex);
-    for (auto entity : _entitiesToDelete) {
-        // this entity is still in its tree, so we insert into the external list
-        entitiesToDelete.push_back(entity);
+void PhysicalEntitySimulation::removeOwnershipData(EntityMotionState* motionState) {
+    assert(motionState);
+    if (motionState->getOwnershipState() == EntityMotionState::OwnershipState::LocallyOwned) {
+        for (uint32_t i = 0; i < _owned.size(); ++i) {
+            if (_owned[i] == motionState) {
+                _owned[i]->clearOwnershipState();
+                _owned.remove(i);
+            }
+        }
+    } else if (motionState->getOwnershipState() == EntityMotionState::OwnershipState::PendingBid) {
+        for (uint32_t i = 0; i < _bids.size(); ++i) {
+            if (_bids[i] == motionState) {
+                _bids[i]->clearOwnershipState();
+                _bids.remove(i);
+            }
+        }
+    }
+}
 
-        // Someday when we invert the entities/physics lib dependencies we can let EntityItem delete its own PhysicsInfo
-        // rather than do it here
+void PhysicalEntitySimulation::clearOwnershipData() {
+    for (uint32_t i = 0; i < _owned.size(); ++i) {
+        _owned[i]->clearOwnershipState();
+    }
+    _owned.clear();
+    for (uint32_t i = 0; i < _bids.size(); ++i) {
+        _bids[i]->clearOwnershipState();
+    }
+    _bids.clear();
+}
+
+void PhysicalEntitySimulation::takeDeadEntities(SetOfEntities& deadEntities) {
+    QMutexLocker lock(&_mutex);
+    for (auto entity : _deadEntities) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (motionState) {
             _entitiesToRemoveFromPhysics.insert(entity);
         }
     }
-    _entitiesToDelete.clear();
+    _deadEntities.swap(deadEntities);
+    _deadEntities.clear();
 }
 
 void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
@@ -98,15 +123,15 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     if (motionState) {
         if (!entity->shouldBePhysical()) {
             // the entity should be removed from the physical simulation
-            _pendingChanges.remove(motionState);
+            _incomingChanges.remove(motionState);
             _physicalObjects.remove(motionState);
-            _outgoingChanges.remove(motionState);
+            removeOwnershipData(motionState);
             _entitiesToRemoveFromPhysics.insert(entity);
             if (entity->isMovingRelativeToParent()) {
                 _simpleKinematicEntities.insert(entity);
             }
         } else {
-            _pendingChanges.insert(motionState);
+            _incomingChanges.insert(motionState);
         }
     } else if (entity->shouldBePhysical()) {
         // The intent is for this object to be in the PhysicsEngine, but it has no MotionState yet.
@@ -125,80 +150,68 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     // while it is in the middle of a simulation step.  As it is, we're probably in shutdown mode
     // anyway, so maybe the simulation was already properly shutdown?  Cross our fingers...
 
-    // copy everything into _entitiesToDelete
-    for (auto stateItr : _physicalObjects) {
-        EntityMotionState* motionState = static_cast<EntityMotionState*>(&(*stateItr));
-        _entitiesToDelete.insert(motionState->getEntity());
-    }
-
-    // then remove the objects (aka MotionStates) from physics
+    // remove the objects (aka MotionStates) from physics
     _physicsEngine->removeSetOfObjects(_physicalObjects);
 
     // delete the MotionStates
-    // TODO: after we invert the entities/physics lib dependencies we will let EntityItem delete
-    // its own PhysicsInfo rather than do it here
-    for (auto entity : _entitiesToDelete) {
-        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-        if (motionState) {
-            entity->setPhysicsInfo(nullptr);
-            delete motionState;
-        }
+    for (auto stateItr : _physicalObjects) {
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(&(*stateItr));
+        assert(motionState);
+        EntityItemPointer entity = motionState->getEntity();
+        // TODO: someday when we invert the entities/physics lib dependencies we can let EntityItem delete its own PhysicsInfo
+        // until then we must do it here
+        delete motionState;
     }
-
-    // finally clear all lists maintained by this class
     _physicalObjects.clear();
+
+    // clear all other lists specific to this derived class
+    clearOwnershipData();
     _entitiesToRemoveFromPhysics.clear();
-    _entitiesToRelease.clear();
     _entitiesToAddToPhysics.clear();
-    _pendingChanges.clear();
-    _outgoingChanges.clear();
+    _incomingChanges.clear();
 }
 
 // virtual
 void PhysicalEntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
     assert(entity);
     assert(entity->isDead());
+    QMutexLocker lock(&_mutex);
     entity->clearActions(getThisPointer());
     removeEntityInternal(entity);
 }
 // end EntitySimulation overrides
 
-void PhysicalEntitySimulation::getObjectsToRemoveFromPhysics(VectorOfMotionStates& result) {
-    result.clear();
+const VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToRemoveFromPhysics() {
     QMutexLocker lock(&_mutex);
     for (auto entity: _entitiesToRemoveFromPhysics) {
-        // make sure it isn't on any side lists
-        _entitiesToAddToPhysics.remove(entity);
-
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-        if (motionState) {
-            _pendingChanges.remove(motionState);
-            _outgoingChanges.remove(motionState);
-            _physicalObjects.remove(motionState);
-            result.push_back(motionState);
-            _entitiesToRelease.insert(entity);
+        assert(motionState);
+
+        _entitiesToAddToPhysics.remove(entity);
+        if (entity->isDead() && entity->getElement()) {
+            _deadEntities.insert(entity);
         }
 
-        if (entity->isDead()) {
-            _entitiesToDelete.insert(entity);
-        }
+        _incomingChanges.remove(motionState);
+        removeOwnershipData(motionState);
+        _physicalObjects.remove(motionState);
+
+        // remember this motionState and delete it later (after removing its RigidBody from the PhysicsEngine)
+        _objectsToDelete.push_back(motionState);
     }
     _entitiesToRemoveFromPhysics.clear();
+    return _objectsToDelete;
 }
 
 void PhysicalEntitySimulation::deleteObjectsRemovedFromPhysics() {
     QMutexLocker lock(&_mutex);
-    for (auto entity: _entitiesToRelease) {
-        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-        assert(motionState);
-        entity->setPhysicsInfo(nullptr);
+    for (auto motionState : _objectsToDelete) {
+        // someday when we invert the entities/physics lib dependencies we can let EntityItem delete its own PhysicsInfo
+        // until then we must do it here
+        // NOTE: a reference to the EntityItemPointer is released in the EntityMotionState::dtor
         delete motionState;
-
-        if (entity->isDead()) {
-            _entitiesToDelete.insert(entity);
-        }
     }
-    _entitiesToRelease.clear();
+    _objectsToDelete.clear();
 }
 
 void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& result) {
@@ -248,18 +261,18 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
 void PhysicalEntitySimulation::setObjectsToChange(const VectorOfMotionStates& objectsToChange) {
     QMutexLocker lock(&_mutex);
     for (auto object : objectsToChange) {
-        _pendingChanges.insert(static_cast<EntityMotionState*>(object));
+        _incomingChanges.insert(static_cast<EntityMotionState*>(object));
     }
 }
 
 void PhysicalEntitySimulation::getObjectsToChange(VectorOfMotionStates& result) {
     result.clear();
     QMutexLocker lock(&_mutex);
-    for (auto stateItr : _pendingChanges) {
+    for (auto stateItr : _incomingChanges) {
         EntityMotionState* motionState = &(*stateItr);
         result.push_back(motionState);
     }
-    _pendingChanges.clear();
+    _incomingChanges.clear();
 }
 
 void PhysicalEntitySimulation::handleDeactivatedMotionStates(const VectorOfMotionStates& motionStates) {
@@ -279,20 +292,22 @@ void PhysicalEntitySimulation::handleChangedMotionStates(const VectorOfMotionSta
     PROFILE_RANGE_EX(simulation_physics, "ChangedEntities", 0x00000000, (uint64_t)motionStates.size());
     QMutexLocker lock(&_mutex);
 
-    // walk the motionStates looking for those that correspond to entities
-    {
-        PROFILE_RANGE_EX(simulation_physics, "Filter", 0x00000000, (uint64_t)motionStates.size());
-        for (auto stateItr : motionStates) {
-            ObjectMotionState* state = &(*stateItr);
-            assert(state);
-            if (state->getType() == MOTIONSTATE_TYPE_ENTITY) {
-                EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
-                EntityItemPointer entity = entityState->getEntity();
-                assert(entity.get());
-                if (entityState->isCandidateForOwnership()) {
-                    _outgoingChanges.insert(entityState);
+    for (auto stateItr : motionStates) {
+        ObjectMotionState* state = &(*stateItr);
+        assert(state);
+        if (state->getType() == MOTIONSTATE_TYPE_ENTITY) {
+            EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
+            _entitiesToSort.insert(entityState->getEntity());
+            if (entityState->getOwnershipState() == EntityMotionState::OwnershipState::NotLocallyOwned) {
+                // NOTE: entityState->getOwnershipState() reflects what ownership list (_bids or _owned) it is in
+                // and is distinct from entityState->isLocallyOwned() which checks the simulation ownership
+                // properties of the corresponding EntityItem.  It is possible for the two states to be out
+                // of sync.  In fact, we're trying to put them back into sync here.
+                if (entityState->isLocallyOwned()) {
+                    addOwnership(entityState);
+                } else if (entityState->shouldSendBid()) {
+                    addOwnershipBid(entityState);
                 }
-                _entitiesToSort.insert(entity);
             }
         }
     }
@@ -302,26 +317,78 @@ void PhysicalEntitySimulation::handleChangedMotionStates(const VectorOfMotionSta
         _lastStepSendPackets = numSubsteps;
 
         if (Physics::getSessionUUID().isNull()) {
-            // usually don't get here, but if so --> nothing to do
-            _outgoingChanges.clear();
-            return;
+            // usually don't get here, but if so clear all ownership
+            clearOwnershipData();
         }
+        // send updates before bids, because this simplifies the logic thasuccessful bids will immediately send an update when added to the 'owned' list
+        sendOwnedUpdates(numSubsteps);
+        sendOwnershipBids(numSubsteps);
+    }
+}
 
-        // look for entities to prune or update
-        PROFILE_RANGE_EX(simulation_physics, "Prune/Send", 0x00000000, (uint64_t)_outgoingChanges.size());
-        QSet<EntityMotionState*>::iterator stateItr = _outgoingChanges.begin();
-        while (stateItr != _outgoingChanges.end()) {
-            EntityMotionState* state = *stateItr;
-            if (!state->isCandidateForOwnership()) {
-                // prune
-                stateItr = _outgoingChanges.erase(stateItr);
-            } else if (state->shouldSendUpdate(numSubsteps)) {
-                // update
-                state->sendUpdate(_entityPacketSender, numSubsteps);
-                ++stateItr;
-            } else {
-                ++stateItr;
+void PhysicalEntitySimulation::addOwnershipBid(EntityMotionState* motionState) {
+    motionState->initForBid();
+    motionState->sendBid(_entityPacketSender, _physicsEngine->getNumSubsteps());
+    _bids.push_back(motionState);
+    _nextBidExpiry = glm::min(_nextBidExpiry, motionState->getNextBidExpiry());
+}
+
+void PhysicalEntitySimulation::addOwnership(EntityMotionState* motionState) {
+    motionState->initForOwned();
+    _owned.push_back(motionState);
+}
+
+void PhysicalEntitySimulation::sendOwnershipBids(uint32_t numSubsteps) {
+    uint64_t now = usecTimestampNow();
+    if (now > _nextBidExpiry) {
+        PROFILE_RANGE_EX(simulation_physics, "Bid", 0x00000000, (uint64_t)_bids.size());
+        _nextBidExpiry = std::numeric_limits<uint64_t>::max();
+        uint32_t i = 0;
+        while (i < _bids.size()) {
+            bool removeBid = false;
+            if (_bids[i]->isLocallyOwned()) {
+                // when an object transitions from 'bid' to 'owned' we are changing the "mode" of data stored
+                // in the EntityMotionState::_serverFoo variables (please see comments in EntityMotionState.h)
+                // therefore we need to immediately send an update so that the values stored are what we're
+                // "telling" the server rather than what we've been "hearing" from the server.
+                _bids[i]->slaveBidPriority();
+                _bids[i]->sendUpdate(_entityPacketSender, numSubsteps);
+
+                addOwnership(_bids[i]);
+                removeBid = true;
+            } else if (!_bids[i]->shouldSendBid()) {
+                removeBid = true;
+                _bids[i]->clearOwnershipState();
             }
+            if (removeBid) {
+                _bids.remove(i);
+            } else {
+                if (now > _bids[i]->getNextBidExpiry()) {
+                    _bids[i]->sendBid(_entityPacketSender, numSubsteps);
+                    _nextBidExpiry = glm::min(_nextBidExpiry, _bids[i]->getNextBidExpiry());
+                }
+                ++i;
+            }
+        }
+    }
+}
+
+void PhysicalEntitySimulation::sendOwnedUpdates(uint32_t numSubsteps) {
+    PROFILE_RANGE_EX(simulation_physics, "Update", 0x00000000, (uint64_t)_owned.size());
+    uint32_t i = 0;
+    while (i < _owned.size()) {
+        if (!_owned[i]->isLocallyOwned()) {
+            if (_owned[i]->shouldSendBid()) {
+                addOwnershipBid(_owned[i]);
+            } else {
+                _owned[i]->clearOwnershipState();
+            }
+            _owned.remove(i);
+        } else {
+            if (_owned[i]->shouldSendUpdate(numSubsteps)) {
+                _owned[i]->sendUpdate(_entityPacketSender, numSubsteps);
+            }
+            ++i;
         }
     }
 }
@@ -335,7 +402,6 @@ void PhysicalEntitySimulation::handleCollisionEvents(const CollisionEvents& coll
         }
     }
 }
-
 
 void PhysicalEntitySimulation::addDynamic(EntityDynamicPointer dynamic) {
     if (_physicsEngine) {

@@ -69,18 +69,18 @@ void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback
 
 void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, QJSValue startedCallback, QJSValue completedCallback, bool dropEvent) {
     static const QString helpText =
-        "Upload your asset to a specific folder by entering the full path. Specifying\n"
+        "Upload your asset to a specific folder by entering the full path. Specifying "
         "a new folder name will automatically create that folder for you.";
     static const QString dropHelpText =
         "This file will be added to your Asset Server.\n"
-        "Use the field below to place your file in a specific folder or to rename it.\n"
+        "Use the field below to place your file in a specific folder or to rename it. "
         "Specifying a new folder name will automatically create that folder for you.";
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto result = offscreenUi->inputDialog(OffscreenUi::ICON_INFORMATION, "Specify Asset Path",
                                            dropEvent ? dropHelpText : helpText, mapping);
 
-    if (!result.isValid()) {
+    if (!result.isValid() || result.toString() == "") {
         completedCallback.call({ -1 });
         return;
     }
@@ -140,7 +140,7 @@ void AssetMappingsScriptingInterface::deleteMappings(QStringList paths, QJSValue
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createDeleteMappingsRequest(paths);
 
-    connect(request, &DeleteMappingsRequest::finished, this, [this, callback](DeleteMappingsRequest* request) mutable {
+    connect(request, &DeleteMappingsRequest::finished, this, [callback](DeleteMappingsRequest* request) mutable {
         if (callback.isCallable()) {
             QJSValueList args { request->getErrorString() };
             callback.call(args);
@@ -152,11 +152,15 @@ void AssetMappingsScriptingInterface::deleteMappings(QStringList paths, QJSValue
     request->start();
 }
 
+void AssetMappingsScriptingInterface::sortProxyModel(int column, Qt::SortOrder order) {
+    _proxyModel.sort(column, order);
+}
+
 void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetAllMappingsRequest();
 
-    connect(request, &GetAllMappingsRequest::finished, this, [this, callback](GetAllMappingsRequest* request) mutable {
+    connect(request, &GetAllMappingsRequest::finished, this, [callback](GetAllMappingsRequest* request) mutable {
         auto mappings = request->getMappings();
         auto map = callback.engine()->newObject();
 
@@ -179,7 +183,7 @@ void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString new
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createRenameMappingRequest(oldPath, newPath);
 
-    connect(request, &RenameMappingRequest::finished, this, [this, callback](RenameMappingRequest* request) mutable {
+    connect(request, &RenameMappingRequest::finished, this, [callback](RenameMappingRequest* request) mutable {
         if (callback.isCallable()) {
             QJSValueList args{ request->getErrorString() };
             callback.call(args);
@@ -195,7 +199,7 @@ void AssetMappingsScriptingInterface::setBakingEnabled(QStringList paths, bool e
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createSetBakingEnabledRequest(paths, enabled);
 
-    connect(request, &SetBakingEnabledRequest::finished, this, [this, callback](SetBakingEnabledRequest* request) mutable {
+    connect(request, &SetBakingEnabledRequest::finished, this, [callback](SetBakingEnabledRequest* request) mutable {
         if (callback.isCallable()) {
             QJSValueList args{ request->getErrorString() };
             callback.call(args);
@@ -287,7 +291,7 @@ void AssetMappingModel::refresh() {
                         item->setData(parts[i], Qt::UserRole + 2);
                         item->setData("atp:" + fullPath, Qt::UserRole + 3);
                         item->setData(fullPath, Qt::UserRole + 4);
-                        
+
                         if (lastItem) {
                             lastItem->appendRow(item);
                         } else {

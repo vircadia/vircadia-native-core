@@ -24,6 +24,10 @@ public:
 
     virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
+protected:
+    ItemKey getKey() override;
+    ShapeKey getShapeKey() override;
+
 private:
     virtual bool needsRenderUpdate() const override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
@@ -31,6 +35,8 @@ private:
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
     virtual bool isTransparent() const override;
+
+    bool useMaterialPipeline() const;
 
     Procedural _procedural;
     QString _lastUserData;

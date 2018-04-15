@@ -1,6 +1,5 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.3
-import QtQuick.Controls 1.2
 import '.'
 
 Item {
@@ -257,11 +256,7 @@ Item {
                     id: octreeCol
                     spacing: 4; x: 4; y: 4;
                     StatText {
-                        text: "Render Engine: " + root.engineFrameTime.toFixed(1) + " ms"
-                    }
-                    StatText {
-                        visible: root.expanded
-                        text: root.renderEngineStats
+                        text: "Engine: " + root.engineFrameTime.toFixed(1) + " ms"
                     }
                     StatText {
                         text: "Batch: " + root.batchFrameTime.toFixed(1) + " ms"

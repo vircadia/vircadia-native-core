@@ -66,6 +66,7 @@ function enableProperties() {
 
     if (elLocked.checked === false) {
         removeStaticUserData();
+        removeStaticMaterialData();
     }
 }
 
@@ -78,8 +79,13 @@ function disableProperties() {
     }
     var elLocked = document.getElementById("property-locked");
 
-    if ($('#userdata-editor').css('display') === "block" && elLocked.checked === true) {
-        showStaticUserData();
+    if (elLocked.checked === true) {
+        if ($('#userdata-editor').css('display') === "block") {
+            showStaticUserData();
+        }
+        if ($('#materialdata-editor').css('display') === "block") {
+            showStaticMaterialData();
+        }
     }
 }
 
@@ -321,22 +327,19 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
     }
     var keys = Object.keys(updateKeyPair);
     keys.forEach(function (key) {
-        delete parsedData[groupName][key];
         if (updateKeyPair[key] !== null && updateKeyPair[key] !== "null") {
             if (updateKeyPair[key] instanceof Element) {
                 if (updateKeyPair[key].type === "checkbox") {
-                    if (updateKeyPair[key].checked !== defaults[key]) {
-                        parsedData[groupName][key] = updateKeyPair[key].checked;
-                    }
+                    parsedData[groupName][key] = updateKeyPair[key].checked;
                 } else {
                     var val = isNaN(updateKeyPair[key].value) ? updateKeyPair[key].value : parseInt(updateKeyPair[key].value);
-                    if (val !== defaults[key]) {
-                        parsedData[groupName][key] = val;
-                    }
+                    parsedData[groupName][key] = val;
                 }
             } else {
                 parsedData[groupName][key] = updateKeyPair[key];
             }
+        } else if (defaults[key] !== null && defaults[key] !== "null") {
+            parsedData[groupName][key] = defaults[key];
         }
     });
     if (Object.keys(parsedData[groupName]).length === 0) {
@@ -359,15 +362,139 @@ function userDataChanger(groupName, keyName, values, userDataElement, defaultVal
     multiDataUpdater(groupName, val, userDataElement, def);
 }
 
+function setMaterialDataFromEditor(noUpdate) {
+    var json = null;
+    try {
+        json = materialEditor.get();
+    } catch (e) {
+        alert('Invalid JSON code - look for red X in your code ', +e);
+    }
+    if (json === null) {
+        return;
+    } else {
+        var text = materialEditor.getText();
+        if (noUpdate === true) {
+            EventBridge.emitWebEvent(
+                JSON.stringify({
+                    id: lastEntityID,
+                    type: "saveMaterialData",
+                    properties: {
+                        materialData: text
+                    }
+                })
+            );
+            return;
+        } else {
+            updateProperty('materialData', text);
+        }
+    }
+}
+
 function setTextareaScrolling(element) {
     var isScrolling = element.scrollHeight > element.offsetHeight;
     element.setAttribute("scrolling", isScrolling ? "true" : "false");
 }
 
 
+var materialEditor = null;
+
+function createJSONMaterialEditor() {
+    var container = document.getElementById("materialdata-editor");
+    var options = {
+        search: false,
+        mode: 'tree',
+        modes: ['code', 'tree'],
+        name: 'materialData',
+        onModeChange: function() {
+            $('.jsoneditor-poweredBy').remove();
+        },
+        onError: function(e) {
+            alert('JSON editor:' + e);
+        },
+        onChange: function() {
+            var currentJSONString = materialEditor.getText();
+
+            if (currentJSONString === '{"":""}') {
+                return;
+            }
+            $('#materialdata-save').attr('disabled', false);
+
+
+        }
+    };
+    materialEditor = new JSONEditor(container, options);
+}
+
+function hideNewJSONMaterialEditorButton() {
+    $('#materialdata-new-editor').hide();
+}
+
+function showSaveMaterialDataButton() {
+    $('#materialdata-save').show();
+}
+
+function hideSaveMaterialDataButton() {
+    $('#materialdata-save').hide();
+}
+
+function showNewJSONMaterialEditorButton() {
+    $('#materialdata-new-editor').show();
+}
+
+function showMaterialDataTextArea() {
+    $('#property-material-data').show();
+}
+
+function hideMaterialDataTextArea() {
+    $('#property-material-data').hide();
+}
+
+function showStaticMaterialData() {
+    if (materialEditor !== null) {
+        $('#static-materialdata').show();
+        $('#static-materialdata').css('height', $('#materialdata-editor').height());
+        $('#static-materialdata').text(materialEditor.getText());
+    }
+}
+
+function removeStaticMaterialData() {
+    $('#static-materialdata').hide();
+}
+
+function setMaterialEditorJSON(json) {
+    materialEditor.set(json);
+    if (materialEditor.hasOwnProperty('expandAll')) {
+        materialEditor.expandAll();
+    }
+}
+
+function getMaterialEditorJSON() {
+    return materialEditor.get();
+}
+
+function deleteJSONMaterialEditor() {
+    if (materialEditor !== null) {
+        materialEditor.destroy();
+        materialEditor = null;
+    }
+}
+
+var savedMaterialJSONTimer = null;
+
+function saveJSONMaterialData(noUpdate) {
+    setMaterialDataFromEditor(noUpdate);
+    $('#materialdata-saved').show();
+    $('#materialdata-save').attr('disabled', true);
+    if (savedMaterialJSONTimer !== null) {
+        clearTimeout(savedMaterialJSONTimer);
+    }
+    savedMaterialJSONTimer = setTimeout(function() {
+        $('#materialdata-saved').hide();
+
+    }, EDITOR_TIMEOUT_DURATION);
+}
+
 var editor = null;
-var editorTimeout = null;
-var lastJSONString = null;
 
 function createJSONEditor() {
     var container = document.getElementById("userdata-editor");
@@ -398,11 +525,6 @@ function createJSONEditor() {
 
 function hideNewJSONEditorButton() {
     $('#userdata-new-editor').hide();
-
-}
-
-function hideClearUserDataButton() {
-    $('#userdata-clear').hide();
 }
 
 function showSaveUserDataButton() {
@@ -411,17 +533,10 @@ function showSaveUserDataButton() {
 
 function hideSaveUserDataButton() {
     $('#userdata-save').hide();
-
 }
 
 function showNewJSONEditorButton() {
     $('#userdata-new-editor').show();
-
-}
-
-function showClearUserDataButton() {
-    $('#userdata-clear').show();
-
 }
 
 function showUserDataTextArea() {
@@ -449,7 +564,6 @@ function setEditorJSON(json) {
     if (editor.hasOwnProperty('expandAll')) {
         editor.expandAll();
     }
-
 }
 
 function getEditorJSON() {
@@ -487,11 +601,14 @@ function bindAllNonJSONEditorElements() {
         // TODO FIXME: (JSHint) Functions declared within loops referencing 
         //             an outer scoped variable may lead to confusing semantics.
         field.on('focus', function(e) {
-            if (e.target.id === "userdata-new-editor" || e.target.id === "userdata-clear") {
+            if (e.target.id === "userdata-new-editor" || e.target.id === "userdata-clear" || e.target.id === "materialdata-new-editor" || e.target.id === "materialdata-clear") {
                 return;
             } else {
                 if ($('#userdata-editor').css('height') !== "0px") {
                     saveJSONUserData(true);
+                }
+                if ($('#materialdata-editor').css('height') !== "0px") {
+                    saveJSONMaterialData(true);
                 }
             }
         });
@@ -616,6 +733,8 @@ function loaded() {
 
         var elShape = document.getElementById("property-shape");
 
+        var elCanCastShadow = document.getElementById("property-can-cast-shadow");
+
         var elLightSpotLight = document.getElementById("property-light-spot-light");
         var elLightColor = document.getElementById("property-light-color");
         var elLightColorRed = document.getElementById("property-light-color-red");
@@ -653,6 +772,10 @@ function loaded() {
         var elMaterialMappingScaleX = document.getElementById("property-material-mapping-scale-x");
         var elMaterialMappingScaleY = document.getElementById("property-material-mapping-scale-y");
         var elMaterialMappingRot = document.getElementById("property-material-mapping-rot");
+        var elMaterialData = document.getElementById("property-material-data");
+        var elClearMaterialData = document.getElementById("materialdata-clear");
+        var elSaveMaterialData = document.getElementById("materialdata-save");
+        var elNewJSONMaterialEditor = document.getElementById('materialdata-new-editor');
 
         var elImageURL = document.getElementById("property-image-url");
 
@@ -686,6 +809,8 @@ function loaded() {
         var elZoneKeyLightIntensity = document.getElementById("property-zone-key-intensity");
         var elZoneKeyLightDirectionX = document.getElementById("property-zone-key-light-direction-x");
         var elZoneKeyLightDirectionY = document.getElementById("property-zone-key-light-direction-y");
+
+        var elZoneKeyLightCastShadows = document.getElementById("property-zone-key-light-cast-shadows");
 
         // Skybox
         var elZoneSkyboxModeInherit = document.getElementById("property-zone-skybox-mode-inherit");
@@ -771,9 +896,15 @@ function loaded() {
                 } else if (data.type === "update") {
 
                     if (!data.selections || data.selections.length === 0) {
-                        if (editor !== null && lastEntityID !== null) {
-                            saveJSONUserData(true);
-                            deleteJSONEditor();
+                        if (lastEntityID !== null) {
+                            if (editor !== null) {
+                                saveJSONUserData(true);
+                                deleteJSONEditor();
+                            }
+                            if (materialEditor !== null) {
+                                saveJSONMaterialData(true);
+                                deleteJSONMaterialEditor();
+                            }
                         }
                         elTypeIcon.style.display = "none";
                         elType.innerHTML = "<i>No selection</i>";
@@ -782,6 +913,7 @@ function loaded() {
                         disableProperties();
                     } else if (data.selections && data.selections.length > 1) {
                         deleteJSONEditor();
+                        deleteJSONMaterialEditor();
                         var selections = data.selections;
 
                         var ids = [];
@@ -814,8 +946,13 @@ function loaded() {
                     } else {
 
                         properties = data.selections[0].properties;
-                        if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
-                            saveJSONUserData(true);
+                        if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null) {
+                            if (editor !== null) {
+                                saveJSONUserData(true);
+                            }
+                            if (materialEditor !== null) {
+                                saveJSONMaterialData(true);
+                            }
                         }
 
                         var doSelectElement = lastEntityID === '"' + properties.id + '"';
@@ -843,7 +980,6 @@ function loaded() {
                         elTypeIcon.style.display = "inline-block";
 
                         elLocked.checked = properties.locked;
-
 
                         elName.value = properties.name;
 
@@ -993,6 +1129,28 @@ function loaded() {
                             hideNewJSONEditorButton();
                         }
 
+                        var materialJson = null;
+                        try {
+                            materialJson = JSON.parse(properties.materialData);
+                        } catch (e) {
+                            // normal text
+                            deleteJSONMaterialEditor();
+                            elMaterialData.value = properties.materialData;
+                            showMaterialDataTextArea();
+                            showNewJSONMaterialEditorButton();
+                            hideSaveMaterialDataButton();
+                        }
+                        if (materialJson !== null) {
+                            if (materialEditor === null) {
+                                createJSONMaterialEditor();
+                            }
+
+                            setMaterialEditorJSON(materialJson);
+                            showSaveMaterialDataButton();
+                            hideMaterialDataTextArea();
+                            hideNewJSONMaterialEditorButton();
+                        }
+
                         elHyperlinkHref.value = properties.href;
                         elDescription.value = properties.description;
 
@@ -1009,6 +1167,12 @@ function loaded() {
                             elColorBlue.value = properties.color.blue;
                             elColorControlVariant2.style.backgroundColor = "rgb(" + properties.color.red + "," + 
                                                                      properties.color.green + "," + properties.color.blue + ")";
+                        }
+
+                        if (properties.type === "Model" ||
+                            properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
+
+                            elCanCastShadow.checked = properties.canCastShadow;
                         }
 
                         if (properties.type === "Model") {
@@ -1060,7 +1224,6 @@ function loaded() {
                             elLightFalloffRadius.value = properties.falloffRadius.toFixed(1);
                             elLightExponent.value = properties.exponent.toFixed(2);
                             elLightCutoff.value = properties.cutoff.toFixed(2);
-
                         } else if (properties.type === "Zone") {
                             // Key light
                             elZoneKeyLightModeInherit.checked = (properties.keyLightMode === 'inherit');
@@ -1075,6 +1238,8 @@ function loaded() {
                             elZoneKeyLightIntensity.value = properties.keyLight.intensity.toFixed(2);
                             elZoneKeyLightDirectionX.value = properties.keyLight.direction.x.toFixed(2);
                             elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
+
+                            elZoneKeyLightCastShadows.checked = properties.keyLight.castShadows;
 
                             // Skybox
                             elZoneSkyboxModeInherit.checked = (properties.skyboxMode === 'inherit');
@@ -1139,13 +1304,15 @@ function loaded() {
                             // Show/hide sections as required
                             showElements(document.getElementsByClassName('skybox-section'),
                                 elZoneSkyboxModeEnabled.checked);
+
                             showElements(document.getElementsByClassName('keylight-section'),
                                 elZoneKeyLightModeEnabled.checked);
+
                             showElements(document.getElementsByClassName('ambient-section'),
                                 elZoneAmbientLightModeEnabled.checked);
+
                             showElements(document.getElementsByClassName('haze-section'),
                                 elZoneHazeModeEnabled.checked);
-
                         } else if (properties.type === "PolyVox") {
                             elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
                             elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
@@ -1176,12 +1343,22 @@ function loaded() {
                             elMaterialMappingRot.value = properties.materialMappingRot.toFixed(2);
                         }
 
+                        // Only these types can cast a shadow
+                        if (properties.type === "Model" ||
+                            properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
+
+                            showElements(document.getElementsByClassName('can-cast-shadow-section'), true);
+                        } else {
+                            showElements(document.getElementsByClassName('can-cast-shadow-section'), false);
+                        }
+
                         if (properties.locked) {
                             disableProperties();
                             elLocked.removeAttribute('disabled');
                         } else {
                             enableProperties();
                             elSaveUserData.disabled = true;
+                            elSaveMaterialData.disabled = true;
                         }
 
                         var activeElement = document.activeElement;
@@ -1281,7 +1458,7 @@ function loaded() {
             if (elCloneable.checked) {
                 elGrabbable.checked = false;
             }
-            userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, properties.dynamic);
+            userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, true);
         });
         elCloneableDynamic.addEventListener('change', function(event) {
             userDataChanger("grabbableKey", "cloneDynamic", event.target, elUserData, -1);
@@ -1366,6 +1543,31 @@ function loaded() {
             showSaveUserDataButton();
         });
 
+        elClearMaterialData.addEventListener("click", function() {
+            deleteJSONMaterialEditor();
+            elMaterialData.value = "";
+            showMaterialDataTextArea();
+            showNewJSONMaterialEditorButton();
+            hideSaveMaterialDataButton();
+            updateProperty('materialData', elMaterialData.value);
+        });
+
+        elSaveMaterialData.addEventListener("click", function() {
+            saveJSONMaterialData(true);
+        });
+
+        elMaterialData.addEventListener('change', createEmitTextPropertyUpdateFunction('materialData'));
+
+        elNewJSONMaterialEditor.addEventListener('click', function() {
+            deleteJSONMaterialEditor();
+            createJSONMaterialEditor();
+            var data = {};
+            setMaterialEditorJSON(data);
+            hideMaterialDataTextArea();
+            hideNewJSONMaterialEditorButton();
+            showSaveMaterialDataButton();
+        });
+
         var colorChangeFunction = createEmitColorPropertyUpdateFunction(
             'color', elColorRed, elColorGreen, elColorBlue);
         elColorRed.addEventListener('change', colorChangeFunction);
@@ -1432,6 +1634,8 @@ function loaded() {
 
         elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
 
+        elCanCastShadow.addEventListener('change', createEmitCheckedPropertyUpdateFunction('canCastShadow'));
+ 
         elImageURL.addEventListener('change', createImageURLUpdateFunction('textures'));
 
         elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
@@ -1589,6 +1793,9 @@ function loaded() {
 
         elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
+
+        elZoneKeyLightCastShadows.addEventListener('change',
+            createEmitGroupCheckedPropertyUpdateFunction('keyLight', 'castShadows'));
 
         // Skybox
         var skyboxModeChanged = createZoneComponentModeChangedFunction('skyboxMode',

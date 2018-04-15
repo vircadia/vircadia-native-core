@@ -32,6 +32,7 @@ signals:
 
 private:
     bool isTempDir(QString tempDir);
+    bool hasModel(QStringList fileList);
     QStringList unzipFile(QString path, QString tempDir);
     void recursiveFileScan(QFileInfo file, QString* dirName);
     void downloadZip(QString path, const QString link);

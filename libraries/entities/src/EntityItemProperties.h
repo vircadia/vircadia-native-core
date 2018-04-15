@@ -117,6 +117,7 @@ public:
     // bool _fooChanged { false };
 
     DEFINE_PROPERTY(PROP_VISIBLE, Visible, visible, bool, ENTITY_ITEM_DEFAULT_VISIBLE);
+    DEFINE_PROPERTY(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool, ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW);
     DEFINE_PROPERTY_REF_WITH_SETTER(PROP_POSITION, Position, position, glm::vec3, ENTITY_ITEM_ZERO_VEC3);
     DEFINE_PROPERTY_REF(PROP_DIMENSIONS, Dimensions, dimensions, glm::vec3, ENTITY_ITEM_DEFAULT_DIMENSIONS);
     DEFINE_PROPERTY_REF(PROP_ROTATION, Rotation, rotation, glm::quat, ENTITY_ITEM_DEFAULT_ROTATION);
@@ -207,7 +208,7 @@ public:
     DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>, QVector<float>());
-	DEFINE_PROPERTY(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, bool, true);
+    DEFINE_PROPERTY(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, bool, true);
     DEFINE_PROPERTY_REF(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString, "");
     DEFINE_PROPERTY_REF(PROP_Y_TEXTURE_URL, YTextureURL, yTextureURL, QString, "");
     DEFINE_PROPERTY_REF(PROP_Z_TEXTURE_URL, ZTextureURL, zTextureURL, QString, "");
@@ -229,6 +230,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, glmVec2, glm::vec2(0, 0));
     DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, glmVec2, glm::vec2(1, 1));
     DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float, 0);
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_DATA, MaterialData, materialData, QString, "");
 
     // Certifiable Properties - related to Proof of Purchase certificates
     DEFINE_PROPERTY_REF(PROP_ITEM_NAME, ItemName, itemName, QString, ENTITY_ITEM_DEFAULT_ITEM_NAME);
@@ -325,7 +327,7 @@ public:
     void clearSimulationOwner();
     void setSimulationOwner(const QUuid& id, uint8_t priority);
     void setSimulationOwner(const QByteArray& data);
-    void promoteSimulationPriority(quint8 priority) { _simulationOwner.promotePriority(priority); }
+    void promoteSimulationPriority(uint8_t priority) { _simulationOwner.promotePriority(priority); }
 
     void setActionDataDirty() { _actionDataChanged = true; }
 
@@ -426,6 +428,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Velocity, velocity, "in meters");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Name, name, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Visible, visible, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CanCastShadow, canCastShadow, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Rotation, rotation, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Density, density, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Gravity, gravity, "");
@@ -499,6 +502,12 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EntityInstanceNumber, entityInstanceNumber, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CertificateID, certificateID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, StaticCertificateVersion, staticCertificateVersion, "");
+
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalPosition, localPosition, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalRotation, localRotation, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalVelocity, localVelocity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalAngularVelocity, localAngularVelocity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalDimensions, localDimensions, "");
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, HazeMode, hazeMode, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, KeyLightMode, keyLightMode, "");

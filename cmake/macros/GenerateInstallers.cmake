@@ -14,16 +14,28 @@ macro(GENERATE_INSTALLERS)
 
   set(CPACK_MODULE_PATH ${CPACK_MODULE_PATH} "${HF_CMAKE_DIR}/templates")
 
-  set(_DISPLAY_NAME ${BUILD_ORGANIZATION})
+
+  if (CLIENT_ONLY)
+    set(_PACKAGE_NAME_EXTRA "-Interface")
+    set(INSTALLER_TYPE "client_only")
+    string(REGEX REPLACE "High Fidelity" "High Fidelity Interface" _DISPLAY_NAME ${BUILD_ORGANIZATION})
+  elseif (SERVER_ONLY)
+    set(_PACKAGE_NAME_EXTRA "-Sandbox")
+    set(INSTALLER_TYPE "server_only")
+    string(REGEX REPLACE "High Fidelity" "High Fidelity Sandbox" _DISPLAY_NAME ${BUILD_ORGANIZATION})
+  else ()
+    set(_DISPLAY_NAME ${BUILD_ORGANIZATION})
+    set(INSTALLER_TYPE "full")
+  endif ()
 
   set(CPACK_PACKAGE_NAME ${_DISPLAY_NAME})
   set(CPACK_PACKAGE_VENDOR "High Fidelity")
   set(CPACK_PACKAGE_VERSION ${BUILD_VERSION})
-  set(CPACK_PACKAGE_FILE_NAME "HighFidelity-Beta-${BUILD_VERSION}")
+  set(CPACK_PACKAGE_FILE_NAME "HighFidelity-Beta${_PACKAGE_NAME_EXTRA}-${BUILD_VERSION}")
   set(CPACK_NSIS_DISPLAY_NAME ${_DISPLAY_NAME})
   set(CPACK_NSIS_PACKAGE_NAME ${_DISPLAY_NAME})
   if (PR_BUILD)
-    set(CPACK_NSIS_COMPRESSOR "/SOLID bzip2")
+    set(CPACK_NSIS_COMPRESSOR "bzip2")
   endif ()
   set(CPACK_PACKAGE_INSTALL_DIRECTORY ${_DISPLAY_NAME})
 
@@ -46,9 +58,35 @@ macro(GENERATE_INSTALLERS)
     set(UNINSTALLER_HEADER_IMAGE "")
     fix_path_for_nsis(${_UNINSTALLER_HEADER_BAD_PATH} UNINSTALLER_HEADER_IMAGE)
 
-    # grab the latest VC redist (2017) and add it to the installer, our NSIS template
-    # will call it during the install
-    install(CODE "file(DOWNLOAD https://go.microsoft.com/fwlink/?LinkId=746572 \"\${CMAKE_INSTALL_PREFIX}/vcredist_x64.exe\")")
+    # we use external libraries that still need the 120 (VS2013) redistributables
+    # so we include them as well until those external libraries are updated
+    # to use the redistributables that match what we build our applications for
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS
+      "C:/Windows/System32/msvcp120.dll"
+      "C:/Windows/System32/msvcr120.dll"
+    )
+
+    set(CMAKE_INSTALL_UCRT_LIBRARIES TRUE)
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ${INTERFACE_INSTALL_DIR})
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT ${CLIENT_COMPONENT})
+    include(InstallRequiredSystemLibraries)
+
+    if (CLIENT_ONLY OR SERVER_ONLY)
+      set(CPACK_MONOLITHIC_INSTALL 1)
+    endif ()
+
+    # setup conditional checks for server component selection depending on
+    # the inclusion of the server component at all
+    if (CLIENT_ONLY)
+      set(SERVER_COMPONENT_CONDITIONAL "0 == 1")
+      set(CLIENT_COMPONENT_CONDITIONAL "1 == 1")
+    elseif (SERVER_ONLY)
+      set(SERVER_COMPONENT_CONDITIONAL "1 == 1")
+      set(CLIENT_COMPONENT_CONDITIONAL "0 == 1")
+    else ()
+      set(SERVER_COMPONENT_CONDITIONAL "\\\${SectionIsSelected} \\\${${SERVER_COMPONENT}}")
+      set(CLIENT_COMPONENT_CONDITIONAL "\\\${SectionIsSelected} \\\${${CLIENT_COMPONENT}}")
+    endif ()
   elseif (APPLE)
     # produce a drag and drop DMG on OS X
     set(CPACK_GENERATOR "DragNDrop")
@@ -79,8 +117,13 @@ macro(GENERATE_INSTALLERS)
 
   set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
-  cpack_add_component(${CLIENT_COMPONENT} DISPLAY_NAME "High Fidelity Interface")
-  cpack_add_component(${SERVER_COMPONENT} DISPLAY_NAME "High Fidelity Sandbox")
+  if (BUILD_CLIENT)
+    cpack_add_component(${CLIENT_COMPONENT} DISPLAY_NAME "High Fidelity Interface")
+  endif ()
+
+  if (BUILD_SERVER)
+    cpack_add_component(${SERVER_COMPONENT} DISPLAY_NAME "High Fidelity Sandbox")
+  endif ()
 
   include(CPack)
 endmacro()

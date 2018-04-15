@@ -272,16 +272,18 @@ SelectionDisplay = (function() {
     var STRETCH_SPHERE_OFFSET = 0.06;
     var STRETCH_SPHERE_CAMERA_DISTANCE_MULTIPLE = 0.01;
     var STRETCH_MINIMUM_DIMENSION = 0.001;
-    var STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE = 2;
+    var STRETCH_ALL_MINIMUM_DIMENSION = 0.01;
+    var STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE = 6;
     var STRETCH_PANEL_WIDTH = 0.01;
 
     var SCALE_CUBE_OFFSET = 0.5;
     var SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE = 0.015;
-    var SCALE_MINIMUM_DIMENSION = 0.02;
 
     var CLONER_OFFSET = { x:0.9, y:-0.9, z:0.9 };    
     
     var CTRL_KEY_CODE = 16777249;
+
+    var AVATAR_COLLISIONS_OPTION = "Enable Avatar Collisions";
 
     var TRANSLATE_DIRECTION = {
         X : 0,
@@ -335,6 +337,8 @@ SelectionDisplay = (function() {
     var previousHandleColor;
 
     var ctrlPressed = false;
+
+    var handleStretchCollisionOverride = false;
 
     var handlePropertiesTranslateArrowCones = {
         shape: "Cone",
@@ -458,12 +462,12 @@ SelectionDisplay = (function() {
         borderSize: 1.4
     };
     var handleScaleLBNCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // (-x, -y, -z)
-    var handleScaleRBNCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // (-x, -y,  z)
-    var handleScaleLBFCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // ( x, -y, -z)
+    var handleScaleRBNCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // ( x, -y, -z)
+    var handleScaleLBFCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // (-x, -y,  z)
     var handleScaleRBFCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // ( x, -y,  z)
     var handleScaleLTNCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // (-x,  y, -z)
-    var handleScaleRTNCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // (-x,  y,  z)
-    var handleScaleLTFCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // ( x,  y, -z)
+    var handleScaleRTNCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // ( x,  y, -z)
+    var handleScaleLTFCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // (-x,  y,  z)
     var handleScaleRTFCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // ( x,  y,  z)
 
     var handlePropertiesScaleEdge = {
@@ -596,6 +600,11 @@ SelectionDisplay = (function() {
 
     var activeTool = null;
     var handleTools = {};
+
+    that.shutdown = function() {
+        that.restoreAvatarCollisionsFromStretch();
+    }
+    Script.scriptEnding.connect(that.shutdown);
 
     // We get mouseMoveEvents from the handControllers, via handControllerPointer.
     // But we dont' get mousePressEvents.
@@ -1021,7 +1030,6 @@ SelectionDisplay = (function() {
             return;
         }
 
-
         if (SelectionManager.hasSelection()) {
             var position = SelectionManager.worldPosition;
             var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
@@ -1147,14 +1155,14 @@ SelectionDisplay = (function() {
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleRBNCubePosition = { x:-scaleCubeOffsetX, y:-scaleCubeOffsetY, z:scaleCubeOffsetZ };
+            var scaleRBNCubePosition = { x:scaleCubeOffsetX, y:-scaleCubeOffsetY, z:-scaleCubeOffsetZ };
             scaleRBNCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleRBNCubePosition));
             Overlays.editOverlay(handleScaleRBNCube, { 
                 position: scaleRBNCubePosition, 
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleLBFCubePosition = { x:scaleCubeOffsetX, y:-scaleCubeOffsetY, z:-scaleCubeOffsetZ };
+            var scaleLBFCubePosition = { x:-scaleCubeOffsetX, y:-scaleCubeOffsetY, z:scaleCubeOffsetZ };
             scaleLBFCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleLBFCubePosition));
             Overlays.editOverlay(handleScaleLBFCube, { 
                 position: scaleLBFCubePosition, 
@@ -1175,14 +1183,14 @@ SelectionDisplay = (function() {
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleRTNCubePosition = { x:-scaleCubeOffsetX, y:scaleCubeOffsetY, z:scaleCubeOffsetZ };
+            var scaleRTNCubePosition = { x:scaleCubeOffsetX, y:scaleCubeOffsetY, z:-scaleCubeOffsetZ };
             scaleRTNCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleRTNCubePosition));
             Overlays.editOverlay(handleScaleRTNCube, { 
                 position: scaleRTNCubePosition, 
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleLTFCubePosition = { x:scaleCubeOffsetX, y:scaleCubeOffsetY, z:-scaleCubeOffsetZ };
+            var scaleLTFCubePosition = { x:-scaleCubeOffsetX, y:scaleCubeOffsetY, z:scaleCubeOffsetZ };
             scaleLTFCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleLTFCubePosition));
             Overlays.editOverlay(handleScaleLTFCube, { 
                 position: scaleLTFCubePosition, 
@@ -1236,9 +1244,11 @@ SelectionDisplay = (function() {
             });
 
             // UPDATE STRETCH HIGHLIGHT PANELS
-            var scaleLTFCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleLTFCubePosition);
             var scaleRBFCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleRBFCubePosition);
-            var stretchPanelXDimensions = Vec3.subtract(scaleLTFCubePositionRotated, scaleRBFCubePositionRotated);
+            var scaleRTFCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleRTFCubePosition);
+            var scaleLTNCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleLTNCubePosition);
+            var scaleRTNCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleRTNCubePosition);
+            var stretchPanelXDimensions = Vec3.subtract(scaleRTNCubePositionRotated, scaleRBFCubePositionRotated);
             var tempY = Math.abs(stretchPanelXDimensions.y);
             stretchPanelXDimensions.x = STRETCH_PANEL_WIDTH;
             stretchPanelXDimensions.y = Math.abs(stretchPanelXDimensions.z);
@@ -1249,8 +1259,6 @@ SelectionDisplay = (function() {
                 rotation: rotationZ,
                 dimensions: stretchPanelXDimensions
             });
-            var scaleLTNCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleLTNCubePosition);
-            var scaleRTFCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleRTFCubePosition);
             var stretchPanelYDimensions = Vec3.subtract(scaleLTNCubePositionRotated, scaleRTFCubePositionRotated);
             var tempX = Math.abs(stretchPanelYDimensions.x);
             stretchPanelYDimensions.x = Math.abs(stretchPanelYDimensions.z);
@@ -1262,9 +1270,7 @@ SelectionDisplay = (function() {
                 rotation: rotationY,
                 dimensions: stretchPanelYDimensions
             });
-            var scaleRTFCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleRTFCubePosition);
-            var scaleRBNCubePositionRotated = Vec3.multiplyQbyV(rotationInverse, scaleRBNCubePosition);
-            var stretchPanelZDimensions = Vec3.subtract(scaleRTFCubePositionRotated, scaleRBNCubePositionRotated);
+            var stretchPanelZDimensions = Vec3.subtract(scaleLTNCubePositionRotated, scaleRBFCubePositionRotated);
             var tempX = Math.abs(stretchPanelZDimensions.x);
             stretchPanelZDimensions.x = Math.abs(stretchPanelZDimensions.y);
             stretchPanelZDimensions.y = tempX;
@@ -1612,8 +1618,18 @@ SelectionDisplay = (function() {
                 grid.snapToGrid(Vec3.sum(cornerPosition, vector), constrainMajorOnly),
                 cornerPosition);
 
-            for (var i = 0; i < SelectionManager.selections.length; i++) {
-                var properties = SelectionManager.savedProperties[SelectionManager.selections[i]];
+            // editing a parent will cause all the children to automatically follow along, so don't
+            // edit any entity who has an ancestor in SelectionManager.selections
+            var toMove = SelectionManager.selections.filter(function (selection) {
+                if (SelectionManager.selections.indexOf(SelectionManager.savedProperties[selection].parentID) >= 0) {
+                    return false; // a parent is also being moved, so don't issue an edit for this entity
+                } else {
+                    return true;
+                }
+            });
+
+            for (var i = 0; i < toMove.length; i++) {
+                var properties = SelectionManager.savedProperties[toMove[i]];
                 if (!properties) {
                     continue;
                 }
@@ -1622,7 +1638,7 @@ SelectionDisplay = (function() {
                     y: 0,
                     z: vector.z
                 });
-                Entities.editEntity(SelectionManager.selections[i], {
+                Entities.editEntity(toMove[i], {
                     position: newPosition
                 });
 
@@ -1647,11 +1663,11 @@ SelectionDisplay = (function() {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
                 if (direction === TRANSLATE_DIRECTION.X) {
-                    pickNormal = { x:0, y:0, z:1 };
+                    pickNormal = { x:0, y:1, z:1 };
                 } else if (direction === TRANSLATE_DIRECTION.Y) {
-                    pickNormal = { x:1, y:0, z:0 };
+                    pickNormal = { x:1, y:0, z:1 };
                 } else if (direction === TRANSLATE_DIRECTION.Z) {
-                    pickNormal = { x:0, y:1, z:0 };
+                    pickNormal = { x:1, y:1, z:0 };
                 }
 
                 var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
@@ -1695,7 +1711,6 @@ SelectionDisplay = (function() {
             onMove: function(event) {
                 pickRay = generalComputePickRay(event.x, event.y);
     
-                // translate mode left/right based on view toward entity
                 var newIntersection = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, pickNormal);
                 var vector = Vec3.subtract(newIntersection, lastPick);
                 
@@ -1713,7 +1728,7 @@ SelectionDisplay = (function() {
                 var dotVector = Vec3.dot(vector, projectionVector);
                 vector = Vec3.multiply(dotVector, projectionVector);
                 vector = grid.snapToGrid(vector);
-    
+                
                 var wantDebug = false;
                 if (wantDebug) {
                     print("translateUpDown... ");
@@ -1721,9 +1736,19 @@ SelectionDisplay = (function() {
                     Vec3.print("        newIntersection:", newIntersection);
                     Vec3.print("                 vector:", vector);
                 }
-    
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var id = SelectionManager.selections[i];
+
+                // editing a parent will cause all the children to automatically follow along, so don't
+                // edit any entity who has an ancestor in SelectionManager.selections
+                var toMove = SelectionManager.selections.filter(function (selection) {
+                    if (SelectionManager.selections.indexOf(SelectionManager.savedProperties[selection].parentID) >= 0) {
+                        return false; // a parent is also being moved, so don't issue an edit for this entity
+                    } else {
+                        return true;
+                    }
+                });
+
+                for (var i = 0; i < toMove.length; i++) {
+                    var id = toMove[i];
                     var properties = SelectionManager.savedProperties[id];
                     var newPosition = Vec3.sum(properties.position, vector);
                     Entities.editEntity(id, { position: newPosition });
@@ -1742,6 +1767,13 @@ SelectionDisplay = (function() {
             z: v1.z * v2.z
         };
     };
+
+    that.restoreAvatarCollisionsFromStretch = function() {
+        if (handleStretchCollisionOverride) {
+            Menu.setIsOptionChecked(AVATAR_COLLISIONS_OPTION, true);
+            handleStretchCollisionOverride = false;
+        }
+    }
 
     // TOOL DEFINITION: HANDLE STRETCH TOOL   
     function makeStretchTool(stretchMode, directionEnum, directionVec, pivot, offset, stretchPanel, scaleHandle) {
@@ -1945,6 +1977,10 @@ SelectionDisplay = (function() {
             if (scaleHandle != null) {
                 Overlays.editOverlay(scaleHandle, { color: COLOR_SCALE_CUBE_SELECTED });
             }
+            if (Menu.isOptionChecked(AVATAR_COLLISIONS_OPTION)) {
+                Menu.setIsOptionChecked(AVATAR_COLLISIONS_OPTION, false);
+                handleStretchCollisionOverride = true;
+            }
         };
 
         var onEnd = function(event, reason) {    
@@ -1954,11 +1990,12 @@ SelectionDisplay = (function() {
             if (scaleHandle != null) {
                 Overlays.editOverlay(scaleHandle, { color: COLOR_SCALE_CUBE });
             }
+            that.restoreAvatarCollisionsFromStretch();
             pushCommandForSelections();
         };
 
         var onMove = function(event) {
-            var proportional = (spaceMode === SPACE_WORLD) || event.isShifted || directionEnum === STRETCH_DIRECTION.ALL;
+            var proportional = (spaceMode === SPACE_WORLD) || directionEnum === STRETCH_DIRECTION.ALL;
             
             var position, dimensions, rotation;
             if (spaceMode === SPACE_LOCAL) {
@@ -1999,10 +2036,10 @@ SelectionDisplay = (function() {
             vector = grid.snapToSpacing(vector);
     
             var changeInDimensions = Vec3.multiply(NEGATE_VECTOR, vec3Mult(localSigns, vector));
-            if (directionEnum === STRETCH_DIRECTION.ALL) {
-                var toCameraDistance = getDistanceToCamera(position);
-                var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE;
-                changeInDimensions = Vec3.multiply(changeInDimensions, dimensionsMultiple);
+            if (directionEnum === STRETCH_DIRECTION.ALL) {  
+                var toCameraDistance = getDistanceToCamera(position);   
+                var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE; 
+                changeInDimensions = Vec3.multiply(changeInDimensions, dimensionsMultiple); 
             }
 
             var newDimensions;
@@ -2027,9 +2064,11 @@ SelectionDisplay = (function() {
                 newDimensions = Vec3.sum(initialDimensions, changeInDimensions);
             }
     
-            newDimensions.x = Math.max(newDimensions.x, STRETCH_MINIMUM_DIMENSION);
-            newDimensions.y = Math.max(newDimensions.y, STRETCH_MINIMUM_DIMENSION);
-            newDimensions.z = Math.max(newDimensions.z, STRETCH_MINIMUM_DIMENSION);
+            var minimumDimension = directionEnum === STRETCH_DIRECTION.ALL ? STRETCH_ALL_MINIMUM_DIMENSION : 
+                                                                             STRETCH_MINIMUM_DIMENSION;
+            newDimensions.x = Math.max(newDimensions.x, minimumDimension);
+            newDimensions.y = Math.max(newDimensions.y, minimumDimension);
+            newDimensions.z = Math.max(newDimensions.z, minimumDimension);
     
             var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(localDeltaPivot, changeInDimensions));
             if (directionEnum === STRETCH_DIRECTION.ALL) {
@@ -2089,10 +2128,10 @@ SelectionDisplay = (function() {
             directionVector = { x:1, y:1, z:1 };
             selectedHandle = handleScaleLBNCube;
         } else if (directionEnum === SCALE_DIRECTION.RBN) {
-            directionVector = { x:1, y:1, z:-1 };
+            directionVector = { x:-1, y:1, z:1 };
             selectedHandle = handleScaleRBNCube;
         } else if (directionEnum === SCALE_DIRECTION.LBF) {
-            directionVector = { x:-1, y:1, z:1 };
+            directionVector = { x:1, y:1, z:-1 };
             selectedHandle = handleScaleLBFCube;
         } else if (directionEnum === SCALE_DIRECTION.RBF) {
             directionVector = { x:-1, y:1, z:-1 };
@@ -2101,10 +2140,10 @@ SelectionDisplay = (function() {
             directionVector = { x:1, y:-1, z:1 };
             selectedHandle = handleScaleLTNCube;
         } else if (directionEnum === SCALE_DIRECTION.RTN) {
-            directionVector = { x:1, y:-1, z:-1 };
+            directionVector = { x:-1, y:-1, z:1 };
             selectedHandle = handleScaleRTNCube;
         } else if (directionEnum === SCALE_DIRECTION.LTF) {
-            directionVector = { x:-1, y:-1, z:1 };
+            directionVector = { x:1, y:-1, z:-1 };
             selectedHandle = handleScaleLTFCube;
         } else if (directionEnum === SCALE_DIRECTION.RTF) {
             directionVector = { x:-1, y:-1, z:-1 };
@@ -2146,8 +2185,19 @@ SelectionDisplay = (function() {
         // the selections center point.  Otherwise, the rotation will be around the entities
         // registration point which does not need repositioning.
         var reposition = (SelectionManager.selections.length > 1);
-        for (var i = 0; i < SelectionManager.selections.length; i++) {
-            var entityID = SelectionManager.selections[i];
+
+        // editing a parent will cause all the children to automatically follow along, so don't
+        // edit any entity who has an ancestor in SelectionManager.selections
+        var toRotate = SelectionManager.selections.filter(function (selection) {
+            if (SelectionManager.selections.indexOf(SelectionManager.savedProperties[selection].parentID) >= 0) {
+                return false; // a parent is also being moved, so don't issue an edit for this entity
+            } else {
+                return true;
+            }
+        });
+
+        for (var i = 0; i < toRotate.length; i++) {
+            var entityID = toRotate[i];
             var initialProperties = SelectionManager.savedProperties[entityID];
 
             var newProperties = {

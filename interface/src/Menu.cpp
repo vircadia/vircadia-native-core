@@ -9,11 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QDesktopServices>
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QShortcut>
-#include <QDesktopServices>
-#include <QUrl>
 
 #include <thread>
 
@@ -45,13 +44,16 @@
 #include "ui/StandAloneJSConsole.h"
 #include "InterfaceLogging.h"
 #include "LocationBookmarks.h"
-#include "Menu.h"
+#include "DeferredLightingEffect.h"
+
+#include "AmbientOcclusionEffect.h"
+#include "RenderShadowTask.h"
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
 
-
+#include "Menu.h"
 
 extern bool DEV_DECIMATE_TEXTURES;
 
@@ -307,43 +309,6 @@ Menu::Menu() {
     // Developer menu ----------------------------------
     MenuWrapper* developerMenu = addMenu("Developer", "Developer");
 
-    // Developer > Console...
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::Console, Qt::CTRL | Qt::ALT | Qt::Key_J,
-        DependencyManager::get<StandAloneJSConsole>().data(),
-        SLOT(toggleConsole()),
-        QAction::NoRole);
-
-    // Developer > Scripting >>>
-    MenuWrapper* scriptingOptionsMenu = developerMenu->addMenu("Scripting");
-
-    // Developer > Scripting > Log...
-    addActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::Log, Qt::CTRL | Qt::SHIFT | Qt::Key_L,
-        qApp, SLOT(toggleLogDialog()));
-    
-    // Developer > Scripting > Entity Script Server Log
-    auto essLogAction = addActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::EntityScriptServerLog, 0,
-        qApp, SLOT(toggleEntityScriptServerLogDialog()));
-    
-    QObject::connect(nodeList.data(), &NodeList::canRezChanged, essLogAction, [essLogAction] {
-        auto nodeList = DependencyManager::get<NodeList>();
-        essLogAction->setEnabled(nodeList->getThisNodeCanRez()); 
-    });
-    
-    essLogAction->setEnabled(nodeList->getThisNodeCanRez());
-    
-    // Developer > Scripting > Script Log (HMD Friendly)...
-    action = addActionToQMenuAndActionHash(scriptingOptionsMenu, "Script Log (HMD Friendly)...", Qt::NoButton,
-    qApp, SLOT(showScriptLogs()));
-    
-    // Developer > Scripting > API Debugger
-    action = addActionToQMenuAndActionHash(scriptingOptionsMenu, "API Debugger...");
-    connect(action, &QAction::triggered, [] {
-        auto scriptEngines = DependencyManager::get<ScriptEngines>();
-        QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
-        defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/utilities/tools/currentAPI.js");
-        scriptEngines->loadScript(defaultScriptsLoc.toString());
-    });
-
     // Developer > UI >>>
     MenuWrapper* uiOptionsMenu = developerMenu->addMenu("UI");
     action = addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::DesktopTabletToToolbar, 0,
@@ -360,6 +325,36 @@ Menu::Menu() {
 
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
+    action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, true);
+    connect(action, &QAction::triggered, [action] {
+        auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+        if (renderConfig) {
+            auto mainViewShadowTaskConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
+            if (mainViewShadowTaskConfig) {
+                if (action->isChecked()) {
+                    mainViewShadowTaskConfig->setPreset("Enabled");
+                } else { 
+                    mainViewShadowTaskConfig->setPreset("None");
+                }
+            }
+        }
+    });
+
+    action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AmbientOcclusion, 0, false);
+    connect(action, &QAction::triggered, [action] {
+        auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+        if (renderConfig) {
+            auto mainViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("RenderMainView.AmbientOcclusion");
+            if (mainViewAmbientOcclusionConfig) {
+                if (action->isChecked()) {
+                    mainViewAmbientOcclusionConfig->setPreset("Enabled");
+                } else {
+                    mainViewAmbientOcclusionConfig->setPreset("None");
+                }
+            }
+        }
+    });
+
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::WorldAxes);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DefaultSkybox, 0, true);
 
@@ -397,6 +392,9 @@ Menu::Menu() {
     textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture512MB, 0, false));
     textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture1024MB, 0, false));
     textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture2048MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture4096MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture6144MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture8192MB, 0, false));
     connect(textureGroup, &QActionGroup::triggered, [textureGroup] {
         auto checked = textureGroup->checkedAction();
         auto text = checked->text();
@@ -413,6 +411,12 @@ Menu::Menu() {
             newMaxTextureMemory = MB_TO_BYTES(1024);
         } else if (MenuOption::RenderMaxTexture2048MB == text) {
             newMaxTextureMemory = MB_TO_BYTES(2048);
+        } else if (MenuOption::RenderMaxTexture4096MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(4096);
+        } else if (MenuOption::RenderMaxTexture6144MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(6144);
+        } else if (MenuOption::RenderMaxTexture8192MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(8192);
         }
         gpu::Texture::setAllowedGPUMemoryUsage(newMaxTextureMemory);
     });

@@ -322,8 +322,16 @@ void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QU
 
     // stereo sources are not passed through HRTF
     if (streamToAdd.isStereo()) {
-        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
-            _mixSamples[i] += float(streamPopOutput[i] * gain / AudioConstants::MAX_SAMPLE_VALUE);
+
+        // apply the avatar gain adjustment
+        auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeID, streamToAdd.getStreamIdentifier());
+        gain *= hrtf.getGainAdjustment();
+
+        const float scale = 1/32768.0f; // int16_t to float
+
+        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
+            _mixSamples[2*i+0] += (float)streamPopOutput[2*i+0] * gain * scale;
+            _mixSamples[2*i+1] += (float)streamPopOutput[2*i+1] * gain * scale;
         }
 
         ++stats.manualStereoMixes;
@@ -332,10 +340,13 @@ void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QU
 
     // echo sources are not passed through HRTF
     if (isEcho) {
-        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i += 2) {
-            auto monoSample = float(streamPopOutput[i / 2] * gain / AudioConstants::MAX_SAMPLE_VALUE);
-            _mixSamples[i] += monoSample;
-            _mixSamples[i + 1] += monoSample;
+
+        const float scale = 1/32768.0f; // int16_t to float
+
+        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
+            float sample = (float)streamPopOutput[i] * gain * scale;
+            _mixSamples[2*i+0] += sample;
+            _mixSamples[2*i+1] += sample;
         }
 
         ++stats.manualEchoMixes;

@@ -68,7 +68,7 @@ void ToneMappingEffect::render(RenderArgs* args, const gpu::TexturePointer& ligh
     }
 
     auto framebufferSize = glm::ivec2(lightingBuffer->getDimensions());
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("ToneMappingEffect::render", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setFramebuffer(destinationFramebuffer);
 

@@ -166,27 +166,49 @@ bool OffscreenSurface::eventFilter(QObject* originalDestination, QEvent* event) 
         case QEvent::TouchUpdate:
         case QEvent::TouchEnd: {
             QTouchEvent *originalEvent = static_cast<QTouchEvent *>(event);
-            QTouchEvent fakeEvent(*originalEvent);
-            auto newTouchPoints = fakeEvent.touchPoints();
-            for (size_t i = 0; i < newTouchPoints.size(); ++i) {
-                const auto &originalPoint = originalEvent->touchPoints()[i];
-                auto &newPoint = newTouchPoints[i];
-                newPoint.setPos(originalPoint.pos());
+            QEvent::Type fakeMouseEventType = QEvent::None;
+            Qt::MouseButton fakeMouseButton = Qt::LeftButton;
+            Qt::MouseButtons fakeMouseButtons = Qt::NoButton;
+            switch (event->type()) {
+                case QEvent::TouchBegin:
+                    fakeMouseEventType = QEvent::MouseButtonPress;
+                    fakeMouseButtons = Qt::LeftButton;
+                    break;
+                case QEvent::TouchUpdate:
+                    fakeMouseEventType = QEvent::MouseMove;
+                    fakeMouseButtons = Qt::LeftButton;
+                    break;
+                case QEvent::TouchEnd:
+                    fakeMouseEventType = QEvent::MouseButtonRelease;
+                    fakeMouseButtons = Qt::NoButton;
+                    break;
             }
-            fakeEvent.setTouchPoints(newTouchPoints);
-            if (QCoreApplication::sendEvent(_sharedObject->getWindow(), &fakeEvent)) {
-                qInfo() << __FUNCTION__ << "sent fake touch event:" << fakeEvent.type()
-                        << "_quickWindow handled it... accepted:" << fakeEvent.isAccepted();
-                return false; //event->isAccepted();
+            // Same case as OffscreenUi.cpp::eventFilter: touch events are always being accepted so we now use mouse events and consider one touch, touchPoints()[0].
+            QMouseEvent fakeMouseEvent(fakeMouseEventType, originalEvent->touchPoints()[0].pos(), fakeMouseButton, fakeMouseButtons, Qt::NoModifier);
+            fakeMouseEvent.ignore();
+            if (QCoreApplication::sendEvent(_sharedObject->getWindow(), &fakeMouseEvent)) {
+                /*qInfo() << __FUNCTION__ << "sent fake touch event:" << fakeMouseEvent.type()
+                        << "_quickWindow handled it... accepted:" << fakeMouseEvent.isAccepted();*/
+                return fakeMouseEvent.isAccepted();
             }
             break;
         }
         case QEvent::InputMethod:
         case QEvent::InputMethodQuery: {
-            if (_sharedObject->getWindow() && _sharedObject->getWindow()->activeFocusItem()) {
+            auto window = getWindow();
+            if (window && window->activeFocusItem()) {
                 event->ignore();
-                if (QCoreApplication::sendEvent(_sharedObject->getWindow()->activeFocusItem(), event)) {
-                    return event->isAccepted();
+                if (QCoreApplication::sendEvent(window->activeFocusItem(), event)) {
+                    bool eventAccepted = event->isAccepted();
+                    if (event->type() == QEvent::InputMethodQuery) {
+                        QInputMethodQueryEvent *imqEvent = static_cast<QInputMethodQueryEvent *>(event);
+                        // this block disables the selection cursor in android which appears in
+                        // the top-left corner of the screen
+                        if (imqEvent->queries() & Qt::ImEnabled) {
+                            imqEvent->setValue(Qt::ImEnabled, QVariant(false));
+                        }
+                    }
+                    return eventAccepted;
                 }
                 return false;
             }
@@ -334,6 +356,11 @@ void OffscreenSurface::finishQmlLoad(QQmlComponent* qmlComponent,
         // Make sure we make items focusable (critical for
         // supporting keyboard shortcuts)
         newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
+#ifdef DEBUG
+        for (auto frame : newObject->findChildren<QQuickItem *>("Frame")) {
+            frame->setProperty("qmlFile", qmlComponent->url());
+        }
+#endif
     }
 
     bool rootCreated = getRootItem() != nullptr;

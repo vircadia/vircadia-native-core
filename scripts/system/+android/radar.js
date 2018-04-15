@@ -13,7 +13,7 @@
 
 var radarModeInterface = {};
 
-var logEnabled = true;
+var logEnabled = false;
 function printd(str) {
     if (logEnabled) {
         print("[radar.js] " + str);
@@ -31,16 +31,13 @@ var MOVE_BY = 1;
 // Swipe/Drag vars
 var PINCH_INCREMENT_FIRST = 0.4; // 0.1 meters zoom in - out
 var PINCH_INCREMENT = 0.4; // 0.1 meters zoom in - out
-var RADAR_HEIGHT_MAX_PLUS_AVATAR = 40;
+var RADAR_HEIGHT_MAX_PLUS_AVATAR = 80;
 var RADAR_HEIGHT_MIN_PLUS_AVATAR = 2;
-var RADAR_CAMERA_DISTANCE_TO_ICONS = 0.5; // Icons are near the camera to
-                                            // prevent the LOD manager
-                                            // dismissing them
-var RADAR_ICONS_APPARENT_DISTANCE_TO_AVATAR_BASE = 1; // How much above the
-                                                        // avatar base should
-                                                        // the icon appear
-var AVATAR_DISPLAY_NAME_HEIGHT = 38;
-var AVATAR_DISPLAY_NAME_CHAR_WIDTH = 18;
+var RADAR_CAMERA_DISTANCE_TO_ICONS = 1.5; // Icons are near the camera to prevent the LOD manager dismissing them
+var RADAR_ICONS_APPARENT_DISTANCE_TO_AVATAR_BASE = 1; // How much above the avatar base should the icon appear
+var AVATAR_DISPLAY_NAME_HEIGHT = 106;
+var AVATAR_DISPLAY_NAME_CHAR_WIDTH = 48;
+var AVATAR_DISPLAY_NAME_FONT_SIZE = 50;
 var lastDragAt;
 var lastDeltaDrag;
 
@@ -121,19 +118,10 @@ function actionOnObjectFromEvent(event) {
 }
 
 function mousePress(event) {
-    if (!isTouchValid(coords)) {
-        currentTouchIsValid = false;
-        return;
-    } else {
-        currentTouchIsValid = true;
-    }
     mousePressOrTouchEnd(event);
 }
 
 function mousePressOrTouchEnd(event) {
-    if (!currentTouchIsValid) {
-        return;
-    }
     if (radar) {
         if (actionOnObjectFromEvent(event)) {
             return;
@@ -157,9 +145,6 @@ function fakeDoubleTap(event) {
     teleporter.dragTeleportUpdate(event);
     teleporter.dragTeleportRelease(event);
 }
-
-var currentTouchIsValid = false; // Currently used to know if touch hasn't
-                                    // started on a UI overlay
 
 var DOUBLE_TAP_TIME = 300;
 var fakeDoubleTapStart = Date.now();
@@ -238,12 +223,6 @@ function touchEnd(event) {
     }
     if (event.isMoved) {
         printd("touchEnd fail because isMoved");
-        return;
-    }
-
-    // if touch is invalid, cancel
-    if (!currentTouchIsValid) {
-        printd("touchEnd fail because !currentTouchIsValid");
         return;
     }
 
@@ -352,20 +331,6 @@ function computePointAtPlaneY(x, y, py) {
  * 
  ******************************************************************************/
 
-function isTouchValid(coords) {
-    // TODO: Extend to the detection of touches on new menu bars
-    var radarModeTouchValid = radarModeInterface.isTouchValid(coords);
-
-    // getItemAtPoint does not exist anymore, look for another way to know if we
-    // are touching buttons
-    // is it still needed?
-    return /* !tablet.getItemAtPoint(coords) && */radarModeTouchValid;
-}
-
-/*******************************************************************************
- * 
- ******************************************************************************/
-
 var touchStartingCoordinates = null;
 
 var KEEP_PRESSED_FOR_TELEPORT_MODE_TIME = 750;
@@ -376,16 +341,8 @@ function touchBegin(event) {
         x : event.x,
         y : event.y
     };
-    if (!isTouchValid(coords)) {
-        printd("analyze touch - RADAR_TOUCH - INVALID");
-        currentTouchIsValid = false;
-        touchStartingCoordinates = null;
-    } else {
-        printd("analyze touch - RADAR_TOUCH - ok");
-        currentTouchIsValid = true;
-        touchStartingCoordinates = coords;
-        touchBeginTime = Date.now();
-    }
+    touchStartingCoordinates = coords;
+    touchBeginTime = Date.now();
 }
 
 var startedDraggingCamera = false; // first time
@@ -851,9 +808,6 @@ function oneFingerTouchUpdate(event) {
 }
 
 function touchUpdate(event) {
-    if (!currentTouchIsValid) {
-        return; // avoid moving and zooming when tap is over UI entities
-    }
     if (event.isPinching || event.isPinchOpening) {
         pinchUpdate(event);
     } else {
@@ -924,18 +878,14 @@ function saveAvatarData(QUuid) {
     if (avatarsData[QUuid] != undefined) {
         avatarsData[QUuid].position = avat.position;
     } else {
-        var avatarIcon = Overlays.addOverlay("image3d", {
-            subImage : {
-                x : 0,
-                y : 0,
-                width : 150,
-                height : 142
-            },
-            url : getAvatarIconForUser(QUuid),
-            dimensions : ICON_ENTITY_DEFAULT_DIMENSIONS,
-            visible : false,
-            ignoreRayIntersection : false,
-            orientation : Quat.fromPitchYawRollDegrees(-90, 0, 0)
+        var avatarIcon = Overlays.addOverlay("circle3d", {
+            color: uniqueColor.convertHexToRGB(uniqueColor.getColor(QUuid)),
+            dimensions: ICON_ENTITY_DEFAULT_DIMENSIONS,
+            rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
+            innerRadius: 1.8,
+            outerRadius: 2,
+            isSolid: true,
+            visible: false
         });
 
         var needRefresh = !avat || !avat.displayName;
@@ -943,26 +893,15 @@ function saveAvatarData(QUuid) {
                 : "Unknown";
         var textWidth = displayName.length * AVATAR_DISPLAY_NAME_CHAR_WIDTH;
         var avatarName = Overlays.addOverlay("text", {
-            width : textWidth,
-            height : AVATAR_DISPLAY_NAME_HEIGHT,
-            color : {
-                red : 255,
-                green : 255,
-                blue : 255
-            },
-            backgroundAlpha : 0.0,
-            textRaiseColor : {
-                red : 0,
-                green : 0,
-                blue : 0
-            },
-            font : {
-                size : 68,
-                bold : true
-            },
-            visible : false,
-            text : displayName,
-            textAlignCenter : true
+            width: textWidth,
+            height: AVATAR_DISPLAY_NAME_HEIGHT,
+            color: { red: 255, green: 255, blue: 255},
+            backgroundAlpha: 0.0,
+            textRaiseColor: { red: 0, green: 0, blue: 0},
+            font: {size: AVATAR_DISPLAY_NAME_FONT_SIZE, bold: true},
+            visible: false,
+            text: displayName,
+            textAlignCenter: true
         });
         avatarsIcons.push(avatarIcon);
         avatarsNames.push(avatarName);
@@ -1023,22 +962,24 @@ function avatarRemoved(QUuid) {
  ******************************************************************************/
 var myAvatarIcon;
 var myAvatarName;
-
+function distanceForCameraHeight(h) {
+    if (h < 30) return 1;
+    if (h < 40) return 2;
+    if (h < 50) return 2.5;
+    return 5;
+}
 function renderMyAvatarIcon() {
-    var iconPos = findLineToHeightIntersectionCoords(MyAvatar.position.x,
-            MyAvatar.position.y + RADAR_ICONS_APPARENT_DISTANCE_TO_AVATAR_BASE,
-            MyAvatar.position.z, Camera.position.x, Camera.position.y,
-            Camera.position.z, Camera.position.y
-                    - RADAR_CAMERA_DISTANCE_TO_ICONS);
-    if (!iconPos) {
-        printd("avatarmy icon pos null");
-        return;
-    }
+    var commonY = Camera.position.y - distanceForCameraHeight(Camera.position.y);
+    var iconPos = findLineToHeightIntersectionCoords(   MyAvatar.position.x,
+                                                        MyAvatar.position.y + RADAR_ICONS_APPARENT_DISTANCE_TO_AVATAR_BASE,
+                                                        MyAvatar.position.z,
+                                                        Camera.position.x, Camera.position.y, Camera.position.z,
+                                                        commonY);
+    if (!iconPos) { printd("avatarmy icon pos null"); return;}
     var iconDimensions = avatarIconPlaneDimensions();
 
     var avatarPos = MyAvatar.position;
     var cameraPos = Camera.position;
-    var commonY = Camera.position.y - RADAR_CAMERA_DISTANCE_TO_ICONS;
     var borderPoints = [
             computePointAtPlaneY(0, 0, commonY),
             computePointAtPlaneY(Window.innerWidth, Window.innerHeight, commonY) ];
@@ -1050,45 +991,30 @@ function renderMyAvatarIcon() {
     var y = (p1.z - borderPoints[0].z) * (Window.innerHeight)
             / (borderPoints[1].z - borderPoints[0].z);
 
-    if (!myAvatarIcon && MyAvatar.sessionUUID) {
-        myAvatarIcon = Overlays.addOverlay("image3d", {
-            subImage : {
-                x : 0,
-                y : 0,
-                width : 150,
-                height : 142
-            },
-            url : getAvatarIconForUser(MyAvatar.sessionUUID),
-            dimensions : ICON_ENTITY_DEFAULT_DIMENSIONS,
-            visible : false,
-            ignoreRayIntersection : false,
-            orientation : Quat.fromPitchYawRollDegrees(-90, 0, 0)
+    if (!myAvatarIcon && MyAvatar.SELF_ID) {
+       myAvatarIcon =  Overlays.addOverlay("circle3d", {
+            color: uniqueColor.convertHexToRGB(uniqueColor.getColor(MyAvatar.SELF_ID)),
+            dimensions: ICON_ENTITY_DEFAULT_DIMENSIONS,
+            rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
+            innerRadius: 1.8,
+            outerRadius: 2,
+            isSolid: true,
+            visible: false
         });
     }
 
     if (!myAvatarName) {
         myAvatarName = Overlays.addOverlay("text", {
-            width : 40,
-            height : AVATAR_DISPLAY_NAME_HEIGHT,
-            textAlignCenter : true,
-            color : {
-                red : 255,
-                green : 255,
-                blue : 255
-            },
-            backgroundAlpha : 0.0,
-            font : {
-                size : 68,
-                bold : true
-            },
-            textRaiseColor : {
-                red : 0,
-                green : 0,
-                blue : 0
-            },
-            visible : false,
-            text : "Me"
-        });
+                        width: 100,
+                        height: AVATAR_DISPLAY_NAME_HEIGHT,
+                        textAlignCenter: true,
+                        color: { red: 255, green: 255, blue: 255},
+                        backgroundAlpha: 0.0,
+                        font: {size: AVATAR_DISPLAY_NAME_FONT_SIZE, bold: true},
+                        textRaiseColor: { red: 0, green: 0, blue: 0},
+                        visible: false,
+                        text: "Me"
+                       });
     }
 
     if (myAvatarIcon) {
@@ -1139,7 +1065,7 @@ function hideAllAvatarIcons() {
 function renderAllOthersAvatarIcons() {
     var avatarPos;
     var iconDimensions = avatarIconPlaneDimensions();
-    var commonY = Camera.position.y - RADAR_CAMERA_DISTANCE_TO_ICONS;
+    var commonY = Camera.position.y - distanceForCameraHeight(Camera.position.y);
     var borderPoints = [
             computePointAtPlaneY(0, 0, commonY),
             computePointAtPlaneY(Window.innerWidth, Window.innerHeight, commonY) ];
@@ -1150,27 +1076,18 @@ function renderAllOthersAvatarIcons() {
                 avatarPos = AvatarList.getAvatar(QUuid).position;
 
                 var cameraPos = Camera.position;
-                var p1 = findLineToHeightIntersectionCoords(avatarPos.x,
-                        avatarPos.y, avatarPos.z, cameraPos.x, cameraPos.y,
-                        cameraPos.z, commonY);
+                var p1 = findLineToHeightIntersectionCoords(avatarPos.x, avatarPos.y, avatarPos.z, 
+                                                    cameraPos.x, cameraPos.y, cameraPos.z,
+                                                    commonY);
 
-                var x = (p1.x - borderPoints[0].x) * (Window.innerWidth)
-                        / (borderPoints[1].x - borderPoints[0].x);
-                var y = (p1.z - borderPoints[0].z) * (Window.innerHeight)
-                        / (borderPoints[1].z - borderPoints[0].z);
+                var x = (p1.x - borderPoints[0].x) * (Window.innerWidth) / (borderPoints[1].x - borderPoints[0].x);
+                var y = (p1.z - borderPoints[0].z) * (Window.innerHeight) / (borderPoints[1].z - borderPoints[0].z);
 
                 if (avatarsData[QUuid].icon != undefined) {
-                    var iconPos = findLineToHeightIntersectionCoords(
-                            avatarPos.x,
-                            avatarPos.y
-                                    + RADAR_ICONS_APPARENT_DISTANCE_TO_AVATAR_BASE,
-                            avatarPos.z, Camera.position.x, Camera.position.y,
-                            Camera.position.z, Camera.position.y
-                                    - RADAR_CAMERA_DISTANCE_TO_ICONS);
-                    if (!iconPos) {
-                        print("avatar icon pos bad for " + QUuid);
-                        continue;
-                    }
+                    var iconPos = findLineToHeightIntersectionCoords(   avatarPos.x, avatarPos.y + RADAR_ICONS_APPARENT_DISTANCE_TO_AVATAR_BASE, avatarPos.z,
+                                                                        Camera.position.x, Camera.position.y, Camera.position.z,
+                                                                        commonY);
+                    if (!iconPos) { print ("avatar icon pos bad for " + QUuid); continue; }
                     if (avatarsData[QUuid].needRefresh) {
                         var avat = AvatarList.getAvatar(QUuid);
                         if (avat && avat.displayName) {
@@ -1389,6 +1306,8 @@ function startRadar() {
     Camera.orientation = Quat.fromPitchYawRollDegrees(-90, 0, 0);
     radar = true;
 
+    Controller.setVPadEnabled(false); // this was done before in CompositeExtra in the DisplayPlugin (Checking for camera not independent, not radar mode)
+
     connectRadarModeEvents();
 }
 
@@ -1396,6 +1315,8 @@ function endRadar() {
     printd("-- endRadar");
     Camera.mode = "first person";
     radar = false;
+
+    Controller.setVPadEnabled(true);
 
     disconnectRadarModeEvents();
     hideAllEntitiesIcons();

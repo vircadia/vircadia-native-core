@@ -14,7 +14,7 @@
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
    DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
    getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
-   Picks, makeLaserLockInfo Xform, makeLaserParams
+   Picks, makeLaserLockInfo Xform, makeLaserParams, AddressManager, getEntityParents, Selection
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -295,6 +295,7 @@ Script.include("/~/system/libraries/Xform.js");
             this.actionID = null;
             this.grabbedThingID = null;
             this.targetObject = null;
+            this.potentialEntityWithContextOverlay = false;
         };
 
         this.updateRecommendedArea = function() {
@@ -375,7 +376,7 @@ Script.include("/~/system/libraries/Xform.js");
                 return true;
             }
             return false;
-        }
+        };
 
         this.isReady = function (controllerData) {
             if (HMD.active) {
@@ -449,11 +450,16 @@ Script.include("/~/system/libraries/Xform.js");
                 if (rayPickInfo.type === Picks.INTERSECTED_ENTITY) {
                     if (controllerData.triggerClicks[this.hand]) {
                         var entityID = rayPickInfo.objectID;
+
                         var targetProps = Entities.getEntityProperties(entityID, [
                             "dynamic", "shapeType", "position",
                             "rotation", "dimensions", "density",
-                            "userData", "locked", "type"
+                            "userData", "locked", "type", "href"
                         ]);
+                        if (targetProps.href !== "") {
+                            AddressManager.handleLookupString(targetProps.href);
+                            return makeRunningValues(false, [], []);
+                        }
 
                         this.targetObject = new TargetObject(entityID, targetProps);
                         this.targetObject.parentProps = getEntityParents(targetProps);
@@ -462,15 +468,17 @@ Script.include("/~/system/libraries/Xform.js");
                             Script.clearTimeout(this.contextOverlayTimer);
                         }
                         this.contextOverlayTimer = false;
-                        if (entityID !== this.entityWithContextOverlay) {
+                        if (entityID === this.entityWithContextOverlay) {
                             this.destroyContextOverlay();
+                        } else {
+                            Selection.removeFromSelectedItemsList("contextOverlayHighlightList", "entity", entityID);
                         }
 
                         var targetEntity = this.targetObject.getTargetEntity();
                         entityID = targetEntity.id;
                         targetProps = targetEntity.props;
 
-                        if (entityIsGrabbable(targetProps)) {
+                        if (entityIsGrabbable(targetProps) || entityIsGrabbable(this.targetObject.entityProps)) {
                             if (!entityIsDistanceGrabbable(targetProps)) {
                                 this.targetObject.makeDynamic();
                             }
@@ -480,7 +488,8 @@ Script.include("/~/system/libraries/Xform.js");
                                 this.grabbedDistance = rayPickInfo.distance;
                             }
 
-                            if (otherFarGrabModule.grabbedThingID === this.grabbedThingID && otherFarGrabModule.distanceHolding) {
+                            if (otherFarGrabModule.grabbedThingID === this.grabbedThingID &&
+                                otherFarGrabModule.distanceHolding) {
                                 this.prepareDistanceRotatingData(controllerData);
                                 this.distanceRotate(otherFarGrabModule);
                             } else {

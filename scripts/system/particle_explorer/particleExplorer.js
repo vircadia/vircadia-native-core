@@ -236,7 +236,10 @@
                         red: 255,
                         green: 255,
                         blue: 255
-                    }
+                    },
+                    layoutType: "hex",
+                    layoutColorScheme: "dark",
+                    useSubmitButton: false
                 },
                 {
                     type: "Row"
@@ -249,7 +252,10 @@
                         red: 0,
                         green: 0,
                         blue: 0
-                    }
+                    },
+                    layoutType: "hex",
+                    layoutColorScheme: "dark",
+                    useSubmitButton: false
                 },
                 {
                     type: "Row"
@@ -262,7 +268,10 @@
                         red: 255,
                         green: 255,
                         blue: 255
-                    }
+                    },
+                    layoutType: "hex",
+                    layoutColorScheme: "dark",
+                    useSubmitButton: false
                 },
                 {
                     type: "Row"
@@ -275,7 +284,10 @@
                         red: 255,
                         green: 255,
                         blue: 255
-                    }
+                    },
+                    layoutType: "hex",
+                    layoutColorScheme: "dark",
+                    useSubmitButton: false
                 },
                 {
                     type: "Row"

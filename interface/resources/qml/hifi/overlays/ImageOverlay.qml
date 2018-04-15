@@ -1,5 +1,4 @@
 import QtQuick 2.3
-import QtQuick.Controls 1.2
 import QtGraphicalEffects 1.0
 
 import "."
@@ -20,17 +19,7 @@ Overlay {
             repeat: false
             running: false
             onTriggered: {
-                if (image.xSize === 0) {
-                    image.xSize = image.sourceSize.width - image.xStart;
-                }
-                if (image.ySize === 0) {
-                    image.ySize = image.sourceSize.height - image.yStart;
-                }
-
-                image.anchors.leftMargin = -image.xStart * root.width / image.xSize;
-                image.anchors.topMargin = -image.yStart * root.height / image.ySize;
-                image.anchors.rightMargin = (image.xStart + image.xSize - image.sourceSize.width) * root.width / image.xSize;
-                image.anchors.bottomMargin = (image.yStart + image.ySize - image.sourceSize.height) * root.height / image.ySize;
+               recalculateMargins();
             }
         }
 
@@ -42,6 +31,20 @@ Overlay {
         }
 
         anchors.fill: parent
+    }
+
+    function recalculateMargins() {
+        if (image.xSize === 0) {
+            image.xSize = image.sourceSize.width - image.xStart;
+        }
+        if (image.ySize === 0) {
+            image.ySize = image.sourceSize.height - image.yStart;
+        }
+
+        image.anchors.leftMargin = -image.xStart * root.width / image.xSize;
+        image.anchors.topMargin = -image.yStart * root.height / image.ySize;
+        image.anchors.rightMargin = (image.xStart + image.xSize - image.sourceSize.width) * root.width / image.xSize;
+        image.anchors.bottomMargin = (image.yStart + image.ySize - image.sourceSize.height) * root.height / image.ySize;
     }
 
     ColorOverlay {
@@ -62,6 +65,7 @@ Overlay {
                 case "height": image.ySize = value; break;
             }
         }
+        recalculateMargins();
     }
 
     function updatePropertiesFromScript(properties) {

@@ -160,13 +160,16 @@ public:
     * If the Selection doesn't exist, it will be created.
     * All objects in the list will be displayed with the highlight effect as specified from the highlightStyle.
     * The function can be called several times with different values in the style to modify it.
-    * 
+    *
     * @function Selection.enableListHighlight
     * @param listName {string} name of the selection
     * @param highlightStyle {jsObject} highlight style fields (see Selection.getListHighlightStyle for a detailed description of the highlightStyle).
     * @returns {bool} true if the selection was successfully enabled for highlight.
+    *
+    * Note: This function will implicitly call Selection.enableListToScene
     */
     Q_INVOKABLE bool enableListHighlight(const QString& listName, const QVariantMap& highlightStyle);
+
     /**jsdoc
     * Disable highlighting for the named selection.
     * If the Selection doesn't exist or wasn't enabled for highliting then nothing happens simply returning false.
@@ -174,8 +177,30 @@ public:
     * @function Selection.disableListHighlight
     * @param listName {string} name of the selection
     * @returns {bool} true if the selection was successfully disabled for highlight, false otherwise.
+    *
+    * Note: This function will implicitly call Selection.disableListToScene
     */
     Q_INVOKABLE bool disableListHighlight(const QString& listName);
+    /**jsdoc
+    * Enable scene selection for the named selection.
+    * If the Selection doesn't exist, it will be created.
+    * All objects in the list will be sent to a scene selection.
+    *
+    * @function Selection.enableListToScene
+    * @param listName {string} name of the selection
+    * @returns {bool} true if the selection was successfully enabled on the scene.
+    */
+    Q_INVOKABLE bool enableListToScene(const QString& listName);
+    /**jsdoc
+    * Disable scene selection for the named selection.
+    * If the Selection doesn't exist or wasn't enabled on the scene then nothing happens simply returning false.
+    *
+    * @function Selection.disableListToScene
+    * @param listName {string} name of the selection
+    * @returns {bool} true if the selection was successfully disabled on the scene, false otherwise.
+    */
+    Q_INVOKABLE bool disableListToScene(const QString& listName);
+
     /**jsdoc
     * Query the highlight style values for the named selection.
     * If the Selection doesn't exist or hasn't been highlight enabled yet, it will return an empty object.
@@ -223,9 +248,9 @@ private:
     template <class T> bool removeFromGameplayObjects(const QString& listName, T idToRemove);
 
     void setupHandler(const QString& selectionName);
+    void removeHandler(const QString& selectionName);
 
 
-    
 };
 
 #endif // hifi_SelectionScriptingInterface_h

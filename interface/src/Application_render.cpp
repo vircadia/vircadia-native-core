@@ -90,10 +90,10 @@ void Application::paintGL() {
 
     {
         PROFILE_RANGE(render, "/gpuContextReset");
-        _gpuContext->beginFrame(HMDSensorPose);
+        _gpuContext->beginFrame(_appRenderArgs._view, HMDSensorPose);
         // Reset the gpu::Context Stages
         // Back to the default framebuffer;
-        gpu::doInBatch(_gpuContext, [&](gpu::Batch& batch) {
+        gpu::doInBatch("Application_render::gpuContextReset", _gpuContext, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
     }
@@ -216,7 +216,7 @@ void Application::runRenderFrame(RenderArgs* renderArgs) {
 
     // Make sure the WorldBox is in the scene
     // For the record, this one RenderItem is the first one we created and added to the scene.
-    // We could meoee that code elsewhere but you know...
+    // We could move that code elsewhere but you know...
     if (!render::Item::isValidID(WorldBoxRenderData::_item)) {
         auto worldBoxRenderData = std::make_shared<WorldBoxRenderData>();
         auto worldBoxRenderPayload = std::make_shared<WorldBoxRenderData::Payload>(worldBoxRenderData);

@@ -37,6 +37,7 @@ using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber,
     const render::ShapePipeline::BatchSetter& batchSetter,
     const render::ShapePipeline::ItemSetter& itemSetter);
+extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     auto items = input.get<Input>();
@@ -45,6 +46,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initForwardPipelines(*shapePlumber, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
+    initOverlay3DPipelines(*shapePlumber);
 
     // Extract opaques / transparents / lights / metas / overlays / background
     const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
@@ -98,7 +100,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // Lighting Buffer ready for tone mapping
     // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
     // the output FBO as null, which causes the tonemapping to target the blit framebuffer
-    const auto toneMappingInputs = ToneMappingDeferred::Inputs(framebuffer, nullptr).asVarying();
+    const auto toneMappingInputs = ToneMappingDeferred::Inputs(framebuffer, static_cast<gpu::FramebufferPointer>(nullptr) ).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     // Layered Overlays
@@ -134,7 +136,7 @@ void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::Fra
     }
 
     auto args = renderContext->args;
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("PrepareFramebuffer::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
@@ -150,7 +152,8 @@ void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::Fra
 
 void PrepareForward::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     RenderArgs* args = renderContext->args;
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+
+    gpu::doInBatch("RenderForward::Draw::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
         graphics::LightPointer keySunLight;
@@ -184,7 +187,7 @@ void DrawForward::run(const RenderContextPointer& renderContext, const Inputs& i
     const auto& inItems = inputs.get0();
     const auto& lightingModel = inputs.get1();
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawForward::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
 

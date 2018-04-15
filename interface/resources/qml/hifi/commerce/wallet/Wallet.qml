@@ -14,7 +14,6 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
-import QtQuick.Controls 1.4
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
@@ -174,11 +173,12 @@ Rectangle {
     WalletChoice {
         id: walletChoice;
         proceedFunction: function (isReset) {
-            console.log(isReset ? "Reset wallet." : "Trying again with new wallet.");
+            console.log("WalletChoice", isReset ? "Reset wallet." : "Trying again with new wallet.");
             Commerce.setSoftReset();
             if (isReset) {
                 walletResetSetup();
             } else {
+                Commerce.clearWallet();
                 var msg = { referrer: walletChoice.referrer }
                 followReferrer(msg);
             }
@@ -236,6 +236,8 @@ Rectangle {
                     } else {
                         sendToScript(msg);
                     }
+                } else {
+                    sendToScript(msg);
                 }
             }
         }
