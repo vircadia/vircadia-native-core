@@ -21,8 +21,6 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
 var DEFAULT_SPHERE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/equip-Fresnel-3.fbx";
 var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
-var EMPTY_PARENT_ID = "{00000000-0000-0000-0000-000000000000}";
-var UNEQUIP_KEY = "u";
 
 
 // Each overlayInfoSet describes a single equip hotspot.
@@ -177,9 +175,13 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
     var TRIGGER_OFF_VALUE = 0.1;
     var TRIGGER_ON_VALUE = TRIGGER_OFF_VALUE + 0.05; //  Squeezed just enough to activate search or near grab
-    var BUMPER_ON_VALUE = 0.5
-	
+    var BUMPER_ON_VALUE = 0.5;
+    
+    var EMPTY_PARENT_ID = "{00000000-0000-0000-0000-000000000000}";
+    
+    var UNEQUIP_KEY = "u";
 
+    
     function getWearableData(props) {
         var wearable = {};
         try {
@@ -564,7 +566,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 parentID: Uuid.NULL,
                 parentJointIndex: -1
             });
-;
+
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "releaseEquip", args);
 
@@ -780,14 +782,14 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var actionID = actionIDs[actionIndex];
             var actionArguments = Entities.getActionArguments(entityID, actionID);
             var tag = actionArguments.tag;
-            if (tag.slice(0, 5) == "grab-") {
+            if (tag.slice(0, 5) === "grab-") {
                 Entities.deleteAction(entityID, actionID);
             }
         }
     };
     
     var onMousePress = function(event) {
-        if (isInEditMode()) { // ignore any mouse clicks on the entity while create/edit is open
+        if (isInEditMode()) { // don't consider any mouse clicks on the entity while in edit
             return;
         }
         var pickRay = Camera.computePickRay(event.x, event.y);
@@ -804,9 +806,11 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 var rightHandAvailable = rightEquipEntity.targetEntityID === null;          
                 var mouseEquip = true;
                 if (rightHandAvailable && (distanceToRightHand < distanceToLeftHand || !leftHandAvailable)) {
+                    // clear any existing grab actions on the entity now (their later removal could affect bootstrapping flags)
                     clearGrabActions(intersection.entityID);
                     rightEquipEntity.setMessageGrabData(entityProperties, mouseEquip);
-                } else if (leftHandAvailable && (distanceToLeftHand < distanceToRightHand || !rightHandAvailable)) {
+                } else if (leftHandAvailable && (distanceToLeftHand < distanceToRightHand || !rightHandAvailable)) 
+                    // clear any existing grab actions on the entity now (their later removal could affect bootstrapping flags)
                     clearGrabActions(intersection.entityID);
                     leftEquipEntity.setMessageGrabData(entityProperties, mouseEquip);
                 }
@@ -824,7 +828,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             }
         }
     };
-	
+    
     Messages.subscribe('Hifi-Hand-Grab');
     Messages.subscribe('Hifi-Hand-Drop');
     Messages.messageReceived.connect(handleMessage);
