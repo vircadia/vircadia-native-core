@@ -5532,6 +5532,26 @@ void Application::update(float deltaTime) {
     {
         QMutexLocker viewLocker(&_viewMutex);
         _myCamera.loadViewFrustum(_viewFrustum);
+
+
+        auto renderConfig = _renderEngine->getConfiguration();
+        assert(renderConfig);
+        auto secondaryCamera = dynamic_cast<SecondaryCameraJobConfig*>(renderConfig->getConfig("SecondaryCamera"));
+        assert(secondaryCamera);
+
+        if (secondaryCamera->isEnabled()) {
+            _secondaryViewFrustum.setPosition(secondaryCamera->position);
+            _secondaryViewFrustum.setOrientation(secondaryCamera->orientation);
+            _secondaryViewFrustum.setProjection(secondaryCamera->vFoV,
+                                                secondaryCamera->textureWidth / secondaryCamera->textureHeight,
+                                                secondaryCamera->nearClipPlaneDistance,
+                                                secondaryCamera->farClipPlaneDistance);
+            _secondaryViewFrustum.calculate();
+            _hasSecondaryViewFrustum = true;
+        } else {
+            _hasSecondaryViewFrustum = false;
+        }
+
     }
 
     quint64 now = usecTimestampNow();
@@ -5793,6 +5813,13 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
     copyViewFrustum(viewFrustum);
     _octreeQuery.setMainViewFrustum(viewFrustum);
 
+    if (hasSecondaryViewFrustum()) {
+        copySecondaryViewFrustum(viewFrustum);
+        _octreeQuery.setSecondaryViewFrustum(viewFrustum);
+    } else {
+        _octreeQuery.clearSecondaryViewFrustum();
+    }
+
     auto lodManager = DependencyManager::get<LODManager>();
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
@@ -5874,6 +5901,11 @@ void Application::copyViewFrustum(ViewFrustum& viewOut) const {
 void Application::copyDisplayViewFrustum(ViewFrustum& viewOut) const {
     QMutexLocker viewLocker(&_viewMutex);
     viewOut = _displayViewFrustum;
+}
+
+void Application::copySecondaryViewFrustum(ViewFrustum& viewOut) const {
+    QMutexLocker viewLocker(&_viewMutex);
+    viewOut = _secondaryViewFrustum;
 }
 
 void Application::resetSensors(bool andReload) {

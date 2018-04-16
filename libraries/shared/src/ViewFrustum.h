@@ -48,6 +48,7 @@ public:
 
     // setters for lens attributes
     void setProjection(const glm::mat4 & projection);
+    void setProjection(float cameraFov, float cameraAspectRatio, float cameraNearClip, float cameraFarClip);
     void setFocalLength(float focalLength) { _focalLength = focalLength; }
     bool isPerspective() const;
 

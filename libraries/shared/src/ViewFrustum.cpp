@@ -75,6 +75,10 @@ void ViewFrustum::setProjection(const glm::mat4& projection) {
     _width = _corners[TOP_RIGHT_NEAR].x - _corners[TOP_LEFT_NEAR].x;
 }
 
+void ViewFrustum::setProjection(float cameraFov, float cameraAspectRatio, float cameraNearClip, float cameraFarClip) {
+    setProjection(glm::perspective(glm::radians(cameraFov), cameraAspectRatio, cameraNearClip, cameraFarClip));
+}
+
 // ViewFrustum::calculate()
 //
 // Description: this will calculate the view frustum bounds for a given position and direction
@@ -168,12 +172,8 @@ int ViewFrustum::fromByteArray(const QByteArray& input) {
         0.0f != cameraNearClip &&
         0.0f != cameraFarClip &&
         cameraNearClip != cameraFarClip) {
-        setProjection(glm::perspective(
-            glm::radians(cameraFov),
-            cameraAspectRatio,
-            cameraNearClip,
-            cameraFarClip));
 
+        setProjection(cameraFov, cameraAspectRatio, cameraNearClip, cameraFarClip);
         calculate();
     }
 

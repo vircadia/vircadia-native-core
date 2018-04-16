@@ -178,6 +178,9 @@ public:
     // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
+    void copySecondaryViewFrustum(ViewFrustum& viewOut) const;
+    bool hasSecondaryViewFrustum() const { return _hasSecondaryViewFrustum; }
+
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
@@ -554,6 +557,8 @@ private:
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
     ViewFrustum _displayViewFrustum;
+    ViewFrustum _secondaryViewFrustum;
+    bool _hasSecondaryViewFrustum;
     quint64 _lastQueriedTime;
 
     OctreeQuery _octreeQuery { true }; // NodeData derived class for querying octee cells from octree servers
