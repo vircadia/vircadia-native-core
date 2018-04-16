@@ -36,7 +36,6 @@
 
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 
-const char* OpenVrDisplayPlugin::NAME { "OpenVR (Vive)" };
 const char* StandingHMDSensorMode { "Standing HMD Sensor Mode" }; // this probably shouldn't be hardcoded here
 const char* OpenVrThreadedSubmit { "OpenVR Threaded Submit" }; // this probably shouldn't be hardcoded here
 

@@ -78,7 +78,6 @@ private:
     vr::IVRSystem* _system { nullptr };
     std::atomic<vr::EDeviceActivityLevel> _hmdActivityLevel { vr::k_EDeviceActivityLevel_Unknown };
     std::atomic<uint32_t> _keyboardSupressionCount{ 0 };
-    static const char* NAME;
 
     vr::HmdMatrix34_t _lastGoodHMDPose;
     mat4 _sensorResetMat;
