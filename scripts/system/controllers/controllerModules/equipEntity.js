@@ -181,7 +181,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     
     var UNEQUIP_KEY = "u";
 
-    
     function getWearableData(props) {
         var wearable = {};
         try {
@@ -809,7 +808,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                     // clear any existing grab actions on the entity now (their later removal could affect bootstrapping flags)
                     clearGrabActions(intersection.entityID);
                     rightEquipEntity.setMessageGrabData(entityProperties, mouseEquip);
-                } else if (leftHandAvailable && (distanceToLeftHand < distanceToRightHand || !rightHandAvailable)) 
+                } else if (leftHandAvailable && (distanceToLeftHand < distanceToRightHand || !rightHandAvailable)) {
                     // clear any existing grab actions on the entity now (their later removal could affect bootstrapping flags)
                     clearGrabActions(intersection.entityID);
                     leftEquipEntity.setMessageGrabData(entityProperties, mouseEquip);
