@@ -616,6 +616,7 @@ public slots:
     glm::quat getOrientationForAudio();
 
     virtual void setModelScale(float scale) override;
+    virtual void setSessionUUID(const QUuid& sessionUUID) override;
 
 signals:
     void audioListenerModeChanged();

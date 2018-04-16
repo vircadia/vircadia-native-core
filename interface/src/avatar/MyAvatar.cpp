@@ -3398,6 +3398,13 @@ void MyAvatar::setModelScale(float scale) {
     }
 }
 
+void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
+    Avatar::setSessionUUID(sessionUUID);
+
+    // transmit a "sendAll" packet to the AvatarMixer we just connected to.
+    sendAvatarDataPacket(true);
+}
+
 SpatialParentTree* MyAvatar::getParentTree() const {
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
