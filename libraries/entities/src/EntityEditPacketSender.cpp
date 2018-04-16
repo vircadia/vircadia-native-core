@@ -119,7 +119,10 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
     while (encodeResult == OctreeElement::PARTIAL) {
         encodeResult = EntityItemProperties::encodeEntityEditPacket(type, entityItemID, propertiesCopy, bufferOut, requestedProperties, didntFitProperties);
 
-        if (encodeResult != OctreeElement::NONE) {
+        if (encodeResult == OctreeElement::NONE) {
+            qCWarning(entities).nospace() << "queueEditEntityMessage: some of the properties don't fit and can't be sent. entityID=" << uuidStringWithoutCurlyBraces(entityItemID);
+        }
+        else {
             #ifdef WANT_DEBUG
                 qCDebug(entities) << "calling queueOctreeEditMessage()...";
                 qCDebug(entities) << "    id:" << entityItemID;
