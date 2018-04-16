@@ -490,7 +490,7 @@ public:
                 // Don't actually crash in debug builds, in case this apparent deadlock is simply from
                 // the developer actively debugging code
                 #ifdef NDEBUG
-                    deadlockDetectionCrash();
+                deadlockDetectionCrash();
                 #endif
             }
         }
@@ -801,7 +801,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         steamClient->init();
     }
 
-    DependencyManager::set<tracing::Tracer>();
     PROFILE_SET_THREAD_NAME("Main Thread");
 
 #if defined(Q_OS_WIN)
@@ -986,10 +985,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
-
     {
         const QString TEST_SCRIPT = "--testScript";
-        const QString TRACE_FILE = "--traceFile";
         const QStringList args = arguments();
         for (int i = 0; i < args.size() - 1; ++i) {
             if (args.at(i) == TEST_SCRIPT) {
@@ -997,10 +994,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 if (QFileInfo(testScriptPath).exists()) {
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
                 }
-            } else if (args.at(i) == TRACE_FILE) {
-                QString traceFilePath = args.at(i + 1);
-                setProperty(hifi::properties::TRACING, traceFilePath);
-                DependencyManager::get<tracing::Tracer>()->startTracing();
             }
         }
     }
@@ -1046,6 +1039,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->startThread();
 
+    const char** constArgv = const_cast<const char**>(argv);
+    if (cmdOptionExists(argc, constArgv, "--disableWatchdog")) {
+        DISABLE_WATCHDOG = true;
+    }
     // Set up a watchdog thread to intentionally crash the application on deadlocks
     if (!DISABLE_WATCHDOG) {
         (new DeadlockWatchdogThread())->start();
@@ -1255,7 +1252,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
     connect(&_entityEditSender, &EntityEditPacketSender::addingEntityWithCertificate, this, &Application::addingEntityWithCertificate);
 
-    const char** constArgv = const_cast<const char**>(argv);
     QString concurrentDownloadsStr = getCmdOption(argc, constArgv, "--concurrent-downloads");
     bool success;
     int concurrentDownloads = concurrentDownloadsStr.toInt(&success);

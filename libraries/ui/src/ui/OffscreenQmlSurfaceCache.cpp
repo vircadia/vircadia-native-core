@@ -12,6 +12,7 @@
 
 #include <PathUtils.h>
 #include "OffscreenQmlSurface.h"
+#include "Profile.h"
 
 OffscreenQmlSurfaceCache::OffscreenQmlSurfaceCache() {
 }
@@ -38,6 +39,7 @@ void OffscreenQmlSurfaceCache::reserve(const QString& rootSource, int count) {
 }
 
 void OffscreenQmlSurfaceCache::release(const QString& rootSource, const QSharedPointer<OffscreenQmlSurface>& surface) {
+    PROFILE_RANGE(app, "buildSurface");
     surface->pause();
     _cache[rootSource].push_back(surface);
 }
