@@ -1013,21 +1013,33 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 });
                 break;
             case 'refreshConnections':
-                print('Refreshing Connections...');
-                getConnectionData(false);
+                // Guard to prevent this code from being executed while sending money --
+                // we only want to execute this while sending non-HFC gifts
+                if (!onWalletScreen) {
+                    print('Refreshing Connections...');
+                    getConnectionData(false);
+                }
                 break;
             case 'enable_ChooseRecipientNearbyMode':
-                if (!isUpdateOverlaysWired) {
-                    Script.update.connect(updateOverlays);
-                    isUpdateOverlaysWired = true;
+                // Guard to prevent this code from being executed while sending money --
+                // we only want to execute this while sending non-HFC gifts
+                if (!onWalletScreen) {
+                    if (!isUpdateOverlaysWired) {
+                        Script.update.connect(updateOverlays);
+                        isUpdateOverlaysWired = true;
+                    }
                 }
                 break;
             case 'disable_ChooseRecipientNearbyMode':
-                if (isUpdateOverlaysWired) {
-                    Script.update.disconnect(updateOverlays);
-                    isUpdateOverlaysWired = false;
+                // Guard to prevent this code from being executed while sending money --
+                // we only want to execute this while sending non-HFC gifts
+                if (!onWalletScreen) {
+                    if (isUpdateOverlaysWired) {
+                        Script.update.disconnect(updateOverlays);
+                        isUpdateOverlaysWired = false;
+                    }
+                    removeOverlays();
                 }
-                removeOverlays();
                 break;
             case 'wallet_availableUpdatesReceived':
             case 'purchases_availableUpdatesReceived':
@@ -1191,18 +1203,19 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var isWired = false;
     var isUpdateOverlaysWired = false;
     function off() {
-        if (isWired) { // It is not ok to disconnect these twice, hence guard.
+        if (isWired) {
             Users.usernameFromIDReply.disconnect(usernameFromIDReply);
             Controller.mousePressEvent.disconnect(handleMouseEvent);
             Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
+            triggerMapping.disable();
+            triggerPressMapping.disable();
+
             isWired = false;
         }
         if (isUpdateOverlaysWired) {
             Script.update.disconnect(updateOverlays);
             isUpdateOverlaysWired = false;
         }
-        triggerMapping.disable(); // It's ok if we disable twice.
-        triggerPressMapping.disable(); // see above
         removeOverlays();
     }
     function shutdown() {

@@ -1121,7 +1121,7 @@ Item {
             anchors.topMargin: 16;
             anchors.left: parent.left;
             anchors.leftMargin: 20;
-            width: 110;
+            width: 130;
             boxSize: 28;
             onCheckedChanged: {
                 Settings.setValue("sendAssetsNearbyPublicly", checked);
@@ -1133,7 +1133,6 @@ Item {
             text: "[?]";
             // Anchors
             anchors.left: sendPubliclyCheckbox.right;
-            anchors.leftMargin: 8;
             anchors.verticalCenter: sendPubliclyCheckbox.verticalCenter;
             height: 30;
             width: paintedWidth;

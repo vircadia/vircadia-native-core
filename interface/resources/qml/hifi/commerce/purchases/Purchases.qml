@@ -792,6 +792,7 @@ Rectangle {
 
     HifiControlsUit.Keyboard {
         id: keyboard;
+        z: 999;
         raised: HMD.mounted && parent.keyboardRaised;
         numeric: parent.punctuationMode;
         anchors {
