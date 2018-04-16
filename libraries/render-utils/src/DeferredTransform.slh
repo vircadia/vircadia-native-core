@@ -122,17 +122,12 @@ float evalZeyeFromZdb(float depth) {
     return frameTransform._depthInfo.x / (depth * frameTransform._depthInfo.y + frameTransform._depthInfo.z);
 }
 
-vec3 evalEyeNormal(vec3 C) {
-    //return normalize(cross(dFdy(C), dFdx(C)));
-    return normalize(cross(dFdx(C), dFdy(C)));
+float evalZdbFromZeye(float Zeye) {
+    return (frameTransform._depthInfo.x - Zeye * frameTransform._depthInfo.z) / (Zeye * frameTransform._depthInfo.y);
 }
 
-vec3 evalEyePositionFromZeye(int side, float Zeye, vec2 texcoord) {
-    // compute the view space position using the depth
-    // basically manually pick the proj matrix components to do the inverse
-    float Xe = (-Zeye * (texcoord.x * 2.0 - 1.0) - Zeye * frameTransform._projection[side][2][0] - frameTransform._projection[side][3][0]) / frameTransform._projection[side][0][0];
-    float Ye = (-Zeye * (texcoord.y * 2.0 - 1.0) - Zeye * frameTransform._projection[side][2][1] - frameTransform._projection[side][3][1]) / frameTransform._projection[side][1][1];
-    return vec3(Xe, Ye, Zeye);
+vec3 evalEyeNormal(vec3 C) {
+    return normalize(cross(dFdx(C), dFdy(C)));
 }
 
 vec3 evalEyePositionFromZdb(int side, float Zdb, vec2 texcoord) {
@@ -141,6 +136,11 @@ vec3 evalEyePositionFromZdb(int side, float Zdb, vec2 texcoord) {
     clipPos.xyz = vec3(texcoord.xy, Zdb) * 2.0 - 1.0;
     vec4 eyePos = frameTransform._invProjection[side] * vec4(clipPos.xyz, 1.0);
     return eyePos.xyz / eyePos.w;
+}
+
+vec3 evalEyePositionFromZeye(int side, float Zeye, vec2 texcoord) {
+	float Zdb = evalZdbFromZeye(Zeye);
+    return evalEyePositionFromZdb(side, Zdb, texcoord);
 }
 
 ivec2 getPixelPosTexcoordPosAndSide(in vec2 glFragCoord, out ivec2 pixelPos, out vec2 texcoordPos, out ivec4 stereoSide) {

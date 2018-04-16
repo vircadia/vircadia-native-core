@@ -66,6 +66,7 @@ function enableProperties() {
 
     if (elLocked.checked === false) {
         removeStaticUserData();
+        removeStaticMaterialData();
     }
 }
 
@@ -78,8 +79,13 @@ function disableProperties() {
     }
     var elLocked = document.getElementById("property-locked");
 
-    if ($('#userdata-editor').css('display') === "block" && elLocked.checked === true) {
-        showStaticUserData();
+    if (elLocked.checked === true) {
+        if ($('#userdata-editor').css('display') === "block") {
+            showStaticUserData();
+        }
+        if ($('#materialdata-editor').css('display') === "block") {
+            showStaticMaterialData();
+        }
     }
 }
 
@@ -356,15 +362,139 @@ function userDataChanger(groupName, keyName, values, userDataElement, defaultVal
     multiDataUpdater(groupName, val, userDataElement, def);
 }
 
+function setMaterialDataFromEditor(noUpdate) {
+    var json = null;
+    try {
+        json = materialEditor.get();
+    } catch (e) {
+        alert('Invalid JSON code - look for red X in your code ', +e);
+    }
+    if (json === null) {
+        return;
+    } else {
+        var text = materialEditor.getText();
+        if (noUpdate === true) {
+            EventBridge.emitWebEvent(
+                JSON.stringify({
+                    id: lastEntityID,
+                    type: "saveMaterialData",
+                    properties: {
+                        materialData: text
+                    }
+                })
+            );
+            return;
+        } else {
+            updateProperty('materialData', text);
+        }
+    }
+}
+
 function setTextareaScrolling(element) {
     var isScrolling = element.scrollHeight > element.offsetHeight;
     element.setAttribute("scrolling", isScrolling ? "true" : "false");
 }
 
 
+var materialEditor = null;
+
+function createJSONMaterialEditor() {
+    var container = document.getElementById("materialdata-editor");
+    var options = {
+        search: false,
+        mode: 'tree',
+        modes: ['code', 'tree'],
+        name: 'materialData',
+        onModeChange: function() {
+            $('.jsoneditor-poweredBy').remove();
+        },
+        onError: function(e) {
+            alert('JSON editor:' + e);
+        },
+        onChange: function() {
+            var currentJSONString = materialEditor.getText();
+
+            if (currentJSONString === '{"":""}') {
+                return;
+            }
+            $('#materialdata-save').attr('disabled', false);
+
+
+        }
+    };
+    materialEditor = new JSONEditor(container, options);
+}
+
+function hideNewJSONMaterialEditorButton() {
+    $('#materialdata-new-editor').hide();
+}
+
+function showSaveMaterialDataButton() {
+    $('#materialdata-save').show();
+}
+
+function hideSaveMaterialDataButton() {
+    $('#materialdata-save').hide();
+}
+
+function showNewJSONMaterialEditorButton() {
+    $('#materialdata-new-editor').show();
+}
+
+function showMaterialDataTextArea() {
+    $('#property-material-data').show();
+}
+
+function hideMaterialDataTextArea() {
+    $('#property-material-data').hide();
+}
+
+function showStaticMaterialData() {
+    if (materialEditor !== null) {
+        $('#static-materialdata').show();
+        $('#static-materialdata').css('height', $('#materialdata-editor').height());
+        $('#static-materialdata').text(materialEditor.getText());
+    }
+}
+
+function removeStaticMaterialData() {
+    $('#static-materialdata').hide();
+}
+
+function setMaterialEditorJSON(json) {
+    materialEditor.set(json);
+    if (materialEditor.hasOwnProperty('expandAll')) {
+        materialEditor.expandAll();
+    }
+}
+
+function getMaterialEditorJSON() {
+    return materialEditor.get();
+}
+
+function deleteJSONMaterialEditor() {
+    if (materialEditor !== null) {
+        materialEditor.destroy();
+        materialEditor = null;
+    }
+}
+
+var savedMaterialJSONTimer = null;
+
+function saveJSONMaterialData(noUpdate) {
+    setMaterialDataFromEditor(noUpdate);
+    $('#materialdata-saved').show();
+    $('#materialdata-save').attr('disabled', true);
+    if (savedMaterialJSONTimer !== null) {
+        clearTimeout(savedMaterialJSONTimer);
+    }
+    savedMaterialJSONTimer = setTimeout(function() {
+        $('#materialdata-saved').hide();
+
+    }, EDITOR_TIMEOUT_DURATION);
+}
+
 var editor = null;
-var editorTimeout = null;
-var lastJSONString = null;
 
 function createJSONEditor() {
     var container = document.getElementById("userdata-editor");
@@ -395,11 +525,6 @@ function createJSONEditor() {
 
 function hideNewJSONEditorButton() {
     $('#userdata-new-editor').hide();
-
-}
-
-function hideClearUserDataButton() {
-    $('#userdata-clear').hide();
 }
 
 function showSaveUserDataButton() {
@@ -408,17 +533,10 @@ function showSaveUserDataButton() {
 
 function hideSaveUserDataButton() {
     $('#userdata-save').hide();
-
 }
 
 function showNewJSONEditorButton() {
     $('#userdata-new-editor').show();
-
-}
-
-function showClearUserDataButton() {
-    $('#userdata-clear').show();
-
 }
 
 function showUserDataTextArea() {
@@ -446,7 +564,6 @@ function setEditorJSON(json) {
     if (editor.hasOwnProperty('expandAll')) {
         editor.expandAll();
     }
-
 }
 
 function getEditorJSON() {
@@ -484,11 +601,14 @@ function bindAllNonJSONEditorElements() {
         // TODO FIXME: (JSHint) Functions declared within loops referencing 
         //             an outer scoped variable may lead to confusing semantics.
         field.on('focus', function(e) {
-            if (e.target.id === "userdata-new-editor" || e.target.id === "userdata-clear") {
+            if (e.target.id === "userdata-new-editor" || e.target.id === "userdata-clear" || e.target.id === "materialdata-new-editor" || e.target.id === "materialdata-clear") {
                 return;
             } else {
                 if ($('#userdata-editor').css('height') !== "0px") {
                     saveJSONUserData(true);
+                }
+                if ($('#materialdata-editor').css('height') !== "0px") {
+                    saveJSONMaterialData(true);
                 }
             }
         });
@@ -652,6 +772,10 @@ function loaded() {
         var elMaterialMappingScaleX = document.getElementById("property-material-mapping-scale-x");
         var elMaterialMappingScaleY = document.getElementById("property-material-mapping-scale-y");
         var elMaterialMappingRot = document.getElementById("property-material-mapping-rot");
+        var elMaterialData = document.getElementById("property-material-data");
+        var elClearMaterialData = document.getElementById("materialdata-clear");
+        var elSaveMaterialData = document.getElementById("materialdata-save");
+        var elNewJSONMaterialEditor = document.getElementById('materialdata-new-editor');
 
         var elImageURL = document.getElementById("property-image-url");
 
@@ -772,9 +896,15 @@ function loaded() {
                 } else if (data.type === "update") {
 
                     if (!data.selections || data.selections.length === 0) {
-                        if (editor !== null && lastEntityID !== null) {
-                            saveJSONUserData(true);
-                            deleteJSONEditor();
+                        if (lastEntityID !== null) {
+                            if (editor !== null) {
+                                saveJSONUserData(true);
+                                deleteJSONEditor();
+                            }
+                            if (materialEditor !== null) {
+                                saveJSONMaterialData(true);
+                                deleteJSONMaterialEditor();
+                            }
                         }
                         elTypeIcon.style.display = "none";
                         elType.innerHTML = "<i>No selection</i>";
@@ -783,6 +913,7 @@ function loaded() {
                         disableProperties();
                     } else if (data.selections && data.selections.length > 1) {
                         deleteJSONEditor();
+                        deleteJSONMaterialEditor();
                         var selections = data.selections;
 
                         var ids = [];
@@ -815,8 +946,13 @@ function loaded() {
                     } else {
 
                         properties = data.selections[0].properties;
-                        if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
-                            saveJSONUserData(true);
+                        if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null) {
+                            if (editor !== null) {
+                                saveJSONUserData(true);
+                            }
+                            if (materialEditor !== null) {
+                                saveJSONMaterialData(true);
+                            }
                         }
 
                         var doSelectElement = lastEntityID === '"' + properties.id + '"';
@@ -991,6 +1127,28 @@ function loaded() {
                             showSaveUserDataButton();
                             hideUserDataTextArea();
                             hideNewJSONEditorButton();
+                        }
+
+                        var materialJson = null;
+                        try {
+                            materialJson = JSON.parse(properties.materialData);
+                        } catch (e) {
+                            // normal text
+                            deleteJSONMaterialEditor();
+                            elMaterialData.value = properties.materialData;
+                            showMaterialDataTextArea();
+                            showNewJSONMaterialEditorButton();
+                            hideSaveMaterialDataButton();
+                        }
+                        if (materialJson !== null) {
+                            if (materialEditor === null) {
+                                createJSONMaterialEditor();
+                            }
+
+                            setMaterialEditorJSON(materialJson);
+                            showSaveMaterialDataButton();
+                            hideMaterialDataTextArea();
+                            hideNewJSONMaterialEditorButton();
                         }
 
                         elHyperlinkHref.value = properties.href;
@@ -1200,6 +1358,7 @@ function loaded() {
                         } else {
                             enableProperties();
                             elSaveUserData.disabled = true;
+                            elSaveMaterialData.disabled = true;
                         }
 
                         var activeElement = document.activeElement;
@@ -1382,6 +1541,31 @@ function loaded() {
             hideUserDataTextArea();
             hideNewJSONEditorButton();
             showSaveUserDataButton();
+        });
+
+        elClearMaterialData.addEventListener("click", function() {
+            deleteJSONMaterialEditor();
+            elMaterialData.value = "";
+            showMaterialDataTextArea();
+            showNewJSONMaterialEditorButton();
+            hideSaveMaterialDataButton();
+            updateProperty('materialData', elMaterialData.value);
+        });
+
+        elSaveMaterialData.addEventListener("click", function() {
+            saveJSONMaterialData(true);
+        });
+
+        elMaterialData.addEventListener('change', createEmitTextPropertyUpdateFunction('materialData'));
+
+        elNewJSONMaterialEditor.addEventListener('click', function() {
+            deleteJSONMaterialEditor();
+            createJSONMaterialEditor();
+            var data = {};
+            setMaterialEditorJSON(data);
+            hideMaterialDataTextArea();
+            hideNewJSONMaterialEditorButton();
+            showSaveMaterialDataButton();
         });
 
         var colorChangeFunction = createEmitColorPropertyUpdateFunction(

@@ -241,13 +241,17 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
     _activityTracking.addedEntityCount++;
 
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto sessionID = nodeList->getSessionUUID();
+
     EntityItemProperties propertiesWithSimID = properties;
     if (clientOnly) {
-        auto nodeList = DependencyManager::get<NodeList>();
-        const QUuid myNodeID = nodeList->getSessionUUID();
+        const QUuid myNodeID = sessionID;
         propertiesWithSimID.setClientOnly(clientOnly);
         propertiesWithSimID.setOwningAvatarID(myNodeID);
     }
+
+    propertiesWithSimID.setLastEditedBy(sessionID);
 
     bool scalesWithParent = propertiesWithSimID.getScalesWithParent();
 
@@ -308,6 +312,11 @@ QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QStrin
     if (!textures.isEmpty()) {
         properties.setTextures(textures);
     }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto sessionID = nodeList->getSessionUUID();
+    properties.setLastEditedBy(sessionID);
+
     return addEntity(properties);
 }
 
@@ -363,7 +372,11 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
     _activityTracking.editedEntityCount++;
 
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto sessionID = nodeList->getSessionUUID();
+
     EntityItemProperties properties = scriptSideProperties;
+    properties.setLastEditedBy(sessionID);
 
     EntityItemID entityID(id);
     if (!_entityTree) {
@@ -379,7 +392,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             return;
         }
 
-        auto nodeList = DependencyManager::get<NodeList>();
         if (entity->getClientOnly() && entity->getOwningAvatarID() != nodeList->getSessionUUID()) {
             // don't edit other avatar's avatarEntities
             return;
@@ -454,7 +466,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     // we make a bid for simulation ownership
                     properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
                     entity->flagForOwnershipBid(SCRIPT_POKE_SIMULATION_PRIORITY);
-                    entity->rememberHasSimulationOwnershipBid();
                 }
             }
             if (properties.queryAACubeRelatedPropertyChanged()) {
@@ -477,6 +488,27 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     }
                 }
             });
+        } else {
+            // Sometimes ESS don't have the entity they are trying to edit in their local tree.  In this case,
+            // convertPropertiesFromScriptSemantics doesn't get called and local* edits will get dropped.
+            // This is because, on the script side, "position" is in world frame, but in the network
+            // protocol and in the internal data-structures, "position" is "relative to parent".
+            // Compensate here.  The local* versions will get ignored during the edit-packet encoding.
+            if (properties.localPositionChanged()) {
+                properties.setPosition(properties.getLocalPosition());
+            }
+            if (properties.localRotationChanged()) {
+                properties.setRotation(properties.getLocalRotation());
+            }
+            if (properties.localVelocityChanged()) {
+                properties.setVelocity(properties.getLocalVelocity());
+            }
+            if (properties.localAngularVelocityChanged()) {
+                properties.setAngularVelocity(properties.getLocalAngularVelocity());
+            }
+            if (properties.localDimensionsChanged()) {
+                properties.setDimensions(properties.getLocalDimensions());
+            }
         }
     });
     if (!entityFound) {

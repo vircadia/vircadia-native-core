@@ -39,6 +39,10 @@ bool AddressManager::isConnected() {
     return DependencyManager::get<NodeList>()->getDomainHandler().isConnected();
 }
 
+QString AddressManager::getProtocol() const {
+    return _domainURL.scheme();
+}
+
 QUrl AddressManager::currentAddress(bool domainOnly) const {
     QUrl hifiURL = _domainURL;
 
