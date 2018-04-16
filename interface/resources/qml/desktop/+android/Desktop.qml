@@ -10,7 +10,6 @@
 
 import QtQuick 2.7
 import QtQuick.Controls 1.4
-import QtQuick.Controls 2.3 as QQC2
 
 import "../dialogs"
 import "../js/Utils.js" as Utils
@@ -33,7 +32,7 @@ FocusScope {
         }
 
     }
-    
+
     onHeightChanged: d.handleSizeChanged();
 
     onWidthChanged: d.handleSizeChanged();
@@ -51,9 +50,9 @@ FocusScope {
     property bool desktopRoot: true
 
     // The VR version of the primary menu
-    property var rootMenu: Menu { 
+    property var rootMenu: Menu {
         id: rootMenuId
-        objectName: "rootMenu" 
+        objectName: "rootMenu"
 
         property var exclusionGroups: ({});
         property Component exclusiveGroupMaker: Component {
@@ -324,18 +323,6 @@ FocusScope {
         return false;
     }
 
-    function hideDesktopWindows() {
-        for (var index = 0; index < desktop.visibleChildren.length; index++) {
-            var child = desktop.visibleChildren[index];
-            if (child.topLevelWindow && child.hasOwnProperty("modality")) {
-                var TOOLBAR_NAME = "com.highfidelity.interface.toolbar.system"
-                if (child.objectName !== TOOLBAR_NAME) {
-                    child.setShown(false);
-                }
-            }
-        }
-    }
-
     function setPinned(newPinned) {
         pinned = newPinned
     }
@@ -531,7 +518,7 @@ FocusScope {
     Component { id: fileDialogBuilder; FileDialog { } }
     function fileDialog(properties) {
         return fileDialogBuilder.createObject(desktop, properties);
-    } 
+    }
 
     Component { id: assetDialogBuilder; AssetDialog { } }
     function assetDialog(properties) {
@@ -578,7 +565,7 @@ FocusScope {
         ColorAnimation on color { from: "#7fffff00"; to: "#7f0000ff"; duration: 1000; loops: 9999 }
     }
 
-    QQC2.Action {
+    Action {
         text: "Toggle Focus Debugger"
         shortcut: "Ctrl+Shift+F"
         enabled: DebugQML
