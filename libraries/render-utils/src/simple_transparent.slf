@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  simple.frag
+//  simple_transparent.frag
 //  fragment shader
 //
 //  Created by Andrzej Kapolka on 9/15/14.
@@ -48,23 +48,18 @@ void main(void) {
 #endif
 
     if (emissiveAmount > 0.0) {
-        packDeferredFragmentLightmap(
+        packDeferredFragmentTranslucent(
             normal,
-            1.0,
-            diffuse,
-            max(0.0, 1.0 - shininess / 128.0),
-            DEFAULT_METALLIC,
+            _color.a,
             specular,
-            vec3(clamp(emissiveAmount, 0.0, 1.0)));
+            DEFAULT_FRESNEL,
+            DEFAULT_ROUGHNESS);
     } else {
-        packDeferredFragment(
+        packDeferredFragmentTranslucent(
             normal,
-            1.0,
+            _color.a,
             diffuse,
-            max(0.0, 1.0 - shininess / 128.0),
-            length(specular),
-            DEFAULT_EMISSIVE,
-            DEFAULT_OCCLUSION,
-            DEFAULT_SCATTERING);
+            DEFAULT_FRESNEL,
+            DEFAULT_ROUGHNESS);
     }
 }
