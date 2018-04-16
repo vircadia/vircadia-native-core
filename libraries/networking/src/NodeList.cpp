@@ -215,16 +215,16 @@ void NodeList::processPingPacket(QSharedPointer<ReceivedMessage> message, Shared
         }
     }
 
-    int64_t connectionId;
+    int64_t connectionID;
 
-    message->readPrimitive(&connectionId);
+    message->readPrimitive(&connectionID);
 
     auto it = _connectionIDs.find(sendingNode->getUUID());
     if (it != _connectionIDs.end()) {
-        if (connectionId > it->second) {
-            qDebug() << "Received a ping packet with a larger connection id (" << connectionId << ">" << it->second << ") from "
+        if (connectionID > it->second) {
+            qDebug() << "Received a ping packet with a larger connection id (" << connectionID << ">" << it->second << ") from "
                      << sendingNode->getUUID();
-            killNodeWithUUID(sendingNode->getUUID(), connectionId);
+            killNodeWithUUID(sendingNode->getUUID(), connectionID);
         }
     }
 
@@ -704,17 +704,17 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
         qCDebug(networking) << "No response to UDP hole punch pings for node" << node->getUUID() << "in last second.";
     }
     
-    auto nodeId = node->getUUID();
+    auto nodeID = node->getUUID();
 
     // send the ping packet to the local and public sockets for this node
-    auto localPingPacket = constructPingPacket(nodeId, PingType::Local);
+    auto localPingPacket = constructPingPacket(nodeID, PingType::Local);
     sendPacket(std::move(localPingPacket), *node, node->getLocalSocket());
 
-    auto publicPingPacket = constructPingPacket(nodeId, PingType::Public);
+    auto publicPingPacket = constructPingPacket(nodeID, PingType::Public);
     sendPacket(std::move(publicPingPacket), *node, node->getPublicSocket());
 
     if (!node->getSymmetricSocket().isNull()) {
-        auto symmetricPingPacket = constructPingPacket(nodeId, PingType::Symmetric);
+        auto symmetricPingPacket = constructPingPacket(nodeID, PingType::Symmetric);
         sendPacket(std::move(symmetricPingPacket), *node, node->getSymmetricSocket());
     }
 
