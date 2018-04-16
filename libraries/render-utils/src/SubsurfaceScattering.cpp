@@ -490,7 +490,6 @@ gpu::PipelinePointer DebugSubsurfaceScattering::getShowLUTPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
-        //gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
