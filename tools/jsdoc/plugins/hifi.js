@@ -24,8 +24,10 @@ exports.handlers = {
             '../../libraries/animation/src',
             '../../libraries/avatars/src',
             '../../libraries/controllers/src/controllers/',
+            '../../libraries/controllers/src/controllers/impl/',
             '../../libraries/graphics-scripting/src/graphics-scripting/',
             '../../libraries/entities/src',
+            '../../libraries/input-plugins/src/input-plugins',
             '../../libraries/model-networking/src/model-networking/',
             '../../libraries/octree/src',
             '../../libraries/networking/src',
@@ -34,6 +36,8 @@ exports.handlers = {
             '../../libraries/script-engine/src',
             '../../libraries/shared/src',
             '../../libraries/shared/src/shared',
+            '../../plugins/oculus/src',
+            '../../plugins/openvr/src',
         ];
         var exts = ['.h', '.cpp'];
 
