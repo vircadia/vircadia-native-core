@@ -64,6 +64,10 @@ signals:
     void contextOverlayClicked(const QUuid& currentEntityWithContextOverlay);
 
 public slots:
+    void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+
     bool createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
     bool destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
     bool destroyContextOverlay(const EntityItemID& entityItemID);
@@ -84,6 +88,8 @@ private:
     };
     bool _verboseLogging{ true };
     bool _enabled { true };
+    EntityItemID _mouseDownEntity{};
+    quint64 _mouseDownEntityTimestamp;
     EntityItemID _currentEntityWithContextOverlay{};
     EntityItemID _lastInspectedEntity{};
     QString _entityMarketplaceID;

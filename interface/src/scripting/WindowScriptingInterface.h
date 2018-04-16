@@ -33,8 +33,10 @@
  * @property {number} innerHeight - The height of the drawable area of the Interface window (i.e., without borders or other
  *     chrome), in pixels. <em>Read-only.</em>
  * @property {object} location - Provides facilities for working with your current metaverse location. See {@link location}.
- * @property {number} x - The x coordinate of the top left corner of the Interface window on the display. <em>Read-only.</em>
- * @property {number} y - The y coordinate of the top left corner of the Interface window on the display. <em>Read-only.</em>
+ * @property {number} x - The x display coordinate of the top left corner of the drawable area of the Interface window. 
+ *     <em>Read-only.</em>
+ * @property {number} y - The y display coordinate of the top left corner of the drawable area of the Interface window. 
+ *     <em>Read-only.</em>
  */
 
 class WindowScriptingInterface : public QObject, public Dependency {
@@ -62,14 +64,22 @@ public slots:
     QScriptValue hasFocus();
 
     /**jsdoc
-     * Make the Interface window have focus.
+     * Make the Interface window have focus. On Windows, if Interface doesn't already have focus, the task bar icon flashes to 
+     * indicate that Interface wants attention but focus isn't taken away from the application that the user is using.
      * @function Window.setFocus
      */
     void setFocus();
 
     /**jsdoc
-     * Raise the Interface window if it is minimized, and give it focus.
+     * Raise the Interface window if it is minimized. If raised, the window gains focus.
+     * @function Window.raise
+     */
+    void raise();
+
+    /**jsdoc
+     * Raise the Interface window if it is minimized. If raised, the window gains focus.
      * @function Window.raiseMainWindow
+     * @deprecated Use {@link Window.raise|raise} instead.
      */
     void raiseMainWindow();
 
@@ -179,7 +189,6 @@ public slots:
      * Prompt the user to choose a file. Displays a non-modal dialog that navigates the directory tree. A
      * {@link Window.browseChanged|browseChanged} signal is emitted when a file is chosen; no signal is emitted if the user
      * cancels the dialog.
-     * @deprecated A deprecated {@link Window.openFileChanged|openFileChanged} signal is also emitted when a file is chosen.
      * @function Window.browseAsync
      * @param {string} title="" - The title to display at the top of the dialog.
      * @param {string} directory="" - The initial directory to start browsing at.
@@ -515,6 +524,7 @@ public slots:
     void closeMessageBox(int id);
 
 private slots:
+    void onWindowGeometryChanged(const QRect& geometry);
     void onMessageBoxSelected(int button);
     void disconnectedFromDomain();
 
@@ -524,7 +534,7 @@ signals:
      * Triggered when you change the domain you're visiting. <strong>Warning:</strong> Is not emitted if you go to domain that 
      * isn't running.
      * @function Window.domainChanged
-     * @param {string} domain - The domain's IP address.
+     * @param {string} domainURL - The domain's URL.
      * @returns {Signal}
      * @example <caption>Report when you change domains.</caption>
      * function onDomainChanged(domain) {
@@ -533,7 +543,7 @@ signals:
      *
      * Window.domainChanged.connect(onDomainChanged);
      */
-    void domainChanged(const QString& domain);
+    void domainChanged(QUrl domainURL);
 
     /**jsdoc
      * Triggered when you try to navigate to a *.json, *.svo, or *.svo.json URL in a Web browser within Interface.
@@ -659,15 +669,6 @@ signals:
      * @returns {Signal}
      */
     void browseChanged(QString filename);
-
-    /**jsdoc
-     * Triggered when the user chooses a file in a {@link Window.browseAsync|browseAsync} dialog.
-     * @function Window.openFileChanged
-     * @deprecated This signal is being replaced with {@link Window.browseChanged|browseChanged} and will be removed.
-     * @param {string} filename - The path and name of the file the user chose in the dialog.
-     * @returns {Signal}
-     */
-    void openFileChanged(QString filename);
 
     /**jsdoc
      * Triggered when the user OKs a {@link Window.promptAsync|promptAsync} dialog.

@@ -51,7 +51,7 @@ WindowScriptingInterface::WindowScriptingInterface() {
         }
     });
 
-    connect(qApp->getWindow(), &MainWindow::windowGeometryChanged, this, &WindowScriptingInterface::geometryChanged);
+    connect(qApp->getWindow(), &MainWindow::windowGeometryChanged, this, &WindowScriptingInterface::onWindowGeometryChanged);
 }
 
 WindowScriptingInterface::~WindowScriptingInterface() {
@@ -74,17 +74,19 @@ QScriptValue WindowScriptingInterface::hasFocus() {
 void WindowScriptingInterface::setFocus() {
     // It's forbidden to call focus() from another thread.
     qApp->postLambdaEvent([] {
-        auto window = qApp->getWindow();
-        window->activateWindow();
-        window->setFocus();
+        qApp->setFocus();
+    });
+}
+
+void WindowScriptingInterface::raise() {
+    // It's forbidden to call raise() from another thread.
+    qApp->postLambdaEvent([] {
+        qApp->raise();
     });
 }
 
 void WindowScriptingInterface::raiseMainWindow() {
-    // It's forbidden to call raise() from another thread.
-    qApp->postLambdaEvent([] {
-        qApp->getWindow()->raise();
-    });
+    raise();
 }
 
 /// Display an alert box
@@ -126,7 +128,7 @@ void WindowScriptingInterface::promptAsync(const QString& message, const QString
 }
 
 void WindowScriptingInterface::disconnectedFromDomain() {
-    emit domainChanged("");
+    emit domainChanged(QUrl());
 }
 
 QString fixupPathForMac(const QString& directory) {
@@ -259,7 +261,6 @@ void WindowScriptingInterface::browseAsync(const QString& title, const QString& 
             setPreviousBrowseLocation(QFileInfo(result).absolutePath());
         }
         emit browseChanged(result);
-        emit openFileChanged(result); // Deprecated signal; to be removed in due course.
     });
 }
 
@@ -389,11 +390,22 @@ glm::vec2 WindowScriptingInterface::getDeviceSize() const {
 }
 
 int WindowScriptingInterface::getX() {
-    return qApp->getWindow()->x();
+    return qApp->getWindow()->geometry().x();
 }
 
 int WindowScriptingInterface::getY() {
-    return qApp->getWindow()->y();
+    auto menu = qApp->getPrimaryMenu();
+    int menuHeight = menu ? menu->geometry().height() : 0;
+    return qApp->getWindow()->geometry().y() + menuHeight;
+}
+
+void WindowScriptingInterface::onWindowGeometryChanged(const QRect& windowGeometry) {
+    auto geometry = windowGeometry;
+    auto menu = qApp->getPrimaryMenu();
+    if (menu) {
+        geometry.setY(geometry.y() + menu->geometry().height());
+    }
+    emit geometryChanged(geometry);
 }
 
 void WindowScriptingInterface::copyToClipboard(const QString& text) {

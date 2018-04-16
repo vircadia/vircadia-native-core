@@ -9,7 +9,8 @@
 //
 
 /* global Tablet, Script, HMD, UserActivityLogger, Entities, Account, Wallet, ContextOverlay, Settings, Camera, Vec3,
-   Quat, MyAvatar, Clipboard, Menu, Grid, Uuid, GlobalServices, openLoginWindow */
+   Quat, MyAvatar, Clipboard, Menu, Grid, Uuid, GlobalServices, openLoginWindow, Overlays, SoundCache,
+   DesktopPreviewProvider */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 var selectionDisplay = null; // for gridTool.js to ignore
@@ -86,12 +87,23 @@ var selectionDisplay = null; // for gridTool.js to ignore
     }
 
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var NORMAL_ICON = "icons/tablet-icons/market-i.svg";
+    var NORMAL_ACTIVE = "icons/tablet-icons/market-a.svg";
+    var WAITING_ICON = "icons/tablet-icons/market-i-msg.svg";
+    var WAITING_ACTIVE = "icons/tablet-icons/market-a-msg.svg";
     var marketplaceButton = tablet.addButton({
-        icon: "icons/tablet-icons/market-i.svg",
-        activeIcon: "icons/tablet-icons/market-a.svg",
+        icon: NORMAL_ICON,
+        activeIcon: NORMAL_ACTIVE,
         text: "MARKET",
         sortOrder: 9
     });
+
+    function messagesWaiting(isWaiting) {
+        marketplaceButton.editProperties({
+            icon: (isWaiting ? WAITING_ICON : NORMAL_ICON),
+            activeIcon: (isWaiting ? WAITING_ACTIVE : NORMAL_ACTIVE)
+        });
+    }
 
     function onCanWriteAssetsChanged() {
         var message = CAN_WRITE_ASSETS + " " + Entities.canWriteAssets();
@@ -115,20 +127,42 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var filterText; // Used for updating Purchases QML
 
     var onWalletScreen = false;
+    var onCommerceScreen = false;
+    var tabletShouldBeVisibleInSecondaryCamera = false;
+
+    function setTabletVisibleInSecondaryCamera(visibleInSecondaryCam) {
+        if (visibleInSecondaryCam) {
+            // if we're potentially showing the tablet, only do so if it was visible before
+            if (!tabletShouldBeVisibleInSecondaryCamera) {
+                return;
+            }
+        } else {
+            // if we're hiding the tablet, check to see if it was visible in the first place
+            tabletShouldBeVisibleInSecondaryCamera = Overlays.getProperty(HMD.tabletID, "isVisibleInSecondaryCamera");
+        }
+
+        Overlays.editOverlay(HMD.tabletID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
+        Overlays.editOverlay(HMD.homeButtonID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
+        Overlays.editOverlay(HMD.homeButtonHighlightIDtabletID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
+        Overlays.editOverlay(HMD.tabletScreenID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
+    }
+
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
         var onWalletScreenNow = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
-        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
+        var onCommerceScreenNow = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
             || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
 
-        if (!onWalletScreenNow && onWalletScreen) { // exiting wallet screen
+        if ((!onWalletScreenNow && onWalletScreen) || (!onCommerceScreenNow && onCommerceScreen)) { // exiting wallet or commerce screen
             if (isHmdPreviewDisabledBySecurity) {
                 DesktopPreviewProvider.setPreviewDisabledReason("USER");
                 Menu.setIsOptionChecked("Disable Preview", false);
+                setTabletVisibleInSecondaryCamera(true);
                 isHmdPreviewDisabledBySecurity = false;
             }
         }
 
+        onCommerceScreen = onCommerceScreenNow;
         onWalletScreen = onWalletScreenNow;
         wireEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
 
@@ -175,6 +209,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
         }
     }
 
+    var userHasUpdates = false;
     function sendCommerceSettings() {
         tablet.emitScriptEvent(JSON.stringify({
             type: "marketplaces",
@@ -183,7 +218,8 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 commerceMode: Settings.getValue("commerce", true),
                 userIsLoggedIn: Account.loggedIn,
                 walletNeedsSetup: Wallet.walletStatus === 1,
-                metaverseServerURL: Account.metaverseServerURL
+                metaverseServerURL: Account.metaverseServerURL,
+                messagesWaiting: userHasUpdates
             }
         }));
     }
@@ -242,7 +278,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
         var wearableDimensions = null;
 
         if (itemType === "contentSet") {
-            console.log("Item is a content set; codepath shouldn't go here.")
+            console.log("Item is a content set; codepath shouldn't go here.");
             return;
         }
 
@@ -560,6 +596,10 @@ var selectionDisplay = null; // for gridTool.js to ignore
             case 'purchases_goToMarketplaceClicked':
                 tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
+            case 'updateItemClicked':
+                tablet.gotoWebScreen(message.upgradeUrl + "?edition=" + message.itemEdition,
+                    MARKETPLACES_INJECT_SCRIPT_URL);
+                break;
             case 'passphrasePopup_cancelClicked':
             case 'needsLogIn_cancelClicked':
                 tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
@@ -572,6 +612,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 if (!isHmdPreviewDisabled) {
                     DesktopPreviewProvider.setPreviewDisabledReason("SECURE_SCREEN");
                     Menu.setIsOptionChecked("Disable Preview", true);
+                    setTabletVisibleInSecondaryCamera(false);
                     isHmdPreviewDisabledBySecurity = true;
                 }
                 break;
@@ -579,6 +620,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 if (isHmdPreviewDisabledBySecurity) {
                     DesktopPreviewProvider.setPreviewDisabledReason("USER");
                     Menu.setIsOptionChecked("Disable Preview", false);
+                    setTabletVisibleInSecondaryCamera(true);
                     isHmdPreviewDisabledBySecurity = false;
                 }
                 break;
@@ -611,6 +653,11 @@ var selectionDisplay = null; // for gridTool.js to ignore
             case 'disable_ChooseRecipientNearbyMode':
             case 'sendMoney_sendPublicly':
                 // NOP
+                break;
+            case 'wallet_availableUpdatesReceived':
+            case 'purchases_availableUpdatesReceived':
+                userHasUpdates = message.numUpdates > 0;
+                messagesWaiting(userHasUpdates);
                 break;
             default:
                 print('Unrecognized message from Checkout.qml or Purchases.qml: ' + JSON.stringify(message));

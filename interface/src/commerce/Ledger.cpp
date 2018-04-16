@@ -35,12 +35,19 @@ QJsonObject Ledger::apiResponse(const QString& label, QNetworkReply& reply) {
 QJsonObject Ledger::failResponse(const QString& label, QNetworkReply& reply) {
     QString response = reply.readAll();
     qWarning(commerce) << "FAILED" << label << response;
-    QJsonObject result
-    {
-        { "status", "fail" },
-        { "message", response }
-    };
-    return result;
+
+    // tempResult will be NULL if the response isn't valid JSON.
+    QJsonDocument tempResult = QJsonDocument::fromJson(response.toLocal8Bit());
+    if (tempResult.isNull()) {
+        QJsonObject result
+        {
+            { "status", "fail" },
+            { "message", response }
+        };
+        return result;
+    } else {
+        return tempResult.object();
+    }
 }
 #define ApiHandler(NAME) void Ledger::NAME##Success(QNetworkReply& reply) { emit NAME##Result(apiResponse(#NAME, reply)); }
 #define FailHandler(NAME) void Ledger::NAME##Failure(QNetworkReply& reply) { emit NAME##Result(failResponse(#NAME, reply)); }
@@ -52,6 +59,8 @@ Handler(inventory)
 Handler(transferHfcToNode)
 Handler(transferHfcToUsername)
 Handler(alreadyOwned)
+Handler(availableUpdates)
+Handler(updateItem)
 
 void Ledger::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request) {
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -80,9 +89,13 @@ void Ledger::signedSend(const QString& propertyName, const QByteArray& text, con
 
 void Ledger::keysQuery(const QString& endpoint, const QString& success, const QString& fail, QJsonObject& requestParams) {
     auto wallet = DependencyManager::get<Wallet>();
-    requestParams["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
-
-    send(endpoint, success, fail, QNetworkAccessManager::PostOperation, AccountManagerAuth::Required, requestParams);
+    QStringList cachedPublicKeys = wallet->listPublicKeys();
+    if (!cachedPublicKeys.isEmpty()) {
+        requestParams["public_keys"] = QJsonArray::fromStringList(cachedPublicKeys);
+        send(endpoint, success, fail, QNetworkAccessManager::PostOperation, AccountManagerAuth::Required, requestParams);
+    } else {
+        qDebug(commerce) << "User attempted to call keysQuery, but cachedPublicKeys was empty!";
+    }
 }
 
 void Ledger::keysQuery(const QString& endpoint, const QString& success, const QString& fail) {
@@ -287,7 +300,7 @@ void Ledger::account() {
 // The api/failResponse is called just for the side effect of logging.
 void Ledger::updateLocationSuccess(QNetworkReply& reply) { apiResponse("updateLocation", reply); }
 void Ledger::updateLocationFailure(QNetworkReply& reply) { failResponse("updateLocation", reply); }
-void Ledger::updateLocation(const QString& asset_id, const QString location, const bool controlledFailure) {
+void Ledger::updateLocation(const QString& asset_id, const QString& location, const bool& alsoUpdateSiblings, const bool controlledFailure) {
     auto wallet = DependencyManager::get<Wallet>();
     auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
     uint walletStatus = walletScriptingInterface->getWalletStatus();
@@ -296,14 +309,21 @@ void Ledger::updateLocation(const QString& asset_id, const QString location, con
         emit walletScriptingInterface->walletNotSetup();
         qDebug(commerce) << "User attempted to update the location of a certificate, but their wallet wasn't ready. Status:" << walletStatus;
     } else {
-        QStringList keys = wallet->listPublicKeys();
-        QString key = keys[0];
-        QJsonObject transaction;
-        transaction["certificate_id"] = asset_id;
-        transaction["place_name"] = location;
-        QJsonDocument transactionDoc{ transaction };
-        auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
-        signedSend("transaction", transactionString, key, "location", "updateLocationSuccess", "updateLocationFailure", controlledFailure);
+        QStringList cachedPublicKeys = wallet->listPublicKeys();
+        if (!cachedPublicKeys.isEmpty()) {
+            QString key = cachedPublicKeys[0];
+            QJsonObject transaction;
+            transaction["certificate_id"] = asset_id;
+            transaction["place_name"] = location;
+            if (alsoUpdateSiblings) {
+                transaction["also_update_siblings"] = true;
+            }
+            QJsonDocument transactionDoc{ transaction };
+            auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+            signedSend("transaction", transactionString, key, "location", "updateLocationSuccess", "updateLocationFailure", controlledFailure);
+        } else {
+            qDebug(commerce) << "User attempted to update the location of a certificate, but cachedPublicKeys was empty!";
+        }
     }
 }
 
@@ -324,7 +344,9 @@ void Ledger::certificateInfoSuccess(QNetworkReply& reply) {
     qInfo(commerce) << "certificateInfo" << "response" << QJsonDocument(replyObject).toJson(QJsonDocument::Compact);
     emit certificateInfoResult(replyObject);
 }
-void Ledger::certificateInfoFailure(QNetworkReply& reply) { failResponse("certificateInfo", reply); }
+void Ledger::certificateInfoFailure(QNetworkReply& reply) {
+    emit certificateInfoResult(failResponse("certificateInfo", reply));
+}
 void Ledger::certificateInfo(const QString& certificateId) {
     QString endpoint = "proof_of_purchase_status/transfer";
     QJsonObject request;
@@ -359,7 +381,32 @@ void Ledger::alreadyOwned(const QString& marketplaceId) {
     auto wallet = DependencyManager::get<Wallet>();
     QString endpoint = "already_owned";
     QJsonObject request;
+    QStringList cachedPublicKeys = wallet->listPublicKeys();
+    if (!cachedPublicKeys.isEmpty()) {
+        request["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
+        request["marketplace_item_id"] = marketplaceId;
+        send(endpoint, "alreadyOwnedSuccess", "alreadyOwnedFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
+    } else {
+        qDebug(commerce) << "User attempted to use the alreadyOwned endpoint, but cachedPublicKeys was empty!";
+    }
+}
+
+void Ledger::getAvailableUpdates(const QString& itemId) {
+    auto wallet = DependencyManager::get<Wallet>();
+    QString endpoint = "available_updates";
+    QJsonObject request;
     request["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
-    request["marketplace_item_id"] = marketplaceId;
-    send(endpoint, "alreadyOwnedSuccess", "alreadyOwnedFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
+    if (!itemId.isEmpty()) {
+        request["marketplace_item_id"] = itemId;
+    }
+    send(endpoint, "availableUpdatesSuccess", "availableUpdatesFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
+}
+
+void Ledger::updateItem(const QString& hfc_key, const QString& certificate_id) {
+    QJsonObject transaction;
+    transaction["public_key"] = hfc_key;
+    transaction["certificate_id"] = certificate_id;
+    QJsonDocument transactionDoc{ transaction };
+    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+    signedSend("transaction", transactionString, hfc_key, "update_item", "updateItemSuccess", "updateItemFailure");
 }

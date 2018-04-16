@@ -128,6 +128,7 @@ namespace controller {
             makeButtonPair(Action::TOGGLE_MUTE, "ToggleMute"),
             makeButtonPair(Action::CYCLE_CAMERA, "CycleCamera"),
             makeButtonPair(Action::TOGGLE_OVERLAY, "ToggleOverlay"),
+            makeButtonPair(Action::SPRINT, "Sprint"),
 
             makeAxisPair(Action::RETICLE_CLICK, "ReticleClick"),
             makeAxisPair(Action::RETICLE_X, "ReticleX"),
@@ -183,6 +184,7 @@ namespace controller {
             makeButtonPair(Action::ACTION2, "ACTION2"),
             makeButtonPair(Action::CONTEXT_MENU, "CONTEXT_MENU"),
             makeButtonPair(Action::TOGGLE_MUTE, "TOGGLE_MUTE"),
+            makeButtonPair(Action::SPRINT, "SPRINT")
         };
         return availableInputs;
     }

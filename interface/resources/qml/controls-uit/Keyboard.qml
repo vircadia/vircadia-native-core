@@ -26,15 +26,17 @@ Rectangle {
 
     readonly property int keyboardRowHeight: 50
     readonly property int keyboardWidth: 480
+    readonly property int keyboardHeight: 200
 
     readonly property int mirrorTextHeight: keyboardRowHeight
 
     property bool password: false
     property alias mirroredText: mirrorText.text
     property bool showMirrorText: true
-    readonly property int raisedHeight: 200
 
-    height: enabled && raised ? raisedHeight + (showMirrorText ? keyboardRowHeight : 0) : 0
+    readonly property int raisedHeight: keyboardHeight + (showMirrorText ? keyboardRowHeight : 0)
+
+    height: enabled && raised ? raisedHeight : 0
     visible: enabled && raised
 
     property bool shiftMode: false
@@ -125,8 +127,7 @@ Rectangle {
         TextInput {
             id: mirrorText
             visible: showMirrorText
-            FontLoader { id: font; source: "../../fonts/FiraSans-Regular.ttf"; }
-            font.family: font.name
+            font.family: "Fira Sans"
             font.pixelSize: 20
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
@@ -159,18 +160,16 @@ Rectangle {
         id: keyboardRect
         y: showMirrorText ? mirrorTextHeight : 0
         width: keyboardWidth
-        height: raisedHeight
+        height: keyboardHeight
         color: "#252525"
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 0
 
-        FontLoader { id: hiFiGlyphs; source: pathToFonts + "fonts/hifi-glyphs.ttf"; }
-
         Column {
             id: columnAlpha
             width: keyboardWidth
-            height: raisedHeight
+            height: keyboardHeight
             visible: !numeric
 
             Row {
@@ -250,7 +249,7 @@ Rectangle {
                 Key { width: 43; glyph: ","; }
                 Key { width: 43; glyph: "."; }
                 Key {
-                    fontFamily: hiFiGlyphs.name;
+                    fontFamily: "hifi-glyphs";
                     fontPixelSize: 48;
                     letterAnchors.topMargin: -4;
                     verticalAlignment: Text.AlignVCenter;
@@ -262,7 +261,7 @@ Rectangle {
         Column {
             id: columnNumeric
             width: keyboardWidth
-            height: raisedHeight
+            height: keyboardHeight
             visible: numeric
 
             Row {
@@ -343,7 +342,7 @@ Rectangle {
                 Key { width: 43; glyph: ","; }
                 Key { width: 43; glyph: "."; }
                 Key {
-                    fontFamily: hiFiGlyphs.name;
+                    fontFamily: "hifi-glyphs";
                     fontPixelSize: 48;
                     letterAnchors.topMargin: -4;
                     verticalAlignment: Text.AlignVCenter;

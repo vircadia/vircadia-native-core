@@ -267,6 +267,11 @@ protected:
 
     int _rootJointIndex { -1 };
 
+    int _leftEyeJointIndex { -1 };
+    int _rightEyeJointIndex { -1 };
+    std::vector<int> _leftEyeJointChildren;
+    std::vector<int> _rightEyeJointChildren;
+
     int _leftHandJointIndex { -1 };
     int _leftElbowJointIndex { -1 };
     int _leftShoulderJointIndex { -1 };

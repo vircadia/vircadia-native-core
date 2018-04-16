@@ -16,10 +16,11 @@ import "../js/Utils.js" as Utils
 
 Item {
     id: frame
+    objectName: "Frame"
     HifiConstants { id: hifi }
 
     default property var decoration
-
+    property string qmlFile: "N/A"
     property bool gradientsSupported: desktop.gradientsSupported
 
     readonly property int frameMarginLeft: frame.decoration ? frame.decoration.frameMarginLeft : 0
@@ -43,7 +44,8 @@ Item {
     Text {
         id: debugZ
         visible: DebugQML
-        text: window ? "Z: " + window.z : ""
+        color: "red"
+        text: (window ? "Z: " + window.z : "") + " " + qmlFile
         y: window ? window.height + 4 : 0
     }
 

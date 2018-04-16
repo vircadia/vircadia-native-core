@@ -10,7 +10,6 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 
 import "../../styles-uit"
@@ -70,6 +69,14 @@ Rectangle {
 
             onAccepted: {
                 newModelDialog.keyboardEnabled = false;
+            }
+
+            onTextChanged : {
+                if (modelURL.text.length === 0){
+                    button1.enabled = false;
+                } else {
+                    button1.enabled = true;
+                }
             }
             
             MouseArea {
@@ -200,6 +207,7 @@ Rectangle {
                         id: button1
                         text: qsTr("Add")
                         z: -1
+                        enabled: false
                         onClicked: {
                             newModelDialog.sendToScript({
                                 method: "newModelDialogAdd",

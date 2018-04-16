@@ -8,8 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
-import QtQuick.Controls 1.4
+import QtQuick 2.7
+import QtQuick.Controls 2.3
+import QtQuick.Controls 1.5 as QQC1
 
 import "../../controls-uit"
 import "../../styles-uit"
@@ -345,9 +346,6 @@ Item {
             itemDelegate: Item {
                 clip: true
 
-                FontLoader { id: firaSansSemiBold; source: "../../../fonts/FiraSans-SemiBold.ttf"; }
-                FontLoader { id: firaSansRegular; source: "../../../fonts/FiraSans-Regular.ttf"; }
-
                 FiraSansSemiBold {
                     text: styleData.value
                     elide: styleData.elideMode
@@ -361,11 +359,11 @@ Item {
                     size: hifi.fontSizes.tableText
                     color: hifi.colors.baseGrayHighlight
                     font.family: (styleData.row !== -1 && assetTableView.model.get(styleData.row).fileIsDir)
-                        ? firaSansSemiBold.name : firaSansRegular.name
+                        ? "Fira Sans SemiBold" : "Fira Sans"
                 }
             }
 
-            TableViewColumn {
+            QQC1.TableViewColumn {
                 id: fileNameColumn
                 role: "fileName"
                 title: "Name"

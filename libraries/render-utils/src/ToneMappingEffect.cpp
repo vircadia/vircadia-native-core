@@ -57,12 +57,18 @@ void ToneMappingEffect::setToneCurve(ToneCurve curve) {
     }
 }
 
-void ToneMappingEffect::render(RenderArgs* args, const gpu::TexturePointer& lightingBuffer, const gpu::FramebufferPointer& destinationFramebuffer) {
+void ToneMappingEffect::render(RenderArgs* args, const gpu::TexturePointer& lightingBuffer, const gpu::FramebufferPointer& requestedDestinationFramebuffer) {
     if (!_blitLightBuffer) {
         init();
     }
+
+    auto destinationFramebuffer = requestedDestinationFramebuffer;
+    if (!destinationFramebuffer) {
+        destinationFramebuffer = args->_blitFramebuffer;
+    }
+
     auto framebufferSize = glm::ivec2(lightingBuffer->getDimensions());
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("ToneMappingEffect::render", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setFramebuffer(destinationFramebuffer);
 

@@ -299,7 +299,7 @@ public:
      * (such as look at vectors, hand sensors etc.). Each animation specified in the avatar-animation.json file is known as an animation role.
      * Animation roles map to easily understandable actions that the avatar can perform, such as "idleStand", "idleTalk", or "walkFwd."
      * getAnimationRoles() is used get the list of animation roles defined in the avatar-animation.json.
-     * @function MyAvatar.getAnimatationRoles
+     * @function MyAvatar.getAnimationRoles
      * @example <caption>This example prints the list of animation roles defined in the avatar's avatar-animation.json file to the debug log.</caption>
      * var roles = MyAvatar.getAnimationRoles();
      * print("Animation Roles:");
@@ -346,7 +346,7 @@ public:
      * restoreRoleAnimation() is used to restore a specified animation role's default animation clip. If you have not specified an override animation
      * for the specified role, this function will have no effect.
      * @function MyAvatar.restoreRoleAnimation
-     * @param rule {string} The animation role clip to restore
+     * @param role {string} The animation role clip to restore
      */
     Q_INVOKABLE void restoreRoleAnimation(const QString& role);
 
@@ -395,6 +395,7 @@ public:
     //  Set what driving keys are being pressed to control thrust levels
     void clearDriveKeys();
     void setDriveKey(DriveKeys key, float val);
+    void setSprintMode(bool sprint);
     float getDriveKey(DriveKeys key) const;
     Q_INVOKABLE float getRawDriveKey(DriveKeys key) const;
     void relayDriveKeysToCharacterController();
@@ -402,6 +403,32 @@ public:
     Q_INVOKABLE void disableDriveKey(DriveKeys key);
     Q_INVOKABLE void enableDriveKey(DriveKeys key);
     Q_INVOKABLE bool isDriveKeyDisabled(DriveKeys key) const;
+
+    /**jsdoc
+    *The triggerVerticalRecenter function activates one time the recentering 
+    *behaviour in the vertical direction. This call is only takes effect when the property
+    *MyAvatar.hmdLeanRecenterEnabled is set to false.
+    *@function MyAvatar.triggerVerticalRecenter
+    *
+    */
+
+    /**jsdoc
+    *The triggerHorizontalRecenter function activates one time the recentering behaviour
+    *in the horizontal direction. This call is only takes effect when the property
+    *MyAvatar.hmdLeanRecenterEnabled is set to false.
+    *@function MyAvatar.triggerHorizontalRecenter
+    */
+
+    /**jsdoc
+    *The triggerRotationRecenter function activates one time the recentering behaviour
+    *in the rotation of the root of the avatar. This call is only takes effect when the property
+    *MyAvatar.hmdLeanRecenterEnabled is set to false.
+    *@function MyAvatar.triggerRotationRecenter
+    */
+
+    Q_INVOKABLE void triggerVerticalRecenter();
+    Q_INVOKABLE void triggerHorizontalRecenter();
+    Q_INVOKABLE void triggerRotationRecenter();
 
     eyeContactTarget getEyeContactTarget();
 
@@ -681,8 +708,6 @@ private:
     // These are made private for MyAvatar so that you will use the "use" methods instead
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
-    void setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visiblity);
-
     virtual void updatePalms() override {}
     void lateUpdatePalms();
 
@@ -804,6 +829,15 @@ private:
         bool shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput);
         glm::mat4 postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
+        bool getForceActivateRotation() const;
+        void setForceActivateRotation(bool val);
+        bool getForceActivateVertical() const;
+        void setForceActivateVertical(bool val);
+        bool getForceActivateHorizontal() const;
+        void setForceActivateHorizontal(bool val);
+        std::atomic<bool> _forceActivateRotation{ false };
+        std::atomic<bool> _forceActivateVertical{ false };
+        std::atomic<bool> _forceActivateHorizontal{ false };
     };
     FollowHelper _follow;
 
@@ -838,7 +872,9 @@ private:
     std::map<controller::Action, controller::Pose> _controllerPoseMap;
     mutable std::mutex _controllerPoseMapMutex;
 
-    bool _hmdLeanRecenterEnabled = true;
+    bool _hmdLeanRecenterEnabled { true };
+    bool _sprint { false };
+
     AnimPose _prePhysicsRoomPose;
     std::mutex _holdActionsMutex;
     std::vector<AvatarActionHold*> _holdActions;
@@ -868,6 +904,7 @@ private:
 
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
+    float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

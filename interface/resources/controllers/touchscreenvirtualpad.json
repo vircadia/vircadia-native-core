@@ -1,0 +1,29 @@
+{
+    "name": "TouchscreenVirtualPad to Actions",
+    "channels": [
+        { "from": "TouchscreenVirtualPad.LY", "when": "!Application.CameraIndependent", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Actions.TranslateZ" },
+
+        { "from": "TouchscreenVirtualPad.LX", "when": "!Application.CameraIndependent", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Actions.TranslateX" },
+
+        { "from": "TouchscreenVirtualPad.JUMP_BUTTON_PRESS", "when": "!Application.CameraIndependent", "to": "Actions.VERTICAL_UP" },
+
+        { "from": "TouchscreenVirtualPad.RX",  "when": "!Application.CameraIndependent",
+            "filters": [
+                { "type": "deadZone", "min": 0.000 },
+                { "type": "scale", "scale": 0.06 },
+                "invert"
+            ],
+            "to": "Actions.Yaw"
+		},
+
+        { "from": "TouchscreenVirtualPad.RY",  "when": "!Application.CameraIndependent",
+            "filters": [
+                { "type": "deadZone", "min": 0.000 },
+                { "type": "scale", "scale": 0.06 },
+                "invert"
+            ],
+            "to": "Actions.Pitch"
+        }
+
+    ]
+}

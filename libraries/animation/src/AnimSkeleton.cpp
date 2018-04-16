@@ -78,6 +78,20 @@ int AnimSkeleton::getParentIndex(int jointIndex) const {
     return _joints[jointIndex].parentIndex;
 }
 
+std::vector<int> AnimSkeleton::getChildrenOfJoint(int jointIndex) const {
+    // Children and grandchildren, etc.
+    std::vector<int> result;
+    if (jointIndex != -1) {
+        for (int i = jointIndex + 1; i < (int)_joints.size(); i++) {
+            if (_joints[i].parentIndex == jointIndex 
+                    || (std::find(result.begin(), result.end(), _joints[i].parentIndex) != result.end())) {
+                result.push_back(i);
+            }
+        }
+    }
+    return result;
+}
+
 const QString& AnimSkeleton::getJointName(int jointIndex) const {
     return _joints[jointIndex].name;
 }

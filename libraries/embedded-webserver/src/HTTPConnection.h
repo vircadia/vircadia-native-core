@@ -72,8 +72,8 @@ public:
     /// Returns a reference to the request URL.
     const QUrl& requestUrl () const { return _requestUrl; }
 
-    /// Returns a reference to the request headers.
-    const Headers& requestHeaders () const { return _requestHeaders; }
+    /// Returns a copy of the request header value. If it does not exist, it will return a default constructed QByteArray.
+    QByteArray requestHeader(const QString& key) const { return _requestHeaders.value(key.toLower().toLocal8Bit()); }
 
     /// Returns a reference to the request content.
     const QByteArray& requestContent () const { return _requestContent; }

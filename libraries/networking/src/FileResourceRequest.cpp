@@ -17,8 +17,11 @@
 
 #include <StatTracker.h>
 #include <shared/FileUtils.h>
+#include <PathUtils.h>
 
+#include "NetworkLogging.h"
 #include "ResourceManager.h"
+#include "NetworkingConstants.h"
 
 void FileResourceRequest::doSend() {
     auto statTracker = DependencyManager::get<StatTracker>();
@@ -28,7 +31,7 @@ void FileResourceRequest::doSend() {
     if (_url.scheme() == URL_SCHEME_QRC) {
         filename = ":/" + _url.path();
     } else {
-        filename = _url.toLocalFile();
+        filename = PathUtils::expandToLocalDataAbsolutePath(_url).toLocalFile();
         // sometimes on windows, we see the toLocalFile() return null,
         // in this case we will attempt to simply use the url as a string
         if (filename.isEmpty()) {
@@ -38,9 +41,15 @@ void FileResourceRequest::doSend() {
 
 
     // Allow platform specific versions of files loaded out of a resource cache via file://
-    QFileSelector fileSelector;
-    fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
-    filename = fileSelector.select(filename);
+    {
+        QString originalFilename = filename;
+        QFileSelector fileSelector;
+        fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
+        filename = fileSelector.select(filename);
+        if (filename != originalFilename) {
+            qCDebug(resourceLog) << "Using" << filename << "instead of" << originalFilename;
+        }
+    }
 
     if (!_byteRange.isValid()) {
         _result = ResourceRequest::InvalidByteRange;

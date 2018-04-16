@@ -58,6 +58,9 @@ using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElemen
 #define debugTimeOnly(T) qPrintable(QString("%1").arg(T, 16, 10))
 #define debugTreeVector(V) V << "[" << V << " in meters ]"
 
+const uint64_t MAX_OUTGOING_SIMULATION_UPDATE_PERIOD = 9 * USECS_PER_SECOND;
+const uint64_t MAX_INCOMING_SIMULATION_UPDATE_PERIOD = MAX_OUTGOING_SIMULATION_UPDATE_PERIOD + USECS_PER_SECOND;
+
 class MeshProxyList;
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
@@ -159,7 +162,7 @@ public:
 
     virtual bool supportsDetailedRayIntersection() const { return false; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance,
+                         OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const { return true; }
 
@@ -274,6 +277,10 @@ public:
 
     bool getVisible() const;
     void setVisible(bool value);
+
+    bool getCanCastShadow() const;
+    void setCanCastShadow(bool value);
+
     inline bool isVisible() const { return getVisible(); }
     inline bool isInvisible() const { return !getVisible(); }
 
@@ -300,14 +307,14 @@ public:
 
     // FIXME not thread safe?
     const SimulationOwner& getSimulationOwner() const { return _simulationOwner; }
-    void setSimulationOwner(const QUuid& id, quint8 priority);
+    void setSimulationOwner(const QUuid& id, uint8_t priority);
     void setSimulationOwner(const SimulationOwner& owner);
-    void promoteSimulationPriority(quint8 priority);
+    void promoteSimulationPriority(uint8_t priority);
 
-    quint8 getSimulationPriority() const { return _simulationOwner.getPriority(); }
+    uint8_t getSimulationPriority() const { return _simulationOwner.getPriority(); }
     QUuid getSimulatorID() const { return _simulationOwner.getID(); }
     void clearSimulationOwnership();
-    void setPendingOwnershipPriority(quint8 priority, const quint64& timestamp);
+    void setPendingOwnershipPriority(uint8_t priority, const quint64& timestamp);
     uint8_t getPendingOwnershipPriority() const { return _simulationOwner.getPendingPriority(); }
     void rememberHasSimulationOwnershipBid() const;
 
@@ -485,6 +492,9 @@ public:
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
     std::unordered_map<std::string, graphics::MultiMaterial> getMaterials();
 
+    void setSimulationOwnershipExpiry(uint64_t expiry) { _simulationOwnershipExpiry = expiry; }
+    uint64_t getSimulationOwnershipExpiry() const { return _simulationOwnershipExpiry; }
+
 signals:
     void requestRenderUpdate();
 
@@ -551,6 +561,7 @@ protected:
     glm::vec3 _registrationPoint { ENTITY_ITEM_DEFAULT_REGISTRATION_POINT };
     float _angularDamping { ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING };
     bool _visible { ENTITY_ITEM_DEFAULT_VISIBLE };
+    bool _canCastShadow{ ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
     bool _collisionless { ENTITY_ITEM_DEFAULT_COLLISIONLESS };
     uint8_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
     bool _dynamic { ENTITY_ITEM_DEFAULT_DYNAMIC };
@@ -614,9 +625,6 @@ protected:
     static quint64 _rememberDeletedActionTime;
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;
 
-    // per entity keep state if it ever bid on simulation, so that we can ignore false simulation ownership
-    mutable bool _hasBidOnSimulation { false };
-
     QUuid _sourceUUID; /// the server node UUID we came from
 
     bool _clientOnly { false };
@@ -637,6 +645,7 @@ protected:
     quint64 _lastUpdatedAngularVelocityTimestamp { 0 };
     quint64 _lastUpdatedAccelerationTimestamp { 0 };
     quint64 _lastUpdatedQueryAACubeTimestamp { 0 };
+    uint64_t _simulationOwnershipExpiry { 0 };
 
     bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
 

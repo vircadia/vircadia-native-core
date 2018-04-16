@@ -12,9 +12,9 @@
     Script.include("/~/system/libraries/utils.js");
     if (!String.prototype.startsWith) {
         String.prototype.startsWith = function(searchString, position){
-            position = position || 0;
-            return this.substr(position, searchString.length) === searchString;
-        };
+          position = position || 0;
+          return this.substr(position, searchString.length) === searchString;
+      };
     }
 
     var SETTING_KEY = "com.highfidelity.avatar.isSitting";
@@ -122,18 +122,8 @@
 
     this.rolesToOverride = function() {
         return MyAvatar.getAnimationRoles().filter(function(role) {
-            return !(role.startsWith("right") || role.startsWith("left"));
+           return !(role.startsWith("right") || role.startsWith("left"));
         });
-    }
-
-    // Handler for user changing the avatar model while sitting. There's currently an issue with changing avatar models while override role animations are applied,
-    // so to avoid that problem, re-apply the role overrides once the model has finished changing.
-    this.modelURLChangeFinished = function () {
-        print("Sitter's model has FINISHED changing. Reapply anim role overrides.");
-        var roles = this.rolesToOverride();
-        for (i in roles) {
-            MyAvatar.overrideRoleAnimation(roles[i], ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
-        }
     }
 
     this.sitDown = function() {
@@ -155,11 +145,11 @@
             MyAvatar.characterControllerEnabled = false;
             MyAvatar.hmdLeanRecenterEnabled = false;
             var roles = this.rolesToOverride();
-            for (i in roles) {
+            for (var i = 0; i < roles.length; i++) {
                 MyAvatar.overrideRoleAnimation(roles[i], ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
             }
 
-            for (var i in OVERRIDEN_DRIVE_KEYS) {
+          for (i = 0; i < OVERRIDEN_DRIVE_KEYS.length; i++) {
                 MyAvatar.disableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
             }
 
@@ -174,14 +164,12 @@
             return { headType: 0 };
         }, ["headType"]);
         Script.update.connect(this, this.update);
-        MyAvatar.onLoadComplete.connect(this, this.modelURLChangeFinished);
     }
 
     this.standUp = function() {
         print("Standing up (" + this.entityID + ")");
         MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
         Script.update.disconnect(this, this.update);
-        MyAvatar.onLoadComplete.disconnect(this, this.modelURLChangeFinished);
 
         if (MyAvatar.sessionUUID === this.getSeatUser()) {
             this.setSeatUser(null);
@@ -190,12 +178,12 @@
         if (Settings.getValue(SETTING_KEY) === this.entityID) {
             Settings.setValue(SETTING_KEY, "");
 
-            for (var i in OVERRIDEN_DRIVE_KEYS) {
+            for (var i = 0; i < OVERRIDEN_DRIVE_KEYS.length; i++) {
                 MyAvatar.enableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
             }
 
             var roles = this.rolesToOverride();
-            for (i in roles) {
+            for (i = 0; i < roles.length; i++) {
                 MyAvatar.restoreRoleAnimation(roles[i]);
             }
             MyAvatar.characterControllerEnabled = true;
@@ -272,7 +260,7 @@
             // Check if a drive key is pressed
             var hasActiveDriveKey = false;
             for (var i in OVERRIDEN_DRIVE_KEYS) {
-                if (MyAvatar.getRawDriveKey(OVERRIDEN_DRIVE_KEYS[i]) != 0.0) {
+                if (MyAvatar.getRawDriveKey(OVERRIDEN_DRIVE_KEYS[i]) !== 0.0) {
                     hasActiveDriveKey = true;
                     break;
                 }
@@ -343,7 +331,7 @@
         }
         this.cleanupOverlay();
     }
-    
+
     this.clickDownOnEntity = function (id, event) {
         if (isInEditMode()) {
             return;

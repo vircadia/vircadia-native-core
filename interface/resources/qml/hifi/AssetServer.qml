@@ -24,6 +24,7 @@ Windows.ScrollingWindow {
     objectName: "AssetServer"
     title: "Asset Browser"
     resizable: true
+    opacity: parent.opacity
     destroyOnHidden: true
     implicitWidth: 384; implicitHeight: 640
     minSize: Qt.vector2d(200, 300)
@@ -38,6 +39,7 @@ Windows.ScrollingWindow {
     property var assetMappingsModel: Assets.mappingModel;
     property var currentDirectory;
     property var selectedItemCount: treeView.selection.selectedIndexes.length;
+    property int updatesCount: 0; // this is used for notifying model-dependent bindings about model updates
 
     Settings {
         category: "Overlay.AssetServer"
@@ -50,6 +52,9 @@ Windows.ScrollingWindow {
         ApplicationInterface.uploadRequest.connect(uploadClicked);
         assetMappingsModel.errorGettingMappings.connect(handleGetMappingsError);
         assetMappingsModel.autoRefreshEnabled = true;
+        assetMappingsModel.updated.connect(function() {
+            ++updatesCount;
+        });
 
         reload();
     }
@@ -57,7 +62,7 @@ Windows.ScrollingWindow {
     Component.onDestruction: {
         assetMappingsModel.autoRefreshEnabled = false;
     }
-    
+
     function letterbox(headerGlyph, headerText, message) {
         letterboxMessage.headerGlyph = headerGlyph;
         letterboxMessage.headerText = headerText;
@@ -144,7 +149,7 @@ Windows.ScrollingWindow {
 
     function canAddToWorld(path) {
         var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i, /\.jpg\b/i, /\.png\b/i];
-        
+
         if (selectedItemCount > 1) {
             return false;
         }
@@ -153,8 +158,8 @@ Windows.ScrollingWindow {
             return total | new RegExp(current).test(path);
         }, false);
     }
-    
-    function canRename() {    
+
+    function canRename() {
         if (treeView.selection.hasSelection && selectedItemCount == 1) {
             return true;
         } else {
@@ -187,9 +192,10 @@ Windows.ScrollingWindow {
             var textures = JSON.stringify({ "tex.picture": defaultURL});
             var shapeType = "box";
             var dynamic = false;
+            var collisionless = true;
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getForward(MyAvatar.orientation)));
             var gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 0);
-            Entities.addModelEntity(name, modelURL, textures, shapeType, dynamic, position, gravity);
+            Entities.addModelEntity(name, modelURL, textures, shapeType, dynamic, collisionless, position, gravity);
         } else {
             var SHAPE_TYPE_NONE = 0;
             var SHAPE_TYPE_SIMPLE_HULL = 1;
@@ -197,7 +203,7 @@ Windows.ScrollingWindow {
             var SHAPE_TYPE_STATIC_MESH = 3;
             var SHAPE_TYPE_BOX = 4;
             var SHAPE_TYPE_SPHERE = 5;
-        
+
             var SHAPE_TYPES = [];
             SHAPE_TYPES[SHAPE_TYPE_NONE] = "No Collision";
             SHAPE_TYPES[SHAPE_TYPE_SIMPLE_HULL] = "Basic - Whole model";
@@ -205,7 +211,7 @@ Windows.ScrollingWindow {
             SHAPE_TYPES[SHAPE_TYPE_STATIC_MESH] = "Exact - All polygons";
             SHAPE_TYPES[SHAPE_TYPE_BOX] = "Box";
             SHAPE_TYPES[SHAPE_TYPE_SPHERE] = "Sphere";
-        
+
             var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_SIMPLE_COMPOUND;
             var DYNAMIC_DEFAULT = false;
             var prompt = desktop.customInputDialog({
@@ -234,6 +240,7 @@ Windows.ScrollingWindow {
                     var result = JSON.parse(jsonResult);
                     var url = result.textInput.trim();
                     var shapeType;
+                    var collisionless = false;
                     switch (result.comboBox) {
                         case SHAPE_TYPE_SIMPLE_HULL:
                             shapeType = "simple-hull";
@@ -252,6 +259,7 @@ Windows.ScrollingWindow {
                             break;
                         default:
                             shapeType = "none";
+                            collisionless = true;
                     }
 
                     var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
@@ -273,7 +281,7 @@ Windows.ScrollingWindow {
                         print("Asset browser - adding asset " + url + " (" + name + ") to world.");
 
                         // Entities.addEntity doesn't work from QML, so we use this.
-                        Entities.addModelEntity(name, url, "", shapeType, dynamic, addPosition, gravity);
+                        Entities.addModelEntity(name, url, "", shapeType, dynamic, collisionless, addPosition, gravity);
                     }
                 }
             });
@@ -345,14 +353,14 @@ Windows.ScrollingWindow {
     }
     function deleteFile(index) {
         var paths = [];
-        
+
         if (!index) {
             for (var i = 0; i < selectedItemCount; ++i) {
                  index = treeView.selection.selectedIndexes[i];
                  paths[i] = assetProxyModel.data(index, 0x100);
             }
         }
-        
+
         if (!paths) {
             return;
         }
@@ -361,13 +369,13 @@ Windows.ScrollingWindow {
         var items = selectedItemCount.toString();
         var isFolder = assetProxyModel.data(treeView.selection.currentIndex, 0x101);
         var typeString = isFolder ? 'folder' : 'file';
-        
+
         if (selectedItemCount > 1) {
             modalMessage = "You are about to delete " + items + " items \nDo you want to continue?";
         } else {
             modalMessage = "You are about to delete the following " + typeString + ":\n" + paths + "\nDo you want to continue?";
         }
-        
+
         var object = desktop.messageBox({
             icon: hifi.icons.question,
             buttons: OriginalDialogs.StandardButton.Yes + OriginalDialogs.StandardButton.No,
@@ -472,11 +480,11 @@ Windows.ScrollingWindow {
             });
         }
     }
-    
+
     Item {
         width: pane.contentWidth
         height: pane.height
-        
+
         // The letterbox used for popup messages
         LetterboxMessage {
             id: letterboxMessage;
@@ -538,7 +546,7 @@ Windows.ScrollingWindow {
             anchors.margins: hifi.dimensions.contentMargin.x + 2  // Extra for border
             anchors.left: parent.left
             anchors.right: parent.right
-            
+
             treeModel: assetProxyModel
             selectionMode: SelectionMode.ExtendedSelection
             headerVisible: true
@@ -558,9 +566,13 @@ Windows.ScrollingWindow {
                 id: bakedColumn
                 title: "Use Baked?"
                 role: "baked"
-                width: 100
+                width: 170
             }
-    
+
+            onSortIndicatorOrderChanged: {
+                Assets.sortProxyModel(sortIndicatorColumn, sortIndicatorOrder);
+            }
+
             itemDelegate: Loader {
                 id: itemDelegateLoader
 
@@ -596,7 +608,7 @@ Windows.ScrollingWindow {
 
                 }
                 sourceComponent: getComponent()
-        
+
                 Component {
                     id: labelComponent
                     FiraSansSemiBold {
@@ -605,15 +617,15 @@ Windows.ScrollingWindow {
                         color: colorScheme == hifi.colorSchemes.light
                                 ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
                                 : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
-                       
+
                         horizontalAlignment: styleData.column === 1 ? TextInput.AlignHCenter : TextInput.AlignLeft
-                        
+
                         elide: Text.ElideMiddle
 
                         MouseArea {
                             id: mouseArea
                             anchors.fill: parent
-                            
+
                             acceptedButtons: Qt.NoButton
                             hoverEnabled: true
 
@@ -635,7 +647,7 @@ Windows.ScrollingWindow {
                         color: colorScheme == hifi.colorSchemes.light
                                 ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
                                 : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
-                       
+
                         elide: Text.ElideRight
                         horizontalAlignment: TextInput.AlignHCenter
 
@@ -657,8 +669,7 @@ Windows.ScrollingWindow {
 
                         text: styleData.value
 
-                        FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
-                        font.family: firaSansSemiBold.name
+                        font.family: "Fira Sans SemiBold"
                         font.pixelSize: hifi.fontSizes.textFieldInput
                         height: hifi.dimensions.tableRowHeight
 
@@ -723,7 +734,7 @@ Windows.ScrollingWindow {
                     size: hifi.fontSizes.tableText
                     color: colorScheme == hifi.colorSchemes.light ? hifi.colors.black : hifi.colors.lightGrayText
                 }
-                
+
                 Timer {
                     id: showTimer
                     interval: 1000
@@ -742,7 +753,7 @@ Windows.ScrollingWindow {
                     treeLabelToolTip.visible = false;
                 }
             }// End_OF( treeLabelToolTip )
-            
+
             MouseArea {
                 propagateComposedEvents: true
                 anchors.fill: parent
@@ -800,7 +811,7 @@ Windows.ScrollingWindow {
             anchors.left: treeView.left
             anchors.right: treeView.right
             anchors.bottom: uploadSection.top
-            
+
             RalewayRegular {
                 anchors.verticalCenter: parent.verticalCenter
 
@@ -844,13 +855,18 @@ Windows.ScrollingWindow {
 
                     checked = Qt.binding(isChecked);
                 }
+
+                function getStatus() {
+                    // kind of hack for ensuring getStatus() will be re-evaluated on updatesCount changes
+                    return updatesCount, assetProxyModel.data(treeView.selection.currentIndex, 0x105);
+                }
                 
                 function isEnabled() {
                     if (!treeView.selection.hasSelection) {
                         return false;
                     }
 
-                    var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
+                    var status = getStatus();
                     if (status === "--") {
                         return false;
                     }
@@ -868,18 +884,18 @@ Windows.ScrollingWindow {
                         }
                     }
 
-                    return true; 
+                    return true;
                 }
                 function isChecked() {
                     if (!treeView.selection.hasSelection) {
                         return false;
                     }
 
-                    var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
+                    var status = getStatus();
                     return isEnabled() && status !== "Not Baked"; 
                 }  
             }
-            
+
             Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: infoGlyph.size;
@@ -903,7 +919,7 @@ Windows.ScrollingWindow {
                                             "What is baking?",
                                             "Baking compresses and optimizes files for faster network transfer and display. We recommend you bake your content to reduce initial load times for your visitors.");
                     }
-            } 
+            }
         }// End_OF( infoRow )
 
         HifiControls.ContentSection {

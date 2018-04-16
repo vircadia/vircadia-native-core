@@ -47,6 +47,8 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
+const graphics::MaterialPointer MeshPartPayload::DEFAULT_MATERIAL = std::make_shared<graphics::Material>();
+
 MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material) {
     updateMeshPart(mesh, partIndex);
     addMaterial(graphics::MaterialLayer(material, 0));
@@ -77,7 +79,7 @@ void MeshPartPayload::removeMaterial(graphics::MaterialPointer material) {
     _drawMaterials.remove(material);
 }
 
-void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled) {
+void MeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled) {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
@@ -91,11 +93,15 @@ void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits,
         builder.withLayered();
     }
 
+    if (canCastShadow) {
+        builder.withShadowCaster();
+    }
+
     if (isGroupCulled) {
         builder.withSubMetaCulled();
     }
 
-    if (_drawMaterials.top().material) {
+    if (topMaterialExists()) {
         auto matKey = _drawMaterials.top().material->getKey();
         if (matKey.isTranslucent()) {
             builder.withTransparent();
@@ -115,7 +121,7 @@ Item::Bound MeshPartPayload::getBound() const {
 
 ShapeKey MeshPartPayload::getShapeKey() const {
     graphics::MaterialKey drawMaterialKey;
-    if (_drawMaterials.top().material) {
+    if (topMaterialExists()) {
         drawMaterialKey = _drawMaterials.top().material->getKey();
     }
 
@@ -127,9 +133,6 @@ ShapeKey MeshPartPayload::getShapeKey() const {
     }
     if (drawMaterialKey.isNormalMap()) {
         builder.withTangents();
-    }
-    if (drawMaterialKey.isMetallicMap()) {
-        builder.withSpecular();
     }
     if (drawMaterialKey.isLightmapMap()) {
         builder.withLightmap();
@@ -149,7 +152,7 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) {
     batch.setInputStream(0, _drawMesh->getVertexStream());
 }
 
-void MeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
+ void MeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
     batch.setModelTransform(_drawTransform);
 }
 
@@ -170,7 +173,7 @@ void MeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // apply material properties
-    RenderPipelines::bindMaterial(_drawMaterials.top().material, batch, args->_enableTexturing);
+    RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
     args->_details._materialSwitches++;
 
     // Draw!
@@ -328,7 +331,8 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& render
     _worldBound.transform(boundTransform);
 }
 
-void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled) {
+// Note that this method is called for models but not for shapes
+void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled) {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
@@ -342,6 +346,10 @@ void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tag
         builder.withLayered();
     }
 
+    if (canCastShadow) {
+        builder.withShadowCaster();
+    }
+
     if (isGroupCulled) {
         builder.withSubMetaCulled();
     }
@@ -350,7 +358,7 @@ void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tag
         builder.withDeformed();
     }
 
-    if (_drawMaterials.top().material) {
+    if (topMaterialExists()) {
         auto matKey = _drawMaterials.top().material->getKey();
         if (matKey.isTranslucent()) {
             builder.withTransparent();
@@ -381,20 +389,19 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     }
 
     graphics::MaterialKey drawMaterialKey;
-    if (_drawMaterials.top().material) {
+    if (topMaterialExists()) {
         drawMaterialKey = _drawMaterials.top().material->getKey();
     }
 
     bool isTranslucent = drawMaterialKey.isTranslucent();
     bool hasTangents = drawMaterialKey.isNormalMap() && _hasTangents;
-    bool hasSpecular = drawMaterialKey.isMetallicMap();
     bool hasLightmap = drawMaterialKey.isLightmapMap();
     bool isUnlit = drawMaterialKey.isUnlit();
 
     bool isSkinned = _isSkinned;
 
     if (isWireframe) {
-        isTranslucent = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
+        isTranslucent = hasTangents = hasLightmap = isSkinned = false;
     }
 
     ShapeKey::Builder builder;
@@ -405,9 +412,6 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     }
     if (hasTangents) {
         builder.withTangents();
-    }
-    if (hasSpecular) {
-        builder.withSpecular();
     }
     if (hasLightmap) {
         builder.withLightmap();
@@ -467,7 +471,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // apply material properties
-    RenderPipelines::bindMaterial(_drawMaterials.top().material, batch, args->_enableTexturing);
+    RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
     args->_details._materialSwitches++;
 
     // Draw!

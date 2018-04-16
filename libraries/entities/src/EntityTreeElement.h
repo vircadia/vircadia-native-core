@@ -152,10 +152,10 @@ public:
         const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
         QVariantMap& extraInfo, bool precisionPicking = false);
     virtual EntityItemID findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance,
+                         OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
                          const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
-                         QVariantMap& extraInfo, bool precisionPicking, float distanceToElementCube);
+                         QVariantMap& extraInfo, bool precisionPicking);
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const override;
 
@@ -243,14 +243,10 @@ public:
         return std::static_pointer_cast<const OctreeElement>(shared_from_this());
     }
 
-    void bumpChangedContent() { _lastChangedContent = usecTimestampNow(); }
-    uint64_t getLastChangedContent() const { return _lastChangedContent; }
-
 protected:
     virtual void init(unsigned char * octalCode) override;
     EntityTreePointer _myTree;
     EntityItems _entityItems;
-    uint64_t _lastChangedContent { 0 };
 };
 
 #endif // hifi_EntityTreeElement_h

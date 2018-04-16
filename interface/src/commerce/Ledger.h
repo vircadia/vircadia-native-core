@@ -31,11 +31,13 @@ public:
     void inventory(const QStringList& keys);
     void history(const QStringList& keys, const int& pageNumber);
     void account();
-    void updateLocation(const QString& asset_id, const QString location, const bool controlledFailure = false);
+    void updateLocation(const QString& asset_id, const QString& location, const bool& alsoUpdateSiblings = false, const bool controlledFailure = false);
     void certificateInfo(const QString& certificateId);
     void transferHfcToNode(const QString& hfc_key, const QString& nodeID, const int& amount, const QString& optionalMessage);
     void transferHfcToUsername(const QString& hfc_key, const QString& username, const int& amount, const QString& optionalMessage);
     void alreadyOwned(const QString& marketplaceId);
+    void getAvailableUpdates(const QString& itemId = "");
+    void updateItem(const QString& hfc_key, const QString& certificate_id);
 
     enum CertificateStatus {
         CERTIFICATE_STATUS_UNKNOWN = 0,
@@ -57,6 +59,8 @@ signals:
     void transferHfcToNodeResult(QJsonObject result);
     void transferHfcToUsernameResult(QJsonObject result);
     void alreadyOwnedResult(QJsonObject result);
+    void availableUpdatesResult(QJsonObject result);
+    void updateItemResult(QJsonObject result);
 
     void updateCertificateStatus(const QString& certID, uint certStatus);
 
@@ -83,6 +87,10 @@ public slots:
     void transferHfcToUsernameFailure(QNetworkReply& reply);
     void alreadyOwnedSuccess(QNetworkReply& reply);
     void alreadyOwnedFailure(QNetworkReply& reply);
+    void availableUpdatesSuccess(QNetworkReply& reply);
+    void availableUpdatesFailure(QNetworkReply& reply);
+    void updateItemSuccess(QNetworkReply& reply);
+    void updateItemFailure(QNetworkReply& reply);
 
 private:
     QJsonObject apiResponse(const QString& label, QNetworkReply& reply);

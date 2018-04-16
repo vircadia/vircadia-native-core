@@ -311,7 +311,8 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                     _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
                                     _entitiesInQueue.insert(entity.get());
                                 }
-                            } else if (entity->getLastEdited() > knownTimestamp->second) {
+                            } else if (entity->getLastEdited() > knownTimestamp->second
+                                    || entity->getLastChangedOnServer() > knownTimestamp->second) {
                                 // it is known and it changed --> put it on the queue with any priority
                                 // TODO: sort these correctly
                                 _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
@@ -330,7 +331,9 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                 return;
                             }
                             auto knownTimestamp = _knownState.find(entity.get());
-                            if (knownTimestamp == _knownState.end() || entity->getLastEdited() > knownTimestamp->second) {
+                            if (knownTimestamp == _knownState.end()
+                                    || entity->getLastEdited() > knownTimestamp->second
+                                    || entity->getLastChangedOnServer() > knownTimestamp->second) {
                                 _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
                                 _entitiesInQueue.insert(entity.get());
                             }
@@ -382,7 +385,8 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                             _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
                             _entitiesInQueue.insert(entity.get());
                         }
-                    } else if (entity->getLastEdited() > knownTimestamp->second) {
+                    } else if (entity->getLastEdited() > knownTimestamp->second
+                            || entity->getLastChangedOnServer() > knownTimestamp->second) {
                         // it is known and it changed --> put it on the queue with any priority
                         // TODO: sort these correctly
                         _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
@@ -442,12 +446,16 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
         PrioritizedEntity queuedItem = _sendQueue.top();
         EntityItemPointer entity = queuedItem.getEntity();
         if (entity) {
-            // Only send entities that match the jsonFilters, but keep track of everything we've tried to send so we don't try to send it again
+            const QUuid& entityID = entity->getID();
+            // Only send entities that match the jsonFilters, but keep track of everything we've tried to send so we don't try to send it again;
+            // also send if we previously matched since this represents change to a matched item.
             bool entityMatchesFilters = entity->matchesJSONFilters(jsonFilters);
-            if (entityMatchesFilters || entityNodeData->isEntityFlaggedAsExtra(entity->getID())) {
+            bool entityPreviouslyMatchedFilter = entityNodeData->sentFilteredEntity(entityID);
+
+            if (entityMatchesFilters || entityNodeData->isEntityFlaggedAsExtra(entityID) || entityPreviouslyMatchedFilter) {
                 if (!jsonFilters.isEmpty() && entityMatchesFilters) {
                     // Record explicitly filtered-in entity so that extra entities can be flagged.
-                    entityNodeData->insertSentFilteredEntity(entity->getID());
+                    entityNodeData->insertSentFilteredEntity(entityID);
                 }
                 OctreeElement::AppendState appendEntityState = entity->appendEntityData(&_packetData, params, _extraEncodeData);
 
@@ -457,6 +465,10 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
                     }
                     params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
                     break;
+                }
+
+                if (entityPreviouslyMatchedFilter && !entityMatchesFilters) {
+                    entityNodeData->removeSentFilteredEntity(entityID);
                 }
                 ++_numEntities;
             }

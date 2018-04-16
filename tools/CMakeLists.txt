@@ -18,6 +18,9 @@ if (BUILD_TOOLS)
   add_subdirectory(ice-client)
   set_target_properties(ice-client PROPERTIES FOLDER "Tools")
 
+  add_subdirectory(ktx-tool)
+  set_target_properties(ktx-tool PROPERTIES FOLDER "Tools")
+
   add_subdirectory(ac-client)
   set_target_properties(ac-client PROPERTIES FOLDER "Tools")
 
