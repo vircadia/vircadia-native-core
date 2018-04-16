@@ -311,7 +311,8 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                     _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
                                     _entitiesInQueue.insert(entity.get());
                                 }
-                            } else if (entity->getLastEdited() > knownTimestamp->second) {
+                            } else if (entity->getLastEdited() > knownTimestamp->second
+                                    || entity->getLastChangedOnServer() > knownTimestamp->second) {
                                 // it is known and it changed --> put it on the queue with any priority
                                 // TODO: sort these correctly
                                 _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
@@ -330,7 +331,9 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                 return;
                             }
                             auto knownTimestamp = _knownState.find(entity.get());
-                            if (knownTimestamp == _knownState.end() || entity->getLastEdited() > knownTimestamp->second) {
+                            if (knownTimestamp == _knownState.end()
+                                    || entity->getLastEdited() > knownTimestamp->second
+                                    || entity->getLastChangedOnServer() > knownTimestamp->second) {
                                 _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
                                 _entitiesInQueue.insert(entity.get());
                             }
@@ -382,7 +385,8 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                             _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
                             _entitiesInQueue.insert(entity.get());
                         }
-                    } else if (entity->getLastEdited() > knownTimestamp->second) {
+                    } else if (entity->getLastEdited() > knownTimestamp->second
+                            || entity->getLastChangedOnServer() > knownTimestamp->second) {
                         // it is known and it changed --> put it on the queue with any priority
                         // TODO: sort these correctly
                         _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));

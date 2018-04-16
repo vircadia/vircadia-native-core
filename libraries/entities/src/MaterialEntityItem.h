@@ -21,6 +21,7 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     MaterialEntityItem(const EntityItemID& entityItemID);
+    ~MaterialEntityItem();
 
     ALLOW_INSTANTIATION // This class can be instantiated
 
@@ -53,7 +54,7 @@ public:
     virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
     QString getMaterialURL() const { return _materialURL; }
-    void setMaterialURL(const QString& materialURLString, bool userDataChanged = false);
+    void setMaterialURL(const QString& materialURLString, bool materialDataChanged = false);
 
     void setCurrentMaterialName(const std::string& currentMaterialName);
 
@@ -73,21 +74,20 @@ public:
     float getMaterialMappingRot() const { return _materialMappingRot; }
     void setMaterialMappingRot(const float& materialMappingRot);
 
+    QString getMaterialData() const { return _materialData; }
+    void setMaterialData(const QString& materialData);
+
     std::shared_ptr<NetworkMaterial> getMaterial() const;
 
-    void setUserData(const QString& userData) override;
     void setParentID(const QUuid& parentID) override;
-    void setClientOnly(bool clientOnly) override;
-    void setOwningAvatarID(const QUuid& owningAvatarID) override;
 
     void applyMaterial();
     void removeMaterial();
 
     void postParentFixup() override;
-    void preDelete() override;
 
 private:
-    // URL for this material.  Currently, only JSON format is supported.  Set to "userData" to use the user data to live edit a material.
+    // URL for this material.  Currently, only JSON format is supported.  Set to "materialData" to use the material data to live edit a material.
     // The following fields are supported in the JSON:
     // materialVersion: a uint for the version of this network material (currently, only 1 is supported)
     // materials, which is either an object or an array of objects, each with the following properties:
@@ -117,6 +117,7 @@ private:
     glm::vec2 _materialMappingScale { 1, 1 };
     // How much to rotate this material within its parent's UV-space (degrees)
     float _materialMappingRot { 0 };
+    QString _materialData;
 
     NetworkMaterialResourcePointer _networkMaterial;
     NetworkMaterialResource::ParsedMaterials _parsedMaterials;
