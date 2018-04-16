@@ -25,6 +25,8 @@ QString Audio::DESKTOP { "Desktop" };
 QString Audio::HMD { "VR" };
 
 Setting::Handle<bool> enableNoiseReductionSetting { QStringList { Audio::AUDIO, "NoiseReduction" }, true };
+Setting::Handle<bool> mutedSetting { QStringList{ Audio::AUDIO, "MuteMicrophone" }, false };
+
 
 float Audio::loudnessToLevel(float loudness) {
     float level = loudness * (1/32768.0f);  // level in [0, 1]
@@ -42,6 +44,7 @@ Audio::Audio() : _devices(_contextIsHMD) {
     connect(this, &Audio::contextChanged, &_devices, &AudioDevices::onContextChanged);
     enableNoiseReduction(enableNoiseReductionSetting.get());
     onContextChanged();
+    setMuted(mutedSetting.get());
 }
 
 bool Audio::startRecording(const QString& filepath) {
@@ -87,6 +90,15 @@ bool Audio::noiseReductionEnabled() const {
     return resultWithReadLock<bool>([&] {
         return _enableNoiseReduction;
     });
+}
+
+void Audio::onMutedChanged() {
+    bool isMuted = DependencyManager::get<AudioClient>()->isMuted();
+    if (_isMuted != isMuted) {
+        _isMuted = isMuted;
+        mutedSetting.set(_isMuted);
+        emit mutedChanged(_isMuted);
+    }
 }
 
 void Audio::enableNoiseReduction(bool enable) {
