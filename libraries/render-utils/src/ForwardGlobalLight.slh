@@ -20,7 +20,6 @@
 <@include LightAmbient.slh@>
 <@include LightDirectional.slh@>
 
-
 <@func prepareGlobalLight(positionES, normalWS)@>
     // prepareGlobalLight
     // Transform directions to worldspace
@@ -192,14 +191,13 @@ vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, fl
     vec3 ambientSpecular;
     evalLightingAmbient(ambientDiffuse, ambientSpecular, lightAmbient, surfaceWS, metallic, fresnel, albedo, obscurance);
     color += ambientDiffuse;
-    color += ambientSpecular / opacity;
 
     // Directional
     vec3 directionalDiffuse;
     vec3 directionalSpecular;
     evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, surfaceWS, metallic, fresnel, albedo, shadowAttenuation);
     color += directionalDiffuse;
-    color += directionalSpecular / opacity;
+    color += (ambientSpecular + directionalSpecular) / opacity;
 
     return color;
 }
@@ -219,14 +217,13 @@ vec3 evalGlobalLightingAlphaBlendedWithHaze(
     vec3 ambientSpecular;
     evalLightingAmbient(ambientDiffuse, ambientSpecular, lightAmbient, surfaceWS, metallic, fresnel, albedo, obscurance);
     color += ambientDiffuse;
-    color += ambientSpecular / opacity;
 
     // Directional
     vec3 directionalDiffuse;
     vec3 directionalSpecular;
     evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, surfaceWS, metallic, fresnel, albedo, shadowAttenuation);
     color += directionalDiffuse;
-    color += directionalSpecular / opacity;
+    color += (ambientSpecular + directionalSpecular) / opacity;
 
     // Haze
     // FIXME - temporarily removed until we support it for forward...
