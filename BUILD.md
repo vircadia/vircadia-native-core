@@ -1,7 +1,7 @@
 ### Dependencies
 
 - [cmake](https://cmake.org/download/):  3.9
-- [Qt](https://www.qt.io/download-open-source):   5.9.1
+- [Qt](https://www.qt.io/download-open-source):   5.10.1
 - [OpenSSL](https://www.openssl.org/): Use the latest available 1.0 version (**NOT** 1.1) of OpenSSL to avoid security vulnerabilities.
 - [VHACD](https://github.com/virneo/v-hacd)(clone this repository)(Optional)
 
@@ -46,8 +46,8 @@ This can either be entered directly into your shell session before you build or 
 
 The path it needs to be set to will depend on where and how Qt5 was installed. e.g.
 
-    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.6.2/clang_64/lib/cmake/
-    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.6.2/lib/cmake
+    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.10.1/clang_64/lib/cmake/
+    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.10.1/lib/cmake
     export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
 
 #### Generating build files
@@ -66,7 +66,7 @@ Any variables that need to be set for CMake to find dependencies can be set as E
 
 For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generation:
 
-    cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.6.2/lib/cmake
+    cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.10.1/lib/cmake
 
 #### Finding Dependencies
 

@@ -156,3 +156,7 @@ void TestScriptingInterface::profileRange(const QString& name, QScriptValue fn) 
     fn.call();
 }
 
+void TestScriptingInterface::clearCaches() {
+	qApp->reloadResourceCaches();
+}
+
