@@ -173,7 +173,8 @@ QString userLink(const QString& username, const QString& placename) {
 QString transactionString(const QJsonObject& valueObject) {
     int sentCerts = valueObject["sent_certs"].toInt();
     int receivedCerts = valueObject["received_certs"].toInt();
-    int sent = valueObject["sent_money"].toInt();
+    int sentMoney = valueObject["sent_money"].toInt();
+    int receivedMoney = valueObject["received_money"].toInt();
     int dateInteger = valueObject["created_at"].toInt();
     QString message = valueObject["message"].toString();
     QDateTime createdAt(QDateTime::fromSecsSinceEpoch(dateInteger, Qt::UTC));
@@ -181,12 +182,24 @@ QString transactionString(const QJsonObject& valueObject) {
 
     if (sentCerts <= 0 && receivedCerts <= 0 && !KNOWN_USERS.contains(valueObject["sender_name"].toString())) {
         // this is an hfc transfer.
-        if (sent > 0) {
+        if (sentMoney > 0) {
             QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
             result += QString("Money sent to %1").arg(recipient);
         } else {
             QString sender = userLink(valueObject["sender_name"].toString(), valueObject["place_name"].toString());
             result += QString("Money from %1").arg(sender);
+        }
+        if (!message.isEmpty()) {
+            result += QString("<br>with memo: <i>\"%1\"</i>").arg(message);
+        }
+    } else if (sentMoney <= 0 && receivedMoney <= 0 && (sentCerts > 0 || receivedCerts > 0) && !KNOWN_USERS.contains(valueObject["sender_name"].toString())) {
+        // this is a non-HFC asset transfer.
+        if (sentCerts > 0) {
+            QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
+            result += QString("Gift sent to %1").arg(recipient);
+        } else {
+            QString sender = userLink(valueObject["sender_name"].toString(), valueObject["place_name"].toString());
+            result += QString("Gift from %1").arg(sender);
         }
         if (!message.isEmpty()) {
             result += QString("<br>with memo: <i>\"%1\"</i>").arg(message);
