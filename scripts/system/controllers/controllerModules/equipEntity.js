@@ -22,6 +22,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 var DEFAULT_SPHERE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/equip-Fresnel-3.fbx";
 var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
 var EMPTY_PARENT_ID = "{00000000-0000-0000-0000-000000000000}";
+var UNEQUIP_KEY = "u";
 
 
 // Each overlayInfoSet describes a single equip hotspot.
@@ -176,10 +177,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
     var TRIGGER_OFF_VALUE = 0.1;
     var TRIGGER_ON_VALUE = TRIGGER_OFF_VALUE + 0.05; //  Squeezed just enough to activate search or near grab
-    var BUMPER_ON_VALUE = 0.5;
-    
-    var UNEQUIP_KEY = "u";
-
+    var BUMPER_ON_VALUE = 0.5
+	
 
     function getWearableData(props) {
         var wearable = {};
@@ -274,7 +273,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         this.equipedWithSecondary = false;
         this.handHasBeenRightsideUp = false;
         this.mouseEquip = false;
-        this.mouseEquipAnimationHandler;
 
         this.parameters = makeDispatcherModuleParameters(
             300,
@@ -558,15 +556,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 // 100 ms seems to be sufficient time to force the check even occur after the object has been initialized.
                 Script.setTimeout(grabEquipCheck, 100);
             }
-            
-            if (this.mouseEquip) {
-                this.removeMouseEquipAnimation();
-                if (this.hand === RIGHT_HAND) {
-                    this.mouseEquipAnimationHandler = MyAvatar.addAnimationStateHandler(this.rightHandMouseEquipAnimation, []);
-                } else {
-                    this.mouseEquipAnimationHandler = MyAvatar.addAnimationStateHandler(this.leftHandMouseEquipAnimation, []);
-                }
-            }
         };
 
         this.endEquipEntity = function () {
@@ -575,7 +564,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 parentID: Uuid.NULL,
                 parentJointIndex: -1
             });
-
+;
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "releaseEquip", args);
 
@@ -589,11 +578,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             this.targetEntityID = null;
             this.messageGrabEntity = false;
             this.grabEntityProps = null;
-            
-            if (this.mouseEquip) {
-                this.removeMouseEquipAnimation();
-                this.mouseEquip = false;
-            }
         };
 
         this.updateInputs = function (controllerData) {
@@ -760,40 +744,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 this.endEquipEntity();
             }
         };
-        
-        this.removeMouseEquipAnimation = function() {
-            if (this.mouseEquipAnimationHandler) {
-                this.mouseEquipAnimationHandler = MyAvatar.removeAnimationStateHandler(this.mouseEquipAnimationHandler);
-            }
-        };
-        
-        this.leftHandMouseEquipAnimation = function() {
-            var result = {};
-            var leftHandPosition = MyAvatar.getJointPosition("LeftHand");
-            var leftShoulderPosition = MyAvatar.getJointPosition("LeftShoulder");
-            var cameraToLeftShoulder = Vec3.subtract(leftShoulderPosition, Camera.position);
-            var cameraToLeftShoulderNormalized = Vec3.normalize(cameraToLeftShoulder);
-            var leftHandPositionNew = Vec3.sum(leftShoulderPosition, cameraToLeftShoulderNormalized);
-            var leftHandPositionNewAvatarFrame = Vec3.subtract(leftHandPositionNew, MyAvatar.position);
-            result.leftHandType = 1;
-            result.leftHandPosition = leftHandPositionNewAvatarFrame;
-            result.leftHandRotation = Quat.multiply(Quat.lookAtSimple(leftHandPositionNew, Camera.position), Quat.fromPitchYawRollDegrees(90, 0, -90));
-            return result;
-        };
-        
-        this.rightHandMouseEquipAnimation = function() {
-            var result = {};        
-            var rightHandPosition = MyAvatar.getJointPosition("RightHand");
-            var rightShoulderPosition = MyAvatar.getJointPosition("RightShoulder");
-            var cameraToRightShoulder = Vec3.subtract(rightShoulderPosition, Camera.position);
-            var cameraToRightShoulderNormalized = Vec3.normalize(cameraToRightShoulder);
-            var rightHandPositionNew = Vec3.sum(rightShoulderPosition, cameraToRightShoulderNormalized);
-            var rightHandPositionNewAvatarFrame = Vec3.subtract(rightHandPositionNew, MyAvatar.position);
-            result.rightHandType = 1;
-            result.rightHandPosition = rightHandPositionNewAvatarFrame;
-            result.rightHandRotation = Quat.multiply(Quat.lookAtSimple(rightHandPositionNew, Camera.position), Quat.fromPitchYawRollDegrees(90, 0, 90));            
-            return result;
-        };
     }
 
     var handleMessage = function(channel, message, sender) {
@@ -874,7 +824,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             }
         }
     };
-
+	
     Messages.subscribe('Hifi-Hand-Grab');
     Messages.subscribe('Hifi-Hand-Drop');
     Messages.messageReceived.connect(handleMessage);
