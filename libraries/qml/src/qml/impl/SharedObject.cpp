@@ -105,7 +105,10 @@ void SharedObject::create(OffscreenSurface* surface) {
 
     // Create a QML engine.
     auto qmlEngine = acquireEngine(surface);
-    _qmlContext = new QQmlContext(qmlEngine->rootContext(), qmlEngine);
+    {
+        PROFILE_RANGE(startup, "new QQmlContext");
+        _qmlContext = new QQmlContext(qmlEngine->rootContext(), qmlEngine);
+    }
     surface->onRootContextCreated(_qmlContext);
     emit surface->rootContextCreated(_qmlContext);
 
@@ -175,6 +178,7 @@ static size_t globalEngineRefCount{ 0 };
 #endif
 
 QQmlEngine* SharedObject::acquireEngine(OffscreenSurface* surface) {
+    PROFILE_RANGE(startup, "acquireEngine");
     Q_ASSERT(QThread::currentThread() == qApp->thread());
 
     QQmlEngine* result = nullptr;
