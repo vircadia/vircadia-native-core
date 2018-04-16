@@ -12,6 +12,7 @@
 
 #include <GLMHelpers.h>
 
+// These properties have JSDoc documentation in HMDScriptingInterface.h.
 class AbstractHMDScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool active READ isHMDMode)
@@ -30,7 +31,27 @@ public:
     bool isHMDMode() const;
 
 signals:
+    /**jsdoc
+     * Triggered when the <code>HMD.ipdScale</code> property value changes.
+     * @function HMD.IPDScaleChanged
+     * @returns {Signal}
+     */
     void IPDScaleChanged();
+
+    /**jsdoc
+     * Triggered when Interface's display mode changes and when the user puts on or takes off their HMD.
+     * @function HMD.displayModeChanged
+     * @param {boolean} isHMDMode - <code>true</code> if the display mode is HMD, otherwise <code>false</code>. This is the 
+     *     same value as provided by <code>HMD.active</code>.
+     * @returns {Signal}
+     * @example <caption>Report when the display mode changes.</caption>
+     * HMD.displayModeChanged.connect(function (isHMDMode) {
+     *     print("Display mode changed");
+     *     print("isHMD = " + isHMDMode);
+     *     print("HMD.active = " + HMD.active);
+     *     print("HMD.mounted = " + HMD.mounted);
+     * });
+     */
     void displayModeChanged(bool isHMDMode);
 
 private:
