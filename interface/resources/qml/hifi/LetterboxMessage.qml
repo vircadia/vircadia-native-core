@@ -30,6 +30,16 @@ Item {
         color: "black"
         opacity: 0.5
         radius: popupRadius
+
+        MouseArea {
+            anchors.fill: parent;
+            hoverEnabled: true;
+            acceptedButtons: Qt.LeftButton;
+            propagateComposedEvents: false;
+            onClicked: {
+                letterbox.visible = false;
+            }
+        }
     }
     Rectangle {
         id: textContainer;
@@ -38,6 +48,14 @@ Item {
         anchors.centerIn: parent
         radius: popupRadius
         color: "white"
+
+        // Prevent dismissing the popup by clicking on the textContainer
+        MouseArea {
+            anchors.fill: parent;
+            hoverEnabled: true;
+            propagateComposedEvents: false;
+        }
+
         Item {
             id: contentContainer
             width: parent.width - 50
@@ -133,50 +151,6 @@ Item {
                     Qt.openUrlExternally(link)
                 }
             }
-        }
-    }
-    // Left gray MouseArea
-    MouseArea {
-        anchors.left: parent.left;
-        anchors.right: textContainer.left;
-        anchors.top: textContainer.top;
-        anchors.bottom: textContainer.bottom;
-        acceptedButtons: Qt.LeftButton;
-        onClicked: {
-            letterbox.visible = false;
-        }
-    }
-    // Right gray MouseArea
-    MouseArea {
-        anchors.left: textContainer.left;
-        anchors.right: parent.left;
-        anchors.top: textContainer.top;
-        anchors.bottom: textContainer.bottom;
-        acceptedButtons: Qt.LeftButton;
-        onClicked: {
-            letterbox.visible = false;
-        }
-    }
-    // Top gray MouseArea
-    MouseArea {
-        anchors.left: parent.left;
-        anchors.right: parent.right;
-        anchors.top: parent.top;
-        anchors.bottom: textContainer.top;
-        acceptedButtons: Qt.LeftButton;
-        onClicked: {
-            letterbox.visible = false;
-        }
-    }
-    // Bottom gray MouseArea
-    MouseArea {
-        anchors.left: parent.left;
-        anchors.right: parent.right;
-        anchors.top: textContainer.bottom;
-        anchors.bottom: parent.bottom;
-        acceptedButtons: Qt.LeftButton;
-        onClicked: {
-            letterbox.visible = false;
         }
     }
 }
