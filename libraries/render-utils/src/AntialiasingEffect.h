@@ -58,7 +58,7 @@ class JitterSample {
 public:
 
     enum {
-        SEQUENCE_LENGTH = 128 
+        SEQUENCE_LENGTH = 16 
     };
 
     using Config = JitterSampleConfig;

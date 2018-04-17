@@ -515,8 +515,8 @@ void JitterSample::run(const render::RenderContextPointer& renderContext) {
     auto width = (float)args->_viewport.z;
     auto height = (float)args->_viewport.w;
 
-    auto jx = 2.0f * jit.x / width;
-    auto jy = 2.0f * jit.y / height;
+    auto jx = jit.x / width;
+    auto jy = jit.y / height;
 
     if (!args->isStereo()) {
         auto projMat = viewFrustum.getProjection();
