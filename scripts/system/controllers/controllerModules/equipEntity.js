@@ -579,6 +579,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             this.targetEntityID = null;
             this.messageGrabEntity = false;
             this.grabEntityProps = null;
+			this.mouseEquip = false;
         };
 
         this.updateInputs = function (controllerData) {
@@ -796,7 +797,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         if (intersection.intersects) {
             var entityProperties = Entities.getEntityProperties(intersection.entityID, DISPATCHER_PROPERTIES);
             if (entityProperties.parentID === EMPTY_PARENT_ID) {
-                entityProperties.id = intersection.entityID;    
+                entityProperties.id = intersection.entityID;
                 var rightHandPosition = MyAvatar.getJointPosition("RightHand");
                 var leftHandPosition = MyAvatar.getJointPosition("LeftHand");   
                 var distanceToRightHand = Vec3.distance(entityProperties.position, rightHandPosition);
@@ -819,10 +820,10 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     
     var onKeyPress = function(event) {
         if (event.text === UNEQUIP_KEY) {
-            if (rightEquipEntity.mouseEquip) {
+            if (rightEquipEntity.targetEntityID) {
                 rightEquipEntity.endEquipEntity();
             }
-            if (leftEquipEntity.mouseEquip) {
+            if (leftEquipEntity.targetEntityID) {
                 leftEquipEntity.endEquipEntity();
             }
         }
