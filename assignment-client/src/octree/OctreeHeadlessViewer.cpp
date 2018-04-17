@@ -14,25 +14,18 @@
 #include <NodeList.h>
 #include <OctreeLogging.h>
 
-
-OctreeHeadlessViewer::OctreeHeadlessViewer() {
-    _viewFrustum.setProjection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), DEFAULT_ASPECT_RATIO, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
-}
-
 void OctreeHeadlessViewer::queryOctree() {
     char serverType = getMyNodeType();
     PacketType packetType = getMyQueryMessageType();
 
-    _octreeQuery.setMainViewFrustum(_viewFrustum);
-    _octreeQuery.setOctreeSizeScale(_voxelSizeScale);
-    _octreeQuery.setBoundaryLevelAdjust(_boundaryLevelAdjust);
+    if (_hasViewFrustum) {
+        _octreeQuery.setMainViewFrustum(_viewFrustum);
+    }
 
     auto nodeList = DependencyManager::get<NodeList>();
 
     auto node = nodeList->soloNodeOfType(serverType);
     if (node && node->getActiveSocket()) {
-        _octreeQuery.setMaxQueryPacketsPerSecond(getMaxPacketsPerSecond());
-
         auto queryPacket = NLPacket::create(packetType);
 
         // encode the query data
