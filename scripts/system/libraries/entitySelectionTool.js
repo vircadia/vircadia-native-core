@@ -156,7 +156,7 @@ SelectionManager = (function() {
 
     that.duplicateSelection = function () {
         var duplicatedEntityIDs = [];
-        Object.keys(that.savedProperties).forEach(function (otherEntityID) {
+        Object.keys(that.savedProperties).forEach(function(otherEntityID) {
             var properties = that.savedProperties[otherEntityID];
             if (!properties.locked && (!properties.clientOnly || properties.owningAvatarID === MyAvatar.sessionUUID)) {
                 duplicatedEntityIDs.push({
