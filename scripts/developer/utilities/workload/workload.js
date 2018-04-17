@@ -87,15 +87,19 @@
         switch (message.method) {
         case "createScene":
             createScene();
-            sendToQml({method: "objectCount", params: { v: getNumObjects() }})
+            updateGridInQML()
             break;
         case "clearScene":
             clearScene();
-            sendToQml({method: "objectCount", params: { v: getNumObjects() }})
+            updateGridInQML()
+            break;
+        case "changeSize":
+            changeSize(message.params.count);
+            updateGridInQML()
             break;
         case "changeResolution":
             changeResolution(message.params.count);
-            sendToQml({method: "objectCount", params: { v: getNumObjects() }})
+            updateGridInQML()
             break;
         case "bumpUpFloor":
             bumpUpFloor();
@@ -103,10 +107,14 @@
         }
         
     }
-
-    sendToQml({method: "objectCount", params: { v: getNumObjects() }})
+    function updateGridInQML() {
+        sendToQml({method: "gridSize", params: { v: getSize() }})
+        sendToQml({method: "objectCount", params: { v: getNumObjects() }})
+    }
 
     function sendToQml(message) {
         tablet.sendToQml(message);
     }
+
+    updateGridInQML()
 }()); 

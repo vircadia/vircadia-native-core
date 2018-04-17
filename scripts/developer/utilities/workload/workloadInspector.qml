@@ -35,6 +35,10 @@ Rectangle {
         sendToScript({method: "clearScene", params: { count:2 }}); 
     }
 
+    function broadcastChangeSize(value) {
+        sendToScript({method: "changeSize", params: { count:value }});         
+    }
+
     function broadcastChangeResolution(value) {
         sendToScript({method: "changeResolution", params: { count:value }});         
     }
@@ -45,10 +49,15 @@ Rectangle {
 
     function fromScript(message) {
         switch (message.method) {
+        case "gridSize":
+            print("assigned value! " + message.params.v)
+            gridSizeLabel.text = ("Grid size [m] = " + message.params.v)
+            gridSize.setValue(message.params.v)
+            break;
         case "resolution":
             print("assigned value! " + message.params.v)
             resolution.setValue(message.params.v)
-            break;
+            break;           
         case "objectCount":
             print("assigned objectCount! " + message.params.v)
             objectCount.text = ("Num objects = " + message.params.v)
@@ -87,6 +96,17 @@ Rectangle {
                 text: "force View Horizontal"
                 checked: Workload.getConfig("setupViews")["forceViewHorizontal"]
                 onCheckedChanged: { Workload.getConfig("setupViews")["forceViewHorizontal"] = checked; }
+            }
+        }
+
+        RowLayout {
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            HifiControls.CheckBox {
+                boxSize: 20
+                text: "Simulate Secondary"
+                checked: Workload.getConfig("setupViews")["simulateSecondaryCamera"]
+                onCheckedChanged: { Workload.getConfig("setupViews")["simulateSecondaryCamera"] = checked; }
             }
         }
 
@@ -148,6 +168,10 @@ Rectangle {
                 }
             }
         }
+        Separator {} 
+        HifiControls.Label {
+            text: "Numbers: R2= " + Workload.getConfig("regionState")["numR2"];     
+        }  
         Separator {}
         HifiControls.Label {
             text: "Display"       
@@ -193,7 +217,26 @@ Rectangle {
                 }
             }
         }
-    
+        HifiControls.Label {
+            id: gridSizeLabel
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            text: "Grid side size [m]"                       
+        }
+        HifiControls.Slider {
+            id: gridSize
+            stepSize: 1.0
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            anchors.rightMargin: 0
+            anchors.topMargin: 0
+            minimumValue: 1
+            maximumValue: 200
+            value: 100
+
+            onValueChanged: { _workload.broadcastChangeSize(value) }
+        }
+
         HifiControls.Label {
             id: objectCount
             anchors.left: parent.left

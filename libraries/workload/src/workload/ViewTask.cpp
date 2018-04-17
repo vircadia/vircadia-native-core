@@ -41,6 +41,18 @@ void SetupViews::run(const WorkloadContextPointer& renderContext, const Input& i
         usedViews[0].makeHorizontal();
     }
 
+    // Force frutum orientation horizontal if needed
+    if (usedViews.size() > 0 && data.simulateSecondaryCamera) {
+        auto view = usedViews[0];
+        auto secondaryDirectionFlat = glm::normalize(glm::vec3(view.direction.x, 0.0f, view.direction.z));
+        auto secondaryDirection = glm::normalize(glm::vec3(secondaryDirectionFlat.z, 0.0f, -secondaryDirectionFlat.x));
+
+        view.origin += -30.0f * secondaryDirection;
+        view.direction = -secondaryDirectionFlat;
+
+        usedViews.insert(usedViews.begin() + 1, view);
+    }
+
     // Update regions based on the current config
     for (auto& v : usedViews) {
         View::updateRegions(v, (float*) &data);

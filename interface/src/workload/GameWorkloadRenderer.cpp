@@ -66,7 +66,7 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
     if (!render::Item::isValidID(_spaceRenderItemID)) {
         _spaceRenderItemID = scene->allocateID();
         auto renderItem = std::make_shared<GameWorkloadRenderItem>();
-        renderItem->editBound().setBox(glm::vec3(0.0f), 32000.0f);
+        renderItem->editBound().setBox(glm::vec3(-16000.0f), 16000.0f);
         renderItem->setAllProxies(proxies);
         transaction.resetItem(_spaceRenderItemID, std::make_shared<GameWorkloadRenderItem::Payload>(renderItem));
     }

@@ -17,7 +17,8 @@
 
     var GRID_DROP_C = GRID_WORLD_DROP_HEIGHT / TILE_UNIT;
 
-    function updateWorldResolution(res) {
+    function updateWorldSizeAndResolution(size, res) {
+        GRID_WORLD_SIZE = size
         GRID_WORLD_RESOLUTION = res;
 
         GRID_SIZE = GRID_WORLD_RESOLUTION;
@@ -155,8 +156,8 @@ function addZone(hasKeyLight, hasAmbient, lifetime) {
 
 function addTestScene(name, lifetime) {
     var scene = [];
-    scene.push(addFloor(lifetime));
-    scene.push(addZone(true, true,  lifetime));
+   // scene.push(addFloor(lifetime));
+  //  scene.push(addZone(true, true,  lifetime));
 
     addObjectGrid(scene, lifetime);
     
@@ -213,12 +214,21 @@ clearScene = function() {
 }
 
 changeResolution = function(res) {
-    updateWorldResolution(res);
+    updateWorldSizeAndResolution(GRID_WORLD_SIZE, res);
 }
 
 getResolution = function() {
     return GRID_WORLD_RESOLUTION;
 }
+
+changeSize = function(size) {
+    updateWorldSizeAndResolution(size, GRID_WORLD_RESOLUTION);
+}
+
+getSize = function() {
+    return GRID_WORLD_SIZE;
+}
+
 
 getNumObjects = function() {
     return GRID_SIZE * GRID_SIZE;
