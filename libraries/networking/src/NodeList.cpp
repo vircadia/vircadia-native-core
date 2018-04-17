@@ -90,8 +90,8 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     // assume that we may need to send a new DS check in anytime a new keypair is generated
     connect(accountManager.data(), &AccountManager::newKeypair, this, &NodeList::sendDomainServerCheckIn);
 
-    // clear out NodeList when login is finished
-    connect(accountManager.data(), SIGNAL(loginComplete(const QUrl&)) , this, SLOT(reset()));
+    // clear out NodeList when login is finished and we know our new username
+    connect(accountManager.data(), SIGNAL(usernameChanged(QString)) , this, SLOT(reset()));
 
     // clear our NodeList when logout is requested
     connect(accountManager.data(), SIGNAL(logoutComplete()) , this, SLOT(reset()));
