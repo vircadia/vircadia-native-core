@@ -40,18 +40,19 @@ extern QString qAppFileName();
 #include <Windows.h>
 
 LONG WINAPI vectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
-    if (pExceptionInfo->ExceptionRecord->ExceptionCode == 0xe06d7363) { // external exception
+    static const DWORD EXTERNAL_EXCEPTION_CODE{ 0xe06d7363 };
+    static const DWORD HEAP_CORRUPTION_CODE{ 0xc0000374 };
+
+    auto exceptionCode = pExceptionInfo->ExceptionRecord->ExceptionCode;
+    if (exceptionCode == EXTERNAL_EXCEPTION_CODE) {
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
-    if (pExceptionInfo->ExceptionRecord->ExceptionCode == 0xc0000374) { // heap corruption
-        qCritical() << "VectoredExceptionHandler";
-        qCritical() << QString::number(pExceptionInfo->ExceptionRecord->ExceptionCode, 16);
-        qCritical() << "Heap corruption!";
+    if (exceptionCode == HEAP_CORRUPTION_CODE) {
+        qCritical() << "VectoredExceptionHandler: Heap corruption:" << QString::number(exceptionCode, 16);
 
         CrashpadClient client;
         if (gIPCPipe.length()) {
-
             bool rc = client.SetHandlerIPCPipe(gIPCPipe);
             qCritical() << "SetHandlerIPCPipe = " << rc;
         } else {
