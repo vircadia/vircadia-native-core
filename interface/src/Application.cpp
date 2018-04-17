@@ -6518,12 +6518,7 @@ void Application::showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const
         if (onTablet) {
             toggleTabletUI(true);
         }
-    }
-
-    if (!onTablet) {
-        DependencyManager::get<OffscreenUi>()->show(widgetUrl, name);
-    }
-    if (tablet->getToolbarMode()) {
+    } else {
         DependencyManager::get<OffscreenUi>()->show(widgetUrl, name);
     }
 }

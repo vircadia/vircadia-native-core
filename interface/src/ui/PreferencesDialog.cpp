@@ -51,6 +51,13 @@ void setupPreferences() {
         auto preference = new AvatarPreference(AVATAR_BASICS, "Appearance", getter, setter);
         preferences->addPreference(preference);
     }
+    // UI
+    static const QString GRAPHICS_QUALITY { "Graphics Quality" };
+    {
+        auto getter = []()->float { return DependencyManager::get<LODManager>()->getLODLevel(); };
+        auto setter = [](float value) { FaceTracker::setEyeDeflection(value); };
+        preferences->addPreference(new SliderPreference(GRAPHICS_QUALITY, "World Detail", getter, setter));
+    }
 
     // UI
     static const QString UI_CATEGORY { "User Interface" };
