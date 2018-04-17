@@ -15,6 +15,8 @@
 <@include gpu/Color.slh@>
 <@include DeferredBufferWrite.slh@>
 
+#define TAA_TEXTURE_LOD_BIAS    -1.0
+
 // the albedo texture
 uniform sampler2D originalTexture;
 
@@ -24,7 +26,7 @@ in vec4 _color;
 in vec2 _texCoord0;
 
 void main(void) {
-    vec4 texel = texture(originalTexture, _texCoord0.st);
+    vec4 texel = texture(originalTexture, _texCoord0.st, TAA_TEXTURE_LOD_BIAS);
     texel = color_sRGBAToLinear(texel);
     packDeferredFragmentUnlit(normalize(_normal), 1.0, _color.rgb * texel.rgb);
 }

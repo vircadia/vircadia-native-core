@@ -11,8 +11,6 @@
 <@if not MODEL_MATERIAL_TEXTURES_SLH@>
 <@def MODEL_MATERIAL_TEXTURES_SLH@>
 
-#define TAA_TEXTURE_LOD_BIAS    -1.0
-
 <@func declareMaterialTexMapArrayBuffer()@>
 
 const int MAX_TEXCOORDS = 2;
@@ -48,6 +46,8 @@ TexMapArray getTexMapArray() {
 
 
 <@func declareMaterialTextures(withAlbedo, withRoughness, withNormal, withMetallic, withEmissive, withOcclusion, withScattering)@>
+
+#define TAA_TEXTURE_LOD_BIAS    -1.0
 
 <@include gpu/TextureTable.slh@>
 

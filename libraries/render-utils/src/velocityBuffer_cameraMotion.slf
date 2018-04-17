@@ -32,7 +32,7 @@ void main(void) {
 	vec3 worldPos = (getViewInverse() * vec4(eyePos, 1.0)).xyz;
     
     vec3 prevEyePos = (getPreviousView() * vec4(worldPos, 1.0)).xyz;
-    vec4 prevClipPos = (frameTransform._projection[stereoSide.x] * vec4(prevEyePos, 1.0));
+    vec4 prevClipPos = (frameTransform._previousProjection[stereoSide.x] * vec4(prevEyePos, 1.0));
     vec2 prevUV =  0.5 * (prevClipPos.xy / prevClipPos.w) + vec2(0.5);
 
     //vec2 imageSize = getWidthHeight(0);

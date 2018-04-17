@@ -32,6 +32,7 @@ struct DeferredFrameTransform {
     vec4 _stereoInfo;
     mat4 _projection[2];
     mat4 _invProjection[2];
+    mat4 _previousProjection[2];
     mat4 _projectionMono;
     mat4 _viewInverse;
     mat4 _view;
