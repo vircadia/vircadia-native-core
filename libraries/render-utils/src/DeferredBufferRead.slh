@@ -118,7 +118,7 @@ DeferredFragment unpackDeferredFragmentNoPositionNoAmbient(vec2 texcoord) {
 <@include DeferredTransform.slh@>
 <$declareDeferredFrameTransform()$>
 
-vec4 unpackDeferredPosition(DeferredFrameTransform deferredTransform, float depthValue, vec2 texcoord) {
+vec4 unpackDeferredPosition(float depthValue, vec2 texcoord) {
     int side = 0;
     if (isStereo()) {
         if (texcoord.x > 0.5) {
@@ -127,9 +127,14 @@ vec4 unpackDeferredPosition(DeferredFrameTransform deferredTransform, float dept
         }
         texcoord.x *= 2.0;
     }
-    float Zeye = evalZeyeFromZdb(depthValue);
 
-    return vec4(evalEyePositionFromZeye(side, Zeye, texcoord), 1.0);
+    return vec4(evalEyePositionFromZdb(side, depthValue, texcoord), 1.0);
+}
+
+// This method to unpack position is fastesst
+vec4 unpackDeferredPositionFromZdb(vec2 texcoord) {
+    float Zdb = texture(depthMap, texcoord).x;
+	return unpackDeferredPosition(Zdb, texcoord);
 }
 
 vec4 unpackDeferredPositionFromZeye(vec2 texcoord) {
@@ -152,7 +157,7 @@ DeferredFragment unpackDeferredFragment(DeferredFrameTransform deferredTransform
     DeferredFragment frag = unpackDeferredFragmentNoPosition(texcoord);
 
     frag.depthVal = depthValue;
-    frag.position = unpackDeferredPosition(deferredTransform, frag.depthVal, texcoord);
+    frag.position = unpackDeferredPosition(frag.depthVal, texcoord);
 
     return frag;
 }

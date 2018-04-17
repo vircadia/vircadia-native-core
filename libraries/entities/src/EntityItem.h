@@ -58,6 +58,9 @@ using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElemen
 #define debugTimeOnly(T) qPrintable(QString("%1").arg(T, 16, 10))
 #define debugTreeVector(V) V << "[" << V << " in meters ]"
 
+const uint64_t MAX_OUTGOING_SIMULATION_UPDATE_PERIOD = 9 * USECS_PER_SECOND;
+const uint64_t MAX_INCOMING_SIMULATION_UPDATE_PERIOD = MAX_OUTGOING_SIMULATION_UPDATE_PERIOD + USECS_PER_SECOND;
+
 class MeshProxyList;
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
@@ -489,6 +492,9 @@ public:
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
     std::unordered_map<std::string, graphics::MultiMaterial> getMaterials();
 
+    void setSimulationOwnershipExpiry(uint64_t expiry) { _simulationOwnershipExpiry = expiry; }
+    uint64_t getSimulationOwnershipExpiry() const { return _simulationOwnershipExpiry; }
+
 signals:
     void requestRenderUpdate();
 
@@ -619,9 +625,6 @@ protected:
     static quint64 _rememberDeletedActionTime;
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;
 
-    // per entity keep state if it ever bid on simulation, so that we can ignore false simulation ownership
-    mutable bool _hasBidOnSimulation { false };
-
     QUuid _sourceUUID; /// the server node UUID we came from
 
     bool _clientOnly { false };
@@ -642,6 +645,7 @@ protected:
     quint64 _lastUpdatedAngularVelocityTimestamp { 0 };
     quint64 _lastUpdatedAccelerationTimestamp { 0 };
     quint64 _lastUpdatedQueryAACubeTimestamp { 0 };
+    uint64_t _simulationOwnershipExpiry { 0 };
 
     bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
 

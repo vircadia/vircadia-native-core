@@ -400,7 +400,9 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
     if (shouldTraverseAndSend(nodeData)) {
         quint64 start = usecTimestampNow();
 
-        traverseTreeAndSendContents(node, nodeData, viewFrustumChanged, isFullScene);
+        _myServer->getOctree()->withReadLock([&]{
+            traverseTreeAndSendContents(node, nodeData, viewFrustumChanged, isFullScene);
+        });
 
         // Here's where we can/should allow the server to send other data...
         // send the environment packet

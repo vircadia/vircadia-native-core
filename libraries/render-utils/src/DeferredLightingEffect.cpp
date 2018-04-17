@@ -532,7 +532,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
             }
         }
 
-        auto& program = deferredLightingEffect->_directionalSkyboxLight;
+        auto program = deferredLightingEffect->_directionalSkyboxLight;
         LightLocationsPtr locations = deferredLightingEffect->_directionalSkyboxLightLocations;
 
         auto keyLight = lightAndShadow.first;
