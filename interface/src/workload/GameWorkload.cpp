@@ -58,6 +58,6 @@ void GameWorkload::updateViews(const ViewFrustum& frustum, const glm::vec3& head
     _engine->_task->feedInput(views);
 }
 
-void GameWorkload::updateSimulationTiming(const workload::Timings& timings) {
+void GameWorkload::updateSimulationTimings(const workload::Timings& timings) {
   //  _engine->_task->feedInput(timings);
 }
