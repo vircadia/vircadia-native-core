@@ -55,8 +55,11 @@ void setupPreferences() {
     static const QString GRAPHICS_QUALITY { "Graphics Quality" };
     {
         auto getter = []()->float { return DependencyManager::get<LODManager>()->getLODLevel(); };
-        auto setter = [](float value) { FaceTracker::setEyeDeflection(value); };
+        auto setter = [](float value) {  };
         preferences->addPreference(new SliderPreference(GRAPHICS_QUALITY, "World Detail", getter, setter));
+        auto getterSQ = []()->float { return 1.0; };
+        auto setterSQ = [](float value) { };
+        preferences->addPreference(new SliderPreference(GRAPHICS_QUALITY, "Shadow Quality", getterSQ, setterSQ));
     }
 
     // UI
@@ -179,6 +182,13 @@ void setupPreferences() {
         auto setter = [=](const QString& value) { myAvatar->setAnimGraphOverrideUrl(QUrl(value)); };
         auto preference = new EditPreference(AVATAR_TUNING, "Avatar animation JSON", getter, setter);
         preference->setPlaceholderText("default");
+        preferences->addPreference(preference);
+    }
+
+    {
+        auto getter = [=]()->bool { return myAvatar->getCollisionsEnabled(); };
+        auto setter = [=](bool value) { myAvatar->setCollisionsEnabled(value); };
+        auto preference = new CheckPreference(AVATAR_TUNING, "Enable Avatar collisions", getter, setter);
         preferences->addPreference(preference);
     }
 
