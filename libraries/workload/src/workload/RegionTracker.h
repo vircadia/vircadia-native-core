@@ -39,7 +39,6 @@ namespace workload {
 
     protected:
     };
-
 } // namespace workload
 
 #endif // hifi_workload_RegionTracker_h

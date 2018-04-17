@@ -23,7 +23,6 @@
 #include "Space.h"
 
 namespace workload {
-
     class WorkloadContext : public task::JobContext {
     public:
         WorkloadContext(const SpacePointer& space);
@@ -35,41 +34,26 @@ namespace workload {
     using WorkloadContextPointer = std::shared_ptr<WorkloadContext>;
     Task_DeclareTypeAliases(WorkloadContext)
 
-    class Engine : public Task {
+    class Engine {
     public:
-        Engine();
+        Engine(const std::shared_ptr<Task>& task) : _task(task), _context(nullptr) {
+        }
         ~Engine() = default;
 
         void reset(const WorkloadContextPointer& context);
 
-        void run() { if (_context) { run(_context); } }
+        void run() { if (_context) { _task->run(_context); } }
+
+        std::shared_ptr<TaskConfig> getConfiguration() { return _task->getConfiguration(); }
+
+        std::shared_ptr<Task> _task;
 
     protected:
-        void run(const WorkloadContextPointer& context) override { assert(_context); Task::run(_context); }
 
     private:
         WorkloadContextPointer _context;
     };
     using EnginePointer = std::shared_ptr<Engine>;
-
-    class PerformSpaceTransactionConfig : public Job::Config {
-        Q_OBJECT
-    public:
-    signals :
-         void dirty();
-
-    protected:
-    };
-
-    class PerformSpaceTransaction {
-    public:
-        using Config = PerformSpaceTransactionConfig;
-        using JobModel = Job::Model<PerformSpaceTransaction, Config>;
-
-        void configure(const Config& config);
-        void run(const WorkloadContextPointer& context);
-    protected:
-    };
 } // namespace workload
 
 #endif // hifi_workload_Space_h

@@ -11,13 +11,14 @@
 #include "GameWorkloadRenderer.h"
 #include <ViewFrustum.h>
 #include <workload/RegionTracker.h>
+#include <workload/SpaceClassifier.h>
 
 #include "PhysicsBoundary.h"
 
 GameWorkloadContext::GameWorkloadContext(const workload::SpacePointer& space,
         const render::ScenePointer& scene,
-        const PhysicalEntitySimulationPointer& simulation)
-:   WorkloadContext(space), _scene(scene), _simulation(simulation)
+        const PhysicalEntitySimulationPointer& simulation): WorkloadContext(space),
+    _scene(scene), _simulation(simulation)
 {
 }
 
@@ -25,7 +26,9 @@ GameWorkloadContext::~GameWorkloadContext() {
 }
 
 
-GameWorkload::GameWorkload() {
+GameWorkload::GameWorkload() :
+    _engine(std::make_shared<workload::Engine>(std::make_shared<workload::Task>(workload::SpaceClassifierTask::JobModel::create("Engine"))))
+{
 }
 
 GameWorkload::~GameWorkload() {
@@ -37,11 +40,11 @@ void GameWorkload::startup(const workload::SpacePointer& space,
         const PhysicalEntitySimulationPointer& simulation) {
     _engine->reset(std::make_shared<GameWorkloadContext>(space, scene, simulation));
 
-    auto output = _engine->getOutput();
-    _engine->addJob<GameSpaceToRender>("SpaceToRender");
+    auto output = _engine->_task->getOutput();
+    _engine->_task->addJob<GameSpaceToRender>("SpaceToRender");
 
-    const auto regionChanges = _engine->getOutput();
-    _engine->addJob<PhysicsBoundary>("PhysicsBoundary", regionChanges);
+    const auto regionChanges = _engine->_task->getOutput();
+    _engine->_task->addJob<PhysicsBoundary>("PhysicsBoundary", regionChanges);
 }
 
 void GameWorkload::shutdown() {
@@ -52,6 +55,9 @@ void GameWorkload::updateViews(const ViewFrustum& frustum, const glm::vec3& head
     workload::Views views;
     views.emplace_back(workload::View::evalFromFrustum(frustum, headPosition - frustum.getPosition()));
     views.emplace_back(workload::View::evalFromFrustum(frustum));
-    _engine->feedInput(views);
+    _engine->_task->feedInput(views);
 }
 
+void GameWorkload::updateSimulationTiming(const workload::Timings& timings) {
+  //  _engine->_task->feedInput(timings);
+}

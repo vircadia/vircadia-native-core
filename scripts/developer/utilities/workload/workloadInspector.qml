@@ -170,8 +170,17 @@ Rectangle {
         }
         Separator {} 
         HifiControls.Label {
-            text: "Numbers: R2= " + Workload.getConfig("regionState")["numR2"];     
-        }  
+            text: "Numbers:";     
+        }
+        HifiControls.Label {
+            text: "R1= " + Workload.getConfig("regionState")["numR1"];     
+        } 
+        HifiControls.Label {
+            text: "R2= " + Workload.getConfig("regionState")["numR2"];     
+        } 
+        HifiControls.Label {
+            text: "R3= " + Workload.getConfig("regionState")["numR3"];     
+        }   
         Separator {}
         HifiControls.Label {
             text: "Display"       

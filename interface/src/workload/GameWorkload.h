@@ -38,8 +38,9 @@ public:
     void shutdown();
 
     void updateViews(const ViewFrustum& frustum, const glm::vec3& headPosition);
+    void updateSimulationTimings(const workload::Timings& timings);
 
-    workload::EnginePointer _engine { std::make_shared<workload::Engine>() };
+    workload::EnginePointer _engine;
 };
 
 #endif // hifi_GameWorkload_h
