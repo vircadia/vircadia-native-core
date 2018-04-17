@@ -734,7 +734,7 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesByType(const QString entity
     return result;
 }
 
-QVector<QUuid> EntityScriptingInterface::findEntitiesByName(const QString entityName, const glm::vec3& center, float radius) const {
+QVector<QUuid> EntityScriptingInterface::findEntitiesByName(const QString entityName, const glm::vec3& center, float radius, bool caseSensitiveSearch) const {
     
     QVector<QUuid> result;
     if (_entityTree) {
@@ -743,9 +743,21 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesByName(const QString entity
             _entityTree->findEntities(center, radius, entities);
         });
 
-        foreach(EntityItemPointer entity, entities) {
-            if (entity->getName() == entityName) {
-                result << entity->getEntityItemID();
+        if (caseSensitiveSearch) {
+            foreach(EntityItemPointer entity, entities) {
+                if (entity->getName() == entityName) {
+                    result << entity->getEntityItemID();
+                }
+            }
+
+        } else {
+            QString entityNameLowerCase = entityName.toLower();
+
+            foreach(EntityItemPointer entity, entities) {
+                QString entityItemLowerCase = entity->getName().toLower();
+                if (entityItemLowerCase == entityNameLowerCase) {
+                    result << entity->getEntityItemID();
+                }
             }
         }
     }

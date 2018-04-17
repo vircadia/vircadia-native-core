@@ -393,13 +393,14 @@ public slots:
     * @param {Entities.EntityType} entityName - The name of the entity to search for.
     * @param {Vec3} center - The point about which to search.
     * @param {number} radius - The radius within which to search.
+    * @param {bool} caseSensitiveSearch - Choose whether to to return case sensitive results back.
     * @returns {Uuid[]} An array of entity IDs of the specified type that intersect the search sphere. The array is empty if
     *     no entities could be found.
     * @example <caption>Get back a list of entities</caption>
-    * var entityIDs = Entities.findEntitiesByName("Light-Target", MyAvatar.position, 10);
+    * var entityIDs = Entities.findEntitiesByName("Light-Target", MyAvatar.position, 10, false);
     * print("Number of Entities with the name Light-Target " + entityIDs.length);
     */
-    Q_INVOKABLE QVector<QUuid> findEntitiesByName(const QString entityName, const glm::vec3& center, float radius) const;
+    Q_INVOKABLE QVector<QUuid> findEntitiesByName(const QString entityName, const glm::vec3& center, float radius, bool caseSensitiveSearch = false ) const;
 
     /**jsdoc
      * Find the first entity intersected by a {@link PickRay}. <code>Light</code> and <code>Zone</code> entities are not 
