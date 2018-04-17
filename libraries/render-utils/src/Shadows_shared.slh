@@ -1,10 +1,8 @@
 // glsl / C++ compatible source as interface for Shadows
 #ifdef __cplusplus
 #   define MAT4 glm::mat4
-#   define VEC3 glm::vec3
 #else
 #   define MAT4 mat4
-#   define VEC3 vec3
 #endif
 
 #define SHADOW_CASCADE_MAX_COUNT    4

@@ -1,6 +1,16 @@
 import os, json, sys, shutil, subprocess, shlex, time
 EXE = os.environ['HIFI_OVEN']
 
+def getRelativePath(path1, path2, stop):
+    parts1 = path1.split('/');
+    parts2 = path2.split('/');
+    if len(parts1) <= len(parts2):
+        for part in parts1:
+            if part != stop and part != '':
+                index = parts2.index(part)
+                parts2.pop(index)
+    return os.path.join(*parts2)
+
 def listFiles(directory, extension):
     items = os.listdir(directory)
     fileList = []
@@ -34,28 +44,39 @@ def groupKTXFiles(directory, filePath):
         originalFilePath.strip()
         shutil.move(originalFilePath, newFilePath)
 
-def bakeFile(filePath, outputDirectory):
+def bakeFile(filePath, outputDirectory, fileType):
     createDirectory(outputDirectory)
-    cmd = EXE + ' -i ' + filePath + ' -o ' + outputDirectory + ' -t fbx'
+    cmd = EXE + ' -i ' + filePath + ' -o ' + outputDirectory + ' -t ' + fileType
     args = shlex.split(cmd)
     process = subprocess.Popen(cmd, stdout=False, stderr=False)
     process.wait()
     bakedFile = os.path.splitext(filePath)[0]
-    groupKTXFiles(outputDirectory, bakedFile)
+    if fileType == 'fbx':
+        groupKTXFiles(outputDirectory, bakedFile)
 
 def bakeFilesInDirectory(directory, outputDirectory):
+    rootDirectory = os.path.basename(os.path.normpath(directory))
     for root, subFolders, filenames in os.walk(directory):
         for filename in filenames:
+            appendPath = getRelativePath(directory, root, rootDirectory);
+            name, ext = os.path.splitext('file.txt')
             if filename.endswith('.fbx'):
                 filePath = os.sep.join([root, filename])
                 absFilePath = os.path.abspath(filePath)
-                outputFolder = os.path.join(outputDirectory, os.path.relpath(root))
+                outputFolder = os.path.join(outputDirectory, appendPath)
                 print "Baking file: " + filename
-                bakeFile(absFilePath, outputFolder)
+                bakeFile(absFilePath, outputFolder, 'fbx')
+            elif os.path.basename(root) == 'skyboxes':
+                filePath = os.sep.join([root, filename])
+                absFilePath = os.path.abspath(filePath)
+                outputFolder = os.path.join(outputDirectory, appendPath)
+                print "Baking file: " + filename
+                bakeType = os.path.splitext(filename)[1][1:]
+                bakeFile(absFilePath, outputFolder, bakeType)
             else:
                 filePath = os.sep.join([root, filename])
                 absFilePath = os.path.abspath(filePath)
-                outputFolder = os.path.join(outputDirectory, os.path.relpath(root))
+                outputFolder = os.path.join(outputDirectory, appendPath)
                 newFilePath = os.sep.join([outputFolder, filename])
                 createDirectory(outputFolder)
                 print "moving file: " + filename + " to: " + outputFolder

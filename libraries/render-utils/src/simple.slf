@@ -13,7 +13,6 @@
 //
 
 <@include DeferredBufferWrite.slh@>
-<@include graphics/Material.slh@>
 
 // the interpolated normal
 in vec3 _normal;
@@ -29,9 +28,8 @@ in vec4 _position;
 
 #line 2030
 void main(void) {
-    Material material = getMaterial();
-    vec3 normal = normalize(_normal.xyz); 
-    vec3 diffuse = _color.rgb; 
+    vec3 normal = normalize(_normal.xyz);
+    vec3 diffuse = _color.rgb;
     vec3 specular = DEFAULT_SPECULAR;
     float shininess = DEFAULT_SHININESS;
     float emissiveAmount = 0.0;
@@ -43,49 +41,30 @@ void main(void) {
     // Procedural Shaders are expected to be Gamma corrected so let's bring back the RGB in linear space for the rest of the pipeline
     //specular = pow(specular, vec3(2.2));
     emissiveAmount = 1.0;
-#else 
+#else
     emissiveAmount = getProceduralColors(diffuse, specular, shininess);
 #endif
 
 #endif
 
-    const float ALPHA_THRESHOLD = 0.999;
-    if (_color.a < ALPHA_THRESHOLD) {
-        if (emissiveAmount > 0.0) {
-            packDeferredFragmentTranslucent(
-                normal,
-                _color.a,
-                specular,
-                DEFAULT_FRESNEL,
-                DEFAULT_ROUGHNESS);
-        } else {
-            packDeferredFragmentTranslucent(
-                normal,
-                _color.a,
-                diffuse,
-                DEFAULT_FRESNEL,
-                DEFAULT_ROUGHNESS);
-        }
+    if (emissiveAmount > 0.0) {
+        packDeferredFragmentLightmap(
+            normal,
+            1.0,
+            diffuse,
+            max(0.0, 1.0 - shininess / 128.0),
+            DEFAULT_METALLIC,
+            specular,
+            vec3(clamp(emissiveAmount, 0.0, 1.0)));
     } else {
-        if (emissiveAmount > 0.0) {
-            packDeferredFragmentLightmap(
-                normal,
-                1.0,
-                diffuse,
-                max(0.0, 1.0 - shininess / 128.0),
-                DEFAULT_METALLIC,
-                specular,
-                vec3(clamp(emissiveAmount, 0.0, 1.0)));
-        } else {
-            packDeferredFragment(
-                normal,
-                1.0,
-                diffuse,
-                max(0.0, 1.0 - shininess / 128.0),
-                length(specular),
-                DEFAULT_EMISSIVE,
-                DEFAULT_OCCLUSION,
-                DEFAULT_SCATTERING);
-        }
+        packDeferredFragment(
+            normal,
+            1.0,
+            diffuse,
+            max(0.0, 1.0 - shininess / 128.0),
+            length(specular),
+            DEFAULT_EMISSIVE,
+            DEFAULT_OCCLUSION,
+            DEFAULT_SCATTERING);
     }
 }

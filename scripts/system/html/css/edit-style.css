@@ -1387,12 +1387,14 @@ input#reset-to-natural-dimensions {
     margin-top: 48px;
 }
 
-#userdata-clear{
+#userdata-clear,
+#materialdata-clear {
     margin-bottom: 10px;
 }
 
 
-#static-userdata {
+#static-userdata,
+#static-materialData {
     display: none;
     z-index: 99;
     position: absolute;
@@ -1403,7 +1405,8 @@ input#reset-to-natural-dimensions {
     background-color: #2e2e2e;
 }
 
-#userdata-saved {
+#userdata-saved,
+#materialData-saved {
     margin-top:5px;
     font-size:16px;
     display:none;

@@ -13,11 +13,19 @@
 
 <@func declareLightingModel()@>
 
+#ifndef PRECISIONQ
+#ifdef GL_ES
+#define PRECISIONQ highp
+#else
+#define PRECISIONQ
+#endif
+#endif
+
 struct LightingModel {
-    vec4 _UnlitEmissiveLightmapBackground;
-    vec4 _ScatteringDiffuseSpecularAlbedo;
-    vec4 _AmbientDirectionalPointSpot;
-    vec4 _ShowContourObscuranceWireframe;
+    PRECISIONQ vec4 _UnlitEmissiveLightmapBackground;
+    PRECISIONQ vec4 _ScatteringDiffuseSpecularAlbedo;
+    PRECISIONQ vec4 _AmbientDirectionalPointSpot;
+    PRECISIONQ vec4 _ShowContourObscuranceWireframe;
 };
 
 uniform lightingModelBuffer{
@@ -256,9 +264,7 @@ void evalFragShading(out vec3 diffuse, out vec3 specular,
     float metallic, vec3 fresnel, SurfaceData surface, vec3 albedo) {
     vec4 shading = evalPBRShading(metallic, fresnel, surface);
     diffuse = vec3(shading.w);
-    if (isAlbedoEnabled() > 0.0) {
-        diffuse *= albedo;
-    }
+    diffuse *= mix(vec3(1.0), albedo, isAlbedoEnabled());
     specular = shading.xyz;
 }
 

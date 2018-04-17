@@ -87,6 +87,17 @@ namespace gpu {
         { Semantic::COMPRESSED_BC6_RGB, "compressed_bc6_rgb" },
         { Semantic::COMPRESSED_BC7_SRGBA, "compressed_bc7_srgba" },
 
+        { Semantic::COMPRESSED_ETC2_RGB, "compressed_etc2_rgb" },
+        { Semantic::COMPRESSED_ETC2_SRGB, "compressed_etc2_srgb" },
+        { Semantic::COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA, "compressed_etc2_rgb_punchthrough_alpha" },
+        { Semantic::COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA, "compressed_etc2_srgb_punchthrough_alpha" },
+        { Semantic::COMPRESSED_ETC2_RGBA, "compressed_etc2_rgba" },
+        { Semantic::COMPRESSED_ETC2_SRGBA, "compressed_etc2_srgba" },
+        { Semantic::COMPRESSED_EAC_RED, "compressed_eac_red" },
+        { Semantic::COMPRESSED_EAC_RED_SIGNED, "compressed_eac_red_signed" },
+        { Semantic::COMPRESSED_EAC_XY, "compressed_eac_xy" },
+        { Semantic::COMPRESSED_EAC_XY_SIGNED, "compressed_eac_xy_signed" },
+
         { Semantic::_LAST_COMPRESSED, "_last_compressed" },
 
         { Semantic::R11G11B10, "r11g11b10" },

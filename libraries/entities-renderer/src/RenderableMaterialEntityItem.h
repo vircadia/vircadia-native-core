@@ -32,8 +32,6 @@ private:
     ShapeKey getShapeKey() override;
 
     QUuid _parentID;
-    bool _clientOnly;
-    QUuid _owningAvatarID;
     glm::vec2 _materialMappingPos;
     glm::vec2 _materialMappingScale;
     float _materialMappingRot;
