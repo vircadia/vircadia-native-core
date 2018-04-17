@@ -439,7 +439,9 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                     QUrl domainURL;
                     domainURL.setScheme(URL_SCHEME_HIFI);
                     domainURL.setHost(domainHostname);
-                    domainURL.setPort(domainPort);
+                    if (domainPort > 0) {
+                        domainURL.setPort(domainPort);
+                    }
                     emit possibleDomainChangeRequired(domainURL, domainID);
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
@@ -610,7 +612,9 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
         QUrl domainURL;
         domainURL.setScheme(URL_SCHEME_HIFI);
         domainURL.setHost(domainIPString);
-        domainURL.setPort(domainPort);
+        if (domainPort > 0) {
+            domainURL.setPort(domainPort);
+        }
         hostChanged = setDomainInfo(domainURL, trigger);
 
         return true;
@@ -631,7 +635,9 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
         QUrl domainURL;
         domainURL.setScheme(URL_SCHEME_HIFI);
         domainURL.setHost(domainHostname);
-        domainURL.setPort(domainPort);
+        if (domainPort > 0) {
+            domainURL.setPort(domainPort);
+        }
         hostChanged = setDomainInfo(domainURL, trigger);
 
         return true;
@@ -763,7 +769,9 @@ bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16
         _domainURL = QUrl();
         _domainURL.setScheme(URL_SCHEME_HIFI);
         _domainURL.setHost(host);
-        _domainURL.setPort(port);
+        if (port > 0) {
+            _domainURL.setPort(port);
+        }
 
         // any host change should clear the shareable place name
         _shareablePlaceName.clear();
