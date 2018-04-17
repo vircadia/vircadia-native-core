@@ -112,6 +112,11 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
 
     resetClientEditStats();
     clearDeletedEntities();
+
+    {
+        QWriteLocker locker(&_needsParentFixupLock);
+        _needsParentFixup.clear();
+    }
 }
 
 void EntityTree::readBitstreamToTree(const unsigned char* bitstream,
