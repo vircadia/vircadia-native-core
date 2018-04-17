@@ -174,6 +174,11 @@ void Context::getStereoViews(mat4* eyeViews) const {
     }
 }
 
+void Context::setProjectionJitter(float jx, float jy) {
+	_projectionJitter.x = jx;
+	_projectionJitter.y = jy;
+}
+
 void Context::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) {
     _backend->downloadFramebuffer(srcFramebuffer, region, destImage);
 }

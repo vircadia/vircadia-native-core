@@ -541,6 +541,7 @@ void JitterSample::run(const render::RenderContextPointer& renderContext) {
 
         args->_context->setStereoProjections(projMats);
     }
+	args->_context->setProjectionJitter(jx, jy);
 }
 
 

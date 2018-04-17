@@ -208,6 +208,8 @@ public:
     void setStereoViews(const mat4 eyeViews[2]);
     void getStereoProjections(mat4* eyeProjections) const;
     void getStereoViews(mat4* eyeViews) const;
+	void setProjectionJitter(float jx, float jy);
+	gpu::Vec2 getProjectionJitter() const { return _projectionJitter; }
 
     // Downloading the Framebuffer is a synchronous action that is not efficient.
     // It s here for convenience to easily capture a snapshot
@@ -254,6 +256,7 @@ protected:
     FramePointer _currentFrame;
     RangeTimerPointer _frameRangeTimer;
     StereoState  _stereo;
+	gpu::Vec2 _projectionJitter{ 0.0f, 0.0f };
 
     // Sampled at the end of every frame, the stats of all the counters
     mutable ContextStats _frameStats;

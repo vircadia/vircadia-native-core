@@ -38,9 +38,6 @@ void DeferredFrameTransform::update(RenderArgs* args) {
 
     args->getViewFrustum().evalProjectionMatrix(frameTransformBuffer.projectionMono);
 
-	frameTransformBuffer.previousProjection[0] = frameTransformBuffer.projection[0];
-	frameTransformBuffer.previousProjection[1] = frameTransformBuffer.projection[1];
-
     // Running in stereo ?
     bool isStereo = args->isStereo();
     if (!isStereo) {
@@ -48,7 +45,12 @@ void DeferredFrameTransform::update(RenderArgs* args) {
         frameTransformBuffer.stereoInfo = glm::vec4(0.0f, (float)args->_viewport.z, 0.0f, 0.0f);
         frameTransformBuffer.invpixelInfo = glm::vec4(1.0f / args->_viewport.z, 1.0f / args->_viewport.w, 0.0f, 0.0f);
         frameTransformBuffer.invProjection[0] = glm::inverse(frameTransformBuffer.projection[0]);
-    } else {
+
+		frameTransformBuffer.projectionUnjittered[0] = frameTransformBuffer.projection[0];
+		frameTransformBuffer.projectionUnjittered[0][2][0] -= args->_context->getProjectionJitter().x;
+		frameTransformBuffer.projectionUnjittered[0][2][1] -= args->_context->getProjectionJitter().y;
+		frameTransformBuffer.invProjectionUnjittered[0] = glm::inverse(frameTransformBuffer.projectionUnjittered[0]);
+	} else {
 
         mat4 projMats[2];
         mat4 eyeViews[2];
@@ -60,7 +62,12 @@ void DeferredFrameTransform::update(RenderArgs* args) {
             auto sideViewMat = projMats[i] * eyeViews[i];
             frameTransformBuffer.projection[i] = sideViewMat;
             frameTransformBuffer.invProjection[i] = glm::inverse(sideViewMat);
-        }
+
+			frameTransformBuffer.projectionUnjittered[i] = frameTransformBuffer.projection[i];
+			frameTransformBuffer.projectionUnjittered[i][2][0] -= args->_context->getProjectionJitter().x;
+			frameTransformBuffer.projectionUnjittered[i][2][1] -= args->_context->getProjectionJitter().y;
+			frameTransformBuffer.invProjectionUnjittered[i] = glm::inverse(frameTransformBuffer.projectionUnjittered[i]);
+		}
 
         frameTransformBuffer.stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
         frameTransformBuffer.invpixelInfo = glm::vec4(1.0f / (float)(args->_viewport.z >> 1), 1.0f / args->_viewport.w, 0.0f, 0.0f);
