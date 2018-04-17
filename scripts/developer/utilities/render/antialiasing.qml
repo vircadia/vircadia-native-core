@@ -36,7 +36,7 @@ Rectangle {
             Row {
                 spacing: 10
                 id: fxaaOnOff
-                property bool debugFXAA: true
+                property bool debugFXAA: false
                 HifiControls.Button {
                     text: {
                         if (fxaaOnOff.debugFXAA) {

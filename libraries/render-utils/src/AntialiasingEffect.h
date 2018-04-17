@@ -26,11 +26,7 @@ class JitterSampleConfig : public render::Job::Config {
         Q_PROPERTY(bool stop MEMBER stop NOTIFY dirty)
         Q_PROPERTY(int index READ getIndex NOTIFY dirty)
 public:
-    JitterSampleConfig() : render::Job::Config(true) {
-        // FIXME: For RC66 disable Taa by default
-        // Disable jitter by default for now by default:
-        none();
-    }
+    JitterSampleConfig() : render::Job::Config(true) {}
 
     float scale{ 0.5f };
     bool stop{ false };
@@ -117,10 +113,7 @@ public:
     bool feedbackColor{ false };
 
     float debugX{ 0.0f };
-    // FIXME: For RC66 disable Taa by default
-    // Fall back to FXAA :(
-    // float debugFXAAX{ 1.0f };
-    float debugFXAAX{ 0.0f };
+    float debugFXAAX{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
     glm::vec2 debugCursorTexcoord{ 0.5f, 0.5f };
     float debugOrbZoom{ 2.0f };
