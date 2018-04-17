@@ -154,7 +154,7 @@ SelectionManager = (function() {
         that._update(true);
     };
 
-    that.duplicateSelection = function () {
+    that.duplicateSelection = function() {
         var duplicatedEntityIDs = [];
         Object.keys(that.savedProperties).forEach(function(otherEntityID) {
             var properties = that.savedProperties[otherEntityID];
