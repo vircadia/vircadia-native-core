@@ -13,7 +13,6 @@
 
 #include <OctreeUtils.h>
 
-
 DiffTraversal::Waypoint::Waypoint(EntityTreeElementPointer& element) : _nextIndex(0) {
     assert(element);
     _weakElement = element;
@@ -140,12 +139,12 @@ bool DiffTraversal::View::isBigEnough(const AACube& cube, float minDiameter) con
         return true;
     }
 
-    for (const auto& viewFrustum : viewFrustums) {
-        if (isAngularSizeBigEnough(viewFrustum.getPosition(), cube, lodScaleFactor, minDiameter)) {
-            return true;
-        }
-    }
-    return false;
+    bool isBigEnough = std::any_of(std::begin(viewFrustums), std::end(viewFrustums),
+                                   [&](const ViewFrustum& viewFrustum) {
+        return isAngularSizeBigEnough(viewFrustum.getPosition(), cube, lodScaleFactor, minDiameter);
+    });
+
+    return isBigEnough;
 }
 
 bool DiffTraversal::View::intersects(const AACube& cube) const {
@@ -154,12 +153,12 @@ bool DiffTraversal::View::intersects(const AACube& cube) const {
         return true;
     }
 
-    for (const auto& viewFrustum : viewFrustums) {
-        if (viewFrustum.cubeIntersectsKeyhole(cube)) {
-            return true;
-        }
-    }
-    return false;
+    bool intersects = std::any_of(std::begin(viewFrustums), std::end(viewFrustums),
+                                  [&](const ViewFrustum& viewFrustum) {
+        return viewFrustum.cubeIntersectsKeyhole(cube);
+    });
+
+    return intersects;
 }
 
 ViewFrustum::intersection DiffTraversal::View::calculateIntersection(const AACube& cube) const {
@@ -231,7 +230,7 @@ DiffTraversal::Type DiffTraversal::prepareNewTraversal(const DiffTraversal::View
     // If usesViewFrustum changes, treat it as a First traversal
     if (_completedView.startTime == 0 || _currentView.usesViewFrustums() != _completedView.usesViewFrustums()) {
         type = Type::First;
-        _currentView.viewFrustums = std::move(view.viewFrustums);
+        _currentView.viewFrustums = view.viewFrustums;
         _currentView.lodScaleFactor = view.lodScaleFactor;
         _getNextVisibleElementCallback = [this](DiffTraversal::VisibleElement& next) {
             _path.back().getNextVisibleElementFirstTime(next, _currentView);
@@ -243,7 +242,7 @@ DiffTraversal::Type DiffTraversal::prepareNewTraversal(const DiffTraversal::View
         };
     } else {
         type = Type::Differential;
-        _currentView.viewFrustums = std::move(view.viewFrustums);
+        _currentView.viewFrustums = view.viewFrustums;
         _currentView.lodScaleFactor = view.lodScaleFactor;
         _getNextVisibleElementCallback = [this](DiffTraversal::VisibleElement& next) {
             _path.back().getNextVisibleElementDifferential(next, _currentView, _completedView);

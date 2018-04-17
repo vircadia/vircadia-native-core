@@ -62,6 +62,10 @@ void ConicalView::set(const DiffTraversal::View& view) {
 }
 
 float ConicalView::computePriority(const AACube& cube) const {
+    if (_conicalViewFrustums.empty()) {
+        return PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
+    }
+
     float priority = PrioritizedEntity::DO_NOT_SEND;
 
     for (const auto& view : _conicalViewFrustums) {

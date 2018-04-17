@@ -135,25 +135,27 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
                 bool forceRemove = prevSendQueue.top().shouldForceRemove();
                 prevSendQueue.pop();
                 if (entity) {
-                    if (!forceRemove) {
+                    float priority = PrioritizedEntity::DO_NOT_SEND;
+
+
+                    if (forceRemove) {
+                        priority = PrioritizedEntity::FORCE_REMOVE;
+                    } else {
                         bool success = false;
                         AACube cube = entity->getQueryAACube(success);
                         if (success) {
-                            if (_traversal.getCurrentView().intersects(cube)) {
-                                float priority = _conicalView.computePriority(cube);
-                                if (priority != PrioritizedEntity::DO_NOT_SEND) {
-                                    if (_traversal.getCurrentView().isBigEnough(cube)) {
-                                        _sendQueue.push(PrioritizedEntity(entity, priority));
-                                        _entitiesInQueue.insert(entity.get());
-                                    }
-                                }
+                            const auto& view = _traversal.getCurrentView();
+                            if (view.intersects(cube) && view.isBigEnough(cube)) {
+                                priority = _conicalView.computePriority(cube);
                             }
                         } else {
-                            _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
-                            _entitiesInQueue.insert(entity.get());
+                            priority = PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
                         }
-                    } else {
-                        _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::FORCE_REMOVE, true));
+                    }
+
+
+                    if (priority != PrioritizedEntity::DO_NOT_SEND) {
+                        _sendQueue.emplace(entity, priority, forceRemove);
                         _entitiesInQueue.insert(entity.get());
                     }
                 }
@@ -245,104 +247,79 @@ void EntityTreeSendThread::startNewTraversal(const DiffTraversal::View& view, En
         case DiffTraversal::First:
             // When we get to a First traversal, clear the _knownState
             _knownState.clear();
-            if (view.usesViewFrustums()) {
-                _traversal.setScanCallback([this](DiffTraversal::VisibleElement& next) {
+            _traversal.setScanCallback([this](DiffTraversal::VisibleElement& next) {
+                next.element->forEachEntity([&](EntityItemPointer entity) {
+                    // Bail early if we've already checked this entity this frame
+                    if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
+                        return;
+                    }
+                    float priority = PrioritizedEntity::DO_NOT_SEND;
+
+
+                    bool success = false;
+                    AACube cube = entity->getQueryAACube(success);
+                    if (success) {
+                        const auto& view = _traversal.getCurrentView();
+                        // Check the size of the entity, it's possible that a "too small to see" entity is included in a
+                        // larger octree cell because of its position (for example if it crosses the boundary of a cell it
+                        // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
+                        // before we consider including it.
+                        if ((next.intersection == ViewFrustum::INSIDE || view.intersects(cube)) &&
+                            view.isBigEnough(cube)) {
+                            priority = _conicalView.computePriority(cube);
+                        }
+                    } else {
+                        priority = PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
+                    }
+
+
+                    if (priority != PrioritizedEntity::DO_NOT_SEND) {
+                        _sendQueue.emplace(entity, priority);
+                        _entitiesInQueue.insert(entity.get());
+                    }
+                });
+            });
+            break;
+        case DiffTraversal::Repeat:
+            _traversal.setScanCallback([this](DiffTraversal::VisibleElement& next) {
+                uint64_t startOfCompletedTraversal = _traversal.getStartOfCompletedTraversal();
+                if (next.element->getLastChangedContent() > startOfCompletedTraversal) {
                     next.element->forEachEntity([&](EntityItemPointer entity) {
                         // Bail early if we've already checked this entity this frame
                         if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
                             return;
                         }
-                        bool success = false;
-                        AACube cube = entity->getQueryAACube(success);
-                        if (success) {
-                            if (_traversal.getCurrentView().intersects(cube)) {
-                                // Check the size of the entity, it's possible that a "too small to see" entity is included in a
-                                // larger octree cell because of its position (for example if it crosses the boundary of a cell it
-                                // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
-                                // before we consider including it.
-                                if (_traversal.getCurrentView().isBigEnough(cube)) {
-                                    float priority = _conicalView.computePriority(cube);
-                                    _sendQueue.push(PrioritizedEntity(entity, priority));
-                                    _entitiesInQueue.insert(entity.get());
+                        float priority = PrioritizedEntity::DO_NOT_SEND;
+
+
+                        auto knownTimestamp = _knownState.find(entity.get());
+                        if (knownTimestamp == _knownState.end()) {
+                            bool success = false;
+                            AACube cube = entity->getQueryAACube(success);
+                            if (success) {
+                                const auto& view = _traversal.getCurrentView();
+                                // See the DiffTraversal::First case for an explanation of the "entity is too small" check
+                                if ((next.intersection == ViewFrustum::INSIDE || view.intersects(cube)) &&
+                                    view.isBigEnough(cube)) {
+                                    priority = _conicalView.computePriority(cube);
                                 }
+                            } else {
+                                priority = PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
                             }
-                        } else {
-                            _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
+                        } else if (entity->getLastEdited() > knownTimestamp->second) {
+                            // it is known and it changed --> put it on the queue with any priority
+                            // TODO: sort these correctly
+                            priority = PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
+                        }
+
+
+                        if (priority != PrioritizedEntity::DO_NOT_SEND) {
+                            _sendQueue.emplace(entity, priority);
                             _entitiesInQueue.insert(entity.get());
                         }
                     });
-                });
-            } else {
-                _traversal.setScanCallback([this](DiffTraversal::VisibleElement& next) {
-                    next.element->forEachEntity([&](EntityItemPointer entity) {
-                        // Bail early if we've already checked this entity this frame
-                        if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
-                            return;
-                        }
-                        _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
-                        _entitiesInQueue.insert(entity.get());
-                    });
-                });
-            }
-            break;
-        case DiffTraversal::Repeat:
-            if (view.usesViewFrustums()) {
-                _traversal.setScanCallback([this](DiffTraversal::VisibleElement& next) {
-                    uint64_t startOfCompletedTraversal = _traversal.getStartOfCompletedTraversal();
-                    if (next.element->getLastChangedContent() > startOfCompletedTraversal) {
-                        next.element->forEachEntity([&](EntityItemPointer entity) {
-                            // Bail early if we've already checked this entity this frame
-                            if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
-                                return;
-                            }
-                            auto knownTimestamp = _knownState.find(entity.get());
-                            if (knownTimestamp == _knownState.end()) {
-                                bool success = false;
-                                AACube cube = entity->getQueryAACube(success);
-                                if (success) {
-                                    if (next.intersection == ViewFrustum::INSIDE ||
-                                        _traversal.getCurrentView().intersects(cube)) {
-                                        // See the DiffTraversal::First case for an explanation of the "entity is too small" check
-                                        if (_traversal.getCurrentView().isBigEnough(cube)) {
-                                            float priority = _conicalView.computePriority(cube);
-                                            _sendQueue.push(PrioritizedEntity(entity, priority));
-                                            _entitiesInQueue.insert(entity.get());
-                                        }
-                                    }
-                                } else {
-                                    _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
-                                    _entitiesInQueue.insert(entity.get());
-                                }
-                            } else if (entity->getLastEdited() > knownTimestamp->second
-                                    || entity->getLastChangedOnServer() > knownTimestamp->second) {
-                                // it is known and it changed --> put it on the queue with any priority
-                                // TODO: sort these correctly
-                                _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
-                                _entitiesInQueue.insert(entity.get());
-                            }
-                        });
-                    }
-                });
-            } else {
-                _traversal.setScanCallback([this](DiffTraversal::VisibleElement& next) {
-                    uint64_t startOfCompletedTraversal = _traversal.getStartOfCompletedTraversal();
-                    if (next.element->getLastChangedContent() > startOfCompletedTraversal) {
-                        next.element->forEachEntity([&](EntityItemPointer entity) {
-                            // Bail early if we've already checked this entity this frame
-                            if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
-                                return;
-                            }
-                            auto knownTimestamp = _knownState.find(entity.get());
-                            if (knownTimestamp == _knownState.end()
-                                    || entity->getLastEdited() > knownTimestamp->second
-                                    || entity->getLastChangedOnServer() > knownTimestamp->second) {
-                                _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
-                                _entitiesInQueue.insert(entity.get());
-                            }
-                        });
-                    }
-                });
-            }
+                }
+            });
             break;
         case DiffTraversal::Differential:
             assert(view.usesViewFrustums());
@@ -352,36 +329,35 @@ void EntityTreeSendThread::startNewTraversal(const DiffTraversal::View& view, En
                     if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
                         return;
                     }
+                    float priority = PrioritizedEntity::DO_NOT_SEND;
+
+
                     auto knownTimestamp = _knownState.find(entity.get());
                     if (knownTimestamp == _knownState.end()) {
                         bool success = false;
                         AACube cube = entity->getQueryAACube(success);
                         if (success) {
-                            if (_traversal.getCurrentView().intersects(cube)) {
-                                // See the DiffTraversal::First case for an explanation of the "entity is too small" check
-                                if (_traversal.getCurrentView().isBigEnough(cube)) {
-                                    if (!_traversal.getCompletedView().intersects(cube)) {
-                                        float priority = _conicalView.computePriority(cube);
-                                        _sendQueue.push(PrioritizedEntity(entity, priority));
-                                        _entitiesInQueue.insert(entity.get());
-                                    } else if (!_traversal.getCompletedView().isBigEnough(cube)) {
-                                        // If this entity was skipped last time because it was too small, we still need to send it
-                                        // this object was skipped in last completed traversal
-                                        float priority = _conicalView.computePriority(cube);
-                                        _sendQueue.push(PrioritizedEntity(entity, priority));
-                                        _entitiesInQueue.insert(entity.get());
-                                    }
-                                }
+                            const auto& view = _traversal.getCurrentView();
+                            // See the DiffTraversal::First case for an explanation of the "entity is too small" check
+                            if ((next.intersection == ViewFrustum::INSIDE || view.intersects(cube)) &&
+                                view.isBigEnough(cube)) {
+                                    // If this entity wasn't in the last view or
+                                    // If this entity was skipped last time because it was too small, we still need to send it
+                                    priority = _conicalView.computePriority(cube);
                             }
                         } else {
-                            _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
-                            _entitiesInQueue.insert(entity.get());
+                            priority = PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
                         }
                     } else if (entity->getLastEdited() > knownTimestamp->second
                             || entity->getLastChangedOnServer() > knownTimestamp->second) {
                         // it is known and it changed --> put it on the queue with any priority
                         // TODO: sort these correctly
-                        _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
+                        priority = PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
+                    }
+
+
+                    if (priority != PrioritizedEntity::DO_NOT_SEND) {
+                        _sendQueue.emplace(entity, priority);
                         _entitiesInQueue.insert(entity.get());
                     }
                 });
@@ -499,11 +475,11 @@ void EntityTreeSendThread::editingEntityPointer(const EntityItemPointer& entity)
             if (success) {
                 // We can force a removal from _knownState if the current view is used and entity is out of view
                 if (_traversal.doesCurrentUseViewFrustum() && !_traversal.getCurrentView().intersects(cube)) {
-                    _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::FORCE_REMOVE, true));
+                    _sendQueue.emplace(entity, PrioritizedEntity::FORCE_REMOVE, true);
                     _entitiesInQueue.insert(entity.get());
                 }
             } else {
-                _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY, true));
+                _sendQueue.emplace(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY, true);
                 _entitiesInQueue.insert(entity.get());
             }
         }
