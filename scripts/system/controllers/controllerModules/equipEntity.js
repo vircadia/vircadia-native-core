@@ -796,7 +796,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         var intersection = Entities.findRayIntersection(pickRay, true);
         if (intersection.intersects) {
             var entityProperties = Entities.getEntityProperties(intersection.entityID, DISPATCHER_PROPERTIES);
-            if (entityProperties.parentID === EMPTY_PARENT_ID) {
+			var hasEquipData = getWearableData(entityProperties).joints || getEquipHotspotsData(entityProperties).length > 0;
+            if (hasEquipData && entityProperties.parentID === EMPTY_PARENT_ID) {
                 entityProperties.id = intersection.entityID;
                 var rightHandPosition = MyAvatar.getJointPosition("RightHand");
                 var leftHandPosition = MyAvatar.getJointPosition("LeftHand");   
