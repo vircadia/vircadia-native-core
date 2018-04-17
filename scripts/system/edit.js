@@ -457,6 +457,7 @@ var toolBar = (function () {
         Window.domainChanged.connect(function () {
             that.setActive(false);
             that.clearEntityList();
+            handleDomainChange();
         });
 
         Entities.canAdjustLocksChanged.connect(function (canAdjustLocks) {
@@ -870,17 +871,12 @@ function handleMessagesReceived(channel, message, sender) {
             handleOverlaySelectionToolUpdates( channel, message, sender );
             break;
         }
-        case 'Toolbar-DomainChanged': {
-            handleDomainChange();
-            break;
-        }
         default: {
             return;
         }
     }
 }
 
-Messages.subscribe('Toolbar-DomainChanged');
 Messages.subscribe("entityToolUpdates");
 Messages.messageReceived.connect(handleMessagesReceived);
 
@@ -1314,8 +1310,6 @@ Script.scriptEnding.connect(function () {
 
     Messages.messageReceived.disconnect(handleMessagesReceived);
     Messages.unsubscribe("entityToolUpdates");
-    // Messages.unsubscribe("Toolbar-DomainChanged"); // Do not unsubscribe because the shapes.js app also subscribes and 
-    // Messages.subscribe works script engine-wide which would mess things up if they're both run in the same engine.
     createButton = null;
 });
 
