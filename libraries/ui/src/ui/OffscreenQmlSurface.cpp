@@ -256,6 +256,15 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
 #if !defined(Q_OS_ANDROID)
     rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
     rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
+    {
+        PROFILE_RANGE(startup, "FileTypeProfile");
+        rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
+    }
+    {
+        PROFILE_RANGE(startup, "HFWebEngineProfile");
+        rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
+        
+    }
 #endif
     rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
     rootContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());

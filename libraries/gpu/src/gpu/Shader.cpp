@@ -75,6 +75,7 @@ Shader::Pointer Shader::createGeometry(const Source& source) {
 }
 
 ShaderPointer Shader::createOrReuseProgramShader(Type type, const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader) {
+    PROFILE_RANGE(app, "createOrReuseProgramShader");
     ProgramMapKey key(0);
 
     if (vertexShader && vertexShader->getType() == VERTEX) {

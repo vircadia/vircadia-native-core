@@ -18,6 +18,9 @@
 
 #include "render-utils/simple_vert.h"
 #include "render-utils/simple_frag.h"
+#include "render-utils/simple_transparent_frag.h"
+#include "render-utils/forward_simple_frag.h"
+#include "render-utils/forward_simple_transparent_frag.h"
 
 #include "RenderPipelines.h"
 
@@ -35,11 +38,21 @@ static const float SPHERE_ENTITY_SCALE = 0.5f;
 
 ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
     _procedural._vertexSource = simple_vert::getSource();
-    _procedural._fragmentSource = simple_frag::getSource();
+    // FIXME: Setup proper uniform slots and use correct pipelines for forward rendering
+    _procedural._opaquefragmentSource = simple_frag::getSource();
+    // FIXME: Transparent procedural entities only seem to work if they use the opaque pipelines
+    //_procedural._transparentfragmentSource = simple_transparent_frag::getSource();
+    _procedural._transparentfragmentSource = simple_frag::getSource();
     _procedural._opaqueState->setCullMode(gpu::State::CULL_NONE);
     _procedural._opaqueState->setDepthTest(true, true, gpu::LESS_EQUAL);
     PrepareStencil::testMaskDrawShape(*_procedural._opaqueState);
     _procedural._opaqueState->setBlendFunction(false,
+        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    _procedural._transparentState->setCullMode(gpu::State::CULL_BACK);
+    _procedural._transparentState->setDepthTest(true, true, gpu::LESS_EQUAL);
+    PrepareStencil::testMask(*_procedural._transparentState);
+    _procedural._transparentState->setBlendFunction(true,
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 }
@@ -218,9 +231,9 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         if (mat) {
             outColor = glm::vec4(mat->getAlbedo(), mat->getOpacity());
             if (_procedural.isReady()) {
-                _procedural.prepare(batch, _position, _dimensions, _orientation);
                 outColor = _procedural.getColor(outColor);
                 outColor.a *= _procedural.isFading() ? Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) : 1.0f;
+                _procedural.prepare(batch, _position, _dimensions, _orientation, outColor);
                 proceduralRender = true;
             }
         }
