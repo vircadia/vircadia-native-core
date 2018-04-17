@@ -77,8 +77,10 @@ vec2 taa_getRegionFXAA() {
 
 vec4 taa_fetchColor(sampler2D map, vec2 uv) {
 	vec4 c = texture(map, uv);
-	// Apply rapid pseudo tonemapping as TAA is applied to a tonemapped image
-	c.rgb = c.rgb / (vec3(1)+c.rgb);
+	// Apply rapid pseudo tonemapping as TAA is applied to a tonemapped image, using luminance as weight, as proposed in
+	// https://de45xmedrsdbp.cloudfront.net/Resources/files/TemporalAA_small-59732822.pdf
+	float lum = dot(vec3(0.3,0.5,0.2),c.rgb);
+	c.rgb = c.rgb / (1.0+lum);
 #if USE_YCOCG
 	return vec4(color_LinearToYCoCg(c.rgb), c.a);
 #else
@@ -90,8 +92,10 @@ vec3 taa_resolveColor(vec3 color) {
 #if USE_YCOCG
 	color = max(vec3(0), color_YCoCgToUnclampedLinear(color));
 #endif
-	// Apply rapid inverse tonemapping
-	color = color / (vec3(1)-color);
+	// Apply rapid inverse tonemapping, using luminance as weight, as proposed in
+	// https://de45xmedrsdbp.cloudfront.net/Resources/files/TemporalAA_small-59732822.pdf
+	float lum = dot(vec3(0.3,0.5,0.2),color.rgb);
+	color = color / (1.0-lum);
 	return color;
 }
 
