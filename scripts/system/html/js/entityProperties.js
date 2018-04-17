@@ -321,22 +321,19 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
     }
     var keys = Object.keys(updateKeyPair);
     keys.forEach(function (key) {
-        delete parsedData[groupName][key];
         if (updateKeyPair[key] !== null && updateKeyPair[key] !== "null") {
             if (updateKeyPair[key] instanceof Element) {
                 if (updateKeyPair[key].type === "checkbox") {
-                    if (updateKeyPair[key].checked !== defaults[key]) {
-                        parsedData[groupName][key] = updateKeyPair[key].checked;
-                    }
+                    parsedData[groupName][key] = updateKeyPair[key].checked;
                 } else {
                     var val = isNaN(updateKeyPair[key].value) ? updateKeyPair[key].value : parseInt(updateKeyPair[key].value);
-                    if (val !== defaults[key]) {
-                        parsedData[groupName][key] = val;
-                    }
+                    parsedData[groupName][key] = val;
                 }
             } else {
                 parsedData[groupName][key] = updateKeyPair[key];
             }
+        } else if (defaults[key] !== null && defaults[key] !== "null") {
+            parsedData[groupName][key] = defaults[key];
         }
     });
     if (Object.keys(parsedData[groupName]).length === 0) {
@@ -616,6 +613,8 @@ function loaded() {
 
         var elShape = document.getElementById("property-shape");
 
+        var elCanCastShadow = document.getElementById("property-can-cast-shadow");
+
         var elLightSpotLight = document.getElementById("property-light-spot-light");
         var elLightColor = document.getElementById("property-light-color");
         var elLightColorRed = document.getElementById("property-light-color-red");
@@ -686,6 +685,8 @@ function loaded() {
         var elZoneKeyLightIntensity = document.getElementById("property-zone-key-intensity");
         var elZoneKeyLightDirectionX = document.getElementById("property-zone-key-light-direction-x");
         var elZoneKeyLightDirectionY = document.getElementById("property-zone-key-light-direction-y");
+
+        var elZoneKeyLightCastShadows = document.getElementById("property-zone-key-light-cast-shadows");
 
         // Skybox
         var elZoneSkyboxModeInherit = document.getElementById("property-zone-skybox-mode-inherit");
@@ -843,7 +844,6 @@ function loaded() {
                         elTypeIcon.style.display = "inline-block";
 
                         elLocked.checked = properties.locked;
-
 
                         elName.value = properties.name;
 
@@ -1011,6 +1011,12 @@ function loaded() {
                                                                      properties.color.green + "," + properties.color.blue + ")";
                         }
 
+                        if (properties.type === "Model" ||
+                            properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
+
+                            elCanCastShadow.checked = properties.canCastShadow;
+                        }
+
                         if (properties.type === "Model") {
                             elModelURL.value = properties.modelURL;
                             elShapeType.value = properties.shapeType;
@@ -1060,7 +1066,6 @@ function loaded() {
                             elLightFalloffRadius.value = properties.falloffRadius.toFixed(1);
                             elLightExponent.value = properties.exponent.toFixed(2);
                             elLightCutoff.value = properties.cutoff.toFixed(2);
-
                         } else if (properties.type === "Zone") {
                             // Key light
                             elZoneKeyLightModeInherit.checked = (properties.keyLightMode === 'inherit');
@@ -1075,6 +1080,8 @@ function loaded() {
                             elZoneKeyLightIntensity.value = properties.keyLight.intensity.toFixed(2);
                             elZoneKeyLightDirectionX.value = properties.keyLight.direction.x.toFixed(2);
                             elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
+
+                            elZoneKeyLightCastShadows.checked = properties.keyLight.castShadows;
 
                             // Skybox
                             elZoneSkyboxModeInherit.checked = (properties.skyboxMode === 'inherit');
@@ -1139,13 +1146,15 @@ function loaded() {
                             // Show/hide sections as required
                             showElements(document.getElementsByClassName('skybox-section'),
                                 elZoneSkyboxModeEnabled.checked);
+
                             showElements(document.getElementsByClassName('keylight-section'),
                                 elZoneKeyLightModeEnabled.checked);
+
                             showElements(document.getElementsByClassName('ambient-section'),
                                 elZoneAmbientLightModeEnabled.checked);
+
                             showElements(document.getElementsByClassName('haze-section'),
                                 elZoneHazeModeEnabled.checked);
-
                         } else if (properties.type === "PolyVox") {
                             elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
                             elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
@@ -1174,6 +1183,15 @@ function loaded() {
                             elMaterialMappingScaleX.value = properties.materialMappingScale.x.toFixed(4);
                             elMaterialMappingScaleY.value = properties.materialMappingScale.y.toFixed(4);
                             elMaterialMappingRot.value = properties.materialMappingRot.toFixed(2);
+                        }
+
+                        // Only these types can cast a shadow
+                        if (properties.type === "Model" ||
+                            properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
+
+                            showElements(document.getElementsByClassName('can-cast-shadow-section'), true);
+                        } else {
+                            showElements(document.getElementsByClassName('can-cast-shadow-section'), false);
                         }
 
                         if (properties.locked) {
@@ -1432,6 +1450,8 @@ function loaded() {
 
         elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
 
+        elCanCastShadow.addEventListener('change', createEmitCheckedPropertyUpdateFunction('canCastShadow'));
+ 
         elImageURL.addEventListener('change', createImageURLUpdateFunction('textures'));
 
         elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
@@ -1589,6 +1609,9 @@ function loaded() {
 
         elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
+
+        elZoneKeyLightCastShadows.addEventListener('change',
+            createEmitGroupCheckedPropertyUpdateFunction('keyLight', 'castShadows'));
 
         // Skybox
         var skyboxModeChanged = createZoneComponentModeChangedFunction('skyboxMode',

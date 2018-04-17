@@ -93,9 +93,7 @@ class HmdDisplay : public StereoDisplay {
 public:
     // HMD specific methods
     // TODO move these into another class?
-    virtual glm::mat4 getEyeToHeadTransform(Eye eye) const {
-        static const glm::mat4 transform; return transform;
-    }
+    virtual glm::mat4 getEyeToHeadTransform(Eye eye) const;
 
     // returns a copy of the most recent head pose, computed via updateHeadPose
     virtual glm::mat4 getHeadPose() const {
@@ -141,9 +139,6 @@ public:
     // Rendering support
     virtual void setContext(const gpu::ContextPointer& context) final { _gpuContext = context; }
     virtual void submitFrame(const gpu::FramePointer& newFrame) = 0;
-
-    // Does the rendering surface have current focus?
-    virtual bool hasFocus() const = 0;
 
     // The size of the rendering target (may be larger than the device size due to distortion)
     virtual glm::uvec2 getRecommendedRenderSize() const = 0;

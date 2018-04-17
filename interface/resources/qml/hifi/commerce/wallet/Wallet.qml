@@ -237,6 +237,8 @@ Rectangle {
                     } else {
                         sendToScript(msg);
                     }
+                } else if (msg.method === 'maybeEnableHmdPreview') {
+                    sendToScript(msg);
                 }
             }
         }

@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "GL45Backend.h"
-#include "../gl/GLShared.h"
+#include <gpu/gl/GLShared.h>
 
 using namespace gpu;
 using namespace gpu::gl45;

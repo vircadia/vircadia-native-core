@@ -919,7 +919,7 @@ private:
     void render(RenderArgs* renderArgs) {
         auto& gpuContext = renderArgs->_context;
         gpuContext->beginFrame();
-        gpu::doInBatch(gpuContext, [&](gpu::Batch& batch) {
+        gpu::doInBatch("QTestWindow::render", gpuContext, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
         PROFILE_RANGE(render, __FUNCTION__);

@@ -5,7 +5,7 @@ project(${TARGET_NAME})
 SET (CMAKE_AUTOUIC ON) 
 SET (CMAKE_AUTOMOC ON) 
 
-setup_hifi_project (Core Widgets)
+setup_hifi_project (Core Widgets Network)
 link_hifi_libraries ()
 
 # FIX: Qt was built with -reduce-relocations

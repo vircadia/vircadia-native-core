@@ -283,6 +283,9 @@ public:
 
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
 
+    void setIsServerlessMode(bool value) { _serverlessDomain = value; }
+    bool isServerlessMode() const { return _serverlessDomain; }
+
     static void setAddMaterialToEntityOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToEntityOperator) { _addMaterialToEntityOperator = addMaterialToEntityOperator; }
     static void setRemoveMaterialFromEntityOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromEntityOperator) { _removeMaterialFromEntityOperator = removeMaterialFromEntityOperator; }
     static bool addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName);
@@ -297,6 +300,8 @@ public:
     static void setRemoveMaterialFromOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromOverlayOperator) { _removeMaterialFromOverlayOperator = removeMaterialFromOverlayOperator; }
     static bool addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName);
     static bool removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+
+    std::map<QString, QString> getNamedPaths() const { return _namedPaths; }
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -325,7 +330,7 @@ protected:
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);
 
     bool isScriptInWhitelist(const QString& scriptURL);
-    
+
     QReadWriteLock _newlyCreatedHooksLock;
     QVector<NewlyCreatedEntityHook*> _newlyCreatedHooks;
 
@@ -412,6 +417,10 @@ private:
     static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromAvatarOperator;
     static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToOverlayOperator;
     static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromOverlayOperator;
+
+    bool _serverlessDomain { false };
+
+    std::map<QString, QString> _namedPaths;
 };
 
 #endif // hifi_EntityTree_h

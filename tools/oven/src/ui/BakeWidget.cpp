@@ -41,5 +41,5 @@ void BakeWidget::cancelButtonClicked() {
     auto stackedWidget = qobject_cast<QStackedWidget*>(parentWidget());
     stackedWidget->removeWidget(this);
 
-    this->deleteLater();
+    deleteLater();
 }

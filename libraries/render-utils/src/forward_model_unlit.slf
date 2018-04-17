@@ -12,7 +12,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include ForwardBufferWrite.slh@>
 <@include LightingModel.slh@>
 <@include graphics/Material.slh@>
 
@@ -24,10 +23,12 @@ in vec3 _normal;
 in vec3 _color;
 in float _alpha;
 
+layout(location = 0) out vec4 _fragColor0;
+
 void main(void) {
 
     Material mat = getMaterial();
-    int matKey = getMaterialKey(mat);
+    BITFIELD matKey = getMaterialKey(mat);
     <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex)$>
 
     float opacity = 1.0;
@@ -38,8 +39,8 @@ void main(void) {
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
     albedo *= _color;
 
-    packForwardFragmentUnlit(
-        normalize(_normal), 
-        opacity,
-        albedo * isUnlitEnabled());
+     if (opacity != 1.0) {
+        discard;
+    }
+    _fragColor0 = vec4(albedo * isUnlitEnabled(), 1.0);
 }

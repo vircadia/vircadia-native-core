@@ -92,7 +92,7 @@ public:
     
     bool supportsDetailedRayIntersection() const override;
     bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                bool& keepSearching, OctreeElementPointer& element, float& distance,
+                                                OctreeElementPointer& element, float& distance,
                                                 BoxFace& face, glm::vec3& surfaceNormal,
                                                 QVariantMap& extraInfo, bool precisionPicking) const override;
 
@@ -105,7 +105,7 @@ public:
 
 protected:
 
-    float _alpha { 1 };
+    float _alpha { 1 };  // FIXME: This property is not used.
     rgbColor _color;
     entity::Shape _shape { entity::Shape::Sphere };
 

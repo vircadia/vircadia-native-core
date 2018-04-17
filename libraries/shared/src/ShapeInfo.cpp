@@ -1,6 +1,6 @@
 //
 //  ShapeInfo.cpp
-//  libraries/physics/src
+//  libraries/shared/src
 //
 //  Created by Andrew Meadows 2014.10.29
 //  Copyright 2014 High Fidelity, Inc.
@@ -15,6 +15,33 @@
 
 #include "NumericalConstants.h" // for MILLIMETERS_PER_METER
 
+/**jsdoc
+ * <p>A ShapeType defines the shape used for collisions or zones.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"none"</code></td><td>No shape.</td></tr>
+ *     <tr><td><code>"box"</code></td><td>A cube.</td></tr>
+ *     <tr><td><code>"sphere"</code></td><td>A sphere.</td></tr>
+ *     <tr><td><code>"capsule-x"</code></td><td>A capsule (cylinder with spherical ends) oriented on the x-axis.</td></tr>
+ *     <tr><td><code>"capsule-y"</code></td><td>A capsule (cylinder with spherical ends) oriented on the y-axis.</td></tr>
+ *     <tr><td><code>"capsule-z"</code></td><td>A capsule (cylinder with spherical ends) oriented on the z-axis.</td></tr>
+ *     <tr><td><code>"cylinder-x"</code></td><td>A cylinder oriented on the x-axis.</td></tr>
+ *     <tr><td><code>"cylinder-y"</code></td><td>A cylinder oriented on the y-axis.</td></tr>
+ *     <tr><td><code>"cylinder-z"</code></td><td>A cylinder oriented on the z-axis.</td></tr>
+ *     <tr><td><code>"hull"</code></td><td><em>Not used.</em></td></tr>
+ *     <tr><td><code>"compound"</code></td><td>A compound convex hull specified in an OBJ file.</td></tr>
+ *     <tr><td><code>"simple-hull"</code></td><td>A convex hull automatically generated from the model.</td></tr>
+ *     <tr><td><code>"simple-compound"</code></td><td>A compound convex hull automatically generated from the model, using 
+ *         sub-meshes.</td></tr>
+ *     <tr><td><code>"static-mesh"</code></td><td>The exact shape of the model.</td></tr>
+ *     <tr><td><code>"plane"</code></td><td>A plane.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} ShapeType
+ */
 // Originally within EntityItemProperties.cpp
 const char* shapeTypeNames[] = {
     "none",

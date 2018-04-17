@@ -304,8 +304,9 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     }
 }
 
-QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& textures, const QString& shapeType,
-                                               bool dynamic, const glm::vec3& position, const glm::vec3& gravity) {
+QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& textures,
+                                                const QString& shapeType, bool dynamic, bool collisionless,
+                                                const glm::vec3& position, const glm::vec3& gravity) {
     _activityTracking.addedEntityCount++;
 
     EntityItemProperties properties;
@@ -314,6 +315,7 @@ QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QStrin
     properties.setModelURL(modelUrl);
     properties.setShapeTypeFromString(shapeType);
     properties.setDynamic(dynamic);
+    properties.setCollisionless(collisionless);
     properties.setPosition(position);
     properties.setGravity(gravity);
     if (!textures.isEmpty()) {
@@ -536,7 +538,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     NestableType nestableType = nestable->getNestableType();
                     if (nestableType == NestableType::Overlay || nestableType == NestableType::Avatar) {
                         qCWarning(entities) << "attempted edit on non-entity: " << id << nestable->getName();
-                        return QUuid(); // null UUID to indicate failure
+                        return QUuid(); // null script value to indicate failure
                     }
                 }
             }
@@ -594,7 +596,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                     shouldDelete = false;
                 } else {
                     // only delete local entities, server entities will round trip through the server filters
-                    if (entity->getClientOnly()) {
+                    if (entity->getClientOnly() || _entityTree->isServerlessMode()) {
                         _entityTree->deleteEntity(entityID);
                     }
                 }
@@ -1015,6 +1017,25 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
 
     QString faceName = "";
     // handle BoxFace
+    /**jsdoc
+     * <p>A <code>BoxFace</code> specifies the face of an axis-aligned (AA) box.
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>"MIN_X_FACE"</code></td><td>The minimum x-axis face.</td></tr>
+     *     <tr><td><code>"MAX_X_FACE"</code></td><td>The maximum x-axis face.</td></tr>
+     *     <tr><td><code>"MIN_Y_FACE"</code></td><td>The minimum y-axis face.</td></tr>
+     *     <tr><td><code>"MAX_Y_FACE"</code></td><td>The maximum y-axis face.</td></tr>
+     *     <tr><td><code>"MIN_Z_FACE"</code></td><td>The minimum z-axis face.</td></tr>
+     *     <tr><td><code>"MAX_Z_FACE"</code></td><td>The maximum z-axis face.</td></tr>
+     *     <tr><td><code>"UNKNOWN_FACE"</code></td><td>Unknown value.</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {string} BoxFace
+     */
+    //  FIXME: Move enum to string function to BoxBase.cpp.
     switch (value.face) {
         case MIN_X_FACE:
             faceName = "MIN_X_FACE";
@@ -1264,10 +1285,10 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
         }
 
         doTransmit = actor(simulation, entity);
+        _entityTree->entityChanged(entity);
         if (doTransmit) {
             properties.setClientOnly(entity->getClientOnly());
             properties.setOwningAvatarID(entity->getOwningAvatarID());
-            _entityTree->entityChanged(entity);
         }
     });
 

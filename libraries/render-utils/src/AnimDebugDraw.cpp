@@ -7,19 +7,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <qmath.h>
+#include "AnimDebugDraw.h"
 
+#include <qmath.h>
 #include <gpu/Batch.h>
+#include <GLMHelpers.h>
+
 #include "AbstractViewStateInterface.h"
 #include "RenderUtilsLogging.h"
-#include "GLMHelpers.h"
 #include "DebugDraw.h"
-
-#include "AnimDebugDraw.h"
 
 #include "animdebugdraw_vert.h"
 #include "animdebugdraw_frag.h"
 
+#include "animdebugdraw_vert.h"
+#include "animdebugdraw_frag.h"
 class AnimDebugDrawData {
 public:
 

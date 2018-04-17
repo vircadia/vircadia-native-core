@@ -29,7 +29,6 @@ public:
         TRANSLUCENT,
         LIGHTMAP,
         TANGENTS,
-        SPECULAR,
         UNLIT,
         SKINNED,
         DUAL_QUAT_SKINNED,
@@ -78,7 +77,6 @@ public:
         Builder& withTranslucent() { _flags.set(TRANSLUCENT); return (*this); }
         Builder& withLightmap() { _flags.set(LIGHTMAP); return (*this); }
         Builder& withTangents() { _flags.set(TANGENTS); return (*this); }
-        Builder& withSpecular() { _flags.set(SPECULAR); return (*this); }
         Builder& withUnlit() { _flags.set(UNLIT); return (*this); }
         Builder& withSkinned() { _flags.set(SKINNED); return (*this); }
         Builder& withDualQuatSkinned() { _flags.set(DUAL_QUAT_SKINNED); return (*this); }
@@ -126,9 +124,6 @@ public:
             Builder& withTangents() { _flags.set(TANGENTS); _mask.set(TANGENTS); return (*this); }
             Builder& withoutTangents() { _flags.reset(TANGENTS); _mask.set(TANGENTS); return (*this); }
 
-            Builder& withSpecular() { _flags.set(SPECULAR); _mask.set(SPECULAR); return (*this); }
-            Builder& withoutSpecular() { _flags.reset(SPECULAR); _mask.set(SPECULAR); return (*this); }
-
             Builder& withUnlit() { _flags.set(UNLIT); _mask.set(UNLIT); return (*this); }
             Builder& withoutUnlit() { _flags.reset(UNLIT); _mask.set(UNLIT); return (*this); }
 
@@ -172,7 +167,6 @@ public:
     bool useMaterial() const { return _flags[MATERIAL]; }
     bool hasLightmap() const { return _flags[LIGHTMAP]; }
     bool hasTangents() const { return _flags[TANGENTS]; }
-    bool hasSpecular() const { return _flags[SPECULAR]; }
     bool isUnlit() const { return _flags[UNLIT]; }
     bool isTranslucent() const { return _flags[TRANSLUCENT]; }
     bool isSkinned() const { return _flags[SKINNED]; }
@@ -213,7 +207,6 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
                 << "useMaterial:" << key.useMaterial()
                 << "hasLightmap:" << key.hasLightmap()
                 << "hasTangents:" << key.hasTangents()
-                << "hasSpecular:" << key.hasSpecular()
                 << "isUnlit:" << key.isUnlit()
                 << "isTranslucent:" << key.isTranslucent()
                 << "isSkinned:" << key.isSkinned()

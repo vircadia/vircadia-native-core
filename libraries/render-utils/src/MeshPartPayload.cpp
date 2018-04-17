@@ -79,7 +79,7 @@ void MeshPartPayload::removeMaterial(graphics::MaterialPointer material) {
     _drawMaterials.remove(material);
 }
 
-void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled) {
+void MeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled) {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
@@ -91,6 +91,10 @@ void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits,
 
     if (isLayered) {
         builder.withLayered();
+    }
+
+    if (canCastShadow) {
+        builder.withShadowCaster();
     }
 
     if (isGroupCulled) {
@@ -129,9 +133,6 @@ ShapeKey MeshPartPayload::getShapeKey() const {
     }
     if (drawMaterialKey.isNormalMap()) {
         builder.withTangents();
-    }
-    if (drawMaterialKey.isMetallicMap()) {
-        builder.withSpecular();
     }
     if (drawMaterialKey.isLightmapMap()) {
         builder.withLightmap();
@@ -330,7 +331,8 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& render
     _worldBound.transform(boundTransform);
 }
 
-void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled) {
+// Note that this method is called for models but not for shapes
+void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled) {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
@@ -342,6 +344,10 @@ void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tag
 
     if (isLayered) {
         builder.withLayered();
+    }
+
+    if (canCastShadow) {
+        builder.withShadowCaster();
     }
 
     if (isGroupCulled) {
@@ -389,14 +395,13 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
 
     bool isTranslucent = drawMaterialKey.isTranslucent();
     bool hasTangents = drawMaterialKey.isNormalMap() && _hasTangents;
-    bool hasSpecular = drawMaterialKey.isMetallicMap();
     bool hasLightmap = drawMaterialKey.isLightmapMap();
     bool isUnlit = drawMaterialKey.isUnlit();
 
     bool isSkinned = _isSkinned;
 
     if (isWireframe) {
-        isTranslucent = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
+        isTranslucent = hasTangents = hasLightmap = isSkinned = false;
     }
 
     ShapeKey::Builder builder;
@@ -407,9 +412,6 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     }
     if (hasTangents) {
         builder.withTangents();
-    }
-    if (hasSpecular) {
-        builder.withSpecular();
     }
     if (hasLightmap) {
         builder.withLightmap();

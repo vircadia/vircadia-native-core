@@ -425,8 +425,8 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
             if (!childEntity) {
                 continue;
             }
-            EntityTreeElementPointer containingElement = childEntity->getElement();
-            if (!containingElement) {
+            EntityTreeElementPointer childContainingElement = childEntity->getElement();
+            if (!childContainingElement) {
                 continue;
             }
 
@@ -440,7 +440,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                 addToNeedsParentFixupList(childEntity);
             }
 
-            UpdateEntityOperator theChildOperator(getThisPointer(), containingElement, childEntity, queryCube);
+            UpdateEntityOperator theChildOperator(getThisPointer(), childContainingElement, childEntity, queryCube);
             recurseTreeWithOperator(&theChildOperator);
             foreach (SpatiallyNestablePointer childChild, childEntity->getChildren()) {
                 if (childChild && childChild->getNestableType() == NestableType::Entity) {
@@ -493,7 +493,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
 
     if (!properties.getClientOnly() && getIsClient() &&
         !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp() &&
-        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified()) {
+        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified() && !_serverlessDomain) {
         return nullptr;
     }
 
@@ -1508,6 +1508,13 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 }
             }
 
+            if (isAdd && properties.getLocked() && !senderNode->isAllowedEditor()) {
+                // if a node can't change locks, don't allow it to create an already-locked entity -- automatically
+                // clear the locked property and allow the unlocked entity to be created.
+                properties.setLocked(false);
+                bumpTimestamp(properties);
+            }
+
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
             if (validEditPacket) {
@@ -2175,23 +2182,25 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
         localTree->recurseTreeWithOperator(&moveOperator);
     }
 
-    // send add-entity packets to the server
-    i = map.begin();
-    while (i != map.end()) {
-        EntityItemID newID = i.value();
-        EntityItemPointer entity = localTree->findEntityByEntityItemID(newID);
-        if (entity) {
-            // queue the packet to send to the server
-            entity->updateQueryAACube();
-            EntityItemProperties properties = entity->getProperties();
-            properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
-            packetSender->queueEditEntityMessage(PacketType::EntityAdd, localTree, newID, properties);
-            i++;
-        } else {
-            i = map.erase(i);
+    if (!_serverlessDomain) {
+        // send add-entity packets to the server
+        i = map.begin();
+        while (i != map.end()) {
+            EntityItemID newID = i.value();
+            EntityItemPointer entity = localTree->findEntityByEntityItemID(newID);
+            if (entity) {
+                // queue the packet to send to the server
+                entity->updateQueryAACube();
+                EntityItemProperties properties = entity->getProperties();
+                properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
+                packetSender->queueEditEntityMessage(PacketType::EntityAdd, localTree, newID, properties);
+                i++;
+            } else {
+                i = map.erase(i);
+            }
         }
+        packetSender->releaseQueuedMessages();
     }
-    packetSender->releaseQueuedMessages();
 
     return map.values().toVector();
 }
@@ -2292,6 +2301,16 @@ bool EntityTree::readFromMap(QVariantMap& map) {
 
     if (map.contains("DataVersion")) {
         _persistDataVersion = map["DataVersion"].toInt();
+    }
+
+    _namedPaths.clear();
+    if (map.contains("Paths")) {
+        QVariantMap namedPathsMap = map["Paths"].toMap();
+        for(QVariantMap::const_iterator iter = namedPathsMap.begin(); iter != namedPathsMap.end(); ++iter) {
+            QString namedPathName = iter.key();
+            QString namedPathViewPoint = iter.value().toString();
+            _namedPaths[namedPathName] = namedPathViewPoint;
+        }
     }
 
     // map will have a top-level list keyed as "Entities".  This will be extracted

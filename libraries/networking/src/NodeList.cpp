@@ -55,7 +55,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
 
     // handle domain change signals from AddressManager
     connect(addressManager.data(), &AddressManager::possibleDomainChangeRequired,
-            &_domainHandler, &DomainHandler::setSocketAndID);
+            &_domainHandler, &DomainHandler::setURLAndID);
 
     connect(addressManager.data(), &AddressManager::possibleDomainChangeRequiredViaICEForID,
             &_domainHandler, &DomainHandler::setIceServerHostnameAndID);
@@ -91,7 +91,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(accountManager.data(), &AccountManager::newKeypair, this, &NodeList::sendDomainServerCheckIn);
 
     // clear out NodeList when login is finished
-    connect(accountManager.data(), SIGNAL(loginComplete()) , this, SLOT(reset()));
+    connect(accountManager.data(), SIGNAL(loginComplete(const QUrl&)) , this, SLOT(reset()));
 
     // clear our NodeList when logout is requested
     connect(accountManager.data(), SIGNAL(logoutComplete()) , this, SLOT(reset()));
@@ -106,7 +106,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     // setup our timer to send keepalive pings (it's started and stopped on domain connect/disconnect)
     _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL_MS); // 1s, Qt::CoarseTimer acceptable
     connect(&_keepAlivePingTimer, &QTimer::timeout, this, &NodeList::sendKeepAlivePings);
-    connect(&_domainHandler, SIGNAL(connectedToDomain(QString)), &_keepAlivePingTimer, SLOT(start()));
+    connect(&_domainHandler, SIGNAL(connectedToDomain(QUrl)), &_keepAlivePingTimer, SLOT(start()));
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);
 
     // set our sockAddrBelongsToDomainOrNode method as the connection creation filter for the udt::Socket
@@ -413,7 +413,16 @@ void NodeList::sendDomainServerCheckIn() {
 }
 
 void NodeList::handleDSPathQuery(const QString& newPath) {
-    if (_domainHandler.isSocketKnown()) {
+    if (_domainHandler.isServerless()) {
+        if (_domainHandler.isConnected()) {
+            auto viewpoint = _domainHandler.getViewPointFromNamedPath(newPath);
+            if (!newPath.isEmpty()) {
+                DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, newPath);
+            }
+        } else {
+            _domainHandler.setPendingPath(newPath);
+        }
+    } else if (_domainHandler.isSocketKnown()) {
         // if we have a DS socket we assume it will get this packet and send if off right away
         sendDSPathQuery(newPath);
     } else {
@@ -427,10 +436,17 @@ void NodeList::sendPendingDSPathQuery() {
     QString pendingPath = _domainHandler.getPendingPath();
 
     if (!pendingPath.isEmpty()) {
-        qCDebug(networking) << "Attempting to send pending query to DS for path" << pendingPath;
 
-        // this is a slot triggered if we just established a network link with a DS and want to send a path query
-        sendDSPathQuery(_domainHandler.getPendingPath());
+        if (_domainHandler.isServerless()) {
+            auto viewpoint = _domainHandler.getViewPointFromNamedPath(pendingPath);
+            if (!pendingPath.isEmpty()) {
+                DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pendingPath);
+            }
+        } else {
+            qCDebug(networking) << "Attempting to send pending query to DS for path" << pendingPath;
+            // this is a slot triggered if we just established a network link with a DS and want to send a path query
+            sendDSPathQuery(_domainHandler.getPendingPath());
+        }
 
         // clear whatever the pending path was
         _domainHandler.clearPendingPath();
@@ -498,7 +514,7 @@ void NodeList::processDomainServerPathResponse(QSharedPointer<ReceivedMessage> m
     QString viewpoint = QString::fromUtf8(message->getRawMessage() + message->getPosition(), numViewpointBytes);
 
     // Hand it off to the AddressManager so it can handle it as a relative viewpoint
-    if (DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pathQuery)) {
+    if (!pathQuery.isEmpty() && DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pathQuery)) {
         qCDebug(networking) << "Going to viewpoint" << viewpoint << "which was the lookup result for path" << pathQuery;
     } else {
         qCDebug(networking) << "Could not go to viewpoint" << viewpoint
@@ -798,7 +814,7 @@ void NodeList::sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationN
 
 void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
     // enumerate the nodes to send a reliable ignore packet to each that can leverage it
-    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID) {
         eachMatchingNode([](const SharedNodePointer& node)->bool {
             if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
                 return true;
@@ -851,7 +867,7 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
 
 void NodeList::removeFromIgnoreMuteSets(const QUuid& nodeID) {
     // don't remove yourself, or nobody
-    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID) {
         {
             QWriteLocker ignoredSetLocker{ &_ignoredSetLock };
             _ignoredNodeIDs.unsafe_erase(nodeID);
@@ -870,7 +886,7 @@ bool NodeList::isIgnoringNode(const QUuid& nodeID) const {
 
 void NodeList::personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled) {
     // cannot personal mute yourself, or nobody
-    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID) {
         auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
         if (audioMixer) {
             if (isIgnoringNode(nodeID)) {
@@ -970,7 +986,7 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
 
 void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
     // cannot set gain of yourself
-    if (_sessionUUID != nodeID) {
+    if (getSessionUUID() != nodeID) {
         auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
         if (audioMixer) {
             // setup the packet
@@ -1013,7 +1029,7 @@ void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
     // send a request to domain-server to kick the node with the given session ID
     // the domain-server will handle the persistence of the kick (via username or IP)
 
-    if (!nodeID.isNull() && _sessionUUID != nodeID ) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID ) {
         if (getThisNodeCanKick()) {
             // setup the packet
             auto kickPacket = NLPacket::create(PacketType::NodeKickRequest, NUM_BYTES_RFC4122_UUID, true);
@@ -1036,7 +1052,7 @@ void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
 
 void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
     // cannot mute yourself, or nobody
-    if (!nodeID.isNull() && _sessionUUID != nodeID ) {
+    if (!nodeID.isNull() && getSessionUUID() != nodeID ) {
         if (getThisNodeCanKick()) {
             auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
             if (audioMixer) {

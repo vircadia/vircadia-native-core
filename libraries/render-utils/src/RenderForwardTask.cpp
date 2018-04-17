@@ -19,9 +19,12 @@
 #include <gpu/Texture.h>
 #include <gpu/StandardShaderLib.h>
 
+#include <render/ShapePipeline.h>
+
 #include "StencilMaskPass.h"
 #include "ZoneRenderer.h"
 #include "FadeEffect.h"
+#include "ToneMappingEffect.h"
 #include "BackgroundStage.h"
 #include "FramebufferCache.h"
 #include "TextureCache.h"
@@ -34,6 +37,7 @@ using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber,
     const render::ShapePipeline::BatchSetter& batchSetter,
     const render::ShapePipeline::ItemSetter& itemSetter);
+extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     auto items = input.get<Input>();
@@ -42,6 +46,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initForwardPipelines(*shapePlumber, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
+    initOverlay3DPipelines(*shapePlumber);
 
     // Extract opaques / transparents / lights / metas / overlays / background
     const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
@@ -56,6 +61,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     fadeEffect->build(task, opaques);
 
     // Prepare objects shared by several jobs
+    const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
     const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
 
     // Filter zones from the general metas bucket
@@ -87,15 +93,23 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
 
         task.addJob<DrawBounds>("DrawZones", zones);
+        task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
+
     }
 
-    // Layered Overlays
+    // Lighting Buffer ready for tone mapping
+    // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
+    // the output FBO as null, which causes the tonemapping to target the blit framebuffer
+    const auto toneMappingInputs = ToneMappingDeferred::Inputs(framebuffer, static_cast<gpu::FramebufferPointer>(nullptr) ).asVarying();
+    task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
+    // Layered Overlays
     // Composite the HUD and HUD overlays
     task.addJob<CompositeHUD>("HUD");
 
+    // Disable blit because we do tonemapping and compositing directly to the blit FBO
     // Blit!
-    task.addJob<Blit>("Blit", framebuffer);
+    // task.addJob<Blit>("Blit", framebuffer);
 }
 
 void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
@@ -122,7 +136,7 @@ void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::Fra
     }
 
     auto args = renderContext->args;
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("PrepareFramebuffer::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
@@ -130,43 +144,16 @@ void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::Fra
         batch.setFramebuffer(_framebuffer);
         batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH |
             gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0, 1.0, 0.0), 0), 1.0, 0, true);
+            vec4(vec3(0), 0), 1.0, 0, true);
     });
 
     framebuffer = _framebuffer;
 }
 
-enum ForwardShader_MapSlot {
-    DEFERRED_BUFFER_COLOR_UNIT = 0,
-    DEFERRED_BUFFER_NORMAL_UNIT = 1,
-    DEFERRED_BUFFER_EMISSIVE_UNIT = 2,
-    DEFERRED_BUFFER_DEPTH_UNIT = 3,
-    DEFERRED_BUFFER_OBSCURANCE_UNIT = 4,
-    SHADOW_MAP_UNIT = 5,
-    SKYBOX_MAP_UNIT = SHADOW_MAP_UNIT + 4,
-    DEFERRED_BUFFER_LINEAR_DEPTH_UNIT,
-    DEFERRED_BUFFER_CURVATURE_UNIT,
-    DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT,
-    SCATTERING_LUT_UNIT,
-    SCATTERING_SPECULAR_UNIT,
-};
-enum ForwardShader_BufferSlot {
-    DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
-    CAMERA_CORRECTION_BUFFER_SLOT,
-    SCATTERING_PARAMETERS_BUFFER_SLOT,
-    LIGHTING_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::LIGHTING_MODEL,
-    LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
-    LIGHT_AMBIENT_SLOT = render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER,
-    HAZE_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::HAZE_MODEL,
-    LIGHT_INDEX_GPU_SLOT,
-    LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
-    LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
-    LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-};
-
 void PrepareForward::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     RenderArgs* args = renderContext->args;
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+
+    gpu::doInBatch("RenderForward::Draw::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
         graphics::LightPointer keySunLight;
@@ -181,18 +168,14 @@ void PrepareForward::run(const RenderContextPointer& renderContext, const Inputs
         }
 
         if (keySunLight) {
-            if (LIGHT_GPU_SLOT >= 0) {
-                batch.setUniformBuffer(LIGHT_GPU_SLOT, keySunLight->getLightSchemaBuffer());
-            }
+            batch.setUniformBuffer(render::ShapePipeline::Slot::KEY_LIGHT, keySunLight->getLightSchemaBuffer());
         }
 
         if (keyAmbiLight) {
-            if (LIGHT_AMBIENT_SLOT >= 0) {
-                batch.setUniformBuffer(LIGHT_AMBIENT_SLOT, keyAmbiLight->getAmbientSchemaBuffer());
-            }
+            batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER, keyAmbiLight->getAmbientSchemaBuffer());
 
-            if (keyAmbiLight->getAmbientMap() && (SKYBOX_MAP_UNIT >= 0)) {
-                batch.setResourceTexture(SKYBOX_MAP_UNIT, keyAmbiLight->getAmbientMap());
+            if (keyAmbiLight->getAmbientMap()) {
+                batch.setResourceTexture(render::ShapePipeline::Slot::LIGHT_AMBIENT, keyAmbiLight->getAmbientMap());
             }
         }
     });
@@ -204,7 +187,7 @@ void DrawForward::run(const RenderContextPointer& renderContext, const Inputs& i
     const auto& inItems = inputs.get0();
     const auto& lightingModel = inputs.get1();
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawForward::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
 

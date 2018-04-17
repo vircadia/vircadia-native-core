@@ -8,53 +8,23 @@
 
 #include "RenderCommonTask.h"
 
-#include <PerfStat.h>
-#include <PathUtils.h>
-#include <ViewFrustum.h>
 #include <gpu/Context.h>
 
-#include <render/CullTask.h>
-#include <render/FilterTask.h>
-#include <render/SortTask.h>
-#include <render/DrawTask.h>
-#include <render/DrawStatus.h>
-#include <render/DrawSceneOctree.h>
-#include <render/BlurTask.h>
-
-#include "LightingModel.h"
-#include "StencilMaskPass.h"
-#include "DebugDeferredBuffer.h"
-#include "DeferredFramebuffer.h"
 #include "DeferredLightingEffect.h"
-#include "SurfaceGeometryPass.h"
-#include "FramebufferCache.h"
-#include "TextureCache.h"
-#include "ZoneRenderer.h"
-#include "FadeEffect.h"
 #include "RenderUtilsLogging.h"
-
-#include "AmbientOcclusionEffect.h"
-#include "AntialiasingEffect.h"
-#include "ToneMappingEffect.h"
-#include "SubsurfaceScattering.h"
-#include "DrawHaze.h"
-#include "BloomEffect.h"
-#include "HighlightEffect.h"
-
-#include <sstream>
 
 using namespace render;
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
 
 void BeginGPURangeTimer::run(const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {
     timer = _gpuTimer;
-    gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("BeginGPURangeTimer", renderContext->args->_context, [&](gpu::Batch& batch) {
         _gpuTimer->begin(batch);
     });
 }
 
 void EndGPURangeTimer::run(const render::RenderContextPointer& renderContext, const gpu::RangeTimerPointer& timer) {
-    gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("EndGPURangeTimer", renderContext->args->_context, [&](gpu::Batch& batch) {
         timer->end(batch);
     });
     
@@ -87,14 +57,14 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
         // Needs to be distinct from the other batch because using the clear call 
         // while stereo is enabled triggers a warning
         if (_opaquePass) {
-            gpu::doInBatch(args->_context, [&](gpu::Batch& batch){
+            gpu::doInBatch("DrawOverlay3D::run::clear", args->_context, [&](gpu::Batch& batch){
                 batch.enableStereo(false);
                 batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, false);
             });
         }
 
         // Render the items
-        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("DrawOverlay3D::main", args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
             batch.setViewportTransform(args->_viewport);
             batch.setStateScissorRect(args->_viewport);
@@ -127,7 +97,13 @@ void CompositeHUD::run(const RenderContextPointer& renderContext) {
 
     // Grab the HUD texture
 #if !defined(DISABLE_QML)
-    gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("CompositeHUD", renderContext->args->_context, [&](gpu::Batch& batch) {
+        glm::mat4 projMat;
+        Transform viewMat;
+        renderContext->args->getViewFrustum().evalProjectionMatrix(projMat);
+        renderContext->args->getViewFrustum().evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat, true);
         if (renderContext->args->_hudOperator) {
             renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
         }
@@ -154,7 +130,7 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     // Blit primary to blit FBO
     auto primaryFbo = srcFramebuffer;
 
-    gpu::doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("Blit", renderArgs->_context, [&](gpu::Batch& batch) {
         batch.setFramebuffer(blitFbo);
 
         if (renderArgs->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
