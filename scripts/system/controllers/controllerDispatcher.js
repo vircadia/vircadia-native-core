@@ -481,6 +481,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             Controller.disableMapping(MAPPING_NAME);
             _this.pointerManager.removePointers();
             Pointers.removePointer(this.mouseRayPick);
+            Selection.disableListHighlight(DISPATCHER_HOVERING_LIST);
         };
     }
     function mouseReleaseOnOverlay(overlayID, event) {
