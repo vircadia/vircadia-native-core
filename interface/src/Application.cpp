@@ -4287,6 +4287,8 @@ void Application::idle() {
     }
 
     {
+        workload::Timings timings(1, PerformanceTimer::getTimerRecord("/idle/update/simulation").getAverage());
+        _gameWorkload.updateSimulationTimings(timings);
         _gameWorkload.updateViews(_viewFrustum, getMyAvatar()->getHeadPosition());
         _gameWorkload._engine->run();
     }

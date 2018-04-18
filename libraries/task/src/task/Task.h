@@ -187,6 +187,7 @@ public:
 
     template <class I> void feedInput(const I& in) { _concept->editInput().template edit<I>() = in; }
 
+    template <class I, class S> void feedInput(int index, const S& inS) { (_concept->editInput().template editN<I>(index)).template edit<S>() = inS; }
 
     QConfigPointer& getConfiguration() const { return _concept->getConfiguration(); }
     void applyConfiguration() { return _concept->applyConfiguration(); }
@@ -378,8 +379,33 @@ public:
 
 protected:
 };
-}
 
+template <class JC>
+class Engine : public Task<JC> {
+public:
+    using Context = JC;
+    using ContextPointer = std::shared_ptr<Context>;
+    using Config = TaskConfig;
+    using TaskType = Task<JC>;
+    using ConceptPointer = typename TaskType::ConceptPointer;
+
+    Engine(ConceptPointer concept) : TaskType(concept) {}
+    ~Engine() = default;
+
+    void reset(const ContextPointer& context) {
+        _context = context;
+    }
+
+    void run() {
+        if (_context) {
+            TaskType::run(_context);
+        }
+    }
+
+protected:
+    ContextPointer _context;
+};
+}
 
 #define Task_DeclareTypeAliases(ContextType) \
     using JobConfig = task::JobConfig; \
@@ -387,6 +413,7 @@ protected:
     template <class T> using PersistentConfig = task::PersistentConfig<T>; \
     using Job = task::Job<ContextType>; \
     using Task = task::Task<ContextType>; \
+    using _Engine = task::Engine<ContextType>; \
     using Varying = task::Varying; \
     template < typename T0, typename T1 > using VaryingSet2 = task::VaryingSet2<T0, T1>; \
     template < typename T0, typename T1, typename T2 > using VaryingSet3 = task::VaryingSet3<T0, T1, T2>; \

@@ -43,4 +43,23 @@ public:
     workload::EnginePointer _engine;
 };
 
+class ControlViewsConfig : public workload::Job::Config {
+    Q_OBJECT
+public:
+
+signals:
+    void dirty();
+};
+
+class ControlViews {
+public:
+    using Config = ControlViewsConfig;
+    using Input = workload::VaryingSet2<workload::Views, workload::Timings>;
+    using Output = workload::Views;
+    using JobModel = workload::Job::ModelIO<ControlViews, Input, Output, Config>;
+
+    void configure(const Config& config) {}
+    void run(const workload::WorkloadContextPointer& renderContext, const Input& inputs, Output& outputs);
+};
+
 #endif // hifi_GameWorkload_h

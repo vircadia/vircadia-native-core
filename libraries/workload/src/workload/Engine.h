@@ -33,26 +33,7 @@ namespace workload {
 
     using WorkloadContextPointer = std::shared_ptr<WorkloadContext>;
     Task_DeclareTypeAliases(WorkloadContext)
-
-    class Engine {
-    public:
-        Engine(const std::shared_ptr<Task>& task) : _task(task), _context(nullptr) {
-        }
-        ~Engine() = default;
-
-        void reset(const WorkloadContextPointer& context);
-
-        void run() { if (_context) { _task->run(_context); } }
-
-        std::shared_ptr<TaskConfig> getConfiguration() { return _task->getConfiguration(); }
-
-        std::shared_ptr<Task> _task;
-
-    protected:
-
-    private:
-        WorkloadContextPointer _context;
-    };
+    using Engine = _Engine;
     using EnginePointer = std::shared_ptr<Engine>;
 } // namespace workload
 

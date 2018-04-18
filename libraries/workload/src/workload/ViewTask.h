@@ -78,14 +78,23 @@ namespace workload {
     public:
         using Config = SetupViewsConfig;
         using Input = Views;
-        using JobModel = Job::ModelI<SetupViews, Input, Config>;
+        using Output = Views;
+        using JobModel = Job::ModelIO<SetupViews, Input, Output, Config>;
 
         void configure(const Config& config);
-        void run(const workload::WorkloadContextPointer& renderContext, const Input& inputs);
+        void run(const workload::WorkloadContextPointer& renderContext, const Input& inputs, Output& outputs);
 
     protected:
         Config::Data data;
         Views _views;
+    };
+
+    class AssignSpaceViews {
+    public:
+        using Input = Views;
+        using JobModel = Job::ModelI<AssignSpaceViews, Input>;
+
+        void run(const workload::WorkloadContextPointer& renderContext, const Input& inputs);
     };
 
 } // namespace workload

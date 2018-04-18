@@ -13,52 +13,59 @@
 using namespace workload;
 
 
+void AssignSpaceViews::run(const WorkloadContextPointer& renderContext, const Input& inputs) {
+    // Just do what it says
+    renderContext->_space->setViews(inputs);
+}
+
 void SetupViews::configure(const Config& config) {
     data = config.data;
 }
 
-void SetupViews::run(const WorkloadContextPointer& renderContext, const Input& inputs) {
+void SetupViews::run(const WorkloadContextPointer& renderContext, const Input& inputs, Output& outputs) {
     // If views are frozen don't use the input
     if (!data.freezeViews) {
         _views = inputs;
     }
 
+    auto& outViews = outputs;
+    outViews.clear();
+
     // Filter the first view centerer on the avatar head if needed
-    Views usedViews;
     if (_views.size() >= 2) {
         if (data.useAvatarView) {
-            usedViews.push_back(_views[0]);
-            usedViews.insert(usedViews.end(), _views.begin() + 2, _views.end());
+            outViews.push_back(_views[0]);
+            outViews.insert(outViews.end(), _views.begin() + 2, _views.end());
         } else {
-            usedViews.insert(usedViews.end(), _views.begin() + 1, _views.end());
+            outViews.insert(outViews.end(), _views.begin() + 1, _views.end());
         }
     } else {
-        usedViews = _views;
+        outViews = _views;
     }
 
     // Force frutum orientation horizontal if needed
-    if (usedViews.size() > 0 && data.forceViewHorizontal) {
-        usedViews[0].makeHorizontal();
+    if (outViews.size() > 0 && data.forceViewHorizontal) {
+        outViews[0].makeHorizontal();
     }
 
     // Force frutum orientation horizontal if needed
-    if (usedViews.size() > 0 && data.simulateSecondaryCamera) {
-        auto view = usedViews[0];
+    if (outViews.size() > 0 && data.simulateSecondaryCamera) {
+        auto view = outViews[0];
         auto secondaryDirectionFlat = glm::normalize(glm::vec3(view.direction.x, 0.0f, view.direction.z));
         auto secondaryDirection = glm::normalize(glm::vec3(secondaryDirectionFlat.z, 0.0f, -secondaryDirectionFlat.x));
 
-        view.origin += -30.0f * secondaryDirection;
-        view.direction = -secondaryDirectionFlat;
+        view.origin += -20.0f * secondaryDirection;
+        view.direction = -secondaryDirection;
 
-        usedViews.insert(usedViews.begin() + 1, view);
+        outViews.insert(outViews.begin() + 1, view);
     }
 
     // Update regions based on the current config
-    for (auto& v : usedViews) {
+    for (auto& v : outViews) {
         View::updateRegions(v, (float*) &data);
     }
 
-    // Views are setup, assign to the Space
-    renderContext->_space->setViews(usedViews);
+    // outViews is ready to be used
 }
+
 

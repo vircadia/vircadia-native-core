@@ -15,9 +15,5 @@
 
 namespace workload {
     WorkloadContext::WorkloadContext(const SpacePointer& space) : task::JobContext(trace_workload()), _space(space) {}
-
-    void Engine::reset(const WorkloadContextPointer& context) {
-        _context = context;
-    }
 } // namespace workload
 

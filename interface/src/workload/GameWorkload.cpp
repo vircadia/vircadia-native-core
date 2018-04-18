@@ -15,6 +15,41 @@
 
 #include "PhysicsBoundary.h"
 
+void ControlViews::run(const workload::WorkloadContextPointer& renderContext, const Input& inputs, Output& outputs) {
+    const auto& inViews = inputs.getN<0>();
+    const auto& inTimings = inputs[1];
+
+    outputs = inViews;
+}
+
+class WorkloadEngineBuilder {
+public:
+public:
+    using Inputs = workload::VaryingSet2<workload::Views, workload::Timings>;
+    using Outputs = workload::RegionTracker::Outputs;
+    using JobModel = workload::Task::ModelIO<WorkloadEngineBuilder, Inputs, Outputs>;
+    void build(JobModel& model, const workload::Varying& in, workload::Varying& out) {
+
+        const auto& inViews = in.getN<Inputs>(0);
+        const auto& inTimings = in.getN<Inputs>(1);
+
+        const auto usedViews = model.addJob<workload::SetupViews>("setupViews", inViews);
+
+        ControlViews::Input controlViewsIn;
+        controlViewsIn[0] = usedViews;
+        controlViewsIn[1] = inTimings;
+        const auto fixedViews = model.addJob<ControlViews>("controlViews", controlViewsIn);
+
+        const auto regionTrackerOut = model.addJob<workload::SpaceClassifierTask>("spaceClassifier", fixedViews);
+
+        model.addJob<PhysicsBoundary>("PhysicsBoundary", regionTrackerOut);
+
+        model.addJob<GameSpaceToRender>("SpaceToRender");
+
+        out = regionTrackerOut;
+    }
+};
+
 GameWorkloadContext::GameWorkloadContext(const workload::SpacePointer& space,
         const render::ScenePointer& scene,
         const PhysicalEntitySimulationPointer& simulation): WorkloadContext(space),
@@ -27,7 +62,7 @@ GameWorkloadContext::~GameWorkloadContext() {
 
 
 GameWorkload::GameWorkload() :
-    _engine(std::make_shared<workload::Engine>(std::make_shared<workload::Task>(workload::SpaceClassifierTask::JobModel::create("Engine"))))
+    _engine(std::make_shared<workload::Engine>(WorkloadEngineBuilder::JobModel::create("Engine")))
 {
 }
 
@@ -39,12 +74,6 @@ void GameWorkload::startup(const workload::SpacePointer& space,
         const render::ScenePointer& scene,
         const PhysicalEntitySimulationPointer& simulation) {
     _engine->reset(std::make_shared<GameWorkloadContext>(space, scene, simulation));
-
-    auto output = _engine->_task->getOutput();
-    _engine->_task->addJob<GameSpaceToRender>("SpaceToRender");
-
-    const auto regionChanges = _engine->_task->getOutput();
-    _engine->_task->addJob<PhysicsBoundary>("PhysicsBoundary", regionChanges);
 }
 
 void GameWorkload::shutdown() {
@@ -55,9 +84,9 @@ void GameWorkload::updateViews(const ViewFrustum& frustum, const glm::vec3& head
     workload::Views views;
     views.emplace_back(workload::View::evalFromFrustum(frustum, headPosition - frustum.getPosition()));
     views.emplace_back(workload::View::evalFromFrustum(frustum));
-    _engine->_task->feedInput(views);
+    _engine->feedInput<WorkloadEngineBuilder::Inputs>(0, views);
 }
 
 void GameWorkload::updateSimulationTimings(const workload::Timings& timings) {
-  //  _engine->_task->feedInput(timings);
+    _engine->feedInput<WorkloadEngineBuilder::Inputs>(1, timings);
 }

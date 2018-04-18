@@ -248,7 +248,7 @@ void GameWorkloadRenderItem::render(RenderArgs* args) {
         batch.setUniformBuffer(0, getDrawViewBuffer());
         static const int NUM_VERTICES_PER_DRAWVIEWVERT = 2;
         static const int NUM_REGIONS = 3;
-        batch.draw(gpu::TRIANGLE_STRIP, NUM_REGIONS * NUM_VERTICES_PER_DRAWVIEWVERT * _numDrawViewVerts, 0);
+        batch.draw(gpu::TRIANGLE_STRIP, NUM_REGIONS * NUM_VERTICES_PER_DRAWVIEWVERT * _numDrawViewVerts * _numAllViews, 0);
 
     }
 

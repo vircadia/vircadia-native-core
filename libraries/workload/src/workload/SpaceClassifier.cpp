@@ -24,7 +24,7 @@ void PerformSpaceTransaction::run(const WorkloadContextPointer& context) {
 }
 
 void SpaceClassifierTask::build(JobModel& model, const Varying& in, Varying& out) {
-    model.addJob<SetupViews>("setupViews", in);
+    model.addJob<AssignSpaceViews >("assignSpaceViews", in);
     model.addJob<PerformSpaceTransaction>("updateSpace");
     const auto regionTrackerOut = model.addJob<RegionTracker>("regionTracker");
     const auto regionChanges = regionTrackerOut.getN<RegionTracker::Outputs>(1);

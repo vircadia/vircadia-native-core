@@ -415,7 +415,10 @@ void EntityTreeRenderer::update(bool simulate) {
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
 
         // here we update _currentFrame and _lastAnimated and sync with the server properties.
-        tree->update(simulate);
+        {
+            PerformanceTimer perfTimer("tree::update");
+            tree->update(simulate);
+        }
 
         {   // Update the rendereable entities as needed
             PROFILE_RANGE(simulation_physics, "Scene");
@@ -430,19 +433,22 @@ void EntityTreeRenderer::update(bool simulate) {
                 scene->enqueueTransaction(transaction);
             }
         }
-        workload::Transaction spaceTransaction;
-        {   // update proxies in the workload::Space
-            std::unique_lock<std::mutex> lock(_spaceLock);
-            spaceTransaction.update(_spaceUpdates);
-            _spaceUpdates.clear();
-        }
         {
-            std::vector<int32_t> staleProxies;
-            tree->swapStaleProxies(staleProxies);
-            spaceTransaction.remove(staleProxies);
-            {
+            PerformanceTimer perfTimer("workload::transaction");
+            workload::Transaction spaceTransaction;
+            {   // update proxies in the workload::Space
                 std::unique_lock<std::mutex> lock(_spaceLock);
-                _space->enqueueTransaction(spaceTransaction);
+                spaceTransaction.update(_spaceUpdates);
+                _spaceUpdates.clear();
+            }
+            {
+                std::vector<int32_t> staleProxies;
+                tree->swapStaleProxies(staleProxies);
+                spaceTransaction.remove(staleProxies);
+                {
+                    std::unique_lock<std::mutex> lock(_spaceLock);
+                    _space->enqueueTransaction(spaceTransaction);
+                }
             }
         }
 
