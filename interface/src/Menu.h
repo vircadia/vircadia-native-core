@@ -105,7 +105,8 @@ namespace MenuOption {
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
     const QString ExpandPaintGLTiming = "Expand /paintGL";
-    const QString ExpandPhysicsSimulationTiming = "Expand /physics";
+    const QString ExpandSimulationTiming = "Expand /simulation";
+    const QString ExpandPhysicsTiming = "Expand /physics";
     const QString ExpandUpdateTiming = "Expand /update";
     const QString FirstPerson = "First Person";
     const QString FirstPersonHMD = "Enter First Person Mode in HMD";

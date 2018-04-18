@@ -112,6 +112,11 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
 
     resetClientEditStats();
     clearDeletedEntities();
+
+    {
+        QWriteLocker locker(&_needsParentFixupLock);
+        _needsParentFixup.clear();
+    }
 }
 
 void EntityTree::readBitstreamToTree(const unsigned char* bitstream,
@@ -2318,6 +2323,16 @@ bool EntityTree::readFromMap(QVariantMap& map) {
 
     if (map.contains("DataVersion")) {
         _persistDataVersion = map["DataVersion"].toInt();
+    }
+
+    _namedPaths.clear();
+    if (map.contains("Paths")) {
+        QVariantMap namedPathsMap = map["Paths"].toMap();
+        for(QVariantMap::const_iterator iter = namedPathsMap.begin(); iter != namedPathsMap.end(); ++iter) {
+            QString namedPathName = iter.key();
+            QString namedPathViewPoint = iter.value().toString();
+            _namedPaths[namedPathName] = namedPathViewPoint;
+        }
     }
 
     // map will have a top-level list keyed as "Entities".  This will be extracted

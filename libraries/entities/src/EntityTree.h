@@ -301,6 +301,8 @@ public:
     static bool addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName);
     static bool removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName);
 
+    std::map<QString, QString> getNamedPaths() const { return _namedPaths; }
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void deletingEntityPointer(EntityItem* entityID);
@@ -417,6 +419,8 @@ private:
     static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromOverlayOperator;
 
     bool _serverlessDomain { false };
+
+    std::map<QString, QString> _namedPaths;
 };
 
 #endif // hifi_EntityTree_h

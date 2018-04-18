@@ -132,7 +132,7 @@ protected:
     //
     // (2) For locally owned simulation: we store the last values sent to the server, integrated forward over time
     //     according to how we think the server doing it.  We calculate the error between the true local transform
-    //     and the remote to decide when to send another update.
+    //     and the remote to decide whether to send another update or not.
     //
     glm::vec3 _serverPosition;    // in simulation-frame (not world-frame)
     glm::quat _serverRotation;
