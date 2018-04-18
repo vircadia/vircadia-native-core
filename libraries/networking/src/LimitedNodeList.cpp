@@ -306,7 +306,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             return true;
         }
     } else {
-        NLPacket::LocalID sourceLocalID = 0;
+        NLPacket::LocalID sourceLocalID = Node::NULL_LOCAL_ID;
         // check if we were passed a sourceNode hint or if we need to look it up
         if (!sourceNode) {
             // figure out which node this is from

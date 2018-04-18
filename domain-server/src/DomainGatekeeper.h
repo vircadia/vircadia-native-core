@@ -126,10 +126,7 @@ private:
 
     // Local ID management.
     void initLocalIDManagement();
-    struct UuidHash {
-        size_t operator()(const QUuid& uuid) const { return qHash(uuid); }
-    };
-    using UUIDToLocalID = std::unordered_map<QUuid, Node::LocalID, UuidHash> ;
+    using UUIDToLocalID = std::unordered_map<QUuid, Node::LocalID> ;
     using LocalIDs = std::unordered_set<Node::LocalID>;
     LocalIDs _localIDs;
     UUIDToLocalID _uuidToLocalID;

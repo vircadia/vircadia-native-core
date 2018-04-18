@@ -25,7 +25,7 @@ SequenceNumberStats::SequenceNumberStats(int statsHistoryLength, bool canDetectO
     : _lastReceivedSequence(0),
     _missingSet(),
     _stats(),
-    _lastSenderID(0),
+    _lastSenderID(NULL_LOCAL_ID),
     _statsHistory(statsHistoryLength),
     _lastUnreasonableSequence(0),
     _consecutiveUnreasonableOnTime(0)
@@ -35,7 +35,7 @@ SequenceNumberStats::SequenceNumberStats(int statsHistoryLength, bool canDetectO
 void SequenceNumberStats::reset() {
     _missingSet.clear();
     _stats = PacketStreamStats();
-    _lastSenderID = 0;
+    _lastSenderID = NULL_LOCAL_ID;
     _statsHistory.clear();
     _lastUnreasonableSequence = 0;
     _consecutiveUnreasonableOnTime = 0;

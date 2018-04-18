@@ -123,7 +123,7 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
 
     auto replicatedNode = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
                                                     message->getSenderSockAddr(), message->getSenderSockAddr(),
-                                                    0, true, true);
+                                                    Node::NULL_LOCAL_ID, true, true);
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
 
     // construct a "fake" audio received message from the byte array and packet list information

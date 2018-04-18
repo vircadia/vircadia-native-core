@@ -128,7 +128,7 @@ public:
 
     virtual bool isDomainServer() const { return true; }
     virtual QUuid getDomainUUID() const { assert(false); return QUuid(); }
-    virtual Node::LocalID getDomainLocalID() const { assert(false); return 0; }
+    virtual Node::LocalID getDomainLocalID() const { assert(false); return Node::NULL_LOCAL_ID; }
     virtual HifiSockAddr getDomainSockAddr() const { assert(false); return HifiSockAddr(); }
 
     // use sendUnreliablePacket to send an unrelaible packet (that you do not need to move)
@@ -162,8 +162,8 @@ public:
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                      Node::LocalID localID = 0, bool isReplicated = false, bool isUpstream = false,
-                                      const QUuid& connectionSecret = QUuid(),
+                                      Node::LocalID localID = Node::NULL_LOCAL_ID, bool isReplicated = false,
+                                      bool isUpstream = false, const QUuid& connectionSecret = QUuid(),
                                       const NodePermissions& permissions = DEFAULT_AGENT_PERMISSIONS);
 
     static bool parseSTUNResponse(udt::BasePacket* packet, QHostAddress& newPublicAddress, uint16_t& newPublicPort);
