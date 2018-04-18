@@ -5534,6 +5534,9 @@ void Application::update(float deltaTime) {
         _myCamera.loadViewFrustum(_viewFrustum);
 
 
+        // TODO: Fix this by modeling the way the secondary camera works on how the main camera works
+        // ie. Use a camera object stored in the game logic and informs the Engine on where the secondary
+        // camera should be.
         auto renderConfig = _renderEngine->getConfiguration();
         assert(renderConfig);
         auto secondaryCamera = dynamic_cast<SecondaryCameraJobConfig*>(renderConfig->getConfig("SecondaryCamera"));
