@@ -579,7 +579,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             this.targetEntityID = null;
             this.messageGrabEntity = false;
             this.grabEntityProps = null;
-			this.mouseEquip = false;
+            this.mouseEquip = false;
         };
 
         this.updateInputs = function (controllerData) {
@@ -796,7 +796,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         var intersection = Entities.findRayIntersection(pickRay, true);
         if (intersection.intersects) {
             var entityProperties = Entities.getEntityProperties(intersection.entityID, DISPATCHER_PROPERTIES);
-			var hasEquipData = getWearableData(entityProperties).joints || getEquipHotspotsData(entityProperties).length > 0;
+            var hasEquipData = getWearableData(entityProperties).joints || getEquipHotspotsData(entityProperties).length > 0;
             if (hasEquipData && entityProperties.parentID === EMPTY_PARENT_ID) {
                 entityProperties.id = intersection.entityID;
                 var rightHandPosition = MyAvatar.getJointPosition("RightHand");
