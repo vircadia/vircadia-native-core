@@ -385,11 +385,11 @@ distanceBetweenPointAndEntityBoundingBox = function(point, entityProps) {
 };
 
 entityIsEquipped = function(entityID) {
-	var rightEquipEntity = getEnabledModuleByName("RightEquipEntity");
-	var leftEquipEntity = getEnabledModuleByName("LeftEquipEntity");
-	var equippedInRightHand = rightEquipEntity ? rightEquipEntity.targetEntityID === entityID : false;
-	var equippedInLeftHand = leftEquipEntity ? leftEquipEntity.targetEntityID === entityID : false;
-	return equippedInRightHand || equippedInLeftHand;
+    var rightEquipEntity = getEnabledModuleByName("RightEquipEntity");
+    var leftEquipEntity = getEnabledModuleByName("LeftEquipEntity");
+    var equippedInRightHand = rightEquipEntity ? rightEquipEntity.targetEntityID === entityID : false;
+    var equippedInLeftHand = leftEquipEntity ? leftEquipEntity.targetEntityID === entityID : false;
+    return equippedInRightHand || equippedInLeftHand;
 };
 
 if (typeof module !== 'undefined') {
