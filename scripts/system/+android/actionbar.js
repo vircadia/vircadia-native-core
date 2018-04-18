@@ -42,7 +42,7 @@ function onBackPressed() {
 }
 
 
-Script.scriptEnding.connect(function () {
+Script.scriptEnding.connect(function() {
     if(backButton) {
         backButton.clicked.disconnect(onBackPressed);
     }

@@ -65,7 +65,7 @@ public class InterfaceActivity extends QtActivity {
     public void onCreate(Bundle savedInstanceState) {
         Intent intent = getIntent();
         if (intent.hasExtra(DOMAIN_URL) && !intent.getStringExtra(DOMAIN_URL).isEmpty()) {
-            intent.putExtra("applicationArguments", "--url "+intent.getStringExtra(DOMAIN_URL));
+            intent.putExtra("applicationArguments", "--url " + intent.getStringExtra(DOMAIN_URL));
         }
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

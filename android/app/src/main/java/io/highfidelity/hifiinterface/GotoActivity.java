@@ -67,7 +67,7 @@ public class GotoActivity extends AppCompatActivity {
             } catch (URISyntaxException e) {
                 return;
             }
-            if (uri.getScheme()==null || uri.getScheme().isEmpty()) {
+            if (uri.getScheme() == null || uri.getScheme().isEmpty()) {
                 urlString = "hifi://" + urlString;
             }
 
