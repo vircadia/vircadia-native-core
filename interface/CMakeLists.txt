@@ -180,8 +180,9 @@ else ()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif ()
 
+
 if (BUILD_TOOLS AND NPM_EXECUTABLE)
-  # require JSDoc to be build before interface is deployed (Console Auto-complete)
+  # require JSDoc to be build before interface is deployed
   add_dependencies(resources jsdoc)
 endif()
 
@@ -322,6 +323,13 @@ if (APPLE)
     "${RESOURCES_DEV_DIR}/scripts"
   )
 
+  # copy JSDoc files beside the executable
+  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+    "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
+    "${RESOURCES_DEV_DIR}/jsdoc"
+  )
+
   # call the fixup_interface macro to add required bundling commands for installation
   fixup_interface()
 
@@ -348,6 +356,13 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/tutorial.json"
       "${RESOURCES_DEV_DIR}/serverless/tutorial.json"
+  )
+
+  # copy JSDoc files beside the executable
+  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+    "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
+    "${INTERFACE_EXEC_DIR}/jsdoc"
   )
 
   # link target to external libraries
