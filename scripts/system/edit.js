@@ -463,18 +463,14 @@ var toolBar = (function () {
         Entities.canAdjustLocksChanged.connect(function (canAdjustLocks) {
             if (isActive && !canAdjustLocks) {
                 that.setActive(false);
-                tablet.gotoHomeScreen();
             }
             checkEditPermissionsAndUpdate();
         });
 
-        Entities.canRezChanged.connect(function (canRez) {
-            if (isActive && !canRez) {
-                that.setActive(false);
-                tablet.gotoHomeScreen();
-            }
-            checkEditPermissionsAndUpdate();
-        })
+        Entities.canRezChanged.connect(checkEditPermissionsAndUpdate);
+        Entities.canRezTmpChanged.connect(checkEditPermissionsAndUpdate);
+        Entities.canRezCertifiedChanged.connect(checkEditPermissionsAndUpdate);
+        Entities.canRezTmpCertifiedChanged.connect(checkEditPermissionsAndUpdate);
 
         var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
         var createButtonIconRsrc = (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON);
@@ -873,6 +869,13 @@ function checkEditPermissionsAndUpdate() {
         icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
         captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
     });
+
+    if (!hasRezPermissions) {
+        if (isActive) {
+            that.setActive(false);
+        }
+        tablet.gotoHomeScreen();
+    }
 }
 
 function handleMessagesReceived(channel, message, sender) {
@@ -2335,6 +2338,11 @@ var PopupMenu = function () {
         Controller.mousePressEvent.disconnect(self.mousePressEvent);
         Controller.mouseMoveEvent.disconnect(self.mouseMoveEvent);
         Controller.mouseReleaseEvent.disconnect(self.mouseReleaseEvent);
+
+        Entities.canRezChanged.disconnect(checkEditPermissionsAndUpdate);
+        Entities.canRezTmpChanged.disconnect(checkEditPermissionsAndUpdate);
+        Entities.canRezCertifiedChanged.disconnect(checkEditPermissionsAndUpdate);
+        Entities.canRezTmpCertifiedChanged.disconnect(checkEditPermissionsAndUpdate);
     }
 
     Controller.mousePressEvent.connect(self.mousePressEvent);
