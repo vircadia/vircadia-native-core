@@ -1,9 +1,7 @@
 package io.highfidelity.hifiinterface;
 
-import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
@@ -22,21 +20,23 @@ import android.widget.TabHost;
 import android.widget.TabWidget;
 import android.widget.TextView;
 
-import io.highfidelity.hifiinterface.QtPreloader.QtPreloader;
 import io.highfidelity.hifiinterface.view.DomainAdapter;
 
 public class HomeActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
+    public native boolean nativeIsLoggedIn();
+    public native void nativeLogout();
+    public native String nativeGetDisplayName();
+
     /**
      * Set this intent extra param to NOT start a new InterfaceActivity after a domain is selected"
      */
-    public static final String PARAM_NOT_START_INTERFACE_ACTIVITY = "not_start_interface_activity";
+    //public static final String PARAM_NOT_START_INTERFACE_ACTIVITY = "not_start_interface_activity";
 
     public static final int ENTER_DOMAIN_URL = 1;
 
     private DomainAdapter domainAdapter;
     private DrawerLayout mDrawerLayout;
-    private ProgressDialog mDialog;
     private NavigationView mNavigationView;
 
     @Override
@@ -87,7 +87,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         int numberOfColumns = 1;
         GridLayoutManager gridLayoutMgr = new GridLayoutManager(this, numberOfColumns);
         domainsView.setLayoutManager(gridLayoutMgr);
-        domainAdapter = new DomainAdapter(this, "");
+        domainAdapter = new DomainAdapter(this, HifiUtils.getInstance().protocolVersionSignature());
         domainAdapter.setClickListener(new DomainAdapter.ItemClickListener() {
 
             @Override
@@ -107,61 +107,28 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             searchTextView.setTextAppearance(R.style.SearchText);
         }
 
-        if (getIntent() == null ||
-                !getIntent().hasExtra(PARAM_NOT_START_INTERFACE_ACTIVITY) ||
-                !getIntent().getBooleanExtra(PARAM_NOT_START_INTERFACE_ACTIVITY, false)) {
-            preloadQt();
-            showActivityIndicator();
-        }
+        updateLoginMenu();
 
+    }
+
+    private void updateLoginMenu() {
+        TextView loginOption = findViewById(R.id.login);
+        TextView logoutOption = findViewById(R.id.logout);
+        if (nativeIsLoggedIn()) {
+            loginOption.setVisibility(View.GONE);
+            logoutOption.setVisibility(View.VISIBLE);
+        } else {
+            loginOption.setVisibility(View.VISIBLE);
+            logoutOption.setVisibility(View.GONE);
+        }
     }
 
     private void gotoDomain(String domainUrl) {
         Intent intent = new Intent(HomeActivity.this, InterfaceActivity.class);
         intent.putExtra(InterfaceActivity.DOMAIN_URL, domainUrl);
         HomeActivity.this.finish();
-        if (getIntent() != null &&
-                getIntent().hasExtra(PARAM_NOT_START_INTERFACE_ACTIVITY) &&
-                getIntent().getBooleanExtra(PARAM_NOT_START_INTERFACE_ACTIVITY, false)) {
-            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
-    }
-
-    private void showActivityIndicator() {
-        if (mDialog == null) {
-            mDialog = new ProgressDialog(this);
-        }
-        mDialog.setMessage("Please wait...");
-        mDialog.setCancelable(false);
-        mDialog.show();
-    }
-
-    private void cancelActivityIndicator() {
-        if (mDialog != null) {
-            mDialog.cancel();
-        }
-    }
-
-    private AsyncTask preloadTask;
-
-    private void preloadQt() {
-        if (preloadTask == null) {
-            preloadTask = new AsyncTask() {
-                @Override
-                protected Object doInBackground(Object[] objects) {
-                    new QtPreloader(HomeActivity.this).initQt();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            cancelActivityIndicator();
-                        }
-                    });
-                    return null;
-                }
-            };
-            preloadTask.execute();
-        }
     }
 
     @Override
@@ -188,7 +155,6 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     protected void onDestroy() {
-        cancelActivityIndicator();
         super.onDestroy();
     }
 
@@ -198,8 +164,6 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             case R.id.action_goto:
                 Intent i = new Intent(this, GotoActivity.class);
                 startActivityForResult(i, ENTER_DOMAIN_URL);
-                return true;
-            case R.id.action_settings:
                 return true;
         }
         return false;
@@ -213,4 +177,19 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        updateLoginMenu();
+    }
+
+    public void onLoginClicked(View view) {
+        Intent intent = new Intent(this, LoginActivity.class);
+        startActivity(intent);
+    }
+
+    public void onLogoutClicked(View view) {
+        nativeLogout();
+        updateLoginMenu();
+    }
 }
