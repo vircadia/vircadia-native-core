@@ -1679,7 +1679,7 @@ function importSVO(importURL) {
         visible: true
     });
 
-    var success = Clipboard.importEntities(importURL.trim());
+    var success = Clipboard.importEntities(importURL);
 
     if (success) {
         var VERY_LARGE = 10000;

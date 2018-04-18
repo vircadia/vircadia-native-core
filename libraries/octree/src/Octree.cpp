@@ -1669,7 +1669,7 @@ QString getMarketplaceID(const QString& urlString) {
 bool Octree::readFromURL(const QString& urlString) {
     QString marketplaceID = getMarketplaceID(urlString);
     auto request =
-        std::unique_ptr<ResourceRequest>(DependencyManager::get<ResourceManager>()->createResourceRequest(this, urlString));
+        std::unique_ptr<ResourceRequest>(DependencyManager::get<ResourceManager>()->createResourceRequest(this, urlString.trimmed()));
 
     if (!request) {
         return false;
