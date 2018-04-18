@@ -38,6 +38,8 @@ Window {
             property var proxy: modelData;
             onClicked: proxy.clicked()
             Component.onCompleted: updateProperties()
+            //menu button should be visible only in VR mode
+            visible: text !== "MENU"
 
             Connections {
                 target: proxy;

@@ -36,7 +36,7 @@ OriginalDesktop.Desktop {
         }
     }
 
-    Component { id: toolbarBuilder; Toolbar { y: desktop.y - 50 } }
+    Component { id: toolbarBuilder; Toolbar { } }
     // This used to create sysToolbar dynamically with a call to getToolbar() within onCompleted.
     // Beginning with QT 5.6, this stopped working, as anything added to toolbars too early got
     // wiped during startup.
@@ -47,7 +47,7 @@ OriginalDesktop.Desktop {
         anchors.horizontalCenter: settings.constrainToolbarToCenterX ? desktop.horizontalCenter : undefined;
         // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings when not constrained.
         x: sysToolbar.x
-        y: desktop.height - 50 - height
+        y: desktop.height - sysToolbar.height - 50
         buttonModel: tablet.buttons;
         shown: tablet.toolbarMode;
     }
