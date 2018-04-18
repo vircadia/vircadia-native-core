@@ -384,6 +384,14 @@ distanceBetweenPointAndEntityBoundingBox = function(point, entityProps) {
     return Vec3.distance(v, localPoint);
 };
 
+entityIsEquipped = function(entityID) {
+	var rightEquipEntity = getEnabledModuleByName("RightEquipEntity");
+	var leftEquipEntity = getEnabledModuleByName("LeftEquipEntity");
+	var equippedInRightHand = rightEquipEntity ? rightEquipEntity.targetEntityID === entityID : false;
+	var equippedInLeftHand = leftEquipEntity ? leftEquipEntity.targetEntityID === entityID : false;
+	return equippedInRightHand || equippedInLeftHand;
+};
+
 if (typeof module !== 'undefined') {
     module.exports = {
         makeDispatcherModuleParameters: makeDispatcherModuleParameters,
