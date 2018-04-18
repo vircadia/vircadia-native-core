@@ -770,10 +770,9 @@ unsigned int LimitedNodeList::broadcastToNodes(std::unique_ptr<NLPacket> packet,
     eachNode([&](const SharedNodePointer& node){
         if (node && destinationNodeTypes.contains(node->getType())) {
 			if (packet->isReliable()) {
-				auto packet1 = NLPacket::createCopy(*packet);
-				sendPacket(std::move(packet1), *node);
-			}
-			else {
+				auto packetCopy = NLPacket::createCopy(*packet);
+				sendPacket(std::move(packetCopy), *node);
+			} else {
 				sendUnreliablePacket(*packet, *node);
 			}
 			++n;
