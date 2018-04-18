@@ -15,7 +15,6 @@
 #include <QObject>
 #include <QThread>
 #include <AccountManager.h>
-#include <QtAndroidExtras/QAndroidJniObject>
 
 class AndroidHelper : public QObject {
     Q_OBJECT
