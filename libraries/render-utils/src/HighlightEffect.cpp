@@ -135,7 +135,6 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
 
         _stencilMaskPipeline = gpu::Pipeline::create(program, state);
         _stencilMaskFillPipeline = gpu::Pipeline::create(program, fillState);
@@ -327,7 +326,6 @@ const gpu::PipelinePointer& DrawHighlight::getPipeline(const render::HighlightSt
 
         ps = Highlight_filled_frag::getShader();
         program = gpu::Shader::createProgram(vs, ps);
-        gpu::Shader::makeProgram(*program, slotBindings);
         _pipelineFilled = gpu::Pipeline::create(program, state);
     }
     return style.isFilled() ? _pipelineFilled : _pipeline;
