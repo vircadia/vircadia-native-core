@@ -452,6 +452,25 @@ var toolBar = (function () {
         }
     }
 
+    // Handles any edit mode updates required when domains have switched
+    function checkEditPermissionsAndUpdate() {
+        if ((createButton === null) || (createButton === undefined)) {
+            //--EARLY EXIT--( nothing to safely update )
+            return;
+        }
+
+        var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
+        createButton.editProperties({
+            icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
+            captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
+        });
+
+        if (!hasRezPermissions && isActive) {
+            that.setActive(false);
+            tablet.gotoHomeScreen();
+        }
+    }
+
     function initialize() {
         Script.scriptEnding.connect(cleanup);
         Window.domainChanged.connect(function () {
@@ -854,27 +873,6 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
         if (entity !== null) {
             selectionManager.setSelections([entity]);
         }
-    }
-}
-
-// Handles any edit mode updates required when domains have switched
-function checkEditPermissionsAndUpdate() {
-    if ( (createButton === null) || (createButton === undefined) ){
-        //--EARLY EXIT--( nothing to safely update )
-        return;
-    }
-
-    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
-    createButton.editProperties({
-        icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
-        captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
-    });
-
-    if (!hasRezPermissions) {
-        if (isActive) {
-            that.setActive(false);
-        }
-        tablet.gotoHomeScreen();
     }
 }
 
