@@ -20,4 +20,6 @@ public class HifiUtils {
 
     public native String getCurrentAddress();
 
+    public native String protocolVersionSignature();
+
 }

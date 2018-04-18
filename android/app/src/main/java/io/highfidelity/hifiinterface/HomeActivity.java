@@ -87,7 +87,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         int numberOfColumns = 1;
         GridLayoutManager gridLayoutMgr = new GridLayoutManager(this, numberOfColumns);
         domainsView.setLayoutManager(gridLayoutMgr);
-        domainAdapter = new DomainAdapter(this);
+        domainAdapter = new DomainAdapter(this, "");
         domainAdapter.setClickListener(new DomainAdapter.ItemClickListener() {
 
             @Override

@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.highfidelity.hifiinterface.R;
+import io.highfidelity.hifiinterface.provider.DomainProvider;
+import io.highfidelity.hifiinterface.provider.UserStoryDomainProvider;
 
 /**
  * Created by Gabriel Calero & Cristian Duarte on 3/20/18.
@@ -30,12 +32,13 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
     private Context mContext;
     private LayoutInflater mInflater;
     private ItemClickListener mClickListener;
+    private String mProtocol;
 
-    public class Domain {
+    public static class Domain {
         public String name;
         public String url;
         public String thumbnail;
-        Domain(String name, String url, String thumbnail) {
+        public Domain(String name, String url, String thumbnail) {
             this.name = name;
             this.thumbnail = thumbnail;
             this.url = url;
@@ -45,13 +48,31 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
     // references to our domains
     private Domain[] mDomains = {};
 
-    public DomainAdapter(Context c) {
+    public DomainAdapter(Context c, String protocol) {
         mContext = c;
         this.mInflater = LayoutInflater.from(mContext);
+        mProtocol = protocol;
         loadDomains();
     }
 
     private void loadDomains() {
+        DomainProvider domainProvider = new UserStoryDomainProvider(mProtocol);
+        domainProvider.retrieve(new DomainProvider.Callback() {
+            @Override
+            public void retrieveOk(List<Domain> domain) {
+                mDomains = domain.toArray(mDomains);
+                notifyDataSetChanged();
+            }
+
+            @Override
+            public void retrieveError(Exception e, String message) {
+                //
+                Log.e("DOMAINS", message, e);
+            }
+        });
+    }
+
+    private void loadDomainsLocalFile() {
         try {
             JSONObject json = new JSONObject(loadJSONFromAsset());
             JSONArray hifiDomains = json.getJSONArray("hifi_domains");
