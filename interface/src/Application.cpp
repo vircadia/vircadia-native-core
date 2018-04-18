@@ -490,7 +490,7 @@ public:
                 // Don't actually crash in debug builds, in case this apparent deadlock is simply from
                 // the developer actively debugging code
                 #ifdef NDEBUG
-                    deadlockDetectionCrash();
+                deadlockDetectionCrash();
                 #endif
             }
         }
@@ -773,7 +773,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         steamClient->init();
     }
 
-    DependencyManager::set<tracing::Tracer>();
     PROFILE_SET_THREAD_NAME("Main Thread");
 
 #if defined(Q_OS_WIN)
@@ -958,10 +957,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
-
     {
         const QString TEST_SCRIPT = "--testScript";
-        const QString TRACE_FILE = "--traceFile";
         const QStringList args = arguments();
         for (int i = 0; i < args.size() - 1; ++i) {
             if (args.at(i) == TEST_SCRIPT) {
@@ -969,10 +966,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 if (QFileInfo(testScriptPath).exists()) {
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
                 }
-            } else if (args.at(i) == TRACE_FILE) {
-                QString traceFilePath = args.at(i + 1);
-                setProperty(hifi::properties::TRACING, traceFilePath);
-                DependencyManager::get<tracing::Tracer>()->startTracing();
             }
         }
     }
@@ -1018,6 +1011,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->startThread();
 
+    const char** constArgv = const_cast<const char**>(argv);
+    if (cmdOptionExists(argc, constArgv, "--disableWatchdog")) {
+        DISABLE_WATCHDOG = true;
+    }
     // Set up a watchdog thread to intentionally crash the application on deadlocks
     if (!DISABLE_WATCHDOG) {
         (new DeadlockWatchdogThread())->start();
@@ -1227,7 +1224,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
     connect(&_entityEditSender, &EntityEditPacketSender::addingEntityWithCertificate, this, &Application::addingEntityWithCertificate);
 
-    const char** constArgv = const_cast<const char**>(argv);
     QString concurrentDownloadsStr = getCmdOption(argc, constArgv, "--concurrent-downloads");
     bool success;
     int concurrentDownloads = concurrentDownloadsStr.toInt(&success);
@@ -2567,6 +2563,7 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/common/EmulatedMarketplaceHeader.qml" },
         QUrl{ "hifi/commerce/common/FirstUseTutorial.qml" },
         QUrl{ "hifi/commerce/common/SortableListModel.qml" },
+        QUrl{ "hifi/commerce/common/sendAsset/SendAsset.qml" },
         QUrl{ "hifi/commerce/inspectionCertificate/InspectionCertificate.qml" },
         QUrl{ "hifi/commerce/purchases/PurchasedItem.qml" },
         QUrl{ "hifi/commerce/purchases/Purchases.qml" },
@@ -2579,7 +2576,6 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/wallet/SecurityImageChange.qml" },
         QUrl{ "hifi/commerce/wallet/SecurityImageModel.qml" },
         QUrl{ "hifi/commerce/wallet/SecurityImageSelection.qml" },
-        QUrl{ "hifi/commerce/wallet/sendMoney/SendMoney.qml" },
         QUrl{ "hifi/commerce/wallet/Wallet.qml" },
         QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
         QUrl{ "hifi/commerce/wallet/WalletSetup.qml" },
@@ -3149,6 +3145,10 @@ void Application::loadServerlessDomain(QUrl domainURL) {
         tmpTree->reaverageOctreeElements();
         tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), 0, 0, 0);
     }
+
+    std::map<QString, QString> namedPaths = tmpTree->getNamedPaths();
+    nodeList->getDomainHandler().connectedToServerless(namedPaths);
+
 
     _fullSceneReceivedCounter++;
 }
@@ -4821,7 +4821,7 @@ void Application::updateThreads(float deltaTime) {
 
 void Application::toggleOverlays() {
     auto menu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::Overlays, menu->isOptionChecked(MenuOption::Overlays));
+    menu->setIsOptionChecked(MenuOption::Overlays, !menu->isOptionChecked(MenuOption::Overlays));
 }
 
 void Application::setOverlaysVisible(bool visible) {
@@ -5260,12 +5260,12 @@ void Application::update(float deltaTime) {
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
 
     {
-        PROFILE_RANGE(simulation_physics, "Physics");
-        PerformanceTimer perfTimer("physics");
+        PROFILE_RANGE(simulation_physics, "Simulation");
+        PerformanceTimer perfTimer("simulation");
         if (_physicsEnabled) {
             {
-                PROFILE_RANGE(simulation_physics, "PreStep");
-                PerformanceTimer perfTimer("preStep)");
+                PROFILE_RANGE(simulation_physics, "PrePhysics");
+                PerformanceTimer perfTimer("prePhysics)");
                 {
                     const VectorOfMotionStates& motionStates = _entitySimulation->getObjectsToRemoveFromPhysics();
                     _physicsEngine->removeObjects(motionStates);
@@ -5299,59 +5299,63 @@ void Application::update(float deltaTime) {
                 });
             }
             {
-                PROFILE_RANGE(simulation_physics, "Step");
-                PerformanceTimer perfTimer("step");
+                PROFILE_RANGE(simulation_physics, "StepPhysics");
+                PerformanceTimer perfTimer("stepPhysics");
                 getEntities()->getTree()->withWriteLock([&] {
                     _physicsEngine->stepSimulation();
                 });
             }
             {
-                PROFILE_RANGE(simulation_physics, "PostStep");
-                PerformanceTimer perfTimer("postStep");
                 if (_physicsEngine->hasOutgoingChanges()) {
-                    // grab the collision events BEFORE handleOutgoingChanges() because at this point
-                    // we have a better idea of which objects we own or should own.
-                    auto& collisionEvents = _physicsEngine->getCollisionEvents();
+                    {
+                        PROFILE_RANGE(simulation_physics, "PostPhysics");
+                        PerformanceTimer perfTimer("postPhysics");
+                        // grab the collision events BEFORE handleChangedMotionStates() because at this point
+                        // we have a better idea of which objects we own or should own.
+                        auto& collisionEvents = _physicsEngine->getCollisionEvents();
 
-                    getEntities()->getTree()->withWriteLock([&] {
-                        PROFILE_RANGE(simulation_physics, "HandleChanges");
-                        PerformanceTimer perfTimer("handleChanges");
+                        getEntities()->getTree()->withWriteLock([&] {
+                            PROFILE_RANGE(simulation_physics, "HandleChanges");
+                            PerformanceTimer perfTimer("handleChanges");
 
-                        const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
-                        _entitySimulation->handleChangedMotionStates(outgoingChanges);
-                        avatarManager->handleChangedMotionStates(outgoingChanges);
+                            const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
+                            _entitySimulation->handleChangedMotionStates(outgoingChanges);
+                            avatarManager->handleChangedMotionStates(outgoingChanges);
 
-                        const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
-                        _entitySimulation->handleDeactivatedMotionStates(deactivations);
-                    });
+                            const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
+                            _entitySimulation->handleDeactivatedMotionStates(deactivations);
+                        });
 
-                    if (!_aboutToQuit) {
-                        // handleCollisionEvents() AFTER handleOutgoingChanges()
-                        {
-                            PROFILE_RANGE(simulation_physics, "CollisionEvents");
-                            avatarManager->handleCollisionEvents(collisionEvents);
-                            // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
-                            // deadlock.)
-                            _entitySimulation->handleCollisionEvents(collisionEvents);
+                        if (!_aboutToQuit) {
+                            // handleCollisionEvents() AFTER handleChangedMotionStates()
+                            {
+                                PROFILE_RANGE(simulation_physics, "CollisionEvents");
+                                avatarManager->handleCollisionEvents(collisionEvents);
+                                // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
+                                // deadlock.)
+                                _entitySimulation->handleCollisionEvents(collisionEvents);
+                            }
                         }
 
+                        {
+                            PROFILE_RANGE(simulation_physics, "MyAvatar");
+                            myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
+                        }
+
+                        if (PerformanceTimer::isActive() &&
+                                Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
+                                Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsTiming)) {
+                            _physicsEngine->harvestPerformanceStats();
+                        }
+                        // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
+                        _physicsEngine->dumpStatsIfNecessary();
+                    }
+
+                    if (!_aboutToQuit) {
                         // NOTE: the getEntities()->update() call below will wait for lock
-                        // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
+                        // and will provide non-physical entity motion
                         getEntities()->update(true); // update the models...
                     }
-
-                    {
-                        PROFILE_RANGE(simulation_physics, "MyAvatar");
-                        myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
-                    }
-
-                    if (PerformanceTimer::isActive() &&
-                            Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
-                            Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming)) {
-                        _physicsEngine->harvestPerformanceStats();
-                    }
-                    // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
-                    _physicsEngine->dumpStatsIfNecessary();
                 }
             }
         } else {
@@ -5907,6 +5911,9 @@ void Application::nodeActivated(SharedNodePointer node) {
         }
         getMyAvatar()->markIdentityDataChanged();
         getMyAvatar()->resetLastSent();
+
+        // transmit a "sendAll" packet to the AvatarMixer we just connected to.
+        getMyAvatar()->sendAvatarDataPacket(true);
     }
 }
 

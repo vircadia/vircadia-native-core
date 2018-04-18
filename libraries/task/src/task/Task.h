@@ -47,7 +47,7 @@ protected:
     bool _doAbortTask{ false };
 };
 
-// JobContext class is the base calss for the context object which is passed through all the Job::run calls thoughout the graph of jobs
+// JobContext class is the base class for the context object which is passed through all the Job::run calls thoughout the graph of jobs
 // It is used to communicate to the job::run its context and various state information the job relies on.
 // It specifically provide access to:
 // - The taskFlow object allowing for messaging control flow commands from within a Job::run
@@ -73,19 +73,21 @@ class JobConcept {
 public:
     using Config = JobConfig;
 
-    JobConcept(QConfigPointer config) : _config(config) {}
+    JobConcept(const std::string& name, QConfigPointer config) : _config(config), _name(name) {}
     virtual ~JobConcept() = default;
+    
+    const std::string& getName() const { return _name; }
 
     virtual const Varying getInput() const { return Varying(); }
     virtual const Varying getOutput() const { return Varying(); }
 
     virtual QConfigPointer& getConfiguration() { return _config; }
     virtual void applyConfiguration() = 0;
-
     void setCPURunTime(double mstime) { std::static_pointer_cast<Config>(_config)->setCPURunTime(mstime); }
 
     QConfigPointer _config;
 protected:
+    const std::string _name;
 };
 
 
@@ -122,7 +124,7 @@ public:
 
     class Concept : public JobConcept {
     public:
-        Concept(QConfigPointer config) : JobConcept(config) {}
+        Concept(const std::string& name, QConfigPointer config) : JobConcept(name, config) {}
         virtual ~Concept() = default;
 
         virtual void run(const ContextPointer& jobContext) = 0;
@@ -143,8 +145,8 @@ public:
         const Varying getOutput() const override { return _output; }
 
         template <class... A>
-        Model(const Varying& input, QConfigPointer config, A&&... args) :
-            Concept(config),
+        Model(const std::string& name, const Varying& input, QConfigPointer config, A&&... args) :
+            Concept(name, config),
             _data(Data(std::forward<A>(args)...)),
             _input(input),
             _output(Output()) {
@@ -152,12 +154,14 @@ public:
         }
 
         template <class... A>
-        static std::shared_ptr<Model> create(const Varying& input, A&&... args) {
-            return std::make_shared<Model>(input, std::make_shared<C>(), std::forward<A>(args)...);
+        static std::shared_ptr<Model> create(const std::string& name, const Varying& input, A&&... args) {
+            return std::make_shared<Model>(name, input, std::make_shared<C>(), std::forward<A>(args)...);
         }
 
 
         void applyConfiguration() override {
+            Duration profileRange(trace_render(), ("configure::" + JobConcept::getName()).c_str());
+
             jobConfigure(_data, *std::static_pointer_cast<C>(Concept::_config));
         }
 
@@ -173,8 +177,9 @@ public:
     template <class T, class O, class C = Config> using ModelO = Model<T, C, None, O>;
     template <class T, class I, class O, class C = Config> using ModelIO = Model<T, C, I, O>;
 
-    Job(std::string name, ConceptPointer concept) : _concept(concept), _name(name) {}
+    Job(ConceptPointer concept) : _concept(concept) {}
 
+    const std::string& getName() const { return _concept->getName(); }
     const Varying getInput() const { return _concept->getInput(); }
     const Varying getOutput() const { return _concept->getOutput(); }
     QConfigPointer& getConfiguration() const { return _concept->getConfiguration(); }
@@ -193,9 +198,9 @@ public:
     }
 
     virtual void run(const ContextPointer& jobContext) {
-        PerformanceTimer perfTimer(_name.c_str());
+        PerformanceTimer perfTimer(getName().c_str());
         // NOTE: rather than use the PROFILE_RANGE macro, we create a Duration manually
-        Duration profileRange(jobContext->profileCategory, _name.c_str());
+        Duration profileRange(jobContext->profileCategory, ("run::" + getName()).c_str());
         auto start = usecTimestampNow();
 
         _concept->run(jobContext);
@@ -203,11 +208,8 @@ public:
         _concept->setCPURunTime((double)(usecTimestampNow() - start) / 1000.0);
     }
 
-    const std::string& getName() const { return _name; }
-
 protected:
     ConceptPointer _concept;
-    std::string _name = "";
 };
 
 
@@ -230,7 +232,7 @@ public:
     using ConceptPointer = typename JobType::ConceptPointer;
     using Jobs = std::vector<JobType>;
 
-    Task(std::string name, ConceptPointer concept) : JobType(name, concept) {}
+    Task(ConceptPointer concept) : JobType(concept) {}
 
     class TaskConcept : public Concept {
     public:
@@ -259,11 +261,11 @@ public:
             return jobIt;
         }
 
-        TaskConcept(const Varying& input, QConfigPointer config) : Concept(config), _input(input) {}
+        TaskConcept(const std::string& name, const Varying& input, QConfigPointer config) : Concept(name, config), _input(input) {}
 
         // Create a new job in the container's queue; returns the job's output
         template <class NT, class... NA> const Varying addJob(std::string name, const Varying& input, NA&&... args) {
-            _jobs.emplace_back(name, (NT::JobModel::create(input, std::forward<NA>(args)...)));
+            _jobs.emplace_back((NT::JobModel::create(name, input, std::forward<NA>(args)...)));
 
             // Conect the child config to this task's config
             std::static_pointer_cast<TaskConfig>(Concept::getConfiguration())->connectChildConfig(_jobs.back().getConfiguration(), name);
@@ -284,16 +286,18 @@ public:
 
         Data _data;
 
-        TaskModel(const Varying& input, QConfigPointer config) :
-            TaskConcept(input, config),
+        TaskModel(const std::string& name, const Varying& input, QConfigPointer config) :
+            TaskConcept(name, input, config),
             _data(Data()) {}
 
         template <class... A>
-        static std::shared_ptr<TaskModel> create(const Varying& input, A&&... args) {
-            auto model = std::make_shared<TaskModel>(input, std::make_shared<C>());
+        static std::shared_ptr<TaskModel> create(const std::string& name, const Varying& input, A&&... args) {
+            auto model = std::make_shared<TaskModel>(name, input, std::make_shared<C>());
 
-            model->_data.build(*(model), model->_input, model->_output, std::forward<A>(args)...);
-
+            {
+                Duration profileRange(trace_render(), ("build::" + model->getName()).c_str());
+                model->_data.build(*(model), model->_input, model->_output, std::forward<A>(args)...);
+            }
             // Recreate the Config to use the templated type
             model->createConfiguration();
             model->applyConfiguration();
@@ -302,9 +306,9 @@ public:
         }
 
         template <class... A>
-        static std::shared_ptr<TaskModel> create(A&&... args) {
+        static std::shared_ptr<TaskModel> create(const std::string& name, A&&... args) {
             const auto input = Varying(Input());
-            return create(input, std::forward<A>(args)...);
+            return create(name, input, std::forward<A>(args)...);
         }
 
         void createConfiguration() {
@@ -326,6 +330,7 @@ public:
         }
 
         void applyConfiguration() override {
+            Duration profileRange(trace_render(), ("configure::" + JobConcept::getName()).c_str());
             jobConfigure(_data, *std::static_pointer_cast<C>(Concept::_config));
             for (auto& job : TaskConcept::_jobs) {
                 job.applyConfiguration();

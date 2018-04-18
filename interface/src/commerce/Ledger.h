@@ -33,8 +33,8 @@ public:
     void account();
     void updateLocation(const QString& asset_id, const QString& location, const bool& alsoUpdateSiblings = false, const bool controlledFailure = false);
     void certificateInfo(const QString& certificateId);
-    void transferHfcToNode(const QString& hfc_key, const QString& nodeID, const int& amount, const QString& optionalMessage);
-    void transferHfcToUsername(const QString& hfc_key, const QString& username, const int& amount, const QString& optionalMessage);
+    void transferAssetToNode(const QString& hfc_key, const QString& nodeID, const QString& certificateID, const int& amount, const QString& optionalMessage);
+    void transferAssetToUsername(const QString& hfc_key, const QString& username, const QString& certificateID, const int& amount, const QString& optionalMessage);
     void alreadyOwned(const QString& marketplaceId);
     void getAvailableUpdates(const QString& itemId = "");
     void updateItem(const QString& hfc_key, const QString& certificate_id);
@@ -56,8 +56,8 @@ signals:
     void accountResult(QJsonObject result);
     void locationUpdateResult(QJsonObject result);
     void certificateInfoResult(QJsonObject result);
-    void transferHfcToNodeResult(QJsonObject result);
-    void transferHfcToUsernameResult(QJsonObject result);
+    void transferAssetToNodeResult(QJsonObject result);
+    void transferAssetToUsernameResult(QJsonObject result);
     void alreadyOwnedResult(QJsonObject result);
     void availableUpdatesResult(QJsonObject result);
     void updateItemResult(QJsonObject result);
@@ -81,10 +81,10 @@ public slots:
     void updateLocationFailure(QNetworkReply& reply);
     void certificateInfoSuccess(QNetworkReply& reply);
     void certificateInfoFailure(QNetworkReply& reply);
-    void transferHfcToNodeSuccess(QNetworkReply& reply);
-    void transferHfcToNodeFailure(QNetworkReply& reply);
-    void transferHfcToUsernameSuccess(QNetworkReply& reply);
-    void transferHfcToUsernameFailure(QNetworkReply& reply);
+    void transferAssetToNodeSuccess(QNetworkReply& reply);
+    void transferAssetToNodeFailure(QNetworkReply& reply);
+    void transferAssetToUsernameSuccess(QNetworkReply& reply);
+    void transferAssetToUsernameFailure(QNetworkReply& reply);
     void alreadyOwnedSuccess(QNetworkReply& reply);
     void alreadyOwnedFailure(QNetworkReply& reply);
     void availableUpdatesSuccess(QNetworkReply& reply);

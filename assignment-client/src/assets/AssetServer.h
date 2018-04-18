@@ -27,7 +27,7 @@ using BakeVersion = int;
 static const BakeVersion INITIAL_BAKE_VERSION = 0;
 static const BakeVersion NEEDS_BAKING_BAKE_VERSION = -1;
 
-enum BakedAssetType : int {
+enum class BakedAssetType : int {
     Model = 0,
     Texture,
     Script,
