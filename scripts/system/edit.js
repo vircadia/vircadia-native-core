@@ -457,14 +457,24 @@ var toolBar = (function () {
         Window.domainChanged.connect(function () {
             that.setActive(false);
             that.clearEntityList();
-            handleDomainChange();
+            checkEditPermissionsAndUpdate();
         });
 
         Entities.canAdjustLocksChanged.connect(function (canAdjustLocks) {
             if (isActive && !canAdjustLocks) {
                 that.setActive(false);
+                tablet.gotoHomeScreen();
             }
+            checkEditPermissionsAndUpdate();
         });
+
+        Entities.canRezChanged.connect(function (canRez) {
+            if (isActive && !canRez) {
+                that.setActive(false);
+                tablet.gotoHomeScreen();
+            }
+            checkEditPermissionsAndUpdate();
+        })
 
         var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
         var createButtonIconRsrc = (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON);
@@ -852,7 +862,7 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
 }
 
 // Handles any edit mode updates required when domains have switched
-function handleDomainChange() {
+function checkEditPermissionsAndUpdate() {
     if ( (createButton === null) || (createButton === undefined) ){
         //--EARLY EXIT--( nothing to safely update )
         return;
