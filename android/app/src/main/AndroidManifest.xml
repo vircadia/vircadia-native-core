@@ -47,8 +47,9 @@
         <activity
             android:name=".GotoActivity"
             android:label="@string/go_to"
-            android:theme="@style/AppTheme">
-        </activity>
+            android:theme="@style/AppTheme" />
+        <activity android:name=".LoginActivity"
+            android:theme="@style/AppTheme"/>
         <activity
             android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
             android:name=".InterfaceActivity"
@@ -75,6 +76,10 @@
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />
+
+        <activity
+            android:name=".SplashActivity"
+            android:theme="@style/Theme.AppCompat.Translucent.NoActionBar" />
     </application>
 
     <uses-feature android:name="android.software.vr.mode" android:required="true"/>

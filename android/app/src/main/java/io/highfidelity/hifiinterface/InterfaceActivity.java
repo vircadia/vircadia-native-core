@@ -63,6 +63,7 @@ public class InterfaceActivity extends QtActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        super.isLoading = true;
         Intent intent = getIntent();
         if (intent.hasExtra(DOMAIN_URL) && !intent.getStringExtra(DOMAIN_URL).isEmpty()) {
             intent.putExtra("applicationArguments", "--url "+intent.getStringExtra(DOMAIN_URL));
@@ -112,6 +113,8 @@ public class InterfaceActivity extends QtActivity {
                 }
             }
         });
+        startActivity(new Intent(this, SplashActivity.class));
+
     }
 
     @Override
@@ -201,7 +204,6 @@ public class InterfaceActivity extends QtActivity {
         switch (activityName) {
             case "Goto": {
                 Intent intent = new Intent(this, HomeActivity.class);
-                intent.putExtra(HomeActivity.PARAM_NOT_START_INTERFACE_ACTIVITY, true);
                 startActivity(intent);
                 break;
             }
@@ -210,6 +212,10 @@ public class InterfaceActivity extends QtActivity {
                 break;
             }
         }
+    }
+
+    public void onAppLoadedComplete() {
+        super.isLoading = false;
     }
 
 }

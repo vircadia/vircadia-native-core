@@ -33,6 +33,29 @@
         android:layout_gravity="start"
         android:fitsSystemWindows="true"
         app:menu="@menu/menu_home"
-        />
+        >
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:clickable="true"
+            android:orientation="vertical"
+            android:padding="@dimen/activity_horizontal_margin">
+        <TextView
+            android:id="@+id/login"
+            android:text="@string/login"
+            android:onClick="onLoginClicked"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/menuOption" />
+        <TextView
+                android:id="@+id/logout"
+                android:text="@string/logout"
+                android:onClick="onLogoutClicked"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/menuOption" />
+        </LinearLayout>
+    </android.support.design.widget.NavigationView>
 
 </android.support.v4.widget.DrawerLayout>

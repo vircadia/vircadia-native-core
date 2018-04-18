@@ -11,10 +11,39 @@
 #include "AndroidHelper.h"
 #include <QDebug>
 
+AndroidHelper::AndroidHelper() :
+_accountManager ()
+{
+    workerThread.start();
+}
+
+AndroidHelper::~AndroidHelper() {
+    workerThread.quit();
+    workerThread.wait();
+}
+
+QSharedPointer<AccountManager> AndroidHelper::getAccountManager() {
+
+    _accountManager = QSharedPointer<AccountManager>(new AccountManager, &QObject::deleteLater);
+    _accountManager->setIsAgent(true);
+    _accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
+    _accountManager->moveToThread(&workerThread);
+
+    return _accountManager;
+}
+
 void AndroidHelper::requestActivity(const QString &activityName) {
     emit androidActivityRequested(activityName);
 }
 
+void AndroidHelper::notifyLoadComplete() {
+    emit qtAppLoadComplete();
+}
+
 void AndroidHelper::goBackFromAndroidActivity() {
     emit backFromAndroidActivity();
+}
+
+void AndroidHelper::notifyLoginComplete(bool success) {
+    emit loginComplete(success);
 }

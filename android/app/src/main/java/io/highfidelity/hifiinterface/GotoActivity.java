@@ -9,13 +9,14 @@ import android.support.v7.widget.Toolbar;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
 public class GotoActivity extends AppCompatActivity {
+
+    public static final String PARAM_DOMAIN_URL = "domain_url";
 
     private EditText mUrlEditText;
     private AppCompatButton mGoBtn;
@@ -69,15 +70,10 @@ public class GotoActivity extends AppCompatActivity {
                 urlString = "hifi://" + urlString;
             }
 
-            Intent intent = new Intent(this, InterfaceActivity.class);
-            intent.putExtra(InterfaceActivity.DOMAIN_URL, urlString);
+            Intent intent = new Intent();
+            intent.putExtra(GotoActivity.PARAM_DOMAIN_URL, urlString);
+            setResult(RESULT_OK, intent);
             finish();
-            if (getIntent() != null &&
-                    getIntent().hasExtra(HomeActivity.PARAM_NOT_START_INTERFACE_ACTIVITY) &&
-                    getIntent().getBooleanExtra(HomeActivity.PARAM_NOT_START_INTERFACE_ACTIVITY, false)) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            }
-            startActivity(intent);
         }
     }
 
