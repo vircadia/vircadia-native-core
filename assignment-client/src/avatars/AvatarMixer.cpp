@@ -74,7 +74,7 @@ SharedNodePointer addOrUpdateReplicatedNode(const QUuid& nodeID, const HifiSockA
     auto replicatedNode = DependencyManager::get<NodeList>()->addOrUpdateNode(nodeID, NodeType::Agent,
                                                                               senderSockAddr,
                                                                               senderSockAddr,
-                                                                              0, true, true);
+                                                                              Node::NULL_LOCAL_ID, true, true);
 
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
 
