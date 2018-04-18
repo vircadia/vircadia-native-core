@@ -225,8 +225,8 @@
 #ifdef DEBUG_EVENT_QUEUE
 // This is a HACK that uses private headers included with the qt source distrubution.
 // To use this feature you need to add these directores to your include path:
-// E:/Qt/5.9.1/Src/qtbase/include/QtCore/5.9.1/QtCore
-// E:/Qt/5.9.1/Src/qtbase/include/QtCore/5.9.1
+// E:/Qt/5.10.1/Src/qtbase/include/QtCore/5.10.1/QtCore
+// E:/Qt/5.10.1/Src/qtbase/include/QtCore/5.10.1
 #define QT_BOOTSTRAPPED
 #include <private/qthread_p.h>
 #include <private/qobject_p.h>
@@ -490,7 +490,7 @@ public:
                 // Don't actually crash in debug builds, in case this apparent deadlock is simply from
                 // the developer actively debugging code
                 #ifdef NDEBUG
-                    deadlockDetectionCrash();
+                deadlockDetectionCrash();
                 #endif
             }
         }
@@ -773,7 +773,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         steamClient->init();
     }
 
-    DependencyManager::set<tracing::Tracer>();
     PROFILE_SET_THREAD_NAME("Main Thread");
 
 #if defined(Q_OS_WIN)
@@ -958,10 +957,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
-
     {
         const QString TEST_SCRIPT = "--testScript";
-        const QString TRACE_FILE = "--traceFile";
         const QStringList args = arguments();
         for (int i = 0; i < args.size() - 1; ++i) {
             if (args.at(i) == TEST_SCRIPT) {
@@ -969,10 +966,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 if (QFileInfo(testScriptPath).exists()) {
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
                 }
-            } else if (args.at(i) == TRACE_FILE) {
-                QString traceFilePath = args.at(i + 1);
-                setProperty(hifi::properties::TRACING, traceFilePath);
-                DependencyManager::get<tracing::Tracer>()->startTracing();
             }
         }
     }
@@ -1018,6 +1011,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->startThread();
 
+    const char** constArgv = const_cast<const char**>(argv);
+    if (cmdOptionExists(argc, constArgv, "--disableWatchdog")) {
+        DISABLE_WATCHDOG = true;
+    }
     // Set up a watchdog thread to intentionally crash the application on deadlocks
     if (!DISABLE_WATCHDOG) {
         (new DeadlockWatchdogThread())->start();
@@ -1227,7 +1224,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
     connect(&_entityEditSender, &EntityEditPacketSender::addingEntityWithCertificate, this, &Application::addingEntityWithCertificate);
 
-    const char** constArgv = const_cast<const char**>(argv);
     QString concurrentDownloadsStr = getCmdOption(argc, constArgv, "--concurrent-downloads");
     bool success;
     int concurrentDownloads = concurrentDownloadsStr.toInt(&success);
@@ -2038,7 +2034,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     _snapshotSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/snap.wav"));
-    
+
     QVariant testProperty = property(hifi::properties::TEST);
     qDebug() << testProperty;
     if (testProperty.isValid()) {
@@ -2567,6 +2563,7 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/common/EmulatedMarketplaceHeader.qml" },
         QUrl{ "hifi/commerce/common/FirstUseTutorial.qml" },
         QUrl{ "hifi/commerce/common/SortableListModel.qml" },
+        QUrl{ "hifi/commerce/common/sendAsset/SendAsset.qml" },
         QUrl{ "hifi/commerce/inspectionCertificate/InspectionCertificate.qml" },
         QUrl{ "hifi/commerce/purchases/PurchasedItem.qml" },
         QUrl{ "hifi/commerce/purchases/Purchases.qml" },
@@ -2579,7 +2576,6 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/wallet/SecurityImageChange.qml" },
         QUrl{ "hifi/commerce/wallet/SecurityImageModel.qml" },
         QUrl{ "hifi/commerce/wallet/SecurityImageSelection.qml" },
-        QUrl{ "hifi/commerce/wallet/sendMoney/SendMoney.qml" },
         QUrl{ "hifi/commerce/wallet/Wallet.qml" },
         QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
         QUrl{ "hifi/commerce/wallet/WalletSetup.qml" },
@@ -3149,6 +3145,10 @@ void Application::loadServerlessDomain(QUrl domainURL) {
         tmpTree->reaverageOctreeElements();
         tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), 0, 0, 0);
     }
+
+    std::map<QString, QString> namedPaths = tmpTree->getNamedPaths();
+    nodeList->getDomainHandler().connectedToServerless(namedPaths);
+
 
     _fullSceneReceivedCounter++;
 }
@@ -5907,6 +5907,9 @@ void Application::nodeActivated(SharedNodePointer node) {
         }
         getMyAvatar()->markIdentityDataChanged();
         getMyAvatar()->resetLastSent();
+
+        // transmit a "sendAll" packet to the AvatarMixer we just connected to.
+        getMyAvatar()->sendAvatarDataPacket(true);
     }
 }
 
@@ -6577,7 +6580,7 @@ void Application::addAssetToWorldFromURL(QString url) {
         } else {
             filename.remove(".zip");
         }
-        
+
     }
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
@@ -6751,7 +6754,7 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
             // to prevent files that aren't models or texture files from being loaded into world automatically
-            if ((filePath.toLower().endsWith(OBJ_EXTENSION) || filePath.toLower().endsWith(FBX_EXTENSION)) || 
+            if ((filePath.toLower().endsWith(OBJ_EXTENSION) || filePath.toLower().endsWith(FBX_EXTENSION)) ||
                 ((filePath.toLower().endsWith(JPG_EXTENSION) || filePath.toLower().endsWith(PNG_EXTENSION)) &&
                 ((!isBlocks) && (!isZip)))) {
                 addAssetToWorldAddEntity(filePath, mapping);
@@ -7400,8 +7403,8 @@ bool Application::isThrottleRendering() const {
 bool Application::hasFocus() const {
     bool result = (QApplication::activeWindow() != nullptr);
 #if defined(Q_OS_WIN)
-    // On Windows, QWidget::activateWindow() - as called in setFocus() - makes the application's taskbar icon flash but doesn't 
-    // take user focus away from their current window. So also check whether the application is the user's current foreground 
+    // On Windows, QWidget::activateWindow() - as called in setFocus() - makes the application's taskbar icon flash but doesn't
+    // take user focus away from their current window. So also check whether the application is the user's current foreground
     // window.
     result = result && (HWND)QApplication::activeWindow()->winId() == GetForegroundWindow();
 #endif
@@ -7409,7 +7412,7 @@ bool Application::hasFocus() const {
 }
 
 void Application::setFocus() {
-    // Note: Windows doesn't allow a user focus to be taken away from another application. Instead, it changes the color of and 
+    // Note: Windows doesn't allow a user focus to be taken away from another application. Instead, it changes the color of and
     // flashes the taskbar icon.
     auto window = qApp->getWindow();
     window->activateWindow();
@@ -7650,7 +7653,7 @@ void Application::updateDisplayMode() {
         menu->setIsOptionChecked(MenuOption::FirstPerson, true);
         cameraMenuChanged();
     }
-    
+
     // Remove the mirror camera option from menu if in HMD mode
     auto mirrorAction = menu->getActionForOption(MenuOption::FullscreenMirror);
     mirrorAction->setVisible(!isHmd);

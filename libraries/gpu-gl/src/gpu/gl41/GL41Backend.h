@@ -175,6 +175,8 @@ protected:
     void makeProgramBindings(ShaderObject& shaderObject) override;
     int makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
 
+    static bool supportedTextureFormat(const gpu::Element& format);
+
 };
 
 } }

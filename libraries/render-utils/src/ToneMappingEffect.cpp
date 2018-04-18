@@ -27,19 +27,24 @@ ToneMappingEffect::ToneMappingEffect() {
     _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
 }
 
-void ToneMappingEffect::init() {
+void ToneMappingEffect::init(RenderArgs* args) {
     auto blitPS = toneMapping_frag::getShader();
 
     auto blitVS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
     auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(blitVS, blitPS));
 
-    gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("toneMappingParamsBuffer"), ToneMappingEffect_ParamsSlot));
-    slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), ToneMappingEffect_LightingMapSlot));
-    gpu::Shader::makeProgram(*blitProgram, slotBindings);
     auto blitState = std::make_shared<gpu::State>();
     blitState->setColorWriteMask(true, true, true, true);
     _blitLightBuffer = gpu::PipelinePointer(gpu::Pipeline::create(blitProgram, blitState));
+
+    gpu::doInBatch("ToneMappingEffect::toneMapping", args->_context, [blitProgram](gpu::Batch& batch) {
+        batch.runLambda([blitProgram]() {
+            gpu::Shader::BindingSet slotBindings;
+            slotBindings.insert(gpu::Shader::Binding(std::string("toneMappingParamsBuffer"), ToneMappingEffect_ParamsSlot));
+            slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), ToneMappingEffect_LightingMapSlot));
+            gpu::Shader::makeProgram(*blitProgram, slotBindings);
+        });
+    });
 }
 
 void ToneMappingEffect::setExposure(float exposure) {
@@ -59,7 +64,7 @@ void ToneMappingEffect::setToneCurve(ToneCurve curve) {
 
 void ToneMappingEffect::render(RenderArgs* args, const gpu::TexturePointer& lightingBuffer, const gpu::FramebufferPointer& requestedDestinationFramebuffer) {
     if (!_blitLightBuffer) {
-        init();
+        init(args);
     }
 
     auto destinationFramebuffer = requestedDestinationFramebuffer;

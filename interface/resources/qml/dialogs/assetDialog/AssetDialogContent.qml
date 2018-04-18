@@ -8,8 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
-import QtQuick.Controls 1.4
+import QtQuick 2.7
+import QtQuick.Controls 2.3
+import QtQuick.Controls 1.5 as QQC1
 
 import "../../controls-uit"
 import "../../styles-uit"
@@ -362,7 +363,7 @@ Item {
                 }
             }
 
-            TableViewColumn {
+            QQC1.TableViewColumn {
                 id: fileNameColumn
                 role: "fileName"
                 title: "Name"
