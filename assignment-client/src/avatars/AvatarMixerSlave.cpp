@@ -223,7 +223,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     // prepare to sort
     ViewFrustum cameraView = nodeData->getViewFrustum();
-    PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(cameraView,
+    PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars({cameraView},
             AvatarData::_avatarSortCoefficientSize,
             AvatarData::_avatarSortCoefficientCenter,
             AvatarData::_avatarSortCoefficientAge);

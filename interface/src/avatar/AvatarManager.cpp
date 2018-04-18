@@ -155,9 +155,19 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         AvatarSharedPointer _avatar;
     };
 
-    ViewFrustum cameraView;
-    qApp->copyDisplayViewFrustum(cameraView);
-    PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(cameraView,
+
+    std::vector<ViewFrustum> views;
+
+    ViewFrustum view;
+    qApp->copyCurrentViewFrustum(view);
+    views.push_back(view);
+
+    if (qApp->hasSecondaryViewFrustum()) {
+        qApp->copySecondaryViewFrustum(view);
+        views.push_back(view);
+    }
+
+    PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(views,
             AvatarData::_avatarSortCoefficientSize,
             AvatarData::_avatarSortCoefficientCenter,
             AvatarData::_avatarSortCoefficientAge);

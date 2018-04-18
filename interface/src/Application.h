@@ -175,13 +175,13 @@ public:
     Camera& getCamera() { return _myCamera; }
     const Camera& getCamera() const { return _myCamera; }
     // Represents the current view frustum of the avatar.
-    void copyViewFrustum(ViewFrustum& viewOut) const;
+    void copyViewFrustum(ViewFrustum& viewOut) const override;
+    void copySecondaryViewFrustum(ViewFrustum& viewOut) const override;
+    bool hasSecondaryViewFrustum() const override { return _hasSecondaryViewFrustum; }
     // Represents the view frustum of the current rendering pass,
     // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
-    void copySecondaryViewFrustum(ViewFrustum& viewOut) const;
-    bool hasSecondaryViewFrustum() const { return _hasSecondaryViewFrustum; }
 
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
