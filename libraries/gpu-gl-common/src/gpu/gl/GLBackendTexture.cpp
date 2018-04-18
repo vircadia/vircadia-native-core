@@ -105,7 +105,7 @@ void GLBackend::do_generateTextureMipsWithPipeline(const Batch& batch, size_t pa
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, _mipGenerationFramebufferId);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER_EXT, 0);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, 0);
 
 	for (int level = 1; level < numMips; level++) {
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, object->_id, level);

@@ -213,7 +213,7 @@ public:
     // Generate the mips for a texture
 	void generateTextureMips(const TexturePointer& texture);
 	// Generate the mips for a texture using the current pipeline
-	void generateTextureMipsWithPipeline(const TexturePointer& texture, int numMips = -1);
+	void generateTextureMipsWithPipeline(const TexturePointer& destTexture, int numMips = -1);
 
     // Query Section
     void beginQuery(const QueryPointer& query);

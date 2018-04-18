@@ -34,6 +34,12 @@
 #include "ssao_makeHorizontalBlur_frag.h"
 #include "ssao_makeVerticalBlur_frag.h"
 
+#include "mip_depth_median_frag.h"
+
+gpu::PipelinePointer AmbientOcclusionEffect::_occlusionPipeline;
+gpu::PipelinePointer AmbientOcclusionEffect::_hBlurPipeline;
+gpu::PipelinePointer AmbientOcclusionEffect::_vBlurPipeline;
+gpu::PipelinePointer AmbientOcclusionEffect::_mipCreationPipeline;
 
 AmbientOcclusionFramebuffer::AmbientOcclusionFramebuffer() {
 }
@@ -333,6 +339,15 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
     return _vBlurPipeline;
 }
 
+const gpu::PipelinePointer& AmbientOcclusionEffect::getMipCreationPipeline() {
+	if (!_mipCreationPipeline) {
+		gpu::Shader::BindingSet slotBindings;
+		slotBindings.insert(gpu::Shader::Binding(std::string("depthTexture"), 0));
+		_mipCreationPipeline = gpu::Context::createMipGenerationPipeline(mip_depth_median_frag::getShader(), slotBindings);
+	}
+	return _mipCreationPipeline;
+}
+
 void AmbientOcclusionEffect::updateGaussianDistribution() {
     auto coefs = _parametersBuffer.edit()._gaussianCoefs;
     GaussianDistribution::evalSampling(coefs, Parameters::GAUSSIAN_COEFS_LENGTH, _parametersBuffer->getBlurRadius(), _parametersBuffer->getBlurDeviation());
@@ -384,9 +399,11 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     auto occlusionPipeline = getOcclusionPipeline();
     auto firstHBlurPipeline = getHBlurPipeline();
     auto lastVBlurPipeline = getVBlurPipeline();
+	auto mipCreationPipeline = getMipCreationPipeline();
     
     gpu::doInBatch("AmbientOcclusionEffect::run", args->_context, [=](gpu::Batch& batch) {
-        batch.enableStereo(false);
+		PROFILE_RANGE_BATCH(batch, "AmbientOcclusion");
+		batch.enableStereo(false);
 
         _gpuTimer->begin(batch);
 
@@ -395,16 +412,18 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         batch.resetViewTransform();
 
         Transform model;
-        model.setTranslation(glm::vec3(sMin, tMin, 0.0f));
+
+		// We need this with the mips levels  
+		batch.setModelTransform(model);
+		batch.setPipeline(mipCreationPipeline);
+		batch.generateTextureMipsWithPipeline(_framebuffer->getLinearDepthTexture());
+
+		model.setTranslation(glm::vec3(sMin, tMin, 0.0f));
         model.setScale(glm::vec3(sWidth, tHeight, 1.0f));
         batch.setModelTransform(model);
 
         batch.setUniformBuffer(AmbientOcclusionEffect_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
         batch.setUniformBuffer(AmbientOcclusionEffect_ParamsSlot, _parametersBuffer);
-
-      
-        // We need this with the mips levels  
-        batch.generateTextureMips(_framebuffer->getLinearDepthTexture());
         
         // Occlusion pass
         batch.setFramebuffer(occlusionFBO);
@@ -413,7 +432,6 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, _framebuffer->getLinearDepthTexture());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        
         if (_parametersBuffer->getBlurRadius() > 0) {
             // Blur 1st pass
             batch.setFramebuffer(occlusionBlurredFBO);

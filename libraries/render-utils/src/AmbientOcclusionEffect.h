@@ -159,13 +159,15 @@ private:
    
     ParametersBuffer _parametersBuffer;
 
-    const gpu::PipelinePointer& getOcclusionPipeline();
-    const gpu::PipelinePointer& getHBlurPipeline(); // first
-    const gpu::PipelinePointer& getVBlurPipeline(); // second
+    static const gpu::PipelinePointer& getOcclusionPipeline();
+	static const gpu::PipelinePointer& getHBlurPipeline(); // first
+	static const gpu::PipelinePointer& getVBlurPipeline(); // second
+	static const gpu::PipelinePointer& getMipCreationPipeline();
 
-    gpu::PipelinePointer _occlusionPipeline;
-    gpu::PipelinePointer _hBlurPipeline;
-    gpu::PipelinePointer _vBlurPipeline;
+	static gpu::PipelinePointer _occlusionPipeline;
+	static gpu::PipelinePointer _hBlurPipeline;
+	static gpu::PipelinePointer _vBlurPipeline;
+	static gpu::PipelinePointer _mipCreationPipeline;
 
     AmbientOcclusionFramebufferPointer _framebuffer;
     
