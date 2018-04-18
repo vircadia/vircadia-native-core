@@ -416,7 +416,7 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
     int elapsedmsec = (end - start) / USECS_PER_MSEC;
     OctreeServer::trackLoopTime(elapsedmsec);
 
-    // if after sending packets we've emptied our bag, then we want to remember that we've sent all
+    // if we've sent everything, then we want to remember that we've sent all
     // the octree elements from the current view frustum
     if (!hasSomethingToSend(nodeData)) {
         nodeData->setViewSent(true);
@@ -465,7 +465,7 @@ void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, Octre
             extraPackingAttempts++;
         }
 
-        // If the bag had contents but is now empty then we know we've sent the entire scene.
+        // If we had something to send, but now we don't, then we know we've sent the entire scene.
         bool completedScene = hadSomething;
         if (completedScene || lastNodeDidntFit) {
             // we probably want to flush what has accumulated in nodeData but:
