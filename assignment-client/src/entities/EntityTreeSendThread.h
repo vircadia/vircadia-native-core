@@ -50,7 +50,6 @@ private:
 
     DiffTraversal _traversal;
     EntityPriorityQueue _sendQueue;
-    std::unordered_set<EntityItem*> _entitiesInQueue;
     std::unordered_map<EntityItem*, uint64_t> _knownState;
     ConicalView _conicalView; // cached optimized view for fast priority calculations
 

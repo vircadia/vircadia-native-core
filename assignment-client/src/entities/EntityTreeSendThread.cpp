@@ -127,8 +127,9 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
         // and also use the opportunity to cull anything no longer in view
         if (viewFrustumChanged && !_sendQueue.empty()) {
             EntityPriorityQueue prevSendQueue;
-            _sendQueue.swap(prevSendQueue);
-            _entitiesInQueue.clear();
+            std::swap(_sendQueue, prevSendQueue);
+            assert(_sendQueue.empty());
+
             // Re-add elements from previous traversal if they still need to be sent
             while (!prevSendQueue.empty()) {
                 EntityItemPointer entity = prevSendQueue.top().getEntity();
@@ -156,7 +157,6 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
 
                     if (priority != PrioritizedEntity::DO_NOT_SEND) {
                         _sendQueue.emplace(entity, priority, forceRemove);
-                        _entitiesInQueue.insert(entity.get());
                     }
                 }
             }
@@ -250,7 +250,7 @@ void EntityTreeSendThread::startNewTraversal(const DiffTraversal::View& view, En
             _traversal.setScanCallback([this](DiffTraversal::VisibleElement& next) {
                 next.element->forEachEntity([&](EntityItemPointer entity) {
                     // Bail early if we've already checked this entity this frame
-                    if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
+                    if (_sendQueue.contains(entity.get())) {
                         return;
                     }
                     float priority = PrioritizedEntity::DO_NOT_SEND;
@@ -275,7 +275,6 @@ void EntityTreeSendThread::startNewTraversal(const DiffTraversal::View& view, En
 
                     if (priority != PrioritizedEntity::DO_NOT_SEND) {
                         _sendQueue.emplace(entity, priority);
-                        _entitiesInQueue.insert(entity.get());
                     }
                 });
             });
@@ -286,7 +285,7 @@ void EntityTreeSendThread::startNewTraversal(const DiffTraversal::View& view, En
                 if (next.element->getLastChangedContent() > startOfCompletedTraversal) {
                     next.element->forEachEntity([&](EntityItemPointer entity) {
                         // Bail early if we've already checked this entity this frame
-                        if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
+                        if (_sendQueue.contains(entity.get())) {
                             return;
                         }
                         float priority = PrioritizedEntity::DO_NOT_SEND;
@@ -315,7 +314,6 @@ void EntityTreeSendThread::startNewTraversal(const DiffTraversal::View& view, En
 
                         if (priority != PrioritizedEntity::DO_NOT_SEND) {
                             _sendQueue.emplace(entity, priority);
-                            _entitiesInQueue.insert(entity.get());
                         }
                     });
                 }
@@ -326,7 +324,7 @@ void EntityTreeSendThread::startNewTraversal(const DiffTraversal::View& view, En
             _traversal.setScanCallback([this] (DiffTraversal::VisibleElement& next) {
                 next.element->forEachEntity([&](EntityItemPointer entity) {
                     // Bail early if we've already checked this entity this frame
-                    if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
+                    if (_sendQueue.contains(entity.get())) {
                         return;
                     }
                     float priority = PrioritizedEntity::DO_NOT_SEND;
@@ -358,7 +356,6 @@ void EntityTreeSendThread::startNewTraversal(const DiffTraversal::View& view, En
 
                     if (priority != PrioritizedEntity::DO_NOT_SEND) {
                         _sendQueue.emplace(entity, priority);
-                        _entitiesInQueue.insert(entity.get());
                     }
                 });
             });
@@ -447,11 +444,10 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
             }
         }
         _sendQueue.pop();
-        _entitiesInQueue.erase(entity.get());
     }
     nodeData->stats.encodeStopped();
     if (_sendQueue.empty()) {
-        assert(_entitiesInQueue.empty());
+        assert(_sendQueue.empty());
         params.stopReason = EncodeBitstreamParams::FINISHED;
         _extraEncodeData->entities.clear();
     }
@@ -469,18 +465,16 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
 
 void EntityTreeSendThread::editingEntityPointer(const EntityItemPointer& entity) {
     if (entity) {
-        if (_entitiesInQueue.find(entity.get()) == _entitiesInQueue.end() && _knownState.find(entity.get()) != _knownState.end()) {
+        if (!_sendQueue.contains(entity.get()) && _knownState.find(entity.get()) != _knownState.end()) {
             bool success = false;
             AACube cube = entity->getQueryAACube(success);
             if (success) {
                 // We can force a removal from _knownState if the current view is used and entity is out of view
                 if (_traversal.doesCurrentUseViewFrustum() && !_traversal.getCurrentView().intersects(cube)) {
                     _sendQueue.emplace(entity, PrioritizedEntity::FORCE_REMOVE, true);
-                    _entitiesInQueue.insert(entity.get());
                 }
             } else {
                 _sendQueue.emplace(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY, true);
-                _entitiesInQueue.insert(entity.get());
             }
         }
     }

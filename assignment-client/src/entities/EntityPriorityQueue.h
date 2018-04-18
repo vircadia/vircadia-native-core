@@ -13,6 +13,7 @@
 #define hifi_EntityPriorityQueue_h
 
 #include <queue>
+#include <unordered_set>
 
 #include <AACube.h>
 #include <DiffTraversal.h>
@@ -71,6 +72,50 @@ private:
     bool _forceRemove;
 };
 
-using EntityPriorityQueue = std::priority_queue< PrioritizedEntity, std::vector<PrioritizedEntity>, PrioritizedEntity::Compare >;
+class EntityPriorityQueue {
+public:
+    inline bool empty() const {
+        assert(_queue.empty() == _entities.empty());
+        return _queue.empty();
+    }
+
+    inline const PrioritizedEntity& top() const {
+        assert(!_queue.empty());
+        return _queue.top();
+    }
+
+    inline bool contains(const EntityItem* entity) const {
+        return _entities.find(entity) != std::end(_entities);
+    }
+
+    inline void emplace(const EntityItemPointer& entity, float priority, bool forceRemove = false) {
+        assert(entity && !contains(entity.get()));
+        _queue.emplace(entity, priority, forceRemove);
+        _entities.insert(entity.get());
+        assert(_queue.size() == _entities.size());
+    }
+
+    inline void pop() {
+        assert(!empty());
+        _entities.erase(_queue.top().getRawEntityPointer());
+        _queue.pop();
+        assert(_queue.size() == _entities.size());
+    }
+
+    inline void swap(EntityPriorityQueue& other) {
+        std::swap(_queue, other._queue);
+        std::swap(_entities, other._entities);
+    }
+
+private:
+    using PriorityQueue = std::priority_queue<PrioritizedEntity,
+                                              std::vector<PrioritizedEntity>,
+                                              PrioritizedEntity::Compare>;
+
+    PriorityQueue _queue;
+    // Keep dictionary of al the entities in the queue for fast contain checks.
+    std::unordered_set<const EntityItem*> _entities;
+
+};
 
 #endif // hifi_EntityPriorityQueue_h
