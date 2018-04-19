@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 
+import io.highfidelity.hifiinterface.HifiUtils;
 import io.highfidelity.hifiinterface.view.DomainAdapter;
 import retrofit2.Call;
 import retrofit2.Response;
@@ -216,10 +217,11 @@ public class UserStoryDomainProvider implements DomainProvider {
         DomainAdapter.Domain toDomain() {
             // TODO Proper url creation (it can or can't have hifi
             // TODO Or use host value from api?
+            String absoluteThumbnailUrl = HifiUtils.getInstance().absoluteHifiAssetUrl(thumbnail_url);
             DomainAdapter.Domain domain = new DomainAdapter.Domain(
                     place_name,
-                    "hifi://" + place_name + "/" + path,
-                    thumbnail_url
+                    HifiUtils.getInstance().sanitizeHifiUrl(place_name) + "/" + path,
+                    absoluteThumbnailUrl
             );
             return domain;
         }

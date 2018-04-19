@@ -1,6 +1,7 @@
 package io.highfidelity.hifiinterface.view;
 
 import android.content.Context;
+import android.net.Uri;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -8,6 +9,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -119,7 +122,10 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
     public void onBindViewHolder(ViewHolder holder, int position) {
         // TODO
         //holder.thumbnail.setImageResource(mDomains[position].thumbnail);
-        holder.mDomainName.setText(mDomains[position].name);
+        Domain domain = mDomains[position];
+        holder.mDomainName.setText(domain.name);
+        Uri uri = Uri.parse(domain.thumbnail);
+        Picasso.get().load(uri).into(holder.mThumbnail);
     }
 
     @Override

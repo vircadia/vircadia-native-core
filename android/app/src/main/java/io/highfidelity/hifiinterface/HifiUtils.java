@@ -9,6 +9,8 @@ import java.net.URISyntaxException;
 
 public class HifiUtils {
 
+    public static final String BASE_URL = "https://metaverse.highfidelity.com";
+
     private static HifiUtils instance;
 
     private HifiUtils() {
@@ -32,6 +34,22 @@ public class HifiUtils {
             }
             if (uri.getScheme() == null || uri.getScheme().isEmpty()) {
                 urlString = "hifi://" + urlString;
+            }
+        }
+        return urlString;
+    }
+
+    public String absoluteHifiAssetUrl(String urlString) {
+        urlString = urlString.trim();
+        if (!urlString.isEmpty()) {
+            URI uri;
+            try {
+                uri = new URI(urlString);
+            } catch (URISyntaxException e) {
+                return urlString;
+            }
+            if (uri.getScheme() == null || uri.getScheme().isEmpty()) {
+                urlString = BASE_URL + urlString;
             }
         }
         return urlString;
