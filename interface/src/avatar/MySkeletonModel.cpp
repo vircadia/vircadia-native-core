@@ -45,7 +45,14 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
         return result;
     }
 
-    glm::mat4 hipsMat = myAvatar->deriveBodyFromHMDSensor();
+    glm::mat4 hipsMat;
+    if (myAvatar->getCenterOfGravityModelEnabled()) {
+        // then we use center of gravity model
+        hipsMat = myAvatar->deriveBodyUsingCgModel();
+    } else {
+        // otherwise use the default of putting the hips under the head
+        hipsMat = myAvatar->deriveBodyFromHMDSensor();
+    }
     glm::vec3 hipsPos = extractTranslation(hipsMat);
     glm::quat hipsRot = glmExtractRotation(hipsMat);
 
@@ -53,8 +60,11 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
     glm::mat4 avatarToSensorMat = worldToSensorMat * avatarToWorldMat;
 
     // dampen hips rotation, by mixing it with the avatar orientation in sensor space
-    const float MIX_RATIO = 0.5f;
-    hipsRot = safeLerp(glmExtractRotation(avatarToSensorMat), hipsRot, MIX_RATIO);
+    // turning this off for center of gravity model because it is already mixed in there
+    if (!(myAvatar->getCenterOfGravityModelEnabled())) {
+        const float MIX_RATIO = 0.5f;
+        hipsRot = safeLerp(glmExtractRotation(avatarToSensorMat), hipsRot, MIX_RATIO);
+    }
 
     if (isFlying) {
         // rotate the hips back to match the flying animation.
