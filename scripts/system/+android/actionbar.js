@@ -38,7 +38,7 @@ function init() {
 }
 
 function onBackPressed() {
-    App.openAndroidActivity("Goto");
+    App.openAndroidActivity("Home");
 }
 
 
