@@ -2,76 +2,48 @@
 <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/contentHomeRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context="io.highfidelity.hifiinterface.HomeActivity"
     tools:showIn="@layout/activity_home">
 
-    <TabHost
-        android:id="@+id/tabhost"
+    <EditText
+        android:id="@+id/searchView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginBottom="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_height="50dp"
+        app:layout_constraintTop_toTopOf="@id/contentHomeRoot"
+        android:background="@drawable/search_bg"
+        android:gravity="center_vertical|end"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:fontFamily="@font/raleway"
+        android:hint="@string/search_hint"
+        android:inputType="textUri"
+        android:imeOptions="actionGo"
+        />
+
+    <TextView
+        android:id="@+id/searchNoResultsView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        style="@style/SearchText"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/searchView"
+        android:layout_marginTop="32dp"
+        android:text="@string/search_no_results"
+        android:visibility="gone"
+        />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
-
-            <TabWidget
-                android:id="@android:id/tabs"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:visibility="gone"
-                android:background="@color/backgroundDark"/>
-
-            <EditText
-                android:id="@+id/searchView"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:background="@drawable/search_bg"
-                android:gravity="center_vertical|end"
-                android:paddingStart="32dp"
-                android:paddingEnd="32dp"
-                android:hint="@string/search_hint"
-                android:inputType="textUri"
-                android:imeOptions="actionGo"
-                />
-            <FrameLayout
-                android:id="@android:id/tabcontent"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-
-                <LinearLayout
-                    android:id="@+id/featured"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical">
-                    <android.support.v7.widget.RecyclerView
-                        android:id="@+id/rvDomains"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/popular"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical">
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/bookmarks"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical">
-                </LinearLayout>
-            </FrameLayout>
-        </LinearLayout>
-    </TabHost>
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/rvDomains"
+        app:layout_constraintTop_toBottomOf="@id/searchView"
+        app:layout_constraintBottom_toBottomOf="@id/contentHomeRoot"
+        app:layout_constraintStart_toStartOf="@id/contentHomeRoot"
+        app:layout_constraintEnd_toEndOf="@id/contentHomeRoot"
+        android:layout_width="0dp"
+        android:layout_height="0dp" />
 
 </android.support.constraint.ConstraintLayout>

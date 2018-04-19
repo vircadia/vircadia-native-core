@@ -4,10 +4,7 @@ import android.util.Log;
 import android.util.MutableInt;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.BinaryOperator;
-import java.util.function.Consumer;
 
 import io.highfidelity.hifiinterface.HifiUtils;
 import io.highfidelity.hifiinterface.view.DomainAdapter;
@@ -56,9 +53,7 @@ public class UserStoryDomainProvider implements DomainProvider {
         getUserStoryPage(1,
                 e -> {
                     allStories.subList(counter.value, allStories.size()).forEach(userStory -> {
-                        // TODO Report error? e
                         filter.filterOrAdd(userStory);
-                        // TODO Visibility stuff according to size of suggestions?
                     });
                     if (domainCallback != null) {
                         domainCallback.retrieveOk(suggestions); //ended
@@ -68,7 +63,6 @@ public class UserStoryDomainProvider implements DomainProvider {
                     allStories.forEach(userStory -> {
                         counter.value++;
                         filter.filterOrAdd(userStory);
-                        // TODO Visibility stuff according to size of suggestions?
                     });
                 }
         );
@@ -91,7 +85,7 @@ public class UserStoryDomainProvider implements DomainProvider {
                 UserStories data = response.body();
                 allStories.addAll(data.user_stories);
                 if (data.current_page < data.total_pages && data.current_page <= MAX_PAGES_TO_GET) {
-                    if (pageNumber == 1 && firstPageCallback!=null) {
+                    if (pageNumber == 1 && firstPageCallback != null) {
                         firstPageCallback.callback(null);
                     }
                     getUserStoryPage(pageNumber + 1, restOfPagesCallback, null);
@@ -209,7 +203,7 @@ public class UserStoryDomainProvider implements DomainProvider {
         // New fields? tags, description
 
         String searchText() {
-            if (searchText==null) {
+            if (searchText == null) {
                 searchText = place_name == null? "" : place_name.toUpperCase();
             }
             return searchText;

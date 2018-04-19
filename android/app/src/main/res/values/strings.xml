@@ -21,5 +21,6 @@
     <string name="login_username_or_password_incorrect">Username or password incorrect.</string>
     <string name="logging_in">Logging into High Fidelity</string>
     <string name="search_hint"><i>Search for a place by name</i></string>
-
+    <string name="search_loading">Loading places…</string>
+    <string name="search_no_results">No places exist with that name</string>
 </resources>

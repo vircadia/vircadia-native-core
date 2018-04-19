@@ -19,8 +19,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.TabHost;
-import android.widget.TabWidget;
 import android.widget.TextView;
 
 import io.highfidelity.hifiinterface.view.DomainAdapter;
@@ -38,9 +36,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
     public static final int ENTER_DOMAIN_URL = 1;
 
-    private DomainAdapter domainAdapter;
+    private DomainAdapter mDomainAdapter;
     private DrawerLayout mDrawerLayout;
     private NavigationView mNavigationView;
+    private RecyclerView mDomainsView;
+    private TextView searchNoResultsView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,46 +59,40 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         mNavigationView = (NavigationView) findViewById(R.id.nav_view);
         mNavigationView.setNavigationItemSelectedListener(this);
 
-        TabHost tabs = (TabHost)findViewById(R.id.tabhost);
-        tabs.setup();
+        searchNoResultsView = findViewById(R.id.searchNoResultsView);
 
-        TabHost.TabSpec spec=tabs.newTabSpec("featured");
-        spec.setContent(R.id.featured);
-        spec.setIndicator(getString(R.string.featured));
-        tabs.addTab(spec);
-
-        spec = tabs.newTabSpec("popular");
-        spec.setContent(R.id.popular);
-        spec.setIndicator(getString(R.string.popular));
-        tabs.addTab(spec);
-
-        spec = tabs.newTabSpec("bookmarks");
-        spec.setContent(R.id.bookmarks);
-        spec.setIndicator(getString(R.string.bookmarks));
-        tabs.addTab(spec);
-
-        tabs.setCurrentTab(0);
-
-        TabWidget tabwidget=tabs.getTabWidget();
-        for(int i=0; i<tabwidget.getChildCount(); i++){
-            TextView tv=(TextView) tabwidget.getChildAt(i).findViewById(android.R.id.title);
-            tv.setTextAppearance(R.style.TabText);
-        }
-
-
-        RecyclerView domainsView = findViewById(R.id.rvDomains);
+        mDomainsView = findViewById(R.id.rvDomains);
         int numberOfColumns = 1;
         GridLayoutManager gridLayoutMgr = new GridLayoutManager(this, numberOfColumns);
-        domainsView.setLayoutManager(gridLayoutMgr);
-        domainAdapter = new DomainAdapter(this, HifiUtils.getInstance().protocolVersionSignature());
-        domainAdapter.setClickListener(new DomainAdapter.ItemClickListener() {
+        mDomainsView.setLayoutManager(gridLayoutMgr);
+        mDomainAdapter = new DomainAdapter(this, HifiUtils.getInstance().protocolVersionSignature());
+        mDomainAdapter.setClickListener(new DomainAdapter.ItemClickListener() {
 
             @Override
             public void onItemClick(View view, int position, DomainAdapter.Domain domain) {
                 gotoDomain(domain.url);
             }
         });
-        domainsView.setAdapter(domainAdapter);
+        mDomainAdapter.setListener(new DomainAdapter.AdapterListener() {
+            @Override
+            public void onEmptyAdapter() {
+                searchNoResultsView.setText(R.string.search_no_results);
+                searchNoResultsView.setVisibility(View.VISIBLE);
+                mDomainsView.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onNonEmptyAdapter() {
+                searchNoResultsView.setVisibility(View.GONE);
+                mDomainsView.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onError(Exception e, String message) {
+
+            }
+        });
+        mDomainsView.setAdapter(mDomainAdapter);
 
         EditText searchView = findViewById(R.id.searchView);
         int searchPlateId = searchView.getContext().getResources().getIdentifier("android:id/search_plate", null, null);
@@ -118,22 +112,19 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
             @Override
             public void afterTextChanged(Editable editable) {
-                domainAdapter.loadDomains(editable.toString());
+                mDomainAdapter.loadDomains(editable.toString());
             }
         });
-        searchView.setOnKeyListener(new View.OnKeyListener() {
-            @Override
-            public boolean onKey(View view, int i, KeyEvent keyEvent) {
-                if (i == KeyEvent.KEYCODE_ENTER) {
-                    String urlString = searchView.getText().toString();
-                    if (!urlString.trim().isEmpty()) {
-                        urlString = HifiUtils.getInstance().sanitizeHifiUrl(urlString);
-                    }
-                    gotoDomain(urlString);
-                    return true;
+        searchView.setOnKeyListener((view, i, keyEvent) -> {
+            if (i == KeyEvent.KEYCODE_ENTER) {
+                String urlString = searchView.getText().toString();
+                if (!urlString.trim().isEmpty()) {
+                    urlString = HifiUtils.getInstance().sanitizeHifiUrl(urlString);
                 }
-                return false;
+                gotoDomain(urlString);
+                return true;
             }
+            return false;
         });
         updateLoginMenu();
 

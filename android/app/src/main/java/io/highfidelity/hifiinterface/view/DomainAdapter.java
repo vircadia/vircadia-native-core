@@ -37,17 +37,7 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
     private ItemClickListener mClickListener;
     private String mProtocol;
     private UserStoryDomainProvider domainProvider;
-
-    public static class Domain {
-        public String name;
-        public String url;
-        public String thumbnail;
-        public Domain(String name, String url, String thumbnail) {
-            this.name = name;
-            this.thumbnail = thumbnail;
-            this.url = url;
-        }
-    }
+    private AdapterListener mAdapterListener;
 
     // references to our domains
     private Domain[] mDomains = {};
@@ -60,7 +50,9 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
         loadDomains("");
     }
 
-
+    public void setListener(AdapterListener adapterListener) {
+        mAdapterListener = adapterListener;
+    }
 
     public void loadDomains(String filterText) {
         domainProvider.retrieve(filterText, new DomainProvider.DomainCallback() {
@@ -69,12 +61,17 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
                 mDomains = new Domain[domain.size()];
                 mDomains = domain.toArray(mDomains);
                 notifyDataSetChanged();
+                if (mDomains.length == 0) {
+                    if (mAdapterListener != null) mAdapterListener.onEmptyAdapter();
+                } else {
+                    if (mAdapterListener != null) mAdapterListener.onNonEmptyAdapter();
+                }
             }
 
             @Override
             public void retrieveError(Exception e, String message) {
-                //
                 Log.e("DOMAINS", message, e);
+                if (mAdapterListener != null) mAdapterListener.onError(e, message);
             }
         });
     }
@@ -158,5 +155,22 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
     // parent activity will implement this method to respond to click events
     public interface ItemClickListener {
         void onItemClick(View view, int position, Domain domain);
+    }
+
+    public static class Domain {
+        public String name;
+        public String url;
+        public String thumbnail;
+        public Domain(String name, String url, String thumbnail) {
+            this.name = name;
+            this.thumbnail = thumbnail;
+            this.url = url;
+        }
+    }
+
+    public interface AdapterListener {
+        void onEmptyAdapter();
+        void onNonEmptyAdapter();
+        void onError(Exception e, String message);
     }
 }
