@@ -22,10 +22,10 @@
 out float _alpha;
 out vec2 _texCoord0;
 out vec2 _texCoord1;
-out vec4 _position;
-out vec4 _worldPosition;
-out vec3 _normal;
-out vec3 _tangent;
+out vec4 _positionES;
+out vec4 _positionWS;
+out vec3 _normalWS;
+out vec3 _tangentWS;
 out vec3 _color;
 
 void main(void) {
@@ -39,8 +39,8 @@ void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _position, gl_Position)$>
-    <$transformModelToWorldPos(obj, inPosition, _worldPosition)$>
-    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal)$>
-    <$transformModelToWorldDir(cam, obj, inTangent.xyz, _tangent)$>
+    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
+    <$transformModelToWorldPos(obj, inPosition, _positionWS)$>
+    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
+    <$transformModelToWorldDir(cam, obj, inTangent.xyz, _tangentWS)$>
 }
