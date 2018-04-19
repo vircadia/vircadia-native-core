@@ -1,6 +1,6 @@
 //
 //  RecipientDisplay.qml
-//  qml/hifi/commerce/wallet/sendMoney
+//  qml/hifi/commerce/common/sendAsset
 //
 //  RecipientDisplay
 //
@@ -18,7 +18,7 @@ import QtGraphicalEffects 1.0
 import "../../../../styles-uit"
 import "../../../../controls-uit" as HifiControlsUit
 import "../../../../controls" as HifiControls
-import "../../common" as HifiCommerceCommon
+import "../" as HifiCommerceCommon
 
 Item {
     HifiConstants { id: hifi; }

@@ -41,7 +41,7 @@ void PhysicalEntitySimulation::init(
 
 // begin EntitySimulation overrides
 void PhysicalEntitySimulation::updateEntitiesInternal(uint64_t now) {
-    // Do nothing here because the "internal" update the PhysicsEngine::stepSimualtion() which is done elsewhere.
+    // Do nothing here because the "internal" update the PhysicsEngine::stepSimulation() which is done elsewhere.
 }
 
 void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {

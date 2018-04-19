@@ -61,7 +61,7 @@ bool Stats::includeTimingRecord(const QString& name) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
         if (name.startsWith("/idle/update/")) {
             if (name.startsWith("/idle/update/simulation/")) {
-                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming);
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandSimulationTiming);
             } else if (name.startsWith("/idle/update/myAvatar/")) {
                 if (name.startsWith("/idle/update/myAvatar/simulate/")) {
                     return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarSimulateTiming);
@@ -76,7 +76,7 @@ bool Stats::includeTimingRecord(const QString& name) {
         } else if (name.startsWith("/paintGL/")) {
             return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
         } else if (name.startsWith("physics/")) {
-            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming);
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsTiming);
         }
         return true;
     }
