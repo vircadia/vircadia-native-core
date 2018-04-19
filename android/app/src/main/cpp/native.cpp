@@ -151,7 +151,7 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCrea
 
     QObject::connect(&AndroidHelper::instance(), &AndroidHelper::androidActivityRequested, [](const QString& a) {
         QAndroidJniObject string = QAndroidJniObject::fromString(a);
-        __activity.callMethod<void>("openGotoActivity", "(Ljava/lang/String;)V", string.object<jstring>());
+        __activity.callMethod<void>("openAndroidActivity", "(Ljava/lang/String;)V", string.object<jstring>());
     });
 }
 

@@ -197,7 +197,7 @@ public class InterfaceActivity extends QtActivity {
         nativeGoBackFromAndroidActivity();
     }
 
-    public void openGotoActivity(String activityName) {
+    public void openAndroidActivity(String activityName) {
         switch (activityName) {
             case "Home": {
                 Intent intent = new Intent(this, HomeActivity.class);
