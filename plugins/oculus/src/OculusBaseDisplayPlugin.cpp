@@ -166,12 +166,11 @@ void OculusBaseDisplayPlugin::deactivateSession() {
     //_session = nullptr;
 }
 void OculusBaseDisplayPlugin::updatePresentPose() {
-    //mat4 sensorResetMat;
-    //_currentPresentFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
-    //_currentPresentFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, _currentFrame->frameIndex);
-    //auto trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrFalse);
-    //_currentPresentFrameInfo.presentPose = toGlm(trackingState.HeadPose.ThePose);
-    _currentPresentFrameInfo.presentPose = _currentPresentFrameInfo.renderPose;
+    _currentPresentFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
+    _currentPresentFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, 0);
+    auto trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrFalse);
+    _currentPresentFrameInfo.presentPose = toGlm(trackingState.HeadPose.ThePose);
+    _currentPresentFrameInfo.renderPose = _currentPresentFrameInfo.presentPose;
 }
 
 OculusBaseDisplayPlugin::~OculusBaseDisplayPlugin() {

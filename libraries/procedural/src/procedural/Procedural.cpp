@@ -19,7 +19,7 @@
 #include <SharedUtil.h>
 #include <NumericalConstants.h>
 #include <GLMHelpers.h>
-
+#include <NetworkingConstants.h>
 #include "ProceduralCommon_frag.h"
 
 #include "Logging.h"
@@ -178,6 +178,8 @@ void Procedural::setProceduralData(const ProceduralData& proceduralData) {
                 return;
             }
             _shaderPath = shaderUrl.toLocalFile();
+        } else if (shaderUrl.scheme() == URL_SCHEME_QRC) {
+            _shaderPath = ":" + shaderUrl.path();
         } else {
             _networkShader = ShaderCache::instance().getShader(shaderUrl);
         }
