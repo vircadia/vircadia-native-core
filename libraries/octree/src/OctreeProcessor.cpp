@@ -117,7 +117,7 @@ void OctreeProcessor::processDatagram(ReceivedMessage& message, SharedNodePointe
             if (sectionLength) {
                 // ask the VoxelTree to read the bitstream into the tree
                 ReadBitstreamToTreeParams args(WANT_EXISTS_BITS, NULL,
-                                                sourceUUID, sourceNode, false, message.getVersion());
+                                               sourceUUID, sourceNode);
                 quint64 startUncompress, startLock = usecTimestampNow();
                 quint64 startReadBitsteam, endReadBitsteam;
                 // FIXME STUTTER - there may be an opportunity to bump this lock outside of the

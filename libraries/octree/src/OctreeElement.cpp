@@ -457,33 +457,6 @@ ViewFrustum::intersection OctreeElement::computeViewIntersection(const ViewFrust
     return viewFrustum.calculateCubeKeyholeIntersection(_cube);
 }
 
-// There are two types of nodes for which we want to "render"
-// 1) Leaves that are in the LOD
-// 2) Non-leaves are more complicated though... usually you don't want to render them, but if their children
-//    wouldn't be rendered, then you do want to render them. But sometimes they have some children that ARE
-//    in the LOD, and others that are not. In this case we want to render the parent, and none of the children.
-//
-//    Since, if we know the camera position and orientation, we can know which of the corners is the "furthest"
-//    corner. We can use we can use this corner as our "voxel position" to do our distance calculations off of.
-//    By doing this, we don't need to test each child voxel's position vs the LOD boundary
-bool OctreeElement::calculateShouldRender(const ViewFrustum& viewFrustum, float voxelScaleSize, int boundaryLevelAdjust) const {
-    bool shouldRender = false;
-
-    if (hasContent()) {
-        float furthestDistance = furthestDistanceToCamera(viewFrustum);
-        float childBoundary = boundaryDistanceForRenderLevel(getLevel() + 1 + boundaryLevelAdjust, voxelScaleSize);
-        bool inChildBoundary = (furthestDistance <= childBoundary);
-        if (hasDetailedContent() && inChildBoundary) {
-            shouldRender = true;
-        } else {
-            float boundary = childBoundary * 2.0f; // the boundary is always twice the distance of the child boundary
-            bool inBoundary = (furthestDistance <= boundary);
-            shouldRender = inBoundary && !inChildBoundary;
-        }
-    }
-    return shouldRender;
-}
-
 // Calculates the distance to the furthest point of the voxel to the camera
 // does as much math as possible in voxel scale and then scales up to TREE_SCALE at end
 float OctreeElement::furthestDistanceToCamera(const ViewFrustum& viewFrustum) const {

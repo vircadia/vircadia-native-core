@@ -121,17 +121,6 @@ public:
     virtual bool requiresSplit() const override { return false; }
 
     virtual void debugExtraEncodeData(EncodeBitstreamParams& params) const override;
-    virtual void initializeExtraEncodeData(EncodeBitstreamParams& params) override;
-    virtual bool shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const override;
-    virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const override;
-    virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const override;
-    virtual void elementEncodeComplete(EncodeBitstreamParams& params) const override;
-
-    bool alreadyFullyEncoded(EncodeBitstreamParams& params) const;
-
-    /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
-    virtual OctreeElement::AppendState appendElementData(OctreePacketData* packetData,
-                                                         EncodeBitstreamParams& params) const override;
 
     /// Override to deserialize the state of this element. This is used for loading from a persisted file or from reading
     /// from the network.
