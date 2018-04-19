@@ -47,7 +47,6 @@ public:
                                                 bool& somethingChanged) override;
 
 
-    bool applyNewAnimationProperties(AnimationPropertyGroup newProperties);
     virtual void update(const quint64& now) override;
     bool needsToCallUpdate() const override { return isAnimatingSomething(); }
 
@@ -132,6 +131,7 @@ public:
 
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
+    bool applyNewAnimationProperties(AnimationPropertyGroup newProperties);
     ShapeType computeTrueShapeType() const;
 
 protected:

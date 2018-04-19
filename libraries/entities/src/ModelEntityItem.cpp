@@ -82,10 +82,12 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslations, setJointTranslations);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(relayParentJoints, setRelayParentJoints);
 
-    AnimationPropertyGroup animationProperties = getAnimationProperties();
-    animationProperties.setProperties(properties);
-    bool somethingChangedInAnimations = applyNewAnimationProperties(animationProperties);
-    somethingChanged = somethingChanged || somethingChangedInAnimations;
+    withWriteLock([&] {
+        AnimationPropertyGroup animationProperties = _animationProperties;
+        animationProperties.setProperties(properties);
+        bool somethingChangedInAnimations = applyNewAnimationProperties(animationProperties);
+        somethingChanged = somethingChanged || somethingChangedInAnimations;
+    });
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -117,14 +119,17 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
 
     // grab a local copy of _animationProperties to avoid multiple locks
-    AnimationPropertyGroup animationProperties = getAnimationProperties();
-    int bytesFromAnimation = animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
-        propertyFlags, overwriteLocalData, animationPropertiesChanged);
-    if (animationPropertiesChanged) {
-        applyNewAnimationProperties(animationProperties);
-        _flags |= Simulation::DIRTY_UPDATEABLE;
-        somethingChanged = true;
-    }
+    int bytesFromAnimation;
+    withReadLock([&] {
+        AnimationPropertyGroup animationProperties = _animationProperties;
+        bytesFromAnimation = animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData, animationPropertiesChanged);
+        if (animationPropertiesChanged) {
+            applyNewAnimationProperties(animationProperties);
+            _flags |= Simulation::DIRTY_UPDATEABLE;
+            somethingChanged = true;
+        }
+    });
 
     bytesRead += bytesFromAnimation;
     dataAt += bytesFromAnimation;
@@ -298,60 +303,61 @@ void ModelEntityItem::setAnimationURL(const QString& url) {
 void ModelEntityItem::setAnimationSettings(const QString& value) {
     // NOTE: this method only called for old bitstream format
 
-    // the animations setting is a JSON string that may contain various animation settings.
-    // if it includes fps, currentFrame, or running, those values will be parsed out and
-    // will over ride the regular animation settings
-    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
-    QJsonObject settingsAsJsonObject = settingsAsJson.object();
-    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-    if (settingsMap.contains("fps")) {
-        float fps = settingsMap["fps"].toFloat();
-        setAnimationFPS(fps);
-    }
+    withWriteLock([&] {
+        auto animationProperties = _animationProperties;
 
-    // grab a local copy of _animationProperties to avoid multiple locks
-    auto animationProperties = getAnimationProperties();
-
-    // old settings used frameIndex
-    if (settingsMap.contains("frameIndex")) {
-        float currentFrame = settingsMap["frameIndex"].toFloat();
-        animationProperties.setCurrentFrame(currentFrame);
-    }
-
-    if (settingsMap.contains("running")) {
-        bool running = settingsMap["running"].toBool();
-        if (running != animationProperties.getRunning()) {
-            animationProperties.setRunning(running);
+        // the animations setting is a JSON string that may contain various animation settings.
+        // if it includes fps, currentFrame, or running, those values will be parsed out and
+        // will over ride the regular animation settings
+        QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
+        QJsonObject settingsAsJsonObject = settingsAsJson.object();
+        QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
+        if (settingsMap.contains("fps")) {
+            float fps = settingsMap["fps"].toFloat();
+            animationProperties.setFPS(fps);
         }
-    }
 
-    if (settingsMap.contains("firstFrame")) {
-        float firstFrame = settingsMap["firstFrame"].toFloat();
-        animationProperties.setFirstFrame(firstFrame);
-    }
+        // old settings used frameIndex
+        if (settingsMap.contains("frameIndex")) {
+            float currentFrame = settingsMap["frameIndex"].toFloat();
+            animationProperties.setCurrentFrame(currentFrame);
+        }
 
-    if (settingsMap.contains("lastFrame")) {
-        float lastFrame = settingsMap["lastFrame"].toFloat();
-        animationProperties.setLastFrame(lastFrame);
-    }
+        if (settingsMap.contains("running")) {
+            bool running = settingsMap["running"].toBool();
+            if (running != animationProperties.getRunning()) {
+                animationProperties.setRunning(running);
+            }
+        }
 
-    if (settingsMap.contains("loop")) {
-        bool loop = settingsMap["loop"].toBool();
-        animationProperties.setLoop(loop);
-    }
+        if (settingsMap.contains("firstFrame")) {
+            float firstFrame = settingsMap["firstFrame"].toFloat();
+            animationProperties.setFirstFrame(firstFrame);
+        }
 
-    if (settingsMap.contains("hold")) {
-        bool hold = settingsMap["hold"].toBool();
-        animationProperties.setHold(hold);
-    }
+        if (settingsMap.contains("lastFrame")) {
+            float lastFrame = settingsMap["lastFrame"].toFloat();
+            animationProperties.setLastFrame(lastFrame);
+        }
 
-    if (settingsMap.contains("allowTranslation")) {
-        bool allowTranslation = settingsMap["allowTranslation"].toBool();
-        animationProperties.setAllowTranslation(allowTranslation);
-    }
-    applyNewAnimationProperties(animationProperties);
-    // TODO? set the dirty flag inside applyNewAnimationProperties()
-    _flags |= Simulation::DIRTY_UPDATEABLE;
+        if (settingsMap.contains("loop")) {
+            bool loop = settingsMap["loop"].toBool();
+            animationProperties.setLoop(loop);
+        }
+
+        if (settingsMap.contains("hold")) {
+            bool hold = settingsMap["hold"].toBool();
+            animationProperties.setHold(hold);
+        }
+
+        if (settingsMap.contains("allowTranslation")) {
+            bool allowTranslation = settingsMap["allowTranslation"].toBool();
+            animationProperties.setAllowTranslation(allowTranslation);
+        }
+        applyNewAnimationProperties(animationProperties);
+        // TODO? set the dirty flag inside applyNewAnimationProperties()
+        _flags |= Simulation::DIRTY_UPDATEABLE;
+    });
 }
 
 void ModelEntityItem::setAnimationIsPlaying(bool value) {
@@ -652,14 +658,12 @@ bool ModelEntityItem::isAnimatingSomething() const {
 bool ModelEntityItem::applyNewAnimationProperties(AnimationPropertyGroup newProperties) {
     // call applyNewAnimationProperties() whenever trying to update _animationProperties
     // because there is some reset logic we need to do whenever the animation "config" properties change
-
-    // grab a local copy of _animationProperties to avoid multiple locks
-    AnimationPropertyGroup oldProperties = getAnimationProperties();
+    // NOTE: this private method is always called inside withWriteLock()
 
     // if we hit start animation or change the first or last frame then restart the animation
-    if ((newProperties.getFirstFrame() != oldProperties.getFirstFrame()) ||
-        (newProperties.getLastFrame() != oldProperties.getLastFrame()) ||
-        (newProperties.getRunning() && !oldProperties.getRunning())) {
+    if ((newProperties.getFirstFrame() != _animationProperties.getFirstFrame()) ||
+        (newProperties.getLastFrame() != _animationProperties.getLastFrame()) ||
+        (newProperties.getRunning() && !_animationProperties.getRunning())) {
 
         // when we start interface and the property is are set then the current frame is initialized to -1
         if (_currentFrame < 0.0f) {
@@ -671,19 +675,16 @@ bool ModelEntityItem::applyNewAnimationProperties(AnimationPropertyGroup newProp
             _currentFrame = newProperties.getFirstFrame();
             newProperties.setCurrentFrame(newProperties.getFirstFrame());
         }
-    } else if (!newProperties.getRunning() && oldProperties.getRunning()) {
+    } else if (!newProperties.getRunning() && _animationProperties.getRunning()) {
         _currentFrame = newProperties.getFirstFrame();
         newProperties.setCurrentFrame(_currentFrame);
-    } else if (newProperties.getCurrentFrame() != oldProperties.getCurrentFrame()) {
+    } else if (newProperties.getCurrentFrame() != _animationProperties.getCurrentFrame()) {
         // don't reset _lastAnimated here because the currentFrame was set with the previous setting of _lastAnimated
         _currentFrame = newProperties.getCurrentFrame();
     }
 
-    // finally apply the changes with a lock
-    withWriteLock([&] {
-        _animationProperties = newProperties;
-    });
-
-    // return 'true' if something changed
-    return newProperties != oldProperties;
+    // finally apply the changes
+    bool somethingChanged = newProperties != _animationProperties;
+    _animationProperties = newProperties;
+    return somethingChanged;
 }
