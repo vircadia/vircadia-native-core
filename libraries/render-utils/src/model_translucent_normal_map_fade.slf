@@ -75,7 +75,7 @@ void main(void) {
     <$evalMaterialNormalLOD(_positionES, normalTex, _normalWS, _tangentWS, fragNormalWS)$>
 
     TransformCamera cam = getTransformCamera();
-    vec3 fragToEyeWS = fragPositionWS - cam._viewInverse[3].xyz;
+    vec3 fragToEyeWS = cam._viewInverse[3].xyz - fragPositionWS;
     vec3 fragToEyeDirWS = normalize(fragToEyeWS);
     SurfaceData surfaceWS = initSurfaceData(roughness, fragNormalWS, fragToEyeDirWS);
 

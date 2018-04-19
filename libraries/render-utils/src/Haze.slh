@@ -109,17 +109,17 @@ vec4 computeHazeColor(vec4 fragColor, vec3 fragPositionES, vec3 fragPositionWS, 
     // Convert haze colour from uniform into a vec4
     vec4 hazeColor  = vec4(hazeParams.hazeColor, 1.0);
 
-    // Directional light component is a function of the angle from the eye, between the fragment and the sun
-    vec3 fragToEyeDirWS = normalize(fragPositionWS - eyePositionWS);
-
-    float glareComponent = max(0.0, dot(fragToEyeDirWS, -lightDirectionWS));
-    float power = min(1.0, pow(glareComponent, hazeParams.hazeGlareBlend));
-
-    vec4 glareColor = vec4(hazeParams.hazeGlareColor, 1.0);
-
     // Use the haze colour for the glare colour, if blend is not enabled
     vec4 blendedHazeColor;
     if ((hazeParams.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) == HAZE_MODE_IS_ENABLE_LIGHT_BLEND) {
+        // Directional light component is a function of the angle from the eye, between the fragment and the sun
+        vec3 fragToEyeDirWS = normalize(fragPositionWS - eyePositionWS);
+
+        float glareComponent = max(0.0, dot(fragToEyeDirWS, -lightDirectionWS));
+        float power = min(1.0, pow(glareComponent, hazeParams.hazeGlareBlend));
+
+        vec4 glareColor = vec4(hazeParams.hazeGlareColor, 1.0);
+
         blendedHazeColor = mix(hazeColor, glareColor, power);
     } else {
         blendedHazeColor = hazeColor;
