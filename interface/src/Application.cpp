@@ -1267,9 +1267,32 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Make sure the window is set to the correct size by processing the pending events
     QCoreApplication::processEvents();
     _glWidget->createContext();
-    _glWidget->makeCurrent();
 
+    // Create the main thread context, the GPU backend, and the display plugins
     initializeGL();
+    qCDebug(interfaceapp, "Initialized Display.");
+    // Create the rendering engine.  This can be slow on some machines due to lots of 
+    // GPU pipeline creation.
+    initializeRenderEngine();
+    qCDebug(interfaceapp, "Initialized Render Engine.");
+
+    // Initialize the user interface and menu system
+    // Needs to happen AFTER the render engine initialization to access its configuration
+    initializeUi();
+
+    init();
+    qCDebug(interfaceapp, "init() complete.");
+
+    // create thread for parsing of octree data independent of the main network and rendering threads
+    _octreeProcessor.initialize(_enableProcessOctreeThread);
+    connect(&_octreeProcessor, &OctreePacketProcessor::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
+    _entityEditSender.initialize(_enableProcessOctreeThread);
+
+    _idleLoopStdev.reset();
+
+    // update before the first render
+    update(0);
+
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -2431,48 +2454,47 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
-    // Build a shared canvas / context for the Chromium processes
     _glWidget->makeCurrent();
+    glClearColor(0.2f, 0.2f, 0.2f, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    _glWidget->swapBuffers();
 
-#if !defined(DISABLE_QML)
-    // Chromium rendering uses some GL functions that prevent nSight from capturing
-    // frames, so we only create the shared context if nsight is NOT active.
-    if (!nsightActive()) {
-        _chromiumShareContext = new OffscreenGLCanvas();
-        _chromiumShareContext->setObjectName("ChromiumShareContext");
-        _chromiumShareContext->create(_glWidget->qglContext());
-        _chromiumShareContext->makeCurrent();
-        if (!_chromiumShareContext->makeCurrent()) {
-            qCWarning(interfaceapp, "Unable to make chromium shared context current");
-        }
-        qt_gl_set_global_share_context(_chromiumShareContext->getContext());
-    } else {
-        qCWarning(interfaceapp) << "nSIGHT detected, disabling chrome rendering";
+    // Build an offscreen GL context for the main thread.
+    _offscreenContext = new OffscreenGLCanvas();
+    _offscreenContext->setObjectName("MainThreadContext");
+    _offscreenContext->create(_glWidget->qglContext());
+    if (!_offscreenContext->makeCurrent()) {
+        qFatal("Unable to make offscreen context current");
     }
-#endif
+    _offscreenContext->doneCurrent();
+    _offscreenContext->setThreadContext();
 
-    // Build a shared canvas / context for the QML rendering
-    _glWidget->makeCurrent();
-    _qmlShareContext = new OffscreenGLCanvas();
-    _qmlShareContext->setObjectName("QmlShareContext");
-    _qmlShareContext->create(_glWidget->qglContext());
-    if (!_qmlShareContext->makeCurrent()) {
-        qCWarning(interfaceapp, "Unable to make QML shared context current");
+    // Move the GL widget context to the render event handler thread
+    _renderEventHandler = new RenderEventHandler(_glWidget->qglContext());
+    if (!_offscreenContext->makeCurrent()) {
+        qFatal("Unable to make offscreen context current");
     }
-    OffscreenQmlSurface::setSharedContext(_qmlShareContext->getContext());
-    _qmlShareContext->doneCurrent();
 
+    // Create the GPU backend
+
+    // Requires the window context, because that's what's used in the actual rendering
+    // and the GPU backend will make things like the VAO which cannot be shared across 
+    // contexts
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
     qApp->setProperty(hifi::properties::gl::MAKE_PROGRAM_CALLBACK,
         QVariant::fromValue((void*)(&gpu::gl::GLBackend::makeProgram)));
-    _gpuContext = std::make_shared<gpu::Context>();
-    // The gpu context can make child contexts for transfers, so
-    // we need to restore primary rendering context
     _glWidget->makeCurrent();
+    _gpuContext = std::make_shared<gpu::Context>();
 
-    initDisplay();
-    qCDebug(interfaceapp, "Initialized Display.");
+    // Restore the default main thread context
+    _offscreenContext->makeCurrent();
+
+    updateDisplayMode();
+}
+
+void Application::initializeRenderEngine() {
+    _offscreenContext->makeCurrent();
 
     // FIXME: on low end systems os the shaders take up to 1 minute to compile, so we pause the deadlock watchdog thread.
     DeadlockWatchdogThread::withPause([&] {
@@ -2489,66 +2511,44 @@ void Application::initializeGL() {
         // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
         DependencyManager::get<GeometryCache>()->initializeShapePipelines();
     });
-
-    _offscreenContext = new OffscreenGLCanvas();
-    _offscreenContext->setObjectName("MainThreadContext");
-    _offscreenContext->create(_glWidget->qglContext());
-    if (!_offscreenContext->makeCurrent()) {
-        qFatal("Unable to make offscreen context current");
-    }
-    _offscreenContext->doneCurrent();
-    _offscreenContext->setThreadContext();
-    _renderEventHandler = new RenderEventHandler(_glWidget->qglContext());
-
-    // The UI can't be created until the primary OpenGL
-    // context is created, because it needs to share
-    // texture resources
-    // Needs to happen AFTER the render engine initialization to access its configuration
-    if (!_offscreenContext->makeCurrent()) {
-        qFatal("Unable to make offscreen context current");
-    }
-
-    initializeUi();
-    qCDebug(interfaceapp, "Initialized Offscreen UI.");
-
-    if (!_offscreenContext->makeCurrent()) {
-        qFatal("Unable to make offscreen context current");
-    }
-    init();
-    qCDebug(interfaceapp, "init() complete.");
-
-    // create thread for parsing of octree data independent of the main network and rendering threads
-    _octreeProcessor.initialize(_enableProcessOctreeThread);
-    connect(&_octreeProcessor, &OctreePacketProcessor::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
-    _entityEditSender.initialize(_enableProcessOctreeThread);
-
-    _idleLoopStdev.reset();
-
-
-    // Restore the primary GL content for the main thread
-    if (!_offscreenContext->makeCurrent()) {
-        qFatal("Unable to make offscreen context current");
-    }
-
-    // update before the first render
-    update(0);
 }
 
 extern void setupPreferences();
 
 void Application::initializeUi() {
+    // Build a shared canvas / context for the Chromium processes
+#if !defined(DISABLE_QML)
+    // Chromium rendering uses some GL functions that prevent nSight from capturing
+    // frames, so we only create the shared context if nsight is NOT active.
+    if (!nsightActive()) {
+        _chromiumShareContext = new OffscreenGLCanvas();
+        _chromiumShareContext->setObjectName("ChromiumShareContext");
+        _chromiumShareContext->create(_offscreenContext->getContext());
+        if (!_chromiumShareContext->makeCurrent()) {
+            qCWarning(interfaceapp, "Unable to make chromium shared context current");
+        }
+        qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+        _chromiumShareContext->doneCurrent();
+        // Restore the GL widget context
+        _offscreenContext->makeCurrent();
+    } else {
+        qCWarning(interfaceapp) << "nSIGHT detected, disabling chrome rendering";
+    }
+#endif
+
+    // Build a shared canvas / context for the QML rendering
+    _qmlShareContext = new OffscreenGLCanvas();
+    _qmlShareContext->setObjectName("QmlShareContext");
+    _qmlShareContext->create(_offscreenContext->getContext());
+    if (!_qmlShareContext->makeCurrent()) {
+        qCWarning(interfaceapp, "Unable to make QML shared context current");
+    }
+    OffscreenQmlSurface::setSharedContext(_qmlShareContext->getContext());
+    _qmlShareContext->doneCurrent();
+    // Restore the GL widget context
+    _offscreenContext->makeCurrent();
     // Make sure all QML surfaces share the main thread GL context
     OffscreenQmlSurface::setSharedContext(_offscreenContext->getContext());
-    OffscreenQmlSurface::addWhitelistContextHandler(QUrl{ "OverlayWindowTest.qml" },
-        [](QQmlContext* context) {
-        qDebug() << "Whitelist OverlayWindow worked";
-        context->setContextProperty("OverlayWindowTestString", "TestWorked");
-    });
-    OffscreenQmlSurface::addWhitelistContextHandler(QUrl{ "hifi/audio/Audio.qml" },
-        [](QQmlContext* context) {
-        qDebug() << "QQQ" << __FUNCTION__ << "Whitelist Audio worked";
-    });
-
 
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
@@ -2564,6 +2564,7 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/common/EmulatedMarketplaceHeader.qml" },
         QUrl{ "hifi/commerce/common/FirstUseTutorial.qml" },
         QUrl{ "hifi/commerce/common/SortableListModel.qml" },
+        QUrl{ "hifi/commerce/common/sendAsset/SendAsset.qml" },
         QUrl{ "hifi/commerce/inspectionCertificate/InspectionCertificate.qml" },
         QUrl{ "hifi/commerce/purchases/PurchasedItem.qml" },
         QUrl{ "hifi/commerce/purchases/Purchases.qml" },
@@ -2576,7 +2577,6 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/wallet/SecurityImageChange.qml" },
         QUrl{ "hifi/commerce/wallet/SecurityImageModel.qml" },
         QUrl{ "hifi/commerce/wallet/SecurityImageSelection.qml" },
-        QUrl{ "hifi/commerce/wallet/sendMoney/SendMoney.qml" },
         QUrl{ "hifi/commerce/wallet/Wallet.qml" },
         QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
         QUrl{ "hifi/commerce/wallet/WalletSetup.qml" },
@@ -2654,6 +2654,10 @@ void Application::initializeUi() {
     auto offscreenSurfaceCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
     offscreenSurfaceCache->reserve(TabletScriptingInterface::QML, 1);
     offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
+
+    // Now that the menu is instantiated, ensure the display plugin menu is properly updated
+    updateDisplayMode();
+    flushMenuUpdates();
 }
 
 
@@ -3152,6 +3156,10 @@ void Application::loadServerlessDomain(QUrl domainURL) {
         tmpTree->reaverageOctreeElements();
         tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), 0, 0, 0);
     }
+
+    std::map<QString, QString> namedPaths = tmpTree->getNamedPaths();
+    nodeList->getDomainHandler().connectedToServerless(namedPaths);
+
 
     _fullSceneReceivedCounter++;
 }
@@ -4620,11 +4628,8 @@ QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
     return _entityClipboard->sendEntities(&_entityEditSender, getEntities()->getTree(), x, y, z);
 }
 
-void Application::initDisplay() {
-}
-
 void Application::init() {
-
+    _offscreenContext->makeCurrent();
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
     if (!DISABLE_DEFERRED) {
@@ -4830,7 +4835,7 @@ void Application::updateThreads(float deltaTime) {
 
 void Application::toggleOverlays() {
     auto menu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::Overlays, menu->isOptionChecked(MenuOption::Overlays));
+    menu->setIsOptionChecked(MenuOption::Overlays, !menu->isOptionChecked(MenuOption::Overlays));
 }
 
 void Application::setOverlaysVisible(bool visible) {
@@ -5269,12 +5274,12 @@ void Application::update(float deltaTime) {
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
 
     {
-        PROFILE_RANGE(simulation_physics, "Physics");
-        PerformanceTimer perfTimer("physics");
+        PROFILE_RANGE(simulation_physics, "Simulation");
+        PerformanceTimer perfTimer("simulation");
         if (_physicsEnabled) {
             {
-                PROFILE_RANGE(simulation_physics, "PreStep");
-                PerformanceTimer perfTimer("preStep)");
+                PROFILE_RANGE(simulation_physics, "PrePhysics");
+                PerformanceTimer perfTimer("prePhysics)");
                 {
                     const VectorOfMotionStates& motionStates = _entitySimulation->getObjectsToRemoveFromPhysics();
                     _physicsEngine->removeObjects(motionStates);
@@ -5308,59 +5313,63 @@ void Application::update(float deltaTime) {
                 });
             }
             {
-                PROFILE_RANGE(simulation_physics, "Step");
-                PerformanceTimer perfTimer("step");
+                PROFILE_RANGE(simulation_physics, "StepPhysics");
+                PerformanceTimer perfTimer("stepPhysics");
                 getEntities()->getTree()->withWriteLock([&] {
                     _physicsEngine->stepSimulation();
                 });
             }
             {
-                PROFILE_RANGE(simulation_physics, "PostStep");
-                PerformanceTimer perfTimer("postStep");
                 if (_physicsEngine->hasOutgoingChanges()) {
-                    // grab the collision events BEFORE handleOutgoingChanges() because at this point
-                    // we have a better idea of which objects we own or should own.
-                    auto& collisionEvents = _physicsEngine->getCollisionEvents();
+                    {
+                        PROFILE_RANGE(simulation_physics, "PostPhysics");
+                        PerformanceTimer perfTimer("postPhysics");
+                        // grab the collision events BEFORE handleChangedMotionStates() because at this point
+                        // we have a better idea of which objects we own or should own.
+                        auto& collisionEvents = _physicsEngine->getCollisionEvents();
 
-                    getEntities()->getTree()->withWriteLock([&] {
-                        PROFILE_RANGE(simulation_physics, "HandleChanges");
-                        PerformanceTimer perfTimer("handleChanges");
+                        getEntities()->getTree()->withWriteLock([&] {
+                            PROFILE_RANGE(simulation_physics, "HandleChanges");
+                            PerformanceTimer perfTimer("handleChanges");
 
-                        const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
-                        _entitySimulation->handleChangedMotionStates(outgoingChanges);
-                        avatarManager->handleChangedMotionStates(outgoingChanges);
+                            const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
+                            _entitySimulation->handleChangedMotionStates(outgoingChanges);
+                            avatarManager->handleChangedMotionStates(outgoingChanges);
 
-                        const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
-                        _entitySimulation->handleDeactivatedMotionStates(deactivations);
-                    });
+                            const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
+                            _entitySimulation->handleDeactivatedMotionStates(deactivations);
+                        });
 
-                    if (!_aboutToQuit) {
-                        // handleCollisionEvents() AFTER handleOutgoingChanges()
-                        {
-                            PROFILE_RANGE(simulation_physics, "CollisionEvents");
-                            avatarManager->handleCollisionEvents(collisionEvents);
-                            // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
-                            // deadlock.)
-                            _entitySimulation->handleCollisionEvents(collisionEvents);
+                        if (!_aboutToQuit) {
+                            // handleCollisionEvents() AFTER handleChangedMotionStates()
+                            {
+                                PROFILE_RANGE(simulation_physics, "CollisionEvents");
+                                avatarManager->handleCollisionEvents(collisionEvents);
+                                // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
+                                // deadlock.)
+                                _entitySimulation->handleCollisionEvents(collisionEvents);
+                            }
                         }
 
+                        {
+                            PROFILE_RANGE(simulation_physics, "MyAvatar");
+                            myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
+                        }
+
+                        if (PerformanceTimer::isActive() &&
+                                Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
+                                Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsTiming)) {
+                            _physicsEngine->harvestPerformanceStats();
+                        }
+                        // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
+                        _physicsEngine->dumpStatsIfNecessary();
+                    }
+
+                    if (!_aboutToQuit) {
                         // NOTE: the getEntities()->update() call below will wait for lock
-                        // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
+                        // and will provide non-physical entity motion
                         getEntities()->update(true); // update the models...
                     }
-
-                    {
-                        PROFILE_RANGE(simulation_physics, "MyAvatar");
-                        myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
-                    }
-
-                    if (PerformanceTimer::isActive() &&
-                            Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
-                            Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming)) {
-                        _physicsEngine->harvestPerformanceStats();
-                    }
-                    // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
-                    _physicsEngine->dumpStatsIfNecessary();
                 }
             }
         } else {
@@ -5916,6 +5925,9 @@ void Application::nodeActivated(SharedNodePointer node) {
         }
         getMyAvatar()->markIdentityDataChanged();
         getMyAvatar()->resetLastSent();
+
+        // transmit a "sendAll" packet to the AvatarMixer we just connected to.
+        getMyAvatar()->sendAvatarDataPacket(true);
     }
 }
 
@@ -6021,9 +6033,7 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
         bool result = true;
         foreach (EntityItemPointer entity, entities) {
             if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
-                static QString repeatedMessage =
-                    LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
-                qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
+                HIFI_FCDEBUG(interfaceapp(), "Physics disabled until entity loads: " << entity->getID() << entity->getName());
                 // don't break here because we want all the relevant entities to start their downloads
                 result = false;
             }
@@ -7513,21 +7523,34 @@ void Application::updateDisplayMode() {
         qFatal("Attempted to switch display plugins from a non-main thread");
     }
 
-    auto menu = Menu::getInstance();
     auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
 
+    // Once time initialization code 
     static std::once_flag once;
     std::call_once(once, [&] {
-        bool first = true;
-
-        // first sort the plugins into groupings: standard, advanced, developer
-        DisplayPluginList standard;
-        DisplayPluginList advanced;
-        DisplayPluginList developer;
         foreach(auto displayPlugin, displayPlugins) {
             displayPlugin->setContext(_gpuContext);
-            auto grouping = displayPlugin->getGrouping();
-            switch (grouping) {
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged,
+                [this](const QSize& size) { resizeGL(); });
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::resetSensorsRequested, this, &Application::requestReset);
+        }
+    });
+
+    // Once time initialization code that depends on the UI being available
+    auto menu = Menu::getInstance();
+    if (menu) {
+        static std::once_flag onceUi;
+        std::call_once(onceUi, [&] {
+            bool first = true;
+
+            // first sort the plugins into groupings: standard, advanced, developer
+            DisplayPluginList standard;
+            DisplayPluginList advanced;
+            DisplayPluginList developer;
+            foreach(auto displayPlugin, displayPlugins) {
+                displayPlugin->setContext(_gpuContext);
+                auto grouping = displayPlugin->getGrouping();
+                switch (grouping) {
                 case Plugin::ADVANCED:
                     advanced.push_back(displayPlugin);
                     break;
@@ -7537,42 +7560,40 @@ void Application::updateDisplayMode() {
                 default:
                     standard.push_back(displayPlugin);
                     break;
+                }
             }
-        }
 
-        // concatenate the groupings into a single list in the order: standard, advanced, developer
-        standard.insert(std::end(standard), std::begin(advanced), std::end(advanced));
-        standard.insert(std::end(standard), std::begin(developer), std::end(developer));
+            // concatenate the groupings into a single list in the order: standard, advanced, developer
+            standard.insert(std::end(standard), std::begin(advanced), std::end(advanced));
+            standard.insert(std::end(standard), std::begin(developer), std::end(developer));
 
-        foreach(auto displayPlugin, standard) {
-            addDisplayPluginToMenu(displayPlugin, first);
-            auto displayPluginName = displayPlugin->getName();
-            QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
-                resizeGL();
-            });
-            QObject::connect(displayPlugin.get(), &DisplayPlugin::resetSensorsRequested, this, &Application::requestReset);
-            first = false;
-        }
+            foreach(auto displayPlugin, standard) {
+                addDisplayPluginToMenu(displayPlugin, first);
+                first = false;
+            }
 
-        // after all plugins have been added to the menu, add a separator to the menu
-        auto menu = Menu::getInstance();
-        auto parent = menu->getMenu(MenuOption::OutputMenu);
-        parent->addSeparator();
-    });
+            // after all plugins have been added to the menu, add a separator to the menu
+            auto parent = menu->getMenu(MenuOption::OutputMenu);
+            parent->addSeparator();
+        });
+
+    }
 
 
     // Default to the first item on the list, in case none of the menu items match
     DisplayPluginPointer newDisplayPlugin = displayPlugins.at(0);
-    foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
-        QString name = displayPlugin->getName();
-        QAction* action = menu->getActionForOption(name);
-        // Menu might have been removed if the display plugin lost
-        if (!action) {
-            continue;
-        }
-        if (action->isChecked()) {
-            newDisplayPlugin = displayPlugin;
-            break;
+    if (menu) {
+        foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
+            QString name = displayPlugin->getName();
+            QAction* action = menu->getActionForOption(name);
+            // Menu might have been removed if the display plugin lost
+            if (!action) {
+                continue;
+            }
+            if (action->isChecked()) {
+                newDisplayPlugin = displayPlugin;
+                break;
+            }
         }
     }
 
@@ -7580,8 +7601,13 @@ void Application::updateDisplayMode() {
         return;
     }
 
+    setDisplayPlugin(newDisplayPlugin);
+}
+
+void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto desktop = offscreenUi->getDesktop();
+    auto menu = Menu::getInstance();
 
     // Make the switch atomic from the perspective of other threads
     {
@@ -7602,6 +7628,8 @@ void Application::updateDisplayMode() {
         bool active = newDisplayPlugin->activate();
 
         if (!active) {
+            auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+
             // If the new plugin fails to activate, fallback to last display
             qWarning() << "Failed to activate display: " << newDisplayPlugin->getName();
             newDisplayPlugin = oldDisplayPlugin;
@@ -7622,13 +7650,6 @@ void Application::updateDisplayMode() {
             if (!active) {
                 qFatal("Failed to activate fallback plugin");
             }
-
-            // We've changed the selection - it should be reflected in the menu
-            QAction* action = menu->getActionForOption(newDisplayPlugin->getName());
-            if (!action) {
-                qFatal("Failed to find activated plugin");
-            }
-            action->setChecked(true);
         }
 
         offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
@@ -7655,14 +7676,21 @@ void Application::updateDisplayMode() {
     getMyAvatar()->reset(false);
 
     // switch to first person if entering hmd and setting is checked
-    if (isHmd && menu->isOptionChecked(MenuOption::FirstPersonHMD)) {
-        menu->setIsOptionChecked(MenuOption::FirstPerson, true);
-        cameraMenuChanged();
-    }
+    if (menu) {
+        QAction* action = menu->getActionForOption(newDisplayPlugin->getName());
+        if (action) {
+            action->setChecked(true);
+        }
 
-    // Remove the mirror camera option from menu if in HMD mode
-    auto mirrorAction = menu->getActionForOption(MenuOption::FullscreenMirror);
-    mirrorAction->setVisible(!isHmd);
+        if (isHmd && menu->isOptionChecked(MenuOption::FirstPersonHMD)) {
+            menu->setIsOptionChecked(MenuOption::FirstPerson, true);
+            cameraMenuChanged();
+        }
+
+        // Remove the mirror camera option from menu if in HMD mode
+        auto mirrorAction = menu->getActionForOption(MenuOption::FullscreenMirror);
+        mirrorAction->setVisible(!isHmd);
+    }
 
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
@@ -7738,15 +7766,18 @@ void Application::unresponsiveApplication() {
 }
 
 void Application::setActiveDisplayPlugin(const QString& pluginName) {
-    auto menu = Menu::getInstance();
-    foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
+    DisplayPluginPointer newDisplayPlugin;
+    for (DisplayPluginPointer displayPlugin : PluginManager::getInstance()->getDisplayPlugins()) {
         QString name = displayPlugin->getName();
-        QAction* action = menu->getActionForOption(name);
         if (pluginName == name) {
-            action->setChecked(true);
+            newDisplayPlugin = displayPlugin;
+            break;
         }
     }
-    updateDisplayMode();
+
+    if (newDisplayPlugin) {
+        setDisplayPlugin(newDisplayPlugin);
+    }
 }
 
 void Application::handleLocalServerConnection() const {

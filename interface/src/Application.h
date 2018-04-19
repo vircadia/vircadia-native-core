@@ -145,6 +145,7 @@ public:
     Q_INVOKABLE QString getUserAgent();
 
     void initializeGL();
+    void initializeRenderEngine();
     void initializeUi();
 
     void updateCamera(RenderArgs& renderArgs, float deltaTime);
@@ -444,6 +445,7 @@ private slots:
     static void packetSent(quint64 length);
     static void addingEntityWithCertificate(const QString& certificateID, const QString& placeName);
     void updateDisplayMode();
+    void setDisplayPlugin(DisplayPluginPointer newPlugin);
     void domainConnectionRefused(const QString& reasonMessage, int reason, const QString& extraInfo);
 
     void addAssetToWorldCheckModelSize();
@@ -456,7 +458,6 @@ private slots:
     void switchDisplayMode();
 
 private:
-    static void initDisplay();
     void init();
     bool handleKeyEventForFocusedEntityOrOverlay(QEvent* event);
     bool handleFileOpenEvent(QFileOpenEvent* event);

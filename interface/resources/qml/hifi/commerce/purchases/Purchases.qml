@@ -19,6 +19,7 @@ import "../../../controls" as HifiControls
 import "../wallet" as HifiWallet
 import "../common" as HifiCommerceCommon
 import "../inspectionCertificate" as HifiInspectionCertificate
+import "../common/sendAsset" as HifiSendAsset
 
 // references XXX from root context
 
@@ -31,7 +32,6 @@ Rectangle {
     property bool securityImageResultReceived: false;
     property bool purchasesReceived: false;
     property bool punctuationMode: false;
-    property bool pendingInventoryReply: true;
     property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
     property int pendingItemCount: 0;
@@ -114,12 +114,6 @@ Rectangle {
 
                 purchasesContentsList.positionViewAtIndex(currentIndex, ListView.Beginning);
             }
-
-            if (root.pendingInventoryReply && root.pendingItemCount > 0) {
-                inventoryTimer.start();
-            }
-
-            root.pendingInventoryReply = false;
         }
 
         onAvailableUpdatesResult: {
@@ -142,7 +136,7 @@ Rectangle {
 
     HifiInspectionCertificate.InspectionCertificate {
         id: inspectionCertificate;
-        z: 999;
+        z: 998;
         visible: false;
         anchors.fill: parent;
 
@@ -155,6 +149,7 @@ Rectangle {
 
     HifiCommerceCommon.CommerceLightbox {
         id: lightboxPopup;
+        z: 999;
         visible: false;
         anchors.fill: parent;
 
@@ -169,12 +164,33 @@ Rectangle {
         }
     }
 
+    HifiSendAsset.SendAsset {
+        id: sendAsset;
+        z: 998;
+        visible: root.activeView === "giftAsset";
+        anchors.fill: parent;
+        parentAppTitleBarHeight: 70;
+        parentAppNavBarHeight: 0;
+
+        Connections {
+            onSendSignalToParent: {
+                if (msg.method === 'sendAssetHome_back' || msg.method === 'closeSendAsset') {
+                    root.activeView = "purchasesMain";
+                    Commerce.inventory();
+                    Commerce.getAvailableUpdates();
+                } else {
+                    sendToScript(msg);
+                }
+            }
+        }
+    }
+
     //
     // TITLE BAR START
     //
     HifiCommerceCommon.EmulatedMarketplaceHeader {
         id: titleBarContainer;
-        z: 998;
+        z: 997;
         visible: !needsLogIn.visible;
         // Size
         width: parent.width;
@@ -191,9 +207,14 @@ Rectangle {
                     lightboxPopup.bodyImageSource = msg.securityImageSource;
                     lightboxPopup.bodyText = lightboxPopup.securityPicBodyText;
                     lightboxPopup.button1text = "CLOSE";
-                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button1method = function() {
+                        lightboxPopup.visible = false;
+                    }
                     lightboxPopup.button2text = "GO TO WALLET";
-                    lightboxPopup.button2method = "sendToParent({method: 'purchases_openWallet'});";
+                    lightboxPopup.button2method = function() {
+                        sendToScript({method: 'purchases_openWallet'});
+                        lightboxPopup.visible = false;
+                    };
                     lightboxPopup.visible = true;
                 } else {
                     sendToScript(msg);
@@ -308,7 +329,7 @@ Rectangle {
         // FILTER BAR START
         //
         Item {
-            z: 997;
+            z: 996;
             id: filterBarContainer;
             // Size
             height: 40;
@@ -316,7 +337,7 @@ Rectangle {
             anchors.left: parent.left;
             anchors.leftMargin: 8;
             anchors.right: parent.right;
-            anchors.rightMargin: 16;
+            anchors.rightMargin: 8;
             anchors.top: parent.top;
             anchors.topMargin: 4;
 
@@ -341,6 +362,7 @@ Rectangle {
                 colorScheme: hifi.colorSchemes.faintGray;
                 anchors.top: parent.top;
                 anchors.right: parent.right;
+                anchors.rightMargin: 8;
                 anchors.left: myText.right;
                 anchors.leftMargin: 16;
                 textFieldHeight: 39;
@@ -396,7 +418,7 @@ Rectangle {
         //
 
         HifiControlsUit.Separator {
-            z: 996;
+            z: 995;
             id: separator;
             colorScheme: 2;
             anchors.left: parent.left;
@@ -426,7 +448,6 @@ Rectangle {
             snapMode: ListView.SnapToItem;
             // Anchors
             anchors.top: separator.bottom;
-            anchors.topMargin: 12;
             anchors.left: parent.left;
             anchors.bottom: updatesAvailableBanner.visible ? updatesAvailableBanner.top : parent.bottom;
             width: parent.width;
@@ -437,13 +458,13 @@ Rectangle {
                 itemHref: download_url;
                 certificateId: certificate_id;
                 purchaseStatus: status;
-                purchaseStatusChanged: statusChanged;
                 itemEdition: model.edition_number;
                 numberSold: model.number_sold;
                 limitedRun: model.limited_run;
                 displayedItemCount: model.displayedItemCount;
-                permissionExplanationCardVisible: model.permissionExplanationCardVisible;
+                cardBackVisible: model.cardBackVisible;
                 isInstalled: model.isInstalled;
+                wornEntityID: model.wornEntityID;
                 upgradeUrl: model.upgrade_url;
                 upgradeTitle: model.upgrade_title;
                 itemType: model.itemType;
@@ -457,6 +478,11 @@ Rectangle {
                             sendToScript({method: 'purchases_itemInfoClicked', itemId: itemId});
                         } else if (msg.method === "purchases_rezClicked") {
                             sendToScript({method: 'purchases_rezClicked', itemHref: itemHref, itemType: itemType});
+
+                            // Race condition - Wearable might not be rezzed by the time the "currently worn wearbles" model is created
+                            if (itemType === "wearable") {
+                                sendToScript({ method: 'purchases_updateWearables' });
+                            }
                         } else if (msg.method === 'purchases_itemCertificateClicked') {
                             inspectionCertificate.visible = true;
                             inspectionCertificate.isLightbox = true;
@@ -466,14 +492,18 @@ Rectangle {
                             lightboxPopup.bodyText = 'Your item is marked "invalidated" because this item has been suspended ' +
                             "from the Marketplace due to a claim against its author.";
                             lightboxPopup.button1text = "CLOSE";
-                            lightboxPopup.button1method = "root.visible = false;"
+                            lightboxPopup.button1method = function() {
+                                lightboxPopup.visible = false;
+                            }
                             lightboxPopup.visible = true;
                         } else if (msg.method === "showPendingLightbox") {
                             lightboxPopup.titleText = "Item Pending";
                             lightboxPopup.bodyText = 'Your item is marked "pending" while your purchase is being confirmed. ' +
                             "Usually, purchases take about 90 seconds to confirm.";
                             lightboxPopup.button1text = "CLOSE";
-                            lightboxPopup.button1method = "root.visible = false;"
+                            lightboxPopup.button1method = function() {
+                                lightboxPopup.visible = false;
+                            }
                             lightboxPopup.visible = true;
                         } else if (msg.method === "showReplaceContentLightbox") {
                             lightboxPopup.titleText = "Replace Content";
@@ -483,17 +513,27 @@ Rectangle {
                                 "<a href='https://docs.highfidelity.com/create-and-explore/start-working-in-your-sandbox/restoring-sandbox-content'>" +
                                 "click here to open info on your desktop browser.";
                             lightboxPopup.button1text = "CANCEL";
-                            lightboxPopup.button1method = "root.visible = false;"
+                            lightboxPopup.button1method = function() {
+                                lightboxPopup.visible = false;
+                            }
                             lightboxPopup.button2text = "CONFIRM";
-                            lightboxPopup.button2method = "Commerce.replaceContentSet('" + msg.itemHref + "', '" + msg.certID + "'); root.visible = false;";
+                            lightboxPopup.button2method = function() {
+                                Commerce.replaceContentSet(msg.itemHref, msg.certID);
+                                lightboxPopup.visible = false;
+                            };
                             lightboxPopup.visible = true;
                         } else if (msg.method === "showChangeAvatarLightbox") {
                             lightboxPopup.titleText = "Change Avatar";
                             lightboxPopup.bodyText = "This will change your current avatar to " + msg.itemName + " while retaining your wearables.";
                             lightboxPopup.button1text = "CANCEL";
-                            lightboxPopup.button1method = "root.visible = false;"
+                            lightboxPopup.button1method = function() {
+                                lightboxPopup.visible = false;
+                            }
                             lightboxPopup.button2text = "CONFIRM";
-                            lightboxPopup.button2method = "MyAvatar.useFullAvatarURL('" + msg.itemHref + "'); root.visible = false;";
+                            lightboxPopup.button2method = function() {
+                                MyAvatar.useFullAvatarURL(msg.itemHref);
+                                lightboxPopup.visible = false;
+                            };
                             lightboxPopup.visible = true;
                         } else if (msg.method === "showPermissionsExplanation") {
                             if (msg.itemType === "entity") {
@@ -501,27 +541,86 @@ Rectangle {
                                 lightboxPopup.bodyText = "You don't have permission to rez certified items in this domain.<br><br>" +
                                     "Use the <b>GOTO app</b> to visit another domain or <b>go to your own sandbox.</b>";
                                 lightboxPopup.button2text = "OPEN GOTO";
-                                lightboxPopup.button2method = "sendToParent({method: 'purchases_openGoTo'});";
+                                lightboxPopup.button2method = function() {
+                                    sendToScript({method: 'purchases_openGoTo'});
+                                    lightboxPopup.visible = false;
+                                };
                             } else if (msg.itemType === "contentSet") {
                                 lightboxPopup.titleText = "Replace Content Permission";
                                 lightboxPopup.bodyText = "You do not have the permission 'Replace Content' in this <b>domain's server settings</b>. The domain owner " +
                                     "must enable it for you before you can replace content sets in this domain.";
                             }
                             lightboxPopup.button1text = "CLOSE";
-                            lightboxPopup.button1method = "root.visible = false;"
+                            lightboxPopup.button1method = function() {
+                                lightboxPopup.visible = false;
+                            }
                             lightboxPopup.visible = true;
                         } else if (msg.method === "setFilterText") {
                             filterBar.text = msg.filterText;
-                        } else if (msg.method === "openPermissionExplanationCard") {
+                        } else if (msg.method === "flipCard") {
                             for (var i = 0; i < filteredPurchasesModel.count; i++) {
                                 if (i !== index || msg.closeAll) {
-                                    filteredPurchasesModel.setProperty(i, "permissionExplanationCardVisible", false);
+                                    filteredPurchasesModel.setProperty(i, "cardBackVisible", false);
                                 } else {
-                                    filteredPurchasesModel.setProperty(i, "permissionExplanationCardVisible", true);
+                                    filteredPurchasesModel.setProperty(i, "cardBackVisible", true);
                                 }
                             }
                         } else if (msg.method === "updateItemClicked") {
                             sendToScript(msg);
+                        } else if (msg.method === "giftAsset") {
+                            sendAsset.assetName = msg.itemName;
+                            sendAsset.assetCertID = msg.certId;
+                            sendAsset.sendingPubliclyEffectImage = msg.effectImage;
+
+                            if (msg.itemType === "avatar" && MyAvatar.skeletonModelURL === msg.itemHref) {
+                                lightboxPopup.titleText = "Change Avatar to Default";
+                                lightboxPopup.bodyText = "You are currently wearing the avatar that you are trying to gift.<br><br>" +
+                                "If you proceed, your avatar will be changed to the default avatar.";
+                                lightboxPopup.button1text = "CANCEL";
+                                lightboxPopup.button1method = function() {
+                                    lightboxPopup.visible = false;
+                                }
+                                lightboxPopup.button2text = "CONFIRM";
+                                lightboxPopup.button2method = function() {
+                                    MyAvatar.skeletonModelURL = '';
+                                    root.activeView = "giftAsset";
+                                    lightboxPopup.visible = false;
+                                };
+                                lightboxPopup.visible = true;
+                            } else if (msg.itemType === "app" && msg.isInstalled) {
+                                lightboxPopup.titleText = "Uninstall App";
+                                lightboxPopup.bodyText = "You are currently using the app that you are trying to gift.<br><br>" +
+                                "If you proceed, the app will be uninstalled.";
+                                lightboxPopup.button1text = "CANCEL";
+                                lightboxPopup.button1method = function() {
+                                    lightboxPopup.visible = false;
+                                }
+                                lightboxPopup.button2text = "CONFIRM";
+                                lightboxPopup.button2method = function() {
+                                    Commerce.uninstallApp(msg.itemHref);
+                                    root.activeView = "giftAsset";
+                                    lightboxPopup.visible = false;
+                                };
+                                lightboxPopup.visible = true;
+                            } else if (msg.itemType === "wearable" && msg.wornEntityID !== '') {
+                                lightboxPopup.titleText = "Remove Wearable";
+                                lightboxPopup.bodyText = "You are currently wearing the wearable that you are trying to send.<br><br>" +
+                                "If you proceed, this wearable will be removed.";
+                                lightboxPopup.button1text = "CANCEL";
+                                lightboxPopup.button1method = function() {
+                                    lightboxPopup.visible = false;
+                                }
+                                lightboxPopup.button2text = "CONFIRM";
+                                lightboxPopup.button2method = function() {
+                                    Entities.deleteEntity(msg.wornEntityID);
+                                    filteredPurchasesModel.setProperty(index, 'wornEntityID', '');
+                                    root.activeView = "giftAsset";
+                                    lightboxPopup.visible = false;
+                                };
+                                lightboxPopup.visible = true;
+                            } else {
+                                root.activeView = "giftAsset";
+                            }
                         }
                     }
                 }
@@ -693,32 +792,13 @@ Rectangle {
 
     HifiControlsUit.Keyboard {
         id: keyboard;
+        z: 999;
         raised: HMD.mounted && parent.keyboardRaised;
         numeric: parent.punctuationMode;
         anchors {
             bottom: parent.bottom;
             left: parent.left;
             right: parent.right;
-        }
-    }
-
-    onVisibleChanged: {
-        if (!visible) {
-            inventoryTimer.stop();
-        }
-    }
-
-    Timer {
-        id: inventoryTimer;
-        interval: 4000; // Change this back to 90000 after demo
-        //interval: 90000;
-        onTriggered: {
-            if (root.activeView === "purchasesMain" && !root.pendingInventoryReply) {
-                console.log("Refreshing Purchases...");
-                root.pendingInventoryReply = true;
-                Commerce.inventory();
-                Commerce.getAvailableUpdates();
-            }
         }
     }
 
@@ -833,10 +913,12 @@ Rectangle {
                     continue;
                 }
                 filteredPurchasesModel.append(tempPurchasesModel.get(i));
-                filteredPurchasesModel.setProperty(i, 'permissionExplanationCardVisible', false);
+                filteredPurchasesModel.setProperty(i, 'cardBackVisible', false);
                 filteredPurchasesModel.setProperty(i, 'isInstalled', ((root.installedApps).indexOf(currentId) > -1));
+                filteredPurchasesModel.setProperty(i, 'wornEntityID', '');
             }
-
+            
+            sendToScript({ method: 'purchases_updateWearables' });
             populateDisplayedItemCounts();
             sortByDate();
         }
@@ -859,6 +941,19 @@ Rectangle {
                     purchasesModel.setProperty(i, "statusChanged", true);
                 } else {
                     purchasesModel.setProperty(i, "statusChanged", false);
+                }
+            }
+        }
+    }
+    
+    function updateCurrentlyWornWearables(wearables) {
+        for (var i = 0; i < filteredPurchasesModel.count; i++) {
+            for (var j = 0; j < wearables.length; j++) {
+                if (filteredPurchasesModel.get(i).itemType === "wearable" &&
+                    wearables[j].entityCertID === filteredPurchasesModel.get(i).certificate_id &&
+                    wearables[j].entityEdition.toString() === filteredPurchasesModel.get(i).edition_number) {
+                    filteredPurchasesModel.setProperty(i, 'wornEntityID', wearables[j].entityID);
+                    break;
                 }
             }
         }
@@ -889,6 +984,16 @@ Rectangle {
             break;
             case 'purchases_showMyItems':
                 root.isShowingMyItems = true;
+            break;
+            case 'updateConnections':
+                sendAsset.updateConnections(message.connections);
+            break;
+            case 'selectRecipient':
+            case 'updateSelectedRecipientUsername':
+                sendAsset.fromScript(message);
+            break;
+            case 'updateWearables':
+                updateCurrentlyWornWearables(message.wornWearables);
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));

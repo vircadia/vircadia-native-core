@@ -1,5 +1,5 @@
 //
-// ImageProvider.h
+// SecurityImageProvider.h
 //
 // Created by David Kelly on 2017/08/23
 // Copyright 2017 High Fidelity, Inc.
@@ -9,26 +9,25 @@
 //
 
 #pragma once
-#ifndef hifi_ImageProvider_h
-#define hifi_ImageProvider_h
+#ifndef hifi_SecurityImageProvider_h
+#define hifi_SecurityImageProvider_h
 
 #include <QQuickImageProvider>
 #include <QReadWriteLock>
 
-class ImageProvider: public QQuickImageProvider {
+class SecurityImageProvider: public QQuickImageProvider {
 public:
     static const QString PROVIDER_NAME;
 
-    ImageProvider() : QQuickImageProvider(QQuickImageProvider::Pixmap) {}
-    virtual ~ImageProvider();
+    SecurityImageProvider() : QQuickImageProvider(QQuickImageProvider::Pixmap) {}
+    virtual ~SecurityImageProvider();
     QPixmap requestPixmap(const QString& id, QSize* size, const QSize& requestedSize) override;
 
     void setSecurityImage(const QPixmap* pixmap);
 protected:
-    static QReadWriteLock _rwLock;
-    static QPixmap* _securityImage;
-
+    QReadWriteLock _rwLock;
+    QPixmap _securityImage;
 };
 
-#endif //hifi_ImageProvider_h
+#endif //hifi_SecurityImageProvider_h
 
