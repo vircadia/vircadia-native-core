@@ -26,16 +26,18 @@
                 android:id="@android:id/tabs"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:visibility="gone"
                 android:background="@color/backgroundDark"/>
 
             <EditText
                 android:id="@+id/searchView"
                 android:layout_width="match_parent"
-                android:layout_height="42dp"
+                android:layout_height="50dp"
                 android:background="@drawable/search_bg"
                 android:gravity="center_vertical|end"
                 android:paddingStart="32dp"
                 android:paddingEnd="32dp"
+                android:hint="@string/search_hint"
                 android:inputType="textUri"
                 android:imeOptions="actionGo"
                 />
@@ -53,7 +55,6 @@
                         android:id="@+id/rvDomains"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent" />
-
                 </LinearLayout>
 
                 <LinearLayout
@@ -61,7 +62,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="vertical">
-
                 </LinearLayout>
 
                 <LinearLayout
@@ -69,7 +69,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="vertical">
-
                 </LinearLayout>
             </FrameLayout>
         </LinearLayout>
