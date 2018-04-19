@@ -64,18 +64,6 @@ public:
     void setInputVolume(float volume);
 
     /**jsdoc
-    * The Audio API features tools to help control audio contexts and settings.
-    *
-    * @namespace Audio
-    * @property {bool} muted - To Be Completed
-    * @property {bool} noiseReduction - To Be Completed
-    * @property {bool} inputVolume - To Be Completed
-    * @property {bool} inputLevel - To Be Completed
-    * @property {QString} context - To Be Completed
-    * @property {} devices - To Be Completed
-    */
-
-    /**jsdoc
     * To Be Completed
     * @function Audio.setInputDevice
     * @param {} device
@@ -104,18 +92,61 @@ public:
     /**jsdoc
     * To Be Completed
     * @function Audio.setReverbOptions
-    * @param {} options
+    * @param {string} filename
     */
     Q_INVOKABLE bool startRecording(const QString& filename);
+    /**jsdoc
+    * To Be Completed
+    * @function Audio.stopRecording
+    */
     Q_INVOKABLE void stopRecording();
+    /**jsdoc
+    * To Be Completed
+    * @function Audio.getRecording
+    */
     Q_INVOKABLE bool getRecording();
 
 signals:
+    /**jsdoc
+    * To Be Completed
+    * @function Audio.nop
+    * @returns {signal}
+    */
     void nop();
+    /**jsdoc
+    * To Be Completed
+    * @function Audio.nop
+    * @param {bool} isMuted
+    * @returns {signal}
+    */
     void mutedChanged(bool isMuted);
+    /**jsdoc
+    * To Be Completed
+    * @function Audio.noiseReductionChanged
+    * @param {bool} isEnabled
+    * @returns {signal}
+    */
     void noiseReductionChanged(bool isEnabled);
+    /**jsdoc
+    * To Be Completed
+    * @function Audio.inputVolumeChanged
+    * @param {float} volume
+    * @returns {signal}
+    */
     void inputVolumeChanged(float volume);
+    /**jsdoc
+    * To Be Completed
+    * @function Audio.inputLevelChanged
+    * @param {float} level
+    * @returns {signal}
+    */
     void inputLevelChanged(float level);
+    /**jsdoc
+    * To Be Completed
+    * @function Audio.contextChanged
+    * @param {string} context
+    * @returns {signal}
+    */
     void contextChanged(const QString& context);
 
 public slots:
