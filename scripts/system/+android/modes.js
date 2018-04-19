@@ -39,7 +39,7 @@ function init() {
     radar.setUniqueColor(uniqueColor);
     radar.init();
     
-        barQml = new QmlFragment({
+    barQml = new QmlFragment({
         qml: "hifi/modesbar.qml"
     });
     modeButton = barQml.addButton({

@@ -248,12 +248,12 @@ function handleLogin() {
 
 function onUsernameChanged(username) {
     if (Account.isLoggedIn()) {
-        MyAvatar.displayName=username;
+        MyAvatar.displayName = username;
     }
 }
 
 function handleLogout() {
-    MyAvatar.displayName="";
+    MyAvatar.displayName = "";
     if (loginBtn) {
         loginBtn.editProperties({text: "LOG IN"});
     }

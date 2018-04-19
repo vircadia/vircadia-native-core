@@ -38,11 +38,11 @@ function init() {
 }
 
 function onBackPressed() {
-    App.openAndroidActivity("Goto");
+    App.openAndroidActivity("Home");
 }
 
 
-Script.scriptEnding.connect(function () {
+Script.scriptEnding.connect(function() {
     if(backButton) {
         backButton.clicked.disconnect(onBackPressed);
     }

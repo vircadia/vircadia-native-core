@@ -59,7 +59,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         mNavigationView = (NavigationView) findViewById(R.id.nav_view);
         mNavigationView.setNavigationItemSelectedListener(this);
 
-        TabHost tabs=(TabHost)findViewById(R.id.tabhost);
+        TabHost tabs = (TabHost)findViewById(R.id.tabhost);
         tabs.setup();
 
         TabHost.TabSpec spec=tabs.newTabSpec("featured");
@@ -67,12 +67,12 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         spec.setIndicator(getString(R.string.featured));
         tabs.addTab(spec);
 
-        spec=tabs.newTabSpec("popular");
+        spec = tabs.newTabSpec("popular");
         spec.setContent(R.id.popular);
         spec.setIndicator(getString(R.string.popular));
         tabs.addTab(spec);
 
-        spec=tabs.newTabSpec("bookmarks");
+        spec = tabs.newTabSpec("bookmarks");
         spec.setContent(R.id.bookmarks);
         spec.setIndicator(getString(R.string.bookmarks));
         tabs.addTab(spec);
@@ -80,7 +80,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         tabs.setCurrentTab(0);
 
         TabWidget tabwidget=tabs.getTabWidget();
-        for(int i=0;i<tabwidget.getChildCount();i++){
+        for(int i=0; i<tabwidget.getChildCount(); i++){
             TextView tv=(TextView) tabwidget.getChildAt(i).findViewById(android.R.id.title);
             tv.setTextAppearance(R.style.TabText);
         }
@@ -103,7 +103,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         EditText searchView = findViewById(R.id.searchView);
         int searchPlateId = searchView.getContext().getResources().getIdentifier("android:id/search_plate", null, null);
         View searchPlate = searchView.findViewById(searchPlateId);
-        if (searchPlate!=null) {
+        if (searchPlate != null) {
             searchPlate.setBackgroundColor (Color.TRANSPARENT);
             int searchTextId = searchPlate.getContext ().getResources ().getIdentifier ("android:id/search_src_text", null, null);
             TextView searchTextView = searchView.findViewById(searchTextId);
