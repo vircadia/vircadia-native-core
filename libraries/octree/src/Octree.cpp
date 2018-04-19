@@ -121,11 +121,7 @@ void Octree::recurseTreeWithPostOperation(const RecurseOctreeOperation& operatio
 void Octree::recurseElementWithOperation(const OctreeElementPointer& element, const RecurseOctreeOperation& operation, void* extraData,
                         int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        static QString repeatedMessage
-            = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "Octree::recurseElementWithOperation\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
-
-        qCDebug(octree) << "Octree::recurseElementWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        HIFI_FCDEBUG(octree(), "Octree::recurseElementWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
         return;
     }
 
@@ -143,11 +139,7 @@ void Octree::recurseElementWithOperation(const OctreeElementPointer& element, co
 void Octree::recurseElementWithPostOperation(const OctreeElementPointer& element, const RecurseOctreeOperation& operation,
                                              void* extraData, int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        static QString repeatedMessage
-            = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "Octree::recurseElementWithPostOperation\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
-
-        qCDebug(octree) << "Octree::recurseElementWithPostOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        HIFI_FCDEBUG(octree(), "Octree::recurseElementWithPostOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
         return;
     }
 
@@ -173,11 +165,7 @@ void Octree::recurseElementWithOperationDistanceSorted(const OctreeElementPointe
                                                        const glm::vec3& point, void* extraData, int recursionCount) {
 
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        static QString repeatedMessage
-            = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "Octree::recurseElementWithOperationDistanceSorted\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
-
-        qCDebug(octree) << "Octree::recurseElementWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        HIFI_FCDEBUG(octree(), "Octree::recurseElementWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
         return;
     }
 
@@ -215,11 +203,7 @@ void Octree::recurseTreeWithOperator(RecurseOctreeOperator* operatorObject) {
 bool Octree::recurseElementWithOperator(const OctreeElementPointer& element,
                                         RecurseOctreeOperator* operatorObject, int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        static QString repeatedMessage
-            = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "Octree::recurseElementWithOperator\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
-
-        qCDebug(octree) << "Octree::recurseElementWithOperator() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        HIFI_FCDEBUG(octree(), "Octree::recurseElementWithOperator() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
         return false;
     }
 
@@ -285,11 +269,7 @@ OctreeElementPointer Octree::createMissingElement(const OctreeElementPointer& la
                                                   const unsigned char* codeToReach, int recursionCount) {
 
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        static QString repeatedMessage
-            = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "Octree::createMissingElement\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
-
-        qCDebug(octree) << "Octree::createMissingElement() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        HIFI_FCDEBUG(octree(), "Octree::createMissingElement() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
         return lastParentElement;
     }
     int indexOfNewChild = branchIndexWithDescendant(lastParentElement->getOctalCode(), codeToReach);
@@ -446,16 +426,9 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, uint64_t buffe
                                                                      (unsigned char *)bitstreamAt, NULL);
         int numberOfThreeBitSectionsInStream = numberOfThreeBitSectionsInCode(bitstreamAt, bufferSizeBytes);
         if (numberOfThreeBitSectionsInStream > UNREASONABLY_DEEP_RECURSION) {
-            static QString repeatedMessage
-                = LogHandler::getInstance().addRepeatedMessageRegex(
-                        "UNEXPECTED: parsing of the octal code would make UNREASONABLY_DEEP_RECURSION... "
-                        "numberOfThreeBitSectionsInStream: \\d+ This buffer is corrupt. Returning."
-                    );
-
-
-            qCDebug(octree) << "UNEXPECTED: parsing of the octal code would make UNREASONABLY_DEEP_RECURSION... "
+            HIFI_FCDEBUG(octree(), "UNEXPECTED: parsing of the octal code would make UNREASONABLY_DEEP_RECURSION... "
                         "numberOfThreeBitSectionsInStream:" << numberOfThreeBitSectionsInStream <<
-                        "This buffer is corrupt. Returning.";
+                        "This buffer is corrupt. Returning.");
             return;
         }
 
