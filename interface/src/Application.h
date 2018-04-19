@@ -149,6 +149,8 @@ public:
     void initializeRenderEngine();
     void initializeUi();
 
+    void updateSecondaryCameraViewFrustum();
+
     void updateCamera(RenderArgs& renderArgs, float deltaTime);
     void paintGL();
     void resizeGL();
