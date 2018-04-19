@@ -229,6 +229,11 @@ void setupPreferences() {
         preference->setStep(0.001f);
         preferences->addPreference(preference);
     }
+    {
+        auto getter = [=]()->bool { return myAvatar->getFlyingEnabled(); };
+        auto setter = [=](bool value) { myAvatar->setFlyingEnabled(value); };
+        preferences->addPreference(new CheckPreference(MOVEMENT, "Enable Flying", getter, setter));
+    }
 
     static const QString AVATAR_CAMERA{ "Mouse Sensitivity" };
     {
