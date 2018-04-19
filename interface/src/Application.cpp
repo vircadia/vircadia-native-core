@@ -5622,6 +5622,8 @@ void Application::update(float deltaTime) {
         const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
         bool queryIsDue = sinceLastQuery > TOO_LONG_SINCE_LAST_QUERY;
         bool viewIsDifferentEnough = !_lastQueriedViewFrustum.isVerySimilar(_viewFrustum);
+        viewIsDifferentEnough |= _hasSecondaryViewFrustum && !_lastQueriedSecondaryViewFrustum.isVerySimilar(_secondaryViewFrustum);
+        
         // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
         if (queryIsDue || viewIsDifferentEnough) {
             _lastQueriedTime = now;
@@ -5630,6 +5632,7 @@ void Application::update(float deltaTime) {
             }
             sendAvatarViewFrustum();
             _lastQueriedViewFrustum = _viewFrustum;
+            _lastQueriedSecondaryViewFrustum = _secondaryViewFrustum;
         }
     }
 

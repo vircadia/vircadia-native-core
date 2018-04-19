@@ -557,9 +557,10 @@ private:
 
     mutable QMutex _viewMutex { QMutex::Recursive };
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
-    ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
+    ViewFrustum _lastQueriedViewFrustum; // last view frustum used to query octree servers
     ViewFrustum _displayViewFrustum;
     ViewFrustum _secondaryViewFrustum;
+    ViewFrustum _lastQueriedSecondaryViewFrustum; // last secondary view frustum used to query octree servers
     bool _hasSecondaryViewFrustum;
     quint64 _lastQueriedTime;
 
