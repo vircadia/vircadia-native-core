@@ -47,6 +47,9 @@ public:
     // Origin radius
     float originRadius{ 0.5f };
 
+    // N regions distances
+    glm::vec2 regionBackFronts[Region::NUM_VIEW_REGIONS + 1];
+
     // N regions spheres
     Sphere regions[Region::NUM_VIEW_REGIONS];
 
@@ -59,9 +62,9 @@ public:
     static View evalFromFrustum(const ViewFrustum& frustum, const glm::vec3& offset = glm::vec3());
     static Sphere evalRegionSphere(const View& view, float originRadius, float maxDistance);
 
-    static void updateRegions(View& view);
-
-    static void updateRegions(View& view, const float* configDistances);
+    static void updateRegionsDefault(View& view);
+    static void updateRegionsFromBackFronts(View& view);
+    static void updateRegionsFromBackFrontDistances(View& view, const float* configDistances);
 };
 
 using Views = std::vector<View>;

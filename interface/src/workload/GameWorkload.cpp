@@ -14,13 +14,39 @@
 #include <workload/SpaceClassifier.h>
 
 #include "PhysicsBoundary.h"
+#pragma optimize( "[optimization-list]", off )
+float wtf_adjust(float current, float timing) {
+    float error = (timing * 0.001f) - 2.0f;
+    if (error < 0.0f) {
+        current += 0.2f * (error) / 16.0f;
+    } else {
+        current += 0.1f * (error) / 16.0f;
+    }
 
-void ControlViews::run(const workload::WorkloadContextPointer& renderContext, const Input& inputs, Output& outputs) {
-    const auto& inViews = inputs.getN<0>();
-    const auto& inTimings = inputs[1];
-
-    outputs = inViews;
+    if (current > 100.0f) {
+        current = 100.0f;
+    } else if (current < 5.0f) {
+        current = 5.0f;
+    }
+    return current;
 }
+void ControlViews::run(const workload::WorkloadContextPointer& runContext, const Input& inputs, Output& outputs) {
+    const auto& inViews = inputs.get0();
+    const auto& inTimings = inputs.get1();
+    auto& outViews = outputs;
+    outViews.clear();
+    outViews = inViews;
+    
+    
+    int i = 0;
+    for (auto& outView : outViews) {
+        auto& current = regionBackFronts[workload::Region::R2].y;
+        current = wtf_adjust(current, inTimings[0]);
+        outView.regions[workload::Region::R2].y = current;
+        workload::View::updateRegionsFromBackFronts(outView);
+    }
+}
+#pragma optimize( "[optimization-list]", on )
 
 class WorkloadEngineBuilder {
 public:
@@ -35,9 +61,7 @@ public:
 
         const auto usedViews = model.addJob<workload::SetupViews>("setupViews", inViews);
 
-        ControlViews::Input controlViewsIn;
-        controlViewsIn[0] = usedViews;
-        controlViewsIn[1] = inTimings;
+        const auto controlViewsIn = ControlViews::Input(usedViews, inTimings).asVarying();
         const auto fixedViews = model.addJob<ControlViews>("controlViews", controlViewsIn);
 
         const auto regionTrackerOut = model.addJob<workload::SpaceClassifierTask>("spaceClassifier", fixedViews);

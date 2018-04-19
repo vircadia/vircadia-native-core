@@ -41,7 +41,7 @@ Sphere View::evalRegionSphere(const View& view, float originRadius, float maxDis
     return Sphere(view.origin + view.direction * center, radius);
 }
 
-void View::updateRegions(View& view) {
+void View::updateRegionsDefault(View& view) {
     std::vector<float> config(Region::NUM_VIEW_REGIONS * 2, 0.0f);
 
     float refFar = 10.0f;
@@ -52,11 +52,18 @@ void View::updateRegions(View& view) {
         config[i * 2 + 1] = refFar * weight;
         refFar *= 2.0f;
     }
-    updateRegions(view, config.data());
+    updateRegionsFromBackFrontDistances(view, config.data());
 }
 
-void View::updateRegions(View& view, const float* configDistances) {
+void View::updateRegionsFromBackFronts(View& view) {
     for (int i = 0; i < Region::NUM_VIEW_REGIONS; i++) {
-        view.regions[i] = evalRegionSphere(view, configDistances[i * 2], configDistances[i * 2 + 1]);
+        view.regions[i] = evalRegionSphere(view, view.regionBackFronts[i].x, view.regionBackFronts[i].y);
     }
+}
+
+void View::updateRegionsFromBackFrontDistances(View& view, const float* configDistances) {
+    for (int i = 0; i < Region::NUM_VIEW_REGIONS; i++) {
+        view.regionBackFronts[i] = glm::vec2(configDistances[i * 2], configDistances[i * 2 + 1]);
+    }
+    updateRegionsFromBackFronts(view);
 }

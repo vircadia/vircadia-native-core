@@ -58,8 +58,12 @@ public:
     using Output = workload::Views;
     using JobModel = workload::Job::ModelIO<ControlViews, Input, Output, Config>;
 
+    ControlViews() = default;
+
     void configure(const Config& config) {}
-    void run(const workload::WorkloadContextPointer& renderContext, const Input& inputs, Output& outputs);
+    void run(const workload::WorkloadContextPointer& runContext, const Input& inputs, Output& outputs);
+    glm::vec2 regionBackFronts[workload::Region::NUM_VIEW_REGIONS + 1];
+
 };
 
 #endif // hifi_GameWorkload_h
