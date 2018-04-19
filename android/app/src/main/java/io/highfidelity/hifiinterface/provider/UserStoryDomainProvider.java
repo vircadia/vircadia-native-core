@@ -1,12 +1,16 @@
 package io.highfidelity.hifiinterface.provider;
 
+import android.util.Log;
+import android.util.MutableInt;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 
 import io.highfidelity.hifiinterface.view.DomainAdapter;
 import retrofit2.Call;
-import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -21,9 +25,17 @@ public class UserStoryDomainProvider implements DomainProvider {
 
     public static final String BASE_URL = "https://metaverse.highfidelity.com/";
 
+    private static final String INCLUDE_ACTIONS_FOR_PLACES = "concurrency";
+    private static final String INCLUDE_ACTIONS_FOR_FULL_SEARCH = "concurrency,announcements,snapshot";
+    private static final int MAX_PAGES_TO_GET = 10;
+
     private String mProtocol;
     private Retrofit mRetrofit;
     private UserStoryDomainProviderService mUserStoryDomainProviderService;
+
+    private boolean startedToGetFromAPI = false;
+    private List<UserStory> allStories; // All retrieved stories from the API
+    private List<DomainAdapter.Domain> suggestions; // Filtered places to show
 
     public UserStoryDomainProvider(String protocol) {
         mRetrofit = new Retrofit.Builder()
@@ -32,36 +44,144 @@ public class UserStoryDomainProvider implements DomainProvider {
                 .build();
         mUserStoryDomainProviderService = mRetrofit.create(UserStoryDomainProviderService.class);
         mProtocol = protocol;
+        allStories = new ArrayList<>();
+        suggestions = new ArrayList<>();
+    }
+
+    private void fillDestinations(String filterText, DomainCallback domainCallback) {
+        StoriesFilter filter = new StoriesFilter(filterText);
+        final MutableInt counter = new MutableInt(0);
+        allStories.clear();
+        getUserStoryPage(1,
+                e -> {
+                    allStories.subList(counter.value, allStories.size()).forEach(userStory -> {
+                        // TODO Report error? e
+                        filter.filterOrAdd(userStory);
+                        // TODO Visibility stuff according to size of suggestions?
+                    });
+                    if (domainCallback != null) {
+                        domainCallback.retrieveOk(suggestions); //ended
+                    }
+                },
+                a -> {
+                    allStories.forEach(userStory -> {
+                        counter.value++;
+                        filter.filterOrAdd(userStory);
+                        // TODO Visibility stuff according to size of suggestions?
+                    });
+                }
+        );
+    }
+
+    private void handleError(String url, Throwable t, Callback<Exception> restOfPagesCallback) {
+        restOfPagesCallback.callback(new Exception("Error accessing url [" + url + "]", t));
+    }
+
+    private void getUserStoryPage(int pageNumber, Callback<Exception> restOfPagesCallback, Callback<Void> firstPageCallback) {
+        Call<UserStories> userStories = mUserStoryDomainProviderService.getUserStories(
+                INCLUDE_ACTIONS_FOR_PLACES,
+                "open",
+                true,
+                mProtocol,
+                pageNumber);
+        userStories.enqueue(new retrofit2.Callback<UserStories>() {
+            @Override
+            public void onResponse(Call<UserStories> call, Response<UserStories> response) {
+                UserStories data = response.body();
+                allStories.addAll(data.user_stories);
+                if (data.current_page < data.total_pages && data.current_page <= MAX_PAGES_TO_GET) {
+                    if (pageNumber == 1 && firstPageCallback!=null) {
+                        firstPageCallback.callback(null);
+                    }
+                    getUserStoryPage(pageNumber + 1, restOfPagesCallback, null);
+                    return;
+                }
+                restOfPagesCallback.callback(null);
+            }
+
+            @Override
+            public void onFailure(Call<UserStories> call, Throwable t) {
+                handleError(call.request().url().toString(), t, restOfPagesCallback);
+            }
+        });
+    }
+
+    private class StoriesFilter {
+        String[] mWords = new String[]{};
+        public StoriesFilter(String filterText) {
+            mWords = filterText.toUpperCase().split("\\s+");
+        }
+
+        private boolean matches(UserStory story) {
+            if (mWords.length<=0) return true;
+
+            boolean res = true;
+            for (String word: mWords) {
+                res = res && story.searchText().contains(word);
+                if (!res) break;
+            }
+
+            return res;
+        }
+
+        private void addToSuggestions(UserStory story) {
+            suggestions.add(story.toDomain());
+        }
+
+        public void filterOrAdd(UserStory story) {
+            if (matches(story)) {
+                addToSuggestions(story);
+            }
+        }
+    }
+
+    private void filterChoicesByText(String filterText, DomainCallback domainCallback) {
+        suggestions.clear();
+        StoriesFilter storiesFilter = new StoriesFilter(filterText);
+        allStories.forEach(story -> {
+            storiesFilter.filterOrAdd(story);
+        });
+        domainCallback.retrieveOk(suggestions);
     }
 
     @Override
-    public void retrieve(Callback callback) {
+    public synchronized void retrieve(String filterText, DomainCallback domainCallback) {
+        if (!startedToGetFromAPI) {
+            startedToGetFromAPI = true;
+            fillDestinations(filterText, domainCallback);
+        } else {
+            filterChoicesByText(filterText, domainCallback);
+        }
+    }
+
+    public void retrieveNot(DomainCallback domainCallback) {
         // TODO Call multiple pages
-        Call<UserStories> userStories = mUserStoryDomainProviderService.getUserStories(mProtocol);
+        Call<UserStories> userStories = mUserStoryDomainProviderService.getUserStories(
+                INCLUDE_ACTIONS_FOR_PLACES,
+                "open",
+                true,
+                mProtocol,
+                1);
+
+        Log.d("API-USER-STORY-DOMAINS", "Protocol [" + mProtocol + "] include_actions [" + INCLUDE_ACTIONS_FOR_PLACES + "]");
         userStories.enqueue(new retrofit2.Callback<UserStories>() {
 
             @Override
             public void onResponse(Call<UserStories> call, Response<UserStories> response) {
                 UserStories userStories = response.body();
                 if (userStories == null) {
-                    callback.retrieveOk(new ArrayList<>(0));
+                    domainCallback.retrieveOk(new ArrayList<>(0));
                 }
                 List<DomainAdapter.Domain> domains = new ArrayList<>(userStories.total_entries);
                 userStories.user_stories.forEach(userStory -> {
-                    // TODO Proper url creation (it can or can't have hifi
-                    // TODO Or use host value from api?
-                    domains.add(new DomainAdapter.Domain(
-                            userStory.place_name,
-                            "hifi://" + userStory.place_name + "/" + userStory.path,
-                            userStory.thumbnail_url
-                    ));
+                    domains.add(userStory.toDomain());
                 });
-                callback.retrieveOk(domains);
+                domainCallback.retrieveOk(domains);
             }
 
             @Override
             public void onFailure(Call<UserStories> call, Throwable t) {
-                callback.retrieveError(new Exception(t), t.getMessage());
+                domainCallback.retrieveError(new Exception(t), t.getMessage());
             }
 
         });
@@ -69,7 +189,11 @@ public class UserStoryDomainProvider implements DomainProvider {
 
     public interface UserStoryDomainProviderService {
         @GET("api/v1/user_stories")
-        Call<UserStories> getUserStories(@Query("protocol") String protocol);
+        Call<UserStories> getUserStories(@Query("include_actions") String includeActions,
+                                         @Query("restriction") String restriction,
+                                         @Query("require_online") boolean requireOnline,
+                                         @Query("protocol") String protocol,
+                                         @Query("page") int pageNumber);
     }
 
     class UserStory {
@@ -77,6 +201,28 @@ public class UserStoryDomainProvider implements DomainProvider {
         String place_name;
         String path;
         String thumbnail_url;
+        String place_id;
+        String domain_id;
+        private String searchText;
+
+        // New fields? tags, description
+
+        String searchText() {
+            if (searchText==null) {
+                searchText = place_name == null? "" : place_name.toUpperCase();
+            }
+            return searchText;
+        }
+        DomainAdapter.Domain toDomain() {
+            // TODO Proper url creation (it can or can't have hifi
+            // TODO Or use host value from api?
+            DomainAdapter.Domain domain = new DomainAdapter.Domain(
+                    place_name,
+                    "hifi://" + place_name + "/" + path,
+                    thumbnail_url
+            );
+            return domain;
+        }
     }
 
     class UserStories {
@@ -86,4 +232,5 @@ public class UserStoryDomainProvider implements DomainProvider {
         int total_entries;
         List<UserStory> user_stories;
     }
+
 }

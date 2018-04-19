@@ -28,14 +28,14 @@
                 android:layout_height="wrap_content"
                 android:background="@color/backgroundDark"/>
 
-            <SearchView
+            <EditText
                 android:id="@+id/searchView"
                 android:layout_width="match_parent"
                 android:layout_height="42dp"
                 android:background="@drawable/search_bg"
-                android:gravity="right"
-                android:layout_gravity="right"
-                
+                android:gravity="center_vertical|end"
+                android:paddingStart="32dp"
+                android:paddingEnd="32dp"
                 />
             <FrameLayout
                 android:id="@android:id/tabcontent"
@@ -50,7 +50,7 @@
                     <android.support.v7.widget.RecyclerView
                         android:id="@+id/rvDomains"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"/>
+                        android:layout_height="match_parent" />
 
                 </LinearLayout>
 

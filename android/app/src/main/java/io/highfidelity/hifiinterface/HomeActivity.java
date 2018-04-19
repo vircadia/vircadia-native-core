@@ -12,10 +12,12 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.SearchView;
+import android.widget.EditText;
 import android.widget.TabHost;
 import android.widget.TabWidget;
 import android.widget.TextView;
@@ -97,7 +99,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         });
         domainsView.setAdapter(domainAdapter);
 
-        SearchView searchView = findViewById(R.id.searchView);
+        EditText searchView = findViewById(R.id.searchView);
         int searchPlateId = searchView.getContext().getResources().getIdentifier("android:id/search_plate", null, null);
         View searchPlate = searchView.findViewById(searchPlateId);
         if (searchPlate!=null) {
@@ -106,7 +108,18 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             TextView searchTextView = searchView.findViewById(searchTextId);
             searchTextView.setTextAppearance(R.style.SearchText);
         }
+        searchView.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
 
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                domainAdapter.loadDomains(editable.toString());
+            }
+        });
         updateLoginMenu();
 
     }

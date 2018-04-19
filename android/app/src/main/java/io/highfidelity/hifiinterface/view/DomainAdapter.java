@@ -33,6 +33,7 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
     private LayoutInflater mInflater;
     private ItemClickListener mClickListener;
     private String mProtocol;
+    private UserStoryDomainProvider domainProvider;
 
     public static class Domain {
         public String name;
@@ -52,14 +53,17 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
         mContext = c;
         this.mInflater = LayoutInflater.from(mContext);
         mProtocol = protocol;
-        loadDomains();
+        domainProvider = new UserStoryDomainProvider(mProtocol);
+        loadDomains("");
     }
 
-    private void loadDomains() {
-        DomainProvider domainProvider = new UserStoryDomainProvider(mProtocol);
-        domainProvider.retrieve(new DomainProvider.Callback() {
+
+
+    public void loadDomains(String filterText) {
+        domainProvider.retrieve(filterText, new DomainProvider.DomainCallback() {
             @Override
             public void retrieveOk(List<Domain> domain) {
+                mDomains = new Domain[domain.size()];
                 mDomains = domain.toArray(mDomains);
                 notifyDataSetChanged();
             }
