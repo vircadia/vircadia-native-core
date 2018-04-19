@@ -784,11 +784,12 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     
     var clearGrabActions = function(entityID) {
         var actionIDs = Entities.getActionIDs(entityID);
+        var myGrabTag = "grab-" + MyAvatar.sessionUUID;
         for (var actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
             var actionID = actionIDs[actionIndex];
             var actionArguments = Entities.getActionArguments(entityID, actionID);
             var tag = actionArguments.tag;
-            if (tag.slice(0, 5) === "grab-") {
+            if (tag === myGrabTag) {
                 Entities.deleteAction(entityID, actionID);
             }
         }
