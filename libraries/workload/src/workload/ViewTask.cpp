@@ -62,7 +62,11 @@ void SetupViews::run(const WorkloadContextPointer& renderContext, const Input& i
 
     // Update regions based on the current config
     for (auto& v : outViews) {
-        View::updateRegionsFromBackFrontDistances(v, (float*) &data);
+        if (data.applyViewRanges) {
+            View::updateRegionsFromBackFrontDistances(v, (float*) &data);
+        } else {
+            View::updateRegionsFromBackFronts(v);
+        }
     }
 
     // outViews is ready to be used

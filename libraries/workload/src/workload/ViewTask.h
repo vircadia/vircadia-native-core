@@ -27,6 +27,7 @@ namespace workload {
         Q_PROPERTY(bool forceViewHorizontal READ forceViewHorizontal WRITE setForceViewHorizontal NOTIFY dirty)
 
         Q_PROPERTY(bool simulateSecondaryCamera READ simulateSecondaryCamera WRITE setSimulateSecondaryCamera NOTIFY dirty)
+        Q_PROPERTY(bool applyViewRanges READ applyViewRanges WRITE setApplyViewRanges NOTIFY dirty)
     public:
 
 
@@ -54,6 +55,9 @@ namespace workload {
         bool simulateSecondaryCamera() const { return data.simulateSecondaryCamera; }
         void setSimulateSecondaryCamera(bool use) { data.simulateSecondaryCamera = use; emit dirty(); }
 
+        bool applyViewRanges() const { return data.applyViewRanges; }
+        void setApplyViewRanges(bool use) { data.applyViewRanges = use; emit dirty(); }
+
         struct Data {
             float r1Back { 2.0f };
             float r1Front { 10.0f };
@@ -68,6 +72,8 @@ namespace workload {
             bool useAvatarView{ false };
             bool forceViewHorizontal{ false };
             bool simulateSecondaryCamera{ false };
+            bool applyViewRanges{ true };
+
         } data;
 
     signals:

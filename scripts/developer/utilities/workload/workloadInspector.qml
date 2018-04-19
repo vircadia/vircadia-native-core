@@ -110,6 +110,14 @@ Rectangle {
             }
         }
 
+        Separator {}
+        HifiControls.CheckBox {
+            boxSize: 20
+            text: "Apply Front Back Ranges"
+            checked: Workload.getConfig("setupViews")["applyViewRanges"]
+            onCheckedChanged: { Workload.getConfig("setupViews")["applyViewRanges"] = checked; }
+        }
+
         RowLayout {
             anchors.left: parent.left
             anchors.right: parent.right 

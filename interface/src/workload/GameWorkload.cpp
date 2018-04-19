@@ -41,8 +41,8 @@ void ControlViews::run(const workload::WorkloadContextPointer& runContext, const
     int i = 0;
     for (auto& outView : outViews) {
         auto& current = regionBackFronts[workload::Region::R2].y;
-        current = wtf_adjust(current, inTimings[0]);
-        outView.regions[workload::Region::R2].y = current;
+        auto newCurrent = wtf_adjust(current, inTimings[0]);
+        outView.regions[workload::Region::R2].y = newCurrent;
         workload::View::updateRegionsFromBackFronts(outView);
     }
 }
