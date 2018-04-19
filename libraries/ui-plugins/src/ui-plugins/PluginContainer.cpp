@@ -34,48 +34,140 @@ PluginContainer::~PluginContainer() {
     INSTANCE = nullptr;
 };
 
+struct MenuCache {
+    QSet<QString> menus;
+    struct Item {
+        QString path;
+        std::function<void(bool)> onClicked;
+        bool checkable;
+        bool checked;
+        QString groupName;
+    };
+    QHash<QString, Item> items;
+    std::map<QString, QActionGroup*> _exclusiveGroups;
+
+    void addMenu(ui::Menu* menu, const QString& menuName) {
+        if (!menu) {
+            menus.insert(menuName);
+            return;
+        }
+
+        flushCache(menu);
+        menu->addMenu(menuName);
+    }
+
+    void removeMenu(ui::Menu* menu, const QString& menuName) {
+        if (!menu) {
+            menus.remove(menuName);
+            return;
+        }
+        flushCache(menu);
+        menu->removeMenu(menuName);
+    }
+
+    void addMenuItem(ui::Menu* menu, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName) {
+        if (!menu) {
+            items[name] = Item{ path, onClicked, checkable, checked, groupName };
+            return;
+        }
+        flushCache(menu);
+        MenuWrapper* parentItem = menu->getMenu(path);
+        QAction* action = menu->addActionToQMenuAndActionHash(parentItem, name);
+        if (!groupName.isEmpty()) {
+            QActionGroup* group{ nullptr };
+            if (!_exclusiveGroups.count(groupName)) {
+                group = _exclusiveGroups[groupName] = new QActionGroup(menu);
+                group->setExclusive(true);
+            } else {
+                group = _exclusiveGroups[groupName];
+            }
+            group->addAction(action);
+        }
+        QObject::connect(action, &QAction::triggered, [=] {
+            onClicked(action->isChecked());
+        });
+        action->setCheckable(checkable);
+        action->setChecked(checked);
+    }
+    void removeMenuItem(ui::Menu* menu, const QString& menuName, const QString& menuItemName) {
+        if (!menu) {
+            items.remove(menuItemName);
+            return;
+        }
+        flushCache(menu);
+        menu->removeMenuItem(menuName, menuItemName);
+    }
+
+    bool isOptionChecked(ui::Menu* menu, const QString& name) {
+        if (!menu) {
+            return items.contains(name) && items[name].checked;
+        }
+        flushCache(menu);
+        return menu->isOptionChecked(name);
+    }
+
+    void setIsOptionChecked(ui::Menu* menu, const QString& name, bool checked) {
+        if (!menu) {
+            if (items.contains(name)) {
+                items[name].checked = checked;
+            }
+            return;
+        }
+        flushCache(menu);
+
+    }
+
+    void flushCache(ui::Menu* menu) {
+        if (!menu) {
+            return;
+        }
+        static bool flushed = false;
+        if (flushed) {
+            return;
+        }
+        flushed = true;
+        for (const auto& menuName : menus) {
+            addMenu(menu, menuName);
+        }
+        menus.clear();
+
+        for (const auto& menuItemName : items.keys()) {
+            const auto menuItem = items[menuItemName];
+            addMenuItem(menu, menuItem.path, menuItemName, menuItem.onClicked, menuItem.checkable, menuItem.checked, menuItem.groupName);
+        }
+        items.clear();
+    }
+};
+
+
+static MenuCache& getMenuCache() {
+    static MenuCache cache;
+    return cache;
+}
 
 void PluginContainer::addMenu(const QString& menuName) {
-    getPrimaryMenu()->addMenu(menuName);
+    getMenuCache().addMenu(getPrimaryMenu(), menuName);
 }
 
 void PluginContainer::removeMenu(const QString& menuName) {
-    getPrimaryMenu()->removeMenu(menuName);
+    getMenuCache().removeMenu(getPrimaryMenu(), menuName);
 }
 
-QAction* PluginContainer::addMenuItem(PluginType type, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName) {
-    auto menu = getPrimaryMenu();
-    MenuWrapper* parentItem = menu->getMenu(path);
-    QAction* action = menu->addActionToQMenuAndActionHash(parentItem, name);
-    if (!groupName.isEmpty()) {
-        QActionGroup* group { nullptr };
-        if (!_exclusiveGroups.count(groupName)) {
-            group = _exclusiveGroups[groupName] = new QActionGroup(menu);
-            group->setExclusive(true);
-        } else {
-            group = _exclusiveGroups[groupName];
-        }
-        group->addAction(action);
-    }
-    QObject::connect(action, &QAction::triggered, [=] {
-        onClicked(action->isChecked());
-    });
-    action->setCheckable(checkable);
-    action->setChecked(checked);
+void PluginContainer::addMenuItem(PluginType type, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName) {
+    getMenuCache().addMenuItem(getPrimaryMenu(), path, name, onClicked, checkable, checked, groupName);
     if (type == PluginType::DISPLAY_PLUGIN) {
         _currentDisplayPluginActions.push_back({ path, name });
     } else {
         _currentInputPluginActions.push_back({ path, name });
     }
-    return action;
 }
 
 void PluginContainer::removeMenuItem(const QString& menuName, const QString& menuItem) {
-    getPrimaryMenu()->removeMenuItem(menuName, menuItem);
+    getMenuCache().removeMenuItem(getPrimaryMenu(), menuName, menuItem);
 }
 
 bool PluginContainer::isOptionChecked(const QString& name) {
-    return getPrimaryMenu()->isOptionChecked(name);
+    return getMenuCache().isOptionChecked(getPrimaryMenu(), name);
 }
 
 void PluginContainer::setIsOptionChecked(const QString& path, bool checked) {
@@ -160,4 +252,8 @@ bool PluginContainer::getBoolSetting(const QString& settingName, bool defaultVal
 void PluginContainer::setBoolSetting(const QString& settingName, bool value) {
     Setting::Handle<bool> settingValue(settingName, value);
     return settingValue.set(value);
+}
+
+void PluginContainer::flushMenuUpdates() {
+    getMenuCache().flushCache(getPrimaryMenu());
 }

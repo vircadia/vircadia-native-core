@@ -1650,11 +1650,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                     }
                 } else {
-                    static QString repeatedMessage =
-                        LogHandler::getInstance().addRepeatedMessageRegex("^Edit failed.*");
-                    qCDebug(entities) << "Edit failed. [" << message.getType() <<"] " <<
+                    HIFI_FCDEBUG(entities(), "Edit failed. [" << message.getType() <<"] " <<
                             "entity id:" << entityItemID << 
-                            "existingEntity pointer:" << existingEntity.get();
+                            "existingEntity pointer:" << existingEntity.get());
                 }
             }
 

@@ -16,6 +16,8 @@ import "."
 Item {
     id: root
     anchors.fill: parent
+    width: parent.width
+    height: parent.height
     objectName: "tabletMenuHandlerItem"
 
     StackView {

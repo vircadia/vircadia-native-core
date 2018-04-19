@@ -46,7 +46,7 @@ public:
 
     void addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
-    QAction* addMenuItem(PluginType pluginType, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "");
+    void addMenuItem(PluginType pluginType, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "");
     void removeMenuItem(const QString& menuName, const QString& menuItem);
     bool isOptionChecked(const QString& name);
     void setIsOptionChecked(const QString& path, bool checked);
@@ -77,9 +77,9 @@ public:
     }
 
 protected:
+    void flushMenuUpdates();
     QVector<QPair<QString, QString>> _currentDisplayPluginActions;
     QVector<QPair<QString, QString>> _currentInputPluginActions;
-    std::map<QString, QActionGroup*> _exclusiveGroups;
     QRect _savedGeometry { 10, 120, 800, 600 };
 };
 
