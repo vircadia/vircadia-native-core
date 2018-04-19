@@ -4819,14 +4819,10 @@ void Application::updateThreads(float deltaTime) {
     }
 }
 
-void Application::toggleOverlays() {
-    auto menu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::Overlays, !menu->isOptionChecked(MenuOption::Overlays));
-}
+void Application::toggleOverlays() {}
 
 void Application::setOverlaysVisible(bool visible) {
-    auto menu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::Overlays, true);
+    Q_UNUSED(visible)
 }
 
 void Application::centerUI() {
@@ -7770,7 +7766,6 @@ void Application::readArgumentsFromLocalSocket() const {
 }
 
 void Application::showDesktop() {
-    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, true);
 }
 
 CompositorHelper& Application::getApplicationCompositor() const {

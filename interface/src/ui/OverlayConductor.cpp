@@ -143,7 +143,7 @@ void OverlayConductor::update(float dt) {
     }
 
 
-    bool targetVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays) && (0 == (_flags & SuppressMask));
+    bool targetVisible = (0 == (_flags & SuppressMask));
     if (targetVisible != currentVisible) {
         offscreenUi->setPinned(!targetVisible);
     }
