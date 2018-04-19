@@ -298,7 +298,7 @@ void setupPreferences() {
         {
             static const int MIN_PORT_NUMBER { 0 };
             static const int MAX_PORT_NUMBER { 65535 };
-            auto getter = [nodelist] { return static_cast<int>(nodelist->getSocketLocalPort()); };
+            auto getter = [nodelist] { qWarning() << "vladest: port" << static_cast<int>(nodelist->getSocketLocalPort()); return static_cast<int>(nodelist->getSocketLocalPort()); };
             auto setter = [nodelist](int preset) { nodelist->setSocketLocalPort(static_cast<quint16>(preset)); };
             auto preference = new IntSpinnerPreference(NETWORKING, "Listening Port", getter, setter);
             preference->setMin(MIN_PORT_NUMBER);

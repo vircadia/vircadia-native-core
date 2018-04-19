@@ -20,6 +20,7 @@ SpinBox {
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme === hifi.colorSchemes.light
     property string label: ""
+    property string suffix: ""
     property string labelInside: ""
     property color colorLabelInside: hifi.colors.white
     property real controlHeight: height + (spinBoxLabel.visible ? spinBoxLabel.height + spinBoxLabel.anchors.bottomMargin : 0)
@@ -33,6 +34,8 @@ SpinBox {
     property real realFrom: 0.0
     property real realTo: 100.0
     property real realStepSize: 1.0
+
+    signal editingFinished()
 
     implicitHeight: height
     implicitWidth: width
@@ -88,12 +91,14 @@ SpinBox {
                : (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGrayText)
         selectedTextColor: hifi.colors.black
         selectionColor: hifi.colors.primaryHighlight
-        text: spinBox.textFromValue(spinBox.value, spinBox.locale)
+        text: spinBox.textFromValue(spinBox.value, spinBox.locale) + suffix
         verticalAlignment: Qt.AlignVCenter
         leftPadding: spinBoxLabelInside.visible ? 30 : hifi.dimensions.textPadding
         //rightPadding: hifi.dimensions.spinnerSize
         width: spinBox.width - hifi.dimensions.spinnerSize
+        onEditingFinished: spinBox.editingFinished()
     }
+
     up.indicator: Item {
         x: spinBox.width - implicitWidth - 5
         y: 1
