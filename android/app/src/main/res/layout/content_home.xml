@@ -36,6 +36,8 @@
                 android:gravity="center_vertical|end"
                 android:paddingStart="32dp"
                 android:paddingEnd="32dp"
+                android:inputType="textUri"
+                android:imeOptions="actionGo"
                 />
             <FrameLayout
                 android:id="@android:id/tabcontent"

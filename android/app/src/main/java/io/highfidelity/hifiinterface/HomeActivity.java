@@ -14,6 +14,7 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -118,6 +119,20 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void afterTextChanged(Editable editable) {
                 domainAdapter.loadDomains(editable.toString());
+            }
+        });
+        searchView.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View view, int i, KeyEvent keyEvent) {
+                if (i == KeyEvent.KEYCODE_ENTER) {
+                    String urlString = searchView.getText().toString();
+                    if (!urlString.trim().isEmpty()) {
+                        urlString = HifiUtils.getInstance().sanitizeHifiUrl(urlString);
+                    }
+                    gotoDomain(urlString);
+                    return true;
+                }
+                return false;
             }
         });
         updateLoginMenu();
