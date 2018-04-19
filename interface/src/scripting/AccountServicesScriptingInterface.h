@@ -38,26 +38,10 @@ class AccountServicesScriptingInterface : public QObject {
     * The AccountServices API contains helper functions related to user connectivity
     *
     * @namespace AccountServices
-    */
-    /**jsdoc
-    * To be completed
-    * @property {string} AccountServices.username
-    * @static
-    */
-    /**jsdoc
-    * To be completed
-    * @property {bool} AccountServices.loggedIn
-    * @static
-    */
-    /**jsdoc
-    * To be completed
-    * @property {QString} AccountServices.findableBy
-    * @static
-    */
-    /**jsdoc
-    * To be completed
-    * @property {QUrl} AccountServices.metaverseServerURL
-    * @static
+    * @property {string} AccountServices.username - To be completed
+    * @property {boolean} AccountServices.loggedIn - To be completed
+    * @property {string} AccountServices.findableBy - To be completed
+    * @property {string} AccountServices.metaverseServerURL - - To be completed
     */
     Q_PROPERTY(QString username READ getUsername NOTIFY myUsernameChanged)
     Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY loggedInChanged)
@@ -79,8 +63,7 @@ public slots:
     /**jsdoc
     * To be completed
     * @function AccountServices.checkAndSignalForAccessToken
-    * @static
-    * @returns {bool}
+    * @returns {boolean}
     */
     bool checkAndSignalForAccessToken();
     void logOut();
@@ -133,7 +116,7 @@ signals:
     /**jsdoc
     * To be completed
     * @function AccountServices.loggedInChanged
-    * @params {bool} loggedIn
+    * @params {boolean} loggedIn
     * @returns {Signal}
     */
     void loggedInChanged(bool loggedIn);

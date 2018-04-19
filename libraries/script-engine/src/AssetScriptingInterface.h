@@ -211,14 +211,14 @@ public:
     /**jsdoc
     * To be completed
     * @function Assets.initializeCache
-    * @returns {bool}
+    * @returns {boolean}
     */
     Q_INVOKABLE bool initializeCache() { return Parent::initializeCache(); }
     /**jsdoc
     * To be completed
     * @function Assets.canWriteCacheValue
     * @property {string} url
-    * @returns {bool}
+    * @returns {boolean}
     */
     Q_INVOKABLE bool canWriteCacheValue(const QUrl& url);
     /**jsdoc

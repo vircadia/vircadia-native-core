@@ -28,11 +28,11 @@ class Audio : public AudioScriptingInterface {
     * The Audio API features tools to help control audio contexts and settings.
     *
     * @namespace Audio
-    * @property {bool} muted - To Be Completed
-    * @property {bool} noiseReduction - To Be Completed
-    * @property {bool} inputVolume - To Be Completed
-    * @property {bool} inputLevel - To Be Completed
-    * @property {QString} context - To Be Completed
+    * @property {boolean} muted - To Be Completed
+    * @property {boolean} noiseReduction - To Be Completed
+    * @property {boolean} inputVolume - To Be Completed
+    * @property {boolean} inputLevel - To Be Completed
+    * @property {string} context - To Be Completed
     * @property {} devices - To Be Completed
     */
  
@@ -67,20 +67,20 @@ public:
     * To Be Completed
     * @function Audio.setInputDevice
     * @param {} device
-    * @param {bool} isHMD 
+    * @param {boolean} isHMD 
     */
     Q_INVOKABLE void setInputDevice(const QAudioDeviceInfo& device, bool isHMD);
     /**jsdoc
     * To Be Completed
     * @function Audio.setOutputDevice
     * @param {} device
-    * @param {bool} isHMD
+    * @param {boolean} isHMD
     */
     Q_INVOKABLE void setOutputDevice(const QAudioDeviceInfo& device, bool isHMD);
     /**jsdoc
     * To Be Completed
     * @function Audio.setReverb
-    * @param {bool} enable
+    * @param {boolean} enable
     */
     Q_INVOKABLE void setReverb(bool enable);
     /**jsdoc
@@ -110,46 +110,51 @@ signals:
     /**jsdoc
     * To Be Completed
     * @function Audio.nop
-    * @returns {signal}
+    * @returns {Signal}
     */
     void nop();
     /**jsdoc
     * To Be Completed
     * @function Audio.nop
     * @param {bool} isMuted
-    * @returns {signal}
+    * @returns {Signal}
     */
     void mutedChanged(bool isMuted);
     /**jsdoc
     * To Be Completed
     * @function Audio.noiseReductionChanged
     * @param {bool} isEnabled
-    * @returns {signal}
+    * @returns {Signal}
     */
     void noiseReductionChanged(bool isEnabled);
     /**jsdoc
     * To Be Completed
     * @function Audio.inputVolumeChanged
     * @param {float} volume
-    * @returns {signal}
+    * @returns {Signal}
     */
     void inputVolumeChanged(float volume);
     /**jsdoc
     * To Be Completed
     * @function Audio.inputLevelChanged
     * @param {float} level
-    * @returns {signal}
+    * @returns {Signal}
     */
     void inputLevelChanged(float level);
     /**jsdoc
     * To Be Completed
     * @function Audio.contextChanged
     * @param {string} context
-    * @returns {signal}
+    * @returns {Signal}
     */
     void contextChanged(const QString& context);
 
 public slots:
+    /**jsdoc
+    * To Be Completed
+    * @function Audio.onContextChanged
+    * @returns {Signal}
+    */
     void onContextChanged();
 
 private slots:
