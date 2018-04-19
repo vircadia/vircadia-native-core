@@ -796,10 +796,11 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         var pickRay = Camera.computePickRay(event.x, event.y);
         var intersection = Entities.findRayIntersection(pickRay, true);
         if (intersection.intersects) {
-            var entityProperties = Entities.getEntityProperties(intersection.entityID, DISPATCHER_PROPERTIES);
+            var entityID = intersection.entityID;
+            var entityProperties = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
             var hasEquipData = getWearableData(entityProperties).joints || getEquipHotspotsData(entityProperties).length > 0;
-            if (hasEquipData && entityProperties.parentID === EMPTY_PARENT_ID) {
-                entityProperties.id = intersection.entityID;
+            if (hasEquipData && entityProperties.parentID === EMPTY_PARENT_ID && !entityIsFarGrabbedByOther(entityID)) {
+                entityProperties.id = entityID;
                 var rightHandPosition = MyAvatar.getJointPosition("RightHand");
                 var leftHandPosition = MyAvatar.getJointPosition("LeftHand");   
                 var distanceToRightHand = Vec3.distance(entityProperties.position, rightHandPosition);
@@ -809,11 +810,11 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 var mouseEquip = true;
                 if (rightHandAvailable && (distanceToRightHand < distanceToLeftHand || !leftHandAvailable)) {
                     // clear any existing grab actions on the entity now (their later removal could affect bootstrapping flags)
-                    clearGrabActions(intersection.entityID);
+                    clearGrabActions(entityID);
                     rightEquipEntity.setMessageGrabData(entityProperties, mouseEquip);
                 } else if (leftHandAvailable && (distanceToLeftHand < distanceToRightHand || !rightHandAvailable)) {
                     // clear any existing grab actions on the entity now (their later removal could affect bootstrapping flags)
-                    clearGrabActions(intersection.entityID);
+                    clearGrabActions(entityID);
                     leftEquipEntity.setMessageGrabData(entityProperties, mouseEquip);
                 }
             }
