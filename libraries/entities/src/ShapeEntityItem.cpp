@@ -117,8 +117,10 @@ ShapeEntityItem::ShapeEntityItem(const EntityItemID& entityItemID) : EntityItem(
 
 EntityItemProperties ShapeEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
-    properties.setColor(getXColor());
     properties.setShape(entity::stringFromShape(getShape()));
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
+
     return properties;
 }
 
@@ -186,8 +188,6 @@ int ShapeEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     return bytesRead;
 }
 
-
-// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags ShapeEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_SHAPE;

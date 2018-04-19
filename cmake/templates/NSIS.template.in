@@ -1234,6 +1234,9 @@ Section "Uninstall"
 
 @CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS@
 
+  ;Remove the installer information file
+  Delete "$INSTDIR\installer.ini"
+
   ;Remove files we installed.
   ;Keep the list of directories here in sync with the File commands above.
 @CPACK_NSIS_DELETE_FILES@

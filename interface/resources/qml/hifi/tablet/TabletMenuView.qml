@@ -9,8 +9,6 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
 import TabletScriptingInterface 1.0
 
 import "../../styles-uit"
@@ -42,10 +40,10 @@ FocusScope {
         id: listView
         x: 0
         y: 0
-        width: 480
-        height: 720
-        contentWidth: 480
-        contentHeight: 720
+        width: parent.width
+        height: parent.height
+        contentWidth: parent.width
+        contentHeight: parent.height
         objectName: "menuList"
 
         topMargin: hifi.dimensions.menuPadding.y

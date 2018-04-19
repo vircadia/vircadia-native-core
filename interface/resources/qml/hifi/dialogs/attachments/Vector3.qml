@@ -1,5 +1,4 @@
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControls
@@ -57,12 +56,12 @@ Item {
         colorScheme: hifi.colorSchemes.dark
         colorLabelInside: hifi.colors.redHighlight
         decimals: root.decimals
-        stepSize: root.stepSize
+        realStepSize: root.stepSize
         maximumValue: root.maximumValue
         minimumValue: root.minimumValue
-        onValueChanged: {
-            if (value !== vector.x) {
-                vector.x = value
+        onRealValueChanged: {
+            if (realValue !== vector.x) {
+                vector.x = realValue
                 root.valueChanged();
             }
         }

@@ -142,15 +142,18 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
         // Mask out haze on the tablet
         PrepareStencil::testMask(*state);
 
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), HazeEffect_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), HazeEffect_TransformBufferSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), HazeEffect_ColorMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("linearDepthMap"), HazeEffect_LinearDepthMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), HazeEffect_LightingMapSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         _hazePipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+        gpu::doInBatch("DrawHaze::build", args->_context, [program](gpu::Batch& batch) {
+            batch.runLambda([program]() {
+                gpu::Shader::BindingSet slotBindings;
+                slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), HazeEffect_ParamsSlot));
+                slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), HazeEffect_TransformBufferSlot));
+                slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), HazeEffect_ColorMapSlot));
+                slotBindings.insert(gpu::Shader::Binding(std::string("linearDepthMap"), HazeEffect_LinearDepthMapSlot));
+                slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), HazeEffect_LightingMapSlot));
+                gpu::Shader::makeProgram(*program, slotBindings);
+            });
+        });
     }
 
     auto sourceFramebufferSize = glm::ivec2(inputBuffer->getDimensions());

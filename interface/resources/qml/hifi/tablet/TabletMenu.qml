@@ -14,8 +14,8 @@ FocusScope {
     id: tabletMenu
     objectName: "tabletMenu"
 
-    width: 480
-    height: 720
+    width: parent.width
+    height: parent.height
 
     property var rootMenu: Menu { objectName:"rootMenu" }
     property var point: Qt.point(50, 50);

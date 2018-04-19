@@ -62,7 +62,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
 EntityItem::~EntityItem() {
     // these pointers MUST be correct at delete, else we probably have a dangling backpointer
     // to this EntityItem in the corresponding data structure.
-    assert(!_simulated);
+    assert(!_simulated || (!_element && !_physicsInfo));
     assert(!_element);
     assert(!_physicsInfo);
 }
@@ -693,7 +693,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 // the entity-server is awarding us ownership which is what we want
                 _simulationOwner.set(newSimOwner);
             }
-        } else if (newSimOwner.matchesValidID(myNodeID) && !_hasBidOnSimulation) {
+        } else if (newSimOwner.matchesValidID(myNodeID) && !_simulationOwner.pendingTake(now)) {
             // entity-server tells us that we have simulation ownership while we never requested this for this EntityItem,
             // this could happen when the user reloads the cache and entity tree.
             markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
@@ -1946,10 +1946,6 @@ void EntityItem::setPendingOwnershipPriority(uint8_t priority, const quint64& ti
     _simulationOwner.setPendingPriority(priority, timestamp);
 }
 
-void EntityItem::rememberHasSimulationOwnershipBid() const {
-    _hasBidOnSimulation = true;
-}
-
 QString EntityItem::actionsToDebugString() {
     QString result;
     QVector<QByteArray> serializedActions;
@@ -2197,10 +2193,8 @@ void EntityItem::deserializeActionsInternal() {
                 entity->addActionInternal(simulation, action);
                 updated << actionID;
             } else {
-                static QString repeatedMessage =
-                    LogHandler::getInstance().addRepeatedMessageRegex(".*action creation failed for.*");
-                qCDebug(entities) << "EntityItem::deserializeActionsInternal -- action creation failed for"
-                        << getID() << _name; // getName();
+                HIFI_FCDEBUG(entities(), "EntityItem::deserializeActionsInternal -- action creation failed for"
+                        << getID() << _name); // getName();
                 removeActionInternal(actionID, nullptr);
             }
         }

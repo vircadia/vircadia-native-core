@@ -277,13 +277,8 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
                 emit dataReceived(sendingNodeType, packet.getPayloadSize());
                 return true;
             } else {
-                static const QString UNSOLICITED_REPLICATED_REGEX =
-                    "Replicated packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unknown upstream";
-                static QString repeatedMessage
-                    = LogHandler::getInstance().addRepeatedMessageRegex(UNSOLICITED_REPLICATED_REGEX);
-
-                qCDebug(networking) << "Replicated packet of type" << headerType
-                    << "received from unknown upstream" << packet.getSenderSockAddr();
+                HIFI_FCDEBUG(networking(), "Replicated packet of type" << headerType
+                    << "received from unknown upstream" << packet.getSenderSockAddr());
                 
                 return false;
             }
@@ -345,12 +340,8 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             return true;
 
         } else {
-            static const QString UNKNOWN_REGEX = "Packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unknown node with UUID";
-            static QString repeatedMessage
-                = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
-
-            qCDebug(networking) << "Packet of type" << headerType
-                << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID);
+            HIFI_FCDEBUG(networking(),
+                "Packet of type" << headerType << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID));
         }
     }
 
