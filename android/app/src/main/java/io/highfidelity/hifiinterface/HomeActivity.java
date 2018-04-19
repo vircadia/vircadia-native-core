@@ -211,4 +211,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         nativeLogout();
         updateLoginMenu();
     }
+    @Override
+    public void onBackPressed() {
+        finishAffinity();
+    }
 }

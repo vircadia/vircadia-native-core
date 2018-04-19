@@ -242,7 +242,7 @@ extern "C" {
 
 #if defined(Q_OS_ANDROID)
 #include <android/log.h>
-#include <QtAndroidExtras/QAndroidJniObject>
+#include "AndroidHelper.h"
 #endif
 
 enum ApplicationEvent {
@@ -3627,6 +3627,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
 void Application::keyReleaseEvent(QKeyEvent* event) {
     _keysPressed.remove(event->key());
 
+#if defined(Q_OS_ANDROID)
+    if (event->key() == Qt::Key_Back) {
+        event->accept();
+        openAndroidActivity("Home");
+    }
+#endif
     _controllerScriptingInterface->emitKeyReleaseEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -7877,19 +7883,14 @@ void Application::enterBackground() {
     getActiveDisplayPlugin()->deactivate();
 }
 void Application::enterForeground() {
-    if (qApp && DependencyManager::isSet<AudioClient>()) {
-        QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                                   "start", Qt::BlockingQueuedConnection);
-    } else {
-        qDebug() << "Could not start AudioClient";
-    }
     if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
         qWarning() << "Could not re-activate display plugin";
     }
 
 }
-#include "Application_jni.cpp"
-
 #endif
 
+#include "Application_jni.cpp"
 #include "Application.moc"
