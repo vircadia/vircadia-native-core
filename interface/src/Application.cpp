@@ -7543,10 +7543,10 @@ void Application::updateDisplayMode() {
             standard.insert(std::end(standard), std::begin(advanced), std::end(advanced));
             standard.insert(std::end(standard), std::begin(developer), std::end(developer));
 
-        int dpIndex = 1;
+            int dpIndex = 1;
             foreach(auto displayPlugin, standard) {
-            addDisplayPluginToMenu(displayPlugin, dpIndex);
-            dpIndex++;
+                addDisplayPluginToMenu(displayPlugin, dpIndex);
+                dpIndex++;
             }
 
             // after all plugins have been added to the menu, add a separator to the menu
