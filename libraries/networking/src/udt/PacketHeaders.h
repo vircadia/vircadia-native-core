@@ -244,7 +244,8 @@ enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
     JSONFilterWithFamilyTree = 19,
     ConnectionIdentifier = 20,
-    RemovedJurisdictions = 21
+    RemovedJurisdictions = 21,
+    MultiFrustumQuery = 22
 };
 
 enum class AssetServerPacketVersion: PacketVersion {
