@@ -118,6 +118,11 @@ void GLBackend::do_generateTextureMipsWithPipeline(const Batch& batch, size_t pa
 	}
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, numMips-1);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	resetOutputStage();
+	// Restore viewport
+	ivec4& vp = _transform._viewport;
+	glViewport(vp.x, vp.y, vp.z, vp.w);
 }
