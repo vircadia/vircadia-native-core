@@ -25,10 +25,14 @@ Original.RadioButton {
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
 
-    readonly property int boxSize: 14
-    readonly property int boxRadius: 3
-    readonly property int checkSize: 10
-    readonly property int checkRadius: 2
+    property int boxSize: defaultBoxSize
+    property real scaleFactor: boxSize / defaultBoxSize
+
+    readonly property int defaultBoxSize: 14
+    readonly property int boxRadius: 3 * scaleFactor
+    readonly property int checkSize: 10 * scaleFactor
+    readonly property int checkRadius: 2 * scaleFactor
+    readonly property int indicatorRadius: 7 * scaleFactor
 
     onClicked: {
         Tablet.playSound(TabletEnums.ButtonClick);
@@ -44,7 +48,7 @@ Original.RadioButton {
         id: box
         width: boxSize
         height: boxSize
-        radius: 7
+        radius: indicatorRadius
         x: radioButton.leftPadding
         y: parent.height / 2 - height / 2
         gradient: Gradient {
@@ -66,7 +70,7 @@ Original.RadioButton {
             id: check
             width: checkSize
             height: checkSize
-            radius: 7
+            radius: indicatorRadius
             anchors.centerIn: parent
             color: "#00B4EF"
             border.width: 1
