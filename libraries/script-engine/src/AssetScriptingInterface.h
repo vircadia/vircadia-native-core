@@ -25,6 +25,8 @@
 #include <QtNetwork/QNetworkDiskCache>
 
 /**jsdoc
+    The Assets API allows you to communicate with the Asset Browser
+    
  * @namespace Assets
  */
 class AssetScriptingInterface : public BaseAssetScriptingInterface, QScriptable {
@@ -54,7 +56,7 @@ public:
      * Download data from the connected domain's asset server.
      * @function Assets.downloadData
      * @static
-     * @param url {string} url of asset to download, must be atp scheme url.
+     * @param url {string} URL of asset to download, must be ATP scheme URL.
      * @param callback {Assets~downloadDataCallback}
      */
 
@@ -93,11 +95,17 @@ public:
     /**jsdoc
      * Called when getMapping is complete.
      * @callback Assets~getMappingCallback
-     * @param error {string} error description if the path could not be resolved; otherwise a null value.
      * @param assetID {string} hash value if found, else an empty string
+     * @param error {string} error description if the path could not be resolved; otherwise a null value.
      */
     Q_INVOKABLE void getMapping(QString path, QScriptValue callback);
 
+    /**jsdoc
+    * Called when getMapping is complete.
+    * @callback Assets~getMappingCallback
+    * @param assetID {string} hash value if found, else an empty string
+    * @param error {string} error description if the path could not be resolved; otherwise a null value.
+    */
     Q_INVOKABLE void setBakingEnabled(QString path, bool enabled, QScriptValue callback);
 
 #if (PR_BUILD || DEV_BUILD)
@@ -167,22 +175,94 @@ public:
     */
     Q_INVOKABLE void putAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
 
+    /**jsdoc
+    * To be completed
+    * @function Assets.deleteAsset
+    * @property {} options
+    * @property {} scope
+    * @property {} callback
+    */
     Q_INVOKABLE void deleteAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
+    
+    /**jsdoc
+    * To be completed
+    * @function Assets.resolveAsset
+    * @property {} options
+    * @property {} scope
+    * @property {} callback
+    */
     Q_INVOKABLE void resolveAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
+    /**jsdoc
+    * To be completed
+    * @function Assets.decompressData
+    * @property {} options
+    * @property {} scope
+    * @property {} callback
+    */
     Q_INVOKABLE void decompressData(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
+    /**jsdoc
+    * To be completed
+    * @function Assets.compressData
+    * @property {} options
+    * @property {} scope
+    * @property {} callback
+    */
     Q_INVOKABLE void compressData(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
-
+    /**jsdoc
+    * To be completed
+    * @function Assets.initializeCache
+    * @returns {bool}
+    */
     Q_INVOKABLE bool initializeCache() { return Parent::initializeCache(); }
-
+    /**jsdoc
+    * To be completed
+    * @function Assets.canWriteCacheValue
+    * @property {string} url
+    * @returns {bool}
+    */
     Q_INVOKABLE bool canWriteCacheValue(const QUrl& url);
-
+    /**jsdoc
+    * To be completed
+    * @function Assets.getCacheStatus
+    * @property {} scope
+    * @property {} callback
+    */
     Q_INVOKABLE void getCacheStatus(QScriptValue scope, QScriptValue callback = QScriptValue()) {
         jsPromiseReady(Parent::getCacheStatus(), scope, callback);
     }
-
+    /**jsdoc
+    * To be completed
+    * @function Assets.queryCacheMeta
+    * @property {} options
+    * @property {} scope
+    * @property {} callback
+    */
     Q_INVOKABLE void queryCacheMeta(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
+    /**jsdoc
+    * To be completed
+    * @function Assets.loadFromCache
+    * @property {} options
+    * @property {} scope
+    * @property {} callback
+    */
     Q_INVOKABLE void loadFromCache(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
+    /**jsdoc
+    * To be completed
+    * @function Assets.saveToCache
+    * @property {} options
+    * @property {} scope
+    * @property {} callback
+    */
     Q_INVOKABLE void saveToCache(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
+    /**jsdoc
+    * To be completed
+    * @function Assets.saveToCache
+    * @property {} url
+    * @property {} data
+    * @property {} metadata
+    * @property {} scope
+    * @property {} callback
+    */
     Q_INVOKABLE void saveToCache(const QUrl& url, const QByteArray& data, const QVariantMap& metadata,
                                  QScriptValue scope, QScriptValue callback = QScriptValue());
 protected:

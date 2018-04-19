@@ -34,7 +34,31 @@ void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoR
 
 class AccountServicesScriptingInterface : public QObject {
     Q_OBJECT
-    
+    /**jsdoc
+    * The AccountServices API contains helper functions related to user connectivity
+    *
+    * @namespace AccountServices
+    */
+    /**jsdoc
+    * To be completed
+    * @property {string} AccountServices.username
+    * @static
+    */
+    /**jsdoc
+    * To be completed
+    * @property {bool} AccountServices.loggedIn
+    * @static
+    */
+    /**jsdoc
+    * To be completed
+    * @property {QString} AccountServices.findableBy
+    * @static
+    */
+    /**jsdoc
+    * To be completed
+    * @property {QUrl} AccountServices.metaverseServerURL
+    * @static
+    */
     Q_PROPERTY(QString username READ getUsername NOTIFY myUsernameChanged)
     Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY loggedInChanged)
     Q_PROPERTY(QString findableBy READ getFindableBy WRITE setFindableBy NOTIFY findableByChanged)
@@ -52,6 +76,12 @@ public slots:
     void updateDownloadInfo();
 
     bool isLoggedIn();
+    /**jsdoc
+    * To be completed
+    * @function AccountServices.checkAndSignalForAccessToken
+    * @static
+    * @returns {bool}
+    */
     bool checkAndSignalForAccessToken();
     void logOut();
     
@@ -66,11 +96,46 @@ private slots:
     void onUsernameChanged(const QString& username);
 
 signals:
+    /**jsdoc
+    * To be completed
+    * @function AccountServices.connected
+    * @returns {Signal}
+    */
     void connected();
+    /**jsdoc
+    * To be completed
+    * @function AccountServices.disconnected
+    * @params {string} reason
+    * @returns {Signal}
+    */
     void disconnected(const QString& reason);
+    /**jsdoc
+    * To be completed
+    * @function AccountServices.myUsernameChanged
+    * @params {string} username
+    * @returns {Signal}
+    */
     void myUsernameChanged(const QString& username);
+    /**jsdoc
+    * To be completed
+    * @function AccountServices.downloadInfoChanged
+    * @params {} info
+    * @returns {Signal}
+    */
     void downloadInfoChanged(DownloadInfoResult info);
+    /**jsdoc
+    * To be completed
+    * @function AccountServices.findableByChanged
+    * @params {string} discoverabilityMode
+    * @returns {Signal}
+    */
     void findableByChanged(const QString& discoverabilityMode);
+    /**jsdoc
+    * To be completed
+    * @function AccountServices.loggedInChanged
+    * @params {bool} loggedIn
+    * @returns {Signal}
+    */
     void loggedInChanged(bool loggedIn);
 
 private:

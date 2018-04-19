@@ -24,6 +24,18 @@ class Audio : public AudioScriptingInterface {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
+    /**jsdoc
+    * The Audio API features tools to help control audio contexts and settings.
+    *
+    * @namespace Audio
+    * @property {bool} muted - To Be Completed
+    * @property {bool} noiseReduction - To Be Completed
+    * @property {bool} inputVolume - To Be Completed
+    * @property {bool} inputLevel - To Be Completed
+    * @property {QString} context - To Be Completed
+    * @property {} devices - To Be Completed
+    */
+ 
     Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)
     Q_PROPERTY(bool noiseReduction READ noiseReductionEnabled WRITE enableNoiseReduction NOTIFY noiseReductionChanged)
     Q_PROPERTY(float inputVolume READ getInputVolume WRITE setInputVolume NOTIFY inputVolumeChanged)
@@ -51,11 +63,49 @@ public:
     void showMicMeter(bool show);
     void setInputVolume(float volume);
 
-    Q_INVOKABLE void setInputDevice(const QAudioDeviceInfo& device, bool isHMD);
-    Q_INVOKABLE void setOutputDevice(const QAudioDeviceInfo& device, bool isHMD);
-    Q_INVOKABLE void setReverb(bool enable);
-    Q_INVOKABLE void setReverbOptions(const AudioEffectOptions* options);
+    /**jsdoc
+    * The Audio API features tools to help control audio contexts and settings.
+    *
+    * @namespace Audio
+    * @property {bool} muted - To Be Completed
+    * @property {bool} noiseReduction - To Be Completed
+    * @property {bool} inputVolume - To Be Completed
+    * @property {bool} inputLevel - To Be Completed
+    * @property {QString} context - To Be Completed
+    * @property {} devices - To Be Completed
+    */
 
+    /**jsdoc
+    * To Be Completed
+    * @function Audio.setInputDevice
+    * @param {} device
+    * @param {bool} isHMD 
+    */
+    Q_INVOKABLE void setInputDevice(const QAudioDeviceInfo& device, bool isHMD);
+    /**jsdoc
+    * To Be Completed
+    * @function Audio.setOutputDevice
+    * @param {} device
+    * @param {bool} isHMD
+    */
+    Q_INVOKABLE void setOutputDevice(const QAudioDeviceInfo& device, bool isHMD);
+    /**jsdoc
+    * To Be Completed
+    * @function Audio.setReverb
+    * @param {bool} enable
+    */
+    Q_INVOKABLE void setReverb(bool enable);
+    /**jsdoc
+    * To Be Completed
+    * @function Audio.setReverbOptions
+    * @param {} options
+    */
+    Q_INVOKABLE void setReverbOptions(const AudioEffectOptions* options);
+    /**jsdoc
+    * To Be Completed
+    * @function Audio.setReverbOptions
+    * @param {} options
+    */
     Q_INVOKABLE bool startRecording(const QString& filename);
     Q_INVOKABLE void stopRecording();
     Q_INVOKABLE bool getRecording();
