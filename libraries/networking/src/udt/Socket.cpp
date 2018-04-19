@@ -229,11 +229,7 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
 
     if (bytesWritten < 0) {
         // when saturating a link this isn't an uncommon message - suppress it so it doesn't bomb the debug
-        static const QString WRITE_ERROR_REGEX = "Socket::writeDatagram QAbstractSocket::NetworkError - Unable to send a message";
-        static QString repeatedMessage
-            = LogHandler::getInstance().addRepeatedMessageRegex(WRITE_ERROR_REGEX);
-
-        qCDebug(networking) << "Socket::writeDatagram" << _udpSocket.error() << "-" << qPrintable(_udpSocket.errorString());
+        HIFI_FCDEBUG(networking(), "Socket::writeDatagram" << _udpSocket.error() << "-" << qPrintable(_udpSocket.errorString()) );
     }
 
     return bytesWritten;
@@ -517,11 +513,7 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
 }
 
 void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
-    static const QString SOCKET_REGEX = "udt::Socket error - ";
-    static QString repeatedMessage
-        = LogHandler::getInstance().addRepeatedMessageRegex(SOCKET_REGEX);
-
-    qCDebug(networking) << "udt::Socket error - " << socketError << _udpSocket.errorString();
+    HIFI_FCDEBUG(networking(), "udt::Socket error - " << socketError << _udpSocket.errorString());
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
