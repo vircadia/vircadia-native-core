@@ -7457,7 +7457,7 @@ DisplayPluginPointer Application::getActiveDisplayPlugin() const {
 
 static const char* EXCLUSION_GROUP_KEY = "exclusionGroup";
 
-static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
+static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, int index) {
     auto menu = Menu::getInstance();
     QString name = displayPlugin->getName();
     auto grouping = displayPlugin->getGrouping();
@@ -7484,12 +7484,12 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
     }
     auto parent = menu->getMenu(MenuOption::OutputMenu);
     auto action = menu->addActionToQMenuAndActionHash(parent,
-        name, 0, qApp,
+        name, QKeySequence(Qt::CTRL + (Qt::Key_0 + index)), qApp,
         SLOT(updateDisplayMode()),
         QAction::NoRole, Menu::UNSPECIFIED_POSITION, groupingMenu);
 
     action->setCheckable(true);
-    action->setChecked(active);
+    action->setChecked(index == 1);
     displayPluginGroup->addAction(action);
 
     action->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(displayPluginGroup));
@@ -7507,8 +7507,6 @@ void Application::updateDisplayMode() {
 
     static std::once_flag once;
     std::call_once(once, [&] {
-        bool first = true;
-
         // first sort the plugins into groupings: standard, advanced, developer
         DisplayPluginList standard;
         DisplayPluginList advanced;
@@ -7533,14 +7531,15 @@ void Application::updateDisplayMode() {
         standard.insert(std::end(standard), std::begin(advanced), std::end(advanced));
         standard.insert(std::end(standard), std::begin(developer), std::end(developer));
 
+        int dpIndex = 1;
         foreach(auto displayPlugin, standard) {
-            addDisplayPluginToMenu(displayPlugin, first);
+            addDisplayPluginToMenu(displayPlugin, dpIndex);
             auto displayPluginName = displayPlugin->getName();
             QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
                 resizeGL();
             });
             QObject::connect(displayPlugin.get(), &DisplayPlugin::resetSensorsRequested, this, &Application::requestReset);
-            first = false;
+            dpIndex++;
         }
 
         // after all plugins have been added to the menu, add a separator to the menu
