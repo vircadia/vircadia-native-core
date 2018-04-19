@@ -19,16 +19,16 @@ import "../lib/plotperf"
 
 Rectangle {
     HifiConstants { id: hifi;}
-    id: render;   
+    id: root;   
     anchors.margins: hifi.dimensions.contentMargin.x
     
     color: hifi.colors.baseGray;
-    
+
     Column {
         id: surfaceGeometry
-        spacing: 10
+        spacing: 8
         anchors.left: parent.left
-        anchors.right: parent.right
+        anchors.right: parent.right       
         anchors.margins: hifi.dimensions.contentMargin.x  
 
         Repeater {
@@ -48,19 +48,13 @@ Rectangle {
                 property: modelData.split(":")[1]
                 max: modelData.split(":")[2]
                 min: 0.0
-                width: 280
                 height:38
             }
         }
 
-        Row{
+        Row {
             spacing: 10
-            anchors.left: parent.left
-            anchors.right: parent.right 
-
             Column {
-                spacing: 10
-            
                 Repeater {
                     model: [
                         "resolutionLevel:resolutionLevel",
@@ -76,10 +70,7 @@ Rectangle {
                     } 
                 }
             }
-
             Column {
-                spacing: 10
-            
                 Repeater {
                     model: [
                        "debugEnabled:showCursorPixel"
@@ -95,8 +86,6 @@ Rectangle {
         }
 
         PlotPerf {
-            anchors.left: parent.left
-            anchors.right: parent.right
             title: "Timing"
             height: 50
             object: Render.getConfig("RenderMainView.AmbientOcclusion")
