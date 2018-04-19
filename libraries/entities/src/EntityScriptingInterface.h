@@ -94,8 +94,6 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
  * Interface has displayed and so knows about.
  *
  * @namespace Entities
- * @property {number} currentAvatarEnergy - <strong>Deprecated</strong>
- * @property {number} costMultiplier - <strong>Deprecated</strong>
  * @property {Uuid} keyboardFocusEntity - Get or set the {@link Entities.EntityType|Web} entity that has keyboard focus.
  *     If no entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
  *     clear keyboard focus.
@@ -104,8 +102,6 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
     Q_OBJECT
 
-    Q_PROPERTY(float currentAvatarEnergy READ getCurrentAvatarEnergy WRITE setCurrentAvatarEnergy)
-    Q_PROPERTY(float costMultiplier READ getCostMultiplier WRITE setCostMultiplier)
     Q_PROPERTY(QUuid keyboardFocusEntity READ getKeyboardFocusEntity WRITE setKeyboardFocusEntity)
 
     friend EntityPropertyMetadataRequest;
@@ -126,7 +122,6 @@ public:
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
     void setEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine);
-    float calculateCost(float mass, float oldVelocity, float newVelocity);
 
     void resetActivityTracking();
     ActivityTracking getActivityTracking() const { return _activityTracking; }
@@ -203,9 +198,9 @@ public slots:
      * Add a new entity with specified properties.
      * @function Entities.addEntity
      * @param {Entities.EntityProperties} properties - The properties of the entity to create.
-     * @param {boolean} [clientOnly=false] - If <code>true</code>, the entity is created as an avatar entity, otherwise it
-     *     is created on the server. An avatar entity follows you to each domain you visit, rendering at the same world 
-     *     coordinates unless it's parented to your avatar.
+     * @param {boolean} [clientOnly=false] - If <code>true</code>, or if <code>clientOnly</code> is set <code>true</code> in 
+     *     the properties, the entity is created as an avatar entity; otherwise it is created on the server. An avatar entity 
+     *     follows you to each domain you visit, rendering at the same world coordinates unless it's parented to your avatar.
      * @returns {Uuid} The ID of the entity if successfully created, otherwise {@link Uuid|Uuid.NULL}.
      * @example <caption>Create a box entity in front of your avatar.</caption>
      * var entityID = Entities.addEntity({
@@ -699,7 +694,7 @@ public slots:
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
      * @param {Vec3} voxelCoords - The voxel coordinates. May be fractional and outside the entity's bounding box.
      * @returns {Vec3} The world coordinates of the <code>voxelCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3|Vec3.ZERO}.
+     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}.
      * @example <caption>Create a PolyVox cube with the 0,0,0 voxel replaced by a sphere.</caption>
      * // Cube PolyVox with 0,0,0 voxel missing.
      * var polyVox = Entities.addEntity({
@@ -734,7 +729,7 @@ public slots:
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
      * @param {Vec3} worldCoords - The world coordinates. May be outside the entity's bounding box.
      * @returns {Vec3} The voxel coordinates of the <code>worldCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3|Vec3.ZERO}. The value may be fractional.
+     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}. The value may be fractional.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE glm::vec3 worldCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 worldCoords);
@@ -746,7 +741,7 @@ public slots:
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
      * @param {Vec3} voxelCoords - The voxel coordinates. May be fractional and outside the entity's bounding box.
      * @returns {Vec3} The local coordinates of the <code>voxelCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3|Vec3.ZERO}.
+     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}.
      * @example <caption>Get the world dimensions of a voxel in a PolyVox entity.</caption>
      * var polyVox = Entities.addEntity({
      *     type: "PolyVox",
@@ -768,7 +763,7 @@ public slots:
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
      * @param {Vec3} localCoords - The local coordinates. May be outside the entity's bounding box.
      * @returns {Vec3} The voxel coordinates of the <code>worldCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3|Vec3.ZERO}. The value may be fractional.
+     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}. The value may be fractional.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE glm::vec3 localCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 localCoords);
@@ -1835,14 +1830,6 @@ signals:
     void clearingEntities();
     
     /**jsdoc
-     * @function Entities.debitEnergySource
-     * @param {number} value - The amount to debit.
-     * @returns {Signal}
-     * @deprecated This function is deprecated and will soon be removed.
-     */
-    void debitEnergySource(float value);
-
-    /**jsdoc
      * Triggered in when a script in a {@link Entities.EntityType|Web} entity's Web page script sends an event over the 
      * script's <code>EventBridge</code>.
      * @function Entities.webEventReceived
@@ -1882,14 +1869,8 @@ private:
     QSharedPointer<EntitiesScriptEngineProvider> _entitiesScriptEngine;
 
     bool _bidOnSimulationOwnership { false };
-    float _currentAvatarEnergy = { FLT_MAX };
-    float getCurrentAvatarEnergy() { return _currentAvatarEnergy; }
-    void setCurrentAvatarEnergy(float energy);
 
     ActivityTracking _activityTracking;
-    float costMultiplier = { 0.01f };
-    float getCostMultiplier();
-    void setCostMultiplier(float value);
 };
 
 #endif // hifi_EntityScriptingInterface_h

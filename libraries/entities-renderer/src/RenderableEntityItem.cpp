@@ -135,10 +135,8 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
 
 template <typename T> 
 std::shared_ptr<T> make_renderer(const EntityItemPointer& entity) {
-    T* rawResult = new T(entity);
-
     // We want to use deleteLater so that renderer destruction gets pushed to the main thread
-    return std::shared_ptr<T>(rawResult, std::bind(&QObject::deleteLater, rawResult));
+    return std::shared_ptr<T>(new T(entity), [](T* ptr) { ptr->deleteLater(); });
 }
 
 EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _entity(entity) {

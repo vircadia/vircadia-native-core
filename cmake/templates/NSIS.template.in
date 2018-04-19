@@ -710,11 +710,9 @@ Function PostInstallOptionsPage
     !insertmacro SetInstallOption $ServerStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
   ${EndIf}
 
-  ${If} @SERVER_COMPONENT_CONDITIONAL@
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Perform a clean install (Delete older settings and content)"
-    Pop $CleanInstallCheckbox
-    IntOp $CurrentOffset $CurrentOffset + 15
-  ${EndIf}
+  ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Perform a clean install (Delete older settings and content)"
+  Pop $CleanInstallCheckbox
+  IntOp $CurrentOffset $CurrentOffset + 15
 
   ${If} @PR_BUILD@ == 1
     ; a PR build defaults all install options expect LaunchServerNowCheckbox, LaunchClientNowCheckbox and the settings copy to unchecked
@@ -809,10 +807,8 @@ Function ReadPostInstallOptions
     ${NSD_GetState} $LaunchClientNowCheckbox $LaunchClientNowState
   ${EndIf}
 
-  ${If} @CLIENT_COMPONENT_CONDITIONAL@
-    ; check if the user asked for a clean install
-    ${NSD_GetState} $CleanInstallCheckbox $CleanInstallState
-  ${EndIf}
+  ; check if the user asked for a clean install
+  ${NSD_GetState} $CleanInstallCheckbox $CleanInstallState
 FunctionEnd
 
 Function HandlePostInstallOptions
@@ -856,13 +852,23 @@ Function HandlePostInstallOptions
     ${EndIf}
   ${EndIf}
 
-  ${If} @CLIENT_COMPONENT_CONDITIONAL@
-    ; check if the user asked for a clean install
-    ${If} $CleanInstallState == ${BST_CHECKED}
-      SetShellVarContext current
-      RMDir /r "$APPDATA\@BUILD_ORGANIZATION@"
-      RMDir /r "$LOCALAPPDATA\@BUILD_ORGANIZATION@"
+  ; check if the user asked for a clean install
+  ${If} $CleanInstallState == ${BST_CHECKED}
+    SetShellVarContext current
+
+    ${If} @SERVER_COMPONENT_CONDITIONAL@
+      RMDir /r "$APPDATA\@BUILD_ORGANIZATION@\Server Console"
+      RMDir /r "$APPDATA\@BUILD_ORGANIZATION@\assignment-client"
+      RMDir /r "$APPDATA\@BUILD_ORGANIZATION@\domain-server"
+      Delete "$APPDATA\@BUILD_ORGANIZATION@\domain-server.json"
     ${EndIf}
+
+    ${If} @CLIENT_COMPONENT_CONDITIONAL@
+      Delete "$APPDATA\@BUILD_ORGANIZATION@\Interface\AccountInfo.bin"
+      Delete "$APPDATA\@BUILD_ORGANIZATION@\Interface.json"
+    ${EndIf}
+
+    RMDir /r "$LOCALAPPDATA\@BUILD_ORGANIZATION@"
   ${EndIf}
 
   ${If} @PR_BUILD@ == 1
@@ -975,6 +981,13 @@ Section "-Core installation"
 
   ;Store installation folder
   WriteRegStr HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "" $INSTDIR
+
+  ;Write some information about this install to the installation folder
+  FileOpen $0 "$INSTDIR\installer.ini" w
+  FileWrite $0 "type=@INSTALLER_TYPE@$\r$\n"
+  FileWrite $0 "campaign=$CampaignName$\r$\n"
+  FileWrite $0 "exepath=$EXEPATH$\r$\n"
+  FileClose $0
 
   ;Package the signed uninstaller produced by the inner loop
   !ifndef INNER
@@ -1220,6 +1233,9 @@ Section "Uninstall"
   ;MessageBox MB_OK "Start menu is in: $START_MENU"
 
 @CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS@
+
+  ;Remove the installer information file
+  Delete "$INSTDIR\installer.ini"
 
   ;Remove files we installed.
   ;Keep the list of directories here in sync with the File commands above.

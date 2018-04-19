@@ -44,16 +44,23 @@ namespace VirtualPad {
         void hide(bool hide);
         int extraBottomMargin();
         void setExtraBottomMargin(int margin);
+        glm::vec2 getJumpButtonPosition();
+        void setJumpButtonPosition(glm::vec2 point);
 
         static const float DPI;
-        static const float PIXEL_SIZE;
-        static const float STICK_RADIUS;
-        static const float BASE_MARGIN;
+        static const float BASE_DIAMETER_PIXELS;
+        static const float BASE_MARGIN_PIXELS;
+        static const float STICK_RADIUS_PIXELS;
+        static const float JUMP_BTN_TRIMMED_RADIUS_PIXELS;
+        static const float JUMP_BTN_FULL_PIXELS;
+        static const float JUMP_BTN_BOTTOM_MARGIN_PIXELS;
+        static const float JUMP_BTN_LEFT_MARGIN_PIXELS;
 
     private:
         Instance _leftVPadInstance;
         bool _enabled;
         bool _hidden;
+        glm::vec2 _jumpButtonPosition;
         int _extraBottomMargin {0};
     };
 }

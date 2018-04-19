@@ -229,21 +229,21 @@ Menu::Menu() {
 
     // View > First Person
     auto firstPersonAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::FirstPerson, Qt::CTRL | Qt::Key_F,
+                                   viewMenu, MenuOption::FirstPerson, Qt::Key_1,
                                    true, qApp, SLOT(cameraMenuChanged())));
 
     firstPersonAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     // View > Third Person
     auto thirdPersonAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::ThirdPerson, Qt::CTRL | Qt::Key_G,
+                                   viewMenu, MenuOption::ThirdPerson, Qt::Key_3,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
     thirdPersonAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     // View > Mirror
     auto viewMirrorAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::FullscreenMirror, Qt::CTRL | Qt::Key_H,
+                                   viewMenu, MenuOption::FullscreenMirror, Qt::Key_2,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
     viewMirrorAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
@@ -447,6 +447,9 @@ Menu::Menu() {
     textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture512MB, 0, false));
     textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture1024MB, 0, false));
     textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture2048MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture4096MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture6144MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture8192MB, 0, false));
     connect(textureGroup, &QActionGroup::triggered, [textureGroup] {
         auto checked = textureGroup->checkedAction();
         auto text = checked->text();
@@ -463,6 +466,12 @@ Menu::Menu() {
             newMaxTextureMemory = MB_TO_BYTES(1024);
         } else if (MenuOption::RenderMaxTexture2048MB == text) {
             newMaxTextureMemory = MB_TO_BYTES(2048);
+        } else if (MenuOption::RenderMaxTexture4096MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(4096);
+        } else if (MenuOption::RenderMaxTexture6144MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(6144);
+        } else if (MenuOption::RenderMaxTexture8192MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(8192);
         }
         gpu::Texture::setAllowedGPUMemoryUsage(newMaxTextureMemory);
     });
@@ -674,11 +683,12 @@ Menu::Menu() {
             qApp, SLOT(enablePerfStats(bool)));
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::OnlyDisplayTopTen, 0, true);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandUpdateTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandSimulationTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPhysicsTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMyAvatarTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMyAvatarSimulateTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandOtherAvatarTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPaintGLTiming, 0, false);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPhysicsSimulationTiming, 0, false);
 
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
     addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, qApp, SLOT(runTests()));

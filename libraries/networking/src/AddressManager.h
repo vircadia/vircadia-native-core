@@ -145,12 +145,14 @@ public:
     };
 
     bool isConnected();
-    const QString& getProtocol() { return URL_SCHEME_HIFI; };
+    QString getProtocol() const;
 
     QUrl currentAddress(bool domainOnly = false) const;
     QUrl currentFacingAddress() const;
     QUrl currentShareableAddress(bool domainOnly = false) const;
+    QUrl currentPublicAddress(bool domainOnly = false) const;
     QUrl currentFacingShareableAddress() const;
+    QUrl currentFacingPublicAddress() const;
     QString currentPath(bool withOrientation = true) const;
     QString currentFacingPath() const;
 
@@ -158,7 +160,7 @@ public:
     QString getPlaceName() const;
     QString getDomainID() const;
 
-    QString getHost() const;
+    QString getHost() const { return _domainURL.host(); }
 
     void setPositionGetter(PositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(OrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }

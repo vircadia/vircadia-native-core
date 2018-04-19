@@ -94,13 +94,12 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
     if (constraint) {
         return constraint;
     }
-
-    static QString repeatedHingeNoRigidBody = LogHandler::getInstance().addRepeatedMessageRegex(
-        "ObjectConstraintHinge::getConstraint -- no rigidBody.*");
+    
+    static int repeatMessageID = LogHandler::getInstance().newRepeatedMessageID();
 
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
-        qCDebug(physics) << "ObjectConstraintHinge::getConstraint -- no rigidBodyA";
+        HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintHinge::getConstraint -- no rigidBodyA");
         return nullptr;
     }
 
@@ -115,7 +114,7 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         // This hinge is between two entities... find the other rigid body.
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
-            qCDebug(physics) << "ObjectConstraintHinge::getConstraint -- no rigidBodyB";
+            HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintHinge::getConstraint -- no rigidBodyB");
             return nullptr;
         }
 

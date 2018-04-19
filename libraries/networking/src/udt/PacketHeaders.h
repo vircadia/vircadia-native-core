@@ -231,7 +231,8 @@ enum class EntityVersion : PacketVersion {
     ZoneStageRemoved,
     SoftEntities,
     MaterialEntities,
-    ShadowControl
+    ShadowControl,
+    MaterialData
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

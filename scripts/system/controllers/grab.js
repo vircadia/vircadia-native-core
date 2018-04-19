@@ -8,14 +8,14 @@
 //
 //  Grab's physically moveable entities with the mouse, by applying a spring force.
 //
-//  Updated November 22, 2016 by Philip Rosedale:  Add distance attenuation of grab effect 
+//  Updated November 22, 2016 by Philip Rosedale:  Add distance attenuation of grab effect
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 /* global MyAvatar, Entities, Script, Camera, Vec3, Reticle, Overlays, getEntityCustomData, Messages, Quat, Controller,
-   isInEditMode, HMD entityIsGrabbable, Picks, PickType, Pointers*/
+   isInEditMode, HMD entityIsGrabbable, Picks, PickType, Pointers, unhighlightTargetEntity*/
 
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -354,6 +354,7 @@ Grabber.prototype.pressEvent = function(event) {
 
     Pointers.setRenderState(this.mouseRayEntities, "grabbed");
     Pointers.setLockEndUUID(this.mouseRayEntities, pickResults.objectID, false);
+    unhighlightTargetEntity(pickResults.objectID);
 
     mouse.startDrag(event);
 
@@ -444,6 +445,7 @@ Grabber.prototype.releaseEvent = function(event) {
         this.actionID = null;
 
         Pointers.setRenderState(this.mouseRayEntities, "");
+        Pointers.setLockEndUUID(this.mouseRayEntities, null, false);
 
         var args = "mouse";
         Entities.callEntityMethod(this.entityID, "releaseGrab", args);

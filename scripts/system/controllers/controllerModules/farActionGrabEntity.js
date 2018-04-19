@@ -14,7 +14,7 @@
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
    DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
    getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
-   Picks, makeLaserLockInfo Xform, makeLaserParams, AddressManager, getEntityParents
+   Picks, makeLaserLockInfo Xform, makeLaserParams, AddressManager, getEntityParents, Selection, DISPATCHER_HOVERING_LIST
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -103,6 +103,7 @@ Script.include("/~/system/libraries/Xform.js");
         this.contextOverlayTimer = false;
         this.previousCollisionStatus = false;
         this.locked = false;
+        this.highlightedEntity = null;
         this.reticleMinX = MARGIN;
         this.reticleMaxX;
         this.reticleMinY = MARGIN;
@@ -295,6 +296,7 @@ Script.include("/~/system/libraries/Xform.js");
             this.actionID = null;
             this.grabbedThingID = null;
             this.targetObject = null;
+            this.potentialEntityWithContextOverlay = false;
         };
 
         this.updateRecommendedArea = function() {
@@ -401,6 +403,9 @@ Script.include("/~/system/libraries/Xform.js");
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE ||
                 this.notPointingAtEntity(controllerData) || this.targetIsNull()) {
                 this.endNearGrabAction();
+                Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
+                    this.highlightedEntity);
+                this.highlightedEntity = null;
                 return makeRunningValues(false, [], []);
             }
             this.intersectionDistance = controllerData.rayPicks[this.hand].distance;
@@ -449,7 +454,9 @@ Script.include("/~/system/libraries/Xform.js");
                 if (rayPickInfo.type === Picks.INTERSECTED_ENTITY) {
                     if (controllerData.triggerClicks[this.hand]) {
                         var entityID = rayPickInfo.objectID;
-
+                        Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
+                            this.highlightedEntity);
+                        this.highlightedEntity = null;
                         var targetProps = Entities.getEntityProperties(entityID, [
                             "dynamic", "shapeType", "position",
                             "rotation", "dimensions", "density",
@@ -467,15 +474,17 @@ Script.include("/~/system/libraries/Xform.js");
                             Script.clearTimeout(this.contextOverlayTimer);
                         }
                         this.contextOverlayTimer = false;
-                        if (entityID !== this.entityWithContextOverlay) {
+                        if (entityID === this.entityWithContextOverlay) {
                             this.destroyContextOverlay();
+                        } else {
+                            Selection.removeFromSelectedItemsList("contextOverlayHighlightList", "entity", entityID);
                         }
 
                         var targetEntity = this.targetObject.getTargetEntity();
                         entityID = targetEntity.id;
                         targetProps = targetEntity.props;
 
-                        if (entityIsGrabbable(targetProps)) {
+                        if (entityIsGrabbable(targetProps) || entityIsGrabbable(this.targetObject.entityProps)) {
                             if (!entityIsDistanceGrabbable(targetProps)) {
                                 this.targetObject.makeDynamic();
                             }
@@ -495,38 +504,62 @@ Script.include("/~/system/libraries/Xform.js");
                                 this.startFarGrabAction(controllerData, targetProps);
                             }
                         }
-                    } else if (!this.entityWithContextOverlay) {
-                        var _this = this;
+                    } else {
+                        var targetEntityID = rayPickInfo.objectID;
+                        if (this.highlightedEntity !== targetEntityID) {
+                            Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
+                                this.highlightedEntity);
+                            var selectionTargetProps = Entities.getEntityProperties(targetEntityID, [
+                                "dynamic", "shapeType", "position",
+                                "rotation", "dimensions", "density",
+                                "userData", "locked", "type", "href"
+                            ]);
 
-                        if (_this.potentialEntityWithContextOverlay !== rayPickInfo.objectID) {
-                            if (_this.contextOverlayTimer) {
-                                Script.clearTimeout(_this.contextOverlayTimer);
+                            var selectionTargetObject = new TargetObject(targetEntityID, selectionTargetProps);
+                            selectionTargetObject.parentProps = getEntityParents(selectionTargetProps);
+                            var selectionTargetEntity = selectionTargetObject.getTargetEntity();
+
+                            if (entityIsGrabbable(selectionTargetEntity.props) ||
+                                entityIsGrabbable(selectionTargetObject.entityProps)) {
+
+                                Selection.addToSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity", rayPickInfo.objectID);
                             }
-                            _this.contextOverlayTimer = false;
-                            _this.potentialEntityWithContextOverlay = rayPickInfo.objectID;
+                            this.highlightedEntity = rayPickInfo.objectID;
                         }
 
-                        if (!_this.contextOverlayTimer) {
-                            _this.contextOverlayTimer = Script.setTimeout(function () {
-                                if (!_this.entityWithContextOverlay &&
-                                    _this.contextOverlayTimer &&
-                                    _this.potentialEntityWithContextOverlay === rayPickInfo.objectID) {
-                                    var props = Entities.getEntityProperties(rayPickInfo.objectID);
-                                    var pointerEvent = {
-                                        type: "Move",
-                                        id: _this.hand + 1, // 0 is reserved for hardware mouse
-                                        pos2D: projectOntoEntityXYPlane(rayPickInfo.objectID, rayPickInfo.intersection, props),
-                                        pos3D: rayPickInfo.intersection,
-                                        normal: rayPickInfo.surfaceNormal,
-                                        direction: Vec3.subtract(ZERO_VEC, rayPickInfo.surfaceNormal),
-                                        button: "Secondary"
-                                    };
-                                    if (ContextOverlay.createOrDestroyContextOverlay(rayPickInfo.objectID, pointerEvent)) {
-                                        _this.entityWithContextOverlay = rayPickInfo.objectID;
-                                    }
+                        if (!this.entityWithContextOverlay) {
+                            var _this = this;
+
+                            if (_this.potentialEntityWithContextOverlay !== rayPickInfo.objectID) {
+                                if (_this.contextOverlayTimer) {
+                                    Script.clearTimeout(_this.contextOverlayTimer);
                                 }
                                 _this.contextOverlayTimer = false;
-                            }, 500);
+                                _this.potentialEntityWithContextOverlay = rayPickInfo.objectID;
+                            }
+
+                            if (!_this.contextOverlayTimer) {
+                                _this.contextOverlayTimer = Script.setTimeout(function () {
+                                    if (!_this.entityWithContextOverlay &&
+                                        _this.contextOverlayTimer &&
+                                        _this.potentialEntityWithContextOverlay === rayPickInfo.objectID) {
+                                        var props = Entities.getEntityProperties(rayPickInfo.objectID);
+                                        var pointerEvent = {
+                                            type: "Move",
+                                            id: _this.hand + 1, // 0 is reserved for hardware mouse
+                                            pos2D: projectOntoEntityXYPlane(rayPickInfo.objectID, rayPickInfo.intersection, props),
+                                            pos3D: rayPickInfo.intersection,
+                                            normal: rayPickInfo.surfaceNormal,
+                                            direction: Vec3.subtract(ZERO_VEC, rayPickInfo.surfaceNormal),
+                                            button: "Secondary"
+                                        };
+                                        if (ContextOverlay.createOrDestroyContextOverlay(rayPickInfo.objectID, pointerEvent)) {
+                                            _this.entityWithContextOverlay = rayPickInfo.objectID;
+                                        }
+                                    }
+                                    _this.contextOverlayTimer = false;
+                                }, 500);
+                            }
                         }
                     }
                 } else if (this.distanceRotating) {
@@ -542,6 +575,9 @@ Script.include("/~/system/libraries/Xform.js");
             if (disableModule) {
                 if (disableModule.disableModules) {
                     this.endNearGrabAction();
+                    Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
+                        this.highlightedEntity);
+                    this.highlightedEntity = null;
                     return makeRunningValues(false, [], []);
                 }
             }

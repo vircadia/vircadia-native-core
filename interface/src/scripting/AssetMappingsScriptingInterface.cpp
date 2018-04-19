@@ -69,18 +69,18 @@ void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback
 
 void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, QJSValue startedCallback, QJSValue completedCallback, bool dropEvent) {
     static const QString helpText =
-        "Upload your asset to a specific folder by entering the full path. Specifying\n"
+        "Upload your asset to a specific folder by entering the full path. Specifying "
         "a new folder name will automatically create that folder for you.";
     static const QString dropHelpText =
         "This file will be added to your Asset Server.\n"
-        "Use the field below to place your file in a specific folder or to rename it.\n"
+        "Use the field below to place your file in a specific folder or to rename it. "
         "Specifying a new folder name will automatically create that folder for you.";
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto result = offscreenUi->inputDialog(OffscreenUi::ICON_INFORMATION, "Specify Asset Path",
                                            dropEvent ? dropHelpText : helpText, mapping);
 
-    if (!result.isValid()) {
+    if (!result.isValid() || result.toString() == "") {
         completedCallback.call({ -1 });
         return;
     }
@@ -150,6 +150,10 @@ void AssetMappingsScriptingInterface::deleteMappings(QStringList paths, QJSValue
     });
 
     request->start();
+}
+
+void AssetMappingsScriptingInterface::sortProxyModel(int column, Qt::SortOrder order) {
+    _proxyModel.sort(column, order);
 }
 
 void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
@@ -287,7 +291,7 @@ void AssetMappingModel::refresh() {
                         item->setData(parts[i], Qt::UserRole + 2);
                         item->setData("atp:" + fullPath, Qt::UserRole + 3);
                         item->setData(fullPath, Qt::UserRole + 4);
-                        
+
                         if (lastItem) {
                             lastItem->appendRow(item);
                         } else {

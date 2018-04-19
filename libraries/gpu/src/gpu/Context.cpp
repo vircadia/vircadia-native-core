@@ -129,6 +129,7 @@ void Context::executeFrame(const FramePointer& frame) const {
 }
 
 bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings, const Shader::CompilationHandler& handler) {
+    PROFILE_RANGE_EX(app, "makeProgram", 0xff4040c0, shader.getID());
     // If we're running in another DLL context, we need to fetch the program callback out of the application
     // FIXME find a way to do this without reliance on Qt app properties
     if (!_makeProgramCallback) {

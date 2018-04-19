@@ -46,14 +46,67 @@ static const uint8_t CPU_AFFINITY_COUNT_LOW = 1;
 static const int INTERFACE_RUNNING_CHECK_FREQUENCY_MS = 1000;
 #endif
 
-const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
-
 static const QStringList BAKEABLE_MODEL_EXTENSIONS = { "fbx" };
 static QStringList BAKEABLE_TEXTURE_EXTENSIONS;
-static const QStringList BAKEABLE_SCRIPT_EXTENSIONS = {};
+static const QStringList BAKEABLE_SCRIPT_EXTENSIONS = { };
+
 static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
 static const QString BAKED_TEXTURE_SIMPLE_NAME = "texture.ktx";
 static const QString BAKED_SCRIPT_SIMPLE_NAME = "asset.js";
+
+static const ModelBakeVersion CURRENT_MODEL_BAKE_VERSION = (ModelBakeVersion)((BakeVersion)ModelBakeVersion::COUNT - 1);
+static const TextureBakeVersion CURRENT_TEXTURE_BAKE_VERSION = (TextureBakeVersion)((BakeVersion)TextureBakeVersion::COUNT - 1);
+static const ScriptBakeVersion CURRENT_SCRIPT_BAKE_VERSION = (ScriptBakeVersion)((BakeVersion)ScriptBakeVersion::COUNT - 1);
+
+BakedAssetType assetTypeForExtension(const QString& extension) {
+    auto extensionLower = extension.toLower();
+    if (BAKEABLE_MODEL_EXTENSIONS.contains(extensionLower)) {
+        return BakedAssetType::Model;
+    } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extensionLower.toLocal8Bit())) {
+        return BakedAssetType::Texture;
+    } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extensionLower)) {
+        return BakedAssetType::Script;
+    }
+    return BakedAssetType::Undefined;
+}
+
+BakedAssetType assetTypeForFilename(const QString& filename) {
+    auto dotIndex = filename.lastIndexOf(".");
+    if (dotIndex == -1) {
+        return BakedAssetType::Undefined;
+    }
+
+    auto extension = filename.mid(dotIndex + 1);
+    return assetTypeForExtension(extension);
+}
+
+QString bakedFilenameForAssetType(BakedAssetType type) {
+    switch (type) {
+        case BakedAssetType::Model:
+            return BAKED_MODEL_SIMPLE_NAME;
+        case BakedAssetType::Texture:
+            return BAKED_TEXTURE_SIMPLE_NAME;
+        case BakedAssetType::Script:
+            return BAKED_SCRIPT_SIMPLE_NAME;
+        default:
+            return "";
+    }
+}
+
+BakeVersion currentBakeVersionForAssetType(BakedAssetType type) {
+    switch (type) {
+        case BakedAssetType::Model:
+            return (BakeVersion)CURRENT_MODEL_BAKE_VERSION;
+        case BakedAssetType::Texture:
+            return (BakeVersion)CURRENT_TEXTURE_BAKE_VERSION;
+        case BakedAssetType::Script:
+            return (BakeVersion)CURRENT_SCRIPT_BAKE_VERSION;
+        default:
+            return 0;
+    }
+}
+
+const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
 void AssetServer::bakeAsset(const AssetUtils::AssetHash& assetHash, const AssetUtils::AssetPath& assetPath, const QString& filePath) {
     qDebug() << "Starting bake for: " << assetPath << assetHash;
@@ -167,36 +220,38 @@ bool AssetServer::needsToBeBaked(const AssetUtils::AssetPath& path, const AssetU
         return false;
     }
 
-    auto dotIndex = path.lastIndexOf(".");
-    if (dotIndex == -1) {
+    BakedAssetType type = assetTypeForFilename(path);
+
+    if (type == BakedAssetType::Undefined) {
         return false;
     }
 
-    auto extension = path.mid(dotIndex + 1);
+    QString bakedFilename = bakedFilenameForAssetType(type);
+    auto bakedPath = AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER + assetHash + "/" + bakedFilename;
+    auto mappingIt = _fileMappings.find(bakedPath);
+    bool bakedMappingExists = mappingIt != _fileMappings.end();
 
-    QString bakedFilename;
+    // If the path is mapped to the original file's hash, baking has been disabled for this
+    // asset
+    if (bakedMappingExists && mappingIt->second == assetHash) {
+        return false;
+    }
 
     bool loaded;
     AssetMeta meta;
     std::tie(loaded, meta) = readMetaFile(assetHash);
 
-    // TODO: Allow failed bakes that happened on old versions to be re-baked
-    if (loaded && meta.failedLastBake) {
+    if (type == BakedAssetType::Texture && !loaded) {
         return false;
     }
 
-    if (BAKEABLE_MODEL_EXTENSIONS.contains(extension)) {
-        bakedFilename = BAKED_MODEL_SIMPLE_NAME;
-    } else if (loaded && BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit())) {
-        bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
-    } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
-        bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
-    } else {
+    auto currentVersion = currentBakeVersionForAssetType(type);
+
+    if (loaded && (meta.failedLastBake && meta.bakeVersion >= currentVersion)) {
         return false;
     }
 
-    auto bakedPath = AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER + assetHash + "/" + bakedFilename;
-    return _fileMappings.find(bakedPath) == _fileMappings.end();
+    return !bakedMappingExists || (meta.bakeVersion < currentVersion);
 }
 
 bool interfaceRunning() {
@@ -598,15 +653,9 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, NLPacketLi
 
         // first, figure out from the mapping extension what type of file this is
         auto assetPathExtension = assetPath.mid(assetPath.lastIndexOf('.') + 1).toLower();
-        QString bakedRootFile;
 
-        if (BAKEABLE_MODEL_EXTENSIONS.contains(assetPathExtension)) {
-            bakedRootFile = BAKED_MODEL_SIMPLE_NAME;
-        } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(assetPathExtension.toLocal8Bit())) {
-            bakedRootFile = BAKED_TEXTURE_SIMPLE_NAME;
-        } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(assetPathExtension)) {
-            bakedRootFile = BAKED_SCRIPT_SIMPLE_NAME;
-        }
+        auto type = assetTypeForFilename(assetPath);
+        QString bakedRootFile = bakedFilenameForAssetType(type);
         
         auto originalAssetHash = it->second;
         QString redirectedAssetHash;
@@ -653,9 +702,19 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, NLPacketLi
             auto query = QUrlQuery(url.query());
             bool isSkybox = query.hasQueryItem("skybox");
             if (isSkybox) {
-                writeMetaFile(originalAssetHash);
-                if (!bakingDisabled) {
-                    maybeBake(assetPath, originalAssetHash);
+                bool loaded;
+                AssetMeta meta;
+                std::tie(loaded, meta) = readMetaFile(originalAssetHash);
+
+                if (!loaded) {
+                    AssetMeta needsBakingMeta;
+                    needsBakingMeta.bakeVersion = NEEDS_BAKING_BAKE_VERSION;
+
+                    writeMetaFile(originalAssetHash, needsBakingMeta);
+                    if (!bakingDisabled) {
+                        maybeBake(assetPath, originalAssetHash);
+                    }
+
                 }
             }
         }
@@ -1275,15 +1334,19 @@ QString getBakeMapping(const AssetUtils::AssetHash& hash, const QString& relativ
 }
 
 void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath, QString errors) {
-    qDebug() << "Failed: " << originalAssetHash << assetPath << errors;
+    qDebug() << "Failed to bake: " << originalAssetHash << assetPath << "(" << errors << ")";
 
     bool loaded;
     AssetMeta meta;
 
     std::tie(loaded, meta) = readMetaFile(originalAssetHash);
 
+    auto type = assetTypeForFilename(assetPath);
+    auto currentTypeVersion = currentBakeVersionForAssetType(type);
+
     meta.failedLastBake = true;
     meta.lastBakeErrors = errors;
+    meta.bakeVersion = currentTypeVersion;
 
     writeMetaFile(originalAssetHash, meta);
 
@@ -1373,16 +1436,19 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
         qWarning() << "Failed to remove temporary directory:" << bakedTempOutputDir;
     }
 
-    if (!errorCompletingBake) {
-        // create the meta file to store which version of the baking process we just completed
-        writeMetaFile(originalAssetHash);
-    } else {
+    auto type = assetTypeForFilename(originalAssetPath);
+    auto currentTypeVersion = currentBakeVersionForAssetType(type);
+
+    AssetMeta meta;
+    meta.bakeVersion = currentTypeVersion;
+    meta.failedLastBake = errorCompletingBake;
+
+    if (errorCompletingBake) {
         qWarning() << "Could not complete bake for" << originalAssetHash;
-        AssetMeta meta;
-        meta.failedLastBake = true;
         meta.lastBakeErrors = errorReason;
-        writeMetaFile(originalAssetHash, meta);
     }
+
+    writeMetaFile(originalAssetHash, meta);
 
     _pendingBakes.remove(originalAssetHash);
 }
@@ -1420,16 +1486,16 @@ std::pair<bool, AssetMeta> AssetServer::readMetaFile(AssetUtils::AssetHash hash)
         if (error.error == QJsonParseError::NoError && doc.isObject()) {
             auto root = doc.object();
 
-            auto bakeVersion = root[BAKE_VERSION_KEY].toInt(-1);
+            auto bakeVersion = root[BAKE_VERSION_KEY];
             auto failedLastBake = root[FAILED_LAST_BAKE_KEY];
             auto lastBakeErrors = root[LAST_BAKE_ERRORS_KEY];
 
-            if (bakeVersion != -1
+            if (bakeVersion.isDouble()
                 && failedLastBake.isBool()
                 && lastBakeErrors.isString()) {
 
                 AssetMeta meta;
-                meta.bakeVersion = bakeVersion;
+                meta.bakeVersion = bakeVersion.toInt();
                 meta.failedLastBake = failedLastBake.toBool();
                 meta.lastBakeErrors = lastBakeErrors.toString();
 
@@ -1447,7 +1513,7 @@ bool AssetServer::writeMetaFile(AssetUtils::AssetHash originalAssetHash, const A
     // construct the JSON that will be in the meta file
     QJsonObject metaFileObject;
 
-    metaFileObject[BAKE_VERSION_KEY] = meta.bakeVersion;
+    metaFileObject[BAKE_VERSION_KEY] = (int)meta.bakeVersion;
     metaFileObject[FAILED_LAST_BAKE_KEY] = meta.failedLastBake;
     metaFileObject[LAST_BAKE_ERRORS_KEY] = meta.lastBakeErrors;
 
@@ -1479,27 +1545,13 @@ bool AssetServer::setBakingEnabled(const AssetUtils::AssetPathList& paths, bool 
     for (const auto& path : paths) {
         auto it = _fileMappings.find(path);
         if (it != _fileMappings.end()) {
+            auto type = assetTypeForFilename(path);
+            if (type == BakedAssetType::Undefined) {
+                continue;
+            }
+            QString bakedFilename = bakedFilenameForAssetType(type);
+
             auto hash = it->second;
-
-            auto dotIndex = path.lastIndexOf(".");
-            if (dotIndex == -1) {
-                continue;
-            }
-
-            auto extension = path.mid(dotIndex + 1);
-
-            QString bakedFilename;
-    
-            if (BAKEABLE_MODEL_EXTENSIONS.contains(extension)) {
-                bakedFilename = BAKED_MODEL_SIMPLE_NAME;
-            } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(hash)) {
-                bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
-            } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
-                bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
-            } else {
-                continue;
-            }
-
             auto bakedMapping = getBakeMapping(hash, bakedFilename);
 
             auto it = _fileMappings.find(bakedMapping);
