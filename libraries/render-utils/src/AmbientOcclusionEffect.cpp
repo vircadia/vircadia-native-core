@@ -413,10 +413,12 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
         Transform model;
 
-		// We need this with the mips levels  
+		// We need this with the mips levels
+		batch.pushProfileRange("Depth mip creation");
 		batch.setModelTransform(model);
 		batch.setPipeline(mipCreationPipeline);
 		batch.generateTextureMipsWithPipeline(_framebuffer->getLinearDepthTexture());
+		batch.popProfileRange();
 
 		model.setTranslation(glm::vec3(sMin, tMin, 0.0f));
         model.setScale(glm::vec3(sWidth, tHeight, 1.0f));
@@ -433,7 +435,8 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         if (_parametersBuffer->getBlurRadius() > 0) {
-            // Blur 1st pass
+			PROFILE_RANGE_BATCH(batch, "Blur");
+			// Blur 1st pass
             batch.setFramebuffer(occlusionBlurredFBO);
             batch.setPipeline(firstHBlurPipeline);
             batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, occlusionFBO->getRenderBuffer(0));
