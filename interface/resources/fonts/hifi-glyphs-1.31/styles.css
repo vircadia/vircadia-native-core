@@ -92,9 +92,6 @@
 .icon-edit:before {
   content: "\73";
 }
-.icon-market:before {
-  content: "\74";
-}
 .icon-directory:before {
   content: "\75";
 }
@@ -451,4 +448,34 @@
 }
 .icon-image:before {
   content: "\e02a";
+}
+.icon-environments:before {
+  content: "\e02c";
+}
+.icon-wand:before {
+  content: "\e02d";
+}
+.icon-market:before {
+  content: "\74";
+}
+.icon-wear:before {
+  content: "\e02e";
+}
+.icon-certificate:before {
+  content: "\e030";
+}
+.icon-gift:before {
+  content: "\e031";
+}
+.icon-update:before {
+  content: "\e032";
+}
+.icon-uninstall:before {
+  content: "\e033";
+}
+.icon-install:before {
+  content: "\e02f";
+}
+.icon-ellipsis-vertical:before {
+  content: "\e034";
 }

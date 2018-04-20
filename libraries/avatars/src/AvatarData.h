@@ -256,6 +256,11 @@ namespace AvatarDataPacket {
         SixByteQuat rotation[numValidRotations];               // encodeded and compressed by packOrientationQuatToSixBytes()
         uint8_t translationValidityBits[ceil(numJoints / 8)];  // one bit per joint, if true then a compressed translation follows.
         SixByteTrans translation[numValidTranslations];        // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
+
+        SixByteQuat leftHandControllerRotation;
+        SixByteTrans leftHandControllerTranslation;
+        SixByteQuat rightHandControllerRotation;
+        SixByteTrans rightHandControllerTranslation;
     };
     */
     size_t maxJointDataSize(size_t numJoints);
@@ -707,11 +712,11 @@ signals:
     void sessionUUIDChanged();
 
 public slots:
-    void sendAvatarDataPacket();
+    void sendAvatarDataPacket(bool sendAll = false);
     void sendIdentityPacket();
 
     void setJointMappingsFromNetworkReply();
-    void setSessionUUID(const QUuid& sessionUUID) {
+    virtual void setSessionUUID(const QUuid& sessionUUID) {
         if (sessionUUID != getID()) {
             if (sessionUUID == QUuid()) {
                 setID(AVATAR_SELF_ID);

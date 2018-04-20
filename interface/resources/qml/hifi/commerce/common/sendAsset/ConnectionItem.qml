@@ -1,6 +1,6 @@
 //
 //  ConnectionItem.qml
-//  qml/hifi/commerce/wallet/sendMoney
+//  qml/hifi/commerce/common/sendAsset
 //
 //  ConnectionItem
 //
@@ -113,7 +113,7 @@ Item {
             text: "CHOOSE";
             onClicked: {
                 var msg = { method: 'chooseConnection', userName: root.userName, profilePicUrl: root.profilePicUrl };
-                sendToSendMoney(msg);
+                sendToParent(msg);
             }
         }
     }
@@ -121,7 +121,7 @@ Item {
     //
     // FUNCTION DEFINITIONS START
     //
-    signal sendToSendMoney(var msg);
+    signal sendToParent(var msg);
     //
     // FUNCTION DEFINITIONS END
     //
