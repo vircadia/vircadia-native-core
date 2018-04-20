@@ -36,6 +36,7 @@
 #include "HifiSockAddr.h"
 #include "NetworkLogging.h"
 #include "udt/Packet.h"
+#include "HMACAuth.h"
 
 static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.LocalPort", 0);
 
@@ -314,7 +315,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             if (verifiedPacket && !ignoreVerification) {
 
                 QByteArray packetHeaderHash = NLPacket::verificationHashInHeader(packet);
-                QByteArray expectedHash = NLPacket::hashForPacketAndSecret(packet, sourceNode->getConnectionSecret());
+                QByteArray expectedHash = NLPacket::hashForPacketAndHMAC(packet, sourceNode->getAuthenticateHash());
 
                 // check if the md5 hash in the header matches the hash we would expect
                 if (packetHeaderHash != expectedHash) {
@@ -354,15 +355,15 @@ void LimitedNodeList::collectPacketStats(const NLPacket& packet) {
     _numCollectedBytes += packet.getDataSize();
 }
 
-void LimitedNodeList::fillPacketHeader(const NLPacket& packet, const QUuid& connectionSecret) {
+void LimitedNodeList::fillPacketHeader(const NLPacket& packet, HMACAuth* hmacAuth) {
     if (!PacketTypeEnum::getNonSourcedPackets().contains(packet.getType())) {
         packet.writeSourceID(getSessionUUID());
     }
 
-    if (!connectionSecret.isNull()
+    if (hmacAuth
         && !PacketTypeEnum::getNonSourcedPackets().contains(packet.getType())
         && !PacketTypeEnum::getNonVerifiedPackets().contains(packet.getType())) {
-        packet.writeVerificationHashGivenSecret(connectionSecret);
+        packet.writeVerificationHash(*hmacAuth);
     }
 }
 
@@ -378,17 +379,17 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node&
     emit dataSent(destinationNode.getType(), packet.getDataSize());
     destinationNode.recordBytesSent(packet.getDataSize());
 
-    return sendUnreliablePacket(packet, *destinationNode.getActiveSocket(), destinationNode.getConnectionSecret());
+    return sendUnreliablePacket(packet, *destinationNode.getActiveSocket(), &destinationNode.getAuthenticateHash());
 }
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
-                                             const QUuid& connectionSecret) {
+        HMACAuth* hmacAuth) {
     Q_ASSERT(!packet.isPartOfMessage());
     Q_ASSERT_X(!packet.isReliable(), "LimitedNodeList::sendUnreliablePacket",
                "Trying to send a reliable packet unreliably.");
 
     collectPacketStats(packet);
-    fillPacketHeader(packet, connectionSecret);
+    fillPacketHeader(packet, hmacAuth);
 
     return _nodeSocket.writePacket(packet, sockAddr);
 }
@@ -401,7 +402,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
         emit dataSent(destinationNode.getType(), packet->getDataSize());
         destinationNode.recordBytesSent(packet->getDataSize());
 
-        return sendPacket(std::move(packet), *activeSocket, destinationNode.getConnectionSecret());
+        return sendPacket(std::move(packet), *activeSocket, &destinationNode.getAuthenticateHash());
     } else {
         qCDebug(networking) << "LimitedNodeList::sendPacket called without active socket for node" << destinationNode << "- not sending";
         return ERROR_SENDING_PACKET_BYTES;
@@ -409,18 +410,18 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr,
-                                   const QUuid& connectionSecret) {
+                                   HMACAuth* hmacAuth) {
     Q_ASSERT(!packet->isPartOfMessage());
     if (packet->isReliable()) {
         collectPacketStats(*packet);
-        fillPacketHeader(*packet, connectionSecret);
+        fillPacketHeader(*packet, hmacAuth);
 
         auto size = packet->getDataSize();
         _nodeSocket.writePacket(std::move(packet), sockAddr);
 
         return size;
     } else {
-        return sendUnreliablePacket(*packet, sockAddr, connectionSecret);
+        return sendUnreliablePacket(*packet, sockAddr, hmacAuth);
     }
 }
 
@@ -429,13 +430,14 @@ qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetLi
 
     if (activeSocket) {
         qint64 bytesSent = 0;
-        auto connectionSecret = destinationNode.getConnectionSecret();
+        auto& connectionHash = destinationNode.getAuthenticateHash();
 
         // close the last packet in the list
         packetList.closeCurrentPacket();
 
         while (!packetList._packets.empty()) {
-            bytesSent += sendPacket(packetList.takeFront<NLPacket>(), *activeSocket, connectionSecret);
+            bytesSent += sendPacket(packetList.takeFront<NLPacket>(), *activeSocket,
+                &connectionHash);
         }
 
         emit dataSent(destinationNode.getType(), bytesSent);
@@ -448,14 +450,14 @@ qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetLi
 }
 
 qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
-                                                          const QUuid& connectionSecret) {
+                                                          HMACAuth* hmacAuth) {
     qint64 bytesSent = 0;
 
     // close the last packet in the list
     packetList.closeCurrentPacket();
 
     while (!packetList._packets.empty()) {
-        bytesSent += sendPacket(packetList.takeFront<NLPacket>(), sockAddr, connectionSecret);
+        bytesSent += sendPacket(packetList.takeFront<NLPacket>(), sockAddr, hmacAuth);
     }
 
     return bytesSent;
@@ -483,7 +485,7 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
         for (std::unique_ptr<udt::Packet>& packet : packetList->_packets) {
             NLPacket* nlPacket = static_cast<NLPacket*>(packet.get());
             collectPacketStats(*nlPacket);
-            fillPacketHeader(*nlPacket, destinationNode.getConnectionSecret());
+            fillPacketHeader(*nlPacket, &destinationNode.getAuthenticateHash());
         }
 
         return _nodeSocket.writePacketList(std::move(packetList), *activeSocket);
@@ -506,7 +508,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
     auto& destinationSockAddr = (overridenSockAddr.isNull()) ? *destinationNode.getActiveSocket()
                                                              : overridenSockAddr;
 
-    return sendPacket(std::move(packet), destinationSockAddr, destinationNode.getConnectionSecret());
+    return sendPacket(std::move(packet), destinationSockAddr, &destinationNode.getAuthenticateHash());
 }
 
 int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
