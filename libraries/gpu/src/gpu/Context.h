@@ -64,17 +64,11 @@ public:
     virtual void recycle() const = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
-    // UBO class... layout MUST match the layout in Transform.slh
-    class TransformCamera {
-    public:
-        mutable Mat4 _view;
-        mutable Mat4 _viewInverse;
-        mutable Mat4 _projectionViewUntranslated;
-        Mat4 _projection;
-        mutable Mat4 _projectionInverse;
-        Vec4 _viewport; // Public value is int but float in the shader to stay in floats for all the transform computations.
-        mutable Vec4 _stereoInfo;
+    // Shared header between C++ and GLSL
+#include "TransformCamera_shared.slh"
 
+    class TransformCamera : public _TransformCamera {
+    public:
         const Backend::TransformCamera& recomputeDerived(const Transform& xformView) const;
         TransformCamera getEyeCamera(int eye, const StereoState& stereo, const Transform& xformView) const;
     };
