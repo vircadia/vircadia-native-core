@@ -323,4 +323,8 @@ enum class IcePingVersion : PacketVersion {
     SendICEPeerID = 18
 };
 
+enum class PingVersion : PacketVersion {
+    IncludeConnectionID = 18
+};
+
 #endif // hifi_PacketHeaders_h

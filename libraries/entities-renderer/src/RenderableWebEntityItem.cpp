@@ -278,7 +278,7 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
     // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
     // and the current rendering load)
     _webSurface->setMaxFps(DEFAULT_MAX_FPS);
-    QObject::connect(_webSurface.data(), &OffscreenQmlSurface::rootContextCreated, [this](QQmlContext* surfaceContext) {
+    QObject::connect(_webSurface.data(), &OffscreenQmlSurface::rootContextCreated, [](QQmlContext* surfaceContext) {
         // FIXME - Keyboard HMD only: Possibly add "HMDinfo" object to context for WebView.qml.
         surfaceContext->setContextProperty("desktop", QVariant());
         // Let us interact with the keyboard
