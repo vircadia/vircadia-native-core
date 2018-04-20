@@ -378,7 +378,7 @@ void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QU
 
     if (streamToAdd.getType() == PositionalAudioStream::Injector) {
         // apply per-avatar gain to positional audio injectors, which wouldn't otherwise be affected by PAL sliders
-        gain *= listenerNodeData.hrtfForStream(sourceNodeID, QUuid()).getGainAdjustment();
+        hrtf.setGainAdjustment(listenerNodeData.hrtfForStream(sourceNodeID, QUuid()).getGainAdjustment());
     }
 
     hrtf.render(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
