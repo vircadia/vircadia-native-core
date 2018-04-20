@@ -373,7 +373,6 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     if (!HMD.tabletID || !HMD.tabletScreenID || !HMD.homeButtonID || !HMD.homeButtonHighlightID) {
         return;
     }
-
     var sensorScaleFactor = sensorToWorldScaleOverride || MyAvatar.sensorToWorldScale;
     var sensorScaleOffsetOverride = 1;
     var SENSOR_TO_ROOM_MATRIX = 65534;
@@ -383,8 +382,8 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     }
 
     // will need to be recaclulated if dimensions of fbx model change.
-    var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
-    var DEFAULT_DPI = 34;
+    var TABLET_NATURAL_DIMENSIONS = {x: 32.083, y: 48.553, z: 2.269};
+    var DEFAULT_DPI = 31;
     var DEFAULT_WIDTH = 0.4375;
 
     // scale factor of natural tablet dimensions.
@@ -402,9 +401,10 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     // update webOverlay
     var RAYPICK_OFFSET = 0.0007; // Sufficient for raypick to reliably intersect tablet screen before tablet model.
     var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.0) * sensorScaleOffsetOverride + RAYPICK_OFFSET;
-    var WEB_ENTITY_Y_OFFSET = 0.004 * sensorScaleFactor * sensorScaleOffsetOverride;
-    var screenWidth = 0.82 * tabletWidth;
-    var screenHeight = 0.81 * tabletHeight;
+    var WEB_ENTITY_Y_OFFSET = 1 * tabletScaleFactor;
+    print(WEB_ENTITY_Y_OFFSET);
+    var screenWidth = 0.9275 * tabletWidth;
+    var screenHeight = 0.8983 * tabletHeight;
     var landscape = Tablet.getTablet("com.highfidelity.interface.tablet.system").landscape;
     Overlays.editOverlay(HMD.tabletScreenID, {
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
@@ -413,7 +413,7 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     });
 
     // update homeButton
-    var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20) - 0.003 * sensorScaleFactor) * sensorScaleOffsetOverride;
+    var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20) + 0.003 * sensorScaleFactor) * sensorScaleOffsetOverride;
     // FIXME: Circle3D overlays currently at the wrong dimensions, so we need to account for that here
     var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
     Overlays.editOverlay(HMD.homeButtonID, {
