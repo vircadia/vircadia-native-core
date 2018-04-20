@@ -45,8 +45,17 @@ public:
 
 class ControlViewsConfig : public workload::Job::Config {
     Q_OBJECT
+    Q_PROPERTY(bool regulateViewRanges READ regulateViewRanges WRITE setRegulateViewRanges NOTIFY dirty)
+
 public:
 
+    bool regulateViewRanges() const { return data.regulateViewRanges; }
+    void setRegulateViewRanges(bool use) { data.regulateViewRanges = use; emit dirty(); }
+
+    struct Data {
+        bool regulateViewRanges{ true };
+
+    } data;
 signals:
     void dirty();
 };
@@ -58,12 +67,17 @@ public:
     using Output = workload::Views;
     using JobModel = workload::Job::ModelIO<ControlViews, Input, Output, Config>;
 
-    ControlViews() = default;
+    ControlViews();
 
-    void configure(const Config& config) {}
+    void configure(const Config& config);
     void run(const workload::WorkloadContextPointer& runContext, const Input& inputs, Output& outputs);
     glm::vec2 regionBackFronts[workload::Region::NUM_VIEW_REGIONS + 1];
 
+
+    void regulateViews(workload::Views& views, const workload::Timings& timings);
+
+protected:
+    Config::Data _data;
 };
 
 #endif // hifi_GameWorkload_h

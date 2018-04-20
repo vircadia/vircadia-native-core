@@ -190,18 +190,21 @@ const VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToRemoveFromPhys
     for (auto entity: _entitiesToRemoveFromPhysics) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         assert(motionState);
+      // TODO CLEan this, just a n extra check to avoid the crash that shouldn;t happen
+      if (motionState) {
 
-        _entitiesToAddToPhysics.remove(entity);
-        if (entity->isDead() && entity->getElement()) {
-            _deadEntities.insert(entity);
+            _entitiesToAddToPhysics.remove(entity);
+            if (entity->isDead() && entity->getElement()) {
+                _deadEntities.insert(entity);
+            }
+
+            _incomingChanges.remove(motionState);
+            removeOwnershipData(motionState);
+            _physicalObjects.remove(motionState);
+
+            // remember this motionState and delete it later (after removing its RigidBody from the PhysicsEngine)
+            _objectsToDelete.push_back(motionState);
         }
-
-        _incomingChanges.remove(motionState);
-        removeOwnershipData(motionState);
-        _physicalObjects.remove(motionState);
-
-        // remember this motionState and delete it later (after removing its RigidBody from the PhysicsEngine)
-        _objectsToDelete.push_back(motionState);
     }
     _entitiesToRemoveFromPhysics.clear();
     return _objectsToDelete;

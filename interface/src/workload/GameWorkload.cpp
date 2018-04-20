@@ -15,8 +15,32 @@
 
 #include "PhysicsBoundary.h"
 #pragma optimize( "[optimization-list]", off )
+
+ControlViews::ControlViews() {
+    regionBackFronts[0] = glm::vec2(2.0f, 10.0f);
+    regionBackFronts[1] = glm::vec2(5.0f, 30.0f);
+    regionBackFronts[2] = glm::vec2(10.0f, 100.0f);
+
+}
+
+void ControlViews::configure(const Config& config) {
+    _data = config.data;
+}
+
+void ControlViews::run(const workload::WorkloadContextPointer& runContext, const Input& inputs, Output& outputs) {
+    const auto& inViews = inputs.get0();
+    const auto& inTimings = inputs.get1();
+    auto& outViews = outputs;
+    outViews.clear();
+    outViews = inViews;
+
+    if (_data.regulateViewRanges) {
+        regulateViews(outViews, inTimings);
+    }
+}
+
 float wtf_adjust(float current, float timing) {
-    float error = (timing * 0.001f) - 2.0f;
+    float error = -((timing * 0.001f) - 2.0f);
     if (error < 0.0f) {
         current += 0.2f * (error) / 16.0f;
     } else {
@@ -30,22 +54,25 @@ float wtf_adjust(float current, float timing) {
     }
     return current;
 }
-void ControlViews::run(const workload::WorkloadContextPointer& runContext, const Input& inputs, Output& outputs) {
-    const auto& inViews = inputs.get0();
-    const auto& inTimings = inputs.get1();
-    auto& outViews = outputs;
-    outViews.clear();
-    outViews = inViews;
-    
-    
+
+void ControlViews::regulateViews(workload::Views& outViews, const workload::Timings& timings) {
+
+    for (auto& outView : outViews) {
+        for (int r = 0; r < workload::Region::NUM_VIEW_REGIONS; r++) {
+            outView.regionBackFronts[r] = regionBackFronts[r];
+        }
+    }
+
     int i = 0;
     for (auto& outView : outViews) {
-        auto& current = regionBackFronts[workload::Region::R2].y;
-        auto newCurrent = wtf_adjust(current, inTimings[0]);
-        outView.regions[workload::Region::R2].y = newCurrent;
+        auto current = regionBackFronts[workload::Region::R2].y;
+        auto newCurrent = wtf_adjust(current, timings[0]);
+        regionBackFronts[workload::Region::R2].y = newCurrent;
+        outView.regionBackFronts[workload::Region::R2].y = newCurrent;
         workload::View::updateRegionsFromBackFronts(outView);
     }
 }
+
 #pragma optimize( "[optimization-list]", on )
 
 class WorkloadEngineBuilder {

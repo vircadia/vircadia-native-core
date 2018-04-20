@@ -113,9 +113,9 @@ Rectangle {
         Separator {}
         HifiControls.CheckBox {
             boxSize: 20
-            text: "Apply Front Back Ranges"
-            checked: Workload.getConfig("setupViews")["applyViewRanges"]
-            onCheckedChanged: { Workload.getConfig("setupViews")["applyViewRanges"] = checked; }
+            text: "Regulate View Ranges"
+            checked: Workload.getConfig("controlViews")["regulateViewRanges"]
+            onCheckedChanged: { Workload.getConfig("controlViews")["regulateViewRanges"] = checked; }
         }
 
         RowLayout {
