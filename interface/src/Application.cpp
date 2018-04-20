@@ -2654,6 +2654,12 @@ void Application::initializeUi() {
     // Now that the menu is instantiated, ensure the display plugin menu is properly updated
     updateDisplayMode();
     flushMenuUpdates();
+
+    // The display plugins are created before the menu now, so we need to do this here to hide the menu bar
+    // now that it exists
+    if (_window && _window->isFullScreen()) {
+        setFullscreen(nullptr, true);
+    }
 }
 
 

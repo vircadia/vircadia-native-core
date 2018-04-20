@@ -22,10 +22,10 @@
 <@include MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC, EMISSIVE, OCCLUSION)$>
 
-in vec4 _position;
+in vec4 _positionES;
 in vec2 _texCoord0;
 in vec2 _texCoord1;
-in vec3 _normal;
+in vec3 _normalWS;
 in vec3 _color;
 
 layout(location = 0) out vec4 _fragColor0;
@@ -54,8 +54,8 @@ void main(void) {
     <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
     vec3 fresnel = getFresnelF0(metallic, albedo);
 
-    vec3 fragPosition = _position.xyz;
-    vec3 fragNormal = normalize(_normal);
+    vec3 fragPosition = _positionES.xyz;
+    vec3 fragNormal = normalize(_normalWS);
 
     TransformCamera cam = getTransformCamera();
 

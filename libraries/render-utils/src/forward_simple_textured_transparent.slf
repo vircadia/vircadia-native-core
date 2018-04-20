@@ -23,10 +23,10 @@
 uniform sampler2D originalTexture;
 
 // the interpolated normal
-in vec3 _normal;
+in vec3 _normalWS;
 in vec4 _color;
 in vec2 _texCoord0;
-in vec4 _eyePosition;
+in vec4 _positionES;
 
 layout(location = 0) out vec4 _fragColor0;
 
@@ -35,14 +35,14 @@ void main(void) {
     float colorAlpha = _color.a * texel.a;
 
     TransformCamera cam = getTransformCamera();
-    vec3 fragPosition = _eyePosition.xyz;
+    vec3 fragPosition = _positionES.xyz;
 
     _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
         cam._viewInverse,
         1.0,
         DEFAULT_OCCLUSION,
         fragPosition,
-        normalize(_normal),
+        normalize(_normalWS),
         _color.rgb * texel.rgb,
         DEFAULT_FRESNEL,
         DEFAULT_METALLIC,
