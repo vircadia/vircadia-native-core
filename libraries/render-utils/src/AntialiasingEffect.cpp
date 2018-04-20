@@ -283,7 +283,7 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
 }
 
 void Antialiasing::configure(const Config& config) {
-    _sharpen = config.sharpen;
+    _sharpen = config.sharpen * 0.25f;
     if (!_isSharpenEnabled) {
         _sharpen = 0.0f;
     }

@@ -67,6 +67,7 @@ TextureTable(0, matTex);
 <@if withAlbedo@>
 #define albedoMap 0
 vec4 fetchAlbedoMap(vec2 uv) {
+    // Should take into account TAA_TEXTURE_LOD_BIAS?
     return tableTexValue(matTex, albedoMap, uv);
 }
 <@endif@>
@@ -74,6 +75,7 @@ vec4 fetchAlbedoMap(vec2 uv) {
 <@if withRoughness@>
 #define roughnessMap 4
 float fetchRoughnessMap(vec2 uv) {
+    // Should take into account TAA_TEXTURE_LOD_BIAS?
     return tableTexValue(matTex, roughnessMap, uv).r;
 }
 <@endif@>
@@ -81,6 +83,7 @@ float fetchRoughnessMap(vec2 uv) {
 <@if withNormal@>
 #define normalMap 1
 vec3 fetchNormalMap(vec2 uv) {
+    // Should take into account TAA_TEXTURE_LOD_BIAS?
     return tableTexValue(matTex, normalMap, uv).xyz;
 }
 <@endif@>
@@ -88,6 +91,7 @@ vec3 fetchNormalMap(vec2 uv) {
 <@if withMetallic@>
 #define metallicMap 2
 float fetchMetallicMap(vec2 uv) {
+    // Should take into account TAA_TEXTURE_LOD_BIAS?
     return tableTexValue(matTex, metallicMap, uv).r;
 }
 <@endif@>
@@ -95,6 +99,7 @@ float fetchMetallicMap(vec2 uv) {
 <@if withEmissive@>
 #define emissiveMap 3
 vec3 fetchEmissiveMap(vec2 uv) {
+    // Should take into account TAA_TEXTURE_LOD_BIAS?
     return tableTexValue(matTex, emissiveMap, uv).rgb;
 }
 <@endif@>
@@ -158,7 +163,7 @@ vec3 fetchEmissiveMap(vec2 uv) {
 <@if withOcclusion@>
 uniform sampler2D occlusionMap;
 float fetchOcclusionMap(vec2 uv) {
-    return texture(occlusionMap, uv, TAA_TEXTURE_LOD_BIAS).r;
+    return texture(occlusionMap, uv).r;
 }
 <@endif@>
 
