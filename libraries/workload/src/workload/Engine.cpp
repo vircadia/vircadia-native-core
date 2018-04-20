@@ -35,7 +35,7 @@ namespace workload {
         }
     };
 
-    Engine::Engine() : Task("Engine", EngineBuilder::JobModel::create()),
+    Engine::Engine() : Task(EngineBuilder::JobModel::create("Engine")),
             _context(nullptr) {
     }
 
