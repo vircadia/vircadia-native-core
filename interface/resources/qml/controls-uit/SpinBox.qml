@@ -71,16 +71,16 @@ SpinBox {
     }
 
     validator: DoubleValidator {
-        bottom: Math.min(spinBox.from, spinBox.to)*spinBox.factor
-        top:  Math.max(spinBox.from, spinBox.to)*spinBox.factor
+        bottom: Math.min(spinBox.from, spinBox.to)
+        top:  Math.max(spinBox.from, spinBox.to)
     }
 
     textFromValue: function(value, locale) {
-        return parseFloat(value*1.0/factor).toFixed(decimals);
+        return parseFloat(value/factor).toFixed(decimals);
     }
 
     valueFromText: function(text, locale) {
-        return Number.fromLocaleString(locale, text);
+        return Number.fromLocaleString(locale, text)*factor;
     }
 
 
