@@ -34,13 +34,13 @@ void ControlViews::run(const workload::WorkloadContextPointer& runContext, const
     outViews.clear();
     outViews = inViews;
 
-    if (_data.regulateViewRanges) {
+    if (_data.regulateViewRanges && inTimings.size()) {
         regulateViews(outViews, inTimings);
     }
 }
 
 float wtf_adjust(float current, float timing) {
-    float error = -((timing * 0.001f) - 2.0f);
+    float error = -((timing) - 2.0f);
     if (error < 0.0f) {
         current += 0.2f * (error) / 16.0f;
     } else {
