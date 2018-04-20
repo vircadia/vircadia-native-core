@@ -127,13 +127,15 @@ public class InterfaceActivity extends QtActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        nativeEnterForeground();
+        // TODO Fix displayPlugin deactivate so it doesn't leave us with a black screen Interface
+        //nativeEnterForeground();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        nativeEnterBackground();
+        // TODO Fix displayPlugin deactivate so it doesn't leave us with a black screen Interface
+        //nativeEnterBackground();
     }
 
     @Override
