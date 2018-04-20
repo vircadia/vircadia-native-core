@@ -243,6 +243,7 @@ public:
 
     bool isAboutToQuit() const { return _aboutToQuit; }
     bool isPhysicsEnabled() const { return _physicsEnabled; }
+    PhysicsEnginePointer getPhysicsEngine() { return _physicsEngine; }
 
     // the isHMDMode is true whenever we use the interface from an HMD and not a standard flat display
     // rendering of several elements depend on that
@@ -452,6 +453,12 @@ private slots:
 
     void handleSandboxStatus(QNetworkReply* reply);
     void switchDisplayMode();
+
+    void setShowBulletWireframe(bool value);
+    void setShowBulletAABBs(bool value);
+    void setShowBulletContactPoints(bool value);
+    void setShowBulletConstraints(bool value);
+    void setShowBulletConstraintLimits(bool value);
 
 private:
     void init();
