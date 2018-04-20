@@ -22,30 +22,12 @@
 #include "GLMHelpers.h"
 
 /**jsdoc
- * A 2-dimensional vector.
- *
- * @typedef {object} Vec2
- * @property {number} x - X-coordinate of the vector.
- * @property {number} y - Y-coordinate of the vector.
- */
-
-/**jsdoc
  * A 3-dimensional vector.
  *
  * @typedef {object} Vec3
  * @property {number} x - X-coordinate of the vector.
  * @property {number} y - Y-coordinate of the vector.
  * @property {number} z - Z-coordinate of the vector.
- */
-
-/**jsdoc
- * A 4-dimensional vector.
- *
- * @typedef {object} Vec4
- * @property {number} x - X-coordinate of the vector.
- * @property {number} y - Y-coordinate of the vector.
- * @property {number} z - Z-coordinate of the vector.
- * @property {number} w - W-coordinate of the vector.
  */
 
 /**jsdoc
