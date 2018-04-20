@@ -452,18 +452,47 @@ var toolBar = (function () {
         }
     }
 
+    // Handles any edit mode updates required when domains have switched
+    function checkEditPermissionsAndUpdate() {
+        if ((createButton === null) || (createButton === undefined)) {
+            //--EARLY EXIT--( nothing to safely update )
+            return;
+        }
+
+        var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
+        createButton.editProperties({
+            icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
+            captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
+        });
+
+        if (!hasRezPermissions && isActive) {
+            that.setActive(false);
+            tablet.gotoHomeScreen();
+        }
+    }
+
     function initialize() {
         Script.scriptEnding.connect(cleanup);
         Window.domainChanged.connect(function () {
+            if (isActive) {
+                tablet.gotoHomeScreen();
+            }
             that.setActive(false);
             that.clearEntityList();
+            checkEditPermissionsAndUpdate();
         });
 
         Entities.canAdjustLocksChanged.connect(function (canAdjustLocks) {
             if (isActive && !canAdjustLocks) {
                 that.setActive(false);
             }
+            checkEditPermissionsAndUpdate();
         });
+
+        Entities.canRezChanged.connect(checkEditPermissionsAndUpdate);
+        Entities.canRezTmpChanged.connect(checkEditPermissionsAndUpdate);
+        Entities.canRezCertifiedChanged.connect(checkEditPermissionsAndUpdate);
+        Entities.canRezTmpCertifiedChanged.connect(checkEditPermissionsAndUpdate);
 
         var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
         var createButtonIconRsrc = (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON);
@@ -850,28 +879,10 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
     }
 }
 
-// Handles any edit mode updates required when domains have switched
-function handleDomainChange() {
-    if ( (createButton === null) || (createButton === undefined) ){
-        //--EARLY EXIT--( nothing to safely update )
-        return;
-    }
-
-    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
-    createButton.editProperties({
-        icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
-        captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
-    });
-}
-
 function handleMessagesReceived(channel, message, sender) {
     switch( channel ){
         case 'entityToolUpdates': {
             handleOverlaySelectionToolUpdates( channel, message, sender );
-            break;
-        }
-        case 'Toolbar-DomainChanged': {
-            handleDomainChange();
             break;
         }
         default: {
@@ -880,7 +891,6 @@ function handleMessagesReceived(channel, message, sender) {
     }
 }
 
-Messages.subscribe('Toolbar-DomainChanged');
 Messages.subscribe("entityToolUpdates");
 Messages.messageReceived.connect(handleMessagesReceived);
 
@@ -1314,8 +1324,6 @@ Script.scriptEnding.connect(function () {
 
     Messages.messageReceived.disconnect(handleMessagesReceived);
     Messages.unsubscribe("entityToolUpdates");
-    // Messages.unsubscribe("Toolbar-DomainChanged"); // Do not unsubscribe because the shapes.js app also subscribes and 
-    // Messages.subscribe works script engine-wide which would mess things up if they're both run in the same engine.
     createButton = null;
 });
 
@@ -2331,6 +2339,11 @@ var PopupMenu = function () {
         Controller.mousePressEvent.disconnect(self.mousePressEvent);
         Controller.mouseMoveEvent.disconnect(self.mouseMoveEvent);
         Controller.mouseReleaseEvent.disconnect(self.mouseReleaseEvent);
+
+        Entities.canRezChanged.disconnect(checkEditPermissionsAndUpdate);
+        Entities.canRezTmpChanged.disconnect(checkEditPermissionsAndUpdate);
+        Entities.canRezCertifiedChanged.disconnect(checkEditPermissionsAndUpdate);
+        Entities.canRezTmpCertifiedChanged.disconnect(checkEditPermissionsAndUpdate);
     }
 
     Controller.mousePressEvent.connect(self.mousePressEvent);
