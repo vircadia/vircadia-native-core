@@ -49,6 +49,7 @@
 #include "AmbientOcclusionEffect.h"
 #include "RenderShadowTask.h"
 
+#include "scripting/SettingsScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
@@ -266,10 +267,15 @@ Menu::Menu() {
     // Settings > Notifications
     MenuWrapper * notificationsMenu = settingsMenu->addMenu("Notifications"); //This was in notifications.js. The menu needs to be moved here. 
 
-                                                                              //TODO: Hookup notification actions below.
+    //TODO: Hookup notification actions below.
     // Settings > Notifications > Play Notification Sounds
+    SettingsScriptingInterface* settings = SettingsScriptingInterface::getInstance();
     addActionToQMenuAndActionHash(notificationsMenu, "Play Notification Sounds");
-
+    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Play Notification Sounds", 0,
+                                                    settings->getValue("play_notification_sounds_type_0"));
+    connect(action, &QAction::triggered, [action] {
+        qApp->setDesktopTabletBecomesToolbarSetting(action->isChecked());
+    });
     notificationsMenu->addSeparator();
 
     // Settings > Notifications > Play Sounds for:
