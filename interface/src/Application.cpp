@@ -152,6 +152,8 @@
 #include <controllers/Logging.h>
 #include <NetworkLogging.h>
 #include <shared/StorageLogging.h>
+#include <ScriptEngineLogging.h>
+#include <ui/Logging.h>
 
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
@@ -1424,41 +1426,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _overlays.init(); // do this before scripts load
     DependencyManager::set<ContextOverlayInterface>();
 
-    // by default, suppress some of the logging
-    if (_verboseLoggin) {
-        const_cast<QLoggingCategory*>(&animation())->setEnabled(QtDebugMsg, false);
-        const_cast<QLoggingCategory*>(&animation())->setEnabled(QtInfoMsg, false);
-
-        const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtDebugMsg, false);
-        const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtInfoMsg, false);
-
-        const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtDebugMsg, false);
-        const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtInfoMsg, false);
-
-        const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtDebugMsg, false);
-        const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtInfoMsg, false);
-
-        const_cast<QLoggingCategory*>(&controllers())->setEnabled(QtDebugMsg, false);
-        const_cast<QLoggingCategory*>(&controllers())->setEnabled(QtInfoMsg, false);
-
-        const_cast<QLoggingCategory*>(&resourceLog())->setEnabled(QtDebugMsg, false);
-        const_cast<QLoggingCategory*>(&resourceLog())->setEnabled(QtInfoMsg, false);
-
-        const_cast<QLoggingCategory*>(&networking())->setEnabled(QtDebugMsg, false);
-        const_cast<QLoggingCategory*>(&networking())->setEnabled(QtInfoMsg, false);
-
-        const_cast<QLoggingCategory*>(&asset_client())->setEnabled(QtDebugMsg, false);
-        const_cast<QLoggingCategory*>(&asset_client())->setEnabled(QtInfoMsg, false);
-
-        // const_cast<QLoggingCategory*>(&entity_script_client())->setEnabled(QtDebugMsg, false);
-        // const_cast<QLoggingCategory*>(&entity_script_client())->setEnabled(QtInfoMsg, false);
-
-        const_cast<QLoggingCategory*>(&messages_client())->setEnabled(QtDebugMsg, false);
-        const_cast<QLoggingCategory*>(&messages_client())->setEnabled(QtInfoMsg, false);
-
-        const_cast<QLoggingCategory*>(&storagelogging())->setEnabled(QtDebugMsg, false);
-        const_cast<QLoggingCategory*>(&storagelogging())->setEnabled(QtInfoMsg, false);
-    }
+    // adjust which logging categories will be sent to the logs
+    updateVerboseLogging();
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -2179,6 +2148,49 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _pendingRenderEvent = false;
 
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
+}
+
+void Application::updateVerboseLogging() {
+    bool enable = Menu::getInstance()->isOptionChecked(MenuOption::VerboseLogging);
+
+    const_cast<QLoggingCategory*>(&animation())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&animation())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&controllers())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&controllers())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&resourceLog())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&resourceLog())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&networking())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&networking())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&asset_client())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&asset_client())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&messages_client())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&messages_client())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&storagelogging())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&storagelogging())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&uiLogging())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&uiLogging())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&glLogging())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&glLogging())->setEnabled(QtInfoMsg, enable);
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {

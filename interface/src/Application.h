@@ -398,6 +398,8 @@ public slots:
 
     Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
 
+    void updateVerboseLogging();
+
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
@@ -718,7 +720,5 @@ private:
 
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
-
-    bool _verboseLogging { false };
 };
 #endif // hifi_Application_h
