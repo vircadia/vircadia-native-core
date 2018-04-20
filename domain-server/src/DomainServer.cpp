@@ -612,13 +612,13 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
                 return nodeList->isPacketVerifiedWithSource(packet, sourceNode.data());
             } else {
                 HIFI_FDEBUG("Packet of type" << headerType
-                    << "received from unmatched IP for UUID" << uuidStringWithoutCurlyBraces(sourceID));
+                    << "received from unmatched IP for UUID" << uuidStringWithoutCurlyBraces(sourceNode->getUUID()));
 
                 return false;
             }
         } else {
             HIFI_FDEBUG("Packet of type" << headerType
-                << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID));
+                << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceNode->getUUID()));
 
             return false;
         }
