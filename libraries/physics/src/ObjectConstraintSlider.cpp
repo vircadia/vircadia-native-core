@@ -87,12 +87,11 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
         return constraint;
     }
 
-    static QString repeatedSliderNoRigidBody = LogHandler::getInstance().addRepeatedMessageRegex(
-        "ObjectConstraintSlider::getConstraint -- no rigidBody.*");
+    static int repeatMessageID = LogHandler::getInstance().newRepeatedMessageID();
 
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
-        qCDebug(physics) << "ObjectConstraintSlider::getConstraint -- no rigidBodyA";
+        HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintSlider::getConstraint -- no rigidBodyA");
         return nullptr;
     }
 
@@ -121,7 +120,7 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
 
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
-            qCDebug(physics) << "ObjectConstraintSlider::getConstraint -- no rigidBodyB";
+            HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintSlider::getConstraint -- no rigidBodyB");
             return nullptr;
         }
 

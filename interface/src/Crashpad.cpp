@@ -31,9 +31,40 @@ using namespace crashpad;
 static const std::string BACKTRACE_URL { CMAKE_BACKTRACE_URL };
 static const std::string BACKTRACE_TOKEN { CMAKE_BACKTRACE_TOKEN };
 
+static std::wstring gIPCPipe;
+
 extern QString qAppFileName();
 
 // crashpad::AnnotationList* crashpadAnnotations { nullptr };
+
+#include <Windows.h>
+
+LONG WINAPI vectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
+    static const DWORD EXTERNAL_EXCEPTION_CODE{ 0xe06d7363 };
+    static const DWORD HEAP_CORRUPTION_CODE{ 0xc0000374 };
+
+    auto exceptionCode = pExceptionInfo->ExceptionRecord->ExceptionCode;
+    if (exceptionCode == EXTERNAL_EXCEPTION_CODE) {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+
+    if (exceptionCode == HEAP_CORRUPTION_CODE) {
+        qCritical() << "VectoredExceptionHandler: Heap corruption:" << QString::number(exceptionCode, 16);
+
+        CrashpadClient client;
+        if (gIPCPipe.length()) {
+            bool rc = client.SetHandlerIPCPipe(gIPCPipe);
+            qCritical() << "SetHandlerIPCPipe = " << rc;
+        } else {
+            qCritical() << "No IPC Pipe was previously defined for crash handler.";
+        }
+        qCritical() << "Calling DumpAndCrash()";
+        client.DumpAndCrash(pExceptionInfo);
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+
+    return EXCEPTION_CONTINUE_SEARCH;
+}
 
 bool startCrashHandler() {
     if (BACKTRACE_URL.empty() || BACKTRACE_TOKEN.empty()) {
@@ -76,7 +107,12 @@ bool startCrashHandler() {
     // Enable automated uploads.
     database->GetSettings()->SetUploadsEnabled(true);
 
-    return client.StartHandler(handler, db, db, BACKTRACE_URL, annotations, arguments, true, true);
+    bool result = client.StartHandler(handler, db, db, BACKTRACE_URL, annotations, arguments, true, true);
+    gIPCPipe = client.GetHandlerIPCPipe();
+
+    AddVectoredExceptionHandler(0, vectoredExceptionHandler);
+
+    return result;
 }
 
 void setCrashAnnotation(std::string name, std::string value) {

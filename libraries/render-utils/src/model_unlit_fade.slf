@@ -23,17 +23,17 @@
 <$declareMaterialTextures(ALBEDO)$>
 
 in vec2 _texCoord0;
-in vec3 _normal;
+in vec3 _normalWS;
 in vec3 _color;
 in float _alpha;
-in vec4 _worldPosition;
+in vec4 _positionWS;
 
 void main(void) {
     vec3 fadeEmissive;
     FadeObjectParams fadeParams;
 
     <$fetchFadeObjectParams(fadeParams)$>
-    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
+    applyFade(fadeParams, _positionWS.xyz, fadeEmissive);
 
     Material mat = getMaterial();
     BITFIELD matKey = getMaterialKey(mat);
@@ -48,7 +48,7 @@ void main(void) {
     albedo *= _color;
     albedo += fadeEmissive;
     packDeferredFragmentUnlit(
-        normalize(_normal), 
+        normalize(_normalWS), 
         opacity,
         albedo * isUnlitEnabled());
 }

@@ -311,9 +311,6 @@ void diffuseProfileGPU(gpu::TexturePointer& profileMap, RenderArgs* args) {
         auto ps = subsurfaceScattering_makeProfile_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         makePipeline = gpu::Pipeline::create(program, state);
@@ -342,25 +339,26 @@ void diffuseScatterGPU(const gpu::TexturePointer& profileMap, gpu::TexturePointe
     int height = lut->getHeight();
 
     gpu::PipelinePointer makePipeline;
-    {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = subsurfaceScattering_makeLUT_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+    
+    auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+    auto ps = subsurfaceScattering_makeLUT_frag::getShader();
+    gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("scatteringProfile"), 0));
-        gpu::Shader::makeProgram(*program, slotBindings);
+    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-
-        makePipeline = gpu::Pipeline::create(program, state);
-    }
-
+    makePipeline = gpu::Pipeline::create(program, state);
+    
     auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("diffuseScatter"));
     makeFramebuffer->setRenderBuffer(0, lut);
 
     gpu::doInBatch("SubsurfaceScattering::diffuseScatterGPU", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
+
+        batch.runLambda([program] (){ 
+            gpu::Shader::BindingSet slotBindings;
+            slotBindings.insert(gpu::Shader::Binding(std::string("scatteringProfile"), 0));
+            gpu::Shader::makeProgram(*program, slotBindings);
+        });
 
         batch.setViewportTransform(glm::ivec4(0, 0, width, height));
 
@@ -384,9 +382,6 @@ void computeSpecularBeckmannGPU(gpu::TexturePointer& beckmannMap, RenderArgs* ar
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
         auto ps = subsurfaceScattering_makeSpecularBeckmann_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -495,7 +490,6 @@ gpu::PipelinePointer DebugSubsurfaceScattering::getShowLUTPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 

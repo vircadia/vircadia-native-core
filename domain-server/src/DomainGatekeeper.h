@@ -15,6 +15,7 @@
 #define hifi_DomainGatekeeper_h
 
 #include <unordered_map>
+#include <unordered_set>
 
 #include <QtCore/QObject>
 #include <QtNetwork/QNetworkReply>
@@ -40,6 +41,8 @@ public:
     QUuid assignmentUUIDForPendingAssignment(const QUuid& tempUUID);
     
     void removeICEPeer(const QUuid& peerUUID) { _icePeers.remove(peerUUID); }
+
+    Node::LocalID findOrCreateLocalID(const QUuid& uuid);
 
     static void sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr);
 public slots:
@@ -120,6 +123,16 @@ private:
     void getGroupMemberships(const QString& username);
     // void getIsGroupMember(const QString& username, const QUuid groupID);
     void getDomainOwnerFriendsList();
+
+    // Local ID management.
+    void initLocalIDManagement();
+    using UUIDToLocalID = std::unordered_map<QUuid, Node::LocalID> ;
+    using LocalIDs = std::unordered_set<Node::LocalID>;
+    LocalIDs _localIDs;
+    UUIDToLocalID _uuidToLocalID;
+
+    Node::LocalID _currentLocalID;
+    Node::LocalID _idIncrement;
 };
 
 
