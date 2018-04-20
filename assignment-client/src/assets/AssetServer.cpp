@@ -901,7 +901,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, Sha
 
 
     if (canWriteToAssetServer) {
-        qCDebug(asset_server) << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(message->getSourceID());
+        qCDebug(asset_server) << "Starting an UploadAssetTask for upload from" << message->getSourceID();
 
         auto task = new UploadAssetTask(message, senderNode, _filesDirectory, _filesizeLimit);
         _transferTaskPool.start(task);
