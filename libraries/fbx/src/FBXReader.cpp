@@ -996,14 +996,12 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             QByteArray filename = subobject.properties.at(0).toByteArray();
                             QByteArray filepath = filename.replace('\\', '/');
                             filename = fileOnUrl(filepath, url);
-                            qDebug() << "Filename" << filepath << filename;
                             _textureFilepaths.insert(getID(object.properties), filepath);
                             _textureFilenames.insert(getID(object.properties), filename);
                         } else if (subobject.name == "TextureName" && subobject.properties.length() >= TEXTURE_NAME_MIN_SIZE) {
                             // trim the name from the timestamp
                             QString name = QString(subobject.properties.at(0).toByteArray());
                             name = name.left(name.indexOf('['));
-                            qDebug() << "Filename" << name;
                             _textureNames.insert(getID(object.properties), name);
                         } else if (subobject.name == "Texture_Alpha_Source" && subobject.properties.length() >= TEXTURE_ALPHA_SOURCE_MIN_SIZE) {
                             tex.assign<uint8_t>(tex.alphaSource, subobject.properties.at(0).value<int>());

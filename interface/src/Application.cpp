@@ -145,6 +145,14 @@
 #include <avatars-renderer/ScriptAvatar.h>
 #include <RenderableEntityItem.h>
 
+#include <AnimationLogging.h>
+#include <AvatarLogging.h>
+#include <ScriptEngineLogging.h>
+#include <ModelFormatLogging.h>
+#include <controllers/Logging.h>
+#include <NetworkLogging.h>
+#include <shared/StorageLogging.h>
+
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
@@ -1415,6 +1423,42 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Overlays need to exist before we set the ContextOverlayInterface dependency
     _overlays.init(); // do this before scripts load
     DependencyManager::set<ContextOverlayInterface>();
+
+    // by default, suppress some of the logging
+    if (_verboseLoggin) {
+        const_cast<QLoggingCategory*>(&animation())->setEnabled(QtDebugMsg, false);
+        const_cast<QLoggingCategory*>(&animation())->setEnabled(QtInfoMsg, false);
+
+        const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtDebugMsg, false);
+        const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtInfoMsg, false);
+
+        const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtDebugMsg, false);
+        const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtInfoMsg, false);
+
+        const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtDebugMsg, false);
+        const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtInfoMsg, false);
+
+        const_cast<QLoggingCategory*>(&controllers())->setEnabled(QtDebugMsg, false);
+        const_cast<QLoggingCategory*>(&controllers())->setEnabled(QtInfoMsg, false);
+
+        const_cast<QLoggingCategory*>(&resourceLog())->setEnabled(QtDebugMsg, false);
+        const_cast<QLoggingCategory*>(&resourceLog())->setEnabled(QtInfoMsg, false);
+
+        const_cast<QLoggingCategory*>(&networking())->setEnabled(QtDebugMsg, false);
+        const_cast<QLoggingCategory*>(&networking())->setEnabled(QtInfoMsg, false);
+
+        const_cast<QLoggingCategory*>(&asset_client())->setEnabled(QtDebugMsg, false);
+        const_cast<QLoggingCategory*>(&asset_client())->setEnabled(QtInfoMsg, false);
+
+        // const_cast<QLoggingCategory*>(&entity_script_client())->setEnabled(QtDebugMsg, false);
+        // const_cast<QLoggingCategory*>(&entity_script_client())->setEnabled(QtInfoMsg, false);
+
+        const_cast<QLoggingCategory*>(&messages_client())->setEnabled(QtDebugMsg, false);
+        const_cast<QLoggingCategory*>(&messages_client())->setEnabled(QtInfoMsg, false);
+
+        const_cast<QLoggingCategory*>(&storagelogging())->setEnabled(QtDebugMsg, false);
+        const_cast<QLoggingCategory*>(&storagelogging())->setEnabled(QtInfoMsg, false);
+    }
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -2999,7 +3043,6 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     PROFILE_RANGE(render, __FUNCTION__);
 
     bool sandboxIsRunning = SandboxUtils::readStatus(reply->readAll());
-    qDebug() << "HandleSandboxStatus" << sandboxIsRunning;
 
     enum HandControllerType {
         Vive,

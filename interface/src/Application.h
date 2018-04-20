@@ -718,5 +718,7 @@ private:
 
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
+
+    bool _verboseLogging { false };
 };
 #endif // hifi_Application_h
