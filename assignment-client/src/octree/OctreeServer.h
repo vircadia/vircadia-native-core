@@ -174,7 +174,7 @@ protected:
     void beginRunning(QByteArray replaceData);
     
     UniqueSendThread createSendThread(const SharedNodePointer& node);
-    virtual UniqueSendThread newSendThread(const SharedNodePointer& node);
+    virtual UniqueSendThread newSendThread(const SharedNodePointer& node) = 0;
 
     int _argc;
     const char** _argv;

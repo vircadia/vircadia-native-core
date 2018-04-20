@@ -17,10 +17,11 @@
 #include "AudioEffectOptions.h"
 #include "SettingHandle.h"
 #include "AudioFileWav.h"
+#include <shared/ReadWriteLockable.h>
 
 namespace scripting {
 
-class Audio : public AudioScriptingInterface {
+class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
@@ -40,16 +41,13 @@ public:
 
     virtual ~Audio() {}
 
-    bool isMuted() const { return _isMuted; }
-    bool noiseReductionEnabled() const { return _enableNoiseReduction; }
-    float getInputVolume() const { return _inputVolume; }
-    float getInputLevel() const { return _inputLevel; }
+    bool isMuted() const;
+    bool noiseReductionEnabled() const;
+    float getInputVolume() const;
+    float getInputLevel() const;
     QString getContext() const;
 
-    void setMuted(bool muted);
-    void enableNoiseReduction(bool enable);
     void showMicMeter(bool show);
-    void setInputVolume(float volume);
 
     Q_INVOKABLE void setInputDevice(const QAudioDeviceInfo& device, bool isHMD);
     Q_INVOKABLE void setOutputDevice(const QAudioDeviceInfo& device, bool isHMD);
@@ -72,9 +70,9 @@ public slots:
     void onContextChanged();
 
 private slots:
-    void onMutedChanged();
-    void onNoiseReductionChanged();
-    void onInputVolumeChanged(float volume);
+    void setMuted(bool muted);
+    void enableNoiseReduction(bool enable);
+    void setInputVolume(float volume);
     void onInputLoudnessChanged(float loudness);
 
 protected:

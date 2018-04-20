@@ -7,6 +7,7 @@
 
 
 /* global module, Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform,
+   Selection,
    MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, FORBIDDEN_GRAB_TYPES:true,
    HAPTIC_PULSE_STRENGTH:true, HAPTIC_PULSE_DURATION:true, ZERO_VEC:true, ONE_VEC:true,
    DEFAULT_REGISTRATION_POINT:true, INCHES_TO_METERS:true,
@@ -22,6 +23,8 @@
    DISPATCHER_PROPERTIES:true,
    HAPTIC_PULSE_STRENGTH:true,
    HAPTIC_PULSE_DURATION:true,
+   DISPATCHER_HOVERING_LIST:true,
+   DISPATCHER_HOVERING_STYLE:true,
    Entities,
    makeDispatcherModuleParameters:true,
    makeRunningValues:true,
@@ -49,7 +52,10 @@
    TEAR_AWAY_DISTANCE:true,
    TEAR_AWAY_COUNT:true,
    TEAR_AWAY_CHECK_TIME:true,
-   distanceBetweenPointAndEntityBoundingBox:true
+   distanceBetweenPointAndEntityBoundingBox:true,
+   highlightTargetEntity:true,
+   clearHighlightedEntities:true,
+   unhighlightTargetEntity:true
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -88,6 +94,19 @@ NEAR_GRAB_RADIUS = 1.0;
 TEAR_AWAY_DISTANCE = 0.1; // ungrab an entity if its bounding-box moves this far from the hand
 TEAR_AWAY_COUNT = 2; // multiply by TEAR_AWAY_CHECK_TIME to know how long the item must be away
 TEAR_AWAY_CHECK_TIME = 0.15; // seconds, duration between checks
+DISPATCHER_HOVERING_LIST = "dispactherHoveringList";
+DISPATCHER_HOVERING_STYLE = {
+    isOutlineSmooth: true,
+    outlineWidth: 0,
+    outlineUnoccludedColor: {red: 255, green: 128, blue: 128},
+    outlineUnoccludedAlpha: 0.0,
+    outlineOccludedColor: {red: 255, green: 128, blue: 128},
+    outlineOccludedAlpha:0.0,
+    fillUnoccludedColor: {red: 255, green: 255, blue: 255},
+    fillUnoccludedAlpha: 0.12,
+    fillOccludedColor: {red: 255, green: 255, blue: 255},
+    fillOccludedAlpha: 0.0
+};
 
 DISPATCHER_PROPERTIES = [
     "position",
@@ -218,6 +237,18 @@ entityIsGrabbable = function (props) {
         return false;
     }
     return true;
+};
+
+clearHighlightedEntities = function() {
+    Selection.clearSelectedItemsList(DISPATCHER_HOVERING_LIST);
+};
+
+highlightTargetEntity = function(entityID) {
+    Selection.addToSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity", entityID);
+};
+
+unhighlightTargetEntity = function(entityID) {
+    Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity", entityID);
 };
 
 entityIsDistanceGrabbable = function(props) {
@@ -389,7 +420,11 @@ if (typeof module !== 'undefined') {
         makeDispatcherModuleParameters: makeDispatcherModuleParameters,
         enableDispatcherModule: enableDispatcherModule,
         disableDispatcherModule: disableDispatcherModule,
+        highlightTargetEntity: highlightTargetEntity,
+        unhighlightTargetEntity: unhighlightTargetEntity,
+        clearHighlightedEntities: clearHighlightedEntities,
         makeRunningValues: makeRunningValues,
+        findGroupParent: findGroupParent,
         LEFT_HAND: LEFT_HAND,
         RIGHT_HAND: RIGHT_HAND,
         BUMPER_ON_VALUE: BUMPER_ON_VALUE,
@@ -400,6 +435,7 @@ if (typeof module !== 'undefined') {
         projectOntoOverlayXYPlane: projectOntoOverlayXYPlane,
         projectOntoEntityXYPlane: projectOntoEntityXYPlane,
         TRIGGER_OFF_VALUE: TRIGGER_OFF_VALUE,
-        TRIGGER_ON_VALUE: TRIGGER_ON_VALUE
+        TRIGGER_ON_VALUE: TRIGGER_ON_VALUE,
+        DISPATCHER_HOVERING_LIST: DISPATCHER_HOVERING_LIST
     };
 }

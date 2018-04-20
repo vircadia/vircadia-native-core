@@ -76,6 +76,10 @@ public:
     void setIsConnected(bool isConnected);
     bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_HIFI; }
 
+    void connectedToServerless(std::map<QString, QString> namedPaths);
+
+    QString getViewPointFromNamedPath(QString namedPath);
+
     bool hasSettings() const { return !_settingsObject.isEmpty(); }
     void requestDomainSettings();
     const QJsonObject& getSettingsObject() const { return _settingsObject; }
@@ -200,9 +204,11 @@ private:
     int _checkInPacketsSinceLastReply { 0 };
 
     QTimer _apiRefreshTimer;
+
+    std::map<QString, QString> _namedPaths;
 };
 
 const QString DOMAIN_SPAWNING_POINT { "/0, -10, 0" };
-
+const QString DEFAULT_NAMED_PATH { "/" };
 
 #endif // hifi_DomainHandler_h

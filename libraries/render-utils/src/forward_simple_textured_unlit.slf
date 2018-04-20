@@ -1,0 +1,31 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  simple_textured_unlit.frag
+//  fragment shader
+//
+//  Created by Clément Brisset on 5/29/15.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include LightingModel.slh@>
+<@include gpu/Color.slh@>
+
+layout(location = 0) out vec4 _fragColor0;
+
+// the albedo texture
+uniform sampler2D originalTexture;
+
+in vec4 _color;
+in vec2 _texCoord0;
+
+void main(void) {
+    vec4 texel = texture(originalTexture, _texCoord0.st);
+    float colorAlpha = _color.a * texel.a;
+
+    _fragColor0 = vec4(_color.rgb * texel.rgb * isUnlitEnabled(), colorAlpha);
+}
