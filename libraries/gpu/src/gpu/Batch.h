@@ -167,6 +167,7 @@ public:
     void resetViewTransform() { setViewTransform(Transform(), false); }
     void setViewTransform(const Transform& view, bool camera = true);
     void setProjectionTransform(const Mat4& proj);
+	void setProjectionJitter(float jx = 0.0f, float jy = 0.0f);
     // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
     void setViewportTransform(const Vec4i& viewport);
     void setDepthRangeTransform(float nearDepth, float farDepth);
@@ -292,8 +293,9 @@ public:
 
         COMMAND_setModelTransform,
         COMMAND_setViewTransform,
-        COMMAND_setProjectionTransform,
-        COMMAND_setViewportTransform,
+		COMMAND_setProjectionTransform,
+		COMMAND_setProjectionJitter,
+		COMMAND_setViewportTransform,
         COMMAND_setDepthRangeTransform,
 
         COMMAND_setPipeline,

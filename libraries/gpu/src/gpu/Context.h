@@ -70,7 +70,10 @@ public:
     class TransformCamera : public _TransformCamera {
     public:
         const Backend::TransformCamera& recomputeDerived(const Transform& xformView) const;
-        TransformCamera getEyeCamera(int eye, const StereoState& stereo, const Transform& xformView) const;
+        // Jitter should be divided by framebuffer size
+        TransformCamera getMonoCamera(const Transform& xformView, Vec2 normalizedJitter) const;
+        // Jitter should be divided by framebuffer size
+        TransformCamera getEyeCamera(int eye, const StereoState& stereo, const Transform& xformView, Vec2 normalizedJitter) const;
     };
 
 
@@ -130,7 +133,6 @@ protected:
     friend class Context;
     mutable ContextStats _stats;
     StereoState _stereo;
-
 };
 
 class Context {
@@ -202,8 +204,6 @@ public:
     void setStereoViews(const mat4 eyeViews[2]);
     void getStereoProjections(mat4* eyeProjections) const;
     void getStereoViews(mat4* eyeViews) const;
-	void setProjectionJitter(float jx, float jy);
-	gpu::Vec2 getProjectionJitter() const { return _projectionJitter; }
 
     // Downloading the Framebuffer is a synchronous action that is not efficient.
     // It s here for convenience to easily capture a snapshot
@@ -250,7 +250,6 @@ protected:
     FramePointer _currentFrame;
     RangeTimerPointer _frameRangeTimer;
     StereoState  _stereo;
-	gpu::Vec2 _projectionJitter{ 0.0f, 0.0f };
 
     // Sampled at the end of every frame, the stats of all the counters
     mutable ContextStats _frameStats;

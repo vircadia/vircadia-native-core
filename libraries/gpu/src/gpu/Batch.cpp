@@ -265,6 +265,12 @@ void Batch::setProjectionTransform(const Mat4& proj) {
     _params.emplace_back(cacheData(sizeof(Mat4), &proj));
 }
 
+void Batch::setProjectionJitter(float jx, float jy) {
+	ADD_COMMAND(setProjectionJitter);
+	_params.emplace_back(jx);
+	_params.emplace_back(jy);
+}
+
 void Batch::setViewportTransform(const Vec4i& viewport) {
     ADD_COMMAND(setViewportTransform);
 

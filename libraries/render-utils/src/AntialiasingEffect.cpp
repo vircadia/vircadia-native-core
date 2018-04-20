@@ -499,7 +499,7 @@ void JitterSample::configure(const Config& config) {
     _scale = config.scale;
 }
 
-void JitterSample::run(const render::RenderContextPointer& renderContext) {
+void JitterSample::run(const render::RenderContextPointer& renderContext, Output& jitter) {
     auto& current = _sampleSequence.currentIndex;
     if (!_freeze) {
         if (current >= 0) {
@@ -508,40 +508,7 @@ void JitterSample::run(const render::RenderContextPointer& renderContext) {
             current = -1;
         }
     }
-    auto args = renderContext->args;
-    auto viewFrustum = args->getViewFrustum();
-
-    auto jit = _sampleSequence.offsets[(current < 0 ? SEQUENCE_LENGTH : current)];
-    auto width = (float)args->_viewport.z;
-    auto height = (float)args->_viewport.w;
-
-    auto jx = jit.x / width;
-    auto jy = jit.y / height;
-
-    if (!args->isStereo()) {
-        auto projMat = viewFrustum.getProjection();
-
-        projMat[2][0] += jx;
-        projMat[2][1] += jy;
-
-        viewFrustum.setProjection(projMat);
-        viewFrustum.calculate();
-        args->pushViewFrustum(viewFrustum);
-    } else {
-        mat4 projMats[2];
-        args->_context->getStereoProjections(projMats);
-
-        jx *= 2.0f;
-
-        for (int i = 0; i < 2; i++) {
-            auto& projMat = projMats[i];
-            projMat[2][0] += jx;
-            projMat[2][1] += jy;
-        }
-
-        args->_context->setStereoProjections(projMats);
-    }
-	args->_context->setProjectionJitter(jx, jy);
+    jitter = _sampleSequence.offsets[(current < 0 ? SEQUENCE_LENGTH : current)];
 }
 
 

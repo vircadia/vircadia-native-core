@@ -1,22 +1,22 @@
 // glsl / C++ compatible source as interface for FadeEffect
 #ifdef __cplusplus
-#   define MAT4 Mat4
-#   define VEC4 Vec4
-#	define MUTABLE mutable
+#   define _MAT4 Mat4
+#   define _VEC4 Vec4
+#	define _MUTABLE mutable
 #else
-#   define MAT4 mat4
-#   define VEC4 vec4
-#	define MUTABLE 
+#   define _MAT4 mat4
+#   define _VEC4 vec4
+#	define _MUTABLE 
 #endif
 
 struct _TransformCamera {
-    MUTABLE MAT4 _view;
-    MUTABLE MAT4 _viewInverse;
-    MUTABLE MAT4 _projectionViewUntranslated;
-    MAT4 _projection;
-    MUTABLE MAT4 _projectionInverse;
-    VEC4 _viewport; // Public value is int but float in the shader to stay in floats for all the transform computations.
-    MUTABLE VEC4 _stereoInfo;
+    _MUTABLE _MAT4 _view;
+    _MUTABLE _MAT4 _viewInverse;
+    _MUTABLE _MAT4 _projectionViewUntranslated;
+    _MAT4 _projection;
+    _MUTABLE _MAT4 _projectionInverse;
+    _VEC4 _viewport; // Public value is int but float in the shader to stay in floats for all the transform computations.
+    _MUTABLE _VEC4 _stereoInfo;
 };
 
     // <@if 1@>

@@ -62,10 +62,11 @@ public:
     };
 
     using Config = JitterSampleConfig;
-    using JobModel = render::Job::Model<JitterSample, Config>;
+	using Output = glm::vec2;
+    using JobModel = render::Job::ModelO<JitterSample, Output, Config>;
 
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext);
+    void run(const render::RenderContextPointer& renderContext, Output& jitter);
 
 private:
 

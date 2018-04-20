@@ -95,10 +95,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     fadeEffect->build(task, opaques);
 
-    task.addJob<JitterSample>("JitterCam");
+    const auto jitter = task.addJob<JitterSample>("JitterCam");
 
     // Prepare deferred, generate the shared Deferred Frame Transform
-    const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
+    const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform", jitter);
     const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
     
 
@@ -116,7 +116,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
 
     // Render opaque objects in DeferredBuffer
-    const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).asVarying();
+    const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel, jitter).asVarying();
     task.addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber);
 
     task.addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
@@ -205,8 +205,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto overlaysInFrontOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
     const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
 
-    const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel).asVarying();
-    const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel).asVarying();
+    const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel, jitter).asVarying();
+    const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel, jitter).asVarying();
     task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true);
     task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, false);
 
@@ -288,9 +288,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     const auto overlaysHUDOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(1);
     const auto overlaysHUDTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(1);
+    const auto nullJitter = Varying(glm::vec2(0.0f, 0.0f));
 
-    const auto overlayHUDOpaquesInputs = DrawOverlay3D::Inputs(overlaysHUDOpaque, lightingModel).asVarying();
-    const auto overlayHUDTransparentsInputs = DrawOverlay3D::Inputs(overlaysHUDTransparent, lightingModel).asVarying();
+    const auto overlayHUDOpaquesInputs = DrawOverlay3D::Inputs(overlaysHUDOpaque, lightingModel, nullJitter).asVarying();
+    const auto overlayHUDTransparentsInputs = DrawOverlay3D::Inputs(overlaysHUDTransparent, lightingModel, nullJitter).asVarying();
     task.addJob<DrawOverlay3D>("DrawOverlayHUDOpaque", overlayHUDOpaquesInputs, true);
     task.addJob<DrawOverlay3D>("DrawOverlayHUDTransparent", overlayHUDTransparentsInputs, false);
 
@@ -382,6 +383,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
 
     const auto& inItems = inputs.get0();
     const auto& lightingModel = inputs.get1();
+    const auto jitter = inputs.get2();
 
     RenderArgs* args = renderContext->args;
 
@@ -398,6 +400,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
         args->getViewFrustum().evalViewTransform(viewMat);
 
         batch.setProjectionTransform(projMat);
+        batch.setProjectionJitter(jitter.x, jitter.y);
         batch.setViewTransform(viewMat);
 
         // Setup lighting model for all items;

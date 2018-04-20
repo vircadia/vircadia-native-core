@@ -126,6 +126,7 @@ public:
     virtual void do_setModelTransform(const Batch& batch, size_t paramOffset) final;
     virtual void do_setViewTransform(const Batch& batch, size_t paramOffset) final;
     virtual void do_setProjectionTransform(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setProjectionJitter(const Batch& batch, size_t paramOffset) final;
     virtual void do_setViewportTransform(const Batch& batch, size_t paramOffset) final;
     virtual void do_setDepthRangeTransform(const Batch& batch, size_t paramOffset) final;
 
@@ -367,6 +368,7 @@ protected:
         Mat4 _projection;
         Vec4i _viewport { 0, 0, 1, 1 };
         Vec2 _depthRange { 0.0f, 1.0f };
+        Vec2 _projectionJitter{ 0.0f, 0.0f };
         bool _invalidView { false };
         bool _invalidProj { false };
         bool _invalidViewport { false };
@@ -379,7 +381,7 @@ protected:
         mutable List::const_iterator _camerasItr;
         mutable size_t _currentCameraOffset{ INVALID_OFFSET };
 
-        void preUpdate(size_t commandIndex, const StereoState& stereo);
+        void preUpdate(size_t commandIndex, const StereoState& stereo, Vec2u framebufferSize);
         void update(size_t commandIndex, const StereoState& stereo) const;
         void bindCurrentCamera(int stereoSide) const;
     } _transform;
