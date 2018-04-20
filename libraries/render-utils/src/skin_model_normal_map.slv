@@ -23,11 +23,11 @@
 <@include MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>
 
-out vec4 _position;
+out vec4 _positionES;
 out vec2 _texCoord0;
 out vec2 _texCoord1;
-out vec3 _normal;
-out vec3 _tangent;
+out vec3 _normalWS;
+out vec3 _tangentWS;
 out vec3 _color;
 out float _alpha;
 
@@ -52,10 +52,10 @@ void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToEyeAndClipPos(cam, obj, position, _position, gl_Position)$>
+    <$transformModelToEyeAndClipPos(cam, obj, position, _positionES, gl_Position)$>
     <$transformModelToWorldDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
     <$transformModelToWorldDir(cam, obj, interpolatedTangent.xyz, interpolatedTangent.xyz)$>
 
-    _normal = interpolatedNormal.xyz;
-    _tangent = interpolatedTangent.xyz;
+    _normalWS = interpolatedNormal.xyz;
+    _tangentWS = interpolatedTangent.xyz;
 }
