@@ -66,6 +66,10 @@ const QHostAddress DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME = QHostAddress::Lo
 
 const QString USERNAME_UUID_REPLACEMENT_STATS_KEY = "$username";
 
+using ConnectionID = int64_t;
+const ConnectionID NULL_CONNECTION_ID { -1 };
+const ConnectionID INITIAL_CONNECTION_ID { 0 };
+
 typedef std::pair<QUuid, SharedNodePointer> UUIDNodePair;
 typedef tbb::concurrent_unordered_map<QUuid, SharedNodePointer, UUIDHasher> NodeHash;
 
@@ -131,22 +135,20 @@ public:
     virtual Node::LocalID getDomainLocalID() const { assert(false); return Node::NULL_LOCAL_ID; }
     virtual HifiSockAddr getDomainSockAddr() const { assert(false); return HifiSockAddr(); }
 
-    // use sendUnreliablePacket to send an unrelaible packet (that you do not need to move)
+    // use sendUnreliablePacket to send an unreliable packet (that you do not need to move)
     // either to a node (via its active socket) or to a manual sockaddr
     qint64 sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode);
-    qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
-                                const QUuid& connectionSecret = QUuid());
+    qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr, HMACAuth* hmacAuth = nullptr);
 
     // use sendPacket to send a moved unreliable or reliable NL packet to a node's active socket or manual sockaddr
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode);
-    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr,
-                      const QUuid& connectionSecret = QUuid());
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr, HMACAuth* hmacAuth = nullptr);
 
     // use sendUnreliableUnorderedPacketList to unreliably send separate packets from the packet list
     // either to a node's active socket or to a manual sockaddr
     qint64 sendUnreliableUnorderedPacketList(NLPacketList& packetList, const Node& destinationNode);
     qint64 sendUnreliableUnorderedPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
-                          const QUuid& connectionSecret = QUuid());
+        HMACAuth* hmacAuth = nullptr);
 
     // use sendPacketList to send reliable packet lists (ordered or unordered) to a node's active socket
     // or to a manual sock addr
@@ -184,7 +186,7 @@ public:
     void getPacketStats(float& packetsInPerSecond, float& bytesInPerSecond, float& packetsOutPerSecond, float& bytesOutPerSecond);
     void resetPacketStats();
 
-    std::unique_ptr<NLPacket> constructPingPacket(PingType_t pingType = PingType::Agnostic);
+    std::unique_ptr<NLPacket> constructPingPacket(const QUuid& nodeId, PingType_t pingType = PingType::Agnostic);
     std::unique_ptr<NLPacket> constructPingReplyPacket(ReceivedMessage& message);
 
     static std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
@@ -323,7 +325,7 @@ public slots:
     void startSTUNPublicSocketUpdate();
     virtual void sendSTUNRequest();
 
-    bool killNodeWithUUID(const QUuid& nodeUUID);
+    bool killNodeWithUUID(const QUuid& nodeUUID, ConnectionID newConnectionID = NULL_CONNECTION_ID);
 
 signals:
     void dataSent(quint8 channelType, int bytes);
@@ -368,14 +370,14 @@ protected:
     qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
                        const QUuid& connectionSecret = QUuid());
     void collectPacketStats(const NLPacket& packet);
-    void fillPacketHeader(const NLPacket& packet, const QUuid& connectionSecret = QUuid());
+    void fillPacketHeader(const NLPacket& packet, HMACAuth* hmacAuth = nullptr);
 
     void setLocalSocket(const HifiSockAddr& sockAddr);
 
     bool packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet, Node* sourceNode = nullptr);
     void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
 
-    void handleNodeKill(const SharedNodePointer& node);
+    void handleNodeKill(const SharedNodePointer& node, ConnectionID newConnectionID = NULL_CONNECTION_ID);
 
     void stopInitialSTUNUpdate(bool success);
 
@@ -422,6 +424,7 @@ protected:
         }
     }
 
+    std::unordered_map<QUuid, ConnectionID> _connectionIDs;
 
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);

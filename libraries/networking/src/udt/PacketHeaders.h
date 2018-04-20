@@ -231,7 +231,8 @@ enum class EntityVersion : PacketVersion {
     ZoneStageRemoved,
     SoftEntities,
     MaterialEntities,
-    ShadowControl
+    ShadowControl,
+    MaterialData
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -320,6 +321,10 @@ enum class MessageDataVersion : PacketVersion {
 
 enum class IcePingVersion : PacketVersion {
     SendICEPeerID = 18
+};
+
+enum class PingVersion : PacketVersion {
+    IncludeConnectionID = 18
 };
 
 #endif // hifi_PacketHeaders_h

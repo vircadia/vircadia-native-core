@@ -6,8 +6,8 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 if (WIN32)
     ExternalProject_Add(
       ${EXTERNAL_NAME}
-      URL https://backtrace.io/download/crashpad_062317.zip
-      URL_MD5 65817e564b3628492abfc1dbd2a1e98b
+      URL http://public.highfidelity.com/dependencies/crashpad_062317.1.zip
+      URL_MD5 9c84b77f5f23daf939da1371825ed2b1
       CONFIGURE_COMMAND ""
       BUILD_COMMAND ""
       INSTALL_COMMAND ""

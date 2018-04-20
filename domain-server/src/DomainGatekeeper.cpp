@@ -452,11 +452,12 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         return SharedNodePointer();
     }
 
-    QUuid hintNodeID;
+    QUuid existingNodeID;
 
     // in case this is a node that's failing to connect
     // double check we don't have the same node whose sockets match exactly already in the list
     limitedNodeList->eachNodeBreakable([&](const SharedNodePointer& node){
+
         if (node->getPublicSocket() == nodeConnection.publicSockAddr && node->getLocalSocket() == nodeConnection.localSockAddr) {
             // we have a node that already has these exact sockets - this can occur if a node
             // is failing to connect to the domain
@@ -466,15 +467,20 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
             auto existingNodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
             if (existingNodeData->getUsername() == username) {
-                hintNodeID = node->getUUID();
+                qDebug() << "Deleting existing connection from same sockaddr: " << node->getUUID();
+                existingNodeID = node->getUUID();
                 return false;
             }
         }
         return true;
     });
 
+    if (!existingNodeID.isNull()) {
+        limitedNodeList->killNodeWithUUID(existingNodeID);
+    }
+
     // add the connecting node (or re-use the matched one from eachNodeBreakable above)
-    SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection, hintNodeID);
+    SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection);
 
     // set the edit rights for this user
     newNode->setPermissions(userPerms);

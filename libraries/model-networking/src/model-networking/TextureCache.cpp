@@ -642,8 +642,12 @@ void NetworkTexture::ktxInitialDataRequestFinished() {
     }
 
     if (result == ResourceRequest::Success) {
+
+// This is an expensive operation that we do not want in release.
+#ifdef DEBUG
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
         qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
+#endif
 
         _ktxHeaderData = _ktxHeaderRequest->getData();
         _ktxHighMipData = _ktxMipRequest->getData();

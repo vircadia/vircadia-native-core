@@ -25,6 +25,7 @@ ScrollingWindow {
     resizable: true
     destroyOnHidden: false
     implicitWidth: 424
+    opacity: parent.opacity
     implicitHeight: isHMD ? 695 : 728
     minSize: Qt.vector2d(424, 300)
 

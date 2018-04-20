@@ -20,7 +20,8 @@
 #include <AbstractViewStateInterface.h>
 
 const int FIXED_FONT_POINT_SIZE = 40;
-const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 80.0f; // this is a ratio determined through experimentation
+const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 92.0f; // Determined through experimentation to fit font to line 
+                                                                    // height.
 const float LINE_SCALE_RATIO = 1.2f;
 
 QString const Text3DOverlay::TYPE = "text3d";

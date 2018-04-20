@@ -33,7 +33,6 @@ function init() {
     radar.setUniqueColor(uniqueColor);
     radar.init();
     setupModesBar();
-    radar.isTouchValid = isRadarModeValidTouch;
 }
 
 function shutdown() {
@@ -181,34 +180,6 @@ function onButtonClicked(clickedButton, whatToDo, hideAllAfter) {
         whatToDo();
         switchModeButtons(clickedButton, hideAllAfter);
     }
-}
-
-function isRadarModeValidTouch(coords) {
-    var qmlFragments = [modesbar.qmlFragment];
-    var windows = [];
-    for (var i=0; i < qmlFragments.length; i++) {
-        var aQmlFrag = qmlFragments[i];
-        if (aQmlFrag != null && aQmlFrag.isVisible() &&
-            coords.x >= aQmlFrag.position.x * 3 && coords.x <= aQmlFrag.position.x * 3 + aQmlFrag.size.x * 3 &&
-            coords.y >= aQmlFrag.position.y * 3 && coords.y <= aQmlFrag.position.y * 3 + aQmlFrag.size.y * 3
-           ) {
-            printd("godViewModeTouchValid- false because of qmlFragments!? idx " + i);
-            return false;
-        }
-    }
-
-    for (var i=0; i < windows.length; i++) {
-        var aWin = windows[i];
-        if (aWin != null && aWin.position() != null &&
-            coords.x >= aWin.position().x * 3 && coords.x <= aWin.position().x * 3 + aWin.width() * 3 &&
-            coords.y >= aWin.position().y * 3 && coords.y <= aWin.position().y * 3 + aWin.height() * 3
-        ) {
-            printd("godViewModeTouchValid- false because of windows!?");
-            return false;
-        }
-    }
-    printd("godViewModeTouchValid- true by default ");
-    return true;
 }
 
 Script.scriptEnding.connect(function () {

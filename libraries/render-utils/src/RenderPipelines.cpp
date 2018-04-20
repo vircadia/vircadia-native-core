@@ -32,6 +32,7 @@
 #include "model_lightmap_fade_vert.h"
 #include "model_lightmap_normal_map_fade_vert.h"
 #include "model_translucent_vert.h"
+#include "model_translucent_normal_map_vert.h"
 #include "skin_model_fade_vert.h"
 #include "skin_model_normal_map_fade_vert.h"
 #include "skin_model_fade_dq_vert.h"
@@ -68,11 +69,13 @@
 #include "model_lightmap_normal_map_frag.h"
 #include "model_translucent_frag.h"
 #include "model_translucent_unlit_frag.h"
+#include "model_translucent_normal_map_frag.h"
 
 #include "model_lightmap_fade_frag.h"
 #include "model_lightmap_normal_map_fade_frag.h"
 #include "model_translucent_fade_frag.h"
 #include "model_translucent_unlit_fade_frag.h"
+#include "model_translucent_normal_map_fade_frag.h"
 
 #include "overlay3D_vert.h"
 #include "overlay3D_frag.h"
@@ -187,6 +190,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     auto modelLightmapVertex = model_lightmap_vert::getShader();
     auto modelLightmapNormalMapVertex = model_lightmap_normal_map_vert::getShader();
     auto modelTranslucentVertex = model_translucent_vert::getShader();
+    auto modelTranslucentNormalMapVertex = model_translucent_normal_map_vert::getShader();
     auto modelShadowVertex = model_shadow_vert::getShader();
 
     auto modelLightmapFadeVertex = model_lightmap_fade_vert::getShader();
@@ -227,6 +231,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     auto modelNormalMapPixel = model_normal_map_frag::getShader();
     auto modelTranslucentPixel = model_translucent_frag::getShader();
     auto modelTranslucentUnlitPixel = model_translucent_unlit_frag::getShader();
+    auto modelTranslucentNormalMapPixel = model_translucent_normal_map_frag::getShader();
     auto modelShadowPixel = model_shadow_frag::getShader();
     auto modelLightmapPixel = model_lightmap_frag::getShader();
     auto modelLightmapNormalMapPixel = model_lightmap_normal_map_frag::getShader();
@@ -239,6 +244,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     auto modelShadowFadePixel = model_shadow_fade_frag::getShader();
     auto modelTranslucentFadePixel = model_translucent_fade_frag::getShader();
     auto modelTranslucentUnlitFadePixel = model_translucent_unlit_fade_frag::getShader();
+    auto modelTranslucentNormalMapFadePixel = model_translucent_normal_map_fade_frag::getShader(); 
     auto simpleFadePixel = simple_textured_fade_frag::getShader();
     auto simpleUnlitFadePixel = simple_textured_unlit_fade_frag::getShader();
     auto simpleTranslucentFadePixel = simple_transparent_textured_fade_frag::getShader();
@@ -296,7 +302,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         simpleVertex, simpleTranslucentUnlitPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents(),
-        modelTranslucentVertex, modelTranslucentPixel, nullptr, nullptr);
+        modelTranslucentNormalMapVertex, modelTranslucentNormalMapPixel, nullptr, nullptr);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
         Key::Builder().withMaterial().withTranslucent().withLightmap(),
@@ -316,7 +322,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         simpleFadeVertex, simpleTranslucentUnlitFadePixel, batchSetter, itemSetter);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents().withFade(),
-        modelNormalMapFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+        modelTranslucentNormalMapVertex, modelTranslucentNormalMapFadePixel, batchSetter, itemSetter);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
         Key::Builder().withMaterial().withTranslucent().withLightmap().withFade(),
@@ -358,14 +364,14 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         skinModelTranslucentVertex, modelTranslucentPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents(),
-        skinModelNormalMapTranslucentVertex, modelTranslucentPixel, nullptr, nullptr);
+        skinModelNormalMapTranslucentVertex, modelTranslucentNormalMapPixel, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTranslucent().withFade(),
         skinModelFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents().withFade(),
-        skinModelNormalMapFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+        skinModelNormalMapFadeVertex, modelTranslucentNormalMapFadePixel, batchSetter, itemSetter);
 
     // dual quaternion skinned
     addPipeline(
@@ -388,14 +394,14 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         skinModelTranslucentDualQuatVertex, modelTranslucentPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withTangents(),
-        skinModelNormalMapTranslucentDualQuatVertex, modelTranslucentPixel, nullptr, nullptr);
+        skinModelNormalMapTranslucentDualQuatVertex, modelTranslucentNormalMapPixel, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withFade(),
         skinModelFadeDualQuatVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withDualQuatSkinned().withTranslucent().withTangents().withFade(),
-        skinModelNormalMapFadeDualQuatVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+        skinModelNormalMapFadeDualQuatVertex, modelTranslucentNormalMapFadePixel, batchSetter, itemSetter);
 
     // Depth-only
     addPipeline(
@@ -612,7 +618,8 @@ void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state) {
 #include "RenderPipelines.h"
 #include <model-networking/TextureCache.h>
 
-void RenderPipelines::bindMaterial(graphics::MaterialPointer material, gpu::Batch& batch, bool enableTextures) {
+// FIXME find a better way to setup the default textures
+void RenderPipelines::bindMaterial(const graphics::MaterialPointer& material, gpu::Batch& batch, bool enableTextures) {
     if (!material) {
         return;
     }
@@ -630,84 +637,65 @@ void RenderPipelines::bindMaterial(graphics::MaterialPointer material, gpu::Batc
         numUnlit++;
     }
 
-    if (!enableTextures) {
-        batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, textureCache->getWhiteTexture());
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, textureCache->getWhiteTexture());
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, textureCache->getBlueTexture());
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, textureCache->getBlackTexture());
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, textureCache->getWhiteTexture());
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, textureCache->getWhiteTexture());
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getBlackTexture());
-        return;
-    }
+    const auto& drawMaterialTextures = material->getTextureTable();
 
     // Albedo
     if (materialKey.isAlbedoMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::ALBEDO_MAP);
-        if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, itr->second->getTextureView());
+        if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::ALBEDO, itr->second->getTextureView());
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, textureCache->getGrayTexture());
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::ALBEDO, textureCache->getWhiteTexture());
         }
     }
 
     // Roughness map
     if (materialKey.isRoughnessMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::ROUGHNESS_MAP);
-        if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, itr->second->getTextureView());
-
-            // texcoord are assumed to be the same has albedo
+        if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::ROUGHNESS, itr->second->getTextureView());
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, textureCache->getWhiteTexture());
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::ROUGHNESS, textureCache->getWhiteTexture());
         }
     }
 
     // Normal map
     if (materialKey.isNormalMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::NORMAL_MAP);
-        if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, itr->second->getTextureView());
-
-            // texcoord are assumed to be the same has albedo
+        if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::NORMAL, itr->second->getTextureView());
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, textureCache->getBlueTexture());
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::NORMAL, textureCache->getBlueTexture());
         }
     }
 
     // Metallic map
     if (materialKey.isMetallicMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::METALLIC_MAP);
-        if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, itr->second->getTextureView());
-
-            // texcoord are assumed to be the same has albedo
+        if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::METALLIC, itr->second->getTextureView());
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, textureCache->getBlackTexture());
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::METALLIC, textureCache->getBlackTexture());
         }
     }
 
     // Occlusion map
     if (materialKey.isOcclusionMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::OCCLUSION_MAP);
-        if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, itr->second->getTextureView());
-
-            // texcoord are assumed to be the same has albedo
+        if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::OCCLUSION, itr->second->getTextureView());
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, textureCache->getWhiteTexture());
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::OCCLUSION, textureCache->getWhiteTexture());
         }
     }
 
     // Scattering map
     if (materialKey.isScatteringMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::SCATTERING_MAP);
-        if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, itr->second->getTextureView());
-
-            // texcoord are assumed to be the same has albedo
+        if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::SCATTERING, itr->second->getTextureView());
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, textureCache->getWhiteTexture());
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::SCATTERING, textureCache->getWhiteTexture());
         }
     }
 
@@ -715,18 +703,19 @@ void RenderPipelines::bindMaterial(graphics::MaterialPointer material, gpu::Batc
     if (materialKey.isLightmapMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::LIGHTMAP_MAP);
 
-        if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
+        if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getGrayTexture());
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP, textureCache->getGrayTexture());
         }
     } else if (materialKey.isEmissiveMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::EMISSIVE_MAP);
-
-        if (itr != textureMaps.end() && itr->second->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
+        if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getBlackTexture());
+            drawMaterialTextures->setTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP, textureCache->getBlackTexture());
         }
     }
+
+    batch.setResourceTextureTable(material->getTextureTable());
 }

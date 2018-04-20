@@ -33,8 +33,10 @@
  * @property {number} innerHeight - The height of the drawable area of the Interface window (i.e., without borders or other
  *     chrome), in pixels. <em>Read-only.</em>
  * @property {object} location - Provides facilities for working with your current metaverse location. See {@link location}.
- * @property {number} x - The x coordinate of the top left corner of the Interface window on the display. <em>Read-only.</em>
- * @property {number} y - The y coordinate of the top left corner of the Interface window on the display. <em>Read-only.</em>
+ * @property {number} x - The x display coordinate of the top left corner of the drawable area of the Interface window. 
+ *     <em>Read-only.</em>
+ * @property {number} y - The y display coordinate of the top left corner of the drawable area of the Interface window. 
+ *     <em>Read-only.</em>
  */
 
 class WindowScriptingInterface : public QObject, public Dependency {
@@ -70,7 +72,14 @@ public slots:
 
     /**jsdoc
      * Raise the Interface window if it is minimized. If raised, the window gains focus.
+     * @function Window.raise
+     */
+    void raise();
+
+    /**jsdoc
+     * Raise the Interface window if it is minimized. If raised, the window gains focus.
      * @function Window.raiseMainWindow
+     * @deprecated Use {@link Window.raise|raise} instead.
      */
     void raiseMainWindow();
 
@@ -515,14 +524,15 @@ public slots:
     void closeMessageBox(int id);
 
 private slots:
+    void onWindowGeometryChanged(const QRect& geometry);
     void onMessageBoxSelected(int button);
     void disconnectedFromDomain();
 
 signals:
 
     /**jsdoc
-     * Triggered when you change the domain you're visiting. <strong>Warning:</strong> Is not emitted if you go to domain that 
-     * isn't running.
+     * Triggered when you change the domain you're visiting. <strong>Warning:</strong> Is not emitted if you go to a domain 
+     * that isn't running.
      * @function Window.domainChanged
      * @param {string} domainURL - The domain's URL.
      * @returns {Signal}

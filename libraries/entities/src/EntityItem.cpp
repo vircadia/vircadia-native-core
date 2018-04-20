@@ -62,7 +62,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
 EntityItem::~EntityItem() {
     // these pointers MUST be correct at delete, else we probably have a dangling backpointer
     // to this EntityItem in the corresponding data structure.
-    assert(!_simulated);
+    assert(!_simulated || (!_element && !_physicsInfo));
     assert(!_element);
     assert(!_physicsInfo);
 }
@@ -693,7 +693,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 // the entity-server is awarding us ownership which is what we want
                 _simulationOwner.set(newSimOwner);
             }
-        } else if (newSimOwner.matchesValidID(myNodeID) && !_hasBidOnSimulation) {
+        } else if (newSimOwner.matchesValidID(myNodeID) && !_simulationOwner.pendingTake(now)) {
             // entity-server tells us that we have simulation ownership while we never requested this for this EntityItem,
             // this could happen when the user reloads the cache and entity tree.
             markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
@@ -1911,7 +1911,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
     }
 }
 
-void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
+void EntityItem::setSimulationOwner(const QUuid& id, uint8_t priority) {
     if (wantTerseEditLogging() && (id != _simulationOwner.getID() || priority != _simulationOwner.getPriority())) {
         qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << id << priority;
     }
@@ -1942,12 +1942,8 @@ void EntityItem::clearSimulationOwnership() {
 
 }
 
-void EntityItem::setPendingOwnershipPriority(quint8 priority, const quint64& timestamp) {
+void EntityItem::setPendingOwnershipPriority(uint8_t priority, const quint64& timestamp) {
     _simulationOwner.setPendingPriority(priority, timestamp);
-}
-
-void EntityItem::rememberHasSimulationOwnershipBid() const {
-    _hasBidOnSimulation = true;
 }
 
 QString EntityItem::actionsToDebugString() {
@@ -2197,10 +2193,8 @@ void EntityItem::deserializeActionsInternal() {
                 entity->addActionInternal(simulation, action);
                 updated << actionID;
             } else {
-                static QString repeatedMessage =
-                    LogHandler::getInstance().addRepeatedMessageRegex(".*action creation failed for.*");
-                qCDebug(entities) << "EntityItem::deserializeActionsInternal -- action creation failed for"
-                        << getID() << _name; // getName();
+                HIFI_FCDEBUG(entities(), "EntityItem::deserializeActionsInternal -- action creation failed for"
+                        << getID() << _name); // getName();
                 removeActionInternal(actionID, nullptr);
             }
         }
@@ -2962,13 +2956,6 @@ void EntityItem::retrieveMarketplacePublicKey() {
 }
 
 void EntityItem::preDelete() {
-    // clear out any left-over actions
-    EntityTreeElementPointer element = _element; // use local copy of _element for logic below
-    EntityTreePointer entityTree = element ? element->getTree() : nullptr;
-    EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
-    if (simulation) {
-        clearActions(simulation);
-    }
 }
 
 void EntityItem::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {

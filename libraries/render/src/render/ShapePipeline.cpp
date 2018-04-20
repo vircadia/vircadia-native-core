@@ -134,9 +134,12 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
         locations->lightClusterFrustumBufferUnit = -1;
     }
 
-    auto gpuPipeline = gpu::Pipeline::create(program, state);
-    auto shapePipeline = std::make_shared<Pipeline>(gpuPipeline, locations, batchSetter, itemSetter);
-    addPipelineHelper(filter, key, 0, shapePipeline);
+    {
+        PROFILE_RANGE(app, "Pipeline::create");
+        auto gpuPipeline = gpu::Pipeline::create(program, state);
+        auto shapePipeline = std::make_shared<Pipeline>(gpuPipeline, locations, batchSetter, itemSetter);
+        addPipelineHelper(filter, key, 0, shapePipeline);
+    }
 }
 
 const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Key& key) const {
