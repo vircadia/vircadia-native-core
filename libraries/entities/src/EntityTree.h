@@ -88,7 +88,6 @@ public:
 
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
-    virtual bool getWantSVOfileVersions() const override { return true; }
     virtual PacketType expectedDataPacketType() const override { return PacketType::EntityData; }
     virtual bool handlesEditPacketType(PacketType packetType) const override;
     void fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties);
@@ -107,11 +106,7 @@ public:
 
     virtual bool rootElementHasData() const override { return true; }
 
-    // the root at least needs to store the number of entities in the packet/buffer
-    virtual int minimumRequiredRootDataBytes() const override { return sizeof(uint16_t); }
-    virtual bool suppressEmptySubtrees() const override { return false; }
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const override;
-    virtual bool mustIncludeAllChildData() const override { return false; }
 
     virtual void update() override { update(true); }
 
