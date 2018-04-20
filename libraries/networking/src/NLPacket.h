@@ -18,6 +18,8 @@
 
 #include "udt/Packet.h"
 
+class HMACAuth;
+
 class NLPacket : public udt::Packet {
     Q_OBJECT
 public:
@@ -71,7 +73,7 @@ public:
     
     static QUuid sourceIDInHeader(const udt::Packet& packet);
     static QByteArray verificationHashInHeader(const udt::Packet& packet);
-    static QByteArray hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret);
+    static QByteArray hashForPacketAndHMAC(const udt::Packet& packet, HMACAuth& hash);
     
     PacketType getType() const { return _type; }
     void setType(PacketType type);
@@ -82,7 +84,7 @@ public:
     const QUuid& getSourceID() const { return _sourceID; }
     
     void writeSourceID(const QUuid& sourceID) const;
-    void writeVerificationHashGivenSecret(const QUuid& connectionSecret) const;
+    void writeVerificationHash(HMACAuth& hmacAuth) const;
 
 protected:
     

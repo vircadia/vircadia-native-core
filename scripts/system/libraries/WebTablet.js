@@ -15,7 +15,7 @@ Script.include(Script.resolvePath("../libraries/controllers.js"));
 Script.include(Script.resolvePath("../libraries/Xform.js"));
 
 var Y_AXIS = {x: 0, y: 1, z: 0};
-var DEFAULT_DPI = 34;
+var DEFAULT_DPI = 31;
 var DEFAULT_WIDTH = 0.4375;
 var DEFAULT_VERTICAL_FIELD_OF_VIEW = 45; // degrees
 var SENSOR_TO_ROOM_MATRIX = -2;
@@ -31,12 +31,12 @@ var DELAY_FOR_30HZ = 33; // milliseconds
 
 
 // will need to be recaclulated if dimensions of fbx model change.
-var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
+var TABLET_NATURAL_DIMENSIONS = {x: 32.083, y: 48.553, z: 2.269};
 
 var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
 // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
 // var TABLET_MODEL_PATH = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
-var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
+var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button-small-bezel.fbx";
 
 // returns object with two fields:
 //    * position - position in front of the user
@@ -44,14 +44,28 @@ var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-
 function calcSpawnInfo(hand, landscape) {
     var finalPosition;
 
+    var LEFT_HAND = Controller.Standard.LeftHand;
+    var sensorToWorldScale = MyAvatar.sensorToWorldScale;
     var headPos = (HMD.active && Camera.mode === "first person") ? HMD.position : Camera.position;
-    var headRot = (HMD.active && Camera.mode === "first person") ? HMD.orientation : Camera.orientation;
-    var dominantHandRotation =  MyAvatar.getDominantHand() === "right" ? -20 : 20;
-    var offsetRotation = Quat.fromPitchYawRollDegrees(0, dominantHandRotation, 0);
-    var forward = Vec3.multiplyQbyV(offsetRotation, Quat.getForward(Quat.cancelOutRollAndPitch(headRot)));
-    var FORWARD_OFFSET = 0.5 * MyAvatar.sensorToWorldScale;
-    finalPosition = Vec3.sum(headPos, Vec3.multiply(FORWARD_OFFSET, forward));
-    var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, forward, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.UNIT_Y));
+    var headRot = Quat.cancelOutRollAndPitch((HMD.active && Camera.mode === "first person") ?
+        HMD.orientation : Camera.orientation);
+
+    var right = Quat.getRight(headRot);
+    var forward = Quat.getForward(headRot);
+    var up = Quat.getUp(headRot);
+
+    var FORWARD_OFFSET = 0.5 * sensorToWorldScale;
+    var UP_OFFSET = -0.16 * sensorToWorldScale;
+    var RIGHT_OFFSET = ((hand === LEFT_HAND) ? -0.18 : 0.18) * sensorToWorldScale;
+
+    var forwardPosition = Vec3.sum(headPos, Vec3.multiply(FORWARD_OFFSET, forward));
+    var lateralPosition = Vec3.sum(forwardPosition, Vec3.multiply(RIGHT_OFFSET, right));
+    finalPosition = Vec3.sum(lateralPosition, Vec3.multiply(UP_OFFSET, up));
+
+    var MY_EYES = { x: 0.0, y: 0.15, z: 0.0 };
+    var lookAtEndPosition = Vec3.sum(Vec3.multiply(RIGHT_OFFSET, right), Vec3.multiply(FORWARD_OFFSET, forward));
+    var orientation = Quat.lookAt(MY_EYES, lookAtEndPosition, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.UNIT_Y));
+
     return {
         position: finalPosition,
         rotation: landscape ? Quat.multiply(orientation, ROT_LANDSCAPE) : Quat.multiply(orientation, ROT_Y_180)
@@ -119,11 +133,11 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         Overlays.deleteOverlay(this.webOverlayID);
     }
 
-    var RAYPICK_OFFSET = 0.0001; // Sufficient for raypick to reliably intersect tablet screen before tablet model.
+    var RAYPICK_OFFSET = 0.0007; // Sufficient for raypick to reliably intersect tablet screen before tablet model.
     var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.0) / sensorScaleFactor + RAYPICK_OFFSET;
-    var WEB_ENTITY_Y_OFFSET = 0.004;
-    var screenWidth = 0.82 * tabletWidth;
-    var screenHeight = 0.81 * tabletHeight;
+    var WEB_ENTITY_Y_OFFSET = 1 * tabletScaleFactor;
+    var screenWidth = 0.9275 * tabletWidth;
+    var screenHeight = 0.8983 * tabletHeight;
     this.webOverlayID = Overlays.addOverlay("web3d", {
         name: "WebTablet Web",
         url: url,
@@ -139,7 +153,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         visible: visible
     });
 
-    var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20)) * (1 / sensorScaleFactor) - 0.003;
+    var HOME_BUTTON_Y_OFFSET = (tabletHeight / 2) - (tabletHeight / 20) + 0.003 * sensorScaleFactor;
     // FIXME: Circle3D overlays currently at the wrong dimensions, so we need to account for that here
     var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
     this.homeButtonID = Overlays.addOverlay("circle3d", {
@@ -277,8 +291,8 @@ WebTablet.prototype.setLandscape = function(newLandscapeValue) {
     var tabletWidth = getTabletWidthFromSettings() * MyAvatar.sensorToWorldScale;
     var tabletScaleFactor = tabletWidth / TABLET_NATURAL_DIMENSIONS.x;
     var tabletHeight = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
-    var screenWidth = 0.82 * tabletWidth;
-    var screenHeight = 0.81 * tabletHeight;
+    var screenWidth = 0.9275 * tabletWidth;
+    var screenHeight = 0.8983 * tabletHeight;
     Overlays.editOverlay(this.webOverlayID, {
         rotation: Quat.multiply(cameraOrientation, ROT_LANDSCAPE_WINDOW),
         dimensions: {x: this.landscape ? screenHeight : screenWidth, y: this.landscape ? screenWidth : screenHeight, z: 0.1}
