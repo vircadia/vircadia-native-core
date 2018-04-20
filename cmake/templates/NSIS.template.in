@@ -1162,10 +1162,6 @@ Section "-Core installation"
   Call HandlePostInstallOptions
 
   !insertmacro GoogleAnalytics "Installer" "Done" "" ""
-
-  ; stop the image slideshow and display install details
-  nsisSlideshow::stop
-  SetDetailsView show
 SectionEnd
 
 !include nsProcess.nsh
