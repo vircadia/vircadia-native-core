@@ -691,8 +691,8 @@ private:
 /**jsdoc
  * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property 
  * values are integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or 
- * <code>Controller.Standard</code> items in a {@link RouteObject} mapping. Each data value is either 
- * <code>1.0</code> for "true" or <code>0.0</code> for "false".</p>
+ * <code>Controller.Standard</code> items in a {@link RouteObject} mapping (e.g., using the {@link RouteObject#when} method).
+ * Each data value is either <code>1.0</code> for "true" or <code>0.0</code> for "false".</p>
  * <table>
  *   <thead>
  *     <tr><th>Property</th><th>Type</th><th>Data</th><th>Description</th></tr>
