@@ -130,14 +130,14 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
 #ifdef GPU_STEREO_CAMERA_BUFFER
         _cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _view, finalJitter), _camera.getEyeCamera(1, stereo, _view, finalJitter)));
 #else
-        _cameras.push_back((_camera.getEyeCamera(0, stereo, _view)));
-        _cameras.push_back((_camera.getEyeCamera(1, stereo, _view)));
+        _cameras.push_back((_camera.getEyeCamera(0, stereo, _view, finalJitter)));
+        _cameras.push_back((_camera.getEyeCamera(1, stereo, _view, finalJitter)));
 #endif
         } else {
 #ifdef GPU_STEREO_CAMERA_BUFFER
             _cameras.push_back(CameraBufferElement(_camera.getMonoCamera(_view, finalJitter)));
 #else
-            _cameras.push_back((_camera.recomputeDerived(_view)));
+            _cameras.push_back((_camera.getMonoCamera(_view, finalJitter)));
 #endif
         }
     }
