@@ -299,10 +299,10 @@ public slots:
     virtual void setVPadHidden(bool hidden); // Call it when a window should hide it
 
     /**jsdoc
-     * Sets the amount of extra margins between the virtual game pad that is displayed on certain devices (e.g., Android) and 
+     * Sets the amount of extra margin between the virtual game pad that is displayed on certain devices (e.g., Android) and 
      * the bottom of the display.
      * @function Controller.setVPadExtraBottomMargin
-     * @param {number} margin - Integer number of pixels of extra margin.
+     * @param {number} margin - Integer number of pixels in the extra margin.
      */
     virtual void setVPadExtraBottomMargin(int margin);
 

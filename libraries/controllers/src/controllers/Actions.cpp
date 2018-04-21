@@ -191,23 +191,23 @@ namespace controller {
      *       event.</td></tr>
      *     <tr><td><code>UiNavGroup</code></td><td>number</td><td>number</td><td>Generate a keyboard tab or back-tab key event.
      *       </td></tr>
-     *     <tr><td><code>UiNavSelect</code></td><td>number</td><td>number</td><td>Generate keyboard an Enter key event.
+     *     <tr><td><code>UiNavSelect</code></td><td>number</td><td>number</td><td>Generate a keyboard Enter key event.
      *       </td></tr>
-     *     <tr><td><code>UiNavBack</code></td><td>number</td><td>number</td><td>Generate keyboard an Esc key event.</td></tr>
-     *     <tr><td><code>LeftHandClick</code></td><td>number</td><td>number</td><td><strong>Deprecated: </strong>: No action.
+     *     <tr><td><code>UiNavBack</code></td><td>number</td><td>number</td><td>Generate a keyboard Esc key event.</td></tr>
+     *     <tr><td><code>LeftHandClick</code></td><td>number</td><td>number</td><td><strong>Deprecated: </strong> No action.
      *       </td></tr>
-     *     <tr><td><code>RightHandClick</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong>: No action.
+     *     <tr><td><code>RightHandClick</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> No action.
      *       </td></tr>
-     *     <tr><td><code>Shift</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong>: No action.</td></tr>
-     *     <tr><td><code>PrimaryAction</code></td><td>number</td><td>number</td><td><strong>Deprecated: </strong>: No action.
+     *     <tr><td><code>Shift</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> No action.</td></tr>
+     *     <tr><td><code>PrimaryAction</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> No action.
      *       </td></tr>
-     *     <tr><td><code>SecondaryAction</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong>: No action.
+     *     <tr><td><code>SecondaryAction</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> No action.
      *       </td></tr>
      *
      *     <tr><td colSpan=4><strong>Aliases</strong></td>
      *     <tr><td><code>Backward</code></td><td>number</td><td>number</td><td>Alias for <code>TranslateZ</code> in the 
      *       positive direction.</td></tr>
-     *     <tr><td><code>Forward</code></td><td>number</td><td>number</td><td>Alias for <code>TranslateZ<code> in the negative 
+     *     <tr><td><code>Forward</code></td><td>number</td><td>number</td><td>Alias for <code>TranslateZ</code> in the negative 
      *       direction.</td></tr>
      *     <tr><td><code>StrafeRight</code></td><td>number</td><td>number</td><td>Alias for <code>TranslateX</code> in the
      *       positive direction.</td></tr>
@@ -221,7 +221,7 @@ namespace controller {
      *       direction.</td></tr>
      *     <tr><td><code>PitchUp</code></td><td>number</td><td>number</td><td>Alias for <code>Pitch</code> in the negative
      *       direction.</td></tr>
-     *     <tr><td><code>YawLeft</code></td><td>number</td><td>number</td><td>Alias of <code>Yaw</code> in the positive
+     *     <tr><td><code>YawLeft</code></td><td>number</td><td>number</td><td>Alias for <code>Yaw</code> in the positive
      *       direction.</td></tr>
      *     <tr><td><code>YawRight</code></td><td>number</td><td>number</td><td>Alias for <code>Yaw</code> in the negative 
      *       direction.</td></tr>

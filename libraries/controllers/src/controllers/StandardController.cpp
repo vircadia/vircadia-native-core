@@ -30,7 +30,7 @@ void StandardController::focusOutEvent() {
 /**jsdoc
  * <p>The <code>Controller.Standard</code> object has properties representing standard controller outputs. Those for physical 
  * controllers are based on the XBox controller, with aliases for PlayStation. The property values are integer IDs, uniquely 
- * identifying each output. <em>Read-only.</em> These can be can be mapped to actions or functions in a {@link RouteObject} 
+ * identifying each output. <em>Read-only.</em> These can be mapped to actions or functions in a {@link RouteObject} 
  * mapping.</p>
  *
  * <p>The data value provided by each control is either a number or a {@link Pose}. Numbers are typically normalized to
@@ -64,7 +64,7 @@ void StandardController::focusOutEvent() {
  *
  *     <tr><td colspan="4"><strong>Sticks</strong></td></tr>
  *     <tr><td><code>LX</code></td><td>number</td><td>number</td><td>Left stick x-axis scale.</td></tr>
- *     <tr><td><code>LY</code></td><td>number</td><td>number</td><td>left stick y-axis scale.</td></tr>
+ *     <tr><td><code>LY</code></td><td>number</td><td>number</td><td>Left stick y-axis scale.</td></tr>
  *     <tr><td><code>RX</code></td><td>number</td><td>number</td><td>Right stick x-axis scale.</td></tr>
  *     <tr><td><code>RY</code></td><td>number</td><td>number</td><td>Right stick y-axis scale.</td></tr>
  *     <tr><td><code>LS</code></td><td>number</td><td>number</td><td>Left stick button pressed.</td></tr>

@@ -477,7 +477,7 @@ namespace controller {
 
         /**jsdoc
          * Enable processing of mouse "move", "press", "double-press", and "release" events into 
-         * {@link Controller.Hardware-Keyboard|Controller.Hardware.Keyboard} outputs that was disabled using 
+         * {@link Controller.Hardware-Keyboard|Controller.Hardware.Keyboard} outputs that were disabled using 
          * {@link Controller.captureMouseEvents|captureMouseEvents}.
          * @function Controller.releaseMouseEvents
          */
@@ -497,7 +497,7 @@ namespace controller {
          * Enable processing of touch "begin", "update", and "end" events into 
          * {@link Controller.Hardware|Controller.Hardware.Keyboard}, 
          * {@link Controller.Hardware|Controller.Hardware.Touchscreen}, and 
-         * {@link Controller.Hardware|Controller.Hardware.TouchscreenVirtualPad} outputs that was disabled using 
+         * {@link Controller.Hardware|Controller.Hardware.TouchscreenVirtualPad} outputs that were disabled using 
          * {@link Controller.captureTouchEvents|captureTouchEvents}.
          * @function Controller.releaseTouchEvents
          */
@@ -513,7 +513,7 @@ namespace controller {
 
         /**jsdoc
          * Enable processing of mouse wheel rotation events into {@link Controller.Hardware|Controller.Hardware.Keyboard} 
-         * outputs that was disabled using {@link Controller.captureWheelEvents|captureWheelEvents}.
+         * outputs that wer disabled using {@link Controller.captureWheelEvents|captureWheelEvents}.
          * @function Controller.releaseWheelEvents
          */
         virtual void releaseWheelEvents() { _wheelCaptured = false; }
@@ -534,7 +534,7 @@ namespace controller {
         virtual void captureActionEvents() { _actionsCaptured = true; }
 
         /**jsdoc
-         * Enable translating and rotating the user's avatar in response to keyboard and controller controls that was disabled 
+         * Enable translating and rotating the user's avatar in response to keyboard and controller controls that were disabled 
          * using {@link Controller.captureActionEvents|captureActionEvents}.
          * @function Controller.releaseActionEvents
          */

@@ -218,9 +218,9 @@ controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevic
 
 /**jsdoc
  * <p>The <code>Controller.Hardware.Keyboard</code> object has properties representing keyboard, mouse, and display touch 
- * events. The property values are integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be can be 
- * mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject} mapping. For presses, 
- * each data value is either <code>1.0</code> for "true" or <code>0.0</code> for "false".</p>
+ * events. The property values are integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to 
+ * actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject} mapping. For presses, each data 
+ * value is either <code>1.0</code> for "true" or <code>0.0</code> for "false".</p>
  * <table>
  *   <thead>
  *     <tr><th>Property</th><th>Type</th><td>Data</th><th>Description</th></tr>
