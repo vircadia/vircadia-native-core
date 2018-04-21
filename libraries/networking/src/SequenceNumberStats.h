@@ -14,7 +14,7 @@
 
 #include "SharedUtil.h"
 #include "RingBufferHistory.h"
-#include <quuid.h>
+#include "UUID.h"
 
 const int MAX_REASONABLE_SEQUENCE_GAP = 1000;
 
@@ -73,7 +73,7 @@ public:
     SequenceNumberStats(int statsHistoryLength = 0, bool canDetectOutOfSync = true);
 
     void reset();
-    ArrivalInfo sequenceNumberReceived(quint16 incoming, QUuid senderUUID = QUuid(), const bool wantExtraDebugging = false);
+    ArrivalInfo sequenceNumberReceived(quint16 incoming, NetworkLocalID senderID = NULL_LOCAL_ID, const bool wantExtraDebugging = false);
     void pruneMissingSet(const bool wantExtraDebugging = false);
     void pushStatsToHistory() { _statsHistory.insert(_stats); }
 
@@ -100,7 +100,8 @@ private:
 
     PacketStreamStats _stats;
 
-    QUuid _lastSenderUUID;
+    NetworkLocalID _lastSenderID;
+    static const NetworkLocalID NULL_LOCAL_ID = (NetworkLocalID) 0;
 
     RingBufferHistory<PacketStreamStats> _statsHistory;
 

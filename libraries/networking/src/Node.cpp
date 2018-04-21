@@ -169,6 +169,7 @@ QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._localSocket;
     out << node._permissions;
     out << node._isReplicated;
+    out << node._localID;
     return out;
 }
 
@@ -179,6 +180,7 @@ QDataStream& operator>>(QDataStream& in, Node& node) {
     in >> node._localSocket;
     in >> node._permissions;
     in >> node._isReplicated;
+    in >> node._localID;
     return in;
 }
 
@@ -189,7 +191,7 @@ QDebug operator<<(QDebug debug, const Node& node) {
     } else {
         debug.nospace() << " (" << node.getType() << ")";
     }
-    debug << " " << node.getUUID().toString().toLocal8Bit().constData() << " ";
+    debug << " " << node.getUUID().toString().toLocal8Bit().constData() << "(" << node.getLocalID() << ") ";
     debug.nospace() << node.getPublicSocket() << "/" << node.getLocalSocket();
     return debug.nospace();
 }
