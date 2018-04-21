@@ -750,32 +750,32 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashPureVirtualFunction);
     connect(action, &QAction::triggered, qApp, []() { crash::pureVirtualCall(); });
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashPureVirtualFunctionThreaded);
-    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::pureVirtualCall(); }); });
+    connect(action, &QAction::triggered, qApp, []() { std::thread(crash::pureVirtualCall).join(); });
 
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashDoubleFree);
     connect(action, &QAction::triggered, qApp, []() { crash::doubleFree(); });
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashDoubleFreeThreaded);
-    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::doubleFree(); }); });
+    connect(action, &QAction::triggered, qApp, []() { std::thread(crash::doubleFree).join(); });
 
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashAbort);
     connect(action, &QAction::triggered, qApp, []() { crash::doAbort(); });
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashAbortThreaded);
-    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::doAbort(); }); });
+    connect(action, &QAction::triggered, qApp, []() { std::thread(crash::doAbort).join(); });
 
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNullDereference);
     connect(action, &QAction::triggered, qApp, []() { crash::nullDeref(); });
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNullDereferenceThreaded);
-    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::nullDeref(); }); });
+    connect(action, &QAction::triggered, qApp, []() { std::thread(crash::nullDeref).join(); });
 
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashOutOfBoundsVectorAccess);
     connect(action, &QAction::triggered, qApp, []() { crash::outOfBoundsVectorCrash(); });
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashOutOfBoundsVectorAccessThreaded);
-    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::outOfBoundsVectorCrash(); }); });
+    connect(action, &QAction::triggered, qApp, []() { std::thread(crash::outOfBoundsVectorCrash).join(); });
 
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNewFault);
     connect(action, &QAction::triggered, qApp, []() { crash::newFault(); });
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNewFaultThreaded);
-    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::newFault(); }); });
+    connect(action, &QAction::triggered, qApp, []() { std::thread(crash::newFault).join(); });
 
     // Developer > Log...
     addActionToQMenuAndActionHash(developerMenu, MenuOption::Log, Qt::CTRL | Qt::SHIFT | Qt::Key_L,

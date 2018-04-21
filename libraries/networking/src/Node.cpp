@@ -86,10 +86,10 @@ NodeType_t NodeType::fromString(QString type) {
 
 
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-           const HifiSockAddr& localSocket, QObject* parent) :
+    const HifiSockAddr& localSocket, QObject* parent) :
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
-    _pingMs(-1),  // "Uninitialized"
+    _authenticateHash(new HMACAuth), _pingMs(-1),  // "Uninitialized"
     _clockSkewUsec(0),
     _mutex(),
     _clockSkewMovingPercentile(30, 0.8f)   // moving 80th percentile of 30 samples
@@ -107,6 +107,7 @@ void Node::setType(char type) {
     _localSocket.setObjectName(typeString);
     _symmetricSocket.setObjectName(typeString);
 }
+
 
 void Node::updateClockSkewUsec(qint64 clockSkewSample) {
     _clockSkewMovingPercentile.updatePercentile(clockSkewSample);
@@ -168,6 +169,7 @@ QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._localSocket;
     out << node._permissions;
     out << node._isReplicated;
+    out << node._localID;
     return out;
 }
 
@@ -178,6 +180,7 @@ QDataStream& operator>>(QDataStream& in, Node& node) {
     in >> node._localSocket;
     in >> node._permissions;
     in >> node._isReplicated;
+    in >> node._localID;
     return in;
 }
 
@@ -188,7 +191,16 @@ QDebug operator<<(QDebug debug, const Node& node) {
     } else {
         debug.nospace() << " (" << node.getType() << ")";
     }
-    debug << " " << node.getUUID().toString().toLocal8Bit().constData() << " ";
+    debug << " " << node.getUUID().toString().toLocal8Bit().constData() << "(" << node.getLocalID() << ") ";
     debug.nospace() << node.getPublicSocket() << "/" << node.getLocalSocket();
     return debug.nospace();
+}
+
+void Node::setConnectionSecret(const QUuid& connectionSecret) {
+    if (_connectionSecret == connectionSecret) {
+        return;
+    }
+
+    _connectionSecret = connectionSecret;
+    _authenticateHash->setKey(_connectionSecret);
 }
