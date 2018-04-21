@@ -392,6 +392,20 @@ namespace controller {
         /**jsdoc
          * Start making a recording of currently active controllers.
          * @function Controller.startInputRecording
+         * @example <caption>Make a controller recording.</caption>
+         * // Delay start of recording for 2s.
+         * Script.setTimeout(function () {
+         *     print("Start input recording");
+         *     Controller.startInputRecording();
+         * }, 2000);
+         *
+         * // Make a 10s recording.
+         * Script.setTimeout(function () {
+         *     print("Stop input recording");
+         *     Controller.stopInputRecording();
+         *     Controller.saveInputRecording();
+         *     print("Input recording saved in: " + Controller.getInputRecorderSaveDirectory());
+         * }, 12000);
          */
         Q_INVOKABLE void startInputRecording();
 
@@ -405,8 +419,22 @@ namespace controller {
          * Play back the current recording from the beginning. The current recording may have been recorded by 
          * {@link Controller.startInputRecording|startInputRecording} and 
          * {@link Controller.stopInputRecording|stopInputRecording}, or loaded by 
-         * {@link Controller.loadInputRecording|loadInputRecording}.
+         * {@link Controller.loadInputRecording|loadInputRecording}. Playback repeats in a loop until 
+         * {@link Controller.stopInputPlayback|stopInputPlayback} is called.
          * @function Controller.startInputPlayback
+         * @example <caption>Play back a controller recording.</caption>
+         * var file = Window.browse("Select Recording", Controller.getInputRecorderSaveDirectory());
+         * if (file !== null) {
+         *     print("Play recording: " + file);
+         *     Controller.loadInputRecording("file:///" + file);
+         *     Controller.startInputPlayback();
+         *
+         *     // Stop playback after 20s.
+         *     Script.setTimeout(function () {
+         *         print("Stop playing recording");
+         *         Controller.stopInputPlayback();
+         *     }, 20000);
+         * }
          */
         Q_INVOKABLE void startInputPlayback();
 
@@ -429,7 +457,7 @@ namespace controller {
         /**jsdoc
          * Load an input recording, ready for play back.
          * @function Controller.loadInputRecording
-         * @parameter {string} file - The path to the recording file.
+         * @param {string} file - The path to the recording file, prefixed by <code>"file:///"</code>.
          */
         Q_INVOKABLE void loadInputRecording(const QString& file);
 
