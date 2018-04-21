@@ -1243,7 +1243,7 @@ void ViveControllerManager::InputDevice::setConfigFromString(const QString& valu
  *   <tbody>
  *     <tr><td colspan="4"><strong>Touch Pad (Sticks)</strong></td></tr>
  *     <tr><td><code>LX</code></td><td>number</td><td>number</td><td>Left touch pad x-axis scale.</td></tr>
- *     <tr><td><code>LY</code></td><td>number</td><td>number</td><td>left touch pad y-axis scale.</td></tr>
+ *     <tr><td><code>LY</code></td><td>number</td><td>number</td><td>Left touch pad y-axis scale.</td></tr>
  *     <tr><td><code>RX</code></td><td>number</td><td>number</td><td>Right stick x-axis scale.</td></tr>
  *     <tr><td><code>RY</code></td><td>number</td><td>number</td><td>Right stick y-axis scale.</td></tr>
  *     <tr><td><code>LS</code></td><td>number</td><td>number</td><td>Left touch pad pressed.</td></tr>
