@@ -30,6 +30,15 @@ namespace controller {
             velocity == right.getVelocity() && angularVelocity == right.getAngularVelocity();
     }
 
+    /**jsdoc
+     * The pose of a joint or other item relative to the world or a parent.
+     * @typedef {object} Pose
+     * @property {Vec3} translation - Translation.
+     * @property {Quat} rotation - Rotation.
+     * @property {Vec3} velocity - Velocity in m/s.
+     * @property {Vec3} angularVelocity - Angular velocity in rad/s.
+     * @property {boolean} valid - <code>true</code> if the pose is valid, otherwise <code>false</code>.
+     */
     QScriptValue Pose::toScriptValue(QScriptEngine* engine, const Pose& pose) {
         QScriptValue obj = engine->newObject();
         obj.setProperty("translation", vec3toScriptValue(engine, pose.translation));
@@ -37,7 +46,6 @@ namespace controller {
         obj.setProperty("velocity", vec3toScriptValue(engine, pose.velocity));
         obj.setProperty("angularVelocity", vec3toScriptValue(engine, pose.angularVelocity));
         obj.setProperty("valid", pose.valid);
-
         return obj;
     }
 
