@@ -60,6 +60,21 @@ signals:
     void dirty();
 };
 
+struct Regulator {
+    using Timing_ns = std::chrono::nanoseconds;
+    Timing_ns _budget{ std::chrono::milliseconds(2) };
+    glm::vec2 _minRange{ 2.0f, 5.0f };
+    glm::vec2 _maxRange{ 50.0f, 100.0f };
+
+    glm::vec2 _speedDown{ 0.2f };
+    glm::vec2 _speedUp{ 0.1f };
+
+
+    Regulator() {}
+
+    glm::vec2 run(const Timing_ns& regulationDuration, const Timing_ns& measured, const glm::vec2& current);
+};
+
 class ControlViews {
 public:
     using Config = ControlViewsConfig;
@@ -71,8 +86,9 @@ public:
 
     void configure(const Config& config);
     void run(const workload::WorkloadContextPointer& runContext, const Input& inputs, Output& outputs);
-    glm::vec2 regionBackFronts[workload::Region::NUM_VIEW_REGIONS + 1];
 
+    std::array<glm::vec2, workload::Region::NUM_VIEW_REGIONS + 1> regionBackFronts;
+    std::array<Regulator, workload::Region::NUM_VIEW_REGIONS + 1> regionRegulators;
 
     void regulateViews(workload::Views& views, const workload::Timings& timings);
 

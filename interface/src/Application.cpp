@@ -5369,15 +5369,20 @@ void Application::update(float deltaTime) {
                         _physicsEngine->dumpStatsIfNecessary();
                     }
                     auto t1 = std::chrono::high_resolution_clock::now();
-                    workload::Timings timings(1); 
-                    timings[0] = float(std::chrono::nanoseconds(t1 - t0).count() * 0.000001);
-                    _gameWorkload.updateSimulationTimings(timings);
 
                     if (!_aboutToQuit) {
                         // NOTE: the getEntities()->update() call below will wait for lock
                         // and will provide non-physical entity motion
                         getEntities()->update(true); // update the models...
                     }
+
+                    auto t2 = std::chrono::high_resolution_clock::now();
+
+                    workload::Timings timings(2);
+                    timings[0] = (t1 - t0);
+                    timings[1] = (t2 - t1);
+                    _gameWorkload.updateSimulationTimings(timings);
+
                 }
             }
         } else {

@@ -39,20 +39,18 @@ void ControlViews::run(const workload::WorkloadContextPointer& runContext, const
     }
 }
 
-float wtf_adjust(float current, float timing) {
-    float error = -((timing) - 2.0f);
-    if (error < 0.0f) {
-        current += 0.2f * (error) / 16.0f;
-    } else {
-        current += 0.1f * (error) / 16.0f;
-    }
+glm::vec2 Regulator::run(const Timing_ns& regulationDuration, const Timing_ns& measured, const glm::vec2& current) {
+    glm::vec2 next = current;
 
-    if (current > 100.0f) {
-        current = 100.0f;
-    } else if (current < 5.0f) {
-        current = 5.0f;
-    }
-    return current;
+    // Regulate next value based on current moving toward the goal budget
+    float error_ms = std::chrono::duration<float, std::milli>(_budget - measured).count();
+    float coef = error_ms / std::chrono::duration<float, std::milli>(regulationDuration).count();
+    next += coef * (error_ms < 0.0 ? _speedDown : _speedUp);
+
+    // Clamp to min max
+    next = glm::clamp(next, _minRange, _maxRange);
+        
+    return next;
 }
 
 void ControlViews::regulateViews(workload::Views& outViews, const workload::Timings& timings) {
@@ -63,12 +61,16 @@ void ControlViews::regulateViews(workload::Views& outViews, const workload::Timi
         }
     }
 
+    auto loopDuration = std::chrono::nanoseconds{ std::chrono::milliseconds(16) };
+    regionBackFronts[workload::Region::R2] = regionRegulators[workload::Region::R2].run(loopDuration, timings[0], regionBackFronts[workload::Region::R2]);
+    regionBackFronts[workload::Region::R3] = regionRegulators[workload::Region::R3].run(loopDuration, timings[1], regionBackFronts[workload::Region::R3]);
+
     int i = 0;
     for (auto& outView : outViews) {
-        auto current = regionBackFronts[workload::Region::R2].y;
-        auto newCurrent = wtf_adjust(current, timings[0]);
-        regionBackFronts[workload::Region::R2].y = newCurrent;
-        outView.regionBackFronts[workload::Region::R2].y = newCurrent;
+        outView.regionBackFronts[workload::Region::R1] = regionBackFronts[workload::Region::R1];
+        outView.regionBackFronts[workload::Region::R2] = regionBackFronts[workload::Region::R2];
+        outView.regionBackFronts[workload::Region::R3] = regionBackFronts[workload::Region::R3];
+
         workload::View::updateRegionsFromBackFronts(outView);
     }
 }
