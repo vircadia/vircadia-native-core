@@ -39,6 +39,7 @@ SpinBox {
 
     implicitHeight: height
     implicitWidth: width
+    editable: true
 
     padding: 0
     leftPadding: 0
