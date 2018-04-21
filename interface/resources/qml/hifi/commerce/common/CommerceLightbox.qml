@@ -26,10 +26,10 @@ Rectangle {
     property string bodyText;
     property string button1color: hifi.buttons.noneBorderlessGray;
     property string button1text;
-    property string button1method;
-    property string button2color: hifi.buttons.noneBorderless;
+    property var button1method;
+    property string button2color: hifi.buttons.blue;
     property string button2text;
-    property string button2method;
+    property var button2method;
     property string buttonLayout: "leftright";
 
     readonly property string securityPicBodyText: "When you see your Security Pic, your actions and data are securely making use of your " +
@@ -72,7 +72,7 @@ Rectangle {
             anchors.right: parent.right;
             anchors.rightMargin: 30;
             height: paintedHeight;
-            color: hifi.colors.baseGray;
+            color: hifi.colors.black;
             size: 24;
             verticalAlignment: Text.AlignTop;
             wrapMode: Text.WordWrap;
@@ -104,7 +104,7 @@ Rectangle {
             anchors.right: parent.right;
             anchors.rightMargin: 30;
             height: paintedHeight;
-            color: hifi.colors.baseGray;
+            color: hifi.colors.black;
             size: 20;
             verticalAlignment: Text.AlignTop;
             wrapMode: Text.WordWrap;
@@ -129,15 +129,15 @@ Rectangle {
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: root.buttonLayout === "leftright" ? parent.top : parent.top;
                 anchors.left: parent.left;
-                anchors.leftMargin: 10;
+                anchors.leftMargin: root.buttonLayout === "leftright" ? 30 : 10;
                 anchors.right: root.buttonLayout === "leftright" ? undefined : parent.right;
                 anchors.rightMargin: root.buttonLayout === "leftright" ? undefined : 10;
                 width: root.buttonLayout === "leftright" ? (root.button2text ? parent.width/2 - anchors.leftMargin*2 : parent.width - anchors.leftMargin * 2) :
                     (undefined);
-                height: 50;
+                height: 40;
                 text: root.button1text;
                 onClicked: {
-                    eval(button1method);
+                    button1method();
                 }
             }
 
@@ -152,12 +152,12 @@ Rectangle {
                 anchors.left: root.buttonLayout === "leftright" ? undefined : parent.left;
                 anchors.leftMargin: root.buttonLayout === "leftright" ? undefined : 10;
                 anchors.right: parent.right;
-                anchors.rightMargin: 10;
+                anchors.rightMargin: root.buttonLayout === "leftright" ? 30 : 10;
                 width: root.buttonLayout === "leftright" ? parent.width/2 - anchors.rightMargin*2 : undefined;
-                height: 50;
+                height: 40;
                 text: root.button2text;
                 onClicked: {
-                    eval(button2method);
+                    button2method();
                 }
             }
         }
@@ -174,10 +174,10 @@ Rectangle {
         root.bodyText = "";
         root.button1color = hifi.buttons.noneBorderlessGray;
         root.button1text = "";
-        root.button1method = "";
-        root.button2color = hifi.buttons.noneBorderless;
+        root.button1method = function() {};
+        root.button2color = hifi.buttons.blue;
         root.button2text = "";
-        root.button2method = "";
+        root.button2method = function() {};
         root.buttonLayout = "leftright";
     }
     //

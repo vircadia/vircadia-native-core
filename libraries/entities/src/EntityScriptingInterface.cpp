@@ -759,7 +759,7 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesByType(const QString entity
 
         foreach(EntityItemPointer entity, entities) {
             if (entity->getType() == type) {
-                result << entity->getEntityItemID();
+                result << entity->getEntityItemID().toString();
             }
         }
     }

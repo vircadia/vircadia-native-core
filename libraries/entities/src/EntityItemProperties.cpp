@@ -477,18 +477,19 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} visible=true - Whether or not the entity is rendered. If <code>true</code> then the entity is rendered.
  * @property {boolean} canCastShadows=true - Whether or not the entity casts shadows. Currently applicable only to 
  *     {@link Entities.EntityType|Model} and {@link Entities.EntityType|Shape} entities. Shadows are cast if inside a 
- *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its {@link Entities.EntityProperties-Zone|keyLight} property.
+ *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its 
+ *     {@link Entities.EntityProperties-Zone|keyLight} property.
  *
  * @property {Vec3} position=0,0,0 - The position of the entity.
  * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
  * @property {Vec3} registrationPoint=0.5,0.5,0.5 - The point in the entity that is set to the entity's position and is rotated 
- *      about, {@link Vec3|Vec3.ZERO} &ndash; {@link Vec3|Vec3.ONE}. A value of {@link Vec3|Vec3.ZERO} is the entity's
- *      minimum x, y, z corner; a value of {@link Vec3|Vec3.ONE} is the entity's maximum x, y, z corner.
+ *      about, {@link Vec3(0)|Vec3.ZERO} &ndash; {@link Vec3(0)|Vec3.ONE}. A value of {@link Vec3(0)|Vec3.ZERO} is the entity's
+ *      minimum x, y, z corner; a value of {@link Vec3(0)|Vec3.ONE} is the entity's maximum x, y, z corner.
  *
  * @property {Vec3} naturalPosition=0,0,0 - The center of the entity's unscaled mesh model if it has one, otherwise
- *     {@link Vec3|Vec3.ZERO}. <em>Read-only.</em>
+ *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
  * @property {Vec3} naturalDimensions - The dimensions of the entity's unscaled mesh model if it has one, otherwise 
- *     {@link Vec3|Vec3.ONE}. <em>Read-only.</em>
+ *     {@link Vec3(0)|Vec3.ONE}. <em>Read-only.</em>
  *
  * @property {Vec3} velocity=0,0,0 - The linear velocity of the entity in m/s with respect to world coordinates.
  * @property {number} damping=0.39347 - How much to slow down the linear velocity of an entity over time, <code>0.0</code> 
@@ -505,13 +506,13 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Vec3} gravity=0,0,0 - The acceleration due to gravity in m/s<sup>2</sup> that the entity should move with, in 
  *     world coordinates. Set to <code>{ x: 0, y: -9.8, z: 0 }</code> to simulate Earth's gravity. Gravity is applied to an 
  *     entity's motion only if its <code>dynamic</code> property is <code>true</code>. If changing an entity's 
- *     <code>gravity</code> from {@link Vec3|Vec3.ZERO}, you need to give it a small <code>velocity</code> in order to kick off 
- *     physics simulation.
+ *     <code>gravity</code> from {@link Vec3(0)|Vec3.ZERO}, you need to give it a small <code>velocity</code> in order to kick 
+ *     off physics simulation.
  *     The <code>gravity</code> value is applied in addition to the <code>acceleration</code> value.
  * @property {Vec3} acceleration=0,0,0 - A general acceleration in m/s<sup>2</sup> that the entity should move with, in world 
  *     coordinates. The acceleration is applied to an entity's motion only if its <code>dynamic</code> property is 
- *     <code>true</code>. If changing an entity's <code>acceleration</code> from {@link Vec3|Vec3.ZERO}, you need to give it a 
- *     small <code>velocity</code> in order to kick off physics simulation.
+ *     <code>true</code>. If changing an entity's <code>acceleration</code> from {@link Vec3(0)|Vec3.ZERO}, you need to give it 
+ *     a small <code>velocity</code> in order to kick off physics simulation.
  *     The <code>acceleration</code> value is applied in addition to the <code>gravity</code> value.
  * @property {number} restitution=0.5 - The "bounciness" of an entity when it collides, <code>0.0</code> &ndash; 
  *     <code>0.99</code>. The higher the value, the more bouncy.
@@ -694,8 +695,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @typedef {object} Entities.EntityProperties-Material
  * @property {string} materialURL="" - URL to a {@link MaterialResource}. If you append <code>?name</code> to the URL, the 
  *     material with that name in the {@link MaterialResource} will be applied to the entity. <br />
- *     Alternatively, set the property value to <code>"userData"</code> to use the {@link Entities.EntityProperties|userData} 
- *     entity property to live edit the material resource values.
+ *     Alternatively, set the property value to <code>"materialData"</code> to use the <code>materialData</code> property  
+ *     for the {@link MaterialResource} values.
  * @property {number} priority=0 - The priority for applying the material to its parent. Only the highest priority material is 
  *     applied, with materials of the same priority randomly assigned. Materials that come with the model have a priority of 
  *     <code>0</code>.
@@ -709,6 +710,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>{ x: 0, y: 0 }</code> &ndash; <code>{ x: 1, y: 1 }</code>.
  * @property {Vec2} materialMappingScale=1,1 - How much to scale the material within the parent's UV-space.
  * @property {number} materialMappingRot=0 - How much to rotate the material within the parent's UV-space, in degrees.
+ * @property {string} materialData="" - Used to store {@link MaterialResource} data as a JSON string. You can use 
+ *     <code>JSON.parse()</code> to parse the string into a JavaScript object which you can manipulate the properties of, and 
+ *     use <code>JSON.stringify()</code> to convert the object into a string to put in the property.
  * @example <caption>Color a sphere using a Material entity.</caption>
  * var entityID = Entities.addEntity({
  *     type: "Sphere",
@@ -721,13 +725,14 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * var materialID = Entities.addEntity({
  *     type: "Material",
  *     parentID: entityID,
- *     materialURL: "userData",
+ *     materialURL: "materialData",
  *     priority: 1,
- *     userData: JSON.stringify({
+ *     materialData: JSON.stringify({
+ *         materialVersion: 1,
  *         materials: {
  *             // Can only set albedo on a Shape entity.
  *             // Value overrides entity's "color" property.
- *             albedo: [1.0, 0, 0]
+ *             albedo: [1.0, 1.0, 0]  // Yellow
  *         }
  *     }),
  * });
