@@ -9,6 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/**JSd
+* 
+*/
+
 #ifndef hifi_LODManager_h
 #define hifi_LODManager_h
 

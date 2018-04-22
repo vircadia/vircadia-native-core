@@ -38,6 +38,46 @@ class MixedProcessedAudioStream;
 
 class AudioStreamStatsInterface : public QObject {
     Q_OBJECT
+	/**jsdoc
+	* Audio stats from the Audio Mixer
+	* @namespace AudioStats.mixerStream
+	* @param {number} lossRate - To Be Completed
+	* @param {number} lossCount - To Be Completed
+	* @param {number} lossRateWindow - To Be Completed
+	* @param {number} lossCountWindow - To Be Completed
+	* @param {number} framesDesired - To Be Completed
+	* @param {number} framesAvailable - To Be Completed
+	* @param {number} framesAvailableAvg - To Be Completed
+	* @param {number} unplayedMsMax - To Be Completed
+	* @param {number} starveCount - To Be Completed
+	* @param {number} lastStarveDurationCount - To Be Completed
+	* @param {number} dropCount - To Be Completed
+	* @param {number} overflowCount - To Be Completed
+	* @param {number} timegapMsMax - To Be Completed
+	* @param {number} timegapMsAvg - To Be Completed
+	* @param {number} timegapMsMaxWindow - To Be Completed
+	* @param {number} timegapMsAvgWindow - To Be Completed
+	*/
+	/**jsdoc
+	* Audio stats from the Client Mixer
+	* @namespace AudioStats.clientMixer
+	* @param {number} lossRate - To Be Completed
+	* @param {number} lossCount - To Be Completed
+	* @param {number} lossRateWindow - To Be Completed
+	* @param {number} lossCountWindow - To Be Completed
+	* @param {number} framesDesired - To Be Completed
+	* @param {number} framesAvailable - To Be Completed
+	* @param {number} framesAvailableAvg - To Be Completed
+	* @param {number} unplayedMsMax - To Be Completed
+	* @param {number} starveCount - To Be Completed
+	* @param {number} lastStarveDurationCount - To Be Completed
+	* @param {number} dropCount - To Be Completed
+	* @param {number} overflowCount - To Be Completed
+	* @param {number} timegapMsMax - To Be Completed
+	* @param {number} timegapMsAvg - To Be Completed
+	* @param {number} timegapMsMaxWindow - To Be Completed
+	* @param {number} timegapMsAvgWindow - To Be Completed
+	*/
     AUDIO_PROPERTY(float, lossRate)
     AUDIO_PROPERTY(float, lossCount)
     AUDIO_PROPERTY(float, lossRateWindow)
@@ -68,6 +108,19 @@ private:
 
 class AudioStatsInterface : public QObject {
     Q_OBJECT
+	/**jsdoc
+    * Audio stats from the client
+	* @namespace AudioStats
+	* @param {number} pingMs - To Be Completed
+	* @param {number} inputReadMsMax - To Be Completed
+	* @param {number} inputUnplayedMsMax - To Be Completed
+	* @param {number} outputUnplayedMsMax - To Be Completed
+	* @param {number} sentTimegapMsMax - To Be Completed
+	* @param {number} sentTimegapMsAvg - To Be Completed
+	* @param {number} sentTimegapMsMaxWindow - To Be Completed
+	* @param {number} sentTimegapMsAvgWindow - To Be Completed
+	*/
+
     AUDIO_PROPERTY(float, pingMs);
 
     AUDIO_PROPERTY(float, inputReadMsMax);
@@ -97,8 +150,23 @@ public:
     void updateInjectorStreams(const QHash<QUuid, AudioStreamStats>& stats);
 
 signals:
+	/**jsdoc
+	* To Be Completed
+	* @function AudioStats.mixerStreamChanged
+	* @returns {Signal}
+	*/
     void mixerStreamChanged();
+	/**jsdoc
+	* To Be Completed
+	* @function AudioStats.clientStreamChanged
+	* @returns {Signal}
+	*/
     void clientStreamChanged();
+	/**jsdoc
+	* To Be Completed
+	* @function AudioStats.injectorStreamsChanged
+	* @returns {Signal}
+	*/
     void injectorStreamsChanged();
 
 private:

@@ -21,6 +21,11 @@
 #include "FBXReader.h"
 #include "TextureCache.h"
 
+/**jsdoc
+* API to manage Model Cache resources
+* @namespace ModelCache
+*/
+
 // Alias instead of derive to avoid copying
 
 class NetworkTexture;
@@ -135,6 +140,7 @@ private:
 class ModelCache : public ResourceCache, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
+
 
 public:
     GeometryResource::Pointer getGeometryResource(const QUrl& url,

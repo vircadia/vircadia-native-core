@@ -1,4 +1,4 @@
-//
+ //
 //  ResourceCache.h
 //  libraries/shared/src
 //
@@ -85,15 +85,19 @@ private:
 
 /// Wrapper to expose resources to JS/QML
 class ScriptableResource : public QObject {
+
+
+    /**jsdoc
+    * @constructor Resource
+    * @property url {string} url of this resource
+    * @property state {Resource.State} current loading state
+    */
+
     Q_OBJECT
     Q_PROPERTY(QUrl url READ getURL)
     Q_PROPERTY(int state READ getState NOTIFY stateChanged)
+	
 
-    /**jsdoc
-     * @constructor Resource
-     * @property url {string} url of this resource
-     * @property state {Resource.State} current loading state
-     */
 
 public:
 
@@ -181,18 +185,19 @@ Q_DECLARE_METATYPE(ScriptableResource*);
 /// Base class for resource caches.
 class ResourceCache : public QObject {
     Q_OBJECT
+    // JSDoc 3.5.5 doesn't augment @property definitions.
+    // These functions are being copied into the different exposed cache classes
+    /**jsdoc
+    * @namespace ResourceCache
+    * @property numTotal {number} total number of total resources
+    * @property numCached {number} total number of cached resource
+    * @property sizeTotal {number} size in bytes of all resources
+    * @property sizeCached {number} size in bytes of all cached resources
+    */
     Q_PROPERTY(size_t numTotal READ getNumTotalResources NOTIFY dirty)
     Q_PROPERTY(size_t numCached READ getNumCachedResources NOTIFY dirty)
     Q_PROPERTY(size_t sizeTotal READ getSizeTotalResources NOTIFY dirty)
     Q_PROPERTY(size_t sizeCached READ getSizeCachedResources NOTIFY dirty)
-
-    /**jsdoc
-     * @namespace ResourceCache
-     * @property numTotal {number} total number of total resources
-     * @property numCached {number} total number of cached resource
-     * @property sizeTotal {number} size in bytes of all resources
-     * @property sizeCached {number} size in bytes of all cached resources
-     */
 
 public:
     /**jsdoc
