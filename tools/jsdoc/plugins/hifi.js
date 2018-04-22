@@ -18,6 +18,7 @@ exports.handlers = {
         var dirList = [
             '../../interface/src',
             '../../interface/src/avatar',
+            '../../interface/src/audio',            
             '../../interface/src/scripting',
             '../../interface/src/ui/overlays',
             '../../interface/src/raypick',
