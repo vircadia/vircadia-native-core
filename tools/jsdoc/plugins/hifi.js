@@ -37,6 +37,7 @@ exports.handlers = {
             '../../libraries/script-engine/src',
             '../../libraries/shared/src',
             '../../libraries/shared/src/shared',
+            '../../libraries/ui/src/ui',
             '../../plugins/oculus/src',
             '../../plugins/openvr/src',
         ];
