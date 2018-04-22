@@ -271,7 +271,7 @@ public:
     Q_INVOKABLE void setPosition(QVariant position);
 
     /**jsdoc
-     * @function Reticle.
+     * @function Reticle.getMaximumPosition
      * @returns {Vec2}
      */
     Q_INVOKABLE glm::vec2 getMaximumPosition() { return _compositor->getReticleMaximumPosition(); }
