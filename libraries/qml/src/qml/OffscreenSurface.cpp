@@ -64,14 +64,11 @@ OffscreenSurface::OffscreenSurface()
 }
 
 OffscreenSurface::~OffscreenSurface() {
-    disconnect(qApp);
-    _sharedObject->destroy();
+    delete _sharedObject;
+    const_cast<SharedObject*>(_sharedObject) = nullptr;
 }
 
 bool OffscreenSurface::fetchTexture(TextureAndFence& textureAndFence) {
-    if (!_sharedObject) {
-        return false;
-    }
     hifi::qml::impl::TextureAndFence typedTextureAndFence;
     bool result = _sharedObject->fetchTexture(typedTextureAndFence);
     textureAndFence = typedTextureAndFence;
