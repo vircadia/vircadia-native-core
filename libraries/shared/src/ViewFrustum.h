@@ -189,5 +189,6 @@ private:
 
 };
 using ViewFrustumPointer = std::shared_ptr<ViewFrustum>;
+using ViewFrustums = std::vector<ViewFrustum>;
 
 #endif // hifi_ViewFrustum_h

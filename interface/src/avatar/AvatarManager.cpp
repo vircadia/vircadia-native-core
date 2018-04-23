@@ -156,7 +156,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     };
 
 
-    std::vector<ViewFrustum> views;
+    ViewFrustums views;
 
     ViewFrustum view;
     qApp->copyCurrentViewFrustum(view);

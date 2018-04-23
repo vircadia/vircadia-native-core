@@ -83,15 +83,13 @@ namespace PrioritySortUtil {
     template <typename T>
     class PriorityQueue {
     public:
-        using Views = std::vector<ViewFrustum>;
-
         PriorityQueue() = delete;
-        PriorityQueue(const Views& views) : _views(views) { }
-        PriorityQueue(const Views& views, float angularWeight, float centerWeight, float ageWeight)
+        PriorityQueue(const ViewFrustums& views) : _views(views) { }
+        PriorityQueue(const ViewFrustums& views, float angularWeight, float centerWeight, float ageWeight)
                 : _views(views), _angularWeight(angularWeight), _centerWeight(centerWeight), _ageWeight(ageWeight)
         { }
 
-        void setViews(const Views& views) { _views = views; }
+        void setViews(const ViewFrustums& views) { _views = views; }
 
         void setWeights(float angularWeight, float centerWeight, float ageWeight) {
             _angularWeight = angularWeight;
@@ -154,7 +152,7 @@ namespace PrioritySortUtil {
             return priority;
         }
 
-        Views _views;
+        ViewFrustums _views;
         std::priority_queue<T> _queue;
         float _angularWeight { DEFAULT_ANGULAR_COEF };
         float _centerWeight { DEFAULT_CENTER_COEF };

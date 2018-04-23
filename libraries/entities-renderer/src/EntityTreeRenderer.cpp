@@ -296,7 +296,7 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
     }
 }
 
-void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, const std::vector<ViewFrustum>& views,
+void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, const ViewFrustums& views,
                                                render::Transaction& transaction) {
     PROFILE_RANGE_EX(simulation_physics, "ChangeInScene", 0xffff00ff, (uint64_t)_changedEntities.size());
     PerformanceTimer pt("change");
@@ -417,7 +417,7 @@ void EntityTreeRenderer::update(bool simulate) {
                 render::Transaction transaction;
                 addPendingEntities(scene, transaction);
 
-                std::vector<ViewFrustum> views;
+                ViewFrustums views;
 
                 ViewFrustum view;
                 _viewState->copyViewFrustum(view);
