@@ -344,5 +344,10 @@ QtObject {
         readonly property string wand: "\ue02d"
         readonly property string hat: "\ue02e"
         readonly property string install: "\ue02f"
+        readonly property string certificate: "\ue030"
+        readonly property string gift: "\ue031"
+        readonly property string update: "\ue032"
+        readonly property string uninstall: "\ue033"
+        readonly property string verticalEllipsis: "\ue034"
     }
 }

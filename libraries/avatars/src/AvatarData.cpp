@@ -559,7 +559,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             const JointData& last = lastSentJointData[i];
 
             if (!data.rotationIsDefaultPose) {
-                if (sendAll || last.rotationIsDefaultPose || last.rotation != data.rotation) {
+                bool mustSend = sendAll || last.rotationIsDefaultPose;
+                if (mustSend || last.rotation != data.rotation) {
 
                     bool largeEnoughRotation = true;
                     if (cullSmallChanges) {
@@ -568,7 +569,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                         largeEnoughRotation = fabsf(glm::dot(last.rotation, data.rotation)) < minRotationDOT;
                     }
 
-                    if (sendAll || !cullSmallChanges || largeEnoughRotation) {
+                    if (mustSend || !cullSmallChanges || largeEnoughRotation) {
                         validity |= (1 << validityBit);
 #ifdef WANT_DEBUG
                         rotationSentCount++;
@@ -608,10 +609,12 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         float maxTranslationDimension = 0.0;
         for (int i = 0; i < _jointData.size(); i++) {
             const JointData& data = _jointData[i];
+            const JointData& last = lastSentJointData[i];
 
             if (!data.translationIsDefaultPose) {
-                if (sendAll || lastSentJointData[i].translation != data.translation) {
-                    if (sendAll || !cullSmallChanges || glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation) {
+                bool mustSend = sendAll || last.translationIsDefaultPose;
+                if (mustSend || last.translation != data.translation) {
+                    if (mustSend || !cullSmallChanges || glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation) {
                         validity |= (1 << validityBit);
 #ifdef WANT_DEBUG
                         translationSentCount++;
@@ -669,6 +672,19 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
 
         if (sentJointDataOut) {
+
+            // Mark default poses in lastSentJointData, so when they become non-default we send them.
+            for (int i = 0; i < _jointData.size(); i++) {
+                const JointData& data = _jointData[i];
+                JointData& local = localSentJointDataOut[i];
+                if (data.rotationIsDefaultPose) {
+                    local.rotationIsDefaultPose = true;
+                }
+                if (data.translationIsDefaultPose) {
+                    local.translationIsDefaultPose = true;
+                }
+            }
+
             // Push new sent joint data to sentJointDataOut
             sentJointDataOut->swap(localSentJointDataOut);
         }
@@ -1816,13 +1832,13 @@ void AvatarData::setJointMappingsFromNetworkReply() {
     networkReply->deleteLater();
 }
 
-void AvatarData::sendAvatarDataPacket() {
+void AvatarData::sendAvatarDataPacket(bool sendAll) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // about 2% of the time, we send a full update (meaning, we transmit all the joint data), even if nothing has changed.
     // this is to guard against a joint moving once, the packet getting lost, and the joint never moving again.
 
-    bool cullSmallData = (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
+    bool cullSmallData = !sendAll && (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
     auto dataDetail = cullSmallData ? SendAllData : CullSmallData;
     QByteArray avatarByteArray = toByteArrayStateful(dataDetail);
 

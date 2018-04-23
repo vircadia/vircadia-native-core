@@ -61,13 +61,13 @@ static const ScriptBakeVersion CURRENT_SCRIPT_BAKE_VERSION = (ScriptBakeVersion)
 BakedAssetType assetTypeForExtension(const QString& extension) {
     auto extensionLower = extension.toLower();
     if (BAKEABLE_MODEL_EXTENSIONS.contains(extensionLower)) {
-        return Model;
+        return BakedAssetType::Model;
     } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extensionLower.toLocal8Bit())) {
-        return Texture;
+        return BakedAssetType::Texture;
     } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extensionLower)) {
-        return Script;
+        return BakedAssetType::Script;
     }
-    return Undefined;
+    return BakedAssetType::Undefined;
 }
 
 BakedAssetType assetTypeForFilename(const QString& filename) {
@@ -82,11 +82,11 @@ BakedAssetType assetTypeForFilename(const QString& filename) {
 
 QString bakedFilenameForAssetType(BakedAssetType type) {
     switch (type) {
-        case Model:
+        case BakedAssetType::Model:
             return BAKED_MODEL_SIMPLE_NAME;
-        case Texture:
+        case BakedAssetType::Texture:
             return BAKED_TEXTURE_SIMPLE_NAME;
-        case Script:
+        case BakedAssetType::Script:
             return BAKED_SCRIPT_SIMPLE_NAME;
         default:
             return "";
@@ -95,11 +95,11 @@ QString bakedFilenameForAssetType(BakedAssetType type) {
 
 BakeVersion currentBakeVersionForAssetType(BakedAssetType type) {
     switch (type) {
-        case Model:
+        case BakedAssetType::Model:
             return (BakeVersion)CURRENT_MODEL_BAKE_VERSION;
-        case Texture:
+        case BakedAssetType::Texture:
             return (BakeVersion)CURRENT_TEXTURE_BAKE_VERSION;
-        case Script:
+        case BakedAssetType::Script:
             return (BakeVersion)CURRENT_SCRIPT_BAKE_VERSION;
         default:
             return 0;
@@ -222,7 +222,7 @@ bool AssetServer::needsToBeBaked(const AssetUtils::AssetPath& path, const AssetU
 
     BakedAssetType type = assetTypeForFilename(path);
 
-    if (type == Undefined) {
+    if (type == BakedAssetType::Undefined) {
         return false;
     }
 
@@ -241,7 +241,7 @@ bool AssetServer::needsToBeBaked(const AssetUtils::AssetPath& path, const AssetU
     AssetMeta meta;
     std::tie(loaded, meta) = readMetaFile(assetHash);
 
-    if (type == Texture && !loaded) {
+    if (type == BakedAssetType::Texture && !loaded) {
         return false;
     }
 
@@ -901,7 +901,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, Sha
 
 
     if (canWriteToAssetServer) {
-        qCDebug(asset_server) << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(message->getSourceID());
+        qCDebug(asset_server) << "Starting an UploadAssetTask for upload from" << message->getSourceID();
 
         auto task = new UploadAssetTask(message, senderNode, _filesDirectory, _filesizeLimit);
         _transferTaskPool.start(task);
@@ -1546,7 +1546,7 @@ bool AssetServer::setBakingEnabled(const AssetUtils::AssetPathList& paths, bool 
         auto it = _fileMappings.find(path);
         if (it != _fileMappings.end()) {
             auto type = assetTypeForFilename(path);
-            if (type == Undefined) {
+            if (type == BakedAssetType::Undefined) {
                 continue;
             }
             QString bakedFilename = bakedFilenameForAssetType(type);

@@ -17,7 +17,7 @@ uniform bool Outline;
 uniform vec4 Color;
 
 // the interpolated normal
-in vec3 _normal;
+in vec3 _normalWS;
 in vec2 _texCoord0;
 
 const float gamma = 2.2;
@@ -47,7 +47,7 @@ void main() {
     }
 
     packDeferredFragmentTranslucent(
-        normalize(_normal),
+        normalize(_normalWS),
         a * Color.a,
         Color.rgb,
         DEFAULT_FRESNEL,

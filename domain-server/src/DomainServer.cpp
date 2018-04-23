@@ -593,8 +593,8 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
 
     if (!PacketTypeEnum::getNonSourcedPackets().contains(headerType)) {
         // this is a sourced packet - first check if we have a node that matches
-        QUuid sourceID = NLPacket::sourceIDInHeader(packet);
-        SharedNodePointer sourceNode = nodeList->nodeWithUUID(sourceID);
+        Node::LocalID localSourceID = NLPacket::sourceIDInHeader(packet);
+        SharedNodePointer sourceNode = nodeList->nodeWithLocalID(localSourceID);
 
         if (sourceNode) {
             // unverified DS packets (due to a lack of connection secret between DS + node)
@@ -611,23 +611,13 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
                 // let the NodeList do its checks now (but pass it the sourceNode so it doesn't need to look it up again)
                 return nodeList->isPacketVerifiedWithSource(packet, sourceNode.data());
             } else {
-                static const QString UNKNOWN_REGEX = "Packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unmatched IP for UUID";
-                static QString repeatedMessage
-                    = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
-
-                qDebug() << "Packet of type" << headerType
-                    << "received from unmatched IP for UUID" << uuidStringWithoutCurlyBraces(sourceID);
-
+                HIFI_FDEBUG("Packet of type" << headerType
+                    << "received from unmatched IP for UUID" << uuidStringWithoutCurlyBraces(sourceNode->getUUID()));
                 return false;
             }
         } else {
-            static const QString UNKNOWN_REGEX = "Packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unknown node with UUID";
-            static QString repeatedMessage
-                = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
-
-            qDebug() << "Packet of type" << headerType
-                << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID);
-
+            HIFI_FDEBUG("Packet of type" << headerType
+                << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceNode->getUUID()));
             return false;
         }
     }
@@ -690,6 +680,10 @@ void DomainServer::setupNodeListAndAssignments() {
             nodeList->setSessionUUID(QUuid::createUuid()); // Use random UUID
         }
     }
+
+    // Create our own short session ID.
+    Node::LocalID serverSessionLocalID = _gatekeeper.findOrCreateLocalID(nodeList->getSessionUUID());
+    nodeList->setSessionLocalID(serverSessionLocalID);
 
     if (isMetaverseDomain) {
         // see if we think we're a temp domain (we have an API key) or a full domain
@@ -1120,7 +1114,8 @@ void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
 }
 
 void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr &senderSockAddr) {
-    const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NUM_BYTES_RFC4122_UUID + 2;
+    const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID + 
+        NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID + 4;
 
     // setup the extended header for the domain list packets
     // this data is at the beginning of each of the domain list packets
@@ -1130,7 +1125,9 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
     extendedHeaderStream << limitedNodeList->getSessionUUID();
+    extendedHeaderStream << limitedNodeList->getSessionLocalID();
     extendedHeaderStream << node->getUUID();
+    extendedHeaderStream << node->getLocalID();
     extendedHeaderStream << node->getPermissions();
 
     auto domainListPackets = NLPacketList::create(PacketType::DomainList, extendedHeader);
@@ -1242,31 +1239,16 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage
 
     auto it = find_if(_acSubnetWhitelist.begin(), _acSubnetWhitelist.end(), isHostAddressInSubnet);
     if (it == _acSubnetWhitelist.end()) {
-        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(
-            "Received an assignment connect request from a disallowed ip address: [^ ]+");
-        qDebug() << "Received an assignment connect request from a disallowed ip address:"
-            << senderAddr.toString();
+        HIFI_FDEBUG("Received an assignment connect request from a disallowed ip address:"
+            << senderAddr.toString());
         return;
     }
 
-    // Suppress these for Assignment::AgentType to once per 5 seconds
-    static QElapsedTimer noisyMessageTimer;
-    static bool wasNoisyTimerStarted = false;
-
-    if (!wasNoisyTimerStarted) {
-        noisyMessageTimer.start();
-        wasNoisyTimerStarted = true;
-    }
-
-    const qint64 NOISY_MESSAGE_INTERVAL_MSECS = 5 * 1000;
-
-    if (requestAssignment.getType() != Assignment::AgentType
-        || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
-        static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
-            ("Received a request for assignment type [^ ]+ from [^ ]+");
+    static bool printedAssignmentTypeMessage = false;
+    if (!printedAssignmentTypeMessage && requestAssignment.getType() != Assignment::AgentType) {
+        printedAssignmentTypeMessage = true;
         qDebug() << "Received a request for assignment type" << requestAssignment.getType()
                  << "from" << message->getSenderSockAddr();
-        noisyMessageTimer.restart();
     }
 
     SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
@@ -1300,13 +1282,11 @@ void DomainServer::processRequestAssignmentPacket(QSharedPointer<ReceivedMessage
         _gatekeeper.addPendingAssignedNode(uniqueAssignment.getUUID(), assignmentToDeploy->getUUID(),
                                            requestAssignment.getWalletUUID(), requestAssignment.getNodeVersion());
     } else {
-        if (requestAssignment.getType() != Assignment::AgentType
-            || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
-            static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
-                ("Unable to fulfill assignment request of type [^ ]+ from [^ ]+");
+        static bool printedAssignmentRequestMessage = false;
+        if (!printedAssignmentRequestMessage && requestAssignment.getType() != Assignment::AgentType) {
+            printedAssignmentRequestMessage = true;
             qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
                 << "from" << message->getSenderSockAddr();
-            noisyMessageTimer.restart();
         }
     }
 }
@@ -1552,10 +1532,12 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
     callbackParameters.jsonCallbackReceiver = this;
     callbackParameters.jsonCallbackMethod = "handleSuccessfulICEServerAddressUpdate";
 
-    static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
-        ("Updating ice-server address in High Fidelity Metaverse API to [^ \n]+");
-    qDebug() << "Updating ice-server address in High Fidelity Metaverse API to"
-             << (_iceServerSocket.isNull() ? "" : _iceServerSocket.getAddress().toString());
+    static bool printedIceServerMessage = false;
+    if (!printedIceServerMessage) {
+        printedIceServerMessage = true;
+        qDebug() << "Updating ice-server address in High Fidelity Metaverse API to"
+            << (_iceServerSocket.isNull() ? "" : _iceServerSocket.getAddress().toString());
+    }
 
     static const QString DOMAIN_ICE_ADDRESS_UPDATE = "/api/v1/domains/%1/ice_server_address";
 
@@ -2864,7 +2846,7 @@ void DomainServer::updateReplicationNodes(ReplicationServerDirection direction) 
                         // manually add the replication node to our node list
                         auto node = nodeList->addOrUpdateNode(QUuid::createUuid(), replicationServer.nodeType,
                                                               replicationServer.sockAddr, replicationServer.sockAddr,
-                                                              false, direction == Upstream);
+                                                              Node::NULL_LOCAL_ID, false, direction == Upstream);
                         node->setIsForcedNeverSilent(true);
 
                         qDebug() << "Adding" << (direction == Upstream ? "upstream" : "downstream")
@@ -2926,7 +2908,7 @@ void DomainServer::updateReplicatedNodes() {
     }
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
-    nodeList->eachMatchingNode([this](const SharedNodePointer& otherNode) -> bool {
+    nodeList->eachMatchingNode([](const SharedNodePointer& otherNode) -> bool {
             return otherNode->getType() == NodeType::Agent;
         }, [this](const SharedNodePointer& otherNode) {
             auto shouldReplicate = shouldReplicateNode(*otherNode);
@@ -3164,13 +3146,12 @@ void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMes
     // This packet has been matched to a source node and they're asking not to be in the domain anymore
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
-    const QUuid& nodeUUID = message->getSourceID();
-
-    qDebug() << "Received a disconnect request from node with UUID" << nodeUUID;
+    auto localID = message->getSourceID();
+    qDebug() << "Received a disconnect request from node with local ID" << localID;
 
     // we want to check what type this node was before going to kill it so that we can avoid sending the RemovedNode
     // packet to nodes that don't care about this type
-    auto nodeToKill = limitedNodeList->nodeWithUUID(nodeUUID);
+    auto nodeToKill = limitedNodeList->nodeWithLocalID(localID);
 
     if (nodeToKill) {
         handleKillNode(nodeToKill);
@@ -3438,7 +3419,7 @@ void DomainServer::handleDomainContentReplacementFromURLRequest(QSharedPointer<R
 }
 
 void DomainServer::handleOctreeFileReplacementRequest(QSharedPointer<ReceivedMessage> message) {
-    auto node = DependencyManager::get<NodeList>()->nodeWithUUID(message->getSourceID());
+    auto node = DependencyManager::get<NodeList>()->nodeWithLocalID(message->getSourceID());
     if (node->getCanReplaceContent()) {
         handleOctreeFileReplacement(message->readAll());
     }

@@ -10,7 +10,7 @@
    getControllerJointIndex, enableDispatcherModule, disableDispatcherModule,
    Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
    Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic, entityIsCloneable,
-   cloneEntity, DISPATCHER_PROPERTIES, TEAR_AWAY_DISTANCE, Uuid
+   cloneEntity, DISPATCHER_PROPERTIES, TEAR_AWAY_DISTANCE, Uuid, unhighlightTargetEntity
 */
 
 Script.include("/~/system/libraries/Xform.js");
@@ -483,7 +483,13 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             this.dropGestureReset();
             this.clearEquipHaptics();
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+            unhighlightTargetEntity(this.targetEntityID);
+            var message = {
+                hand: this.hand,
+                entityID: this.targetEntityID
+            };
 
+            Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
             var grabbedProperties = Entities.getEntityProperties(this.targetEntityID);
 
             // if an object is "equipped" and has a predefined offset, use it.

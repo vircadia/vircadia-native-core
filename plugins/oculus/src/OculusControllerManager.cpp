@@ -383,6 +383,67 @@ void OculusControllerManager::TouchDevice::stopHapticPulse(bool leftHand) {
     ovr_SetControllerVibration(_parent._session, handType, 0.0f, 0.0f);
 }
 
+/**jsdoc
+ * <p>The <code>Controller.Hardware.OculusTouch</code> object has properties representing Oculus Rift. The property values are 
+ * integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or 
+ * <code>Controller.Standard</code> items in a {@link RouteObject} mapping.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Property</th><th>Type</th><th>Data</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td colspan="4"><strong>Buttons</strong></td></tr>
+ *     <tr><td><code>A</code></td><td>number</td><td>number</td><td>"A" button pressed.</td></tr>
+ *     <tr><td><code>B</code></td><td>number</td><td>number</td><td>"B" button pressed.</td></tr>
+ *     <tr><td><code>X</code></td><td>number</td><td>number</td><td>"X" button pressed.</td></tr>
+ *     <tr><td><code>Y</code></td><td>number</td><td>number</td><td>"Y" button pressed.</td></tr>
+ *     <tr><td><code>LeftApplicationMenu</code></td><td>number</td><td>number</td><td>Left application menu button pressed.
+ *       </td></tr>
+ *     <tr><td><code>RightApplicationMenu</code></td><td>number</td><td>number</td><td>Right application menu button pressed.
+ *       </td></tr>
+ *     <tr><td colspan="4"><strong>Sticks</strong></td></tr>
+ *     <tr><td><code>LX</code></td><td>number</td><td>number</td><td>Left stick x-axis scale.</td></tr>
+ *     <tr><td><code>LY</code></td><td>number</td><td>number</td><td>Left stick y-axis scale.</td></tr>
+ *     <tr><td><code>RX</code></td><td>number</td><td>number</td><td>Right stick x-axis scale.</td></tr>
+ *     <tr><td><code>RY</code></td><td>number</td><td>number</td><td>Right stick y-axis scale.</td></tr>
+ *     <tr><td><code>LS</code></td><td>number</td><td>number</td><td>Left stick button pressed.</td></tr>
+ *     <tr><td><code>RS</code></td><td>number</td><td>number</td><td>Right stick button pressed.</td></tr>
+ *     <tr><td><code>LSTouch</code></td><td>number</td><td>number</td><td>Left stick is touched.</td></tr>
+ *     <tr><td><code>RSTouch</code></td><td>number</td><td>number</td><td>Right stick is touched.</td></tr>
+ *     <tr><td colspan="4"><strong>Triggers</strong></td></tr>
+ *     <tr><td><code>LT</code></td><td>number</td><td>number</td><td>Left trigger scale.</td></tr>
+ *     <tr><td><code>RT</code></td><td>number</td><td>number</td><td>Right trigger scale.</td></tr>
+ *     <tr><td><code>LeftGrip</code></td><td>number</td><td>number</td><td>Left grip scale.</td></tr>
+ *     <tr><td><code>RightGrip</code></td><td>number</td><td>number</td><td>Right grip scale.</td></tr>
+ *     <tr><td colspan="4"><strong>Finger Abstractions</strong></td></tr>
+ *     <tr><td><code>LeftPrimaryThumbTouch</code></td><td>number</td><td>number</td><td>Left thumb touching primary thumb 
+ *       button.</td></tr>
+ *     <tr><td><code>LeftSecondaryThumbTouch</code></td><td>number</td><td>number</td><td>Left thumb touching secondary thumb 
+ *       button.</td></tr>
+ *     <tr><td><code>LeftThumbUp</code></td><td>number</td><td>number</td><td>Left thumb not touching primary or secondary 
+ *       thumb buttons.</td></tr>
+ *     <tr><td><code>RightPrimaryThumbTouch</code></td><td>number</td><td>number</td><td>Right thumb touching primary thumb 
+ *       button.</td></tr>
+ *     <tr><td><code>RightSecondaryThumbTouch</code></td><td>number</td><td>number</td><td>Right thumb touching secondary thumb 
+ *       button.</td></tr>
+ *     <tr><td><code>RightThumbUp</code></td><td>number</td><td>number</td><td>Right thumb not touching primary or secondary 
+ *       thumb buttons.</td></tr>
+ *     <tr><td><code>LeftPrimaryIndexTouch</code></td><td>number</td><td>number</td><td>Left index finger is touching primary 
+ *       index finger control.</td></tr>
+ *     <tr><td><code>LeftIndexPoint</code></td><td>number</td><td>number</td><td>Left index finger is pointing, not touching 
+ *       primary or secondary index finger controls.</td></tr>
+ *     <tr><td><code>RightPrimaryIndexTouch</code></td><td>number</td><td>number</td><td>Right index finger is touching primary 
+ *       index finger control.</td></tr>
+ *     <tr><td><code>RightIndexPoint</code></td><td>number</td><td>number</td><td>Right index finger is pointing, not touching 
+ *       primary or secondary index finger controls.</td></tr>
+ *     <tr><td colspan="4"><strong>Avatar Skeleton</strong></td></tr>
+ *     <tr><td><code>Head</code></td><td>number</td><td>{@link Pose}</td><td>Head pose.</td></tr>
+ *     <tr><td><code>LeftHand</code></td><td>number</td><td>{@link Pose}</td><td>Left hand pose.</td></tr>
+ *     <tr><td><code>RightHand</code></td><td>number</td><td>{@link Pose}</td><td>right hand pose.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef Controller.Hardware-OculusTouch
+ */
 controller::Input::NamedVector OculusControllerManager::TouchDevice::getAvailableInputs() const {
     using namespace controller;
     QVector<Input::NamedPair> availableInputs{
