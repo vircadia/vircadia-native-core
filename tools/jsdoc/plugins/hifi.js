@@ -31,7 +31,7 @@ exports.handlers = {
             '../../libraries/animation/src',
             '../../libraries/audio-client/src',
             '../../libraries/audio/src',
-                '../../libraries/avatars/src',
+            '../../libraries/avatars/src',
             '../../libraries/controllers/src/controllers/',
             '../../libraries/display-plugins/src/display-plugins/',
             '../../libraries/entities/src',
