@@ -1288,6 +1288,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
 
+    updateVerboseLogging();
+
     init();
     qCDebug(interfaceapp, "init() complete.");
 
@@ -1425,9 +1427,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Overlays need to exist before we set the ContextOverlayInterface dependency
     _overlays.init(); // do this before scripts load
     DependencyManager::set<ContextOverlayInterface>();
-
-    // adjust which logging categories will be sent to the logs
-    updateVerboseLogging();
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -2158,9 +2157,6 @@ void Application::updateVerboseLogging() {
 
     const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtDebugMsg, enable);
     const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtInfoMsg, enable);
 
     const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtDebugMsg, enable);
     const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtInfoMsg, enable);
