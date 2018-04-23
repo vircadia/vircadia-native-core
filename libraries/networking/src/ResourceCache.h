@@ -88,9 +88,9 @@ class ScriptableResource : public QObject {
 
 
     /**jsdoc
-    * @constructor Resource
-    * @property url {string} url of this resource
-    * @property state {Resource.State} current loading state
+    *  @constructor Resource
+    *  @property url {string} url of this resource
+    *  @property state {Resource.State} current loading state
     */
 
     Q_OBJECT

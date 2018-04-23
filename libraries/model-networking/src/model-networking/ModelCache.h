@@ -22,8 +22,8 @@
 #include "TextureCache.h"
 
 /**jsdoc
-* API to manage Model Cache resources
-* @namespace ModelCache
+*  API to manage Model Cache resources
+*  @namespace ModelCache
 */
 
 // Alias instead of derive to avoid copying
@@ -143,6 +143,71 @@ class ModelCache : public ResourceCache, public Dependency {
 
 
 public:
+
+    /**jsdoc
+    *  @namespace ModelCache
+    *  @property numTotal {number} total number of total resources
+    *  @property numCached {number} total number of cached resource
+    *  @property sizeTotal {number} size in bytes of all resources
+    *  @property sizeCached {number} size in bytes of all cached resources
+    */
+
+    /**jsdoc
+    *  Returns the total number of resources
+    *  @function ModelCache.getNumTotalResources
+    *  @returns {number}
+    */
+
+    /**jsdoc
+    *  Returns the total size in bytes of all resources
+    *  @function ModelCache.getSizeTotalResources
+    *  @returns {number}
+    */
+
+    /**jsdoc
+    *  Returns the total number of cached resources
+    *  @function ModelCache.getNumCachedResources
+    *  @returns {number}
+    */
+
+    /**jsdoc
+    *  Returns the total size in bytes of cached resources
+    *  @function ModelCache.getSizeCachedResources
+    *  @returns {number}
+    */
+
+    /**jsdoc
+    *  Returns list of all resource urls
+    *  @function ModelCache.getResourceList
+    *  @returns {string[]}
+    */
+
+    /**jsdoc
+    *  Asynchronously loads a resource from the spedified URL and returns it.
+    *  @param url {string} url of resource to load
+    *  @param fallback {string} fallback URL if load of the desired url fails
+    *  @function ModelCache.getResource
+    *  @returns {Resource}
+    */
+
+    /**jsdoc
+    *  Prefetches a resource.
+    *  @param url {string} url of resource to load
+    *  @function ModelCache.prefetch
+    *  @returns {Resource}
+    */
+
+    /**jsdoc
+    *  @param {number} deltaSize
+    *  @function ModelCache.updateTotalSize
+    *  @returns {Resource}
+    */
+
+    /**jsdoc
+    *  @function ModelCache.dirty
+    *  @returns {Signal}
+    */
+
     GeometryResource::Pointer getGeometryResource(const QUrl& url,
                                                   const QVariantHash& mapping = QVariantHash(),
                                                   const QUrl& textureBaseUrl = QUrl());

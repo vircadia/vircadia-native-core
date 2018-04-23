@@ -28,8 +28,8 @@
 #include "MyAvatar.h"
 
 /**jsdoc 
-* The AvatarManager API has properties and methods which manage Avatars within the same domain.
-* @namespace AvatarManager
+*  The AvatarManager API has properties and methods which manage Avatars within the same domain.
+*  @namespace AvatarManager
 */
 
 class AvatarManager : public AvatarHashMap {
@@ -37,83 +37,74 @@ class AvatarManager : public AvatarHashMap {
     SINGLETON_DEPENDENCY
 
 public:
+
     // JSDOCS Copied over from AvatarHashMap (see AvatarHashMap.h for reason)
+
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.getAvatarIdentifiers
+    *  @function AvatarManager.getAvatarIdentifiers
     */
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.getAvatarsInRange
-    * @param {Vec3} position
-    * @param {float} rangeMeters
-    * @returns {string[]}
+    *  @function AvatarManager.getAvatarsInRange
+    *  @param {Vec3} position
+    *  @param {float} rangeMeters
+    *  @returns {string[]}
     */
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.getAvatar
-    * @param {string} avatarID
-    * @returns {ScriptAvatarData}
+    *  @function AvatarManager.getAvatar
+    *  @param {string} avatarID
+    *  @returns {ScriptAvatarData}
     */
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.avatarAddedEvent
-    * @param {string} sessionUUID
-    * @returns {Signal}
+    *  @function AvatarManager.avatarAddedEvent
+    *  @param {string} sessionUUID
+    *  @returns {Signal}
     */
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.avatarRemovedEvent
-    * @param {string} sessionUUID
-    * @returns {Signal}
+    *  @function AvatarManager.avatarRemovedEvent
+    *  @param {string} sessionUUID
+    *  @returns {Signal}
     */
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.avatarSessionChangedEvent
-    * @param {string} sessionUUID
-    * @param {string} oldUUID
-    * @returns {Signal}
+    *  @function AvatarManager.avatarSessionChangedEvent
+    *  @param {string} sessionUUID
+    *  @param {string} oldUUID
+    *  @returns {Signal}
     */
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.isAvatarInRange
-    * @param {string} position
-    * @param {string} range
-    * @returns {boolean}
+    *  @function AvatarManager.isAvatarInRange
+    *  @param {string} position
+    *  @param {string} range
+    *  @returns {boolean}
     */
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.sessionUUIDChanged
-    * @param {string} sessionUUID
-    * @param {string} oldUUID
+    *  @function AvatarManager.sessionUUIDChanged
+    *  @param {string} sessionUUID
+    *  @param {string} oldUUID
     */
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.processAvatarDataPacket
-    * @param {} message
-    * @param {} sendingNode
+    *  @function AvatarManager.processAvatarDataPacket
+    *  @param {} message
+    *  @param {} sendingNode
     */
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.processAvatarIdentityPacket
-    * @param {} message
-    * @param {} sendingNode
+    *  @function AvatarManager.processAvatarIdentityPacket
+    *  @param {} message
+    *  @param {} sendingNode
     */
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.processKillAvatar
-    * @param {} message
-    * @param {} sendingNode
+    *  @function AvatarManager.processKillAvatar
+    *  @param {} message
+    *  @param {} sendingNode
     */
 
     /// Registers the script types associated with the avatar manager.
@@ -127,10 +118,9 @@ public:
     glm::vec3 getMyAvatarPosition() const { return _myAvatar->getWorldPosition(); }
 
 	/**jsdoc 
-	* To Be Completed
-    * @function AvatarManager.getAvatar
-	* @param {string} avatarID
-	* @returns {}
+    *  @function AvatarManager.getAvatar
+	*  @param {string} avatarID
+	*  @returns {}
     */
 
     // Null/Default-constructed QUuids will return MyAvatar
@@ -157,77 +147,82 @@ public:
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.getAvatarDataRate
-    * @param {string} sessionID
-    * @param {string} rateName
-    * @returns {number}
+    *  @function AvatarManager.getAvatarDataRate
+    *  @param {string} sessionID
+    *  @param {string} rateName
+    *  @returns {number}
     */
+
     Q_INVOKABLE float getAvatarDataRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
+    
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.getAvatarUpdateRate
-    * @param {string} sessionID
-    * @param {string} rateName
-    * @returns {number}
+    *  @function AvatarManager.getAvatarUpdateRate
+    *  @param {string} sessionID
+    *  @param {string} rateName
+    *  @returns {number}
     */
+    
     Q_INVOKABLE float getAvatarUpdateRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
+    
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.getAvatarSimulationRate
-    * @param {string} sessionID
-    * @param {string} rateName
-    * @returns {number}
+    *  @function AvatarManager.getAvatarSimulationRate
+    *  @param {string} sessionID
+    *  @param {string} rateName
+    *  @returns {number}
     */
+    
     Q_INVOKABLE float getAvatarSimulationRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.findRayIntersection
-    * @param {PickRay} ray
-    * @param {} avatarIdsToInclude
-    * @param {} avatarIdsToDiscard
-    * @returns {RayToAvatarIntersectionResult}
+    *  @function AvatarManager.findRayIntersection
+    *  @param {PickRay} ray
+    *  @param {} avatarIdsToInclude
+    *  @param {} avatarIdsToDiscard
+    *  @returns {RayToAvatarIntersectionResult}
     */
+    
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
                                                                   const QScriptValue& avatarIdsToDiscard = QScriptValue());
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.findRayIntersection
-    * @param {PickRay} ray
-    * @param {} avatarsToInclude
-    * @param {} avatarIdsToDiscard
-    * @returns {avatarsToDiscard}
+    *  To Be Completed
+    *  @function AvatarManager.findRayIntersectionVector
+    *  @param {PickRay} ray
+    *  @param {} avatarsToInclude
+    *  @param {} avatarIdsToDiscard
+    *  @returns {RayToAvatarIntersectionResult}
     */
+
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersectionVector(const PickRay& ray,
                                                                         const QVector<EntityItemID>& avatarsToInclude,
                                                                         const QVector<EntityItemID>& avatarsToDiscard);
 
     // TODO: remove this HACK once we settle on optimal default sort coefficients
     /**jsdoc
-    * To Be Completed
-    * @function AvatarManager.getAvatarSortCoefficient
-    * @param {string} name
-    * @returns {number}
+    *  @function AvatarManager.getAvatarSortCoefficient
+    *  @param {string} name
+    *  @returns {number}
     */
+    
     Q_INVOKABLE float getAvatarSortCoefficient(const QString& name);
+   
     /**jsdoc
-    * To Be Completed
     * @function AvatarManager.setAvatarSortCoefficient
     * @param {string} name
     * @param {string} value
     */
+
     Q_INVOKABLE void setAvatarSortCoefficient(const QString& name, const QScriptValue& value);
 
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
 
 public slots:
+
 	/**jsdoc
-	* To Be Completed
-	* @function AvatarManager.updateAvatarRenderStatus
-	* @param {boolean} shouldRenderAvatars
+	*  @function AvatarManager.updateAvatarRenderStatus
+	*  @param {boolean} shouldRenderAvatars
 	*/
+
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
 private:

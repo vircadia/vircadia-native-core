@@ -30,13 +30,14 @@
 
 #include "AvatarData.h"
 
+/**jsdoc
+*  The AvatarHashMap API deals with functionality related to Avatar information and connectivity
+*  @namespace AvatarHashMap
+*/
+
 // JSDoc 3.5.5 doesn't augment @property definitions.
 // These functions are being copied into Avatar classes which inherit the AvatarHashMap
 
-/**jsdoc
-* The AvatarHashMap API deals with functionality related to Avatar information and connectivity
-* @namespace AvatarHashMap
-*/
 
 class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
@@ -48,28 +49,26 @@ public:
     int size() { return _avatarHash.size(); }
 
     // Currently, your own avatar will be included as the null avatar id.
-	/**jsdoc
-	* To Be Completed
-	* @function AvatarHashMap.getAvatarIdentifiers
+	
+    /**jsdoc
+	*  @function AvatarHashMap.getAvatarIdentifiers
     */
 
     Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarHashMap.getAvatarsInRange
-	* @param {Vec3} position
-    * @param {float} rangeMeters
-	* @returns {string[]} 
+    *  @function AvatarHashMap.getAvatarsInRange
+	*  @param {Vec3} position
+    *  @param {float} rangeMeters
+	*  @returns {string[]} 
     */
 
     Q_INVOKABLE QVector<QUuid> getAvatarsInRange(const glm::vec3& position, float rangeMeters) const;
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarHashMap.getAvatar
-    * @param {string} avatarID
-	* @returns {ScriptAvatarData} 
+    *  @function AvatarHashMap.getAvatar
+    *  @param {string} avatarID
+	*  @returns {ScriptAvatarData} 
     */
 
     // Null/Default-constructed QUuids will return MyAvatar
@@ -81,29 +80,26 @@ public:
 signals:
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarHashMap.avatarAddedEvent
-    * @param {string} sessionUUID
-	* @returns {Signal}
+    *  @function AvatarHashMap.avatarAddedEvent
+    *  @param {string} sessionUUID
+	*  @returns {Signal}
     */
 
     void avatarAddedEvent(const QUuid& sessionUUID);
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarHashMap.avatarRemovedEvent
-    * @param {string} sessionUUID
-    * @returns {Signal}
+    *  @function AvatarHashMap.avatarRemovedEvent
+    *  @param {string} sessionUUID
+    *  @returns {Signal}
     */
 
     void avatarRemovedEvent(const QUuid& sessionUUID);
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarHashMap.avatarSessionChangedEvent
-    * @param {string} sessionUUID
-    * @param {string} oldUUID
-    * @returns {Signal}
+    *  @function AvatarHashMap.avatarSessionChangedEvent
+    *  @param {string} sessionUUID
+    *  @param {string} oldUUID
+    *  @returns {Signal}
     */
 
     void avatarSessionChangedEvent(const QUuid& sessionUUID,const QUuid& oldUUID);
@@ -111,11 +107,10 @@ signals:
 public slots:
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarHashMap.isAvatarInRange
-    * @param {string} position
-    * @param {string} range
-    * @returns {boolean}
+    *  @function AvatarHashMap.isAvatarInRange
+    *  @param {string} position
+    *  @param {string} range
+    *  @returns {boolean}
     */
 
     bool isAvatarInRange(const glm::vec3 & position, const float range);
@@ -123,37 +118,33 @@ public slots:
 protected slots:
 
 	/**jsdoc
-	* To Be Completed
-	* @function AvatarHashMap.sessionUUIDChanged
-	* @param {string} sessionUUID
-	* @param {string} oldUUID
+	*  @function AvatarHashMap.sessionUUIDChanged
+	*  @param {string} sessionUUID
+	*  @param {string} oldUUID
 	*/
 
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
 
     /**jsdoc
-    * To Be Completed
-    * @function AvatarHashMap.processAvatarDataPacket
-    * @param {} message
-    * @param {} sendingNode
+    *  @function AvatarHashMap.processAvatarDataPacket
+    *  @param {} message
+    *  @param {} sendingNode
     */
 
     void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
    
     /**jsdoc
-    * To Be Completed
-    * @function AvatarHashMap.processAvatarIdentityPacket
-    * @param {} message
-    * @param {} sendingNode
+    *  @function AvatarHashMap.processAvatarIdentityPacket
+    *  @param {} message
+    *  @param {} sendingNode
     */
 
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
     /**jsdoc
-    * To Be Completed
-    * @function AvatarHashMap.processKillAvatar
-    * @param {} message
-    * @param {} sendingNode
+    *  @function AvatarHashMap.processKillAvatar
+    *  @param {} message
+    *  @param {} sendingNode
     */
 
     void processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);

@@ -59,30 +59,34 @@ public:
                                 QVector<float>& coefficients);
 
 signals:
+
     /**jsdoc 
-    * To Be Completed
-	* @function FaceTracker.muteToggled
-    * @returns {Signal}
+	*  @function FaceTracker.muteToggled
+    *  @returns {Signal}
 	*/
+
     void muteToggled();
 
 public slots:
+
     /**jsdoc
-	* To Be Completed
-    * @function FaceTracker.setEnabled
-    * @param {boolean} enabled
+    *  @function FaceTracker.setEnabled
+    *  @param {boolean} enabled
     */
+
     virtual void setEnabled(bool enabled) = 0;
+	
 	/**jsdoc
-	* To Be Completed
-	* @function FaceTracker.toggleMute
+	*  @function FaceTracker.toggleMute
 	*/
+
     void toggleMute();
+
 	/**jsdoc
-	* To Be Completed
-	* @function FaceTracker.getMuted
-    * @returns {boolean} 
+	*  @function FaceTracker.getMuted
+    *  @returns {boolean} 
 	*/
+
     bool getMuted() { return _isMuted; }
 
 protected:
