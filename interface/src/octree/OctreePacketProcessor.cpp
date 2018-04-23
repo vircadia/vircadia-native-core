@@ -71,7 +71,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
     if (message->getVersion() != versionForPacketType(message->getType())) {
         static QMultiMap<QUuid, PacketType> versionDebugSuppressMap;
 
-        const QUuid& senderUUID = message->getSourceID();
+        const QUuid& senderUUID = sendingNode->getUUID();
         if (!versionDebugSuppressMap.contains(senderUUID, packetType)) {
             
             qDebug() << "Was stats packet? " << wasStatsPacket;

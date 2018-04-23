@@ -226,7 +226,7 @@ Process.prototype = extend(Process.prototype, {
                 }
             });
         } else {
-            var signal = force ? 'SIGKILL' : null;
+            var signal = force ? 'SIGKILL' : 'SIGTERM';
             this.child.kill(signal);
         }
 

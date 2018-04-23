@@ -85,16 +85,6 @@ public:
     typedef enum { COMPLETED, PARTIAL, NONE } AppendState;
 
     virtual void debugExtraEncodeData(EncodeBitstreamParams& params) const { }
-    virtual void initializeExtraEncodeData(EncodeBitstreamParams& params) { }
-    virtual bool shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const { return true; }
-    virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const { return true; }
-
-    virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const { }
-    virtual void elementEncodeComplete(EncodeBitstreamParams& params) const { }
-
-    /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
-    virtual AppendState appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const
-                                { return COMPLETED; }
 
     /// Override to deserialize the state of this element. This is used for loading from a persisted file or from reading
     /// from the network.
@@ -138,9 +128,6 @@ public:
     ViewFrustum::intersection computeViewIntersection(const ViewFrustum& viewFrustum) const;
     float distanceToCamera(const ViewFrustum& viewFrustum) const;
     float furthestDistanceToCamera(const ViewFrustum& viewFrustum) const;
-
-    bool calculateShouldRender(const ViewFrustum& viewFrustum,
-                float voxelSizeScale = DEFAULT_OCTREE_SIZE_SCALE, int boundaryLevelAdjust = 0) const;
 
     // points are assumed to be in Voxel Coordinates (not TREE_SCALE'd)
     float distanceSquareToPoint(const glm::vec3& point) const; // when you don't need the actual distance, use this.

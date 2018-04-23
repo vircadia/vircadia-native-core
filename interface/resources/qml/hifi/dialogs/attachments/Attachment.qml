@@ -181,11 +181,11 @@ Item {
                     minimumValue: 0.01
                     maximumValue: 10
                     realStepSize: 0.05;
-                    value: attachment ? attachment.scale : 1.0
+                    realValue: attachment ? attachment.scale : 1.0
                     colorScheme: hifi.colorSchemes.dark
-                    onValueChanged: {
-                        if (completed && attachment && attachment.scale !== value) {
-                            attachment.scale = value;
+                    onRealValueChanged: {
+                        if (completed && attachment && attachment.scale !== realValue) {
+                            attachment.scale = realValue;
                             updateAttachment();
                         }
                     }

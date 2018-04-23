@@ -94,6 +94,7 @@ public:
 
     virtual bool isDomainServer() const override { return false; }
     virtual QUuid getDomainUUID() const override { return _domainHandler.getUUID(); }
+    virtual Node::LocalID getDomainLocalID() const override { return _domainHandler.getLocalID(); }
     virtual HifiSockAddr getDomainSockAddr() const override { return _domainHandler.getSockAddr(); }
 
 public slots:

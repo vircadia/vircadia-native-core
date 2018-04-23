@@ -25,7 +25,7 @@ SequenceNumberStats::SequenceNumberStats(int statsHistoryLength, bool canDetectO
     : _lastReceivedSequence(0),
     _missingSet(),
     _stats(),
-    _lastSenderUUID(),
+    _lastSenderID(NULL_LOCAL_ID),
     _statsHistory(statsHistoryLength),
     _lastUnreasonableSequence(0),
     _consecutiveUnreasonableOnTime(0)
@@ -35,7 +35,7 @@ SequenceNumberStats::SequenceNumberStats(int statsHistoryLength, bool canDetectO
 void SequenceNumberStats::reset() {
     _missingSet.clear();
     _stats = PacketStreamStats();
-    _lastSenderUUID = QUuid();
+    _lastSenderID = NULL_LOCAL_ID;
     _statsHistory.clear();
     _lastUnreasonableSequence = 0;
     _consecutiveUnreasonableOnTime = 0;
@@ -43,18 +43,18 @@ void SequenceNumberStats::reset() {
 
 static const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
 
-SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(quint16 incoming, QUuid senderUUID, const bool wantExtraDebugging) {
+SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(quint16 incoming, NetworkLocalID senderID, const bool wantExtraDebugging) {
 
     SequenceNumberStats::ArrivalInfo arrivalInfo;
 
     // if the sender node has changed, reset all stats
-    if (senderUUID != _lastSenderUUID) {
+    if (senderID != _lastSenderID) {
         if (_stats._received > 0) {
             qCDebug(networking) << "sequence number stats was reset due to new sender node";
-            qCDebug(networking) << "previous:" << _lastSenderUUID << "current:" << senderUUID;
+            qCDebug(networking) << "previous:" << _lastSenderID << "current:" << senderID;
             reset();
         }
-        _lastSenderUUID = senderUUID;
+        _lastSenderID = senderID;
     }
 
     // determine our expected sequence number... handle rollover appropriately
@@ -89,10 +89,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
         } else if (absGap > MAX_REASONABLE_SEQUENCE_GAP) {
             arrivalInfo._status = Unreasonable;
 
-            static const QString UNREASONABLE_SEQUENCE_REGEX { "unreasonable sequence number: \\d+ previous: \\d+" };
-            static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(UNREASONABLE_SEQUENCE_REGEX);
-
-            qCDebug(networking) << "unreasonable sequence number:" << incoming << "previous:" << _lastReceivedSequence;
+            HIFI_FCDEBUG(networking(), "unreasonable sequence number:" << incoming << "previous:" << _lastReceivedSequence);
 
             _stats._unreasonable++;
             
@@ -154,10 +151,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
 
                 arrivalInfo._status = Unreasonable;
 
-                static const QString UNREASONABLE_SEQUENCE_REGEX { "unreasonable sequence number: \\d+ \\(possible duplicate\\)" };
-                static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(UNREASONABLE_SEQUENCE_REGEX);
-
-                qCDebug(networking) << "unreasonable sequence number:" << incoming << "(possible duplicate)";
+                HIFI_FCDEBUG(networking(), "unreasonable sequence number:" << incoming << "(possible duplicate)");
 
                 _stats._unreasonable++;
 

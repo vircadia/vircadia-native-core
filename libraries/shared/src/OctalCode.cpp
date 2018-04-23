@@ -248,22 +248,6 @@ void setOctalCodeSectionValue(unsigned char* octalCode, int section, char sectio
     }
 }
 
-unsigned char* chopOctalCode(const unsigned char* originalOctalCode, int chopLevels) {
-    int codeLength = numberOfThreeBitSectionsInCode(originalOctalCode);
-    unsigned char* newCode = NULL;
-    if (codeLength > chopLevels) {
-        int newLength = codeLength - chopLevels;
-        newCode = new unsigned char[newLength+1];
-        *newCode = newLength; // set the length byte
-
-        for (int section = chopLevels; section < codeLength; section++) {
-            char sectionValue = getOctalCodeSectionValue(originalOctalCode, section);
-            setOctalCodeSectionValue(newCode, section - chopLevels, sectionValue);
-        }
-    }
-    return newCode;
-}
-
 bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* possibleDescendent, int descendentsChild) {
     if (!possibleAncestor || !possibleDescendent) {
         return false;

@@ -48,8 +48,6 @@ private:
     void preDistributionProcessing() override;
     bool hasSomethingToSend(OctreeQueryNode* nodeData) override { return !_sendQueue.empty(); }
     bool shouldStartNewTraversal(OctreeQueryNode* nodeData, bool viewFrustumChanged) override { return viewFrustumChanged || _traversal.finished(); }
-    void preStartNewScene(OctreeQueryNode* nodeData, bool isFullScene) override {};
-    bool shouldTraverseAndSend(OctreeQueryNode* nodeData) override { return true; }
 
     DiffTraversal _traversal;
     EntityPriorityQueue _sendQueue;
