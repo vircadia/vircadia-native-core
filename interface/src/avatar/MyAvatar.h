@@ -106,18 +106,22 @@ class MyAvatar : public Avatar {
      *     what causes your avatar to follow your HMD as you walk around the room, in room scale VR.  Disabling this is useful 
      *     if you desire to pin the avatar to a fixed location.
      * @property collisionsEnabled {boolean} This can be used to disable collisions between the avatar and the world.
+     * @property {boolean} characterControllerEnabled
      * @property useAdvancedMovementControls {boolean} Stores the user preference only, does not change user mappings, this is 
      *     done in the default script, "toggleAdvancedMovementForHandControllers.js".
+     * @property {number} yawSpeed
+     * @property {number} pitchSpeed
+     * @property hmdRollControlEnabled {boolean} When enabled the roll angle of your HMD will turn your avatar while flying.
+     * @property hmdRollControlDeadZone {number} If hmdRollControlEnabled is true, this value can be used to tune what roll
+     *     angle is required to begin turning. This angle is specified in degrees.
+     * @property hmdRollControlRate {number} If hmdRollControlEnabled is true, this value determines the maximum turn rate of
+     *     your avatar when rolling your HMD in degrees per second.
      * @property userHeight {number} The height of the user in sensor space.
      * @property userEyeHeight {number} Estimated height of the users eyes in sensor space.
-     * @property SELF_ID {string} UUID representing "my avatar". Only use for local-only entities and overlays in situations 
+     * @property SELF_ID {Uuid} UUID representing "my avatar". Only use for local-only entities and overlays in situations 
      *     where MyAvatar.sessionUUID is not available (e.g., if not connected to a domain). Note: Likely to be deprecated. 
      *     <em>Read-only.</em>
-     * @property hmdRollControlEnabled {boolean} When enabled the roll angle of your HMD will turn your avatar while flying.
-     * @property hmdRollControlDeadZone {number} If hmdRollControlEnabled is true, this value can be used to tune what roll 
-     *     angle is required to begin turning. This angle is specified in degrees.
-     * @property hmdRollControlRate {number} If hmdRollControlEnabled is true, this value determines the maximum turn rate of 
-     *     your avatar when rolling your HMD in degrees per second.
+     * @property {number} walkSpeed
      *
      * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
      *     registration point of the 3D model.
@@ -240,6 +244,9 @@ public:
 
     void reset(bool andRecenter = false, bool andReload = true, bool andHead = true);
 
+    /**jsdoc
+     * @function MyAvatar.resetSensorsAndBody
+     */
     Q_INVOKABLE void resetSensorsAndBody();
 
     /**jsdoc
@@ -264,7 +271,16 @@ public:
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
 
+    /**jsdoc
+     * @function MyAvatar.setOrientationVar
+     * @param {object} newOrientationVar
+     */
     Q_INVOKABLE void setOrientationVar(const QVariant& newOrientationVar);
+
+    /**jsdoc
+     * @function MyAvatar.getOrientationVar
+     * @returns {object} 
+     */
     Q_INVOKABLE QVariant getOrientationVar() const;
 
     // A method intended to be overriden by MyAvatar for polling orientation for network transmission.
@@ -415,18 +431,58 @@ public:
     // a handler must not remove properties from animStateDictionaryIn, nor change property values that it does not intend to change.
     // It is not specified in what order multiple handlers are called.
     Q_INVOKABLE QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { return _skeletonModel->getRig().addAnimationStateHandler(handler, propertiesList); }
+
+    /**jsdoc
+     * @function MyAvatar.removeAnimationStateHandler
+     * @param {number} handler
+     */
     // Removes a handler previously added by addAnimationStateHandler.
     Q_INVOKABLE void removeAnimationStateHandler(QScriptValue handler) { _skeletonModel->getRig().removeAnimationStateHandler(handler); }
 
+
+    /**jsdoc
+     * @function MyAvatar.getSnapTurn
+     * @returns {boolean} 
+     */
     Q_INVOKABLE bool getSnapTurn() const { return _useSnapTurn; }
+    /**jsdoc
+     * @function MyAvatar.setSnapTurn
+     * @param {boolean} on
+     */
     Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
+    /**jsdoc
+     * @function MyAvatar.getClearOverlayWhenMoving
+     * @returns {boolean} 
+     */
     Q_INVOKABLE bool getClearOverlayWhenMoving() const { return _clearOverlayWhenMoving; }
+    /**jsdoc
+     * @function MyAvatar.setClearOverlayWhenMoving
+     * @returns {boolean} 
+     */
     Q_INVOKABLE void setClearOverlayWhenMoving(bool on) { _clearOverlayWhenMoving = on; }
 
+
+    /**jsdoc
+     * @function MyAvatar.setDominantHand
+     * @param {string} hand
+     */
     Q_INVOKABLE void setDominantHand(const QString& hand);
+    /**jsdoc
+     * @function MyAvatar.getDominantHand
+     * @returns {string} 
+     */
     Q_INVOKABLE QString getDominantHand() const { return _dominantHand; }
 
+
+    /**jsdoc
+     * @function MyAvatar.setHMDLeanRecenterEnabled
+     * @param {boolean} enabled
+     */
     Q_INVOKABLE void setHMDLeanRecenterEnabled(bool value) { _hmdLeanRecenterEnabled = value; }
+    /**jsdoc
+     * @function MyAvatar.getHMDLeanRecenterEnabled
+     * @returns {boolean} 
+     */
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
 
     bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
@@ -452,12 +508,34 @@ public:
     void setDriveKey(DriveKeys key, float val);
     void setSprintMode(bool sprint);
     float getDriveKey(DriveKeys key) const;
+
+    /**jsdoc
+     * @function MyAvatar.getRawDriveKey
+     * @param {DriveKeys} key
+     * @returns {number}
+     */
     Q_INVOKABLE float getRawDriveKey(DriveKeys key) const;
+
     void relayDriveKeysToCharacterController();
     
+    /**jsdoc
+     * @function MyAvatar.disableDriveKey
+     * @param {DriveKeys} key
+     */
     Q_INVOKABLE void disableDriveKey(DriveKeys key);
+
+    /**jsdoc
+     * @function MyAvatar.enableDriveKey
+     * @param {DriveKeys} key
+     */
     Q_INVOKABLE void enableDriveKey(DriveKeys key);
+    /**jsdoc
+     * @function MyAvatar.isDriveKeyDisabled
+     * @param {DriveKeys} key
+     * @returns {boolean} 
+     */
     Q_INVOKABLE bool isDriveKeyDisabled(DriveKeys key) const;
+
 
     /**jsdoc
     *The triggerVerticalRecenter function activates one time the recentering 
@@ -495,9 +573,29 @@ public:
      * print(JSON.stringify(MyAvatar.getHeadPosition()));
      */
     Q_INVOKABLE glm::vec3 getHeadPosition() const { return getHead()->getPosition(); }
+
+    /**jsdoc
+     * @function MyAvatar.getHeadFinalYaw
+     * @returns {number} 
+     */
     Q_INVOKABLE float getHeadFinalYaw() const { return getHead()->getFinalYaw(); }
+
+    /**jsdoc
+     * @function MyAvatar.getHeadFinalRoll
+     * @returns {number} 
+     */
     Q_INVOKABLE float getHeadFinalRoll() const { return getHead()->getFinalRoll(); }
+
+    /**jsdoc
+     * @function MyAvatar.getHeadFinalPitch
+     * @returns {number} 
+     */
     Q_INVOKABLE float getHeadFinalPitch() const { return getHead()->getFinalPitch(); }
+
+    /**jsdoc
+     * @function MyAvatar.getHeadDeltaPitch
+     * @returns {number} 
+     */
     Q_INVOKABLE float getHeadDeltaPitch() const { return getHead()->getDeltaPitch(); }
 
     /**jsdoc
@@ -517,6 +615,11 @@ public:
      * print(JSON.stringify(MyAvatar.getTargetAvatarPosition()));
      */
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
+
+    /**jsdoc
+     * @function MyAvatar.getTargetAvatar
+     * @returns {AvatarData} 
+     */
     Q_INVOKABLE ScriptAvatarData* getTargetAvatar() const;
 
 
@@ -543,7 +646,17 @@ public:
      * print(JSON.stringify(MyAvatar.getLeftHandPosition()));
      */
     Q_INVOKABLE glm::vec3 getRightHandPosition() const;
+
+    /**jsdoc
+     * @function MyAvatar.getLeftHandTipPosition
+     * @returns {Vec3} 
+     */
     Q_INVOKABLE glm::vec3 getLeftHandTipPosition() const;
+
+    /**jsdoc
+     * @function MyAvatar.getRightHandTipPosition
+     * @returns {Vec3} 
+     */
     Q_INVOKABLE glm::vec3 getRightHandTipPosition() const;
 
 
@@ -572,16 +685,67 @@ public:
      * print(JSON.stringify(MyAvatar.getRightHandPose()));
      */
     Q_INVOKABLE controller::Pose getRightHandPose() const;
+
+    /**jsdoc
+     * @function MyAvatar.getLeftHandTipPose
+     * @returns {Pose} 
+     */
     Q_INVOKABLE controller::Pose getLeftHandTipPose() const;
+
+    /**jsdoc
+     * @function MyAvatar.getRightHandTipPose
+     * @returns {Pose} 
+     */
     Q_INVOKABLE controller::Pose getRightHandTipPose() const;
 
     // world-space to avatar-space rigconversion functions
+    /**jsdoc
+     * @function MyAvatar.worldToJointPoint
+     * @param {Vec3} position
+     * @param {number} [jointIndex=-1]
+     * @returns {Vec3}
+     */
     Q_INVOKABLE glm::vec3 worldToJointPoint(const glm::vec3& position, const int jointIndex = -1) const;
+
+    /**jsdoc
+     * @function MyAvatar.worldToJointDirection
+     * @param {Vec3} direction
+     * @param {number} [jointIndex=-1]
+     * @returns {Vec3}
+     */
     Q_INVOKABLE glm::vec3 worldToJointDirection(const glm::vec3& direction, const int jointIndex = -1) const;
+
+    /**jsdoc
+     * @function MyAvatar.worldToJointRotation
+     * @param {Quat} rotation
+     * @param {number} [jointIndex=-1]
+     * @returns {Quat}
+     */
     Q_INVOKABLE glm::quat worldToJointRotation(const glm::quat& rotation, const int jointIndex = -1) const;
 
+
+    /**jsdoc
+     * @function MyAvatar.jointToWorldPoint
+     * @param {vec3} position
+     * @param {number} [jointIndex=-1]
+     * @returns {Vec3}
+     */
     Q_INVOKABLE glm::vec3 jointToWorldPoint(const glm::vec3& position, const int jointIndex = -1) const;
+
+    /**jsdoc
+     * @function MyAvatar.jointToWorldDirection
+     * @param {Vec3} direction
+     * @param {number} [jointIndex=-1]
+     * @returns {Vec3}
+     */
     Q_INVOKABLE glm::vec3 jointToWorldDirection(const glm::vec3& direction, const int jointIndex = -1) const;
+
+    /**jsdoc
+     * @function MyAvatar.jointToWorldRotation
+     * @param {Quat} rotation
+     * @param {number} [jointIndex=-1]
+     * @returns {Quat}
+     */
     Q_INVOKABLE glm::quat jointToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
 
     AvatarWeakPointer getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
@@ -600,12 +764,35 @@ public:
     virtual void clearJointData(const QString& name) override;
     virtual void clearJointsData() override;
 
+    /**jsdoc
+     * @function MyAvatar.pinJoint
+     * @param {number} index
+     * @param {Vec3} position
+     * @param {Quat} orientation
+     * @returns {boolean}
+     */
     Q_INVOKABLE bool pinJoint(int index, const glm::vec3& position, const glm::quat& orientation);
+
     bool isJointPinned(int index);
+
+    /**jsdoc
+     * @function MyAvatar.clearPinOnJoint
+     * @param {number} index
+     * @returns {boolean} 
+     */
     Q_INVOKABLE bool clearPinOnJoint(int index);
 
+    /**jsdoc
+     * @function MyAvatar.getIKErrorOnLastSolve
+     * @returns {number} 
+     */
     Q_INVOKABLE float getIKErrorOnLastSolve() const;
 
+    /**jsdoc
+     * @function MyAvatar.useFullAvatarURL
+     * @param {string} fullAvatarURL
+     * @param {string} [modelName=""]
+     */
     Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
 
     /**jsdoc
@@ -683,17 +870,68 @@ public:
     QVariantList getAvatarEntitiesVariant();
     void removeAvatarEntities();
 
+    /**jsdoc
+     * @function MyAvatar.isFlying
+     * @returns {boolean} 
+     */
     Q_INVOKABLE bool isFlying();
+
+    /**jsdoc
+     * @function MyAvatar.isInAir
+     * @returns {boolean} 
+     */
     Q_INVOKABLE bool isInAir();
+
+    /**jsdoc
+     * @function MyAvatar.setFlyingEnabled
+     * @param {boolean} enabled
+     */
     Q_INVOKABLE void setFlyingEnabled(bool enabled);
+
+    /**jsdoc
+     * @function MyAvatar.getFlyingEnabled
+     * @returns {boolean}
+     */
     Q_INVOKABLE bool getFlyingEnabled();
 
+
+    /**jsdoc
+     * @function MyAvatar.getAvatarScale
+     * @returns {number} 
+     */
     Q_INVOKABLE float getAvatarScale();
+
+    /**jsdoc
+     * @function MyAvatar.setAvatarScale
+     * @param {number} scale
+     */
     Q_INVOKABLE void setAvatarScale(float scale);
 
+
+    /**jsdoc
+     * @function MyAvatar.setCollisionsEnabled
+     * @param {boolean} enabled
+     */
     Q_INVOKABLE void setCollisionsEnabled(bool enabled);
+
+    /**jsdoc
+     * @function MyAvatar.getCollisionsEnabled
+     * @returns {boolean} 
+     */
     Q_INVOKABLE bool getCollisionsEnabled();
+
+    /**jsdoc
+     * @function MyAvatar.setCharacterControllerEnabled
+     * @param {boolean} enabled
+     * @deprecated
+     */
     Q_INVOKABLE void setCharacterControllerEnabled(bool enabled); // deprecated
+
+    /**jsdoc
+     * @function MyAvatar.getCharacterControllerEnabled
+     * @returns {boolean} 
+     * @deprecated
+     */
     Q_INVOKABLE bool getCharacterControllerEnabled(); // deprecated
 
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
@@ -719,7 +957,18 @@ public:
     // results are in HMD frame
     glm::mat4 deriveBodyFromHMDSensor() const;
 
+    /**jsdoc
+     * @function MyAvatar.isUp
+     * @param {Vec3} direction
+     * @returns {boolean} 
+     */
     Q_INVOKABLE bool isUp(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) > 0.0f; }; // true iff direction points up wrt avatar's definition of up.
+
+    /**jsdoc
+     * @function MyAvatar.isDown
+     * @param {Vec3} direction
+     * @returns {boolean} 
+     */
     Q_INVOKABLE bool isDown(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) < 0.0f; };
 
     void setUserHeight(float value);
@@ -767,9 +1016,21 @@ public slots:
      */
     void resetSize();
 
+    /**jsdoc
+     * @function MyAvatar.animGraphLoaded
+     */
     void animGraphLoaded();
 
+    /**jsdoc
+     * @function MyAvatar.setGravity
+     * @param {number} gravity
+     */
     void setGravity(float gravity);
+
+    /**jsdoc
+     * @function MyAvatar.getGravity
+     * @returns {number} 
+     */
     float getGravity();
 
     /**jsdoc
@@ -789,27 +1050,103 @@ public slots:
      * @param {object} properties
      */
     void goToLocation(const QVariant& properties);
+
+    /**jsdoc
+     * @function MyAvatar.goToLocationAndEnableCollisions
+     * @param {Vec3} position
+     */
     void goToLocationAndEnableCollisions(const glm::vec3& newPosition);
+
+    /**jsdoc
+     * @function MyAvatar.safeLanding
+     * @param {Vec3} position
+     * @returns {boolean} 
+     */
     bool safeLanding(const glm::vec3& position);
 
+
+    /**jsdoc
+     * @function MyAvatar.restrictScaleFromDomainSettings
+     * @param {objecct} domainSettingsObject
+     */
     void restrictScaleFromDomainSettings(const QJsonObject& domainSettingsObject);
+
+    /**jsdoc
+     * @function MyAvatar.clearScaleRestriction
+     */
     void clearScaleRestriction();
 
+
+    /**jsdoc
+     * @function MyAvatar.addThrust
+     * @param {Vec3} thrust
+     */
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
+
+    /**jsdoc
+     * @function MyAvatar.getThrust
+     * @returns {vec3} 
+     */
     glm::vec3 getThrust() { return _thrust; };
+
+    /**jsdoc
+     * @function MyAvatar.setThrust
+     * @param {Vec3} thrust
+     */
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
+
+    /**jsdoc
+     * @function MyAvatar.updateMotionBehaviorFromMenu
+     */
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
+
+    /**jsdoc
+     * @function MyAvatar.setEnableDebugDrawDefaultPose
+     * @param {boolean} enabled
+     */
     void setEnableDebugDrawDefaultPose(bool isEnabled);
+    /**jsdoc
+     * @function MyAvatar.setEnableDebugDrawAnimPose
+     * @param {boolean} enabled
+     */
     void setEnableDebugDrawAnimPose(bool isEnabled);
+    /**jsdoc
+     * @function MyAvatar.setEnableDebugDrawPosition
+     * @param {boolean} enabled
+     */
     void setEnableDebugDrawPosition(bool isEnabled);
+    /**jsdoc
+     * @function MyAvatar.setEnableDebugDrawHandControllers
+     * @param {boolean} enabled
+     */
     void setEnableDebugDrawHandControllers(bool isEnabled);
+    /**jsdoc
+     * @function MyAvatar.setEnableDebugDrawSensorToWorldMatrix
+     * @param {boolean} enabled
+     */
     void setEnableDebugDrawSensorToWorldMatrix(bool isEnabled);
+    /**jsdoc
+     * @function MyAvatar.setEnableDebugDrawIKTargets
+     * @param {boolean} enabled
+     */
     void setEnableDebugDrawIKTargets(bool isEnabled);
+    /**jsdoc
+     * @function MyAvatar.setEnableDebugDrawIKConstraints
+     * @param {boolean} enabled
+     */
     void setEnableDebugDrawIKConstraints(bool isEnabled);
+    /**jsdoc
+     * @function MyAvatar.setEnableDebugDrawIKChains
+     * @param {boolean} enabled
+     */
     void setEnableDebugDrawIKChains(bool isEnabled);
+    /**jsdoc
+     * @function MyAvatar.setEnableDebugDrawDetailedCollision
+     * @param {boolean} enabled
+     */
     void setEnableDebugDrawDetailedCollision(bool isEnabled);
 
     /**jsdoc
@@ -830,21 +1167,77 @@ public slots:
      * }, 10000);
      */
     void setEnableMeshVisible(bool isEnabled);
+
+    /**jsdoc
+     * @function MyAvatar.setEnableInverseKinematics
+     * @param {boolean} enabled
+     */
     void setEnableInverseKinematics(bool isEnabled);
 
+
+    /**jsdoc
+     * @function MyAvatar.getAnimGraphOverrideUrl
+     * @returns {string} 
+     */
     QUrl getAnimGraphOverrideUrl() const;  // thread-safe
+
+    /**jsdoc
+     * @function MyAvatar.setAnimGraphOverrideUrl
+     * @param {string} url
+     */
     void setAnimGraphOverrideUrl(QUrl value);  // thread-safe
+
+    /**jsdoc
+     * @function MyAvatar.getAnimGraphUrl
+     * @returns {string} 
+     */
     QUrl getAnimGraphUrl() const;  // thread-safe
+
+    /**jsdoc
+     * @function MyAvatar.setAnimGraphUrl
+     * @param {string} url
+     */
     void setAnimGraphUrl(const QUrl& url);  // thread-safe
 
+
+    /**jsdoc
+     * @function MyAvatar.getPositionForAudio
+     * @returns {Vec3} 
+     */
     glm::vec3 getPositionForAudio();
+
+    /**jsdoc
+     * @function MyAvatar.getOrientationForAudio
+     * @returns {Quat} 
+     */
     glm::quat getOrientationForAudio();
 
+
+    /**jsdoc
+     * @function MyAvatar.setModelScale
+     * @param {number} scale
+     */
     virtual void setModelScale(float scale) override;
 
 signals:
+
+    /**jsdoc
+     * @function MyAvatar.audioListenerModeChanged
+     * @returns {Signal} 
+     */
     void audioListenerModeChanged();
+
+    /**jsdoc
+     * @function MyAvatar.transformChanged
+     * @returns {Signal} 
+     */
     void transformChanged();
+
+    /**jsdoc
+     * @function MyAvatar.newCollisionSoundURL
+     * @param {string} url
+     * @returns {Signal} 
+     */
     void newCollisionSoundURL(const QUrl& url);
 
     /**jsdoc
@@ -858,15 +1251,68 @@ signals:
      * });
      */
     void collisionWithEntity(const Collision& collision);
+
+    /**jsdoc
+     * @function MyAvatar.energyChanged
+     * @param {number} energy
+     * @returns {Signal} 
+     */
     void energyChanged(float newEnergy);
+
+    /**jsdoc
+     * @function MyAvatar.positionGoneTo
+     * @returns {Signal} 
+     */
     void positionGoneTo();
+
+    /**jsdoc
+     * @function MyAvatar.onLoadComplete
+     * @returns {Signal} 
+     */
     void onLoadComplete();
+
+    /**jsdoc
+     * @function MyAvatar.wentAway
+     * @returns {Signal} 
+     */
     void wentAway();
+
+    /**jsdoc
+     * @function MyAvatar.wentActive
+     * @returns {Signal} 
+     */
     void wentActive();
+
+    /**jsdoc
+     * @function MyAvatar.skeletonChanged
+     * @returns {Signal} 
+     */
     void skeletonChanged();
+
+    /**jsdoc
+     * @function MyAvatar.dominantHandChanged
+     * @param {string} hand
+     * @returns {Signal} 
+     */
     void dominantHandChanged(const QString& hand);
+
+    /**jsdoc
+     * @function MyAvatar.sensorToWorldScaleChanged
+     * @param {number} scale
+     * @returns {Signal} 
+     */
     void sensorToWorldScaleChanged(float sensorToWorldScale);
+
+    /**jsdoc
+     * @function MyAvatar.attachmentsChanged
+     * @returns {Signal} 
+     */
     void attachmentsChanged();
+
+    /**jsdoc
+     * @function MyAvatar.scaleChanged
+     * @returns {Signal} 
+     */
     void scaleChanged();
 
 private slots:

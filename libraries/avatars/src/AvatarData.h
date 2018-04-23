@@ -548,11 +548,24 @@ public:
     void setDomainMinimumHeight(float domainMinimumHeight);
     void setDomainMaximumHeight(float domainMaximumHeight);
 
-    //  Hand State
+    /**jsdoc
+     * @function MyAvatar.setHandState
+     * @param {string} state
+     */
     Q_INVOKABLE void setHandState(char s) { _handState = s; }
+
+    /**jsdoc
+     * @function MyAvatar.getHandState
+     * @returns {string} 
+     */
     Q_INVOKABLE char getHandState() const { return _handState; }
 
     const QVector<JointData>& getRawJointData() const { return _jointData; }
+
+    /**jsdoc
+     * @function MyAvatar.setRawJointData
+     * @param {JointData[]} data
+     */
     Q_INVOKABLE void setRawJointData(QVector<JointData> data);
 
     /**jsdoc
@@ -618,6 +631,12 @@ public:
      * @param {number} index - The index of the joint.
      */
     Q_INVOKABLE virtual void clearJointData(int index);
+
+    /**jsdoc
+     * @function MyAvatar.isJointDataValid
+     * @param {number} index
+     * @returns {boolean} 
+     */
     Q_INVOKABLE bool isJointDataValid(int index) const;
 
     /**jsdoc
@@ -724,6 +743,12 @@ public:
      * }, 5000);
      */
     Q_INVOKABLE virtual void clearJointData(const QString& name);
+
+    /**jsdoc
+     * @function MyAvatar.isJointDataValid
+     * @param {string} name
+     * @returns {boolean} 
+     */
     Q_INVOKABLE virtual bool isJointDataValid(const QString& name) const;
 
     /**jsdoc
@@ -757,6 +782,11 @@ public:
      * print(JSON.stringify(MyAvatar.getJointRotations()));
      */
     Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
+
+    /**jsdoc
+     * @function MyAvatar.getJointTranslations
+     * @returns {Vec3[]} 
+     */
     Q_INVOKABLE virtual QVector<glm::vec3> getJointTranslations() const;
 
     /**jsdoc
@@ -795,6 +825,11 @@ public:
      * }, 5000);
      */
     Q_INVOKABLE virtual void setJointRotations(const QVector<glm::quat>& jointRotations);
+    
+    /**jsdoc
+     * @function MyAvatar.setJointTranslations
+     * @param {Vec3[]} translations
+     */
     Q_INVOKABLE virtual void setJointTranslations(const QVector<glm::vec3>& jointTranslations);
 
     /**jsdoc
@@ -838,14 +873,45 @@ public:
      */
     Q_INVOKABLE virtual QStringList getJointNames() const;
 
+
+    /**jsdoc
+     * @function MyAvatar.setBlendshape
+     * @param {string} name
+     * @param {number} value
+     */
     Q_INVOKABLE void setBlendshape(QString name, float val) { _headData->setBlendshape(name, val); }
 
+
+    /**jsdoc
+     * @function MyAvatar.getAttachmentsVariant
+     * @returns {object} 
+     */
     Q_INVOKABLE QVariantList getAttachmentsVariant() const;
+
+    /**jsdoc
+     * @function MyAvatar.setAttachmentsVariant
+     * @param {object} variant
+     */
     Q_INVOKABLE void setAttachmentsVariant(const QVariantList& variant);
 
+
+    /**jsdoc
+     * @function MyAvatar.updateAvatarEntity
+     * @param {Uuid} entityID
+     * @param {string} entityData
+     */
     Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
+    /**jsdoc
+     * @function MyAvatar.clearAvatarEntity
+     * @param {Uuid} entityID
+     */
     Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID);
 
+
+    /**jsdoc
+     * @function MyAvatar.setForceFaceTrackerConnected
+     * @param {boolean} connected
+     */
     Q_INVOKABLE void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
 
     // key state
@@ -994,19 +1060,63 @@ public:
     glm::vec3 getClientGlobalPosition() const { return _globalPosition; }
     glm::vec3 getGlobalBoundingBoxCorner() const { return _globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions; }
 
+    /**jsdoc
+     * @function MyAvatar.getAvatarEntityData
+     * @returns {object} 
+     */
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
+
+    /**jsdoc
+     * @function MyAvatar.setAvatarEntityData
+     * @param {object} avatarEntityData
+     */
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
+
     virtual void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
     void insertDetachedEntityID(const QUuid entityID);
     AvatarEntityIDs getAndClearRecentlyDetachedIDs();
 
+    /**jsdoc
+     * @function MyAvatar.getSensorToWorldMatrix
+     * @returns {Mat4} 
+     */
     // thread safe
     Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
+
+    /**jsdoc
+     * @function MyAvatar.getSensorToWorldScale
+     * @returns {number} 
+     */
+    // thread safe
     Q_INVOKABLE float getSensorToWorldScale() const;
+
+    /**jsdoc
+     * @function MyAvatar.getControllerLeftHandMatrix
+     * @returns {Mat4} 
+     */
+    // thread safe
     Q_INVOKABLE glm::mat4 getControllerLeftHandMatrix() const;
+
+    /**jsdoc
+     * @function MyAvatar.getControllerRightHandMatrix
+     * @returns {Mat4} 
+     */
+    // thread safe
     Q_INVOKABLE glm::mat4 getControllerRightHandMatrix() const;
 
+
+    /**jsdoc
+     * @function MyAvatar.getDataRate
+     * @param {string} [rateName=""]
+     * @returns {number} 
+     */
     Q_INVOKABLE float getDataRate(const QString& rateName = QString("")) const;
+
+    /**jsdoc
+     * @function MyAvatar.getUpdateRate
+     * @param {string} [rateName=""]
+     * @returns {number} 
+     */
     Q_INVOKABLE float getUpdateRate(const QString& rateName = QString("")) const;
 
     int getJointCount() const { return _jointData.size(); }
@@ -1042,17 +1152,55 @@ public:
     virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
 
 signals:
+
+    /**jsdoc
+     * @function MyAvatar.displayNameChanged
+     */
     void displayNameChanged();
+
+    /**jsdoc
+     * @function MyAvatar.sessionDisplayNameChanged
+     */
     void sessionDisplayNameChanged();
+
+    /**jsdoc
+     * @function MyAvatar.skeletonModelURLChanged
+     */
     void skeletonModelURLChanged();
+
+    /**jsdoc
+     * @function MyAvatar.lookAtSnappingChanged
+     * @param {boolean} enabled
+     */
     void lookAtSnappingChanged(bool enabled);
+
+    /**jsdoc
+     * @function MyAvatar.sessionUUIDChanged
+     */
     void sessionUUIDChanged();
 
 public slots:
+
+/**jsdoc
+     * @function MyAvatar.sendAvatarDataPacket
+     * @param {boolean} [sendAll=false]
+     */
     void sendAvatarDataPacket(bool sendAll = false);
+
+    /**jsdoc
+     * @function MyAvatar.sendIdentityPacket
+     */
     void sendIdentityPacket();
 
+    /**jsdoc
+     * @function MyAvatar.setJointMappingsFromNetworkReply
+     */
     void setJointMappingsFromNetworkReply();
+
+    /**jsdoc
+     * @function MyAvatar.setSessionUUID
+     * @param {Uuid} sessionUUID
+     */
     virtual void setSessionUUID(const QUuid& sessionUUID) {
         if (sessionUUID != getID()) {
             if (sessionUUID == QUuid()) {
@@ -1064,13 +1212,45 @@ public slots:
         }
     }
 
+    /**jsdoc
+     * @function MyAvatar.getAbsoluteJointRotationInObjectFrame
+     * @param {number} index
+     * @returns {Quat} 
+     */
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
+
+    /**jsdoc
+     * @function MyAvatar.getAbsoluteJointTranslationInObjectFrame
+     * @param {number} index
+     * @returns {Vec3} 
+     */
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+
+    /**jsdoc
+     * @function MyAvatar.setAbsoluteJointRotationInObjectFrame
+     * @param {number} index
+     * @param {Quat} rotation
+     * @returns {boolean}
+     */
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
+
+    /**jsdoc
+     * @function MyAvatar.setAbsoluteJointTranslationInObjectFrame
+     * @param {number} index
+     * @param {Vec3} translation
+     * @returns {boolean} 
+     */
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
+    /**jsdoc
+     * @function MyAvatar.getTargetScale
+     * @returns {number} 
+     */
     float getTargetScale() const { return _targetScale; } // why is this a slot?
 
+    /**jsdoc
+     * @function MyAvatar.resetLastSent
+     */
     void resetLastSent() { _lastToByteArray = 0; }
 
 protected:

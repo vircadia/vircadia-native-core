@@ -120,7 +120,18 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
+    /**jsdoc
+     * @function MyAvatar.getDefaultJointRotation
+     * @param {number} index
+     * @returns {Quat} 
+     */
     Q_INVOKABLE virtual glm::quat getDefaultJointRotation(int index) const;
+
+    /**jsdoc
+     * @function MyAvatar.getDefaultJointTranslation
+     * @param {number} index
+     * @returns {Vec3} 
+     */
     Q_INVOKABLE virtual glm::vec3 getDefaultJointTranslation(int index) const;
 
     /**jsdoc
@@ -217,6 +228,10 @@ public:
      */
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
+    /**jsdoc
+     * @function MyAvatar.getAcceleration
+     * @returns {Vec3} 
+     */
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
 
     /// Scales a world space position vector relative to the avatar position and scale
@@ -240,11 +255,35 @@ public:
     void setPositionViaScript(const glm::vec3& position) override;
     void setOrientationViaScript(const glm::quat& orientation) override;
 
-    // these call through to the SpatiallyNestable versions, but they are here to expose these to javascript.
+
+    /**jsdoc
+     * @function MyAvatar.getParentID
+     * @returns {Uuid} 
+     */
+    // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual const QUuid getParentID() const override { return SpatiallyNestable::getParentID(); }
+
+    /**jsdoc
+     * @function MyAvatar.setParentID
+     * @param {Uuid} parentID
+     */
+    // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual void setParentID(const QUuid& parentID) override;
+
+    /**jsdoc
+     * @function MyAvatar.getParentJointIndex
+     * @returns {number} 
+     */
+    // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual quint16 getParentJointIndex() const override { return SpatiallyNestable::getParentJointIndex(); }
+
+    /**jsdoc
+     * @function MyAvatar.setParentJointIndex
+     * @param {number} parentJointIndex
+     */
+    // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual void setParentJointIndex(quint16 parentJointIndex) override;
+
 
     /**jsdoc
      * Returns an array of joints, where each joint is an object containing name, index, and parentIndex fields.
@@ -273,6 +312,11 @@ public:
     void setTargetScale(float targetScale) override;
     float getTargetScale() const { return _targetScale; }
 
+    /**jsdoc
+     * @function MyAvatar.getSimulationRate
+     * @param {string} [rateName=""]
+     * @returns {number} 
+     */
     Q_INVOKABLE float getSimulationRate(const QString& rateName = QString("")) const;
 
     bool hasNewJointData() const { return _hasNewJointData; }
@@ -294,6 +338,7 @@ public:
     bool isFading() const { return _isFading; }
     void updateFadingStatus(render::ScenePointer scene);
 
+    // JSDoc is in AvatarData.h.
     Q_INVOKABLE virtual float getEyeHeight() const override;
 
     // returns eye height of avatar in meters, ignoring avatar scale.
@@ -359,8 +404,18 @@ public slots:
     // hooked up to Model::setURLFinished signal
     void setModelURLFinished(bool success);
 
-    // hooked up to Model::rigReady & rigReset signals
+    /**jsdoc
+     * @function MyAvatar.rigReady
+     * @returns {Signal} 
+     */
+    // Hooked up to Model::rigReady signal
     void rigReady();
+
+    /**jsdoc
+     * @function MyAvatar.rigReset
+     * @returns {Signal} 
+     */
+    // Jooked up to Model::rigReset signal
     void rigReset();
 
 protected:
