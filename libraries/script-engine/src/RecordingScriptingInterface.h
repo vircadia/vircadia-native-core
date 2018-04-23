@@ -179,12 +179,12 @@ public slots:
 
 
     /**jsdoc
-     * @function Recording.
+     * @function Recording.startRecording
      */
     void startRecording();
 
     /**jsdoc
-     * @function Recording.
+     * @function Recording.stopRecording
      */
     void stopRecording();
 

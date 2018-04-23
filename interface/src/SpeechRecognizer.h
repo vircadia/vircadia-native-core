@@ -63,7 +63,7 @@ signals:
     void commandRecognized(const QString& command);
 
     /**jsdoc
-     * @function SpeechRecognizer.
+     * @function SpeechRecognizer.enabledUpdated
      * @param {boolean} enabled
      * @returns {Signal}
      */
