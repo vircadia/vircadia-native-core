@@ -23,12 +23,12 @@ AndroidHelper::~AndroidHelper() {
 }
 
 QSharedPointer<AccountManager> AndroidHelper::getAccountManager() {
-
-    _accountManager = QSharedPointer<AccountManager>(new AccountManager, &QObject::deleteLater);
-    _accountManager->setIsAgent(true);
-    _accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
-    _accountManager->moveToThread(&workerThread);
-
+    if (!_accountManager) {
+        _accountManager = QSharedPointer<AccountManager>(new AccountManager, &QObject::deleteLater);
+        _accountManager->setIsAgent(true);
+        _accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
+        _accountManager->moveToThread(&workerThread);
+    }
     return _accountManager;
 }
 
@@ -47,3 +47,4 @@ void AndroidHelper::goBackFromAndroidActivity() {
 void AndroidHelper::notifyLoginComplete(bool success) {
     emit loginComplete(success);
 }
+

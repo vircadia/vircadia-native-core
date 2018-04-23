@@ -55,5 +55,11 @@
         <item name="android:textSize">@dimen/text_size_subtitle_material_toolbar</item>
     </style>
 
+    <style name="HifiEditText" parent="@android:style/Widget.Material.EditText">
+        <item name="android:padding">@dimen/edit_text_padding</item>
+        <item name="android:textColor">@color/editText</item>
+        <item name="android:textColorHint">@color/editTextHint</item>
+        <item name="android:background">@color/white_opaque</item>
+    </style>
 
 </resources>

@@ -4,19 +4,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/backgroundLight"
-    tools:context="io.highfidelity.hifiinterface.LoginActivity">
+    android:background="@color/backgroundLight">
 
     <ImageView
-        android:id="@+id/imageView3"
+        android:id="@+id/header"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:srcCompat="@drawable/hifi_header"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/username"
-        android:layout_marginBottom="75dp"
-        />
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="35dp"/>
 
     <TextView
         android:id="@+id/error"
@@ -46,8 +44,8 @@
         android:textColor="@color/editTextColor"
         android:textColorHint="@color/editTextColor"
         android:gravity="right"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/header"
+        android:layout_marginTop="35dp"
         android:hint="@string/username_or_email" />
 
     <EditText
@@ -84,11 +82,10 @@
         android:paddingLeft="30dp"
         android:paddingTop="4dp"
         android:paddingBottom="4dp"
-        android:layout_marginTop="16dp"
-        android:onClick="login"/>
+        android:layout_marginTop="16dp"/>
 
     <TextView
-        android:id="@+id/textView"
+        android:id="@+id/forgotPassword"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="@dimen/activity_horizontal_margin"

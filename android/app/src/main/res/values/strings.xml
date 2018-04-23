@@ -9,7 +9,6 @@
     <string name="featured">FEATURED</string>
     <string name="popular">POPULAR</string>
     <string name="bookmarks">BOOKMARKS</string>
-    <string name="action_settings">Settings</string>
     <string name="action_goto">Go To</string>
     <string name="goto_url_hint">Type a domain url</string>
     <string name="go">Go</string>
@@ -20,5 +19,6 @@
     <string name="forgot_password">Forgot password?</string>
     <string name="login_username_or_password_incorrect">Username or password incorrect.</string>
     <string name="logging_in">Logging into High Fidelity</string>
+    <string name="privacyPolicy">Privacy Policy</string>
 
 </resources>

@@ -39,17 +39,10 @@
          </activity>
         -->
         <activity
-            android:name=".HomeActivity"
-            android:label="@string/home"
+            android:name=".MainActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:theme="@style/AppTheme">
         </activity>
-        <activity
-            android:name=".GotoActivity"
-            android:label="@string/go_to"
-            android:theme="@style/AppTheme" />
-        <activity android:name=".LoginActivity"
-            android:theme="@style/AppTheme"/>
         <activity
             android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
             android:name=".InterfaceActivity"

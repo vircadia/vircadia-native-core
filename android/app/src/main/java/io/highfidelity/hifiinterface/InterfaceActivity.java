@@ -66,7 +66,7 @@ public class InterfaceActivity extends QtActivity {
         super.isLoading = true;
         Intent intent = getIntent();
         if (intent.hasExtra(DOMAIN_URL) && !intent.getStringExtra(DOMAIN_URL).isEmpty()) {
-            intent.putExtra("applicationArguments", "--url "+intent.getStringExtra(DOMAIN_URL));
+            intent.putExtra("applicationArguments", "--url " + intent.getStringExtra(DOMAIN_URL));
         }
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -203,7 +203,7 @@ public class InterfaceActivity extends QtActivity {
     public void openGotoActivity(String activityName) {
         switch (activityName) {
             case "Goto": {
-                Intent intent = new Intent(this, HomeActivity.class);
+                Intent intent = new Intent(this, MainActivity.class);
                 startActivity(intent);
                 break;
             }

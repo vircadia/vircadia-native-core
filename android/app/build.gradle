@@ -105,6 +105,10 @@ dependencies {
     implementation 'com.android.support:appcompat-v7:26.1.0'
     compile 'com.android.support:recyclerview-v7:26.1.0'
 
+    compile 'com.squareup.retrofit2:retrofit:2.4.0'
+    compile 'com.squareup.retrofit2:converter-gson:2.4.0'
+    implementation 'com.squareup.picasso:picasso:2.71828'
+
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 }
 

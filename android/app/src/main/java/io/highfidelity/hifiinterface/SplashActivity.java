@@ -26,7 +26,7 @@ public class SplashActivity extends Activity {
     }
 
     public void onAppLoadedComplete() {
-        startActivity(new Intent(this, HomeActivity.class));
+        startActivity(new Intent(this, MainActivity.class));
         finish();
     }
 }

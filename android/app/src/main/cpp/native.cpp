@@ -23,9 +23,9 @@
 #include "AndroidHelper.h"
 
 QAndroidJniObject __interfaceActivity;
-QAndroidJniObject __loginActivity;
+QAndroidJniObject __loginCompletedListener;
 QAndroidJniObject __loadCompleteListener;
-
+QAndroidJniObject __usernameChangedListener;
 void tempMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (!message.isEmpty()) {
         const char * local=message.toStdString().c_str();
@@ -204,8 +204,9 @@ JNIEXPORT jstring JNICALL Java_io_highfidelity_hifiinterface_HifiUtils_getCurren
 }
 
 JNIEXPORT void JNICALL
-Java_io_highfidelity_hifiinterface_LoginActivity_nativeLogin(JNIEnv *env, jobject instance,
-                                                            jstring username_, jstring password_) {
+Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeLogin(JNIEnv *env, jobject instance,
+                                                            jstring username_, jstring password_,
+                                                            jobject usernameChangedListener) {
     const char *c_username = env->GetStringUTFChars(username_, 0);
     const char *c_password = env->GetStringUTFChars(password_, 0);
     QString username = QString(c_username);
@@ -215,9 +216,11 @@ Java_io_highfidelity_hifiinterface_LoginActivity_nativeLogin(JNIEnv *env, jobjec
 
     QSharedPointer<AccountManager> accountManager = AndroidHelper::instance().getAccountManager();
 
-    __loginActivity = QAndroidJniObject(instance);
+    __loginCompletedListener = QAndroidJniObject(instance);
+    __usernameChangedListener = QAndroidJniObject(usernameChangedListener);
 
     QObject::connect(accountManager.data(), &AccountManager::loginComplete, [](const QUrl& authURL) {
+        QString username = AndroidHelper::instance().getAccountManager()->getAccountInfo().getUsername();
         AndroidHelper::instance().notifyLoginComplete(true);
     });
 
@@ -225,12 +228,18 @@ Java_io_highfidelity_hifiinterface_LoginActivity_nativeLogin(JNIEnv *env, jobjec
         AndroidHelper::instance().notifyLoginComplete(false);
     });
 
-    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::loginComplete, [](bool success) {
-        jboolean jSuccess = (jboolean) success;
-        __loginActivity.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
+    QObject::connect(accountManager.data(), &AccountManager::usernameChanged, [](const QString& username) {
+        QAndroidJniObject string = QAndroidJniObject::fromString(username);
+        __usernameChangedListener.callMethod<void>("handleUsernameChanged", "(Ljava/lang/String;)V", string.object<jstring>());
     });
 
-    QMetaObject::invokeMethod(accountManager.data(), "requestAccessToken", Q_ARG(const QString&, username), Q_ARG(const QString&, password));
+    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::loginComplete, [](bool success) {
+        jboolean jSuccess = (jboolean) success;
+        __loginCompletedListener.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
+    });
+
+    QMetaObject::invokeMethod(accountManager.data(), "requestAccessToken",
+                              Q_ARG(const QString&, username), Q_ARG(const QString&, password));
 }
 
 JNIEXPORT void JNICALL
@@ -250,17 +259,17 @@ Java_io_highfidelity_hifiinterface_SplashActivity_registerLoadCompleteListener(J
 
 }
 JNIEXPORT jboolean JNICALL
-Java_io_highfidelity_hifiinterface_HomeActivity_nativeIsLoggedIn(JNIEnv *env, jobject instance) {
+Java_io_highfidelity_hifiinterface_MainActivity_nativeIsLoggedIn(JNIEnv *env, jobject instance) {
     return AndroidHelper::instance().getAccountManager()->isLoggedIn();
 }
 
 JNIEXPORT void JNICALL
-Java_io_highfidelity_hifiinterface_HomeActivity_nativeLogout(JNIEnv *env, jobject instance) {
+Java_io_highfidelity_hifiinterface_MainActivity_nativeLogout(JNIEnv *env, jobject instance) {
     AndroidHelper::instance().getAccountManager()->logout();
 }
 
 JNIEXPORT jstring JNICALL
-Java_io_highfidelity_hifiinterface_HomeActivity_nativeGetDisplayName(JNIEnv *env,
+Java_io_highfidelity_hifiinterface_MainActivity_nativeGetDisplayName(JNIEnv *env,
                                                                      jobject instance) {
     QString username = AndroidHelper::instance().getAccountManager()->getAccountInfo().getUsername();
     return env->NewStringUTF(username.toLatin1().data());

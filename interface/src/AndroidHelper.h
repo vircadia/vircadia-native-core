@@ -15,7 +15,6 @@
 #include <QObject>
 #include <QThread>
 #include <AccountManager.h>
-#include <QtAndroidExtras/QAndroidJniObject>
 
 class AndroidHelper : public QObject {
     Q_OBJECT
@@ -38,7 +37,6 @@ signals:
     void androidActivityRequested(const QString &activityName);
     void backFromAndroidActivity();
     void qtAppLoadComplete();
-
     void loginComplete(bool success);
 
 private:

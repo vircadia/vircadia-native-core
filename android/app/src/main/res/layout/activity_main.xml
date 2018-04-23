@@ -7,13 +7,11 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
-
     <android.support.design.widget.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:theme="@style/AppTheme.AppBarOverlay"
         >
-
         <android.support.v7.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
@@ -21,8 +19,10 @@
             android:background="?attr/colorPrimary"
             android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
 
-        <include layout="@layout/content_home" />
-
+        <FrameLayout
+            android:id="@+id/content_frame"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
     </android.support.design.widget.AppBarLayout>
 
     <!-- Container for contents of drawer - use NavigationView to make configuration easier -->
@@ -31,9 +31,9 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
+        app:headerLayout="@layout/navigation_header"
         android:fitsSystemWindows="true"
-        app:menu="@menu/menu_home"
-        >
+        app:menu="@menu/menu_navigation">
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -47,14 +47,27 @@
             android:onClick="onLoginClicked"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/menuOption" />
+            android:textColor="@color/menuOption"
+            android:paddingTop="15dp"
+            android:paddingBottom="15dp"/>
         <TextView
                 android:id="@+id/logout"
                 android:text="@string/logout"
                 android:onClick="onLogoutClicked"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/menuOption" />
+                android:textColor="@color/menuOption"
+            android:paddingTop="15dp"
+            android:paddingBottom="15dp"/>
+        <TextView
+                android:id="@+id/policy"
+                android:text="@string/privacyPolicy"
+                android:onClick="onPrivacyPolicyClicked"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/menuOption"
+            android:paddingTop="15dp"
+            android:paddingBottom="30dp"/>
         </LinearLayout>
     </android.support.design.widget.NavigationView>
 

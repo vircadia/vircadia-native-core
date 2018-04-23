@@ -45,11 +45,15 @@ public:
     void finishTestsEvaluation(bool interactiveMode, QProgressBar* progressBar);
 
     void createRecursiveScript();
-    void createRecursiveScriptsRecursively();
+    void createAllRecursiveScripts();
     void createRecursiveScript(QString topLevelDirectory, bool interactiveMode);
 
     void createTest();
     void createMDFile();
+    void createAllMDFiles();
+    void createMDFile(QString topLevelDirectory);
+
+    void createTestsOutline();
 
     bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
 

@@ -19,6 +19,9 @@
         android:id="@+id/url_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        style="@style/HifiEditText"
+        android:layout_marginStart="@dimen/activity_horizontal_margin"
+        android:layout_marginEnd="@dimen/activity_horizontal_margin"
         android:hint="@string/goto_url_hint"
         android:inputType="textUri"
         android:imeOptions="actionGo"
@@ -28,7 +31,9 @@
         android:id="@+id/go_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/button_horizontal_margin"
         android:text="@string/go"
-        app:layout_constraintTop_toBottomOf="@id/url_text"/>
+        app:layout_constraintTop_toBottomOf="@id/url_text"
+        app:layout_constraintEnd_toEndOf="@id/root_activity_goto"/>
 
 </android.support.constraint.ConstraintLayout>
