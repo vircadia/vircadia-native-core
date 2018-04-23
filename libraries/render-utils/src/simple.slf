@@ -15,11 +15,8 @@
 <@include DeferredBufferWrite.slh@>
 
 // the interpolated normal
-in vec3 _normal;
-in vec3 _modelNormal;
+in vec3 _normalWS;
 in vec4 _color;
-in vec2 _texCoord0;
-in vec4 _position;
 
 //PROCEDURAL_COMMON_BLOCK
 
@@ -28,7 +25,7 @@ in vec4 _position;
 
 #line 2030
 void main(void) {
-    vec3 normal = normalize(_normal.xyz);
+    vec3 normal = normalize(_normalWS.xyz);
     vec3 diffuse = _color.rgb;
     vec3 specular = DEFAULT_SPECULAR;
     float shininess = DEFAULT_SHININESS;

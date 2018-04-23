@@ -17,11 +17,9 @@
 <$declareEvalGlobalLightingAlphaBlended()$>
 
 // the interpolated normal
-in vec3 _normal;
-in vec3 _modelNormal;
+in vec3 _normalWS;
 in vec4 _color;
-in vec2 _texCoord0;
-in vec4 _eyePosition;
+in vec4 _positionES;
 
 layout(location = 0) out vec4 _fragColor0;
 
@@ -32,7 +30,7 @@ layout(location = 0) out vec4 _fragColor0;
 
 #line 2030
 void main(void) {
-    vec3 normal = normalize(_normal.xyz);
+    vec3 normal = normalize(_normalWS.xyz);
     vec3 diffuse = _color.rgb;
     vec3 specular = DEFAULT_SPECULAR;
     float shininess = DEFAULT_SHININESS;
@@ -52,7 +50,7 @@ void main(void) {
 #endif
 
     TransformCamera cam = getTransformCamera();
-    vec3 fragPosition = _eyePosition.xyz;
+    vec3 fragPosition = _positionES.xyz;
 
     if (emissiveAmount > 0.0) {
         _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
