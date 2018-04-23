@@ -13,14 +13,6 @@
 
 <@func declareLightingModel()@>
 
-#ifndef PRECISIONQ
-#ifdef GL_ES
-#define PRECISIONQ highp
-#else
-#define PRECISIONQ
-#endif
-#endif
-
 struct LightingModel {
     PRECISIONQ vec4 _UnlitEmissiveLightmapBackground;
     PRECISIONQ vec4 _ScatteringDiffuseSpecularAlbedo;
