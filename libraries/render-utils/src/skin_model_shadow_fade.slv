@@ -19,7 +19,7 @@
 <@include Skinning.slh@>
 <$declareUseDualQuaternionSkinning()$>
 
-out vec4 _worldPosition;
+out vec4 _positionWS;
 
 void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
@@ -29,5 +29,5 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, position, gl_Position)$>
-    <$transformModelToWorldPos(obj, position, _worldPosition)$>
+    <$transformModelToWorldPos(obj, position, _positionWS)$>
 }
