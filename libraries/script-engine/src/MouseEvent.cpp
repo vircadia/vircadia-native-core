@@ -60,6 +60,32 @@ MouseEvent::MouseEvent(const QMouseEvent& event) :
     }
 }
 
+/**jsdoc
+ * A controller mouse movement or button event.
+ * @typedef {object} MouseEvent
+ * @property {number} x - Integer x-coordinate of the event on the Interface window or HMD HUD.
+ * @property {number} y - Integer y-coordinate of the event on the Interface window or HMD HUD.
+ * @property {string} button - <code>"LEFT"</code>, <code>"MIDDLE"</code>, or <code>"RIGHT"</code> if a button press or release 
+ *     caused the event, otherwise <code>"NONE"</code>.
+ * @property {boolean} isLeftButton - <code>true</code> if the left button was pressed when the event was generated, otherwise 
+ *     <code>false</code>.
+ * @property {boolean} isMiddleButton - <code>true</code> if the middle button was pressed when the event was generated, 
+ *     otherwise <code>false</code>.
+ * @property {boolean} isRightButton - <code>true</code> if the right button was pressed when the event was generated, 
+ *     otherwise <code>false</code>.
+ * @property {boolean} isShifted - <code>true</code> if the Shift key was pressed when the event was generated, otherwise
+ *     <code>false</code>.
+ * @property {boolean} isMeta - <code>true</code> if the "meta" key was pressed when the event was generated, otherwise
+ *     <code>false</code>. On Windows the "meta" key is the Windows key; on OSX it is the Control (Splat) key.
+ * @property {boolean} isControl - <code>true</code> if the "control" key was pressed when the event was generated, otherwise
+ *     <code>false</code>. On Windows the "control" key is the Ctrl key; on OSX it is the Command key.
+ * @property {boolean} isAlt - <code>true</code> if the Alt key was pressed when the event was generated, otherwise
+ *     <code>false</code>.
+ * @example <caption>Report the MouseEvent details for each mouse move.</caption>
+ * Controller.mouseMoveEvent.connect(function (event) {
+ *     print(JSON.stringify(event));
+ * });
+ */
 QScriptValue MouseEvent::toScriptValue(QScriptEngine* engine, const MouseEvent& event) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("x", event.x);
