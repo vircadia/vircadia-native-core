@@ -19,8 +19,6 @@
 AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID) :
     NodeData(nodeID)
 {
-    _currentViewFrustum.invalidate();
-
     // in case somebody calls getSessionUUID on the AvatarData instance, make sure it has the right ID
     _avatar->setID(nodeID);
 }
@@ -129,11 +127,21 @@ void AvatarMixerClientData::removeFromRadiusIgnoringSet(SharedNodePointer self, 
 }
 
 void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
-    _currentViewFrustum.fromByteArray(message);
+    _currentViewFrustums.clear();
+
+    auto offset = 0;
+    while (offset < message.size()) {
+        ViewFrustum frustum;
+        offset += frustum.fromByteArray(message);
+        _currentViewFrustums.push_back(frustum);
+    }
 }
 
 bool AvatarMixerClientData::otherAvatarInView(const AABox& otherAvatarBox) {
-    return _currentViewFrustum.boxIntersectsKeyhole(otherAvatarBox);
+    return std::any_of(std::begin(_currentViewFrustums), std::end(_currentViewFrustums),
+                       [&](const ViewFrustum& viewFrustum) {
+        return viewFrustum.boxIntersectsKeyhole(otherAvatarBox);
+    });
 }
 
 void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {

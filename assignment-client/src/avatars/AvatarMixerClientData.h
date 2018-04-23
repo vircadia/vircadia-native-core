@@ -110,7 +110,7 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
-    ViewFrustum getViewFrustum() const { return _currentViewFrustum; }
+    const std::vector<ViewFrustum>& getViewFrustums() const { return _currentViewFrustums; }
 
     uint64_t getLastOtherAvatarEncodeTime(QUuid otherAvatar) const;
     void setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, uint64_t time);
@@ -150,7 +150,7 @@ private:
 
     SimpleMovingAverage _avgOtherAvatarDataRate;
     std::unordered_set<QUuid> _radiusIgnoredOthers;
-    ViewFrustum _currentViewFrustum;
+    std::vector<ViewFrustum> _currentViewFrustums;
 
     int _recentOtherAvatarsInView { 0 };
     int _recentOtherAvatarsOutOfView { 0 };
