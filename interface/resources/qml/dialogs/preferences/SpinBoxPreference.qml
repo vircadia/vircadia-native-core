@@ -18,11 +18,11 @@ Preference {
     height: control.height + hifi.dimensions.controlInterlineHeight
 
     Component.onCompleted: {
-        spinner.value = preference.value;
+        spinner.realValue = preference.value;
     }
 
     function save() {
-        preference.value = spinner.value;
+        preference.value = spinner.realValue;
         preference.save();
     }
 

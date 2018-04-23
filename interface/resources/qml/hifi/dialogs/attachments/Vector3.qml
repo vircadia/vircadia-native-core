@@ -51,7 +51,7 @@ Item {
         id: xspinner
         width: root.spinboxWidth
         anchors { left: parent.left }
-        value: root.vector.x
+        realValue: root.vector.x
         labelInside: "X:"
         colorScheme: hifi.colorSchemes.dark
         colorLabelInside: hifi.colors.redHighlight
@@ -72,17 +72,17 @@ Item {
         id: yspinner
         width: root.spinboxWidth
         anchors { horizontalCenter: parent.horizontalCenter }
-        value: root.vector.y
+        realValue: root.vector.y
         labelInside: "Y:"
         colorLabelInside: hifi.colors.greenHighlight
         colorScheme: hifi.colorSchemes.dark
         decimals: root.decimals
-        stepSize: root.stepSize
+        realStepSize: root.stepSize
         maximumValue: root.maximumValue
         minimumValue: root.minimumValue
-        onValueChanged: {
-            if (value !== vector.y) {
-                vector.y = value
+        onRealValueChanged: {
+            if (realValue !== vector.y) {
+                vector.y = realValue
                 root.valueChanged();
             }
         }
@@ -93,17 +93,17 @@ Item {
         id: zspinner
         width: root.spinboxWidth
         anchors { right: parent.right; }
-        value: root.vector.z
+        realValue: root.vector.z
         labelInside: "Z:"
         colorLabelInside: hifi.colors.primaryHighlight
         colorScheme: hifi.colorSchemes.dark
         decimals: root.decimals
-        stepSize: root.stepSize
+        realStepSize: root.stepSize
         maximumValue: root.maximumValue
         minimumValue: root.minimumValue
-        onValueChanged: {
-            if (value !== vector.z) {
-                vector.z = value
+        onRealValueChanged: {
+            if (realValue !== vector.z) {
+                vector.z = realValue
                 root.valueChanged();
             }
         }

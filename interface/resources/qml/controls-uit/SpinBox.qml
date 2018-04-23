@@ -20,6 +20,7 @@ SpinBox {
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme === hifi.colorSchemes.light
     property string label: ""
+    property string suffix: ""
     property string labelInside: ""
     property color colorLabelInside: hifi.colors.white
     property real controlHeight: height + (spinBoxLabel.visible ? spinBoxLabel.height + spinBoxLabel.anchors.bottomMargin : 0)
@@ -34,8 +35,11 @@ SpinBox {
     property real realTo: 100.0
     property real realStepSize: 1.0
 
+    signal editingFinished()
+
     implicitHeight: height
     implicitWidth: width
+    editable: true
 
     padding: 0
     leftPadding: 0
@@ -68,16 +72,16 @@ SpinBox {
     }
 
     validator: DoubleValidator {
-        bottom: Math.min(spinBox.from, spinBox.to)*spinBox.factor
-        top:  Math.max(spinBox.from, spinBox.to)*spinBox.factor
+        bottom: Math.min(spinBox.from, spinBox.to)
+        top:  Math.max(spinBox.from, spinBox.to)
     }
 
     textFromValue: function(value, locale) {
-        return parseFloat(value*1.0/factor).toFixed(decimals);
+        return parseFloat(value/factor).toFixed(decimals);
     }
 
     valueFromText: function(text, locale) {
-        return Number.fromLocaleString(locale, text);
+        return Number.fromLocaleString(locale, text)*factor;
     }
 
 
@@ -88,12 +92,14 @@ SpinBox {
                : (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGrayText)
         selectedTextColor: hifi.colors.black
         selectionColor: hifi.colors.primaryHighlight
-        text: spinBox.textFromValue(spinBox.value, spinBox.locale)
+        text: spinBox.textFromValue(spinBox.value, spinBox.locale) + suffix
         verticalAlignment: Qt.AlignVCenter
         leftPadding: spinBoxLabelInside.visible ? 30 : hifi.dimensions.textPadding
         //rightPadding: hifi.dimensions.spinnerSize
         width: spinBox.width - hifi.dimensions.spinnerSize
+        onEditingFinished: spinBox.editingFinished()
     }
+
     up.indicator: Item {
         x: spinBox.width - implicitWidth - 5
         y: 1
