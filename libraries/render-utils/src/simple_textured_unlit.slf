@@ -19,7 +19,7 @@
 uniform sampler2D originalTexture;
 
 // the interpolated normal
-in vec3 _normal;
+in vec3 _normalWS;
 in vec4 _color;
 in vec2 _texCoord0;
 
@@ -34,14 +34,14 @@ void main(void) {
     const float ALPHA_THRESHOLD = 0.999;
     if (colorAlpha * texel.a < ALPHA_THRESHOLD) {
        packDeferredFragmentTranslucent(
-            normalize(_normal),
+            normalize(_normalWS),
             colorAlpha * texel.a,
             _color.rgb * texel.rgb,
             DEFAULT_FRESNEL,
             DEFAULT_ROUGHNESS);
     } else {
         packDeferredFragmentUnlit(
-            normalize(_normal),
+            normalize(_normalWS),
             1.0,
             _color.rgb * texel.rgb);
     }
