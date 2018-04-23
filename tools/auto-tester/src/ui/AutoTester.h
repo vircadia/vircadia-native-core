@@ -37,6 +37,8 @@ private slots:
 
     void saveImage(int index);
 
+    void about();
+
 private:
     Ui::AutoTesterClass ui;
     Test* test;

@@ -498,6 +498,12 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
     const QString regexAssertGPU(ws + functionAssertGPU + ws + "\\(" + ws + quotedString + ".*");
     const QRegularExpression lineAssertGPU = QRegularExpression(regexAssertGPU);
 
+    // Assert the correct amount of memory
+    const QString functionAssertPhysicalMemoryGB(ws + "autoTester" + ws + "\\." + ws + "assertPhysicalMemoryGB");
+    const QString regexAssertPhysicalMemoryGB(ws + functionAssertPhysicalMemoryGB + ws + "\\(" + ws + quotedString + ".*");
+    const QRegularExpression lineAssertPhysicalMemoryGB = QRegularExpression(regexAssertPhysicalMemoryGB);
+
+
     // Each step is either of the following forms:
     //        autoTester.addStepSnapshot("Take snapshot"...
     //        autoTester.addStep("Clean up after test"...
@@ -514,18 +520,27 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
         if (lineContainingTitle.match(line).hasMatch()) {
             QStringList tokens = line.split('"');
             relevantTextFromTest.title = tokens[1];
+
         } else if (lineAssertPlatform.match(line).hasMatch()) {
             QStringList platforms = line.split('"');
             relevantTextFromTest.platform = platforms[1];
+
         } else if (lineAssertDisplay.match(line).hasMatch()) {
             QStringList displays = line.split('"');
             relevantTextFromTest.display = displays[1];
+
         } else if (lineAssertCPU.match(line).hasMatch()) {
             QStringList cpus = line.split('"');
             relevantTextFromTest.cpu = cpus[1];
+
         } else if (lineAssertGPU.match(line).hasMatch()) {
             QStringList gpus = line.split('"');
             relevantTextFromTest.gpu = gpus[1];
+
+        } else if (lineAssertPhysicalMemoryGB.match(line).hasMatch()) {
+            QStringList physicalMemoryGB = line.split('"');
+            relevantTextFromTest.physicalMemoryGB = physicalMemoryGB[1];
+
         } else if (lineStepSnapshot.match(line).hasMatch()) {
             QStringList tokens = line.split('"');
             QString nameOfStep = tokens[1];
@@ -534,6 +549,7 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
             step->text = nameOfStep;
             step->takeSnapshot = true;
             relevantTextFromTest.stepList.emplace_back(step);
+
         } else if (lineStep.match(line).hasMatch()) {
             QStringList tokens = line.split('"');
             QString nameOfStep = tokens[1];
@@ -630,62 +646,74 @@ void Test::createMDFile(QString testDirectory) {
 
     // Platform
     QStringList  platforms = testScriptLines.platform.split(" ");;
-    stream << "## Platforms\n";
-    stream << "Run the test on each of the following platforms\n";
-    for (int i = 0; i < platforms.size(); ++i) {
-        // Note that the platforms parameter may include extra spaces, these appear as empty strings in the list
-        if (platforms[i] != QString()) {
-            stream << " - " << platforms[i] << "\n";
+    if (platforms.size() > 0) {
+        stream << "## Platforms\n";
+        stream << "Run the test on each of the following platforms\n";
+        for (int i = 0; i < platforms.size(); ++i) {
+            // Note that the platforms parameter may include extra spaces, these appear as empty strings in the list
+            if (platforms[i] != QString()) {
+                stream << " - " << platforms[i] << "\n";
+            }
         }
     }
 
     // Display
     QStringList  displays = testScriptLines.display.split(" ");
-    stream << "## Displays\n";
-    stream << "Run the test on each of the following displays\n";
-    for (int i = 0; i < displays.size(); ++i) {
-        // Note that the displays parameter may include extra spaces, these appear as empty strings in the list
-        if (displays[i] != QString()) {
-            stream << " - " << displays[i] << "\n";
+    if (displays.size()) {
+            stream << "## Displays\n";
+        stream << "Run the test on each of the following displays\n";
+        for (int i = 0; i < displays.size(); ++i) {
+            // Note that the displays parameter may include extra spaces, these appear as empty strings in the list
+            if (displays[i] != QString()) {
+                stream << " - " << displays[i] << "\n";
+            }
         }
     }
 
     // CPU
     QStringList  cpus = testScriptLines.cpu.split(" ");
-    stream << "## Processors\n";
-    stream << "Run the test on each of the following processors\n";
-    for (int i = 0; i < cpus.size(); ++i) {
-        // Note that the cpus parameter may include extra spaces, these appear as empty strings in the list
-        if (cpus[i] != QString()) {
-            stream << " - " << cpus[i] << "\n";
+    if (cpus.size() > 0) {
+        stream << "## Processors\n";
+        stream << "Run the test on each of the following processors\n";
+        for (int i = 0; i < cpus.size(); ++i) {
+            // Note that the cpus parameter may include extra spaces, these appear as empty strings in the list
+            if (cpus[i] != QString()) {
+                stream << " - " << cpus[i] << "\n";
+            }
         }
     }
 
     // GPU
     QStringList  gpus = testScriptLines.gpu.split(" ");
-    stream << "## Graphics Cards\n";
-    stream << "Run the test on graphics cards from each of the following vendors\n";
-    for (int i = 0; i < gpus.size(); ++i) {
-        // Note that the gpus parameter may include extra spaces, these appear as empty strings in the list
-        if (gpus[i] != QString()) {
-            stream << " - " << gpus[i] << "\n";
+    if (gpus.size() > 0) {
+        stream << "## Graphics Cards\n";
+        stream << "Run the test on graphics cards from each of the following vendors\n";
+        for (int i = 0; i < gpus.size(); ++i) {
+            // Note that the gpus parameter may include extra spaces, these appear as empty strings in the list
+            if (gpus[i] != QString()) {
+                stream << " - " << gpus[i] << "\n";
+            }
         }
     }
 
     stream << "## Steps\n";
     stream << "Press space bar to advance step by step\n\n";
 
+    // Note that snapshots of step n are taken in step n+1
+    // (this implies that if the LAST step requests a snapshot then this will not work - caveat emptor)
     int snapShotIndex { 0 };
     for (size_t i = 0; i < testScriptLines.stepList.size(); ++i) {
         stream << "### Step " << QString::number(i + 1) << "\n";
         stream << "- " << testScriptLines.stepList[i]->text << "\n";
-        if (testScriptLines.stepList[i]->takeSnapshot) {
+        if ((i + 1 < testScriptLines.stepList.size()) && testScriptLines.stepList[i + 1]->takeSnapshot) {
             stream << "- ![](./ExpectedImage_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png)\n";
             ++snapShotIndex;
         }
     }
 
     mdFile.close();
+
+    messageBox.information(0, "Success", "Test MD file " + mdFilename + " has been created");
 }
 
 void Test::createTestsOutline() {

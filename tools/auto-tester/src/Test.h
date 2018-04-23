@@ -34,6 +34,8 @@ public:
     QString display;
     QString cpu;
     QString gpu;
+    QString physicalMemoryGB;
+
     StepList stepList;
 };
 
