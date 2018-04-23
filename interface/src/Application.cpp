@@ -7942,14 +7942,16 @@ void Application::openAndroidActivity(const QString& activityName) {
 void Application::enterBackground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
-    getActiveDisplayPlugin()->deactivate();
+    //GC: commenting it out until we fix it
+    //getActiveDisplayPlugin()->deactivate();
 }
 void Application::enterForeground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                                   "start", Qt::BlockingQueuedConnection);
-    if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
+    //GC: commenting it out until we fix it
+    /*if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
         qWarning() << "Could not re-activate display plugin";
-    }
+    }*/
 
 }
 #endif
