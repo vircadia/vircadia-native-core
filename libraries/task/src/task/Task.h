@@ -84,7 +84,7 @@ public:
 
     virtual QConfigPointer& getConfiguration() { return _config; }
     virtual void applyConfiguration() = 0;
-    void setCPURunTime(double mstime) { std::static_pointer_cast<Config>(_config)->setCPURunTime(mstime); }
+    void setCPURunTime(const std::chrono::nanoseconds& runtime) { std::static_pointer_cast<Config>(_config)->setCPURunTime(runtime); }
 
     QConfigPointer _config;
 protected:
@@ -208,11 +208,12 @@ public:
         PerformanceTimer perfTimer(getName().c_str());
         // NOTE: rather than use the PROFILE_RANGE macro, we create a Duration manually
         Duration profileRange(jobContext->profileCategory, ("run::" + getName()).c_str());
-        auto start = usecTimestampNow();
+
+        auto startTime = std::chrono::high_resolution_clock::now();
 
         _concept->run(jobContext);
 
-        _concept->setCPURunTime((double)(usecTimestampNow() - start) / 1000.0);
+        _concept->setCPURunTime((std::chrono::high_resolution_clock::now() - startTime));
     }
 
 protected:

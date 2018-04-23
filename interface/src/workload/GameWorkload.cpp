@@ -17,10 +17,12 @@
 #pragma optimize( "[optimization-list]", off )
 
 ControlViews::ControlViews() {
-    regionBackFronts[0] = glm::vec2(2.0f, 10.0f);
-    regionBackFronts[1] = glm::vec2(5.0f, 30.0f);
-    regionBackFronts[2] = glm::vec2(10.0f, 100.0f);
-
+    regionBackFronts[0] = glm::vec2(1.0f, 3.0f);
+    regionBackFronts[1] = glm::vec2(2.0f, 10.0f);
+    regionBackFronts[2] = glm::vec2(4.0f, 20.0f);
+    regionRegulators[0] = Regulator(std::chrono::milliseconds(2), regionBackFronts[0], 5.0f * regionBackFronts[0], glm::vec2(0.3f, 0.2f),  0.5f * glm::vec2(0.3f, 0.2f));
+    regionRegulators[1] = Regulator(std::chrono::milliseconds(2), regionBackFronts[1], 5.0f * regionBackFronts[1], glm::vec2(0.3f, 0.2f), 0.5f * glm::vec2(0.3f, 0.2f));
+    regionRegulators[2] = Regulator(std::chrono::milliseconds(2), regionBackFronts[2], 5.0f * regionBackFronts[2], glm::vec2(0.3f, 0.2f), 0.5f * glm::vec2(0.3f, 0.2f));
 }
 
 void ControlViews::configure(const Config& config) {
@@ -62,6 +64,7 @@ void ControlViews::regulateViews(workload::Views& outViews, const workload::Timi
     }
 
     auto loopDuration = std::chrono::nanoseconds{ std::chrono::milliseconds(16) };
+    regionBackFronts[workload::Region::R1] = regionRegulators[workload::Region::R1].run(loopDuration, timings[0], regionBackFronts[workload::Region::R1]);
     regionBackFronts[workload::Region::R2] = regionRegulators[workload::Region::R2].run(loopDuration, timings[0], regionBackFronts[workload::Region::R2]);
     regionBackFronts[workload::Region::R3] = regionRegulators[workload::Region::R3].run(loopDuration, timings[1], regionBackFronts[workload::Region::R3]);
 
