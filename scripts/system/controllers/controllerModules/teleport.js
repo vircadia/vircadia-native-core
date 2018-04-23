@@ -23,18 +23,11 @@ Script.include("/~/system/libraries/controllers.js");
 
     var TARGET_MODEL_URL = Script.resolvePath("../../assets/models/teleport-destination.fbx");
     var TOO_CLOSE_MODEL_URL = Script.resolvePath("../../assets/models/teleport-cancel.fbx");
-    var SEAT_MODEL_URL = Script.resolvePath("../../assets/models/teleport-seat.fbx");
 
     var TARGET_MODEL_DIMENSIONS = {
         x: 1.15,
         y: 0.5,
         z: 1.15
-    };
-
-    var COLORS_TELEPORT_SEAT = {
-        red: 255,
-        green: 0,
-        blue: 170
     };
 
     var COLORS_TELEPORT_CAN_TELEPORT = {
@@ -79,15 +72,6 @@ Script.include("/~/system/libraries/controllers.js");
         drawInFront: true,
         glow: 1.0
     };
-    var seatPath = {
-        type: "line3d",
-        color: COLORS_TELEPORT_SEAT,
-        ignoreRayIntersection: true,
-        alpha: 1,
-        solid: true,
-        drawInFront: true,
-        glow: 1.0
-    };
     var cancelEnd = {
         type: "model",
         url: TOO_CLOSE_MODEL_URL,
@@ -100,17 +84,10 @@ Script.include("/~/system/libraries/controllers.js");
         dimensions: TARGET_MODEL_DIMENSIONS,
         ignoreRayIntersection: true
     };
-    var seatEnd = {
-        type: "model",
-        url: SEAT_MODEL_URL,
-        dimensions: TARGET_MODEL_DIMENSIONS,
-        ignoreRayIntersection: true
-    };
 
 
     var teleportRenderStates = [{name: "cancel", path: cancelPath, end: cancelEnd},
-        {name: "teleport", path: teleportPath, end: teleportEnd},
-        {name: "seat", path: seatPath, end: seatEnd}];
+        {name: "teleport", path: teleportPath, end: teleportEnd}];
 
     var DEFAULT_DISTANCE = 50;
     var teleportDefaultRenderStates = [{name: "cancel", distance: DEFAULT_DISTANCE, path: cancelPath}];
@@ -131,7 +108,6 @@ Script.include("/~/system/libraries/controllers.js");
         INVISIBLE: 'invisible', // The current target is an invvsible surface
         INVALID: 'invalid', // The current target is invalid (wall, ceiling, etc.)
         SURFACE: 'surface', // The current target is a valid surface
-        SEAT: 'seat' // The current target is a seat
     };
 
     function Teleporter(hand) {
@@ -219,11 +195,9 @@ Script.include("/~/system/libraries/controllers.js");
             if (!Vec3.equal(AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS, cancelEnd.dimensions)) {
                 cancelEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
                 teleportEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
-                seatEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
 
                 teleportRenderStates = [{name: "cancel", path: cancelPath, end: cancelEnd},
-                    {name: "teleport", path: teleportPath, end: teleportEnd},
-                    {name: "seat", path: seatPath, end: seatEnd}];
+                    {name: "teleport", path: teleportPath, end: teleportEnd}];
 
                 Pointers.editRenderState(this.teleportRayHandVisible, "cancel", teleportRenderStates[0]);
                 Pointers.editRenderState(this.teleportRayHandInvisible, "cancel", teleportRenderStates[0]);
@@ -235,10 +209,6 @@ Script.include("/~/system/libraries/controllers.js");
                 Pointers.editRenderState(this.teleportRayHeadVisible, "teleport", teleportRenderStates[1]);
                 Pointers.editRenderState(this.teleportRayHeadInvisible, "teleport", teleportRenderStates[1]);
 
-                Pointers.editRenderState(this.teleportRayHandVisible, "seat", teleportRenderStates[2]);
-                Pointers.editRenderState(this.teleportRayHandInvisible, "seat", teleportRenderStates[2]);
-                Pointers.editRenderState(this.teleportRayHeadVisible, "seat", teleportRenderStates[2]);
-                Pointers.editRenderState(this.teleportRayHeadInvisible, "seat", teleportRenderStates[2]);
             }
         };
 
@@ -306,8 +276,6 @@ Script.include("/~/system/libraries/controllers.js");
                 } else {
                     this.setTeleportState(mode, "teleport", "");
                 }
-            } else if (teleportLocationType === TARGET.SEAT) {
-                this.setTeleportState(mode, "", "seat");
             }
             return this.teleport(result, teleportLocationType);
         };
@@ -320,8 +288,6 @@ Script.include("/~/system/libraries/controllers.js");
 
             if (target === TARGET.NONE || target === TARGET.INVALID || this.state === TELEPORTER_STATES.COOL_IN) {
                 // Do nothing
-            } else if (target === TARGET.SEAT) {
-                Entities.callEntityMethod(result.objectID, 'sit');
             } else if (target === TARGET.SURFACE) {
                 var offset = getAvatarFootOffset();
                 result.intersection.y += offset;
@@ -409,14 +375,6 @@ Script.include("/~/system/libraries/controllers.js");
 
         var props = Entities.getEntityProperties(result.objectID, ['userData', 'visible']);
         var data = parseJSON(props.userData);
-        if (data !== undefined && data.seat !== undefined) {
-            var avatarUuid = Uuid.fromString(data.seat.user);
-            if (Uuid.isNull(avatarUuid) || !AvatarList.getAvatar(avatarUuid).sessionUUID) {
-                return TARGET.SEAT;
-            } else {
-                return TARGET.INVALID;
-            }
-        }
 
         if (!props.visible) {
             return TARGET.INVISIBLE;
