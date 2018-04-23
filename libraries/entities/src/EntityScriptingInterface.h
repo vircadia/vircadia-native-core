@@ -1649,7 +1649,7 @@ signals:
 
     /**jsdoc
      * Triggered when a mouse button is double-clicked while the mouse cursor is on an entity.
-     * @function Entities.mousePressOnEntity
+     * @function Entities.mouseDoublePressOnEntity
      * @param {Uuid} entityID - The ID of the entity that was double-pressed.
      * @param {PointerEvent} event - Details of the event.
      * @returns {Signal}
