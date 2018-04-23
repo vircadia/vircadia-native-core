@@ -270,11 +270,10 @@ Menu::Menu() {
     //TODO: Hookup notification actions below.
     // Settings > Notifications > Play Notification Sounds
     SettingsScriptingInterface* settings = SettingsScriptingInterface::getInstance();
-    addActionToQMenuAndActionHash(notificationsMenu, "Play Notification Sounds");
     action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Play Notification Sounds", 0,
-                                                    settings->getValue("play_notification_sounds_type_0"));
-    connect(action, &QAction::triggered, [action] {
-        qApp->setDesktopTabletBecomesToolbarSetting(action->isChecked());
+                                                    settings->getValue("play_notification_sounds").toBool());
+    connect(action, &QAction::triggered, [action, settings] {
+        settings->setValue("play_notification_sounds", action->isChecked());
     });
     notificationsMenu->addSeparator();
 
@@ -282,11 +281,14 @@ Menu::Menu() {
     addDisabledActionAndSeparator(notificationsMenu, "Show notifications for:");
 
     // Settings > Notifications > Snapshot
-    addActionToQMenuAndActionHash(notificationsMenu, "Snapshot");
-    
+    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Snapshot", 0,
+                                                    settings->getValue("play_notification_sounds_type_0").toBool());
+    connect(action, &QAction::triggered, [action, settings] {
+        settings->setValue("play_notification_sounds_type_0", action->isChecked());
+    });
     // Settings > Notifications > Level of Detail
     addActionToQMenuAndActionHash(notificationsMenu, "Level of Detail");
-    
+
     // Settings > Notifications > Connection
     addActionToQMenuAndActionHash(notificationsMenu, "Connection");
     
