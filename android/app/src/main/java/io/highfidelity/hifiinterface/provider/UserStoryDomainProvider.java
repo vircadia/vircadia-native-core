@@ -79,6 +79,7 @@ public class UserStoryDomainProvider implements DomainProvider {
                 true,
                 mProtocol,
                 pageNumber);
+        Log.d("API-USER-STORY-DOMAINS", "Protocol [" + mProtocol + "] include_actions [" + INCLUDE_ACTIONS_FOR_PLACES + "]");
         userStories.enqueue(new retrofit2.Callback<UserStories>() {
             @Override
             public void onResponse(Call<UserStories> call, Response<UserStories> response) {

@@ -1,7 +1,6 @@
 package io.highfidelity.hifiinterface;
 
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
@@ -19,6 +18,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import io.highfidelity.hifiinterface.view.DomainAdapter;
@@ -41,6 +41,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     private NavigationView mNavigationView;
     private RecyclerView mDomainsView;
     private TextView searchNoResultsView;
+    private ImageView mSearchIconView;
+    private ImageView mClearSearch;
+    private EditText mSearchView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,16 +97,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         });
         mDomainsView.setAdapter(mDomainAdapter);
 
-        EditText searchView = findViewById(R.id.searchView);
-        int searchPlateId = searchView.getContext().getResources().getIdentifier("android:id/search_plate", null, null);
-        View searchPlate = searchView.findViewById(searchPlateId);
-        if (searchPlate != null) {
-            searchPlate.setBackgroundColor (Color.TRANSPARENT);
-            int searchTextId = searchPlate.getContext ().getResources ().getIdentifier ("android:id/search_src_text", null, null);
-            TextView searchTextView = searchView.findViewById(searchTextId);
-            searchTextView.setTextAppearance(R.style.SearchText);
-        }
-        searchView.addTextChangedListener(new TextWatcher() {
+        mSearchView = findViewById(R.id.searchView);
+        mSearchIconView = findViewById(R.id.search_mag_icon);
+        mClearSearch = findViewById(R.id.search_clear);
+
+        mSearchView.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
 
@@ -113,11 +111,18 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void afterTextChanged(Editable editable) {
                 mDomainAdapter.loadDomains(editable.toString());
+                if(editable.length()>0) {
+                    mSearchIconView.setVisibility(View.GONE);
+                    mClearSearch.setVisibility(View.VISIBLE);
+                } else {
+                    mSearchIconView.setVisibility(View.VISIBLE);
+                    mClearSearch.setVisibility(View.GONE);
+                }
             }
         });
-        searchView.setOnKeyListener((view, i, keyEvent) -> {
+        mSearchView.setOnKeyListener((view, i, keyEvent) -> {
             if (i == KeyEvent.KEYCODE_ENTER) {
-                String urlString = searchView.getText().toString();
+                String urlString = mSearchView.getText().toString();
                 if (!urlString.trim().isEmpty()) {
                     urlString = HifiUtils.getInstance().sanitizeHifiUrl(urlString);
                 }
@@ -126,6 +131,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             }
             return false;
         });
+
         updateLoginMenu();
 
     }
@@ -214,5 +220,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public void onBackPressed() {
         finishAffinity();
+    }
+
+    public void onSearchClear(View view) {
+        mSearchView.setText("");
     }
 }
