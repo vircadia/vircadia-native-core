@@ -126,7 +126,6 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
             propertyFlags, overwriteLocalData, animationPropertiesChanged);
         if (animationPropertiesChanged) {
             applyNewAnimationProperties(animationProperties);
-            _flags |= Simulation::DIRTY_UPDATEABLE;
             somethingChanged = true;
         }
     });
@@ -355,8 +354,6 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
             animationProperties.setAllowTranslation(allowTranslation);
         }
         applyNewAnimationProperties(animationProperties);
-        // TODO? set the dirty flag inside applyNewAnimationProperties()
-        _flags |= Simulation::DIRTY_UPDATEABLE;
     });
 }
 
@@ -685,6 +682,9 @@ bool ModelEntityItem::applyNewAnimationProperties(AnimationPropertyGroup newProp
 
     // finally apply the changes
     bool somethingChanged = newProperties != _animationProperties;
-    _animationProperties = newProperties;
+    if (somethingChanged) {
+        _animationProperties = newProperties;
+        _flags |= Simulation::DIRTY_UPDATEABLE;
+    }
     return somethingChanged;
 }
