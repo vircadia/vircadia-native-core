@@ -97,6 +97,7 @@ private:
     void setAvatarSound(SharedSoundPointer avatarSound) { _avatarSound = avatarSound; }
 
     void sendAvatarIdentityPacket();
+    void sendAvatarViewFrustum();
 
     QString _scriptContents;
     QTimer* _scriptRequestTimeout { nullptr };

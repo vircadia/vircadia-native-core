@@ -594,7 +594,22 @@ void Agent::sendAvatarIdentityPacket() {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
         scriptedAvatar->markIdentityDataChanged();
         scriptedAvatar->sendIdentityPacket();
+        sendAvatarViewFrustum();
     }
+}
+
+void Agent::sendAvatarViewFrustum() {
+    auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+    ViewFrustum view;
+    view.setPosition(scriptedAvatar->getWorldPosition());
+    view.setOrientation(scriptedAvatar->getHeadOrientation());
+    auto viewFrustumByteArray = view.toByteArray();
+
+    auto avatarPacket = NLPacket::create(PacketType::ViewFrustum, viewFrustumByteArray.size());
+    avatarPacket->write(viewFrustumByteArray);
+
+    DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket),
+                                                         { NodeType::AvatarMixer });
 }
 
 void Agent::processAgentAvatar() {

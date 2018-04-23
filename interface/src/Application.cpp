@@ -5806,8 +5806,8 @@ void Application::update(float deltaTime) {
 
 void Application::sendAvatarViewFrustum() {
     QByteArray viewFrustumByteArray = _viewFrustum.toByteArray();
-    if (hasSecondaryViewFrustum()) {
-        viewFrustumByteArray += _viewFrustum.toByteArray();
+    if (_hasSecondaryViewFrustum) {
+        viewFrustumByteArray += _secondaryViewFrustum.toByteArray();
     }
 
     auto avatarPacket = NLPacket::create(PacketType::ViewFrustum, viewFrustumByteArray.size());
