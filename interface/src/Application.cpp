@@ -7943,7 +7943,9 @@ void Application::openAndroidActivity(const QString& activityName) {
 }
 
 void Application::performHapticFeedback(const QString& feedbackConstant) {
+#if defined(Q_OS_ANDROID)
     AndroidHelper::instance().performHapticFeedback(feedbackConstant);
+#endif
 }
 
 #if defined(Q_OS_ANDROID)
