@@ -38,7 +38,13 @@ void ControlViews::run(const workload::WorkloadContextPointer& runContext, const
 
     if (_data.regulateViewRanges && inTimings.size()) {
         regulateViews(outViews, inTimings);
+
+        auto config = std::static_pointer_cast<Config>(runContext->jobConfig);
+        config->dataExport = _dataExport;
+        config->emitDirty();
     }
+
+
 }
 
 glm::vec2 Regulator::run(const Timing_ns& regulationDuration, const Timing_ns& measured, const glm::vec2& current) {
@@ -64,9 +70,13 @@ void ControlViews::regulateViews(workload::Views& outViews, const workload::Timi
     }
 
     auto loopDuration = std::chrono::nanoseconds{ std::chrono::milliseconds(16) };
-    regionBackFronts[workload::Region::R1] = regionRegulators[workload::Region::R1].run(loopDuration, timings[0], regionBackFronts[workload::Region::R1]);
-    regionBackFronts[workload::Region::R2] = regionRegulators[workload::Region::R2].run(loopDuration, timings[0], regionBackFronts[workload::Region::R2]);
-    regionBackFronts[workload::Region::R3] = regionRegulators[workload::Region::R3].run(loopDuration, timings[1], regionBackFronts[workload::Region::R3]);
+    _dataExport.ranges[workload::Region::R1] = regionBackFronts[workload::Region::R1] = regionRegulators[workload::Region::R1].run(loopDuration, timings[0], regionBackFronts[workload::Region::R1]);
+    _dataExport.ranges[workload::Region::R2] = regionBackFronts[workload::Region::R2] = regionRegulators[workload::Region::R2].run(loopDuration, timings[0], regionBackFronts[workload::Region::R2]);
+    _dataExport.ranges[workload::Region::R3] = regionBackFronts[workload::Region::R3] = regionRegulators[workload::Region::R3].run(loopDuration, timings[1], regionBackFronts[workload::Region::R3]);
+
+    _dataExport.timings[workload::Region::R1] = std::chrono::duration<float, std::milli>(timings[0]).count();
+    _dataExport.timings[workload::Region::R2] = _dataExport.timings[workload::Region::R1];
+    _dataExport.timings[workload::Region::R3] = std::chrono::duration<float, std::milli>(timings[1]).count();
 
     int i = 0;
     for (auto& outView : outViews) {

@@ -15,6 +15,7 @@ import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
 import "../render/configSlider"
 import "../lib/jet/qml" as Jet
+import "../lib/plotperf"
 
 
 Rectangle {
@@ -66,6 +67,7 @@ Rectangle {
     }
   
     Column {
+        id: stats
         spacing: 5
         anchors.left: parent.left
         anchors.right: parent.right       
@@ -119,6 +121,7 @@ Rectangle {
         }
 
         RowLayout {
+            visible: !Workload.getConfig("controlViews")["regulateViewRanges"]
             anchors.left: parent.left
             anchors.right: parent.right 
             Column {
@@ -176,6 +179,86 @@ Rectangle {
                 }
             }
         }
+        RowLayout {
+            visible: Workload.getConfig("controlViews")["regulateViewRanges"]
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            Column {
+                anchors.left: parent.left
+                anchors.right: parent.horizontalCenter 
+                HifiControls.Label {
+                    text: "Back [m]"       
+                    anchors.horizontalCenter: parent.horizontalCenter 
+                }
+                Repeater {
+                    model: [ 
+                        "R1:r1RangeBack:50.0:0.0",
+                        "R2:r2RangeBack:50.0:0.0",
+                        "R3:r3RangeBack:50.0:0.0"
+                    ]
+                    ConfigSlider {
+                        label: qsTr(modelData.split(":")[0])
+                        config:  Workload.getConfig("controlViews")
+                        property: modelData.split(":")[1]
+                        max: modelData.split(":")[2]
+                        min: modelData.split(":")[3]
+                        integral: true
+
+                        labelAreaWidthScale: 0.4
+                        anchors.left: parent.left
+                        anchors.right: parent.right 
+                    }
+                }
+            }
+            Column {
+                anchors.left: parent.horizontalCenter
+                anchors.right: parent.right 
+                HifiControls.Label {
+                    text: "Front [m]"       
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+                Repeater {
+                    model: [ 
+                        "r1RangeFront:300:1.0",
+                        "r2RangeFront:300:1.0",
+                        "r3RangeFront:300:1.0"
+                    ]
+                    ConfigSlider {
+                        showLabel: false
+                        config:  Workload.getConfig("controlViews")
+                        property: modelData.split(":")[0]
+                        max: modelData.split(":")[1]
+                        min: modelData.split(":")[2]
+                        integral: true
+
+                        labelAreaWidthScale: 0.3
+                        anchors.left: parent.left
+                        anchors.right: parent.right 
+                    }
+                }
+            }
+        }
+        property var controlViews: Workload.getConfig("controlViews")
+
+        PlotPerf {
+            title: "Timings"
+            height: 100
+            object: stats.controlViews
+            valueScale: 1.0
+            valueUnit: "ms"
+            plots: [
+                {
+                    prop: "r2Timing",
+                    label: "Physics + Collisions",
+                    color: "#1AC567"
+                },
+                {
+                    prop: "r3Timing",
+                    label: "Kinematic + Update",
+                    color: "#1A67C5"
+                }
+            ]
+        }
         Separator {} 
         HifiControls.Label {
             text: "Numbers:";     
@@ -188,7 +271,8 @@ Rectangle {
         } 
         HifiControls.Label {
             text: "R3= " + Workload.getConfig("regionState")["numR3"];     
-        }   
+        }
+
         Separator {}
         HifiControls.Label {
             text: "Display"       

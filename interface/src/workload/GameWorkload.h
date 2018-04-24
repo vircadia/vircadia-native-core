@@ -47,18 +47,18 @@ class ControlViewsConfig : public workload::Job::Config {
     Q_OBJECT
     Q_PROPERTY(bool regulateViewRanges READ regulateViewRanges WRITE setRegulateViewRanges NOTIFY dirty)
 
-    Q_PROPERTY(float r1Timing READ r1Timing)
-    Q_PROPERTY(float r2Timing READ r2Timing)
-    Q_PROPERTY(float r3Timing READ r3Timing)
+    Q_PROPERTY(float r1Timing READ r1Timing NOTIFY dirty)
+    Q_PROPERTY(float r2Timing READ r2Timing NOTIFY dirty)
+    Q_PROPERTY(float r3Timing READ r3Timing NOTIFY dirty)
 
-    Q_PROPERTY(float r1RangeBack READ r1RangeBack)
-    Q_PROPERTY(float r2RangeBack READ r2RangeBack)
-    Q_PROPERTY(float r3RangeBack READ r3RangeBack)
+    Q_PROPERTY(float r1RangeBack READ r1RangeBack NOTIFY dirty)
+    Q_PROPERTY(float r2RangeBack READ r2RangeBack NOTIFY dirty)
+    Q_PROPERTY(float r3RangeBack READ r3RangeBack NOTIFY dirty)
 
-    Q_PROPERTY(float r1RangeFront READ r1RangeFront)
-    Q_PROPERTY(float r2RangeFront READ r2RangeFront)
-    Q_PROPERTY(float r3RangeFront READ r3RangeFront)
-
+    Q_PROPERTY(float r1RangeFront READ r1RangeFront NOTIFY dirty)
+    Q_PROPERTY(float r2RangeFront READ r2RangeFront NOTIFY dirty)
+    Q_PROPERTY(float r3RangeFront READ r3RangeFront NOTIFY dirty)
+/*
     Q_PROPERTY(float r1MinRangeBack READ r1MinRangeBack WRITE setR1MinRangeBack NOTIFY dirty)
     Q_PROPERTY(float r2MinRangeBack READ r2MinRangeBack WRITE setR2MinRangeBack NOTIFY dirty)
     Q_PROPERTY(float r3MinRangeBack READ r3MinRangeBack WRITE setR3MinRangeBack NOTIFY dirty)
@@ -89,33 +89,36 @@ class ControlViewsConfig : public workload::Job::Config {
 
     Q_PROPERTY(float r1SpeedUpFront READ r1SpeedUpFront WRITE setR1SpeedUpFront NOTIFY dirty)
     Q_PROPERTY(float r2SpeedUpFront READ r2SpeedUpFront WRITE setR2SpeedUpFront NOTIFY dirty)
-    Q_PROPERTY(float r3SpeedUpFront READ r3SpeedUpFront WRITE setR3SpeedUpFront NOTIFY dirty)
+    Q_PROPERTY(float r3SpeedUpFront READ r3SpeedUpFront WRITE setR3SpeedUpFront NOTIFY dirty)*/
 
 public:
 
     bool regulateViewRanges() const { return data.regulateViewRanges; }
     void setRegulateViewRanges(bool use) { data.regulateViewRanges = use; emit dirty(); }
 
-    float r1Timing() const { return data.r1Timing; }
-    float r2Timing() const { return data.r2Timing; }
-    float r3Timing() const { return data.r3Timing; }
+    float r1Timing() const { return dataExport.timings[workload::Region::R1]; }
+    float r2Timing() const { return dataExport.timings[workload::Region::R2]; }
+    float r3Timing() const { return dataExport.timings[workload::Region::R3]; }
 
-    float r1RangeBack() const { return data.r1RangeBack; }
-    float r2RangeBack() const { return data.r2RangeBack; }
-    float r3RangeBack() const { return data.r3RangeBack; }
+    float r1RangeBack() const { return dataExport.ranges[workload::Region::R1].x; }
+    float r2RangeBack() const { return dataExport.ranges[workload::Region::R2].x; }
+    float r3RangeBack() const { return dataExport.ranges[workload::Region::R3].x; }
 
-    float r1RangeFront() const { return data.r1RangeFront; }
-    float r2RangeFront() const { return data.r2RangeFront; }
-    float r3RangeFront() const { return data.r3RangeFront; }
+    float r1RangeFront() const { return dataExport.ranges[workload::Region::R1].y; }
+    float r2RangeFront() const { return dataExport.ranges[workload::Region::R2].y; }
+    float r3RangeFront() const { return dataExport.ranges[workload::Region::R3].y; }
 
     struct Data {
-        float r1Timing
-        float r2Timing
-        float r3Timing
-
         bool regulateViewRanges{ true };
-
     } data;
+
+    struct DataExport {
+        static const int SIZE{ workload::Region::NUM_VIEW_REGIONS };
+        float timings[SIZE];
+        glm::vec2 ranges[SIZE];
+    } dataExport;
+
+    void emitDirty() { emit dirty(); }
 signals:
     void dirty();
 };
@@ -149,13 +152,14 @@ public:
     void configure(const Config& config);
     void run(const workload::WorkloadContextPointer& runContext, const Input& inputs, Output& outputs);
 
-    std::array<glm::vec2, workload::Region::NUM_VIEW_REGIONS + 1> regionBackFronts;
-    std::array<Regulator, workload::Region::NUM_VIEW_REGIONS + 1> regionRegulators;
+    std::array<glm::vec2, workload::Region::NUM_VIEW_REGIONS> regionBackFronts;
+    std::array<Regulator, workload::Region::NUM_VIEW_REGIONS> regionRegulators;
 
     void regulateViews(workload::Views& views, const workload::Timings& timings);
 
 protected:
     Config::Data _data;
+    Config::DataExport _dataExport;
 };
 
 #endif // hifi_GameWorkload_h
