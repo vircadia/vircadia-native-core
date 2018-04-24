@@ -39,7 +39,7 @@ function init() {
 
 function onBackPressed() {
    App.performHapticFeedback("CONTEXT_CLICK");
-   App.openAndroidActivity("Goto");
+   App.openAndroidActivity("Home");
 }
 
 

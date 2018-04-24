@@ -201,9 +201,9 @@ public class InterfaceActivity extends QtActivity {
         nativeGoBackFromAndroidActivity();
     }
 
-    public void openGotoActivity(String activityName) {
+    public void openAndroidActivity(String activityName) {
         switch (activityName) {
-            case "Goto": {
+            case "Home": {
                 Intent intent = new Intent(this, MainActivity.class);
                 startActivity(intent);
                 break;
@@ -226,6 +226,11 @@ public class InterfaceActivity extends QtActivity {
                 findViewById(android.R.id.content).performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
                 break;
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        openAndroidActivity("Home");
     }
 
 }

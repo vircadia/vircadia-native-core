@@ -15,7 +15,7 @@ Item {
     function relocateAndResize(newWindowWidth, newWindowHeight) {
         width = 300;
         height = 300;
-        x=newWindowWidth - 565;
+        x = newWindowWidth - 565;
     }
 
     function onWindowGeometryChanged(rect) {

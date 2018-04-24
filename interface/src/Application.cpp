@@ -242,7 +242,7 @@ extern "C" {
 
 #if defined(Q_OS_ANDROID)
 #include <android/log.h>
-#include <QtAndroidExtras/QAndroidJniObject>
+#include "AndroidHelper.h"
 #endif
 
 enum ApplicationEvent {
@@ -3670,6 +3670,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
 void Application::keyReleaseEvent(QKeyEvent* event) {
     _keysPressed.remove(event->key());
 
+#if defined(Q_OS_ANDROID)
+    if (event->key() == Qt::Key_Back) {
+        event->accept();
+        openAndroidActivity("Home");
+    }
+#endif
     _controllerScriptingInterface->emitKeyReleaseEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -7932,21 +7938,7 @@ void Application::saveNextPhysicsStats(QString filename) {
 
 void Application::openAndroidActivity(const QString& activityName) {
 #if defined(Q_OS_ANDROID)
-    qDebug() << "[Background-HIFI] Application::openAndroidActivity";
-    //getActiveDisplayPlugin()->deactivate();
     AndroidHelper::instance().requestActivity(activityName);
-    connect(&AndroidHelper::instance(), &AndroidHelper::backFromAndroidActivity, this, &Application::restoreAfterAndroidActivity);
-#endif
-}
-
-void Application::restoreAfterAndroidActivity() {
-#if defined(Q_OS_ANDROID)
-    qDebug() << "[Background-HIFI] restoreAfterAndroidActivity: this wouldn't be needed";
-
-    /*if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
-        qWarning() << "Could not re-activate display plugin";
-    }*/
-    disconnect(&AndroidHelper::instance(), &AndroidHelper::backFromAndroidActivity, this, &Application::restoreAfterAndroidActivity);
 #endif
 }
 
@@ -7956,52 +7948,21 @@ void Application::performHapticFeedback(const QString& feedbackConstant) {
 
 #if defined(Q_OS_ANDROID)
 void Application::enterBackground() {
-    qDebug() << "[Background-HIFI] enterBackground begin";
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
-    qDebug() << "[Background-HIFI] deactivating display plugin";
-    getActiveDisplayPlugin()->deactivate();
-    qDebug() << "[Background-HIFI] enterBackground end";
+    //GC: commenting it out until we fix it
+    //getActiveDisplayPlugin()->deactivate();
 }
 void Application::enterForeground() {
-    qDebug() << "[Background-HIFI] enterForeground qApp?" << (qApp?"yeah":"false");
-    if (qApp && DependencyManager::isSet<AudioClient>()) {
-        qDebug() << "[Background-HIFI] audioclient.start()";
-        QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                                   "start", Qt::BlockingQueuedConnection);
-    } else {
-        qDebug() << "[Background-HIFI] audioclient.start() not done";
-    }
-    if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
-        qWarning() << "[Background-HIFI] Could not re-activate display plugin";
-    }
+    //GC: commenting it out until we fix it
+    /*if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
+        qWarning() << "Could not re-activate display plugin";
+    }*/
 
 }
-
-extern "C" {
-
-
-JNIEXPORT void
-Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeEnterBackground(JNIEnv *env, jobject obj) {
-    qDebug() << "[Background-HIFI] nativeEnterBackground";
-    if (qApp) {
-        qDebug() << "[Background-HIFI] nativeEnterBackground begin (qApp)";
-        qApp->enterBackground();
-    }
-}
-
-JNIEXPORT void
-Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeEnterForeground(JNIEnv *env, jobject obj) {
-    qDebug() << "[Background-HIFI] nativeEnterForeground";
-    if (qApp) {
-        qDebug() << "[Background-HIFI] nativeEnterForeground begin (qApp)";
-        qApp->enterForeground();
-    }
-}
-
-
-}
-
 #endif
 
+#include "Application_jni.cpp"
 #include "Application.moc"

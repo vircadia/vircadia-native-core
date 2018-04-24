@@ -78,10 +78,6 @@
 
 #include "Sound.h"
 
-#if defined(Q_OS_ANDROID)
-#include "AndroidHelper.h"
-#endif
-
 class OffscreenGLCanvas;
 class GLCanvas;
 class FaceTracker;
@@ -461,8 +457,6 @@ private slots:
 
     void handleSandboxStatus(QNetworkReply* reply);
     void switchDisplayMode();
-
-    void restoreAfterAndroidActivity();
 
 private:
     void init();
