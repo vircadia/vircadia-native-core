@@ -942,11 +942,10 @@ void EntityItem::setMass(float mass) {
     float volume = _volumeMultiplier * dimensions.x * dimensions.y * dimensions.z;
 
     // compute new density
-    const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
     float newDensity = 1.0f;
-    if (volume < 1.0e-6f) {
+    if (volume < ENTITY_ITEM_MIN_VOLUME) {
         // avoid divide by zero
-        newDensity = glm::min(mass / MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
+        newDensity = glm::min(mass / ENTITY_ITEM_MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
     } else {
         newDensity = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
     }
@@ -1688,7 +1687,7 @@ void EntityItem::setScaledDimensions(const glm::vec3& value) {
 }
 
 void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
-    glm::vec3 newDimensions = glm::max(value, glm::vec3(0.0f)); // can never have negative dimensions
+    glm::vec3 newDimensions = glm::max(value, glm::vec3(ENTITY_ITEM_MIN_DIMENSION));
     if (getUnscaledDimensions() != newDimensions) {
         withWriteLock([&] {
             _unscaledDimensions = newDimensions;

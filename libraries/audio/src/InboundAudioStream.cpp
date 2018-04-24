@@ -120,8 +120,8 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     // parse sequence number and track it
     quint16 sequence;
     message.readPrimitive(&sequence);
-    SequenceNumberStats::ArrivalInfo arrivalInfo = _incomingSequenceNumberStats.sequenceNumberReceived(sequence,
-                                                                                                       message.getSourceID());
+    SequenceNumberStats::ArrivalInfo arrivalInfo =
+        _incomingSequenceNumberStats.sequenceNumberReceived(sequence, message.getSourceID());
     QString codecInPacket = message.readString();
 
     packetReceivedUpdateTimingStats();
@@ -186,7 +186,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                         _mismatchedAudioCodecCount = 0;
 
                         // inform others of the mismatch
-                        auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());
+                        auto sendingNode = DependencyManager::get<NodeList>()->nodeWithLocalID(message.getSourceID());
                         if (sendingNode) {
                             emit mismatchedAudioCodec(sendingNode, _selectedCodecName, codecInPacket);
                             qDebug(audio) << "Codec mismatch threshold exceeded, SelectedAudioFormat(" << _selectedCodecName << " ) sent";

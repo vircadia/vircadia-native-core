@@ -415,6 +415,34 @@ distanceBetweenPointAndEntityBoundingBox = function(point, entityProps) {
     return Vec3.distance(v, localPoint);
 };
 
+entityIsEquipped = function(entityID) {
+    var rightEquipEntity = getEnabledModuleByName("RightEquipEntity");
+    var leftEquipEntity = getEnabledModuleByName("LeftEquipEntity");
+    var equippedInRightHand = rightEquipEntity ? rightEquipEntity.targetEntityID === entityID : false;
+    var equippedInLeftHand = leftEquipEntity ? leftEquipEntity.targetEntityID === entityID : false;
+    return equippedInRightHand || equippedInLeftHand;
+};
+
+entityIsFarGrabbedByOther = function(entityID) {
+    // by convention, a far grab sets the tag of its action to be far-grab-*owner-session-id*.
+    var actionIDs = Entities.getActionIDs(entityID);
+    var myFarGrabTag = "far-grab-" + MyAvatar.sessionUUID;
+    for (var actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
+        var actionID = actionIDs[actionIndex];
+        var actionArguments = Entities.getActionArguments(entityID, actionID);
+        var tag = actionArguments.tag;
+        if (tag == myFarGrabTag) {
+            // we see a far-grab-*uuid* shaped tag, but it's our tag, so that's okay.
+            continue;
+        }
+        if (tag.slice(0, 9) == "far-grab-") {
+            // we see a far-grab-*uuid* shaped tag and it's not ours, so someone else is grabbing it.
+            return true;
+        }
+    }
+    return false;
+};
+
 if (typeof module !== 'undefined') {
     module.exports = {
         makeDispatcherModuleParameters: makeDispatcherModuleParameters,

@@ -531,8 +531,8 @@ private slots:
 signals:
 
     /**jsdoc
-     * Triggered when you change the domain you're visiting. <strong>Warning:</strong> Is not emitted if you go to domain that 
-     * isn't running.
+     * Triggered when you change the domain you're visiting. <strong>Warning:</strong> Is not emitted if you go to a domain 
+     * that isn't running.
      * @function Window.domainChanged
      * @param {string} domainURL - The domain's URL.
      * @returns {Signal}
