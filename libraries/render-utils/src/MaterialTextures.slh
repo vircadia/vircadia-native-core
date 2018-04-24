@@ -11,7 +11,6 @@
 <@if not MODEL_MATERIAL_TEXTURES_SLH@>
 <@def MODEL_MATERIAL_TEXTURES_SLH@>
 
-
 <@func declareMaterialTexMapArrayBuffer()@>
 
 const int MAX_TEXCOORDS = 2;
@@ -48,6 +47,8 @@ TexMapArray getTexMapArray() {
 
 <@func declareMaterialTextures(withAlbedo, withRoughness, withNormal, withMetallic, withEmissive, withOcclusion, withScattering)@>
 
+#define TAA_TEXTURE_LOD_BIAS    -1.0
+
 <@include gpu/TextureTable.slh@>
 
 #ifdef GPU_TEXTURE_TABLE_BINDLESS
@@ -66,6 +67,7 @@ TextureTable(0, matTex);
 <@if withAlbedo@>
 #define albedoMap 0
 vec4 fetchAlbedoMap(vec2 uv) {
+    // Should take into account TAA_TEXTURE_LOD_BIAS?
     return tableTexValue(matTex, albedoMap, uv);
 }
 <@endif@>
@@ -73,6 +75,7 @@ vec4 fetchAlbedoMap(vec2 uv) {
 <@if withRoughness@>
 #define roughnessMap 4
 float fetchRoughnessMap(vec2 uv) {
+    // Should take into account TAA_TEXTURE_LOD_BIAS?
     return tableTexValue(matTex, roughnessMap, uv).r;
 }
 <@endif@>
@@ -80,6 +83,7 @@ float fetchRoughnessMap(vec2 uv) {
 <@if withNormal@>
 #define normalMap 1
 vec3 fetchNormalMap(vec2 uv) {
+    // Should take into account TAA_TEXTURE_LOD_BIAS?
     return tableTexValue(matTex, normalMap, uv).xyz;
 }
 <@endif@>
@@ -87,6 +91,7 @@ vec3 fetchNormalMap(vec2 uv) {
 <@if withMetallic@>
 #define metallicMap 2
 float fetchMetallicMap(vec2 uv) {
+    // Should take into account TAA_TEXTURE_LOD_BIAS?
     return tableTexValue(matTex, metallicMap, uv).r;
 }
 <@endif@>
@@ -94,6 +99,7 @@ float fetchMetallicMap(vec2 uv) {
 <@if withEmissive@>
 #define emissiveMap 3
 vec3 fetchEmissiveMap(vec2 uv) {
+    // Should take into account TAA_TEXTURE_LOD_BIAS?
     return tableTexValue(matTex, emissiveMap, uv).rgb;
 }
 <@endif@>
@@ -119,14 +125,14 @@ float fetchScatteringMap(vec2 uv) {
 <@if withAlbedo@>
 uniform sampler2D albedoMap;
 vec4 fetchAlbedoMap(vec2 uv) {
-    return texture(albedoMap, uv);
+    return texture(albedoMap, uv, TAA_TEXTURE_LOD_BIAS);
 }
 <@endif@>
 
 <@if withRoughness@>
 uniform sampler2D roughnessMap;
 float fetchRoughnessMap(vec2 uv) {
-    return (texture(roughnessMap, uv).r);
+    return (texture(roughnessMap, uv, TAA_TEXTURE_LOD_BIAS).r);
 }
 <@endif@>
 
@@ -134,7 +140,7 @@ float fetchRoughnessMap(vec2 uv) {
 uniform sampler2D normalMap;
 vec3 fetchNormalMap(vec2 uv) {
     // unpack normal, swizzle to get into hifi tangent space with Y axis pointing out
-    vec2 t = 2.0 * (texture(normalMap, uv).rg - vec2(0.5, 0.5));
+    vec2 t = 2.0 * (texture(normalMap, uv, TAA_TEXTURE_LOD_BIAS).rg - vec2(0.5, 0.5));
     vec2 t2 = t*t;
     return vec3(t.x, sqrt(1.0 - t2.x - t2.y), t.y);
 }
@@ -143,14 +149,14 @@ vec3 fetchNormalMap(vec2 uv) {
 <@if withMetallic@>
 uniform sampler2D metallicMap;
 float fetchMetallicMap(vec2 uv) {
-    return (texture(metallicMap, uv).r);
+    return (texture(metallicMap, uv, TAA_TEXTURE_LOD_BIAS).r);
 }
 <@endif@>
 
 <@if withEmissive@>
 uniform sampler2D emissiveMap;
 vec3 fetchEmissiveMap(vec2 uv) {
-    return texture(emissiveMap, uv).rgb;
+    return texture(emissiveMap, uv, TAA_TEXTURE_LOD_BIAS).rgb;
 }
 <@endif@>
 
@@ -164,7 +170,7 @@ float fetchOcclusionMap(vec2 uv) {
 <@if withScattering@>
 uniform sampler2D scatteringMap;
 float fetchScatteringMap(vec2 uv) {
-    float scattering = texture(scatteringMap, uv).r; // boolean scattering for now
+    float scattering = texture(scatteringMap, uv, TAA_TEXTURE_LOD_BIAS).r; // boolean scattering for now
     return max(((scattering - 0.1) / 0.9), 0.0);
     return texture(scatteringMap, uv).r; // boolean scattering for now
 }
@@ -234,8 +240,8 @@ vec3 fetchLightmapMap(vec2 uv) {
     vec3 normalizedTangent = normalize(<$interpolatedTangent$>.xyz);
     vec3 normalizedBitangent = cross(normalizedNormal, normalizedTangent);
     // attenuate the normal map divergence from the mesh normal based on distance
-    // The attenuation range [20,100] meters from the eye is arbitrary for now
-    vec3 localNormal = mix(<$fetchedNormal$>, vec3(0.0, 1.0, 0.0), smoothstep(20.0, 100.0, (-<$fragPosES$>).z));
+    // The attenuation range [30,100] meters from the eye is arbitrary for now
+    vec3 localNormal = mix(<$fetchedNormal$>, vec3(0.0, 1.0, 0.0), smoothstep(30.0, 100.0, (-<$fragPosES$>).z));
     <$normal$> = vec3(normalizedBitangent * localNormal.x + normalizedNormal * localNormal.y + normalizedTangent * localNormal.z);
 }
 <@endfunc@>
