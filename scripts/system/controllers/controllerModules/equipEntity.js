@@ -880,7 +880,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         Controller.mousePressEvent.disconnect(onMousePress);
         Controller.keyPressEvent.disconnect(onKeyPress);
         Entities.deletingEntity.disconnect(deleteEntity);
-        Entities.deletingEntity.disconnect(clearEntities);
+        Entities.clearingEntities.disconnect(clearEntities);
     }
     Script.scriptEnding.connect(cleanup);
 }());
