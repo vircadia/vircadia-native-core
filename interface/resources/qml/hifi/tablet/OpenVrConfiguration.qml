@@ -34,7 +34,7 @@ Rectangle {
     readonly property bool hmdHead: headBox.checked
     readonly property bool headPuck: headPuckBox.checked
     readonly property bool handController: handBox.checked
-    
+
     readonly property bool handPuck: handPuckBox.checked
     readonly property bool hmdDesktop: hmdInDesktop.checked
 
@@ -105,7 +105,7 @@ Rectangle {
 
         RalewayBold {
             size: 12
-            text: "Vive HMD"
+            text: stack.selectedPlugin + " HMD"
             color: hifi.colors.lightGrayText
         }
 
@@ -143,7 +143,7 @@ Rectangle {
             anchors.topMargin: 5
             anchors.left: openVrConfiguration.left
             anchors.leftMargin: leftMargin + 10
-        
+
             onClicked: {
                 if (checked) {
                     headBox.checked = false;
@@ -178,8 +178,8 @@ Rectangle {
             label: "Y Offset"
             suffix: " cm"
             minimumValue: -10
-            stepSize: 1
-            value: -5
+            realStepSize: 1
+            realValue: -5
             colorScheme: hifi.colorSchemes.dark
 
             onEditingFinished: {
@@ -193,10 +193,10 @@ Rectangle {
             width: 112
             label: "Z Offset"
             minimumValue: -10
-            stepSize: 1
+            realStepSize: 1
             decimals: 1
             suffix: " cm"
-            value: -5
+            realValue: -5
             colorScheme: hifi.colorSchemes.dark
 
             onEditingFinished: {
@@ -288,7 +288,7 @@ Rectangle {
             suffix: " cm"
             label: "Y Offset"
             minimumValue: -10
-            stepSize: 1
+            realStepSize: 1
             colorScheme: hifi.colorSchemes.dark
 
             onEditingFinished: {
@@ -303,7 +303,7 @@ Rectangle {
             label: "Z Offset"
             suffix: " cm"
             minimumValue: -10
-            stepSize: 1
+            realStepSize: 1
             decimals: 1
             colorScheme: hifi.colorSchemes.dark
 
@@ -535,9 +535,9 @@ Rectangle {
             suffix: " cm"
             label: "Arm Circumference"
             minimumValue: 0
-            stepSize: 1.0
+            realStepSize: 1.0
             colorScheme: hifi.colorSchemes.dark
-            value: 33.0
+            realValue: 33.0
 
             onEditingFinished: {
                 sendConfigurationSettings();
@@ -550,10 +550,10 @@ Rectangle {
             label: "Shoulder Width"
             suffix: " cm"
             minimumValue: 0
-            stepSize: 1.0
+            realStepSize: 1.0
             decimals: 1
             colorScheme: hifi.colorSchemes.dark
-            value: 48
+            realValue: 48
 
             onEditingFinished: {
                 sendConfigurationSettings();
@@ -659,13 +659,13 @@ Rectangle {
                         InputConfiguration.uncalibratePlugin(pluginName);
                         updateCalibrationButton();
                     } else {
-                        calibrationTimer.interval = timeToCalibrate.value * 1000
-                        openVrConfiguration.countDown = timeToCalibrate.value;
+                        calibrationTimer.interval = timeToCalibrate.realValue * 1000
+                        openVrConfiguration.countDown = timeToCalibrate.realValue;
                         var calibratingScreen = screen.createObject();
                         stack.push(calibratingScreen);
                         calibratingScreen.canceled.connect(cancelCalibration);
                         calibratingScreen.restart.connect(restartCalibration);
-                        calibratingScreen.start(calibrationTimer.interval, timeToCalibrate.value);
+                        calibratingScreen.start(calibrationTimer.interval, timeToCalibrate.realValue);
                         calibrationTimer.start();
                     }
                 }
@@ -728,12 +728,12 @@ Rectangle {
         anchors.leftMargin: leftMargin
 
         minimumValue: 5
-        value: 5
+        realValue: 5
         colorScheme: hifi.colorSchemes.dark
 
         onEditingFinished: {
-            calibrationTimer.interval = value * 1000;
-            openVrConfiguration.countDown = value;
+            calibrationTimer.interval = realValue * 1000;
+            openVrConfiguration.countDown = realValue;
             numberAnimation.duration = calibrationTimer.interval;
         }
     }
@@ -772,12 +772,12 @@ Rectangle {
 
     RalewayBold {
         id: advanceSettings
-        
+
         text: "Advanced Settings"
         size: 12
-        
+
         color: hifi.colors.white
-        
+
         anchors.top: advanceSeperator.bottom
         anchors.topMargin: 10
         anchors.left: parent.left
@@ -795,7 +795,7 @@ Rectangle {
         anchors.topMargin: 5
         anchors.left: openVrConfiguration.left
         anchors.leftMargin: leftMargin + 10
-        
+
         onClicked: {
             if (!checked & hmdInDesktop.checked) {
                 headBox.checked = true;
@@ -809,9 +809,9 @@ Rectangle {
     RalewayBold {
         id: viveDesktopText
         size: 10
-        text: "Use Vive devices in desktop mode"
+        text: "Use " + stack.selectedPlugin + " devices in desktop mode"
         color: hifi.colors.white
-        
+
         anchors {
             left: viveInDesktop.right
             leftMargin: 5
@@ -819,7 +819,7 @@ Rectangle {
         }
     }
 
-    
+
     NumberAnimation {
         id: numberAnimation
         target: openVrConfiguration
@@ -910,8 +910,8 @@ Rectangle {
         var desktopMode = settings["desktopMode"];
         var hmdDesktopPosition = settings["hmdDesktopTracking"];
 
-        armCircumference.value = settings.armCircumference;
-        shoulderWidth.value = settings.shoulderWidth;
+        armCircumference.realValue = settings.armCircumference;
+        shoulderWidth.realValue = settings.shoulderWidth;
 
         if (HmdHead) {
             headBox.checked = true;
@@ -1075,22 +1075,22 @@ Rectangle {
 
         var headObject = {
             "override": overrideHead,
-            "Y": headYOffset.value,
-            "Z": headZOffset.value
+            "Y": headYOffset.realValue,
+            "Z": headZOffset.realValue
         }
 
         var handObject = {
             "override": overrideHandController,
-            "Y": handYOffset.value,
-            "Z": handZOffset.value
+            "Y": handYOffset.realValue,
+            "Z": handZOffset.realValue
         }
 
         var settingsObject = {
             "bodyConfiguration": trackerConfiguration,
             "headConfiguration": headObject,
             "handConfiguration": handObject,
-            "armCircumference": armCircumference.value,
-            "shoulderWidth": shoulderWidth.value,
+            "armCircumference": armCircumference.realValue,
+            "shoulderWidth": shoulderWidth.realValue,
             "desktopMode": viveInDesktop.checked,
             "hmdDesktopTracking": hmdInDesktop.checked
         }

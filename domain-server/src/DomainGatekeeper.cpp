@@ -14,6 +14,7 @@
 #include <openssl/err.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+#include <random>
 
 #include <AccountManager.h>
 #include <Assignment.h>
@@ -26,7 +27,7 @@ using SharedAssignmentPointer = QSharedPointer<Assignment>;
 DomainGatekeeper::DomainGatekeeper(DomainServer* server) :
     _server(server)
 {
-
+    initLocalIDManagement();
 }
 
 void DomainGatekeeper::addPendingAssignedNode(const QUuid& nodeUUID, const QUuid& assignmentUUID,
@@ -529,8 +530,10 @@ SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const Node
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
+    Node::LocalID newLocalID = findOrCreateLocalID(nodeID);
     SharedNodePointer newNode = limitedNodeList->addOrUpdateNode(nodeID, nodeConnection.nodeType,
-                                                                 nodeConnection.publicSockAddr, nodeConnection.localSockAddr);
+                                                                 nodeConnection.publicSockAddr, nodeConnection.localSockAddr,
+                                                                 newLocalID);
 
     // So that we can send messages to this node at will - we need to activate the correct socket on this node now
     newNode->activateMatchingOrNewSymmetricSocket(discoveredSocket);
@@ -1019,4 +1022,32 @@ void DomainGatekeeper::refreshGroupsCache() {
 #if WANT_DEBUG
     _server->_settingsManager.debugDumpGroupsState();
 #endif
+}
+
+void DomainGatekeeper::initLocalIDManagement() {
+    std::uniform_int_distribution<quint16> sixteenBitRand;
+    std::random_device randomDevice;
+    std::default_random_engine engine { randomDevice() };
+    _currentLocalID = sixteenBitRand(engine);
+    // Ensure increment is odd.
+    _idIncrement = sixteenBitRand(engine) | 1;
+}
+
+Node::LocalID DomainGatekeeper::findOrCreateLocalID(const QUuid& uuid) {
+    auto existingLocalIDIt = _uuidToLocalID.find(uuid);
+    if (existingLocalIDIt != _uuidToLocalID.end()) {
+        return existingLocalIDIt->second;
+    }
+
+    assert(_localIDs.size() < std::numeric_limits<LocalIDs::value_type>::max() - 2);
+
+    Node::LocalID newLocalID;
+    do {
+        newLocalID = _currentLocalID;
+        _currentLocalID += _idIncrement;
+    } while (newLocalID == Node::NULL_LOCAL_ID || _localIDs.find(newLocalID) != _localIDs.end());
+
+    _uuidToLocalID.emplace(uuid, newLocalID);
+    _localIDs.insert(newLocalID);
+    return newLocalID;
 }

@@ -110,6 +110,8 @@ public:
     Q_ENUM(ConnectionStep);
     QUuid getSessionUUID() const;
     void setSessionUUID(const QUuid& sessionUUID);
+    Node::LocalID getSessionLocalID() const;
+    void setSessionLocalID(Node::LocalID localID);
 
     void setPermissions(const NodePermissions& newPermissions);
     bool isAllowedEditor() const { return _permissions.can(NodePermissions::Permission::canAdjustLocks); }
@@ -130,6 +132,7 @@ public:
 
     virtual bool isDomainServer() const { return true; }
     virtual QUuid getDomainUUID() const { assert(false); return QUuid(); }
+    virtual Node::LocalID getDomainLocalID() const { assert(false); return Node::NULL_LOCAL_ID; }
     virtual HifiSockAddr getDomainSockAddr() const { assert(false); return HifiSockAddr(); }
 
     // use sendUnreliablePacket to send an unreliable packet (that you do not need to move)
@@ -157,11 +160,12 @@ public:
     size_t size() const { QReadLocker readLock(&_nodeMutex); return _nodeHash.size(); }
 
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
+    SharedNodePointer nodeWithLocalID(Node::LocalID localID) const;
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                      bool isReplicated = false, bool isUpstream = false,
-                                      const QUuid& connectionSecret = QUuid(),
+                                      Node::LocalID localID = Node::NULL_LOCAL_ID, bool isReplicated = false,
+                                      bool isUpstream = false, const QUuid& connectionSecret = QUuid(),
                                       const NodePermissions& permissions = DEFAULT_AGENT_PERMISSIONS);
 
     static bool parseSTUNResponse(udt::BasePacket* packet, QHostAddress& newPublicAddress, uint16_t& newPublicPort);
@@ -430,6 +434,9 @@ private slots:
 private:
     mutable QReadWriteLock _sessionUUIDLock;
     QUuid _sessionUUID;
+    using LocalIDMapping = tbb::concurrent_unordered_map<Node::LocalID, SharedNodePointer>;
+    LocalIDMapping _localIDMap;
+    Node::LocalID _sessionLocalID { 0 };
 };
 
 #endif // hifi_LimitedNodeList_h

@@ -261,10 +261,9 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
     
     SharedNodePointer matchingNode;
     
-    if (!receivedMessage->getSourceID().isNull()) {
-        matchingNode = nodeList->nodeWithUUID(receivedMessage->getSourceID());
+    if (receivedMessage->getSourceID() != Node::NULL_LOCAL_ID) {
+        matchingNode = nodeList->nodeWithLocalID(receivedMessage->getSourceID());
     }
-    
     QMutexLocker packetListenerLocker(&_packetListenerLock);
     
     auto it = _messageListenerMap.find(receivedMessage->getType());
