@@ -2,7 +2,7 @@
 <resources>
     <color name="white_opaque">#ffffff</color>
     <color name="colorPrimary">@color/backgroundLight</color>
-    <color name="colorPrimaryDark">#000000</color>
+    <color name="colorPrimaryDark">@color/backgroundDark</color>
     <color name="colorAccent">#54D7FD</color>
     <color name="backgroundEditText">#E3E3E3</color>
     <color name="editTextColor">#575757</color>
@@ -15,5 +15,5 @@
     <color name="editTextHint">#9e9e9e</color>
     <color name="menuOption">#F2F2F2</color>
     <color name="colorLoginError">#FF7171</color>
-    <color name="domainTextBg">#7F000000</color>
+    <color name="black_060">#99000000</color>
 </resources>

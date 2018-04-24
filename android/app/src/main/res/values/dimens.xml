@@ -11,4 +11,5 @@
     <dimen name="text_size_subtitle_material_toolbar">12dp</dimen>
     <dimen name="button_horizontal_margin">12dp</dimen>
     <dimen name="edit_text_padding">8dp</dimen>
+    <dimen name="item_corner_radius">4dp</dimen>
 </resources>
