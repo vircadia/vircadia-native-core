@@ -48,10 +48,10 @@ protected:
     bool _isMenuSorted;
 
 protected slots:
-	/**jsdoc
-	* Delete 
-	* @function AvatarBookmarks.deleteBookmark
-	*/
+    /**jsdoc
+    *  Delete 
+    *  @function AvatarBookmarks.deleteBookmark
+    */
     void deleteBookmark();
 
 private:

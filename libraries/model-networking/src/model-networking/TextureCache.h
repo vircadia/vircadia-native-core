@@ -258,9 +258,9 @@ public:
     static const int DEFAULT_SPECTATOR_CAM_HEIGHT { 1024 };
 
 signals:
-	/**jsdoc 
+    /**jsdoc 
     * @function TextureCache.spectatorCameraFramebufferReset
-	* @returns {Signal}
+    * @returns {Signal}
     */
     void spectatorCameraFramebufferReset();
 

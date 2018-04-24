@@ -61,9 +61,9 @@ public:
 signals:
 
     /**jsdoc 
-	*  @function FaceTracker.muteToggled
+    *  @function FaceTracker.muteToggled
     *  @returns {Signal}
-	*/
+    */
 
     void muteToggled();
 
@@ -75,17 +75,17 @@ public slots:
     */
 
     virtual void setEnabled(bool enabled) = 0;
-	
-	/**jsdoc
-	*  @function FaceTracker.toggleMute
-	*/
+    
+    /**jsdoc
+    *  @function FaceTracker.toggleMute
+    */
 
     void toggleMute();
 
-	/**jsdoc
-	*  @function FaceTracker.getMuted
+    /**jsdoc
+    *  @function FaceTracker.getMuted
     *  @returns {boolean} 
-	*/
+    */
 
     bool getMuted() { return _isMuted; }
 

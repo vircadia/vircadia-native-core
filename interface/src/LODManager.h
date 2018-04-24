@@ -44,7 +44,7 @@ class LODManager : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-	 
+     
     /**jsdoc
     *  @function LODManager.setAutomaticLODAdjust
     *  @param {boolean} value
@@ -54,14 +54,14 @@ public:
 
     /**jsdoc
     *  @function LODManager.getAutomaticLODAdjust
-	*  @returns {boolean}
+    *  @returns {boolean}
     */
 
     Q_INVOKABLE bool getAutomaticLODAdjust() const { return _automaticLODAdjust; }
 
     /**jsdoc
     *  @function LODManager.setDesktopLODDecreaseFPS
-	*  @param {float} value
+    *  @param {float} value
     */
 
     Q_INVOKABLE void setDesktopLODDecreaseFPS(float value);
@@ -125,7 +125,7 @@ public:
 
     /**jsdoc
     *  @function LODManager.setBoundaryLevelAdjust
-	*  @param {number} boundaryLevelAdjust
+    *  @param {number} boundaryLevelAdjust
     */
 
     Q_INVOKABLE void setBoundaryLevelAdjust(int boundaryLevelAdjust);
@@ -152,8 +152,8 @@ public:
     Q_INVOKABLE float getLODIncreaseFPS() const;
 
     /**jsdoc
-	*  @namespace LODManager
-	*  @property presentTime {number}
+    *  @namespace LODManager
+    *  @property presentTime {number}
     *  @property engineRunTime {number}
     *  @property gpuTime {number}
     *  @property avgRenderTime {number}

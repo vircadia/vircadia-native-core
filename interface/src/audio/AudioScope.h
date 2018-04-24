@@ -25,10 +25,10 @@ class AudioScope : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
     
-	/**jsdoc
-	*  The AudioScope API helps control the Audio Scope features in Interface
-	*  @namespace AudioScope
-	*  @property {int} scopeInput
+    /**jsdoc
+    *  The AudioScope API helps control the Audio Scope features in Interface
+    *  @namespace AudioScope
+    *  @property {int} scopeInput
     *  @property {int} scopeOutputLeft
     *  @property {int} scopeOutputRight
     *  @property {int} triggerInput
@@ -52,15 +52,15 @@ public:
     
 public slots:
 
-	/**jsdoc
-	*  @function AudioScope.toggle
-	*/
+    /**jsdoc
+    *  @function AudioScope.toggle
+    */
 
     void toggle() { setVisible(!_isEnabled); }
-	 
+     
     /**jsdoc
     *  @function AudioScope.setVisible
-	*  @param {boolean} visible
+    *  @param {boolean} visible
     */
 
     void setVisible(bool visible);
@@ -68,7 +68,7 @@ public slots:
     /**jsdoc
     *  @function AudioScope.getVisible
     *  @param {boolean} visible
-	*  @returns {boolean} 
+    *  @returns {boolean} 
     */
 
     bool getVisible() const { return _isEnabled; }
@@ -88,7 +88,7 @@ public slots:
 
     /**jsdoc
     *  @function AudioScope.getPause
-	*  @returns {boolean}
+    *  @returns {boolean}
     */
 
     bool getPause() { return _isPaused; }
@@ -101,14 +101,14 @@ public slots:
 
     /**jsdoc
     *  @function AudioScope.getAutoTrigger
-	*  @returns {boolean}
+    *  @returns {boolean}
     */
 
     bool getAutoTrigger() { return _autoTrigger; }
 
     /**jsdoc
     *  @function AudioScope.setAutoTrigger
-	*  @param {boolean} autoTrigger 
+    *  @param {boolean} autoTrigger 
     */
 
     void setAutoTrigger(bool autoTrigger) { _isTriggered = false; _autoTrigger = autoTrigger; }
@@ -169,7 +169,7 @@ public slots:
 
     /**jsdoc
     *  @function AudioScope.getScopeInput
-	*  @returns {number} 
+    *  @returns {number} 
     */
 
     QVector<int> getScopeInput() { return _scopeInputData; };
@@ -227,7 +227,7 @@ signals:
 
     /**jsdoc
     *  @function AudioScope.pauseChanged
-	*  @returns {Signal}
+    *  @returns {Signal}
     */
 
     void pauseChanged();

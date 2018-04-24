@@ -63,9 +63,9 @@ public:
 
 public slots:
 
-	/**jsdoc 
+    /**jsdoc 
     *  @function FaceTracker.setEnabled
-	*  @param {boolean} enabled
+    *  @param {boolean} enabled
     */
 
     void setEnabled(bool enabled) override;

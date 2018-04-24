@@ -86,7 +86,7 @@ public:
 
     Q_INVOKABLE void setReverb(bool enable);
     
-	/**jsdoc
+    /**jsdoc
     *  @function Audio.setReverbOptions
     *  @param {} options
     */
@@ -94,21 +94,20 @@ public:
     Q_INVOKABLE void setReverbOptions(const AudioEffectOptions* options);
    
     /**jsdoc
-    * @function Audio.setReverbOptions
-    * @param {string} filename
+    *  @function Audio.setReverbOptions
+    *  @param {string} filename
     */
 
     Q_INVOKABLE bool startRecording(const QString& filename);
     
     /**jsdoc
-    * @function Audio.stopRecording
+    *  @function Audio.stopRecording
     */
 
     Q_INVOKABLE void stopRecording();
 
     /**jsdoc
-    * To Be Completed
-    * @function Audio.getRecording
+    *  @function Audio.getRecording
     */
 
     Q_INVOKABLE bool getRecording();

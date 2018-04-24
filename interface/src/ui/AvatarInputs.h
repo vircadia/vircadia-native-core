@@ -23,14 +23,14 @@ class AvatarInputs : public QObject {
     Q_OBJECT
     HIFI_QML_DECL
 
-	/**jsdoc 
+    /**jsdoc 
     *  API to help manage your Avatar's input
-	*  @namespace AvatarInputs
-	*  @param {boolean} cameraEnabled
+    *  @namespace AvatarInputs
+    *  @param {boolean} cameraEnabled
     *  @param {boolean} cameraMuted
     *  @param {boolean} isHMD
     *  @param {boolean} showAudioTools
-	*/
+    */
 
     AI_PROPERTY(bool, cameraEnabled, false)
     AI_PROPERTY(bool, cameraMuted, false)
@@ -44,7 +44,7 @@ public:
     /**jsdoc
     *  @function AvatarInputs.loudnessToAudioLevel
     *  @param {number} loudness
-	*  @returns {number}
+    *  @returns {number}
     */
 
     Q_INVOKABLE float loudnessToAudioLevel(float loudness);
@@ -54,10 +54,10 @@ public:
 
 public slots:
 
-	/**jsdoc
-	*  @function AvatarInputs.setShowAudioTools
-	*  @param {boolean} showAudioTools
-	*/
+    /**jsdoc
+    *  @function AvatarInputs.setShowAudioTools
+    *  @param {boolean} showAudioTools
+    */
 
     void setShowAudioTools(bool showAudioTools);
 
@@ -65,7 +65,7 @@ signals:
 
     /**jsdoc
     *  @function AvatarInputs.cameraEnabledChanged
-	*  @returns {Signal}
+    *  @returns {Signal}
     */
 
     void cameraEnabledChanged();
@@ -86,7 +86,7 @@ signals:
 
     /**jsdoc
     *  @function AvatarInputs.showAudioToolsChanged
-	*  @param {boolean} show
+    *  @param {boolean} show
     *  @returns {Signal}
     */
 

@@ -49,18 +49,18 @@ public:
     int size() { return _avatarHash.size(); }
 
     // Currently, your own avatar will be included as the null avatar id.
-	
+    
     /**jsdoc
-	*  @function AvatarHashMap.getAvatarIdentifiers
+    *  @function AvatarHashMap.getAvatarIdentifiers
     */
 
     Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
 
     /**jsdoc
     *  @function AvatarHashMap.getAvatarsInRange
-	*  @param {Vec3} position
+    *  @param {Vec3} position
     *  @param {float} rangeMeters
-	*  @returns {string[]} 
+    *  @returns {string[]} 
     */
 
     Q_INVOKABLE QVector<QUuid> getAvatarsInRange(const glm::vec3& position, float rangeMeters) const;
@@ -68,7 +68,7 @@ public:
     /**jsdoc
     *  @function AvatarHashMap.getAvatar
     *  @param {string} avatarID
-	*  @returns {ScriptAvatarData} 
+    *  @returns {ScriptAvatarData} 
     */
 
     // Null/Default-constructed QUuids will return MyAvatar
@@ -82,7 +82,7 @@ signals:
     /**jsdoc
     *  @function AvatarHashMap.avatarAddedEvent
     *  @param {string} sessionUUID
-	*  @returns {Signal}
+    *  @returns {Signal}
     */
 
     void avatarAddedEvent(const QUuid& sessionUUID);
@@ -117,11 +117,11 @@ public slots:
 
 protected slots:
 
-	/**jsdoc
-	*  @function AvatarHashMap.sessionUUIDChanged
-	*  @param {string} sessionUUID
-	*  @param {string} oldUUID
-	*/
+    /**jsdoc
+    *  @function AvatarHashMap.sessionUUIDChanged
+    *  @param {string} sessionUUID
+    *  @param {string} oldUUID
+    */
 
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
 

@@ -117,10 +117,10 @@ public:
     std::shared_ptr<MyAvatar> getMyAvatar() { return _myAvatar; }
     glm::vec3 getMyAvatarPosition() const { return _myAvatar->getWorldPosition(); }
 
-	/**jsdoc 
+    /**jsdoc 
     *  @function AvatarManager.getAvatar
-	*  @param {string} avatarID
-	*  @returns {}
+    *  @param {string} avatarID
+    *  @returns {}
     */
 
     // Null/Default-constructed QUuids will return MyAvatar
@@ -207,9 +207,9 @@ public:
     Q_INVOKABLE float getAvatarSortCoefficient(const QString& name);
    
     /**jsdoc
-    * @function AvatarManager.setAvatarSortCoefficient
-    * @param {string} name
-    * @param {string} value
+    *  @function AvatarManager.setAvatarSortCoefficient
+    *  @param {string} name
+    *  @param {string} value
     */
 
     Q_INVOKABLE void setAvatarSortCoefficient(const QString& name, const QScriptValue& value);
@@ -218,10 +218,10 @@ public:
 
 public slots:
 
-	/**jsdoc
-	*  @function AvatarManager.updateAvatarRenderStatus
-	*  @param {boolean} shouldRenderAvatars
-	*/
+    /**jsdoc
+    *  @function AvatarManager.updateAvatarRenderStatus
+    *  @param {boolean} shouldRenderAvatars
+    */
 
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
 

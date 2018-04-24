@@ -35,7 +35,7 @@ class AnimationCache : public ResourceCache, public Dependency  {
     SINGLETON_DEPENDENCY
 
 public:
-	// Copied over from ResourceCache (see ResourceCache.h for reason)
+    // Copied over from ResourceCache (see ResourceCache.h for reason)
 
     /**jsdoc
     *  @namespace AnimationCache
@@ -82,7 +82,7 @@ public:
     *  @function AnimationCache.getResource
     *  @returns {Resource}
     */
-	
+    
     /**jsdoc
     *  Prefetches a resource.
     *  @param url {string} url of resource to load

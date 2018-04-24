@@ -59,10 +59,10 @@ public:
     
 public slots:
 
-	/**jsdoc
-	*  @function AccountServices.getDownloadInfo
-	*  @returns {DownloadInfoResult}
-	*/
+    /**jsdoc
+    *  @function AccountServices.getDownloadInfo
+    *  @returns {DownloadInfoResult}
+    */
 
     DownloadInfoResult getDownloadInfo();
 

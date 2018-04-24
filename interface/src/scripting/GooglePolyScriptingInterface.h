@@ -28,9 +28,9 @@ public:
 
 public slots:
 
-	/**jsdoc
-	*  @function GooglePoly.setAPIKey
-	*  @param {string} key
+    /**jsdoc
+    *  @function GooglePoly.setAPIKey
+    *  @param {string} key
     */
 
     void setAPIKey(const QString& key);
@@ -40,7 +40,7 @@ public slots:
     *  @param {string} keyword
     *  @param {string} category
     *  @param {string} format
-	*  @returns {string}
+    *  @returns {string}
     */
 
     QString getAssetList(const QString& keyword, const QString& category, const QString& format);
