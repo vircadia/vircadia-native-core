@@ -67,7 +67,6 @@ OffscreenSurface::OffscreenSurface()
 
 OffscreenSurface::~OffscreenSurface() {
     delete _sharedObject;
-    const_cast<SharedObject*>(_sharedObject) = nullptr;
 }
 
 bool OffscreenSurface::fetchTexture(TextureAndFence& textureAndFence) {
