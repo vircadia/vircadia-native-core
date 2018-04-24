@@ -3,7 +3,7 @@
     var GRID_WORLD_SIZE = 100.0;
     var GRID_WORLD_MARGIN = 5.0;
     var GRID_WORLD_RESOLUTION = 30.0;
-    var GRID_WORLD_DROP_HEIGHT = 5.0;
+    var GRID_WORLD_DROP_HEIGHT = 4.0;
 
     var GRID_SIZE = GRID_WORLD_RESOLUTION;
     var GRID_HALFSIZE = GRID_SIZE *0.5;
@@ -17,7 +17,8 @@
 
     var GRID_DROP_C = GRID_WORLD_DROP_HEIGHT / TILE_UNIT;
 
-    function updateWorldResolution(res) {
+    function updateWorldSizeAndResolution(size, res) {
+        GRID_WORLD_SIZE = size
         GRID_WORLD_RESOLUTION = res;
 
         GRID_SIZE = GRID_WORLD_RESOLUTION;
@@ -33,6 +34,7 @@
     }
 
     var OBJECT_DIM = { x: 0.5, y: 0.5, z: 0.5};
+    var CONE_DIM = { x: 0.3104, y: 0.3336, z: 0.3104};
     var OBJECT_SPIN = { x: 0.5, y: 0.5, z: 0.5};
 
 var shapeTypes = [
@@ -52,29 +54,49 @@ function getTileColor(a, b, c) {
 }
 
 function addObject(a, b, c, lifetime) {
-    var center = getStagePosOriAt(a, b, c).pos;                                         
-    
-    
+    var center = getStagePosOriAt(a, b, c).pos;
+    var offset = (Math.abs(a) + (Math.abs(b) % 2)) %  2;                                         
+    var makePrim = (offset > 0 ? true : false) ;
+    if (makePrim) {
+        return (Entities.addEntity({
+            type: "Shape",
+            shape: "Sphere",
+            name: "object-" + a + b + c,
+            color: getTileColor(a, b, c),
+            position: center,    
+            rotation: stageOrientation,    
+            dimensions: OBJECT_DIM,
+            lifetime: (lifetime === undefined) ? DEFAULT_LIFETIME : lifetime,
+            shapeType:shapeTypes[2],
+            dynamic: true,
+            gravity:{"x":0,"y":-9.8,"z":0},
+            velocity:{"x":0,"y":0.02,"z":0},
+            angularVelocity:OBJECT_SPIN,
+            restitution:0.70,
+            friction:0.01,
+            damping:0.001,
 
-    return (Entities.addEntity({
-        type: "Shape",
-        shape: "Sphere",
-        name: "Backdrop",
-        color: getTileColor(a, b, c),
-        position: center,    
-        rotation: stageOrientation,    
-        dimensions: OBJECT_DIM,
-        lifetime: (lifetime === undefined) ? DEFAULT_LIFETIME : lifetime,
-        shapeType:shapeTypes[2],
-        dynamic: true,
-        gravity:{"x":0,"y":-9.8,"z":0},
-        velocity:{"x":0,"y":0.02,"z":0},
-        angularVelocity:OBJECT_SPIN,
-        restitution:0.70,
-        friction:0.01,
-        damping:0.001,
+        }));
+    } else {
+        return (Entities.addEntity({
+            type: "Model",
+            name: "object-" + a + b + c,
+            position: center,    
+            rotation: stageOrientation,    
+            dimensions: OBJECT_DIM,
+            lifetime: (lifetime === undefined) ? DEFAULT_LIFETIME : lifetime,
+            modelURL: "https://hifi-content.s3.amazonaws.com/jimi/props/cones/trafficCone.fbx",
+            shapeType:shapeTypes[4],
+            dynamic: true,
+            gravity:{"x":0,"y":-9.8,"z":0},
+            velocity:{"x":0,"y":0.02,"z":0},
+            angularVelocity:OBJECT_SPIN,
+            restitution:0.70,
+            friction:0.01,
+            damping:0.01,
 
-    }));
+        }));        
+    }
 }
 
 function addObjectGrid(backdrop, lifetime) {
@@ -155,8 +177,8 @@ function addZone(hasKeyLight, hasAmbient, lifetime) {
 
 function addTestScene(name, lifetime) {
     var scene = [];
-    scene.push(addFloor(lifetime));
-    scene.push(addZone(true, true,  lifetime));
+   // scene.push(addFloor(lifetime));
+  //  scene.push(addZone(true, true,  lifetime));
 
     addObjectGrid(scene, lifetime);
     
@@ -213,12 +235,21 @@ clearScene = function() {
 }
 
 changeResolution = function(res) {
-    updateWorldResolution(res);
+    updateWorldSizeAndResolution(GRID_WORLD_SIZE, res);
 }
 
 getResolution = function() {
     return GRID_WORLD_RESOLUTION;
 }
+
+changeSize = function(size) {
+    updateWorldSizeAndResolution(size, GRID_WORLD_RESOLUTION);
+}
+
+getSize = function() {
+    return GRID_WORLD_SIZE;
+}
+
 
 getNumObjects = function() {
     return GRID_SIZE * GRID_SIZE;

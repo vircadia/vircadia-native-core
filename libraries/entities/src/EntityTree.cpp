@@ -1822,6 +1822,7 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
 
 void EntityTree::update(bool simulate) {
     PROFILE_RANGE(simulation_physics, "UpdateTree");
+    PerformanceTimer perfTimer("UpdateTreen");
     withWriteLock([&] {
         fixupNeedsParentFixups();
         if (simulate && _simulation) {
@@ -2293,7 +2294,10 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
         if (args->otherTree) {
             args->otherTree->withWriteLock([&] {
                 EntityItemPointer entity = args->otherTree->addEntity(newID, properties);
-                entity->deserializeActions();
+                if (entity) {
+                    entity->deserializeActions();
+                }
+                // else: there was an error adding this entity
             });
         }
         return newID;

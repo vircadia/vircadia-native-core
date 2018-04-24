@@ -18,12 +18,12 @@
 
 <$declareStandardTransform()$>
 
-out vec4 _worldPosition;
+out vec4 _positionWS;
 
 void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
-    <$transformModelToWorldPos(obj, inPosition, _worldPosition)$>
+    <$transformModelToWorldPos(obj, inPosition, _positionWS)$>
 }

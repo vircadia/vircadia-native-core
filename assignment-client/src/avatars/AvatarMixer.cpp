@@ -74,7 +74,7 @@ SharedNodePointer addOrUpdateReplicatedNode(const QUuid& nodeID, const HifiSockA
     auto replicatedNode = DependencyManager::get<NodeList>()->addOrUpdateNode(nodeID, NodeType::Agent,
                                                                               senderSockAddr,
                                                                               senderSockAddr,
-                                                                              true, true);
+                                                                              Node::NULL_LOCAL_ID, true, true);
 
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
 
@@ -112,8 +112,8 @@ void AvatarMixer::handleReplicatedPacket(QSharedPointer<ReceivedMessage> message
 void AvatarMixer::handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessage> message) {
     while (message->getBytesLeftToRead()) {
         // first, grab the node ID for this replicated avatar
+        // Node ID is now part of user data, since ReplicatedBulkAvatarPacket is non-sourced.
         auto nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-
         // make sure we have an upstream replicated node that matches
         auto replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
 
@@ -127,7 +127,7 @@ void AvatarMixer::handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessag
         // construct a "fake" avatar data received message from the byte array and packet list information
         auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(avatarByteArray, PacketType::AvatarData,
                                                                          versionForPacketType(PacketType::AvatarData),
-                                                                         message->getSenderSockAddr(), nodeID);
+                                                                         message->getSenderSockAddr(), Node::NULL_LOCAL_ID);
 
         // queue up the replicated avatar data with the client data for the replicated node
         auto start = usecTimestampNow();

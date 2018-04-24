@@ -688,6 +688,34 @@ private:
     }
 };
 
+/**jsdoc
+ * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property 
+ * values are integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or 
+ * <code>Controller.Standard</code> items in a {@link RouteObject} mapping (e.g., using the {@link RouteObject#when} method).
+ * Each data value is either <code>1.0</code> for "true" or <code>0.0</code> for "false".</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Property</th><th>Type</th><th>Data</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>CameraFirstPerson</code></td><td>number</td><td>number</td><td>The camera is in first-person mode.
+ *       </td></tr>
+ *     <tr><td><code>CameraThirdPerson</code></td><td>number</td><td>number</td><td>The camera is in third-person mode.
+ *       </td></tr>
+ *     <tr><td><code>CameraFSM</code></td><td>number</td><td>number</td><td>The camera is in full screen mirror mode.</td></tr>
+ *     <tr><td><code>CameraIndependent</code></td><td>number</td><td>number</td><td>The camera is in independent mode.</td></tr>
+ *     <tr><td><code>CameraEntity</code></td><td>number</td><td>number</td><td>The camera is in entity mode.</td></tr>
+ *     <tr><td><code>InHMD</code></td><td>number</td><td>number</td><td>The user is in HMD mode.</td></tr>
+ *     <tr><td><code>AdvancedMovement</code></td><td>number</td><td>number</td><td>Advanced movement controls are enabled.
+ *       </td></tr>
+ *     <tr><td><code>SnapTurn</code></td><td>number</td><td>number</td><td>Snap turn is enabled.</td></tr>
+ *     <tr><td><code>Grounded</code></td><td>number</td><td>number</td><td>The user's avatar is on the ground.</td></tr>
+ *     <tr><td><code>NavigationFocused</code></td><td>number</td><td>number</td><td><em>Not used.</em></td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef Controller.Hardware-Application
+ */
+
 static const QString STATE_IN_HMD = "InHMD";
 static const QString STATE_CAMERA_FULL_SCREEN_MIRROR = "CameraFSM";
 static const QString STATE_CAMERA_FIRST_PERSON = "CameraFirstPerson";
@@ -2656,6 +2684,12 @@ void Application::initializeUi() {
     // Now that the menu is instantiated, ensure the display plugin menu is properly updated
     updateDisplayMode();
     flushMenuUpdates();
+
+    // The display plugins are created before the menu now, so we need to do this here to hide the menu bar
+    // now that it exists
+    if (_window && _window->isFullScreen()) {
+        setFullscreen(nullptr, true);
+    }
 }
 
 
@@ -4296,6 +4330,8 @@ void Application::idle() {
     }
 
     {
+      //  workload::Timings timings(1, PerformanceTimer::getTimerRecord("/idle/update/simulation").getAverage());
+     //   _gameWorkload.updateSimulationTimings(timings);
         _gameWorkload.updateViews(_viewFrustum, getMyAvatar()->getHeadPosition());
         _gameWorkload._engine->run();
     }
@@ -4717,7 +4753,7 @@ void Application::updateLOD(float deltaTime) const {
     }
 }
 
-void Application::pushPostUpdateLambda(void* key, std::function<void()> func) {
+void Application::pushPostUpdateLambda(void* key, const std::function<void()>& func) {
     std::unique_lock<std::mutex> guard(_postUpdateLambdasLock);
     _postUpdateLambdas[key] = func;
 }
@@ -5276,7 +5312,9 @@ void Application::update(float deltaTime) {
     {
         PROFILE_RANGE(simulation_physics, "Simulation");
         PerformanceTimer perfTimer("simulation");
+
         if (_physicsEnabled) {
+            auto t0 = std::chrono::high_resolution_clock::now();
             {
                 PROFILE_RANGE(simulation_physics, "PrePhysics");
                 PerformanceTimer perfTimer("prePhysics)");
@@ -5364,12 +5402,21 @@ void Application::update(float deltaTime) {
                         // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
                         _physicsEngine->dumpStatsIfNecessary();
                     }
+                    auto t1 = std::chrono::high_resolution_clock::now();
 
                     if (!_aboutToQuit) {
                         // NOTE: the getEntities()->update() call below will wait for lock
                         // and will provide non-physical entity motion
                         getEntities()->update(true); // update the models...
                     }
+
+                    auto t2 = std::chrono::high_resolution_clock::now();
+
+                    workload::Timings timings(2);
+                    timings[0] = (t1 - t0);
+                    timings[1] = (t2 - t1);
+                    _gameWorkload.updateSimulationTimings(timings);
+
                 }
             }
         } else {
@@ -7330,12 +7377,21 @@ void Application::windowMinimizedChanged(bool minimized) {
     }
 }
 
-void Application::postLambdaEvent(std::function<void()> f) {
+void Application::postLambdaEvent(const std::function<void()>& f) {
     if (this->thread() == QThread::currentThread()) {
         f();
     } else {
         QCoreApplication::postEvent(this, new LambdaEvent(f));
     }
+}
+
+void Application::sendLambdaEvent(const std::function<void()>& f) {
+    if (this->thread() == QThread::currentThread()) {
+        f();
+    } else {
+        LambdaEvent event(f);
+        QCoreApplication::sendEvent(this, &event);
+    } 
 }
 
 void Application::initPlugins(const QStringList& arguments) {

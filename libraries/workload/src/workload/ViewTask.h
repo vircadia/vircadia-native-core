@@ -25,6 +25,9 @@ namespace workload {
         Q_PROPERTY(bool freezeViews READ getFreezeView WRITE setFreezeView NOTIFY dirty)
         Q_PROPERTY(bool useAvatarView READ useAvatarView WRITE setUseAvatarView NOTIFY dirty)
         Q_PROPERTY(bool forceViewHorizontal READ forceViewHorizontal WRITE setForceViewHorizontal NOTIFY dirty)
+
+        Q_PROPERTY(bool simulateSecondaryCamera READ simulateSecondaryCamera WRITE setSimulateSecondaryCamera NOTIFY dirty)
+
     public:
 
 
@@ -49,6 +52,9 @@ namespace workload {
         bool forceViewHorizontal() const { return data.forceViewHorizontal; }
         void setForceViewHorizontal(bool use) { data.forceViewHorizontal = use; emit dirty(); }
 
+        bool simulateSecondaryCamera() const { return data.simulateSecondaryCamera; }
+        void setSimulateSecondaryCamera(bool use) { data.simulateSecondaryCamera = use; emit dirty(); }
+
         struct Data {
             float r1Back { 2.0f };
             float r1Front { 10.0f };
@@ -62,6 +68,7 @@ namespace workload {
             bool freezeViews{ false };
             bool useAvatarView{ false };
             bool forceViewHorizontal{ false };
+            bool simulateSecondaryCamera{ false };
         } data;
 
     signals:
@@ -72,14 +79,23 @@ namespace workload {
     public:
         using Config = SetupViewsConfig;
         using Input = Views;
-        using JobModel = Job::ModelI<SetupViews, Input, Config>;
+        using Output = Views;
+        using JobModel = Job::ModelIO<SetupViews, Input, Output, Config>;
 
         void configure(const Config& config);
-        void run(const workload::WorkloadContextPointer& renderContext, const Input& inputs);
+        void run(const workload::WorkloadContextPointer& renderContext, const Input& inputs, Output& outputs);
 
     protected:
         Config::Data data;
         Views _views;
+    };
+
+    class AssignSpaceViews {
+    public:
+        using Input = Views;
+        using JobModel = Job::ModelI<AssignSpaceViews, Input>;
+
+        void run(const workload::WorkloadContextPointer& renderContext, const Input& inputs);
     };
 
 } // namespace workload

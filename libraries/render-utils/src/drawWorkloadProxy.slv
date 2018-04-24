@@ -88,4 +88,8 @@ void main(void) {
     region = (0x000000FF & region);
 
     varColor = vec4(colorWheel(float(region) / 4.0), proxy.sphere.w);
+
+    if (region == 4) {
+        gl_Position = vec4(0.0);
+    }
 }
