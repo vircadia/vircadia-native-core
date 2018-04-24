@@ -35,13 +35,14 @@ import io.highfidelity.hifiinterface.fragment.GotoFragment;
 import io.highfidelity.hifiinterface.fragment.HomeFragment;
 import io.highfidelity.hifiinterface.fragment.LoginFragment;
 import io.highfidelity.hifiinterface.fragment.PolicyFragment;
+import io.highfidelity.hifiinterface.task.DownloadProfileImageTask;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
                                                                 LoginFragment.OnLoginInteractionListener,
                                                                 HomeFragment.OnHomeInteractionListener,
                                                                 GotoFragment.OnGotoInteractionListener {
 
-    private static final int PROFILE_PICTURE_PLACEHOLDER = R.drawable.ic_person;
+    private static final int PROFILE_PICTURE_PLACEHOLDER = R.drawable.default_profile_avatar;
     private String TAG = "HighFidelity";
 
     public native boolean nativeIsLoggedIn();
@@ -234,36 +235,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      * TODO: this should be get from an API (at the moment there is no one for this)
      */
     private void updateProfilePicture(String username) {
-        Picasso.get().load(PROFILE_PICTURE_PLACEHOLDER).into(mProfilePicture);
-
-        new Thread(() -> {
-            try {
-                URL userPage = new URL("https://highfidelity.com/users/" + username);
-                BufferedReader in = new BufferedReader(
-                        new InputStreamReader(
-                                userPage.openStream()));
-
-                StringBuffer strBuff = new StringBuffer();
-                String inputLine;
-                while ((inputLine = in.readLine()) != null) {
-                    strBuff.append(inputLine);
-                }
-                in.close();
-                String substr = "img class=\"users-img\" src=\"";
-                int indexBegin = strBuff.indexOf(substr) +  substr.length();
-                if (indexBegin >= substr.length()) {
-                    int indexEnd = strBuff.indexOf("\"", indexBegin);
-                    runOnUiThread(() -> {
-                        if (indexEnd > 0) {
-                            Picasso.get().load(strBuff.substring(indexBegin, indexEnd)).into(mProfilePicture, new RoundProfilePictureCallback());
-                        }
-                    });
-                }
-            } catch (IOException e) {
-                Log.e(TAG, "Error getting profile picture for username " + username);
-            }
-        }).start();
-
+        mProfilePicture.setImageResource(PROFILE_PICTURE_PLACEHOLDER);
+        new DownloadProfileImageTask(url ->  { if (url!=null && !url.isEmpty()) {
+                Picasso.get().load(url).into(mProfilePicture, new RoundProfilePictureCallback());
+            } } ).execute(username);
     }
 
     public void onPrivacyPolicyClicked(View view) {
