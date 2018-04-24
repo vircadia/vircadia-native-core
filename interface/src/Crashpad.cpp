@@ -39,16 +39,17 @@ static const std::string BACKTRACE_TOKEN { CMAKE_BACKTRACE_TOKEN };
 
 extern QString qAppFileName();
 
+CrashpadClient* client { nullptr };
 std::mutex annotationMutex;
 crashpad::SimpleStringDictionary* crashpadAnnotations { nullptr };
 
-
-std::unique_ptr<CrashpadClient> client;
-
 LONG WINAPI vectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
+    if (!client) {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+
     if (pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_HEAP_CORRUPTION ||
         pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_STACK_BUFFER_OVERRUN) {
-        assert(client);
         client->DumpAndCrash(pExceptionInfo);
     }
 
@@ -60,7 +61,8 @@ bool startCrashHandler() {
         return false;
     }
 
-    client.reset(new CrashpadClient());
+    assert(!client);
+    client = new CrashpadClient();
     std::vector<std::string> arguments;
 
     std::map<std::string, std::string> annotations;
