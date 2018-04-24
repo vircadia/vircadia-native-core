@@ -11,6 +11,8 @@
 
 #include "Crashpad.h"
 
+#include <assert.h>
+
 #include <QDebug>
 
 #if HAS_CRASHPAD
@@ -20,7 +22,7 @@
 #include <QStandardPaths>
 #include <QDir>
 
-#include <BuildInfo.h>
+#include <Windows.h>
 
 #include <client/crashpad_client.h>
 #include <client/crash_report_database.h>
@@ -28,28 +30,26 @@
 #include <client/annotation_list.h>
 #include <client/crashpad_info.h>
 
+#include <BuildInfo.h>
+
 using namespace crashpad;
 
 static const std::string BACKTRACE_URL { CMAKE_BACKTRACE_URL };
 static const std::string BACKTRACE_TOKEN { CMAKE_BACKTRACE_TOKEN };
-
-static std::wstring gIPCPipe;
 
 extern QString qAppFileName();
 
 std::mutex annotationMutex;
 crashpad::SimpleStringDictionary* crashpadAnnotations { nullptr };
 
-#include <Windows.h>
+
+std::unique_ptr<CrashpadClient> client;
 
 LONG WINAPI vectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
     if (pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_HEAP_CORRUPTION ||
         pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_STACK_BUFFER_OVERRUN) {
-        CrashpadClient client;
-        if (gIPCPipe.length()) {
-            client.SetHandlerIPCPipe(gIPCPipe);
-        }
-        client.DumpAndCrash(pExceptionInfo);
+        assert(client);
+        client->DumpAndCrash(pExceptionInfo);
     }
 
     return EXCEPTION_CONTINUE_SEARCH;
@@ -60,7 +60,7 @@ bool startCrashHandler() {
         return false;
     }
 
-    CrashpadClient client;
+    client.reset(new CrashpadClient());
     std::vector<std::string> arguments;
 
     std::map<std::string, std::string> annotations;
@@ -96,12 +96,9 @@ bool startCrashHandler() {
     // Enable automated uploads.
     database->GetSettings()->SetUploadsEnabled(true);
 
-    bool result = client.StartHandler(handler, db, db, BACKTRACE_URL, annotations, arguments, true, true);
-    gIPCPipe = client.GetHandlerIPCPipe();
-
     AddVectoredExceptionHandler(0, vectoredExceptionHandler);
 
-    return result;
+    return client->StartHandler(handler, db, db, BACKTRACE_URL, annotations, arguments, true, true);
 }
 
 void setCrashAnnotation(std::string name, std::string value) {
