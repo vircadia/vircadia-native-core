@@ -22,7 +22,6 @@
 <@include Fade.slh@>
 <$declareFadeFragment()$>
 
-in vec4 _positionES;
 in vec2 _texCoord0;
 in vec2 _texCoord1;
 in vec3 _normalWS;

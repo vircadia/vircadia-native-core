@@ -50,110 +50,162 @@ float Audio::loudnessToLevel(float loudness) {
 
 Audio::Audio() : _devices(_contextIsHMD) {
     auto client = DependencyManager::get<AudioClient>().data();
-    connect(client, &AudioClient::muteToggled, this, &Audio::onMutedChanged);
-    connect(client, &AudioClient::noiseReductionChanged, this, &Audio::onNoiseReductionChanged);
+    connect(client, &AudioClient::muteToggled, this, &Audio::setMuted);
+    connect(client, &AudioClient::noiseReductionChanged, this, &Audio::enableNoiseReduction);
     connect(client, &AudioClient::inputLoudnessChanged, this, &Audio::onInputLoudnessChanged);
-    connect(client, &AudioClient::inputVolumeChanged, this, &Audio::onInputVolumeChanged);
+    connect(client, &AudioClient::inputVolumeChanged, this, &Audio::setInputVolume);
     connect(this, &Audio::contextChanged, &_devices, &AudioDevices::onContextChanged);
     enableNoiseReduction(enableNoiseReductionSetting.get());
 }
 
 bool Audio::startRecording(const QString& filepath) {
     auto client = DependencyManager::get<AudioClient>().data();
-    return client->startRecording(filepath);
+    return resultWithWriteLock<bool>([&] {
+        return client->startRecording(filepath);
+    });
 }
 
 bool Audio::getRecording() {
     auto client = DependencyManager::get<AudioClient>().data();
-    return client->getRecording();
+    return resultWithReadLock<bool>([&] {
+        return client->getRecording();
+    });
 }
 
 void Audio::stopRecording() {
     auto client = DependencyManager::get<AudioClient>().data();
-    client->stopRecording();
+    withWriteLock([&] {
+        client->stopRecording();
+    });
+}
+
+bool Audio::isMuted() const {
+    return resultWithReadLock<bool>([&] {
+        return _isMuted;
+    });
 }
 
 void Audio::setMuted(bool isMuted) {
-    if (_isMuted != isMuted) {
-        auto client = DependencyManager::get<AudioClient>().data();
-        QMetaObject::invokeMethod(client, "toggleMute");
+    bool changed = false;
+    withWriteLock([&] {
+        if (_isMuted != isMuted) {
+            _isMuted = isMuted;
+            auto client = DependencyManager::get<AudioClient>().data();
+            QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted), Q_ARG(bool, false));
+            changed = true;
+        }
+    });
+    if (changed) {
+        emit mutedChanged(isMuted);
     }
 }
 
-void Audio::onMutedChanged() {
-    bool isMuted = DependencyManager::get<AudioClient>()->isMuted();
-    if (_isMuted != isMuted) {
-        _isMuted = isMuted;
-        emit mutedChanged(_isMuted);
-    }
+bool Audio::noiseReductionEnabled() const {
+    return resultWithReadLock<bool>([&] {
+        return _enableNoiseReduction;
+    });
 }
 
 void Audio::enableNoiseReduction(bool enable) {
-    if (_enableNoiseReduction != enable) {
-        auto client = DependencyManager::get<AudioClient>().data();
-        QMetaObject::invokeMethod(client, "setNoiseReduction", Q_ARG(bool, enable));
-        enableNoiseReductionSetting.set(enable);
+    bool changed = false;
+    withWriteLock([&] {
+        if (_enableNoiseReduction != enable) {
+            _enableNoiseReduction = enable;
+            auto client = DependencyManager::get<AudioClient>().data();
+            QMetaObject::invokeMethod(client, "setNoiseReduction", Q_ARG(bool, enable), Q_ARG(bool, false));
+            enableNoiseReductionSetting.set(enable);
+            changed = true;
+        }
+    });
+    if (changed) {
+        emit noiseReductionChanged(enable);
     }
 }
 
-void Audio::onNoiseReductionChanged() {
-    bool noiseReductionEnabled = DependencyManager::get<AudioClient>()->isNoiseReductionEnabled();
-    if (_enableNoiseReduction != noiseReductionEnabled) {
-        _enableNoiseReduction = noiseReductionEnabled;
-        emit noiseReductionChanged(_enableNoiseReduction);
-    }
+float Audio::getInputVolume() const {
+    return resultWithReadLock<bool>([&] {
+        return _inputVolume;
+    });
 }
 
 void Audio::setInputVolume(float volume) {
     // getInputVolume will not reflect changes synchronously, so clamp beforehand
     volume = glm::clamp(volume, 0.0f, 1.0f);
 
-    if (_inputVolume != volume) {
-        auto client = DependencyManager::get<AudioClient>().data();
-        QMetaObject::invokeMethod(client, "setInputVolume", Q_ARG(float, volume));
+    bool changed = false;
+    withWriteLock([&] {
+        if (_inputVolume != volume) {
+            _inputVolume = volume;
+            auto client = DependencyManager::get<AudioClient>().data();
+            QMetaObject::invokeMethod(client, "setInputVolume", Q_ARG(float, volume), Q_ARG(bool, false));
+            changed = true;
+        }
+    });
+    if (changed) {
+        emit inputVolumeChanged(volume);
     }
 }
 
-void Audio::onInputVolumeChanged(float volume) {
-    if (_inputVolume != volume) {
-        _inputVolume = volume;
-        emit inputVolumeChanged(_inputVolume);
-    }
+float Audio::getInputLevel() const {
+    return resultWithReadLock<float>([&] {
+        return _inputLevel;
+    });
 }
 
 void Audio::onInputLoudnessChanged(float loudness) {
     float level = loudnessToLevel(loudness);
-
-    if (_inputLevel != level) {
-        _inputLevel = level;
-        emit inputLevelChanged(_inputLevel);
+    bool changed = false;
+    withWriteLock([&] {
+        if (_inputLevel != level) {
+            _inputLevel = level;
+            changed = true;
+        }
+    });
+    if (changed) {
+        emit inputLevelChanged(level);
     }
 }
 
 QString Audio::getContext() const {
-     return _contextIsHMD ? Audio::HMD : Audio::DESKTOP;
+    return resultWithReadLock<QString>([&] {
+        return _contextIsHMD ? Audio::HMD : Audio::DESKTOP;
+    });
 }
 
 void Audio::onContextChanged() {
+    bool changed = false;
     bool isHMD = qApp->isHMDMode();
-    if (_contextIsHMD != isHMD) {
-        _contextIsHMD = isHMD;
-        emit contextChanged(getContext());
+    withWriteLock([&] {
+        if (_contextIsHMD != isHMD) {
+            _contextIsHMD = isHMD;
+            changed = true;
+        }
+    });
+    if (changed) {
+        emit contextChanged(isHMD ? Audio::HMD : Audio::DESKTOP);
     }
 }
 
 void Audio::setReverb(bool enable) {
-    DependencyManager::get<AudioClient>()->setReverb(enable);
+    withWriteLock([&] {
+        DependencyManager::get<AudioClient>()->setReverb(enable);
+    });
 }
 
 void Audio::setReverbOptions(const AudioEffectOptions* options) {
-    DependencyManager::get<AudioClient>()->setReverbOptions(options);
+    withWriteLock([&] {
+        DependencyManager::get<AudioClient>()->setReverbOptions(options);
+    });
 }
 
 void Audio::setInputDevice(const QAudioDeviceInfo& device, bool isHMD) {
-    _devices.chooseInputDevice(device, isHMD);
+    withWriteLock([&] {
+        _devices.chooseInputDevice(device, isHMD);
+    });
 }
 
 void Audio::setOutputDevice(const QAudioDeviceInfo& device, bool isHMD) {
-    _devices.chooseOutputDevice(device, isHMD);
+    withWriteLock([&] {
+        _devices.chooseOutputDevice(device, isHMD);
+    });
 }

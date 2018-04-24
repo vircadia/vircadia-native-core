@@ -688,6 +688,34 @@ private:
     }
 };
 
+/**jsdoc
+ * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property 
+ * values are integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or 
+ * <code>Controller.Standard</code> items in a {@link RouteObject} mapping (e.g., using the {@link RouteObject#when} method).
+ * Each data value is either <code>1.0</code> for "true" or <code>0.0</code> for "false".</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Property</th><th>Type</th><th>Data</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>CameraFirstPerson</code></td><td>number</td><td>number</td><td>The camera is in first-person mode.
+ *       </td></tr>
+ *     <tr><td><code>CameraThirdPerson</code></td><td>number</td><td>number</td><td>The camera is in third-person mode.
+ *       </td></tr>
+ *     <tr><td><code>CameraFSM</code></td><td>number</td><td>number</td><td>The camera is in full screen mirror mode.</td></tr>
+ *     <tr><td><code>CameraIndependent</code></td><td>number</td><td>number</td><td>The camera is in independent mode.</td></tr>
+ *     <tr><td><code>CameraEntity</code></td><td>number</td><td>number</td><td>The camera is in entity mode.</td></tr>
+ *     <tr><td><code>InHMD</code></td><td>number</td><td>number</td><td>The user is in HMD mode.</td></tr>
+ *     <tr><td><code>AdvancedMovement</code></td><td>number</td><td>number</td><td>Advanced movement controls are enabled.
+ *       </td></tr>
+ *     <tr><td><code>SnapTurn</code></td><td>number</td><td>number</td><td>Snap turn is enabled.</td></tr>
+ *     <tr><td><code>Grounded</code></td><td>number</td><td>number</td><td>The user's avatar is on the ground.</td></tr>
+ *     <tr><td><code>NavigationFocused</code></td><td>number</td><td>number</td><td><em>Not used.</em></td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef Controller.Hardware-Application
+ */
+
 static const QString STATE_IN_HMD = "InHMD";
 static const QString STATE_CAMERA_FULL_SCREEN_MIRROR = "CameraFSM";
 static const QString STATE_CAMERA_FIRST_PERSON = "CameraFirstPerson";
@@ -1099,10 +1127,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto audioScriptingInterface = DependencyManager::get<AudioScriptingInterface>();
         auto myAvatarPosition = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldPosition();
         float distance = glm::distance(myAvatarPosition, position);
-        bool shouldMute = !audioClient->isMuted() && (distance < radius);
 
-        if (shouldMute) {
-            audioClient->toggleMute();
+        if (distance < radius) {
+            audioClient->setMuted(true);
             audioScriptingInterface->environmentMuted();
         }
     });
@@ -1527,7 +1554,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         if (state) {
             if (action == controller::toInt(controller::Action::TOGGLE_MUTE)) {
-                DependencyManager::get<AudioClient>()->toggleMute();
+                auto audioClient = DependencyManager::get<AudioClient>();
+                audioClient->setMuted(!audioClient->isMuted());
             } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
                 cycleCamera();
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
@@ -2654,6 +2682,12 @@ void Application::initializeUi() {
     // Now that the menu is instantiated, ensure the display plugin menu is properly updated
     updateDisplayMode();
     flushMenuUpdates();
+
+    // The display plugins are created before the menu now, so we need to do this here to hide the menu bar
+    // now that it exists
+    if (_window && _window->isFullScreen()) {
+        setFullscreen(nullptr, true);
+    }
 }
 
 
@@ -3465,7 +3499,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_M:
                 if (isMeta) {
-                    DependencyManager::get<AudioClient>()->toggleMute();
+                    auto audioClient = DependencyManager::get<AudioClient>();
+                    audioClient->setMuted(!audioClient->isMuted());
                 }
                 break;
 
@@ -4706,7 +4741,7 @@ void Application::updateLOD(float deltaTime) const {
     }
 }
 
-void Application::pushPostUpdateLambda(void* key, std::function<void()> func) {
+void Application::pushPostUpdateLambda(void* key, const std::function<void()>& func) {
     std::unique_lock<std::mutex> guard(_postUpdateLambdasLock);
     _postUpdateLambdas[key] = func;
 }
@@ -5120,7 +5155,7 @@ void Application::update(float deltaTime) {
                 if (menu->isOptionChecked(MenuOption::AutoMuteAudio) && !audioClient->isMuted()) {
                     if (_lastFaceTrackerUpdate > 0
                         && ((usecTimestampNow() - _lastFaceTrackerUpdate) > MUTE_MICROPHONE_AFTER_USECS)) {
-                        audioClient->toggleMute();
+                        audioClient->setMuted(true);
                         _lastFaceTrackerUpdate = 0;
                     }
                 } else {
@@ -7316,12 +7351,21 @@ void Application::windowMinimizedChanged(bool minimized) {
     }
 }
 
-void Application::postLambdaEvent(std::function<void()> f) {
+void Application::postLambdaEvent(const std::function<void()>& f) {
     if (this->thread() == QThread::currentThread()) {
         f();
     } else {
         QCoreApplication::postEvent(this, new LambdaEvent(f));
     }
+}
+
+void Application::sendLambdaEvent(const std::function<void()>& f) {
+    if (this->thread() == QThread::currentThread()) {
+        f();
+    } else {
+        LambdaEvent event(f);
+        QCoreApplication::sendEvent(this, &event);
+    } 
 }
 
 void Application::initPlugins(const QStringList& arguments) {
