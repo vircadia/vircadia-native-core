@@ -75,6 +75,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(IcePingVersion::SendICEPeerID);
         case PacketType::DomainSettings:
             return 18;  // replace min_avatar_scale and max_avatar_scale with min_avatar_height and max_avatar_height
+        case PacketType::Ping:
+            return static_cast<PacketVersion>(PingVersion::IncludeConnectionID);
         default:
             return 17;
     }
