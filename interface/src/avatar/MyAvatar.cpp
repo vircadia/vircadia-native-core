@@ -2037,12 +2037,12 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
                 _attachmentData[i].jointName.compare("RightEye", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("HeadTop_End", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("Face", Qt::CaseInsensitive) == 0) {
-
+                uint32_t renderTagBits = shouldDrawHead ? render::ItemKey::TAG_BITS_0 : render::ItemKey::TAG_BITS_NONE;
                 _attachmentModels[i]->setVisibleInScene(shouldDrawHead, qApp->getMain3DScene(),
-                                                        render::ItemKey::TAG_BITS_NONE, true);
+                                                        renderTagBits, false);
 
-                _attachmentModels[i]->setCanCastShadow(shouldDrawHead, qApp->getMain3DScene(), 
-                                                       render::ItemKey::TAG_BITS_NONE, true);
+                _attachmentModels[i]->setCanCastShadow(shouldDrawHead, qApp->getMain3DScene(),
+                                                       renderTagBits, false);
             }
         }
     }
