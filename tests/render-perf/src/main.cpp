@@ -453,8 +453,8 @@ protected:
         return vec3();
     }
 
-    bool isAboutToQuit() const override { return false; }
-    void postLambdaEvent(std::function<void()> f) override {}
+    void postLambdaEvent(const std::function<void()>& f) override {}
+    void sendLambdaEvent(const std::function<void()>& f) override {}
 
     qreal getDevicePixelRatio() override {
         return 1.0f;
@@ -469,7 +469,7 @@ protected:
     }
 
     std::map<void*, std::function<void()>> _postUpdateLambdas;
-    void pushPostUpdateLambda(void* key, std::function<void()> func) override {
+    void pushPostUpdateLambda(void* key, const std::function<void()>& func) override {
         _postUpdateLambdas[key] = func;
     }
 
