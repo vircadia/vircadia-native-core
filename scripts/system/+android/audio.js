@@ -15,7 +15,7 @@
 var audiobar;
 var audioButton;
 
-var logEnabled = true;
+var logEnabled = false;
 
 function printd(str) {
     if (logEnabled)
@@ -40,13 +40,15 @@ function init() {
     onMuteToggled();
 
     audioButton.clicked.connect(onMuteClicked);
+    audioButton.entered.connect(onMutePressed);
     Audio.mutedChanged.connect(onMuteToggled);
 }
 
 function onMuteClicked() {
-    printd("On Mute Clicked");
-    //Menu.setIsOptionChecked("Mute Microphone", !Menu.isOptionChecked("Mute Microphone"));
     Audio.muted = !Audio.muted;
+}
+
+function onMutePressed() {
     App.performHapticFeedback("CONTEXT_CLICK");
 }
 
@@ -59,6 +61,7 @@ function onMuteToggled() {
 Script.scriptEnding.connect(function () {
     if(audioButton) {
         audioButton.clicked.disconnect(onMuteClicked);
+        audioButton.entered.disconnect(onMutePressed);
         Audio.mutedChanged.connect(onMuteToggled);
     }
 });

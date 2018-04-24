@@ -33,19 +33,24 @@ function init() {
         hoverBgOpacity: 0.0,
         activeBgOpacity: 0.0
     });
-
-    backButton.clicked.connect(onBackPressed);
+    
+    backButton.entered.connect(onBackPressed);
+    backButton.clicked.connect(onBackClicked);
 }
 
 function onBackPressed() {
    App.performHapticFeedback("CONTEXT_CLICK");
+}
+
+function onBackClicked() {
    App.openAndroidActivity("Home");
 }
 
 
 Script.scriptEnding.connect(function() {
     if(backButton) {
-        backButton.clicked.disconnect(onBackPressed);
+        backButton.entered.disconnect(onBackPressed);
+        backButton.clicked.disconnect(onBackClicked);
     }
 });
 

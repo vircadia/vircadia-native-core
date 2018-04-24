@@ -57,15 +57,22 @@ function init() {
     });
     
     switchToMode(getCurrentModeSetting());
-
-    modeButton.clicked.connect(function() {    
-        App.performHapticFeedback("CONTEXT_CLICK");
-        switchToMode(nextMode[currentMode]);
-    });
+    
+    modeButton.entered.connect(modeButtonPressed);
+    modeButton.clicked.connect(modeButtonClicked);
 }
 
 function shutdown() {
+    modeButton.entered.disconnect(modeButtonPressed);
+    modeButton.clicked.disconnect(modeButtonClicked);
+}
 
+function modeButtonPressed() {
+    App.performHapticFeedback("CONTEXT_CLICK");    
+}
+
+function modeButtonClicked() {
+    switchToMode(nextMode[currentMode]);
 }
 
 function saveCurrentModeSetting(mode) {
