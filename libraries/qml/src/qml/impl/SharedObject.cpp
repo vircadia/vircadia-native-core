@@ -72,26 +72,35 @@ SharedObject::SharedObject() {
     QObject::connect(qApp, &QCoreApplication::aboutToQuit, this, &SharedObject::onAboutToQuit);
 }
 
+
 SharedObject::~SharedObject() {
-    if (_quickWindow) {
-        _quickWindow->destroy();
-        _quickWindow = nullptr;
+    // After destroy returns, the rendering thread should be gone
+    destroy();
+
+    // _renderTimer is created with `this` as the parent, so need no explicit destruction
+
+    // Destroy the event hand
+    if (_renderObject) {
+        delete _renderObject;
+        _renderObject = nullptr;
     }
 
     if (_renderControl) {
-        _renderControl->deleteLater();
+        delete _renderControl;
         _renderControl = nullptr;
     }
 
-    if (_renderThread) {
-        _renderThread->quit();
-        _renderThread->deleteLater();
+    if (_quickWindow) {
+        _quickWindow->destroy();
+        delete _quickWindow;
+        _quickWindow = nullptr;
     }
 
-    if (_rootItem) {
-        _rootItem->deleteLater();
-        _rootItem = nullptr;
-    }
+    // _rootItem is parented to the quickWindow, so needs no explicit destruction
+    //if (_rootItem) {
+    //    delete _rootItem;
+    //    _rootItem = nullptr;
+    //}
 
     releaseEngine(_qmlContext->engine());
 }
@@ -119,6 +128,10 @@ void SharedObject::create(OffscreenSurface* surface) {
 }
 
 void SharedObject::setRootItem(QQuickItem* rootItem) {
+    if (_quit) {
+        return;
+    }
+
     _rootItem = rootItem;
     _rootItem->setSize(_quickWindow->size());
 
@@ -126,7 +139,6 @@ void SharedObject::setRootItem(QQuickItem* rootItem) {
     _renderThread = new QThread();
     _renderThread->setObjectName(objectName());
     _renderThread->start();
-
 
     // Create event handler for the render thread
     _renderObject = new RenderEventHandler(this, _renderThread);
@@ -137,35 +149,43 @@ void SharedObject::setRootItem(QQuickItem* rootItem) {
 }
 
 void SharedObject::destroy() {
+    // `destroy` is idempotent, it can be called multiple times without issues
     if (_quit) {
         return;
     }
 
     if (!_rootItem) {
-        deleteLater();
         return;
     }
 
-
     _paused = true;
     if (_renderTimer) {
+        _renderTimer->stop();
         QObject::disconnect(_renderTimer);
-        _renderTimer->deleteLater();
     }
 
-    QObject::disconnect(_renderControl);
+    if (_renderControl) {
+        QObject::disconnect(_renderControl);
+    }
+
     QObject::disconnect(qApp);
 
     {
         QMutexLocker lock(&_mutex);
         _quit = true;
-        QCoreApplication::postEvent(_renderObject, new OffscreenEvent(OffscreenEvent::Quit), Qt::HighEventPriority);
+        if (_renderObject) {
+            QCoreApplication::postEvent(_renderObject, new OffscreenEvent(OffscreenEvent::Quit), Qt::HighEventPriority);
+        }
     }
     // Block until the rendering thread has stopped
     // FIXME this is undesirable because this is blocking the main thread,
     // but I haven't found a reliable way to do this only at application 
     // shutdown
-    _renderThread->wait();
+    if (_renderThread) {
+        _renderThread->wait();
+        delete _renderThread;
+        _renderThread = nullptr;
+    }
 }
 
 

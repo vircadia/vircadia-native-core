@@ -77,8 +77,6 @@ class PolyLineEntityItem : public EntityItem {
     QString getTextures() const;
     void setTextures(const QString& textures);
 
-    virtual bool needsToCallUpdate() const override { return true; }
-
     virtual ShapeType getShapeType() const override { return SHAPE_TYPE_NONE; }
 
     bool pointsChanged() const { return _pointsChanged; } 
