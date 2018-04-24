@@ -27,9 +27,9 @@
 #include <trackers/FaceTracker.h>
 
 /**jsdoc 
-*  The FaceTracker API helps manage facial tracking hardware. 
-*  @namespace FaceTracker
-*/
+ * The FaceTracker API helps manage facial tracking hardware. 
+ * @namespace FaceTracker
+ */
 
 class DdeFaceTracker : public FaceTracker, public Dependency {
     Q_OBJECT
@@ -64,15 +64,15 @@ public:
 public slots:
 
     /**jsdoc 
-    *  @function FaceTracker.setEnabled
-    *  @param {boolean} enabled
-    */
+     * @function FaceTracker.setEnabled
+     * @param {boolean} enabled
+     */
 
     void setEnabled(bool enabled) override;
 
     /**jsdoc
-    *  @function FaceTracker.calibrate
-    */
+     * @function FaceTracker.calibrate
+     */
 
     void calibrate();
 

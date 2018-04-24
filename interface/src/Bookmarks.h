@@ -1,4 +1,4 @@
-//
+ //
 //  Bookmarks.h
 //  interface/src
 //
@@ -49,9 +49,9 @@ protected:
 
 protected slots:
     /**jsdoc
-    *  Delete 
-    *  @function AvatarBookmarks.deleteBookmark
-    */
+     * Delete 
+     * @function AvatarBookmarks.deleteBookmark
+     */
     void deleteBookmark();
 
 private:

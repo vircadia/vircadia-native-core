@@ -36,14 +36,14 @@ class AccountServicesScriptingInterface : public QObject {
     Q_OBJECT
 
     /**jsdoc
-    *  The AccountServices API contains helper functions related to user connectivity
-    *  
-    *  @namespace AccountServices
-    *  @property {string} username
-    *  @property {boolean} loggedIn
-    *  @property {string} findableBy
-    *  @property {string} metaverseServerURL
-    */
+     * The AccountServices API contains helper functions related to user connectivity
+     * 
+     * @namespace AccountServices
+     * @property {string} username
+     * @property {boolean} loggedIn
+     * @property {string} findableBy
+     * @property {string} metaverseServerURL
+     */
 
     Q_PROPERTY(QString username READ getUsername NOTIFY myUsernameChanged)
     Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY loggedInChanged)
@@ -60,35 +60,35 @@ public:
 public slots:
 
     /**jsdoc
-    *  @function AccountServices.getDownloadInfo
-    *  @returns {DownloadInfoResult}
-    */
+     * @function AccountServices.getDownloadInfo
+     * @returns {DownloadInfoResult}
+     */
 
     DownloadInfoResult getDownloadInfo();
 
     /**jsdoc
-    *  @function AccountServices.updateDownloadInfo
-    */
+     * @function AccountServices.updateDownloadInfo
+     */
 
     void updateDownloadInfo();
 
     /**jsdoc
-    *  @function AccountServices.isLoggedIn
-    *  @returns {boolean}
-    */
+     * @function AccountServices.isLoggedIn
+     * @returns {boolean}
+     */
 
     bool isLoggedIn();
 
     /**jsdoc
-    *  @function AccountServices.checkAndSignalForAccessToken
-    *  @returns {boolean}
-    */
+     * @function AccountServices.checkAndSignalForAccessToken
+     * @returns {boolean}
+     */
 
     bool checkAndSignalForAccessToken();
 
     /**jsdoc
-    *  @function AccountServices.logOut
-    */
+     * @function AccountServices.logOut
+     */
 
     void logOut();
     
@@ -105,49 +105,49 @@ private slots:
 signals:
 
     /**jsdoc
-    *  @function AccountServices.connected
-    *  @returns {Signal}
-    */
+     * @function AccountServices.connected
+     * @returns {Signal}
+     */
 
     void connected();
 
     /**jsdoc
-    *  @function AccountServices.disconnected
-    *  @params {string} reason
-    *  @returns {Signal}
-    */
+     * @function AccountServices.disconnected
+     * @params {string} reason
+     * @returns {Signal}
+     */
 
     void disconnected(const QString& reason);
 
     /**jsdoc
-    *  @function AccountServices.myUsernameChanged
-    *  @params {string} username
-    *  @returns {Signal}
-    */
+     * @function AccountServices.myUsernameChanged
+     * @params {string} username
+     * @returns {Signal}
+     */
 
     void myUsernameChanged(const QString& username);
 
     /**jsdoc
-    *  @function AccountServices.downloadInfoChanged
-    *  @params {} info
-    *  @returns {Signal}
-    */
+     * @function AccountServices.downloadInfoChanged
+     * @params {} info
+     * @returns {Signal}
+     */
 
     void downloadInfoChanged(DownloadInfoResult info);
 
     /**jsdoc
-    *  @function AccountServices.findableByChanged
-    *  @params {string} discoverabilityMode
-    *  @returns {Signal}
-    */
+     * @function AccountServices.findableByChanged
+     * @params {string} discoverabilityMode
+     * @returns {Signal}
+     */
 
     void findableByChanged(const QString& discoverabilityMode);
 
     /**jsdoc
-    *  @function AccountServices.loggedInChanged
-    *  @params {boolean} loggedIn
-    *  @returns {Signal}
-    */
+     * @function AccountServices.loggedInChanged
+     * @params {boolean} loggedIn
+     * @returns {Signal}
+     */
 
     void loggedInChanged(bool loggedIn);
 

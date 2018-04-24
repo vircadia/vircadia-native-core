@@ -40,46 +40,46 @@ class AudioStreamStatsInterface : public QObject {
     Q_OBJECT
 
     /**jsdoc
-    *  Audio stats from the Audio Mixer
-    *  @namespace AudioStats.mixerStream
-    *  @param {number} lossRate
-    *  @param {number} lossCount
-    *  @param {number} lossRateWindow
-    *  @param {number} lossCountWindow
-    *  @param {number} framesDesired
-    *  @param {number} framesAvailable
-    *  @param {number} framesAvailableAvg
-    *  @param {number} unplayedMsMax
-    *  @param {number} starveCount
-    *  @param {number} lastStarveDurationCount
-    *  @param {number} dropCount
-    *  @param {number} overflowCount
-    *  @param {number} timegapMsMax
-    *  @param {number} timegapMsAvg
-    *  @param {number} timegapMsMaxWindow
-    *  @param {number} timegapMsAvgWindow
-    */
+     * Audio stats from the Audio Mixer
+     * @namespace AudioStats.mixerStream
+     * @param {number} lossRate
+     * @param {number} lossCount
+     * @param {number} lossRateWindow
+     * @param {number} lossCountWindow
+     * @param {number} framesDesired
+     * @param {number} framesAvailable
+     * @param {number} framesAvailableAvg
+     * @param {number} unplayedMsMax
+     * @param {number} starveCount
+     * @param {number} lastStarveDurationCount
+     * @param {number} dropCount
+     * @param {number} overflowCount
+     * @param {number} timegapMsMax
+     * @param {number} timegapMsAvg
+     * @param {number} timegapMsMaxWindow
+     * @param {number} timegapMsAvgWindow
+     */
 
     /**jsdoc
-    *  Audio stats from the Client Mixer
-    *  @namespace AudioStats.clientMixer
-    *  @param {number} lossRate
-    *  @param {number} lossCount
-    *  @param {number} lossRateWindow
-    *  @param {number} lossCountWindow
-    *  @param {number} framesDesired
-    *  @param {number} framesAvailable
-    *  @param {number} framesAvailableAvg
-    *  @param {number} unplayedMsMax
-    *  @param {number} starveCount
-    *  @param {number} lastStarveDurationCount
-    *  @param {number} dropCount
-    *  @param {number} overflowCount
-    *  @param {number} timegapMsMax
-    *  @param {number} timegapMsAvg
-    *  @param {number} timegapMsMaxWindow
-    *  @param {number} timegapMsAvgWindow
-    */
+     * Audio stats from the Client Mixer
+     * @namespace AudioStats.clientMixer
+     * @param {number} lossRate
+     * @param {number} lossCount
+     * @param {number} lossRateWindow
+     * @param {number} lossCountWindow
+     * @param {number} framesDesired
+     * @param {number} framesAvailable
+     * @param {number} framesAvailableAvg
+     * @param {number} unplayedMsMax
+     * @param {number} starveCount
+     * @param {number} lastStarveDurationCount
+     * @param {number} dropCount
+     * @param {number} overflowCount
+     * @param {number} timegapMsMax
+     * @param {number} timegapMsAvg
+     * @param {number} timegapMsMaxWindow
+     * @param {number} timegapMsAvgWindow
+     */
 
     AUDIO_PROPERTY(float, lossRate)
     AUDIO_PROPERTY(float, lossCount)
@@ -113,17 +113,17 @@ class AudioStatsInterface : public QObject {
     Q_OBJECT
 
     /**jsdoc
-    *  Audio stats from the client
-    *  @namespace AudioStats
-    *  @param {number} pingMs
-    *  @param {number} inputReadMsMax
-    *  @param {number} inputUnplayedMsMax
-    *  @param {number} outputUnplayedMsMax
-    *  @param {number} sentTimegapMsMax
-    *  @param {number} sentTimegapMsAvg
-    *  @param {number} sentTimegapMsMaxWindow
-    *  @param {number} sentTimegapMsAvgWindow
-    */
+     * Audio stats from the client
+     * @namespace AudioStats
+     * @param {number} pingMs
+     * @param {number} inputReadMsMax
+     * @param {number} inputUnplayedMsMax
+     * @param {number} outputUnplayedMsMax
+     * @param {number} sentTimegapMsMax
+     * @param {number} sentTimegapMsAvg
+     * @param {number} sentTimegapMsMaxWindow
+     * @param {number} sentTimegapMsAvgWindow
+     */
 
     AUDIO_PROPERTY(float, pingMs);
 
@@ -156,23 +156,23 @@ public:
 signals:
 
     /**jsdoc
-    *  @function AudioStats.mixerStreamChanged
-    *  @returns {Signal}
-    */
+     * @function AudioStats.mixerStreamChanged
+     * @returns {Signal}
+     */
 
     void mixerStreamChanged();
 
     /**jsdoc
-    *  @function AudioStats.clientStreamChanged
-    *  @returns {Signal}
-    */
+     * @function AudioStats.clientStreamChanged
+     * @returns {Signal}
+     */
 
     void clientStreamChanged();
 
     /**jsdoc
-    *  @function AudioStats.injectorStreamsChanged
-    *  @returns {Signal}
-    */
+     * @function AudioStats.injectorStreamsChanged
+     * @returns {Signal}
+     */
 
     void injectorStreamsChanged();
 

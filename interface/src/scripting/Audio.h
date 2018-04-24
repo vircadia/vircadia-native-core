@@ -25,16 +25,16 @@ class Audio : public AudioScriptingInterface {
     SINGLETON_DEPENDENCY
 
     /**jsdoc
-    *  The Audio API features tools to help control audio contexts and settings.
-    *  
-    *  @namespace Audio
-    *  @property {boolean} muted
-    *  @property {boolean} noiseReduction
-    *  @property {boolean} inputVolume
-    *  @property {boolean} inputLevel
-    *  @property {string} context
-    *  @property {} devices
-    */
+     * The Audio API features tools to help control audio contexts and settings.
+     * 
+     * @namespace Audio
+     * @property {boolean} muted
+     * @property {boolean} noiseReduction
+     * @property {boolean} inputVolume
+     * @property {boolean} inputLevel
+     * @property {string} context
+     * @property {} devices
+     */
  
     Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)
     Q_PROPERTY(bool noiseReduction READ noiseReductionEnabled WRITE enableNoiseReduction NOTIFY noiseReductionChanged)
@@ -64,109 +64,109 @@ public:
     void setInputVolume(float volume);
 
     /**jsdoc
-    *  @function Audio.setInputDevice
-    *  @param {} device
-    *  @param {boolean} isHMD 
-    */
+     * @function Audio.setInputDevice
+     * @param {} device
+     * @param {boolean} isHMD 
+     */
 
     Q_INVOKABLE void setInputDevice(const QAudioDeviceInfo& device, bool isHMD);
 
     /**jsdoc
-    *  @function Audio.setOutputDevice
-    *  @param {} device
-    *  @param {boolean} isHMD
-    */
+     * @function Audio.setOutputDevice
+     * @param {} device
+     * @param {boolean} isHMD
+     */
 
     Q_INVOKABLE void setOutputDevice(const QAudioDeviceInfo& device, bool isHMD);
 
     /**jsdoc
-    *  @function Audio.setReverb
-    *  @param {boolean} enable
-    */
+     * @function Audio.setReverb
+     * @param {boolean} enable
+     */
 
     Q_INVOKABLE void setReverb(bool enable);
     
     /**jsdoc
-    *  @function Audio.setReverbOptions
-    *  @param {} options
-    */
+     * @function Audio.setReverbOptions
+     * @param {} options
+     */
 
     Q_INVOKABLE void setReverbOptions(const AudioEffectOptions* options);
    
     /**jsdoc
-    *  @function Audio.setReverbOptions
-    *  @param {string} filename
-    */
+     * @function Audio.setReverbOptions
+     * @param {string} filename
+     */
 
     Q_INVOKABLE bool startRecording(const QString& filename);
     
     /**jsdoc
-    *  @function Audio.stopRecording
-    */
+     * @function Audio.stopRecording
+     */
 
     Q_INVOKABLE void stopRecording();
 
     /**jsdoc
-    *  @function Audio.getRecording
-    */
+     * @function Audio.getRecording
+     */
 
     Q_INVOKABLE bool getRecording();
 
 signals:
 
     /**jsdoc
-    *  @function Audio.nop
-    *  @returns {Signal}
-    */
+     * @function Audio.nop
+     * @returns {Signal}
+     */
 
     void nop();
 
     /**jsdoc
-    *  @function Audio.nop
-    *  @param {bool} isMuted
-    *  @returns {Signal}
-    */
+     * @function Audio.nop
+     * @param {bool} isMuted
+     * @returns {Signal}
+     */
 
     void mutedChanged(bool isMuted);
     
     /**jsdoc
-    *  @function Audio.noiseReductionChanged
-    *  @param {bool} isEnabled
-    *  @returns {Signal}
-    */
+     * @function Audio.noiseReductionChanged
+     * @param {bool} isEnabled
+     * @returns {Signal}
+     */
 
     void noiseReductionChanged(bool isEnabled);
 
     /**jsdoc
-    *  @function Audio.inputVolumeChanged
-    *  @param {float} volume
-    *  @returns {Signal}
-    */
+     * @function Audio.inputVolumeChanged
+     * @param {float} volume
+     * @returns {Signal}
+     */
 
     void inputVolumeChanged(float volume);
 
     /**jsdoc
-    *  @function Audio.inputLevelChanged
-    *  @param {float} level
-    *  @returns {Signal}
-    */
+     * @function Audio.inputLevelChanged
+     * @param {float} level
+     * @returns {Signal}
+     */
 
     void inputLevelChanged(float level);
 
     /**jsdoc
-    *  @function Audio.contextChanged
-    *  @param {string} context
-    *  @returns {Signal}
-    */
+     * @function Audio.contextChanged
+     * @param {string} context
+     * @returns {Signal}
+     */
 
     void contextChanged(const QString& context);
 
 public slots:
 
     /**jsdoc
-    *  @function Audio.onContextChanged
-    *  @returns {Signal}
-    */
+     * @function Audio.onContextChanged
+     * @returns {Signal}
+     */
 
     void onContextChanged();
 

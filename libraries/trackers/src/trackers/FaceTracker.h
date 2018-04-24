@@ -61,31 +61,31 @@ public:
 signals:
 
     /**jsdoc 
-    *  @function FaceTracker.muteToggled
-    *  @returns {Signal}
-    */
+     * @function FaceTracker.muteToggled
+     * @returns {Signal}
+     */
 
     void muteToggled();
 
 public slots:
 
     /**jsdoc
-    *  @function FaceTracker.setEnabled
-    *  @param {boolean} enabled
-    */
+     * @function FaceTracker.setEnabled
+     * @param {boolean} enabled
+     */
 
     virtual void setEnabled(bool enabled) = 0;
     
     /**jsdoc
-    *  @function FaceTracker.toggleMute
-    */
+     * @function FaceTracker.toggleMute
+     */
 
     void toggleMute();
 
     /**jsdoc
-    *  @function FaceTracker.getMuted
-    *  @returns {boolean} 
-    */
+     * @function FaceTracker.getMuted
+     * @returns {boolean} 
+     */
 
     bool getMuted() { return _isMuted; }
 

@@ -26,15 +26,15 @@ class AudioScope : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
     
     /**jsdoc
-    *  The AudioScope API helps control the Audio Scope features in Interface
-    *  @namespace AudioScope
-    *  @property {int} scopeInput
-    *  @property {int} scopeOutputLeft
-    *  @property {int} scopeOutputRight
-    *  @property {int} triggerInput
-    *  @property {int} triggerOutputLeft
-    *  @property {int} triggerOutputRight
-    */
+     * The AudioScope API helps control the Audio Scope features in Interface
+     * @namespace AudioScope
+     * @property {int} scopeInput
+     * @property {int} scopeOutputLeft
+     * @property {int} scopeOutputRight
+     * @property {int} triggerInput
+     * @property {int} triggerOutputLeft
+     * @property {int} triggerOutputRight
+     */
 
     Q_PROPERTY(QVector<int> scopeInput READ getScopeInput)
     Q_PROPERTY(QVector<int> scopeOutputLeft READ getScopeOutputLeft)
@@ -53,189 +53,189 @@ public:
 public slots:
 
     /**jsdoc
-    *  @function AudioScope.toggle
-    */
+     * @function AudioScope.toggle
+     */
 
     void toggle() { setVisible(!_isEnabled); }
      
     /**jsdoc
-    *  @function AudioScope.setVisible
-    *  @param {boolean} visible
-    */
+     * @function AudioScope.setVisible
+     * @param {boolean} visible
+     */
 
     void setVisible(bool visible);
 
     /**jsdoc
-    *  @function AudioScope.getVisible
-    *  @param {boolean} visible
-    *  @returns {boolean} 
-    */
+     * @function AudioScope.getVisible
+     * @param {boolean} visible
+     * @returns {boolean} 
+     */
 
     bool getVisible() const { return _isEnabled; }
 
     /**jsdoc
-    *  @function AudioScope.togglePause
-    */
+     * @function AudioScope.togglePause
+     */
 
     void togglePause() { setPause(!_isPaused); }
 
     /**jsdoc
-    *  @function AudioScope.setPause
-    *  @param {boolean}
-    */
+     * @function AudioScope.setPause
+     * @param {boolean}
+     */
 
     void setPause(bool paused) { _isPaused = paused; emit pauseChanged(); }
 
     /**jsdoc
-    *  @function AudioScope.getPause
-    *  @returns {boolean}
-    */
+     * @function AudioScope.getPause
+     * @returns {boolean}
+     */
 
     bool getPause() { return _isPaused; }
 
     /**jsdoc
-    *  @function AudioScope.toggleTrigger
-    */
+     * @function AudioScope.toggleTrigger
+     */
 
     void toggleTrigger() { _autoTrigger = !_autoTrigger; }
 
     /**jsdoc
-    *  @function AudioScope.getAutoTrigger
-    *  @returns {boolean}
-    */
+     * @function AudioScope.getAutoTrigger
+     * @returns {boolean}
+     */
 
     bool getAutoTrigger() { return _autoTrigger; }
 
     /**jsdoc
-    *  @function AudioScope.setAutoTrigger
-    *  @param {boolean} autoTrigger 
-    */
+     * @function AudioScope.setAutoTrigger
+     * @param {boolean} autoTrigger 
+     */
 
     void setAutoTrigger(bool autoTrigger) { _isTriggered = false; _autoTrigger = autoTrigger; }
 
     /**jsdoc
-    *  @function AudioScope.setTriggerValues
-    *  @param {number} x
-    *  @param {number} y
-    */
+     * @function AudioScope.setTriggerValues
+     * @param {number} x
+     * @param {number} y
+     */
 
     void setTriggerValues(int x, int y) { _triggerValues.x = x; _triggerValues.y = y; }
     
     /**jsdoc
-    *  @function AudioScope.setTriggered
-    *  @param {boolean} triggered
-    */
+     * @function AudioScope.setTriggered
+     * @param {boolean} triggered
+     */
 
     void setTriggered(bool triggered) { _isTriggered = triggered; }
     
     /**jsdoc
-    *  @function AudioScope.getTriggered
-    *  @returns {boolean}
-    */
+     * @function AudioScope.getTriggered
+     * @returns {boolean}
+     */
 
     bool getTriggered() { return _isTriggered; }
 
     /**jsdoc
-    *  @function AudioScope.getFramesPerSecond
-    *  @returns {number}
-    */
+     * @function AudioScope.getFramesPerSecond
+     * @returns {number}
+     */
 
     float getFramesPerSecond();
 
     /**jsdoc
-    *  @function AudioScope.getFramesPerScope
-    *  @returns {number}
-    */
+     * @function AudioScope.getFramesPerScope
+     * @returns {number}
+     */
 
     int getFramesPerScope() { return _framesPerScope; }
 
     /**jsdoc
-    *  @function AudioScope.selectAudioScopeFiveFrames
-    */
+     * @function AudioScope.selectAudioScopeFiveFrames
+     */
 
     void selectAudioScopeFiveFrames();
 
     /**jsdoc
-    *  @function AudioScope.selectAudioScopeTwentyFrames
-    */
+     * @function AudioScope.selectAudioScopeTwentyFrames
+     */
 
     void selectAudioScopeTwentyFrames();
 
     /**jsdoc
-    * @function AudioScope.selectAudioScopeFiftyFrames
-    */
+     * @function AudioScope.selectAudioScopeFiftyFrames
+     */
 
     void selectAudioScopeFiftyFrames();
 
     /**jsdoc
-    *  @function AudioScope.getScopeInput
-    *  @returns {number} 
-    */
+     * @function AudioScope.getScopeInput
+     * @returns {number} 
+     */
 
     QVector<int> getScopeInput() { return _scopeInputData; };
 
     /**jsdoc
-    *  @function AudioScope.getScopeOutputLeft
-    *  @returns {number}
-    */
+     * @function AudioScope.getScopeOutputLeft
+     * @returns {number}
+     */
 
     QVector<int> getScopeOutputLeft() { return _scopeOutputLeftData; };
 
     /**jsdoc
-    *  @function AudioScope.getScopeOutputRight
-    *  @returns {number}
-    */
+     * @function AudioScope.getScopeOutputRight
+     * @returns {number}
+     */
 
     QVector<int> getScopeOutputRight() { return _scopeOutputRightData; };
 
     /**jsdoc
-    *  @function AudioScope.getTriggerInput
-    *  @returns {number}
-    */
+     * @function AudioScope.getTriggerInput
+     * @returns {number}
+     */
 
     QVector<int> getTriggerInput() { return _triggerInputData; };
 
     /**jsdoc
-    *  @function AudioScope.getTriggerOutputLeft
-    *  @returns {number}
-    */
+     * @function AudioScope.getTriggerOutputLeft
+     * @returns {number}
+     */
 
     QVector<int> getTriggerOutputLeft() { return _triggerOutputLeftData; };
    
     /**jsdoc
-    *  @function AudioScope.getTriggerOutputRight
-    *  @returns {number}
-    */
+     * @function AudioScope.getTriggerOutputRight
+     * @returns {number}
+     */
 
     QVector<int> getTriggerOutputRight() { return _triggerOutputRightData; };
 
     /**jsdoc
-    *  @function AudioScope.setLocalEcho
-    *  @parm {boolean} serverEcho
-    */
+     * @function AudioScope.setLocalEcho
+     * @parm {boolean} serverEcho
+     */
 
     void setLocalEcho(bool serverEcho);
 
     /**jsdoc
-    *  @function AudioScope.setServerEcho
-    *  @parm {boolean} serverEcho
-    */
+     * @function AudioScope.setServerEcho
+     * @parm {boolean} serverEcho
+     */
 
     void setServerEcho(bool serverEcho);
 
 signals:
 
     /**jsdoc
-    *  @function AudioScope.pauseChanged
-    *  @returns {Signal}
-    */
+     * @function AudioScope.pauseChanged
+     * @returns {Signal}
+     */
 
     void pauseChanged();
 
     /**jsdoc
-    *  @function AudioScope.triggered
-    *  @returns {Signal}
-    */
+     * @function AudioScope.triggered
+     * @returns {Signal}
+     */
 
     void triggered();
 

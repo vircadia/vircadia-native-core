@@ -24,13 +24,13 @@ class AvatarInputs : public QObject {
     HIFI_QML_DECL
 
     /**jsdoc 
-    *  API to help manage your Avatar's input
-    *  @namespace AvatarInputs
-    *  @param {boolean} cameraEnabled
-    *  @param {boolean} cameraMuted
-    *  @param {boolean} isHMD
-    *  @param {boolean} showAudioTools
-    */
+     * API to help manage your Avatar's input
+     * @namespace AvatarInputs
+     * @param {boolean} cameraEnabled
+     * @param {boolean} cameraMuted
+     * @param {boolean} isHMD
+     * @param {boolean} showAudioTools
+     */
 
     AI_PROPERTY(bool, cameraEnabled, false)
     AI_PROPERTY(bool, cameraMuted, false)
@@ -42,10 +42,10 @@ public:
     static AvatarInputs* getInstance();
 
     /**jsdoc
-    *  @function AvatarInputs.loudnessToAudioLevel
-    *  @param {number} loudness
-    *  @returns {number}
-    */
+     * @function AvatarInputs.loudnessToAudioLevel
+     * @param {number} loudness
+     * @returns {number}
+     */
 
     Q_INVOKABLE float loudnessToAudioLevel(float loudness);
     AvatarInputs(QObject* parent = nullptr);
@@ -55,54 +55,54 @@ public:
 public slots:
 
     /**jsdoc
-    *  @function AvatarInputs.setShowAudioTools
-    *  @param {boolean} showAudioTools
-    */
+     * @function AvatarInputs.setShowAudioTools
+     * @param {boolean} showAudioTools
+     */
 
     void setShowAudioTools(bool showAudioTools);
 
 signals:
 
     /**jsdoc
-    *  @function AvatarInputs.cameraEnabledChanged
-    *  @returns {Signal}
-    */
+     * @function AvatarInputs.cameraEnabledChanged
+     * @returns {Signal}
+     */
 
     void cameraEnabledChanged();
 
     /**jsdoc
-    *  @function AvatarInputs.cameraMutedChanged
-    *  @returns {Signal}
-    */
+     * @function AvatarInputs.cameraMutedChanged
+     * @returns {Signal}
+     */
 
     void cameraMutedChanged();
 
     /**jsdoc
-    *  @function AvatarInputs.isHMDChanged
-    *  @returns {Signal}
-    */
+     * @function AvatarInputs.isHMDChanged
+     * @returns {Signal}
+     */
 
     void isHMDChanged();
 
     /**jsdoc
-    *  @function AvatarInputs.showAudioToolsChanged
-    *  @param {boolean} show
-    *  @returns {Signal}
-    */
+     * @function AvatarInputs.showAudioToolsChanged
+     * @param {boolean} show
+     * @returns {Signal}
+     */
 
     void showAudioToolsChanged(bool show);
 
 protected:
 
     /**jsdoc
-    *  @function AvatarInputs.resetSensors
-    */
+     * @function AvatarInputs.resetSensors
+     */
 
     Q_INVOKABLE void resetSensors();
 
     /**jsdoc
-    *  @function AvatarInputs.toggleCameraMute
-    */
+     * @function AvatarInputs.toggleCameraMute
+     */
 
     Q_INVOKABLE void toggleCameraMute();
 
