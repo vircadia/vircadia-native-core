@@ -138,7 +138,8 @@ public:
     Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runningMarkerExisted);
     ~Application();
 
-    void postLambdaEvent(std::function<void()> f) override;
+    void postLambdaEvent(const std::function<void()>& f) override;
+    void sendLambdaEvent(const std::function<void()>& f) override;
 
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
@@ -242,7 +243,7 @@ public:
 
     qint64 getCurrentSessionRuntime() const { return _sessionRunTimer.elapsed(); }
 
-    bool isAboutToQuit() const override { return _aboutToQuit; }
+    bool isAboutToQuit() const { return _aboutToQuit; }
     bool isPhysicsEnabled() const { return _physicsEnabled; }
 
     // the isHMDMode is true whenever we use the interface from an HMD and not a standard flat display
@@ -266,10 +267,9 @@ public:
     render::EnginePointer getRenderEngine() override { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
-
     const GameWorkload& getGameWorkload() const { return _gameWorkload; }
 
-    virtual void pushPostUpdateLambda(void* key, std::function<void()> func) override;
+    virtual void pushPostUpdateLambda(void* key, const std::function<void()>& func) override;
 
     void updateMyAvatarLookAtPosition();
 

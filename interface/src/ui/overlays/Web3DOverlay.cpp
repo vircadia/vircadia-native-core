@@ -65,14 +65,10 @@ const QString Web3DOverlay::TYPE = "web3d";
 const QString Web3DOverlay::QML = "Web3DOverlay.qml";
 
 static auto qmlSurfaceDeleter = [](OffscreenQmlSurface* surface) {
-    AbstractViewStateInterface::instance()->postLambdaEvent([surface] {
-        if (AbstractViewStateInterface::instance()->isAboutToQuit()) {
-            // WebEngineView may run other threads (wasapi), so they must be deleted for a clean shutdown
-            // if the application has already stopped its event loop, delete must be explicit
-            delete surface;
-        } else {
-            surface->deleteLater();
-        }
+    AbstractViewStateInterface::instance()->sendLambdaEvent([surface] {
+        // WebEngineView may run other threads (wasapi), so they must be deleted for a clean shutdown
+        // if the application has already stopped its event loop, delete must be explicit
+        delete surface;
     });
 };
 

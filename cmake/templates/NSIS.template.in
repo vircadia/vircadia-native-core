@@ -87,6 +87,10 @@
     ;--------------------------------
 ;--------------------------------
 ;General
+
+  ; hide install details since we show an image slideshow in their place
+  ShowInstDetails nevershow
+
   ; leverage the UAC NSIS plugin to promote uninstaller to elevated privileges
   !include UAC.nsh
 
@@ -446,6 +450,7 @@ SectionEnd
   Page custom PostInstallOptionsPage ReadPostInstallOptions
 
   !define MUI_PAGE_CUSTOMFUNCTION_PRE PageInstallFilesPre
+  !define MUI_PAGE_CUSTOMFUNCTION_SHOW StartInstallSlideshow
   !insertmacro MUI_PAGE_INSTFILES
 
   !insertmacro MUI_UNPAGE_CONFIRM
@@ -544,11 +549,33 @@ Var Express
   ${EndIf}
 !macroend
 
+!macro DownloadSlideshowImages
+  InitPluginsDir
+
+  Push $0
+
+  ; figure out where to download installer slideshow images from
+  StrCpy $0 "http://cdn.highfidelity.com/installer/slideshow"
+
+  ${If} $CampaignName == ""
+    StrCpy $0 "$0/default"
+  ${Else}
+    StrCpy $0 "$0/$CampaignName"
+  ${EndIf}
+
+  NSISdl::download_quiet $0/1.jpg "$PLUGINSDIR\1.jpg"
+  NSISdl::download_quiet $0/2.jpg "$PLUGINSDIR\2.jpg"
+  NSISdl::download_quiet $0/3.jpg "$PLUGINSDIR\3.jpg"
+
+  Pop $0
+!macroend
+
 Function OnUserAbort
   !insertmacro GoogleAnalytics "Installer" "Abort" "User Abort" ""
 FunctionEnd
 Function PageWelcomePre
   !insertmacro GoogleAnalytics "Installer" "Welcome" "" ""
+  !insertmacro DownloadSlideshowImages
 FunctionEnd
 Function PageLicensePre
   !insertmacro GoogleAnalytics "Installer" "License" "" ""
@@ -638,6 +665,56 @@ Function ChangeCustomLabel
   GetDlgItem $R1 $HWNDPARENT 1
   SendMessage $R1 ${WM_SETTEXT} 0 "STR:Next >"
   Pop $R1
+FunctionEnd
+
+!macro AddImageToSlideshowFile ImageFilename
+  ${If} ${FileExists} "$PLUGINSDIR\${ImageFilename}.jpg"
+    FileWrite $0 "= ${ImageFilename}.jpg,500,5000,$\"$\"$\r$\n"
+    StrCpy $1 "1"
+  ${EndIf}
+!macroend
+
+Function StartInstallSlideshow
+  ; create a slideshow file based on what files we have available
+
+  ; stash $0 and $1
+  Push $0
+  Push $1
+
+  ; start $1 as 0, indicating we have no images present
+  StrCpy $1 "0"
+
+  FileOpen $0 "$PLUGINSDIR\slideshow.dat" w
+
+  ; write the language value to the slideshow file for english
+  FileWrite $0 "[1033]$\r$\n"
+
+  ; for each of 1.jpg, 2.jpg, 3.jpg
+  ; if the image is present add it to the dat file and set our flag
+  ; to show we found at least one image
+  !insertmacro AddImageToSlideshowFile "1"
+  !insertmacro AddImageToSlideshowFile "2"
+  !insertmacro AddImageToSlideshowFile "3"
+
+  FileClose $0
+
+  ; NOTE: something inside of nsisSlideshow::show isn't keeping the stack clean
+  ; so we need to push things back BEFORE we call it
+
+  ${If} $1 == "1"
+    Pop $1
+    Pop $0
+
+    ; show the slideshow using the created data file
+    nsisSlideshow::show /NOUNLOAD "/auto=$PLUGINSDIR\slideshow.dat"
+  ${Else}
+    Pop $1
+    Pop $0
+
+    ; show the install details because we didn't end up with slideshow images to show
+    SetDetailsView show
+  ${EndIf}
+
 FunctionEnd
 
 Function PostInstallOptionsPage
@@ -932,6 +1009,7 @@ FunctionEnd
 ;Installer Sections
 
 Section "-Core installation"
+
   ;The following delete blocks are temporary and can be removed once users who had the initial installer have updated
 
   ;Delete any server-console files installed before it was placed in sub-folder
@@ -983,11 +1061,13 @@ Section "-Core installation"
   WriteRegStr HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "" $INSTDIR
 
   ;Write some information about this install to the installation folder
+  Push $0
   FileOpen $0 "$INSTDIR\installer.ini" w
   FileWrite $0 "type=@INSTALLER_TYPE@$\r$\n"
   FileWrite $0 "campaign=$CampaignName$\r$\n"
   FileWrite $0 "exepath=$EXEPATH$\r$\n"
   FileClose $0
+  Pop $0
 
   ;Package the signed uninstaller produced by the inner loop
   !ifndef INNER

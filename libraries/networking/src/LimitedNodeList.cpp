@@ -358,7 +358,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
 
         } else {
             HIFI_FCDEBUG(networking(),
-                "Packet of type" << headerType << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID));
+                "Packet of type" << headerType << "received from unknown node with Local ID" << sourceLocalID);
         }
     }
 
