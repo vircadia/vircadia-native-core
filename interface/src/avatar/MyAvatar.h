@@ -134,6 +134,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(AudioListenerMode audioListenerModeCamera READ getAudioListenerModeCamera)
     Q_PROPERTY(AudioListenerMode audioListenerModeCustom READ getAudioListenerModeCustom)
     Q_PROPERTY(bool hasScriptedBlendshapes READ getHasScriptedBlendshapes WRITE setHasScriptedBlendshapes)
+    Q_PROPERTY(bool hasAudioEnabledFaceMovement READ getHasAudioEnabledFaceMovement WRITE setHasAudioEnabledFaceMovement)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
     Q_PROPERTY(glm::vec3 leftHandPosition READ getLeftHandPosition)
@@ -684,6 +685,8 @@ private:
     bool getShouldRenderLocally() const { return _shouldRender; }
     void setHasScriptedBlendshapes(bool hasScriptedBlendshapes) { _hasScriptedBlendShapes = hasScriptedBlendshapes; }
     bool getHasScriptedBlendshapes() const override { return _hasScriptedBlendShapes; }
+    void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) { _hasAudioEnabledFaceMovement = hasAudioEnabledFaceMovement; }
+    bool getHasAudioEnabledFaceMovement() const override { return _hasAudioEnabledFaceMovement; }
     bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
@@ -793,6 +796,7 @@ private:
     float _hmdRollControlDeadZone { ROLL_CONTROL_DEAD_ZONE_DEFAULT };
     float _hmdRollControlRate { ROLL_CONTROL_RATE_DEFAULT };
     bool _hasScriptedBlendShapes { false };
+    bool _hasAudioEnabledFaceMovement { true };
 
     // working copy -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
     glm::mat4 _sensorToWorldMatrix { glm::mat4() };

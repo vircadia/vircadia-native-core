@@ -503,6 +503,7 @@ public:
     float getDomainLimitedScale() const;
 
     virtual bool getHasScriptedBlendshapes() const { return false; }
+    virtual bool getHasAudioEnabledFaceMovement() const { return false; }
 
     /**jsdoc
      * returns the minimum scale allowed for this avatar in the current domain.

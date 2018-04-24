@@ -47,29 +47,32 @@ void MyHead::simulate(float deltaTime) {
     // Only use face trackers when not playing back a recording.
     if (!player->isPlaying()) {
         auto faceTracker = qApp->getActiveFaceTracker();
-        bool hasActualFaceTrackerConnected = faceTracker && !faceTracker->isMuted();
+        const bool hasActualFaceTrackerConnected = faceTracker && !faceTracker->isMuted();
         _isFaceTrackerConnected = hasActualFaceTrackerConnected || _owningAvatar->getHasScriptedBlendshapes();
-        if (hasActualFaceTrackerConnected) {
-            _transientBlendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
-
-            if (typeid(*faceTracker) == typeid(DdeFaceTracker)) {
-
-                if (Menu::getInstance()->isOptionChecked(MenuOption::UseAudioForMouth)) {
-                    calculateMouthShapes(deltaTime);
-
-                    const int JAW_OPEN_BLENDSHAPE = 21;
-                    const int MMMM_BLENDSHAPE = 34;
-                    const int FUNNEL_BLENDSHAPE = 40;
-                    const int SMILE_LEFT_BLENDSHAPE = 28;
-                    const int SMILE_RIGHT_BLENDSHAPE = 29;
-                    _transientBlendshapeCoefficients[JAW_OPEN_BLENDSHAPE] += _audioJawOpen;
-                    _transientBlendshapeCoefficients[SMILE_LEFT_BLENDSHAPE] += _mouth4;
-                    _transientBlendshapeCoefficients[SMILE_RIGHT_BLENDSHAPE] += _mouth4;
-                    _transientBlendshapeCoefficients[MMMM_BLENDSHAPE] += _mouth2;
-                    _transientBlendshapeCoefficients[FUNNEL_BLENDSHAPE] += _mouth3;
-                }
-                applyEyelidOffset(getFinalOrientationInWorldFrame());
+        if (_isFaceTrackerConnected) {
+            if (hasActualFaceTrackerConnected) {
+                _transientBlendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
+            } else {
+                _transientBlendshapeCoefficients.fill(0, _blendshapeCoefficients.size());
             }
+
+            if (_owningAvatar->getHasAudioEnabledFaceMovement() || (faceTracker && (typeid(*faceTracker) == typeid(DdeFaceTracker))
+                && Menu::getInstance()->isOptionChecked(MenuOption::UseAudioForMouth))) {
+
+                calculateMouthShapes(deltaTime);
+
+                const int JAW_OPEN_BLENDSHAPE = 21;
+                const int MMMM_BLENDSHAPE = 34;
+                const int FUNNEL_BLENDSHAPE = 40;
+                const int SMILE_LEFT_BLENDSHAPE = 28;
+                const int SMILE_RIGHT_BLENDSHAPE = 29;
+                _transientBlendshapeCoefficients[JAW_OPEN_BLENDSHAPE] += _audioJawOpen;
+                _transientBlendshapeCoefficients[SMILE_LEFT_BLENDSHAPE] += _mouth4;
+                _transientBlendshapeCoefficients[SMILE_RIGHT_BLENDSHAPE] += _mouth4;
+                _transientBlendshapeCoefficients[MMMM_BLENDSHAPE] += _mouth2;
+                _transientBlendshapeCoefficients[FUNNEL_BLENDSHAPE] += _mouth3;
+            }
+             applyEyelidOffset(getFinalOrientationInWorldFrame());
         }
         auto eyeTracker = DependencyManager::get<EyeTracker>();
         _isEyeTrackerConnected = eyeTracker->isTracking();
