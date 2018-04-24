@@ -38,7 +38,8 @@ function init() {
 }
 
 function onBackPressed() {
-    App.openAndroidActivity("Goto");
+   App.performHapticFeedback("CONTEXT_CLICK");
+   App.openAndroidActivity("Goto");
 }
 
 

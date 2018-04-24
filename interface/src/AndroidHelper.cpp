@@ -48,3 +48,7 @@ void AndroidHelper::notifyLoginComplete(bool success) {
     emit loginComplete(success);
 }
 
+void AndroidHelper::performHapticFeedback(const QString& feedbackConstant) {
+    emit hapticFeedbackRequested(feedbackConstant);
+}
+

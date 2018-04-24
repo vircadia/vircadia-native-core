@@ -286,4 +286,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         }
     }
+
+    @Override
+    public void onBackPressed() {
+        int index = getFragmentManager().getBackStackEntryCount() - 1;
+        if (index > -1) {
+            super.onBackPressed();
+        } else {
+            finishAffinity();
+        }
+    }
 }

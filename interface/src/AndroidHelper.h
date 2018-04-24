@@ -28,6 +28,7 @@ public:
     void goBackFromAndroidActivity();
 
     void notifyLoginComplete(bool success);
+    void performHapticFeedback(const QString& feedbackConstant);
 
     QSharedPointer<AccountManager> getAccountManager();
 
@@ -38,6 +39,7 @@ signals:
     void backFromAndroidActivity();
     void qtAppLoadComplete();
     void loginComplete(bool success);
+    void hapticFeedbackRequested(const QString &feedbackConstant);
 
 private:
     AndroidHelper();

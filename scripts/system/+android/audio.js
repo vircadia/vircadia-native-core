@@ -47,6 +47,7 @@ function onMuteClicked() {
     printd("On Mute Clicked");
     //Menu.setIsOptionChecked("Mute Microphone", !Menu.isOptionChecked("Mute Microphone"));
     Audio.muted = !Audio.muted;
+    App.performHapticFeedback("CONTEXT_CLICK");
 }
 
 function onMuteToggled() {

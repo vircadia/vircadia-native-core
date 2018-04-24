@@ -59,6 +59,7 @@ function init() {
     switchToMode(getCurrentModeSetting());
 
     modeButton.clicked.connect(function() {    
+        App.performHapticFeedback("CONTEXT_CLICK");
         switchToMode(nextMode[currentMode]);
     });
 }

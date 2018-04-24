@@ -15,6 +15,7 @@ import android.content.Intent;
 import android.content.res.AssetManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.HapticFeedbackConstants;
 import android.view.WindowManager;
 import android.util.Log;
 import org.qtproject.qt5.android.bindings.QtActivity;
@@ -216,6 +217,15 @@ public class InterfaceActivity extends QtActivity {
 
     public void onAppLoadedComplete() {
         super.isLoading = false;
+    }
+
+    public void performHapticFeedback(String feedbackConstant) {
+        switch (feedbackConstant) {
+            case "CONTEXT_CLICK":
+            default:
+                findViewById(android.R.id.content).performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                break;
+        }
     }
 
 }

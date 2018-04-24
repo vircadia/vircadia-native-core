@@ -7950,6 +7950,10 @@ void Application::restoreAfterAndroidActivity() {
 #endif
 }
 
+void Application::performHapticFeedback(const QString& feedbackConstant) {
+    AndroidHelper::instance().performHapticFeedback(feedbackConstant);
+}
+
 #if defined(Q_OS_ANDROID)
 void Application::enterBackground() {
     qDebug() << "[Background-HIFI] enterBackground begin";
