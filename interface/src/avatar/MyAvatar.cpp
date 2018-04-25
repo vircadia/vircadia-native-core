@@ -121,6 +121,7 @@ MyAvatar::MyAvatar(QThread* thread) :
 
     _skeletonModel = std::make_shared<MySkeletonModel>(this, nullptr);
     connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
+    connect(_skeletonModel.get(), &Model::setURLFinished, this, &MyAvatar::setModelURLLoaded);
     connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
     connect(_skeletonModel.get(), &Model::rigReset, this, &Avatar::rigReset);
 
@@ -1463,6 +1464,9 @@ void MyAvatar::clearJointsData() {
 }
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    if (_scriptsToUnload.size() > 0) {
+        emit avatarScriptsNeedToUnload();
+    }
     _skeletonModelChangeCount++;
     int skeletonModelChangeCount = _skeletonModelChangeCount;
     Avatar::setSkeletonModelURL(skeletonModelURL);
@@ -2384,6 +2388,11 @@ void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettings
     settings.endGroup();
 }
 
+void MyAvatar::setModelURLLoaded() {
+    _scriptsToUnload.clear();
+    emit avatarScriptsNeedToLoad();
+}
+
 void MyAvatar::leaveDomain() {
     clearScaleRestriction();
     saveAvatarScale();
@@ -2829,6 +2838,10 @@ float MyAvatar::getUserEyeHeight() const {
 
 float MyAvatar::getWalkSpeed() const {
     return _walkSpeed.get() * _walkSpeedScalar;
+}
+
+void MyAvatar::addScriptToUnload(QUrl& scriptUrl) {
+    _scriptsToUnload.push_back(scriptUrl);
 }
 
 void MyAvatar::setSprintMode(bool sprint) {

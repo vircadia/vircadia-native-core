@@ -4724,6 +4724,35 @@ void Application::init() {
             avatar->setCollisionSound(sound);
         }
     }, Qt::QueuedConnection);
+
+    connect(getMyAvatar().get(), &MyAvatar::avatarScriptsNeedToLoad, this, [this]() {
+        if (auto avatar = getMyAvatar()) {
+            auto scripts = avatar->getSkeletonModel()->getFBXGeometry().scripts;
+            if (scripts.size() > 0) {
+                auto scriptEngines = DependencyManager::get<ScriptEngines>();
+                auto runningScripts = scriptEngines->getRunningScripts();
+                for (auto script : scripts) {
+                    int index = runningScripts.indexOf(script.toString());
+                    if (index < 0) {
+                        auto loaded = scriptEngines->loadScript(script);
+                        avatar->addScriptToUnload(script);
+                    }
+                }
+            }
+        }
+    }, Qt::QueuedConnection);
+
+    connect(getMyAvatar().get(), &MyAvatar::avatarScriptsNeedToUnload, this, [this]() {
+        if (auto avatar = getMyAvatar()) {
+            auto scripts = avatar->getScriptsToUnload();
+            if (scripts.size() > 0) {
+                auto scriptEngines = DependencyManager::get<ScriptEngines>();
+                for (auto script : scripts) {
+                    scriptEngines->stopScript(script.toString(), false);
+                }
+            }
+        }
+    }, Qt::QueuedConnection);
 }
 
 void Application::updateLOD(float deltaTime) const {

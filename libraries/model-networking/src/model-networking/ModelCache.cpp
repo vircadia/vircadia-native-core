@@ -66,6 +66,7 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
     auto mapping = FSTReader::readMapping(data);
 
     QString filename = mapping.value("filename").toString();
+
     if (filename.isNull()) {
         qCDebug(modelnetworking) << "Mapping file" << _url << "has no \"filename\" field";
         finishedLoading(false);
@@ -207,6 +208,20 @@ void GeometryReader::run() {
                 }
             } else {
                 throw QString("unsupported format");
+            }
+
+            if (_mapping.value("type").toString() == "body+head") {
+                auto scripts = _mapping.value("script");
+                if (!scripts.isNull()) {
+                    auto scriptsMap = scripts.toMap();
+                    auto count = scriptsMap.size();
+                    if (count > 0) {
+                        for (auto &key : scriptsMap.keys()) {
+                            auto scriptUrl = scriptsMap[key].toString();
+                            fbxGeometry->scripts.push_back(QUrl(scriptUrl));
+                        }
+                    }
+                }
             }
 
             // Ensure the resource has not been deleted

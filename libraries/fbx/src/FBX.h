@@ -298,6 +298,7 @@ public:
     bool hasSkeletonJoints;
 
     QVector<FBXMesh> meshes;
+    QVector<QUrl> scripts;
 
     QHash<QString, FBXMaterial> materials;
 
