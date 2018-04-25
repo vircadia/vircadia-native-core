@@ -328,4 +328,8 @@ enum class PingVersion : PacketVersion {
     IncludeConnectionID = 18
 };
 
+enum class ViewFrustumVersion : PacketVersion {
+    SendMultipleFrustums = 21
+};
+
 #endif // hifi_PacketHeaders_h
