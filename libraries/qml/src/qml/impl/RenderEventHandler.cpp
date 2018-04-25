@@ -49,8 +49,8 @@ RenderEventHandler::RenderEventHandler(SharedObject* shared, QThread* targetThre
         qFatal("Unable to create new offscreen GL context");
     }
 
-    _canvas.moveToThreadWithContext(targetThread);
     moveToThread(targetThread);
+    _canvas.moveToThreadWithContext(targetThread);
 }
 
 void RenderEventHandler::onInitalize() {
@@ -160,8 +160,11 @@ void RenderEventHandler::onQuit() {
     }
 
     _shared->shutdownRendering(_canvas, _currentSize);
-    _canvas.doneCurrent();
-    _canvas.moveToThreadWithContext(qApp->thread());
-    moveToThread(qApp->thread());
+    // Release the reference to the shared object.  This will allow it to 
+    // be destroyed (should happen on it's own thread).
+    _shared->deleteLater();
+
+    deleteLater();
+
     QThread::currentThread()->quit();
 }
