@@ -255,7 +255,8 @@ Item {
                     filterListEnd = filter.indexOf(")");
                     if (filterListStart !== -1 && filterListEnd !== -1) {
                         var FIRST_EXTENSION_OFFSET = 2;
-                        fileTypeFilters = filter.substring(filterListStart + FIRST_EXTENSION_OFFSET, filterListEnd).toLowerCase().split("*");
+                        fileTypeFilters = filter.substring(filterListStart + FIRST_EXTENSION_OFFSET
+                            , filterListEnd).toLowerCase().split("*");
                     } else if (filter !== "") {
                         fileTypeFilters[0] = filter.replace("*", "").toLowerCase();
                     }
