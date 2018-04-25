@@ -126,13 +126,18 @@ void AvatarMixerClientData::removeFromRadiusIgnoringSet(SharedNodePointer self, 
     }
 }
 
-void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
+void AvatarMixerClientData::readViewFrustumPacket(QByteArray message) {
     _currentViewFrustums.clear();
+    
+    uint8_t numFrustums = 0;
+    memcpy(&numFrustums, message.constData(), sizeof(numFrustums));
+    message.remove(0, sizeof(numFrustums));
 
-    auto offset = 0;
-    while (offset < message.size()) {
+    for (uint8_t i = 0; i < numFrustums; ++i) {
         ViewFrustum frustum;
-        offset += frustum.fromByteArray(message);
+        auto bytesRead = frustum.fromByteArray(message);
+        message.remove(0, bytesRead);
+
         _currentViewFrustums.push_back(frustum);
     }
 }

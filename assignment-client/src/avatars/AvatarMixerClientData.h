@@ -98,7 +98,7 @@ public:
     void removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other);
     void ignoreOther(SharedNodePointer self, SharedNodePointer other);
 
-    void readViewFrustumPacket(const QByteArray& message);
+    void readViewFrustumPacket(QByteArray message);
 
     bool otherAvatarInView(const AABox& otherAvatarBox);
 

@@ -600,12 +600,17 @@ void Agent::sendAvatarIdentityPacket() {
 
 void Agent::sendAvatarViewFrustum() {
     auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+
     ViewFrustum view;
     view.setPosition(scriptedAvatar->getWorldPosition());
     view.setOrientation(scriptedAvatar->getHeadOrientation());
+    view.calculate();
+
+    uint8_t numFrustums = 1;
     auto viewFrustumByteArray = view.toByteArray();
 
-    auto avatarPacket = NLPacket::create(PacketType::ViewFrustum, viewFrustumByteArray.size());
+    auto avatarPacket = NLPacket::create(PacketType::ViewFrustum, viewFrustumByteArray.size() + sizeof(numFrustums));
+    avatarPacket->writePrimitive(numFrustums);
     avatarPacket->write(viewFrustumByteArray);
 
     DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket),

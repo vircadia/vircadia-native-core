@@ -5805,12 +5805,16 @@ void Application::update(float deltaTime) {
 }
 
 void Application::sendAvatarViewFrustum() {
+    uint8_t numFrustums = 1;
     QByteArray viewFrustumByteArray = _viewFrustum.toByteArray();
+
     if (_hasSecondaryViewFrustum) {
+        ++numFrustums;
         viewFrustumByteArray += _secondaryViewFrustum.toByteArray();
     }
 
-    auto avatarPacket = NLPacket::create(PacketType::ViewFrustum, viewFrustumByteArray.size());
+    auto avatarPacket = NLPacket::create(PacketType::ViewFrustum, viewFrustumByteArray.size() + sizeof(numFrustums));
+    avatarPacket->writePrimitive(numFrustums);
     avatarPacket->write(viewFrustumByteArray);
 
     DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
