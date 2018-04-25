@@ -766,6 +766,36 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesByType(const QString entity
     return result;
 }
 
+QVector<QUuid> EntityScriptingInterface::findEntitiesByName(const QString entityName, const glm::vec3& center, float radius, bool caseSensitiveSearch) const {
+    
+    QVector<QUuid> result;
+    if (_entityTree) {
+        QVector<EntityItemPointer> entities;
+        _entityTree->withReadLock([&] {
+            _entityTree->findEntities(center, radius, entities);
+        });
+
+        if (caseSensitiveSearch) {
+            foreach(EntityItemPointer entity, entities) {
+                if (entity->getName() == entityName) {
+                    result << entity->getEntityItemID();
+                }
+            }
+
+        } else {
+            QString entityNameLowerCase = entityName.toLower();
+
+            foreach(EntityItemPointer entity, entities) {
+                QString entityItemLowerCase = entity->getName().toLower();
+                if (entityItemLowerCase == entityNameLowerCase) {
+                    result << entity->getEntityItemID();
+                }
+            }
+        }
+    }
+    return result;
+}
+
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, 
                 const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
     QVector<EntityItemID> entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);

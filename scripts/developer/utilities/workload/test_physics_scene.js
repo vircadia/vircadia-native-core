@@ -56,8 +56,8 @@ function getTileColor(a, b, c) {
 function addObject(a, b, c, lifetime) {
     var center = getStagePosOriAt(a, b, c).pos;
     var offset = (Math.abs(a) + (Math.abs(b) % 2)) %  2;                                         
-    var makePrim = (offset > 0 ? true : false) ;
-    if (makePrim) {
+    var makePrim = (offset == 0 ? true : false) ;
+    if (makePrim == true) {
         return (Entities.addEntity({
             type: "Shape",
             shape: "Sphere",

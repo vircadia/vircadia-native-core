@@ -11,20 +11,14 @@
 <@def GPU_TRANSFORM_STATE_SLH@>
 
 <@func declareStandardCameraTransform()@>
-struct TransformCamera {
-    mat4 _view;
-    mat4 _viewInverse;
-    mat4 _projectionViewUntranslated;
-    mat4 _projection;
-    mat4 _projectionInverse;
-    vec4 _viewport;
-    vec4 _stereoInfo;
-};
+<@include gpu/TransformCamera_shared.slh@>
+
+#define TransformCamera _TransformCamera
 
 layout(std140) uniform transformCameraBuffer {
 #ifdef GPU_TRANSFORM_IS_STEREO
 #ifdef GPU_TRANSFORM_STEREO_CAMERA
-   TransformCamera _camera[2];
+    TransformCamera _camera[2];
 #else
     TransformCamera _camera;
 #endif

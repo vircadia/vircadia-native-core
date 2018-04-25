@@ -14,7 +14,6 @@
 #include <workload/SpaceClassifier.h>
 
 #include "PhysicsBoundary.h"
-#pragma optimize( "[optimization-list]", off )
 
 ControlViews::ControlViews() {
     regionBackFronts[0] = glm::vec2(1.0f, 3.0f);
@@ -53,7 +52,7 @@ glm::vec2 Regulator::run(const Timing_ns& regulationDuration, const Timing_ns& m
     // Regulate next value based on current moving toward the goal budget
     float error_ms = std::chrono::duration<float, std::milli>(_budget - measured).count();
     float coef = error_ms / std::chrono::duration<float, std::milli>(regulationDuration).count();
-    next += coef * (error_ms < 0.0 ? _speedDown : _speedUp);
+    next += coef * (error_ms < 0.0f ? _speedDown : _speedUp);
 
     // Clamp to min max
     next = glm::clamp(next, _minRange, _maxRange);
@@ -78,7 +77,6 @@ void ControlViews::regulateViews(workload::Views& outViews, const workload::Timi
     _dataExport.timings[workload::Region::R2] = _dataExport.timings[workload::Region::R1];
     _dataExport.timings[workload::Region::R3] = std::chrono::duration<float, std::milli>(timings[1]).count();
 
-    int i = 0;
     for (auto& outView : outViews) {
         outView.regionBackFronts[workload::Region::R1] = regionBackFronts[workload::Region::R1];
         outView.regionBackFronts[workload::Region::R2] = regionBackFronts[workload::Region::R2];
@@ -87,8 +85,6 @@ void ControlViews::regulateViews(workload::Views& outViews, const workload::Timi
         workload::View::updateRegionsFromBackFronts(outView);
     }
 }
-
-#pragma optimize( "[optimization-list]", on )
 
 class WorkloadEngineBuilder {
 public:
