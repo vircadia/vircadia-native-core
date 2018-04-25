@@ -15,6 +15,10 @@
 #include <DependencyManager.h>
 #include "Bookmarks.h"
 
+/**jsdoc 
+ * This API helps manage adding and deleting Avatar bookmarks
+ */
+
 class AvatarBookmarks: public Bookmarks, public  Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -22,6 +26,15 @@ class AvatarBookmarks: public Bookmarks, public  Dependency {
 public:
     AvatarBookmarks();
     void setupMenus(Menu* menubar, MenuWrapper* menu) override;
+
+/**jsdoc 
+ * Add the current Avatar to your Avatar Bookmarks
+ * @function AvatarBookmarks.addBookMark
+ */
+
+/**jsdoc
+ * @function AvatarBookmarks.deleteBookMark
+ */
 
 public slots:
     void addBookmark();

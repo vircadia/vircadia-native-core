@@ -15,6 +15,11 @@
 #include <QObject>
 #include <DependencyManager.h>
 
+/**jsdoc 
+ * The GooglePoly API allows you to interact with Google Poly models direct from inside High Fidelity.
+ * @namespace GooglePoly
+ */
+
 class GooglePolyScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 
@@ -22,15 +27,84 @@ public:
     GooglePolyScriptingInterface();
 
 public slots:
+
+    /**jsdoc
+     * @function GooglePoly.setAPIKey
+     * @param {string} key
+     */
+
     void setAPIKey(const QString& key);
 
+    /**jsdoc
+     * @function GooglePoly.getAssetList
+     * @param {string} keyword
+     * @param {string} category
+     * @param {string} format
+     * @returns {string}
+     */
+
     QString getAssetList(const QString& keyword, const QString& category, const QString& format);
+
+    /**jsdoc
+     * @function GooglePoly.getFBX
+     * @param {string} keyword
+     * @param {string} category
+     * @returns {string}
+     */
+
     QString getFBX(const QString& keyword, const QString& category);
+
+    /**jsdoc
+     * @function GooglePoly.getOBJ
+     * @param {string} keyword
+     * @param {string} category
+     * @returns {string}
+     */
+
     QString getOBJ(const QString& keyword, const QString& category);
-    QString getBlocks(const QString& keyword, const QString& categoryy);
+
+    /**jsdoc
+     * @function GooglePoly.getBlocks
+     * @param {string} keyword
+     * @param {string} category
+     * @returns {string}
+     */
+
+    QString getBlocks(const QString& keyword, const QString& category);
+
+    /**jsdoc
+     * @function GooglePoly.getGLTF
+     * @param {string} keyword
+     * @param {string} category
+     * @returns {string}
+     */
+
     QString getGLTF(const QString& keyword, const QString& category);
+
+    /**jsdoc
+     * @function GooglePoly.getGLTF2
+     * @param {string} keyword
+     * @param {string} category
+     * @returns {string}
+     */
+
     QString getGLTF2(const QString& keyword, const QString& category);
+
+    /**jsdoc
+     * @function GooglePoly.getTilt
+     * @param {string} keyword
+     * @param {string} category
+     * @returns {string}
+     */
+
     QString getTilt(const QString& keyword, const QString& category);
+
+    /**jsdoc
+     * @function GooglePoly.getModelInfo
+     * @param {string} input
+     * @returns {string}
+     */
+
     QString getModelInfo(const QString& input);
 
 private:
