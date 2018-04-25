@@ -380,10 +380,15 @@ void EntityServer::trackSend(const QUuid& dataID, quint64 dataLastEdited, const 
 }
 
 void EntityServer::trackViewerGone(const QUuid& sessionID) {
-    QWriteLocker locker(&_viewerSendingStatsLock);
-    _viewerSendingStats.remove(sessionID);
+    {
+        QWriteLocker locker(&_viewerSendingStatsLock);
+        _viewerSendingStats.remove(sessionID);
+    }
+
     if (_entitySimulation) {
-        _entitySimulation->clearOwnership(sessionID);
+        _tree->withReadLock([&] {
+            _entitySimulation->clearOwnership(sessionID);
+        });
     }
 }
 

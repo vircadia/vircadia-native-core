@@ -11,6 +11,7 @@
 
 #include "ViveControllerManager.h"
 #include <algorithm>
+#include <string>
 
 #include <PerfStat.h>
 #include <PathUtils.h>
@@ -339,6 +340,12 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     _validTrackedObjects.clear();
     _trackedControllers = 0;
 
+    if (_headsetName == "") {
+        _headsetName = getOpenVrDeviceName();
+        if (_headsetName == "HTC") {
+            _headsetName += " Vive";
+        }
+    }
     // While the keyboard is open, we defer strictly to the keyboard values
     if (isOpenVrKeyboardShown()) {
         _axisStateMap.clear();
