@@ -149,7 +149,7 @@ public:
     /**jsdoc
      * @function AvatarManager.getAvatarDataRate
      * @param {string} sessionID
-     * @param {string} rateName
+     * @param {string} [rateName=""]
      * @returns {number}
      */
 
@@ -158,7 +158,7 @@ public:
     /**jsdoc
      * @function AvatarManager.getAvatarUpdateRate
      * @param {string} sessionID
-     * @param {string} rateName
+     * @param {string} [rateName=""]
      * @returns {number}
      */
     
@@ -167,7 +167,7 @@ public:
     /**jsdoc
      * @function AvatarManager.getAvatarSimulationRate
      * @param {string} sessionID
-     * @param {string} rateName
+     * @param {string} [rateName=""]
      * @returns {number}
      */
     

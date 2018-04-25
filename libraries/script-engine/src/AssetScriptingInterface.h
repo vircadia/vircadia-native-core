@@ -193,7 +193,7 @@ public:
      * @function Assets.deleteAsset
      * @property {} options
      * @property {} scope
-     * @property {} callback
+     * @property {} [callback = ""]
      */
 
     Q_INVOKABLE void deleteAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
@@ -202,7 +202,7 @@ public:
      * @function Assets.resolveAsset
      * @property {} options
      * @property {} scope
-     * @property {} callback
+     * @property {} [callback = ""]
      */
 
     Q_INVOKABLE void resolveAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
@@ -211,7 +211,7 @@ public:
      * @function Assets.decompressData
      * @property {} options
      * @property {} scope
-     * @property {} callback
+     * @property {} [callback = ""]
      */
 
     Q_INVOKABLE void decompressData(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
@@ -220,7 +220,7 @@ public:
      * @function Assets.compressData
      * @property {} options
      * @property {} scope
-     * @property {} callback
+     * @property {} [callback = ""]
      */
 
     Q_INVOKABLE void compressData(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
@@ -243,7 +243,7 @@ public:
     /**jsdoc
      * @function Assets.getCacheStatus
      * @property {} scope
-     * @property {} callback
+     * @property {} [callback = ""]
      */
 
     Q_INVOKABLE void getCacheStatus(QScriptValue scope, QScriptValue callback = QScriptValue()) {
@@ -254,7 +254,7 @@ public:
      * @function Assets.queryCacheMeta
      * @property {} options
      * @property {} scope
-     * @property {} callback
+     * @property {} [callback = ""]
      */
 
     Q_INVOKABLE void queryCacheMeta(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
@@ -263,7 +263,7 @@ public:
      * @function Assets.loadFromCache
      * @property {} options
      * @property {} scope
-     * @property {} callback
+     * @property {} [callback = ""]
      */
 
     Q_INVOKABLE void loadFromCache(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
@@ -272,7 +272,7 @@ public:
      * @function Assets.saveToCache
      * @property {} options
      * @property {} scope
-     * @property {} callback
+     * @property {} [callback = ""]
      */
 
     Q_INVOKABLE void saveToCache(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
@@ -283,7 +283,7 @@ public:
      * @property {} data
      * @property {} metadata
      * @property {} scope
-     * @property {} callback
+     * @property {} [callback = ""]
      */
 
     Q_INVOKABLE void saveToCache(const QUrl& url, const QByteArray& data, const QVariantMap& metadata,
