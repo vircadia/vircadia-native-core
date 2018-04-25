@@ -26,6 +26,8 @@ public:
     explicit HMACAuth(AuthMethod authMethod = MD5);
     ~HMACAuth();
 
+    QMutex& getLock() { return _lock; }
+
     bool setKey(const char* keyValue, int keyLen);
     bool setKey(const QUuid& uidKey);
     bool addData(const char* data, int dataLen);

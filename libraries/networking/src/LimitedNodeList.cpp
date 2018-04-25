@@ -333,13 +333,14 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
                 QByteArray packetHeaderHash = NLPacket::verificationHashInHeader(packet);
                 QByteArray expectedHash = NLPacket::hashForPacketAndHMAC(packet, sourceNode->getAuthenticateHash());
 
-                // check if the md5 hash in the header matches the hash we would expect
+                // check if the HMAC-md5 hash in the header matches the hash we would expect
                 if (packetHeaderHash != expectedHash) {
                     static QMultiMap<QUuid, PacketType> hashDebugSuppressMap;
 
                     if (!hashDebugSuppressMap.contains(sourceID, headerType)) {
-                        qCDebug(networking) << packetHeaderHash << expectedHash;
                         qCDebug(networking) << "Packet hash mismatch on" << headerType << "- Sender" << sourceID;
+                        qCDebug(networking) << "Packet len:" << packet.getDataSize() << "Expected hash:" <<
+                            expectedHash.toHex() << "Actual:" << packetHeaderHash.toHex();
 
                         hashDebugSuppressMap.insert(sourceID, headerType);
                     }
