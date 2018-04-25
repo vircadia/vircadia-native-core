@@ -838,11 +838,31 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         }
     };
     
+    var deleteEntity = function(entityID) {
+        if (rightEquipEntity.targetEntityID === entityID) {
+            rightEquipEntity.endEquipEntity();
+        }
+        if (leftEquipEntity.targetEntityID === entityID) {
+            leftEquipEntity.endEquipEntity();
+        }
+    };
+    
+    var clearEntities = function() {
+        if (rightEquipEntity.targetEntityID) {
+            rightEquipEntity.endEquipEntity();
+        }
+        if (leftEquipEntity.targetEntityID) {
+            leftEquipEntity.endEquipEntity();
+        }
+    };
+    
     Messages.subscribe('Hifi-Hand-Grab');
     Messages.subscribe('Hifi-Hand-Drop');
     Messages.messageReceived.connect(handleMessage);
     Controller.mousePressEvent.connect(onMousePress);
     Controller.keyPressEvent.connect(onKeyPress);
+    Entities.deletingEntity.connect(deleteEntity);
+    Entities.clearingEntities.connect(clearEntities);
 
     var leftEquipEntity = new EquipEntity(LEFT_HAND);
     var rightEquipEntity = new EquipEntity(RIGHT_HAND);
@@ -859,6 +879,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         Messages.messageReceived.disconnect(handleMessage);
         Controller.mousePressEvent.disconnect(onMousePress);
         Controller.keyPressEvent.disconnect(onKeyPress);
+        Entities.deletingEntity.disconnect(deleteEntity);
+        Entities.clearingEntities.disconnect(clearEntities);
     }
     Script.scriptEnding.connect(cleanup);
 }());
