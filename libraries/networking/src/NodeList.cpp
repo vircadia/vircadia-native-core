@@ -214,6 +214,20 @@ void NodeList::processPingPacket(QSharedPointer<ReceivedMessage> message, Shared
             sendingNode->setSymmetricSocket(senderSockAddr);
         }
     }
+
+    int64_t connectionID;
+
+    message->readPrimitive(&connectionID);
+
+    auto it = _connectionIDs.find(sendingNode->getUUID());
+    if (it != _connectionIDs.end()) {
+        if (connectionID > it->second) {
+            qDebug() << "Received a ping packet with a larger connection id (" << connectionID << ">" << it->second << ") from "
+                     << sendingNode->getUUID();
+            killNodeWithUUID(sendingNode->getUUID(), connectionID);
+        }
+    }
+
 }
 
 void NodeList::processPingReplyPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
@@ -610,13 +624,21 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
         return;
     }
 
-    // pull our owner UUID from the packet, it's always the first thing
+    Node::LocalID domainLocalID;
+    packetStream >> domainLocalID;
+
+    // pull our owner (ie. session) UUID from the packet, it's always the first thing
+    // The short (16 bit) ID comes next.
     QUuid newUUID;
+    Node::LocalID newLocalID;
     packetStream >> newUUID;
+    packetStream >> newLocalID;
+    setSessionLocalID(newLocalID);
     setSessionUUID(newUUID);
 
     // if this was the first domain-server list from this domain, we've now connected
     if (!_domainHandler.isConnected()) {
+        _domainHandler.setLocalID(domainLocalID);
         _domainHandler.setUUID(domainUUID);
         _domainHandler.setIsConnected(true);
 
@@ -654,12 +676,14 @@ void NodeList::processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> me
 void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     // setup variables to read into from QDataStream
     qint8 nodeType;
-    QUuid nodeUUID, connectionUUID;
+    QUuid nodeUUID, connectionSecretUUID;
     HifiSockAddr nodePublicSocket, nodeLocalSocket;
     NodePermissions permissions;
     bool isReplicated;
+    Node::LocalID sessionLocalID;
 
-    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions >> isReplicated;
+    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions
+        >> isReplicated >> sessionLocalID;
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
@@ -667,10 +691,10 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
         nodePublicSocket.setAddress(_domainHandler.getIP());
     }
 
-    packetStream >> connectionUUID;
+    packetStream >> connectionSecretUUID;
 
-    SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
-                                             nodeLocalSocket, isReplicated, false, connectionUUID, permissions);
+    SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket, nodeLocalSocket,
+                                             sessionLocalID, isReplicated, false, connectionSecretUUID, permissions);
 
     // nodes that are downstream or upstream of our own type are kept alive when we hear about them from the domain server
     // and always have their public socket as their active socket
@@ -705,16 +729,18 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
     if (node->getConnectionAttempts() > 0 && node->getConnectionAttempts() % NUM_DEBUG_CONNECTION_ATTEMPTS == 0) {
         qCDebug(networking) << "No response to UDP hole punch pings for node" << node->getUUID() << "in last second.";
     }
+    
+    auto nodeID = node->getUUID();
 
     // send the ping packet to the local and public sockets for this node
-    auto localPingPacket = constructPingPacket(PingType::Local);
+    auto localPingPacket = constructPingPacket(nodeID, PingType::Local);
     sendPacket(std::move(localPingPacket), *node, node->getLocalSocket());
 
-    auto publicPingPacket = constructPingPacket(PingType::Public);
+    auto publicPingPacket = constructPingPacket(nodeID, PingType::Public);
     sendPacket(std::move(publicPingPacket), *node, node->getPublicSocket());
 
     if (!node->getSymmetricSocket().isNull()) {
-        auto symmetricPingPacket = constructPingPacket(PingType::Symmetric);
+        auto symmetricPingPacket = constructPingPacket(nodeID, PingType::Symmetric);
         sendPacket(std::move(symmetricPingPacket), *node, node->getSymmetricSocket());
     }
 
@@ -784,7 +810,7 @@ void NodeList::sendKeepAlivePings() {
         auto type = node->getType();
         return !node->isUpstream() && _nodeTypesOfInterest.contains(type) && !NodeType::isDownstream(type);
     }, [&](const SharedNodePointer& node) {
-        sendPacket(constructPingPacket(), *node);
+        sendPacket(constructPingPacket(node->getUUID()), *node);
     });
 }
 

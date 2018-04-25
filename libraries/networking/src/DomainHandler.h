@@ -45,6 +45,9 @@ public:
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid);
 
+    Node::LocalID getLocalID() const { return _localID; }
+    void setLocalID(Node::LocalID localID) { _localID = localID; }
+
     QString getHostname() const { return _domainURL.host(); }
 
     const QHostAddress& getIP() const { return _sockAddr.getAddress(); }
@@ -185,6 +188,7 @@ private:
     void hardReset();
 
     QUuid _uuid;
+    Node::LocalID _localID;
     QUrl _domainURL;
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;

@@ -14,7 +14,16 @@ using namespace gpu::gles;
 
 // GLSL version
 std::string GLESBackend::getBackendShaderHeader() const {
-    return Parent::getBackendShaderHeader();
+    static const std::string header(
+        R"SHADER(#version 310 es
+        #extension GL_EXT_texture_buffer : enable
+        precision lowp float; // check precision 2
+        precision lowp samplerBuffer;
+        precision lowp sampler2DShadow;
+        #define PRECISIONQ highp
+        #define BITFIELD highp int
+        )SHADER");
+    return header;
 }
 
 int GLESBackend::makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) {
