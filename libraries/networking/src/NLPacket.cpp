@@ -157,9 +157,10 @@ QByteArray NLPacket::hashForPacketAndHMAC(const udt::Packet& packet, HMACAuth& h
         + NUM_BYTES_LOCALID + NUM_BYTES_MD5_HASH;
     
     // add the packet payload and the connection UUID
-    QMutexLocker hashLock(&hash.getLock());
-    hash.addData(packet.getData() + offset, packet.getDataSize() - offset);
-    auto hashResult { hash.result() };
+    HMACAuth::HMACHash hashResult;
+    if (!hash.calculateHash(hashResult, packet.getData() + offset, packet.getDataSize() - offset)) {
+        return QByteArray();
+    }
     return QByteArray((const char*) hashResult.data(), (int) hashResult.size());
 }
 

@@ -26,10 +26,11 @@ public:
     explicit HMACAuth(AuthMethod authMethod = MD5);
     ~HMACAuth();
 
-    QMutex& getLock() { return _lock; }
-
     bool setKey(const char* keyValue, int keyLen);
     bool setKey(const QUuid& uidKey);
+    // Calculate complete hash in one.
+    bool calculateHash(HMACHash& hashResult, const char* data, int dataLen);
+    // Append data to be hashed.
     bool addData(const char* data, int dataLen);
     HMACHash result();
 
