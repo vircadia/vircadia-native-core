@@ -399,11 +399,15 @@ public:
 
     void run() {
         if (_context) {
-            TaskType::run(_context);
+            run(_context);
         }
     }
 
 protected:
+    void run(const ContextPointer& jobContext) override {
+        TaskType::run(_context);
+    }
+    
     ContextPointer _context;
 };
 }
