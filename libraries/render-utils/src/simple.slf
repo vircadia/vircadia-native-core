@@ -16,7 +16,17 @@
 
 // the interpolated normal
 in vec3 _normalWS;
+in vec3 _normalMS;
 in vec4 _color;
+in vec2 _texCoord0;
+in vec4 _positionMS;
+in vec4 _positionES;
+
+// For retro-compatibility
+#define _normal			_normalWS
+#define _modelNormal	_normalMS
+#define _position		_positionMS
+#define _eyePosition	_positionES
 
 //PROCEDURAL_COMMON_BLOCK
 
