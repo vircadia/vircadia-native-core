@@ -69,7 +69,6 @@ private:
     graphics::SkyboxPointer editSkybox() { return editBackground()->getSkybox(); }
     graphics::HazePointer editHaze() { _needHazeUpdate = true; return _haze; }
 
-    bool _needsInitialSimulation{ true };
     glm::vec3 _lastPosition;
     glm::vec3 _lastDimensions;
     glm::quat _lastRotation;

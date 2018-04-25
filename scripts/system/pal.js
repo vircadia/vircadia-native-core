@@ -715,7 +715,6 @@ function onTabletScreenChanged(type, url) {
 
         ContextOverlay.enabled = false;
         Users.requestsDomainListData = true;
-        populateNearbyUserList();
 
         audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
 
@@ -726,6 +725,7 @@ function onTabletScreenChanged(type, url) {
         Users.usernameFromIDReply.connect(usernameFromIDReply);
         triggerMapping.enable();
         triggerPressMapping.enable();
+        populateNearbyUserList();
     } else {
         off();
         ContextOverlay.enabled = true;
