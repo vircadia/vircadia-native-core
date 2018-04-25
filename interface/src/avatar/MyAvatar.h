@@ -80,6 +80,8 @@ class MyAvatar : public Avatar {
      *   MyAvatar.audioListenerModeCamera - the listener is relative to the camera.
      *   MyAvatar.audioListenerModeCustom - the listener is at a custom location specified by the MyAvatar.customListenPosition
      *   and MyAvatar.customListenOrientation properties.
+     * @property hasScriptedBlendshapes {bool} Blendshapes will be transmitted over the network if set to true.
+     * @property hasAudioEnabledFaceMovement {bool} If set to true, voice audio will move the mouth Blendshapes while MyAvatar.hasScriptedBlendshapes is enabled.
      * @property customListenPosition {Vec3} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the position
      *   of audio spatialization listener.
      * @property customListenOrientation {Quat} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the orientation
