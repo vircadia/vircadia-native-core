@@ -27,6 +27,14 @@
 
 class ScriptEngine;
 
+/**jsdoc
+ * @namespace ScriptDiscoveryService
+ * @property {string} debugScriptUrl
+ * @property {string} defaultScriptsPath
+ * @property {ScriptsModel} scriptsModel
+ * @property {ScriptsModelFilter} scriptsModelFilter
+ */
+
 class NativeScriptInitializers : public ScriptInitializerMixin {
 public:
     bool registerNativeScriptInitializer(NativeScriptInitializer initializer) override;
@@ -63,18 +71,64 @@ public:
 
     QString getDefaultScriptsLocation() const;
 
+    /**jsdoc
+     * @function ScriptDiscoveryService.loadOneScript
+     * @param {string} filename
+     */
     Q_INVOKABLE void loadOneScript(const QString& scriptFilename);
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.loadScript
+     * @param {string} [filename=""]
+     * @param {boolean} [isUserLoaded=true]
+     * @param {boolean} [loadScriptFromEditor=false]
+     * @param {boolean} [activateMainWindow=false]
+     * @param {boolean} [reload=false]
+     * @returns {boolean}
+     */
     Q_INVOKABLE ScriptEnginePointer loadScript(const QUrl& scriptFilename = QString(),
         bool isUserLoaded = true, bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.stopScript
+     * @param {string} scriptHash
+     * @param {boolean} [restart=false]
+     * @returns {boolean}
+     */
     Q_INVOKABLE bool stopScript(const QString& scriptHash, bool restart = false);
 
+
+    /**jsdoc
+    * @function ScriptDiscoveryService.reloadAllScripts
+    */
     Q_INVOKABLE void reloadAllScripts();
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.stopAllScripts
+     * @param {boolean} [restart=false]
+     */
     Q_INVOKABLE void stopAllScripts(bool restart = false);
 
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.getRunning
+     * @returns {object[]}
+     */
     Q_INVOKABLE QVariantList getRunning();
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.getPublic
+     * @returns {object[]}
+     */
     Q_INVOKABLE QVariantList getPublic();
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.getLocal
+     * @returns {object[]}
+     */
     Q_INVOKABLE QVariantList getLocal();
 
+    // FIXME: Move to other Q_PROPERTY declarations.
     Q_PROPERTY(QString defaultScriptsPath READ getDefaultScriptsLocation)
 
     void defaultScriptsLocationOverridden(bool overridden) { _defaultScriptsLocationOverridden = overridden; };
@@ -86,25 +140,120 @@ public:
     void addScriptEngine(ScriptEnginePointer);
 
 signals:
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.scriptCountChanged
+     * @returns {Signal}
+     */
     void scriptCountChanged();
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.scriptsReloading
+     * @returns {Signal}
+     */
     void scriptsReloading();
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.scriptLoadError
+     * @param {string} filename
+     * @param {string} error
+     * @returns {Signal}
+     */
     void scriptLoadError(const QString& filename, const QString& error);
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.printedMessage
+     * @param {string} message
+     * @param {string} engineName
+     * @returns {Signal}
+     */
     void printedMessage(const QString& message, const QString& engineName);
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.errorMessage
+     * @param {string} message
+     * @param {string} engineName
+     * @returns {Signal}
+     */
     void errorMessage(const QString& message, const QString& engineName);
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.warningMessage
+     * @param {string} message
+     * @param {string} engineName
+     * @returns {Signal}
+     */
     void warningMessage(const QString& message, const QString& engineName);
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.infoMessage
+     * @param {string} message
+     * @param {string} engineName
+     * @returns {Signal}
+     */
     void infoMessage(const QString& message, const QString& engineName);
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.errorLoadingScript
+     * @param {string} url
+     * @returns {Signal}
+     */
     void errorLoadingScript(const QString& url);
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.clearDebugWindow
+     * @returns {Signal}
+     */
     void clearDebugWindow();
 
 public slots:
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.onPrintedMessage
+     * @param {string} message
+     * @param {string} scriptName
+     */
     void onPrintedMessage(const QString& message, const QString& scriptName);
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.onErrorMessage
+     * @param {string} message
+     * @param {string} scriptName
+     */
     void onErrorMessage(const QString& message, const QString& scriptName);
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.onWarningMessage
+     * @param {string} message
+     * @param {string} scriptName
+     */
     void onWarningMessage(const QString& message, const QString& scriptName);
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.onInfoMessage
+     * @param {string} message
+     * @param {string} scriptName
+     */
     void onInfoMessage(const QString& message, const QString& scriptName);
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.onErrorLoadingScript
+     * @param {string} url
+     */
     void onErrorLoadingScript(const QString& url);
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.onClearDebugWindow
+     */
     void onClearDebugWindow();
 
 protected slots:
+
+    /**jsdoc
+     * @function ScriptDiscoveryService.onScriptFinished
+     * @param {string} filename
+     * @param {object} engine
+     */
     void onScriptFinished(const QString& fileNameString, ScriptEnginePointer engine);
 
 protected:

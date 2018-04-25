@@ -76,47 +76,39 @@ vec2 taa_getRegionFXAA() {
 #define USE_YCOCG 1
 
 vec4 taa_fetchColor(sampler2D map, vec2 uv) {
+	vec4 c = texture(map, uv);
+	// Apply rapid pseudo tonemapping as TAA is applied to a tonemapped image, using luminance as weight, as proposed in
+	// https://de45xmedrsdbp.cloudfront.net/Resources/files/TemporalAA_small-59732822.pdf
+	float lum = dot(vec3(0.3,0.5,0.2),c.rgb);
+	c.rgb = c.rgb / (1.0+lum);
 #if USE_YCOCG
-		vec4 c = texture(map, uv);
-		return vec4(color_LinearToYCoCg(c.rgb), c.a);
+	return vec4(color_LinearToYCoCg(c.rgb), c.a);
 #else
-		return texture(map, uv);
+	return c;
 #endif
 }
 
 vec3 taa_resolveColor(vec3 color) {
 #if USE_YCOCG
-		return color_YCoCgToLinear(color);
-#else
-		return color;
+	color = max(vec3(0), color_YCoCgToUnclampedLinear(color));
 #endif
+	// Apply rapid inverse tonemapping, using luminance as weight, as proposed in
+	// https://de45xmedrsdbp.cloudfront.net/Resources/files/TemporalAA_small-59732822.pdf
+	float lum = dot(vec3(0.3,0.5,0.2),color.rgb);
+	color = color / (1.0-lum);
+	return color;
 }
 
 vec4 taa_fetchSourceMap(vec2 uv) {
-#if USE_YCOCG
-		vec4 c = texture(sourceMap, uv);
-		return vec4(color_LinearToYCoCg(c.rgb), c.a);
-#else
-		return texture(sourceMap, uv);
-#endif
+	return taa_fetchColor(sourceMap, uv);
 }
 
 vec4 taa_fetchHistoryMap(vec2 uv) {
-#if USE_YCOCG
-		vec4 c = texture(historyMap, uv);
-		return vec4(color_LinearToYCoCg(c.rgb), c.a);
-#else
-		return texture(historyMap, uv);
-#endif
+	return taa_fetchColor(historyMap, uv);
 }
 
 vec4 taa_fetchNextMap(vec2 uv) {
-#if USE_YCOCG
-		vec4 c = texture(nextMap, uv);
-		return vec4(color_LinearToYCoCg(c.rgb), c.a);
-#else
-		return texture(nextMap, uv);
-#endif
+	return taa_fetchColor(nextMap, uv);
 }
 
 vec2 taa_fetchVelocityMap(vec2 uv) {
