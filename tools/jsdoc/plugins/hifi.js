@@ -23,6 +23,7 @@ exports.handlers = {
             '../../interface/src/raypick',
             '../../libraries/animation/src',
             '../../libraries/avatars/src',
+            '../../libraries/avatars-renderer/src/avatars-renderer',
             '../../libraries/controllers/src/controllers/',
             '../../libraries/controllers/src/controllers/impl/',
             '../../libraries/display-plugins/src/display-plugins/',
@@ -37,6 +38,7 @@ exports.handlers = {
             '../../libraries/script-engine/src',
             '../../libraries/shared/src',
             '../../libraries/shared/src/shared',
+            '../../libraries/ui/src/ui',
             '../../plugins/oculus/src',
             '../../plugins/openvr/src',
         ];
