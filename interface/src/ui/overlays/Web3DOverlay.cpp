@@ -330,16 +330,20 @@ void Web3DOverlay::render(RenderArgs* args) {
     renderTransform.setScale(1.0f);
     batch.setModelTransform(renderTransform);
 
+    // Turn off jitter for these entities
+    batch.pushProjectionJitter();
+
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (color.a < OPAQUE_ALPHA_THRESHOLD) {
         geometryCache->bindWebBrowserProgram(batch, true);
     } else {
         geometryCache->bindWebBrowserProgram(batch);
     }
-
     vec2 halfSize = vec2(size.x, size.y) / 2.0f;
     geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color, _geometryId);
+    batch.popProjectionJitter(); // Restore jitter
     batch.setResourceTexture(0, nullptr); // restore default white color after me
+
 }
 
 Transform Web3DOverlay::evalRenderTransform() {

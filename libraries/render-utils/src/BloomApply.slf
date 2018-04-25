@@ -13,7 +13,7 @@
 uniform sampler2D blurMap0;
 uniform sampler2D blurMap1;
 uniform sampler2D blurMap2;
-uniform float intensity;
+uniform vec3 intensity;
 
 in vec2 varTexCoord0;
 out vec4 outFragColor;
@@ -23,5 +23,5 @@ void main(void) {
     vec4 blur1 = texture(blurMap1, varTexCoord0);
     vec4 blur2 = texture(blurMap2, varTexCoord0);
 
-    outFragColor = vec4((blur0.rgb+blur1.rgb+blur2.rgb)*intensity, 1.0f);
+    outFragColor = vec4(blur0.rgb*intensity.x + blur1.rgb*intensity.y + blur2.rgb*intensity.z, 1.0f);
 }
