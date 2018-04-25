@@ -19,9 +19,7 @@
 <$declareMaterialTextures(ALBEDO)$>
 
 in vec2 _texCoord0;
-in vec3 _normal;
 in vec3 _color;
-in float _alpha;
 
 layout(location = 0) out vec4 _fragColor0;
 

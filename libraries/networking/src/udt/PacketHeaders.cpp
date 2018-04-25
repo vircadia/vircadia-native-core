@@ -24,6 +24,8 @@ int packetTypeMetaTypeId = qRegisterMetaType<PacketType>();
 
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
+        case PacketType::StunResponse:
+            return 17;
         case PacketType::DomainList:
             return static_cast<PacketVersion>(DomainListVersion::GetMachineFingerprintFromUUIDSupport);
         case PacketType::EntityAdd:
@@ -40,8 +42,21 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(AvatarMixerPacketVersion::FBXReaderNodeReparenting);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
+        // ICE packets
+        case PacketType::ICEServerPeerInformation:
+            return 17;
+        case PacketType::ICEServerHeartbeatACK:
+            return 17;
+        case PacketType::ICEServerQuery:
+            return 17;
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
+        case PacketType::ICEPing:
+            return static_cast<PacketVersion>(IcePingVersion::SendICEPeerID);
+        case PacketType::ICEPingReply:
+            return 17;
+        case PacketType::ICEServerHeartbeatDenied:
+            return 17;
         case PacketType::AssetMappingOperation:
         case PacketType::AssetMappingOperationReply:
             return static_cast<PacketVersion>(AssetServerPacketVersion::RedirectedMappings);
@@ -71,12 +86,12 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::MicrophoneAudioWithEcho:
         case PacketType::AudioStreamStats:
             return static_cast<PacketVersion>(AudioVersion::HighDynamicRangeVolume);
-        case PacketType::ICEPing:
-            return static_cast<PacketVersion>(IcePingVersion::SendICEPeerID);
         case PacketType::DomainSettings:
             return 18;  // replace min_avatar_scale and max_avatar_scale with min_avatar_height and max_avatar_height
+        case PacketType::Ping:
+            return static_cast<PacketVersion>(PingVersion::IncludeConnectionID);
         default:
-            return 17;
+            return 19;
     }
 }
 

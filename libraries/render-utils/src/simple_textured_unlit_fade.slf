@@ -21,10 +21,10 @@
 uniform sampler2D originalTexture;
 
 // the interpolated normal
-in vec3 _normal;
+in vec3 _normalWS;
 in vec4 _color;
 in vec2 _texCoord0;
-in vec4 _worldPosition;
+in vec4 _positionWS;
 
 // Declare after all samplers to prevent sampler location mix up with originalTexture
 <$declareFadeFragmentInstanced()$>
@@ -34,7 +34,7 @@ void main(void) {
     FadeObjectParams fadeParams;
 
     <$fetchFadeObjectParamsInstanced(fadeParams)$>
-    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
+    applyFade(fadeParams, _positionWS.xyz, fadeEmissive);
 
     vec4 texel = texture(originalTexture, _texCoord0.st);
     float colorAlpha = _color.a;
@@ -46,14 +46,14 @@ void main(void) {
     const float ALPHA_THRESHOLD = 0.999;
     if (colorAlpha * texel.a < ALPHA_THRESHOLD) {
        packDeferredFragmentTranslucent(
-            normalize(_normal),
+            normalize(_normalWS),
             colorAlpha * texel.a,
             _color.rgb * texel.rgb+fadeEmissive,
             DEFAULT_FRESNEL,
             DEFAULT_ROUGHNESS);
     } else {
         packDeferredFragmentUnlit(
-            normalize(_normal),
+            normalize(_normalWS),
             1.0,
             _color.rgb * texel.rgb+fadeEmissive);
     }

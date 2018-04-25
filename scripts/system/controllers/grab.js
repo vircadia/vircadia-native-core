@@ -15,7 +15,7 @@
 //
 
 /* global MyAvatar, Entities, Script, Camera, Vec3, Reticle, Overlays, getEntityCustomData, Messages, Quat, Controller,
-   isInEditMode, HMD entityIsGrabbable, Picks, PickType, Pointers*/
+   isInEditMode, HMD entityIsGrabbable, Picks, PickType, Pointers, unhighlightTargetEntity*/
 
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -354,6 +354,7 @@ Grabber.prototype.pressEvent = function(event) {
 
     Pointers.setRenderState(this.mouseRayEntities, "grabbed");
     Pointers.setLockEndUUID(this.mouseRayEntities, pickResults.objectID, false);
+    unhighlightTargetEntity(pickResults.objectID);
 
     mouse.startDrag(event);
 
@@ -568,7 +569,7 @@ Grabber.prototype.moveEventProcess = function() {
     }
 
     if (!this.actionID) {
-        if (!entityIsGrabbedByOther(this.entityID)) {
+        if (!entityIsGrabbedByOther(this.entityID) && !entityIsEquipped(this.entityID)) {
             this.actionID = Entities.addAction("far-grab", this.entityID, actionArgs);
         }
     } else {

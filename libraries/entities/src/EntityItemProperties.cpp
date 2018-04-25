@@ -695,8 +695,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @typedef {object} Entities.EntityProperties-Material
  * @property {string} materialURL="" - URL to a {@link MaterialResource}. If you append <code>?name</code> to the URL, the 
  *     material with that name in the {@link MaterialResource} will be applied to the entity. <br />
- *     Alternatively, set the property value to <code>"userData"</code> to use the {@link Entities.EntityProperties|userData} 
- *     entity property to live edit the material resource values.
+ *     Alternatively, set the property value to <code>"materialData"</code> to use the <code>materialData</code> property  
+ *     for the {@link MaterialResource} values.
  * @property {number} priority=0 - The priority for applying the material to its parent. Only the highest priority material is 
  *     applied, with materials of the same priority randomly assigned. Materials that come with the model have a priority of 
  *     <code>0</code>.
@@ -710,6 +710,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>{ x: 0, y: 0 }</code> &ndash; <code>{ x: 1, y: 1 }</code>.
  * @property {Vec2} materialMappingScale=1,1 - How much to scale the material within the parent's UV-space.
  * @property {number} materialMappingRot=0 - How much to rotate the material within the parent's UV-space, in degrees.
+ * @property {string} materialData="" - Used to store {@link MaterialResource} data as a JSON string. You can use 
+ *     <code>JSON.parse()</code> to parse the string into a JavaScript object which you can manipulate the properties of, and 
+ *     use <code>JSON.stringify()</code> to convert the object into a string to put in the property.
  * @example <caption>Color a sphere using a Material entity.</caption>
  * var entityID = Entities.addEntity({
  *     type: "Sphere",
@@ -722,13 +725,14 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * var materialID = Entities.addEntity({
  *     type: "Material",
  *     parentID: entityID,
- *     materialURL: "userData",
+ *     materialURL: "materialData",
  *     priority: 1,
- *     userData: JSON.stringify({
+ *     materialData: JSON.stringify({
+ *         materialVersion: 1,
  *         materials: {
  *             // Can only set albedo on a Shape entity.
  *             // Value overrides entity's "color" property.
- *             albedo: [1.0, 0, 0]
+ *             albedo: [1.0, 1.0, 0]  // Yellow
  *         }
  *     }),
  * });
