@@ -54,7 +54,6 @@
             android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
             android:name=".InterfaceActivity"
             android:label="@string/app_name"
-            android:screenOrientation="landscape"
             android:launchMode="singleTop"
             >
 
@@ -79,6 +78,7 @@
 
         <activity
             android:name=".SplashActivity"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.Translucent.NoActionBar" />
     </application>
 
