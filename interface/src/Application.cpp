@@ -4750,7 +4750,7 @@ void Application::updateLOD(float deltaTime) const {
     }
 }
 
-void Application::pushPostUpdateLambda(void* key, const std::function<void()>& func) {
+void Application::pushPostUpdateLambda(void* key, std::function<void()> func) {
     std::unique_lock<std::mutex> guard(_postUpdateLambdasLock);
     _postUpdateLambdas[key] = func;
 }
@@ -7360,21 +7360,12 @@ void Application::windowMinimizedChanged(bool minimized) {
     }
 }
 
-void Application::postLambdaEvent(const std::function<void()>& f) {
+void Application::postLambdaEvent(std::function<void()> f) {
     if (this->thread() == QThread::currentThread()) {
         f();
     } else {
         QCoreApplication::postEvent(this, new LambdaEvent(f));
     }
-}
-
-void Application::sendLambdaEvent(const std::function<void()>& f) {
-    if (this->thread() == QThread::currentThread()) {
-        f();
-    } else {
-        LambdaEvent event(f);
-        QCoreApplication::sendEvent(this, &event);
-    } 
 }
 
 void Application::initPlugins(const QStringList& arguments) {
