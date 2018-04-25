@@ -25,7 +25,7 @@
 #include <EntityScriptingInterface.h>
 
 #include "EntitiesRendererLogging.h"
-#include <NetworkingConstants.h>
+
 
 using namespace render;
 using namespace render::entities;
@@ -45,7 +45,6 @@ static int DEFAULT_MAX_FPS = 10;
 static int YOUTUBE_MAX_FPS = 30;
 
 static QTouchDevice _touchDevice;
-static const char* URL_PROPERTY = "url";
 
 WebEntityRenderer::ContentType WebEntityRenderer::getContentType(const QString& urlString) {
     if (urlString.isEmpty()) {
@@ -53,7 +52,7 @@ WebEntityRenderer::ContentType WebEntityRenderer::getContentType(const QString& 
     }
 
     const QUrl url(urlString);
-    if (url.scheme() == URL_SCHEME_HTTP || url.scheme() == URL_SCHEME_HTTPS ||
+    if (url.scheme() == "http" || url.scheme() == "https" ||
         urlString.toLower().endsWith(".htm") || urlString.toLower().endsWith(".html")) {
         return ContentType::HtmlContent;
     }
@@ -165,8 +164,6 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         if (urlChanged) {
             if (newContentType != ContentType::HtmlContent || currentContentType != ContentType::HtmlContent) {
                 destroyWebSurface();
-                // If we destroyed the surface, the URL change will be implicitly handled by the re-creation
-                urlChanged = false;
             }
 
             withWriteLock([&] {
@@ -188,8 +185,8 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
             return;
         }
         
-        if (urlChanged && _contentType == ContentType::HtmlContent) {
-            _webSurface->getRootItem()->setProperty(URL_PROPERTY, _lastSourceUrl);
+        if (urlChanged) {
+            _webSurface->getRootItem()->setProperty("url", _lastSourceUrl);
         }
 
         if (_contextPosition != entity->getWorldPosition()) {
@@ -257,14 +254,6 @@ bool WebEntityRenderer::hasWebSurface() {
     return (bool)_webSurface && _webSurface->getRootItem();
 }
 
-static const auto WebSurfaceDeleter = [](OffscreenQmlSurface* webSurface) {
-    AbstractViewStateInterface::instance()->sendLambdaEvent([webSurface] {
-        // WebEngineView may run other threads (wasapi), so they must be deleted for a clean shutdown
-        // if the application has already stopped its event loop, delete must be explicit
-        delete webSurface;
-    });
-};
-
 bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
     if (_currentWebCount >= MAX_CONCURRENT_WEB_VIEWS) {
         qWarning() << "Too many concurrent web views to create new view";
@@ -272,9 +261,20 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
     }
 
     ++_currentWebCount;
+    auto deleter = [](OffscreenQmlSurface* webSurface) {
+        AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
+            if (AbstractViewStateInterface::instance()->isAboutToQuit()) {
+                // WebEngineView may run other threads (wasapi), so they must be deleted for a clean shutdown
+                // if the application has already stopped its event loop, delete must be explicit
+                delete webSurface;
+            } else {
+                webSurface->deleteLater();
+            }
+        });
+    };
 
     // FIXME use the surface cache instead of explicit creation
-    _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), WebSurfaceDeleter);
+    _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
     // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
     // and the current rendering load)
     _webSurface->setMaxFps(DEFAULT_MAX_FPS);
@@ -302,7 +302,7 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
             _webSurface->setMaxFps(DEFAULT_MAX_FPS);
         }
         _webSurface->load("controls/WebEntityView.qml", [this](QQmlContext* context, QObject* item) {
-            item->setProperty(URL_PROPERTY, _lastSourceUrl);
+            item->setProperty("url", _lastSourceUrl);
         });
     } else if (_contentType == ContentType::QmlContent) {
         _webSurface->load(_lastSourceUrl, [this](QQmlContext* context, QObject* item) {
@@ -327,11 +327,6 @@ void WebEntityRenderer::destroyWebSurface() {
     if (webSurface) {
         --_currentWebCount;
         QQuickItem* rootItem = webSurface->getRootItem();
-        // Explicitly set the web URL to an empty string, in an effort to get a 
-        // faster shutdown of any chromium processes interacting with audio
-        if (rootItem && _contentType == ContentType::HtmlContent) {
-            rootItem->setProperty(URL_PROPERTY, "");
-        }
 
         if (rootItem && rootItem->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
