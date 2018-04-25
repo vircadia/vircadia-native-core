@@ -179,7 +179,7 @@ Rectangle {
                 }
             }
         }
-        RowLayout {
+        /*RowLayout {
             visible: Workload.getConfig("controlViews")["regulateViewRanges"]
             anchors.left: parent.left
             anchors.right: parent.right 
@@ -237,7 +237,7 @@ Rectangle {
                     }
                 }
             }
-        }
+        }*/
         property var controlViews: Workload.getConfig("controlViews")
 
         PlotPerf {
@@ -294,6 +294,7 @@ Rectangle {
             text: "Test"       
         }
         Row {
+            spacing: 5
             anchors.left: parent.left
             anchors.right: parent.right 
             HifiControls.Button {
@@ -310,13 +311,13 @@ Rectangle {
                     _workload.broadcastClearScene()
                 }
             }
-            HifiControls.Button {
+            /*HifiControls.Button {
                 text: "bump floor"
                 onClicked: {
                     print("pressed")
                     _workload.broadcastBumpUpFloor()
                 }
-            }
+            }*/
         }
         HifiControls.Label {
             id: gridSizeLabel
