@@ -60,65 +60,68 @@ class MyAvatar : public Avatar {
      * change the avatar's position within the domain, or manage the avatar's collisions with other objects.
      *
      * @namespace MyAvatar
-     * @property qmlPosition {Vec3} Used as a stopgap for position access by QML, as Vec3 is unavailable outside of scripts.
-     * @property shouldRenderLocally {boolean} Set it to true if you would like to see MyAvatar in your local interface,
-     *     and false if you would not like to see MyAvatar in your local interface.
-     * @property motorVelocity {Vec3} Can be used to move the avatar with this velocity.
-     * @property motorTimescale {number} Specifies how quickly the avatar should accelerate to meet the motorVelocity,
-     *     smaller values will result in higher acceleration.
-     * @property motorReferenceFrame {string} Reference frame of the motorVelocity, must be one of the following: "avatar", 
-     *     "camera", "world".
-     * @property motorMode {string} Type of scripted motor behavior, "simple" = use motorTimescale property (default mode) and 
-     *     "dynamic" = use action motor's timescales.
-     * @property collisionSoundURL {string} Specifies the sound to play when the avatar experiences a collision.
-     *     You can provide a mono or stereo 16-bit WAV file running at either 24 Khz or 48 Khz.
-     *     The latter is downsampled by the audio mixer, so all audio effectively plays back at a 24 Khz sample rate.
-     *     48 Khz RAW files are also supported.
-     * @property audioListenerMode {number} When hearing spatialized audio this determines where the listener placed.
-     *     Should be one of the following values:<br />
-     *     MyAvatar.audioListenerModeHead - the listener located at the avatar's head.<br />
-     *     MyAvatar.audioListenerModeCamera - the listener is relative to the camera.<br />
-     *     MyAvatar.audioListenerModeCustom - the listener is at a custom location specified by the 
-     *     MyAvatar.customListenPosition and MyAvatar.customListenOrientation properties.
-     * @property customListenPosition {Vec3} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this 
-     *     determines the position of audio spatialization listener.
-     * @property customListenOrientation {Quat} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this 
-     *     determines the orientation of the audio spatialization listener.
-     * @property audioListenerModeHead {number} When passed to MyAvatar.audioListenerMode, it will set the audio listener
-     *     around the avatar's head. <em>Read-only.</em>
-     * @property audioListenerModeCamera {number} When passed to MyAvatar.audioListenerMode, it will set the audio listener
-     *     around the camera. <em>Read-only.</em>
-     * @property audioListenerModeCustom {number} When passed to MyAvatar.audioListenerMode, it will set the audio listener
-     *     around the value specified by MyAvatar.customListenPosition and MyAvatar.customListenOrientation. <em>Read-only.</em>
-     * @property leftHandPosition {Vec3} The desired position of the left wrist in avatar space, determined by the hand 
-     *     controllers. Note: only valid if hand controllers are in use. <em>Read-only.</em>
-     * @property rightHandPosition {Vec3} The desired position of the right wrist in avatar space, determined by the hand 
-     *     controllers. Note: only valid if hand controllers are in use. <em>Read-only.</em>
-     * F@property leftHandTipPosition {Vec3} A position 30 cm offset from MyAvatar.leftHandPosition. <em>Read-only.</em>
-     * @property rightHandTipPosition {Vec3} A position 30 cm offset from MyAvatar.rightHandPosition. <em>Read-only.</em>
-     * @property leftHandPose {Pose} Returns full pose (translation, orientation, velocity & angularVelocity) of the desired
-     *     wrist position, determined by the hand controllers. <em>Read-only.</em>
-     * @property rightHandPose {Pose} Returns full pose (translation, orientation, velocity & angularVelocity) of the desired
-     *     wrist position, determined by the hand controllers. <em>Read-only.</em>
-     * @property leftHandTipPose {Pose} Returns a pose offset 30 cm from MyAvatar.leftHandPose. <em>Read-only.</em>
-     * @property rightHandTipPose {Pose} Returns a pose offset 30 cm from MyAvatar.rightHandPose. <em>Read-only.</em>
-     * @property hmdLeanRecenterEnabled {boolean} This can be used disable the hmd lean recenter behavior.  This behavior is 
-     *     what causes your avatar to follow your HMD as you walk around the room, in room scale VR.  Disabling this is useful 
-     *     if you desire to pin the avatar to a fixed location.
-     * @property collisionsEnabled {boolean} This can be used to disable collisions between the avatar and the world.
-     * @property {boolean} characterControllerEnabled
-     * @property useAdvancedMovementControls {boolean} Stores the user preference only, does not change user mappings, this is 
-     *     done in the default script, "toggleAdvancedMovementForHandControllers.js".
-     * @property {number} yawSpeed
-     * @property {number} pitchSpeed
-     * @property hmdRollControlEnabled {boolean} When enabled the roll angle of your HMD will turn your avatar while flying.
-     * @property hmdRollControlDeadZone {number} If hmdRollControlEnabled is true, this value can be used to tune what roll
-     *     angle is required to begin turning. This angle is specified in degrees.
+     * @property {Vec3} qmlPosition - A synonym for <code>position</code> for use by QML.
+     * @property {boolean} shouldRenderLocally=true - If <code>true</code> then your avatar is rendered for you in Interface,
+     *     otherwise it is not rendered for you (but it is still rendered for other users).
+     * @property {Vec3} motorVelocity=Vec3.ZERO - The target velocity of your avatar to be achieved by a scripted motor.
+     * @property {number} motorTimescale=1000000 - The timescale for the scripted motor to achieve the target 
+     *     <code>motorVelocity</code> avatar velocity. Smaller values result in higher acceleration.
+     * @property {string} motorReferenceFrame="camera" -  Reference frame of the <code>motorVelocity</code>. Must be one of the 
+     *     following: <code>"camera"</code>, <code>"avatar"</code>, and <code>"world"</code>.
+     * @property {string} motorMode="simple" - The Type of scripted motor behavior: <code>"simple"</code> to use the 
+     *     <code>motorTimescale</code> time scale; <code>"dynamic"</code> to use character controller timescales.
+     * @property {string} collisionSoundURL="Body_Hits_Impact.wav" - The sound that's played when the avatar experiences a 
+     *     collision. It can be a mono or stereo 16-bit WAV file running at either 24kHz or 48kHz. The latter is down-sampled 
+     *     by the audio mixer, so all audio effectively plays back at a 24khz. 48kHz RAW files are also supported.
+     * @property {number} audioListenerMode=0 - Specifies the listening position when hearing spatialized audio. Must be one 
+     *     of the following property values:<br />
+     *     <code>audioListenerModeHead</code><br />
+     *     <code>audioListenerModeCamera</code><br />
+     *     <code>audioListenerModeCustom</code>
+     * @property {number} audioListenerModeHead=0 - The audio listening position is at the avatar's head. <em>Read-only.</em>
+     * @property {number} audioListenerModeCamera=1 - The audio listening position is at the camera. <em>Read-only.</em>
+     * @property {number} audioListenerModeCustom=2 - The audio listening position is at a the position specified by set by the 
+     *     <code>customListenPosition</code> and <code>customListenOrientation</code> property values. <em>Read-only.</em>
+     * @property {Vec3} customListenPosition=Vec3.ZERO - The listening position used when the <code>audioListenerMode</code>
+     *     property value is <code>audioListenerModeCustom</code>.
+     * @property {Quat} customListenOrientation=Quat.IDENTITY - The listening orientation used when the 
+     *     <code>audioListenerMode</code> property value is <code>audioListenerModeCustom</code>.
+     * @property {Vec3} leftHandPosition - The position of the left hand in avatar coordinates if it's being positioned by 
+     *     controllers, otherwise {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
+     * @property {Vec3} rightHandPosition - The position of the right hand in avatar coordinates if it's being positioned by
+     *     controllers, otherwise {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
+
+     * @property {Vec3} leftHandTipPosition - The position 30cm offset from the left hand in avatar coordinates if it's being 
+     *     positioned by controllers, otherwise {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
+     * @property {Vec3} rightHandTipPosition - The position 30cm offset from the right hand in avatar coordinates if it's being
+     *     positioned by controllers, otherwise {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
+     * @property {Pose} leftHandPose - The pose of the left hand as determined by the hand controllers. <em>Read-only.</em>
+     * @property {Pose} rightHandPose - The pose right hand position as determined by the hand controllers. <em>Read-only.</em>
+     * @property {Pose} leftHandTipPose - The pose of the left hand as determined by the hand controllers, with the position 
+     *     by 30cm. <em>Read-only.</em>
+     * @property {Pose} rightHandTipPose - The pose of the right hand as determined by the hand controllers, with the position
+     *     by 30cm. <em>Read-only.</em>
+     * @property {boolean} hmdLeanRecenterEnabled=true - If <code>true</code> then the avatar is re-centered to be under the 
+     *     head's position. In room-scale VR, this behavior is what causes your avatar to follow your HMD as you walk around 
+     *     the room. Setting the value <code>false</code> is useful if you want to pin the avatar to a fixed position.
+     * @property {boolean} collisionsEnabled - Set to <code>true</code> to enable collisions for the avatar, <code>false</code> 
+     *     to disable collisions. May return <code>true</code> even though the value was set <code>false</code> because the 
+     *     zone may disallow collisionless avatars.
+     * @property {boolean} characterControllerEnabled - Synonym of <code>collisionsEnabled</code>. 
+     *     <strong>Deprecated:</strong> Use <code>collisionsEnabled</code> instead.
+     * @property {boolean} useAdvancedMovementControls - Returns the value of the Interface setting, Settings > Advanced 
+     *     Movement for Hand Controller. Note: Setting the value has no effect unless Interface is restarted.
+     * @property {number} yawSpeed=75
+     * @property {number} pitchSpeed=50
+     * @property {boolean} hmdRollControlEnabled=true - If <code>true</code>, the roll angle of your HMD turns your avatar 
+     *     while flying.
+     * @property {number} hmdRollControlDeadZone=8 - The amount of HMD roll, in degrees, required before your avatar turns if 
+     *    <code>hmdRollControlEnabled</code> is enabled.
      * @property hmdRollControlRate {number} If hmdRollControlEnabled is true, this value determines the maximum turn rate of
      *     your avatar when rolling your HMD in degrees per second.
-     * @property userHeight {number} The height of the user in sensor space.
-     * @property userEyeHeight {number} Estimated height of the users eyes in sensor space.
-     * @property SELF_ID {Uuid} UUID representing "my avatar". Only use for local-only entities and overlays in situations 
+     * @property {number} userHeight=1.75 - The height of the user in sensor space.
+     * @property {number} userEyeHeight=1.65 - The estimated height of the user's eyes in sensor space. <em>Read-only.</em>
+     * @property {Uuid} SELF_ID - UUID representing "my avatar". Only use for local-only entities and overlays in situations 
      *     where MyAvatar.sessionUUID is not available (e.g., if not connected to a domain). Note: Likely to be deprecated. 
      *     <em>Read-only.</em>
      * @property {number} walkSpeed
@@ -319,12 +322,12 @@ public:
      * The avatar animation system includes a set of default animations along with rules for how those animations are blended
      * together with procedural data (such as look at vectors, hand sensors etc.). overrideAnimation() is used to completely
      * override all motion from the default animation system (including inverse kinematics for hand and head controllers) and
-     * play a specified animation. To end this animation and restore the default animations, use 
+     * play a set of specified animations. To end these animations and restore the default animations, use 
      * {@link MyAvatar.restoreAnimation}.<br />
      * <p>Note: When using pre-built animation data, it's critical that the joint orientation of the source animation and target 
      * rig are equivalent, since the animation data applies absolute values onto the joints. If the orientations are different, 
-     * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see the 
-     * General Rigging Concepts section in <a href="https://wiki.highfidelity.com/wiki/Create_avatars">Creating Avatars</a>.</p>
+     * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
+     * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.</p>
      * @function MyAvatar.overrideAnimation
      * @param url {string} The URL to the animation file. Animation files need to be .FBX format, but only need to contain the 
      * avatar skeleton and animation data.
@@ -380,12 +383,12 @@ public:
      * For each role, the avatar-animation.json defines when the animation is used, the animation clip (.FBX) used, and how animations are blended
      * together with procedural data (such as look at vectors, hand sensors etc.).
      * overrideRoleAnimation() is used to change the animation clip (.FBX) associated with a specified animation role. To end 
-     * the animation and restore the default animations, use {@link MyAvatar.restoreRoleAnimation}.<br />
+     * the animations and restore the default animations, use {@link MyAvatar.restoreRoleAnimation}.<br />
      * <p>Note: Hand roles only affect the hand. Other 'main' roles, like 'idleStand', 'idleTalk', 'takeoffStand' are full body.</p>
      * <p>Note: When using pre-built animation data, it's critical that the joint orientation of the source animation and target
      * rig are equivalent, since the animation data applies absolute values onto the joints. If the orientations are different,
-     * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see the
-     * General Rigging Concepts section in <a href="https://wiki.highfidelity.com/wiki/Create_avatars">Creating Avatars</a>.</p>
+     * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
+     * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.
      * @function MyAvatar.overrideRoleAnimation
      * @param role {string} The animation role to override
      * @param url {string} The URL to the animation file. Animation files need to be .FBX format, but only need to contain the avatar skeleton and animation data.
@@ -538,28 +541,25 @@ public:
 
 
     /**jsdoc
-    *The triggerVerticalRecenter function activates one time the recentering 
-    *behaviour in the vertical direction. This call is only takes effect when the property
-    *MyAvatar.hmdLeanRecenterEnabled is set to false.
-    *@function MyAvatar.triggerVerticalRecenter
-    */
+     * Recenter the avatar in the vertical direction, if <code>{@link MyAvatar|MyAvatar.hmdLeanRecenterEnabled}</code> is 
+     * <code>false</code>.
+     * @function MyAvatar.triggerVerticalRecenter
+     */
     Q_INVOKABLE void triggerVerticalRecenter();
 
     /**jsdoc
-    *The triggerHorizontalRecenter function activates one time the recentering behaviour
-    *in the horizontal direction. This call is only takes effect when the property
-    *MyAvatar.hmdLeanRecenterEnabled is set to false.
-    *@function MyAvatar.triggerHorizontalRecenter
-    */
+     * Recenter the avatar in the horizontal direction, if <code>{@link MyAvatar|MyAvatar.hmdLeanRecenterEnabled}</code> is 
+     * <code>false</code>.
+     * @ function MyAvatar.triggerHorizontalRecenter
+     */
     Q_INVOKABLE void triggerHorizontalRecenter();
 
     /**jsdoc
-    *The triggerRotationRecenter function activates one time the recentering behaviour
-    *in the rotation of the root of the avatar. This call is only takes effect when the property
-    *MyAvatar.hmdLeanRecenterEnabled is set to false.
-    *@function MyAvatar.triggerRotationRecenter
-    */
+     * Recenter the avatar's rotation, if <code>{@link MyAvatar|MyAvatar.hmdLeanRecenterEnabled}</code> is <code>false</code>.
+     * @function MyAvatar.triggerRotationRecenter
+     */
     Q_INVOKABLE void triggerRotationRecenter();
+
 
     eyeContactTarget getEyeContactTarget();
 
@@ -624,24 +624,24 @@ public:
 
 
     /**jsdoc
-     * Get the position of the avatar's left hand as it is controlled by a hand controller (e.g., Oculus Touch or Vive).<br />
+     * Get the position of the avatar's left hand as positioned by a hand controller (e.g., Oculus Touch or Vive).<br />
      * <p>Note: The Leap Motion isn't part of the hand controller input system. (Instead, it manipulates the avatar's joints 
-     * for hand animation.) If you are using the Leap Motion, the return value's <code>valid</code> property will be 
-     * <code>false</code> and any pose values returned will not be meaningful.</p>
+     * for hand animation.)</p>
      * @function MyAvatar.getLeftHandPosition
-     * @returns {Vec3} The position of the left hand in avatar coordinates.
+     * @returns {Vec3} The position of the left hand in avatar coordinates if positioned by a hand controller, otherwise 
+     *     <code>{@link Vec3(0)|Vec3.ZERO}</code>.
      * @example <caption>Report the position of your left hand relative to your avatar.</caption>
      * print(JSON.stringify(MyAvatar.getLeftHandPosition()));
      */
     Q_INVOKABLE glm::vec3 getLeftHandPosition() const;
 
     /**jsdoc
-     * Get the position of the avatar's right hand as it is controlled by a hand controller (e.g., Oculus Touch or Vive).<br />
+     * Get the position of the avatar's right hand as positioned by a hand controller (e.g., Oculus Touch or Vive).<br />
      * <p>Note: The Leap Motion isn't part of the hand controller input system. (Instead, it manipulates the avatar's joints 
-     * for hand animation.) If you are using the Leap Motion, the return value's <code>valid</code> property will be 
-     * <code>false</code> and any pose values returned will not be meaningful.</p>
+     * for hand animation.)</p>
      * @function MyAvatar.getRightHandPosition
-     * @returns {Vec3} The position of the right hand in avatar coordinates.
+     * @returns {Vec3} The position of the right hand in avatar coordinates if positioned by a hand controller, otherwise 
+     *     <code>{@link Vec3(0)|Vec3.ZERO}</code>.
      * @example <caption>Report the position of your right hand relative to your avatar.</caption>
      * print(JSON.stringify(MyAvatar.getLeftHandPosition()));
      */
@@ -661,7 +661,7 @@ public:
 
 
     /**jsdoc
-     * Get the pose (position, rotation, velocity, and angular velocity) of the avatar's left hand as it is controlled by a 
+     * Get the pose (position, rotation, velocity, and angular velocity) of the avatar's left hand as positioned by a 
      * hand controller (e.g., Oculus Touch or Vive).<br />
      * <p>Note: The Leap Motion isn't part of the hand controller input system. (Instead, it manipulates the avatar's joints 
      * for hand animation.) If you are using the Leap Motion, the return value's <code>valid</code> property will be 
@@ -674,7 +674,7 @@ public:
     Q_INVOKABLE controller::Pose getLeftHandPose() const;
 
     /**jsdoc
-     * Get the pose (position, rotation, velocity, and angular velocity) of the avatar's left hand as it is controlled by a 
+     * Get the pose (position, rotation, velocity, and angular velocity) of the avatar's left hand as positioned by a 
      * hand controller (e.g., Oculus Touch or Vive).<br />
      * <p>Note: The Leap Motion isn't part of the hand controller input system. (Instead, it manipulates the avatar's joints 
      * for hand animation.) If you are using the Leap Motion, the return value's <code>valid</code> property will be 
@@ -810,7 +810,6 @@ public:
      * @returns {string} The full avatar model name.
      * @example <caption>Report the current full avatar model name.</caption>
      * print(MyAvatar.getFullAvatarModelName());
-     * // For example: being_of_light
      */
     Q_INVOKABLE QString getFullAvatarModelName() const { return _fullAvatarModelName; }
 
@@ -1245,7 +1244,7 @@ signals:
      * @function MyAvatar.collisionWithEntity
      * @param {Collision} collision
      * @returns {Signal}
-     * @example <caption>Report each time your aatar collides with an entity.</caption>
+     * @example <caption>Report each time your avatar collides with an entity.</caption>
      * MyAvatar.collisionWithEntity.connect(function (collision) {
      *     print("Your avatar collided with an entity.");
      * });
@@ -1263,6 +1262,7 @@ signals:
      * @function MyAvatar.positionGoneTo
      * @returns {Signal} 
      */
+    // FIXME: Better name would be goneToLocation().
     void positionGoneTo();
 
     /**jsdoc

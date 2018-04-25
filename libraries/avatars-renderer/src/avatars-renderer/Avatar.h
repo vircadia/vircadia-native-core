@@ -57,7 +57,7 @@ using AvatarPhysicsCallback = std::function<void(uint32_t)>;
 class Avatar : public AvatarData, public scriptable::ModelProvider {
     Q_OBJECT
 
-    // This property has JSDoc in MyAvatart.h.
+    // This property has JSDoc in MyAvatar.h.
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:

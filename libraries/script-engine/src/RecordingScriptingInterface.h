@@ -131,12 +131,14 @@ public slots:
     /**jsdoc
      * @function Recording.setPlayerUseHeadModel
      * @param {boolean} useHeadModel
+     * @todo <strong>Note:</strong> This function currently has no effect.
      */
     void setPlayerUseHeadModel(bool useHeadModel);
 
     /**jsdoc
      * @function Recording.setPlayerUseSkeletonModel
      * @param {boolean} useSkeletonModel
+     * @todo <strong>Note:</strong> This function currently doesn't work.
      */
     void setPlayerUseSkeletonModel(bool useSkeletonModel);
 

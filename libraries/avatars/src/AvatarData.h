@@ -641,7 +641,7 @@ public:
 
     /**jsdoc
      * Get the rotation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://wiki.highfidelity.com/wiki/Create_avatars">avatar standards</a>.
+     * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.
      * @function MyAvatar.getJointRotation
      * @param {number} index - The index of the joint.
      * @returns {Quat} The rotation of the joint relative to its parent.
@@ -650,7 +650,7 @@ public:
 
     /**jsdoc
      * Get the translation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://wiki.highfidelity.com/wiki/Create_avatars">avatar standards</a>.
+     * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.
      * @function MyAvatar.getJointTranslation
      * @param {number} index - The index of the joint.
      * @returns {Vec3} The translation of the joint relative to its parent.
@@ -753,7 +753,7 @@ public:
 
     /**jsdoc
      * Get the rotation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://wiki.highfidelity.com/wiki/Create_avatars">avatar standards</a>.
+     * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.
      * @function MyAvatar.getJointRotation
      * @param {string} name - The name of the joint.
      * @returns {Quat} The rotation of the joint relative to its parent.
@@ -764,7 +764,7 @@ public:
 
     /**jsdoc
      * Get the translation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://wiki.highfidelity.com/wiki/Create_avatars">avatar standards</a>.
+     * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.
      * @function MyAvatar.getJointTranslation
      * @param {number} name - The name of the joint.
      * @returns {Vec3} The translation of the joint relative to its parent.
@@ -886,12 +886,14 @@ public:
      * @function MyAvatar.getAttachmentsVariant
      * @returns {object} 
      */
+    // FIXME: Can this name be improved? Can it be deprecated?
     Q_INVOKABLE QVariantList getAttachmentsVariant() const;
 
     /**jsdoc
      * @function MyAvatar.setAttachmentsVariant
      * @param {object} variant
      */
+    // FIXME: Can this name be improved? Can it be deprecated?
     Q_INVOKABLE void setAttachmentsVariant(const QVariantList& variant);
 
 
@@ -1155,27 +1157,32 @@ signals:
 
     /**jsdoc
      * @function MyAvatar.displayNameChanged
+     * @returns {Signal}
      */
     void displayNameChanged();
 
     /**jsdoc
      * @function MyAvatar.sessionDisplayNameChanged
+     * @returns {Signal}
      */
     void sessionDisplayNameChanged();
 
     /**jsdoc
      * @function MyAvatar.skeletonModelURLChanged
+     * @returns {Signal}
      */
     void skeletonModelURLChanged();
 
     /**jsdoc
      * @function MyAvatar.lookAtSnappingChanged
      * @param {boolean} enabled
+     * @returns {Signal}
      */
     void lookAtSnappingChanged(bool enabled);
 
     /**jsdoc
      * @function MyAvatar.sessionUUIDChanged
+     * @returns {Signal}
      */
     void sessionUUIDChanged();
 
