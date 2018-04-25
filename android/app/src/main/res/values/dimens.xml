@@ -11,4 +11,7 @@
     <dimen name="text_size_subtitle_material_toolbar">12dp</dimen>
     <dimen name="button_horizontal_margin">12dp</dimen>
     <dimen name="edit_text_padding">8dp</dimen>
+    <dimen name="header_hifi_margin_top">40dp</dimen>
+    <dimen name="header_hifi_height">88dp</dimen>
+    <dimen name="header_hifi_width">372dp</dimen>
 </resources>
