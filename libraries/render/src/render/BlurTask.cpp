@@ -163,7 +163,7 @@ bool BlurInOutResource::updateResources(const gpu::FramebufferPointer& sourceFra
         //if (sourceFramebuffer->hasDepthStencil()) {
         //    _blurredFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
         //}
-        auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT);
+        auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT, gpu::Sampler::WRAP_CLAMP);
         auto blurringTarget = gpu::Texture::createRenderBuffer(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), blurBufferSize.x, blurBufferSize.y, gpu::Texture::SINGLE_MIP, blurringSampler);
         _blurredFramebuffer->setRenderBuffer(0, blurringTarget);
     } 
@@ -186,7 +186,7 @@ bool BlurInOutResource::updateResources(const gpu::FramebufferPointer& sourceFra
          /*   if (sourceFramebuffer->hasDepthStencil()) {
                 _outputFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
             }*/
-            auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT);
+            auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT, gpu::Sampler::WRAP_CLAMP);
             auto blurringTarget = gpu::Texture::createRenderBuffer(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), blurBufferSize.x, blurBufferSize.y, gpu::Texture::SINGLE_MIP, blurringSampler);
             _outputFramebuffer->setRenderBuffer(0, blurringTarget);
         }

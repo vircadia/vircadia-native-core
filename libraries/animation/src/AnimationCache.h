@@ -20,6 +20,11 @@
 #include <FBXReader.h>
 #include <ResourceCache.h>
 
+/**jsdoc
+ * API to manage Animation Cache resources
+ * @namespace AnimationCache
+ */
+
 class Animation;
 
 typedef QSharedPointer<Animation> AnimationPointer;
@@ -29,19 +34,80 @@ class AnimationCache : public ResourceCache, public Dependency  {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
+public:
+    // Copied over from ResourceCache (see ResourceCache.h for reason)
+
     /**jsdoc
      * @namespace AnimationCache
-     * @augments ResourceCache
+     * @property numTotal {number} total number of total resources
+     * @property numCached {number} total number of cached resource
+     * @property sizeTotal {number} size in bytes of all resources
+     * @property sizeCached {number} size in bytes of all cached resources
      */
 
-public:
+    /**jsdoc
+     * Returns the total number of resources
+     * @function AnimationCache.getNumTotalResources
+     * @returns {number}
+     */
+
+    /**jsdoc
+     * Returns the total size in bytes of all resources
+     * @function AnimationCache.getSizeTotalResources
+     * @returns {number}
+     */
+
+    /**jsdoc
+     * Returns the total number of cached resources
+     * @function AnimationCache.getNumCachedResources
+     * @returns {number}
+     */
+
+    /**jsdoc
+     * Returns the total size in bytes of cached resources
+     * @function AnimationCache.getSizeCachedResources
+     * @returns {number}
+     */
+
+    /**jsdoc
+     * Returns list of all resource urls
+     * @function AnimationCache.getResourceList
+     * @returns {string[]}
+     */
+
+    /**jsdoc
+     * Asynchronously loads a resource from the spedified URL and returns it.
+     * @param url {string} url of resource to load
+     * @param fallback {string} fallback URL if load of the desired url fails
+     * @function AnimationCache.getResource
+     * @returns {Resource}
+     */
+    
+    /**jsdoc
+     * Prefetches a resource.
+     * @param url {string} url of resource to load
+     * @function AnimationCache.prefetch
+     * @returns {Resource}
+     */
+
+    /**jsdoc
+     * @param {number} deltaSize
+     * @function AnimationCache.updateTotalSize
+     * @returns {Resource}
+     */
+
+    /**jsdoc
+     * @function AnimationCache.dirty
+     * @returns {Signal} 
+     */
 
     /**jsdoc
      * Returns animation resource for particular animation
      * @function AnimationCache.getAnimation
      * @param url {string} url to load
-     * @return {Resource} animation
+     * @returns {Resource} animation
      */
+
     Q_INVOKABLE AnimationPointer getAnimation(const QString& url) { return getAnimation(QUrl(url)); }
     Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);
 
