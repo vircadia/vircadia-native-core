@@ -27,7 +27,7 @@ BakerCLI::BakerCLI(OvenCLIApplication* parent) : QObject(parent) {
 void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString& type) {
 
     // if the URL doesn't have a scheme, assume it is a local file
-    if (inputUrl.scheme() != "http" && inputUrl.scheme() != "https" && inputUrl.scheme() != "ftp") {
+    if (inputUrl.scheme() != "http" && inputUrl.scheme() != "https" && inputUrl.scheme() != "ftp" && inputUrl.scheme() != "file") {
         inputUrl = QUrl::fromLocalFile(inputUrl.toString());
     }
 
