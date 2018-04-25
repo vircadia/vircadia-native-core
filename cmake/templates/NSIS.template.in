@@ -1005,6 +1005,23 @@ Function HandlePostInstallOptions
   ${EndIf}
 FunctionEnd
 
+Function OptionallyDownloadCampaignServerless
+  ${If} $CampaignName != ""
+    InitPluginsDir
+
+    NSISdl::download_quiet http://cdn.highfidelity.com/installer/serverless/$CampaignName.zip $PLUGINSDIR\$CampaignName.zip
+
+    ${If} ${FileExists} $PLUGINSDIR\$CampaignName.zip
+      ; replace the installed serverless content with the campaign content
+
+      RMDir /r "$INSTDIR\resources\serverless"
+      CreateDirectory "$INSTDIR\resources\serverless"
+      nsisunz::Unzip "$PLUGINSDIR\$CampaignName.zip" "$INSTDIR\resources\serverless"
+    ${EndIf}
+
+  ${Endif}
+FunctionEnd
+
 ;--------------------------------
 ;Installer Sections
 
@@ -1157,6 +1174,9 @@ Section "-Core installation"
   !insertmacro MUI_STARTMENU_WRITE_END
 
   @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
+
+  ; see if we have a campaign that we might need to grab special content for
+  Call OptionallyDownloadCampaignServerless
 
   ; Handle whichever post install options were set
   Call HandlePostInstallOptions
