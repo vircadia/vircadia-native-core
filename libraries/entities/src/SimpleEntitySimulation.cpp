@@ -38,11 +38,8 @@ void SimpleEntitySimulation::clearOwnership(const QUuid& ownerID) {
             entity->clearSimulationOwnership();
             entity->markAsChangedOnServer();
             if (auto element = entity->getElement()) {
-                auto tree = getEntityTree();
-                tree->withReadLock([&] {
-                    DirtyOctreeElementOperator op(element);
-                    tree->recurseTreeWithOperator(&op);
-                });
+                DirtyOctreeElementOperator op(element);
+                getEntityTree()->recurseTreeWithOperator(&op);
             }
         } else {
             ++itemItr;
