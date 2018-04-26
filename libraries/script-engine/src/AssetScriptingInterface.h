@@ -25,7 +25,7 @@
 #include <QtNetwork/QNetworkDiskCache>
 
 /**jsdoc
- * The Assets API allows you to communicate with the Asset Browser
+ * The Assets API allows you to communicate with the Asset Browser.
  * @namespace Assets
  */
 class AssetScriptingInterface : public BaseAssetScriptingInterface, QScriptable {
@@ -41,14 +41,12 @@ public:
      * @param data {string} content to upload
      * @param callback {Assets~uploadDataCallback} called when upload is complete
      */
-
     /**jsdoc
      * Called when uploadData is complete
      * @callback Assets~uploadDataCallback
      * @param {string} url
      * @param {string} hash
      */
-
     Q_INVOKABLE void uploadData(QString data, QScriptValue callback);
 
     /**jsdoc
@@ -57,13 +55,11 @@ public:
      * @param url {string} URL of asset to download, must be ATP scheme URL.
      * @param callback {Assets~downloadDataCallback}
      */
-
     /**jsdoc
      * Called when downloadData is complete
      * @callback Assets~downloadDataCallback
      * @param data {string} content that was downloaded
      */
-
     Q_INVOKABLE void downloadData(QString url, QScriptValue downloadComplete);
 
     /**jsdoc
@@ -73,13 +69,11 @@ public:
      * @param hash {string}
      * @param callback {Assets~setMappingCallback}
      */
-
     /**jsdoc
      * Called when setMapping is complete
      * @callback Assets~setMappingCallback
      * @param {string} error
      */
-
     Q_INVOKABLE void setMapping(QString path, QString hash, QScriptValue callback);
 
     /**jsdoc
@@ -88,21 +82,12 @@ public:
      * @param path {string}
      * @param callback {Assets~getMappingCallback}
      */
-
     /**jsdoc
      * Called when getMapping is complete.
      * @callback Assets~getMappingCallback
      * @param assetID {string} hash value if found, else an empty string
      * @param error {string} error description if the path could not be resolved; otherwise a null value.
      */
-
-    /**jsdoc
-     * Called when getMapping is complete.
-     * @callback Assets~getMappingCallback
-     * @param assetID {string} hash value if found, else an empty string
-     * @param error {string} error description if the path could not be resolved; otherwise a null value.
-     */
-
     Q_INVOKABLE void getMapping(QString path, QScriptValue callback);
 
     /**jsdoc
@@ -111,7 +96,10 @@ public:
      * @param enabled {boolean}
      * @param callback {}
      */
-
+    /**jsdoc
+     * Called when setBakingEnabled is complete.
+     * @callback Assets~setBakingEnabledCallback
+     */
     Q_INVOKABLE void setBakingEnabled(QString path, bool enabled, QScriptValue callback);
 
 #if (PR_BUILD || DEV_BUILD)
@@ -122,13 +110,14 @@ public:
      * Request Asset data from the ATP Server
      * @function Assets.getAsset
      * @param {URL|Assets.GetOptions} options An atp: style URL, hash, or relative mapped path; or an {@link Assets.GetOptions} object with request parameters
-     * @param {Assets~getAssetCallback} scope[callback] A scope callback function to receive (error, results) values
+     * @param {Assets~getAssetCallback} scope A scope callback function to receive (error, results) values
+     * @param {function} [callback=undefined]
      */
 
     /**jsdoc
      * A set of properties that can be passed to {@link Assets.getAsset}.
      * @typedef {Object} Assets.GetOptions
-     * @property {URL} [url] an "atp:" style URL, hash, or relative mapped path to fetch
+     * @property {string} [url] an "atp:" style URL, hash, or relative mapped path to fetch
      * @property {string} [responseType=text] the desired reponse type (text | arraybuffer | json)
      * @property {boolean} [decompress=false] whether to attempt gunzip decompression on the fetched data
      *    See: {@link Assets.putAsset} and its .compress=true option
@@ -144,7 +133,7 @@ public:
     /**jsdoc
      * Result value returned by {@link Assets.getAsset}.
      * @typedef {Object} Assets~getAssetResult
-     * @property {url} [url] the resolved "atp:" style URL for the fetched asset
+     * @property {string} [url] the resolved "atp:" style URL for the fetched asset
      * @property {string} [hash] the resolved hash for the fetched asset
      * @property {string|ArrayBuffer|Object} [response] response data (possibly converted per .responseType value)
      * @property {string} [responseType] response type (text | arraybuffer | json)
@@ -160,6 +149,7 @@ public:
      * @function Assets.putAsset
      * @param {Assets.PutOptions} options A PutOptions object with upload parameters
      * @param {Assets~putAssetCallback} scope[callback] A scoped callback function invoked with (error, results)
+     * @param {function} [callback=undefined]
      */
 
     /**jsdoc
@@ -180,7 +170,7 @@ public:
     /**jsdoc
      * Result value returned by {@link Assets.putAsset}.
      * @typedef {Object} Assets~putAssetResult
-     * @property {url} [url] the resolved "atp:" style URL for the uploaded asset (based on .path if specified, otherwise on the resulting ATP hash)
+     * @property {string} [url] the resolved "atp:" style URL for the uploaded asset (based on .path if specified, otherwise on the resulting ATP hash)
      * @property {string} [path] the uploaded asset's resulting ATP path (or undefined if no path mapping was assigned)
      * @property {string} [hash] the uploaded asset's resulting ATP hash
      * @property {boolean} [compressed] flag indicating whether the data was compressed before upload
@@ -243,7 +233,7 @@ public:
     /**jsdoc
      * @function Assets.getCacheStatus
      * @property {} scope
-     * @property {} [callback = ""]
+     * @property {} [callback=undefined]
      */
 
     Q_INVOKABLE void getCacheStatus(QScriptValue scope, QScriptValue callback = QScriptValue()) {
@@ -254,7 +244,7 @@ public:
      * @function Assets.queryCacheMeta
      * @property {} options
      * @property {} scope
-     * @property {} [callback = ""]
+     * @property {} [callback=undefined]
      */
 
     Q_INVOKABLE void queryCacheMeta(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
@@ -263,7 +253,7 @@ public:
      * @function Assets.loadFromCache
      * @property {} options
      * @property {} scope
-     * @property {} [callback = ""]
+     * @property {} [callback=undefined]
      */
 
     Q_INVOKABLE void loadFromCache(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
@@ -272,7 +262,7 @@ public:
      * @function Assets.saveToCache
      * @property {} options
      * @property {} scope
-     * @property {} [callback = ""]
+     * @property {} [callback=undefined]
      */
 
     Q_INVOKABLE void saveToCache(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
@@ -283,7 +273,7 @@ public:
      * @property {} data
      * @property {} metadata
      * @property {} scope
-     * @property {} [callback = ""]
+     * @property {} [callback=undefined]
      */
 
     Q_INVOKABLE void saveToCache(const QUrl& url, const QByteArray& data, const QVariantMap& metadata,

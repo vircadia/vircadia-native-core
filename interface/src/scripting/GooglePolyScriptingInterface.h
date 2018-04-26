@@ -32,7 +32,6 @@ public slots:
      * @function GooglePoly.setAPIKey
      * @param {string} key
      */
-
     void setAPIKey(const QString& key);
 
     /**jsdoc
@@ -42,7 +41,6 @@ public slots:
      * @param {string} format
      * @returns {string}
      */
-
     QString getAssetList(const QString& keyword, const QString& category, const QString& format);
 
     /**jsdoc
@@ -51,7 +49,6 @@ public slots:
      * @param {string} category
      * @returns {string}
      */
-
     QString getFBX(const QString& keyword, const QString& category);
 
     /**jsdoc
@@ -60,7 +57,6 @@ public slots:
      * @param {string} category
      * @returns {string}
      */
-
     QString getOBJ(const QString& keyword, const QString& category);
 
     /**jsdoc
@@ -69,7 +65,6 @@ public slots:
      * @param {string} category
      * @returns {string}
      */
-
     QString getBlocks(const QString& keyword, const QString& category);
 
     /**jsdoc
@@ -78,7 +73,6 @@ public slots:
      * @param {string} category
      * @returns {string}
      */
-
     QString getGLTF(const QString& keyword, const QString& category);
 
     /**jsdoc
@@ -87,7 +81,6 @@ public slots:
      * @param {string} category
      * @returns {string}
      */
-
     QString getGLTF2(const QString& keyword, const QString& category);
 
     /**jsdoc
@@ -96,7 +89,6 @@ public slots:
      * @param {string} category
      * @returns {string}
      */
-
     QString getTilt(const QString& keyword, const QString& category);
 
     /**jsdoc
@@ -104,7 +96,6 @@ public slots:
      * @param {string} input
      * @returns {string}
      */
-
     QString getModelInfo(const QString& input);
 
 private:

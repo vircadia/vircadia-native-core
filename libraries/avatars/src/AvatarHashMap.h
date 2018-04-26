@@ -30,15 +30,6 @@
 
 #include "AvatarData.h"
 
-/**jsdoc
- * The AvatarHashMap API deals with functionality related to Avatar information and connectivity
- * @namespace AvatarHashMap
- */
-
-// JSDoc 3.5.5 doesn't augment @property definitions.
-// These functions are being copied into Avatar classes which inherit the AvatarHashMap
-
-
 class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -51,26 +42,20 @@ public:
     // Currently, your own avatar will be included as the null avatar id.
     
     /**jsdoc
-     * @function AvatarHashMap.getAvatarIdentifiers
+     * @function AvatarManager.getAvatarIdentifiers
+     * @returns {Uuid[]}
      */
-
     Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
 
     /**jsdoc
-     * @function AvatarHashMap.getAvatarsInRange
+     * @function AvatarManager.getAvatarsInRange
      * @param {Vec3} position
-     * @param {float} rangeMeters
-     * @returns {string[]} 
+     * @param {number} range
+     * @returns {Uuid[]} 
      */
-
     Q_INVOKABLE QVector<QUuid> getAvatarsInRange(const glm::vec3& position, float rangeMeters) const;
 
-    /**jsdoc
-     * @function AvatarHashMap.getAvatar
-     * @param {string} avatarID
-     * @returns {ScriptAvatarData} 
-     */
-
+    // No JSDod because it's documwented in AvatarManager.
     // Null/Default-constructed QUuids will return MyAvatar
     Q_INVOKABLE virtual ScriptAvatarData* getAvatar(QUuid avatarID) { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }
 
@@ -80,73 +65,65 @@ public:
 signals:
 
     /**jsdoc
-     * @function AvatarHashMap.avatarAddedEvent
-     * @param {string} sessionUUID
+     * @function AvatarManager.avatarAddedEvent
+     * @param {Uuid} sessionUUID
      * @returns {Signal}
      */
-
     void avatarAddedEvent(const QUuid& sessionUUID);
 
     /**jsdoc
-     * @function AvatarHashMap.avatarRemovedEvent
-     * @param {string} sessionUUID
+     * @function AvatarManager.avatarRemovedEvent
+     * @param {Uuid} sessionUUID
      * @returns {Signal}
      */
-
     void avatarRemovedEvent(const QUuid& sessionUUID);
 
     /**jsdoc
-     * @function AvatarHashMap.avatarSessionChangedEvent
-     * @param {string} sessionUUID
-     * @param {string} oldUUID
+     * @function AvatarManager.avatarSessionChangedEvent
+     * @param {Uuid} sessionUUID
+     * @param {Uuid} oldSessionUUID
      * @returns {Signal}
      */
-
     void avatarSessionChangedEvent(const QUuid& sessionUUID,const QUuid& oldUUID);
 
 public slots:
 
     /**jsdoc
-     * @function AvatarHashMap.isAvatarInRange
+     * @function AvatarManager.isAvatarInRange
      * @param {string} position
      * @param {string} range
      * @returns {boolean}
      */
-
     bool isAvatarInRange(const glm::vec3 & position, const float range);
 
 protected slots:
 
     /**jsdoc
-     * @function AvatarHashMap.sessionUUIDChanged
-     * @param {string} sessionUUID
-     * @param {string} oldUUID
+     * @function AvatarManager.sessionUUIDChanged
+     * @param {Uuid} sessionUUID
+     * @param {Uuid} oldSessionUUID
      */
-
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
 
     /**jsdoc
-     * @function AvatarHashMap.processAvatarDataPacket
+     * @function AvatarManager.processAvatarDataPacket
      * @param {} message
      * @param {} sendingNode
      */
-
     void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
    
     /**jsdoc
-     * @function AvatarHashMap.processAvatarIdentityPacket
+     * @function AvatarManager.processAvatarIdentityPacket
      * @param {} message
      * @param {} sendingNode
      */
-
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
     /**jsdoc
-     * @function AvatarHashMap.processKillAvatar
+     * @function AvatarManager.processKillAvatar
      * @param {} message
      * @param {} sendingNode
      */
-
     void processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 protected:
