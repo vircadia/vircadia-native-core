@@ -2363,6 +2363,15 @@ glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const 
     return glm::vec3();
 }
 
+/**jsdoc
+ * @typedef MyAvatar.AttachmentData
+ * @property {string} modelUrl
+ * @property {string} jointName
+ * @property {Vec3} translation
+ * @property {Vec3} rotation
+ * @property {number} scale
+ * @property {boolean} soft
+ */
 QVariant AttachmentData::toVariant() const {
     QVariantMap result;
     result["modelUrl"] = modelURL;
