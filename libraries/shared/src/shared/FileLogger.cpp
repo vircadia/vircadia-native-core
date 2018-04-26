@@ -44,7 +44,7 @@ static const QString DATETIME_FORMAT = "yyyy-MM-dd_hh.mm.ss";
 static const QString LOGS_DIRECTORY = "Logs";
 static const QString DATETIME_WILDCARD = "20[0-9][0-9]-[01][0-9]-[0-3][0-9]_[0-2][0-9]\\.[0-6][0-9]\\.[0-6][0-9]";
 static const QString SESSION_WILDCARD = "[0-9a-z]{8}(-[0-9a-z]{4}){3}-[0-9a-z]{12}";
-static QRegExp LOG_FILENAME_REGEX { "hifi-log_" + DATETIME_WILDCARD + "(_" + SESSION_WILDCARD + ")?\.txt" };
+static QRegExp LOG_FILENAME_REGEX { "hifi-log_" + DATETIME_WILDCARD + "(_" + SESSION_WILDCARD + ")?\\.txt" };
 static QUuid SESSION_ID;
 
 // Max log size is 512 KB. We send log files to our crash reporter, so we want to keep this relatively
@@ -52,8 +52,7 @@ static QUuid SESSION_ID;
 static const qint64 MAX_LOG_SIZE = 512 * 1024;
 // Max log files found in the log directory is 100.
 static const qint64 MAX_LOG_DIR_SIZE = 512 * 1024 * 100;
-// Max log age is 1 hour
-static const uint64_t MAX_LOG_AGE_USECS = USECS_PER_SECOND * 3600;
+static const std::chrono::minutes MAX_LOG_AGE { 60 };
 
 static FilePersistThread* _persistThreadInstance;
 
@@ -84,23 +83,22 @@ FilePersistThread::FilePersistThread(const FileLogger& logger) : _logger(logger)
     if (file.exists()) {
         rollFileIfNecessary(file, false);
     }
-    _lastRollTime = usecTimestampNow();
+    _lastRollTime = std::chrono::system_clock::now();
 }
 
 void FilePersistThread::rollFileIfNecessary(QFile& file, bool notifyListenersIfRolled) {
-    uint64_t now = usecTimestampNow();
-    if ((file.size() > MAX_LOG_SIZE) || (now - _lastRollTime) > MAX_LOG_AGE_USECS) {
+    auto now = std::chrono::system_clock::now();
+    if ((file.size() > MAX_LOG_SIZE) || (now - _lastRollTime) > MAX_LOG_AGE) {
         QString newFileName = getLogRollerFilename();
         if (file.copy(newFileName)) {
             file.open(QIODevice::WriteOnly | QIODevice::Truncate);
             file.close();
-            qCDebug(shared) << "Rolled log file:" << newFileName;
 
             if (notifyListenersIfRolled) {
                 emit rollingLogFile(newFileName);
             }
 
-            _lastRollTime = now;
+            _lastRollTime = std::chrono::system_clock::now();
         }
 
         QDir logDir(FileUtils::standardPath(LOGS_DIRECTORY));
@@ -128,7 +126,7 @@ bool FilePersistThread::processQueueItems(const Queue& messages) {
     rollFileIfNecessary(file);
     if (file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
         QTextStream out(&file);
-        foreach(const QString& message, messages) {
+        for (const QString& message : messages) {
             out << message;
         }
     }
