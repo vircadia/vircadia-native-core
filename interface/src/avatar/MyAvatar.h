@@ -594,8 +594,8 @@ public:
     void setWalkSpeed(float value);
     float getWalkSpeed() const;
 
-    void addScriptToUnload(QUrl& scriptUrl);
-    const QVector<QUrl>& getScriptsToUnload() const { return _scriptsToUnload; };
+    void addScriptToUnload(QString& url);
+    const QVector<QString>& getScriptsToUnload() const { return _scriptsToUnload; };
 
 public slots:
     void increaseSize();
@@ -662,12 +662,9 @@ signals:
     void sensorToWorldScaleChanged(float sensorToWorldScale);
     void attachmentsChanged();
     void scaleChanged();
-    void avatarScriptsNeedToLoad();
-    void avatarScriptsNeedToUnload();
 
 private slots:
     void leaveDomain();
-    void setModelURLLoaded();
 
 protected:
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
@@ -911,7 +908,7 @@ private:
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
 
-    QVector<QUrl> _scriptsToUnload;
+    QVector<QString> _scriptsToUnload;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

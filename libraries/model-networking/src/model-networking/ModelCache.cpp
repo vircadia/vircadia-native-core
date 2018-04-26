@@ -210,16 +210,19 @@ void GeometryReader::run() {
                 throw QString("unsupported format");
             }
 
-            if (_mapping.value("type").toString() == "body+head") {
-                auto scripts = _mapping.value("script");
-                if (!scripts.isNull()) {
-                    auto scriptsMap = scripts.toMap();
-                    auto count = scriptsMap.size();
-                    if (count > 0) {
-                        for (auto &key : scriptsMap.keys()) {
-                            auto scriptUrl = scriptsMap[key].toString();
-                            fbxGeometry->scripts.push_back(QUrl(scriptUrl));
-                        }
+            // Store fst scripts on geometry
+            if (!_mapping.value(SCRIPT_FIELD).isNull()) {
+                QVariantList scripts = _mapping.values(SCRIPT_FIELD);
+                if (scripts.size() > 0) {
+                    for (auto &script : scripts) {
+                        QString scriptUrl = script.toString();
+                        if (QUrl(scriptUrl).isRelative()) {
+                            if (scriptUrl.at(0) == '/') {
+                                scriptUrl = scriptUrl.right(scriptUrl.length() - 1);                           
+                            }
+                            scriptUrl = _url.resolved(QUrl(scriptUrl)).toString();
+                        }                        
+                        fbxGeometry->scripts.push_back(scriptUrl);
                     }
                 }
             }

@@ -2285,7 +2285,11 @@ void Application::onAboutToQuit() {
 
     // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
     DependencyManager::get<OffscreenUi>()->hide("RunningScripts");
-
+    if (auto avatar = getMyAvatar()) {
+        auto urls = avatar->getScriptsToUnload();
+        unloadAvatarScripts(urls);
+    }
+    
     _aboutToQuit = true;
 
     cleanupBeforeQuit();
@@ -4724,35 +4728,31 @@ void Application::init() {
             avatar->setCollisionSound(sound);
         }
     }, Qt::QueuedConnection);
+}
 
-    connect(getMyAvatar().get(), &MyAvatar::avatarScriptsNeedToLoad, this, [this]() {
-        if (auto avatar = getMyAvatar()) {
-            auto scripts = avatar->getSkeletonModel()->getFBXGeometry().scripts;
-            if (scripts.size() > 0) {
-                auto scriptEngines = DependencyManager::get<ScriptEngines>();
-                auto runningScripts = scriptEngines->getRunningScripts();
-                for (auto script : scripts) {
-                    int index = runningScripts.indexOf(script.toString());
-                    if (index < 0) {
-                        auto loaded = scriptEngines->loadScript(script);
-                        avatar->addScriptToUnload(script);
-                    }
+void Application::loadAvatarScripts(const QVector<QString>& urls) {
+    if (auto avatar = getMyAvatar()) {
+        if (urls.size() > 0) {
+            auto scriptEngines = DependencyManager::get<ScriptEngines>();
+            auto runningScripts = scriptEngines->getRunningScripts();
+            for (auto url : urls) {
+                int index = runningScripts.indexOf(url);
+                if (index < 0) {
+                    scriptEngines->loadScript(url);
+                    avatar->addScriptToUnload(url);
                 }
             }
         }
-    }, Qt::QueuedConnection);
+    }
+}
 
-    connect(getMyAvatar().get(), &MyAvatar::avatarScriptsNeedToUnload, this, [this]() {
-        if (auto avatar = getMyAvatar()) {
-            auto scripts = avatar->getScriptsToUnload();
-            if (scripts.size() > 0) {
-                auto scriptEngines = DependencyManager::get<ScriptEngines>();
-                for (auto script : scripts) {
-                    scriptEngines->stopScript(script.toString(), false);
-                }
-            }
+void Application::unloadAvatarScripts(const QVector<QString>& urls) {
+    if (urls.size() > 0) {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>();
+        for (auto url : urls) {
+            scriptEngines->stopScript(url, false);
         }
-    }, Qt::QueuedConnection);
+    }
 }
 
 void Application::updateLOD(float deltaTime) const {
