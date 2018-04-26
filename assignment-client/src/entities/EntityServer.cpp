@@ -9,21 +9,23 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityServer.h"
+
 #include <QtCore/QEventLoop>
 #include <QTimer>
+#include <QJsonArray>
+#include <QJsonDocument>
+
 #include <EntityTree.h>
 #include <SimpleEntitySimulation.h>
 #include <ResourceCache.h>
 #include <ScriptCache.h>
 #include <EntityEditFilters.h>
 #include <NetworkingConstants.h>
-#include <QJsonArray>
-#include <QJsonDocument>
 #include <AddressManager.h>
 
 #include "AssignmentParentFinder.h"
 #include "EntityNodeData.h"
-#include "EntityServer.h"
 #include "EntityServerConsts.h"
 #include "EntityTreeSendThread.h"
 

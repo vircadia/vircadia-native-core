@@ -17,6 +17,8 @@
 
 #include "ui/ModelsBrowser.h"
 
+class FBXGeometry;
+
 class ModelPackager : public QObject {
 public:
     static bool package();

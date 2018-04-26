@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AntialiasingEffect.h"
 
 #include <glm/gtc/random.hpp>
 
@@ -17,7 +18,6 @@
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 
-#include "AntialiasingEffect.h"
 #include "StencilMaskPass.h"
 #include "TextureCache.h"
 #include "DependencyManager.h"

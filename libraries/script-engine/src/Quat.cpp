@@ -9,16 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Quat.h"
+
 #include <glm/gtx/vector_angle.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include <QDebug>
 
 #include <OctreeConstants.h>
-#include <GLMHelpers.h>
-#include <glm/gtx/string_cast.hpp>
+
 #include "ScriptEngineLogging.h"
 #include "ScriptEngine.h"
-#include "Quat.h"
 
 quat Quat::normalize(const glm::quat& q) {
     return glm::normalize(q);

@@ -9,10 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OBJBaker.h"
+
 #include <PathUtils.h>
 #include <NetworkAccessManager.h>
 
-#include "OBJBaker.h"
 #include "OBJReader.h"
 #include "FBXWriter.h"
 

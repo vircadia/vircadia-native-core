@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Sound.h"
+
 #include <stdint.h>
 
 #include <glm/glm.hpp>
@@ -28,8 +30,6 @@
 #include "AudioRingBuffer.h"
 #include "AudioLogging.h"
 #include "AudioSRC.h"
-
-#include "Sound.h"
 
 QScriptValue soundSharedPointerToScriptValue(QScriptEngine* engine, const SharedSoundPointer& in) {
     return engine->newQObject(new SoundScriptingInterface(in), QScriptEngine::ScriptOwnership);

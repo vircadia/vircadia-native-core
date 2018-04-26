@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "TextureBaker.h"
+
 #include <QtCore/QDir>
 #include <QtCore/QEventLoop>
 #include <QtCore/QFile>
@@ -21,8 +23,6 @@
 #include <TextureMeta.h>
 
 #include "ModelBakingLoggingCategory.h"
-
-#include "TextureBaker.h"
 
 const QString BAKED_TEXTURE_KTX_EXT = ".ktx";
 const QString BAKED_TEXTURE_BCN_SUFFIX = "_bcn.ktx";

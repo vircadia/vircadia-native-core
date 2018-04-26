@@ -9,18 +9,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ACClientApp.h"
+
 #include <QDataStream>
 #include <QThread>
 #include <QLoggingCategory>
 #include <QCommandLineParser>
+
 #include <NetworkLogging.h>
 #include <NetworkingConstants.h>
 #include <SharedLogging.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
 #include <SettingHandle.h>
-
-#include "ACClientApp.h"
 
 ACClientApp::ACClientApp(int argc, char* argv[]) :
     QCoreApplication(argc, argv)

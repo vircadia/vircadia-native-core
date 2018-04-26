@@ -9,10 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "LocationBookmarks.h"
+
 #include <QAction>
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QStandardPaths>
+#include <QtQuick/QQuickWindow>
 
 #include <AddressManager.h>
 #include <Application.h>
@@ -20,9 +23,6 @@
 
 #include "MainWindow.h"
 #include "Menu.h"
-
-#include "LocationBookmarks.h"
-#include <QtQuick/QQuickWindow>
 
 const QString LocationBookmarks::HOME_BOOKMARK = "Home";
 

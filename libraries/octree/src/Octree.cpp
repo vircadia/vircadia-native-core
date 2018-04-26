@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Octree.h"
+
 #include <cstring>
 #include <cstdio>
 #include <cmath>
@@ -43,7 +45,6 @@
 #include <PathUtils.h>
 #include <ViewFrustum.h>
 
-#include "Octree.h"
 #include "OctreeConstants.h"
 #include "OctreeLogging.h"
 #include "OctreeQueryNode.h"
