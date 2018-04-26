@@ -109,7 +109,7 @@ public:
      *
      * @typedef {Object} Picks.RayPickResult
      * @property {number} type The intersection type.
-     * @property {bool} intersects If there was a valid intersection (type != INTERSECTED_NONE)
+     * @property {boolean} intersects If there was a valid intersection (type != INTERSECTED_NONE)
      * @property {Uuid} objectID The ID of the intersected object.  Uuid.NULL for the HUD or invalid intersections.
      * @property {float} distance The distance to the intersection point from the origin of the ray.
      * @property {Vec3} intersection The intersection point in world-space.
@@ -123,7 +123,7 @@ public:
      *
      * @typedef {Object} Picks.StylusPickResult
      * @property {number} type The intersection type.
-     * @property {bool} intersects If there was a valid intersection (type != INTERSECTED_NONE)
+     * @property {boolean} intersects If there was a valid intersection (type != INTERSECTED_NONE)
      * @property {Uuid} objectID The ID of the intersected object.  Uuid.NULL for the HUD or invalid intersections.
      * @property {float} distance The distance to the intersection point from the origin of the ray.
      * @property {Vec3} intersection The intersection point in world-space.
