@@ -11,6 +11,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
+import QtQuick.Controls 2.3 as QQC2
 
 import "../styles-uit"
 
@@ -21,44 +22,90 @@ TableView {
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property bool expandSelectedRow: false
     property bool centerHeaderText: false
+    readonly property real headerSpacing: 3 //spacing between sort indicator and table header title
+    property var titlePaintedPos: [] // storing extra data position behind painted
+                                     // title text and sort indicatorin table's header
+    signal titlePaintedPosSignal(int column) //signal that extradata position gets changed
 
     model: ListModel { }
+
+    Component.onCompleted: {
+        if (flickableItem !== null && flickableItem !== undefined) {
+            tableView.flickableItem.QQC2.ScrollBar.vertical = scrollbar
+        }
+    }
+
+    QQC2.ScrollBar {
+        id: scrollbar
+        parent: tableView.flickableItem
+        policy: QQC2.ScrollBar.AsNeeded
+        orientation: Qt.Vertical
+        visible: size < 1.0
+        topPadding: tableView.headerVisible ? hifi.dimensions.tableHeaderHeight + 1 : 1
+        anchors.top: tableView.top
+        anchors.left: tableView.right
+        anchors.bottom: tableView.bottom
+
+        background: Item {
+            implicitWidth: hifi.dimensions.scrollbarBackgroundWidth
+            Rectangle {
+                anchors {
+                    fill: parent;
+                    topMargin: tableView.headerVisible ? hifi.dimensions.tableHeaderHeight : 0
+                }
+                color: isLightColorScheme ? hifi.colors.tableScrollBackgroundLight
+                                          : hifi.colors.tableScrollBackgroundDark
+            }
+        }
+
+        contentItem: Item {
+            implicitWidth: hifi.dimensions.scrollbarHandleWidth
+            Rectangle {
+                anchors.fill: parent
+                radius: (width - 4)/2
+                color: isLightColorScheme ? hifi.colors.tableScrollHandleLight : hifi.colors.tableScrollHandleDark
+            }
+        }
+    }
 
     headerVisible: false
     headerDelegate: Rectangle {
         height: hifi.dimensions.tableHeaderHeight
         color: isLightColorScheme ? hifi.colors.tableBackgroundLight : hifi.colors.tableBackgroundDark
 
+
         RalewayRegular {
             id: titleText
+            x: centerHeaderText ? (parent.width - paintedWidth -
+                                  ((sortIndicatorVisible &&
+                                    sortIndicatorColumn === styleData.column) ?
+                                       (titleSort.paintedWidth / 5 + tableView.headerSpacing) : 0)) / 2 :
+                                  hifi.dimensions.tablePadding
             text: styleData.value
             size: hifi.fontSizes.tableHeading
             font.capitalization: Font.AllUppercase
             color: hifi.colors.baseGrayHighlight
             horizontalAlignment: (centerHeaderText ? Text.AlignHCenter : Text.AlignLeft)
-            anchors {
-                left: parent.left
-                leftMargin: hifi.dimensions.tablePadding
-                right: parent.right
-                rightMargin: hifi.dimensions.tablePadding
-                verticalCenter: parent.verticalCenter
-            }
+            anchors.verticalCenter: parent.verticalCenter
         }
 
+        //actual image of sort indicator in glyph font only 20% of real font size
+        //i.e. if the charachter size set to 60 pixels, actual image is 12 pixels
         HiFiGlyphs {
             id: titleSort
             text:  sortIndicatorOrder == Qt.AscendingOrder ? hifi.glyphs.caratUp : hifi.glyphs.caratDn
             color: hifi.colors.darkGray
             opacity: 0.6;
             size: hifi.fontSizes.tableHeadingIcon
-            anchors {
-                left: titleText.right
-                leftMargin: -hifi.fontSizes.tableHeadingIcon / 3 - (centerHeaderText ? 5 : 0)
-                right: parent.right
-                rightMargin: hifi.dimensions.tablePadding
-                verticalCenter: titleText.verticalCenter
-            }
+            anchors.verticalCenter: titleText.verticalCenter
+            anchors.left: titleText.right
+            anchors.leftMargin: -(hifi.fontSizes.tableHeadingIcon / 2.5) + tableView.headerSpacing
             visible: sortIndicatorVisible && sortIndicatorColumn === styleData.column
+            onXChanged: {
+                titlePaintedPos[styleData.column] = titleText.x + titleText.paintedWidth +
+                        paintedWidth / 5 + tableView.headerSpacing*2
+                titlePaintedPosSignal(styleData.column)
+            }
         }
 
         Rectangle {
@@ -98,74 +145,13 @@ TableView {
     backgroundVisible: true
 
     horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
-    verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
+    verticalScrollBarPolicy: Qt.ScrollBarAlwaysOff
 
     style: TableViewStyle {
         // Needed in order for rows to keep displaying rows after end of table entries.
         backgroundColor: tableView.isLightColorScheme ? hifi.colors.tableBackgroundLight : hifi.colors.tableBackgroundDark
         alternateBackgroundColor: tableView.isLightColorScheme ? hifi.colors.tableRowLightOdd : hifi.colors.tableRowDarkOdd
-
         padding.top: headerVisible ? hifi.dimensions.tableHeaderHeight: 0
-
-        handle: Item {
-            id: scrollbarHandle
-            implicitWidth: hifi.dimensions.scrollbarHandleWidth
-            Rectangle {
-                anchors {
-                    fill: parent
-                    topMargin: 3
-                    bottomMargin: 3     // ""
-                    leftMargin: 1       // Move it right
-                    rightMargin: -1     // ""
-                }
-                radius: hifi.dimensions.scrollbarHandleWidth/2
-                color: isLightColorScheme ? hifi.colors.tableScrollHandleLight : hifi.colors.tableScrollHandleDark
-            }
-        }
-
-        scrollBarBackground: Item {
-            implicitWidth: hifi.dimensions.scrollbarBackgroundWidth
-            Rectangle {
-                anchors {
-                    fill: parent
-                    margins: -1     // Expand
-                    topMargin: -1
-                }
-                color: isLightColorScheme ? hifi.colors.tableScrollBackgroundLight : hifi.colors.tableScrollBackgroundDark
-                
-                // Extend header color above scrollbar background
-                Rectangle {
-                    anchors {
-                        top: parent.top
-                        topMargin: -hifi.dimensions.tableHeaderHeight
-                        left: parent.left
-                        right: parent.right
-                    }
-                    height: hifi.dimensions.tableHeaderHeight
-                    color: tableView.isLightColorScheme ? hifi.colors.tableBackgroundLight : hifi.colors.tableBackgroundDark
-                    visible: headerVisible
-                }
-                Rectangle {
-                    // Extend header bottom border
-                    anchors {
-                        top: parent.top
-                        left: parent.left
-                        right: parent.right
-                    }
-                    height: 1
-                    color: isLightColorScheme ? hifi.colors.lightGrayText : hifi.colors.baseGrayHighlight
-                    visible: headerVisible
-                }
-            }
-        }
-
-        incrementControl: Item {
-            visible: false
-        }
-
-        decrementControl: Item {
-            visible: false
-        }
     }
 
     rowDelegate: Rectangle {
@@ -173,7 +159,7 @@ TableView {
         color: styleData.selected
                ? hifi.colors.primaryHighlight
                : tableView.isLightColorScheme
-                   ? (styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd)
-                   : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
+                 ? (styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd)
+                 : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
     }
 }

@@ -73,9 +73,9 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     return data;
 }
 
-QString Snapshot::saveSnapshot(QImage image) {
+QString Snapshot::saveSnapshot(QImage image, const QString& filename) {
 
-    QFile* snapshotFile = savedFileForSnapshot(image, false);
+    QFile* snapshotFile = savedFileForSnapshot(image, false, filename);
 
     // we don't need the snapshot file, so close it, grab its filename and delete it
     snapshotFile->close();
@@ -92,10 +92,10 @@ QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {
     return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true));
 }
 
-QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
+QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QString& userSelectedFilename) {
 
     // adding URL to snapshot
-    QUrl currentURL = DependencyManager::get<AddressManager>()->currentShareableAddress();
+    QUrl currentURL = DependencyManager::get<AddressManager>()->currentPublicAddress();
     shot.setText(URL, currentURL.toString());
 
     QString username = DependencyManager::get<AccountManager>()->getAccountInfo().getUsername();
@@ -104,7 +104,15 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
 
     QDateTime now = QDateTime::currentDateTime();
 
-    QString filename = FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT));
+    // If user has requested specific filename then use it, else create the filename
+	// 'jpg" is appended, as the image is saved in jpg format.  This is the case for all snapshots
+	//       (see definition of FILENAME_PATH_FORMAT)
+    QString filename;
+    if (!userSelectedFilename.isNull()) {
+        filename = userSelectedFilename + ".jpg";
+    } else {
+        filename = FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT));
+    }
 
     const int IMAGE_QUALITY = 100;
 

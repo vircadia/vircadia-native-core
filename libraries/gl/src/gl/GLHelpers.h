@@ -13,6 +13,8 @@
 #include <functional>
 #include <QJsonObject>
 
+#include "GLLogging.h"
+
 // 16 bits of depth precision
 #define DEFAULT_GL_DEPTH_BUFFER_BITS 16
 // 8 bits of stencil buffer (typically you really only need 1 bit for functionality
@@ -25,8 +27,9 @@ class QSurfaceFormat;
 class QGLFormat;
 
 template<class F>
-#if defined(QT_OPENGL_ES_3_1)
-void setGLFormatVersion(F& format, int major = 3, int minor = 1)
+// https://bugreports.qt.io/browse/QTBUG-64703 prevents us from using "defined(QT_OPENGL_ES_3_1)"
+#if defined(USE_GLES)
+void setGLFormatVersion(F& format, int major = 3, int minor = 2)
 #else
 void setGLFormatVersion(F& format, int major = 4, int minor = 5) 
 #endif
@@ -42,6 +45,13 @@ bool isRenderThread();
 
 namespace gl {
     void withSavedContext(const std::function<void()>& f);
-}
+
+    bool checkGLError(const char* name);
+
+    bool checkGLErrorDebug(const char* name);
+
+} // namespace gl
+
+#define CHECK_GL_ERROR() ::gl::checkGLErrorDebug(__FUNCTION__)
 
 #endif

@@ -21,7 +21,7 @@
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
-#include <model/TextureMap.h>
+#include <graphics/TextureMap.h>
 #include <image/Image.h>
 #include <ktx/KTX.h>
 
@@ -70,6 +70,8 @@ public slots:
 
 protected:
     void makeRequest() override;
+    void makeLocalRequest();
+    Q_INVOKABLE void handleLocalRequestCompleted();
 
     virtual bool isCacheable() const override { return _loaded; }
 
@@ -133,12 +135,71 @@ private:
 
 using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
 
+Q_DECLARE_METATYPE(QWeakPointer<NetworkTexture>)
+
+
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
 public:
+
+    // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
+
+    /**jsdoc
+    * API to manage texture cache resources.
+    * @namespace TextureCache
+    *
+    * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
+    * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
+    * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
+    * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
+    */
+
+
+    // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
+
+   /**jsdoc
+    * Get the list of all resource URLs.
+    * @function TextureCache.getResourceList
+    * @return {string[]}
+    */
+
+   /**jsdoc
+    * @function TextureCache.dirty
+    * @returns {Signal}
+    */
+
+   /**jsdoc
+    * @function TextureCache.updateTotalSize
+    * @param {number} deltaSize
+    */
+
+   /**jsdoc
+    * @function TextureCache.prefetch
+    * @param {string} url
+    * @param {object} extra
+    * @returns {object}
+    */
+
+   /**jsdoc
+    * Asynchronously loads a resource from the specified URL and returns it.
+    * @function TextureCache.getResource
+    * @param {string} url - URL of the resource to load.
+    * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
+    * @param {} [extra=null]
+    * @return {Resource}
+    */
+
+   /**jsdoc
+    * Prefetches a resource.
+    * @function TextureCache.prefetch
+    * @param {string} url - URL of the resource to prefetch.
+    * @return {Resource}
+    */
+
+
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
     /// has two lines: the first, a set of random numbers in [0, 255] to be used as permutation offsets, and
     /// the second, a set of random unit vectors to be used as noise gradients.
@@ -163,7 +224,6 @@ public:
     NetworkTexturePointer getTexture(const QUrl& url, image::TextureUsage::Type type = image::TextureUsage::DEFAULT_TEXTURE,
         const QByteArray& content = QByteArray(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
-
     gpu::TexturePointer getTextureByHash(const std::string& hash);
     gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
 
@@ -171,14 +231,26 @@ public:
     const gpu::FramebufferPointer& getHmdPreviewFramebuffer(int width, int height);
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer(int width, int height);
+    void updateSpectatorCameraNetworkTexture();
 
     static const int DEFAULT_SPECTATOR_CAM_WIDTH { 2048 };
     static const int DEFAULT_SPECTATOR_CAM_HEIGHT { 1024 };
 
 signals:
+    /**jsdoc 
+     * @function TextureCache.spectatorCameraFramebufferReset
+     * @returns {Signal}
+     */
     void spectatorCameraFramebufferReset();
 
 protected:
+    
+    /**jsdoc
+     * @function TextureCache.prefect
+     * @param {string} url
+     * @param {number} type
+     * @param {number} [maxNumPixels=67108864]
+     */
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
@@ -197,6 +269,7 @@ private:
     static const std::string KTX_EXT;
 
     std::shared_ptr<cache::FileCache> _ktxCache { std::make_shared<KTXCache>(KTX_DIRNAME, KTX_EXT) };
+
     // Map from image hashes to texture weak pointers
     std::unordered_map<std::string, std::weak_ptr<gpu::Texture>> _texturesByHashes;
     std::mutex _texturesByHashesMutex;

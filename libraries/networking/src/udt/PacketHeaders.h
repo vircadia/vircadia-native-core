@@ -56,8 +56,8 @@ public:
         ICEServerPeerInformation,
         ICEServerQuery,
         OctreeStats,
-        Jurisdiction,
-        JurisdictionRequest,
+        UNUSED_PACKET_TYPE_1,
+        UNUSED_PACKET_TYPE_2,
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
@@ -121,11 +121,16 @@ public:
         ReplicatedAvatarIdentity,
         ReplicatedKillAvatar,
         ReplicatedBulkAvatarData,
-        OctreeFileReplacementFromUrl,
+        DomainContentReplacementFromUrl,
         ChallengeOwnership,
         EntityScriptCallMethod,
         ChallengeOwnershipRequest,
         ChallengeOwnershipReply,
+
+        OctreeDataFileRequest,
+        OctreeDataFileReply,
+        OctreeDataPersist,
+
         NUM_PACKET_TYPE
     };
 
@@ -165,6 +170,8 @@ public:
             << PacketTypeEnum::Value::DomainConnectionDenied << PacketTypeEnum::Value::DomainServerPathQuery
             << PacketTypeEnum::Value::DomainServerPathResponse << PacketTypeEnum::Value::DomainServerAddedNode
             << PacketTypeEnum::Value::DomainServerConnectionToken << PacketTypeEnum::Value::DomainSettingsRequest
+            << PacketTypeEnum::Value::OctreeDataFileRequest << PacketTypeEnum::Value::OctreeDataFileReply
+            << PacketTypeEnum::Value::OctreeDataPersist << PacketTypeEnum::Value::DomainContentReplacementFromUrl
             << PacketTypeEnum::Value::DomainSettings << PacketTypeEnum::Value::ICEServerPeerInformation
             << PacketTypeEnum::Value::ICEServerQuery << PacketTypeEnum::Value::ICEServerHeartbeat
             << PacketTypeEnum::Value::ICEServerHeartbeatACK << PacketTypeEnum::Value::ICEPing
@@ -176,6 +183,22 @@ public:
             << PacketTypeEnum::Value::ReplicatedSilentAudioFrame << PacketTypeEnum::Value::ReplicatedAvatarIdentity
             << PacketTypeEnum::Value::ReplicatedKillAvatar << PacketTypeEnum::Value::ReplicatedBulkAvatarData;
         return NON_SOURCED_PACKETS;
+    }
+
+    const static QSet<PacketTypeEnum::Value> getDomainSourcedPackets() {
+        const static QSet<PacketTypeEnum::Value> DOMAIN_SOURCED_PACKETS = QSet<PacketTypeEnum::Value>()
+            << PacketTypeEnum::Value::AssetMappingOperation
+            << PacketTypeEnum::Value::AssetGet
+            << PacketTypeEnum::Value::AssetUpload;
+        return DOMAIN_SOURCED_PACKETS;
+    }
+
+    const static QSet<PacketTypeEnum::Value> getDomainIgnoredVerificationPackets() {
+        const static QSet<PacketTypeEnum::Value> DOMAIN_IGNORED_VERIFICATION_PACKETS = QSet<PacketTypeEnum::Value>()
+            << PacketTypeEnum::Value::AssetMappingOperationReply
+            << PacketTypeEnum::Value::AssetGetReply
+            << PacketTypeEnum::Value::AssetUploadReply;
+        return DOMAIN_IGNORED_VERIFICATION_PACKETS;
     }
 };
 
@@ -196,10 +219,20 @@ void sendWrongProtocolVersionsSignature(bool sendWrongVersion); /// for debuggin
 uint qHash(const PacketType& key, uint seed);
 QDebug operator<<(QDebug debug, const PacketType& type);
 
+// Due to the different legacy behaviour, we need special processing for domains that were created before
+// the zone inheritance modes were added.  These have version numbers up to 80
 enum class EntityVersion : PacketVersion {
-    StrokeColorProperty = 77,
+    StrokeColorProperty = 0,
     HasDynamicOwnershipTests,
-    HazeEffect
+    HazeEffect,
+    StaticCertJsonVersionOne,
+    OwnershipChallengeFix,
+    ZoneLightInheritModes = 82,
+    ZoneStageRemoved,
+    SoftEntities,
+    MaterialEntities,
+    ShadowControl,
+    MaterialData
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -210,7 +243,8 @@ enum class EntityScriptCallMethodVersion : PacketVersion {
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
     JSONFilterWithFamilyTree = 19,
-    ConnectionIdentifier = 20
+    ConnectionIdentifier = 20,
+    RemovedJurisdictions = 21
 };
 
 enum class AssetServerPacketVersion: PacketVersion {
@@ -239,7 +273,9 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarIdentitySequenceFront,
     IsReplicatedInAvatarIdentity,
     AvatarIdentityLookAtSnapping,
-    UpdatedMannequinDefaultAvatar
+    UpdatedMannequinDefaultAvatar,
+    AvatarJointDefaultPoseFlags,
+    FBXReaderNodeReparenting
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
@@ -285,6 +321,10 @@ enum class MessageDataVersion : PacketVersion {
 
 enum class IcePingVersion : PacketVersion {
     SendICEPeerID = 18
+};
+
+enum class PingVersion : PacketVersion {
+    IncludeConnectionID = 18
 };
 
 #endif // hifi_PacketHeaders_h

@@ -46,7 +46,7 @@ void InfoView::show(const QString& path, bool firstOrChangedOnly, QString urlQue
     registerType();
     QUrl url;
     if (QDir(path).isRelative()) {
-        url = QUrl::fromLocalFile(PathUtils::resourcesPath() + path);
+        url = PathUtils::resourcesUrl(path);
     } else {
         url = QUrl::fromLocalFile(path);
     }

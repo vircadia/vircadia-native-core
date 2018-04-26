@@ -64,19 +64,16 @@ public:
     virtual void recycle() const = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
-    // UBO class... layout MUST match the layout in Transform.slh
-    class TransformCamera {
-    public:
-        mutable Mat4 _view;
-        mutable Mat4 _viewInverse;
-        mutable Mat4 _projectionViewUntranslated;
-        Mat4 _projection;
-        mutable Mat4 _projectionInverse;
-        Vec4 _viewport; // Public value is int but float in the shader to stay in floats for all the transform computations.
-        mutable Vec4 _stereoInfo;
+    // Shared header between C++ and GLSL
+#include "TransformCamera_shared.slh"
 
+    class TransformCamera : public _TransformCamera {
+    public:
         const Backend::TransformCamera& recomputeDerived(const Transform& xformView) const;
-        TransformCamera getEyeCamera(int eye, const StereoState& stereo, const Transform& xformView) const;
+        // Jitter should be divided by framebuffer size
+        TransformCamera getMonoCamera(const Transform& xformView, Vec2 normalizedJitter) const;
+        // Jitter should be divided by framebuffer size
+        TransformCamera getEyeCamera(int eye, const StereoState& stereo, const Transform& xformView, Vec2 normalizedJitter) const;
     };
 
 
@@ -136,14 +133,13 @@ protected:
     friend class Context;
     mutable ContextStats _stats;
     StereoState _stereo;
-
 };
 
 class Context {
 public:
     using Size = Resource::Size;
     typedef BackendPointer (*CreateBackend)();
-    typedef bool (*MakeProgram)(Shader& shader, const Shader::BindingSet& bindings);
+    typedef bool (*MakeProgram)(Shader& shader, const Shader::BindingSet& bindings, const Shader::CompilationHandler& handler);
 
 
     // This one call must happen before any context is created or used (Shader::MakeProgram) in order to setup the Backend and any singleton data needed
@@ -161,7 +157,7 @@ public:
 
     const std::string& getBackendVersion() const;
 
-    void beginFrame(const glm::mat4& renderPose = glm::mat4());
+    void beginFrame(const glm::mat4& renderView = glm::mat4(), const glm::mat4& renderPose = glm::mat4());
     void appendFrameBatch(Batch& batch);
     FramePointer endFrame();
 
@@ -262,7 +258,7 @@ protected:
     // makeProgramShader(...) make a program shader ready to be used in a Batch.
     // It compiles the sub shaders, link them and defines the Slots and their bindings.
     // If the shader passed is not a program, nothing happens. 
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings);
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings, const Shader::CompilationHandler& handler);
 
     static CreateBackend _createBackendCallback;
     static MakeProgram _makeProgramCallback;
@@ -274,8 +270,8 @@ protected:
 typedef std::shared_ptr<Context> ContextPointer;
 
 template<typename F>
-void doInBatch(std::shared_ptr<gpu::Context> context, F f) {
-    gpu::Batch batch;
+void doInBatch(const char* name, std::shared_ptr<gpu::Context> context, F f) {
+    gpu::Batch batch(name);
     f(batch);
     context->appendFrameBatch(batch);
 }

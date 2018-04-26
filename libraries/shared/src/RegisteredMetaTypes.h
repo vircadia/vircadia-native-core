@@ -44,6 +44,15 @@ void registerMetaTypes(QScriptEngine* engine);
 QScriptValue mat4toScriptValue(QScriptEngine* engine, const glm::mat4& mat4);
 void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4);
 
+/**jsdoc
+ * A 4-dimensional vector.
+ *
+ * @typedef {object} Vec4
+ * @property {number} x - X-coordinate of the vector.
+ * @property {number} y - Y-coordinate of the vector.
+ * @property {number} z - Z-coordinate of the vector.
+ * @property {number} w - W-coordinate of the vector.
+ */
 // Vec4
 QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4);
 void vec4FromScriptValue(const QScriptValue& object, glm::vec4& vec4);
@@ -59,6 +68,13 @@ QVariant vec3toVariant(const glm::vec3& vec3);
 glm::vec3 vec3FromVariant(const QVariant &object, bool& valid);
 glm::vec3 vec3FromVariant(const QVariant &object);
 
+/**jsdoc
+ * A 2-dimensional vector.
+ *
+ * @typedef {object} Vec2
+ * @property {number} x - X-coordinate of the vector.
+ * @property {number} y - Y-coordinate of the vector.
+ */
 // Vec2
 QScriptValue vec2toScriptValue(QScriptEngine* engine, const glm::vec2 &vec2);
 void vec2FromScriptValue(const QScriptValue &object, glm::vec2 &vec2);
@@ -134,15 +150,16 @@ public:
     virtual QVariantMap toVariantMap() const = 0;
 };
 
+/**jsdoc
+ * A PickRay defines a vector with a starting point. It is used, for example, when finding entities or overlays that lie under a
+ * mouse click or intersect a laser beam.
+ *
+ * @typedef {object} PickRay
+ * @property {Vec3} origin - The starting position of the PickRay.
+ * @property {Vec3} direction - The direction that the PickRay travels.
+ */
 class PickRay : public MathPick {
 public:
-    /**jsdoc
-    * The mathematical definition of a ray.
-    *
-    * @typedef {Object} PickRay
-    * @property {Vec3} origin The origin of the ray.
-    * @property {Vec3} direction The direction of the ray.
-    */
     PickRay() : origin(NAN), direction(NAN)  { }
     PickRay(const QVariantMap& pickVariant) : origin(vec3FromVariant(pickVariant["origin"])), direction(vec3FromVariant(pickVariant["direction"])) {}
     PickRay(const glm::vec3& origin, const glm::vec3 direction) : origin(origin), direction(direction) {}
@@ -166,17 +183,17 @@ Q_DECLARE_METATYPE(PickRay)
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay);
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 
+/**jsdoc
+ * A StylusTip defines the tip of a stylus.
+ *
+ * @typedef {object} StylusTip
+ * @property {number} side - The hand the tip is attached to: <code>0</code> for left, <code>1</code> for right.
+ * @property {Vec3} position - The position of the stylus tip.
+ * @property {Quat} orientation - The orientation of the stylus tip.
+ * @property {Vec3} velocity - The velocity of the stylus tip.
+ */
 class StylusTip : public MathPick {
 public:
-    /**jsdoc
-    * The mathematical definition of a stylus tip.
-    *
-    * @typedef {Object} StylusTip
-    * @property {number} side The hand the tip is attached to.  0 == left, 1 == right.
-    * @property {Vec3} position The position of the tip.
-    * @property {Quat} orientation The orientation of the tip.
-    * @property {Vec3} velocity The velocity of the tip.
-    */
     StylusTip() : position(NAN), velocity(NAN) {}
     StylusTip(const QVariantMap& pickVariant) : side(bilateral::Side(pickVariant["side"].toInt())), position(vec3FromVariant(pickVariant["position"])),
         orientation(quatFromVariant(pickVariant["orientation"])), velocity(vec3FromVariant(pickVariant["velocity"])) {}
@@ -208,9 +225,9 @@ namespace std {
 
     template <typename T, typename... Rest>
     inline void hash_combine(std::size_t& seed, const T& v, Rest... rest) {
-	    std::hash<T> hasher;
-	    seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
-	    hash_combine(seed, rest...);
+        std::hash<T> hasher;
+        seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+        hash_combine(seed, rest...);
     }
 
     template <>
@@ -255,8 +272,29 @@ namespace std {
             return result;
         }
     };
+
+    template <>
+    struct hash<QString> {
+        size_t operator()(const QString& a) const {
+            return qHash(a);
+        }
+    };
 }
 
+/**jsdoc
+ * <p>The type of a collision contact event.
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>0</code></td><td>Start of the collision.</td></tr>
+ *     <tr><td><code>1</code></td><td>Continuation of the collision.</td></tr>
+ *     <tr><td><code>2</code></td><td>End of the collision.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {number} ContactEventType
+ */
 enum ContactEventType {
     CONTACT_EVENT_TYPE_START,
     CONTACT_EVENT_TYPE_CONTINUE,
@@ -314,20 +352,40 @@ Q_DECLARE_METATYPE(AnimationDetails);
 QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const AnimationDetails& event);
 void animationDetailsFromScriptValue(const QScriptValue& object, AnimationDetails& event);
 
-namespace model {
+namespace graphics {
     class Mesh;
 }
 
-using MeshPointer = std::shared_ptr<model::Mesh>;
+using MeshPointer = std::shared_ptr<graphics::Mesh>;
 
-
+/**jsdoc
+ * A handle for a mesh in an entity, such as returned by {@link Entities.getMeshes}.
+ * @class MeshProxy
+ * @deprecated Use the {@link Graphics} API instead.
+ */
 class MeshProxy : public QObject {
     Q_OBJECT
 
 public:
     virtual MeshPointer getMeshPointer() const = 0;
+    
+    /**jsdoc
+     * Get the number of vertices in the mesh.
+     * @function MeshProxy#getNumVertices
+     * @returns {number} Integer number of vertices in the mesh.
+     * @deprecated Use the {@link Graphics} API instead.
+     */
     Q_INVOKABLE virtual int getNumVertices() const = 0;
-    Q_INVOKABLE virtual glm::vec3 getPos3(int index) const = 0;
+
+    /**jsdoc
+     * Get the position of a vertex in the mesh.
+     * @function MeshProxy#getPos
+     * @param {number} index - Integer index of the mesh vertex.
+     * @returns {Vec3} Local position of the vertex relative to the mesh.
+     * @deprecated Use the {@link Graphics} API instead.
+     */
+    Q_INVOKABLE virtual glm::vec3 getPos(int index) const = 0;
+    Q_INVOKABLE virtual glm::vec3 getPos3(int index) const { return getPos(index); } // deprecated
 };
 
 Q_DECLARE_METATYPE(MeshProxy*);

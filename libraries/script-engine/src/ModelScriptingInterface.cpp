@@ -60,20 +60,20 @@ QScriptValue ModelScriptingInterface::appendMeshes(MeshProxyList in) {
 
     // alloc the resulting mesh
     gpu::Resource::Size combinedVertexSize = totalVertexCount * sizeof(glm::vec3);
-    unsigned char* combinedVertexData  = new unsigned char[combinedVertexSize];
-    unsigned char* combinedVertexDataCursor = combinedVertexData;
+    std::unique_ptr<unsigned char> combinedVertexData{ new unsigned char[combinedVertexSize] };
+    unsigned char* combinedVertexDataCursor = combinedVertexData.get();
 
     gpu::Resource::Size combinedColorSize = totalColorCount * sizeof(glm::vec3);
-    unsigned char* combinedColorData  = new unsigned char[combinedColorSize];
-    unsigned char* combinedColorDataCursor = combinedColorData;
+    std::unique_ptr<unsigned char> combinedColorData{ new unsigned char[combinedColorSize] };
+    unsigned char* combinedColorDataCursor = combinedColorData.get();
 
     gpu::Resource::Size combinedNormalSize = totalNormalCount * sizeof(glm::vec3);
-    unsigned char* combinedNormalData  = new unsigned char[combinedNormalSize];
-    unsigned char* combinedNormalDataCursor = combinedNormalData;
+    std::unique_ptr<unsigned char> combinedNormalData{ new unsigned char[combinedNormalSize] };
+    unsigned char* combinedNormalDataCursor = combinedNormalData.get();
 
     gpu::Resource::Size combinedIndexSize = totalIndexCount * sizeof(uint32_t);
-    unsigned char* combinedIndexData  = new unsigned char[combinedIndexSize];
-    unsigned char* combinedIndexDataCursor = combinedIndexData;
+    std::unique_ptr<unsigned char> combinedIndexData{ new unsigned char[combinedIndexSize] };
+    unsigned char* combinedIndexDataCursor = combinedIndexData.get();
 
     uint32_t indexStartOffset { 0 };
 
@@ -102,40 +102,40 @@ QScriptValue ModelScriptingInterface::appendMeshes(MeshProxyList in) {
         indexStartOffset += numVertices;
     }
 
-    model::MeshPointer result(new model::Mesh());
+    graphics::MeshPointer result(new graphics::Mesh());
 
     gpu::Element vertexElement = gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ);
-    gpu::Buffer* combinedVertexBuffer = new gpu::Buffer(combinedVertexSize, combinedVertexData);
+    gpu::Buffer* combinedVertexBuffer = new gpu::Buffer(combinedVertexSize, combinedVertexData.get());
     gpu::BufferPointer combinedVertexBufferPointer(combinedVertexBuffer);
     gpu::BufferView combinedVertexBufferView(combinedVertexBufferPointer, vertexElement);
     result->setVertexBuffer(combinedVertexBufferView);
 
     int attributeTypeColor = gpu::Stream::InputSlot::COLOR; // libraries/gpu/src/gpu/Stream.h
     gpu::Element colorElement = gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ);
-    gpu::Buffer* combinedColorsBuffer = new gpu::Buffer(combinedColorSize, combinedColorData);
+    gpu::Buffer* combinedColorsBuffer = new gpu::Buffer(combinedColorSize, combinedColorData.get());
     gpu::BufferPointer combinedColorsBufferPointer(combinedColorsBuffer);
     gpu::BufferView combinedColorsBufferView(combinedColorsBufferPointer, colorElement);
     result->addAttribute(attributeTypeColor, combinedColorsBufferView);
 
     int attributeTypeNormal = gpu::Stream::InputSlot::NORMAL; // libraries/gpu/src/gpu/Stream.h
     gpu::Element normalElement = gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ);
-    gpu::Buffer* combinedNormalsBuffer = new gpu::Buffer(combinedNormalSize, combinedNormalData);
+    gpu::Buffer* combinedNormalsBuffer = new gpu::Buffer(combinedNormalSize, combinedNormalData.get());
     gpu::BufferPointer combinedNormalsBufferPointer(combinedNormalsBuffer);
     gpu::BufferView combinedNormalsBufferView(combinedNormalsBufferPointer, normalElement);
     result->addAttribute(attributeTypeNormal, combinedNormalsBufferView);
 
     gpu::Element indexElement = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::RAW);
-    gpu::Buffer* combinedIndexesBuffer = new gpu::Buffer(combinedIndexSize, combinedIndexData);
+    gpu::Buffer* combinedIndexesBuffer = new gpu::Buffer(combinedIndexSize, combinedIndexData.get());
     gpu::BufferPointer combinedIndexesBufferPointer(combinedIndexesBuffer);
     gpu::BufferView combinedIndexesBufferView(combinedIndexesBufferPointer, indexElement);
     result->setIndexBuffer(combinedIndexesBufferView);
 
-    std::vector<model::Mesh::Part> parts;
-    parts.emplace_back(model::Mesh::Part((model::Index)0, // startIndex
-                                         (model::Index)result->getNumIndices(), // numIndices
-                                         (model::Index)0, // baseVertex
-                                         model::Mesh::TRIANGLES)); // topology
-    result->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part),
+    std::vector<graphics::Mesh::Part> parts;
+    parts.emplace_back(graphics::Mesh::Part((graphics::Index)0, // startIndex
+                                         (graphics::Index)result->getNumIndices(), // numIndices
+                                         (graphics::Index)0, // baseVertex
+                                         graphics::Mesh::TRIANGLES)); // topology
+    result->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(graphics::Mesh::Part),
                                                           (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
 
 
@@ -152,9 +152,10 @@ QScriptValue ModelScriptingInterface::transformMesh(glm::mat4 transform, MeshPro
         return QScriptValue(false);
     }
 
-    model::MeshPointer result = mesh->map([&](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
+    const auto inverseTransposeTransform = glm::inverse(glm::transpose(transform));
+    graphics::MeshPointer result = mesh->map([&](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
                                           [&](glm::vec3 color){ return color; },
-                                          [&](glm::vec3 normal){ return glm::vec3(transform * glm::vec4(normal, 0.0f)); },
+                                          [&](glm::vec3 normal){ return glm::vec3(inverseTransposeTransform * glm::vec4(normal, 0.0f)); },
                                           [&](uint32_t index){ return index; });
     MeshProxy* resultProxy = new SimpleMeshProxy(result);
     return meshToScriptValue(_modelScriptEngine, resultProxy);
@@ -198,7 +199,7 @@ QScriptValue ModelScriptingInterface::getVertex(MeshProxy* meshProxy, int vertex
 QScriptValue ModelScriptingInterface::newMesh(const QVector<glm::vec3>& vertices,
                                               const QVector<glm::vec3>& normals,
                                               const QVector<MeshFace>& faces) {
-    model::MeshPointer mesh(new model::Mesh());
+    graphics::MeshPointer mesh(new graphics::Mesh());
 
     // vertices
     auto vertexBuffer = std::make_shared<gpu::Buffer>(vertices.size() * sizeof(glm::vec3), (gpu::Byte*)vertices.data());
@@ -235,12 +236,12 @@ QScriptValue ModelScriptingInterface::newMesh(const QVector<glm::vec3>& vertices
     mesh->setIndexBuffer(indexBufferView);
 
     // parts
-    std::vector<model::Mesh::Part> parts;
-    parts.emplace_back(model::Mesh::Part((model::Index)0, // startIndex
-                                         (model::Index)faces.size() * 3, // numIndices
-                                         (model::Index)0, // baseVertex
-                                         model::Mesh::TRIANGLES)); // topology
-    mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part),
+    std::vector<graphics::Mesh::Part> parts;
+    parts.emplace_back(graphics::Mesh::Part((graphics::Index)0, // startIndex
+                                         (graphics::Index)faces.size() * 3, // numIndices
+                                         (graphics::Index)0, // baseVertex
+                                         graphics::Mesh::TRIANGLES)); // topology
+    mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(graphics::Mesh::Part),
                                                         (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
 
 

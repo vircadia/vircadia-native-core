@@ -34,8 +34,8 @@ using namespace render;
 
 const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
     if (!_drawCellBoundsPipeline) {
-        auto vs = gpu::Shader::createVertex(std::string(drawCellBounds_vert));
-        auto ps = gpu::Shader::createPixel(std::string(drawCellBounds_frag));
+        auto vs = drawCellBounds_vert::getShader();
+        auto ps = drawCellBounds_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -59,7 +59,7 @@ const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
 const gpu::PipelinePointer DrawSceneOctree::getDrawLODReticlePipeline() {
     if (!_drawLODReticlePipeline) {
         auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = gpu::Shader::createPixel(std::string(drawLODReticle_frag));
+        auto ps = drawLODReticle_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -94,7 +94,7 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
     std::static_pointer_cast<Config>(renderContext->jobConfig)->numFreeCells = (int)scene->getSpatialTree().getNumFreeCells();
 
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawSceneOctree::run", args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
         args->getViewFrustum().evalProjectionMatrix(projMat);
@@ -148,7 +148,7 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
         }
         // Draw the LOD Reticle
         {
-            float angle = glm::degrees(getAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
+            float angle = glm::degrees(getPerspectiveAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
             Transform crosshairModel;
             crosshairModel.setTranslation(glm::vec3(0.0, 0.0, -1000.0));
             crosshairModel.setScale(1000.0f * tanf(glm::radians(angle))); // Scaling at the actual tan of the lod angle => Multiplied by TWO
@@ -162,8 +162,8 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
 
 const gpu::PipelinePointer DrawItemSelection::getDrawItemBoundPipeline() {
     if (!_drawItemBoundPipeline) {
-        auto vs = gpu::Shader::createVertex(std::string(drawItemBounds_vert));
-        auto ps = gpu::Shader::createPixel(std::string(drawItemBounds_frag));
+        auto vs = drawItemBounds_vert::getShader();
+        auto ps = drawItemBounds_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -201,7 +201,7 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
     RenderArgs* args = renderContext->args;
     auto& scene = renderContext->_scene;
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawItemSelection::run", args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
         args->getViewFrustum().evalProjectionMatrix(projMat);

@@ -41,9 +41,9 @@ TextEntityItem::TextEntityItem(const EntityItemID& entityItemID) : EntityItem(en
 
 const float TEXT_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
 
-void TextEntityItem::setDimensions(const glm::vec3& value) {
+void TextEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     // NOTE: Text Entities always have a "depth" of 1cm.
-    EntityItem::setDimensions(glm::vec3(value.x, value.y, TEXT_ENTITY_ITEM_FIXED_DEPTH));
+    EntityItem::setUnscaledDimensions(glm::vec3(value.x, value.y, TEXT_ENTITY_ITEM_FIXED_DEPTH));
 }
 
 EntityItemProperties TextEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
@@ -98,8 +98,6 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     return bytesRead;
 }
 
-
-// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags TextEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_TEXT;
@@ -129,10 +127,10 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 }
 
 bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                     bool& keepSearching, OctreeElementPointer& element, float& distance, 
+                     OctreeElementPointer& element, float& distance,
                      BoxFace& face, glm::vec3& surfaceNormal,
-                     void** intersectedObject, bool precisionPicking) const {
-    glm::vec3 dimensions = getDimensions();
+                     QVariantMap& extraInfo, bool precisionPicking) const {
+    glm::vec3 dimensions = getScaledDimensions();
     glm::vec2 xyDimensions(dimensions.x, dimensions.y);
     glm::quat rotation = getWorldOrientation();
     glm::vec3 position = getWorldPosition() + rotation *

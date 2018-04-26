@@ -292,6 +292,14 @@ glm::vec3 Triangle::getNormal() const {
     return glm::normalize(glm::cross(edge1, edge2));
 }
 
+Triangle Triangle::operator*(const glm::mat4& transform) const {
+    return {
+        glm::vec3(transform * glm::vec4(v0, 1.0f)),
+        glm::vec3(transform * glm::vec4(v1, 1.0f)),
+        glm::vec3(transform * glm::vec4(v2, 1.0f))
+    };
+}
+
 bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance, bool allowBackface) {
     glm::vec3 firstSide = v0 - v1;
@@ -337,8 +345,6 @@ int clipTriangleWithPlane(const Triangle& triangle, const Plane& plane, Triangle
     glm::vec3 triangleVertices[3] = { triangle.v0, triangle.v1, triangle.v2 };
     int clippedTriangleCount = 0;
     int i;
-
-    assert(clippedTriangleCount > 0);
 
     for (i = 0; i < 3; i++) {
         pointDistanceToPlane[i] = plane.distance(triangleVertices[i]);
@@ -424,7 +430,7 @@ int clipTriangleWithPlanes(const Triangle& triangle, const Plane* planes, int pl
 
     *clippedTriangles = triangle;
 
-    while (planes < planesEnd) {
+    while (planes < planesEnd && triangleCount) {
         int clippedSubTriangleCount;
 
         trianglesToTest.clear();

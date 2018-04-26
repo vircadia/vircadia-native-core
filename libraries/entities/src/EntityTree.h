@@ -57,7 +57,8 @@ public:
     enum FilterType {
         Add,
         Edit,
-        Physics
+        Physics,
+        Delete
     };
     EntityTree(bool shouldReaverage = false);
     virtual ~EntityTree();
@@ -87,7 +88,6 @@ public:
 
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
-    virtual bool getWantSVOfileVersions() const override { return true; }
     virtual PacketType expectedDataPacketType() const override { return PacketType::EntityData; }
     virtual bool handlesEditPacketType(PacketType packetType) const override;
     void fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties);
@@ -97,20 +97,16 @@ public:
     virtual void processChallengeOwnershipReplyPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
     virtual void processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
 
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    virtual EntityItemID findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
         bool visibleOnly, bool collidableOnly, bool precisionPicking, 
         OctreeElementPointer& node, float& distance,
-        BoxFace& face, glm::vec3& surfaceNormal, void** intersectedObject = NULL,
+        BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
         Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     virtual bool rootElementHasData() const override { return true; }
 
-    // the root at least needs to store the number of entities in the packet/buffer
-    virtual int minimumRequiredRootDataBytes() const override { return sizeof(uint16_t); }
-    virtual bool suppressEmptySubtrees() const override { return false; }
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const override;
-    virtual bool mustIncludeAllChildData() const override { return false; }
 
     virtual void update() override { update(true); }
 
@@ -132,9 +128,9 @@ public:
     /// \param position point of query in world-frame (meters)
     /// \param targetRadius radius of query (meters)
     EntityItemPointer findClosestEntity(const glm::vec3& position, float targetRadius);
-    EntityItemPointer findEntityByID(const QUuid& id);
-    EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID);
-    virtual SpatiallyNestablePointer findByID(const QUuid& id) override { return findEntityByID(id); }
+    EntityItemPointer findEntityByID(const QUuid& id) const;
+    EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID) const;
+    virtual SpatiallyNestablePointer findByID(const QUuid& id) const override { return findEntityByID(id); }
 
     EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
 
@@ -193,6 +189,8 @@ public:
 
     int processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
     int processEraseMessageDetails(const QByteArray& buffer, const SharedNodePointer& sourceNode);
+    bool shouldEraseEntity(EntityItemID entityID, const SharedNodePointer& sourceNode);
+
 
     EntityTreeElementPointer getContainingElement(const EntityItemID& entityItemID)  /*const*/;
     void addEntityMapEntry(EntityItemPointer entity);
@@ -275,10 +273,30 @@ public:
 
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
-    QByteArray computeEncryptedNonce(const QString& certID, const QString ownerKey);
-    bool verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce, EntityItemID& id);
+    QByteArray computeNonce(const QString& certID, const QString ownerKey);
+    bool verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id);
 
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
+
+    void setIsServerlessMode(bool value) { _serverlessDomain = value; }
+    bool isServerlessMode() const { return _serverlessDomain; }
+
+    static void setAddMaterialToEntityOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToEntityOperator) { _addMaterialToEntityOperator = addMaterialToEntityOperator; }
+    static void setRemoveMaterialFromEntityOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromEntityOperator) { _removeMaterialFromEntityOperator = removeMaterialFromEntityOperator; }
+    static bool addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName);
+    static bool removeMaterialFromEntity(const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+
+    static void setAddMaterialToAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToAvatarOperator) { _addMaterialToAvatarOperator = addMaterialToAvatarOperator; }
+    static void setRemoveMaterialFromAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromAvatarOperator) { _removeMaterialFromAvatarOperator = removeMaterialFromAvatarOperator; }
+    static bool addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName);
+    static bool removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+
+    static void setAddMaterialToOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToOverlayOperator) { _addMaterialToOverlayOperator = addMaterialToOverlayOperator; }
+    static void setRemoveMaterialFromOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromOverlayOperator) { _removeMaterialFromOverlayOperator = removeMaterialFromOverlayOperator; }
+    static bool addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName);
+    static bool removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+
+    std::map<QString, QString> getNamedPaths() const { return _namedPaths; }
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -307,7 +325,7 @@ protected:
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);
 
     bool isScriptInWhitelist(const QString& scriptURL);
-    
+
     QReadWriteLock _newlyCreatedHooksLock;
     QVector<NewlyCreatedEntityHook*> _newlyCreatedHooks;
 
@@ -334,7 +352,7 @@ protected:
     QHash<QString, EntityItemID> _entityCertificateIDMap;
 
     mutable QReadWriteLock _certNonceMapLock;
-    QHash<QString, QUuid> _certNonceMap;
+    QHash<QString, QPair<QUuid, QString>> _certNonceMap;
 
     EntitySimulationPointer _simulation;
 
@@ -383,10 +401,21 @@ protected:
 
 private:
     void sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
-    void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& encryptedText, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
+    void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation);
 
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };
+
+    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToEntityOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromEntityOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToAvatarOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromAvatarOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToOverlayOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromOverlayOperator;
+
+    bool _serverlessDomain { false };
+
+    std::map<QString, QString> _namedPaths;
 };
 
 #endif // hifi_EntityTree_h

@@ -20,6 +20,7 @@
 #include <AvatarData.h>
 #include <ShapeInfo.h>
 #include <render/Scene.h>
+#include <graphics-scripting/Forward.h>
 #include <GLMHelpers.h>
 
 
@@ -53,18 +54,10 @@ class Texture;
 
 using AvatarPhysicsCallback = std::function<void(uint32_t)>;
 
-class Avatar : public AvatarData {
+class Avatar : public AvatarData, public scriptable::ModelProvider {
     Q_OBJECT
 
-    /**jsdoc
-     * An avatar is representation of yourself or another user. The Avatar API can be used to query or manipulate the avatar of a user.
-     * NOTE: Avatar extends AvatarData, see those namespace for more properties/methods.
-     *
-     * @namespace Avatar
-     * @augments AvatarData
-     *
-     * @property skeletonOffset {Vec3} can be used to apply a translation offset between the avatar's position and the registration point of the 3d model.
-     */
+    // This property has JSDoc in MyAvatar.h.
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
@@ -127,14 +120,25 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
+    /**jsdoc
+     * @function MyAvatar.getDefaultJointRotation
+     * @param {number} index
+     * @returns {Quat} 
+     */
     Q_INVOKABLE virtual glm::quat getDefaultJointRotation(int index) const;
+
+    /**jsdoc
+     * @function MyAvatar.getDefaultJointTranslation
+     * @param {number} index
+     * @returns {Vec3} 
+     */
     Q_INVOKABLE virtual glm::vec3 getDefaultJointTranslation(int index) const;
 
     /**jsdoc
      * Provides read only access to the default joint rotations in avatar coordinates.
      * The default pose of the avatar is defined by the position and orientation of all bones
-     * in the avatar's model file.  Typically this is a t-pose.
-     * @function Avatar.getAbsoluteDefaultJointRotationInObjectFrame
+     * in the avatar's model file. Typically this is a T-pose.
+     * @function MyAvatar.getAbsoluteDefaultJointRotationInObjectFrame
      * @param index {number} index number
      * @returns {Quat} The rotation of this joint in avatar coordinates.
      */
@@ -143,8 +147,8 @@ public:
     /**jsdoc
      * Provides read only access to the default joint translations in avatar coordinates.
      * The default pose of the avatar is defined by the position and orientation of all bones
-     * in the avatar's model file.  Typically this is a t-pose.
-     * @function Avatar.getAbsoluteDefaultJointTranslationInObjectFrame
+     * in the avatar's model file. Typically this is a T-pose.
+     * @function MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame
      * @param index {number} index number
      * @returns {Vec3} The position of this joint in avatar coordinates.
      */
@@ -169,14 +173,65 @@ public:
 
     virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
 
+    /**jsdoc
+     * Set the offset applied to the current avatar. The offset adjusts the position that the avatar is rendered. For example, 
+     * with an offset of <code>{ x: 0, y: 0.1, z: 0 }</code>, your avatar will appear to be raised off the ground slightly.
+     * @function MyAvatar.setSkeletonOffset
+     * @param {Vec3} offset - The skeleton offset to set.
+     * @example <caption>Raise your avatar off the ground a little.</caption>
+     * // Raise your avatar off the ground a little.
+     * MyAvatar.setSkeletonOffset({ x: 0, y: 0.1: z: 0 });
+     *
+     * // Restore its offset after 5s.
+     * Script.setTimeout(function () {
+     *     MyAvatar.setSkeletonOffset(Vec3.ZERO);
+     * }, 5000);
+     */
     Q_INVOKABLE void setSkeletonOffset(const glm::vec3& offset);
+
+    /**jsdoc
+     * Get the offset applied to the current avatar. The offset adjusts the position that the avatar is rendered. For example, 
+     * with an offset of <code>{ x: 0, y: 0.1, z: 0 }</code>, your avatar will appear to be raised off the ground slightly.
+     * @function MyAvatar.getSkeletonOffset
+     * @returns {Vec3} The current skeleton offset.
+     * @example <caption>Report your avatar's current skeleton offset.</caption>
+     * print(JSON.stringify(MyAvatar.getSkeletonOffset());
+     */
     Q_INVOKABLE glm::vec3 getSkeletonOffset() { return _skeletonOffset; }
+
     virtual glm::vec3 getSkeletonPosition() const;
 
+    /**jsdoc
+     * Get the position of a joint in the current avatar.
+     * @function MyAvatar.getJointPosition
+     * @param {number} index - The index of the joint.
+     * @returns {Vec3} The position of the joint in world coordinates.
+     */
     Q_INVOKABLE glm::vec3 getJointPosition(int index) const;
+
+    /**jsdoc
+     * Get the position of a joint in the current avatar.
+     * @function MyAvatar.getJointPosition
+     * @param {string} name - The name of the joint.
+     * @returns {Vec3} The position of the joint in world coordinates.
+     * @example <caption>Report the position of your avatar's hips.</caption>
+     * print(JSON.stringify(MyAvatar.getJointPosition("Hips")));
+     */
     Q_INVOKABLE glm::vec3 getJointPosition(const QString& name) const;
+
+    /**jsdoc
+     * Get the position of the current avatar's neck in world coordinates.
+     * @function MyAvatar.getNeckPosition
+     * @returns {Vec3} The position of the neck in world coordinates.
+     * @example <caption>Report the position of your avatar's neck.</caption>
+     * print(JSON.stringify(MyAvatar.getNeckPosition()));
+     */
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
+    /**jsdoc
+     * @function MyAvatar.getAcceleration
+     * @returns {Vec3} 
+     */
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
 
     /// Scales a world space position vector relative to the avatar position and scale
@@ -200,24 +255,47 @@ public:
     void setPositionViaScript(const glm::vec3& position) override;
     void setOrientationViaScript(const glm::quat& orientation) override;
 
-    // these call through to the SpatiallyNestable versions, but they are here to expose these to javascript.
+
+    /**jsdoc
+     * @function MyAvatar.getParentID
+     * @returns {Uuid} 
+     */
+    // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual const QUuid getParentID() const override { return SpatiallyNestable::getParentID(); }
+
+    /**jsdoc
+     * @function MyAvatar.setParentID
+     * @param {Uuid} parentID
+     */
+    // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual void setParentID(const QUuid& parentID) override;
+
+    /**jsdoc
+     * @function MyAvatar.getParentJointIndex
+     * @returns {number} 
+     */
+    // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual quint16 getParentJointIndex() const override { return SpatiallyNestable::getParentJointIndex(); }
+
+    /**jsdoc
+     * @function MyAvatar.setParentJointIndex
+     * @param {number} parentJointIndex
+     */
+    // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual void setParentJointIndex(quint16 parentJointIndex) override;
 
-    /**jsdoc
-     * Information about a single joint in an Avatar's skeleton hierarchy.
-     * @typedef Avatar.SkeletonJoint
-     * @property {string} name - name of joint
-     * @property {number} index - joint index
-     * @property {number} parentIndex - index of this joint's parent (-1 if no parent)
-     */
 
     /**jsdoc
-     * Returns an array of joints, where each joint is an object containing name, index and parentIndex fields.
-     * @function Avatar.getSkeleton
-     * @returns {Avatar.SkeletonJoint[]} returns a list of information about each joint in this avatar's skeleton.
+     * Returns an array of joints, where each joint is an object containing name, index, and parentIndex fields.
+     * @function MyAvatar.getSkeleton
+     * @returns {MyAvatar.SkeletonJoint[]} A list of information about each joint in this avatar's skeleton.
+     */
+    /**jsdoc
+     * Information about a single joint in an Avatar's skeleton hierarchy.
+     * @typedef MyAvatar.SkeletonJoint
+     * @property {string} name - Joint name.
+     * @property {number} index - Joint index.
+     * @property {number} parentIndex - Index of this joint's parent (-1 if no parent).
      */
     Q_INVOKABLE QList<QVariant> getSkeleton();
 
@@ -234,6 +312,11 @@ public:
     void setTargetScale(float targetScale) override;
     float getTargetScale() const { return _targetScale; }
 
+    /**jsdoc
+     * @function MyAvatar.getSimulationRate
+     * @param {string} [rateName=""]
+     * @returns {number} 
+     */
     Q_INVOKABLE float getSimulationRate(const QString& rateName = QString("")) const;
 
     bool hasNewJointData() const { return _hasNewJointData; }
@@ -255,30 +338,90 @@ public:
     bool isFading() const { return _isFading; }
     void updateFadingStatus(render::ScenePointer scene);
 
-    /**jsdoc
-     * Provides read only access to the current eye height of the avatar.
-     * @function Avatar.getEyeHeight
-     * @returns {number} eye height of avatar in meters
-     */
-    Q_INVOKABLE float getEyeHeight() const;
+    // JSDoc is in AvatarData.h.
+    Q_INVOKABLE virtual float getEyeHeight() const override;
+
+    // returns eye height of avatar in meters, ignoring avatar scale.
+    // if _targetScale is 1 then this will be identical to getEyeHeight.
+    virtual float getUnscaledEyeHeight() const override;
+
+    // returns true, if an acurate eye height estimage can be obtained by inspecting the avatar model skeleton and geometry,
+    // not all subclasses of AvatarData have access to this data.
+    virtual bool canMeasureEyeHeight() const override { return true; }
+
 
     virtual float getModelScale() const { return _modelScale; }
     virtual void setModelScale(float scale) { _modelScale = scale; }
+    virtual glm::vec3 scaleForChildren() const override { return glm::vec3(getModelScale()); }
 
     virtual void setAvatarEntityDataChanged(bool value) override;
+
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
+
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
     // thread safe, will return last valid palm from cache
+
+    /**jsdoc
+     * Get the position of the left palm in world coordinates.
+     * @function MyAvatar.getLeftPalmPosition
+     * @returns {Vec3} The position of the left palm in world coordinates.
+     * @example <caption>Report the position of your avatar's left palm.</caption>
+     * print(JSON.stringify(MyAvatar.getLeftPalmPosition()));
+     */
     glm::vec3 getLeftPalmPosition() const;
+
+    /**jsdoc
+     * Get the rotation of the left palm in world coordinates.
+     * @function MyAvatar.getLeftPalmRotation
+     * @returns {Vec3} The rotation of the left palm in world coordinates.
+     * @example <caption>Report the rotation of your avatar's left palm.</caption>
+     * print(JSON.stringify(MyAvatar.getLeftPalmRotation()));
+     */
     glm::quat getLeftPalmRotation() const;
+    /**jsdoc
+     * Get the position of the right palm in world coordinates.
+     * @function MyAvatar.getRightPalmPosition
+     * @returns {Vec3} The position of the right palm in world coordinates.
+     * @example <caption>Report the position of your avatar's right palm.</caption>
+     * print(JSON.stringify(MyAvatar.getRightPalmPosition()));
+     */
     glm::vec3 getRightPalmPosition() const;
+
+    /**jsdoc
+     * Get the rotation of the right palm in world coordinates.
+     * @function MyAvatar.getRightPalmRotation
+     * @returns {Vec3} The rotation of the right palm in world coordinates.
+     * @example <caption>Report the rotation of your avatar's right palm.</caption>
+     * print(JSON.stringify(MyAvatar.getRightPalmRotation()));
+     */
     glm::quat getRightPalmRotation() const;
 
+    // hooked up to Model::setURLFinished signal
     void setModelURLFinished(bool success);
 
+    /**jsdoc
+     * @function MyAvatar.rigReady
+     * @returns {Signal} 
+     */
+    // Hooked up to Model::rigReady signal
+    void rigReady();
+
+    /**jsdoc
+     * @function MyAvatar.rigReset
+     * @returns {Signal} 
+     */
+    // Jooked up to Model::rigReset signal
+    void rigReset();
+
 protected:
+    float getUnscaledEyeHeightFromSkeleton() const;
+    void buildUnscaledEyeHeightCache();
+    void clearUnscaledEyeHeightCache();
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
@@ -293,6 +436,7 @@ protected:
 
     glm::vec3 _skeletonOffset;
     std::vector<std::shared_ptr<Model>> _attachmentModels;
+    std::vector<bool> _attachmentModelsTexturesLoaded;
     std::vector<std::shared_ptr<Model>> _attachmentsToRemove;
     std::vector<std::shared_ptr<Model>> _attachmentsToDelete;
 
@@ -317,6 +461,7 @@ protected:
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
+    void relayJointDataToChildren();
 
     void fade(render::Transaction& transaction, render::Transition::Type type);
 
@@ -349,7 +494,7 @@ protected:
     RateCounter<> _skeletonModelSimulationRate;
     RateCounter<> _jointDataSimulationRate;
 
-private:
+protected:
     class AvatarEntityDataHash {
     public:
         AvatarEntityDataHash(uint32_t h) : hash(h) {};
@@ -369,6 +514,7 @@ private:
     bool _isAnimatingScale { false };
     bool _mustFadeIn { false };
     bool _isFading { false };
+    bool _reconstructSoftEntitiesJointMap { false };
     float _modelScale { 1.0f };
 
     static int _jointConesID;
@@ -379,6 +525,13 @@ private:
 
     float _displayNameTargetAlpha { 1.0f };
     float _displayNameAlpha { 1.0f };
+
+    ThreadSafeValueCache<float> _unscaledEyeHeightCache { DEFAULT_AVATAR_EYE_HEIGHT };
+
+    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
+    std::mutex _materialsLock;
+
+    void processMaterials();
 };
 
 #endif // hifi_Avatar_h

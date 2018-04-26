@@ -14,7 +14,6 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
-import QtQuick.Controls 1.4
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
@@ -31,14 +30,18 @@ Item {
     property bool hasShownSecurityImageTip: false;
     property string referrer;
     property string keyFilePath;
+    property date startingTimestamp;
+    property string setupAttemptID;
+    readonly property int setupFlowVersion: 1;
+    readonly property var setupStepNames: [ "Setup Prompt", "Security Image Selection", "Passphrase Selection", "Private Keys Ready" ];
 
     Image {
         anchors.fill: parent;
         source: "images/wallet-bg.jpg";
     }
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onSecurityImageResult: {
             if (!exists && root.lastPage === "step_2") {
@@ -65,6 +68,19 @@ Item {
         id: lightboxPopup;
         visible: false;
         anchors.fill: parent;
+    }
+
+    onActiveViewChanged: {
+        var timestamp = new Date();
+        var currentStepNumber = root.activeView.substring(5);
+        UserActivityLogger.commerceWalletSetupProgress(timestamp, root.setupAttemptID,
+            Math.round((timestamp - root.startingTimestamp)/1000), currentStepNumber, root.setupStepNames[currentStepNumber - 1]);
+
+        if (root.activeView === "step_3") {
+            sendSignalToWallet({method: 'disableHmdPreview'});
+        } else {
+            sendSignalToWallet({method: 'maybeEnableHmdPreview'});
+        }
     }
 
     //
@@ -134,7 +150,9 @@ Item {
                     lightboxPopup.bodyImageSource = titleBarSecurityImage.source;
                     lightboxPopup.bodyText = lightboxPopup.securityPicBodyText;
                     lightboxPopup.button1text = "CLOSE";
-                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button1method = function() {
+                        lightboxPopup.visible = false;
+                    }
                     lightboxPopup.visible = true;
                 }
             }
@@ -225,6 +243,7 @@ Item {
             height: 50;
             text: "Set Up Wallet";
             onClicked: {
+                securityImageSelection.initModel();
                 root.activeView = "step_2";
             }
         }
@@ -240,7 +259,7 @@ Item {
             height: 50;
             text: "Cancel";
             onClicked: {
-                sendSignalToWallet({method: 'walletSetup_cancelClicked'});
+                sendSignalToWallet({method: 'walletSetup_cancelClicked', referrer: root.referrer });
             }
         }   
     }
@@ -336,6 +355,7 @@ Item {
                 width: 200;
                 text: "Back"
                 onClicked: {
+                    securityImageSelection.resetSelection();
                     root.activeView = "step_1";
                 }
             }
@@ -354,7 +374,7 @@ Item {
                 onClicked: {
                     root.lastPage = "step_2";
                     var securityImagePath = securityImageSelection.getImagePathFromImageID(securityImageSelection.getSelectedImageIndex())
-                    commerce.chooseSecurityImage(securityImagePath);
+                    Commerce.chooseSecurityImage(securityImagePath);
                     root.activeView = "step_3";
                     passphraseSelection.clearPassphraseFields();
                 }
@@ -371,7 +391,7 @@ Item {
 
     Item {
         id: securityImageTip;
-        visible: false;
+        visible: !root.hasShownSecurityImageTip && root.activeView === "step_3";
         z: 999;
         anchors.fill: root;
         
@@ -381,6 +401,7 @@ Item {
         MouseArea {
             anchors.fill: parent;
             propagateComposedEvents: false;
+            hoverEnabled: true;
         }
 
         Image {
@@ -421,7 +442,6 @@ Item {
             text: "Got It";
             onClicked: {
                 root.hasShownSecurityImageTip = true;
-                securityImageTip.visible = false;
                 passphraseSelection.focusFirstTextField();
             }
         }
@@ -438,10 +458,7 @@ Item {
 
         onVisibleChanged: {
             if (visible) {
-                commerce.getWalletAuthenticatedStatus();
-                if (!root.hasShownSecurityImageTip) {
-                    securityImageTip.visible = true;
-                }
+                Commerce.getWalletAuthenticatedStatus();
             }
         }
 
@@ -508,6 +525,7 @@ Item {
                 width: 200;
                 text: "Back"
                 onClicked: {
+                    securityImageSelection.resetSelection();
                     root.lastPage = "step_3";
                     root.activeView = "step_2";
                 }
@@ -527,7 +545,7 @@ Item {
                 onClicked: {
                     if (passphraseSelection.validateAndSubmitPassphrase()) {
                         root.lastPage = "step_3";
-                        commerce.generateKeyPair();
+                        Commerce.generateKeyPair();
                         root.activeView = "step_4";
                     }
                 }
@@ -660,7 +678,7 @@ Item {
 
                     onVisibleChanged: {
                         if (visible) {
-                            commerce.getKeyFilePathIfExists();
+                            Commerce.getKeyFilePathIfExists();
                         }
                     }
                 }
@@ -732,7 +750,11 @@ Item {
                 text: "Finish";
                 onClicked: {
                     root.visible = false;
+                    root.hasShownSecurityImageTip = false;
                     sendSignalToWallet({method: 'walletSetup_finished', referrer: root.referrer ? root.referrer : ""});
+                    
+                    var timestamp = new Date();
+                    UserActivityLogger.commerceWalletSetupFinished(timestamp, setupAttemptID, Math.round((timestamp - root.startingTimestamp)/1000));
                 }
             }
         }

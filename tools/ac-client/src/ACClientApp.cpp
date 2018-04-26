@@ -97,7 +97,6 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
         _password = pieces[1];
     }
 
-    Setting::init();
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
 
     DependencyManager::set<AccountManager>([&]{ return QString("Mozilla/5.0 (HighFidelityACClient)"); });
@@ -106,7 +105,7 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
 
     auto accountManager = DependencyManager::get<AccountManager>();
     accountManager->setIsAgent(true);
-    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -120,7 +119,7 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
     nodeList->startThread();
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
-    connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&domainHandler, SIGNAL(domainURLChanged(QUrl)), SLOT(domainChanged(QUrl)));
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ACClientApp::domainConnectionRefused);
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &ACClientApp::nodeAdded);
@@ -170,7 +169,7 @@ void ACClientApp::domainConnectionRefused(const QString& reasonMessage, int reas
     qDebug() << "domainConnectionRefused";
 }
 
-void ACClientApp::domainChanged(const QString& domainHostname) {
+void ACClientApp::domainChanged(QUrl domainURL) {
     if (_verbose) {
         qDebug() << "domainChanged";
     }

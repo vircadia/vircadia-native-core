@@ -101,9 +101,11 @@
         changedProperties += P;    \
     }
 
+inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec2& v) { return vec2toScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec3& v) { return vec3toScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, float v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, int v) { return QScriptValue(v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, bool v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, quint16 v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, quint32 v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, quint64 v) { return QScriptValue((qsreal)v); }
@@ -183,6 +185,7 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
         properties.setProperty(#P, V); \
     }
 
+typedef glm::vec2 glmVec2;
 typedef glm::vec3 glmVec3;
 typedef glm::quat glmQuat;
 typedef QVector<glm::vec3> qVectorVec3;
@@ -219,6 +222,23 @@ inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool&
     isValid = true;
     QString b64 = v.toVariant().toString().trimmed();
     return QByteArray::fromBase64(b64.toUtf8());
+}
+
+inline glmVec2 glmVec2_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = false; /// assume it can't be converted
+    QScriptValue x = v.property("x");
+    QScriptValue y = v.property("y");
+    if (x.isValid() && y.isValid()) {
+        glm::vec4 newValue(0);
+        newValue.x = x.toVariant().toFloat();
+        newValue.y = y.toVariant().toFloat();
+        isValid = !glm::isnan(newValue.x) &&
+            !glm::isnan(newValue.y);
+        if (isValid) {
+            return newValue;
+        }
+    }
+    return glm::vec2(0);
 }
 
 inline glmVec3 glmVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
@@ -367,7 +387,7 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
         }                                                                \
     }
 
-#define COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(P, S)               \
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(P, S)               \
     QScriptValue P = object.property(#P);                         \
     if (P.isValid()) {                                            \
         QString newValue = P.toVariant().toString();              \

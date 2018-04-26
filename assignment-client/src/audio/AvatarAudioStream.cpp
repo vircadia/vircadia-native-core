@@ -11,6 +11,7 @@
 
 #include <udt/PacketHeaders.h>
 
+#include "AudioLogging.h"
 #include "AvatarAudioStream.h"
 
 AvatarAudioStream::AvatarAudioStream(bool isStereo, int numStaticJitterFrames) :
@@ -41,6 +42,15 @@ int AvatarAudioStream::parseStreamProperties(PacketType type, const QByteArray& 
             _ringBuffer.resizeForFrameSize(isStereo
                                            ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
                                            : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+            // restart the codec
+            if (_codec) {
+                if (_decoder) {
+                    _codec->releaseDecoder(_decoder);
+                }
+                _decoder = _codec->createDecoder(AudioConstants::SAMPLE_RATE, isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
+            }
+            qCDebug(audio) << "resetting AvatarAudioStream... codec:" << _selectedCodecName << "isStereo:" << isStereo;
+
             _isStereo = isStereo;
         }
 

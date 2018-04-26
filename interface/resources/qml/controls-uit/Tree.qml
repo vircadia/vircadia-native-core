@@ -9,9 +9,11 @@
 //
 
 import QtQml.Models 2.2
-import QtQuick 2.5
+import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
+import QtQuick.Controls 2.2 as QQC2
+
 
 import "../styles-uit"
 
@@ -35,6 +37,45 @@ TreeView {
     
     headerVisible: false
 
+    Component.onCompleted: {
+        if (flickableItem !== null && flickableItem !== undefined) {
+            treeView.flickableItem.QQC2.ScrollBar.vertical = scrollbar
+        }
+    }
+
+    QQC2.ScrollBar {
+        id: scrollbar
+        parent: treeView.flickableItem
+        policy: QQC2.ScrollBar.AsNeeded
+        orientation: Qt.Vertical
+        visible: size < 1.0
+        topPadding: treeView.headerVisible ? hifi.dimensions.tableHeaderHeight + 1 : 1
+        anchors.top: treeView.top
+        anchors.left: treeView.right
+        anchors.bottom: treeView.bottom
+
+        background: Item {
+            implicitWidth: hifi.dimensions.scrollbarBackgroundWidth
+            Rectangle {
+                anchors {
+                    fill: parent;
+                    topMargin: treeView.headerVisible ? hifi.dimensions.tableHeaderHeight: 0
+                }
+                color: isLightColorScheme ? hifi.colors.tableScrollBackgroundLight
+                                          : hifi.colors.tableScrollBackgroundDark
+            }
+        }
+
+        contentItem: Item {
+            implicitWidth: hifi.dimensions.scrollbarHandleWidth
+            Rectangle {
+                anchors.fill: parent
+                radius: (width - 4)/2
+                color: isLightColorScheme ? hifi.colors.tableScrollHandleLight : hifi.colors.tableScrollHandleDark
+            }
+        }
+    }
+
     // Use rectangle to draw border with rounded corners.
     frameVisible: false
     Rectangle {
@@ -50,7 +91,7 @@ TreeView {
     backgroundVisible: true
 
     horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
-    verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
+    verticalScrollBarPolicy: Qt.ScrollBarAlwaysOff
 
     style: TreeViewStyle {
         // Needed in order for rows to keep displaying rows after end of table entries.
@@ -126,66 +167,6 @@ TreeView {
                 leftMargin: hifi.dimensions.tablePadding / 2
             }
         }
-
-        handle: Item {
-            id: scrollbarHandle
-            implicitWidth: hifi.dimensions.scrollbarHandleWidth
-            Rectangle {
-                anchors {
-                    fill: parent
-                    topMargin: treeView.headerVisible ? hifi.dimensions.tableHeaderHeight + 3 : 3
-                    bottomMargin: 3     // ""
-                    leftMargin: 1       // Move it right
-                    rightMargin: -1     // ""
-                }
-                radius: hifi.dimensions.scrollbarHandleWidth / 2
-                color: treeView.isLightColorScheme ? hifi.colors.tableScrollHandleLight : hifi.colors.tableScrollHandleDark
-            }
-        }
-
-        scrollBarBackground: Item {
-            implicitWidth: hifi.dimensions.scrollbarBackgroundWidth
-            Rectangle {
-                anchors {
-                    fill: parent
-                    topMargin: treeView.headerVisible ? hifi.dimensions.tableHeaderHeight - 1 : -1
-                    margins: -1     // Expand
-                }
-                color: treeView.isLightColorScheme ? hifi.colors.tableScrollBackgroundLight : hifi.colors.tableScrollBackgroundDark
-                
-                // Extend header color above scrollbar background
-                Rectangle {
-                    anchors {
-                        top: parent.top
-                        topMargin: -hifi.dimensions.tableHeaderHeight
-                        left: parent.left
-                        right: parent.right
-                    }
-                    height: hifi.dimensions.tableHeaderHeight
-                    color: treeView.isLightColorScheme ? hifi.colors.tableBackgroundLight : hifi.colors.tableBackgroundDark
-                    visible: treeView.headerVisible
-                }
-                Rectangle {
-                    // Extend header bottom border
-                    anchors {
-                        top: parent.top
-                        left: parent.left
-                        right: parent.right
-                    }
-                    height: 1
-                    color: treeView.isLightColorScheme ? hifi.colors.lightGrayText : hifi.colors.baseGrayHighlight
-                    visible: treeView.headerVisible
-                }
-            }
-        }
-
-        incrementControl: Item {
-            visible: false
-        }
-
-        decrementControl: Item {
-            visible: false
-        }
     }
 
     rowDelegate: Rectangle {
@@ -193,8 +174,8 @@ TreeView {
         color: styleData.selected
                ? hifi.colors.primaryHighlight
                : treeView.isLightColorScheme
-                   ? (styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd)
-                   : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
+                 ? (styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd)
+                 : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
     }
 
     itemDelegate: FiraSansSemiBold {
@@ -209,9 +190,9 @@ TreeView {
         text: styleData.value
         size: hifi.fontSizes.tableText
         color: colorScheme == hifi.colorSchemes.light
-                ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
-                : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
-                       
+               ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
+               : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+
         elide: Text.ElideRight
     }
 
@@ -221,8 +202,4 @@ TreeView {
     }
 
     onDoubleClicked: isExpanded(index) ? collapse(index) : expand(index)
-
-    onClicked: {
-        selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect);
-    }
 }

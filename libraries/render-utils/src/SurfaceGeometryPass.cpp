@@ -167,14 +167,14 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
     outputs.edit3() = halfLinearDepthTexture;
     outputs.edit4() = halfNormalTexture;
    
-    auto linearDepthPipeline = getLinearDepthPipeline();
+    auto linearDepthPipeline = getLinearDepthPipeline(renderContext);
     auto downsamplePipeline = getDownsamplePipeline();
 
     auto depthViewport = args->_viewport;
     auto halfViewport = depthViewport >> 1;
     float clearLinearDepth = args->getViewFrustum().getFarClip() * 2.0f;
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("LinearDepthPass::run", args->_context, [=](gpu::Batch& batch) {
         _gpuTimer->begin(batch);
         batch.enableStereo(false);
 
@@ -209,17 +209,12 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
 }
 
 
-const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline() {
+const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline(const render::RenderContextPointer& renderContext) {
+    gpu::ShaderPointer program;
     if (!_linearDepthPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(surfaceGeometry_makeLinearDepth_frag));
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DepthLinearPass_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), DepthLinearPass_DepthMapSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
+        auto ps = surfaceGeometry_makeLinearDepth_frag::getShader();
+        program = gpu::Shader::createProgram(vs, ps);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -230,7 +225,17 @@ const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline() {
 
         // Good to go add the brand new pipeline
         _linearDepthPipeline = gpu::Pipeline::create(program, state);
+
+        gpu::doInBatch("LinearDepthPass::run", renderContext->args->_context, [program](gpu::Batch& batch) {
+            batch.runLambda([program]() {
+                gpu::Shader::BindingSet slotBindings;
+                slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DepthLinearPass_FrameTransformSlot));
+                slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), DepthLinearPass_DepthMapSlot));
+                gpu::Shader::makeProgram(*program, slotBindings);
+            });
+        });
     }
+
 
     return _linearDepthPipeline;
 }
@@ -239,7 +244,7 @@ const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline() {
 const gpu::PipelinePointer& LinearDepthPass::getDownsamplePipeline() {
     if (!_downsamplePipeline) {
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(surfaceGeometry_downsampleDepthNormal_frag));
+        auto ps = surfaceGeometry_downsampleDepthNormal_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -455,7 +460,7 @@ void SurfaceGeometryPass::run(const render::RenderContextPointer& renderContext,
     outputs.edit2() = curvatureFramebuffer;
     outputs.edit3() = lowCurvatureFramebuffer;
 
-    auto curvaturePipeline = getCurvaturePipeline();
+    auto curvaturePipeline = getCurvaturePipeline(renderContext);
     auto diffuseVPipeline = _diffusePass.getBlurVPipeline();
     auto diffuseHPipeline = _diffusePass.getBlurHPipeline();
 
@@ -466,7 +471,7 @@ void SurfaceGeometryPass::run(const render::RenderContextPointer& renderContext,
     _diffusePass.getParameters()->setLinearDepthPosFar(args->getViewFrustum().getFarClip());
 
  
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("SurfaceGeometryPass::run", args->_context, [=](gpu::Batch& batch) {
         _gpuTimer->begin(batch);
         batch.enableStereo(false);
 
@@ -536,20 +541,11 @@ void SurfaceGeometryPass::run(const render::RenderContextPointer& renderContext,
     config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());
 }
 
-
-const gpu::PipelinePointer& SurfaceGeometryPass::getCurvaturePipeline() {
+const gpu::PipelinePointer& SurfaceGeometryPass::getCurvaturePipeline(const render::RenderContextPointer& renderContext) {
     if (!_curvaturePipeline) {
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(surfaceGeometry_makeCurvature_frag));
+        auto ps = surfaceGeometry_makeCurvature_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), SurfaceGeometryPass_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("surfaceGeometryParamsBuffer"), SurfaceGeometryPass_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), SurfaceGeometryPass_DepthMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), SurfaceGeometryPass_NormalMapSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -559,6 +555,17 @@ const gpu::PipelinePointer& SurfaceGeometryPass::getCurvaturePipeline() {
 #endif
         // Good to go add the brand new pipeline
         _curvaturePipeline = gpu::Pipeline::create(program, state);
+
+        gpu::doInBatch("SurfaceGeometryPass::CurvaturePipeline", renderContext->args->_context, [program](gpu::Batch& batch) {
+            batch.runLambda([program]() {
+                gpu::Shader::BindingSet slotBindings;
+                slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), SurfaceGeometryPass_FrameTransformSlot));
+                slotBindings.insert(gpu::Shader::Binding(std::string("surfaceGeometryParamsBuffer"), SurfaceGeometryPass_ParamsSlot));
+                slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), SurfaceGeometryPass_DepthMapSlot));
+                slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), SurfaceGeometryPass_NormalMapSlot));
+                gpu::Shader::makeProgram(*program, slotBindings);
+            });
+        });
     }
 
     return _curvaturePipeline;

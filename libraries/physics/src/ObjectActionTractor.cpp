@@ -47,19 +47,22 @@ ObjectActionTractor::~ObjectActionTractor() {
 bool ObjectActionTractor::getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
                                    glm::vec3& linearVelocity, glm::vec3& angularVelocity,
                                    float& linearTimeScale, float& angularTimeScale) {
-    SpatiallyNestablePointer other = getOther();
+    bool success { true };
+    EntityItemPointer other = std::dynamic_pointer_cast<EntityItem>(getOther());
     withReadLock([&]{
         linearTimeScale = _linearTimeScale;
         angularTimeScale = _angularTimeScale;
 
         if (!_otherID.isNull()) {
-            if (other) {
+            if (other && other->isReadyToComputeShape()) {
                 rotation = _desiredRotationalTarget * other->getWorldOrientation();
                 position = other->getWorldOrientation() * _desiredPositionalTarget + other->getWorldPosition();
             } else {
-                // we should have an "other" but can't find it, so disable the tractor.
+                // we should have an "other" but can't find it, or its collision shape isn't loaded,
+                // so disable the tractor.
                 linearTimeScale = FLT_MAX;
                 angularTimeScale = FLT_MAX;
+                success = false;
             }
         } else {
             rotation = _desiredRotationalTarget;
@@ -68,7 +71,7 @@ bool ObjectActionTractor::getTarget(float deltaTimeStep, glm::quat& rotation, gl
         linearVelocity = glm::vec3();
         angularVelocity = glm::vec3();
     });
-    return true;
+    return success;
 }
 
 bool ObjectActionTractor::prepareForTractorUpdate(btScalar deltaTimeStep) {
@@ -77,13 +80,18 @@ bool ObjectActionTractor::prepareForTractorUpdate(btScalar deltaTimeStep) {
         return false;
     }
 
+    bool doLinearTraction = _positionalTargetSet && (_linearTimeScale < MAX_TRACTOR_TIMESCALE);
+    bool doAngularTraction = _rotationalTargetSet && (_angularTimeScale < MAX_TRACTOR_TIMESCALE);
+    if (!doLinearTraction && !doAngularTraction) {
+        // nothing to do
+        return false;
+    }
+
     glm::quat rotation;
     glm::vec3 position;
     glm::vec3 angularVelocity;
 
-    bool linearValid = false;
     int linearTractorCount = 0;
-    bool angularValid = false;
     int angularTractorCount = 0;
 
     QList<EntityDynamicPointer> tractorDerivedActions;
@@ -105,7 +113,6 @@ bool ObjectActionTractor::prepareForTractorUpdate(btScalar deltaTimeStep) {
                                                linearTimeScale, angularTimeScale);
         if (success) {
             if (angularTimeScale < MAX_TRACTOR_TIMESCALE) {
-                angularValid = true;
                 angularTractorCount++;
                 angularVelocity += angularVelocityForAction;
                 if (tractorAction.get() == this) {
@@ -115,43 +122,42 @@ bool ObjectActionTractor::prepareForTractorUpdate(btScalar deltaTimeStep) {
             }
 
             if (linearTimeScale < MAX_TRACTOR_TIMESCALE) {
-                linearValid = true;
                 linearTractorCount++;
                 position += positionForAction;
             }
+        } else {
+            return false; // we don't have both entities loaded, so don't do anything
         }
     }
 
-    if ((angularValid && angularTractorCount > 0) || (linearValid && linearTractorCount > 0)) {
+    if (angularTractorCount > 0 || linearTractorCount > 0) {
         withWriteLock([&]{
-            if (linearValid && linearTractorCount > 0) {
+            if (doLinearTraction && linearTractorCount > 0) {
                 position /= linearTractorCount;
-                if (_positionalTargetSet) {
-                    _lastPositionTarget = _positionalTarget;
-                } else {
-                    _lastPositionTarget = position;
-                }
+                _lastPositionTarget = _positionalTarget;
                 _positionalTarget = position;
                 if (deltaTimeStep > EPSILON) {
-                    // blend the new velocity with the old (low-pass filter)
-                    glm::vec3 newVelocity = (1.0f / deltaTimeStep) * (position - _lastPositionTarget);
-                    const float blend = 0.25f;
-                    _linearVelocityTarget = (1.0f - blend) * _linearVelocityTarget + blend * newVelocity;
+                    if (_havePositionTargetHistory) {
+                        // blend the new velocity with the old (low-pass filter)
+                        glm::vec3 newVelocity = (1.0f / deltaTimeStep) * (_positionalTarget - _lastPositionTarget);
+                        const float blend = 0.25f;
+                        _linearVelocityTarget = (1.0f - blend) * _linearVelocityTarget + blend * newVelocity;
+                    } else {
+                        _havePositionTargetHistory = true;
+                    }
                 }
-                _positionalTargetSet = true;
                 _active = true;
             }
-            if (angularValid && angularTractorCount > 0) {
+            if (doAngularTraction && angularTractorCount > 0) {
                 angularVelocity /= angularTractorCount;
                 _rotationalTarget = rotation;
                 _angularVelocityTarget = angularVelocity;
-                _rotationalTargetSet = true;
                 _active = true;
             }
         });
     }
 
-    return linearValid || angularValid;
+    return true;
 }
 
 
@@ -241,7 +247,9 @@ bool ObjectActionTractor::updateArguments(QVariantMap arguments) {
         // targets are required, tractor-constants are optional
         bool ok = true;
         positionalTarget = EntityDynamicInterface::extractVec3Argument("tractor action", arguments, "targetPosition", ok, false);
-        if (!ok) {
+        if (ok) {
+            _positionalTargetSet = true;
+        } else {
             positionalTarget = _desiredPositionalTarget;
         }
         ok = true;
@@ -252,7 +260,9 @@ bool ObjectActionTractor::updateArguments(QVariantMap arguments) {
 
         ok = true;
         rotationalTarget = EntityDynamicInterface::extractQuatArgument("tractor action", arguments, "targetRotation", ok, false);
-        if (!ok) {
+        if (ok) {
+            _rotationalTargetSet = true;
+        } else {
             rotationalTarget = _desiredRotationalTarget;
         }
 
@@ -302,6 +312,23 @@ bool ObjectActionTractor::updateArguments(QVariantMap arguments) {
     return true;
 }
 
+/**jsdoc
+ * The <code>"tractor"</code> {@link Entities.ActionType|ActionType} moves and rotates an entity to a target position and 
+ * orientation, optionally relative to another entity.
+ * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}.
+ *
+ * @typedef {object} Entities.ActionArguments-Tractor
+ * @property {Vec3} targetPosition=0,0,0 - The target position.
+ * @property {Quat} targetRotation=0,0,0,1 - The target rotation.
+ * @property {Uuid} otherID=null - If an entity ID, the <code>targetPosition</code> and <code>targetRotation</code> are 
+ *     relative to this entity's position and rotation.
+ * @property {number} linearTimeScale=3.4e+38 - Controls how long it takes for the entity's position to catch up with the
+ *     target position. The value is the time for the action to catch up to 1/e = 0.368 of the target value, where the action 
+ *     is applied using an exponential decay.
+ * @property {number} angularTimeScale=3.4e+38 - Controls how long it takes for the entity's orientation to catch up with the
+ *     target orientation. The value is the time for the action to catch up to 1/e = 0.368 of the target value, where the 
+ *     action is applied using an exponential decay.
+ */
 QVariantMap ObjectActionTractor::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {

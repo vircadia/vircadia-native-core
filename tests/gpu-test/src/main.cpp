@@ -45,6 +45,7 @@
 #include <TextureCache.h>
 #include <PerfStat.h>
 #include <PathUtils.h>
+#include <SharedUtil.h>
 #include <ViewFrustum.h>
 
 #include <gpu/Pipeline.h>
@@ -146,7 +147,7 @@ class MyTestWindow : public TestWindow {
             return;
         }
 
-        gpu::doInBatch(_renderArgs->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("main::renderFrame", _renderArgs->_context, [&](gpu::Batch& batch) {
             batch.setViewTransform(_camera);
             _renderArgs->_batch = &batch;
             _currentTest->renderTest(_currentTestId, _renderArgs);
@@ -163,51 +164,38 @@ class MyTestWindow : public TestWindow {
         }
 };
 
-extern bool needsSparseRectification(const uvec2& size);
-extern uvec2 rectifyToSparseSize(const uvec2& size);
+extern uvec2 rectifySize(const uvec2& size);
 
 void testSparseRectify() {
-    std::vector<std::pair<uvec2, bool>> NEEDS_SPARSE_TESTS {{
+    std::vector<std::pair<uvec2, uvec2>> SPARSE_SIZE_TESTS {
         // Already sparse
-        { {1024, 1024 }, false },
-        { { 128, 128 }, false },
+        { {1024, 1024 }, { 1024, 1024 } },
+        { { 128, 128 }, { 128, 128 } },
         // Too small in one dimension
-        { { 127, 127 }, false },
-        { { 1, 1 }, false },
-        { { 1000, 1 }, false },
-        { { 1024, 1 }, false },
-        { { 100, 100 }, false },
-        // needs rectification
-        { { 1000, 1000 }, true },
-        { { 1024, 1000 }, true },
-    } };
-
-    for (const auto& test : NEEDS_SPARSE_TESTS) {
-        const auto& size = test.first;
-        const auto& expected = test.second;
-        auto result = needsSparseRectification(size);
-        Q_ASSERT(expected == result);
-        result = needsSparseRectification(uvec2(size.y, size.x));
-        Q_ASSERT(expected == result);
-    }
-
-    std::vector<std::pair<uvec2, uvec2>> SPARSE_SIZE_TESTS { {
+        { { 127, 127 }, { 128, 128 } },
+        { { 1, 1 }, { 1, 1 } },
+        { { 1000, 1 }, { 1024, 1 } },
+        { { 1024, 1 }, { 1024, 1 } },
+        { { 100, 100 }, { 128, 128 } },
+        { { 57, 510 }, { 64, 512 } },
         // needs rectification
         { { 1000, 1000 }, { 1024, 1024 } },
         { { 1024, 1000 }, { 1024, 1024 } },
-    } };
+    };
 
     for (const auto& test : SPARSE_SIZE_TESTS) {
         const auto& size = test.first;
         const auto& expected = test.second;
-        auto result = rectifyToSparseSize(size);
+        auto result = rectifySize(size);
         Q_ASSERT(expected == result);
-        result = rectifyToSparseSize(uvec2(size.y, size.x));
+        result = rectifySize(uvec2(size.y, size.x));
         Q_ASSERT(expected == uvec2(result.y, result.x));
     }
 }
 
-int main(int argc, char** argv) {   
+int main(int argc, char** argv) {
+    setupHifiApplication("GPU Test");
+
     testSparseRectify();
 
     // FIXME this test appears to be broken

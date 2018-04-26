@@ -121,17 +121,6 @@ public:
     virtual bool requiresSplit() const override { return false; }
 
     virtual void debugExtraEncodeData(EncodeBitstreamParams& params) const override;
-    virtual void initializeExtraEncodeData(EncodeBitstreamParams& params) override;
-    virtual bool shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const override;
-    virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const override;
-    virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const override;
-    virtual void elementEncodeComplete(EncodeBitstreamParams& params) const override;
-
-    bool alreadyFullyEncoded(EncodeBitstreamParams& params) const;
-
-    /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
-    virtual OctreeElement::AppendState appendElementData(OctreePacketData* packetData,
-                                                         EncodeBitstreamParams& params) const override;
 
     /// Override to deserialize the state of this element. This is used for loading from a persisted file or from reading
     /// from the network.
@@ -146,16 +135,16 @@ public:
     virtual bool deleteApproved() const override { return !hasEntities(); }
 
     virtual bool canRayIntersect() const override { return hasEntities(); }
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    virtual EntityItemID findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         bool& keepSearching, OctreeElementPointer& node, float& distance,
         BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
-        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly = false, bool collidableOnly = false,
-        void** intersectedObject = NULL, bool precisionPicking = false);
-    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance,
+        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
+        QVariantMap& extraInfo, bool precisionPicking = false);
+    virtual EntityItemID findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
                          const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
-                         void** intersectedObject, bool precisionPicking, float distanceToElementCube);
+                         QVariantMap& extraInfo, bool precisionPicking);
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const override;
 
@@ -210,8 +199,7 @@ public:
     void getEntitiesInside(const AACube& box, QVector<EntityItemPointer>& foundEntities);
 
     void cleanupEntities(); /// called by EntityTree on cleanup this will free all entities
-    bool removeEntityWithEntityItemID(const EntityItemID& id);
-    bool removeEntityItem(EntityItemPointer entity);
+    bool removeEntityItem(EntityItemPointer entity, bool deletion = false);
 
     bool containsEntityBounds(EntityItemPointer entity) const;
     bool bestFitEntityBounds(EntityItemPointer entity) const;
@@ -244,14 +232,10 @@ public:
         return std::static_pointer_cast<const OctreeElement>(shared_from_this());
     }
 
-    void bumpChangedContent() { _lastChangedContent = usecTimestampNow(); }
-    uint64_t getLastChangedContent() const { return _lastChangedContent; }
-
 protected:
     virtual void init(unsigned char * octalCode) override;
     EntityTreePointer _myTree;
     EntityItems _entityItems;
-    uint64_t _lastChangedContent { 0 };
 };
 
 #endif // hifi_EntityTreeElement_h

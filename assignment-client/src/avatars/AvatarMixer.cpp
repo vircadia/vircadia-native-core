@@ -42,7 +42,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     ThreadedAssignment(message)
 {
     // make sure we hear about node kills so we can tell the other nodes
-    connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &AvatarMixer::nodeKilled);
+    connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &AvatarMixer::handleAvatarKilled);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AvatarData, this, "queueIncomingPacket");
@@ -74,7 +74,7 @@ SharedNodePointer addOrUpdateReplicatedNode(const QUuid& nodeID, const HifiSockA
     auto replicatedNode = DependencyManager::get<NodeList>()->addOrUpdateNode(nodeID, NodeType::Agent,
                                                                               senderSockAddr,
                                                                               senderSockAddr,
-                                                                              true, true);
+                                                                              Node::NULL_LOCAL_ID, true, true);
 
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
 
@@ -112,8 +112,8 @@ void AvatarMixer::handleReplicatedPacket(QSharedPointer<ReceivedMessage> message
 void AvatarMixer::handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessage> message) {
     while (message->getBytesLeftToRead()) {
         // first, grab the node ID for this replicated avatar
+        // Node ID is now part of user data, since ReplicatedBulkAvatarPacket is non-sourced.
         auto nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-
         // make sure we have an upstream replicated node that matches
         auto replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
 
@@ -127,7 +127,7 @@ void AvatarMixer::handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessag
         // construct a "fake" avatar data received message from the byte array and packet list information
         auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(avatarByteArray, PacketType::AvatarData,
                                                                          versionForPacketType(PacketType::AvatarData),
-                                                                         message->getSenderSockAddr(), nodeID);
+                                                                         message->getSenderSockAddr(), Node::NULL_LOCAL_ID);
 
         // queue up the replicated avatar data with the client data for the replicated node
         auto start = usecTimestampNow();
@@ -423,14 +423,15 @@ void AvatarMixer::throttle(std::chrono::microseconds duration, int frame) {
     }
 }
 
-void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
-    if (killedNode->getType() == NodeType::Agent
-        && killedNode->getLinkedData()) {
+
+void AvatarMixer::handleAvatarKilled(SharedNodePointer avatarNode) {
+    if (avatarNode->getType() == NodeType::Agent
+        && avatarNode->getLinkedData()) {
         auto nodeList = DependencyManager::get<NodeList>();
 
         {  // decrement sessionDisplayNames table and possibly remove
-           QMutexLocker nodeDataLocker(&killedNode->getLinkedData()->getMutex());
-           AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(killedNode->getLinkedData());
+           QMutexLocker nodeDataLocker(&avatarNode->getLinkedData()->getMutex());
+           AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
            const QString& baseDisplayName = nodeData->getBaseDisplayName();
            // No sense guarding against very rare case of a node with no entry, as this will work without the guard and do one less lookup in the common case.
            if (--_sessionDisplayNames[baseDisplayName].second <= 0) {
@@ -447,12 +448,12 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
             // we relay avatar kill packets to agents that are not upstream
             // and downstream avatar mixers, if the node that was just killed was being replicated
             return (node->getType() == NodeType::Agent && !node->isUpstream()) ||
-                   (killedNode->isReplicated() && shouldReplicateTo(*killedNode, *node));
+                   (avatarNode->isReplicated() && shouldReplicateTo(*avatarNode, *node));
         }, [&](const SharedNodePointer& node) {
             if (node->getType() == NodeType::Agent) {
                 if (!killPacket) {
                     killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
-                    killPacket->write(killedNode->getUUID().toRfc4122());
+                    killPacket->write(avatarNode->getUUID().toRfc4122());
                     killPacket->writePrimitive(KillAvatarReason::AvatarDisconnected);
                 }
 
@@ -462,7 +463,7 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
                 if (!replicatedKillPacket) {
                     replicatedKillPacket = NLPacket::create(PacketType::ReplicatedKillAvatar,
                                                   NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
-                    replicatedKillPacket->write(killedNode->getUUID().toRfc4122());
+                    replicatedKillPacket->write(avatarNode->getUUID().toRfc4122());
                     replicatedKillPacket->writePrimitive(KillAvatarReason::AvatarDisconnected);
                 }
 
@@ -479,7 +480,7 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
                     return false;
                 }
 
-                if (node->getUUID() == killedNode->getUUID()) {
+                if (node->getUUID() == avatarNode->getUUID()) {
                     return false;
                 }
 
@@ -489,7 +490,7 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
                 QMetaObject::invokeMethod(node->getLinkedData(),
                                          "cleanupKilledNode",
                                           Qt::AutoConnection,
-                                          Q_ARG(const QUuid&, QUuid(killedNode->getUUID())));
+                                          Q_ARG(const QUuid&, QUuid(avatarNode->getUUID())));
             }
         );
     }
@@ -605,7 +606,9 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
 
 void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
     auto start = usecTimestampNow();
-    DependencyManager::get<NodeList>()->processKillNode(*message);
+    handleAvatarKilled(node);
+
+    node->setLinkedData(nullptr);
     auto end = usecTimestampNow();
     _handleKillAvatarPacketElapsedTime += (end - start);
 
@@ -870,8 +873,8 @@ AvatarMixerClientData* AvatarMixer::getOrCreateClientData(SharedNodePointer node
         node->setLinkedData(std::unique_ptr<NodeData> { new AvatarMixerClientData(node->getUUID()) });
         clientData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
         auto& avatar = clientData->getAvatar();
-        avatar.setDomainMinimumScale(_domainMinimumScale);
-        avatar.setDomainMaximumScale(_domainMaximumScale);
+        avatar.setDomainMinimumHeight(_domainMinimumHeight);
+        avatar.setDomainMaximumHeight(_domainMaximumHeight);
     }
 
     return clientData;
@@ -939,21 +942,21 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
 
     const QString AVATARS_SETTINGS_KEY = "avatars";
 
-    static const QString MIN_SCALE_OPTION = "min_avatar_scale";
-    float settingMinScale = domainSettings[AVATARS_SETTINGS_KEY].toObject()[MIN_SCALE_OPTION].toDouble(MIN_AVATAR_SCALE);
-    _domainMinimumScale = glm::clamp(settingMinScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    static const QString MIN_HEIGHT_OPTION = "min_avatar_height";
+    float settingMinHeight = domainSettings[AVATARS_SETTINGS_KEY].toObject()[MIN_HEIGHT_OPTION].toDouble(MIN_AVATAR_HEIGHT);
+    _domainMinimumHeight = glm::clamp(settingMinHeight, MIN_AVATAR_HEIGHT, MAX_AVATAR_HEIGHT);
 
-    static const QString MAX_SCALE_OPTION = "max_avatar_scale";
-    float settingMaxScale = domainSettings[AVATARS_SETTINGS_KEY].toObject()[MAX_SCALE_OPTION].toDouble(MAX_AVATAR_SCALE);
-    _domainMaximumScale = glm::clamp(settingMaxScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    static const QString MAX_HEIGHT_OPTION = "max_avatar_height";
+    float settingMaxHeight = domainSettings[AVATARS_SETTINGS_KEY].toObject()[MAX_HEIGHT_OPTION].toDouble(MAX_AVATAR_HEIGHT);
+    _domainMaximumHeight = glm::clamp(settingMaxHeight, MIN_AVATAR_HEIGHT, MAX_AVATAR_HEIGHT);
 
     // make sure that the domain owner didn't flip min and max
-    if (_domainMinimumScale > _domainMaximumScale) {
-        std::swap(_domainMinimumScale, _domainMaximumScale);
+    if (_domainMinimumHeight > _domainMaximumHeight) {
+        std::swap(_domainMinimumHeight, _domainMaximumHeight);
     }
 
-    qCDebug(avatars) << "This domain requires a minimum avatar scale of" << _domainMinimumScale
-                     << "and a maximum avatar scale of" << _domainMaximumScale;
+    qCDebug(avatars) << "This domain requires a minimum avatar height of" << _domainMinimumHeight
+                     << "and a maximum avatar height of" << _domainMaximumHeight;
 
     const QString AVATAR_WHITELIST_DEFAULT{ "" };
     static const QString AVATAR_WHITELIST_OPTION = "avatar_whitelist";

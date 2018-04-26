@@ -22,15 +22,41 @@ const float AnimationPropertyGroup::MAXIMUM_POSSIBLE_FRAME = 100000.0f;
 
 bool operator==(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b) {
     return
-        (a._url == b._url) &&
+
         (a._currentFrame == b._currentFrame) &&
         (a._running == b._running) &&
         (a._loop == b._loop) &&
+        (a._hold == b._hold) &&
         (a._firstFrame == b._firstFrame) &&
         (a._lastFrame == b._lastFrame) &&
-        (a._hold == b._hold);
+        (a._url == b._url);
 }
 
+bool operator!=(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b) {
+    return
+        (a._currentFrame != b._currentFrame) ||
+        (a._running != b._running) ||
+        (a._loop != b._loop) ||
+        (a._hold != b._hold) ||
+        (a._firstFrame != b._firstFrame) ||
+        (a._lastFrame != b._lastFrame) ||
+        (a._url != b._url);
+}
+
+
+/**jsdoc
+ * The AnimationProperties are used to configure an animation.
+ * @typedef Entities.AnimationProperties
+ * @property {string} url="" - The URL of the FBX file that has the animation.
+ * @property {number} fps=30 - The speed in frames/s that the animation is played at.
+ * @property {number} firstFrame=0 - The first frame to play in the animation.
+ * @property {number} lastFrame=100000 - The last frame to play in the animation.
+ * @property {number} currentFrame=0 - The current frame being played in the animation.
+ * @property {boolean} running=false - If <code>true</code> then the animation should play.
+ * @property {boolean} loop=true - If <code>true</code> then the animation should be continuously repeated in a loop.
+ * @property {boolean} hold=false - If <code>true</code> then the rotations and translations of the last frame played should be
+ *     maintained when the animation stops playing.
+ */
 void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_URL, Animation, animation, URL, url);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_ALLOW_TRANSLATION, Animation, animation, AllowTranslation, allowTranslation);
@@ -130,6 +156,7 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
         allowTranslation = settingsMap["allowTranslation"].toBool();
     }
 
+
     setAllowTranslation(allowTranslation);
     setFPS(fps);
     setCurrentFrame(currentFrame);
@@ -189,7 +216,6 @@ bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
 
 
 bool AnimationPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags, const unsigned char*& dataAt , int& processedBytes) {
-
     int bytesRead = 0;
     bool overwriteLocalData = true;
     bool somethingChanged = false;
@@ -332,4 +358,22 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
     READ_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, float, setLastFrame);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, bool, setHold);
     return bytesRead;
+}
+
+float AnimationPropertyGroup::getNumFrames() const {
+    return _lastFrame - _firstFrame + 1.0f;
+}
+
+float AnimationPropertyGroup::computeLoopedFrame(float frame) const {
+    float numFrames = getNumFrames();
+    if (numFrames > 1.0f) {
+        frame = getFirstFrame() + fmodf(frame - getFirstFrame(), numFrames);
+    } else {
+        frame = getFirstFrame();
+    }
+    return frame;
+}
+
+bool AnimationPropertyGroup::isValidAndRunning() const {
+    return getRunning() && (getFPS() > 0.0f) && (getNumFrames() > 1.0f) && !(getURL().isEmpty());
 }

@@ -8,9 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Dialogs 1.2 as OriginalDialogs
+import QtQuick 2.7
+import QtQuick.Controls 2.3
 
 import "../controls-uit"
 import "../styles-uit"
@@ -95,19 +94,19 @@ ModalWindow {
             TextField {
                 id: textResult
                 label: root.label
-                focus: items ? false : true
                 visible: items ? false : true
                 anchors {
                     left: parent.left;
                     right: parent.right;
                     bottom: parent.bottom
                 }
+                KeyNavigation.down: acceptButton
+                KeyNavigation.tab: acceptButton
             }
 
             ComboBox {
                 id: comboBox
                 label: root.label
-                focus: true
                 visible: items ? true : false
                 anchors {
                     left: parent.left
@@ -115,6 +114,8 @@ ModalWindow {
                     bottom: parent.bottom
                 }
                 model: items ? items : []
+                KeyNavigation.down: acceptButton
+                KeyNavigation.tab: acceptButton
             }
         }
 
@@ -135,7 +136,6 @@ ModalWindow {
 
         Flow {
             id: buttons
-            focus: true
             spacing: hifi.dimensions.contentSpacing.x
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             layoutDirection: Qt.RightToLeft
@@ -145,27 +145,49 @@ ModalWindow {
                 margins: 0
                 bottomMargin: hifi.dimensions.contentSpacing.y
             }
-            Button { action: cancelAction }
-            Button { action: acceptAction }
+            Button {
+                id: cancelButton
+                action: cancelAction
+                KeyNavigation.left: acceptButton
+                KeyNavigation.up: items ? comboBox : textResult
+                KeyNavigation.backtab: acceptButton
+            }
+            Button {
+                id: acceptButton
+                action: acceptAction
+                KeyNavigation.right: cancelButton
+                KeyNavigation.up: items ? comboBox : textResult
+                KeyNavigation.tab: cancelButton
+                KeyNavigation.backtab: items ? comboBox : textResult
+            }
         }
 
         Action {
             id: cancelAction
-            text: qsTr("Cancel")
-            shortcut: Qt.Key_Escape
+            text: qsTr("Cancel");
+            shortcut: "Esc"
             onTriggered: {
                 root.canceled();
-                root.destroy();
+                // FIXME we are leaking memory to avoid a crash
+                // root.destroy();
+
+                root.disableFade = true
+                visible = false;
             }
         }
+
         Action {
             id: acceptAction
-            text: qsTr("OK")
-            shortcut: Qt.Key_Return
+            text: qsTr("OK");
+            shortcut: "Return"
             onTriggered: {
                 root.result = items ? comboBox.currentText : textResult.text
                 root.selected(root.result);
-                root.destroy();
+                // FIXME we are leaking memory to avoid a crash
+                // root.destroy();
+
+                root.disableFade = true
+                visible = false;
             }
         }
     }
@@ -184,7 +206,13 @@ ModalWindow {
 
         case Qt.Key_Return:
         case Qt.Key_Enter:
-            acceptAction.trigger()
+            if (acceptButton.focus) {
+                acceptAction.trigger()
+            } else if (cancelButton.focus) {
+                cancelAction.trigger()
+            } else if (comboBox.focus || comboBox.popup.focus) {
+                comboBox.showList()
+            }
             event.accepted = true;
             break;
         }
@@ -194,6 +222,10 @@ ModalWindow {
         keyboardEnabled = HMD.active;
         updateIcon();
         d.resize();
-        textResult.forceActiveFocus();
+        if (items) {
+            comboBox.forceActiveFocus()
+        } else {
+            textResult.forceActiveFocus()
+        }
     }
 }

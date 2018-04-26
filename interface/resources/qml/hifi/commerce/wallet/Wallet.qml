@@ -14,13 +14,11 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
-import QtQuick.Controls 1.4
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../common" as HifiCommerceCommon
-
-// references XXX from root context
+import "../common/sendAsset"
 
 Rectangle {
     HifiConstants { id: hifi; }
@@ -31,13 +29,15 @@ Rectangle {
     property bool keyboardRaised: false;
     property bool isPassword: false;
 
+    anchors.fill: (typeof parent === undefined) ? undefined : parent;
+
     Image {
         anchors.fill: parent;
         source: "images/wallet-bg.jpg";
     }
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onWalletStatusResult: {
             if (walletStatus === 0) {
@@ -46,15 +46,26 @@ Rectangle {
                 }
             } else if (walletStatus === 1) {
                 if (root.activeView !== "walletSetup") {
-                    root.activeView = "walletSetup";
+                    walletResetSetup();
                 }
             } else if (walletStatus === 2) {
-                if (root.activeView !== "passphraseModal") {
-                    root.activeView = "passphraseModal";
+                if (root.activeView != "preexisting") {
+                    root.activeView = "preexisting";
                 }
             } else if (walletStatus === 3) {
-                root.activeView = "walletHome";
-                commerce.getSecurityImage();
+                if (root.activeView != "conflicting") {
+                    root.activeView = "conflicting";
+                }
+            } else if (walletStatus === 4) {
+                if (root.activeView !== "passphraseModal") {
+                    root.activeView = "passphraseModal";
+                    UserActivityLogger.commercePassphraseEntry("wallet app");
+                }
+            } else if (walletStatus === 5) {
+                if (root.activeView !== "walletSetup") {
+                    root.activeView = "walletHome";
+                    Commerce.getSecurityImage();
+                }
             } else {
                 console.log("ERROR in Wallet.qml: Unknown wallet status: " + walletStatus);
             }
@@ -64,7 +75,7 @@ Rectangle {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
             } else if (isLoggedIn) {
-                commerce.getWalletStatus();
+                Commerce.getWalletStatus();
             }
         }
 
@@ -74,10 +85,6 @@ Rectangle {
                 titleBarSecurityImage.source = "image://security/securityImage";
             }
         }
-    }
-
-    SecurityImageModel {
-        id: securityImageModel;
     }
 
     HifiCommerceCommon.CommerceLightbox {
@@ -153,7 +160,9 @@ Rectangle {
                     lightboxPopup.bodyImageSource = titleBarSecurityImage.source;
                     lightboxPopup.bodyText = lightboxPopup.securityPicBodyText;
                     lightboxPopup.button1text = "CLOSE";
-                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button1method = function() {
+                        lightboxPopup.visible = false;
+                    }
                     lightboxPopup.visible = true;
                 }
             }
@@ -162,6 +171,26 @@ Rectangle {
     //
     // TITLE BAR END
     //
+
+    WalletChoice {
+        id: walletChoice;
+        proceedFunction: function (isReset) {
+            console.log("WalletChoice", isReset ? "Reset wallet." : "Trying again with new wallet.");
+            Commerce.setSoftReset();
+            if (isReset) {
+                walletResetSetup();
+            } else {
+                Commerce.clearWallet();
+                var msg = { referrer: walletChoice.referrer }
+                followReferrer(msg);
+            }
+        }
+        copyFunction: Commerce.copyKeyFileFrom;
+        z: 997;
+        visible: (root.activeView === "preexisting") || (root.activeView === "conflicting");
+        activeView: root.activeView;
+        anchors.fill: parent;
+    }
 
     WalletSetup {
         id: walletSetup;
@@ -172,14 +201,7 @@ Rectangle {
         Connections {
             onSendSignalToWallet: {
                 if (msg.method === 'walletSetup_finished') {
-                    if (msg.referrer === '') {
-                        root.activeView = "initialize";
-                        commerce.getWalletStatus();
-                    } else if (msg.referrer === 'purchases') {
-                        sendToScript({method: 'goToPurchases'});
-                    } else {
-                        sendToScript({method: 'goToMarketplaceItemPage', itemId: msg.referrer});
-                    }
+                    followReferrer(msg);
                 } else if (msg.method === 'walletSetup_raiseKeyboard') {
                     root.keyboardRaised = true;
                     root.isPassword = msg.isPasswordField;
@@ -203,15 +225,19 @@ Rectangle {
 
         Connections {
             onSendSignalToWallet: {
-                if (msg.method === 'walletSetup_raiseKeyboard') {
-                    root.keyboardRaised = true;
-                    root.isPassword = msg.isPasswordField;
-                } else if (msg.method === 'walletSetup_lowerKeyboard') {
-                    root.keyboardRaised = false;
-                } else if (msg.method === 'walletSecurity_changePassphraseCancelled') {
-                    root.activeView = "security";
-                } else if (msg.method === 'walletSecurity_changePassphraseSuccess') {
-                    root.activeView = "security";
+                if (passphraseChange.visible) {
+                    if (msg.method === 'walletSetup_raiseKeyboard') {
+                        root.keyboardRaised = true;
+                        root.isPassword = msg.isPasswordField;
+                    } else if (msg.method === 'walletSetup_lowerKeyboard') {
+                        root.keyboardRaised = false;
+                    } else if (msg.method === 'walletSecurity_changePassphraseCancelled') {
+                        root.activeView = "security";
+                    } else if (msg.method === 'walletSecurity_changePassphraseSuccess') {
+                        root.activeView = "security";
+                    } else {
+                        sendToScript(msg);
+                    }
                 } else {
                     sendToScript(msg);
                 }
@@ -254,7 +280,7 @@ Rectangle {
         color: hifi.colors.baseGray;
 
         Component.onCompleted: {
-            commerce.getWalletStatus();
+            Commerce.getWalletStatus();
         }
     }
 
@@ -275,7 +301,7 @@ Rectangle {
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
-            commerce.getLoginStatus();
+            Commerce.getLoginStatus();
         }
     }
 
@@ -289,7 +315,7 @@ Rectangle {
         Connections {
             onSendSignalToParent: {
                 if (msg.method === "authSuccess") {
-                    commerce.getWalletStatus();
+                    Commerce.getWalletStatus();
                 } else {
                     sendToScript(msg);
                 }
@@ -307,18 +333,29 @@ Rectangle {
 
         Connections {
             onSendSignalToWallet: {
-                sendToScript(msg);
+                if (msg.method === 'transactionHistory_usernameLinkClicked') {
+                    userInfoViewer.url = msg.usernameLink;
+                    userInfoViewer.visible = true;
+                } else {
+                    sendToScript(msg);
+                }
             }
         }
     }
 
-    SendMoney {
+    SendAsset {
         id: sendMoney;
+        z: 997;
         visible: root.activeView === "sendMoney";
-        anchors.top: titleBarContainer.bottom;
-        anchors.bottom: tabButtonsContainer.top;
-        anchors.left: parent.left;
-        anchors.right: parent.right;
+        anchors.fill: parent;
+        parentAppTitleBarHeight: titleBarContainer.height;
+        parentAppNavBarHeight: tabButtonsContainer.height;
+
+        Connections {
+            onSendSignalToParent: {
+                sendToScript(msg);
+            }
+        }
     }
 
     Security {
@@ -336,6 +373,7 @@ Rectangle {
                     passphraseChange.clearPassphraseFields();
                     passphraseChange.resetSubmitButton();
                 } else if (msg.method === 'walletSecurity_changeSecurityImage') {
+                    securityImageChange.initModel();
                     root.activeView = "securityImageChange";
                 }
             }
@@ -369,7 +407,7 @@ Rectangle {
     //
     Item {
         id: tabButtonsContainer;
-        visible: !needsLogIn.visible && root.activeView !== "passphraseChange" && root.activeView !== "securityImageChange";
+        visible: !needsLogIn.visible && root.activeView !== "passphraseChange" && root.activeView !== "securityImageChange" && sendMoney.currentActiveView !== "sendAssetStep";
         property int numTabs: 5;
         // Size
         width: root.width;
@@ -487,7 +525,7 @@ Rectangle {
         Rectangle {
             id: sendMoneyButtonContainer;
             visible: !walletSetup.visible;
-            color: hifi.colors.black;
+            color: root.activeView === "sendMoney" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: exchangeMoneyButtonContainer.right;
             anchors.bottom: parent.bottom;
@@ -503,7 +541,7 @@ Rectangle {
                 anchors.top: parent.top;
                 anchors.topMargin: -2;
                 // Style
-                color: hifi.colors.lightGray50;
+                color: root.activeView === "sendMoney" || sendMoneyTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
             }
 
             RalewaySemiBold {
@@ -518,11 +556,23 @@ Rectangle {
                 anchors.right: parent.right;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.lightGray50;
+                color: root.activeView === "sendMoney" || sendMoneyTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignTop;
+            }
+
+            MouseArea {
+                id: sendMoneyTabMouseArea;
+                anchors.fill: parent;
+                hoverEnabled: enabled;
+                onClicked: {
+                    root.activeView = "sendMoney";
+                    tabButtonsContainer.resetTabButtonColors();
+                }
+                onEntered: parent.color = hifi.colors.blueHighlight;
+                onExited: parent.color = root.activeView === "sendMoney" ? hifi.colors.blueAccent : hifi.colors.black;
             }
         }
 
@@ -655,34 +705,22 @@ Rectangle {
     // TAB BUTTONS END
     //
 
+    HifiControls.TabletWebView {
+        id: userInfoViewer;
+        z: 998;
+        anchors.fill: parent;
+        visible: false;
+    }
+
     Item {
         id: keyboardContainer;
-        z: 998;
+        z: 999;
         visible: keyboard.raised;
         property bool punctuationMode: false;
         anchors {
             bottom: parent.bottom;
             left: parent.left;
             right: parent.right;
-        }
-
-        Image {
-            id: lowerKeyboardButton;
-            z: 999;
-            source: "images/lowerKeyboard.png";
-            anchors.right: keyboard.right;
-            anchors.top: keyboard.showMirrorText ? keyboard.top : undefined;
-            anchors.bottom: keyboard.showMirrorText ? undefined : keyboard.bottom;
-            height: 50;
-            width: 60;
-
-            MouseArea {
-                anchors.fill: parent;
-
-                onClicked: {
-                    root.keyboardRaised = false;
-                }
-            }
         }
 
         HifiControlsUit.Keyboard {
@@ -718,6 +756,17 @@ Rectangle {
         switch (message.method) {
             case 'updateWalletReferrer':
                 walletSetup.referrer = message.referrer;
+                walletChoice.referrer = message.referrer;
+            break;
+            case 'inspectionCertificate_resetCert':
+                // NOP
+            break;
+            case 'updateConnections':
+                sendMoney.updateConnections(message.connections);
+            break;
+            case 'selectRecipient':
+            case 'updateSelectedRecipientUsername':
+                sendMoney.fromScript(message);
             break;
             default:
                 console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
@@ -725,6 +774,41 @@ Rectangle {
     }
     signal sendToScript(var message);
 
+    // generateUUID() taken from:
+    // https://stackoverflow.com/a/8809472
+    function generateUUID() { // Public Domain/MIT
+        var d = new Date().getTime();
+        if (typeof performance !== 'undefined' && typeof performance.now === 'function'){
+            d += performance.now(); //use high-precision timer if available
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = (d + Math.random() * 16) % 16 | 0;
+            d = Math.floor(d / 16);
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+    }
+
+    function walletResetSetup() {
+        root.activeView = "walletSetup";
+        var timestamp = new Date();
+        walletSetup.startingTimestamp = timestamp;
+        walletSetup.setupAttemptID = generateUUID();
+        UserActivityLogger.commerceWalletSetupStarted(timestamp, walletSetup.setupAttemptID, walletSetup.setupFlowVersion, walletSetup.referrer ? walletSetup.referrer : "wallet app",
+            (AddressManager.placename || AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : ''));
+    }
+
+    function followReferrer(msg) {
+        if (msg.referrer === '' || msg.referrer === 'marketplace cta') {
+            root.activeView = "initialize";
+            Commerce.getWalletStatus();
+        } else if (msg.referrer === 'purchases') {
+            sendToScript({method: 'goToPurchases'});
+        } else if (msg.referrer === 'marketplace cta' || msg.referrer === 'mainPage') {
+            sendToScript({method: 'goToMarketplaceMainPage', itemId: msg.referrer});
+        } else {
+            sendToScript({method: 'goToMarketplaceItemPage', itemId: msg.referrer});
+        }
+    }
     //
     // FUNCTION DEFINITIONS END
     //

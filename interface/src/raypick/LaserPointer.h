@@ -80,10 +80,11 @@ public:
     static RenderState buildRenderState(const QVariantMap& propMap);
 
 protected:
-    PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover = true) const override;
+    PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, const std::string& button = "", bool hover = true) override;
 
+    PickResultPointer getVisualPickResult(const PickResultPointer& pickResult) override;
     PickedObject getHoveredObject(const PickResultPointer& pickResult) override;
-    Pointer::Buttons getPressedButtons() override;
+    Pointer::Buttons getPressedButtons(const PickResultPointer& pickResult) override;
 
     bool shouldHover(const PickResultPointer& pickResult) override { return _currentRenderState != ""; }
     bool shouldTrigger(const PickResultPointer& pickResult) override { return _currentRenderState != ""; }
@@ -102,8 +103,25 @@ private:
     LockEndObject _lockEndObject;
 
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
-    void updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay, bool defaultState);
+    void updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay);
     void disableRenderState(const RenderState& renderState);
+
+    struct TriggerState {
+        PickedObject triggeredObject;
+        glm::vec3 intersection { NAN };
+        glm::vec3 surfaceNormal { NAN };
+        glm::vec2 triggerPos2D { NAN };
+        quint64 triggerStartTime { 0 };
+        bool deadspotExpired { true };
+        bool triggering { false };
+        bool wasTriggering { false };
+    };
+
+    Pointer::Buttons _previousButtons;
+    std::unordered_map<std::string, TriggerState> _states;
+    TriggerState _latestState;
+    static glm::vec3 findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction);
+    static glm::vec2 findPos2D(const PickedObject& pickedObject, const glm::vec3& origin);
 
 };
 

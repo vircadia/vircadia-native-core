@@ -1,0 +1,70 @@
+<!
+//  Material.slh
+//  fragment shader
+//
+//  Created by Sam Gateau on 12/16/14.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not MODEL_MATERIAL_SLH@>
+<@def MODEL_MATERIAL_SLH@>
+
+// The material values (at least the material key) must be precisely bitwise accurate
+// to what is provided by the uniform buffer, or the material key has the wrong bits
+
+struct Material {
+    PRECISIONQ vec4 _emissiveOpacity;
+    PRECISIONQ vec4 _albedoRoughness;
+    PRECISIONQ vec4 _fresnelMetallic;
+    PRECISIONQ vec4 _scatteringSpare2Key;
+};
+
+uniform materialBuffer {
+    Material _mat;
+};
+
+Material getMaterial() {
+    return _mat;
+}
+
+vec3 getMaterialEmissive(Material m) { return m._emissiveOpacity.rgb; }
+float getMaterialOpacity(Material m) { return m._emissiveOpacity.a; }
+
+vec3 getMaterialAlbedo(Material m) { return m._albedoRoughness.rgb; }
+float getMaterialRoughness(Material m) { return m._albedoRoughness.a; }
+
+vec3 getMaterialFresnel(Material m) { return m._fresnelMetallic.rgb; }
+float getMaterialMetallic(Material m) { return m._fresnelMetallic.a; }
+
+float getMaterialShininess(Material m) { return 1.0 - getMaterialRoughness(m); }
+
+float getMaterialScattering(Material m) { return m._scatteringSpare2Key.x; }
+
+BITFIELD getMaterialKey(Material m) { return floatBitsToInt(m._scatteringSpare2Key.w); }
+
+const BITFIELD EMISSIVE_VAL_BIT              = 0x00000001;
+const BITFIELD UNLIT_VAL_BIT                 = 0x00000002;
+const BITFIELD ALBEDO_VAL_BIT                = 0x00000004;
+const BITFIELD METALLIC_VAL_BIT              = 0x00000008;
+const BITFIELD GLOSSY_VAL_BIT                = 0x00000010;
+const BITFIELD OPACITY_VAL_BIT               = 0x00000020;
+const BITFIELD OPACITY_MASK_MAP_BIT          = 0x00000040;
+const BITFIELD OPACITY_TRANSLUCENT_MAP_BIT   = 0x00000080;
+const BITFIELD SCATTERING_VAL_BIT            = 0x00000100;
+
+
+const BITFIELD EMISSIVE_MAP_BIT              = 0x00000200;
+const BITFIELD ALBEDO_MAP_BIT                = 0x00000400;
+const BITFIELD METALLIC_MAP_BIT              = 0x00000800;
+const BITFIELD ROUGHNESS_MAP_BIT             = 0x00001000;
+const BITFIELD NORMAL_MAP_BIT                = 0x00002000;
+const BITFIELD OCCLUSION_MAP_BIT             = 0x00004000;
+const BITFIELD LIGHTMAP_MAP_BIT              = 0x00008000;
+const BITFIELD SCATTERING_MAP_BIT            = 0x00010000;
+
+#ifdef GL_ES
+precision lowp float;
+#endif
+<@endif@>

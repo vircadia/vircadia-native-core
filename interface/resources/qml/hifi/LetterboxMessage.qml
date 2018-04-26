@@ -10,7 +10,6 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 import "../styles-uit"
 
 Item {
@@ -23,8 +22,6 @@ Item {
     property real popupTextPixelSize: 16
     property real headerTextMargin: -5
     property real headerGlyphMargin: -15
-    FontLoader { id: ralewayRegular; source: "../../fonts/Raleway-Regular.ttf"; }
-    FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
     visible: false
     id: letterbox
     anchors.fill: parent
@@ -33,6 +30,16 @@ Item {
         color: "black"
         opacity: 0.5
         radius: popupRadius
+
+        MouseArea {
+            anchors.fill: parent;
+            hoverEnabled: true;
+            acceptedButtons: Qt.LeftButton;
+            propagateComposedEvents: false;
+            onClicked: {
+                letterbox.visible = false;
+            }
+        }
     }
     Rectangle {
         id: textContainer;
@@ -41,6 +48,14 @@ Item {
         anchors.centerIn: parent
         radius: popupRadius
         color: "white"
+
+        // Prevent dismissing the popup by clicking on the textContainer
+        MouseArea {
+            anchors.fill: parent;
+            hoverEnabled: true;
+            propagateComposedEvents: false;
+        }
+
         Item {
             id: contentContainer
             width: parent.width - 50
@@ -82,7 +97,8 @@ Item {
                     // Text Size
                     font.pixelSize: headerTextPixelSize
                     // Style
-                    font.family: ralewaySemiBold.name
+                    font.family: "Raleway"
+                    font.weight: Font.DemiBold
                     color: hifi.colors.darkGray
                     horizontalAlignment: Text.AlignHLeft
                     verticalAlignment: Text.AlignVCenter
@@ -127,7 +143,7 @@ Item {
                 horizontalAlignment: Text.AlignHLeft
                 // Style
                 font.pixelSize: popupTextPixelSize
-                font.family: ralewayRegular.name
+                font.family: "Raleway"
                 color: hifi.colors.darkGray
                 wrapMode: Text.WordWrap
                 textFormat: Text.StyledText
@@ -135,13 +151,6 @@ Item {
                     Qt.openUrlExternally(link)
                 }
             }
-        }
-    }
-    MouseArea {
-        anchors.fill: parent
-        acceptedButtons: Qt.LeftButton
-        onClicked: {
-            letterbox.visible = false;
         }
     }
 }

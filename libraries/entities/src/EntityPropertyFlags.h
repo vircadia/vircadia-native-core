@@ -20,6 +20,7 @@ enum EntityPropertyList {
 
     // these properties are supported by the EntityItem base class
     PROP_VISIBLE,
+    PROP_CAN_CAST_SHADOW,
     PROP_POSITION,
     PROP_DIMENSIONS,
     PROP_ROTATION,
@@ -40,6 +41,7 @@ enum EntityPropertyList {
     PROP_ANIMATION_FRAME_INDEX,
     PROP_ANIMATION_PLAYING,
     PROP_ANIMATION_ALLOW_TRANSLATION,
+    PROP_RELAY_PARENT_JOINTS,
 
     // these properties are supported by the EntityItem base class
     PROP_REGISTRATION_POINT,
@@ -200,8 +202,14 @@ enum EntityPropertyList {
     PROP_EDITION_NUMBER,
     PROP_ENTITY_INSTANCE_NUMBER,
     PROP_CERTIFICATE_ID,
+    PROP_STATIC_CERTIFICATE_VERSION,
 
     PROP_HAZE_MODE,
+
+    PROP_KEYLIGHT_COLOR,
+    PROP_KEYLIGHT_INTENSITY,
+    PROP_KEYLIGHT_DIRECTION,
+    PROP_KEYLIGHT_CAST_SHADOW,
 
     PROP_HAZE_RANGE,
     PROP_HAZE_COLOR,
@@ -218,6 +226,21 @@ enum EntityPropertyList {
     PROP_HAZE_ATTENUATE_KEYLIGHT,
     PROP_HAZE_KEYLIGHT_RANGE,
     PROP_HAZE_KEYLIGHT_ALTITUDE,
+
+    PROP_KEY_LIGHT_MODE,
+    PROP_AMBIENT_LIGHT_MODE,
+    PROP_SKYBOX_MODE,
+
+    PROP_LOCAL_DIMENSIONS, // only used to convert values to and from scripts
+
+    PROP_MATERIAL_URL,
+    PROP_MATERIAL_MAPPING_MODE,
+    PROP_MATERIAL_PRIORITY,
+    PROP_PARENT_MATERIAL_NAME,
+    PROP_MATERIAL_MAPPING_POS,
+    PROP_MATERIAL_MAPPING_SCALE,
+    PROP_MATERIAL_MAPPING_ROT,
+    PROP_MATERIAL_DATA,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
@@ -238,23 +261,12 @@ enum EntityPropertyList {
     // Aliases/Piggyback properties for Zones. These properties intentionally reuse the enum values for
     // other properties which will never overlap with each other. We do this so that we don't have to expand
     // the size of the properties bitflags mask
-    PROP_KEYLIGHT_COLOR = PROP_COLOR,
-    PROP_KEYLIGHT_INTENSITY = PROP_INTENSITY,
-    PROP_KEYLIGHT_AMBIENT_INTENSITY = PROP_CUTOFF,
-    PROP_KEYLIGHT_DIRECTION = PROP_EXPONENT,
-    PROP_STAGE_SUN_MODEL_ENABLED = PROP_IS_SPOTLIGHT,
-    PROP_STAGE_LATITUDE = PROP_DIFFUSE_COLOR,
-    PROP_STAGE_LONGITUDE = PROP_AMBIENT_COLOR_UNUSED,
-    PROP_STAGE_ALTITUDE = PROP_SPECULAR_COLOR_UNUSED,
-    PROP_STAGE_DAY = PROP_LINEAR_ATTENUATION_UNUSED,
-    PROP_STAGE_HOUR = PROP_QUADRATIC_ATTENUATION_UNUSED,
-    PROP_STAGE_AUTOMATIC_HOURDAY = PROP_ANIMATION_FRAME_INDEX,
-    PROP_BACKGROUND_MODE = PROP_MODEL_URL,
-
     PROP_SKYBOX_COLOR = PROP_ANIMATION_URL,
     PROP_SKYBOX_URL = PROP_ANIMATION_FPS,
-    PROP_KEYLIGHT_AMBIENT_URL = PROP_ANIMATION_PLAYING,
-    
+
+    PROP_AMBIENT_LIGHT_INTENSITY = PROP_CUTOFF,
+    PROP_AMBIENT_LIGHT_URL = PROP_ANIMATION_PLAYING,
+
     // Aliases/Piggyback properties for Web. These properties intentionally reuse the enum values for
     // other properties which will never overlap with each other. 
     PROP_SOURCE_URL = PROP_MODEL_URL,

@@ -9,12 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QApplication>
+#include <QGuiApplication>
 #include <QClipboard>
 #include <QDebug>
 #include <QJsonDocument>
 #include <QRegExp>
 #include <QStringList>
+#include <QThread>
 
 #include <BuildInfo.h>
 #include <GLMHelpers.h>
@@ -28,46 +29,24 @@
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
-#ifdef Q_OS_ANDROID
-const QString DEFAULT_HIFI_ADDRESS = "hifi://android/0.0,0.0,-200";
-#else
-#if USE_STABLE_GLOBAL_SERVICES
-const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome/hello";
-#else
-const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome/hello";
-#endif
-#endif
-
+const QString DEFAULT_HIFI_ADDRESS = "file:///~/serverless/tutorial.json";
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 
 Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address", DEFAULT_HIFI_ADDRESS);
 
-AddressManager::AddressManager() :
-    _port(0)
-{
-
-}
-
-QString AddressManager::protocolVersion() {
-    return protocolVersionsSignatureBase64();
-}
-
 bool AddressManager::isConnected() {
     return DependencyManager::get<NodeList>()->getDomainHandler().isConnected();
 }
 
-QUrl AddressManager::currentAddress(bool domainOnly) const {
-    QUrl hifiURL;
+QString AddressManager::getProtocol() const {
+    return _domainURL.scheme();
+}
 
-    hifiURL.setScheme(HIFI_URL_SCHEME);
-    hifiURL.setHost(_host);
-    
-    if (_port != 0 && _port != DEFAULT_DOMAIN_SERVER_PORT) {
-        hifiURL.setPort(_port);
-    }
-    
-    if (!domainOnly) {
+QUrl AddressManager::currentAddress(bool domainOnly) const {
+    QUrl hifiURL = _domainURL;
+
+    if (!domainOnly && hifiURL.scheme() == URL_SCHEME_HIFI) {
         hifiURL.setPath(currentPath());
     }
 
@@ -76,7 +55,9 @@ QUrl AddressManager::currentAddress(bool domainOnly) const {
 
 QUrl AddressManager::currentFacingAddress() const {
     auto hifiURL = currentAddress();
-    hifiURL.setPath(currentFacingPath());
+    if (hifiURL.scheme() == URL_SCHEME_HIFI) {
+        hifiURL.setPath(currentFacingPath());
+    }
 
     return hifiURL;
 }
@@ -86,7 +67,7 @@ QUrl AddressManager::currentShareableAddress(bool domainOnly) const {
         // if we have a shareable place name use that instead of whatever the current host is
         QUrl hifiURL;
 
-        hifiURL.setScheme(HIFI_URL_SCHEME);
+        hifiURL.setScheme(URL_SCHEME_HIFI);
         hifiURL.setHost(_shareablePlaceName);
 
         if (!domainOnly) {
@@ -99,19 +80,49 @@ QUrl AddressManager::currentShareableAddress(bool domainOnly) const {
     }
 }
 
+QUrl AddressManager::currentPublicAddress(bool domainOnly) const {
+    // return an address that can be used by others to visit this client's current location.  If
+    // in a serverless domain (which can't be visited) return an empty URL.
+    QUrl shareableAddress = currentShareableAddress(domainOnly);
+    if (shareableAddress.scheme() != URL_SCHEME_HIFI) {
+        return QUrl(); // file: urls aren't public
+    }
+    return shareableAddress;
+}
+
+
 QUrl AddressManager::currentFacingShareableAddress() const {
     auto hifiURL = currentShareableAddress();
-    hifiURL.setPath(currentFacingPath());
+    if (hifiURL.scheme() == URL_SCHEME_HIFI) {
+        hifiURL.setPath(currentFacingPath());
+    }
 
     return hifiURL;
 }
 
+QUrl AddressManager::currentFacingPublicAddress() const {
+    // return an address that can be used by others to visit this client's current location.  If
+    // in a serverless domain (which can't be visited) return an empty URL.
+    QUrl shareableAddress = currentFacingShareableAddress();
+    if (shareableAddress.scheme() != URL_SCHEME_HIFI) {
+        return QUrl(); // file: urls aren't public
+    }
+    return shareableAddress;
+}
+
+
 void AddressManager::loadSettings(const QString& lookupString) {
+#if defined(USE_GLES) && defined(Q_OS_WIN)
+    handleUrl(QUrl("hifi://127.0.0.0"), LookupTrigger::StartupFromSettings);
+#elif defined(Q_OS_ANDROID)
+    handleUrl(QUrl("hifi://pikachu/167.11,0.745735,181.529/0,0.887027,0,-0.461717"), LookupTrigger::StartupFromSettings);
+#else
     if (lookupString.isEmpty()) {
         handleUrl(currentAddressHandle.get(), LookupTrigger::StartupFromSettings);
     } else {
         handleUrl(lookupString, LookupTrigger::StartupFromSettings);
     }
+#endif
 }
 
 void AddressManager::goBack() {
@@ -140,11 +151,16 @@ void AddressManager::goForward() {
 
 void AddressManager::storeCurrentAddress() {
     auto url = currentAddress();
-    
-    if (!url.host().isEmpty()) {
+
+    if (url.scheme() == URL_SCHEME_FILE ||
+        (url.scheme() == URL_SCHEME_HIFI && !url.host().isEmpty())) {
+        // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
+        // be loaded over http(s)
+        // url.scheme() == URL_SCHEME_HTTP ||
+        // url.scheme() == URL_SCHEME_HTTPS ||
         currentAddressHandle.set(url);
     } else {
-        qCWarning(networking) << "Ignoring attempt to save current address with an empty host" << url;
+        qCWarning(networking) << "Ignoring attempt to save current address with an invalid url:" << url;
     }
 }
 
@@ -210,7 +226,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
     static QString URL_TYPE_DOMAIN_ID = "domain_id";
     static QString URL_TYPE_PLACE = "place";
     static QString URL_TYPE_NETWORK_ADDRESS = "network_address";
-    if (lookupUrl.scheme() == HIFI_URL_SCHEME) {
+    if (lookupUrl.scheme() == URL_SCHEME_HIFI) {
 
         qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
 
@@ -291,9 +307,43 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         emit lookupResultsFinished();
 
         return true;
+    } else if (lookupUrl.scheme() == URL_SCHEME_FILE) {
+        // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
+        // be loaded over http(s)
+        // lookupUrl.scheme() == URL_SCHEME_HTTP ||
+        // lookupUrl.scheme() == URL_SCHEME_HTTPS ||
+        _previousLookup.clear();
+        _shareablePlaceName.clear();
+        setDomainInfo(lookupUrl, trigger);
+        emit lookupResultsFinished();
+
+        QString path = DOMAIN_SPAWNING_POINT;
+        QUrlQuery queryArgs(lookupUrl);
+        const QString LOCATION_QUERY_KEY = "location";
+        if (queryArgs.hasQueryItem(LOCATION_QUERY_KEY)) {
+            path = queryArgs.queryItemValue(LOCATION_QUERY_KEY);
+        } else {
+            path = DEFAULT_NAMED_PATH;
+        }
+
+        handlePath(path, LookupTrigger::Internal, false);
+        return true;
     }
 
     return false;
+}
+
+bool isPossiblePlaceName(QString possiblePlaceName) {
+    bool result { false };
+    int length = possiblePlaceName.length();
+    static const int MINIMUM_PLACENAME_LENGTH = 1;
+    static const int MAXIMUM_PLACENAME_LENGTH = 64;
+    if (possiblePlaceName.toLower() != "localhost" &&
+        length >= MINIMUM_PLACENAME_LENGTH && length <= MAXIMUM_PLACENAME_LENGTH) {
+        const QRegExp PLACE_NAME_REGEX = QRegExp("^[0-9A-Za-z](([0-9A-Za-z]|-(?!-))*[^\\W_]$|$)");
+        result = PLACE_NAME_REGEX.indexIn(possiblePlaceName) == 0;
+    }
+    return result;
 }
 
 void AddressManager::handleLookupString(const QString& lookupString, bool fromSuggestions) {
@@ -303,12 +353,16 @@ void AddressManager::handleLookupString(const QString& lookupString, bool fromSu
         QUrl lookupURL;
 
         if (!lookupString.startsWith('/')) {
-            const QRegExp HIFI_SCHEME_REGEX = QRegExp(HIFI_URL_SCHEME + ":\\/{1,2}", Qt::CaseInsensitive);
+            // sometimes we need to handle lookupStrings like hifi:/somewhere
+            const QRegExp HIFI_SCHEME_REGEX = QRegExp(URL_SCHEME_HIFI + ":\\/{1,2}", Qt::CaseInsensitive);
             sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
 
-            lookupURL = QUrl(HIFI_URL_SCHEME + "://" + sanitizedString);
+            lookupURL = QUrl(sanitizedString);
+            if (lookupURL.scheme().isEmpty()) {
+                lookupURL = QUrl("hifi://" + sanitizedString);
+            }
         } else {
-            lookupURL = QUrl(lookupString);
+            lookupURL = QUrl(sanitizedString);
         }
 
         handleUrl(lookupURL, fromSuggestions ? Suggestions : UserInput);
@@ -386,7 +440,13 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
 
                     qCDebug(networking) << "Possible domain change required to connect to" << domainHostname
                         << "on" << domainPort;
-                    emit possibleDomainChangeRequired(domainHostname, domainPort, domainID);
+                    QUrl domainURL;
+                    domainURL.setScheme(URL_SCHEME_HIFI);
+                    domainURL.setHost(domainHostname);
+                    if (domainPort > 0) {
+                        domainURL.setPort(domainPort);
+                    }
+                    emit possibleDomainChangeRequired(domainURL, domainID);
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
 
@@ -423,15 +483,10 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                     if (setHost(placeName, trigger)) {
                         trigger = LookupTrigger::Internal;
                     }
-
-                    _placeName = placeName;
                 } else {
                     if (setHost(domainIDString, trigger)) {
                         trigger = LookupTrigger::Internal;
                     }
-                    
-                    // this isn't a place, so clear the place name
-                    _placeName.clear();
                 }
 
                 // check if we had a path to override the path returned
@@ -552,13 +607,19 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
     if (ipAddressRegex.indexIn(lookupString) != -1) {
         QString domainIPString = ipAddressRegex.cap(1);
 
-        qint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
         if (!ipAddressRegex.cap(2).isEmpty()) {
-            domainPort = (qint16) ipAddressRegex.cap(2).toInt();
+            domainPort = (quint16) ipAddressRegex.cap(2).toInt();
         }
 
         emit lookupResultsFinished();
-        hostChanged = setDomainInfo(domainIPString, domainPort, trigger);
+        QUrl domainURL;
+        domainURL.setScheme(URL_SCHEME_HIFI);
+        domainURL.setHost(domainIPString);
+        if (domainPort > 0) {
+            domainURL.setPort(domainPort);
+        }
+        hostChanged = setDomainInfo(domainURL, trigger);
 
         return true;
     }
@@ -571,11 +632,17 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
         quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
 
         if (!hostnameRegex.cap(2).isEmpty()) {
-            domainPort = (qint16)hostnameRegex.cap(2).toInt();
+            domainPort = (quint16)hostnameRegex.cap(2).toInt();
         }
 
         emit lookupResultsFinished();
-        hostChanged = setDomainInfo(domainHostname, domainPort, trigger);
+        QUrl domainURL;
+        domainURL.setScheme(URL_SCHEME_HIFI);
+        domainURL.setHost(domainHostname);
+        if (domainPort > 0) {
+            domainURL.setPort(domainPort);
+        }
+        hostChanged = setDomainInfo(domainURL, trigger);
 
         return true;
     }
@@ -596,7 +663,7 @@ bool AddressManager::handleDomainID(const QString& host) {
 void AddressManager::handlePath(const QString& path, LookupTrigger trigger, bool wasPathOnly) {
     if (!handleViewpoint(path, false, trigger, wasPathOnly)) {
         qCDebug(networking) << "User entered path could not be handled as a viewpoint - " << path <<
-                            "- wll attempt to ask domain-server to resolve.";
+                            "- will attempt to ask domain-server to resolve.";
 
         if (!wasPathOnly) {
             // if we received a path with a host then we need to remember what it was here so we can not
@@ -644,7 +711,7 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
             addCurrentAddressToHistory(trigger);
         }
 
-        if (!isNaN(newPosition.x) && !isNaN(newPosition.y) && !isNaN(newPosition.z)) {
+        if (!isNaN(newPosition)) {
             glm::quat newOrientation;
 
             QRegExp orientationRegex(QUAT_REGEX_STRING);
@@ -664,12 +731,12 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
                     && !isNaN(newOrientation.w)) {
                     orientationChanged = true;
                 } else {
-                    qCDebug(networking) << "Orientation parsed from lookup string is invalid. Will not use for location change.";
+                    qCDebug(networking) << "Orientation parsed from lookup string is invalid. Won't use for location change.";
                 }
             }
-            
-            emit locationChangeRequired(newPosition, orientationChanged, 
-                LookupTrigger::VisitUserFromPAL ? cancelOutRollAndPitch(newOrientation): newOrientation,
+
+            emit locationChangeRequired(newPosition, orientationChanged,
+                trigger == LookupTrigger::VisitUserFromPAL ? cancelOutRollAndPitch(newOrientation): newOrientation,
                 shouldFace
             );
 
@@ -699,18 +766,22 @@ bool AddressManager::handleUsername(const QString& lookupString) {
 }
 
 bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16 port) {
-    if (host != _host || port != _port) {
-        
+    if (host != _domainURL.host() || port != _domainURL.port()) {
         addCurrentAddressToHistory(trigger);
 
-        _port = port;
+        bool emitHostChanged = host != _domainURL.host();
+        _domainURL = QUrl();
+        _domainURL.setScheme(URL_SCHEME_HIFI);
+        _domainURL.setHost(host);
+        if (port > 0) {
+            _domainURL.setPort(port);
+        }
 
         // any host change should clear the shareable place name
         _shareablePlaceName.clear();
 
-        if (host != _host) {
-            _host = host;
-            emit hostChanged(_host);
+        if (emitHostChanged) {
+            emit hostChanged(host);
         }
 
         return true;
@@ -719,20 +790,35 @@ bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16
     return false;
 }
 
-bool AddressManager::setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger) {
-    bool hostChanged = setHost(hostname, trigger, port);
+bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger) {
+    const QString hostname = domainURL.host();
+    quint16 port = domainURL.port();
+    bool emitHostChanged { false };
+
+    if (domainURL != _domainURL) {
+        addCurrentAddressToHistory(trigger);
+        emitHostChanged = true;
+    }
+
+    _domainURL = domainURL;
 
     // clear any current place information
     _rootPlaceID = QUuid();
-    _placeName.clear();
 
-    qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;
+    if (_domainURL.scheme() == URL_SCHEME_HIFI) {
+        qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;
+    } else {
+        qCDebug(networking) << "Possible domain change required to serverless domain: " << domainURL.toString();
+    }
 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::HandleAddress);
 
-    emit possibleDomainChangeRequired(hostname, port, QUuid());
+    if (emitHostChanged) {
+        emit hostChanged(domainURL.host());
+    }
+    emit possibleDomainChangeRequired(_domainURL, QUuid());
 
-    return hostChanged;
+    return emitHostChanged;
 }
 
 void AddressManager::goToUser(const QString& username, bool shouldMatchOrientation) {
@@ -761,15 +847,25 @@ void AddressManager::refreshPreviousLookup() {
 }
 
 void AddressManager::copyAddress() {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyAddress");
+        return;
+    }
+
     // assume that the address is being copied because the user wants a shareable address
-    QApplication::clipboard()->setText(currentShareableAddress().toString());
+    QGuiApplication::clipboard()->setText(currentShareableAddress().toString());
 }
 
 void AddressManager::copyPath() {
-    QApplication::clipboard()->setText(currentPath());
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyPath");
+        return;
+    }
+
+    QGuiApplication::clipboard()->setText(currentPath());
 }
 
-QString AddressManager::getDomainId() const {
+QString AddressManager::getDomainID() const {
     return DependencyManager::get<NodeList>()->getDomainHandler().getUUID().toString();
 }
 
@@ -811,7 +907,7 @@ void AddressManager::lookupShareableNameForDomainID(const QUuid& domainID) {
     // then use that for Steam join/invite or copiable address
 
     // it only makes sense to lookup a shareable default name if we don't have a place name
-    if (_placeName.isEmpty()) {
+    if (getPlaceName().isEmpty()) {
         JSONCallbackParameters callbackParams;
 
         // no error callback handling
@@ -863,3 +959,12 @@ void AddressManager::addCurrentAddressToHistory(LookupTrigger trigger) {
     }
 }
 
+QString AddressManager::getPlaceName() const {
+    if (!_shareablePlaceName.isEmpty()) {
+        return _shareablePlaceName;
+    }
+    if (isPossiblePlaceName(_domainURL.host())) {
+        return _domainURL.host();
+    }
+    return QString();
+}

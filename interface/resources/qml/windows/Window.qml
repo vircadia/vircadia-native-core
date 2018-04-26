@@ -9,8 +9,6 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
 import QtGraphicalEffects 1.0
 
 import "."
@@ -89,6 +87,15 @@ Fadable {
         window.shown = value;
     }
 
+    // used to snap window content to pixel by translating content by negative fractional part of the x/y
+    // thus if x was 5.41, snapper's x will be -0.41
+    // avoiding fractional window position is to avoid artifacts in text rendering when the fractional positions are present.
+    transform: Translate {
+        id: snapper
+        x: 0;
+        y: 0;
+    }
+
     property var rectifier: Timer {
         property bool executing: false;
         interval: 100
@@ -97,8 +104,8 @@ Fadable {
 
         onTriggered: {
             executing = true;
-            x = Math.floor(x);
-            y = Math.floor(y);
+            snapper.x = Math.floor(x) - x;
+            snapper.y = Math.floor(y) - y;
             executing = false;
         }
 

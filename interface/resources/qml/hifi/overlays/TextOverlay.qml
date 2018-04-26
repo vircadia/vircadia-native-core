@@ -1,5 +1,4 @@
 import QtQuick 2.3
-import QtQuick.Controls 1.2
 
 import "."
 
@@ -20,6 +19,7 @@ Overlay {
             font.family: "Helvetica"
             font.pixelSize: 18
             lineHeight: 18
+            clip: true
         }
     }
 
@@ -46,6 +46,7 @@ Overlay {
                 case "backgroundColor": background.color = Qt.rgba(value.red / 255, value.green / 255, value.blue / 255, background.color.a); break;
                 case "font": textField.font.pixelSize = value.size; break;
                 case "lineHeight": textField.lineHeight = value; break;
+                case "bounds": break; // The bounds property is handled in C++.
                 default: console.warn("OVERLAY text unhandled property " + key);
             }
         }

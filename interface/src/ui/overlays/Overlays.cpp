@@ -54,6 +54,7 @@ Overlays::Overlays() {
 }
 
 void Overlays::cleanupAllOverlays() {
+    _shuttingDown = true;
     QMap<OverlayID, Overlay::Pointer> overlaysHUD;
     QMap<OverlayID, Overlay::Pointer> overlaysWorld;
     {
@@ -68,16 +69,10 @@ void Overlays::cleanupAllOverlays() {
     foreach(Overlay::Pointer overlay, overlaysWorld) {
         _overlaysToDelete.push_back(overlay);
     }
-#if OVERLAY_PANELS
-    _panels.clear();
-#endif
     cleanupOverlaysToDelete();
 }
 
 void Overlays::init() {
-#if OVERLAY_PANELS
-    _scriptEngine = new QScriptEngine();
-#endif
 }
 
 void Overlays::update(float deltatime) {
@@ -153,6 +148,10 @@ void Overlays::enable() {
 // Note, can't be invoked by scripts, but can be called by the InterfaceParentFinder
 // class on packet processing threads
 Overlay::Pointer Overlays::getOverlay(OverlayID id) const {
+    if (_shuttingDown) {
+        return nullptr;
+    }
+
     QMutexLocker locker(&_mutex);
     if (_overlaysHUD.contains(id)) {
         return _overlaysHUD[id];
@@ -163,6 +162,10 @@ Overlay::Pointer Overlays::getOverlay(OverlayID id) const {
 }
 
 OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) {
+    if (_shuttingDown) {
+        return UNKNOWN_OVERLAY_ID;
+    }
+
     if (QThread::currentThread() != thread()) {
         OverlayID result;
         PROFILE_RANGE(script, __FUNCTION__);
@@ -171,6 +174,63 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
     }
 
     Overlay::Pointer thisOverlay = nullptr;
+
+    /**jsdoc
+     * <p>An overlay may be one of the following types:</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>2D/3D</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>circle3d</code></td><td>3D</td><td>A circle.</td></tr>
+     *     <tr><td><code>cube</code></td><td>3D</td><td>A cube. Can also use a <code>shape</code> overlay to create a 
+     *     cube.</td></tr>
+     *     <tr><td><code>grid</code></td><td>3D</td><td>A grid of lines in a plane.</td></tr>
+     *     <tr><td><code>image</code></td><td>2D</td><td>An image. Synonym: <code>billboard</code>.</td></tr>
+     *     <tr><td><code>image3d</code></td><td>3D</td><td>An image.</td></tr>
+     *     <tr><td><code>line3d</code></td><td>3D</td><td>A line.</td></tr>
+     *     <tr><td><code>model</code></td><td>3D</td><td>A model.</td></tr>
+     *     <tr><td><code>rectangle</code></td><td>2D</td><td>A rectangle.</td></tr>
+     *     <tr><td><code>rectangle3d</code></td><td>3D</td><td>A rectangle.</td></tr>
+     *     <tr><td><code>shape</code></td><td>3D</td><td>A geometric shape, such as a cube, sphere, or cylinder.</td></tr>
+     *     <tr><td><code>sphere</code></td><td>3D</td><td>A sphere. Can also use a <code>shape</code> overlay to create a 
+     *     sphere.</td></tr>
+     *     <tr><td><code>text</code></td><td>2D</td><td>Text.</td></tr>
+     *     <tr><td><code>text3d</code></td><td>3D</td><td>Text.</td></tr>
+     *     <tr><td><code>web3d</code></td><td>3D</td><td>Web content.</td></tr>
+     *   </tbody>
+     * </table>
+     * <p>2D overlays are rendered on the display surface in desktop mode and on the HUD surface in HMD mode. 3D overlays are
+     * rendered at a position and orientation in-world.<p>
+     * <p>Each overlay type has different {@link Overlays.OverlayProperties|OverlayProperties}.</p>
+     * @typedef {string} Overlays.OverlayType
+     */
+
+     /**jsdoc
+     * <p>Different overlay types have different properties:</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>{@link Overlays.OverlayType|OverlayType}</th><th>Overlay Properties</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>circle3d</code></td><td>{@link Overlays.Circle3DProperties|Circle3DProperties}</td></tr>
+     *     <tr><td><code>cube</code></td><td>{@link Overlays.CubeProperties|CubeProperties}</td></tr>
+     *     <tr><td><code>grid</code></td><td>{@link Overlays.GridProperties|GridProperties}</td></tr>
+     *     <tr><td><code>image</code></td><td>{@link Overlays.ImageProperties|ImageProperties}</td></tr>
+     *     <tr><td><code>image3d</code></td><td>{@link Overlays.Image3DProperties|Image3DProperties}</td></tr>
+     *     <tr><td><code>line3d</code></td><td>{@link Overlays.Line3DProperties|Line3DProperties}</td></tr>
+     *     <tr><td><code>model</code></td><td>{@link Overlays.ModelProperties|ModelProperties}</td></tr>
+     *     <tr><td><code>rectangle</code></td><td>{@link Overlays.RectangleProperties|RectangleProperties}</td></tr>
+     *     <tr><td><code>rectangle3d</code></td><td>{@link Overlays.Rectangle3DProperties|Rectangle3DProperties}</td></tr>
+     *     <tr><td><code>shape</code></td><td>{@link Overlays.ShapeProperties|ShapeProperties}</td></tr>
+     *     <tr><td><code>sphere</code></td><td>{@link Overlays.SphereProperties|SphereProperties}</td></tr>
+     *     <tr><td><code>text</code></td><td>{@link Overlays.TextProperties|TextProperties}</td></tr>
+     *     <tr><td><code>text3d</code></td><td>{@link Overlays.Text3DProperties|Text3DProperties}</td></tr>
+     *     <tr><td><code>web3d</code></td><td>{@link Overlays.Web3DProperties|Web3DProperties}</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {object} Overlays.OverlayProperties
+     */
 
     if (type == ImageOverlay::TYPE) {
         thisOverlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
@@ -210,6 +270,10 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
 }
 
 OverlayID Overlays::addOverlay(const Overlay::Pointer& overlay) {
+    if (_shuttingDown) {
+        return UNKNOWN_OVERLAY_ID;
+    }
+
     OverlayID thisID = OverlayID(QUuid::createUuid());
     overlay->setOverlayID(thisID);
     overlay->setStackOrder(_stackOrder++);
@@ -232,6 +296,10 @@ OverlayID Overlays::addOverlay(const Overlay::Pointer& overlay) {
 }
 
 OverlayID Overlays::cloneOverlay(OverlayID id) {
+    if (_shuttingDown) {
+        return UNKNOWN_OVERLAY_ID;
+    }
+
     if (QThread::currentThread() != thread()) {
         OverlayID result;
         PROFILE_RANGE(script, __FUNCTION__);
@@ -243,12 +311,6 @@ OverlayID Overlays::cloneOverlay(OverlayID id) {
 
     if (thisOverlay) {
         OverlayID cloneId = addOverlay(Overlay::Pointer(thisOverlay->createClone(), [](Overlay* ptr) { ptr->deleteLater(); }));
-#if OVERLAY_PANELS
-        auto attachable = std::dynamic_pointer_cast<PanelAttachable>(thisOverlay);
-        if (attachable && attachable->getParentPanel()) {
-            attachable->getParentPanel()->addChild(cloneId);
-        }
-#endif
         return cloneId;
     }
 
@@ -256,6 +318,10 @@ OverlayID Overlays::cloneOverlay(OverlayID id) {
 }
 
 bool Overlays::editOverlay(OverlayID id, const QVariant& properties) {
+    if (_shuttingDown) {
+        return false;
+    }
+
     auto thisOverlay = getOverlay(id);
     if (!thisOverlay) {
         return false;
@@ -275,6 +341,10 @@ bool Overlays::editOverlay(OverlayID id, const QVariant& properties) {
 }
 
 bool Overlays::editOverlays(const QVariant& propertiesById) {
+    if (_shuttingDown) {
+        return false;
+    }
+
     bool defer2DOverlays = QThread::currentThread() != thread();
 
     QVariantMap deferrred;
@@ -306,6 +376,10 @@ bool Overlays::editOverlays(const QVariant& propertiesById) {
 }
 
 void Overlays::deleteOverlay(OverlayID id) {
+    if (_shuttingDown) {
+        return;
+    }
+
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "deleteOverlay", Q_ARG(OverlayID, id));
         return;
@@ -324,20 +398,14 @@ void Overlays::deleteOverlay(OverlayID id) {
         }
     }
 
-#if OVERLAY_PANELS
-    auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlayToDelete);
-    if (attachable && attachable->getParentPanel()) {
-        attachable->getParentPanel()->removeChild(id);
-        attachable->setParentPanel(nullptr);
-    }
-#endif
-
-
     _overlaysToDelete.push_back(overlayToDelete);
     emit overlayDeleted(id);
 }
 
 QString Overlays::getOverlayType(OverlayID overlayId) {
+    if (_shuttingDown) {
+        return "";
+    }
     if (QThread::currentThread() != thread()) {
         QString result;
         PROFILE_RANGE(script, __FUNCTION__);
@@ -367,51 +435,8 @@ QObject* Overlays::getOverlayObject(OverlayID id) {
     return nullptr;
 }
 
-#if OVERLAY_PANELS
-OverlayID Overlays::getParentPanel(OverlayID childId) const {
-    Overlay::Pointer overlay = getOverlay(childId);
-    auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlay);
-    if (attachable) {
-        return _panels.key(attachable->getParentPanel());
-    } else if (_panels.contains(childId)) {
-        return _panels.key(getPanel(childId)->getParentPanel());
-    }
-    return UNKNOWN_OVERLAY_ID;
-}
-
-void Overlays::setParentPanel(OverlayID childId, OverlayID panelId) {
-    auto attachable = std::dynamic_pointer_cast<PanelAttachable>(getOverlay(childId));
-    if (attachable) {
-        if (_panels.contains(panelId)) {
-            auto panel = getPanel(panelId);
-            panel->addChild(childId);
-            attachable->setParentPanel(panel);
-        } else {
-            auto panel = attachable->getParentPanel();
-            if (panel) {
-                panel->removeChild(childId);
-                attachable->setParentPanel(nullptr);
-            }
-        }
-    } else if (_panels.contains(childId)) {
-        OverlayPanel::Pointer child = getPanel(childId);
-        if (_panels.contains(panelId)) {
-            auto panel = getPanel(panelId);
-            panel->addChild(childId);
-            child->setParentPanel(panel);
-        } else {
-            auto panel = child->getParentPanel();
-            if (panel) {
-                panel->removeChild(childId);
-                child->setParentPanel(0);
-            }
-        }
-    }
-}
-#endif
-
 OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
-    if (!_enabled) {
+    if (_shuttingDown || !_enabled) {
         return UNKNOWN_OVERLAY_ID;
     }
 
@@ -527,7 +552,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
             float thisDistance;
             BoxFace thisFace;
             glm::vec3 thisSurfaceNormal;
-            QString thisExtraInfo;
+            QVariantMap thisExtraInfo;
             if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance,
                                                           thisFace, thisSurfaceNormal, thisExtraInfo)) {
                 bool isDrawInFront = thisOverlay->getDrawInFront();
@@ -585,7 +610,7 @@ QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, 
     obj.setProperty("face", faceName);
     auto intersection = vec3toScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
-    obj.setProperty("extraInfo", value.extraInfo);
+    obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
 }
 
@@ -619,7 +644,7 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& objectVar
             value.intersection = newIntersection;
         }
     }
-    value.extraInfo = object["extraInfo"].toString();
+    value.extraInfo = object["extraInfo"].toMap();
 }
 
 bool Overlays::isLoaded(OverlayID id) {
@@ -659,62 +684,6 @@ QSizeF Overlays::textSize(OverlayID id, const QString& text) {
     }
     return QSizeF(0.0f, 0.0f);
 }
-
-#if OVERLAY_PANELS
-OverlayID Overlays::addPanel(OverlayPanel::Pointer panel) {
-    QWriteLocker lock(&_lock);
-
-    OverlayID thisID = QUuid::createUuid();
-    _panels[thisID] = panel;
-
-    return thisID;
-}
-
-OverlayID Overlays::addPanel(const QVariant& properties) {
-    OverlayPanel::Pointer panel = std::make_shared<OverlayPanel>();
-    panel->init(_scriptEngine);
-    panel->setProperties(properties.toMap());
-    return addPanel(panel);
-}
-
-void Overlays::editPanel(OverlayID panelId, const QVariant& properties) {
-    if (_panels.contains(panelId)) {
-        _panels[panelId]->setProperties(properties.toMap());
-    }
-}
-
-OverlayPropertyResult Overlays::getPanelProperty(OverlayID panelId, const QString& property) {
-    OverlayPropertyResult result;
-    if (_panels.contains(panelId)) {
-        OverlayPanel::Pointer thisPanel = getPanel(panelId);
-        QReadLocker lock(&_lock);
-        result.value = thisPanel->getProperty(property);
-    }
-    return result;
-}
-
-
-void Overlays::deletePanel(OverlayID panelId) {
-    OverlayPanel::Pointer panelToDelete;
-
-    {
-        QWriteLocker lock(&_lock);
-        if (_panels.contains(panelId)) {
-            panelToDelete = _panels.take(panelId);
-        } else {
-            return;
-        }
-    }
-
-    while (!panelToDelete->getChildren().isEmpty()) {
-        OverlayID childId = panelToDelete->popLastChild();
-        deleteOverlay(childId);
-        deletePanel(childId);
-    }
-
-    emit panelDeleted(panelId);
-}
-#endif
 
 bool Overlays::isAddedOverlay(OverlayID id) {
     if (QThread::currentThread() != thread()) {

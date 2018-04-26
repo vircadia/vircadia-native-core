@@ -14,6 +14,7 @@
 #include <openssl/err.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+#include <random>
 
 #include <AccountManager.h>
 #include <Assignment.h>
@@ -26,7 +27,7 @@ using SharedAssignmentPointer = QSharedPointer<Assignment>;
 DomainGatekeeper::DomainGatekeeper(DomainServer* server) :
     _server(server)
 {
-
+    initLocalIDManagement();
 }
 
 void DomainGatekeeper::addPendingAssignedNode(const QUuid& nodeUUID, const QUuid& assignmentUUID,
@@ -161,7 +162,7 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
         } else if (_server->_settingsManager.hasPermissionsForMachineFingerprint(machineFingerprint)) {
             userPerms = _server->_settingsManager.getPermissionsForMachineFingerprint(machineFingerprint);
 #ifdef WANT_DEBUG
-            qDebug(() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
+            qDebug() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
 #endif
         } else if (_server->_settingsManager.hasPermissionsForIP(senderAddress)) {
             // this user comes from an IP we have in our permissions table, apply those permissions
@@ -187,7 +188,7 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
         } else if (_server->_settingsManager.hasPermissionsForMachineFingerprint(machineFingerprint)) {
             userPerms = _server->_settingsManager.getPermissionsForMachineFingerprint(machineFingerprint);
 #ifdef WANT_DEBUG
-            qDebug(() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
+            qDebug() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
 #endif
         } else if (_server->_settingsManager.hasPermissionsForIP(senderAddress)) {
             // this user comes from an IP we have in our permissions table, apply those permissions
@@ -393,9 +394,12 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     QString verifiedUsername; // if this remains empty, consider this an anonymous connection attempt
     if (!username.isEmpty()) {
-        if (usernameSignature.isEmpty()) {
+        const QUuid& connectionToken = _connectionTokenHash.value(username.toLower());
+
+        if (usernameSignature.isEmpty() || connectionToken.isNull()) {
             // user is attempting to prove their identity to us, but we don't have enough information
             sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
+
             // ask for their public key right now to make sure we have it
             requestUserPublicKey(username, true);
             getGroupMemberships(username); // optimistically get started on group memberships
@@ -432,10 +436,11 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     if (!userPerms.can(NodePermissions::Permission::canConnectPastMaxCapacity) && !isWithinMaxCapacity()) {
         // we can't allow this user to connect because we are at max capacity
         QString redirectOnMaxCapacity;
-        const QVariant* redirectOnMaxCapacityVariant =
-            valueForKeyPath(_server->_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION);
-        if (redirectOnMaxCapacityVariant && redirectOnMaxCapacityVariant->canConvert<QString>()) {
-            redirectOnMaxCapacity = redirectOnMaxCapacityVariant->toString();
+
+        QVariant redirectOnMaxCapacityVariant =
+            _server->_settingsManager.valueForKeyPath(MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION);
+        if (redirectOnMaxCapacityVariant.canConvert<QString>()) {
+            redirectOnMaxCapacity = redirectOnMaxCapacityVariant.toString();
             qDebug() << "Redirection domain:" << redirectOnMaxCapacity;
         }
 
@@ -447,11 +452,12 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         return SharedNodePointer();
     }
 
-    QUuid hintNodeID;
+    QUuid existingNodeID;
 
     // in case this is a node that's failing to connect
     // double check we don't have the same node whose sockets match exactly already in the list
     limitedNodeList->eachNodeBreakable([&](const SharedNodePointer& node){
+
         if (node->getPublicSocket() == nodeConnection.publicSockAddr && node->getLocalSocket() == nodeConnection.localSockAddr) {
             // we have a node that already has these exact sockets - this can occur if a node
             // is failing to connect to the domain
@@ -461,15 +467,20 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
             auto existingNodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
             if (existingNodeData->getUsername() == username) {
-                hintNodeID = node->getUUID();
+                qDebug() << "Deleting existing connection from same sockaddr: " << node->getUUID();
+                existingNodeID = node->getUUID();
                 return false;
             }
         }
         return true;
     });
 
+    if (!existingNodeID.isNull()) {
+        limitedNodeList->killNodeWithUUID(existingNodeID);
+    }
+
     // add the connecting node (or re-use the matched one from eachNodeBreakable above)
-    SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection, hintNodeID);
+    SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection);
 
     // set the edit rights for this user
     newNode->setPermissions(userPerms);
@@ -519,8 +530,10 @@ SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const Node
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
+    Node::LocalID newLocalID = findOrCreateLocalID(nodeID);
     SharedNodePointer newNode = limitedNodeList->addOrUpdateNode(nodeID, nodeConnection.nodeType,
-                                                                 nodeConnection.publicSockAddr, nodeConnection.localSockAddr);
+                                                                 nodeConnection.publicSockAddr, nodeConnection.localSockAddr,
+                                                                 newLocalID);
 
     // So that we can send messages to this node at will - we need to activate the correct socket on this node now
     newNode->activateMatchingOrNewSymmetricSocket(discoveredSocket);
@@ -607,9 +620,9 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
 
 bool DomainGatekeeper::isWithinMaxCapacity() {
     // find out what our maximum capacity is
-    const QVariant* maximumUserCapacityVariant =
-        valueForKeyPath(_server->_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY);
-    unsigned int maximumUserCapacity = maximumUserCapacityVariant ? maximumUserCapacityVariant->toUInt() : 0;
+    QVariant maximumUserCapacityVariant =
+        _server->_settingsManager.valueForKeyPath(MAXIMUM_USER_CAPACITY);
+    unsigned int maximumUserCapacity = maximumUserCapacityVariant.isValid() ? maximumUserCapacityVariant.toUInt() : 0;
 
     if (maximumUserCapacity > 0) {
         unsigned int connectedUsers = _server->countConnectedUsers();
@@ -1009,4 +1022,32 @@ void DomainGatekeeper::refreshGroupsCache() {
 #if WANT_DEBUG
     _server->_settingsManager.debugDumpGroupsState();
 #endif
+}
+
+void DomainGatekeeper::initLocalIDManagement() {
+    std::uniform_int_distribution<quint16> sixteenBitRand;
+    std::random_device randomDevice;
+    std::default_random_engine engine { randomDevice() };
+    _currentLocalID = sixteenBitRand(engine);
+    // Ensure increment is odd.
+    _idIncrement = sixteenBitRand(engine) | 1;
+}
+
+Node::LocalID DomainGatekeeper::findOrCreateLocalID(const QUuid& uuid) {
+    auto existingLocalIDIt = _uuidToLocalID.find(uuid);
+    if (existingLocalIDIt != _uuidToLocalID.end()) {
+        return existingLocalIDIt->second;
+    }
+
+    assert(_localIDs.size() < std::numeric_limits<LocalIDs::value_type>::max() - 2);
+
+    Node::LocalID newLocalID;
+    do {
+        newLocalID = _currentLocalID;
+        _currentLocalID += _idIncrement;
+    } while (newLocalID == Node::NULL_LOCAL_ID || _localIDs.find(newLocalID) != _localIDs.end());
+
+    _uuidToLocalID.emplace(uuid, newLocalID);
+    _localIDs.insert(newLocalID);
+    return newLocalID;
 }

@@ -121,7 +121,7 @@ function onMessage(message) {
                 || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
                 Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
             } else {
-                tablet.loadQMLOnTop("TabletGeneralPreferences.qml");
+                tablet.loadQMLOnTop("hifi/tablet/TabletGeneralPreferences.qml");
             }
             break;
         case 'captureStillAndGif':
@@ -275,7 +275,7 @@ function onMessage(message) {
     }
 }
 
-var POLAROID_PRINT_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/sound-print-photo.wav"));
+var POLAROID_PRINT_SOUND = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/sound-print-photo.wav");
 var POLAROID_MODEL_URL  = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
 
 function printToPolaroid(image_url) {
@@ -337,7 +337,7 @@ function fillImageDataFromPrevious() {
         containsGif: previousAnimatedSnapPath !== "",
         processingGif: false,
         shouldUpload: false,
-        canBlast: location.domainId === Settings.getValue("previousSnapshotDomainID"),
+        canBlast: location.domainID === Settings.getValue("previousSnapshotDomainID"),
         isLoggedIn: isLoggedIn
     };
     imageData = [];
@@ -347,7 +347,7 @@ function fillImageDataFromPrevious() {
             story_id: previousStillSnapStoryID,
             blastButtonDisabled: previousStillSnapBlastingDisabled,
             hifiButtonDisabled: previousStillSnapHifiSharingDisabled,
-            errorPath: Script.resolvePath(Script.resourcesPath() + 'snapshot/img/no-image.jpg')
+            errorPath: Script.resourcesPath() + 'snapshot/img/no-image.jpg'
         });
     }
     if (previousAnimatedSnapPath !== "") {
@@ -356,7 +356,7 @@ function fillImageDataFromPrevious() {
             story_id: previousAnimatedSnapStoryID,
             blastButtonDisabled: previousAnimatedSnapBlastingDisabled,
             hifiButtonDisabled: previousAnimatedSnapHifiSharingDisabled,
-            errorPath: Script.resolvePath(Script.resourcesPath() + 'snapshot/img/no-image.jpg')
+            errorPath: Script.resourcesPath() + 'snapshot/img/no-image.jpg'
         });
     }
 }
@@ -411,12 +411,10 @@ function snapshotUploaded(isError, reply) {
         } else {
             print('Ignoring snapshotUploaded() callback for stale ' + (isGif ? 'GIF' : 'Still' ) + ' snapshot. Stale story ID:', storyID);
         }
-    } else {
-        print(reply);
     }
     isUploadingPrintableStill = false;
 }
-var href, domainId;
+var href, domainID;
 function takeSnapshot() {
     tablet.emitScriptEvent(JSON.stringify({
         type: "snapshot",
@@ -443,11 +441,11 @@ function takeSnapshot() {
     MyAvatar.setClearOverlayWhenMoving(false);
 
     // We will record snapshots based on the starting location. That could change, e.g., when recording a .gif.
-    // Even the domainId could change (e.g., if the user falls into a teleporter while recording).
+    // Even the domainID could change (e.g., if the user falls into a teleporter while recording).
     href = location.href;
     Settings.setValue("previousSnapshotHref", href);
-    domainId = location.domainId;
-    Settings.setValue("previousSnapshotDomainID", domainId);
+    domainID = location.domainID;
+    Settings.setValue("previousSnapshotDomainID", domainID);
 
     maybeDeleteSnapshotStories();
 
@@ -475,7 +473,7 @@ function takeSnapshot() {
         Menu.setIsOptionChecked("Overlays", false);
     }
 
-    var snapActivateSound = SoundCache.getSound(Script.resolvePath("../../resources/sounds/snap.wav"));
+    var snapActivateSound = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/snap.wav");
 
     // take snapshot (with no notification)
     Script.setTimeout(function () {
@@ -548,7 +546,7 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     }
     HMD.openTablet();
 
-    isDomainOpen(domainId, function (canShare) {
+    isDomainOpen(domainID, function (canShare) {
         snapshotOptions = {
             containsGif: false,
             processingGif: false,
@@ -594,11 +592,11 @@ function processingGifStarted(pathStillSnapshot) {
     }
     HMD.openTablet();
     
-    isDomainOpen(domainId, function (canShare) {
+    isDomainOpen(domainID, function (canShare) {
         snapshotOptions = {
             containsGif: true,
             processingGif: true,
-            loadingGifPath: Script.resolvePath(Script.resourcesPath() + 'icons/loadingDark.gif'),
+            loadingGifPath: Script.resourcesPath() + 'icons/loadingDark.gif',
             canShare: canShare,
             isLoggedIn: isLoggedIn
         };
@@ -622,13 +620,13 @@ function processingGifCompleted(pathAnimatedSnapshot) {
 
     Settings.setValue("previousAnimatedSnapPath", pathAnimatedSnapshot);
 
-    isDomainOpen(domainId, function (canShare) {
+    isDomainOpen(domainID, function (canShare) {
         snapshotOptions = {
             containsGif: true,
             processingGif: false,
             canShare: canShare,
             isLoggedIn: isLoggedIn,
-            canBlast: location.domainId === Settings.getValue("previousSnapshotDomainID"),
+            canBlast: location.domainID === Settings.getValue("previousSnapshotDomainID"),
         };
         imageData = [{ localPath: pathAnimatedSnapshot, href: href }];
         tablet.emitScriptEvent(JSON.stringify({

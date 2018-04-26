@@ -18,21 +18,22 @@
 <$declareStandardTransform()$>
 
 // the interpolated normal
-out vec3 _normal;
-out vec3 _modelNormal;
+out vec3 _normalWS;
+out vec3 _normalMS;
 out vec4 _color;
 out vec2 _texCoord0;
-out vec4 _position;
+out vec4 _positionMS;
+out vec4 _positionES;
 
 void main(void) {
-    _color = colorToLinearRGBA(inColor);
+    _color = color_sRGBAToLinear(inColor);
     _texCoord0 = inTexCoord0.st;
-    _position = inPosition;
-    _modelNormal = inNormal.xyz;
+    _positionMS = inPosition;
+    _normalMS = inNormal.xyz;
 
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
-    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal)$>
+    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
+    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
 }

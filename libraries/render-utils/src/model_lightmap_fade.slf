@@ -14,41 +14,39 @@
 
 <@include DeferredBufferWrite.slh@>
 
-<@include model/Material.slh@>
+<@include graphics/Material.slh@>
 
 <@include MaterialTextures.slh@>
-<$declareMaterialTextures(ALBEDO, ROUGHNESS)$>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC)$>
 <$declareMaterialLightmap()$>
 
 <@include Fade.slh@>
 <$declareFadeFragment()$>
 
-in vec4 _position;
 in vec2 _texCoord0;
 in vec2 _texCoord1;
-in vec3 _normal;
+in vec3 _normalWS;
 in vec3 _color;
-in vec4 _worldPosition;
+in vec4 _positionWS;
 
 void main(void) {
     vec3 fadeEmissive;
     FadeObjectParams fadeParams;
 
     <$fetchFadeObjectParams(fadeParams)$>
-    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
+    applyFade(fadeParams, _positionWS.xyz, fadeEmissive);
 
     Material mat = getMaterial();
-    int matKey = getMaterialKey(mat);
-    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedo, roughness)$>
+    BITFIELD matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedo, roughness, _SCRIBE_NULL, metallicTex)$>
     <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmapVal)$>
 
-
     packDeferredFragmentLightmap(
-        normalize(_normal), 
+        normalize(_normalWS), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
         getMaterialAlbedo(mat) * albedo.rgb * _color,
         getMaterialRoughness(mat) * roughness,
-        getMaterialMetallic(mat),
-        getMaterialFresnel(mat),
+        getMaterialMetallic(mat) * metallicTex,
+        /*metallicTex, // no use of */getMaterialFresnel(mat),
         lightmapVal+fadeEmissive);
 }

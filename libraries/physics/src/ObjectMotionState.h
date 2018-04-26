@@ -29,6 +29,23 @@ enum PhysicsMotionType {
     MOTION_TYPE_KINEMATIC   // keyframed motion
 };
 
+/**jsdoc
+ * <p>An entity's physics motion type may be one of the following:</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"static"</code></td><td>There is no motion because the entity is locked  &mdash; its <code>locked</code> 
+ *         property is set to <code>true</code>.</td></tr>
+ *     <tr><td><code>"kinematic"</code></td><td>Motion is applied without physical laws (e.g., damping) because the entity is 
+ *         not locked and has its <code>dynamic</code> property set to <code>false</code>.</td></tr>
+ *     <tr><td><code>"dynamic"</code></td><td>Motion is applied according to physical laws (e.g., damping) because the entity 
+ *         is not locked and has its <code>dynamic</code> property set to <code>true</code>.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Entities.PhysicsMotionType
+ */
 inline QString motionTypeToString(PhysicsMotionType motionType) {
     switch(motionType) {
         case MOTION_TYPE_STATIC: return QString("static");
@@ -131,9 +148,9 @@ public:
 
     virtual const QUuid getObjectID() const = 0;
 
-    virtual quint8 getSimulationPriority() const { return 0; }
+    virtual uint8_t getSimulationPriority() const { return 0; }
     virtual QUuid getSimulatorID() const = 0;
-    virtual void bump(quint8 priority) {}
+    virtual void bump(uint8_t priority) {}
 
     virtual QString getName() const { return ""; }
 
@@ -147,7 +164,7 @@ public:
     void clearInternalKinematicChanges() { _hasInternalKinematicChanges = false; }
 
     virtual bool isLocallyOwned() const { return false; }
-    virtual bool shouldBeLocallyOwned() const { return false; }
+    virtual bool isLocallyOwnedOrShouldBe() const { return false; } // aka shouldEmitCollisionEvents()
 
     friend class PhysicsEngine;
 

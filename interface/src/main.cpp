@@ -20,21 +20,18 @@
 #include <QTranslator>
 
 #include <BuildInfo.h>
-#include <gl/OpenGLVersionChecker.h>
 #include <SandboxUtils.h>
 #include <SharedUtil.h>
 #include <NetworkAccessManager.h>
 
 #include "AddressManager.h"
 #include "Application.h"
+#include "Crashpad.h"
 #include "InterfaceLogging.h"
 #include "UserActivityLogger.h"
 #include "MainWindow.h"
 
-#ifdef HAS_BUGSPLAT
-#include <BugSplat.h>
-#include <CrashReporter.h>
-#endif
+#include "Profile.h"
 
 #ifdef Q_OS_WIN
 extern "C" {
@@ -43,26 +40,53 @@ extern "C" {
 #endif
 
 int main(int argc, const char* argv[]) {
-#if HAS_BUGSPLAT
-    static QString BUG_SPLAT_DATABASE = "interface_alpha";
-    static QString BUG_SPLAT_APPLICATION_NAME = "Interface";
-    CrashReporter crashReporter { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, BuildInfo::VERSION };
-#endif
+    setupHifiApplication(BuildInfo::INTERFACE_NAME);
+
+    // Early check for --traceFile argument 
+    auto tracer = DependencyManager::set<tracing::Tracer>();
+    const char * traceFile = nullptr;
+    const QString traceFileFlag("--traceFile");
+    float traceDuration = 0.0f;
+    for (int a = 1; a < argc; ++a) {
+        if (traceFileFlag == argv[a] && argc > a + 1) {
+            traceFile = argv[a + 1];
+            if (argc > a + 2) {
+                traceDuration = atof(argv[a + 2]);
+            }
+            break;
+        }
+    }
+    if (traceFile != nullptr) {
+        tracer->startTracing();
+    }
+   
+    PROFILE_SYNC_BEGIN(startup, "main startup", "");
 
 #ifdef Q_OS_LINUX
     QApplication::setAttribute(Qt::AA_DontUseNativeMenuBar);
 #endif
 
-    disableQtBearerPoll(); // Fixes wifi ping spikes
+#if defined(USE_GLES) && defined(Q_OS_WIN)
+    // When using GLES on Windows, we can't create normal GL context in Qt, so 
+    // we force Qt to use angle.  This will cause the QML to be unable to be used 
+    // in the output window, so QML should be disabled.
+    qputenv("QT_ANGLE_PLATFORM", "d3d11");
+    QCoreApplication::setAttribute(Qt::AA_UseOpenGLES);
+#endif
 
     QElapsedTimer startupTime;
     startupTime.start();
 
-    // Set application infos
-    QCoreApplication::setApplicationName(BuildInfo::INTERFACE_NAME);
-    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
-    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
+    Setting::init();
+
+    // Instance UserActivityLogger now that the settings are loaded
+    auto& ual = UserActivityLogger::getInstance();
+    qDebug() << "UserActivityLogger is enabled:" << ual.isEnabled();
+
+    if (ual.isEnabled()) {
+        auto crashHandlerStarted = startCrashHandler();
+        qDebug() << "Crash handler started:" << crashHandlerStarted;
+    }
 
     QStringList arguments;
     for (int i = 0; i < argc; ++i) {
@@ -127,7 +151,7 @@ int main(int argc, const char* argv[]) {
         if (socket.waitForConnected(LOCAL_SERVER_TIMEOUT_MS)) {
             if (parser.isSet(urlOption)) {
                 QUrl url = QUrl(parser.value(urlOption));
-                if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
+                if (url.isValid() && url.scheme() == URL_SCHEME_HIFI) {
                     qDebug() << "Writing URL to local socket";
                     socket.write(url.toString().toUtf8());
                     if (!socket.waitForBytesWritten(5000)) {
@@ -233,7 +257,18 @@ int main(int argc, const char* argv[]) {
         argvExtended.push_back("--ignore-gpu-blacklist");
         int argcExtended = (int)argvExtended.size();
 
+        PROFILE_SYNC_END(startup, "main startup", "");
+        PROFILE_SYNC_BEGIN(startup, "app full ctor", "");
         Application app(argcExtended, const_cast<char**>(argvExtended.data()), startupTime, runningMarkerExisted);
+        PROFILE_SYNC_END(startup, "app full ctor", "");
+        
+        
+        QTimer exitTimer;
+        if (traceDuration > 0.0f) {
+            exitTimer.setSingleShot(true);
+            QObject::connect(&exitTimer, &QTimer::timeout, &app, &Application::quit);
+            exitTimer.start(int(1000 * traceDuration));
+        }
 
 #if 0
         // If we failed the OpenGLVersion check, log it.
@@ -252,7 +287,6 @@ int main(int argc, const char* argv[]) {
             }
         }
 #endif
-        
 
         // Setup local server
         QLocalServer server { &app };
@@ -261,29 +295,8 @@ int main(int argc, const char* argv[]) {
         server.removeServer(applicationName);
         server.listen(applicationName);
 
-        QObject::connect(&server, &QLocalServer::newConnection, &app, &Application::handleLocalServerConnection, Qt::DirectConnection);
-
-#ifdef HAS_BUGSPLAT
-        auto accountManager = DependencyManager::get<AccountManager>();
-        crashReporter.mpSender.setDefaultUserName(qPrintable(accountManager->getAccountInfo().getUsername()));
-        QObject::connect(accountManager.data(), &AccountManager::usernameChanged, &app, [&crashReporter](const QString& newUsername) {
-            crashReporter.mpSender.setDefaultUserName(qPrintable(newUsername));
-        });
-
-        // BugSplat WILL NOT work with file paths that do not use OS native separators.
-        auto logger = app.getLogger();
-        auto logPath = QDir::toNativeSeparators(logger->getFilename());
-        crashReporter.mpSender.sendAdditionalFile(qPrintable(logPath));
-
-        QMetaObject::Connection connection;
-        connection = QObject::connect(logger, &FileLogger::rollingLogFile, &app, [&crashReporter, &connection](QString newFilename) {
-            // We only want to add the first rolled log file (the "beginning" of the log) to BugSplat to ensure we don't exceed the 2MB
-            // zipped limit, so we disconnect here.
-            QObject::disconnect(connection);
-            auto rolledLogPath = QDir::toNativeSeparators(newFilename);
-            crashReporter.mpSender.sendAdditionalFile(qPrintable(rolledLogPath));
-        });
-#endif
+        QObject::connect(&server, &QLocalServer::newConnection,
+                         &app, &Application::handleLocalServerConnection, Qt::DirectConnection);
 
         printSystemInformation();
 
@@ -293,6 +306,11 @@ int main(int argc, const char* argv[]) {
         qCDebug(interfaceapp, "Created QT Application.");
         exitCode = app.exec();
         server.close();
+
+        if (traceFile != nullptr) {
+            tracer->stopTracing();
+            tracer->serialize(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/" + traceFile);
+        }
     }
 
     Application::shutdownPlugins();

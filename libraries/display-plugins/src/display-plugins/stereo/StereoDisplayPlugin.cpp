@@ -56,10 +56,8 @@ glm::mat4 StereoDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& basePr
 
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 
-std::vector<QAction*> _screenActions;
 bool StereoDisplayPlugin::internalActivate() {
     auto screens = qApp->screens();
-    _screenActions.resize(screens.size());
     for (int i = 0; i < screens.size(); ++i) {
         auto screen = screens.at(i);
         QString name = QString("Screen %1: %2").arg(i + 1).arg(screen->name());
@@ -67,9 +65,9 @@ bool StereoDisplayPlugin::internalActivate() {
         if (screen == qApp->primaryScreen()) {
             checked = true;
         }
-        auto action = _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), name,
-            [this](bool clicked) { updateScreen(); }, true, checked, "Screens");
-        _screenActions[i] = action;
+        const uint32_t screenIndex = i;
+        _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), name,
+            [=](bool clicked) { updateScreen(screenIndex); }, true, checked, "Screens");
     }
 
     _container->removeMenu(FRAMERATE);
@@ -80,18 +78,12 @@ bool StereoDisplayPlugin::internalActivate() {
     return Parent::internalActivate();
 }
 
-void StereoDisplayPlugin::updateScreen() {
-    for (uint32_t i = 0; i < _screenActions.size(); ++i) {
-        if (_screenActions[i]->isChecked()) {
-            _screen = qApp->screens().at(i);
-            _container->setFullscreen(_screen);
-            break;
-        }
-    }
+void StereoDisplayPlugin::updateScreen(uint32_t i) {
+    _screen = qApp->screens().at(i);
+    _container->setFullscreen(_screen);
 }
 
 void StereoDisplayPlugin::internalDeactivate() {
-    _screenActions.clear();
     _container->unsetFullscreen();
     Parent::internalDeactivate();
 }
@@ -101,3 +93,4 @@ void StereoDisplayPlugin::internalDeactivate() {
 float StereoDisplayPlugin::getRecommendedAspectRatio() const {
     return aspect(Parent::getRecommendedRenderSize());
 }
+

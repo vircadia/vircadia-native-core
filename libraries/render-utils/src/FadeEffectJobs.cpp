@@ -39,43 +39,52 @@ void FadeEditJob::run(const render::RenderContextPointer& renderContext, const F
     auto scene = renderContext->_scene;
 
     if (_isEditEnabled) {
-        float minIsectDistance = std::numeric_limits<float>::max();
-        auto& itemBounds = inputs.get0();
-        auto editedItem = findNearestItem(renderContext, itemBounds, minIsectDistance);
-        render::Transaction transaction;
-        bool hasTransaction{ false };
+        static const std::string selectionName("TransitionEdit");
+        auto scene = renderContext->_scene;
+        if (!scene->isSelectionEmpty(selectionName)) {
+            auto selection = scene->getSelection(selectionName);
+            auto editedItem = selection.getItems().front();
+            render::Transaction transaction;
+            bool hasTransaction{ false };
 
-        if (editedItem != _editedItem && render::Item::isValidID(_editedItem)) {
-            // Remove transition from previously edited item as we've changed edited item
-            hasTransaction = true;
+            if (editedItem != _editedItem && render::Item::isValidID(_editedItem)) {
+                // Remove transition from previously edited item as we've changed edited item
+                hasTransaction = true;
+                transaction.removeTransitionFromItem(_editedItem);
+            }
+            _editedItem = editedItem;
+
+            if (render::Item::isValidID(_editedItem)) {
+                static const render::Transition::Type categoryToTransition[FADE_CATEGORY_COUNT] = {
+                    render::Transition::ELEMENT_ENTER_DOMAIN,
+                    render::Transition::BUBBLE_ISECT_OWNER,
+                    render::Transition::BUBBLE_ISECT_TRESPASSER,
+                    render::Transition::USER_ENTER_DOMAIN,
+                    render::Transition::AVATAR_CHANGE
+                };
+
+                auto transitionType = categoryToTransition[inputs.get1()];
+
+                transaction.queryTransitionOnItem(_editedItem, [transitionType, scene](render::ItemID id, const render::Transition* transition) {
+                    if (transition == nullptr || transition->isFinished || transition->eventType != transitionType) {
+                        // Relaunch transition
+                        render::Transaction transaction;
+                        transaction.addTransitionToItem(id, transitionType);
+                        scene->enqueueTransaction(transaction);
+                    }
+                });
+                hasTransaction = true;
+            }
+
+            if (hasTransaction) {
+                scene->enqueueTransaction(transaction);
+            }
+        } else if (render::Item::isValidID(_editedItem)) {
+            // Remove transition from previously edited item as we've disabled fade edition
+            render::Transaction transaction;
             transaction.removeTransitionFromItem(_editedItem);
-        }
-        _editedItem = editedItem;
-
-        if (render::Item::isValidID(_editedItem)) {
-            static const render::Transition::Type categoryToTransition[FADE_CATEGORY_COUNT] = {
-                render::Transition::ELEMENT_ENTER_DOMAIN,
-                render::Transition::BUBBLE_ISECT_OWNER,
-                render::Transition::BUBBLE_ISECT_TRESPASSER,
-                render::Transition::USER_ENTER_DOMAIN,
-                render::Transition::AVATAR_CHANGE
-            };
-
-            auto transitionType = categoryToTransition[inputs.get1()];
-
-            transaction.queryTransitionOnItem(_editedItem, [transitionType, scene](render::ItemID id, const render::Transition* transition) {
-                if (transition == nullptr || transition->isFinished || transition->eventType!=transitionType) {
-                    // Relaunch transition
-                    render::Transaction transaction;
-                    transaction.addTransitionToItem(id, transitionType);
-                    scene->enqueueTransaction(transaction);
-                }
-            });
-            hasTransaction = true;
-        }
-
-        if (hasTransaction) {
             scene->enqueueTransaction(transaction);
+            _editedItem = render::Item::INVALID_ITEM_ID;
         }
     }
     else if (render::Item::isValidID(_editedItem)) {
@@ -85,28 +94,6 @@ void FadeEditJob::run(const render::RenderContextPointer& renderContext, const F
         scene->enqueueTransaction(transaction);
         _editedItem = render::Item::INVALID_ITEM_ID;
     }
-}
-
-render::ItemID FadeEditJob::findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const {
-    const glm::vec3 rayOrigin = renderContext->args->getViewFrustum().getPosition();
-    const glm::vec3 rayDirection = renderContext->args->getViewFrustum().getDirection();
-    BoxFace face;
-    glm::vec3 normal;
-    float isectDistance;
-    render::ItemID nearestItem = render::Item::INVALID_ITEM_ID;
-    const float minDistance = 1.f;
-    const float maxDistance = 50.f;
-
-    for (const auto& itemBound : inputs) {
-        if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
-            auto& item = renderContext->_scene->getItem(itemBound.id);
-            if (item.getKey().isWorldSpace() && isectDistance>minDistance && isectDistance < minIsectDistance && isectDistance<maxDistance) {
-                nearestItem = itemBound.id;
-                minIsectDistance = isectDistance;
-            }
-        }
-    }
-    return nearestItem;
 }
 
 FadeConfig::FadeConfig() 
@@ -297,19 +284,20 @@ float FadeConfig::getEdgeWidth() const {
     return sqrtf(events[editedCategory].edgeWidth);
 }
 
-void FadeConfig::setEdgeInnerColorR(float value) {
-    events[editedCategory].edgeInnerColor.r = value;
+void FadeConfig::setEdgeInnerColor(const QColor& value) {
+    events[editedCategory].edgeInnerColor.r = value.redF();
+    events[editedCategory].edgeInnerColor.g = value.greenF();
+    events[editedCategory].edgeInnerColor.b = value.blueF();
     emit dirty();
 }
 
-void FadeConfig::setEdgeInnerColorG(float value) {
-    events[editedCategory].edgeInnerColor.g = value;
-    emit dirty();
-}
-
-void FadeConfig::setEdgeInnerColorB(float value) {
-    events[editedCategory].edgeInnerColor.b = value;
-    emit dirty();
+QColor FadeConfig::getEdgeInnerColor() const {
+    QColor color;
+    color.setRedF(events[editedCategory].edgeInnerColor.r);
+    color.setGreenF(events[editedCategory].edgeInnerColor.g);
+    color.setBlueF(events[editedCategory].edgeInnerColor.b);
+    color.setAlphaF(1.0f);
+    return color;
 }
 
 void FadeConfig::setEdgeInnerIntensity(float value) {
@@ -317,19 +305,20 @@ void FadeConfig::setEdgeInnerIntensity(float value) {
     emit dirty();
 }
 
-void FadeConfig::setEdgeOuterColorR(float value) {
-    events[editedCategory].edgeOuterColor.r = value;
+void FadeConfig::setEdgeOuterColor(const QColor& value) {
+    events[editedCategory].edgeOuterColor.r = value.redF();
+    events[editedCategory].edgeOuterColor.g = value.greenF();
+    events[editedCategory].edgeOuterColor.b = value.blueF();
     emit dirty();
 }
 
-void FadeConfig::setEdgeOuterColorG(float value) {
-    events[editedCategory].edgeOuterColor.g = value;
-    emit dirty();
-}
-
-void FadeConfig::setEdgeOuterColorB(float value) {
-    events[editedCategory].edgeOuterColor.b = value;
-    emit dirty();
+QColor FadeConfig::getEdgeOuterColor() const {
+    QColor color;
+    color.setRedF(events[editedCategory].edgeOuterColor.r);
+    color.setGreenF(events[editedCategory].edgeOuterColor.g);
+    color.setBlueF(events[editedCategory].edgeOuterColor.b);
+    color.setAlphaF(1.0f);
+    return color;
 }
 
 void FadeConfig::setEdgeOuterIntensity(float value) {
@@ -351,14 +340,12 @@ QString FadeConfig::eventNames[FADE_CATEGORY_COUNT] = {
     "avatar_change",
 };
 
-void FadeConfig::save() const {
+void FadeConfig::save(const QString& configFilePath) const {
     assert(editedCategory < FADE_CATEGORY_COUNT);
     QJsonObject lProperties;
-    const QString configFile = "config/" + eventNames[editedCategory] + ".json";
-    QUrl path(PathUtils::resourcesPath() + configFile);
-    QFile file(path.toString());
+    QFile file(configFilePath);
     if (!file.open(QFile::WriteOnly | QFile::Text)) {
-        qWarning() << "Fade event configuration file " << path << " cannot be opened";
+        qWarning() << "Fade event configuration file " << configFilePath << " cannot be opened";
     }
     else {
         const auto& event = events[editedCategory];
@@ -380,16 +367,13 @@ void FadeConfig::save() const {
     }
 }
 
-void FadeConfig::load() {
-    const QString configFile = "config/" + eventNames[editedCategory] + ".json";
-
-    QUrl path(PathUtils::resourcesPath() + configFile);
-    QFile file(path.toString());
+void FadeConfig::load(const QString& configFilePath) {
+    QFile file(configFilePath);
     if (!file.exists()) {
-        qWarning() << "Fade event configuration file " << path << " does not exist";
+        qWarning() << "Fade event configuration file " << configFilePath << " does not exist";
     }
     else if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "Fade event configuration file " << path << " cannot be opened";
+        qWarning() << "Fade event configuration file " << configFilePath << " cannot be opened";
     }
     else {
         QString fileData = file.readAll();
@@ -401,14 +385,14 @@ void FadeConfig::load() {
             QJsonValue value;
             auto& event = events[editedCategory];
 
-            qCDebug(renderlogging) << "Fade event configuration file" << path << "loaded";
+            qCDebug(renderlogging) << "Fade event configuration file" << configFilePath << "loaded";
 
             value = jsonObject["edgeInnerColor"];
             if (value.isArray()) {
                 QJsonArray data = value.toArray();
 
                 if (data.size() < 4) {
-                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeInnerColor' field. Expected array of size 4";
+                    qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'edgeInnerColor' field. Expected array of size 4";
                 }
                 else {
                     event.edgeInnerColor.r = (float)data.at(0).toDouble();
@@ -418,7 +402,7 @@ void FadeConfig::load() {
                 }
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeInnerColor' field. Expected array of size 4";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'edgeInnerColor' field. Expected array of size 4";
             }
 
             value = jsonObject["edgeOuterColor"];
@@ -426,7 +410,7 @@ void FadeConfig::load() {
                 QJsonArray data = value.toArray();
 
                 if (data.size() < 4) {
-                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeOuterColor' field. Expected array of size 4";
+                    qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'edgeOuterColor' field. Expected array of size 4";
                 }
                 else {
                     event.edgeOuterColor.r = (float)data.at(0).toDouble();
@@ -436,7 +420,7 @@ void FadeConfig::load() {
                 }
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeOuterColor' field. Expected array of size 4";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'edgeOuterColor' field. Expected array of size 4";
             }
 
             value = jsonObject["noiseSize"];
@@ -444,7 +428,7 @@ void FadeConfig::load() {
                 QJsonArray data = value.toArray();
 
                 if (data.size() < 3) {
-                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseSize' field. Expected array of size 3";
+                    qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'noiseSize' field. Expected array of size 3";
                 }
                 else {
                     event.noiseSize.x = (float)data.at(0).toDouble();
@@ -453,7 +437,7 @@ void FadeConfig::load() {
                 }
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseSize' field. Expected array of size 3";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'noiseSize' field. Expected array of size 3";
             }
 
             value = jsonObject["noiseSpeed"];
@@ -461,7 +445,7 @@ void FadeConfig::load() {
                 QJsonArray data = value.toArray();
 
                 if (data.size() < 3) {
-                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseSpeed' field. Expected array of size 3";
+                    qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'noiseSpeed' field. Expected array of size 3";
                 }
                 else {
                     event.noiseSpeed.x = (float)data.at(0).toDouble();
@@ -470,7 +454,7 @@ void FadeConfig::load() {
                 }
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseSpeed' field. Expected array of size 3";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'noiseSpeed' field. Expected array of size 3";
             }
 
             value = jsonObject["baseSize"];
@@ -478,7 +462,7 @@ void FadeConfig::load() {
                 QJsonArray data = value.toArray();
 
                 if (data.size() < 3) {
-                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'baseSize' field. Expected array of size 3";
+                    qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'baseSize' field. Expected array of size 3";
                 }
                 else {
                     event.baseSize.x = (float)data.at(0).toDouble();
@@ -487,7 +471,7 @@ void FadeConfig::load() {
                 }
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'baseSize' field. Expected array of size 3";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'baseSize' field. Expected array of size 3";
             }
 
             value = jsonObject["noiseLevel"];
@@ -495,7 +479,7 @@ void FadeConfig::load() {
                 event.noiseLevel = (float)value.toDouble();
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseLevel' field. Expected float value";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'noiseLevel' field. Expected float value";
             }
 
             value = jsonObject["baseLevel"];
@@ -503,7 +487,7 @@ void FadeConfig::load() {
                 event.baseLevel = (float)value.toDouble();
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'baseLevel' field. Expected float value";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'baseLevel' field. Expected float value";
             }
 
             value = jsonObject["duration"];
@@ -511,7 +495,7 @@ void FadeConfig::load() {
                 event.duration = (float)value.toDouble();
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'duration' field. Expected float value";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'duration' field. Expected float value";
             }
 
             value = jsonObject["edgeWidth"];
@@ -519,7 +503,7 @@ void FadeConfig::load() {
                 event.edgeWidth = std::min(1.f, std::max(0.f, (float)value.toDouble()));
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeWidth' field. Expected float value";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'edgeWidth' field. Expected float value";
             }
 
             value = jsonObject["timing"];
@@ -527,7 +511,7 @@ void FadeConfig::load() {
                 event.timing = std::max(0, std::min(TIMING_COUNT - 1, value.toInt()));
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'timing' field. Expected integer value";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'timing' field. Expected integer value";
             }
 
             value = jsonObject["isInverted"];
@@ -535,13 +519,13 @@ void FadeConfig::load() {
                 event.isInverted = value.toBool();
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'isInverted' field. Expected boolean value";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'isInverted' field. Expected boolean value";
             }
 
             emit dirty();
         }
         else {
-            qWarning() << "Fade event configuration file" << path << "failed to load:" <<
+            qWarning() << "Fade event configuration file" << configFilePath << "failed to load:" <<
                 error.errorString() << "at offset" << error.offset;
         }
     }
@@ -594,7 +578,7 @@ void FadeJob::run(const render::RenderContextPointer& renderContext, FadeJob::Ou
         if (update(*jobConfig, scene, transaction, state, deltaTime)) {
             hasTransaction = true;
         }
-        if (isFirstItem && jobConfig->manualFade && (state.threshold != jobConfig->threshold)) {
+        if (isFirstItem && (state.threshold != jobConfig->threshold)) {
             jobConfig->setProperty("threshold", state.threshold);
             isFirstItem = false;
         }

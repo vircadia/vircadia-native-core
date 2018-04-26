@@ -24,7 +24,7 @@
         if (onSkyboxChangerScreen) {
             tablet.gotoHomeScreen();
         } else {
-            tablet.loadQMLSource("../SkyboxChanger.qml");
+            tablet.loadQMLSource("hifi/SkyboxChanger.qml");
         }
     }
 
@@ -32,8 +32,7 @@
     var button = tablet.addButton({
         icon: ICONS.icon,
         activeIcon: ICONS.activeIcon,
-        text: TABLET_BUTTON_NAME,
-        sortOrder: 1
+        text: TABLET_BUTTON_NAME
     });
 
     var hasEventBridge = false;

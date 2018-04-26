@@ -5,8 +5,8 @@
 //  model_normal_map.frag
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 10/29/13.
-//  Copyright 2013 High Fidelity, Inc.
+//  Created by Andrzej Kapolka on 5/6/14.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,26 +14,26 @@
 
 <@include DeferredBufferWrite.slh@>
 
-<@include model/Material.slh@>
+<@include graphics/Material.slh@>
 
 <@include MaterialTextures.slh@>
-<$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL, _SCRIBE_NULL, EMISSIVE, OCCLUSION, SCATTERING)$>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL, METALLIC, EMISSIVE, OCCLUSION, SCATTERING)$>
 
-in vec4 _position;
+in vec4 _positionES;
 in vec2 _texCoord0;
 in vec2 _texCoord1;
-in vec3 _normal;
-in vec3 _tangent;
+in vec3 _normalWS;
+in vec3 _tangentWS;
 in vec3 _color;
 
 void main(void) {
     Material mat = getMaterial();
-    int matKey = getMaterialKey(mat);
-    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, normalTex, _SCRIBE_NULL, emissiveTex, scatteringTex)$>
+    BITFIELD matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, normalTex, metallicTex, emissiveTex, scatteringTex)$>
     <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
 
     float opacity = 1.0;
-    <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
+    <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)&>;
     <$discardTransparent(opacity)$>;
 
     vec3 albedo = getMaterialAlbedo(mat);
@@ -46,18 +46,21 @@ void main(void) {
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
-    vec3 viewNormal;
-   <$tangentToViewSpaceLOD(_position, normalTex, _normal, _tangent, viewNormal)$>
+    vec3 fragNormalWS;
+    <$evalMaterialNormalLOD(_positionES, normalTex, _normalWS, _tangentWS, fragNormalWS)$>
+
+    float metallic = getMaterialMetallic(mat);
+    <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
 
     float scattering = getMaterialScattering(mat);
     <$evalMaterialScattering(scatteringTex, scattering, matKey, scattering)$>;
 
     packDeferredFragment(
-        viewNormal, 
+        normalize(fragNormalWS.xyz),
         opacity,
         albedo,
         roughness,
-        getMaterialMetallic(mat),
+        metallic,
         emissive,
         occlusionTex,
         scattering);

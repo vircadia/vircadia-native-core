@@ -1,0 +1,103 @@
+<!
+//  Light.slh
+//  fragment shader
+//
+//  Created by Sam Gateau on 1/25/14.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not MODEL_LIGHT_SLH@>
+<@def MODEL_LIGHT_SLH@>
+
+<@include graphics/LightVolume.shared.slh@>
+<@include graphics/LightIrradiance.shared.slh@>
+
+// NOw lets define Light
+struct Light {
+    LightVolume volume;
+    LightIrradiance irradiance;
+};
+
+bool light_isSpot(Light l) { return lightVolume_isSpot(l.volume); }
+
+vec3 getLightPosition(Light l) { return lightVolume_getPosition(l.volume); }
+vec3 getLightDirection(Light l) { return lightVolume_getDirection(l.volume); }
+
+vec3 getLightColor(Light l) { return lightIrradiance_getColor(l.irradiance); }
+float getLightIntensity(Light l) { return lightIrradiance_getIntensity(l.irradiance); }
+vec3 getLightIrradiance(Light l) { return lightIrradiance_getIrradiance(l.irradiance); }
+
+// Ambient lighting needs extra info provided from a different Buffer
+<@include graphics/SphericalHarmonics.shared.slh@>
+// Light Ambient
+
+struct LightAmbient {
+    PRECISIONQ vec4 _ambient;
+    SphericalHarmonics _ambientSphere;
+    mat4 transform;
+};
+
+SphericalHarmonics getLightAmbientSphere(LightAmbient l) { return l._ambientSphere; }
+
+
+float getLightAmbientIntensity(LightAmbient l) { return l._ambient.x; }
+bool getLightHasAmbientMap(LightAmbient l) { return l._ambient.y > 0.0; }
+float getLightAmbientMapNumMips(LightAmbient l) { return l._ambient.y; }
+
+<@func declareLightBuffer(N)@>
+
+
+<@if N@>
+uniform lightBuffer {
+    Light lightArray[<$N$>];
+};
+Light getLight(int index) {
+    return lightArray[index];
+}
+
+<@else@>
+uniform keyLightBuffer {
+    Light light;
+};
+Light getKeyLight() {
+    return light;
+}
+
+<@endif@>
+
+<@endfunc@>
+
+
+
+
+
+
+<@func declareLightAmbientBuffer(N)@>
+
+<@if N@>
+
+uniform lightAmbientBuffer {
+    LightAmbient lightAmbientArray[<$N$>];
+};
+
+LightAmbient getLightAmbient(int index) {
+    return lightAmbientArray[index];
+}
+
+<@else@>
+uniform lightAmbientBuffer {
+    LightAmbient lightAmbient;
+};
+
+LightAmbient getLightAmbient() {
+    return lightAmbient;
+}
+
+<@endif@>
+
+<@endfunc@>
+
+
+<@endif@>

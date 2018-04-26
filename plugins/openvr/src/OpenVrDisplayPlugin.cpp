@@ -36,7 +36,6 @@
 
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 
-const char* OpenVrDisplayPlugin::NAME { "OpenVR (Vive)" };
 const char* StandingHMDSensorMode { "Standing HMD Sensor Mode" }; // this probably shouldn't be hardcoded here
 const char* OpenVrThreadedSubmit { "OpenVR Threaded Submit" }; // this probably shouldn't be hardcoded here
 
@@ -175,12 +174,12 @@ public:
             while (!_queue.empty()) {
                 auto& front = _queue.front();
 
-                auto result = glClientWaitSync(front.fence, 0, 0);
+                auto result = glClientWaitSync((GLsync)front.fence, 0, 0);
 
                 if (GL_TIMEOUT_EXPIRED == result || GL_WAIT_FAILED == result) {
                     break;
                 } else if (GL_CONDITION_SATISFIED == result || GL_ALREADY_SIGNALED == result) {
-                    glDeleteSync(front.fence);
+                    glDeleteSync((GLsync)front.fence);
                 } else {
                     assert(false);
                 }
@@ -200,9 +199,10 @@ public:
             std::string fsSource = HMD_REPROJECTION_FRAG;
             GLuint vertexShader { 0 }, fragmentShader { 0 };
             std::string error;
+            std::vector<char> binary;
             ::gl::compileShader(GL_VERTEX_SHADER, vsSource, "", vertexShader, error);
             ::gl::compileShader(GL_FRAGMENT_SHADER, fsSource, "", fragmentShader, error);
-            _program = ::gl::compileProgram({ { vertexShader, fragmentShader } }, error);
+            _program = ::gl::compileProgram({ { vertexShader, fragmentShader } }, error, binary);
             glDeleteShader(vertexShader);
             glDeleteShader(fragmentShader);
             qDebug() << "Rebuild proigram";
@@ -409,6 +409,15 @@ void OpenVrDisplayPlugin::init() {
     emit deviceConnected(getName());
 }
 
+const QString OpenVrDisplayPlugin::getName() const {
+    std::string headsetName = getOpenVrDeviceName();
+    if (headsetName == "HTC") {
+        headsetName += " Vive";
+    }
+
+    return QString::fromStdString(headsetName);
+}
+
 bool OpenVrDisplayPlugin::internalActivate() {
     if (!_system) {
         _system = acquireOpenVrSystem();
@@ -443,7 +452,6 @@ bool OpenVrDisplayPlugin::internalActivate() {
 
     _openVrDisplayActive = true;
     _container->setIsOptionChecked(StandingHMDSensorMode, true);
-
     _system->GetRecommendedRenderTargetSize(&_renderTargetSize.x, &_renderTargetSize.y);
     // Recommended render target size is per-eye, so double the X size for 
     // left + right eyes
@@ -484,7 +492,7 @@ bool OpenVrDisplayPlugin::internalActivate() {
     if (_threadedSubmit) {
         _submitThread = std::make_shared<OpenVrSubmitThread>(*this);
         if (!_submitCanvas) {
-            withMainThreadContext([&] {
+            withOtherThreadContext([&] {
                 _submitCanvas = std::make_shared<gl::OffscreenContext>();
                 _submitCanvas->create();
                 _submitCanvas->doneCurrent();
@@ -510,14 +518,8 @@ void OpenVrDisplayPlugin::internalDeactivate() {
 }
 
 void OpenVrDisplayPlugin::customizeContext() {
-    // Display plugins in DLLs must initialize glew locally
-    static std::once_flag once;
-    std::call_once(once, [] {
-        glewExperimental = true;
-        GLenum err = glewInit();
-        glGetError(); // clear the potential error from glewExperimental
-    });
-
+    // Display plugins in DLLs must initialize GL locally
+    gl::initModuleGl();
     Parent::customizeContext();
 
     if (_threadedSubmit) {

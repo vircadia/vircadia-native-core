@@ -57,10 +57,10 @@ class OffscreenUi : public OffscreenQmlSurface, public Dependency {
     friend class VrMenu;
 public:
     OffscreenUi();
-    virtual void create() override;
     void createDesktop(const QUrl& url);
     void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     void hide(const QString& name);
+    void hideDesktopWindows();
     bool isVisible(const QString& name);
     void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     bool shouldSwallowShortcut(QEvent* event);
@@ -80,7 +80,6 @@ public:
     QObject* getFlags();
     Q_INVOKABLE bool isPointOnDesktopWindow(QVariant point);
     QQuickItem* getDesktop();
-    QQuickItem* getToolWindow();
     QObject* getRootMenu();
     enum Icon {
         ICON_NONE = 0,
@@ -232,10 +231,8 @@ public:
 
     static QString getText(const Icon icon, const QString & title, const QString & label, const QString & text = QString(), bool * ok = 0);
     static QString getItem(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true, bool * ok = 0);
-    static QVariant getCustomInfo(const Icon icon, const QString& title, const QVariantMap& config, bool* ok = 0);
     static ModalDialogListener* getTextAsync(const Icon icon, const QString & title, const QString & label, const QString & text = QString());
     static ModalDialogListener* getItemAsync(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true);
-    static ModalDialogListener* getCustomInfoAsync(const Icon icon, const QString& title, const QVariantMap& config);
 
     unsigned int getMenuUserDataId() const;
     QList<QObject *> &getModalDialogListeners();
@@ -254,6 +251,9 @@ private slots:
     void hoverEndEvent(const PointerEvent& event);
     void handlePointerEvent(const PointerEvent& event);
 
+protected:
+    void onRootContextCreated(QQmlContext* qmlContext) override;
+
 private:
     QString fileDialog(const QVariantMap& properties);
     ModalDialogListener *fileDialogAsync(const QVariantMap &properties);
@@ -261,7 +261,6 @@ private:
     ModalDialogListener* assetDialogAsync(const QVariantMap& properties);
 
     QQuickItem* _desktop { nullptr };
-    QQuickItem* _toolWindow { nullptr };
     QList<QObject*> _modalDialogListeners;
     std::unordered_map<int, bool> _pressedKeys;
     VrMenu* _vrMenu { nullptr };

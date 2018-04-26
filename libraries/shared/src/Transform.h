@@ -58,7 +58,7 @@ public:
         _rotation(rotation),
         _scale(scale),
         _translation(translation),
-        _flags(FLAG_CACHE_INVALID_BITSET) // invalid cache
+        _flags(0xf) // FLAG_TRANSLATION | FLAG_ROTATION | FLAG_SCALING | FLAG_NON_UNIFORM
     {
         if (!isValidScale(_scale)) {
             _scale = Vec3(1.0f);

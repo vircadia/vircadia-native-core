@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global Script, MyAvatar, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule,
-   makeDispatcherModuleParameters, makeRunningValues, getEnabledModuleByName
+   makeDispatcherModuleParameters, makeRunningValues, getEnabledModuleByName, makeLaserParams
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -19,14 +19,21 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     function InVREditMode(hand) {
         this.hand = hand;
         this.disableModules = false;
+        var NO_HAND_LASER = -1; // Invalid hand parameter so that default laser is not displayed.
         this.parameters = makeDispatcherModuleParameters(
             200, // Not too high otherwise the tablet laser doesn't work.
             this.hand === RIGHT_HAND
                 ? ["rightHand", "rightHandEquip", "rightHandTrigger"]
                 : ["leftHand", "leftHandEquip", "leftHandTrigger"],
             [],
-            100
+            100,
+            makeLaserParams(NO_HAND_LASER, false)
         );
+
+        this.pointingAtTablet = function (objectID) {
+            return (HMD.tabletScreenID && objectID === HMD.tabletScreenID)
+                || (HMD.homeButtonID && objectID === HMD.homeButtonID);
+        };
 
         this.isReady = function (controllerData) {
             if (this.disableModules) {
@@ -42,7 +49,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
 
             // Tablet stylus.
-            // Includes the tablet laser.
             var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND
                 ? "RightTabletStylusInput"
                 : "LeftTabletStylusInput");
@@ -53,13 +59,25 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 }
             }
 
+            // Tablet surface.
+            var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightWebSurfaceLaserInput"
+                : "LeftWebSurfaceLaserInput");
+            if (overlayLaser) {
+                var overlayLaserReady = overlayLaser.isReady(controllerData);
+                var target = controllerData.rayPicks[this.hand].objectID;
+                if (overlayLaserReady.active && this.pointingAtTablet(target)) {
+                    return makeRunningValues(false, [], []);
+                }
+            }
+
             // Tablet grabbing.
             var nearOverlay = getEnabledModuleByName(this.hand === RIGHT_HAND
                 ? "RightNearParentingGrabOverlay"
                 : "LeftNearParentingGrabOverlay");
             if (nearOverlay) {
                 var nearOverlayReady = nearOverlay.isReady(controllerData);
-                if (nearOverlayReady.active && nearOverlay.grabbedThingID === HMD.tabletID) {
+                if (nearOverlayReady.active && HMD.tabletID && nearOverlay.grabbedThingID === HMD.tabletID) {
                     return makeRunningValues(false, [], []);
                 }
             }

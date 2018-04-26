@@ -17,12 +17,12 @@
 
 namespace gl {
 #ifdef SEPARATE_PROGRAM
-    bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, GLuint &programObject, std::string& error);
+    bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, GLuint &programObject, std::string& message);
 #else
-    bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, std::string& error);
+    bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, std::string& message);
 #endif
 
-    GLuint compileProgram(const std::vector<GLuint>& glshaders, std::string& error);
+    GLuint compileProgram(const std::vector<GLuint>& glshaders, std::string& message, std::vector<GLchar>& binary);
 
 }
 

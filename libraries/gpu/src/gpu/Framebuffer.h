@@ -12,6 +12,7 @@
 #define hifi_gpu_Framebuffer_h
 
 #include "Texture.h"
+#include "ResourceSwapChain.h"
 #include <memory>
 
 class Transform; // Texcood transform util
@@ -134,7 +135,7 @@ public:
 
     float getAspectRatio() const { return getWidth() / (float) getHeight() ; }
 
-#ifndef ANDROID
+#if !defined(Q_OS_ANDROID)
     static const uint32 MAX_NUM_RENDER_BUFFERS = 8; 
 #else    
     static const uint32 MAX_NUM_RENDER_BUFFERS = 4;
@@ -177,6 +178,8 @@ protected:
     Framebuffer() {}
 };
 typedef std::shared_ptr<Framebuffer> FramebufferPointer;
+typedef ResourceSwapChain<Framebuffer> FramebufferSwapChain;
+typedef std::shared_ptr<FramebufferSwapChain> FramebufferSwapChainPointer;
 
 }
 

@@ -28,7 +28,7 @@ QNetworkRequest createNetworkRequest() {
 
     QNetworkRequest request;
 
-    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
     requestURL.setPath(USER_ACTIVITY_URL);
 
     request.setUrl(requestURL);

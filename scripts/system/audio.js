@@ -15,7 +15,7 @@
 
 var TABLET_BUTTON_NAME = "AUDIO";
 var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
-var AUDIO_QML_SOURCE = "../audio/Audio.qml";
+var AUDIO_QML_SOURCE = "hifi/audio/Audio.qml";
 
 var MUTE_ICONS = {
     icon: "icons/tablet-icons/mic-mute-i.svg",
@@ -42,8 +42,9 @@ function onClicked() {
         // for toolbar-mode: go back to home screen, this will close the window.
         tablet.gotoHomeScreen();
     } else {
-        var entity = HMD.tabletID;
-        Entities.editEntity(entity, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
+        if (HMD.tabletID) {
+            Entities.editEntity(HMD.tabletID, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
+        }
         tablet.loadQMLSource(AUDIO_QML_SOURCE);
     }
 }

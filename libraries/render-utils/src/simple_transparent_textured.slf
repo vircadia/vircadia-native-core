@@ -12,51 +12,24 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include gpu/Color.slh@>
-
 <@include DeferredBufferWrite.slh@>
-<@include DeferredGlobalLight.slh@>
-<$declareEvalGlobalLightingAlphaBlended()$>
-
-<@include gpu/Transform.slh@>
-<$declareStandardCameraTransform()$>
 
 // the albedo texture
 uniform sampler2D originalTexture;
 
 // the interpolated normal
-in vec4 _position;
-in vec3 _normal;
+in vec3 _normalWS;
 in vec4 _color;
 in vec2 _texCoord0;
 
 void main(void) {
-    vec4 texel = texture(originalTexture, _texCoord0.st);
-    float opacity = _color.a;
-    if (_color.a <= 0.0) {
-        texel = colorToLinearRGBA(texel);
-        opacity = -_color.a;
-    }
-    opacity *= texel.a;
-    vec3 albedo = _color.rgb * texel.rgb;
+    vec4 texel = texture(originalTexture, _texCoord0);
+    float colorAlpha = _color.a * texel.a;
 
-    vec3 fragPosition = _position.xyz;
-    vec3 fragNormal = normalize(_normal);
-
-    TransformCamera cam = getTransformCamera();
-
-    _fragColor0 = vec4(evalGlobalLightingAlphaBlended(
-        cam._viewInverse,
-        1.0,
-        1.0,
-        fragPosition,
-        fragNormal,
-        albedo,
+    packDeferredFragmentTranslucent(
+        normalize(_normalWS),
+        colorAlpha,
+        _color.rgb * texel.rgb,
         DEFAULT_FRESNEL,
-        0.0,
-        vec3(0.0f),
-        DEFAULT_ROUGHNESS,
-        opacity),
-        opacity);
-
+        DEFAULT_ROUGHNESS);
 }

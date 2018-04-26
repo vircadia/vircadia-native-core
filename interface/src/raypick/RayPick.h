@@ -18,8 +18,8 @@ class RayPickResult : public PickResult {
 public:
     RayPickResult() {}
     RayPickResult(const QVariantMap& pickVariant) : PickResult(pickVariant) {}
-    RayPickResult(const IntersectionType type, const QUuid& objectID, float distance, const glm::vec3& intersection, const PickRay& searchRay, const glm::vec3& surfaceNormal = glm::vec3(NAN)) :
-        PickResult(searchRay.toVariantMap()), type(type), intersects(type != NONE), objectID(objectID), distance(distance), intersection(intersection), surfaceNormal(surfaceNormal) {
+    RayPickResult(const IntersectionType type, const QUuid& objectID, float distance, const glm::vec3& intersection, const PickRay& searchRay, const glm::vec3& surfaceNormal = glm::vec3(NAN), const QVariantMap& extraInfo = QVariantMap()) :
+        PickResult(searchRay.toVariantMap()), type(type), intersects(type != NONE), objectID(objectID), distance(distance), intersection(intersection), surfaceNormal(surfaceNormal), extraInfo(extraInfo) {
     }
 
     RayPickResult(const RayPickResult& rayPickResult) : PickResult(rayPickResult.pickVariant) {
@@ -29,6 +29,7 @@ public:
         distance = rayPickResult.distance;
         intersection = rayPickResult.intersection;
         surfaceNormal = rayPickResult.surfaceNormal;
+        extraInfo = rayPickResult.extraInfo;
     }
 
     IntersectionType type { NONE };
@@ -37,6 +38,7 @@ public:
     float distance { FLT_MAX };
     glm::vec3 intersection { NAN };
     glm::vec3 surfaceNormal { NAN };
+    QVariantMap extraInfo;
 
     virtual QVariantMap toVariantMap() const override {
         QVariantMap toReturn;
@@ -47,6 +49,7 @@ public:
         toReturn["intersection"] = vec3toVariant(intersection);
         toReturn["surfaceNormal"] = vec3toVariant(surfaceNormal);
         toReturn["searchRay"] = PickResult::toVariantMap();
+        toReturn["extraInfo"] = extraInfo;
         return toReturn;
     }
 

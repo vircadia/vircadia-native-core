@@ -41,14 +41,14 @@ QSpinBox, QDoubleSpinBox {
 
 QDoubleSpinBox::up-arrow,
 QSpinBox::up-arrow {
-    background-image: url(styles/up.svg);
+    background-image: url(:/styles/up.svg);
     background-repeat: no-repeat;
     background-position: center center;
 }
 
 QDoubleSpinBox::down-arrow,
 QSpinBox::down-arrow {
-    background-image: url(styles/down.svg);
+    background-image: url(:/styles/down.svg);
     background-repeat: no-repeat;
     background-position: center center;
 }
@@ -88,7 +88,7 @@ QSlider {
 
 QSlider::groove:horizontal {
     border: none;
-    background-image: url(styles/slider-bg.svg);
+    background-image: url(:/styles/slider-bg.svg);
     background-repeat: no-repeat;
     background-position: center center;
 }
@@ -96,7 +96,7 @@ QSlider::groove:horizontal {
 QSlider::handle:horizontal {
     width: 18px;
     height: 18px;
-    background-image: url(styles/slider-handle.svg);
+    background-image: url(:/styles/slider-handle.svg);
     background-repeat: no-repeat;
     background-position: center center;
 }
@@ -107,7 +107,7 @@ QPushButton#closeButton {
     border-width: 1px;
     border-radius: 0;
     background-color: #fff;
-    background-image: url(styles/close.svg);
+    background-image: url(:/styles/close.svg);
     background-repeat: no-repeat;
     background-position: center center;
 }

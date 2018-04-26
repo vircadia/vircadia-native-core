@@ -20,15 +20,15 @@
 <@include MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>
 
-out vec4 _position;
+out vec4 _positionES;
 out vec2 _texCoord0;
 out vec2 _texCoord1;
-out vec3 _normal;
+out vec3 _normalWS;
 out vec3 _color;
 
 void main(void) {
     // pass along the color in linear space
-    _color = colorToLinearRGB(inColor.xyz);
+    _color = color_sRGBToLinear(inColor.xyz);
 
     // and the texture coordinates
     TexMapArray texMapArray = getTexMapArray();
@@ -38,7 +38,6 @@ void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _position, gl_Position)$>
-    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal)$>
+    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
+    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
 }
-

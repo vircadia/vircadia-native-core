@@ -19,13 +19,11 @@
 
 using namespace std;
 
-int main(int argc, char * argv[]) {
-    QCoreApplication::setApplicationName(BuildInfo::AC_CLIENT_SERVER_NAME);
-    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
-    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
+int main(int argc, char* argv[]) {
+    setupHifiApplication(BuildInfo::AC_CLIENT_SERVER_NAME);
+    
+    Setting::init();
 
     ACClientApp app(argc, argv);
-
     return app.exec();
 }

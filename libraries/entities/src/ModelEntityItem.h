@@ -17,6 +17,7 @@
 #include <ThreadSafeValueCache.h>
 #include "AnimationPropertyGroup.h"
 
+
 class ModelEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -29,7 +30,6 @@ public:
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
-    // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
@@ -46,8 +46,10 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    //virtual void update(const quint64& now) override;
-    //virtual bool needsToCallUpdate() const override;
+
+    virtual void update(const quint64& now) override;
+    bool needsToCallUpdate() const override { return isAnimatingSomething(); }
+
     virtual void debugDump() const override;
 
     void setShapeType(ShapeType type) override;
@@ -90,9 +92,13 @@ public:
     bool getAnimationAllowTranslation() const { return _animationProperties.getAllowTranslation(); };
 
     void setAnimationLoop(bool loop);
+    bool getAnimationLoop() const;
 
     void setAnimationHold(bool hold);
     bool getAnimationHold() const;
+
+    void setRelayParentJoints(bool relayJoints);
+    bool getRelayParentJoints() const;
 
     void setAnimationFirstFrame(float firstFrame);
     float getAnimationFirstFrame() const;
@@ -102,6 +108,7 @@ public:
 
     bool getAnimationIsPlaying() const;
     float getAnimationCurrentFrame() const;
+    float getAnimationFPS() const;
     bool isAnimatingSomething() const;
 
     static const QString DEFAULT_TEXTURES;
@@ -115,7 +122,7 @@ public:
     virtual void setJointTranslations(const QVector<glm::vec3>& translations);
     virtual void setJointTranslationsSet(const QVector<bool>& translationsSet);
 
-    virtual void setAnimationJointsData(const QVector<JointData>& jointsData);
+    virtual void setAnimationJointsData(const QVector<EntityJointData>& jointsData);
 
     QVector<glm::quat> getJointRotations() const;
     QVector<bool> getJointRotationsSet() const;
@@ -124,6 +131,7 @@ public:
 
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
+    bool applyNewAnimationProperties(AnimationPropertyGroup newProperties);
     ShapeType computeTrueShapeType() const;
 
 protected:
@@ -141,16 +149,17 @@ protected:
     bool _jointTranslationsExplicitlySet{ false }; // were the joints set as a property or just side effect of animations
 
     struct ModelJointData {
-        JointData joint;
+        EntityJointData joint;
         bool rotationDirty { false };
         bool translationDirty { false };
     };
 
     QVector<ModelJointData> _localJointData;
-    int _lastKnownCurrentFrame;
+    int _lastKnownCurrentFrame{-1};
 
     rgbColor _color;
     QString _modelURL;
+    bool _relayParentJoints;
 
     ThreadSafeValueCache<QString> _compoundShapeURL;
 
@@ -160,6 +169,10 @@ protected:
     QString _textures;
 
     ShapeType _shapeType = SHAPE_TYPE_NONE;
+
+private:
+    uint64_t _lastAnimated{ 0 };
+    float _currentFrame{ -1.0f };
 };
 
 #endif // hifi_ModelEntityItem_h

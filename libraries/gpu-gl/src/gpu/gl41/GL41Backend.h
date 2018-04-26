@@ -13,8 +13,8 @@
 
 #include <gl/Config.h>
 
-#include "../gl/GLBackend.h"
-#include "../gl/GLTexture.h"
+#include <gpu/gl/GLBackend.h>
+#include <gpu/gl/GLTexture.h>
 
 #define GPU_CORE_41 410
 #define GPU_CORE_43 430
@@ -172,6 +172,8 @@ protected:
     std::string getBackendShaderHeader() const override;
     void makeProgramBindings(ShaderObject& shaderObject) override;
     int makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
+
+    static bool supportedTextureFormat(const gpu::Element& format);
 
 };
 

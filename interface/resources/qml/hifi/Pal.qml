@@ -26,10 +26,11 @@ Rectangle {
     // Style
     color: "#E3E3E3";
     // Properties
+    property bool debug: false;
     property int myCardWidth: width - upperRightInfoContainer.width;
-    property int myCardHeight: 80;
+    property int myCardHeight: 100;
     property int rowHeight: 60;
-    property int actionButtonWidth: 55;
+    property int actionButtonWidth: 65;
     property int locationColumnWidth: 170;
     property int nearbyNameCardWidth: nearbyTable.width - (iAmAdmin ? (actionButtonWidth * 4) : (actionButtonWidth * 2)) - 4 - hifi.dimensions.scrollbarBackgroundWidth;
     property int connectionsNameCardWidth: connectionsTable.width - locationColumnWidth - actionButtonWidth - 4 - hifi.dimensions.scrollbarBackgroundWidth;
@@ -47,7 +48,7 @@ Rectangle {
     // The letterbox used for popup messages
     LetterboxMessage {
         id: letterboxMessage;
-        z: 999; // Force the popup on top of everything else
+        z: 998; // Force the popup on top of everything else
     }
     Connections {
         target: GlobalServices
@@ -59,7 +60,7 @@ Rectangle {
     // The ComboDialog used for setting availability
     ComboDialog {
         id: comboDialog;
-        z: 999; // Force the ComboDialog on top of everything else
+        z: 998; // Force the ComboDialog on top of everything else
         dialogWidth: parent.width - 50;
         dialogHeight: parent.height - 100;
     }
@@ -414,6 +415,7 @@ Rectangle {
                 movable: false;
                 resizable: false;
             }
+
             TableViewColumn {
                 role: "ignore";
                 title: "IGNORE";
@@ -598,13 +600,23 @@ Rectangle {
         }
         // This Rectangle refers to the [?] popup button next to "NAMES"
         Rectangle {
+            id: questionRect
             color: hifi.colors.tableBackgroundLight;
             width: 20;
             height: hifi.dimensions.tableHeaderHeight - 2;
             anchors.left: nearbyTable.left;
             anchors.top: nearbyTable.top;
             anchors.topMargin: 1;
-            anchors.leftMargin: actionButtonWidth + nearbyNameCardWidth/2 + displayNameHeaderMetrics.width/2 + 6;
+
+            Connections {
+                target: nearbyTable
+                onTitlePaintedPosSignal: {
+                    if (column === 1) { // name column
+                        questionRect.anchors.leftMargin = actionButtonWidth + nearbyTable.titlePaintedPos[column]
+                    }
+                }
+            }
+
             RalewayRegular {
                 id: helpText;
                 text: "[?]";
@@ -896,7 +908,6 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter;
             }
 
-            FontLoader { id: ralewayRegular; source: "../../fonts/Raleway-Regular.ttf"; }
             Text {
                 id: connectionHelpText;
                 // Anchors
@@ -911,7 +922,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHLeft
                 // Style
                 font.pixelSize: 18;
-                font.family: ralewayRegular.name
+                font.family: "Raleway"
                 color: hifi.colors.darkGray
                 wrapMode: Text.WordWrap
                 textFormat: Text.StyledText;
@@ -1012,7 +1023,7 @@ Rectangle {
                 }
                 MouseArea {
                     anchors.fill: parent;
-                    enabled: myData.userName !== "Unknown user";
+                    enabled: myData.userName !== "Unknown user" && !userInfoViewer.visible;
                     hoverEnabled: true;
                     onClicked: {
                         popupComboDialog("Set your availability:",
@@ -1043,6 +1054,7 @@ Rectangle {
 
         HifiControls.TabletWebView {
             id: userInfoViewer;
+            z: 999;
             anchors {
                 top: parent.top;
                 bottom: parent.bottom;
@@ -1120,7 +1132,9 @@ Rectangle {
             break;
         case 'connections':
             var data = message.params;
-            console.log('Got connection data: ', JSON.stringify(data));
+            if (pal.debug) {
+                console.log('Got connection data: ', JSON.stringify(data));
+            }
             connectionsUserModelData = data;
             sortConnectionsModel();
             connectionsLoading.visible = false;

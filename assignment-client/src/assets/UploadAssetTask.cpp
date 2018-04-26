@@ -20,7 +20,6 @@
 
 #include "ClientServerUtils.h"
 
-
 UploadAssetTask::UploadAssetTask(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode,
                                  const QDir& resourcesDir, uint64_t filesizeLimit) :
     _receivedMessage(receivedMessage),
@@ -42,23 +41,29 @@ void UploadAssetTask::run() {
     
     uint64_t fileSize;
     buffer.read(reinterpret_cast<char*>(&fileSize), sizeof(fileSize));
-    
-    qDebug() << "UploadAssetTask reading a file of " << fileSize << "bytes from"
-        << uuidStringWithoutCurlyBraces(_senderNode->getUUID());
+
+    if (_senderNode) {
+        qDebug() << "UploadAssetTask reading a file of " << fileSize << "bytes from" << uuidStringWithoutCurlyBraces(_senderNode->getUUID());
+    } else {
+        qDebug() << "UploadAssetTask reading a file of " << fileSize << "bytes from" << _receivedMessage->getSenderSockAddr();
+    }
     
     auto replyPacket = NLPacket::create(PacketType::AssetUploadReply, -1, true);
     replyPacket->writePrimitive(messageID);
     
     if (fileSize > _filesizeLimit) {
-        replyPacket->writePrimitive(AssetServerError::AssetTooLarge);
+        replyPacket->writePrimitive(AssetUtils::AssetServerError::AssetTooLarge);
     } else {
         QByteArray fileData = buffer.read(fileSize);
         
-        auto hash = hashData(fileData);
+        auto hash = AssetUtils::hashData(fileData);
         auto hexHash = hash.toHex();
-        
-        qDebug() << "Hash for uploaded file from" << uuidStringWithoutCurlyBraces(_senderNode->getUUID())
-            << "is: (" << hexHash << ") ";
+
+        if (_senderNode) {
+            qDebug() << "Hash for uploaded file from" << uuidStringWithoutCurlyBraces(_senderNode->getUUID()) << "is: (" << hexHash << ")";
+        } else {
+            qDebug() << "Hash for uploaded file from" << _receivedMessage->getSenderSockAddr() << "is: (" << hexHash << ")";
+        }
         
         QFile file { _resourcesDir.filePath(QString(hexHash)) };
 
@@ -66,12 +71,12 @@ void UploadAssetTask::run() {
         
         if (file.exists()) {
             // check if the local file has the correct contents, otherwise we overwrite
-            if (file.open(QIODevice::ReadOnly) && hashData(file.readAll()) == hash) {
+            if (file.open(QIODevice::ReadOnly) && AssetUtils::hashData(file.readAll()) == hash) {
                 qDebug() << "Not overwriting existing verified file: " << hexHash;
 
                 existingCorrectFile = true;
 
-                replyPacket->writePrimitive(AssetServerError::NoError);
+                replyPacket->writePrimitive(AssetUtils::AssetServerError::NoError);
                 replyPacket->write(hash);
             } else {
                 qDebug() << "Overwriting an existing file whose contents did not match the expected hash: " << hexHash;
@@ -84,7 +89,7 @@ void UploadAssetTask::run() {
                 qDebug() << "Wrote file" << hexHash << "to disk. Upload complete";
                 file.close();
 
-                replyPacket->writePrimitive(AssetServerError::NoError);
+                replyPacket->writePrimitive(AssetUtils::AssetServerError::NoError);
                 replyPacket->write(hash);
             } else {
                 qWarning() << "Failed to upload or write to file" << hexHash << " - upload failed.";
@@ -96,7 +101,7 @@ void UploadAssetTask::run() {
                     qWarning() << "Removal of failed upload file" << hexHash << "failed.";
                 }
                 
-                replyPacket->writePrimitive(AssetServerError::FileOperationFailed);
+                replyPacket->writePrimitive(AssetUtils::AssetServerError::FileOperationFailed);
             }
         }
 
@@ -104,5 +109,9 @@ void UploadAssetTask::run() {
     }
     
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacket(std::move(replyPacket), *_senderNode);
+    if (_senderNode) {
+        nodeList->sendPacket(std::move(replyPacket), *_senderNode);
+    } else {
+        nodeList->sendPacket(std::move(replyPacket), _receivedMessage->getSenderSockAddr());
+    }
 }

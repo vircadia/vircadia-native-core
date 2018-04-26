@@ -13,7 +13,7 @@
 #ifndef hifi_ACClientApp_h
 #define hifi_ACClientApp_h
 
-#include <QApplication>
+#include <QCoreApplication>
 #include <udt/Constants.h>
 #include <udt/Socket.h>
 #include <ReceivedMessage.h>
@@ -29,7 +29,7 @@ public:
 
 private slots:
     void domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo);
-    void domainChanged(const QString& domainHostname);
+    void domainChanged(QUrl domainURL);
     void nodeAdded(SharedNodePointer node);
     void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);

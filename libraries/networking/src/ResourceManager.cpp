@@ -11,6 +11,8 @@
 
 #include "ResourceManager.h"
 
+#include <mutex>
+
 #include <QNetworkDiskCache>
 #include <QStandardPaths>
 #include <QThread>
@@ -24,13 +26,14 @@
 #include "NetworkAccessManager.h"
 #include "NetworkLogging.h"
 
-
-ResourceManager::ResourceManager() {
+ResourceManager::ResourceManager(bool atpSupportEnabled) : _atpSupportEnabled(atpSupportEnabled) {
     _thread.setObjectName("Resource Manager Thread");
 
-    auto assetClient = DependencyManager::set<AssetClient>();
-    assetClient->moveToThread(&_thread);
-    QObject::connect(&_thread, &QThread::started, assetClient.data(), &AssetClient::init);
+    if (_atpSupportEnabled) {
+        auto assetClient = DependencyManager::set<AssetClient>();
+        assetClient->moveToThread(&_thread);
+        QObject::connect(&_thread, &QThread::started, assetClient.data(), &AssetClient::initCaching);
+    }
 
     _thread.start();
 }
@@ -53,7 +56,7 @@ QString ResourceManager::normalizeURL(const QString& urlString) {
         copy = _prefixMap;
     }
 
-    foreach(const auto& entry, copy) {
+    foreach (const auto& entry, copy) {
         const auto& prefix = entry.first;
         const auto& replacement = entry.second;
         if (result.startsWith(prefix)) {
@@ -64,13 +67,24 @@ QString ResourceManager::normalizeURL(const QString& urlString) {
     return result;
 }
 
+const QSet<QString>& getKnownUrls() {
+    static QSet<QString> knownUrls;
+    static std::once_flag once;
+    std::call_once(once, [] {
+        knownUrls.insert(URL_SCHEME_QRC);
+        knownUrls.insert(URL_SCHEME_FILE);
+        knownUrls.insert(URL_SCHEME_HTTP);
+        knownUrls.insert(URL_SCHEME_HTTPS);
+        knownUrls.insert(URL_SCHEME_FTP);
+        knownUrls.insert(URL_SCHEME_ATP);
+    });
+    return knownUrls;
+}
+
 QUrl ResourceManager::normalizeURL(const QUrl& originalUrl) {
     QUrl url = QUrl(normalizeURL(originalUrl.toString()));
     auto scheme = url.scheme();
-    if (!(scheme == URL_SCHEME_FILE ||
-          scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS || scheme == URL_SCHEME_FTP ||
-          scheme == URL_SCHEME_ATP)) {
-
+    if (!getKnownUrls().contains(scheme)) {
         // check the degenerative file case: on windows we can often have urls of the form c:/filename
         // this checks for and works around that case.
         QUrl urlWithFileScheme{ URL_SCHEME_FILE + ":///" + url.toString() };
@@ -94,11 +108,15 @@ ResourceRequest* ResourceManager::createResourceRequest(QObject* parent, const Q
 
     ResourceRequest* request = nullptr;
 
-    if (scheme == URL_SCHEME_FILE) {
+    if (scheme == URL_SCHEME_FILE || scheme == URL_SCHEME_QRC) {
         request = new FileResourceRequest(normalizedURL);
     } else if (scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS || scheme == URL_SCHEME_FTP) {
         request = new HTTPResourceRequest(normalizedURL);
     } else if (scheme == URL_SCHEME_ATP) {
+        if (!_atpSupportEnabled) {
+            qCDebug(networking) << "ATP support not enabled, unable to create request for URL: " << url.url();
+            return nullptr;
+        }
         request = new AssetResourceRequest(normalizedURL);
     } else {
         qCDebug(networking) << "Unknown scheme (" << scheme << ") for URL: " << url.url();
@@ -113,15 +131,14 @@ ResourceRequest* ResourceManager::createResourceRequest(QObject* parent, const Q
     return request;
 }
 
-
 bool ResourceManager::resourceExists(const QUrl& url) {
     auto scheme = url.scheme();
     if (scheme == URL_SCHEME_FILE) {
-        QFileInfo file { url.toString() };
+        QFileInfo file{ url.toString() };
         return file.exists();
     } else if (scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS || scheme == URL_SCHEME_FTP) {
         auto& networkAccessManager = NetworkAccessManager::getInstance();
-        QNetworkRequest request { url };
+        QNetworkRequest request{ url };
 
         request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
@@ -135,7 +152,7 @@ bool ResourceManager::resourceExists(const QUrl& url) {
         reply->deleteLater();
 
         return reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200;
-    } else if (scheme == URL_SCHEME_ATP) {
+    } else if (scheme == URL_SCHEME_ATP && _atpSupportEnabled) {
         auto request = new AssetResourceRequest(url);
         ByteRange range;
         range.fromInclusive = 1;
@@ -159,4 +176,3 @@ bool ResourceManager::resourceExists(const QUrl& url) {
     qCDebug(networking) << "Unknown scheme (" << scheme << ") for URL: " << url.url();
     return false;
 }
-

@@ -9,16 +9,13 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
 
 Text {
     id: root
-    FontLoader { id: ralewayBold; source: pathToFonts + "fonts/Raleway-Bold.ttf"; }
     property real size: 32
     font.pixelSize: size
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
-    font.family: ralewayBold.name
-    font.bold: true  // Font seems to need this in order to display bold.
+    font.family: "Raleway"
+    font.bold: true
 }

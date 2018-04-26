@@ -135,7 +135,6 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
         _domainServerAddress = domainURL.toString();
     }
 
-    Setting::init();
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
 
     DependencyManager::set<StatTracker>();
@@ -145,7 +144,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
 
     auto accountManager = DependencyManager::get<AccountManager>();
     accountManager->setIsAgent(true);
-    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -159,7 +158,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
     nodeList->startThread();
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
-    connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&domainHandler, SIGNAL(domainURLChanged(QUrl)), SLOT(domainChanged(QUrl)));
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ATPClientApp::domainConnectionRefused);
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &ATPClientApp::nodeAdded);
@@ -198,7 +197,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
     }
 
     auto assetClient = DependencyManager::set<AssetClient>();
-    assetClient->init();
+    assetClient->initCaching();
 
     if (_verbose) {
         qDebug() << "domain-server address is" << _domainServerAddress;
@@ -228,7 +227,7 @@ void ATPClientApp::domainConnectionRefused(const QString& reasonMessage, int rea
     }
 }
 
-void ATPClientApp::domainChanged(const QString& domainHostname) {
+void ATPClientApp::domainChanged(QUrl domainURL) {
     if (_verbose) {
         qDebug() << "domainChanged";
     }
@@ -361,7 +360,7 @@ void ATPClientApp::lookupAsset() {
     request->start();
 }
 
-void ATPClientApp::download(AssetHash hash) {
+void ATPClientApp::download(AssetUtils::AssetHash hash) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto assetRequest = new AssetRequest(hash);
 

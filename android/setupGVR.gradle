@@ -1,0 +1,41 @@
+buildscript {
+    repositories {
+        jcenter()
+        google()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath 'de.undercouch:gradle-download-task:3.3.0'
+    }
+}
+
+
+def file='gvrsdk_v1.101.0.tgz'
+def url='https://hifi-public.s3.amazonaws.com/austin/android/' + file
+def destFile = new File(HIFI_ANDROID_PRECOMPILED, file)
+
+// FIXME find a way to only download if the file doesn't exist
+task downloadGVR(type: de.undercouch.gradle.tasks.download.Download) {
+    src url
+    dest destFile
+}
+
+task extractGVR(dependsOn: downloadGVR, type: Copy) {
+    from tarTree(resources.gzip(destFile))
+    into new File(HIFI_ANDROID_PRECOMPILED, 'gvr')
+}
+
+task copyGVRAudioLibs(dependsOn: extractGVR, type: Copy) {
+    from zipTree(new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries/sdk-audio-1.101.0.aar'))
+    include 'jni/arm64-v8a/libgvr_audio.so'
+    into HIFI_ANDROID_PRECOMPILED
+}
+
+task copyGVRLibs(dependsOn: extractGVR, type: Copy) {
+    from zipTree(new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries/sdk-base-1.101.0.aar'))
+    include 'jni/arm64-v8a/libgvr.so'
+    into HIFI_ANDROID_PRECOMPILED
+}
+
+task setupGVR(dependsOn: [copyGVRLibs, copyGVRAudioLibs]) {
+}

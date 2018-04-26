@@ -69,6 +69,11 @@ void GLWidget::createContext() {
     _context->create();
     _context->makeCurrent();
     _context->clear();
+    _context->doneCurrent();
+}
+
+void GLWidget::swapBuffers() {
+    _context->swapBuffers();
 }
 
 bool GLWidget::makeCurrent() {

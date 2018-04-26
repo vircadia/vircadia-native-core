@@ -35,6 +35,7 @@
 #include <QtScript/QScriptValueIterator>
 #include <QReadWriteLock>
 
+#include <AvatarConstants.h>
 #include <JointData.h>
 #include <NLPacket.h>
 #include <Node.h>
@@ -52,6 +53,8 @@
 #include "AABox.h"
 #include "HeadData.h"
 #include "PathUtils.h"
+
+#include <graphics/Material.h>
 
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
@@ -112,18 +115,19 @@ namespace AvatarDataPacket {
     // Packet State Flags - we store the details about the existence of other records in this bitset:
     // AvatarGlobalPosition, Avatar face tracker, eye tracking, and existence of
     using HasFlags = uint16_t;
-    const HasFlags PACKET_HAS_AVATAR_GLOBAL_POSITION = 1U << 0;
-    const HasFlags PACKET_HAS_AVATAR_BOUNDING_BOX    = 1U << 1;
-    const HasFlags PACKET_HAS_AVATAR_ORIENTATION     = 1U << 2;
-    const HasFlags PACKET_HAS_AVATAR_SCALE           = 1U << 3;
-    const HasFlags PACKET_HAS_LOOK_AT_POSITION       = 1U << 4;
-    const HasFlags PACKET_HAS_AUDIO_LOUDNESS         = 1U << 5;
-    const HasFlags PACKET_HAS_SENSOR_TO_WORLD_MATRIX = 1U << 6;
-    const HasFlags PACKET_HAS_ADDITIONAL_FLAGS       = 1U << 7;
-    const HasFlags PACKET_HAS_PARENT_INFO            = 1U << 8;
-    const HasFlags PACKET_HAS_AVATAR_LOCAL_POSITION  = 1U << 9;
-    const HasFlags PACKET_HAS_FACE_TRACKER_INFO      = 1U << 10;
-    const HasFlags PACKET_HAS_JOINT_DATA             = 1U << 11;
+    const HasFlags PACKET_HAS_AVATAR_GLOBAL_POSITION   = 1U << 0;
+    const HasFlags PACKET_HAS_AVATAR_BOUNDING_BOX      = 1U << 1;
+    const HasFlags PACKET_HAS_AVATAR_ORIENTATION       = 1U << 2;
+    const HasFlags PACKET_HAS_AVATAR_SCALE             = 1U << 3;
+    const HasFlags PACKET_HAS_LOOK_AT_POSITION         = 1U << 4;
+    const HasFlags PACKET_HAS_AUDIO_LOUDNESS           = 1U << 5;
+    const HasFlags PACKET_HAS_SENSOR_TO_WORLD_MATRIX   = 1U << 6;
+    const HasFlags PACKET_HAS_ADDITIONAL_FLAGS         = 1U << 7;
+    const HasFlags PACKET_HAS_PARENT_INFO              = 1U << 8;
+    const HasFlags PACKET_HAS_AVATAR_LOCAL_POSITION    = 1U << 9;
+    const HasFlags PACKET_HAS_FACE_TRACKER_INFO        = 1U << 10;
+    const HasFlags PACKET_HAS_JOINT_DATA               = 1U << 11;
+    const HasFlags PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS = 1U << 12;
     const size_t AVATAR_HAS_FLAGS_SIZE = 2;
 
     using SixByteQuat = uint8_t[6];
@@ -252,13 +256,24 @@ namespace AvatarDataPacket {
         SixByteQuat rotation[numValidRotations];               // encodeded and compressed by packOrientationQuatToSixBytes()
         uint8_t translationValidityBits[ceil(numJoints / 8)];  // one bit per joint, if true then a compressed translation follows.
         SixByteTrans translation[numValidTranslations];        // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
+
+        SixByteQuat leftHandControllerRotation;
+        SixByteTrans leftHandControllerTranslation;
+        SixByteQuat rightHandControllerRotation;
+        SixByteTrans rightHandControllerTranslation;
     };
     */
     size_t maxJointDataSize(size_t numJoints);
-}
 
-static const float MAX_AVATAR_SCALE = 1000.0f;
-static const float MIN_AVATAR_SCALE = .005f;
+    /*
+    struct JointDefaultPoseFlags {
+       uint8_t numJoints;
+       uint8_t rotationIsDefaultPoseBits[ceil(numJoints / 8)];
+       uint8_t translationIsDefaultPoseBits[ceil(numJoints / 8)];
+    };
+    */
+    size_t maxJointDefaultPoseFlagsSize(size_t numJoints);
+}
 
 const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
 
@@ -323,6 +338,7 @@ public:
     RateCounter<> parentInfoRate;
     RateCounter<> faceTrackerRate;
     RateCounter<> jointDataRate;
+    RateCounter<> jointDefaultPoseFlagsRate;
 };
 
 class AvatarPriority {
@@ -337,6 +353,7 @@ public:
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
+    // The following properties have JSDoc in MyAvatar.h.
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getTargetScale WRITE setTargetScale)
     Q_PROPERTY(float density READ getDensity)
@@ -360,9 +377,9 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(QString displayName READ getDisplayName WRITE setDisplayName NOTIFY displayNameChanged)
     // sessionDisplayName is sanitized, defaulted version displayName that is defined by the AvatarMixer rather than by Interface clients.
     // The result is unique among all avatars present at the time.
-    Q_PROPERTY(QString sessionDisplayName READ getSessionDisplayName WRITE setSessionDisplayName)
+    Q_PROPERTY(QString sessionDisplayName READ getSessionDisplayName WRITE setSessionDisplayName NOTIFY sessionDisplayNameChanged)
     Q_PROPERTY(bool lookAtSnappingEnabled MEMBER _lookAtSnappingEnabled NOTIFY lookAtSnappingChanged)
-    Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
+    Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript NOTIFY skeletonModelURLChanged)
     Q_PROPERTY(QVector<AttachmentData> attachmentData READ getAttachmentData WRITE setAttachmentData)
 
     Q_PROPERTY(QStringList jointNames READ getJointNames)
@@ -484,56 +501,419 @@ public:
     //  Scale
     virtual void setTargetScale(float targetScale);
 
-    float getDomainLimitedScale() const { return glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale); }
+    float getDomainLimitedScale() const;
 
-    void setDomainMinimumScale(float domainMinimumScale)
-        { _domainMinimumScale = glm::clamp(domainMinimumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); _scaleChanged = usecTimestampNow(); }
-    void setDomainMaximumScale(float domainMaximumScale)
-        { _domainMaximumScale = glm::clamp(domainMaximumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); _scaleChanged = usecTimestampNow(); }
+    /**jsdoc
+     * returns the minimum scale allowed for this avatar in the current domain.
+     * This value can change as the user changes avatars or when changing domains.
+     * @function MyAvatar.getDomainMinScale
+     * @returns {number} minimum scale allowed for this avatar in the current domain.
+     */
+    Q_INVOKABLE float getDomainMinScale() const;
 
-    //  Hand State
+    /**jsdoc
+     * returns the maximum scale allowed for this avatar in the current domain.
+     * This value can change as the user changes avatars or when changing domains.
+     * @function MyAvatar.getDomainMaxScale
+     * @returns {number} maximum scale allowed for this avatar in the current domain.
+     */
+    Q_INVOKABLE float getDomainMaxScale() const;
+
+    // returns eye height of avatar in meters, ignoreing avatar scale.
+    // if _targetScale is 1 then this will be identical to getEyeHeight;
+    virtual float getUnscaledEyeHeight() const { return DEFAULT_AVATAR_EYE_HEIGHT; }
+
+    // returns true, if an acurate eye height estimage can be obtained by inspecting the avatar model skeleton and geometry,
+    // not all subclasses of AvatarData have access to this data.
+    virtual bool canMeasureEyeHeight() const { return false; }
+
+    /**jsdoc
+     * Provides read only access to the current eye height of the avatar.
+     * This height is only an estimate and might be incorrect for avatars that are missing standard joints.
+     * @function MyAvatar.getEyeHeight
+     * @returns {number} Eye height of avatar in meters.
+     */
+    Q_INVOKABLE virtual float getEyeHeight() const { return _targetScale * getUnscaledEyeHeight(); }
+
+    /**jsdoc
+     * Provides read only access to the current height of the avatar.
+     * This height is only an estimate and might be incorrect for avatars that are missing standard joints.
+     * @function MyAvatar.getHeight
+     * @returns {number} Height of avatar in meters.
+     */
+    Q_INVOKABLE virtual float getHeight() const;
+
+    float getUnscaledHeight() const;
+
+    void setDomainMinimumHeight(float domainMinimumHeight);
+    void setDomainMaximumHeight(float domainMaximumHeight);
+
+    /**jsdoc
+     * @function MyAvatar.setHandState
+     * @param {string} state
+     */
     Q_INVOKABLE void setHandState(char s) { _handState = s; }
+
+    /**jsdoc
+     * @function MyAvatar.getHandState
+     * @returns {string} 
+     */
     Q_INVOKABLE char getHandState() const { return _handState; }
 
     const QVector<JointData>& getRawJointData() const { return _jointData; }
+
+    /**jsdoc
+     * @function MyAvatar.setRawJointData
+     * @param {JointData[]} data
+     */
     Q_INVOKABLE void setRawJointData(QVector<JointData> data);
 
+    /**jsdoc
+     * Set a specific joint's rotation and position relative to its parent.
+     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse 
+     * kinematics, but just for the specified joint. So for example, if you were to procedurally manipulate the finger joints, 
+     * the avatar's hand and head would still do inverse kinematics properly. However, as soon as you start to manipulate 
+     * joints in the inverse kinematics chain, the inverse kinematics might not function as you expect. For example, if you set 
+     * the rotation of the elbow, the hand inverse kinematics position won't end up in the right place.</p>
+     * @function MyAvatar.setJointData
+     * @param {number} index - The index of the joint.
+     * @param {Quat} rotation - The rotation of the joint relative to its parent.
+     * @param {Vec3} translation - The translation of the joint relative to its parent.
+     * @example <caption>Set your avatar to it's default T-pose for a while.<br />
+     * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/user/pages/06.api-reference/25.myavatar/t-pose.png" />
+     * </caption>
+     * // Set all joint translations and rotations to defaults.
+     * var i, length, rotation, translation;
+     * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
+     *     rotation = MyAvatar.getDefaultJointRotation(i);
+     *     translation = MyAvatar.getDefaultJointTranslation(i);
+     *     MyAvatar.setJointData(i, rotation, translation);
+     * }
+     *
+     * // Restore your avatar's motion after 5s.
+     * Script.setTimeout(function () {
+     *     MyAvatar.clearJointsData();
+     * }, 5000);
+     */
     Q_INVOKABLE virtual void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation);
+
+    /**jsdoc
+     * Set a specific joint's rotation relative to its parent.
+     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse 
+     * kinematics, but just for the specified joint. So for example, if you were to procedurally manipulate the finger joints, 
+     * the avatar's hand and head would still do inverse kinematics properly. However, as soon as you start to manipulate 
+     * joints in the inverse kinematics chain, the inverse kinematics might not function as you expect. For example, if you set 
+     * the rotation of the elbow, the hand inverse kinematics position won't end up in the right place.</p>
+     * @function MyAvatar.setJointRotation
+     * @param {number} index - The index of the joint.
+     * @param {Quat} rotation - The rotation of the joint relative to its parent.
+     */
     Q_INVOKABLE virtual void setJointRotation(int index, const glm::quat& rotation);
+
+    /**jsdoc
+     * Set a specific joint's translation relative to its parent.
+     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse 
+     * kinematics, but just for the specified joint. So for example, if you were to procedurally manipulate the finger joints, 
+     * the avatar's hand and head would still do inverse kinematics properly. However, as soon as you start to manipulate 
+     * joints in the inverse kinematics chain, the inverse kinematics might not function as you expect. For example, if you set 
+     * the rotation of the elbow, the hand inverse kinematics position won't end up in the right place.</p>
+     * @function MyAvatar.setJointTranslation
+     * @param {number} index - The index of the joint.
+     * @param {Vec3} translation - The translation of the joint relative to its parent.
+     */
     Q_INVOKABLE virtual void setJointTranslation(int index, const glm::vec3& translation);
+
+    /**jsdoc
+     * Clear joint translations and rotations set by script for a specific joint. This restores all motion from the default 
+     * animation system including inverse kinematics for that joint.
+     * <p>Note: This is slightly faster than the function variation that specifies the joint name.</p>
+     * @function MyAvatar.clearJointData
+     * @param {number} index - The index of the joint.
+     */
     Q_INVOKABLE virtual void clearJointData(int index);
+
+    /**jsdoc
+     * @function MyAvatar.isJointDataValid
+     * @param {number} index
+     * @returns {boolean} 
+     */
     Q_INVOKABLE bool isJointDataValid(int index) const;
+
+    /**jsdoc
+     * Get the rotation of a joint relative to its parent. For information on the joint hierarchy used, see 
+     * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.
+     * @function MyAvatar.getJointRotation
+     * @param {number} index - The index of the joint.
+     * @returns {Quat} The rotation of the joint relative to its parent.
+     */
     Q_INVOKABLE virtual glm::quat getJointRotation(int index) const;
+
+    /**jsdoc
+     * Get the translation of a joint relative to its parent. For information on the joint hierarchy used, see 
+     * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.
+     * @function MyAvatar.getJointTranslation
+     * @param {number} index - The index of the joint.
+     * @returns {Vec3} The translation of the joint relative to its parent.
+     */
     Q_INVOKABLE virtual glm::vec3 getJointTranslation(int index) const;
 
+    /**jsdoc
+     * Set a specific joint's rotation and position relative to its parent.
+     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse 
+     * kinematics, but just for the specified joint. So for example, if you were to procedurally manipulate the finger joints, 
+     * the avatar's hand and head would still do inverse kinematics properly. However, as soon as you start to manipulate 
+     * joints in the inverse kinematics chain, the inverse kinematics might not function as you expect. For example, if you set 
+     * the rotation of the elbow, the hand inverse kinematics position won't end up in the right place.</p>
+     * @function MyAvatar.setJointData
+     * @param {string} name - The name of the joint.
+     * @param {Quat} rotation - The rotation of the joint relative to its parent.
+     * @param {Vec3} translation - The translation of the joint relative to its parent.
+     */
     Q_INVOKABLE virtual void setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation);
+
+    /**jsdoc
+     * Set a specific joint's rotation relative to its parent.
+     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse 
+     * kinematics, but just for the specified joint. So for example, if you were to procedurally manipulate the finger joints, 
+     * the avatar's hand and head would still do inverse kinematics properly. However, as soon as you start to manipulate 
+     * joints in the inverse kinematics chain, the inverse kinematics might not function as you expect. For example, if you set 
+     * the rotation of the elbow, the hand inverse kinematics position won't end up in the right place.</p>
+     * @function MyAvatar.setJointRotation
+     * @param {string} name - The name of the joint.
+     * @param {Quat} rotation - The rotation of the joint relative to its parent.
+     * @example <caption>Set your avatar to its default T-pose then rotate its right arm.<br />
+     * <img alt="Avatar in T-pose with arm rotated" 
+     * src="https://docs.highfidelity.com/user/pages/06.api-reference/25.myavatar/armpose.png" /></caption>
+     * // Set all joint translations and rotations to defaults.
+     * var i, length, rotation, translation;
+     * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
+     *     rotation = MyAvatar.getDefaultJointRotation(i);
+     *     translation = MyAvatar.getDefaultJointTranslation(i);
+     *     MyAvatar.setJointData(i, rotation, translation);
+     * }
+     *
+     * // Rotate the right arm.
+     * var newArmRotation = { x: 0.47, y: 0.22, z: -0.02, w: 0.87 };
+     * MyAvatar.setJointRotation("RightArm", newArmRotation);
+     *
+     * // Restore your avatar's motion after 5s.
+     * Script.setTimeout(function () {
+     *     MyAvatar.clearJointsData();
+     * }, 5000);
+     */
     Q_INVOKABLE virtual void setJointRotation(const QString& name, const glm::quat& rotation);
+
+    /**jsdoc
+     * Set a specific joint's translation relative to its parent.
+     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse 
+     * kinematics, but just for the specified joint. So for example, if you were to procedurally manipulate the finger joints, 
+     * the avatar's hand and head would still do inverse kinematics properly. However, as soon as you start to manipulate 
+     * joints in the inverse kinematics chain, the inverse kinematics might not function as you expect. For example, if you set 
+     * the rotation of the elbow, the hand inverse kinematics position won't end up in the right place.</p>
+     * @function MyAvatar.setJointTranslation
+     * @param {string} name - The name of the joint.
+     * @param {Vec3} translation - The translation of the joint relative to its parent.
+     * @example <caption>Stretch your avatar's neck. Depending on the avatar you are using, you will either see a gap between 
+     * the head and body or you will see the neck stretched.<br />
+     * <img alt="Avatar with neck stretched" 
+     * src="https://docs.highfidelity.com/user/pages/06.api-reference/25.myavatar/stretched-neck.png" /></caption>
+     * // Stretch your avatar's neck.
+     * MyAvatar.setJointTranslation("Neck", { x: 0, y: 25, z: 0 });
+     * 
+     * // Restore your avatar's neck after 5s.
+     * Script.setTimeout(function () {
+     *     MyAvatar.clearJointData("Neck");
+     * }, 5000);
+     */
     Q_INVOKABLE virtual void setJointTranslation(const QString& name, const glm::vec3& translation);
+
+    /**jsdoc
+     * Clear joint translations and rotations set by script for a specific joint. This restores all motion from the default 
+     * animation system including inverse kinematics for that joint.
+     * <p>Note: This is slightly slower than the function variation that specifies the joint index.</p>
+     * @function MyAvatar.clearJointData
+     * @param {string} name - The name of the joint.
+     * @example <caption>Offset and restore the position of your avatar's head.</caption>
+     * // Move your avatar's head up by 25cm from where it should be.
+     * MyAvatar.setJointTranslation("Neck", { x: 0, y: 0.25, z: 0 });
+     *
+     * // Restore your avatar's head to its default position after 5s.
+     * Script.setTimeout(function () {
+     *     MyAvatar.clearJointData("Neck");
+     * }, 5000);
+     */
     Q_INVOKABLE virtual void clearJointData(const QString& name);
+
+    /**jsdoc
+     * @function MyAvatar.isJointDataValid
+     * @param {string} name
+     * @returns {boolean} 
+     */
     Q_INVOKABLE virtual bool isJointDataValid(const QString& name) const;
+
+    /**jsdoc
+     * Get the rotation of a joint relative to its parent. For information on the joint hierarchy used, see 
+     * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.
+     * @function MyAvatar.getJointRotation
+     * @param {string} name - The name of the joint.
+     * @returns {Quat} The rotation of the joint relative to its parent.
+     * @example <caption>Report the rotation of your avatar's hips joint.</caption>
+     * print(JSON.stringify(MyAvatar.getJointRotation("Hips")));
+     */
     Q_INVOKABLE virtual glm::quat getJointRotation(const QString& name) const;
+
+    /**jsdoc
+     * Get the translation of a joint relative to its parent. For information on the joint hierarchy used, see 
+     * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.
+     * @function MyAvatar.getJointTranslation
+     * @param {number} name - The name of the joint.
+     * @returns {Vec3} The translation of the joint relative to its parent.
+     * @example <caption>Report the translation of your avatar's hips joint.</caption>
+     * print(JSON.stringify(MyAvatar.getJointRotation("Hips")));
+     */
     Q_INVOKABLE virtual glm::vec3 getJointTranslation(const QString& name) const;
 
+    /**jsdoc
+     * Get the rotations of all joints in the current avatar. Each joint's rotation is relative to its parent joint.
+     * @function MyAvatar.getJointRotations
+     * @returns {Quat[]} The rotations of all joints relative to each's parent. The values are in the same order as the array 
+     * returned by {@link MyAvatar.getJointNames}.
+     * @example <caption>Report the rotations of all your avatar's joints.</caption>
+     * print(JSON.stringify(MyAvatar.getJointRotations()));
+     */
     Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
+
+    /**jsdoc
+     * @function MyAvatar.getJointTranslations
+     * @returns {Vec3[]} 
+     */
     Q_INVOKABLE virtual QVector<glm::vec3> getJointTranslations() const;
+
+    /**jsdoc
+     * Set the rotations of all joints in the current avatar. Each joint's rotation is relative to its parent joint.
+     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse
+     * kinematics, but just for the specified joint. So for example, if you were to procedurally manipulate the finger joints,
+     * the avatar's hand and head would still do inverse kinematics properly. However, as soon as you start to manipulate
+     * joints in the inverse kinematics chain, the inverse kinematics might not function as you expect. For example, if you set
+     * the rotation of the elbow, the hand inverse kinematics position won't end up in the right place.</p>
+     * @function MyAvatar.setJointRotations
+     * @param {Quat[]} jointRotations - The rotations for all joints in the avatar. The values are in the same order as the 
+     * array returned by {@link MyAvatar.getJointNames}.
+     * @example <caption>Set your avatar to its default T-pose then rotate its right arm.<br />
+     * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/user/pages/06.api-reference/25.myavatar/armpose.png" />
+     * </caption>
+     * // Set all joint translations and rotations to defaults.
+     * var i, length, rotation, translation;
+     * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
+     *     rotation = MyAvatar.getDefaultJointRotation(i);
+     *     translation = MyAvatar.getDefaultJointTranslation(i);
+     *     MyAvatar.setJointData(i, rotation, translation);
+     * }
+     *
+     * // Get all join rotations.
+     * var jointRotations = MyAvatar.getJointRotations(); 
+     *
+     * // Update the rotation of the right arm in the array.
+     * jointRotations[MyAvatar.getJointIndex("RightArm")] = { x: 0.47, y: 0.22, z: -0.02, w: 0.87 };
+     *
+     * // Update all joint rotations.
+     * MyAvatar.setJointRotations(jointRotations);
+     *
+     * // Restore your avatar's motion after 5s.
+     * Script.setTimeout(function () {
+     *     MyAvatar.clearJointsData();
+     * }, 5000);
+     */
     Q_INVOKABLE virtual void setJointRotations(const QVector<glm::quat>& jointRotations);
+    
+    /**jsdoc
+     * @function MyAvatar.setJointTranslations
+     * @param {Vec3[]} translations
+     */
     Q_INVOKABLE virtual void setJointTranslations(const QVector<glm::vec3>& jointTranslations);
 
+    /**jsdoc
+     * Clear all joint translations and rotations that have been set by script. This restores all motion from the default 
+     * animation system including inverse kinematics for all joints.
+     * @function MyAvatar.clearJointsData
+     * @example <caption>Set your avatar to it's default T-pose for a while.</caption>
+     * // Set all joint translations and rotations to defaults.
+     * var i, length, rotation, translation;
+     * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
+     *     rotation = MyAvatar.getDefaultJointRotation(i);
+     *     translation = MyAvatar.getDefaultJointTranslation(i);
+     *     MyAvatar.setJointData(i, rotation, translation);
+     * }
+     *
+     * // Restore your avatar's motion after 5s.
+     * Script.setTimeout(function () {
+     *     MyAvatar.clearJointsData();
+     * }, 5000);
+     */
     Q_INVOKABLE virtual void clearJointsData();
 
+    /**jsdoc
+     * Get the joint index for a named joint. The joint index value is the position of the joint in the array returned by 
+     * {@link MyAvatar.getJointNames}.
+     * @function MyAvatar.getJointIndex
+     * @param {string} name - The name of the joint.
+     * @returns {number} The index of the joint.
+     * @example <caption>Report the index of your avatar's left arm joint.</caption>
+     * print(JSON.stringify(MyAvatar.getJointIndex("LeftArm"));
+     */
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
     Q_INVOKABLE virtual int getJointIndex(const QString& name) const;
 
+    /**jsdoc
+     * Get the names of all the joints in the current avatar.
+     * @function MyAvatar.getJointNames
+     * @returns {string[]} The joint names.
+     * @example <caption>Report the names of all the joints in your current avatar.</caption>
+     * print(JSON.stringify(MyAvatar.getJointNames()));
+     */
     Q_INVOKABLE virtual QStringList getJointNames() const;
 
+
+    /**jsdoc
+     * @function MyAvatar.setBlendshape
+     * @param {string} name
+     * @param {number} value
+     */
     Q_INVOKABLE void setBlendshape(QString name, float val) { _headData->setBlendshape(name, val); }
 
+
+    /**jsdoc
+     * @function MyAvatar.getAttachmentsVariant
+     * @returns {object} 
+     */
+    // FIXME: Can this name be improved? Can it be deprecated?
     Q_INVOKABLE QVariantList getAttachmentsVariant() const;
+
+    /**jsdoc
+     * @function MyAvatar.setAttachmentsVariant
+     * @param {object} variant
+     */
+    // FIXME: Can this name be improved? Can it be deprecated?
     Q_INVOKABLE void setAttachmentsVariant(const QVariantList& variant);
 
+
+    /**jsdoc
+     * @function MyAvatar.updateAvatarEntity
+     * @param {Uuid} entityID
+     * @param {string} entityData
+     */
     Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
+    /**jsdoc
+     * @function MyAvatar.clearAvatarEntity
+     * @param {Uuid} entityID
+     */
     Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID);
 
+
+    /**jsdoc
+     * @function MyAvatar.setForceFaceTrackerConnected
+     * @param {boolean} connected
+     */
     Q_INVOKABLE void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
 
     // key state
@@ -571,15 +951,96 @@ public:
         markIdentityDataChanged();
     }
 
+    /**jsdoc
+     * Get information about all models currently attached to your avatar.
+     * @function MyAvatar.getAttachmentData
+     * @returns {MyAvatar.AttachmentData[]} Information about all models attached to your avatar.
+     * @example <caption>Report the URLs of all current attachments.</caption>
+     * var attachments = MyAvatar.getaAttachmentData();
+     * for (var i = 0; i < attachments.length; i++) {
+     *     print (attachments[i].modelURL);
+     * }
+     */
     Q_INVOKABLE QVector<AttachmentData> getAttachmentData() const;
+
+    /**jsdoc
+     * Set all models currently attached to your avatar. For example, if you retrieve attachment data using 
+     * {@link MyAvatar.getAttachmentData}, make changes to it, and then want to update your avatar's attachments per the 
+     * changed data. You can also remove all attachments by using setting <code>attachmentData</code> to <code>null</code>.
+     * @function MyAvatar.setAttachmentData
+     * @param {MyAvatar.AttachmentData[]} attachmentData - The attachment data defining the models to have attached to your avatar. Use 
+     *     <code>null</code> to remove all attachments.
+     * @example <caption>Remove a hat attachment if your avatar is wearing it.</caption>
+     * var hatURL = "https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx";
+     * var attachments = MyAvatar.getAttachmentData();
+     *
+     * for (var i = 0; i < attachments.length; i++) {
+     *     if (attachments[i].modelURL === hatURL) {
+     *         attachments.splice(i, 1);
+     *         MyAvatar.setAttachmentData(attachments);
+     *         break;
+     *     }
+     *  }
+     */
     Q_INVOKABLE virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
 
+    /**jsdoc
+     * Attach a model to your avatar. For example, you can give your avatar a hat to wear, a guitar to hold, or a surfboard to 
+     * stand on.
+     * <p>Note: Attached models are models only; they are not entities and can not be manipulated using the {@link Entities} API. 
+     * Nor can you use this function to attach an entity (such as a sphere or a box) to your avatar.</p>
+     * @function MyAvatar.attach
+     * @param {string} modelURL - The URL of the model to attach. Models can be .FBX or .OBJ format.
+     * @param {string} [jointName=""] - The name of the avatar joint (see {@link MyAvatar.getJointNames}) to attach the model 
+     *     to.
+     * @param {Vec3} [translation=Vec3.ZERO] - The offset to apply to the model relative to the joint position.
+     * @param {Quat} [rotation=Quat.IDENTITY] - The rotation to apply to the model relative to the joint orientation.
+     * @param {number} [scale=1.0] - The scale to apply to the model.
+     * @param {boolean} [isSoft=false] -  If the model has a skeleton, set this to <code>true</code> so that the bones of the 
+     *     attached model's skeleton are be rotated to fit the avatar's current pose. <code>isSoft</code> is used, for example, 
+     *     to have clothing that moves with the avatar.<br />
+     *     If <code>true</code>, the <code>translation</code>, <code>rotation</code>, and <code>scale</code> parameters are 
+     *     ignored.
+     * @param {boolean} [allowDuplicates=false]
+     * @param {boolean} [useSaved=true]
+     * @example <caption>Attach a cowboy hat to your avatar's head.</caption>
+     * var attachment = {
+     *     modelURL: "https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx",
+     *     jointName: "Head",
+     *     translation: {"x": 0, "y": 0.25, "z": 0},
+     *     rotation: {"x": 0, "y": 0, "z": 0, "w": 1},
+     *     scale: 1,
+     *     isSoft: false
+     * };
+     *
+     *  MyAvatar.attach(attachment.modelURL,
+     *                  attachment.jointName,
+     *                  attachment.translation,
+     *                  attachment.rotation,
+     *                  attachment.scale,
+     *                  attachment.isSoft);
+     */
     Q_INVOKABLE virtual void attach(const QString& modelURL, const QString& jointName = QString(),
                                     const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(),
                                     float scale = 1.0f, bool isSoft = false,
                                     bool allowDuplicates = false, bool useSaved = true);
 
+    /**jsdoc
+     * Detach the most recently attached instance of a particular model from either a specific joint or any joint.
+     * @function MyAvatar.detachOne
+     * @param {string} modelURL - The URL of the model to detach.
+     * @param {string} [jointName=""] - The name of the joint to detach the model from. If <code>""</code>, then the most 
+     *     recently attached model is removed from which ever joint it was attached to.
+     */
     Q_INVOKABLE void detachOne(const QString& modelURL, const QString& jointName = QString());
+
+    /**jsdoc
+     * Detach all instances of a particular model from either a specific joint or all joints.
+     * @function MyAvatar.detachAll
+     * @param {string} modelURL - The URL of the model to detach.
+     * @param {string} [jointName=""] - The name of the joint to detach the model from. If <code>""</code>, then the model is 
+     *     detached from all joints.
+     */
     Q_INVOKABLE void detachAll(const QString& modelURL, const QString& jointName = QString());
 
     QString getSkeletonModelURLFromScript() const { return _skeletonModelURL.toString(); }
@@ -601,19 +1062,63 @@ public:
     glm::vec3 getClientGlobalPosition() const { return _globalPosition; }
     glm::vec3 getGlobalBoundingBoxCorner() const { return _globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions; }
 
+    /**jsdoc
+     * @function MyAvatar.getAvatarEntityData
+     * @returns {object} 
+     */
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
+
+    /**jsdoc
+     * @function MyAvatar.setAvatarEntityData
+     * @param {object} avatarEntityData
+     */
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
+
     virtual void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
     void insertDetachedEntityID(const QUuid entityID);
     AvatarEntityIDs getAndClearRecentlyDetachedIDs();
 
+    /**jsdoc
+     * @function MyAvatar.getSensorToWorldMatrix
+     * @returns {Mat4} 
+     */
     // thread safe
     Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
+
+    /**jsdoc
+     * @function MyAvatar.getSensorToWorldScale
+     * @returns {number} 
+     */
+    // thread safe
     Q_INVOKABLE float getSensorToWorldScale() const;
+
+    /**jsdoc
+     * @function MyAvatar.getControllerLeftHandMatrix
+     * @returns {Mat4} 
+     */
+    // thread safe
     Q_INVOKABLE glm::mat4 getControllerLeftHandMatrix() const;
+
+    /**jsdoc
+     * @function MyAvatar.getControllerRightHandMatrix
+     * @returns {Mat4} 
+     */
+    // thread safe
     Q_INVOKABLE glm::mat4 getControllerRightHandMatrix() const;
 
+
+    /**jsdoc
+     * @function MyAvatar.getDataRate
+     * @param {string} [rateName=""]
+     * @returns {number} 
+     */
     Q_INVOKABLE float getDataRate(const QString& rateName = QString("")) const;
+
+    /**jsdoc
+     * @function MyAvatar.getUpdateRate
+     * @param {string} [rateName=""]
+     * @returns {number} 
+     */
     Q_INVOKABLE float getUpdateRate(const QString& rateName = QString("")) const;
 
     int getJointCount() const { return _jointData.size(); }
@@ -628,14 +1133,6 @@ public:
     virtual glm::quat getOrientationOutbound() const;
 
     static const float OUT_OF_VIEW_PENALTY;
-
-    static void sortAvatars(
-        QList<AvatarSharedPointer> avatarList,
-        const ViewFrustum& cameraView,
-        std::priority_queue<AvatarPriority>& sortedAvatarsOut,
-        std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
-        std::function<float(AvatarSharedPointer)> getBoundingRadius,
-        std::function<bool(AvatarSharedPointer)> shouldIgnore);
 
     // TODO: remove this HACK once we settle on optimal sort coefficients
     // These coefficients exposed for fine tuning the sort priority for transfering new _jointData to the render pipeline.
@@ -653,30 +1150,114 @@ public:
 
     bool getIsReplicated() const { return _isReplicated; }
 
+    virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {}
+    virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
+
 signals:
+
+    /**jsdoc
+     * @function MyAvatar.displayNameChanged
+     * @returns {Signal}
+     */
     void displayNameChanged();
+
+    /**jsdoc
+     * @function MyAvatar.sessionDisplayNameChanged
+     * @returns {Signal}
+     */
+    void sessionDisplayNameChanged();
+
+    /**jsdoc
+     * @function MyAvatar.skeletonModelURLChanged
+     * @returns {Signal}
+     */
+    void skeletonModelURLChanged();
+
+    /**jsdoc
+     * @function MyAvatar.lookAtSnappingChanged
+     * @param {boolean} enabled
+     * @returns {Signal}
+     */
     void lookAtSnappingChanged(bool enabled);
+
+    /**jsdoc
+     * @function MyAvatar.sessionUUIDChanged
+     * @returns {Signal}
+     */
     void sessionUUIDChanged();
 
 public slots:
-    void sendAvatarDataPacket();
+
+/**jsdoc
+     * @function MyAvatar.sendAvatarDataPacket
+     * @param {boolean} [sendAll=false]
+     */
+    void sendAvatarDataPacket(bool sendAll = false);
+
+    /**jsdoc
+     * @function MyAvatar.sendIdentityPacket
+     */
     void sendIdentityPacket();
 
+    /**jsdoc
+     * @function MyAvatar.setJointMappingsFromNetworkReply
+     */
     void setJointMappingsFromNetworkReply();
-    void setSessionUUID(const QUuid& sessionUUID) {
+
+    /**jsdoc
+     * @function MyAvatar.setSessionUUID
+     * @param {Uuid} sessionUUID
+     */
+    virtual void setSessionUUID(const QUuid& sessionUUID) {
         if (sessionUUID != getID()) {
-            setID(sessionUUID);
+            if (sessionUUID == QUuid()) {
+                setID(AVATAR_SELF_ID);
+            } else {
+                setID(sessionUUID);
+            }
             emit sessionUUIDChanged();
         }
     }
 
+    /**jsdoc
+     * @function MyAvatar.getAbsoluteJointRotationInObjectFrame
+     * @param {number} index
+     * @returns {Quat} 
+     */
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
+
+    /**jsdoc
+     * @function MyAvatar.getAbsoluteJointTranslationInObjectFrame
+     * @param {number} index
+     * @returns {Vec3} 
+     */
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+
+    /**jsdoc
+     * @function MyAvatar.setAbsoluteJointRotationInObjectFrame
+     * @param {number} index
+     * @param {Quat} rotation
+     * @returns {boolean}
+     */
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
+
+    /**jsdoc
+     * @function MyAvatar.setAbsoluteJointTranslationInObjectFrame
+     * @param {number} index
+     * @param {Vec3} translation
+     * @returns {boolean} 
+     */
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
+    /**jsdoc
+     * @function MyAvatar.getTargetScale
+     * @returns {number} 
+     */
     float getTargetScale() const { return _targetScale; } // why is this a slot?
 
+    /**jsdoc
+     * @function MyAvatar.resetLastSent
+     */
     void resetLastSent() { _lastToByteArray = 0; }
 
 protected:
@@ -706,8 +1287,8 @@ protected:
 
     // Body scale
     float _targetScale;
-    float _domainMinimumScale { MIN_AVATAR_SCALE };
-    float _domainMaximumScale { MAX_AVATAR_SCALE };
+    float _domainMinimumHeight { MIN_AVATAR_HEIGHT };
+    float _domainMaximumHeight { MAX_AVATAR_HEIGHT };
 
     //  Hand state (are we grabbing something or not)
     char _handState;
@@ -779,6 +1360,7 @@ protected:
     RateCounter<> _parentInfoRate;
     RateCounter<> _faceTrackerRate;
     RateCounter<> _jointDataRate;
+    RateCounter<> _jointDefaultPoseFlagsRate;
 
     // Some rate data for incoming data updates
     RateCounter<> _parseBufferUpdateRate;
@@ -794,6 +1376,7 @@ protected:
     RateCounter<> _parentInfoUpdateRate;
     RateCounter<> _faceTrackerUpdateRate;
     RateCounter<> _jointDataUpdateRate;
+    RateCounter<> _jointDefaultPoseFlagsUpdateRate;
 
     // Some rate data for outgoing data
     AvatarDataRate _outboundDataRate;
@@ -938,6 +1521,7 @@ RayToAvatarIntersectionResult() : intersects(false), avatarID(), distance(0) {}
     QUuid avatarID;
     float distance;
     glm::vec3 intersection;
+    QVariantMap extraInfo;
 };
 
 Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)

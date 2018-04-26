@@ -391,6 +391,10 @@ void CharacterController::setState(State desiredState) {
     }
 }
 
+void CharacterController::recomputeFlying() {
+    _pendingFlags |= PENDING_FLAG_RECOMPUTE_FLYING;
+}
+
 void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const glm::vec3& scale) {
     float x = scale.x;
     float z = scale.z;
@@ -657,6 +661,13 @@ void CharacterController::updateState() {
     if (!_dynamicsWorld) {
         return;
     }
+    if (_pendingFlags & PENDING_FLAG_RECOMPUTE_FLYING) {
+        SET_STATE(CharacterController::State::Hover, "recomputeFlying");
+         _hasSupport = false;
+         _stepHeight = _minStepHeight; // clears memory of last step obstacle
+         _pendingFlags &= ~PENDING_FLAG_RECOMPUTE_FLYING;
+    }
+
     const btScalar FLY_TO_GROUND_THRESHOLD = 0.1f * _radius;
     const btScalar GROUND_TO_FLY_THRESHOLD = 0.8f * _radius + _halfHeight;
     const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 250 * MSECS_PER_SECOND;
@@ -745,6 +756,9 @@ void CharacterController::updateState() {
                     SET_STATE(State::Hover, "double jump button");
                 } else if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
                     SET_STATE(State::Hover, "jump button held");
+                } else if (_floorDistance > _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT) {
+                    // Transition to hover if we are above the fall threshold
+                    SET_STATE(State::Hover, "above fall threshold");
                 }
             }
             break;

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioMixer.h"
+
 #include <thread>
 
 #include <QtCore/QJsonArray>
@@ -35,8 +37,6 @@
 #include "AudioMixerClientData.h"
 #include "AvatarAudioStream.h"
 #include "InjectedAudioStream.h"
-
-#include "AudioMixer.h"
 
 static const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
 static const int DISABLE_STATIC_JITTER_FRAMES = -1;
@@ -117,12 +117,13 @@ void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, Share
 void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> message) {
     // make sure we have a replicated node for the original sender of the packet
     auto nodeList = DependencyManager::get<NodeList>();
-
-    QUuid nodeID =  QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    
+    // Node ID is now part of user data, since replicated audio packets are non-sourced.
+    QUuid nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
     auto replicatedNode = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
                                                     message->getSenderSockAddr(), message->getSenderSockAddr(),
-                                                    true, true);
+                                                    Node::NULL_LOCAL_ID, true, true);
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
 
     // construct a "fake" audio received message from the byte array and packet list information
@@ -136,7 +137,7 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
 
     auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(audioData, rewrittenType,
                                                                      versionForPacketType(rewrittenType),
-                                                                     message->getSenderSockAddr(), nodeID);
+                                                                     message->getSenderSockAddr(), Node::NULL_LOCAL_ID);
 
     getOrCreateClientData(replicatedNode.data())->queuePacket(replicatedMessage, replicatedNode);
 }

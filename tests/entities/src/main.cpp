@@ -20,6 +20,7 @@
 #include <EntityItemProperties.h>
 #include <Octree.h>
 #include <PathUtils.h>
+#include <SharedUtil.h>
 
 const QString& getTestResourceDir() {
     static QString dir;
@@ -136,6 +137,8 @@ void testPropertyFlags() {
 }
 
 int main(int argc, char** argv) {
+    setupHifiApplication("Entities Test");
+
     QCoreApplication app(argc, argv);
     {
         auto start = usecTimestampNow();
@@ -157,7 +160,6 @@ int main(int argc, char** argv) {
     QByteArray packet = file.readAll();
     EntityItemPointer item = ShapeEntityItem::boxFactory(EntityItemID(), EntityItemProperties());
     ReadBitstreamToTreeParams params;
-    params.bitstreamVersion = 33;
 
     auto start = usecTimestampNow();
     for (int i = 0; i < 1000; ++i) {

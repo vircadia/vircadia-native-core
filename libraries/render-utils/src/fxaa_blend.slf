@@ -14,11 +14,30 @@
 
 <@include DeferredBufferWrite.slh@>
 
-in vec2 varTexcoord;
+in vec2 varTexCoord0;
 out vec4 outFragColor;
 
 uniform sampler2D colorTexture;
+uniform float sharpenIntensity;
 
 void main(void) {
-    outFragColor = texture(colorTexture, varTexcoord);
+    vec4 pixels[9];
+    vec4 sharpenedPixel;
+    pixels[0] = texelFetch(colorTexture, ivec2(gl_FragCoord.xy)+ivec2(-1,-1), 0);
+    pixels[1] = texelFetch(colorTexture, ivec2(gl_FragCoord.xy)+ivec2(0,-1), 0);
+    pixels[2] = texelFetch(colorTexture, ivec2(gl_FragCoord.xy)+ivec2(1,-1), 0);
+
+    pixels[3] = texelFetch(colorTexture, ivec2(gl_FragCoord.xy)+ivec2(-1,0), 0);
+    pixels[4] = texelFetch(colorTexture, ivec2(gl_FragCoord.xy), 0);
+    pixels[5] = texelFetch(colorTexture, ivec2(gl_FragCoord.xy)+ivec2(1,0), 0);
+
+    pixels[6] = texelFetch(colorTexture, ivec2(gl_FragCoord.xy)+ivec2(-1,1), 0);
+    pixels[7] = texelFetch(colorTexture, ivec2(gl_FragCoord.xy)+ivec2(0,1), 0);
+    pixels[8] = texelFetch(colorTexture, ivec2(gl_FragCoord.xy)+ivec2(1,1), 0);
+
+    sharpenedPixel = pixels[4]*6.8 - (pixels[1]+pixels[3]+pixels[5]+pixels[7]) - (pixels[0]+pixels[2]+pixels[6]+pixels[8])*0.7;
+
+	vec4 minColor = max(vec4(0), pixels[4]-vec4(0.5));
+	vec4 maxColor = pixels[4]+vec4(0.5);
+    outFragColor = clamp(pixels[4] + sharpenedPixel * sharpenIntensity, minColor, maxColor);
 }

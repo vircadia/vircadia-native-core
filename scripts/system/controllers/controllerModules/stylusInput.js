@@ -20,7 +20,7 @@ Script.include("/~/system/libraries/controllers.js");
         var stylusTargetIDs = [];
         for (var index = 0; index < stylusTargets.length; index++) {
             var stylusTarget = stylusTargets[index];
-            if (stylusTarget.distance <= maxNormalDistance && stylusTarget.id !== HMD.tabletID) {
+            if (stylusTarget.distance <= maxNormalDistance && !(HMD.tabletID && stylusTarget.id === HMD.tabletID)) {
                 stylusTargetIDs.push(stylusTarget.id);
             }
         }
@@ -96,7 +96,7 @@ Script.include("/~/system/libraries/controllers.js");
             var i, stylusTarget;
 
             for (i = 0; i < candidateOverlays.length; i++) {
-                if (candidateOverlays[i] !== HMD.tabletID &&
+                if (!(HMD.tabletID && candidateOverlays[i] === HMD.tabletID) &&
                     Overlays.getProperty(candidateOverlays[i], "visible")) {
                     stylusTarget = getOverlayDistance(controllerPosition, candidateOverlays[i]);
                     if (stylusTarget) {
@@ -142,7 +142,10 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function (controllerData) {
-            if (this.processStylus(controllerData)) {
+            var PREFER_STYLUS_OVER_LASER = "preferStylusOverLaser";
+            var isUsingStylus = Settings.getValue(PREFER_STYLUS_OVER_LASER, false);
+
+            if (isUsingStylus && this.processStylus(controllerData)) {
                 Pointers.enablePointer(this.pointer);
                 return makeRunningValues(true, [], []);
             } else {

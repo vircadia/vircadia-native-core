@@ -11,18 +11,49 @@
 <@if not GPU_COLOR_SLH@>
 <@def GPU_COLOR_SLH@>
 
-float sRGBFloatToLinear(float value) {
+// Linear ====> linear RGB
+// sRGB ======> standard RGB with gamma of 2.2
+// YCoCg =====> Luma (Y) chrominance green (Cg) and chrominance orange (Co)
+// https://software.intel.com/en-us/node/503873
+
+float color_scalar_sRGBToLinear(float value) {
     const float SRGB_ELBOW = 0.04045;
     
     return (value <= SRGB_ELBOW) ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4);
 }
 
-vec3 colorToLinearRGB(vec3 srgb) {
-    return vec3(sRGBFloatToLinear(srgb.r), sRGBFloatToLinear(srgb.g), sRGBFloatToLinear(srgb.b));
+vec3 color_sRGBToLinear(vec3 srgb) {
+    return vec3(color_scalar_sRGBToLinear(srgb.r), color_scalar_sRGBToLinear(srgb.g), color_scalar_sRGBToLinear(srgb.b));
 }
 
-vec4 colorToLinearRGBA(vec4 srgba) {
-    return vec4(colorToLinearRGB(srgba.xyz), srgba.w);
+vec4 color_sRGBAToLinear(vec4 srgba) {
+    return vec4(color_sRGBToLinear(srgba.xyz), srgba.w);
+}
+
+vec3 color_LinearToYCoCg(vec3 rgb) {
+	// Y = R/4 + G/2 + B/4
+	// Co = R/2 - B/2
+	// Cg = -R/4 + G/2 - B/4
+	return vec3(
+			rgb.x/4.0 + rgb.y/2.0 + rgb.z/4.0,
+			rgb.x/2.0 - rgb.z/2.0,
+		-rgb.x/4.0 + rgb.y/2.0 - rgb.z/4.0
+	);
+}
+
+vec3 color_YCoCgToUnclampedLinear(vec3 ycocg) {
+	// R = Y + Co - Cg
+	// G = Y + Cg
+	// B = Y - Co - Cg
+	return vec3(
+		ycocg.x + ycocg.y - ycocg.z,
+		ycocg.x + ycocg.z,
+		ycocg.x - ycocg.y - ycocg.z
+	);
+}
+
+vec3 color_YCoCgToLinear(vec3 ycocg) {
+	return clamp(color_YCoCgToUnclampedLinear(ycocg), vec3(0.0), vec3(1.0));
 }
 
 <@func declareColorWheel()@>

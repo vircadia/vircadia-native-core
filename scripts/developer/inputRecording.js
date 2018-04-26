@@ -19,7 +19,7 @@
             tablet.gotoHomeScreen();
             onRecordingScreen = false;
         } else {
-            tablet.loadQMLSource("InputRecorder.qml");
+            tablet.loadQMLSource("hifi/tablet/InputRecorder.qml");
             onRecordingScreen = true;
         }
     }

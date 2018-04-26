@@ -42,14 +42,11 @@ using namespace std;
 
 static Stats* INSTANCE{ nullptr };
 
+#if !defined (Q_OS_ANDROID)
 QString getTextureMemoryPressureModeString();
-
+#endif
 Stats* Stats::getInstance() {
-    if (!INSTANCE) {
-        Stats::registerType();
-        Stats::show();
-        Q_ASSERT(INSTANCE);
-    }
+    Q_ASSERT(INSTANCE);
     return INSTANCE;
 }
 
@@ -63,8 +60,8 @@ Stats::Stats(QQuickItem* parent) :  QQuickItem(parent) {
 bool Stats::includeTimingRecord(const QString& name) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
         if (name.startsWith("/idle/update/")) {
-            if (name.startsWith("/idle/update/physics/")) {
-                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming);
+            if (name.startsWith("/idle/update/simulation/")) {
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandSimulationTiming);
             } else if (name.startsWith("/idle/update/myAvatar/")) {
                 if (name.startsWith("/idle/update/myAvatar/simulate/")) {
                     return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarSimulateTiming);
@@ -78,6 +75,8 @@ bool Stats::includeTimingRecord(const QString& name) {
             return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
         } else if (name.startsWith("/paintGL/")) {
             return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
+        } else if (name.startsWith("physics/")) {
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsTiming);
         }
         return true;
     }
@@ -357,7 +356,9 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(gpuTextureResourceMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourceGPUMemSize()));
     STAT_UPDATE(gpuTextureResourcePopulatedMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourcePopulatedGPUMemSize()));
     STAT_UPDATE(gpuTextureExternalMemory, (int)BYTES_TO_MB(gpu::Context::getTextureExternalGPUMemSize()));
+#if !defined(Q_OS_ANDROID)
     STAT_UPDATE(gpuTextureMemoryPressureState, getTextureMemoryPressureModeString());
+#endif
     STAT_UPDATE(gpuFreeMemory, (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemSize()));
     STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());
     STAT_UPDATE(decimatedTextureCount, (int)DECIMATED_TEXTURE_COUNT.load());
@@ -478,7 +479,14 @@ void Stats::updateStats(bool force) {
             float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
             _gameUpdateStats = QString("/idle/update = %1 ms").arg(dt);
 
-            QVector<QString> categories = { "devices", "physics", "otherAvatars", "MyAvatar", "misc" };
+            QVector<QString> categories = {
+                "devices",
+                "MyAvatar",
+                "otherAvatars",
+                "pickManager",
+                "pointerManager",
+                "simulation"
+            };
             for (int32_t j = 0; j < categories.size(); ++j) {
                 QString recordKey = "/idle/update/" + categories[j];
                 itr = allRecords.find(recordKey);

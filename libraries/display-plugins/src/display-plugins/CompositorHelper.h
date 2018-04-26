@@ -53,8 +53,6 @@ public:
 
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
 
-    float getHmdUIAngularSize() const { return _hmdUIAngularSize; }
-    void setHmdUIAngularSize(float hmdUIAngularSize) { _hmdUIAngularSize = hmdUIAngularSize; }
     bool isHMD() const;
     bool fakeEventActive() const { return _fakeMouseEvent; }
 
@@ -92,6 +90,7 @@ public:
     glm::vec2 getReticleMaximumPosition() const;
 
     glm::mat4 getReticleTransform(const glm::mat4& eyePose = glm::mat4(), const glm::vec3& headPosition = glm::vec3()) const;
+    glm::mat4 getPoint2DTransform(const glm::vec2& point, float sizeX , float sizeY) const;
 
     ReticleInterface* getReticleInterface() { return _reticleInterface; }
 
@@ -139,7 +138,6 @@ private:
     //quint64 _hoverItemEnterUsecs { 0 };
 
     bool _isOverDesktop { true };
-    float _hmdUIAngularSize { glm::degrees(VIRTUAL_UI_TARGET_FOV.y) };
     float _textureFov { VIRTUAL_UI_TARGET_FOV.y };
     float _textureAspectRatio { VIRTUAL_UI_ASPECT_RATIO };
 
@@ -174,6 +172,17 @@ private:
     ReticleInterface* _reticleInterface { nullptr };
 };
 
+/**jsdoc
+ * @namespace Reticle
+ * @property {boolean} allowMouseCapture
+ * @property {number} depth
+ * @property {Vec2} maximumPosition
+ * @property {boolean} mouseCaptured
+ * @property {boolean} pointingAtSystemOverlay
+ * @property {Vec2} position
+ * @property {number} scale
+ * @property {boolean} visible
+ */
 // Scripting interface available to control the Reticle
 class ReticleInterface : public QObject {
     Q_OBJECT
@@ -189,25 +198,82 @@ class ReticleInterface : public QObject {
 public:
     ReticleInterface(CompositorHelper* outer) : QObject(outer), _compositor(outer) {}
 
+    /**jsdoc
+     * @function Reticle.isMouseCaptured
+     * @returns {boolean}
+     */
     Q_INVOKABLE bool isMouseCaptured() { return _compositor->shouldCaptureMouse(); }
 
+    /**jsdoc
+     * @function Reticle.getAllowMouseCapture
+     * @returns {boolean}
+     */
     Q_INVOKABLE bool getAllowMouseCapture() { return _compositor->getAllowMouseCapture(); }
+
+    /**jsdoc
+     * @function Reticle.setAllowMouseCapture
+     * @param {boolean} allowMouseCaptured
+     */
     Q_INVOKABLE void setAllowMouseCapture(bool value) { return _compositor->setAllowMouseCapture(value); }
 
+    /**jsdoc
+     * @function Reticle.isPointingAtSystemOverlay
+     * @returns {boolean}
+     */
     Q_INVOKABLE bool isPointingAtSystemOverlay() { return !_compositor->getReticleOverDesktop(); }
 
+    /**jsdoc
+     * @function Reticle.getVisible
+     * @returns {boolean}
+     */
     Q_INVOKABLE bool getVisible() { return _compositor->getReticleVisible(); }
+
+    /**jsdoc
+     * @function Reticle.setVisible
+     * @param {boolean} visible
+     */
     Q_INVOKABLE void setVisible(bool visible) { _compositor->setReticleVisible(visible); }
 
+    /**jsdoc
+     * @function Reticle.getDepth
+     * @returns {number}
+     */
     Q_INVOKABLE float getDepth() { return _compositor->getReticleDepth(); }
+
+    /**jsdoc
+     * @function Reticle.setDepth
+     * @param {number} depth
+     */
     Q_INVOKABLE void setDepth(float depth) { _compositor->setReticleDepth(depth); }
 
+    /**jsdoc
+     * @function Reticle.getScale
+     * @returns {number}
+     */
     Q_INVOKABLE float getScale() const;
+
+    /**jsdoc
+     * @function Reticle.setScale
+     * @param {number} scale
+     */
     Q_INVOKABLE void setScale(float scale);
 
+    /**jsdoc
+     * @function Reticle.getPosition
+     * @returns {Vec2}
+     */
     Q_INVOKABLE QVariant getPosition() const;
+
+    /**jsdoc
+     * @function Reticle.setPosition
+     * @param {Vec2} position
+     */
     Q_INVOKABLE void setPosition(QVariant position);
 
+    /**jsdoc
+     * @function Reticle.getMaximumPosition
+     * @returns {Vec2}
+     */
     Q_INVOKABLE glm::vec2 getMaximumPosition() { return _compositor->getReticleMaximumPosition(); }
 
 private:

@@ -19,15 +19,15 @@
 uniform sampler2D originalTexture;
 
 // the interpolated normal
-in vec3 _normal;
+in vec3 _normalWS;
 in vec4 _color;
 in vec2 _texCoord0;
 
 void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0.st);
-    texel = colorToLinearRGBA(texel);
+    texel = color_sRGBAToLinear(texel);
     packDeferredFragmentTranslucent(
-        normalize(_normal),
+        normalize(_normalWS),
         _color.a,
         _color.rgb * texel.rgb,
         DEFAULT_FRESNEL,

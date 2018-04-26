@@ -1,5 +1,4 @@
 import QtQuick 2.3
-import QtQuick.Controls 1.2
 
 import "."
 
@@ -29,6 +28,7 @@ Overlay {
                 case "borderColor": rectangle.border.color = Qt.rgba(value.red / 255, value.green / 255, value.blue / 255, rectangle.border.color.a); break;
                 case "borderWidth": rectangle.border.width = value; break;
                 case "radius": rectangle.radius = value; break;
+                case "bounds": break; // The bounds property is handled in C++.
                 default: console.warn("OVERLAY Unhandled rectangle property " + key);
             }
         }

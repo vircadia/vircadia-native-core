@@ -31,20 +31,20 @@ static void testSphereVsCone(const glm::vec3 coneNormal, const glm::vec3 coneBiN
     glm::vec3 coneCenter = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 sphereCenter = coneCenter + coneEdge * sphereDistance;
     float result = coneSphereAngle(coneCenter, u, sphereCenter, sphereRadius);
-    QCOMPARE(isnan(result), false);
+    QCOMPARE(glm::isnan(result), false);
     QCOMPARE(result < coneAngle, true);
 
     // push sphere outward from edge so it is tangent to the cone.
     glm::vec3 sphereOffset = glm::angleAxis(PI / 2.0f, w) * coneEdge;
     sphereCenter += sphereOffset * sphereRadius;
     result = coneSphereAngle(coneCenter, u, sphereCenter, sphereRadius);
-    QCOMPARE(isnan(result), false);
+    QCOMPARE(glm::isnan(result), false);
     QCOMPARE_WITH_ABS_ERROR(result, coneAngle, 0.001f);
 
     // push sphere outward from edge a bit further, so it is outside of the cone.
     sphereCenter += 0.1f * sphereOffset;
     result = coneSphereAngle(coneCenter, u, sphereCenter, sphereRadius);
-    QCOMPARE(isnan(result), false);
+    QCOMPARE(glm::isnan(result), false);
     QCOMPARE(result > coneAngle, true);
 }
 

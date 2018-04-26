@@ -13,21 +13,17 @@
 #include <QHash>
 #include <QObject>
 #include <QtCore/QJsonDocument>
-
 #include <openssl/err.h>
-#include <openssl/rsa.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
-#include <NetworkingConstants.h>
+#include <openssl/ecdsa.h>
 #include <NetworkAccessManager.h>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
-
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <Extents.h>
-
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
@@ -37,8 +33,8 @@
 AnimationPropertyGroup EntityItemProperties::_staticAnimation;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
 HazePropertyGroup EntityItemProperties::_staticHaze;
-StagePropertyGroup EntityItemProperties::_staticStage;
 KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
+AmbientLightPropertyGroup EntityItemProperties::_staticAmbientLight;
 
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
@@ -83,6 +79,7 @@ void EntityItemProperties::debugDump() const {
     getSkybox().debugDump();
     getHaze().debugDump();
     getKeyLight().debugDump();
+    getAmbientLight().debugDump();
 
     qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
@@ -116,6 +113,17 @@ void buildStringToShapeTypeLookup() {
     addShapeType(SHAPE_TYPE_SIMPLE_HULL);
     addShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
     addShapeType(SHAPE_TYPE_STATIC_MESH);
+}
+
+QHash<QString, MaterialMappingMode> stringToMaterialMappingModeLookup;
+
+void addMaterialMappingMode(MaterialMappingMode mode) {
+    stringToMaterialMappingModeLookup[MaterialMappingModeHelpers::getNameForMaterialMappingMode(mode)] = mode;
+}
+
+void buildStringToMaterialMappingModeLookup() {
+    addMaterialMappingMode(UV);
+    addMaterialMappingMode(PROJECTED);
 }
 
 QString getCollisionGroupAsString(uint8_t group) {
@@ -186,47 +194,7 @@ void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
     }
 }
 
-using BackgroundPair = std::pair<const BackgroundMode, const QString>;
-const std::array<BackgroundPair, BACKGROUND_MODE_ITEM_COUNT> BACKGROUND_MODES = { {
-    BackgroundPair { BACKGROUND_MODE_INHERIT, { "inherit" } },
-    BackgroundPair { BACKGROUND_MODE_SKYBOX, { "skybox" } }
-} };
-
-QString EntityItemProperties::getBackgroundModeAsString() const {
-    return BACKGROUND_MODES[_backgroundMode].second;
-}
-
-QString EntityItemProperties::getBackgroundModeString(BackgroundMode mode) {
-    return BACKGROUND_MODES[mode].second;
-}
-
-void EntityItemProperties::setBackgroundModeFromString(const QString& backgroundMode) {
-    auto result = std::find_if(BACKGROUND_MODES.begin(), BACKGROUND_MODES.end(), [&](const BackgroundPair& pair) {
-        return (pair.second == backgroundMode);
-    });
-    if (result != BACKGROUND_MODES.end()) {
-        _backgroundMode = result->first;
-        _backgroundModeChanged = true;
-    }
-}
-
-using ComponentPair = std::pair<const ComponentMode, const QString>;
-const std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT> COMPONENT_MODES = { {
-        ComponentPair{ COMPONENT_MODE_INHERIT,{ "inherit" } },
-        ComponentPair{ COMPONENT_MODE_DISABLED,{ "disabled" } },
-        ComponentPair{ COMPONENT_MODE_ENABLED,{ "enabled" } }
-} };
-
-QString EntityItemProperties::getHazeModeAsString() const {
-    // return "inherit" if _hazeMode is not valid
-    if (_hazeMode < COMPONENT_MODE_ITEM_COUNT) {
-        return COMPONENT_MODES[_hazeMode].second;
-    } else {
-        return COMPONENT_MODES[COMPONENT_MODE_INHERIT].second;
-    }
-}
-
-QString EntityItemProperties::getHazeModeString(uint32_t mode) {
+QString EntityItemProperties::getComponentModeAsString(uint32_t mode) {
     // return "inherit" if mode is not valid
     if (mode < COMPONENT_MODE_ITEM_COUNT) {
         return COMPONENT_MODES[mode].second;
@@ -235,14 +203,85 @@ QString EntityItemProperties::getHazeModeString(uint32_t mode) {
     }
 }
 
-void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
-    auto result = std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) {
-        return (pair.second == hazeMode);
+QString EntityItemProperties::getHazeModeAsString() const {
+    return getComponentModeAsString(_hazeMode);
+}
+
+QString EntityItemProperties::getComponentModeString(uint32_t mode) {
+    // return "inherit" if mode is not valid
+    if (mode < COMPONENT_MODE_ITEM_COUNT) {
+        return COMPONENT_MODES[mode].second;
+    } else {
+        return COMPONENT_MODES[COMPONENT_MODE_INHERIT].second;
+    }
+}
+
+std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT>::const_iterator EntityItemProperties::findComponent(const QString& mode) {
+    return std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) { 
+        return (pair.second == mode);
     });
+}
+
+void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
+    auto result = findComponent(hazeMode);
 
     if (result != COMPONENT_MODES.end()) {
         _hazeMode = result->first;
         _hazeModeChanged = true;
+    }
+}
+
+QString EntityItemProperties::getKeyLightModeAsString() const {
+    return getComponentModeAsString(_keyLightMode);
+}
+
+void EntityItemProperties::setKeyLightModeFromString(const QString& keyLightMode) {
+    auto result = findComponent(keyLightMode);
+
+    if (result != COMPONENT_MODES.end()) {
+        _keyLightMode = result->first;
+        _keyLightModeChanged = true;
+    }
+}
+
+QString EntityItemProperties::getAmbientLightModeAsString() const {
+    return getComponentModeAsString(_ambientLightMode);
+}
+
+void EntityItemProperties::setAmbientLightModeFromString(const QString& ambientLightMode) {
+    auto result = findComponent(ambientLightMode);
+
+    if (result != COMPONENT_MODES.end()) {
+        _ambientLightMode = result->first;
+        _ambientLightModeChanged = true;
+    }
+}
+
+QString EntityItemProperties::getSkyboxModeAsString() const {
+    return getComponentModeAsString(_skyboxMode);
+}
+
+void EntityItemProperties::setSkyboxModeFromString(const QString& skyboxMode) {
+    auto result = findComponent(skyboxMode);
+
+    if (result != COMPONENT_MODES.end()) {
+        _skyboxMode = result->first;
+        _skyboxModeChanged = true;
+    }
+}
+
+QString EntityItemProperties::getMaterialMappingModeAsString() const {
+    return MaterialMappingModeHelpers::getNameForMaterialMappingMode(_materialMappingMode);
+}
+
+void EntityItemProperties::setMaterialMappingModeFromString(const QString& materialMappingMode) {
+    if (stringToMaterialMappingModeLookup.empty()) {
+        buildStringToMaterialMappingModeLookup();
+    }
+    auto materialMappingModeItr = stringToMaterialMappingModeLookup.find(materialMappingMode.toLower());
+    if (materialMappingModeItr != stringToMaterialMappingModeLookup.end()) {
+        _materialMappingMode = materialMappingModeItr.value();
+        _materialMappingModeChanged = true;
     }
 }
 
@@ -277,6 +316,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
     CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE, visible);
+    CHECK_PROPERTY_CHANGE(PROP_CAN_CAST_SHADOW, canCastShadow);
     CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_VELOCITY, angularVelocity);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_DAMPING, angularDamping);
@@ -316,6 +356,14 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_SPREAD, radiusSpread);
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_START, radiusStart);
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_FINISH, radiusFinish);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_URL, materialURL);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_MODE, materialMappingMode);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_PRIORITY, priority);
+    CHECK_PROPERTY_CHANGE(PROP_PARENT_MATERIAL_NAME, parentMaterialName);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_POS, materialMappingPos);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_DATA, materialData);
 
     // Certifiable Properties
     CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
@@ -328,11 +376,14 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_EDITION_NUMBER, editionNumber);
     CHECK_PROPERTY_CHANGE(PROP_ENTITY_INSTANCE_NUMBER, entityInstanceNumber);
     CHECK_PROPERTY_CHANGE(PROP_CERTIFICATE_ID, certificateID);
+    CHECK_PROPERTY_CHANGE(PROP_STATIC_CERTIFICATE_VERSION, staticCertificateVersion);
 
     CHECK_PROPERTY_CHANGE(PROP_NAME, name);
-    CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
 
     CHECK_PROPERTY_CHANGE(PROP_HAZE_MODE, hazeMode);
+    CHECK_PROPERTY_CHANGE(PROP_KEY_LIGHT_MODE, keyLightMode);
+    CHECK_PROPERTY_CHANGE(PROP_AMBIENT_LIGHT_MODE, ambientLightMode);
+    CHECK_PROPERTY_CHANGE(PROP_SKYBOX_MODE, skyboxMode);
 
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
@@ -368,6 +419,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_ROTATION, localRotation);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_VELOCITY, localVelocity);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_DIMENSIONS, localDimensions);
 
     CHECK_PROPERTY_CHANGE(PROP_FLYING_ALLOWED, flyingAllowed);
     CHECK_PROPERTY_CHANGE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
@@ -378,15 +430,725 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 
     CHECK_PROPERTY_CHANGE(PROP_SHAPE, shape);
     CHECK_PROPERTY_CHANGE(PROP_DPI, dpi);
+    CHECK_PROPERTY_CHANGE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
 
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
+    changedProperties += _ambientLight.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
-    changedProperties += _stage.getChangedProperties();
     changedProperties += _haze.getChangedProperties();
 
     return changedProperties;
 }
+
+/**jsdoc
+ * Different entity types have different properties: some common to all entities (listed below) and some specific to each 
+ * {@link Entities.EntityType|EntityType} (linked to below). The properties are accessed as an object of property names and 
+ * values.
+ *
+ * @typedef {object} Entities.EntityProperties
+ * @property {Uuid} id - The ID of the entity. <em>Read-only.</em>
+ * @property {string} name="" - A name for the entity. Need not be unique.
+ * @property {Entities.EntityType} type - The entity type. You cannot change the type of an entity after it's created. (Though 
+ *     its value may switch among <code>"Box"</code>, <code>"Shape"</code>, and <code>"Sphere"</code> depending on changes to 
+ *     the <code>shape</code> property set for entities of these types.) <em>Read-only.</em>
+ * @property {boolean} clientOnly=false - If <code>true</code> then the entity is an avatar entity; otherwise it is a server
+ *     entity. An avatar entity follows you to each domain you visit, rendering at the same world coordinates unless it's 
+ *     parented to your avatar. <em>Value cannot be changed after the entity is created.</em><br />
+ *     The value can also be set at entity creation by using the <code>clientOnly</code> parameter in 
+ *     {@link Entities.addEntity}.
+ * @property {Uuid} owningAvatarID=Uuid.NULL - The session ID of the owning avatar if <code>clientOnly</code> is 
+ *     <code>true</code>, otherwise {@link Uuid|Uuid.NULL}. <em>Read-only.</em>
+ *
+ * @property {string} created - The UTC date and time that the entity was created, in ISO 8601 format as
+ *     <code>yyyy-MM-ddTHH:mm:ssZ</code>. <em>Read-only.</em>
+ * @property {number} age - The age of the entity in seconds since it was created. <em>Read-only.</em>
+ * @property {string} ageAsText - The age of the entity since it was created, formatted as <code>h hours m minutes s 
+ *     seconds</code>.
+ * @property {number} lifetime=-1 - How long an entity lives for, in seconds, before being automatically deleted. A value of
+ *     <code>-1</code> means that the entity lives for ever.
+ * @property {number} lastEdited - When the entity was last edited, expressed as the number of microseconds since
+ *     1970-01-01T00:00:00 UTC. <em>Read-only.</em>
+ * @property {Uuid} lastEditedBy - The session ID of the avatar or agent that most recently created or edited the entity.
+ *     <em>Read-only.</em>
+ *
+ * @property {boolean} locked=false - Whether or not the entity can be edited or deleted. If <code>true</code> then the 
+ *     entity's properties other than <code>locked</code> cannot be changed, and the entity cannot be deleted.
+ * @property {boolean} visible=true - Whether or not the entity is rendered. If <code>true</code> then the entity is rendered.
+ * @property {boolean} canCastShadows=true - Whether or not the entity casts shadows. Currently applicable only to 
+ *     {@link Entities.EntityType|Model} and {@link Entities.EntityType|Shape} entities. Shadows are cast if inside a 
+ *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its 
+ *     {@link Entities.EntityProperties-Zone|keyLight} property.
+ *
+ * @property {Vec3} position=0,0,0 - The position of the entity.
+ * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
+ * @property {Vec3} registrationPoint=0.5,0.5,0.5 - The point in the entity that is set to the entity's position and is rotated 
+ *      about, {@link Vec3(0)|Vec3.ZERO} &ndash; {@link Vec3(0)|Vec3.ONE}. A value of {@link Vec3(0)|Vec3.ZERO} is the entity's
+ *      minimum x, y, z corner; a value of {@link Vec3(0)|Vec3.ONE} is the entity's maximum x, y, z corner.
+ *
+ * @property {Vec3} naturalPosition=0,0,0 - The center of the entity's unscaled mesh model if it has one, otherwise
+ *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
+ * @property {Vec3} naturalDimensions - The dimensions of the entity's unscaled mesh model if it has one, otherwise 
+ *     {@link Vec3(0)|Vec3.ONE}. <em>Read-only.</em>
+ *
+ * @property {Vec3} velocity=0,0,0 - The linear velocity of the entity in m/s with respect to world coordinates.
+ * @property {number} damping=0.39347 - How much to slow down the linear velocity of an entity over time, <code>0.0</code> 
+ *     &ndash; <code>1.0</code>. A higher damping value slows down the entity more quickly. The default value is for an 
+ *     exponential decay timescale of 2.0s, where it takes 2.0s for the movement to slow to <code>1/e = 0.368</code> of its 
+ *     initial value.
+ * @property {Vec3} angularVelocity=0,0,0 - The angular velocity of the entity in rad/s with respect to its axes, about its
+ *     registration point.
+ * @property {number} angularDamping=0.39347 - How much to slow down the angular velocity of an entity over time, 
+ *     <code>0.0</code> &ndash; <code>1.0</code>. A higher damping value slows down the entity more quickly. The default value 
+ *     is for an exponential decay timescale of 2.0s, where it takes 2.0s for the movement to slow to <code>1/e = 0.368</code> 
+ *     of its initial value.
+ *
+ * @property {Vec3} gravity=0,0,0 - The acceleration due to gravity in m/s<sup>2</sup> that the entity should move with, in 
+ *     world coordinates. Set to <code>{ x: 0, y: -9.8, z: 0 }</code> to simulate Earth's gravity. Gravity is applied to an 
+ *     entity's motion only if its <code>dynamic</code> property is <code>true</code>. If changing an entity's 
+ *     <code>gravity</code> from {@link Vec3(0)|Vec3.ZERO}, you need to give it a small <code>velocity</code> in order to kick 
+ *     off physics simulation.
+ *     The <code>gravity</code> value is applied in addition to the <code>acceleration</code> value.
+ * @property {Vec3} acceleration=0,0,0 - A general acceleration in m/s<sup>2</sup> that the entity should move with, in world 
+ *     coordinates. The acceleration is applied to an entity's motion only if its <code>dynamic</code> property is 
+ *     <code>true</code>. If changing an entity's <code>acceleration</code> from {@link Vec3(0)|Vec3.ZERO}, you need to give it 
+ *     a small <code>velocity</code> in order to kick off physics simulation.
+ *     The <code>acceleration</code> value is applied in addition to the <code>gravity</code> value.
+ * @property {number} restitution=0.5 - The "bounciness" of an entity when it collides, <code>0.0</code> &ndash; 
+ *     <code>0.99</code>. The higher the value, the more bouncy.
+ * @property {number} friction=0.5 - How much to slow down an entity when it's moving against another, <code>0.0</code> &ndash; 
+ *     <code>10.0</code>. The higher the value, the more quickly it slows down. Examples: <code>0.1</code> for ice, 
+ *     <code>0.9</code> for sandpaper.
+ * @property {number} density=1000 - The density of the entity in kg/m<sup>3</sup>, <code>100</code> for balsa wood &ndash; 
+ *     <code>10000</code> for silver. The density is used in conjunction with the entity's bounding box volume to work out its 
+ *     mass in the application of physics.
+ *
+ * @property {boolean} collisionless=false - Whether or not the entity should collide with items per its 
+ *     <code>collisionMask<code> property. If <code>true</code> then the entity does not collide.
+ * @property {boolean} ignoreForCollisions=false - Synonym for <code>collisionless</code>.
+ * @property {Entities.CollisionMask} collisionMask=31 - What types of items the entity should collide with.
+ * @property {string} collidesWith="static,dynamic,kinematic,myAvatar,otherAvatar," - Synonym for <code>collisionMask</code>,
+ *     in text format.
+ * @property {string} collisionSoundURL="" - The sound to play when the entity experiences a collision. Valid file formats are
+ *     as per the {@link SoundCache} object.
+ * @property {boolean} dynamic=false - Whether or not the entity should be affected by collisions. If <code>true</code> then 
+ *     the entity's movement is affected by collisions.
+ * @property {boolean} collisionsWillMove=false - Synonym for <code>dynamic</code>.
+ *
+ * @property {string} href="" - A "hifi://" metaverse address that a user is taken to when they click on the entity.
+ * @property {string} description="" - A description of the <code>href</code> property value.
+ *
+ * @property {string} userData="" - Used to store extra data about the entity in JSON format. WARNING: Other apps such as the 
+ *     Create app can also use this property, so make sure you handle data stored by other apps &mdash; edit only your bit and 
+ *     leave the rest of the data intact. You can use <code>JSON.parse()</code> to parse the string into a JavaScript object 
+ *     which you can manipulate the properties of, and use <code>JSON.stringify()</code> to convert the object into a string to 
+ *     put in the property.
+ *
+ * @property {string} script="" - The URL of the client entity script, if any, that is attached to the entity.
+ * @property {number} scriptTimestamp=0 - Intended to be used to indicate when the client entity script was loaded. Should be 
+ *     an integer number of milliseconds since midnight GMT on January 1, 1970 (e.g., as supplied by <code>Date.now()</code>. 
+ *     If you update the property's value, the <code>script</code> is re-downloaded and reloaded. This is how the "reload" 
+ *     button beside the "script URL" field in properties tab of the Create app works.
+ * @property {string} serverScripts="" - The URL of the server entity script, if any, that is attached to the entity.
+ *
+ * @property {Uuid} parentID=Uuid.NULL - The ID of the entity or avatar that this entity is parented to. {@link Uuid|Uuid.NULL} 
+ *     if the entity is not parented.
+ * @property {number} parentJointIndex=65535 - The joint of the entity or avatar that this entity is parented to. Use 
+ *     <code>65535</code> or <code>-1</code> to parent to the entity or avatar's position and orientation rather than a joint.
+ * @property {Vec3} localPosition=0,0,0 - The position of the entity relative to its parent if the entity is parented, 
+ *     otherwise the same value as <code>position</code>. If the entity is parented to an avatar and is <code>clientOnly</code> 
+ *     so that it scales with the avatar, this value remains the original local position value while the avatar scale changes.
+ * @property {Quat} localRotation=0,0,0,1 - The rotation of the entity relative to its parent if the entity is parented, 
+ *     otherwise the same value as <code>rotation</code>.
+ * @property {Vec3} localVelocity=0,0,0 - The velocity of the entity relative to its parent if the entity is parented, 
+ *     otherwise the same value as <code>velocity</code>.
+ * @property {Vec3} localAngularVelocity=0,0,0 - The angular velocity of the entity relative to its parent if the entity is 
+ *     parented, otherwise the same value as <code>position</code>.
+ * @property {Vec3} localDimensions - The dimensions of the entity. If the entity is parented to an avatar and is 
+ *     <code>clientOnly</code> so that it scales with the avatar, this value remains the original dimensions value while the 
+ *     avatar scale changes.
+ *
+ * @property {Entities.BoundingBox} boundingBox - The axis-aligned bounding box that tightly encloses the entity. 
+ *     <em>Read-only.</em>
+ * @property {AACube} queryAACube - The axis-aligned cube that determines where the entity lives in the entity server's octree. 
+ *     The cube may be considerably larger than the entity in some situations, e.g., when the entity is grabbed by an avatar: 
+ *     the position of the entity is determined through avatar mixer updates and so the AA cube is expanded in order to reduce 
+ *     unnecessary entity server updates. Scripts should not change this property's value.
+ *
+ * @property {string} actionData="" - Base-64 encoded compressed dump of the actions associated with the entity. This property
+ *     is typically not used in scripts directly; rather, functions that manipulate an entity's actions update it.
+ *     The size of this property increases with the number of actions. Because this property value has to fit within a High 
+ *     Fidelity datagram packet there is a limit to the number of actions that an entity can have, and edits which would result 
+ *     in overflow are rejected.
+ *     <em>Read-only.</em>
+ * @property {Entities.RenderInfo} renderInfo - Information on the cost of rendering the entity. Currently information is only 
+ *     provided for <code>Model</code> entities. <em>Read-only.</em>
+ *
+ * @property {string} itemName="" - Certifiable name of the Marketplace item.
+ * @property {string} itemDescription="" - Certifiable description of the Marketplace item.
+ * @property {string} itemCategories="" - Certifiable category of the Marketplace item.
+ * @property {string} itemArtist="" - Certifiable  artist that created the Marketplace item.
+ * @property {string} itemLicense="" - Certifiable license URL for the Marketplace item.
+ * @property {number} limitedRun=4294967295 - Certifiable maximum integer number of editions (copies) of the Marketplace item 
+ *     allowed to be sold.
+ * @property {number} editionNumber=0 - Certifiable integer edition (copy) number or the Marketplace item. Each copy sold in 
+ *     the Marketplace is numbered sequentially, starting at 1.
+ * @property {number} entityInstanceNumber=0 - Certifiable integer instance number for identical entities in a Marketplace 
+ *     item. A Marketplace item may have identical parts. If so, then each is numbered sequentially with an instance number.
+ * @property {string} marketplaceID="" - Certifiable UUID for the Marketplace item, as used in the URL of the item's download
+ *     and its Marketplace Web page.
+ * @property {string} certificateID="" - Hash of the entity's static certificate JSON, signed by the artist's private key.
+ * @property {number} staticCertificateVersion=0 - The version of the method used to generate the <code>certificateID</code>.
+ *
+ * @see The different entity types have additional properties as follows:
+ * @see {@link Entities.EntityProperties-Box|EntityProperties-Box}
+ * @see {@link Entities.EntityProperties-Light|EntityProperties-Light}
+ * @see {@link Entities.EntityProperties-Line|EntityProperties-Line}
+ * @see {@link Entities.EntityProperties-Material|EntityProperties-Material}
+ * @see {@link Entities.EntityProperties-Model|EntityProperties-Model}
+ * @see {@link Entities.EntityProperties-ParticleEffect|EntityProperties-ParticleEffect}
+ * @see {@link Entities.EntityProperties-PolyLine|EntityProperties-PolyLine}
+ * @see {@link Entities.EntityProperties-PolyVox|EntityProperties-PolyVox}
+ * @see {@link Entities.EntityProperties-Shape|EntityProperties-Shape}
+ * @see {@link Entities.EntityProperties-Sphere|EntityProperties-Sphere}
+ * @see {@link Entities.EntityProperties-Text|EntityProperties-Text}
+ * @see {@link Entities.EntityProperties-Web|EntityProperties-Web}
+ * @see {@link Entities.EntityProperties-Zone|EntityProperties-Zone}
+ */
+
+/**jsdoc
+ * The <code>"Box"</code> {@link Entities.EntityType|EntityType} is the same as the <code>"Shape"</code>
+ * {@link Entities.EntityType|EntityType} except that its <code>shape</code> value is always set to <code>"Cube"</code>
+ * when the entity is created. If its <code>shape</code> property value is subsequently changed then the entity's 
+ * <code>type</code> will be reported as <code>"Sphere"</code> if the <code>shape</code> is set to <code>"Sphere"</code>, 
+ * otherwise it will be reported as <code>"Shape"</code>.
+ * @typedef {object} Entities.EntityProperties-Box
+ */
+
+/**jsdoc
+ * The <code>"Light"</code> {@link Entities.EntityType|EntityType} adds local lighting effects.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Light
+ * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity. Entity surface outside these dimensions are not lit 
+ *     by the light.
+ * @property {Color} color=255,255,255 - The color of the light emitted.
+ * @property {number} intensity=1 - The brightness of the light.
+ * @property {number} falloffRadius=0.1 - The distance from the light's center at which intensity is reduced by 25%.
+ * @property {boolean} isSpotlight=false - If <code>true</code> then the light is directional, emitting along the entity's
+ *     local negative z-axis; otherwise the light is a point light which emanates in all directions.
+ * @property {number} exponent=0 - Affects the softness of the spotlight beam: the higher the value the softer the beam.
+ * @property {number} cutoff=1.57 - Affects the size of the spotlight beam: the higher the value the larger the beam.
+ * @example <caption>Create a spotlight pointing at the ground.</caption>
+ * Entities.addEntity({
+ *     type: "Light",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -4 })),
+ *     rotation: Quat.fromPitchYawRollDegrees(-75, 0, 0),
+ *     dimensions: { x: 5, y: 5, z: 5 },
+ *     intensity: 100,
+ *     falloffRadius: 0.3,
+ *     isSpotlight: true,
+ *     exponent: 20,
+ *     cutoff: 30,
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Line"</code> {@link Entities.EntityType|EntityType} draws thin, straight lines between a sequence of two or more 
+ * points.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Line
+ * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity. Must be sufficient to contain all the 
+ *     <code>linePoints</code>.
+ * @property {Vec3[]} linePoints=[]] - The sequence of points to draw lines between. The values are relative to the entity's
+ *     position. A maximum of 70 points can be specified. The property's value is set only if all the <code>linePoints</code> 
+ *     lie within the entity's <code>dimensions</code>.
+ * @property {number} lineWidth=2 - <em>Currently not used.</em>
+ * @property {Color} color=255,255,255 - The color of the line.
+ * @example <caption>Draw lines in a "V".</caption>
+ * var entity = Entities.addEntity({
+ *     type: "Line",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -5 })),
+ *     rotation: MyAvatar.orientation,
+ *     dimensions: { x: 2, y: 2, z: 1 },
+ *     linePoints: [
+ *         { x: -1, y: 1, z: 0 },
+ *         { x: 0, y: -1, z: 0 },
+ *         { x: 1, y: 1, z: 0 },
+ *     ],
+ *     color: { red: 255, green: 0, blue: 0 },
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Material"</code> {@link Entities.EntityType|EntityType} modifies the existing materials on
+ * {@link Entities.EntityType|Model} entities, {@link Entities.EntityType|Shape} entities (albedo only), 
+ * {@link Overlays.OverlayType|model overlays}, and avatars.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.<br />
+ * To apply a material to an entity or overlay, set the material entity's <code>parentID</code> property to the entity or 
+ * overlay's ID.
+ * To apply a material to an avatar, set the material entity's <code>parentID</code> property to the avatar's session UUID.
+ * To apply a material to your avatar such that it persists across domains and log-ins, create the material as an avatar entity 
+ * by setting the <code>clientOnly</code> parameter in {@link Entities.addEntity} to <code>true</code>.
+ * Material entities render as non-scalable spheres if they don't have their parent set.
+ * @typedef {object} Entities.EntityProperties-Material
+ * @property {string} materialURL="" - URL to a {@link MaterialResource}. If you append <code>?name</code> to the URL, the 
+ *     material with that name in the {@link MaterialResource} will be applied to the entity. <br />
+ *     Alternatively, set the property value to <code>"materialData"</code> to use the <code>materialData</code> property  
+ *     for the {@link MaterialResource} values.
+ * @property {number} priority=0 - The priority for applying the material to its parent. Only the highest priority material is 
+ *     applied, with materials of the same priority randomly assigned. Materials that come with the model have a priority of 
+ *     <code>0</code>.
+ * @property {string|number} parentMaterialName="0" - Selects the submesh or submeshes within the parent to apply the material 
+ *     to. If in the format <code>"mat::string"</code>, all submeshes with material name <code>"string"</code> are replaced. 
+ *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh index to modify. Invalid values are 
+ *     parsed to <code>0</code>.
+ * @property {string} materialMappingMode="uv" - How the material is mapped to the entity. Either <code>"uv"</code> or 
+ *     <code>"projected"</code>. <em>Currently, only <code>"uv"</code> is supported.
+ * @property {Vec2} materialMappingPos=0,0 - Offset position in UV-space of the top left of the material, range 
+ *     <code>{ x: 0, y: 0 }</code> &ndash; <code>{ x: 1, y: 1 }</code>.
+ * @property {Vec2} materialMappingScale=1,1 - How much to scale the material within the parent's UV-space.
+ * @property {number} materialMappingRot=0 - How much to rotate the material within the parent's UV-space, in degrees.
+ * @property {string} materialData="" - Used to store {@link MaterialResource} data as a JSON string. You can use 
+ *     <code>JSON.parse()</code> to parse the string into a JavaScript object which you can manipulate the properties of, and 
+ *     use <code>JSON.stringify()</code> to convert the object into a string to put in the property.
+ * @example <caption>Color a sphere using a Material entity.</caption>
+ * var entityID = Entities.addEntity({
+ *     type: "Sphere",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+ *     dimensions: { x: 1, y: 1, z: 1 },
+ *     color: { red: 128, green: 128, blue: 128 },
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ *
+ * var materialID = Entities.addEntity({
+ *     type: "Material",
+ *     parentID: entityID,
+ *     materialURL: "materialData",
+ *     priority: 1,
+ *     materialData: JSON.stringify({
+ *         materialVersion: 1,
+ *         materials: {
+ *             // Can only set albedo on a Shape entity.
+ *             // Value overrides entity's "color" property.
+ *             albedo: [1.0, 1.0, 0]  // Yellow
+ *         }
+ *     }),
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Model"</code> {@link Entities.EntityType|EntityType} displays an FBX or OBJ model.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Model
+ * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity. When adding an entity, if no <code>dimensions</code> 
+ *     value is specified then the model is automatically sized to its 
+ *     <code>{@link Entities.EntityProperties|naturalDimensions}</code>.
+ * @property {Color} color=255,255,255 - <em>Currently not used.</em>
+ * @property {string} modelURL="" - The URL of the FBX of OBJ model. Baked FBX models' URLs end in ".baked.fbx".<br />
+ *     Note: If the name ends with <code>"default-image-model.fbx"</code> then the entity is considered to be an "Image" 
+ *     entity, in which case the <code>textures</code> property should be set per the example.
+ * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
+ *     model's original textures. Use a texture name from the <code>originalTextures</code> property to override that texture. 
+ *     Only the texture names and URLs to be overridden need be specified; original textures are used where there are no 
+ *     overrides. You can use <code>JSON.stringify()</code> to convert a JavaScript object of name, URL pairs into a JSON 
+ *     string.
+ * @property {string} originalTextures="{}" - A JSON string of texture name, URL pairs used in the model. The property value is 
+ *     filled in after the entity has finished rezzing (i.e., textures have loaded). You can use <code>JSON.parse()</code> to 
+ *     parse the JSON string into a JavaScript object of name, URL pairs. <em>Read-only.</em>
+ *
+ * @property {ShapeType} shapeType="none" - The shape of the collision hull used if collisions are enabled.
+ * @property {string} compoundShapeURL="" - The OBJ file to use for the compound shape if <code>shapeType</code> is
+ *     <code>"compound"</code>.
+ *
+ * @property {Entities.AnimationProperties} animation - An animation to play on the model.
+ *
+ * @property {Quat[]} jointRotations=[]] - Joint rotations applied to the model; <code>[]</code> if none are applied or the 
+ *     model hasn't loaded. The array indexes are per {@link Entities.getJointIndex|getJointIndex}. Rotations are relative to 
+ *     each joint's parent.<br />
+ *     Joint rotations can be set by {@link Entities.setLocalJointRotation|setLocalJointRotation} and similar functions, or by
+ *     setting the value of this property. If you set a joint rotation using this property you also need to set the 
+ *     corresponding <code>jointRotationsSet</code> value to <code>true</code>.
+ * @property {boolean[]} jointRotationsSet=[]] - <code>true</code> values for joints that have had rotations applied, 
+ *     <code>false</code> otherwise; <code>[]</code> if none are applied or the model hasn't loaded. The array indexes are per 
+ *     {@link Entities.getJointIndex|getJointIndex}.
+ * @property {Vec3[]} jointTranslations=[]] - Joint translations applied to the model; <code>[]</code> if none are applied or 
+ *     the model hasn't loaded. The array indexes are per {@link Entities.getJointIndex|getJointIndex}. Rotations are relative 
+ *     to each joint's parent.<br />
+ *     Joint translations can be set by {@link Entities.setLocalJointTranslation|setLocalJointTranslation} and similar 
+ *     functions, or by setting the value of this property. If you set a joint translation using this property you also need to 
+ *     set the corresponding <code>jointTranslationsSet</code> value to <code>true</code>.
+ * @property {boolean[]} jointTranslationsSet=[]] - <code>true</code> values for joints that have had translations applied, 
+ *     <code>false</code> otherwise; <code>[]</code> if none are applied or the model hasn't loaded. The array indexes are per 
+ *     {@link Entities.getJointIndex|getJointIndex}.
+ * @property {boolean} relayParentJoints=false - If <code>true</code> and the entity is parented to an avatar, then the 
+ *     avatar's joint rotations are applied to the entity's joints.
+ *
+ * @example <caption>Rez a Vive tracker puck.</caption>
+ * var entity = Entities.addEntity({
+ *     type: "Model",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -2 })),
+ *     rotation: MyAvatar.orientation,
+ *     modelURL: "http://content.highfidelity.com/seefo/production/puck-attach/vive_tracker_puck.obj",
+ *     dimensions: { x: 0.0945, y: 0.0921, z: 0.0423 },
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ * @example <caption>Create an "Image" entity like you can in the Create app.</caption>
+ * var IMAGE_MODEL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
+ * var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
+ * var entity = Entities.addEntity({
+ *     type: "Model",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -3 })),
+ *     rotation: MyAvatar.orientation,
+ *     dimensions: {
+ *         x: 0.5385,
+ *         y: 0.2819,
+ *         z: 0.0092
+ *     },
+ *     shapeType: "box",
+ *     collisionless: true,
+ *     modelURL: IMAGE_MODEL,
+ *     textures: JSON.stringify({ "tex.picture": DEFAULT_IMAGE }),
+ *     lifetime: 300  // Delete after 5 minutes
+ * });
+ */
+
+/**jsdoc
+ * The <code>"ParticleEffect"</code> {@link Entities.EntityType|EntityType} displays a particle system that can be used to 
+ * simulate things such as fire, smoke, snow, magic spells, etc. The particles emanate from an ellipsoid or part thereof.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-ParticleEffect
+
+ * @property {boolean} isEmitting=true - If <code>true</code> then particles are emitted.
+ * @property {number} maxParticles=1000 - The maximum number of particles to render at one time. Older particles are deleted if 
+ *     necessary when new ones are created.
+ * @property {number} lifespan=3s - How long, in seconds, each particle lives.
+ * @property {number} emitRate=15 - The number of particles per second to emit.
+ * @property {number} emitSpeed=5 - The speed, in m/s, that each particle is emitted at.
+ * @property {number} speedSpread=1 - The spread in speeds at which particles are emitted at. If <code>emitSpeed == 5</code> 
+ *     and <code>speedSpread == 1</code>, particles will be emitted with speeds in the range 4m/s &ndash; 6m/s.
+ * @property {vec3} emitAcceleration=0,-9.8,0 - The acceleration that is applied to each particle during its lifetime. The 
+ *     default is Earth's gravity value.
+ * @property {vec3} accelerationSpread=0,0,0 - The spread in accelerations that each particle is given. If
+ *     <code>emitAccelerations == {x: 0, y: -9.8, z: 0}</code> and <code>accelerationSpread ==
+ *     {x: 0, y: 1, z: 0}</code>, each particle will have an acceleration in the range, <code>{x: 0, y: -10.8, z: 0}</code> 
+ *     &ndash; <code>{x: 0, y: -8.8, z: 0}</code>.
+ * @property {Vec3} dimensions - The dimensions of the particle effect, i.e., a bounding box containing all the particles
+ *     during their lifetimes, assuming that <code>emitterShouldTrail</code> is <code>false</code>. <em>Read-only.</em>
+ * @property {boolean} emitterShouldTrail=false - If <code>true</code> then particles are "left behind" as the emitter moves,
+ *     otherwise they stay with the entity's dimensions.
+ *
+ * @property {Quat} emitOrientation=-0.707,0,0,0.707 - The orientation of particle emission relative to the entity's axes. By
+ *     default, particles emit along the entity's local z-axis, and <code>azimuthStart</code> and <code>azimuthFinish</code> 
+ *     are relative to the entity's local x-axis. The default value is a rotation of -90 degrees about the local x-axis, i.e., 
+ *     the particles emit vertically.
+ * @property {vec3} emitDimensions=0,0,0 - The dimensions of the ellipsoid from which particles are emitted.
+ * @property {number} emitRadiusStart=1 - The starting radius within the ellipsoid at which particles start being emitted;
+ *     range <code>0.0</code> &ndash; <code>1.0</code> for the ellipsoid center to the ellipsoid surface, respectively.
+ *     Particles are emitted from the portion of the ellipsoid that lies between <code>emitRadiusStart</code> and the 
+ *     ellipsoid's surface.
+ * @property {number} polarStart=0 - The angle in radians from the entity's local z-axis at which particles start being emitted 
+ *     within the ellipsoid; range <code>0</code> &ndash; <code>Math.PI</code>. Particles are emitted from the portion of the 
+ *     ellipsoid that lies between <code>polarStart<code> and <code>polarFinish</code>.
+ * @property {number} polarFinish=0 - The angle in radians from the entity's local z-axis at which particles stop being emitted 
+ *     within the ellipsoid; range <code>0</code> &ndash; <code>Math.PI</code>. Particles are emitted from the portion of the 
+ *     ellipsoid that lies between <code>polarStart<code> and <code>polarFinish</code>.
+ * @property {number} azimuthStart=-Math.PI - The angle in radians from the entity's local x-axis about the entity's local 
+ *     z-axis at which particles start being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are 
+ *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
+ * @property {number} azimuthFinish=Math.PI - The angle in radians from the entity's local x-axis about the entity's local 
+ *     z-axis at which particles stop being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are 
+ *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
+ *
+ * @property {string} textures="" - The URL of a JPG or PNG image file to display for each particle. If you want transparency, 
+ *     use PNG format.
+ * @property {number} particleRadius=0.025 - The radius of each particle at the middle of its life.
+ * @property {number} radiusStart=0.025 - The radius of each particle at the start of its life. If not explicitly set, the 
+ *     <code>particleRadius</code> value is used.
+ * @property {number} radiusFinish=0.025 - The radius of each particle at the end of its life. If not explicitly set, the 
+ *     <code>particleRadius</code> value is used.
+ * @property {number} radiusSpread=0 - <em>Currently not used.</em>
+ * @property {Color} color=255,255,255 - The color of each particle at the middle of its life.
+ * @property {Color} colorStart=255,255,255 - The color of each particle at the start of its life. If not explicitly set, the 
+ *     <code>color</code> value is used.
+ * @property {Color} colorFinish=255,255,255 - The color of each particle at the end of its life. If not explicitly set, the 
+ *     <code>color</code> value is used.
+ * @property {Color} colorSpread=0,0,0 - <em>Currently not used.</em>
+ * @property {number} alpha=1 - The alpha of each particle at the middle of its life.
+ * @property {number} alphaStart=1 - The alpha of each particle at the start of its life. If not explicitly set, the 
+ *     <code>alpha</code> value is used.
+ * @property {number} alphaFinish=1 - The alpha of each particle at the end of its life. If not explicitly set, the 
+ *     <code>alpha</code> value is used.
+ * @property {number} alphaSpread=0 - <em>Currently not used.</em>
+ *
+ * @property {ShapeType} shapeType="none" - <em>Currently not used.</em> <em>Read-only.</em>
+ *
+ * @example <caption>Create a ball of green smoke.</caption>
+ * particles = Entities.addEntity({
+ *     type: "ParticleEffect",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -4 })),
+ *     lifespan: 5,
+ *     emitRate: 10,
+ *     emitSpeed: 0.02,
+ *     speedSpread: 0.01,
+ *     emitAcceleration: { x: 0, y: 0.02, z: 0 },
+ *     polarFinish: Math.PI,
+ *     textures: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png",
+ *     particleRadius: 0.1,
+ *     color: { red: 0, green: 255, blue: 0 },
+ *     alphaFinish: 0,
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"PolyLine"</code> {@link Entities.EntityType|EntityType} draws textured, straight lines between a sequence of 
+ * points.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-PolyLine
+ * @property {Vec3} dimensions=1,1,1 - The dimensions of the entity, i.e., the size of the bounding box that contains the 
+ *     lines drawn.
+ * @property {Vec3[]} linePoints=[]] - The sequence of points to draw lines between. The values are relative to the entity's
+ *     position. A maximum of 70 points can be specified. Must be specified in order for the entity to render.
+ * @property {Vec3[]} normals=[]] - The normal vectors for the line's surface at the <code>linePoints</code>. The values are 
+ *     relative to the entity's orientation. Must be specified in order for the entity to render.
+ * @property {number[]} strokeWidths=[]] - The widths, in m, of the line at the <code>linePoints</code>. Must be specified in 
+ *     order for the entity to render.
+ * @property {number} lineWidth=2 - <em>Currently not used.</code>
+ * @property {Vec3[]} strokeColors=[]] - <em>Currently not used.</em>
+ * @property {Color} color=255,255,255 - The base color of the line, which is multiplied with the color of the texture for
+ *     rendering.
+ * @property {string} textures="" - The URL of a JPG or PNG texture to use for the lines. If you want transparency, use PNG
+ *     format.
+ * @property {boolean} isUVModeStretch=true - If <code>true</code>, the texture is stretched to fill the whole line, otherwise 
+ *     the texture repeats along the line.
+ * @example <caption>Draw a textured "V".</caption>
+ * var entity = Entities.addEntity({
+ *     type: "PolyLine",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -5 })),
+ *     rotation: MyAvatar.orientation,
+ *     linePoints: [
+ *         { x: -1, y: 0.5, z: 0 },
+ *         { x: 0, y: 0, z: 0 },
+ *         { x: 1, y: 0.5, z: 0 }
+ *     ],
+ *     normals: [
+ *         { x: 0, y: 0, z: 1 },
+ *         { x: 0, y: 0, z: 1 },
+ *         { x: 0, y: 0, z: 1 }
+ *     ],
+ *     strokeWidths: [ 0.1, 0.1, 0.1 ],
+ *     color: { red: 255, green: 0, blue: 0 },  // Use just the red channel from the image.
+ *     textures: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flowArts/trails.png",
+ *     isUVModeStretch: true,
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"PolyVox"</code> {@link Entities.EntityType|EntityType} displays a set of textured voxels. 
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * If you have two or more neighboring PolyVox entities of the same size abutting each other, you can display them as joined by
+ * configuring their <code>voxelSurfaceStyle</code> and neighbor ID properties.<br />
+ * PolyVox entities uses a library from <a href="http://www.volumesoffun.com/">Volumes of Fun</a>. Their
+ * <a href="http://www.volumesoffun.com/polyvox-documentation/">library documentation</a> may be useful to read.
+ * @typedef {object} Entities.EntityProperties-PolyVox
+ * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity.
+ * @property {Vec3} voxelVolumeSize=32,32,32 - Integer number of voxels along each axis of the entity, in the range 
+ *     <code>1,1,1</code> to <code>128,128,128</code>. The dimensions of each voxel is 
+ *     <code>dimensions / voxelVolumesize</code>.
+ * @property {string} voxelData="ABAAEAAQAAAAHgAAEAB42u3BAQ0AAADCoPdPbQ8HFAAAAPBuEAAAAQ==" - Base-64 encoded compressed dump of 
+ *     the PolyVox data. This property is typically not used in scripts directly; rather, functions that manipulate a PolyVox 
+ *     entity update it.<br />
+ *     The size of this property increases with the size and complexity of the PolyVox entity, with the size depending on how 
+ *     the particular entity's voxels compress. Because this property value has to fit within a High Fidelity datagram packet 
+ *     there is a limit to the size and complexity of a PolyVox entity, and edits which would result in an overflow are 
+ *     rejected.
+ * @property {Entities.PolyVoxSurfaceStyle} voxelSurfaceStyle=2 - The style of rendering the voxels' surface and how 
+ *     neighboring PolyVox entities are joined.
+ * @property {string} xTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's local x-axis. JPG or
+ *     PNG format. If no texture is specified the surfaces display white.
+ * @property {string} yTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's local y-axis. JPG or 
+ *     PNG format. If no texture is specified the surfaces display white.
+ * @property {string} zTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's local z-axis. JPG or 
+ *     PNG format. If no texture is specified the surfaces display white.
+ * @property {Uuid} xNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local x-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} yNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local y-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} zNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local z-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} xPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local x-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} yPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local y-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} zPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local z-axis direction, 
+ *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ * @example <caption>Create a textured PolyVox sphere.</caption>
+ * var position = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -8 }));
+ * var texture = "http://public.highfidelity.com/cozza13/tuscany/Concrete2.jpg";
+ * var polyVox = Entities.addEntity({
+ *     type: "PolyVox",
+ *     position: position,
+ *     dimensions: { x: 2, y: 2, z: 2 },
+ *     xTextureURL: texture,
+ *     yTextureURL: texture,
+ *     zTextureURL: texture,
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ * Entities.setVoxelSphere(polyVox, position, 0.8, 255);
+ */
+
+/**jsdoc
+ * The <code>"Shape"</code> {@link Entities.EntityType|EntityType} displays an entity of a specified <code>shape</code>.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Shape
+ * @property {Entities.Shape} shape="Sphere" - The shape of the entity.
+ * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity.
+ * @property {Color} color=255,255,255 - The color of the entity.
+ * @example <caption>Create a cylinder.</caption>
+ * var shape = Entities.addEntity({
+ *     type: "Shape",
+ *     shape: "Cylinder",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+ *     dimensions: { x: 0.4, y: 0.6, z: 0.4 },
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Sphere"</code> {@link Entities.EntityType|EntityType} is the same as the <code>"Shape"</code>
+ * {@link Entities.EntityType|EntityType} except that its <code>shape</code> value is always set to <code>"Sphere"</code>
+ * when the entity is created. If its <code>shape</code> property value is subsequently changed then the entity's 
+ * <code>type</code> will be reported as <code>"Box"</code> if the <code>shape</code> is set to <code>"Cube"</code>, 
+ * otherwise it will be reported as <code>"Shape"</code>.
+ * @typedef {object} Entities.EntityProperties-Sphere
+ */
+
+/**jsdoc
+ * The <code>"Text"</code> {@link Entities.EntityType|EntityType} displays a 2D rectangle of text in the domain.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Text
+ * @property {Vec3} dimensions=0.1,0.1,0.01 - The dimensions of the entity.
+ * @property {string} text="" - The text to display on the face of the entity. Text wraps if necessary to fit. New lines can be
+ *     created using <code>\n</code>. Overflowing lines are not displayed.
+ * @property {number} lineHeight=0.1 - The height of each line of text (thus determining the font size).
+ * @property {Color} textColor=255,255,255 - The color of the text.
+ * @property {Color} backgroundColor=0,0,0 - The color of the background rectangle.
+ * @property {boolean} faceCamera=false - If <code>true</code>, the entity is oriented to face each user's camera (i.e., it
+ *     differs for each user present).
+ * @example <caption>Create a text entity.</caption>
+ * var text = Entities.addEntity({
+ *     type: "Text",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+ *     dimensions: { x: 0.6, y: 0.3, z: 0.01 },
+ *     lineHeight: 0.12,
+ *     text: "Hello\nthere!",
+ *     faceCamera: true,
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Web"</code> {@link Entities.EntityType|EntityType} displays a browsable Web page. Each user views their own copy 
+ * of the Web page: if one user navigates to another page on the entity, other users do not see the change; if a video is being 
+ * played, users don't see it in sync.
+ * The entity has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Web
+ * @property {Vec3} dimensions=0.1,0.1,0.01 - The dimensions of the entity.
+ * @property {string} sourceUrl="" - The URL of the Web page to display. This value does not change as you or others navigate 
+ *     on the Web entity.
+ * @property {number} dpi=30 - The resolution to display the page at, in dots per inch. If you convert this to dots per meter 
+ *     (multiply by 1 / 0.0254 = 39.3701) then multiply <code>dimensions.x</code> and <code>dimensions.y</code> by that value 
+ *     you get the resolution in pixels.
+ * @example <caption>Create a Web entity displaying at 1920 x 1080 resolution.</caption>
+ * var METERS_TO_INCHES = 39.3701;
+ * var entity = Entities.addEntity({
+ *     type: "Web",
+ *     sourceUrl: "https://highfidelity.com/",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.75, z: -4 })),
+ *     rotation: MyAvatar.orientation,
+ *     dimensions: {
+ *         x: 3,
+ *         y: 3 * 1080 / 1920,
+ *         z: 0.01
+ *     },
+ *     dpi: 1920 / (3 * METERS_TO_INCHES),
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Zone"</code> {@link Entities.EntityType|EntityType} is a volume of lighting effects and avatar permissions.
+ * Avatar interaction events such as {@link Entities.enterEntity} are also often used with a Zone entity.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Zone
+ * @property {Vec3} dimensions=0.1,0.1,0.1 - The size of the volume in which the zone's lighting effects and avatar permissions 
+ *     have effect.
+ *
+ * @property {ShapeType} shapeType="box" - The shape of the volume in which the zone's lighting effects and avatar 
+ *     permissions have effect. Reverts to the default value if set to <code>"none"</code>, or set to <code>"compound"</code> 
+ *     and <code>compoundShapeURL</code> is <code>""</code>.
+  * @property {string} compoundShapeURL="" - The OBJ file to use for the compound shape if <code>shapeType</code> is 
+ *     <code>"compound"</code>.
+ *
+ * @property {string} keyLightMode="inherit" - Configures the key light in the zone. Possible values:<br />
+ *     <code>"inherit"</code>: The key light from any enclosing zone continues into this zone.<br />
+ *     <code>"disabled"</code>: The key light from any enclosing zone and the key light of this zone are disabled in this 
+ *         zone.<br />
+ *     <code>"enabled"</code>: The key light properties of this zone are enabled, overriding the key light of from any 
+ *         enclosing zone.
+ * @property {Entities.KeyLight} keyLight - The key light properties of the zone.
+ *
+ * @property {string} ambientLightMode="inherit" - Configures the ambient light in the zone. Possible values:<br />
+ *     <code>"inherit"</code>: The ambient light from any enclosing zone continues into this zone.<br />
+ *     <code>"disabled"</code>: The ambient light from any enclosing zone and the ambient light of this zone are disabled in 
+ *         this zone.<br />
+ *     <code>"enabled"</code>: The ambient light properties of this zone are enabled, overriding the ambient light from any 
+ *         enclosing zone.
+ * @property {Entities.AmbientLight} ambientLight - The ambient light properties of the zone.
+ *
+ * @property {string} skyboxMode="inherit" - Configures the skybox displayed in the zone. Possible values:<br />
+ *     <code>"inherit"</code>: The skybox from any enclosing zone is dislayed in this zone.<br />
+ *     <code>"disabled"</code>: The skybox from any enclosing zone and the skybox of this zone are disabled in this zone.<br />
+ *     <code>"enabled"</code>: The skybox properties of this zone are enabled, overriding the skybox from any enclosing zone.
+ * @property {Entities.Skybox} skybox - The skybox properties of the zone.
+ *
+ * @property {string} hazeMode="inherit" - Configures the haze in the zone. Possible values:<br />
+ *     <code>"inherit"</code>: The haze from any enclosing zone continues into this zone.<br />
+ *     <code>"disabled"</code>: The haze from any enclosing zone and the haze of this zone are disabled in this zone.<br />
+ *     <code>"enabled"</code>: The haze properties of this zone are enabled, overriding the haze from any enclosing zone.
+ * @property {Entities.Haze} haze - The haze properties of the zone.
+ *
+ * @property {boolean} flyingAllowed=true - If <code>true</code> then visitors can fly in the zone; otherwise they cannot.
+ * @property {boolean} ghostingAllowed=true - If <code>true</code> then visitors with avatar collisions turned off will not 
+ *     collide with content in the zone; otherwise visitors will always collide with content in the zone.
+ 
+ * @property {string} filterURL="" - The URL of a JavaScript file that filters changes to properties of entities within the 
+ *     zone. It is periodically executed for each entity in the zone. It can, for example, be used to not allow changes to 
+ *     certain properties.<br />
+ * <pre>
+ * function filter(properties) {
+ *     // Test and edit properties object values,
+ *     // e.g., properties.modelURL, as required.
+ *     return properties;
+ * }
+ * </pre>
+ *
+ * @example <caption>Create a zone that casts a red key light along the x-axis.</caption>
+ * var zone = Entities.addEntity({
+ *     type: "Zone",
+ *     position: MyAvatar.position,
+ *     dimensions: { x: 100, y: 100, z: 100 },
+ *     keyLightMode: "enabled",
+ *     keyLight: {
+ *         "color": { "red": 255, "green": 0, "blue": 0 },
+ *         "direction": { "x": 1, "y": 0, "z": 0 }
+ *     },
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
 
 QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime, bool strictSemantics) const {
     // If strictSemantics is true and skipDefaults is false, then all and only those properties are copied for which the property flag
@@ -439,6 +1201,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_VELOCITY, angularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_DAMPING, angularDamping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE, visible);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);  // Relevant to Shape and Model entities only.
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISIONLESS, collisionless);
     COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_COLLISIONLESS, collisionless, ignoreForCollisions, getCollisionless()); // legacy support
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_MASK, collisionMask);
@@ -447,10 +1210,11 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_DYNAMIC, dynamic, collisionsWillMove, getDynamic()); // legacy support
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_HREF, href);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DESCRIPTION, description);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FACE_CAMERA, faceCamera);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FACE_CAMERA, faceCamera);  // Text only.
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ACTION_DATA, actionData);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCKED, locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USER_DATA, userData);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
 
     // Certifiable Properties
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ITEM_NAME, itemName);
@@ -463,11 +1227,12 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EDITION_NUMBER, editionNumber);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ENTITY_INSTANCE_NUMBER, entityInstanceNumber);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CERTIFICATE_ID, certificateID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STATIC_CERTIFICATE_VERSION, staticCertificateVersion);
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NAME, name);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
 
-    // Boxes, Spheres, Light, Line, Model(??), Particle, PolyLine
+    // Light, Line, Model, ParticleEffect, PolyLine, Shape
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR, color);
 
     // Particles only
@@ -494,7 +1259,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR_SPREAD, colorSpread);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR_START, colorStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR_FINISH, colorFinish);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_SPREAD, alphaSpread);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_START, alphaStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_FINISH, alphaFinish);
@@ -509,17 +1273,21 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_ROTATIONS, jointRotations);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS, jointTranslations);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
     }
 
     if (_type == EntityTypes::Model || _type == EntityTypes::Zone || _type == EntityTypes::ParticleEffect) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, getShapeTypeAsString());
     }
+    
+    // FIXME: Shouldn't provide a shapeType property for Box and Sphere entities.
     if (_type == EntityTypes::Box) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, QString("Box"));
     }
     if (_type == EntityTypes::Sphere) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, QString("Sphere"));
     }
+
     if (_type == EntityTypes::Box || _type == EntityTypes::Sphere || _type == EntityTypes::Shape) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SHAPE, shape);
     }
@@ -554,10 +1322,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Zones only
     if (_type == EntityTypes::Zone) {
         _keyLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+        _ambientLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BACKGROUND_MODE, backgroundMode, getBackgroundModeAsString());
-
-        _stage.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         _skybox.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FLYING_ALLOWED, flyingAllowed);
@@ -566,6 +1332,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
         _haze.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_KEY_LIGHT_MODE, keyLightMode, getKeyLightModeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_AMBIENT_LIGHT_MODE, ambientLightMode, getAmbientLightModeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SKYBOX_MODE, skyboxMode, getSkyboxModeAsString());
     }
 
     // Web only
@@ -596,13 +1366,33 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (_type == EntityTypes::Line || _type == EntityTypes::PolyLine) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_WIDTH, lineWidth);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_POINTS, linePoints);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NORMALS, normals);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_COLORS, strokeColors);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_WIDTHS, strokeWidths);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NORMALS, normals);  // Polyline only.
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_COLORS, strokeColors);  // Polyline only.
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_WIDTHS, strokeWidths);  // Polyline only.
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);  // Polyline only.
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);  // Polyline only.
     }
 
+    // Materials
+    if (_type == EntityTypes::Material) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_URL, materialURL);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_MATERIAL_MAPPING_MODE, materialMappingMode, getMaterialMappingModeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_PRIORITY, priority);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_MATERIAL_NAME, parentMaterialName);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_POS, materialMappingPos);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_DATA, materialData);
+    }
+
+    /**jsdoc
+     * The axis-aligned bounding box of an entity.
+     * @typedef Entities.BoundingBox
+     * @property {Vec3} brn - The bottom right near (minimum axes values) corner of the AA box.
+     * @property {Vec3} tfl - The top far left (maximum axes values) corner of the AA box.
+     * @property {Vec3} center - The center of the AA box.
+     * @property {Vec3} dimensions - The dimensions of the AA box.
+     */
     if (!skipDefaults && !strictSemantics) {
         AABox aaBox = getAABox();
         QScriptValue boundingBox = engine->newObject();
@@ -624,20 +1414,32 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_ID, parentID);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_JOINT_INDEX, parentJointIndex);
+
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_QUERY_AA_CUBE, queryAACube);
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_VELOCITY, localVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_DIMENSIONS, localDimensions);
 
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);  // Gettable but not settable except at entity creation
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);  // Gettable but not settable
 
     // Rendering info
     if (!skipDefaults && !strictSemantics) {
         QScriptValue renderInfo = engine->newObject();
 
+        /**jsdoc
+         * Information on how an entity is rendered. Properties are only filled in for <code>Model</code> entities; other 
+         * entity types have an empty object, <code>{}</code>.
+         * @typedef {object} Entities.RenderInfo
+         * @property {number} verticesCount - The number of vertices in the entity.
+         * @property {number} texturesCount  - The number of textures in the entity.
+         * @property {number} textureSize - The total size of the textures in the entity, in bytes.
+         * @property {boolean} hasTransparent - Is <code>true</code> if any of the textures has transparency.
+         * @property {number} drawCalls - The number of draw calls required to render the entity.
+         */
         // currently only supported by models
         if (_type == EntityTypes::Model) {
             renderInfo.setProperty("verticesCount", (int)getRenderInfoVertexCount()); // FIXME - theoretically the number of vertex could be > max int
@@ -650,6 +1452,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(renderInfo, renderInfo);  // Gettable but not settable
     }
 
+    // FIXME: These properties should already have been set above.
     properties.setProperty("clientOnly", convertScriptValue(engine, getClientOnly()));
     properties.setProperty("owningAvatarID", convertScriptValue(engine, getOwningAvatarID()));
 
@@ -684,6 +1487,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, glmVec3, setAngularVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularDamping, float, setAngularDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(visible, bool, setVisible);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(canCastShadow, bool, setCanCastShadow);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(color, xColor, setColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(colorSpread, xColor, setColorSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, xColor, setColorStart);
@@ -699,7 +1503,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionless, bool, setCollisionless);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(ignoreForCollisions, bool, setCollisionless, getCollisionless); // legacy support
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionMask, uint8_t, setCollisionMask);
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(collidesWith, CollisionMask);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(collidesWith, CollisionMask);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(collisionsWillMove, bool, setDynamic, getDynamic); // legacy support
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dynamic, bool, setDynamic);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isSpotlight, bool, setIsSpotlight);
@@ -714,7 +1518,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lineHeight, float, setLineHeight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textColor, xColor, setTextColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(backgroundColor, xColor, setBackgroundColor);
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(shapeType, ShapeType);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(shapeType, ShapeType);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(maxParticles, quint32, setMaxParticles);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifespan, float, setLifespan);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isEmitting, bool, setIsEmitting);
@@ -734,6 +1538,15 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusSpread, float, setRadiusSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusStart, float, setRadiusStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusFinish, float, setRadiusFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(relayParentJoints, bool, setRelayParentJoints);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialURL, QString, setMaterialURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(materialMappingMode, MaterialMappingMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(priority, quint16, setPriority);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(parentMaterialName, QString, setParentMaterialName);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingPos, glmVec2, setMaterialMappingPos);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingScale, glmVec2, setMaterialMappingScale);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingRot, float, setMaterialMappingRot);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialData, QString, setMaterialData);
 
     // Certifiable Properties
     COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
@@ -746,13 +1559,15 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(editionNumber, quint32, setEditionNumber);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(entityInstanceNumber, quint32, setEntityInstanceNumber);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(certificateID, QString, setCertificateID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(staticCertificateVersion, quint32, setStaticCertificateVersion);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
 
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
-
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(hazeMode, HazeMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(hazeMode, HazeMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(keyLightMode, KeyLightMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(ambientLightMode, AmbientLightMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(skyboxMode, SkyboxMode);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
@@ -782,8 +1597,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
 
     _animation.copyFromScriptValue(object, _defaultSettings);
     _keyLight.copyFromScriptValue(object, _defaultSettings);
+    _ambientLight.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
-    _stage.copyFromScriptValue(object, _defaultSettings);
     _haze.copyFromScriptValue(object, _defaultSettings);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
@@ -806,6 +1621,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, glmQuat, setLocalRotation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, glmVec3, setLocalVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, glmVec3, setLocalAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localDimensions, glmVec3, setLocalDimensions);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotationsSet, qVectorBool, setJointRotationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
@@ -844,6 +1660,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(angularVelocity);
     COPY_PROPERTY_IF_CHANGED(angularDamping);
     COPY_PROPERTY_IF_CHANGED(visible);
+    COPY_PROPERTY_IF_CHANGED(canCastShadow);
     COPY_PROPERTY_IF_CHANGED(color);
     COPY_PROPERTY_IF_CHANGED(colorSpread);
     COPY_PROPERTY_IF_CHANGED(colorStart);
@@ -903,13 +1720,15 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(editionNumber);
     COPY_PROPERTY_IF_CHANGED(entityInstanceNumber);
     COPY_PROPERTY_IF_CHANGED(certificateID);
+    COPY_PROPERTY_IF_CHANGED(staticCertificateVersion);
 
     COPY_PROPERTY_IF_CHANGED(name);
     COPY_PROPERTY_IF_CHANGED(collisionSoundURL);
 
-    COPY_PROPERTY_IF_CHANGED(backgroundMode);
-
     COPY_PROPERTY_IF_CHANGED(hazeMode);
+    COPY_PROPERTY_IF_CHANGED(keyLightMode);
+    COPY_PROPERTY_IF_CHANGED(ambientLightMode);
+    COPY_PROPERTY_IF_CHANGED(skyboxMode);
 
     COPY_PROPERTY_IF_CHANGED(sourceUrl);
     COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
@@ -929,8 +1748,8 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
 
     _animation.merge(other._animation);
     _keyLight.merge(other._keyLight);
+    _ambientLight.merge(other._ambientLight);
     _skybox.merge(other._skybox);
-    _stage.merge(other._stage);
     _haze.merge(other._haze);
 
     COPY_PROPERTY_IF_CHANGED(xTextureURL);
@@ -953,6 +1772,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(localRotation);
     COPY_PROPERTY_IF_CHANGED(localVelocity);
     COPY_PROPERTY_IF_CHANGED(localAngularVelocity);
+    COPY_PROPERTY_IF_CHANGED(localDimensions);
 
     COPY_PROPERTY_IF_CHANGED(jointRotationsSet);
     COPY_PROPERTY_IF_CHANGED(jointRotations);
@@ -1013,6 +1833,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 
     std::call_once(initMap, [](){
         ADD_PROPERTY_TO_MAP(PROP_VISIBLE, Visible, visible, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool);
         ADD_PROPERTY_TO_MAP(PROP_POSITION, Position, position, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_DIMENSIONS, Dimensions, dimensions, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ROTATION, Rotation, rotation, glm::quat);
@@ -1082,6 +1903,15 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_RADIUS_START, RadiusStart, radiusStart, float);
         ADD_PROPERTY_TO_MAP(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float);
 
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_URL, MaterialURL, materialURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, materialMappingMode, MaterialMappingMode);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_PRIORITY, Priority, priority, quint16);
+        ADD_PROPERTY_TO_MAP(PROP_PARENT_MATERIAL_NAME, ParentMaterialName, parentMaterialName, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, glmVec2);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, glmVec2);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_DATA, MaterialData, materialData, QString);
+
         // Certifiable Properties
         ADD_PROPERTY_TO_MAP(PROP_ITEM_NAME, ItemName, itemName, QString);
         ADD_PROPERTY_TO_MAP(PROP_ITEM_DESCRIPTION, ItemDescription, itemDescription, QString);
@@ -1093,16 +1923,17 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_EDITION_NUMBER, EditionNumber, editionNumber, quint32);
         ADD_PROPERTY_TO_MAP(PROP_ENTITY_INSTANCE_NUMBER, EntityInstanceNumber, entityInstanceNumber, quint32);
         ADD_PROPERTY_TO_MAP(PROP_CERTIFICATE_ID, CertificateID, certificateID, QString);
+        ADD_PROPERTY_TO_MAP(PROP_STATIC_CERTIFICATE_VERSION, StaticCertificateVersion, staticCertificateVersion, quint32);
 
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor);
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
-        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float);
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3);
+        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_CAST_SHADOW, KeyLightCastShadows, keyLightCastShadows, bool);
+
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray);
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t);
         ADD_PROPERTY_TO_MAP(PROP_NAME, Name, name, QString);
-        ADD_PROPERTY_TO_MAP(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode);
         ADD_PROPERTY_TO_MAP(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
         ADD_PROPERTY_TO_MAP(PROP_LINE_WIDTH, LineWidth, lineWidth, float);
         ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
@@ -1131,11 +1962,13 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glm::quat);
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, glm::vec3);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, glm::vec3);
 
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<glm::vec3>);
+        ADD_PROPERTY_TO_MAP(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool);
 
         ADD_PROPERTY_TO_MAP(PROP_SHAPE, Shape, shape, QString);
 
@@ -1151,14 +1984,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
-
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_SUN_MODEL_ENABLED, Stage, stage, SunModelEnabled, sunModelEnabled);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LATITUDE, Stage, stage, Latitude, latitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LONGITUDE, Stage, stage, Longitude, longitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_ALTITUDE, Stage, stage, Altitude, altitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_DAY, Stage, stage, Day, day);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_HOUR, Stage, stage, Hour, hour);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_AUTOMATIC_HOURDAY, Stage, stage, AutomaticHourDay, automaticHourDay);
 
         ADD_PROPERTY_TO_MAP(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool);
         ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
@@ -1181,6 +2006,10 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ATTENUATE_KEYLIGHT, Haze, haze, HazeAttenuateKeyLight, hazeAttenuateKeyLight);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_RANGE, Haze, haze, HazeKeyLightRange, hazeKeyLightRange);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_ALTITUDE, Haze, haze, HazeKeyLightAltitude, hazeKeyLightAltitude);
+
+        ADD_PROPERTY_TO_MAP(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t);
 
         ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
 
@@ -1326,6 +2155,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, properties.getAngularVelocity());
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, properties.getAngularDamping());
             APPEND_ENTITY_PROPERTY(PROP_VISIBLE, properties.getVisible());
+            APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, properties.getCanCastShadow());
             APPEND_ENTITY_PROPERTY(PROP_COLLISIONLESS, properties.getCollisionless());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_MASK, properties.getCollisionMask());
             APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, properties.getDynamic());
@@ -1363,6 +2193,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, properties.getJointRotations());
                 APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, properties.getJointTranslationsSet());
                 APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, properties.getJointTranslations());
+                APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, properties.getRelayParentJoints());
             }
 
             if (properties.getType() == EntityTypes::Light) {
@@ -1408,13 +2239,11 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 _staticKeyLight.setProperties(properties);
                 _staticKeyLight.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
-                _staticStage.setProperties(properties);
-                _staticStage.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+                _staticAmbientLight.setProperties(properties);
+                _staticAmbientLight.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)properties.getShapeType());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
-
-                APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)properties.getBackgroundMode());
 
                 _staticSkybox.setProperties(properties);
                 _staticSkybox.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -1426,6 +2255,10 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)properties.getHazeMode());
                 _staticHaze.setProperties(properties);
                 _staticHaze.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
+                APPEND_ENTITY_PROPERTY(PROP_KEY_LIGHT_MODE, (uint32_t)properties.getKeyLightMode());
+                APPEND_ENTITY_PROPERTY(PROP_AMBIENT_LIGHT_MODE, (uint32_t)properties.getAmbientLightMode());
+                APPEND_ENTITY_PROPERTY(PROP_SKYBOX_MODE, (uint32_t)properties.getSkyboxMode());
             }
 
             if (properties.getType() == EntityTypes::PolyVox) {
@@ -1465,6 +2298,18 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
             }
 
+            // Materials
+            if (properties.getType() == EntityTypes::Material) {
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_URL, properties.getMaterialURL());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_MODE, (uint32_t)properties.getMaterialMappingMode());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_PRIORITY, properties.getPriority());
+                APPEND_ENTITY_PROPERTY(PROP_PARENT_MATERIAL_NAME, properties.getParentMaterialName());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_POS, properties.getMaterialMappingPos());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, properties.getMaterialMappingScale());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, properties.getMaterialMappingRot());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_DATA, properties.getMaterialData());
+            }
+
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
             APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
@@ -1481,6 +2326,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, properties.getEditionNumber());
             APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, properties.getEntityInstanceNumber());
             APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, properties.getCertificateID());
+            APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, properties.getStaticCertificateVersion());
         }
 
         if (propertyCount > 0) {
@@ -1683,6 +2529,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, glm::vec3, setAngularVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_DAMPING, float, setAngularDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONLESS, bool, setCollisionless);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_MASK, uint8_t, setCollisionMask);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DYNAMIC, bool, setDynamic);
@@ -1719,6 +2566,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS, QVector<glm::vec3>, setJointTranslations);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
     }
 
     if (properties.getType() == EntityTypes::Light) {
@@ -1761,12 +2609,11 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::Zone) {
-        properties.getKeyLight().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
-        properties.getStage().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
+        properties.getKeyLight().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+        properties.getAmbientLight().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
         properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
@@ -1775,7 +2622,11 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
  
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint32_t, setHazeMode);
         properties.getHaze().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
-   }
+
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEY_LIGHT_MODE, uint32_t, setKeyLightMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AMBIENT_LIGHT_MODE, uint32_t, setAmbientLightMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SKYBOX_MODE, uint32_t, setSkyboxMode);
+    }
 
     if (properties.getType() == EntityTypes::PolyVox) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_VOLUME_SIZE, glm::vec3, setVoxelVolumeSize);
@@ -1816,6 +2667,18 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
     }
 
+    // Materials
+    if (properties.getType() == EntityTypes::Material) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_URL, QString, setMaterialURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, setMaterialMappingMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_PRIORITY, quint16, setPriority);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_MATERIAL_NAME, QString, setParentMaterialName);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_POS, glmVec2, setMaterialMappingPos);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_SCALE, glmVec2, setMaterialMappingScale);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_DATA, QString, setMaterialData);
+    }
+
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACTION_DATA, QByteArray, setActionData);
@@ -1832,6 +2695,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EDITION_NUMBER, quint32, setEditionNumber);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CERTIFICATE_ID, QString, setCertificateID);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
 
     return valid;
 }
@@ -1936,6 +2800,7 @@ void EntityItemProperties::markAllChanged() {
     _angularDampingChanged = true;
     _nameChanged = true;
     _visibleChanged = true;
+    _canCastShadowChanged = true;
     _colorChanged = true;
     _alphaChanged = true;
     _modelURLChanged = true;
@@ -1988,6 +2853,15 @@ void EntityItemProperties::markAllChanged() {
     //_alphaStartChanged = true;
     //_alphaFinishChanged = true;
 
+    _materialURLChanged = true;
+    _materialMappingModeChanged = true;
+    _priorityChanged = true;
+    _parentMaterialNameChanged = true;
+    _materialMappingPosChanged = true;
+    _materialMappingScaleChanged = true;
+    _materialMappingRotChanged = true;
+    _materialDataChanged = true;
+
     // Certifiable Properties
     _itemNameChanged = true;
     _itemDescriptionChanged = true;
@@ -1999,15 +2873,19 @@ void EntityItemProperties::markAllChanged() {
     _editionNumberChanged = true;
     _entityInstanceNumberChanged = true;
     _certificateIDChanged = true;
+    _staticCertificateVersionChanged = true;
 
     _keyLight.markAllChanged();
+    _ambientLight.markAllChanged();
+    _skybox.markAllChanged();
 
-    _backgroundModeChanged = true;
+    _keyLightModeChanged = true;
+    _skyboxModeChanged = true;
+    _ambientLightModeChanged = true;
     _hazeModeChanged = true;
 
     _animation.markAllChanged();
     _skybox.markAllChanged();
-    _stage.markAllChanged();
     _haze.markAllChanged();
 
     _sourceUrlChanged = true;
@@ -2058,6 +2936,7 @@ void EntityItemProperties::markAllChanged() {
     _owningAvatarIDChanged = true;
 
     _dpiChanged = true;
+    _relayParentJointsChanged = true;
 }
 
 // The minimum bounding box for the entity.
@@ -2122,6 +3001,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (visibleChanged()) {
         out += "visible";
+    }
+    if (canCastShadowChanged()) {
+        out += "canCastShadow";
     }
     if (rotationChanged()) {
         out += "rotation";
@@ -2309,6 +3191,30 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (radiusFinishChanged()) {
         out += "radiusFinish";
     }
+    if (materialURLChanged()) {
+        out += "materialURL";
+    }
+    if (materialMappingModeChanged()) {
+        out += "materialMappingMode";
+    }
+    if (priorityChanged()) {
+        out += "priority";
+    }
+    if (parentMaterialNameChanged()) {
+        out += "parentMaterialName";
+    }
+    if (materialMappingPosChanged()) {
+        out += "materialMappingPos";
+    }
+    if (materialMappingScaleChanged()) {
+        out += "materialMappingScale";
+    }
+    if (materialMappingRotChanged()) {
+        out += "materialMappingRot";
+    }
+    if (materialDataChanged()) {
+        out += "materialData";
+    }
 
     // Certifiable Properties
     if (itemNameChanged()) {
@@ -2341,13 +3247,24 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (certificateIDChanged()) {
         out += "certificateID";
     }
-
-    if (backgroundModeChanged()) {
-        out += "backgroundMode";
+    if (staticCertificateVersionChanged()) {
+        out += "staticCertificateVersion";
     }
 
     if (hazeModeChanged()) {
         out += "hazeMode";
+    }
+
+    if (keyLightModeChanged()) {
+        out += "keyLightMode";
+    }
+
+    if (ambientLightModeChanged()) {
+        out += "ambientLightMode";
+    }
+
+    if (skyboxModeChanged()) {
+        out += "skyboxMode";
     }
 
     if (voxelVolumeSizeChanged()) {
@@ -2413,6 +3330,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (jointTranslationsChanged()) {
         out += "jointTranslations";
     }
+    if (relayParentJointsChanged()) {
+        out += "relayParentJoints";
+    }
     if (queryAACubeChanged()) {
         out += "queryAACube";
     }
@@ -2451,8 +3371,8 @@ QList<QString> EntityItemProperties::listChangedProperties() {
 
     getAnimation().listChangedProperties(out);
     getKeyLight().listChangedProperties(out);
+    getAmbientLight().listChangedProperties(out);
     getSkybox().listChangedProperties(out);
-    getStage().listChangedProperties(out);
     getHaze().listChangedProperties(out);
 
     return out;
@@ -2463,9 +3383,25 @@ bool EntityItemProperties::transformChanged() const {
         localPositionChanged() || localRotationChanged();
 }
 
+bool EntityItemProperties::getScalesWithParent() const {
+    // keep this logic the same as in EntityItem::getScalesWithParent
+    bool scalesWithParent { false };
+    if (parentIDChanged()) {
+        bool success;
+        SpatiallyNestablePointer parent = SpatiallyNestable::findByID(getParentID(), success);
+        if (success && parent) {
+            bool avatarAncestor = (parent->getNestableType() == NestableType::Avatar ||
+                                   parent->hasAncestorOfType(NestableType::Avatar));
+            scalesWithParent = getClientOnly() && avatarAncestor;
+        }
+    }
+    return scalesWithParent;
+}
+
 bool EntityItemProperties::parentRelatedPropertyChanged() const {
     return positionChanged() || rotationChanged() ||
         localPositionChanged() || localRotationChanged() ||
+        localDimensionsChanged() ||
         parentIDChanged() || parentJointIndexChanged();
 }
 
@@ -2483,13 +3419,16 @@ QByteArray EntityItemProperties::getStaticCertificateJSON() const {
     // of the entity as reviewed during the certification submission.
 
     QJsonObject json;
+
+    quint32 staticCertificateVersion = getStaticCertificateVersion();
+
     if (!getAnimation().getURL().isEmpty()) {
         json["animationURL"] = getAnimation().getURL();
     }
     ADD_STRING_PROPERTY(collisionSoundURL, CollisionSoundURL);
     ADD_STRING_PROPERTY(compoundShapeURL, CompoundShapeURL);
     ADD_INT_PROPERTY(editionNumber, EditionNumber);
-    ADD_INT_PROPERTY(instanceNumber, EntityInstanceNumber);
+    ADD_INT_PROPERTY(entityInstanceNumber, EntityInstanceNumber);
     ADD_STRING_PROPERTY(itemArtist, ItemArtist);
     ADD_STRING_PROPERTY(itemCategories, ItemCategories);
     ADD_STRING_PROPERTY(itemDescription, ItemDescription);
@@ -2499,7 +3438,11 @@ QByteArray EntityItemProperties::getStaticCertificateJSON() const {
     ADD_STRING_PROPERTY(marketplaceID, MarketplaceID);
     ADD_STRING_PROPERTY(modelURL, ModelURL);
     ADD_STRING_PROPERTY(script, Script);
+    if (staticCertificateVersion >= 1) {
+        ADD_STRING_PROPERTY(serverScripts, ServerScripts);
+    }
     ADD_ENUM_PROPERTY(shapeType, ShapeType);
+    ADD_INT_PROPERTY(staticCertificateVersion, StaticCertificateVersion);
     json["type"] = EntityTypes::getEntityTypeName(getType());
 
     return QJsonDocument(json).toJson(QJsonDocument::Compact);
@@ -2508,55 +3451,59 @@ QByteArray EntityItemProperties::getStaticCertificateHash() const {
     return QCryptographicHash::hash(getStaticCertificateJSON(), QCryptographicHash::Sha256);
 }
 
-bool EntityItemProperties::verifyStaticCertificateProperties() {
-    // True IIF a non-empty certificateID matches the static certificate json.
-    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
+// FIXME: This is largely copied from EntityItemProperties::verifyStaticCertificateProperties, which should be refactored to use this.
+// I also don't like the nested-if style, but for this step I'm deliberately preserving the similarity.
+bool EntityItemProperties::verifySignature(const QString& publicKey, const QByteArray& digestByteArray, const QByteArray& signatureByteArray) {
 
-    if (getCertificateID().isEmpty()) {
+    if (digestByteArray.isEmpty()) {
         return false;
     }
 
-    const QByteArray marketplacePublicKeyByteArray = EntityItem::_marketplacePublicKey.toUtf8();
-    const unsigned char* marketplacePublicKey = reinterpret_cast<const unsigned char*>(marketplacePublicKeyByteArray.constData());
-    int marketplacePublicKeyLength = marketplacePublicKeyByteArray.length();
+    auto keyByteArray = publicKey.toUtf8();
+    auto key = keyByteArray.constData();
+    int keyLength = publicKey.length();
 
-    BIO *bio = BIO_new_mem_buf((void*)marketplacePublicKey, marketplacePublicKeyLength);
+    BIO *bio = BIO_new_mem_buf((void*)key, keyLength);
     EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
     if (evp_key) {
-        RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
-        if (rsa) {
-            const QByteArray digestByteArray = getStaticCertificateHash();
+        EC_KEY* ec = EVP_PKEY_get1_EC_KEY(evp_key);
+        if (ec) {
             const unsigned char* digest = reinterpret_cast<const unsigned char*>(digestByteArray.constData());
             int digestLength = digestByteArray.length();
 
-            const QByteArray signatureByteArray = QByteArray::fromBase64(getCertificateID().toUtf8());
             const unsigned char* signature = reinterpret_cast<const unsigned char*>(signatureByteArray.constData());
             int signatureLength = signatureByteArray.length();
 
             ERR_clear_error();
-            bool answer = RSA_verify(NID_sha256,
+            // ECSDA verification prototype: note that type is currently ignored
+            // int ECDSA_verify(int type, const unsigned char *dgst, int dgstlen,
+            // const unsigned char *sig, int siglen, EC_KEY *eckey);
+            int answer = ECDSA_verify(0,
                 digest,
                 digestLength,
                 signature,
                 signatureLength,
-                rsa);
+                ec);
             long error = ERR_get_error();
-            if (error != 0) {
-                const char* error_str = ERR_error_string(error, NULL);
-                qCWarning(entities) << "ERROR while verifying static certificate properties! RSA error:" << error_str
-                    << "\nStatic Cert JSON:" << getStaticCertificateJSON()
-                    << "\nKey:" << EntityItem::_marketplacePublicKey << "\nKey Length:" << marketplacePublicKeyLength
+            if (error != 0 || answer == -1) {
+                qCWarning(entities) << "ERROR while verifying signature!"
+                    << "\nKey:" << publicKey << "\nutf8 Key Length:" << keyLength
                     << "\nDigest:" << digest << "\nDigest Length:" << digestLength
                     << "\nSignature:" << signature << "\nSignature Length:" << signatureLength;
+                while (error != 0) {
+                    const char* error_str = ERR_error_string(error, NULL);
+                    qCWarning(entities) << "EC error:" << error_str;
+                    error = ERR_get_error();
+                }
             }
-            RSA_free(rsa);
+            EC_KEY_free(ec);
             if (bio) {
                 BIO_free(bio);
             }
             if (evp_key) {
                 EVP_PKEY_free(evp_key);
             }
-            return answer;
+            return (answer == 1);
         } else {
             if (bio) {
                 BIO_free(bio);
@@ -2566,7 +3513,7 @@ bool EntityItemProperties::verifyStaticCertificateProperties() {
             }
             long error = ERR_get_error();
             const char* error_str = ERR_error_string(error, NULL);
-            qCWarning(entities) << "Failed to verify static certificate properties! RSA error:" << error_str;
+            qCWarning(entities) << "Failed to verify signature! key" << publicKey << " EC key error:" << error_str;
             return false;
         }
     } else {
@@ -2575,7 +3522,13 @@ bool EntityItemProperties::verifyStaticCertificateProperties() {
         }
         long error = ERR_get_error();
         const char* error_str = ERR_error_string(error, NULL);
-        qCWarning(entities) << "Failed to verify static certificate properties! RSA error:" << error_str;
+        qCWarning(entities) << "Failed to verify signature! key" << publicKey << " EC PEM error:" << error_str;
         return false;
     }
+}
+
+bool EntityItemProperties::verifyStaticCertificateProperties() {
+    // True IFF a non-empty certificateID matches the static certificate json.
+    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
+    return verifySignature(EntityItem::_marketplacePublicKey, getStaticCertificateHash(), QByteArray::fromBase64(getCertificateID().toUtf8()));
 }

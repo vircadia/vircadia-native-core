@@ -13,7 +13,7 @@
 #ifndef hifi_ATPClientApp_h
 #define hifi_ATPClientApp_h
 
-#include <QApplication>
+#include <QCoreApplication>
 #include <udt/Constants.h>
 #include <udt/Socket.h>
 #include <ReceivedMessage.h>
@@ -31,7 +31,7 @@ public:
 
 private slots:
     void domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo);
-    void domainChanged(const QString& domainHostname);
+    void domainChanged(QUrl domainURL);
     void nodeAdded(SharedNodePointer node);
     void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
@@ -45,7 +45,7 @@ private:
     void setMapping(QString hash);
     void lookupAsset();
     void listAssets();
-    void download(AssetHash hash);
+    void download(AssetUtils::AssetHash hash);
     void finish(int exitCode);
     bool _verbose;
 

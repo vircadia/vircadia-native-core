@@ -28,8 +28,8 @@
 
 #include <render/ShapePipeline.h>
 
-#include <model/Material.h>
-#include <model/Asset.h>
+#include <graphics/Material.h>
+#include <graphics/Asset.h>
 
 class SimpleProgramKey;
 
@@ -158,7 +158,7 @@ public:
     static void computeSimpleHullPointListForShape(int entityShape, const glm::vec3 &entityExtents, QVector<glm::vec3> &outPointList);
 
     static uint8_t CUSTOM_PIPELINE_NUMBER;
-    static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key);
+    static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key, gpu::Batch& batch);
     static void registerShapePipeline() {
         if (!CUSTOM_PIPELINE_NUMBER) {
             CUSTOM_PIPELINE_NUMBER = render::ShapePipeline::registerCustomShapePipelineFactory(shapePipelineFactory);
@@ -251,14 +251,20 @@ public:
     // Dynamic geometry
     void renderShape(gpu::Batch& batch, Shape shape);
     void renderWireShape(gpu::Batch& batch, Shape shape);
+    void renderShape(gpu::Batch& batch, Shape shape, const glm::vec4& color);
+    void renderWireShape(gpu::Batch& batch, Shape shape, const glm::vec4& color);
     size_t getShapeTriangleCount(Shape shape);
 
     void renderCube(gpu::Batch& batch);
     void renderWireCube(gpu::Batch& batch);
+    void renderCube(gpu::Batch& batch, const glm::vec4& color);
+    void renderWireCube(gpu::Batch& batch, const glm::vec4& color);
     size_t getCubeTriangleCount();
 
     void renderSphere(gpu::Batch& batch);
     void renderWireSphere(gpu::Batch& batch);
+    void renderSphere(gpu::Batch& batch, const glm::vec4& color);
+    void renderWireSphere(gpu::Batch& batch, const glm::vec4& color);
     size_t getSphereTriangleCount();
 
     void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
@@ -348,13 +354,24 @@ public:
     /// Set a batch to the simple pipeline, returning the previous pipeline
     void useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend = false);
 
+    struct ShapeVertex {
+        ShapeVertex(const vec3& pos, const vec3& normal, const vec2& uv, const vec3& tangent) : pos(pos), normal(normal), uv(uv), tangent(tangent) {}
+
+        vec3 pos;
+        vec3 normal;
+        vec2 uv;
+        vec3 tangent;
+    };
+
     struct ShapeData {
         gpu::BufferView _positionView;
         gpu::BufferView _normalView;
+        gpu::BufferView _texCoordView;
+        gpu::BufferView _tangentView;
         gpu::BufferView _indicesView;
         gpu::BufferView _wireIndicesView;
 
-        void setupVertices(gpu::BufferPointer& vertexBuffer, const geometry::VertexVector& vertices);
+        void setupVertices(gpu::BufferPointer& vertexBuffer, const std::vector<ShapeVertex>& vertices);
         void setupIndices(gpu::BufferPointer& indexBuffer, const geometry::IndexVector& indices, const geometry::IndexVector& wireIndices);
         void setupBatch(gpu::Batch& batch) const;
         void draw(gpu::Batch& batch) const;
@@ -369,6 +386,7 @@ public:
     /// otherwise nullptr in the event of an error.
     const ShapeData * getShapeData(Shape shape) const;
 
+    graphics::MeshPointer meshFromShape(Shape geometryShape, glm::vec3 color);
 private:
 
     GeometryCache();
@@ -453,6 +471,7 @@ private:
     QHash<int, GridBuffer> _registeredGridBuffers;
 
     static gpu::ShaderPointer _simpleShader;
+    static gpu::ShaderPointer _transparentShader;
     static gpu::ShaderPointer _unlitShader;
     static gpu::ShaderPointer _simpleFadeShader;
     static gpu::ShaderPointer _unlitFadeShader;
@@ -460,17 +479,15 @@ private:
     static render::ShapePipelinePointer _simpleTransparentPipeline;
     static render::ShapePipelinePointer _simpleOpaqueFadePipeline;
     static render::ShapePipelinePointer _simpleTransparentFadePipeline;
-    static render::ShapePipelinePointer _simpleOpaqueOverlayPipeline;
-    static render::ShapePipelinePointer _simpleTransparentOverlayPipeline;
     static render::ShapePipelinePointer _simpleWirePipeline;
     gpu::PipelinePointer _glowLinePipeline;
 
     static QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 
     gpu::ShaderPointer _simpleOpaqueWebBrowserShader;
-    gpu::PipelinePointer _simpleOpaqueWebBrowserPipelineNoAA;
+    gpu::PipelinePointer _simpleOpaqueWebBrowserPipeline;
     gpu::ShaderPointer _simpleTransparentWebBrowserShader;
-    gpu::PipelinePointer _simpleTransparentWebBrowserPipelineNoAA;
+    gpu::PipelinePointer _simpleTransparentWebBrowserPipeline;
 
     static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
         bool unlit = false, bool depthBias = false);

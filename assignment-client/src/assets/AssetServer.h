@@ -21,19 +21,49 @@
 #include "AssetUtils.h"
 #include "ReceivedMessage.h"
 
+#include "RegisteredMetaTypes.h"
 
-namespace std {
-    template <>
-    struct hash<QString> {
-        size_t operator()(const QString& v) const { return qHash(v); }
-    };
-}
+using BakeVersion = int;
+static const BakeVersion INITIAL_BAKE_VERSION = 0;
+static const BakeVersion NEEDS_BAKING_BAKE_VERSION = -1;
+
+enum class BakedAssetType : int {
+    Model = 0,
+    Texture,
+    Script,
+
+    NUM_ASSET_TYPES,
+    Undefined
+};
+
+// ATTENTION! If you change the current version for an asset type, you will also
+// need to update the function currentBakeVersionForAssetType() inside of AssetServer.cpp.
+enum class ModelBakeVersion : BakeVersion {
+    Initial = INITIAL_BAKE_VERSION,
+
+    COUNT
+};
+
+// ATTENTION! See above.
+enum class TextureBakeVersion : BakeVersion {
+    Initial = INITIAL_BAKE_VERSION,
+
+    COUNT
+};
+
+// ATTENTION! See above.
+enum class ScriptBakeVersion : BakeVersion {
+    Initial = INITIAL_BAKE_VERSION,
+    FixEmptyScripts,
+
+    COUNT
+};
 
 struct AssetMeta {
     AssetMeta() {
     }
 
-    int bakeVersion { 0 };
+    BakeVersion bakeVersion;
     bool failedLastBake { false };
     QString lastBakeErrors;
 };
@@ -53,6 +83,7 @@ public slots:
 private slots:
     void completeSetup();
 
+    void queueRequests(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetGetInfo(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetGet(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetUpload(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer senderNode);
@@ -61,43 +92,49 @@ private slots:
     void sendStatsPacket() override;
 
 private:
-    using Mappings = std::unordered_map<QString, QString>;
+    void replayRequests();
 
-    void handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleGetAllMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleDeleteMappingsOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleRenameMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleSetBakingEnabledOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+    void handleGetMappingOperation(ReceivedMessage& message, NLPacketList& replyPacket);
+    void handleGetAllMappingOperation(NLPacketList& replyPacket);
+    void handleSetMappingOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket);
+    void handleDeleteMappingsOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket);
+    void handleRenameMappingOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket);
+    void handleSetBakingEnabledOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket);
+
+    void handleAssetServerBackup(ReceivedMessage& message, NLPacketList& replyPacket);
+    void handleAssetServerRestore(ReceivedMessage& message, NLPacketList& replyPacket);
 
     // Mapping file operations must be called from main assignment thread only
     bool loadMappingsFromFile();
     bool writeMappingsToFile();
 
     /// Set the mapping for path to hash
-    bool setMapping(AssetPath path, AssetHash hash);
+    bool setMapping(AssetUtils::AssetPath path, AssetUtils::AssetHash hash);
 
     /// Delete mapping `path`. Returns `true` if deletion of mappings succeeds, else `false`.
-    bool deleteMappings(const AssetPathList& paths);
+    bool deleteMappings(const AssetUtils::AssetPathList& paths);
 
     /// Rename mapping from `oldPath` to `newPath`. Returns true if successful
-    bool renameMapping(AssetPath oldPath, AssetPath newPath);
+    bool renameMapping(AssetUtils::AssetPath oldPath, AssetUtils::AssetPath newPath);
 
-    bool setBakingEnabled(const AssetPathList& paths, bool enabled);
+    bool setBakingEnabled(const AssetUtils::AssetPathList& paths, bool enabled);
 
     /// Delete any unmapped files from the local asset directory
     void cleanupUnmappedFiles();
 
-    QString getPathToAssetHash(const AssetHash& assetHash);
+    /// Delete any baked files for assets removed from the local asset directory
+    void cleanupBakedFilesForDeletedAssets();
 
-    std::pair<BakingStatus, QString> getAssetStatus(const AssetPath& path, const AssetHash& hash);
+    QString getPathToAssetHash(const AssetUtils::AssetHash& assetHash);
+
+    std::pair<AssetUtils::BakingStatus, QString> getAssetStatus(const AssetUtils::AssetPath& path, const AssetUtils::AssetHash& hash);
 
     void bakeAssets();
-    void maybeBake(const AssetPath& path, const AssetHash& hash);
-    void createEmptyMetaFile(const AssetHash& hash);
-    bool hasMetaFile(const AssetHash& hash);
-    bool needsToBeBaked(const AssetPath& path, const AssetHash& assetHash);
-    void bakeAsset(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath);
+    void maybeBake(const AssetUtils::AssetPath& path, const AssetUtils::AssetHash& hash);
+    void createEmptyMetaFile(const AssetUtils::AssetHash& hash);
+    bool hasMetaFile(const AssetUtils::AssetHash& hash);
+    bool needsToBeBaked(const AssetUtils::AssetPath& path, const AssetUtils::AssetHash& assetHash);
+    void bakeAsset(const AssetUtils::AssetHash& assetHash, const AssetUtils::AssetPath& assetPath, const QString& filePath);
 
     /// Move baked content for asset to baked directory and update baked status
     void handleCompletedBake(QString originalAssetHash, QString assetPath, QString bakedTempOutputDir,
@@ -106,13 +143,13 @@ private:
     void handleAbortedBake(QString originalAssetHash, QString assetPath);
 
     /// Create meta file to describe baked content for original asset
-    std::pair<bool, AssetMeta> readMetaFile(AssetHash hash);
-    bool writeMetaFile(AssetHash originalAssetHash, const AssetMeta& meta = AssetMeta());
+    std::pair<bool, AssetMeta> readMetaFile(AssetUtils::AssetHash hash);
+    bool writeMetaFile(AssetUtils::AssetHash originalAssetHash, const AssetMeta& meta = AssetMeta());
 
     /// Remove baked paths when the original asset is deleteds
-    void removeBakedPathsForDeletedAsset(AssetHash originalAssetHash);
+    void removeBakedPathsForDeletedAsset(AssetUtils::AssetHash originalAssetHash);
 
-    Mappings _fileMappings;
+    AssetUtils::Mappings _fileMappings;
 
     QDir _resourcesDirectory;
     QDir _filesDirectory;
@@ -120,8 +157,13 @@ private:
     /// Task pool for handling uploads and downloads of assets
     QThreadPool _transferTaskPool;
 
-    QHash<AssetHash, std::shared_ptr<BakeAssetTask>> _pendingBakes;
+    QHash<AssetUtils::AssetHash, std::shared_ptr<BakeAssetTask>> _pendingBakes;
     QThreadPool _bakingTaskPool;
+
+    QMutex _queuedRequestsMutex;
+    bool _isQueueingRequests { true };
+    using RequestQueue = QVector<QPair<QSharedPointer<ReceivedMessage>, SharedNodePointer>>;
+    RequestQueue _queuedRequests;
 
     bool _wasColorTextureCompressionEnabled { false };
     bool _wasGrayscaleTextureCompressionEnabled { false  };

@@ -62,8 +62,7 @@ void ScriptEngines::onErrorLoadingScript(const QString& url) {
 }
 
 ScriptEngines::ScriptEngines(ScriptEngine::Context context)
-    : _context(context),
-      _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION)
+    : _context(context)
 {
     _scriptsModelFilter.setSourceModel(&_scriptsModel);
     _scriptsModelFilter.sort(0, Qt::AscendingOrder);
@@ -132,6 +131,20 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
 
 
 QObject* scriptsModel();
+
+bool NativeScriptInitializers::registerNativeScriptInitializer(NativeScriptInitializer initializer) {
+    return registerScriptInitializer([=](ScriptEnginePointer engine) {
+        initializer(qobject_cast<QScriptEngine*>(engine.data()));
+    });
+}
+
+bool NativeScriptInitializers::registerScriptInitializer(ScriptInitializer initializer) {
+    if (auto scriptEngines = DependencyManager::get<ScriptEngines>().data()) {
+        scriptEngines->registerScriptInitializer(initializer);
+        return true;
+    }
+    return false;
+}
 
 void ScriptEngines::registerScriptInitializer(ScriptInitializer initializer) {
     _scriptInitializers.push_back(initializer);
@@ -429,13 +442,8 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
     return stoppedScript;
 }
 
-QString ScriptEngines::getScriptsLocation() const {
-    return _scriptsLocationHandle.get();
-}
-
-void ScriptEngines::setScriptsLocation(const QString& scriptsLocation) {
-    _scriptsLocationHandle.set(scriptsLocation);
-    _scriptsModel.updateScriptsLocation(scriptsLocation);
+void ScriptEngines::reloadLocalFiles() {
+    _scriptsModel.reloadLocalFiles();
 }
 
 void ScriptEngines::reloadAllScripts() {
@@ -526,6 +534,16 @@ void ScriptEngines::onScriptEngineLoaded(const QString& rawScriptURL) {
     emit scriptCountChanged();
 }
 
+int ScriptEngines::runScriptInitializers(ScriptEnginePointer scriptEngine) {
+    int ii=0;
+    for (auto initializer : _scriptInitializers) {
+        ii++;
+        qDebug() << "initializer" << ii;
+        initializer(scriptEngine);
+    }
+    return ii;
+}
+
 void ScriptEngines::launchScriptEngine(ScriptEnginePointer scriptEngine) {
     connect(scriptEngine.data(), &ScriptEngine::finished, this, &ScriptEngines::onScriptFinished, Qt::DirectConnection);
     connect(scriptEngine.data(), &ScriptEngine::loadScript, [&](const QString& scriptName, bool userLoaded) {
@@ -536,9 +554,7 @@ void ScriptEngines::launchScriptEngine(ScriptEnginePointer scriptEngine) {
     });
 
     // register our application services and set it off on its own thread
-    for (auto initializer : _scriptInitializers) {
-        initializer(scriptEngine);
-    }
+    runScriptInitializers(scriptEngine);
 
     // FIXME disabling 'shift key' debugging for now.  If you start up the application with
     // the shift key held down, it triggers a deadlock because of script interfaces running

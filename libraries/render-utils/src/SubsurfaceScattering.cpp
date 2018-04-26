@@ -308,11 +308,8 @@ void diffuseProfileGPU(gpu::TexturePointer& profileMap, RenderArgs* args) {
     gpu::PipelinePointer makePipeline;
     {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(subsurfaceScattering_makeProfile_frag));
+        auto ps = subsurfaceScattering_makeProfile_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -322,7 +319,7 @@ void diffuseProfileGPU(gpu::TexturePointer& profileMap, RenderArgs* args) {
     auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("diffuseProfile"));
     makeFramebuffer->setRenderBuffer(0, profileMap);
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("SubsurfaceScattering::diffuseProfileGPU", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         batch.setViewportTransform(glm::ivec4(0, 0, width, height));
@@ -342,25 +339,26 @@ void diffuseScatterGPU(const gpu::TexturePointer& profileMap, gpu::TexturePointe
     int height = lut->getHeight();
 
     gpu::PipelinePointer makePipeline;
-    {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(subsurfaceScattering_makeLUT_frag));
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+    
+    auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+    auto ps = subsurfaceScattering_makeLUT_frag::getShader();
+    gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("scatteringProfile"), 0));
-        gpu::Shader::makeProgram(*program, slotBindings);
+    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-
-        makePipeline = gpu::Pipeline::create(program, state);
-    }
-
+    makePipeline = gpu::Pipeline::create(program, state);
+    
     auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("diffuseScatter"));
     makeFramebuffer->setRenderBuffer(0, lut);
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("SubsurfaceScattering::diffuseScatterGPU", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
+
+        batch.runLambda([program] (){ 
+            gpu::Shader::BindingSet slotBindings;
+            slotBindings.insert(gpu::Shader::Binding(std::string("scatteringProfile"), 0));
+            gpu::Shader::makeProgram(*program, slotBindings);
+        });
 
         batch.setViewportTransform(glm::ivec4(0, 0, width, height));
 
@@ -382,11 +380,8 @@ void computeSpecularBeckmannGPU(gpu::TexturePointer& beckmannMap, RenderArgs* ar
     gpu::PipelinePointer makePipeline;
     {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(subsurfaceScattering_makeSpecularBeckmann_frag));
+        auto ps = subsurfaceScattering_makeSpecularBeckmann_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -396,7 +391,7 @@ void computeSpecularBeckmannGPU(gpu::TexturePointer& beckmannMap, RenderArgs* ar
     auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("computeSpecularBeckmann"));
     makeFramebuffer->setRenderBuffer(0, beckmannMap);
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("SubsurfaceScattering::computeSpecularBeckmannGPU", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         batch.setViewportTransform(glm::ivec4(0, 0, width, height));
@@ -457,13 +452,13 @@ void DebugSubsurfaceScattering::configure(const Config& config) {
 gpu::PipelinePointer DebugSubsurfaceScattering::getScatteringPipeline() {
     if (!_scatteringPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(subsurfaceScattering_drawScattering_frag));
+        auto ps = subsurfaceScattering_drawScattering_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ScatteringTask_FrameTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("scatteringParamsBuffer"), ScatteringTask_ParamSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), ScatteringTask_LightSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), ScatteringTask_LightSlot));
 
         slotBindings.insert(gpu::Shader::Binding(std::string("scatteringLUT"), ScatteringTask_ScatteringTableSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("curvatureMap"), ScatteringTask_CurvatureMapSlot));
@@ -495,7 +490,6 @@ gpu::PipelinePointer DebugSubsurfaceScattering::getShowLUTPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -537,7 +531,7 @@ void DebugSubsurfaceScattering::run(const render::RenderContextPointer& renderCo
    // const auto light = DependencyManager::get<DeferredLightingEffect>()->getLightStage()->getLight(0);
     const auto light = lightStage->getLight(0);
     
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("DebugSubsurfaceScattering::run", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 
 

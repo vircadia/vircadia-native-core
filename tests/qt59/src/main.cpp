@@ -33,8 +33,6 @@ private:
 Qt59TestApp::Qt59TestApp(int argc, char* argv[]) :
     QCoreApplication(argc, argv)
 {
-
-    Setting::init();
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::set<AccountManager>([&] { return QString("Mozilla/5.0 (HighFidelityACClient)"); });
     DependencyManager::set<AddressManager>();
@@ -65,10 +63,7 @@ void Qt59TestApp::finish(int exitCode) {
 
 
 int main(int argc, char * argv[]) {
-    QCoreApplication::setApplicationName("Qt59Test");
-    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
-    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
+    setupHifiApplication("Qt59Test");
 
     Qt59TestApp app(argc, argv);
 

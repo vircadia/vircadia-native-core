@@ -13,7 +13,6 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
@@ -30,8 +29,8 @@ Item {
         source: "images/wallet-bg.jpg";
     }
     
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
     }
 
     //
@@ -53,7 +52,7 @@ Item {
 
             // Title Bar text
             RalewaySemiBold {
-                text: "HIFI COMMERCE - LOGIN";
+                text: "Log in to continue";
                 // Text size
                 size: hifi.fontSizes.overlayTitle;
                 // Anchors

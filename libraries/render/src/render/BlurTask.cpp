@@ -163,7 +163,7 @@ bool BlurInOutResource::updateResources(const gpu::FramebufferPointer& sourceFra
         //if (sourceFramebuffer->hasDepthStencil()) {
         //    _blurredFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
         //}
-        auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT);
+        auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT, gpu::Sampler::WRAP_CLAMP);
         auto blurringTarget = gpu::Texture::createRenderBuffer(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), blurBufferSize.x, blurBufferSize.y, gpu::Texture::SINGLE_MIP, blurringSampler);
         _blurredFramebuffer->setRenderBuffer(0, blurringTarget);
     } 
@@ -186,7 +186,7 @@ bool BlurInOutResource::updateResources(const gpu::FramebufferPointer& sourceFra
          /*   if (sourceFramebuffer->hasDepthStencil()) {
                 _outputFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
             }*/
-            auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT);
+            auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT, gpu::Sampler::WRAP_CLAMP);
             auto blurringTarget = gpu::Texture::createRenderBuffer(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), blurBufferSize.x, blurBufferSize.y, gpu::Texture::SINGLE_MIP, blurringSampler);
             _outputFramebuffer->setRenderBuffer(0, blurringTarget);
         }
@@ -210,7 +210,7 @@ BlurGaussian::BlurGaussian(bool generateOutputFramebuffer, unsigned int downsamp
 gpu::PipelinePointer BlurGaussian::getBlurVPipeline() {
     if (!_blurVPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(blurGaussianV_frag));
+        auto ps = blurGaussianV_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -232,7 +232,7 @@ gpu::PipelinePointer BlurGaussian::getBlurVPipeline() {
 gpu::PipelinePointer BlurGaussian::getBlurHPipeline() {
     if (!_blurHPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(blurGaussianH_frag));
+        auto ps = blurGaussianH_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -286,7 +286,7 @@ void BlurGaussian::run(const RenderContextPointer& renderContext, const gpu::Fra
     _parameters->setWidthHeight(blurredFramebuffer->getWidth(), blurredFramebuffer->getHeight(), args->isStereo());
     _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, viewport));
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("BlurGaussian::run", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(viewport);
 
@@ -324,7 +324,7 @@ BlurGaussianDepthAware::BlurGaussianDepthAware(bool generateOutputFramebuffer, c
 gpu::PipelinePointer BlurGaussianDepthAware::getBlurVPipeline() {
     if (!_blurVPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(blurGaussianDepthAwareV_frag));
+        auto ps = blurGaussianDepthAwareV_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -347,7 +347,7 @@ gpu::PipelinePointer BlurGaussianDepthAware::getBlurVPipeline() {
 gpu::PipelinePointer BlurGaussianDepthAware::getBlurHPipeline() {
     if (!_blurHPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(blurGaussianDepthAwareH_frag));
+        auto ps = blurGaussianDepthAwareH_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -401,7 +401,7 @@ void BlurGaussianDepthAware::run(const RenderContextPointer& renderContext, cons
     _parameters->setDepthPerspective(args->getViewFrustum().getProjection()[1][1]);
     _parameters->setLinearDepthPosFar(args->getViewFrustum().getFarClip());
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("BlurGaussianDepthAware::run", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(sourceViewport);
 

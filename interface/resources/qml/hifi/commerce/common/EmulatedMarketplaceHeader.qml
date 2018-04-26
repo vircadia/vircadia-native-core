@@ -14,7 +14,6 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.7
 import QtGraphicalEffects 1.0
-import QtQuick.Controls 1.4
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
@@ -28,18 +27,20 @@ Item {
     property string referrerURL: (Account.metaverseServerURL + "/marketplace?");
     readonly property int additionalDropdownHeight: usernameDropdown.height - myUsernameButton.anchors.bottomMargin;
     property alias usernameDropdownVisible: usernameDropdown.visible;
+    property bool messagesWaiting: false;
 
     height: mainContainer.height + additionalDropdownHeight;
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onWalletStatusResult: {
             if (walletStatus === 0) {
                 sendToParent({method: "needsLogIn"});
-            } else if (walletStatus === 3) {
-                commerce.getSecurityImage();
-            } else if (walletStatus > 3) {
+            } else if (walletStatus === 5) {
+                Commerce.getAvailableUpdates();
+                Commerce.getSecurityImage();
+            } else if (walletStatus > 5) {
                 console.log("ERROR in EmulatedMarketplaceHeader.qml: Unknown wallet status: " + walletStatus);
             }
         }
@@ -48,7 +49,7 @@ Item {
             if (!isLoggedIn) {
                 sendToParent({method: "needsLogIn"});
             } else {
-                commerce.getWalletStatus();
+                Commerce.getWalletStatus();
             }
         }
 
@@ -58,16 +59,24 @@ Item {
                 securityImage.source = "image://security/securityImage";
             }
         }
+
+        onAvailableUpdatesResult: {
+            if (result.status !== 'success') {
+                console.log("Failed to get Available Updates", result.data.message);
+            } else {
+                root.messagesWaiting = result.data.updates.length > 0;
+            }
+        }
     }
 
     Component.onCompleted: {
-        commerce.getWalletStatus();
+        Commerce.getWalletStatus();
     }
 
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
-            commerce.getLoginStatus();
+            Commerce.getLoginStatus();
         }
     }
 
@@ -134,17 +143,28 @@ Item {
                     anchors.fill: parent;
                     hoverEnabled: enabled;
                     onClicked: {
-                        sendToParent({method: 'header_goToPurchases'});
+                        sendToParent({ method: 'header_goToPurchases', hasUpdates: root.messagesWaiting });
                     }
                     onEntered: myPurchasesText.color = hifi.colors.blueHighlight;
                     onExited: myPurchasesText.color = hifi.colors.blueAccent;
                 }
             }
 
-            FontLoader { id: ralewayRegular; source: "../../../../fonts/Raleway-Regular.ttf"; }
+            Rectangle {
+                id: messagesWaitingLight;
+                visible: root.messagesWaiting;
+                anchors.right: myPurchasesLink.left;
+                anchors.rightMargin: -2;
+                anchors.verticalCenter: parent.verticalCenter;
+                height: 10;
+                width: height;
+                radius: height/2;
+                color: "red";
+            }
+
             TextMetrics {
                 id: textMetrics;
-                font.family: ralewayRegular.name
+                font.family: "Raleway"
                 text: usernameText.text;
             }
 

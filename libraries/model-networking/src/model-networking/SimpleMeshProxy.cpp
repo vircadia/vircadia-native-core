@@ -11,7 +11,7 @@
 
 #include "SimpleMeshProxy.h"
 
-#include <model/Geometry.h>
+#include <graphics/Geometry.h>
 
 MeshPointer SimpleMeshProxy::getMeshPointer() const {
     return _mesh;
@@ -21,7 +21,7 @@ int SimpleMeshProxy::getNumVertices() const {
     return (int)_mesh->getNumVertices();
 }
 
-glm::vec3 SimpleMeshProxy::getPos3(int index) const {
-    return _mesh->getPos3(index);
+glm::vec3 SimpleMeshProxy::getPos(int index) const {
+    return _mesh->getPos(index);
 }
 

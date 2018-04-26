@@ -1,20 +1,10 @@
-# 
-#  Copyright 2015 High Fidelity, Inc.
-#  Created by Bradley Austin Davis on 2015/10/10
+#
+#  Created by Bradley Austin Davis on 2017/09/02
+#  Copyright 2013-2017 High Fidelity, Inc.
 #
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-# 
-
-function(set_from_env _RESULT_NAME _ENV_VAR_NAME _DEFAULT_VALUE)
-    if (NOT DEFINED ${_RESULT_NAME}) 
-        if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
-            set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
-        else()
-            set (${_RESULT_NAME} $ENV{${_ENV_VAR_NAME}} PARENT_SCOPE)
-        endif()
-    endif()
-endfunction()
+#
 
 # Construct a default QT location from a root path, a version and an architecture
 function(calculate_default_qt_dir _RESULT_NAME)
@@ -37,7 +27,7 @@ function(calculate_default_qt_dir _RESULT_NAME)
     endif()
 
     set_from_env(QT_ROOT QT_ROOT ${QT_DEFAULT_ROOT})
-    set_from_env(QT_VERSION QT_VERSION "5.9.1")
+    set_from_env(QT_VERSION QT_VERSION "5.10.1")
     set_from_env(QT_ARCH QT_ARCH ${QT_DEFAULT_ARCH})
 
     set(${_RESULT_NAME} "${QT_ROOT}/${QT_VERSION}/${QT_ARCH}" PARENT_SCOPE)
@@ -70,11 +60,11 @@ macro(setup_qt)
     #if (NOT EXISTS "${QT_DIR}/include/QtCore/QtGlobal")
     #    message(FATAL_ERROR "Unable to locate Qt includes in ${QT_DIR}")
     #endif()
-    
+
     if (NOT EXISTS "${QT_CMAKE_PREFIX_PATH}/Qt5Core/Qt5CoreConfig.cmake")
         message(FATAL_ERROR "Unable to locate Qt cmake config in ${QT_CMAKE_PREFIX_PATH}")
     endif()
-    
+
     message(STATUS "The Qt build in use is: \"${QT_DIR}\"")
 
     # Instruct CMake to run moc automatically when needed.
@@ -82,7 +72,7 @@ macro(setup_qt)
 
     # Instruct CMake to run rcc automatically when needed
     set(CMAKE_AUTORCC ON)
-    
+
     if (WIN32)
         add_paths_to_fixup_libs("${QT_DIR}/bin")
     endif ()

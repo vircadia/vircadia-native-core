@@ -96,12 +96,11 @@ btTypedConstraint* ObjectConstraintConeTwist::getConstraint() {
         return constraint;
     }
 
-    static QString repeatedConeTwistNoRigidBody = LogHandler::getInstance().addRepeatedMessageRegex(
-        "ObjectConstraintConeTwist::getConstraint -- no rigidBody.*");
+    static int repeatMessageID = LogHandler::getInstance().newRepeatedMessageID();
 
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
-        qCDebug(physics) << "ObjectConstraintConeTwist::getConstraint -- no rigidBodyA";
+        HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintConeTwist::getConstraint -- no rigidBodyA");
         return nullptr;
     }
 
@@ -130,7 +129,7 @@ btTypedConstraint* ObjectConstraintConeTwist::getConstraint() {
 
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
-            qCDebug(physics) << "ObjectConstraintConeTwist::getConstraint -- no rigidBodyB";
+            HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintConeTwist::getConstraint -- no rigidBodyB");
             return nullptr;
         }
 
@@ -261,6 +260,21 @@ bool ObjectConstraintConeTwist::updateArguments(QVariantMap arguments) {
     return true;
 }
 
+/**jsdoc
+ * The <code>"cone-twist"</code> {@link Entities.ActionType|ActionType} connects two entities with a joint that can move 
+ * through a cone and can twist.
+ * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}.
+ *
+ * @typedef {object} Entities.ActionArguments-ConeTwist
+ * @property {Vec3} pivot=0,0,0 - The local offset of the joint relative to the entity's position.
+ * @property {Vec3} axis=1,0,0 - The axis of the entity that moves through the cone. Must be a non-zero vector.
+ * @property {Uuid} otherEntityID=null - The ID of the other entity that is connected to the joint.
+ * @property {Vec3} otherPivot=0,0,0 - The local offset of the joint relative to the other entity's position.
+ * @property {Vec3} otherAxis=1,0,0 - The axis of the other entity that moves through the cone. Must be a non-zero vector.
+ * @property {number} swingSpan1=6.238 - The angle through which the joint can move in one axis of the cone, in radians.
+ * @property {number} swingSpan2=6.238 - The angle through which the joint can move in the other axis of the cone, in radians.
+ * @property {number} twistSpan=6.238 - The angle through with the joint can twist, in radians.
+ */
 QVariantMap ObjectConstraintConeTwist::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {

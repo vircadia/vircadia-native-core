@@ -8,14 +8,14 @@
 //
 //  Grab's physically moveable entities with the mouse, by applying a spring force.
 //
-//  Updated November 22, 2016 by Philip Rosedale:  Add distance attenuation of grab effect 
+//  Updated November 22, 2016 by Philip Rosedale:  Add distance attenuation of grab effect
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 /* global MyAvatar, Entities, Script, Camera, Vec3, Reticle, Overlays, getEntityCustomData, Messages, Quat, Controller,
-   isInEditMode, HMD entityIsGrabbable, Pointers, PickType RayPick*/
+   isInEditMode, HMD entityIsGrabbable, Picks, PickType, Pointers, unhighlightTargetEntity*/
 
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -258,17 +258,21 @@ function Grabber() {
     this.liftKey = false; // SHIFT
     this.rotateKey = false; // CONTROL
 
-    this.mouseRayOverlays = RayPick.createRayPick({
+    this.mouseRayOverlays = Picks.createPick(PickType.Ray, {
         joint: "Mouse",
         filter: Picks.PICK_OVERLAYS,
         enabled: true
     });
-    RayPick.setIncludeItems(this.mouseRayOverlays, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+    var tabletItems = getMainTabletIDs();
+    if (tabletItems.length > 0) {
+        Picks.setIncludeItems(this.mouseRayOverlays, tabletItems);
+    }
     var renderStates = [{name: "grabbed", end: beacon}];
     this.mouseRayEntities = Pointers.createPointer(PickType.Ray, {
         joint: "Mouse",
         filter: Picks.PICK_ENTITIES,
         faceAvatar: true,
+        scaleWithAvatar: true,
         enabled: true,
         renderStates: renderStates
     });
@@ -324,7 +328,7 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    var overlayResult = RayPick.getPrevRayPickResult(this.mouseRayOverlays);
+    var overlayResult = Picks.getPrevPickResult(this.mouseRayOverlays);
     if (overlayResult.type != Picks.INTERSECTED_NONE) {
         return;
     }
@@ -350,6 +354,7 @@ Grabber.prototype.pressEvent = function(event) {
 
     Pointers.setRenderState(this.mouseRayEntities, "grabbed");
     Pointers.setLockEndUUID(this.mouseRayEntities, pickResults.objectID, false);
+    unhighlightTargetEntity(pickResults.objectID);
 
     mouse.startDrag(event);
 
@@ -440,6 +445,7 @@ Grabber.prototype.releaseEvent = function(event) {
         this.actionID = null;
 
         Pointers.setRenderState(this.mouseRayEntities, "");
+        Pointers.setLockEndUUID(this.mouseRayEntities, null, false);
 
         var args = "mouse";
         Entities.callEntityMethod(this.entityID, "releaseGrab", args);
@@ -563,7 +569,7 @@ Grabber.prototype.moveEventProcess = function() {
     }
 
     if (!this.actionID) {
-        if (!entityIsGrabbedByOther(this.entityID)) {
+        if (!entityIsGrabbedByOther(this.entityID) && !entityIsEquipped(this.entityID)) {
             this.actionID = Entities.addAction("far-grab", this.entityID, actionArgs);
         }
     } else {
@@ -595,7 +601,7 @@ Grabber.prototype.keyPressEvent = function(event) {
 
 Grabber.prototype.cleanup = function() {
     Pointers.removePointer(this.mouseRayEntities);
-    RayPick.removeRayPick(this.mouseRayOverlays);
+    Picks.removePick(this.mouseRayOverlays);
 };
 
 var grabber = new Grabber();

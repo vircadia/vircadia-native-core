@@ -13,11 +13,12 @@
 #ifndef hifi_LogHandler_h
 #define hifi_LogHandler_h
 
-#include <QHash>
 #include <QObject>
-#include <QSet>
 #include <QString>
+#include <QRegExp>
 #include <QMutex>
+#include <vector>
+#include <memory>
 
 const int VERBOSE_LOG_INTERVAL_SECONDS = 5;
 
@@ -50,8 +51,8 @@ public:
     /// prints various process, message type, and time information
     static void verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message);
 
-    const QString& addRepeatedMessageRegex(const QString& regexString);
-    const QString& addOnlyOnceMessageRegex(const QString& regexString);
+    int newRepeatedMessageID();
+    void printRepeatedMessage(int messageID, LogMsgType type, const QMessageLogContext& context, const QString &message);
 
 private slots:
     void setupRepeatedMessageFlusher();
@@ -66,14 +67,41 @@ private:
     bool _shouldOutputProcessID { false };
     bool _shouldOutputThreadID { false };
     bool _shouldDisplayMilliseconds { false };
-    QSet<QString> _repeatedMessageRegexes;
-    QHash<QString, int> _repeatMessageCountHash;
-    QHash<QString, QString> _lastRepeatedMessage;
 
-    QSet<QString> _onlyOnceMessageRegexes;
-    QHash<QString, int> _onlyOnceMessageCountHash;
-
+    int _currentMessageID { 0 };
+    struct RepeatedMessageRecord {
+        int repeatCount;
+        QString repeatString;
+    };
+    std::vector<RepeatedMessageRecord> _repeatedMessageRecords;
     static QMutex _mutex;
 };
+
+#define HIFI_FCDEBUG(category, message) \
+    do { \
+        if (category.isDebugEnabled()) { \
+            static int repeatedMessageID_ = LogHandler::getInstance().newRepeatedMessageID(); \
+            QString logString_; \
+            QDebug debugStringReceiver_(&logString_); \
+            debugStringReceiver_ << message; \
+            LogHandler::getInstance().printRepeatedMessage(repeatedMessageID_, LogDebug, QMessageLogContext(__FILE__, \
+                __LINE__, __func__, category().categoryName()), logString_); \
+        } \
+    } while (false)
+
+#define HIFI_FDEBUG(message) HIFI_FCDEBUG((*QLoggingCategory::defaultCategory()), message)
+   
+#define HIFI_FCDEBUG_ID(category, messageID, message) \
+    do { \
+        if (category.isDebugEnabled()) { \
+            QString logString_; \
+            QDebug debugStringReceiver_(&logString_); \
+            debugStringReceiver_ << message; \
+            LogHandler::getInstance().printRepeatedMessage(messageID, LogDebug, QMessageLogContext(__FILE__, \
+                __LINE__, __func__, category().categoryName()), logString_); \
+        } \
+    } while (false)
+
+#define HIFI_FDEBUG_ID(messageID, message) HIFI_FCDEBUG_ID((*QLoggingCategory::defaultCategory()), messageID, message)
 
 #endif // hifi_LogHandler_h

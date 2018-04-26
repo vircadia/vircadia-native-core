@@ -49,6 +49,7 @@ namespace MenuOption {
     const QString Back = "Back";
     const QString BinaryEyelidControl = "Binary Eyelid Control";
     const QString BookmarkAvatar = "Bookmark Avatar";
+    const QString BookmarkAvatarEntities = "Bookmark Avatar Entities";
     const QString BookmarkLocation = "Bookmark Location";
     const QString CalibrateCamera = "Calibrate Camera";
     const QString CameraEntityMode = "Entity Mode";
@@ -75,9 +76,11 @@ namespace MenuOption {
     const QString CrashNewFault = "New Fault";
     const QString CrashNewFaultThreaded = "New Fault (threaded)";
     const QString DeadlockInterface = "Deadlock Interface";
+    const QString UnresponsiveInterface = "Unresponsive Interface";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DefaultSkybox = "Default Skybox";
     const QString DeleteAvatarBookmark = "Delete Avatar Bookmark...";
+    const QString DeleteAvatarEntitiesBookmark = "Delete Avatar Entities Bookmark";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableEyelidAdjustment = "Disable Eyelid Adjustment";
@@ -102,7 +105,8 @@ namespace MenuOption {
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
     const QString ExpandPaintGLTiming = "Expand /paintGL";
-    const QString ExpandPhysicsSimulationTiming = "Expand /physics";
+    const QString ExpandSimulationTiming = "Expand /simulation";
+    const QString ExpandPhysicsTiming = "Expand /physics";
     const QString ExpandUpdateTiming = "Expand /update";
     const QString FirstPerson = "First Person";
     const QString FirstPersonHMD = "Enter First Person Mode in HMD";
@@ -152,6 +156,10 @@ namespace MenuOption {
     const QString RenderMaxTexture512MB = "512 MB";
     const QString RenderMaxTexture1024MB = "1024 MB";
     const QString RenderMaxTexture2048MB = "2048 MB";
+    const QString RenderMaxTexture3072MB = "3072 MB";
+    const QString RenderMaxTexture4096MB = "4096 MB";
+    const QString RenderMaxTexture6144MB = "6144 MB";
+    const QString RenderMaxTexture8192MB = "8192 MB";
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";
@@ -194,7 +202,6 @@ namespace MenuOption {
     const QString TurnWithHead = "Turn using Head";
     const QString UseAudioForMouth = "Use Audio for Mouth";
     const QString UseCamera = "Use Camera";
-    const QString UseAnimPreAndPostRotations = "Use Anim Pre and Post Rotations";
     const QString VelocityFilter = "Velocity Filter";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";
@@ -202,6 +209,8 @@ namespace MenuOption {
     const QString WorldAxes = "World Axes";
     const QString DesktopTabletToToolbar = "Desktop Tablet Becomes Toolbar";
     const QString HMDTabletToToolbar = "HMD Tablet Becomes Toolbar";
+    const QString Shadows = "Shadows";
+    const QString AmbientOcclusion = "Ambient Occlusion";
 }
 
 #endif // hifi_Menu_h

@@ -22,19 +22,9 @@
 #include "DomainServer.h"
 
 int main(int argc, char* argv[]) {
-    disableQtBearerPoll(); // Fixes wifi ping spikes
+    setupHifiApplication(BuildInfo::DOMAIN_SERVER_NAME);
 
-    QCoreApplication::setApplicationName(BuildInfo::DOMAIN_SERVER_NAME);
-    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
-    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
-
-#ifndef WIN32
-    setvbuf(stdout, NULL, _IOLBF, 0);
-#endif
-
-    qInstallMessageHandler(LogHandler::verboseMessageHandler);
-    qInfo() << "Starting.";
+    Setting::init();
 
     int currentExitCode = 0;
 

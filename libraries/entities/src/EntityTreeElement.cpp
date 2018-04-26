@@ -67,455 +67,6 @@ void EntityTreeElement::debugExtraEncodeData(EncodeBitstreamParams& params) cons
     }
 }
 
-void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params) {
-
-    auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
-    assert(entityNodeData);
-
-    OctreeElementExtraEncodeData* extraEncodeData = &entityNodeData->extraEncodeData;
-
-    assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
-    // Check to see if this element yet has encode data... if it doesn't create it
-    if (!extraEncodeData->contains(this)) {
-        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData { new EntityTreeElementExtraEncodeData() };
-        entityTreeElementExtraEncodeData->elementCompleted = (_entityItems.size() == 0);
-        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            EntityTreeElementPointer child = getChildAtIndex(i);
-            if (!child) {
-                entityTreeElementExtraEncodeData->childCompleted[i] = true; // if no child exists, it is completed
-            } else {
-                if (child->hasEntities()) {
-                    entityTreeElementExtraEncodeData->childCompleted[i] = false; // HAS ENTITIES NEEDS ENCODING
-                } else {
-                    entityTreeElementExtraEncodeData->childCompleted[i] = true; // child doesn't have enities, it is completed
-                }
-            }
-        }
-        forEachEntity([&](EntityItemPointer entity) {
-            entityTreeElementExtraEncodeData->entities.insert(entity->getEntityItemID(), entity->getEntityProperties(params));
-        });
-
-        // TODO: some of these inserts might be redundant!!!
-        extraEncodeData->insert(this, entityTreeElementExtraEncodeData);
-    }
-}
-
-bool EntityTreeElement::shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const {
-
-    auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
-    assert(entityNodeData);
-
-    OctreeElementExtraEncodeData* extraEncodeData = &entityNodeData->extraEncodeData;
-    assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
-
-    if (extraEncodeData->contains(this)) {
-        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData
-                        = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
-
-        bool childCompleted = entityTreeElementExtraEncodeData->childCompleted[childIndex];
-
-        // If we haven't completely sent the child yet, then we should include it
-        return !childCompleted;
-    }
-
-    // I'm not sure this should ever happen, since we should have the extra encode data if we're considering
-    // the child data for this element
-    assert(false);
-    return false;
-}
-
-bool EntityTreeElement::shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const {
-    EntityTreeElementPointer childElement = getChildAtIndex(childIndex);
-    if (childElement->alreadyFullyEncoded(params)) {
-        return false;
-    }
-
-    return true; // if we don't know otherwise than recurse!
-}
-
-bool EntityTreeElement::alreadyFullyEncoded(EncodeBitstreamParams& params) const {
-    auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
-    assert(entityNodeData);
-
-    OctreeElementExtraEncodeData* extraEncodeData = &entityNodeData->extraEncodeData;
-    assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
-
-    if (extraEncodeData->contains(this)) {
-        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData
-                        = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
-
-        // If we know that ALL subtrees below us have already been recursed, then we don't
-        // need to recurse this child.
-        return entityTreeElementExtraEncodeData->subtreeCompleted;
-    }
-    return false;
-}
-
-void EntityTreeElement::updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const {
-    auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
-    assert(entityNodeData);
-
-    OctreeElementExtraEncodeData* extraEncodeData = &entityNodeData->extraEncodeData;
-    assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
-
-    if (extraEncodeData->contains(this)) {
-        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData
-                        = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
-
-        if (childAppendState == OctreeElement::COMPLETED) {
-            entityTreeElementExtraEncodeData->childCompleted[childIndex] = true;
-        }
-    } else {
-        assert(false); // this shouldn't happen!
-    }
-}
-
-
-
-
-void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) const {
-    const bool wantDebug = false;
-
-    if (wantDebug) {
-        qCDebug(entities) << "EntityTreeElement::elementEncodeComplete() element:" << _cube;
-    }
-
-    auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
-    assert(entityNodeData);
-
-    OctreeElementExtraEncodeData* extraEncodeData = &entityNodeData->extraEncodeData;
-    assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
-    assert(extraEncodeData->contains(this));
-
-    EntityTreeElementExtraEncodeDataPointer thisExtraEncodeData
-                = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
-
-    // Note: this will be called when OUR element has finished running through encodeTreeBitstreamRecursion()
-    // which means, it's possible that our parent element hasn't finished encoding OUR data... so
-    // in this case, our children may be complete, and we should clean up their encode data...
-    // but not necessarily cleanup our own encode data...
-    //
-    // If we're really complete here's what must be true...
-    //    1) our own data must be complete
-    //    2) the data for all our immediate children must be complete.
-    // However, the following might also be the case...
-    //    1) it's ok for our child trees to not yet be fully encoded/complete...
-    //       SO LONG AS... the our child's node is in the bag ready for encoding
-
-    bool someChildTreeNotComplete = false;
-    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        EntityTreeElementPointer childElement = getChildAtIndex(i);
-        if (childElement) {
-
-            // why would this ever fail???
-            // If we've encoding this element before... but we're coming back a second time in an attempt to
-            // encode our parent... this might happen.
-            if (extraEncodeData->contains(childElement.get())) {
-                EntityTreeElementExtraEncodeDataPointer childExtraEncodeData
-                    = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[childElement.get()]);
-
-                if (wantDebug) {
-                    qCDebug(entities) << "checking child: " << childElement->_cube;
-                    qCDebug(entities) << "    childElement->isLeaf():" << childElement->isLeaf();
-                    qCDebug(entities) << "    childExtraEncodeData->elementCompleted:" << childExtraEncodeData->elementCompleted;
-                    qCDebug(entities) << "    childExtraEncodeData->subtreeCompleted:" << childExtraEncodeData->subtreeCompleted;
-                }
-
-                if (childElement->isLeaf() && childExtraEncodeData->elementCompleted) {
-                    if (wantDebug) {
-                        qCDebug(entities) << "    CHILD IS LEAF -- AND CHILD ELEMENT DATA COMPLETED!!!";
-                    }
-                    childExtraEncodeData->subtreeCompleted = true;
-                }
-
-                if (!childExtraEncodeData->elementCompleted || !childExtraEncodeData->subtreeCompleted) {
-                    someChildTreeNotComplete = true;
-                }
-            }
-        }
-    }
-
-    if (wantDebug) {
-        qCDebug(entities) << "for this element: " << _cube;
-        qCDebug(entities) << "    WAS elementCompleted:" << thisExtraEncodeData->elementCompleted;
-        qCDebug(entities) << "    WAS subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
-    }
-
-    thisExtraEncodeData->subtreeCompleted = !someChildTreeNotComplete;
-
-    if (wantDebug) {
-        qCDebug(entities) << "    NOW elementCompleted:" << thisExtraEncodeData->elementCompleted;
-        qCDebug(entities) << "    NOW subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
-
-        if (thisExtraEncodeData->subtreeCompleted) {
-            qCDebug(entities) << "    YEAH!!!!! >>>>>>>>>>>>>> NOW subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
-        }
-    }
-}
-
-OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData* packetData,
-                                                                EncodeBitstreamParams& params) const {
-
-    OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
-
-    auto entityNodeData = static_cast<EntityNodeData*>(params.nodeData);
-    Q_ASSERT_X(entityNodeData, "EntityTreeElement::appendElementData", "expected params.nodeData not to be null");
-
-    // first, check the params.extraEncodeData to see if there's any partial re-encode data for this element
-    OctreeElementExtraEncodeData* extraEncodeData = &entityNodeData->extraEncodeData;
-
-    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData = NULL;
-    bool hadElementExtraData = false;
-    if (extraEncodeData && extraEncodeData->contains(this)) {
-        entityTreeElementExtraEncodeData =
-            std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
-        hadElementExtraData = true;
-    } else {
-        // if there wasn't one already, then create one
-        entityTreeElementExtraEncodeData.reset(new EntityTreeElementExtraEncodeData());
-        entityTreeElementExtraEncodeData->elementCompleted = !hasContent();
-
-        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            EntityTreeElementPointer child = getChildAtIndex(i);
-            if (!child) {
-                entityTreeElementExtraEncodeData->childCompleted[i] = true; // if no child exists, it is completed
-            } else {
-                if (child->hasEntities()) {
-                    entityTreeElementExtraEncodeData->childCompleted[i] = false;
-                } else {
-                    // if the child doesn't have enities, it is completed
-                    entityTreeElementExtraEncodeData->childCompleted[i] = true;
-                }
-            }
-        }
-        forEachEntity([&](EntityItemPointer entity) {
-            entityTreeElementExtraEncodeData->entities.insert(entity->getEntityItemID(), entity->getEntityProperties(params));
-        });
-    }
-
-    //assert(extraEncodeData);
-    //assert(extraEncodeData->contains(this));
-    //entityTreeElementExtraEncodeData = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[this]);
-
-    LevelDetails elementLevel = packetData->startLevel();
-
-    // write our entities out... first determine which of the entities are in view based on our params
-    uint16_t numberOfEntities = 0;
-    uint16_t actualNumberOfEntities = 0;
-    int numberOfEntitiesOffset = 0;
-    withReadLock([&] {
-        QVector<uint16_t> indexesOfEntitiesToInclude;
-
-        // It's possible that our element has been previous completed. In this case we'll simply not include any of our
-        // entities for encoding. This is needed because we encode the element data at the "parent" level, and so we
-        // need to handle the case where our sibling elements need encoding but we don't.
-        if (!entityTreeElementExtraEncodeData->elementCompleted) {
-
-
-            // we have an EntityNodeData instance
-            // so we should assume that means we might have JSON filters to check
-            auto jsonFilters = entityNodeData->getJSONParameters();
-
-
-            for (uint16_t i = 0; i < _entityItems.size(); i++) {
-                EntityItemPointer entity = _entityItems[i];
-                bool includeThisEntity = true;
-
-                if (!params.forceSendScene && entity->getLastChangedOnServer() < entityNodeData->getLastTimeBagEmpty()) {
-                    includeThisEntity = false;
-                }
-
-                // if this entity has been updated since our last full send and there are json filters, check them
-                if (includeThisEntity && !jsonFilters.isEmpty()) {
-
-                    // if params include JSON filters, check if this entity matches
-                    bool entityMatchesFilters = entity->matchesJSONFilters(jsonFilters);
-
-                    if (entityMatchesFilters) {
-                        // make sure this entity is in the set of entities sent last frame
-                        entityNodeData->insertSentFilteredEntity(entity->getID());
-                    } else if (entityNodeData->sentFilteredEntity(entity->getID())) {
-                        // this entity matched in the previous frame - we send it still so the client realizes it just
-                        // fell outside of their filter
-                        entityNodeData->removeSentFilteredEntity(entity->getID());
-                    } else if (!entityNodeData->isEntityFlaggedAsExtra(entity->getID())) {
-                        // we don't send this entity because
-                        // (1) it didn't match our filter
-                        // (2) it didn't match our filter last frame
-                        // (3) it isn't one the JSON query flags told us we should still include
-                        includeThisEntity = false;
-                    }
-                }
-
-                if (includeThisEntity && hadElementExtraData) {
-                    includeThisEntity = entityTreeElementExtraEncodeData->entities.contains(entity->getEntityItemID());
-                }
-
-                // we only check the bounds against our frustum and LOD if the query has asked us to check against the frustum
-                // which can sometimes not be the case when JSON filters are sent
-                if (entityNodeData->getUsesFrustum() && (includeThisEntity || params.recurseEverything)) {
-
-                    // we want to use the maximum possible box for this, so that we don't have to worry about the nuance of
-                    // simulation changing what's visible. consider the case where the entity contains an angular velocity
-                    // the entity may not be in view and then in view a frame later, let the client side handle it's view
-                    // frustum culling on rendering.
-                    bool success;
-                    AACube entityCube = entity->getQueryAACube(success);
-                    if (!success || !params.viewFrustum.cubeIntersectsKeyhole(entityCube)) {
-                        includeThisEntity = false; // out of view, don't include it
-                    } else {
-                        // Check the size of the entity, it's possible that a "too small to see" entity is included in a
-                        // larger octree cell because of its position (for example if it crosses the boundary of a cell it
-                        // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
-                        // before we consider including it.
-                        success = true;
-                        // we can't cull a parent-entity by its dimensions because the child may be larger.  we need to
-                        // avoid sending details about a child but not the parent.  the parent's queryAACube should have
-                        // been adjusted to encompass the queryAACube of the child.
-                        AABox entityBounds = entity->hasChildren() ? AABox(entityCube) : entity->getAABox(success);
-                        if (!success) {
-                            // if this entity is a child of an avatar, the entity-server wont be able to determine its
-                            // AABox.  If this happens, fall back to the queryAACube.
-                            entityBounds = AABox(entityCube);
-                        }
-                        auto renderAccuracy = calculateRenderAccuracy(params.viewFrustum.getPosition(),
-                                                                      entityBounds,
-                                                                      params.octreeElementSizeScale,
-                                                                      params.boundaryLevelAdjust);
-                        if (renderAccuracy <= 0.0f) {
-                            includeThisEntity = false; // too small, don't include it
-
-                            #ifdef WANT_LOD_DEBUGGING
-                            qCDebug(entities) << "skipping entity - TOO SMALL - \n"
-                                     << "......id:" << entity->getID() << "\n"
-                                     << "....name:" << entity->getName() << "\n"
-                                     << "..bounds:" << entityBounds << "\n"
-                                     << "....cell:" << getAACube();
-                            #endif
-                        }
-                    }
-                }
-
-                if (includeThisEntity) {
-                    #ifdef WANT_LOD_DEBUGGING
-                    qCDebug(entities) << "including entity - \n"
-                        << "......id:" << entity->getID() << "\n"
-                        << "....name:" << entity->getName() << "\n"
-                        << "....cell:" << getAACube();
-                    #endif
-                    indexesOfEntitiesToInclude << i;
-                    numberOfEntities++;
-                } else {
-                    // if the extra data included this entity, and we've decided to not include the entity, then
-                    // we can treat it as if it was completed.
-                    entityTreeElementExtraEncodeData->entities.remove(entity->getEntityItemID());
-                }
-            }
-        }
-
-        numberOfEntitiesOffset = packetData->getUncompressedByteOffset();
-        bool successAppendEntityCount = packetData->appendValue(numberOfEntities);
-
-        if (successAppendEntityCount) {
-            foreach(uint16_t i, indexesOfEntitiesToInclude) {
-                EntityItemPointer entity = _entityItems[i];
-                LevelDetails entityLevel = packetData->startLevel();
-                OctreeElement::AppendState appendEntityState = entity->appendEntityData(packetData,
-                    params, entityTreeElementExtraEncodeData);
-
-                // If none of this entity data was able to be appended, then discard it
-                // and don't include it in our entity count
-                if (appendEntityState == OctreeElement::NONE) {
-                    packetData->discardLevel(entityLevel);
-                } else {
-                    // If either ALL or some of it got appended, then end the level (commit it)
-                    // and include the entity in our final count of entities
-                    packetData->endLevel(entityLevel);
-                    actualNumberOfEntities++;
-
-                    // If the entity item got completely appended, then we can remove it from the extra encode data
-                    if (appendEntityState == OctreeElement::COMPLETED) {
-                        entityTreeElementExtraEncodeData->entities.remove(entity->getEntityItemID());
-                    }
-                }
-
-                // If any part of the entity items didn't fit, then the element is considered partial
-                // NOTE: if the entity item didn't fit or only partially fit, then the entity item should have
-                // added itself to the extra encode data.
-                if (appendEntityState != OctreeElement::COMPLETED) {
-                    appendElementState = OctreeElement::PARTIAL;
-                }
-            }
-        } else {
-            // we we couldn't add the entity count, then we couldn't add anything for this element and we're in a NONE state
-            appendElementState = OctreeElement::NONE;
-        }
-    });
-
-    // If we were provided with extraEncodeData, and we allocated and/or got entityTreeElementExtraEncodeData
-    // then we need to do some additional processing, namely make sure our extraEncodeData is up to date for
-    // this octree element.
-    if (extraEncodeData && entityTreeElementExtraEncodeData) {
-
-        // After processing, if we are PARTIAL or COMPLETED then we need to re-include our extra data.
-        // Only our parent can remove our extra data in these cases and only after it knows that all of its
-        // children have been encoded.
-        //
-        // FIXME -- this comment seems wrong....
-        //
-        // If we weren't able to encode ANY data about ourselves, then we go ahead and remove our element data
-        // since that will signal that the entire element needs to be encoded on the next attempt
-        if (appendElementState == OctreeElement::NONE) {
-
-            if (!entityTreeElementExtraEncodeData->elementCompleted && entityTreeElementExtraEncodeData->entities.size() == 0) {
-                // TODO: we used to delete the extra encode data here. But changing the logic around
-                // this is now a dead code branch. Clean this up!
-            } else {
-                // TODO: some of these inserts might be redundant!!!
-                extraEncodeData->insert(this, entityTreeElementExtraEncodeData);
-            }
-        } else {
-
-            // If we weren't previously completed, check to see if we are
-            if (!entityTreeElementExtraEncodeData->elementCompleted) {
-                // If all of our items have been encoded, then we are complete as an element.
-                if (entityTreeElementExtraEncodeData->entities.size() == 0) {
-                    entityTreeElementExtraEncodeData->elementCompleted = true;
-                }
-            }
-
-            // TODO: some of these inserts might be redundant!!!
-            extraEncodeData->insert(this, entityTreeElementExtraEncodeData);
-        }
-    }
-
-    // Determine if no entities at all were able to fit
-    bool noEntitiesFit = (numberOfEntities > 0 && actualNumberOfEntities == 0);
-
-    // If we wrote fewer entities than we expected, update the number of entities in our packet
-    bool successUpdateEntityCount = true;
-    if (numberOfEntities != actualNumberOfEntities) {
-        successUpdateEntityCount = packetData->updatePriorBytes(numberOfEntitiesOffset,
-                                            (const unsigned char*)&actualNumberOfEntities, sizeof(actualNumberOfEntities));
-    }
-
-    // If we weren't able to update our entity count, or we couldn't fit any entities, then
-    // we should discard our element and return a result of NONE
-    if (!successUpdateEntityCount) {
-        packetData->discardLevel(elementLevel);
-        appendElementState = OctreeElement::NONE;
-    } else {
-        if (noEntitiesFit) {
-            //appendElementState = OctreeElement::PARTIAL;
-            packetData->discardLevel(elementLevel);
-            appendElementState = OctreeElement::NONE;
-        } else {
-            packetData->endLevel(elementLevel);
-        }
-    }
-    return appendElementState;
-}
-
 bool EntityTreeElement::containsEntityBounds(EntityItemPointer entity) const {
     bool success;
     auto queryCube = entity->getQueryAACube(success);
@@ -588,76 +139,72 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
     return false;
 }
 
-bool EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+EntityItemID EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
     bool& keepSearching, OctreeElementPointer& element, float& distance,
     BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
     const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
-    void** intersectedObject, bool precisionPicking) {
+    QVariantMap& extraInfo, bool precisionPicking) {
 
-    keepSearching = true; // assume that we will continue searching after this.
-
+    EntityItemID result;
     float distanceToElementCube = std::numeric_limits<float>::max();
-    float distanceToElementDetails = distance;
     BoxFace localFace;
     glm::vec3 localSurfaceNormal;
 
-    // if the ray doesn't intersect with our cube, we can stop searching!
-    if (!_cube.findRayIntersection(origin, direction, distanceToElementCube, localFace, localSurfaceNormal)) {
+    // if the ray doesn't intersect with our cube OR the distance to element is less than current best distance
+    // we can stop searching!
+    bool hit = _cube.findRayIntersection(origin, direction, distanceToElementCube, localFace, localSurfaceNormal);
+    if (!hit || (!_cube.contains(origin) && distanceToElementCube > distance)) {
         keepSearching = false; // no point in continuing to search
-        return false; // we did not intersect
+        return result; // we did not intersect
     }
 
     // by default, we only allow intersections with leaves with content
     if (!canRayIntersect()) {
-        return false; // we don't intersect with non-leaves, and we keep searching
+        return result; // we don't intersect with non-leaves, and we keep searching
     }
 
     // if the distance to the element cube is not less than the current best distance, then it's not possible
     // for any details inside the cube to be closer so we don't need to consider them.
-    if (_cube.contains(origin) || distanceToElementCube < distance) {
-
-        if (findDetailedRayIntersection(origin, direction, keepSearching, element, distanceToElementDetails,
-                face, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
-                intersectedObject, precisionPicking, distanceToElementCube)) {
-
-            if (distanceToElementDetails < distance) {
-                distance = distanceToElementDetails;
-                face = localFace;
-                surfaceNormal = localSurfaceNormal;
-                return true;
-            }
-        }
+    QVariantMap localExtraInfo;
+    float distanceToElementDetails = distance;
+    EntityItemID entityID = findDetailedRayIntersection(origin, direction, element, distanceToElementDetails,
+            face, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
+            localExtraInfo, precisionPicking);
+    if (!entityID.isNull() && distanceToElementDetails < distance) {
+        distance = distanceToElementDetails;
+        face = localFace;
+        surfaceNormal = localSurfaceNormal;
+        extraInfo = localExtraInfo;
+        result = entityID;
     }
-    return false;
+    return result;
 }
 
-bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction, bool& keepSearching,
+EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                     OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                                     const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIDsToDiscard,
-                                    bool visibleOnly, bool collidableOnly, void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
+                                    bool visibleOnly, bool collidableOnly, QVariantMap& extraInfo, bool precisionPicking) {
 
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     int entityNumber = 0;
-    bool somethingIntersected = false;
+    EntityItemID entityID;
     forEachEntity([&](EntityItemPointer entity) {
-        if ( (visibleOnly && !entity->isVisible()) || (collidableOnly && (entity->getCollisionless() || entity->getShapeType() == SHAPE_TYPE_NONE))
-            || (entityIdsToInclude.size() > 0 && !entityIdsToInclude.contains(entity->getID()))
-            || (entityIDsToDiscard.size() > 0 && entityIDsToDiscard.contains(entity->getID())) ) {
-            return;
-        }
-
+        // use simple line-sphere for broadphase check
+        // (this is faster and more likely to cull results than the filter check below so we do it first)
         bool success;
         AABox entityBox = entity->getAABox(success);
         if (!success) {
             return;
         }
+        if (!entityBox.rayHitsBoundingSphere(origin, direction)) {
+            return;
+        }
 
-        float localDistance;
-        BoxFace localFace;
-        glm::vec3 localSurfaceNormal;
-
-        // if the ray doesn't intersect with our cube, we can stop searching!
-        if (!entityBox.findRayIntersection(origin, direction, localDistance, localFace, localSurfaceNormal)) {
+        // check RayPick filter settings
+        if ((visibleOnly && !entity->isVisible())
+                || (collidableOnly && (entity->getCollisionless() || entity->getShapeType() == SHAPE_TYPE_NONE))
+                || (entityIdsToInclude.size() > 0 && !entityIdsToInclude.contains(entity->getID()))
+                || (entityIDsToDiscard.size() > 0 && entityIDsToDiscard.contains(entity->getID())) ) {
             return;
         }
 
@@ -667,7 +214,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
-        glm::vec3 dimensions = entity->getDimensions();
+        glm::vec3 dimensions = entity->getScaledDimensions();
         glm::vec3 registrationPoint = entity->getRegistrationPoint();
         glm::vec3 corner = -(dimensions * registrationPoint);
 
@@ -678,20 +225,23 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
 
         // we can use the AABox's ray intersection by mapping our origin and direction into the entity frame
         // and testing intersection there.
+        float localDistance;
+        BoxFace localFace;
+        glm::vec3 localSurfaceNormal;
         if (entityFrameBox.findRayIntersection(entityFrameOrigin, entityFrameDirection, localDistance,
                                                 localFace, localSurfaceNormal)) {
             if (entityFrameBox.contains(entityFrameOrigin) || localDistance < distance) {
                 // now ask the entity if we actually intersect
                 if (entity->supportsDetailedRayIntersection()) {
-                    if (entity->findDetailedRayIntersection(origin, direction, keepSearching, element, localDistance,
-                        localFace, localSurfaceNormal, intersectedObject, precisionPicking)) {
-
+                    QVariantMap localExtraInfo;
+                    if (entity->findDetailedRayIntersection(origin, direction, element, localDistance,
+                            localFace, localSurfaceNormal, localExtraInfo, precisionPicking)) {
                         if (localDistance < distance) {
                             distance = localDistance;
                             face = localFace;
                             surfaceNormal = localSurfaceNormal;
-                            *intersectedObject = (void*)entity.get();
-                            somethingIntersected = true;
+                            extraInfo = localExtraInfo;
+                            entityID = entity->getEntityItemID();
                         }
                     }
                 } else {
@@ -701,15 +251,14 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                         distance = localDistance;
                         face = localFace;
                         surfaceNormal = glm::vec3(rotation * glm::vec4(localSurfaceNormal, 1.0f));
-                        *intersectedObject = (void*)entity.get();
-                        somethingIntersected = true;
+                        entityID = entity->getEntityItemID();
                     }
                 }
             }
         }
         entityNumber++;
     });
-    return somethingIntersected;
+    return entityID;
 }
 
 // TODO: change this to use better bounding shape for entity than sphere
@@ -763,7 +312,7 @@ void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searc
         glm::vec3 penetration;
         if (!success || entityBox.findSpherePenetration(searchPosition, searchRadius, penetration)) {
 
-            glm::vec3 dimensions = entity->getDimensions();
+            glm::vec3 dimensions = entity->getScaledDimensions();
 
             // FIXME - consider allowing the entity to determine penetration so that
             //         entities could presumably dull actuall hull testing if they wanted to
@@ -893,6 +442,7 @@ EntityItemPointer EntityTreeElement::getEntityWithEntityItemID(const EntityItemI
 void EntityTreeElement::cleanupEntities() {
     withWriteLock([&] {
         foreach(EntityItemPointer entity, _entityItems) {
+            entity->preDelete();
             // NOTE: only EntityTreeElement should ever be changing the value of entity->_element
             // NOTE: We explicitly don't delete the EntityItem here because since we only
             // access it by smart pointers, when we remove it from the _entityItems
@@ -904,26 +454,10 @@ void EntityTreeElement::cleanupEntities() {
     bumpChangedContent();
 }
 
-bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
-    bool foundEntity = false;
-    withWriteLock([&] {
-        uint16_t numberOfEntities = _entityItems.size();
-        for (uint16_t i = 0; i < numberOfEntities; i++) {
-            EntityItemPointer& entity = _entityItems[i];
-            if (entity->getEntityItemID() == id) {
-                foundEntity = true;
-                // NOTE: only EntityTreeElement should ever be changing the value of entity->_element
-                entity->_element = NULL;
-                _entityItems.removeAt(i);
-                bumpChangedContent();
-                break;
-            }
-        }
-    });
-    return foundEntity;
-}
-
-bool EntityTreeElement::removeEntityItem(EntityItemPointer entity) {
+bool EntityTreeElement::removeEntityItem(EntityItemPointer entity, bool deletion) {
+    if (deletion) {
+        entity->preDelete();
+    }
     int numEntries = 0;
     withWriteLock([&] {
         numEntries = _entityItems.removeAll(entity);

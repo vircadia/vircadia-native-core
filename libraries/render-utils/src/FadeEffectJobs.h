@@ -56,13 +56,9 @@ class FadeConfig : public render::Job::Config {
         Q_PROPERTY(float noiseSizeZ READ getNoiseSizeZ WRITE setNoiseSizeZ NOTIFY dirty)
         Q_PROPERTY(float noiseLevel READ getNoiseLevel WRITE setNoiseLevel NOTIFY dirty)
         Q_PROPERTY(float edgeWidth READ getEdgeWidth WRITE setEdgeWidth NOTIFY dirty)
-        Q_PROPERTY(float edgeInnerColorR READ getEdgeInnerColorR WRITE setEdgeInnerColorR NOTIFY dirty)
-        Q_PROPERTY(float edgeInnerColorG READ getEdgeInnerColorG WRITE setEdgeInnerColorG NOTIFY dirty)
-        Q_PROPERTY(float edgeInnerColorB READ getEdgeInnerColorB WRITE setEdgeInnerColorB NOTIFY dirty)
+        Q_PROPERTY(QColor edgeInnerColor READ getEdgeInnerColor WRITE setEdgeInnerColor NOTIFY dirty)
         Q_PROPERTY(float edgeInnerIntensity READ getEdgeInnerIntensity WRITE setEdgeInnerIntensity NOTIFY dirty)
-        Q_PROPERTY(float edgeOuterColorR READ getEdgeOuterColorR WRITE setEdgeOuterColorR NOTIFY dirty)
-        Q_PROPERTY(float edgeOuterColorG READ getEdgeOuterColorG WRITE setEdgeOuterColorG NOTIFY dirty)
-        Q_PROPERTY(float edgeOuterColorB READ getEdgeOuterColorB WRITE setEdgeOuterColorB NOTIFY dirty)
+        Q_PROPERTY(QColor edgeOuterColor READ getEdgeOuterColor WRITE setEdgeOuterColor NOTIFY dirty)
         Q_PROPERTY(float edgeOuterIntensity READ getEdgeOuterIntensity WRITE setEdgeOuterIntensity NOTIFY dirty)
         Q_PROPERTY(int timing READ getTiming WRITE setTiming NOTIFY dirty)
         Q_PROPERTY(float noiseSpeedX READ getNoiseSpeedX WRITE setNoiseSpeedX NOTIFY dirty)
@@ -129,26 +125,14 @@ public:
     void setEdgeWidth(float value);
     float getEdgeWidth() const;
 
-    void setEdgeInnerColorR(float value);
-    float getEdgeInnerColorR() const { return events[editedCategory].edgeInnerColor.r; }
-
-    void setEdgeInnerColorG(float value);
-    float getEdgeInnerColorG() const { return events[editedCategory].edgeInnerColor.g; }
-
-    void setEdgeInnerColorB(float value);
-    float getEdgeInnerColorB() const { return events[editedCategory].edgeInnerColor.b; }
+    void setEdgeInnerColor(const QColor& value);
+    QColor getEdgeInnerColor() const;
 
     void setEdgeInnerIntensity(float value);
     float getEdgeInnerIntensity() const { return events[editedCategory].edgeInnerColor.a; }
 
-    void setEdgeOuterColorR(float value);
-    float getEdgeOuterColorR() const { return events[editedCategory].edgeOuterColor.r; }
-
-    void setEdgeOuterColorG(float value);
-    float getEdgeOuterColorG() const { return events[editedCategory].edgeOuterColor.g; }
-
-    void setEdgeOuterColorB(float value);
-    float getEdgeOuterColorB() const { return events[editedCategory].edgeOuterColor.b; }
+    void setEdgeOuterColor(const QColor& value);
+    QColor getEdgeOuterColor() const;
 
     void setEdgeOuterIntensity(float value);
     float getEdgeOuterIntensity() const { return events[editedCategory].edgeOuterColor.a; }
@@ -176,8 +160,8 @@ public:
     float manualThreshold{ 0.f };
     bool manualFade{ false };
 
-    Q_INVOKABLE void save() const;
-    Q_INVOKABLE void load();
+    Q_INVOKABLE void save(const QString& filePath) const;
+    Q_INVOKABLE void load(const QString& filePath);
 
     static QString eventNames[FADE_CATEGORY_COUNT];
 
@@ -206,7 +190,6 @@ private:
     bool _isEditEnabled{ false };
     render::ItemID _editedItem{ render::Item::INVALID_ITEM_ID };
 
-    render::ItemID findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const;
 };
 
 class FadeJob {

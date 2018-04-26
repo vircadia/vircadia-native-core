@@ -22,9 +22,14 @@ public:
 
     virtual float getTargetFrameRate() const override { return  _framerateTarget ? (float) _framerateTarget : TARGET_FRAMERATE_Basic2DWindowOpenGL; }
 
+    virtual void customizeContext() override;
+    virtual void uncustomizeContext() override;
+
     virtual bool internalActivate() override;
 
     virtual bool isThrottled() const override;
+
+    virtual void compositeExtra() override;
 
 protected:
     mutable bool _isThrottled = false;
@@ -36,4 +41,13 @@ private:
     QAction* _vsyncAction { nullptr };
     uint32_t _framerateTarget { 0 };
     int _fullscreenTarget{ -1 };
+
+#if defined(Q_OS_ANDROID)
+    gpu::TexturePointer _virtualPadStickTexture;
+    gpu::TexturePointer _virtualPadStickBaseTexture;
+    qreal _virtualPadPixelSize;
+
+    gpu::TexturePointer _virtualPadJumpBtnTexture;
+    qreal _virtualPadJumpBtnPixelSize;
+#endif
 };

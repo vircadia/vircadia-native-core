@@ -96,9 +96,13 @@ void SoundProcessor::run() {
         QByteArray outputAudioByteArray;
 
         int sampleRate = interpretAsWav(rawAudioByteArray, outputAudioByteArray);
-        if (sampleRate != 0) {
-            downSample(outputAudioByteArray, sampleRate);
+        if (sampleRate == 0) {
+            qCDebug(audio) << "Unsupported WAV file type";
+            emit onError(300, "Failed to load sound file, reason: unsupported WAV file type");
+            return;
         }
+
+        downSample(outputAudioByteArray, sampleRate);
     } else if (fileName.endsWith(RAW_EXTENSION)) {
         // check if this was a stereo raw file
         // since it's raw the only way for us to know that is if the file was called .stereo.raw

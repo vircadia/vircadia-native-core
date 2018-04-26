@@ -12,6 +12,7 @@
 
 #include <PathUtils.h>
 #include "OffscreenQmlSurface.h"
+#include "Profile.h"
 
 OffscreenQmlSurfaceCache::OffscreenQmlSurfaceCache() {
 }
@@ -38,14 +39,13 @@ void OffscreenQmlSurfaceCache::reserve(const QString& rootSource, int count) {
 }
 
 void OffscreenQmlSurfaceCache::release(const QString& rootSource, const QSharedPointer<OffscreenQmlSurface>& surface) {
+    PROFILE_RANGE(app, "buildSurface");
     surface->pause();
     _cache[rootSource].push_back(surface);
 }
 
 QSharedPointer<OffscreenQmlSurface> OffscreenQmlSurfaceCache::buildSurface(const QString& rootSource) {
     auto surface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface());
-    surface->create();
-    surface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     surface->load(rootSource);
     surface->resize(QSize(100, 100));
     return surface;

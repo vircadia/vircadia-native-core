@@ -15,8 +15,8 @@
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 
-#include <model/Material.h>
-#include <model/Asset.h>
+#include <graphics/Material.h>
+#include <graphics/Asset.h>
 
 #include "FBXReader.h"
 #include "TextureCache.h"
@@ -38,7 +38,7 @@ public:
     Geometry(const Geometry& geometry);
 
     // Immutable over lifetime
-    using GeometryMeshes = std::vector<std::shared_ptr<const model::Mesh>>;
+    using GeometryMeshes = std::vector<std::shared_ptr<const graphics::Mesh>>;
     using GeometryMeshParts = std::vector<std::shared_ptr<const MeshPart>>;
 
     // Mutable, but must retain structure of vector
@@ -48,7 +48,7 @@ public:
 
     const FBXGeometry& getFBXGeometry() const { return *_fbxGeometry; }
     const GeometryMeshes& getMeshes() const { return *_meshes; }
-    const std::shared_ptr<const NetworkMaterial> getShapeMaterial(int shapeID) const;
+    const std::shared_ptr<NetworkMaterial> getShapeMaterial(int shapeID) const;
 
     const QVariantMap getTextures() const;
     void setTextures(const QVariantMap& textureMap);
@@ -131,13 +131,68 @@ private:
     Geometry::Pointer& _geometryRef;
 };
 
-
 /// Stores cached model geometries.
 class ModelCache : public ResourceCache, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
 public:
+
+    // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
+
+    /**jsdoc
+     * API to manage model cache resources.
+     * @namespace ModelCache
+     *
+     * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
+     * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
+     * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
+     * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
+     */
+
+
+    // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
+
+    /**jsdoc
+     * Get the list of all resource URLs.
+     * @function ModelCache.getResourceList
+     * @return {string[]}
+     */
+
+    /**jsdoc
+     * @function ModelCache.dirty
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * @function ModelCache.updateTotalSize
+     * @param {number} deltaSize
+     */
+
+    /**jsdoc
+     * @function ModelCache.prefetch
+     * @param {string} url
+     * @param {object} extra
+     * @returns {object}
+     */
+
+    /**jsdoc
+     * Asynchronously loads a resource from the specified URL and returns it.
+     * @function ModelCache.getResource
+     * @param {string} url - URL of the resource to load.
+     * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
+     * @param {} [extra=null]
+     * @return {Resource}
+     */
+
+    /**jsdoc
+     * Prefetches a resource.
+     * @function ModelCache.prefetch
+     * @param {string} url - URL of the resource to prefetch.
+     * @return {Resource}
+     */
+
+
     GeometryResource::Pointer getGeometryResource(const QUrl& url,
                                                   const QVariantHash& mapping = QVariantHash(),
                                                   const QUrl& textureBaseUrl = QUrl());
@@ -157,11 +212,22 @@ private:
     virtual ~ModelCache() = default;
 };
 
-class NetworkMaterial : public model::Material {
+class NetworkMaterial : public graphics::Material {
 public:
-    using MapChannel = model::Material::MapChannel;
+    using MapChannel = graphics::Material::MapChannel;
 
+    NetworkMaterial() : _textures(MapChannel::NUM_MAP_CHANNELS) {}
     NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl);
+    NetworkMaterial(const NetworkMaterial& material);
+
+    void setAlbedoMap(const QUrl& url, bool useAlphaChannel);
+    void setNormalMap(const QUrl& url, bool isBumpmap);
+    void setRoughnessMap(const QUrl& url, bool isGloss);
+    void setMetallicMap(const QUrl& url, bool isSpecular);
+    void setOcclusionMap(const QUrl& url);
+    void setEmissiveMap(const QUrl& url);
+    void setScatteringMap(const QUrl& url);
+    void setLightmapMap(const QUrl& url);
 
 protected:
     friend class Geometry;
@@ -185,9 +251,9 @@ protected:
 private:
     // Helpers for the ctors
     QUrl getTextureUrl(const QUrl& baseUrl, const FBXTexture& fbxTexture);
-    model::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
+    graphics::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
                                              image::TextureUsage::Type type, MapChannel channel);
-    model::TextureMapPointer fetchTextureMap(const QUrl& url, image::TextureUsage::Type type, MapChannel channel);
+    graphics::TextureMapPointer fetchTextureMap(const QUrl& url, image::TextureUsage::Type type, MapChannel channel);
 
     Transform _albedoTransform;
     Transform _lightmapTransform;

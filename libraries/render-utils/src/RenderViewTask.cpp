@@ -14,17 +14,14 @@
 #include "RenderDeferredTask.h"
 #include "RenderForwardTask.h"
 
-
-
-void RenderViewTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, bool isDeferred) {
+void RenderViewTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, bool isDeferred, uint8_t tagBits, uint8_t tagMask) {
    // auto items = input.get<Input>();
 
-    // Shadows use an orthographic projection because they are linked to sunlights
-    // but the cullFunctor passed is probably tailored for perspective projection and culls too much.
-    // TODO : create a special cull functor for this. 
-    task.addJob<RenderShadowTask>("RenderShadowTask", nullptr);
+    // Warning : the cull functor passed to the shadow pass should only be testing for LOD culling. If frustum culling
+    // is performed, then casters not in the view frustum will be removed, which is not what we wish.
+    task.addJob<RenderShadowTask>("RenderShadowTask", cullFunctor, tagBits, tagMask);
 
-    const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
+    const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, tagBits, tagMask);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
 
     if (isDeferred) {

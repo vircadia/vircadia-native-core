@@ -85,12 +85,11 @@ btTypedConstraint* ObjectConstraintBallSocket::getConstraint() {
         return constraint;
     }
 
-    static QString repeatedBallSocketNoRigidBody = LogHandler::getInstance().addRepeatedMessageRegex(
-        "ObjectConstraintBallSocket::getConstraint -- no rigidBody.*");
+    static int repeatMessageID = LogHandler::getInstance().newRepeatedMessageID();
 
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
-        qCDebug(physics) << "ObjectConstraintBallSocket::getConstraint -- no rigidBodyA";
+        HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintBallSocket::getConstraint -- no rigidBodyA");
         return nullptr;
     }
 
@@ -99,7 +98,7 @@ btTypedConstraint* ObjectConstraintBallSocket::getConstraint() {
 
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
-            qCDebug(physics) << "ObjectConstraintBallSocket::getConstraint -- no rigidBodyB";
+            HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintBallSocket::getConstraint -- no rigidBodyB");
             return nullptr;
         }
 
@@ -181,6 +180,15 @@ bool ObjectConstraintBallSocket::updateArguments(QVariantMap arguments) {
     return true;
 }
 
+/**jsdoc
+ * The <code>"ball-socket"</code> {@link Entities.ActionType|ActionType} connects two entities with a ball and socket joint. 
+ * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}.
+ *
+ * @typedef {object} Entities.ActionArguments-BallSocket
+ * @property {Vec3} pivot=0,0,0 - The local offset of the joint relative to the entity's position.
+ * @property {Uuid} otherEntityID=null - The ID of the other entity that is connected to the joint.
+ * @property {Vec3} otherPivot=0,0,0 - The local offset of the joint relative to the other entity's position.
+ */
 QVariantMap ObjectConstraintBallSocket::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {

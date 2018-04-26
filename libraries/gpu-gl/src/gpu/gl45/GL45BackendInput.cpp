@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "GL45Backend.h"
-#include "../gl/GLShared.h"
+#include <gpu/gl/GLShared.h>
 
 using namespace gpu;
 using namespace gpu::gl45;
@@ -32,6 +32,8 @@ void GL45Backend::updateInput() {
 
         // Assign the vertex format required
         if (_input._format) {
+            bool hasColorAttribute{ false };
+
             _input._attribBindingBuffers.reset();
 
             const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
@@ -54,6 +56,9 @@ void GL45Backend::updateInput() {
                     GLboolean isNormalized = attrib._element.isNormalized();
 
                     GLenum perLocationSize = attrib._element.getLocationSize();
+
+                    hasColorAttribute = hasColorAttribute || (slot == Stream::COLOR);
+
                     for (GLuint locNum = 0; locNum < locationCount; ++locNum) {
                         GLuint attriNum = (GLuint)(slot + locNum);
                         newActivation.set(attriNum);
@@ -84,6 +89,15 @@ void GL45Backend::updateInput() {
                 glVertexBindingDivisor(bufferChannelNum, frequency);
 #endif
             }
+
+            if (_input._hadColorAttribute && !hasColorAttribute) {
+                // The previous input stage had a color attribute but this one doesn't so reset
+                // color to pure white.
+                const auto white = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+                glVertexAttrib4fv(Stream::COLOR, &white.r);
+                _input._colorAttribute = white;
+            }
+            _input._hadColorAttribute = hasColorAttribute;
         }
 
         // Manage Activation what was and what is expected now

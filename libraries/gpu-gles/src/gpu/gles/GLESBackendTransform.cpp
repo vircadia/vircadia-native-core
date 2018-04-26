@@ -38,9 +38,9 @@ void GLESBackend::transferTransformState(const Batch& batch) const {
     }
 
     if (!batch._objects.empty()) {
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _transform._objectBuffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, batch._objects.size() * sizeof(Batch::TransformObject), batch._objects.data(), GL_STREAM_DRAW);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        glBindBuffer(GL_TEXTURE_BUFFER, _transform._objectBuffer);
+        glBufferData(GL_TEXTURE_BUFFER, batch._objects.size() * sizeof(Batch::TransformObject), batch._objects.data(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_TEXTURE_BUFFER, 0);
     }
 
     if (!batch._namedData.empty()) {
@@ -58,10 +58,44 @@ void GLESBackend::transferTransformState(const Batch& batch) const {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _transform._objectBuffer);
+    glActiveTexture(GL_TEXTURE0 +  GLESBackend::TRANSFORM_OBJECT_SLOT);
+    glBindTexture(GL_TEXTURE_BUFFER, _transform._objectBufferTexture);
+    if (!batch._objects.empty()) {
+        glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, _transform._objectBuffer);
+    }
 
     CHECK_GL_ERROR();
 
     // Make sure the current Camera offset is unknown before render Draw
     _transform._currentCameraOffset = INVALID_OFFSET;
+}
+
+
+void GLESBackend::updateTransform(const Batch& batch) {
+    _transform.update(_commandIndex, _stereo);
+
+    auto& drawCallInfoBuffer = batch.getDrawCallInfoBuffer();
+    if (batch._currentNamedCall.empty()) {
+        auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
+        if (_transform._enabledDrawcallInfoBuffer) {
+            glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is disabled
+            _transform._enabledDrawcallInfoBuffer = false;
+        }
+        glVertexAttribI4i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused, 0, 0);
+        //glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
+    } else {
+        if (!_transform._enabledDrawcallInfoBuffer) {
+            glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+            glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, (isStereo() ? 2 : 1));
+#else
+            glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
+#endif
+            _transform._enabledDrawcallInfoBuffer = true;
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
+        glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0, _transform._drawCallInfoOffsets[batch._currentNamedCall]);
+    }
+
+    (void)CHECK_GL_ERROR();
 }

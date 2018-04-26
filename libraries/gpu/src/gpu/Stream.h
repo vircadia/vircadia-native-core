@@ -23,6 +23,8 @@
 
 namespace gpu {
 
+class Element;
+
 // Stream namespace class
 class Stream {
 public:
@@ -48,6 +50,8 @@ public:
     };
 
     typedef uint8 Slot;
+
+    static const std::array<Element, InputSlot::NUM_INPUT_SLOTS>& getDefaultElements();
 
     // Frequency describer
     enum Frequency {
@@ -112,6 +116,7 @@ public:
         bool setAttribute(Slot slot, Slot channel, Frequency frequency = PER_VERTEX);
 
         bool hasAttribute(Slot slot) const { return (_attributes.find(slot) != _attributes.end()); }
+        Attribute getAttribute(Slot slot) const;
 
         const std::string& getKey() const { return _key; }
 

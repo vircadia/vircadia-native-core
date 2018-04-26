@@ -432,6 +432,12 @@ glm::vec3 toGlm(const xColor& color) {
     return glm::vec3(color.red, color.green, color.blue) / MAX_COLOR;
 }
 
+xColor xColorFromGlm(const glm::vec3 & color) {
+    static const float MAX_COLOR = 255.0f;
+    return { (uint8_t)(color.x * MAX_COLOR), (uint8_t)(color.y * MAX_COLOR), (uint8_t)(color.z * MAX_COLOR) };
+}
+
+
 glm::vec4 toGlm(const QColor& color) {
     return glm::vec4(color.redF(), color.greenF(), color.blueF(), color.alphaF());
 }
@@ -595,3 +601,6 @@ glm::vec3 randVector() {
     return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.0f;
 }
 
+bool isNonUniformScale(const glm::vec3& scale) {
+    return fabsf(scale.x - scale.y) > EPSILON || fabsf(scale.y - scale.z) > EPSILON || fabsf(scale.z - scale.x) > EPSILON;
+}

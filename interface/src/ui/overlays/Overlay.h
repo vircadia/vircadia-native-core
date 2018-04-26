@@ -26,11 +26,6 @@ class Overlay : public QObject {
     Q_OBJECT
 
 public:
-    enum Anchor {
-        NO_ANCHOR,
-        MY_AVATAR
-    };
-
     typedef std::shared_ptr<Overlay> Pointer;
     typedef render::Payload<Overlay> Payload;
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
@@ -53,15 +48,18 @@ public:
 
     virtual const render::ShapeKey getShapeKey() { return render::ShapeKey::Builder::ownPipeline(); }
 
+    virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const { return 0; }
+
     // getters
     virtual QString getType() const = 0;
     virtual bool is3D() const = 0;
     bool isLoaded() { return _isLoaded; }
     bool getVisible() const { return _visible; }
     virtual bool isTransparent() { return getAlphaPulse() != 0.0f || getAlpha() != 1.0f; };
+    virtual bool getIsVisibleInSecondaryCamera() const { return false; }
+
     xColor getColor();
     float getAlpha();
-    Anchor getAnchor() const { return _anchor; }
 
     float getPulseMax() const { return _pulseMax; }
     float getPulseMin() const { return _pulseMin; }
@@ -76,7 +74,6 @@ public:
     void setDrawHUDLayer(bool drawHUDLayer);
     void setColor(const xColor& color) { _color = color; }
     void setAlpha(float alpha) { _alpha = alpha; }
-    void setAnchor(Anchor anchor) { _anchor = anchor; }
 
     void setPulseMax(float value) { _pulseMax = value; }
     void setPulseMin(float value) { _pulseMin = value; }
@@ -95,6 +92,9 @@ public:
 
     unsigned int getStackOrder() const { return _stackOrder; }
     void setStackOrder(unsigned int stackOrder) { _stackOrder = stackOrder; }
+
+    virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
+    virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
 protected:
     float updatePulse();
@@ -116,9 +116,14 @@ protected:
 
     xColor _color;
     bool _visible; // should the overlay be drawn at all
-    Anchor _anchor;
 
     unsigned int _stackOrder { 0 };
+
+    static const xColor DEFAULT_OVERLAY_COLOR;
+    static const float DEFAULT_ALPHA;
+
+    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
+    std::mutex _materialsLock;
 
 private:
     OverlayID _overlayID; // only used for non-3d overlays
@@ -130,6 +135,7 @@ namespace render {
    template <> int payloadGetLayer(const Overlay::Pointer& overlay);
    template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args);
    template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay);
+   template <> uint32_t metaFetchMetaSubItems(const Overlay::Pointer& overlay, ItemIDs& subItems);
 }
 
 Q_DECLARE_METATYPE(OverlayID);

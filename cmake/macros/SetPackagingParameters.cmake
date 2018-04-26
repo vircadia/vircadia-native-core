@@ -15,16 +15,22 @@ macro(SET_PACKAGING_PARAMETERS)
   set(PR_BUILD 0)
   set(PRODUCTION_BUILD 0)
   set(DEV_BUILD 0)
-
-  set(RELEASE_TYPE $ENV{RELEASE_TYPE})
-  set(RELEASE_NUMBER $ENV{RELEASE_NUMBER})
-  string(TOLOWER "$ENV{BRANCH}" BUILD_BRANCH)
   set(BUILD_GLOBAL_SERVICES "DEVELOPMENT")
   set(USE_STABLE_GLOBAL_SERVICES 0)
+
+  set_from_env(RELEASE_TYPE RELEASE_TYPE "DEV")
+  set_from_env(RELEASE_NUMBER RELEASE_NUMBER "")
+  set_from_env(BUILD_BRANCH BRANCH "")
+  string(TOLOWER "${BUILD_BRANCH}" BUILD_BRANCH)
 
   message(STATUS "The BUILD_BRANCH variable is: ${BUILD_BRANCH}")
   message(STATUS "The BRANCH environment variable is: $ENV{BRANCH}")
   message(STATUS "The RELEASE_TYPE variable is: ${RELEASE_TYPE}")
+
+  # setup component categories for installer
+  set(DDE_COMPONENT dde)
+  set(CLIENT_COMPONENT client)
+  set(SERVER_COMPONENT server)
 
   if (RELEASE_TYPE STREQUAL "PRODUCTION")
     set(DEPLOY_PACKAGE TRUE)
@@ -65,6 +71,11 @@ macro(SET_PACKAGING_PARAMETERS)
 
     # add definition for this release type
     add_definitions(-DDEV_BUILD)
+  endif ()
+
+  if (DEPLOY_PACKAGE)
+    # for deployed packages always grab the serverless content
+    set(DOWNLOAD_SERVERLESS_CONTENT ON)
   endif ()
 
   if (APPLE)
@@ -148,12 +159,9 @@ macro(SET_PACKAGING_PARAMETERS)
     set(CLIENT_LAUNCH_NOW_REG_KEY "ClientLaunchAfterInstall")
     set(SERVER_LAUNCH_NOW_REG_KEY "ServerLaunchAfterInstall")
     set(CUSTOM_INSTALL_REG_KEY "CustomInstall")
+    set(CLIENT_ID_REG_KEY "ClientGUID")
+    set(GA_TRACKING_ID $ENV{GA_TRACKING_ID})
   endif ()
-
-  # setup component categories for installer
-  set(DDE_COMPONENT dde)
-  set(CLIENT_COMPONENT client)
-  set(SERVER_COMPONENT server)
 
   # print out some results for testing this new build feature
   message(STATUS "The BUILD_GLOBAL_SERVICES variable is: ${BUILD_GLOBAL_SERVICES}")

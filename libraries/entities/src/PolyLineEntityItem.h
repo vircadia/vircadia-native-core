@@ -26,7 +26,6 @@ class PolyLineEntityItem : public EntityItem {
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
-    // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
@@ -78,8 +77,6 @@ class PolyLineEntityItem : public EntityItem {
     QString getTextures() const;
     void setTextures(const QString& textures);
 
-    virtual bool needsToCallUpdate() const override { return true; }
-
     virtual ShapeType getShapeType() const override { return SHAPE_TYPE_NONE; }
 
     bool pointsChanged() const { return _pointsChanged; } 
@@ -94,9 +91,9 @@ class PolyLineEntityItem : public EntityItem {
     // never have a ray intersection pick a PolyLineEntityItem.
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                             bool& keepSearching, OctreeElementPointer& element, float& distance,
+                                             OctreeElementPointer& element, float& distance,
                                              BoxFace& face, glm::vec3& surfaceNormal,
-                                             void** intersectedObject, bool precisionPicking) const override { return false; }
+                                             QVariantMap& extraInfo, bool precisionPicking) const override { return false; }
 
     // disable these external interfaces as PolyLineEntities caculate their own dimensions based on the points they contain
     virtual void setRegistrationPoint(const glm::vec3& value) override {}; // FIXME: this is suspicious! 

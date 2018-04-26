@@ -11,11 +11,12 @@
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QThread>
 
+#include <shared/FileUtils.h>
 #include <shared/QtHelpers.h>
 #include <DependencyManager.h>
-#include <Trace.h>
-#include <StatTracker.h>
 #include <OffscreenUi.h>
+#include <StatTracker.h>
+#include <Trace.h>
 
 #include "Application.h"
 
@@ -141,8 +142,21 @@ void TestScriptingInterface::endTraceEvent(QString name) {
     tracing::traceEvent(trace_test(), name, tracing::DurationEnd);
 }
 
+void TestScriptingInterface::savePhysicsSimulationStats(QString originalPath) {
+    QString path = FileUtils::replaceDateTimeTokens(originalPath);
+    path = FileUtils::computeDocumentPath(path);
+    if (!FileUtils::canCreateFile(path)) {
+        return;
+    }
+    qApp->saveNextPhysicsStats(path);
+}
+
 void TestScriptingInterface::profileRange(const QString& name, QScriptValue fn) {
     PROFILE_RANGE(script, name);
     fn.call();
+}
+
+void TestScriptingInterface::clearCaches() {
+	qApp->reloadResourceCaches();
 }
 

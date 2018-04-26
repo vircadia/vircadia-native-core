@@ -13,11 +13,11 @@
 #ifndef hifi_ProceduralSkybox_h
 #define hifi_ProceduralSkybox_h
 
-#include <model/Skybox.h>
+#include <graphics/Skybox.h>
 
 #include "Procedural.h"
 
-class ProceduralSkybox: public model::Skybox {
+class ProceduralSkybox: public graphics::Skybox {
 public:
     ProceduralSkybox();
     

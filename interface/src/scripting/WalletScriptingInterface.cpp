@@ -16,6 +16,7 @@ CheckoutProxy::CheckoutProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(q
 }
 
 WalletScriptingInterface::WalletScriptingInterface() {
+
 }
 
 void WalletScriptingInterface::refreshWalletStatus() {
@@ -23,30 +24,22 @@ void WalletScriptingInterface::refreshWalletStatus() {
     wallet->getWalletStatus();
 }
 
-static const QString CHECKOUT_QML_PATH = qApp->applicationDirPath() + "../../../qml/hifi/commerce/checkout/Checkout.qml";
-void WalletScriptingInterface::buy(const QString& name, const QString& id, const int& price, const QString& href) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "buy", Q_ARG(const QString&, name), Q_ARG(const QString&, id), Q_ARG(const int&, price), Q_ARG(const QString&, href));
-        return;
-    }
+void WalletScriptingInterface::setWalletStatus(const uint& status) {
+    _walletStatus = status;
+    emit DependencyManager::get<Wallet>()->walletStatusResult(status);
+}
 
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
-
-    tablet->loadQMLSource(CHECKOUT_QML_PATH);
-    DependencyManager::get<HMDScriptingInterface>()->openTablet();
-
-    QQuickItem* root = nullptr;
-    if (tablet->getToolbarMode() || (!tablet->getTabletRoot() && !qApp->isHMDMode())) {
-        root = DependencyManager::get<OffscreenUi>()->getRootItem();
+void WalletScriptingInterface::proveAvatarEntityOwnershipVerification(const QUuid& entityID) {
+    QSharedPointer<ContextOverlayInterface> contextOverlayInterface = DependencyManager::get<ContextOverlayInterface>();
+    EntityItemProperties entityProperties = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID,
+        contextOverlayInterface->getEntityPropertyFlags());
+    if (entityProperties.getClientOnly()) {
+        if (!entityID.isNull() && entityProperties.getCertificateID().length() > 0) {
+            contextOverlayInterface->requestOwnershipVerification(entityID);
+        } else {
+            qCDebug(entities) << "Failed to prove ownership of:" << entityID << "is null or not a certified item";
+        }
     } else {
-        root = tablet->getTabletRoot();
+        qCDebug(entities) << "Failed to prove ownership of:" << entityID << "is not an avatar entity";
     }
-    CheckoutProxy* checkout = new CheckoutProxy(root->findChild<QObject*>("checkout"));
-
-    // Example: Wallet.buy("Test Flaregun", "0d90d21c-ce7a-4990-ad18-e9d2cf991027", 17, "http://mpassets.highfidelity.com/0d90d21c-ce7a-4990-ad18-e9d2cf991027-v1/flaregun.json");
-    checkout->writeProperty("itemName", name);
-    checkout->writeProperty("itemId", id);
-    checkout->writeProperty("itemPrice", price);
-    checkout->writeProperty("itemHref", href);
 }

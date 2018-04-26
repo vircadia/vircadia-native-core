@@ -561,6 +561,14 @@ QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color) {
     return obj;
 }
 
+/**jsdoc
+ * Defines a rectangular portion of an image or screen.
+ * @typedef {object} Rect
+ * @property {number} x - Integer left, x-coordinate value.
+ * @property {number} y - Integer top, y-coordinate value.
+ * @property {number} width - Integer width of the rectangle.
+ * @property {number} height - Integer height of the rectangle.
+ */
 QVariant qRectToVariant(const QRect& rect) {
     QVariantMap obj;
     obj["x"] = rect.x();
@@ -613,7 +621,13 @@ void xColorFromScriptValue(const QScriptValue &object, xColor& color) {
     }
 }
 
-
+/**jsdoc
+ * An RGB color value.
+ * @typedef {object} Color
+ * @property {number} red - Red component value. Integer in the range <code>0</code> - <code>255</code>.
+ * @property {number} green - Green component value. Integer in the range <code>0</code> - <code>255</code>.
+ * @property {number} blue - Blue component value. Integer in the range <code>0</code> - <code>255</code>.
+ */
 QVariant xColorToVariant(const xColor& color) {
     QVariantMap obj;
     obj["red"] = color.red;
@@ -675,6 +689,15 @@ QScriptValue qColorToScriptValue(QScriptEngine* engine, const QColor& color) {
     return object;
 }
 
+/**jsdoc
+ * An axis-aligned cube, defined as the bottom right near (minimum axes values) corner of the cube plus the dimension of its 
+ * sides.
+ * @typedef {object} AACube
+ * @property {number} x - X coordinate of the brn corner of the cube.
+ * @property {number} y - Y coordinate of the brn corner of the cube.
+ * @property {number} z - Z coordinate of the brn corner of the cube.
+ * @property {number} scale - The dimensions of each side of the cube.
+ */
 QScriptValue aaCubeToScriptValue(QScriptEngine* engine, const AACube& aaCube) {
     QScriptValue obj = engine->newObject();
     const glm::vec3& corner = aaCube.getCorner();
@@ -751,6 +774,15 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
     }
 }
 
+/**jsdoc
+ * @typedef {object} Collision
+ * @property {ContactEventType} type - The contact type of the collision event.
+ * @property {Uuid} idA - The ID of one of the entities in the collision.
+ * @property {Uuid} idB - The ID of the other of the entities in the collision.
+ * @property {Vec3} penetration - The amount of penetration between the two entities.
+ * @property {Vec3} contactPoint - The point of contact.
+ * @property {Vec3} velocityChange - The change in relative velocity of the two entities, in m/s.
+ */
 QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("type", collision.type);
@@ -790,6 +822,12 @@ void quuidFromScriptValue(const QScriptValue& object, QUuid& uuid) {
     uuid = fromString;
 }
 
+/**jsdoc
+ * A 2D size value.
+ * @typedef {object} Size
+ * @property {number} height - The height value.
+ * @property {number} width - The width value.
+ */
 QScriptValue qSizeFToScriptValue(QScriptEngine* engine, const QSizeF& qSizeF) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("width", qSizeF.width());

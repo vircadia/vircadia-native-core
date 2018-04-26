@@ -53,9 +53,15 @@
 #include "AudioClient.h"
 
 const int AudioClient::MIN_BUFFER_FRAMES = 1;
+
 const int AudioClient::MAX_BUFFER_FRAMES = 20;
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
+
+#if defined(Q_OS_ANDROID)
+static const int CHECK_INPUT_READS_MSECS = 2000;
+static const int MIN_READS_TO_CONSIDER_INPUT_ALIVE = 100;
+#endif
 
 static const auto DEFAULT_POSITION_GETTER = []{ return Vectors::ZERO; };
 static const auto DEFAULT_ORIENTATION_GETTER = [] { return Quaternions::IDENTITY; };
@@ -79,6 +85,7 @@ Setting::Handle<int> staticJitterBufferFrames("staticJitterBufferFrames",
 using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
 Mutex _deviceMutex;
+Mutex _recordMutex;
 
 // thread-safe
 QList<QAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
@@ -196,6 +203,9 @@ AudioClient::AudioClient() :
     _audioOutputIODevice(_localInjectorsStream, _receivedAudioStream, this),
     _stats(&_receivedAudioStream),
     _positionGetter(DEFAULT_POSITION_GETTER),
+#if defined(Q_OS_ANDROID)
+    _checkInputTimer(this),
+#endif
     _orientationGetter(DEFAULT_ORIENTATION_GETTER) {
     // avoid putting a lock in the device callback
     assert(_localSamplesAvailable.is_lock_free());
@@ -222,8 +232,7 @@ AudioClient::AudioClient() :
     // initialize wasapi; if getAvailableDevices is called from the CheckDevicesThread before this, it will crash
     getAvailableDevices(QAudio::AudioInput);
     getAvailableDevices(QAudio::AudioOutput);
-
-
+    
     // start a thread to detect any device changes
     _checkDevicesTimer = new QTimer(this);
     connect(_checkDevicesTimer, &QTimer::timeout, [this] {
@@ -278,6 +287,9 @@ void AudioClient::cleanupBeforeQuit() {
         return;
     }
 
+#if defined(Q_OS_ANDROID)
+    _shouldRestartInputSetup = false;
+#endif
     stop();
     _checkDevicesTimer->stop();
     _checkPeakValuesTimer->stop();
@@ -622,6 +634,12 @@ void AudioClient::start() {
         qCDebug(audioclient) << "Unable to set up audio output because of a problem with output format.";
         qCDebug(audioclient) << "The closest format available is" << outputDeviceInfo.nearestFormat(_desiredOutputFormat);
     }
+#if defined(Q_OS_ANDROID)
+    connect(&_checkInputTimer, &QTimer::timeout, [this] {
+        checkInputTimeout();
+    });
+    _checkInputTimer.start(CHECK_INPUT_READS_MSECS);
+#endif
 }
 
 void AudioClient::stop() {
@@ -631,6 +649,9 @@ void AudioClient::stop() {
 
     qCDebug(audioclient) << "AudioClient::stop(), requesting switchOutputToAudioDevice() to shut down";
     switchOutputToAudioDevice(QAudioDeviceInfo(), true);
+#if defined(Q_OS_ANDROID)
+    _checkInputTimer.stop();
+#endif
 }
 
 void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message) {
@@ -736,7 +757,7 @@ void AudioClient::Gate::flush() {
 
 void AudioClient::handleNoisyMutePacket(QSharedPointer<ReceivedMessage> message) {
     if (!_muted) {
-        toggleMute();
+        setMuted(true);
 
         // have the audio scripting interface emit a signal to say we were muted by the mixer
         emit mutedByMixer();
@@ -782,7 +803,7 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
 
     _selectedCodecName = selectedCodecName;
 
-    qCDebug(audioclient) << "Selected Codec:" << _selectedCodecName;
+    qCDebug(audioclient) << "Selected Codec:" << _selectedCodecName << "isStereoInput:" << _isStereoInput;
 
     // release any old codec encoder/decoder first...
     if (_codec && _encoder) {
@@ -797,7 +818,7 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
         if (_selectedCodecName == plugin->getName()) {
             _codec = plugin;
             _receivedAudioStream.setupCodec(plugin, _selectedCodecName, AudioConstants::STEREO);
-            _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
+            _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, _isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
             qCDebug(audioclient) << "Selected Codec Plugin:" << _codec.get();
             break;
         }
@@ -1079,7 +1100,7 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
         encodedBuffer = audioBuffer;
     }
 
-    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber,
+    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, _isStereoInput,
             audioTransform, avatarBoundingBoxCorner, avatarBoundingBoxScale,
             packetType, _selectedCodecName);
     _stats.sentPacket();
@@ -1089,6 +1110,10 @@ void AudioClient::handleMicAudioInput() {
     if (!_inputDevice || _isPlayingBackRecording) {
         return;
     }
+
+#if defined(Q_OS_ANDROID)
+    _inputReadsSinceLastCheck++;
+#endif
 
     // input samples required to produce exactly NETWORK_FRAME_SAMPLES of output
     const int inputSamplesRequired = (_inputToNetworkResampler ?
@@ -1359,22 +1384,30 @@ void AudioClient::sendMuteEnvironmentPacket() {
     }
 }
 
-void AudioClient::toggleMute() {
-    _muted = !_muted;
-    emit muteToggled();
+void AudioClient::setMuted(bool muted, bool emitSignal) {
+    if (_muted != muted) {
+        _muted = muted;
+        if (emitSignal) {
+            emit muteToggled(_muted);
+        }
+    }
 }
 
-void AudioClient::setNoiseReduction(bool enable) {
+void AudioClient::setNoiseReduction(bool enable, bool emitSignal) {
     if (_isNoiseGateEnabled != enable) {
         _isNoiseGateEnabled = enable;
-        emit noiseReductionChanged();
+        if (emitSignal) {
+            emit noiseReductionChanged(_isNoiseGateEnabled);
+        }
     }
 }
 
 
-void AudioClient::setIsStereoInput(bool isStereoInput) {
-    if (isStereoInput != _isStereoInput) {
+bool AudioClient::setIsStereoInput(bool isStereoInput) {
+    bool stereoInputChanged = false;
+    if (isStereoInput != _isStereoInput && _inputDeviceInfo.supportedChannelCounts().contains(2)) {
         _isStereoInput = isStereoInput;
+        stereoInputChanged = true;
 
         if (_isStereoInput) {
             _desiredInputFormat.setChannelCount(2);
@@ -1382,9 +1415,20 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
             _desiredInputFormat.setChannelCount(1);
         }
 
-        // change in channel count for desired input format, restart the input device
+        // restart the codec
+        if (_codec) {
+            if (_encoder) {
+                _codec->releaseEncoder(_encoder);
+            }
+            _encoder = _codec->createEncoder(AudioConstants::SAMPLE_RATE, _isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
+        }
+        qCDebug(audioclient) << "Reset Codec:" << _selectedCodecName << "isStereoInput:" << _isStereoInput;
+
+        // restart the input device
         switchInputToAudioDevice(_inputDeviceInfo);
     }
+
+    return stereoInputChanged;
 }
 
 bool AudioClient::outputLocalInjector(const AudioInjectorPointer& injector) {
@@ -1418,12 +1462,16 @@ void AudioClient::outputFormatChanged() {
     _receivedAudioStream.outputFormatChanged(_outputFormat.sampleRate(), OUTPUT_CHANNEL_COUNT);
 }
 
-bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo, bool isShutdownRequest) {
+bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest) {
     qCDebug(audioclient) << __FUNCTION__ << "inputDeviceInfo: [" << inputDeviceInfo.deviceName() << "]";
     bool supportedFormat = false;
 
     // NOTE: device start() uses the Qt internal device list
     Lock lock(_deviceMutex);
+
+#if defined(Q_OS_ANDROID)
+    _shouldRestartInputSetup = false; // avoid a double call to _audioInput->start() from audioInputStateChanged
+#endif
 
     // cleanup any previously initialized device
     if (_audioInput) {
@@ -1505,7 +1553,10 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
 
 #if defined(Q_OS_ANDROID)
                 if (_audioInput) {
-                    connect(_audioInput, SIGNAL(stateChanged(QAudio::State)), this, SLOT(audioInputStateChanged(QAudio::State)));
+                    _shouldRestartInputSetup = true;
+                    connect(_audioInput, &QAudioInput::stateChanged, [this](QAudio::State state) {
+                        audioInputStateChanged(state);
+                    });
                 }
 #endif
                 _inputDevice = _audioInput->start();
@@ -1546,14 +1597,14 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
     return supportedFormat;
 }
 
-#if defined(Q_OS_ANDROID)
 void AudioClient::audioInputStateChanged(QAudio::State state) {
+#if defined(Q_OS_ANDROID)
     switch (state) {
         case QAudio::StoppedState:
             if (!_audioInput) {
                 break;
             }
-                // Stopped on purpose
+            // Stopped on purpose
             if (_shouldRestartInputSetup) {
                 Lock lock(_deviceMutex);
                 _inputDevice = _audioInput->start();
@@ -1568,8 +1619,18 @@ void AudioClient::audioInputStateChanged(QAudio::State state) {
         default:
             break;
     }
-}
 #endif
+}
+
+void AudioClient::checkInputTimeout() {
+#if defined(Q_OS_ANDROID)
+    if (_audioInput && _inputReadsSinceLastCheck < MIN_READS_TO_CONSIDER_INPUT_ALIVE) {
+        _audioInput->stop();
+    } else {
+        _inputReadsSinceLastCheck = 0;
+    }
+#endif
+}
 
 void AudioClient::outputNotify() {
     int recentUnfulfilled = _audioOutputIODevice.getRecentUnfulfilledReads();
@@ -1601,7 +1662,7 @@ void AudioClient::outputNotify() {
     }
 }
 
-bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo, bool isShutdownRequest) {
+bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest) {
     qCDebug(audioclient) << "AudioClient::switchOutputToAudioDevice() outputDeviceInfo: [" << outputDeviceInfo.deviceName() << "]";
     bool supportedFormat = false;
 
@@ -1815,16 +1876,9 @@ float AudioClient::azimuthForSource(const glm::vec3& relativePosition) {
 
 float AudioClient::gainForSource(float distance, float volume) {
 
-    const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
-
-    // I'm assuming that the AudioMixer's getting of the stream's attenuation
-    // factor is basically same as getting volume
-    float gain = volume;
-
-    // attenuate based on distance
-    if (distance >= ATTENUATION_BEGINS_AT_DISTANCE) {
-        gain /= (distance/ATTENUATION_BEGINS_AT_DISTANCE);  // attenuation = -6dB * log2(distance)
-    }
+    // attenuation = -6dB * log2(distance)
+    // reference attenuation of 0dB at distance = 1.0m
+    float gain = volume / std::max(distance, HRTF_NEARFIELD_MIN);
 
     return gain;
 }
@@ -1845,11 +1899,9 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         qCDebug(audiostream, "Read %d samples from buffer (%d available, %d requested)", networkSamplesPopped, _receivedAudioStream.getSamplesAvailable(), samplesRequested);
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
         lastPopOutput.readSamples(scratchBuffer, networkSamplesPopped);
-
         for (int i = 0; i < networkSamplesPopped; i++) {
             mixBuffer[i] = convertToFloat(scratchBuffer[i]);
         }
-
         samplesRequested = networkSamplesPopped;
     }
 
@@ -1911,6 +1963,13 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         bytesWritten = maxSize;
     }
 
+    // send output buffer for recording
+    if (_audio->_isRecording) {
+        Lock lock(_recordMutex);
+        _audio->_audioFileWav.addRawAudioChunk(reinterpret_cast<char*>(scratchBuffer), bytesWritten);
+    }
+
+
     int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
     float msecsAudioOutputUnplayed = bytesAudioOutputUnplayed / (float)_audio->_outputFormat.bytesForDuration(USECS_PER_MSEC);
     _audio->_stats.updateOutputMsUnplayed(msecsAudioOutputUnplayed);
@@ -1920,6 +1979,22 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     }
 
     return bytesWritten;
+}
+
+bool AudioClient::startRecording(const QString& filepath) {
+    if (!_audioFileWav.create(_outputFormat, filepath)) {
+        qDebug() << "Error creating audio file: " + filepath;
+        return false;
+    }
+    _isRecording = true;
+    return true;
+}
+
+void AudioClient::stopRecording() {
+    if (_isRecording) {
+        _isRecording = false;
+        _audioFileWav.close();
+    }
 }
 
 void AudioClient::loadSettings() {
@@ -1949,9 +2024,11 @@ void AudioClient::startThread() {
     moveToNewNamedThread(this, "Audio Thread", [this] { start(); });
 }
 
-void AudioClient::setInputVolume(float volume) {
+void AudioClient::setInputVolume(float volume, bool emitSignal) {
     if (_audioInput && volume != (float)_audioInput->volume()) {
         _audioInput->setVolume(volume);
-        emit inputVolumeChanged(_audioInput->volume());
+        if (emitSignal) {
+            emit inputVolumeChanged(_audioInput->volume());
+        }
     }
 }

@@ -13,7 +13,6 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
@@ -36,8 +35,8 @@ Item {
         source: "images/wallet-bg.jpg";
     }
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onSecurityImageResult: {
             titleBarSecurityImage.source = "";
@@ -50,8 +49,12 @@ Item {
             submitPassphraseInputButton.enabled = true;
             if (!isAuthenticated) {
                 errorText.text = "Authentication failed - please try again.";
+                passphraseField.error = true;
+                UserActivityLogger.commercePassphraseAuthenticationStatus("auth failure");
             } else {
-                sendSignalToParent({method: 'authSuccess'});;
+                sendSignalToParent({method: 'authSuccess'});
+                passphraseField.error = false;
+                UserActivityLogger.commercePassphraseAuthenticationStatus("auth success");
             }
         }
     }
@@ -62,15 +65,15 @@ Item {
     MouseArea {
         anchors.fill: parent;
         propagateComposedEvents: false;
+        hoverEnabled: true;
     }
-    
+
     // This will cause a bug -- if you bring up passphrase selection in HUD mode while
     // in HMD while having HMD preview enabled, then move, then finish passphrase selection,
     // HMD preview will stay off.
     // TODO: Fix this unlikely bug
     onVisibleChanged: {
         if (visible) {
-            passphraseField.focus = true;
             sendSignalToParent({method: 'disableHmdPreview'});
         } else {
             sendSignalToParent({method: 'maybeEnableHmdPreview'});
@@ -140,7 +143,9 @@ Item {
                     lightboxPopup.bodyImageSource = titleBarSecurityImage.source;
                     lightboxPopup.bodyText = lightboxPopup.securityPicBodyText;
                     lightboxPopup.button1text = "CLOSE";
-                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button1method = function() {
+                        lightboxPopup.visible = false;
+                    }
                     lightboxPopup.visible = true;
                 }
             }
@@ -200,25 +205,23 @@ Item {
             placeholderText: "passphrase";
             activeFocusOnPress: true;
             activeFocusOnTab: true;
+            
+            onVisibleChanged: {
+                if (visible) {
+                    error = false;
+                    focus = true;
+                    forceActiveFocus();
+                }
+            }
 
             onFocusChanged: {
                 root.keyboardRaised = focus;
                 root.isPasswordField = (focus && passphraseField.echoMode === TextInput.Password);
             }
 
-            MouseArea {
-                anchors.fill: parent;
-
-                onClicked: {
-                    root.keyboardRaised = true;
-                    root.isPasswordField = (passphraseField.echoMode === TextInput.Password);
-                    mouse.accepted = false;
-                }
-            }
-
             onAccepted: {
                 submitPassphraseInputButton.enabled = false;
-                commerce.setPassphrase(passphraseField.text);
+                Commerce.setPassphrase(passphraseField.text);
             }
         }
 
@@ -258,7 +261,7 @@ Item {
                 source: "image://security/securityImage";
                 cache: false;
                 onVisibleChanged: {
-                    commerce.getSecurityImage();
+                    Commerce.getSecurityImage();
                 }
             }
             Item {
@@ -326,7 +329,7 @@ Item {
                 text: "Submit"
                 onClicked: {
                     submitPassphraseInputButton.enabled = false;
-                    commerce.setPassphrase(passphraseField.text);
+                    Commerce.setPassphrase(passphraseField.text);
                 }
             }
 
@@ -346,6 +349,7 @@ Item {
                 text: "Cancel"
                 onClicked: {
                     sendSignalToParent({method: 'passphrasePopup_cancelClicked'});
+                    UserActivityLogger.commercePassphraseAuthenticationStatus("passphrase modal cancelled");
                 }
             }
         }
@@ -360,25 +364,6 @@ Item {
             bottom: parent.bottom;
             left: parent.left;
             right: parent.right;
-        }
-
-        Image {
-            id: lowerKeyboardButton;
-            z: 999;
-            source: "images/lowerKeyboard.png";
-            anchors.right: keyboard.right;
-            anchors.top: keyboard.showMirrorText ? keyboard.top : undefined;
-            anchors.bottom: keyboard.showMirrorText ? undefined : keyboard.bottom;
-            height: 50;
-            width: 60;
-
-            MouseArea {
-                anchors.fill: parent;
-
-                onClicked: {
-                    root.keyboardRaised = false;
-                }
-            }
         }
 
         HifiControlsUit.Keyboard {

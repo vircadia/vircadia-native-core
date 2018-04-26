@@ -229,11 +229,7 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
 
     if (bytesWritten < 0) {
         // when saturating a link this isn't an uncommon message - suppress it so it doesn't bomb the debug
-        static const QString WRITE_ERROR_REGEX = "Socket::writeDatagram QAbstractSocket::NetworkError - Unable to send a message";
-        static QString repeatedMessage
-            = LogHandler::getInstance().addRepeatedMessageRegex(WRITE_ERROR_REGEX);
-
-        qCDebug(networking) << "Socket::writeDatagram" << _udpSocket.error() << "-" << qPrintable(_udpSocket.errorString());
+        HIFI_FCDEBUG(networking(), "Socket::writeDatagram" << _udpSocket.error() << "-" << qPrintable(_udpSocket.errorString()) );
     }
 
     return bytesWritten;
@@ -256,9 +252,6 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
             auto congestionControl = _ccFactory->create();
             congestionControl->setMaxBandwidth(_maxBandwidth);
             auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, std::move(congestionControl)));
-
-            // we queue the connection to cleanup connection in case it asks for it during its own rate control sync
-            QObject::connect(connection.get(), &Connection::connectionInactive, this, &Socket::cleanupConnection);
 
             // allow higher-level classes to find out when connections have completed a handshake
             QObject::connect(connection.get(), &Connection::receiverHandshakeRequestComplete,
@@ -331,14 +324,14 @@ void Socket::checkForReadyReadBackup() {
 void Socket::readPendingDatagrams() {
     int packetSizeWithHeader = -1;
 
-    while ((packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+    while (_udpSocket.hasPendingDatagrams() && (packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
 
         // we're reading a packet so re-start the readyRead backup timer
         _readyReadBackupTimer->start();
 
         // grab a time point we can mark as the receive time of this packet
         auto receiveTime = p_high_resolution_clock::now();
-        
+
         // setup a HifiSockAddr to read into
         HifiSockAddr senderSockAddr;
 
@@ -405,6 +398,10 @@ void Socket::readPendingDatagrams() {
                                                                                   packet->getDataSize(),
                                                                                   packet->getPayloadSize())) {
                         // the connection could not be created or indicated that we should not continue processing this packet
+#ifdef UDT_CONNECTION_DEBUG
+                        qCDebug(networking) << "Can't process packet: version" << (unsigned int)NLPacket::versionInHeader(*packet)
+                            << ", type" << NLPacket::typeInHeader(*packet);
+#endif
                         continue;
                     }
                 }
@@ -516,11 +513,7 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
 }
 
 void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
-    static const QString SOCKET_REGEX = "udt::Socket error - ";
-    static QString repeatedMessage
-        = LogHandler::getInstance().addRepeatedMessageRegex(SOCKET_REGEX);
-
-    qCDebug(networking) << "udt::Socket error - " << socketError;
+    HIFI_FCDEBUG(networking(), "udt::Socket error - " << socketError << _udpSocket.errorString());
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {

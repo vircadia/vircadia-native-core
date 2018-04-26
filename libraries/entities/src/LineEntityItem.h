@@ -26,7 +26,6 @@ class LineEntityItem : public EntityItem {
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
-    // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
@@ -61,9 +60,9 @@ class LineEntityItem : public EntityItem {
     // never have a ray intersection pick a LineEntityItem.
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                             bool& keepSearching, OctreeElementPointer& element, float& distance,
+                                             OctreeElementPointer& element, float& distance,
                                              BoxFace& face, glm::vec3& surfaceNormal,
-                                             void** intersectedObject,
+                                             QVariantMap& extraInfo,
                                              bool precisionPicking) const override { return false; }
     bool pointsChanged() const { return _pointsChanged; }
     void resetPointsChanged();

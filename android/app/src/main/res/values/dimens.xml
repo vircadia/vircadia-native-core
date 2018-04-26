@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+
+    <!-- Hack to have a desired text size for both orientations (default portrait is too big) -->
+    <!-- Default text size for action bar title.-->
+    <dimen name="text_size_title_material_toolbar">14dp</dimen>
+    <!-- Default text size for action bar subtitle.-->
+    <dimen name="text_size_subtitle_material_toolbar">12dp</dimen>
+</resources>

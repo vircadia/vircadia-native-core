@@ -9,8 +9,8 @@
 //
 
 import Hifi 1.0
-import QtQuick 2.5
-import QtQuick.Controls 1.4
+import QtQuick 2.7
+import QtQuick.Controls 2.2
 import QtQuick.Controls.Styles 1.4
 import QtGraphicalEffects 1.0
 import "../../controls"
@@ -20,6 +20,8 @@ import "../"
 import "../toolbars"
 import "../../styles-uit" as HifiStyles
 import "../../controls-uit" as HifiControls
+import QtQuick.Controls 2.2 as QQC2
+import QtQuick.Templates 2.2 as T
 
 // references HMD, AddressManager, AddressBarDialog from root context
 
@@ -52,6 +54,7 @@ StackView {
             console.debug('TabletAddressDialog::fromScript: refreshFeeds', 'feeds = ', feeds);
 
             feeds.forEach(function(feed) {
+                feed.protocol = encodeURIComponent(message.protocolSignature);
                 Qt.callLater(feed.fillDestinations);
             });
 
@@ -60,7 +63,8 @@ StackView {
 
         var callback = rpcCalls[message.id];
         if (!callback) {
-            console.log('No callback for message fromScript', JSON.stringify(message));
+            // FIXME: We often recieve very long messages here, the logging of which is drastically slowing down the main thread
+            //console.log('No callback for message fromScript', JSON.stringify(message));
             return;
         }
         delete rpcCalls[message.id];
@@ -70,10 +74,14 @@ StackView {
     Component { id: tabletWebView; TabletWebView {} }
     Component.onCompleted: {
         updateLocationText(false);
-        addressLine.focus = !HMD.active;
         root.parentChanged.connect(center);
         center();
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+
+        Qt.callLater(function() {
+            addressBarDialog.keyboardEnabled = HMD.active;
+            addressLine.forceActiveFocus();
+        })
     }
     Component.onDestruction: {
         root.parentChanged.disconnect(center);
@@ -105,7 +113,6 @@ StackView {
         id: addressBarDialog
 
         property bool keyboardEnabled: false
-        property bool keyboardRaised: false
         property bool punctuationMode: false
 
         width: parent.width
@@ -134,7 +141,10 @@ StackView {
             bottom: parent.bottom
         }
 
-        onHostChanged: updateLocationTextTimer.restart();
+        onHostChanged: {
+            updateLocationTextTimer.restart();
+            DialogsManager.hideAddressBar();
+        }
 
         Rectangle {
             id: navBar
@@ -223,7 +233,7 @@ StackView {
                 visible: addressLine.text.length === 0
             }
 
-            TextField {
+            QQC2.TextField {
                 id: addressLine
                 width: addressLineContainer.width - addressLineContainer.anchors.leftMargin - addressLineContainer.anchors.rightMargin;
                 anchors {
@@ -238,16 +248,36 @@ StackView {
                     addressBarDialog.keyboardEnabled = false;
                     toggleOrGo();
                 }
-                placeholderText: "Type domain address here"
+
+                // unfortunately TextField from Quick Controls 2 disallow customization of placeHolderText color without creation of new style
+                property string placeholderText2: "Type domain address here"
                 verticalAlignment: TextInput.AlignBottom
-                style: TextFieldStyle {
-                    textColor: hifi.colors.text
-                    placeholderTextColor: "gray"
-                    font {
-                        family: hifi.fonts.fontFamily
-                        pixelSize: hifi.fonts.pixelSize * 0.75
+
+                font {
+                    family: hifi.fonts.fontFamily
+                    pixelSize: hifi.fonts.pixelSize * 0.75
+                }
+
+                color: hifi.colors.text
+                background: Item {}
+
+                QQC2.Label {
+                    T.TextField {
+                        id: control
+
+                        padding: 6 // numbers taken from Qt\5.9.2\Src\qtquickcontrols2\src\imports\controls\TextField.qml
+                        leftPadding: padding + 4
                     }
-                    background: Item {}
+
+                    font: parent.font
+
+                    x: control.leftPadding
+                    y: control.topPadding
+
+                    text: parent.placeholderText2
+                    verticalAlignment: "AlignVCenter"
+                    color: 'gray'
+                    visible: parent.text === ''
                 }
             }
 
@@ -373,11 +403,10 @@ StackView {
                 addressLine.text = "";
             }
         }
-           
 
         HifiControls.Keyboard {
             id: keyboard
-            raised: parent.keyboardEnabled && parent.keyboardRaised
+            raised: parent.keyboardEnabled
             numeric: parent.punctuationMode
             anchors {
                 bottom: parent.bottom
@@ -385,7 +414,7 @@ StackView {
                 right: parent.right
             }
         }
-        
+
     }
 
     function updateLocationText(enteringAddress) {

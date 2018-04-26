@@ -94,13 +94,12 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
     if (constraint) {
         return constraint;
     }
-
-    static QString repeatedHingeNoRigidBody = LogHandler::getInstance().addRepeatedMessageRegex(
-        "ObjectConstraintHinge::getConstraint -- no rigidBody.*");
+    
+    static int repeatMessageID = LogHandler::getInstance().newRepeatedMessageID();
 
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
-        qCDebug(physics) << "ObjectConstraintHinge::getConstraint -- no rigidBodyA";
+        HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintHinge::getConstraint -- no rigidBodyA");
         return nullptr;
     }
 
@@ -115,7 +114,7 @@ btTypedConstraint* ObjectConstraintHinge::getConstraint() {
         // This hinge is between two entities... find the other rigid body.
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
-            qCDebug(physics) << "ObjectConstraintHinge::getConstraint -- no rigidBodyB";
+            HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintHinge::getConstraint -- no rigidBodyB");
             return nullptr;
         }
 
@@ -245,6 +244,22 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
     return true;
 }
 
+/**jsdoc
+ * The <code>"hinge"</code> {@link Entities.ActionType|ActionType} lets an entity pivot about an axis or connects two entities
+ * with a hinge joint.
+ * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}.
+ *
+ * @typedef {object} Entities.ActionArguments-Hinge
+ * @property {Vec3} pivot=0,0,0 - The local offset of the joint relative to the entity's position.
+ * @property {Vec3} axis=1,0,0 - The axis of the entity that it pivots about. Must be a non-zero vector.
+ * @property {Uuid} otherEntityID=null - The ID of the other entity that is connected to the joint, if any. If none is 
+ *     specified then the first entity simply pivots about its specified <code>axis</code>.
+ * @property {Vec3} otherPivot=0,0,0 - The local offset of the joint relative to the other entity's position.
+ * @property {Vec3} otherAxis=1,0,0 - The axis of the other entity that it pivots about. Must be a non-zero vector.
+ * @property {number} low=-6.283 - The most negative angle that the hinge can take, in radians.
+ * @property {number} high=6.283 - The most positive angle that the hinge can take, in radians.
+ * @property {number} angle=0 - The current angle of the hinge. <em>Read-only.</em>
+ */
 QVariantMap ObjectConstraintHinge::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {

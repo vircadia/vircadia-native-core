@@ -165,6 +165,45 @@ void TouchEvent::calculateMetaAttributes(const TouchEvent& other) {
     }
 }
 
+/**jsdoc
+ * A display or device touch event.
+ * @typedef {object} TouchEvent
+ * @property {number} x - Integer x-coordinate of the average position of the touch events.
+ * @property {number} y - Integer y-coordinate of the average position of the touch events.
+ * @property {boolean} isPressed - <code>true</code> if the touch point has just been pressed, otherwise <code>false</code>.
+ * @property {boolean} isMoved - <code>true</code> if the touch point has moved, otherwise <code>false</code>.
+ * @property {boolean} isStationary - <code>true</code> if the touch point has not moved, otherwise <code>false</code>.
+ * @property {boolean} isReleased - <code>true</code> if the  touch point has just been released, otherwise <code>false</code>.
+ * @property {boolean} isShifted - <code>true</code> if the Shift key was pressed when the event was generated, otherwise
+ *     <code>false</code>.
+ * @property {boolean} isMeta - <code>true</code> if the "meta" key was pressed when the event was generated, otherwise
+ *     <code>false</code>. On Windows the "meta" key is the Windows key; on OSX it is the Control (Splat) key.
+ * @property {boolean} isControl - <code>true</code> if the "control" key was pressed when the event was generated, otherwise
+ *     <code>false</code>. On Windows the "control" key is the Ctrl key; on OSX it is the Command key.
+ * @property {boolean} isAlt - <code>true</code> if the Alt key was pressed when the event was generated, otherwise
+ *     <code>false</code>.
+ * @property {number} touchPoints - Integer number of touch points.
+ * @property {Vec2[]} points - The coordinates of the touch points.
+ * @property {number} radius - The radius of a circle centered on their average position that encompasses the touch points.
+ * @property {boolean} isPinching - <code>true</code> if the <code>radius</code> has reduced since the most recent touch event 
+ *     with a different <code>radius</code> value, otherwise <code>false</code>.
+ * @property {boolean} isPinchOpening - <code>true</code> if the <code>radius</code> has increased since the most recent touch 
+ *     event with a different <code>radius</code> value, otherwise <code>false</code>.
+ * @property {number} angle - An angle calculated from the touch points, in degrees.
+ * @property {number} deltaAngle - The change in the <code>angle</code> value since the previous touch event, in degrees, if 
+ *     the number of touch points is the same, otherwise <code>0.0</code>.
+ * @property {number[]} angles - The angles of each touch point about the center of all the touch points, in degrees.
+ * @property {boolean} isRotating - <code>true</code> if the <code>angle</code> of the touch event has changed since the 
+ *     previous touch event and the number of touch points is the same, otherwise <code>false</code>.
+ * @property {string} rotating - <code>"clockwise"</code> or <code>"counterClockwise"</code> if the <code>angle</code> of the 
+ *     touch event has changed since the previous touch event and the number of touch points is the same, otherwise 
+ *     <code>"none"</code>.
+ *
+ * @example <caption>Report the TouchEvent details when a touch event starts.</caption>
+ * Controller.touchBeginEvent.connect(function (event) {
+ *     print(JSON.stringify(event));
+ * });
+ */
 QScriptValue TouchEvent::toScriptValue(QScriptEngine* engine, const TouchEvent& event) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("x", event.x);

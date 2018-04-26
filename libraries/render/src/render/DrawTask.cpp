@@ -22,8 +22,8 @@
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 
-#include <drawItemBounds_vert.h>
-#include <drawItemBounds_frag.h>
+#include "drawItemBounds_vert.h"
+#include "drawItemBounds_frag.h"
 
 using namespace render;
 
@@ -41,6 +41,11 @@ void render::renderItems(const RenderContextPointer& renderContext, const ItemBo
     }
 }
 
+namespace {
+    int repeatedInvalidKeyMessageID = 0;
+    std::once_flag messageIDFlag;
+}
+
 void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, const Item& item, const ShapeKey& globalKey) {
     assert(item.getKey().isShape());
     auto key = item.getShapeKey() | globalKey;
@@ -55,9 +60,9 @@ void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, cons
     } else if (key.hasOwnPipeline()) {
         item.render(args);
     } else {
-        qCDebug(renderlogging) << "Item could not be rendered with invalid key" << key;
-        static QString repeatedCouldNotBeRendered = LogHandler::getInstance().addRepeatedMessageRegex(
-            "Item could not be rendered with invalid key.*");
+        std::call_once(messageIDFlag, [](int* id) { *id = LogHandler::getInstance().newRepeatedMessageID(); },
+                           &repeatedInvalidKeyMessageID);
+        HIFI_FCDEBUG_ID(renderlogging(), repeatedInvalidKeyMessageID, "Item could not be rendered with invalid key" << key);
     }
     args->_itemShapeKey = 0;
 }
@@ -108,9 +113,9 @@ void render::renderStateSortShapes(const RenderContextPointer& renderContext,
             } else if (key.hasOwnPipeline()) {
                 ownPipelineBucket.push_back( std::make_tuple(item, key) );
             } else {
-                static QString repeatedCouldNotBeRendered = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "Item could not be rendered with invalid key.*");
-                qCDebug(renderlogging) << "Item could not be rendered with invalid key" << key;
+                std::call_once(messageIDFlag, [](int* id) { *id = LogHandler::getInstance().newRepeatedMessageID(); },
+                    &repeatedInvalidKeyMessageID);
+                HIFI_FCDEBUG_ID(renderlogging(), repeatedInvalidKeyMessageID, "Item could not be rendered with invalid key" << key);
             }
         }
     }
@@ -143,7 +148,7 @@ void DrawLight::run(const RenderContextPointer& renderContext, const ItemBounds&
     RenderArgs* args = renderContext->args;
 
     // render lights
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawLight::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
         renderItems(renderContext, inLights, _maxDrawn);
         args->_batch = nullptr;
@@ -155,8 +160,8 @@ void DrawLight::run(const RenderContextPointer& renderContext, const ItemBounds&
 
 const gpu::PipelinePointer DrawBounds::getPipeline() {
     if (!_boundsPipeline) {
-        auto vs = gpu::Shader::createVertex(std::string(drawItemBounds_vert));
-        auto ps = gpu::Shader::createPixel(std::string(drawItemBounds_frag));
+        auto vs = drawItemBounds_vert::getShader();
+        auto ps = drawItemBounds_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -191,7 +196,7 @@ void DrawBounds::run(const RenderContextPointer& renderContext,
 
     _drawBuffer->setData(numItems * sizeOfItemBound, (const gpu::Byte*) items.data());
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawBounds::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
         // Setup projection
@@ -215,79 +220,158 @@ void DrawBounds::run(const RenderContextPointer& renderContext,
     });
 }
 
-gpu::PipelinePointer DrawFrustum::_pipeline;
+DrawQuadVolume::DrawQuadVolume(const glm::vec3& color) :
+    _color{ color } {
+    _meshVertices = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(glm::vec3) * 8, nullptr), gpu::Element::VEC3F_XYZ);
+    _meshStream.addBuffer(_meshVertices._buffer, _meshVertices._offset, _meshVertices._stride);
+}
+
+void DrawQuadVolume::configure(const Config& configuration) {
+    _isUpdateEnabled = !configuration.isFrozen;
+}
+
+void DrawQuadVolume::run(const render::RenderContextPointer& renderContext, const glm::vec3 vertices[8],
+                         const gpu::BufferView& indices, int indexCount) {
+    assert(renderContext->args);
+    assert(renderContext->args->_context);
+    if (_isUpdateEnabled) {
+        auto& streamVertices = _meshVertices.edit<std::array<glm::vec3, 8U> >();
+        std::copy(vertices, vertices + 8, streamVertices.begin());
+    }
+
+    RenderArgs* args = renderContext->args;
+    gpu::doInBatch("DrawQuadVolume::run", args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+        batch.setPipeline(getPipeline());
+        batch.setIndexBuffer(indices);
+
+        batch._glUniform4f(0, _color.x, _color.y, _color.z, 1.0f);
+        batch.setInputStream(0, _meshStream);
+        batch.drawIndexed(gpu::LINES, indexCount, 0U);
+
+        args->_batch = nullptr;
+    });
+}
+
+gpu::PipelinePointer DrawQuadVolume::getPipeline() {
+    static gpu::PipelinePointer pipeline;
+
+    if (!pipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawTransformVertexPositionVS();
+        auto ps = gpu::StandardShaderLib::getDrawColorPS();
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding("color", 0));
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        state->setDepthTest(gpu::State::DepthTest(true, false));
+        pipeline = gpu::Pipeline::create(program, state);
+    }
+    return pipeline;
+}
+
+gpu::BufferView DrawAABox::_cubeMeshIndices;
+
+DrawAABox::DrawAABox(const glm::vec3& color) :
+    DrawQuadVolume{ color } {
+}
+
+void DrawAABox::run(const render::RenderContextPointer& renderContext, const Inputs& box) {
+    if (!box.isNull()) {
+        static const uint8_t indexData[] = {
+            0, 1,
+            1, 2,
+            2, 3,
+            3, 0,
+            4, 5,
+            5, 6,
+            6, 7,
+            7, 4,
+            0, 4,
+            1, 5,
+            3, 7,
+            2, 6
+        };
+
+        if (!_cubeMeshIndices._buffer) {
+            auto indices = std::make_shared<gpu::Buffer>(sizeof(indexData), indexData);
+            _cubeMeshIndices = gpu::BufferView(indices, gpu::Element(gpu::SCALAR, gpu::UINT8, gpu::INDEX));
+        }
+
+        glm::vec3 vertices[8];
+
+        getVertices(box, vertices);
+
+        DrawQuadVolume::run(renderContext, vertices, _cubeMeshIndices, sizeof(indexData) / sizeof(indexData[0]));
+    }
+}
+
+void DrawAABox::getVertices(const AABox& box, glm::vec3 vertices[8]) {
+    vertices[0] = box.getVertex(TOP_LEFT_NEAR);
+    vertices[1] = box.getVertex(TOP_RIGHT_NEAR);
+    vertices[2] = box.getVertex(BOTTOM_RIGHT_NEAR);
+    vertices[3] = box.getVertex(BOTTOM_LEFT_NEAR);
+    vertices[4] = box.getVertex(TOP_LEFT_FAR);
+    vertices[5] = box.getVertex(TOP_RIGHT_FAR);
+    vertices[6] = box.getVertex(BOTTOM_RIGHT_FAR);
+    vertices[7] = box.getVertex(BOTTOM_LEFT_FAR);
+}
+
 gpu::BufferView DrawFrustum::_frustumMeshIndices;
 
 DrawFrustum::DrawFrustum(const glm::vec3& color) :
-    _color{ color } {
-    _frustumMeshVertices = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(glm::vec3) * 8, nullptr), gpu::Element::VEC3F_XYZ);
-    _frustumMeshStream.addBuffer(_frustumMeshVertices._buffer, _frustumMeshVertices._offset, _frustumMeshVertices._stride);
-}
-
-void DrawFrustum::configure(const Config& configuration) {
-    _updateFrustum = !configuration.isFrozen;
+    DrawQuadVolume{ color } {
 }
 
 void DrawFrustum::run(const render::RenderContextPointer& renderContext, const Input& input) {
-    assert(renderContext->args);
-    assert(renderContext->args->_context);
-
-    RenderArgs* args = renderContext->args;
     if (input) {
         const auto& frustum = *input;
 
-        static uint8_t indexData[] = { 0, 1, 2, 3, 0, 4, 5, 6, 7, 4, 5, 1, 2, 6, 7, 3 };
+        static const uint8_t indexData[] = { 
+            0, 1, 
+            1, 2, 
+            2, 3, 
+            3, 0, 
+            0, 2, 
+            3, 1,
+            4, 5,
+            5, 6,
+            6, 7,
+            7, 4,
+            4, 6,
+            7, 5,
+            0, 4,
+            1, 5,
+            3, 7,
+            2, 6
+        };
 
         if (!_frustumMeshIndices._buffer) {
             auto indices = std::make_shared<gpu::Buffer>(sizeof(indexData), indexData);
             _frustumMeshIndices = gpu::BufferView(indices, gpu::Element(gpu::SCALAR, gpu::UINT8, gpu::INDEX));
         }
 
-        if (!_pipeline) {
-            auto vs = gpu::StandardShaderLib::getDrawTransformVertexPositionVS();
-            auto ps = gpu::StandardShaderLib::getDrawColorPS();
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        glm::vec3 vertices[8];
 
-            gpu::Shader::BindingSet slotBindings;
-            slotBindings.insert(gpu::Shader::Binding("color", 0));
-            gpu::Shader::makeProgram(*program, slotBindings);
+        getVertices(frustum, vertices);
 
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(true, false));
-            _pipeline = gpu::Pipeline::create(program, state);
-        }
-
-        if (_updateFrustum) {
-            updateFrustum(frustum);
-        }
-
-        // Render the frustums in wireframe
-        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-            args->_batch = &batch;
-            batch.setViewportTransform(args->_viewport);
-            batch.setStateScissorRect(args->_viewport);
-
-            glm::mat4 projMat;
-            Transform viewMat;
-            args->getViewFrustum().evalProjectionMatrix(projMat);
-            args->getViewFrustum().evalViewTransform(viewMat);
-
-            batch.setProjectionTransform(projMat);
-            batch.setViewTransform(viewMat);
-            batch.setPipeline(_pipeline);
-            batch.setIndexBuffer(_frustumMeshIndices);
-
-            batch._glUniform4f(0, _color.x, _color.y, _color.z, 1.0f);
-            batch.setInputStream(0, _frustumMeshStream);
-            batch.drawIndexed(gpu::LINE_STRIP, sizeof(indexData) / sizeof(indexData[0]), 0U);
-
-            args->_batch = nullptr;
-        });
+        DrawQuadVolume::run(renderContext, vertices, _frustumMeshIndices, sizeof(indexData) / sizeof(indexData[0]));
     }
 }
 
-void DrawFrustum::updateFrustum(const ViewFrustum& frustum) {
-    auto& vertices = _frustumMeshVertices.edit<std::array<glm::vec3, 8U> >();
+void DrawFrustum::getVertices(const ViewFrustum& frustum, glm::vec3 vertices[8]) {
     vertices[0] = frustum.getNearTopLeft();
     vertices[1] = frustum.getNearTopRight();
     vertices[2] = frustum.getNearBottomRight();

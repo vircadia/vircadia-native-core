@@ -17,22 +17,24 @@
 #include <QtCore/QDebug>
 #include <QtCore/QObject>
 #include <QtCore/QRunnable>
+#include <QDir>
+#include <QProcess>
 
 #include <AssetUtils.h>
-#include <Baker.h>
 
 class BakeAssetTask : public QObject, public QRunnable {
     Q_OBJECT
 public:
-    BakeAssetTask(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath);
+    BakeAssetTask(const AssetUtils::AssetHash& assetHash, const AssetUtils::AssetPath& assetPath, const QString& filePath);
 
+    // Thread-safe inspection methods
     bool isBaking() { return _isBaking.load(); }
+    bool wasAborted() const { return _wasAborted.load(); }
 
     void run() override;
 
+public slots:
     void abort();
-    bool wasAborted() const { return _wasAborted.load(); }
-    bool didFinish() const { return _didFinish.load(); }
 
 signals:
     void bakeComplete(QString assetHash, QString assetPath, QString tempOutputDir, QVector<QString> outputFiles);
@@ -41,12 +43,11 @@ signals:
     
 private:
     std::atomic<bool> _isBaking { false };
-    AssetHash _assetHash;
-    AssetPath _assetPath;
+    AssetUtils::AssetHash _assetHash;
+    AssetUtils::AssetPath _assetPath;
     QString _filePath;
-    std::unique_ptr<Baker> _baker;
+    std::unique_ptr<QProcess> _ovenProcess { nullptr };
     std::atomic<bool> _wasAborted { false };
-    std::atomic<bool> _didFinish { false };
 };
 
 #endif // hifi_BakeAssetTask_h

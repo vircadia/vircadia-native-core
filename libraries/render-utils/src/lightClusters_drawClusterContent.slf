@@ -15,7 +15,7 @@
 <@include DeferredBufferRead.slh@>
 
 
-<@include model/Light.slh@>
+<@include graphics/Light.slh@>
 <$declareLightBuffer(256)$>
 
 <@include LightClusterGrid.slh@>
@@ -32,7 +32,7 @@ void main(void) {
     // Grab the fragment data from the uv
     vec2 texCoord = varTexCoord0.st;
 
-    vec4 fragEyePos = unpackDeferredPositionFromZeye(texCoord);
+    vec4 fragEyePos = unpackDeferredPositionFromZdb(texCoord);
     vec4 fragWorldPos = getViewInverse() * fragEyePos;
     
     // From frag world pos find the cluster

@@ -64,8 +64,8 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
     auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
     assert(backgroundStage);
 
-    model::SunSkyStagePointer background;
-    model::SkyboxPointer skybox;
+    graphics::SunSkyStagePointer background;
+    graphics::SkyboxPointer skybox;
     if (backgroundStage->_currentFrame._backgrounds.size()) {
         auto backgroundId = backgroundStage->_currentFrame._backgrounds.front();
         auto background = backgroundStage->getBackground(backgroundId);
@@ -76,7 +76,7 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
   /*  auto backgroundMode = skyStage->getBackgroundMode();
 
     switch (backgroundMode) {
-    case model::SunSkyStage::SKY_DEFAULT: {
+    case graphics::SunSkyStage::SKY_DEFAULT: {
         auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
         auto sceneKeyLight = scene->getKeyLight();
 
@@ -88,12 +88,12 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
         // fall through: render a skybox (if available), or the defaults (if requested)
     }
 
-    case model::SunSkyStage::SKY_BOX: {*/
+    case graphics::SunSkyStage::SKY_BOX: {*/
     if (skybox && !skybox->empty()) {
             PerformanceTimer perfTimer("skybox");
             auto args = renderContext->args;
 
-            gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+            gpu::doInBatch("DrawBackgroundStage::run", args->_context, [&](gpu::Batch& batch) {
                 args->_batch = &batch;
 
                 batch.enableSkybox(true);
@@ -118,7 +118,7 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
         // fall through: render defaults (if requested)
 //    }
 /*
-    case model::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE: {
+    case graphics::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE: {
         if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
             auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
             auto sceneKeyLight = scene->getKeyLight();
@@ -126,9 +126,6 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
             if (defaultSkyboxAmbientTexture) {
                 sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
                 sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
-            } else {
-                static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "Failed to get a valid Default Skybox Ambient Texture ? probably because it couldn't be find during initialization step");
             }
             // fall through: render defaults skybox
         } else {

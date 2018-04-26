@@ -15,7 +15,11 @@
 
 #include "RequestFilters.h"
 
+#if !defined(Q_OS_ANDROID)
+
 void FileTypeRequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& info) {
     RequestFilters::interceptHFWebEngineRequest(info);
     RequestFilters::interceptFileType(info);
 }
+
+#endif

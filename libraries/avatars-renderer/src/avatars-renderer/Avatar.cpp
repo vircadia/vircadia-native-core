@@ -32,6 +32,10 @@
 #include <shared/Camera.h>
 #include <SoftAttachmentModel.h>
 #include <render/TransitionStage.h>
+#include "ModelEntityItem.h"
+#include "RenderableModelEntityItem.h"
+
+#include <graphics-scripting/Forward.h>
 
 #include "Logging.h"
 
@@ -48,7 +52,7 @@ const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar) {
-        return ItemKey::Builder::opaqueShape().withTypeMeta();
+        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(ItemKey::TAG_BITS_0 | ItemKey::TAG_BITS_1).withMetaCullGroup();
     }
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
         return static_pointer_cast<Avatar>(avatar)->getBounds();
@@ -138,7 +142,6 @@ Avatar::~Avatar() {
 
 void Avatar::init() {
     getHead()->init();
-    _skeletonModel->init();
     _initialized = true;
 }
 
@@ -162,6 +165,7 @@ AABox Avatar::getBounds() const {
 }
 
 void Avatar::animateScaleChanges(float deltaTime) {
+
     if (_isAnimatingScale) {
         float currentScale = getModelScale();
         float desiredScale = getDomainLimitedScale();
@@ -172,7 +176,7 @@ void Avatar::animateScaleChanges(float deltaTime) {
         float animatedScale = (1.0f - blendFactor) * currentScale + blendFactor * desiredScale;
 
         // snap to the end when we get close enough
-        const float MIN_RELATIVE_ERROR = 0.03f;
+        const float MIN_RELATIVE_ERROR = 0.001f;
         float relativeError = fabsf(desiredScale - currentScale) / desiredScale;
         if (relativeError < MIN_RELATIVE_ERROR) {
             animatedScale = desiredScale;
@@ -217,8 +221,12 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
-    if (getID() == QUuid()) {
-        return; // wait until MyAvatar gets an ID before doing this.
+    if (getID().isNull() ||
+        getID() == AVATAR_SELF_ID ||
+        DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
+        // wait until MyAvatar and this Node gets an ID before doing this.  Otherwise, various things go wrong --
+        // things get their parent fixed up from AVATAR_SELF_ID to a null uuid which means "no parent".
+        return;
     }
 
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
@@ -326,13 +334,15 @@ void Avatar::updateAvatarEntities() {
         AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
         if (!recentlyDettachedAvatarEntities.empty()) {
             // only lock this thread when absolutely necessary
+            AvatarEntityMap avatarEntityData;
             _avatarEntitiesLock.withReadLock([&] {
-                foreach (auto entityID, recentlyDettachedAvatarEntities) {
-                    if (!_avatarEntityData.contains(entityID)) {
-                        entityTree->deleteEntity(entityID, true, true);
-                    }
-                }
+                avatarEntityData = _avatarEntityData;
             });
+            foreach (auto entityID, recentlyDettachedAvatarEntities) {
+                if (!avatarEntityData.contains(entityID)) {
+                    entityTree->deleteEntity(entityID, true, true);
+                }
+            }
 
             // remove stale data hashes
             foreach (auto entityID, recentlyDettachedAvatarEntities) {
@@ -345,6 +355,65 @@ void Avatar::updateAvatarEntities() {
     });
 
     setAvatarEntityDataChanged(false);
+}
+
+void Avatar::relayJointDataToChildren() {
+    forEachChild([&](SpatiallyNestablePointer child) {
+        if (child->getNestableType() == NestableType::Entity) {
+            auto  modelEntity = std::dynamic_pointer_cast<RenderableModelEntityItem>(child);
+            if (modelEntity) {
+                if (modelEntity->getRelayParentJoints()) {
+                    if (!modelEntity->getJointMapCompleted() || _reconstructSoftEntitiesJointMap) {
+                        QStringList modelJointNames = modelEntity->getJointNames();
+                        int numJoints = modelJointNames.count();
+                        std::vector<int> map;
+                        map.reserve(numJoints);
+                        for (int jointIndex = 0; jointIndex < numJoints; jointIndex++)  {
+                            QString jointName = modelJointNames.at(jointIndex);
+                            int avatarJointIndex = getJointIndex(jointName);
+                            glm::quat jointRotation;
+                            glm::vec3 jointTranslation;
+                            if (avatarJointIndex < 0) {
+                                jointRotation = modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
+                                jointTranslation = modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
+                                map.push_back(-1);
+                            } else {
+                                int jointIndex = getJointIndex(jointName);
+                                jointRotation = getJointRotation(jointIndex);
+                                jointTranslation = getJointTranslation(jointIndex);
+                                map.push_back(avatarJointIndex);
+                            }
+                            modelEntity->setLocalJointRotation(jointIndex, jointRotation);
+                            modelEntity->setLocalJointTranslation(jointIndex, jointTranslation);
+                        }
+                        modelEntity->setJointMap(map);
+                    } else {
+                        QStringList modelJointNames = modelEntity->getJointNames();
+                        int numJoints = modelJointNames.count();
+                        for (int jointIndex = 0; jointIndex < numJoints; jointIndex++) {
+                            int avatarJointIndex = modelEntity->avatarJointIndex(jointIndex);
+                            glm::quat jointRotation;
+                            glm::vec3 jointTranslation;
+                            if (avatarJointIndex >=0) {
+                                jointRotation = getJointRotation(avatarJointIndex);
+                                jointTranslation = getJointTranslation(avatarJointIndex);
+                            } else {
+                                jointRotation = modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
+                                jointTranslation = modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
+                            }
+                            modelEntity->setLocalJointRotation(jointIndex, jointRotation);
+                            modelEntity->setLocalJointTranslation(jointIndex, jointTranslation);
+                        }
+                    }
+                    Transform avatarTransform = _skeletonModel->getTransform();
+                    avatarTransform.setScale(_skeletonModel->getScale());
+                    modelEntity->setOverrideTransform(avatarTransform, _skeletonModel->getOffset());
+                    modelEntity->simulateRelayedJoints();
+                }
+            }
+        }
+    });
+    _reconstructSoftEntitiesJointMap = false;
 }
 
 void Avatar::simulate(float deltaTime, bool inView) {
@@ -379,6 +448,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
             }
             head->setScale(getModelScale());
             head->simulate(deltaTime);
+            relayJointDataToChildren();
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
             _skeletonModel->simulate(deltaTime, false);
@@ -506,11 +576,13 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     }
     transaction.resetItem(_renderItemID, avatarPayloadPointer);
     _skeletonModel->addToScene(scene, transaction);
+    processMaterials();
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
     }
 
     _mustFadeIn = true;
+    emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(getSessionUUID(), NestableType::Avatar, _skeletonModel);
 }
 
 void Avatar::fadeIn(render::ScenePointer scene) {
@@ -560,6 +632,7 @@ void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointe
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->removeFromScene(scene, transaction);
     }
+    emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(getSessionUUID(), NestableType::Avatar, _skeletonModel);
 }
 
 void Avatar::updateRenderItem(render::Transaction& transaction) {
@@ -697,7 +770,9 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
         _skeletonModel->removeFromScene(scene, transaction);
         _skeletonModel->addToScene(scene, transaction);
+        processMaterials();
         canTryFade = true;
+        _isAnimatingScale = true;
     }
     for (auto attachmentModel : _attachmentModels) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
@@ -726,10 +801,19 @@ bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 // virtual
 void Avatar::simulateAttachments(float deltaTime) {
+    assert(_attachmentModels.size() == _attachmentModelsTexturesLoaded.size());
     PerformanceTimer perfTimer("attachments");
     for (int i = 0; i < (int)_attachmentModels.size(); i++) {
         const AttachmentData& attachment = _attachmentData.at(i);
         auto& model = _attachmentModels.at(i);
+        bool texturesLoaded = _attachmentModelsTexturesLoaded.at(i);
+
+        // Watch for texture loading
+        if (!texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+            _attachmentModelsTexturesLoaded[i] = true;
+            model->updateRenderItems();
+        }
+
         int jointIndex = getJointIndex(attachment.jointName);
         glm::vec3 jointPosition;
         glm::quat jointRotation;
@@ -1195,6 +1279,9 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 void Avatar::setModelURLFinished(bool success) {
     invalidateJointIndicesCache();
 
+    _isAnimatingScale = true;
+    _reconstructSoftEntitiesJointMap = true;
+
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
         const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
         if (_skeletonModel->getResourceDownloadAttemptsRemaining() <= 0 ||
@@ -1213,6 +1300,15 @@ void Avatar::setModelURLFinished(bool success) {
     }
 }
 
+// rig is ready
+void Avatar::rigReady() {
+    buildUnscaledEyeHeightCache();
+}
+
+// rig has been reset.
+void Avatar::rigReset() {
+    clearUnscaledEyeHeightCache();
+}
 
 // create new model, can return an instance of a SoftAttachmentModel rather then Model
 static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, const Rig& rigOverride, bool isCauterized) {
@@ -1242,6 +1338,7 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     while ((int)_attachmentModels.size() > attachmentData.size()) {
         auto attachmentModel = _attachmentModels.back();
         _attachmentModels.pop_back();
+        _attachmentModelsTexturesLoaded.pop_back();
         _attachmentsToRemove.push_back(attachmentModel);
     }
 
@@ -1249,11 +1346,16 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
         if (i == (int)_attachmentModels.size()) {
             // if number of attachments has been increased, we need to allocate a new model
             _attachmentModels.push_back(allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel->getRig(), isMyAvatar()));
-        }
-        else if (i < oldAttachmentData.size() && oldAttachmentData[i].isSoft != attachmentData[i].isSoft) {
+            _attachmentModelsTexturesLoaded.push_back(false);
+        } else if (i < oldAttachmentData.size() && oldAttachmentData[i].isSoft != attachmentData[i].isSoft) {
             // if the attachment has changed type, we need to re-allocate a new one.
             _attachmentsToRemove.push_back(_attachmentModels[i]);
             _attachmentModels[i] = allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel->getRig(), isMyAvatar());
+            _attachmentModelsTexturesLoaded[i] = false;
+        }
+        // If the model URL has changd, we need to wait for the textures to load
+        if (_attachmentModels[i]->getURL() != attachmentData[i].modelURL) {
+            _attachmentModelsTexturesLoaded[i] = false;
         }
         _attachmentModels[i]->setURL(attachmentData[i].modelURL);
     }
@@ -1580,53 +1682,132 @@ void Avatar::ensureInScene(AvatarSharedPointer self, const render::ScenePointer&
     }
 }
 
+// thread-safe
 float Avatar::getEyeHeight() const {
+    return getModelScale() * getUnscaledEyeHeight();
+}
 
-    if (QThread::currentThread() != thread()) {
-        float result = DEFAULT_AVATAR_EYE_HEIGHT;
-        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getEyeHeight", Q_RETURN_ARG(float, result));
-        return result;
+// thread-safe
+float Avatar::getUnscaledEyeHeight() const {
+    return _unscaledEyeHeightCache.get();
+}
+
+void Avatar::buildUnscaledEyeHeightCache() {
+    float skeletonHeight = getUnscaledEyeHeightFromSkeleton();
+
+    // Sanity check by looking at the model extents.
+    Extents meshExtents = _skeletonModel->getUnscaledMeshExtents();
+    float meshHeight = meshExtents.size().y;
+
+    // if we determine the mesh is much larger then the skeleton, then we use the mesh height instead.
+    // This helps prevent absurdly large avatars from exceeding the domain height limit.
+    const float MESH_SLOP_RATIO = 1.5f;
+    if (meshHeight > skeletonHeight * MESH_SLOP_RATIO) {
+        _unscaledEyeHeightCache.set(meshHeight);
+    } else {
+        _unscaledEyeHeightCache.set(skeletonHeight);
     }
+}
+
+void Avatar::clearUnscaledEyeHeightCache() {
+    _unscaledEyeHeightCache.set(DEFAULT_AVATAR_EYE_HEIGHT);
+}
+
+float Avatar::getUnscaledEyeHeightFromSkeleton() const {
 
     // TODO: if performance becomes a concern we can cache this value rather then computing it everytime.
-    // Makes assumption that the y = 0 plane in geometry is the ground plane.
-    // We also make that assumption in Rig::computeAvatarBoundingCapsule()
-    float avatarScale = getModelScale();
+
     if (_skeletonModel) {
         auto& rig = _skeletonModel->getRig();
+
+        // Normally the model offset transform will contain the avatar scale factor, we explicitly remove it here.
+        AnimPose modelOffsetWithoutAvatarScale(glm::vec3(1.0f), rig.getModelOffsetPose().rot(), rig.getModelOffsetPose().trans());
+        AnimPose geomToRigWithoutAvatarScale = modelOffsetWithoutAvatarScale * rig.getGeometryOffsetPose();
+
+        // This factor can be used to scale distances in the geometry frame into the unscaled rig frame.
+        // Typically it will be the unit conversion from cm to m.
+        float scaleFactor = geomToRigWithoutAvatarScale.scale().x;  // in practice this always a uniform scale factor.
+
         int headTopJoint = rig.indexOfJoint("HeadTop_End");
         int headJoint = rig.indexOfJoint("Head");
         int eyeJoint = rig.indexOfJoint("LeftEye") != -1 ? rig.indexOfJoint("LeftEye") : rig.indexOfJoint("RightEye");
         int toeJoint = rig.indexOfJoint("LeftToeBase") != -1 ? rig.indexOfJoint("LeftToeBase") : rig.indexOfJoint("RightToeBase");
+
+        // Makes assumption that the y = 0 plane in geometry is the ground plane.
+        // We also make that assumption in Rig::computeAvatarBoundingCapsule()
+        const float GROUND_Y = 0.0f;
+
+        // Values from the skeleton are in the geometry coordinate frame.
+        auto skeleton = rig.getAnimSkeleton();
         if (eyeJoint >= 0 && toeJoint >= 0) {
-            // measure from eyes to toes.
-            float eyeHeight = rig.getAbsoluteDefaultPose(eyeJoint).trans().y - rig.getAbsoluteDefaultPose(toeJoint).trans().y;
-            return eyeHeight;
+            // Measure from eyes to toes.
+            float eyeHeight = skeleton->getAbsoluteDefaultPose(eyeJoint).trans().y - skeleton->getAbsoluteDefaultPose(toeJoint).trans().y;
+            return scaleFactor * eyeHeight;
         } else if (eyeJoint >= 0) {
-            // measure eyes to y = 0 plane.
-            float groundHeight = transformPoint(rig.getGeometryToRigTransform(), glm::vec3(0.0f)).y;
-            float eyeHeight = rig.getAbsoluteDefaultPose(eyeJoint).trans().y - groundHeight;
-            return eyeHeight;
+            // Measure Eye joint to y = 0 plane.
+            float eyeHeight = skeleton->getAbsoluteDefaultPose(eyeJoint).trans().y - GROUND_Y;
+            return scaleFactor * eyeHeight;
         } else if (headTopJoint >= 0 && toeJoint >= 0) {
-            // measure toe to top of head.  Note: default poses already include avatar scale factor
+            // Measure from ToeBase joint to HeadTop_End joint, then remove forehead distance.
             const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
-            float height = rig.getAbsoluteDefaultPose(headTopJoint).trans().y - rig.getAbsoluteDefaultPose(toeJoint).trans().y;
-            return height - height * ratio;
+            float height = skeleton->getAbsoluteDefaultPose(headTopJoint).trans().y - skeleton->getAbsoluteDefaultPose(toeJoint).trans().y;
+            return scaleFactor * (height - height * ratio);
         } else if (headTopJoint >= 0) {
+            // Measure from HeadTop_End joint to the ground, then remove forehead distance.
             const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
-            float groundHeight = transformPoint(rig.getGeometryToRigTransform(), glm::vec3(0.0f)).y;
-            float headHeight = rig.getAbsoluteDefaultPose(headTopJoint).trans().y - groundHeight;
-            return headHeight - headHeight * ratio;
+            float headHeight = skeleton->getAbsoluteDefaultPose(headTopJoint).trans().y - GROUND_Y;
+            return scaleFactor * (headHeight - headHeight * ratio);
         } else if (headJoint >= 0) {
-            float groundHeight = transformPoint(rig.getGeometryToRigTransform(), glm::vec3(0.0f)).y;
+            // Measure Head joint to the ground, then add in distance from neck to eye.
             const float DEFAULT_AVATAR_NECK_TO_EYE = DEFAULT_AVATAR_NECK_TO_TOP_OF_HEAD - DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
             const float ratio = DEFAULT_AVATAR_NECK_TO_EYE / DEFAULT_AVATAR_NECK_HEIGHT;
-            float neckHeight = rig.getAbsoluteDefaultPose(headJoint).trans().y - groundHeight;
-            return neckHeight + neckHeight * ratio;
+            float neckHeight = skeleton->getAbsoluteDefaultPose(headJoint).trans().y - GROUND_Y;
+            return scaleFactor * (neckHeight + neckHeight * ratio);
         } else {
-            return avatarScale * DEFAULT_AVATAR_EYE_HEIGHT;
+            return DEFAULT_AVATAR_EYE_HEIGHT;
         }
     } else {
-        return avatarScale * DEFAULT_AVATAR_EYE_HEIGHT;
+        return DEFAULT_AVATAR_EYE_HEIGHT;
     }
+}
+
+void Avatar::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    _materials[parentMaterialName].push(material);
+    if (_skeletonModel && _skeletonModel->fetchRenderItemIDs().size() > 0) {
+        _skeletonModel->addMaterial(material, parentMaterialName);
+    }
+}
+
+void Avatar::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    _materials[parentMaterialName].remove(material);
+    if (_skeletonModel && _skeletonModel->fetchRenderItemIDs().size() > 0) {
+        _skeletonModel->removeMaterial(material, parentMaterialName);
+    }
+}
+
+void Avatar::processMaterials() {
+    assert(_skeletonModel);
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    for (auto& shapeMaterialPair : _materials) {
+        auto material = shapeMaterialPair.second;
+        while (!material.empty()) {
+            _skeletonModel->addMaterial(material.top(), shapeMaterialPair.first);
+            material.pop();
+        }
+    }
+}
+
+scriptable::ScriptableModelBase Avatar::getScriptableModel() {
+    if (!_skeletonModel || !_skeletonModel->isLoaded()) {
+        return scriptable::ScriptableModelBase();
+    }
+    auto result = _skeletonModel->getScriptableModel();
+    result.objectID = getSessionUUID().isNull() ? AVATAR_SELF_ID : getSessionUUID();
+    {
+        std::lock_guard<std::mutex> lock(_materialsLock);
+        result.appendMaterials(_materials);
+    }
+    return result;
 }

@@ -10,13 +10,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
+/* global Script, Controller, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
    getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities,
    enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable,
    makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
    DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
-   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
+   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI,
+   makeLaserParams
 
 */
 (function() {
@@ -36,7 +37,7 @@
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100,
-            (this.hand + HUD_LASER_OFFSET));
+            makeLaserParams((this.hand + HUD_LASER_OFFSET), false));
 
         this.getOtherHandController = function() {
             return (this.hand === RIGHT_HAND) ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
@@ -62,7 +63,7 @@
 
         this.pointingAtTablet = function(controllerData) {
             var rayPick = controllerData.rayPicks[this.hand];
-            return (rayPick.objectID === HMD.tabletScreenID || rayPick.objectID === HMD.homeButtonID);
+            return (HMD.tabletScreenID && HMD.homeButtonID && (rayPick.objectID === HMD.tabletScreenID || rayPick.objectID === HMD.homeButtonID));
         };
 
         this.getOtherModule = function() {
@@ -88,7 +89,7 @@
 
         this.isReady = function (controllerData) {
             var otherModuleRunning = this.getOtherModule().running;
-            if (!otherModuleRunning) {
+            if (!otherModuleRunning && HMD.active) {
                 if (this.processLaser(controllerData)) {
                     this.running = true;
                     return ControllerDispatcherUtils.makeRunningValues(true, [], []);

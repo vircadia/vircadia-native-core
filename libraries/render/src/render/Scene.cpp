@@ -32,23 +32,23 @@ void Transaction::removeItem(ItemID id) {
 }
 
 void Transaction::addTransitionToItem(ItemID id, Transition::Type transition, ItemID boundId) {
-    _addedTransitions.emplace_back(TransitionAdd{ id, transition, boundId });
+    _addedTransitions.emplace_back(id, transition, boundId);
 }
 
 void Transaction::removeTransitionFromItem(ItemID id) {
-    _addedTransitions.emplace_back(TransitionAdd{ id, Transition::NONE, render::Item::INVALID_ITEM_ID });
+    _addedTransitions.emplace_back(id, Transition::NONE, render::Item::INVALID_ITEM_ID);
 }
 
 void Transaction::reApplyTransitionToItem(ItemID id) {
-    _reAppliedTransitions.emplace_back(TransitionReApply{ id });
+    _reAppliedTransitions.emplace_back(id);
 }
 
 void Transaction::queryTransitionOnItem(ItemID id, TransitionQueryFunc func) {
-    _queriedTransitions.emplace_back(TransitionQuery{ id, func });
+    _queriedTransitions.emplace_back(id, func);
 }
 
 void Transaction::updateItem(ItemID id, const UpdateFunctorPointer& functor) {
-    _updatedItems.emplace_back(Update{ id, functor });
+    _updatedItems.emplace_back(id, functor);
 }
 
 void Transaction::resetSelection(const Selection& selection) {
@@ -56,28 +56,122 @@ void Transaction::resetSelection(const Selection& selection) {
 }
 
 void Transaction::resetSelectionHighlight(const std::string& selectionName, const HighlightStyle& style) {
-    _highlightResets.emplace_back(HighlightReset{ selectionName, style });
+    _highlightResets.emplace_back(selectionName, style );
 }
 
 void Transaction::removeHighlightFromSelection(const std::string& selectionName) {
     _highlightRemoves.emplace_back(selectionName);
 }
 
-void Transaction::querySelectionHighlight(const std::string& selectionName, SelectionHighlightQueryFunc func) {
-    _highlightQueries.emplace_back(HighlightQuery{ selectionName, func });
+void Transaction::querySelectionHighlight(const std::string& selectionName, const SelectionHighlightQueryFunc& func) {
+    _highlightQueries.emplace_back(selectionName, func);
+}
+
+void Transaction::reserve(const std::vector<Transaction>& transactionContainer) {
+    size_t resetItemsCount = 0;
+    size_t removedItemsCount = 0;
+    size_t updatedItemsCount = 0;
+    size_t resetSelectionsCount = 0;
+    size_t addedTransitionsCount = 0;
+    size_t queriedTransitionsCount = 0;
+    size_t reAppliedTransitionsCount = 0;
+    size_t highlightResetsCount = 0;
+    size_t highlightRemovesCount = 0;
+    size_t highlightQueriesCount = 0;
+
+    for (const auto& transaction : transactionContainer) {
+        resetItemsCount += transaction._resetItems.size();
+        removedItemsCount += transaction._removedItems.size();
+        updatedItemsCount += transaction._updatedItems.size();
+        resetSelectionsCount += transaction._resetSelections.size();
+        addedTransitionsCount += transaction._addedTransitions.size();
+        queriedTransitionsCount += transaction._queriedTransitions.size();
+        reAppliedTransitionsCount += transaction._reAppliedTransitions.size();
+        highlightResetsCount += transaction._highlightResets.size();
+        highlightRemovesCount += transaction._highlightRemoves.size();
+        highlightQueriesCount += transaction._highlightQueries.size();
+    }
+
+    _resetItems.reserve(resetItemsCount);
+    _removedItems.reserve(removedItemsCount);
+    _updatedItems.reserve(updatedItemsCount);
+    _resetSelections.reserve(resetSelectionsCount);
+    _addedTransitions.reserve(addedTransitionsCount);
+    _queriedTransitions.reserve(queriedTransitionsCount);
+    _reAppliedTransitions.reserve(reAppliedTransitionsCount);
+    _highlightResets.reserve(highlightResetsCount);
+    _highlightRemoves.reserve(highlightRemovesCount);
+    _highlightQueries.reserve(highlightQueriesCount);
+}
+
+void Transaction::merge(const std::vector<Transaction>& transactionContainer) {
+    reserve(transactionContainer);
+    for (const auto& transaction : transactionContainer) {
+        merge(transaction);
+    }
+}
+
+
+void Transaction::merge(std::vector<Transaction>&& transactionContainer) {
+    reserve(transactionContainer);
+    auto begin = std::make_move_iterator(transactionContainer.begin());
+    auto end = std::make_move_iterator(transactionContainer.end());
+    for (auto itr = begin; itr != end; ++itr) {
+        merge(*itr);
+    }
+    transactionContainer.clear();
+}
+
+
+template <typename T>
+void moveElements(T& target, T& source) {
+    target.insert(target.end(), std::make_move_iterator(source.begin()), std::make_move_iterator(source.end()));
+    source.clear();
+}
+
+template <typename T>
+void copyElements(T& target, const T& source) {
+    target.insert(target.end(), source.begin(), source.end());
+}
+
+
+void Transaction::merge(Transaction&& transaction) {
+    moveElements(_resetItems, transaction._resetItems);
+    moveElements(_removedItems, transaction._removedItems);
+    moveElements(_updatedItems, transaction._updatedItems);
+    moveElements(_resetSelections, transaction._resetSelections);
+    moveElements(_addedTransitions, transaction._addedTransitions);
+    moveElements(_queriedTransitions, transaction._queriedTransitions);
+    moveElements(_reAppliedTransitions, transaction._reAppliedTransitions);
+    moveElements(_highlightResets, transaction._highlightResets);
+    moveElements(_highlightRemoves, transaction._highlightRemoves);
+    moveElements(_highlightQueries, transaction._highlightQueries);
 }
 
 void Transaction::merge(const Transaction& transaction) {
-    _resetItems.insert(_resetItems.end(), transaction._resetItems.begin(), transaction._resetItems.end());
-    _removedItems.insert(_removedItems.end(), transaction._removedItems.begin(), transaction._removedItems.end());
-    _updatedItems.insert(_updatedItems.end(), transaction._updatedItems.begin(), transaction._updatedItems.end());
-    _resetSelections.insert(_resetSelections.end(), transaction._resetSelections.begin(), transaction._resetSelections.end());
-    _addedTransitions.insert(_addedTransitions.end(), transaction._addedTransitions.begin(), transaction._addedTransitions.end());
-    _queriedTransitions.insert(_queriedTransitions.end(), transaction._queriedTransitions.begin(), transaction._queriedTransitions.end());
-    _reAppliedTransitions.insert(_reAppliedTransitions.end(), transaction._reAppliedTransitions.begin(), transaction._reAppliedTransitions.end());
-    _highlightResets.insert(_highlightResets.end(), transaction._highlightResets.begin(), transaction._highlightResets.end());
-    _highlightRemoves.insert(_highlightRemoves.end(), transaction._highlightRemoves.begin(), transaction._highlightRemoves.end());
-    _highlightQueries.insert(_highlightQueries.end(), transaction._highlightQueries.begin(), transaction._highlightQueries.end());
+    copyElements(_resetItems, transaction._resetItems);
+    copyElements(_removedItems, transaction._removedItems);
+    copyElements(_updatedItems, transaction._updatedItems);
+    copyElements(_resetSelections, transaction._resetSelections);
+    copyElements(_addedTransitions, transaction._addedTransitions);
+    copyElements(_queriedTransitions, transaction._queriedTransitions);
+    copyElements(_reAppliedTransitions, transaction._reAppliedTransitions);
+    copyElements(_highlightResets, transaction._highlightResets);
+    copyElements(_highlightRemoves, transaction._highlightRemoves);
+    copyElements(_highlightQueries, transaction._highlightQueries);
+}
+
+void Transaction::clear() {
+    _resetItems.clear();
+    _removedItems.clear();
+    _updatedItems.clear();
+    _resetSelections.clear();
+    _addedTransitions.clear();
+    _queriedTransitions.clear();
+    _reAppliedTransitions.clear();
+    _highlightResets.clear();
+    _highlightRemoves.clear();
+    _highlightQueries.clear();
 }
 
 
@@ -102,54 +196,50 @@ bool Scene::isAllocatedID(const ItemID& id) const {
 
 /// Enqueue change batch to the scene
 void Scene::enqueueTransaction(const Transaction& transaction) {
-    _transactionQueueMutex.lock();
-    _transactionQueue.push(transaction);
-    _transactionQueueMutex.unlock();
+    std::unique_lock<std::mutex> lock(_transactionQueueMutex);
+    _transactionQueue.emplace_back(transaction);
 }
 
-void consolidateTransaction(TransactionQueue& queue, Transaction& singleBatch) {
-    while (!queue.empty()) {
-        const auto& transaction = queue.front();
-        singleBatch.merge(transaction);
-        queue.pop();
-    };
+void Scene::enqueueTransaction(Transaction&& transaction) {
+    std::unique_lock<std::mutex> lock(_transactionQueueMutex);
+    _transactionQueue.emplace_back(std::move(transaction));
 }
 
 uint32_t Scene::enqueueFrame() {
     PROFILE_RANGE(render, __FUNCTION__);
-    Transaction consolidatedTransaction;
+    TransactionQueue localTransactionQueue;
     {
         std::unique_lock<std::mutex> lock(_transactionQueueMutex);
-        consolidateTransaction(_transactionQueue, consolidatedTransaction);
+        localTransactionQueue.swap(_transactionQueue);
     }
 
-    uint32_t frameNumber = 0;
+    Transaction consolidatedTransaction;
+    consolidatedTransaction.merge(std::move(localTransactionQueue));
     {
         std::unique_lock<std::mutex> lock(_transactionFramesMutex);
         _transactionFrames.push_back(consolidatedTransaction);
-        _transactionFrameNumber++;
-        frameNumber = _transactionFrameNumber;
     }
 
-    return frameNumber;
+    return ++_transactionFrameNumber;
 }
 
  
 void Scene::processTransactionQueue() {
     PROFILE_RANGE(render, __FUNCTION__);
 
-    TransactionFrames queuedFrames;
+    static TransactionFrames queuedFrames;
     {
         // capture the queued frames and clear the queue
         std::unique_lock<std::mutex> lock(_transactionFramesMutex);
-        queuedFrames = _transactionFrames;
-        _transactionFrames.clear();
+        queuedFrames.swap(_transactionFrames);
     }
 
     // go through the queue of frames and process them
     for (auto& frame : queuedFrames) {
         processTransactionFrame(frame);
     }
+
+    queuedFrames.clear();
 }
 
 void Scene::processTransactionFrame(const Transaction& transaction) {
@@ -252,6 +342,13 @@ void Scene::updateItems(const Transaction::Updates& transactions) {
 
         // Access the true item
         auto& item = _items[updateID];
+
+        // If item doesn't exist it cannot be updated
+        if (!item.exist()) {
+            continue;
+        }
+
+        // Good to go, deal with the update
         auto oldCell = item.getCell();
         auto oldKey = item.getKey();
 
@@ -338,44 +435,47 @@ void Scene::queryTransitionItems(const Transaction::TransitionQueries& transacti
 
 void Scene::resetHighlights(const Transaction::HighlightResets& transactions) {
     auto outlineStage = getStage<HighlightStage>(HighlightStage::getName());
+    if (outlineStage) {
+        for (auto& transaction : transactions) {
+            const auto& selectionName = std::get<0>(transaction);
+            const auto& newStyle = std::get<1>(transaction);
+            auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
 
-    for (auto& transaction : transactions) {
-        const auto& selectionName = std::get<0>(transaction);
-        const auto& newStyle = std::get<1>(transaction);
-        auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
-
-        if (HighlightStage::isIndexInvalid(outlineId)) {
-            outlineStage->addHighlight(selectionName, newStyle);
-        } else {
-            outlineStage->editHighlight(outlineId)._style = newStyle;
+            if (HighlightStage::isIndexInvalid(outlineId)) {
+                outlineStage->addHighlight(selectionName, newStyle);
+            } else {
+                outlineStage->editHighlight(outlineId)._style = newStyle;
+            }
         }
     }
 }
 
 void Scene::removeHighlights(const Transaction::HighlightRemoves& transactions) {
     auto outlineStage = getStage<HighlightStage>(HighlightStage::getName());
+    if (outlineStage) {
+        for (auto& selectionName : transactions) {
+            auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
 
-    for (auto& selectionName : transactions) {
-        auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
-
-        if (!HighlightStage::isIndexInvalid(outlineId)) {
-            outlineStage->removeHighlight(outlineId);
+            if (!HighlightStage::isIndexInvalid(outlineId)) {
+                outlineStage->removeHighlight(outlineId);
+            }
         }
     }
 }
 
 void Scene::queryHighlights(const Transaction::HighlightQueries& transactions) {
     auto outlineStage = getStage<HighlightStage>(HighlightStage::getName());
+    if (outlineStage) {
+        for (auto& transaction : transactions) {
+            const auto& selectionName = std::get<0>(transaction);
+            const auto& func = std::get<1>(transaction);
+            auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
 
-    for (auto& transaction : transactions) {
-        const auto& selectionName = std::get<0>(transaction);
-        const auto& func = std::get<1>(transaction);
-        auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
-
-        if (!HighlightStage::isIndexInvalid(outlineId)) {
-            func(&outlineStage->editHighlight(outlineId)._style);
-        } else {
-            func(nullptr);
+            if (!HighlightStage::isIndexInvalid(outlineId)) {
+                func(&outlineStage->editHighlight(outlineId)._style);
+            } else {
+                func(nullptr);
+            }
         }
     }
 }
@@ -442,7 +542,7 @@ bool Scene::isSelectionEmpty(const Selection::Name& name) const {
     std::unique_lock<std::mutex> lock(_selectionsMutex);
     auto found = _selections.find(name);
     if (found == _selections.end()) {
-        return false;
+        return true;
     } else {
         return (*found).second.isEmpty();
     }

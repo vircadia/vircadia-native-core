@@ -19,7 +19,7 @@
 #include <utility>
 
 #include <GLMHelpers.h>
-#include <model/Geometry.h>
+#include <graphics/Geometry.h>
 #include <gpu/Texture.h>
 #include <controllers/InputDevice.h>
 #include <plugins/InputPlugin.h>
@@ -51,6 +51,8 @@ public:
 
     bool activate() override;
     void deactivate() override;
+
+    QString getDeviceName() { return QString::fromStdString(_inputDevice->_headsetName); }
 
     void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
@@ -161,6 +163,7 @@ private:
         HandConfig _handConfig { HandConfig::HandController };
         FilteredStick _filteredLeftStick;
         FilteredStick _filteredRightStick;
+        std::string _headsetName {""};
 
         std::vector<PuckPosePair> _validTrackedObjects;
         std::map<uint32_t, glm::mat4> _pucksPostOffset;
@@ -194,7 +197,7 @@ private:
         bool _overrideHands { false };
         mutable std::recursive_mutex _lock;
 
-        bool _hmdTrackingEnabled { false };
+        bool _hmdTrackingEnabled { true };
 
         QString configToString(Config config);
         friend class ViveControllerManager;
@@ -210,7 +213,7 @@ private:
     bool _hmdDesktopTracking { false };
     
     glm::mat4 _resetMat { glm::mat4() };
-    model::Geometry _modelGeometry;
+    graphics::Geometry _modelGeometry;
     gpu::TexturePointer _texture;
 
     int _leftHandRenderID { 0 };

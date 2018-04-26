@@ -10,14 +10,12 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Layouts 1.3
 import QtGraphicalEffects 1.0
 
 import TabletScriptingInterface 1.0
 
 Rectangle {
-    readonly property var level: Audio.inputLevel;
+    readonly property var level: AudioScriptingInterface.inputLevel;
 
     property bool standalone: false;
     property var dragTarget: null;
@@ -60,13 +58,13 @@ Rectangle {
         hoverEnabled: true;
         scrollGestureEnabled: false;
         onClicked: {
-            Audio.muted = !Audio.muted;
-            tabletInterface.playSound(TabletEnums.ButtonClick);
+            AudioScriptingInterface.muted = !AudioScriptingInterface.muted;
+            Tablet.playSound(TabletEnums.ButtonClick);
         }
         drag.target: dragTarget;
         onContainsMouseChanged: {
             if (containsMouse) {
-                tabletInterface.playSound(TabletEnums.ButtonHover);
+                Tablet.playSound(TabletEnums.ButtonHover);
             }
         }
     }
@@ -82,7 +80,7 @@ Rectangle {
         readonly property string red: colors.muted;
         readonly property string fill: "#55000000";
         readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
-        readonly property string icon: Audio.muted ? muted : unmuted;
+        readonly property string icon: AudioScriptingInterface.muted ? muted : unmuted;
     }
 
     Item {
@@ -103,7 +101,7 @@ Rectangle {
                 readonly property string mutedIcon: "../../../icons/tablet-icons/mic-mute-i.svg";
 
                 id: image;
-                source: Audio.muted ? mutedIcon : unmutedIcon;
+                source: AudioScriptingInterface.muted ? mutedIcon : unmutedIcon;
 
                 width: 30;
                 height: 30;
@@ -126,9 +124,9 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: Audio.muted ? colors.muted : colors.unmuted;
+        readonly property string color: AudioScriptingInterface.muted ? colors.muted : colors.unmuted;
 
-        visible: Audio.muted;
+        visible: AudioScriptingInterface.muted;
 
         anchors {
             left: parent.left;
@@ -147,7 +145,7 @@ Rectangle {
 
             color: parent.color;
 
-            text: Audio.muted ? "MUTED" : "MUTE";
+            text: AudioScriptingInterface.muted ? "MUTED" : "MUTE";
             font.pointSize: 12;
         }
 

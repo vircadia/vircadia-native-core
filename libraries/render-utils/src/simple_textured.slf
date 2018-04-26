@@ -12,43 +12,26 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include gpu/Color.slh@>
 <@include DeferredBufferWrite.slh@>
-<@include model/Material.slh@>
 
 // the albedo texture
 uniform sampler2D originalTexture;
 
 // the interpolated normal
-in vec3 _normal;
+in vec3 _normalWS;
 in vec4 _color;
 in vec2 _texCoord0;
 
 void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0);
-    float colorAlpha = _color.a;
-    if (_color.a <= 0.0) {
-        texel = colorToLinearRGBA(texel);
-        colorAlpha = -_color.a;
-    }
 
-    const float ALPHA_THRESHOLD = 0.999;
-    if (colorAlpha * texel.a < ALPHA_THRESHOLD) {
-        packDeferredFragmentTranslucent(
-            normalize(_normal),
-            colorAlpha * texel.a,
-            _color.rgb * texel.rgb,
-            DEFAULT_FRESNEL,
-            DEFAULT_ROUGHNESS);
-    } else {
-        packDeferredFragment(
-            normalize(_normal),
-            1.0,
-            _color.rgb * texel.rgb,
-            DEFAULT_ROUGHNESS,
-            DEFAULT_METALLIC,
-            DEFAULT_EMISSIVE,
-            DEFAULT_OCCLUSION,
-            DEFAULT_SCATTERING);
-    }
+    packDeferredFragment(
+        normalize(_normalWS),
+        1.0,
+        _color.rgb * texel.rgb,
+        DEFAULT_ROUGHNESS,
+        DEFAULT_METALLIC,
+        DEFAULT_EMISSIVE,
+        DEFAULT_OCCLUSION,
+        DEFAULT_SCATTERING);
 }

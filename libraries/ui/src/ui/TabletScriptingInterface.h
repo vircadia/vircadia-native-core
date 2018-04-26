@@ -12,13 +12,17 @@
 #include <mutex>
 #include <atomic>
 
-#include <QObject>
-#include <QVariant>
+#include <QtCore/QObject>
+#include <QtCore/QUuid>
+#include <QtCore/QVariant>
+#include <QtCore/QAbstractListModel>
+#include <QSortFilterProxyModel>
+
 #include <QtScript/QScriptValue>
-#include <QScriptEngine>
-#include <QScriptValueIterator>
-#include <QQuickItem>
-#include <QUuid>
+#include <QtScript/QScriptEngine>
+#include <QtScript/QScriptValueIterator>
+
+#include <QtQuick/QQuickItem>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -40,8 +44,29 @@ class OffscreenQmlSurface;
 class TabletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
+
+    /**jsdoc
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>0</code></td><td>Button click.</td></tr>
+     *     <tr><td><code>1</code></td><td>Button hover.</td></tr>
+     *     <tr><td><code>2</code></td><td>Tablet open.</td></tr>
+     *     <tr><td><code>3</code></td><td>Tablet hands in.</td></tr>
+     *     <tr><td><code>4</code></td><td>Tablet hands out.</td></tr>
+     *     <tr><td><code>5</code></td><td>Last.</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {number} Tablet.AudioEvents
+     */
     enum TabletAudioEvents { ButtonClick, ButtonHover, TabletOpen, TabletHandsIn, TabletHandsOut, Last};
     Q_ENUM(TabletAudioEvents)
+
+    //Different useful constants
+    enum TabletConstants { ButtonsColumnsOnPage = 3, ButtonsRowsOnPage = 4, ButtonsOnPage = 12 };
+    Q_ENUM(TabletConstants)
 
     TabletScriptingInterface();
     virtual ~TabletScriptingInterface();
@@ -50,14 +75,19 @@ public:
     void setToolbarScriptingInterface(ToolbarScriptingInterface* toolbarScriptingInterface) { _toolbarScriptingInterface = toolbarScriptingInterface; }
 
     /**jsdoc
-     * Creates or retruns a new TabletProxy and returns it.
+     * Creates or returns a new TabletProxy and returns it.
      * @function Tablet.getTablet
-     * @param name {String} tablet name
-     * @return {TabletProxy} tablet instance
+     * @param {string} name - Tablet name.
+     * @returns {TabletProxy} Tablet instance.
      */
     Q_INVOKABLE TabletProxy* getTablet(const QString& tabletId);
 
     void preloadSounds();
+
+    /**jsdoc
+     * @function Tablet.playSound
+     * @param {Tablet.AudioEvents} sound
+     */
     Q_INVOKABLE void playSound(TabletAudioEvents aEvent);
 
     void setToolbarMode(bool toolbarMode);
@@ -70,9 +100,9 @@ public:
 
     QObject* getFlags();
 signals:
-    /** jsdoc
-     * Signaled when a tablet message or dialog is created
-     * @function TabletProxy#tabletNotification
+    /**jsdoc
+     * Triggered when a tablet message or dialog is created.
+     * @function Tablet.tabletNotification
      * @returns {Signal}
      */
     void tabletNotification();
@@ -91,17 +121,75 @@ protected:
 };
 
 /**jsdoc
+ * @typedef {object} TabletProxy#ButtonList
+ */
+class TabletButtonListModel : public QAbstractListModel {
+    Q_OBJECT
+
+public:
+    TabletButtonListModel();
+    ~TabletButtonListModel();
+
+    int rowCount(const QModelIndex& parent = QModelIndex()) const override { Q_UNUSED(parent); return (int)_buttons.size(); }
+    QHash<int, QByteArray> roleNames() const override { return _roles; }
+    Qt::ItemFlags flags(const QModelIndex& index) const override { return _flags; }
+    QVariant data(const QModelIndex& index, int role) const override;
+
+
+protected:
+    friend class TabletProxy;
+    TabletButtonProxy* addButton(const QVariant& properties);
+    void removeButton(TabletButtonProxy* button);
+    int computeNewButtonIndex(const QVariantMap& newButtonProperties);
+    using List = std::list<QSharedPointer<TabletButtonProxy>>;
+    static QHash<int, QByteArray> _roles;
+    static Qt::ItemFlags _flags;
+    std::vector<QSharedPointer<TabletButtonProxy>> _buttons;
+};
+
+Q_DECLARE_METATYPE(TabletButtonListModel*);
+
+class TabletButtonsProxyModel : public QSortFilterProxyModel
+{
+    Q_OBJECT
+
+    Q_PROPERTY(int pageIndex READ pageIndex WRITE setPageIndex NOTIFY pageIndexChanged)
+public:
+    TabletButtonsProxyModel(QObject* parent = 0);
+    int pageIndex() const;
+    Q_INVOKABLE int buttonIndex(const QString& uuid);
+
+public slots:
+    void setPageIndex(int pageIndex);
+
+signals:
+    void pageIndexChanged(int pageIndex);
+
+protected:
+    bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
+
+private:
+    int _pageIndex { -1 };
+};
+
+Q_DECLARE_METATYPE(TabletButtonsProxyModel*);
+
+/**jsdoc
  * @class TabletProxy
- * @property name {string} READ_ONLY: name of this tablet
- * @property toolbarMode {bool} - used to transition this tablet into and out of toolbar mode.
+ * @property {string} name - Name of this tablet. <em>Read-only.</em>
+ * @property {boolean} toolbarMode - Used to transition this tablet into and out of toolbar mode.
  *     When tablet is in toolbar mode, all its buttons will appear in a floating toolbar.
+ * @property {boolean} landscape
+ * @property {boolean} tabletShown <em>Read-only.</em>
+ * @property {TabletProxy#ButtonList} buttons <em>Read-only.</em>
  */
 class TabletProxy : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString name READ getName)
-    Q_PROPERTY(bool toolbarMode READ getToolbarMode WRITE setToolbarMode)
+    Q_PROPERTY(bool toolbarMode READ getToolbarMode WRITE setToolbarMode NOTIFY toolbarModeChanged)
     Q_PROPERTY(bool landscape READ getLandscape WRITE setLandscape)
     Q_PROPERTY(bool tabletShown MEMBER _tabletShown NOTIFY tabletShownChanged)
+    Q_PROPERTY(TabletButtonListModel* buttons READ getButtons CONSTANT)
 public:
     TabletProxy(QObject* parent, const QString& name);
     ~TabletProxy();
@@ -112,88 +200,136 @@ public:
     bool getToolbarMode() const { return _toolbarMode; }
     void setToolbarMode(bool toolbarMode);
 
-
+    /**jsdoc
+     * @function TabletProxy#gotoMenuScreen
+     * @param {string} [submenu=""]
+     */
     Q_INVOKABLE void gotoMenuScreen(const QString& submenu = "");
-    Q_INVOKABLE void initialScreen(const QVariant& url);
-
 
     /**jsdoc
-     * transition to the home screen
+     * @function TabletProxy#initialScreen
+     * @param {string} url
+     */
+    Q_INVOKABLE void initialScreen(const QVariant& url);
+
+    /**jsdoc
+     * Transition to the home screen.
      * @function TabletProxy#gotoHomeScreen
      */
     Q_INVOKABLE void gotoHomeScreen();
 
     /**jsdoc
-     * show the specified web url on the tablet.
+     * Show the specified Web url on the tablet.
      * @function TabletProxy#gotoWebScreen
-     * @param url {string} url of web page.
-     * @param [injectedJavaScriptUrl] {string} optional url to an additional JS script to inject into the web page.
+     * @param {string} url - URL of web page.
+     * @param {string} [injectedJavaScriptUrl=""] - URL to an additional JS script to inject into the web page.
+     * @param {boolean} [loadOtherBase=false]
      */
     Q_INVOKABLE void gotoWebScreen(const QString& url);
     Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase = false);
 
+    /**jsdoc
+     * @function TabletProxy#loadQMLSource
+     * @param {string} path
+     * @param {boolean} [resizable=false]
+     */
     Q_INVOKABLE void loadQMLSource(const QVariant& path, bool resizable = false);
     // FIXME: This currently relies on a script initializing the tablet (hence the bool denoting success);
     //        it should be initialized internally so it cannot fail
+
+    /**jsdoc
+     * @function TabletProxy#pushOntoStack
+     * @param {string} path
+     * @returns {boolean}
+     */
     Q_INVOKABLE bool pushOntoStack(const QVariant& path);
+
+    /**jsdoc
+     * @function TabletProxy#popFromStack
+     */
     Q_INVOKABLE void popFromStack();
 
+    /**jsdoc
+     * @function TabletProxy#loadQMLOnTop
+     * @param {string} path
+     */
     Q_INVOKABLE void loadQMLOnTop(const QVariant& path);
+
+    /**jsdoc
+     * @function TabletProxy#loadWebScreenOnTop
+     * @param {string} path
+     * @param {string} [injectedJavaScriptURL=""]
+     */
     Q_INVOKABLE void loadWebScreenOnTop(const QVariant& url);
     Q_INVOKABLE void loadWebScreenOnTop(const QVariant& url, const QString& injectedJavaScriptUrl);
+
+    /**jsdoc
+     * @function TabletProxy#returnToPreviousApp
+     */
     Q_INVOKABLE void returnToPreviousApp();
 
-    
-
-    /** jsdoc
-     * Check if the tablet has a message dialog open
+    /**jsdoc
+     * Check if the tablet has a message dialog open.
      * @function TabletProxy#isMessageDialogOpen
+     * @returns {boolean}
      */
     Q_INVOKABLE bool isMessageDialogOpen();
 
     /**jsdoc
      * Creates a new button, adds it to this and returns it.
      * @function TabletProxy#addButton
-     * @param properties {Object} button properties UI_TABLET_HACK: enumerate these when we figure out what they should be!
+     * @param {object} properties - Button properties.
      * @returns {TabletButtonProxy}
      */
+    //FIXME: UI_TABLET_HACK: enumerate the button properties when we figure out what they should be!
     Q_INVOKABLE TabletButtonProxy* addButton(const QVariant& properties);
 
     /**jsdoc
-     * removes button from the tablet
-     * @function TabletProxy.removeButton
-     * @param tabletButtonProxy {TabletButtonProxy} button to be removed
+     * Removes a button from the tablet.
+     * @function TabletProxy#removeButton
+     * @param {TabletButtonProxy} button - The button to be removed
      */
     Q_INVOKABLE void removeButton(TabletButtonProxy* tabletButtonProxy);
 
     /**jsdoc
-     * Used to send an event to the html/js embedded in the tablet
+     * Used to send an event to the HTML/JavaScript embedded in the tablet.
      * @function TabletProxy#emitScriptEvent
-     * @param msg {object|string}
+     * @param {object|string} message
      */
     Q_INVOKABLE void emitScriptEvent(const QVariant& msg);
 
     /**jsdoc
-     * Used to send an event to the qml embedded in the tablet
+     * Used to send an event to the QML embedded in the tablet.
      * @function TabletProxy#sendToQml
-     * @param msg {object|string}
+     * @param {object|string} message
      */
     Q_INVOKABLE void sendToQml(const QVariant& msg);
 
     /**jsdoc
-     * Check if the tablet is on the homescreen
-     * @function TabletProxy#onHomeScreen()
+     * Check if the tablet is on the home screen.
+     * @function TabletProxy#onHomeScreen
+     * @returns {boolean}
      */
     Q_INVOKABLE bool onHomeScreen();
 
     /**jsdoc
-     * set tablet into our out of landscape mode
+     * Set tablet into or out of landscape mode.
      * @function TabletProxy#setLandscape
-     * @param landscape {bool} true for landscape, false for portrait
+     * @param {boolean} landscape - <code>true</code> for landscape, <ode>false</code> for portrait.
      */
     Q_INVOKABLE void setLandscape(bool landscape) { _landscape = landscape; }
+
+    /**jsdoc
+     * @function TabletProxy#getLandscape
+     * @returns {boolean}
+     */
     Q_INVOKABLE bool getLandscape() { return _landscape; }
 
+    /**jsdoc
+     * @function TabletProxy#isPathLoaded
+     * @param {string} path
+     * @returns {boolean}
+     */
     Q_INVOKABLE bool isPathLoaded(const QVariant& path);
 
     QQuickItem* getTabletRoot() const { return _qmlTabletRoot; }
@@ -204,19 +340,21 @@ public:
 
     QQuickItem* getQmlMenu() const;
 
+    TabletButtonListModel* getButtons() { return &_buttons; }
+
 signals:
     /**jsdoc
-     * Signaled when this tablet receives an event from the html/js embedded in the tablet
+     * Signaled when this tablet receives an event from the html/js embedded in the tablet.
      * @function TabletProxy#webEventReceived
-     * @param msg {object|string}
+     * @param {object|string} message
      * @returns {Signal}
      */
     void webEventReceived(QVariant msg);
 
     /**jsdoc
-     * Signaled when this tablet receives an event from the qml embedded in the tablet
+     * Signaled when this tablet receives an event from the qml embedded in the tablet.
      * @function TabletProxy#fromQml
-     * @param msg {object|string}
+     * @param {object|string} message
      * @returns {Signal}
      */
     void fromQml(QVariant msg);
@@ -224,33 +362,34 @@ signals:
     /**jsdoc
      * Signaled when this tablet screen changes.
      * @function TabletProxy#screenChanged
-     * @param type {string} - "Home", "Web", "Menu", "QML", "Closed"
-     * @param url {string} - only valid for Web and QML.
+     * @param type {string} - "Home", "Web", "Menu", "QML", "Closed".
+     * @param url {string} - Only valid for Web and QML.
      */
     void screenChanged(QVariant type, QVariant url);
 
-    /** jsdoc
-    * Signaled when the tablet becomes visible or becomes invisible
-    * @function TabletProxy#isTabletShownChanged
-    * @returns {Signal}
-    */
+    /**jsdoc
+     * Signaled when the tablet becomes visible or becomes invisible.
+     * @function TabletProxy#isTabletShownChanged
+     * @returns {Signal}
+     */
     void tabletShownChanged();
 
+    /**jsdoc
+     * @function TabletProxy#toolbarModeChanged
+     */
+    void toolbarModeChanged();
+
 protected slots:
-    void addButtonsToHomeScreen();
     void desktopWindowClosed();
     void emitWebEvent(const QVariant& msg);
     void onTabletShown();
+
 protected:
-    void removeButtonsFromHomeScreen();
     void loadHomeScreen(bool forceOntoHomeScreen);
-    void addButtonsToToolbar();
-    void removeButtonsFromToolbar();
 
     bool _initialScreen { false };
     QVariant _currentPathLoaded { "" };
     QString _name;
-    std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
     QQuickItem* _qmlTabletRoot { nullptr };
     OffscreenQmlSurface* _qmlOffscreenSurface { nullptr };
     QmlWindowClass* _desktopWindow { nullptr };
@@ -263,73 +402,77 @@ protected:
     std::pair<QVariant, bool> _initialWebPathParams;
     bool _landscape { false };
     bool _showRunningScripts { false };
+
+    TabletButtonListModel _buttons;
 };
 
 Q_DECLARE_METATYPE(TabletProxy*);
 
 /**jsdoc
  * @class TabletButtonProxy
- * @property uuid {QUuid} READ_ONLY: uniquely identifies this button
+ * @property {Uuid} uuid - Uniquely identifies this button. <em>Read-only.</em>
+ * @property {TabletButtonProxy.ButtonProperties} properties
  */
 class TabletButtonProxy : public QObject {
     Q_OBJECT
     Q_PROPERTY(QUuid uuid READ getUuid)
+    Q_PROPERTY(QVariantMap properties READ getProperties NOTIFY propertiesChanged)
 public:
     TabletButtonProxy(const QVariantMap& properties);
     ~TabletButtonProxy();
 
-    void setQmlButton(QQuickItem* qmlButton);
-    void setToolbarButtonProxy(QObject* toolbarButtonProxy);
-
     QUuid getUuid() const { return _uuid; }
 
     /**jsdoc
-     * Returns the current value of this button's properties
+     * Returns the current value of this button's properties.
      * @function TabletButtonProxy#getProperties
-     * @returns {ButtonProperties}
+     * @returns {TabletButtonProxy.ButtonProperties}
      */
     Q_INVOKABLE QVariantMap getProperties();
 
     /**jsdoc
-     * Replace the values of some of this button's properties
+     * Replace the values of some of this button's properties.
      * @function TabletButtonProxy#editProperties
-     * @param {ButtonProperties} properties - set of properties to change
+     * @param {TabletButtonProxy.ButtonProperties} properties - Set of properties to change.
      */
     Q_INVOKABLE void editProperties(const QVariantMap& properties);
 
-public slots:
-    void clickedSlot() { emit clicked(); }
-
 signals:
     /**jsdoc
-     * Signaled when this button has been clicked on by the user.
+     * Triggered when this button has been clicked on by the user.
      * @function TabletButtonProxy#clicked
      * @returns {Signal}
      */
     void clicked();
 
+    /**jsdoc
+     * @function TabletButtonProxy#propertiesChanged
+     * @returns {Signal}
+     */
+    void propertiesChanged();
+
 protected:
     QUuid _uuid;
     int _stableOrder;
-    QQuickItem* _qmlButton { nullptr };
-    QObject* _toolbarButtonProxy { nullptr };
+
+    /**jsdoc
+     * @typedef TabletButtonProxy.ButtonProperties
+     * @property {string} icon - URL to button icon. (50 x 50)
+     * @property {string} hoverIcon - URL to button icon, displayed during mouse hover. (50 x 50)
+     * @property {string} activeHoverIcon - URL to button icon used when button is active, and during mouse hover. (50 x 50)
+     * @property {string} activeIcon - URL to button icon used when button is active. (50 x 50)
+     * @property {string} text - Button caption.
+     * @property {string} hoverText - Button caption when button is not-active but during mouse hover.
+     * @property {string} activeText - Button caption when button is active.
+     * @property {string} activeHoverText - Button caption when button is active and during mouse hover.
+     * @property {boolean} isActive - <code>true</code> when button is active.
+     * @property {number} sortOrder - Determines sort order on tablet.  lower numbers will appear before larger numbers. 
+     *     Default is 100.
+     */
+    // FIXME: There are additional properties.
     QVariantMap _properties;
 };
 
 Q_DECLARE_METATYPE(TabletButtonProxy*);
-
-/**jsdoc
- * @typedef TabletButtonProxy.ButtonProperties
- * @property {string} icon - url to button icon. (50 x 50)
- * @property {string} hoverIcon - url to button icon, displayed during mouse hover. (50 x 50)
- * @property {string} activeHoverIcon - url to button icon used when button is active, and during mouse hover. (50 x 50)
- * @property {string} activeIcon - url to button icon used when button is active. (50 x 50)
- * @property {string} text - button caption
- * @property {string} hoverText - button caption when button is not-active but during mouse hover.
- * @property {string} activeText - button caption when button is active
- * @property {string} activeHoverText - button caption when button is active and during mouse hover.
- * @property {string} isActive - true when button is active.
- * @property {number} sortOrder - determines sort order on tablet.  lower numbers will appear before larger numbers.  default is 100
- */
 
 #endif // hifi_TabletScriptingInterface_h

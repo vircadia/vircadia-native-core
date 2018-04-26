@@ -63,7 +63,7 @@ var toolBar = (function() {
             y: -TOOLBAR_MARGIN_Y - toolHeight
         });
         browseDirectoryButton = toolBar.addTool({
-            imageURL: toolIconUrl + "directory-01.svg",
+            imageURL: toolIconUrl + "directory.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,

@@ -22,6 +22,12 @@ class ShapeEntityRenderer : public TypedEntityRenderer<ShapeEntityItem> {
 public:
     ShapeEntityRenderer(const EntityItemPointer& entity);
 
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
+
+protected:
+    ItemKey getKey() override;
+    ShapeKey getShapeKey() override;
+
 private:
     virtual bool needsRenderUpdate() const override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
@@ -30,11 +36,13 @@ private:
     virtual void doRender(RenderArgs* args) override;
     virtual bool isTransparent() const override;
 
+    bool useMaterialPipeline() const;
+
     Procedural _procedural;
     QString _lastUserData;
     Transform _renderTransform;
     entity::Shape _shape { entity::Sphere };
-    glm::vec4 _color;
+    std::shared_ptr<graphics::Material> _material;
     glm::vec3 _position;
     glm::vec3 _dimensions;
     glm::quat _orientation;

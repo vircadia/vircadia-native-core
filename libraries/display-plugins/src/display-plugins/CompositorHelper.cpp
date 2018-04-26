@@ -437,9 +437,11 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
         } else {
             d = glm::normalize(overlaySurfacePoint);
         }
-        reticlePosition = headPosition + (d * getReticleDepth());
+        // Our sensor to world matrix always has uniform scale
+        float sensorSpaceReticleDepth = getReticleDepth() / extractScale(_sensorToWorldMatrix).x;
+        reticlePosition = headPosition + (d * sensorSpaceReticleDepth);
         quat reticleOrientation = cancelOutRoll(glm::quat_cast(_currentDisplayPlugin->getHeadPose()));
-        vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize * getReticleDepth());
+        vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize * sensorSpaceReticleDepth);
         return glm::inverse(eyePose) * createMatFromScaleQuatAndPos(reticleScale, reticleOrientation, reticlePosition);
     } else {
         static const float CURSOR_PIXEL_SIZE = 32.0f;
@@ -453,6 +455,21 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
         vec2 mouseSize = CURSOR_PIXEL_SIZE * Cursor::Manager::instance().getScale() / canvasSize;
         result = glm::scale(glm::translate(glm::mat4(), vec3(mousePosition, 0.0f)), vec3(mouseSize, 1.0f));
     }
+    return result;
+}
+
+glm::mat4 CompositorHelper::getPoint2DTransform(const glm::vec2& point, float sizeX, float sizeY) const {
+    glm::mat4 result;
+    const auto canvasSize = vec2(toGlm(_renderingWidget->size()));;
+    QPoint qPoint(point.x,point.y);
+    vec2 position = toGlm(_renderingWidget->mapFromGlobal(qPoint));
+    position /= canvasSize;
+    position *= 2.0;
+    position -= 1.0;
+    position.y *= -1.0f;
+
+    vec2 size = vec2(sizeX / canvasSize.x, sizeY / canvasSize.y);
+    result = glm::scale(glm::translate(glm::mat4(), vec3(position, 0.0f)), vec3(size, 1.0f));
     return result;
 }
 

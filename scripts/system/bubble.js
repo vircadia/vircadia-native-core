@@ -16,10 +16,8 @@
     var button;
     // Used for animating and disappearing the bubble
     var bubbleOverlayTimestamp;
-    // Used for flashing the HUD button upon activation
-    var bubbleButtonFlashState = false;
-    // Used for flashing the HUD button upon activation
-    var bubbleButtonTimestamp;
+    // Used for rate limiting the bubble sound
+    var lastBubbleSoundTimestamp = 0;
     // Affects bubble height
     var BUBBLE_HEIGHT_SCALE = 0.15;
     // The bubble model itself
@@ -39,22 +37,26 @@
 
     var BUBBLE_VISIBLE_DURATION_MS = 3000;
     var BUBBLE_RAISE_ANIMATION_DURATION_MS = 750;
+    var BUBBLE_SOUND_RATE_LIMIT_MS = 15000;
 
-    // Hides the bubble model overlay and resets the button flash state
+    // Hides the bubble model overlay
     function hideOverlays() {
         Overlays.editOverlay(bubbleOverlay, {
             visible: false
         });
-        bubbleButtonFlashState = false;
     }
 
     // Make the bubble overlay visible, set its position, and play the sound
     function createOverlays() {
-        Audio.playSound(bubbleActivateSound, {
-            position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
-            localOnly: true,
-            volume: 0.2
-        });
+        var nowTimestamp = Date.now();
+        if (nowTimestamp - lastBubbleSoundTimestamp >= BUBBLE_SOUND_RATE_LIMIT_MS) {
+            Audio.playSound(bubbleActivateSound, {
+                position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
+                localOnly: true,
+                volume: 0.2
+            });
+            lastBubbleSoundTimestamp = nowTimestamp;
+        }
         hideOverlays();
         if (updateConnected === true) {
             updateConnected = false;
@@ -80,8 +82,7 @@
             },
             visible: true
         });
-        bubbleOverlayTimestamp = Date.now();
-        bubbleButtonTimestamp = bubbleOverlayTimestamp;
+        bubbleOverlayTimestamp = nowTimestamp;
         Script.update.connect(update);
         updateConnected = true;
     }
@@ -103,13 +104,6 @@
         var delay = (timestamp - bubbleOverlayTimestamp);
         var overlayAlpha = 1.0 - (delay / BUBBLE_VISIBLE_DURATION_MS);
         if (overlayAlpha > 0) {
-            // Flash button
-            if ((timestamp - bubbleButtonTimestamp) >= BUBBLE_VISIBLE_DURATION_MS) {
-                writeButtonProperties(bubbleButtonFlashState);
-                bubbleButtonTimestamp = timestamp;
-                bubbleButtonFlashState = !bubbleButtonFlashState;
-            }
-
             if (delay < BUBBLE_RAISE_ANIMATION_DURATION_MS) {
                 Overlays.editOverlay(bubbleOverlay, {
                     dimensions: { 
@@ -157,8 +151,6 @@
                 Script.update.disconnect(update);
                 updateConnected = false;
             }
-            var bubbleActive = Users.getIgnoreRadiusEnabled();
-            writeButtonProperties(bubbleActive);
         }
     }
 
@@ -206,7 +198,6 @@
         Users.ignoreRadiusEnabledChanged.disconnect(onBubbleToggled);
         Users.enteredIgnoreRadius.disconnect(enteredIgnoreRadius);
         Overlays.deleteOverlay(bubbleOverlay);
-        bubbleButtonFlashState = false;
         if (updateConnected === true) {
             Script.update.disconnect(update);
         }

@@ -13,11 +13,29 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include "../gl/GLTexelFormat.h"
+#include <gpu/gl/GLTexelFormat.h>
 
 using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl41;
+
+bool GL41Backend::supportedTextureFormat(const gpu::Element& format) {
+    switch (format.getSemantic()) {
+        case gpu::Semantic::COMPRESSED_ETC2_RGB:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGB:
+        case gpu::Semantic::COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA:
+        case gpu::Semantic::COMPRESSED_ETC2_RGBA:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGBA:
+        case gpu::Semantic::COMPRESSED_EAC_RED:
+        case gpu::Semantic::COMPRESSED_EAC_RED_SIGNED:
+        case gpu::Semantic::COMPRESSED_EAC_XY:
+        case gpu::Semantic::COMPRESSED_EAC_XY_SIGNED:
+            return false;
+        default:
+            return true;
+    }
+}
 
 GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
     if (!texturePointer) {
@@ -31,6 +49,11 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
 
     if (!texture.isDefined()) {
         // NO texture definition yet so let's avoid thinking
+        return nullptr;
+    }
+
+    // Check whether the texture is in a format we can deal with
+    if (!supportedTextureFormat(texture.getTexelFormat())) {
         return nullptr;
     }
 
@@ -156,7 +179,7 @@ void GL41Texture::syncSampler() const {
     glTexParameteri(_target, GL_TEXTURE_MAG_FILTER, fm.magFilter);
 
     if (sampler.doComparison()) {
-        glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+        glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE_ARB);
         glTexParameteri(_target, GL_TEXTURE_COMPARE_FUNC, COMPARISON_TO_GL[sampler.getComparisonFunction()]);
     } else {
         glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_NONE);
@@ -167,7 +190,6 @@ void GL41Texture::syncSampler() const {
     glTexParameteri(_target, GL_TEXTURE_WRAP_R, WRAP_MODES[sampler.getWrapModeW()]);
 
     glTexParameterfv(_target, GL_TEXTURE_BORDER_COLOR, (const float*)&sampler.getBorderColor());
-    glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, (uint16)sampler.getMipOffset());
 
     glTexParameterf(_target, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
     glTexParameterf(_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
@@ -206,9 +228,6 @@ void GL41FixedAllocationTexture::allocateStorage() const {
 void GL41FixedAllocationTexture::syncSampler() const {
     Parent::syncSampler();
     const Sampler& sampler = _gpuObject.getSampler();
-    auto baseMip = std::max<uint16_t>(sampler.getMipOffset(), sampler.getMinMip());
-
-    glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, baseMip);
     glTexParameterf(_target, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
     glTexParameterf(_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.0f : sampler.getMaxMip()));
 }
@@ -413,7 +432,7 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
         sourceMip._size = (GLint)faceTargets.size() * sourceMip._faceSize;
         sourceMip._offset = bufferOffset;
         bufferOffset += sourceMip._size;
-        gpu::gl::checkGLError();
+        ::gl::checkGLError(__FUNCTION__);
     }
     (void)CHECK_GL_ERROR();
 
@@ -458,7 +477,7 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
 #endif
             glCompressedTexSubImage2D(faceTargets[f], destLevel, 0, 0, sourceMip._width, sourceMip._height, internalFormat,
                 sourceMip._faceSize, BUFFER_OFFSET(sourceMip._offset + f * sourceMip._faceSize));
-            gpu::gl::checkGLError();
+            ::gl::checkGLError(__FUNCTION__);
         }
     }
 
@@ -610,4 +629,3 @@ GL41ResourceTexture::GL41ResourceTexture(const std::weak_ptr<GLBackend>& backend
 
 GL41ResourceTexture::~GL41ResourceTexture() {
 }
-

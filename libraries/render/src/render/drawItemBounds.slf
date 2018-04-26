@@ -15,7 +15,6 @@ in vec4 varColor;
 in vec2 varTexcoord;
 out vec4 outFragColor;
 
-
 void main(void) {
     float var = step(fract(varTexcoord.x * varTexcoord.y * 1.0), 0.5);
 

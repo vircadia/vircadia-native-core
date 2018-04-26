@@ -79,7 +79,6 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
                                             this, "handleOctreePacket");
-    packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
 
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
@@ -106,8 +105,6 @@ EntityScriptServer::~EntityScriptServer() {
 static const QString ENTITY_SCRIPT_SERVER_LOGGING_NAME = "entity-script-server";
 
 void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
-    // about each other.
     if (senderNode->getCanRez() || senderNode->getCanRezTmp() || senderNode->getCanRezCertified() || senderNode->getCanRezTmpCertified()) {
         auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
 
@@ -120,8 +117,6 @@ void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<Rec
 }
 
 void EntityScriptServer::handleEntityScriptGetStatusPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
-    // about each other.
     if (senderNode->getCanRez() || senderNode->getCanRezTmp() || senderNode->getCanRezCertified() || senderNode->getCanRezTmpCertified()) {
         MessageID messageID;
         message->readPrimitive(&messageID);
@@ -179,7 +174,7 @@ void EntityScriptServer::updateEntityPPS() {
     int numRunningScripts = _entitiesScriptEngine->getNumRunningEntityScripts();
     int pps;
     if (std::numeric_limits<int>::max() / _entityPPSPerScript < numRunningScripts) {
-        qWarning() << QString("Integer multiplaction would overflow, clamping to maxint: %1 * %2").arg(numRunningScripts).arg(_entityPPSPerScript);
+        qWarning() << QString("Integer multiplication would overflow, clamping to maxint: %1 * %2").arg(numRunningScripts).arg(_entityPPSPerScript);
         pps = std::numeric_limits<int>::max();
         pps = std::min(_maxEntityPPS, pps);
     } else {
@@ -191,15 +186,14 @@ void EntityScriptServer::updateEntityPPS() {
 }
 
 void EntityScriptServer::handleEntityServerScriptLogPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
-    // about each other.
+    bool canRezAny = senderNode->getCanRez() || senderNode->getCanRezTmp() || senderNode->getCanRezCertified() || senderNode->getCanRezTmpCertified();
     bool enable = false;
     message->readPrimitive(&enable);
 
     auto senderUUID = senderNode->getUUID();
     auto it = _logListeners.find(senderUUID);
 
-    if (enable && senderNode->getCanRez()) {
+    if (enable && canRezAny) {
         if (it == std::end(_logListeners)) {
             _logListeners.insert(senderUUID);
             qCInfo(entity_script_server) << "Node" << senderUUID << "subscribed to log stream";
@@ -283,11 +277,8 @@ void EntityScriptServer::run() {
     // Setup Script Engine
     resetEntitiesScriptEngine();
 
-    // we need to make sure that init has been called for our EntityScriptingInterface
-    // so that it actually has a jurisdiction listener when we ask it for it next
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->init();
-    _entityViewer.setJurisdictionListener(entityScriptingInterface->getJurisdictionListener());
 
     _entityViewer.init();
     
@@ -480,6 +471,7 @@ void EntityScriptServer::clear() {
         // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
         _entitiesScriptEngine->unloadAllEntityScripts();
         _entitiesScriptEngine->stop();
+        _entitiesScriptEngine->waitTillDoneRunning();
     }
 
     _entityViewer.clear();
@@ -566,22 +558,18 @@ void EntityScriptServer::handleOctreePacket(QSharedPointer<ReceivedMessage> mess
     }
 }
 
-void EntityScriptServer::handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    NodeType_t nodeType;
-    message->peekPrimitive(&nodeType);
-
-    // PacketType_JURISDICTION, first byte is the node type...
-    if (nodeType == NodeType::EntityServer) {
-        DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
-        queueReceivedPacket(message, senderNode);
-    }
-}
-
 void EntityScriptServer::aboutToFinish() {
     shutdownScriptEngine();
 
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
-    DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
+    entityScriptingInterface->setEntityTree(nullptr);
+
+    // Should always be true as they are singletons.
+    if (entityScriptingInterface->getPacketSender() == &_entityEditSender) {
+        // The packet sender is about to go away.
+        entityScriptingInterface->setPacketSender(nullptr);
+    }
 
     DependencyManager::get<ResourceManager>()->cleanup();
 

@@ -33,6 +33,7 @@
 #include <FileScriptingInterface.h>
 #include <input-plugins/KeyboardMouseDevice.h>
 #include <input-plugins/TouchscreenDevice.h>
+#include <input-plugins/TouchscreenVirtualPadDevice.h>
 #include <OctreeQuery.h>
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
@@ -71,7 +72,7 @@
 #include "UndoStackScriptingInterface.h"
 
 #include <procedural/ProceduralSkybox.h>
-#include <model/Skybox.h>
+#include <graphics/Skybox.h>
 #include <ModelScriptingInterface.h>
 #include "FrameTimingsScriptingInterface.h"
 
@@ -135,7 +136,8 @@ public:
     Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runningMarkerExisted);
     ~Application();
 
-    void postLambdaEvent(std::function<void()> f) override;
+    void postLambdaEvent(const std::function<void()>& f) override;
+    void sendLambdaEvent(const std::function<void()>& f) override;
 
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
@@ -144,9 +146,10 @@ public:
     Q_INVOKABLE QString getUserAgent();
 
     void initializeGL();
+    void initializeRenderEngine();
     void initializeUi();
 
-    void updateCamera(RenderArgs& renderArgs);
+    void updateCamera(RenderArgs& renderArgs, float deltaTime);
     void paintGL();
     void resizeGL();
 
@@ -158,8 +161,10 @@ public:
 
     glm::uvec2 getUiSize() const;
     QRect getRecommendedHUDRect() const;
-    QSize getDeviceSize() const;
+    glm::vec2 getDeviceSize() const;
     bool hasFocus() const;
+    void setFocus();
+    void raise();
 
     void showCursor(const Cursor::Icon& cursor);
 
@@ -207,7 +212,11 @@ public:
     void setDesktopTabletBecomesToolbarSetting(bool value);
     bool getHmdTabletBecomesToolbarSetting() { return _hmdTabletBecomesToolbarSetting.get(); }
     void setHmdTabletBecomesToolbarSetting(bool value);
-    bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
+    bool getPreferStylusOverLaser() { return _preferStylusOverLaserSetting.get(); }
+    void setPreferStylusOverLaser(bool value);
+    // FIXME: Remove setting completely or make available through JavaScript API?
+    //bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
+    bool getPreferAvatarFingerOverStylus() { return false; }
     void setPreferAvatarFingerOverStylus(bool value);
 
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
@@ -228,15 +237,11 @@ public:
 
     FileLogger* getLogger() const { return _logger; }
 
-    glm::vec2 getViewportDimensions() const;
-
-    NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
-
     float getRenderResolutionScale() const;
 
     qint64 getCurrentSessionRuntime() const { return _sessionRunTimer.elapsed(); }
 
-    bool isAboutToQuit() const override { return _aboutToQuit; }
+    bool isAboutToQuit() const { return _aboutToQuit; }
     bool isPhysicsEnabled() const { return _physicsEnabled; }
 
     // the isHMDMode is true whenever we use the interface from an HMD and not a standard flat display
@@ -260,19 +265,16 @@ public:
     render::EnginePointer getRenderEngine() override { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
-    virtual void pushPostUpdateLambda(void* key, std::function<void()> func) override;
+    virtual void pushPostUpdateLambda(void* key, const std::function<void()>& func) override;
 
     void updateMyAvatarLookAtPosition();
 
     float getGameLoopRate() const { return _gameLoopCounter.rate(); }
 
-    void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f);
-    void takeSecondaryCameraSnapshot();
-    void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
+    void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
+    void takeSecondaryCameraSnapshot(const QString& filename = QString());
 
-    model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
-    gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
-    gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
+    void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
     OverlayID getTabletScreenID() const;
     OverlayID getTabletHomeButtonID() const;
@@ -282,6 +284,11 @@ public:
     void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
+    void saveNextPhysicsStats(QString filename);
+
+    bool isServerlessMode() const;
+
+    void replaceDomainContent(const QString& url);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -292,7 +299,6 @@ signals:
     void activeDisplayPluginChanged();
 
     void uploadRequest(QString path);
-    void receivedHifiSchemeURL(const QString& url);
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
@@ -308,6 +314,7 @@ public slots:
     void toggleEntityScriptServerLogDialog();
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
+    Q_INVOKABLE void loadAvatarBrowser() const;
     Q_INVOKABLE SharedSoundPointer getSampleSound() const;
 
     void showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const;
@@ -315,11 +322,11 @@ public slots:
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
     void addAssetToWorldFromURLRequestFinished();
-    void addAssetToWorld(QString filePath, QString zipFile, bool isZip, bool isBlocks);
+    void addAssetToWorld(QString filePath, QString zipFile, bool isZip = false, bool isBlocks = false);
     void addAssetToWorldUnzipFailure(QString filePath);
-    void addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy);
-    void addAssetToWorldUpload(QString filePath, QString mapping);
-    void addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash);
+    void addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy, bool isZip = false, bool isBlocks = false);
+    void addAssetToWorldUpload(QString filePath, QString mapping, bool isZip = false, bool isBlocks = false);
+    void addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash, bool isZip = false, bool isBlocks = false);
     void addAssetToWorldAddEntity(QString filePath, QString mapping);
 
     void handleUnzip(QString sourceFile, QStringList destinationFile, bool autoAdd, bool isZip, bool isBlocks);
@@ -363,6 +370,7 @@ public slots:
     void updateHeartbeat() const;
 
     static void deadlockApplication();
+    static void unresponsiveApplication(); // cause main thread to be unresponsive for 35 seconds
 
     void rotationModeChanged() const;
 
@@ -386,7 +394,14 @@ public slots:
     const QString getPreferredCursor() const { return _preferredCursor.get(); }
     void setPreferredCursor(const QString& cursor);
 
+    void setIsServerlessMode(bool serverlessDomain);
+    void loadServerlessDomain(QUrl domainURL);
+
+    Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
+
 private slots:
+    void onDesktopRootItemCreated(QQuickItem* qmlContext);
+    void onDesktopRootContextCreated(QQmlContext* qmlContext);
     void showDesktop();
     void clearDomainOctreeDetails();
     void clearDomainAvatars();
@@ -416,7 +431,7 @@ private slots:
 
     void setSessionUUID(const QUuid& sessionUUID) const;
 
-    void domainChanged(const QString& domainHostname);
+    void domainURLChanged(QUrl domainURL);
     void updateWindowTitle() const;
     void nodeAdded(SharedNodePointer node) const;
     void nodeActivated(SharedNodePointer node);
@@ -424,6 +439,7 @@ private slots:
     static void packetSent(quint64 length);
     static void addingEntityWithCertificate(const QString& certificateID, const QString& placeName);
     void updateDisplayMode();
+    void setDisplayPlugin(DisplayPluginPointer newPlugin);
     void domainConnectionRefused(const QString& reasonMessage, int reason, const QString& extraInfo);
 
     void addAssetToWorldCheckModelSize();
@@ -434,8 +450,8 @@ private slots:
 
     void handleSandboxStatus(QNetworkReply* reply);
     void switchDisplayMode();
+
 private:
-    static void initDisplay();
     void init();
     bool handleKeyEventForFocusedEntityOrOverlay(QEvent* event);
     bool handleFileOpenEvent(QFileOpenEvent* event);
@@ -450,7 +466,7 @@ private:
     void updateThreads(float deltaTime);
     void updateDialogs(float deltaTime) const;
 
-    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
+    void queryOctree(NodeType_t serverType, PacketType packetType);
 
     int sendNackPackets();
     void sendAvatarViewFrustum();
@@ -466,6 +482,7 @@ private:
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
     bool importFromZIP(const QString& filePath);
+    bool importImage(const QString& urlString);
 
     bool nearbyEntitiesAreReadyForPhysics();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
@@ -542,6 +559,7 @@ private:
     std::shared_ptr<controller::StateController> _applicationStateDevice; // Default ApplicationDevice reflecting the state of different properties of the session
     std::shared_ptr<KeyboardMouseDevice> _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
     std::shared_ptr<TouchscreenDevice> _touchscreenDevice;   // the good old touchscreen
+    std::shared_ptr<TouchscreenVirtualPadDevice> _touchscreenVirtualPadDevice;
     SimpleMovingAverage _avatarSimsPerSecond {10};
     int _avatarSimsPerSecondReport {0};
     quint64 _lastAvatarSimsPerSecondUpdate {0};
@@ -553,12 +571,13 @@ private:
     Setting::Handle<float> _desktopTabletScale;
     Setting::Handle<bool> _desktopTabletBecomesToolbarSetting;
     Setting::Handle<bool> _hmdTabletBecomesToolbarSetting;
+    Setting::Handle<bool> _preferStylusOverLaserSetting;
     Setting::Handle<bool> _preferAvatarFingerOverStylusSetting;
     Setting::Handle<bool> _constrainToolbarPosition;
     Setting::Handle<QString> _preferredCursor;
 
     float _scaleMirror;
-    float _rotateMirror;
+    float _mirrorYawOffset;
     float _raiseMirror;
 
     QSet<int> _keysPressed;
@@ -571,7 +590,6 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
-    NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
     ControllerScriptingInterface* _controllerScriptingInterface{ nullptr };
     QPointer<LogDialog> _logDialog;
@@ -593,7 +611,7 @@ private:
     GLCanvas* _glWidget{ nullptr };
 
     typedef bool (Application::* AcceptURLMethod)(const QString &);
-    static const QHash<QString, AcceptURLMethod> _acceptedExtensions;
+    static const std::vector<std::pair<QString, Application::AcceptURLMethod>> _acceptedExtensions;
 
     glm::uvec2 _renderResolution;
 
@@ -609,6 +627,7 @@ private:
     struct AppRenderArgs {
         render::Args _renderArgs;
         glm::mat4 _eyeToWorld;
+        glm::mat4 _view;
         glm::mat4 _eyeOffsets[2];
         glm::mat4 _eyeProjections[2];
         glm::mat4 _headPose;
@@ -664,10 +683,6 @@ private:
 
     ConnectionMonitor _connectionMonitor;
 
-    model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
-    gpu::TexturePointer _defaultSkyboxTexture;
-    gpu::TexturePointer _defaultSkyboxAmbientTexture;
-
     QTimer _addAssetToWorldResizeTimer;
     QHash<QUuid, int> _addAssetToWorldResizeList;
 
@@ -692,6 +707,9 @@ private:
     bool _previousHMDWornStatus;
     void startHMDStandBySession();
     void endHMDSession();
+
+    glm::vec3 _thirdPersonHMDCameraBoom { 0.0f, 0.0f, -1.0f };
+    bool _thirdPersonHMDCameraBoomValid { true };
 
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };

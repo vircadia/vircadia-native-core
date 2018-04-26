@@ -18,10 +18,6 @@
 
 #include "DependencyManager.h"
 
-#define MAX_STATS 100
-#define MAX_VOXEL_SERVERS 50
-#define DEFAULT_COLOR 0
-
 class OctreeStatsProvider : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -121,8 +117,7 @@ private slots:
     void updateOctreeStatsData();
 protected:
     void updateOctreeServers();
-    void showOctreeServersOfType(int& serverNumber, NodeType_t serverType, 
-                    const char* serverTypeName, NodeToJurisdictionMap& serverJurisdictions);
+    void showOctreeServersOfType(NodeType_t serverType);
 
 private:
     NodeToOctreeSceneStats* _model;
@@ -136,7 +131,7 @@ private:
     quint64 _lastRefresh = 0;
 
     QTimer _updateTimer;
-    int m_serversNum {0};
+    int m_serversNum { 0 };
     QString m_serverElements;
     QString m_localElements;
     QString m_localElementsMemory;

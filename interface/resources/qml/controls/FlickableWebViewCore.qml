@@ -21,6 +21,8 @@ Item {
     signal newViewRequestedCallback(var request)
     signal loadingChangedCallback(var loadRequest)
 
+    width: parent.width
+
     property bool interactive: false
 
     StylesUIt.HifiConstants {
@@ -47,7 +49,7 @@ Item {
         }
 
         if (WebEngineView.LoadFailedStatus === loadRequest.status) {
-            console.log(" Tablet WebEngineView failed to load url: " + loadRequest.url.toString());
+            console.log("Tablet WebEngineView failed to load url: " + loadRequest.url.toString());
         }
 
         if (WebEngineView.LoadSucceededStatus === loadRequest.status) {
@@ -58,7 +60,8 @@ Item {
     WebEngineView {
         id: webViewCore
 
-        anchors.fill: parent
+        width: parent.width
+        height: parent.height
 
         profile: HFWebEngineProfile;
         settings.pluginsEnabled: true
@@ -91,20 +94,19 @@ Item {
 
         userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
 
-        property string newUrl: ""
-
         Component.onCompleted: {
             webChannel.registerObject("eventBridge", eventBridge);
             webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
-            // Ensure the JS from the web-engine makes it to our logging
-            webViewCore.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
-                console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
-            });
+
             if (webViewCoreUserAgent !== undefined) {
                 webViewCore.profile.httpUserAgent = webViewCoreUserAgent
             } else {
                 webViewCore.profile.httpUserAgent += " (HighFidelityInterface)";
             }
+            // Ensure the JS from the web-engine makes it to our logging
+            webViewCore.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
+                console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
+            });
         }
 
         onFeaturePermissionRequested: {
@@ -120,9 +122,21 @@ Item {
             newViewRequestedCallback(request)
         }
 
+        // Prior to 5.10, the WebEngineView loading property is true during initial page loading and then stays false
+        // as in-page javascript adds more html content. However, in 5.10 there is a bug such that adding html turns
+        // loading true, and never turns it false again. safeLoading provides a workaround, but it should be removed
+        // when QT fixes this.
+        property bool safeLoading: false
+        property bool loadingLatched: false
+        property var loadingRequest: null
         onLoadingChanged: {
-            flick.onLoadingChanged(loadRequest)
-            loadingChangedCallback(loadRequest)
+            webViewCore.loadingRequest = loadRequest;
+            webViewCore.safeLoading = webViewCore.loading && !loadingLatched;
+            webViewCore.loadingLatched |= webViewCore.loading;
+         }
+        onSafeLoadingChanged: {
+            flick.onLoadingChanged(webViewCore.loadingRequest)
+            loadingChangedCallback(webViewCore.loadingRequest)
         }
     }
 
@@ -131,7 +145,7 @@ Item {
         x: flick.width/2 - width/2
         y: flick.height/2 - height/2
         source: "../../icons/loader-snake-64-w.gif"
-        visible: webViewCore.loading && /^(http.*|)$/i.test(webViewCore.url.toString())
+        visible: webViewCore.safeLoading && /^(http.*|)$/i.test(webViewCore.url.toString())
         playing: visible
         z: 10000
     }

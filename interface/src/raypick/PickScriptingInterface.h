@@ -109,11 +109,12 @@ public:
      *
      * @typedef {Object} Picks.RayPickResult
      * @property {number} type The intersection type.
-     * @property {bool} intersects If there was a valid intersection (type != INTERSECTED_NONE)
+     * @property {boolean} intersects If there was a valid intersection (type != INTERSECTED_NONE)
      * @property {Uuid} objectID The ID of the intersected object.  Uuid.NULL for the HUD or invalid intersections.
      * @property {float} distance The distance to the intersection point from the origin of the ray.
      * @property {Vec3} intersection The intersection point in world-space.
      * @property {Vec3} surfaceNormal The surface normal at the intersected point.  All NANs if type == INTERSECTED_HUD.
+     * @property {Variant} extraInfo Additional intersection details when available for Model objects.
      * @property {PickRay} searchRay The PickRay that was used.  Valid even if there was no intersection.
      */
 
@@ -122,11 +123,12 @@ public:
      *
      * @typedef {Object} Picks.StylusPickResult
      * @property {number} type The intersection type.
-     * @property {bool} intersects If there was a valid intersection (type != INTERSECTED_NONE)
+     * @property {boolean} intersects If there was a valid intersection (type != INTERSECTED_NONE)
      * @property {Uuid} objectID The ID of the intersected object.  Uuid.NULL for the HUD or invalid intersections.
      * @property {float} distance The distance to the intersection point from the origin of the ray.
      * @property {Vec3} intersection The intersection point in world-space.
      * @property {Vec3} surfaceNormal The surface normal at the intersected point.  All NANs if type == INTERSECTED_HUD.
+     * @property {Variant} extraInfo Additional intersection details when available for Model objects.
      * @property {StylusTip} stylusTip The StylusTip that was used.  Valid even if there was no intersection.
      */
 
@@ -182,6 +184,14 @@ public:
      * @returns {boolean} True if the Pick is a Mouse Ray Pick, false otherwise.
      */
     Q_INVOKABLE bool isMouse(unsigned int uid);
+
+    Q_PROPERTY(unsigned int perFrameTimeBudget READ getPerFrameTimeBudget WRITE setPerFrameTimeBudget)
+    /**jsdoc
+     * The max number of usec to spend per frame updating Pick results.
+     * @typedef {number} Picks.perFrameTimeBudget
+     */
+    unsigned int getPerFrameTimeBudget() const;
+    void setPerFrameTimeBudget(unsigned int numUsecs);
 
 public slots:
     static constexpr unsigned int PICK_NOTHING() { return 0; }

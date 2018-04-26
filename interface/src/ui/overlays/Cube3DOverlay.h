@@ -29,18 +29,14 @@ public:
 
     virtual Cube3DOverlay* createClone() const override;
 
-    float getBorderSize() const { return _borderSize; }
-
-    void setBorderSize(float value) { _borderSize = value; }
-
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
 
+    virtual scriptable::ScriptableModelBase getScriptableModel() override;
 protected:
     Transform evalRenderTransform() override;
 
 private:
-    float _borderSize;
     // edges on a cube
     std::array<int, 12> _geometryIds;
 };

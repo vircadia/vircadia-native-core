@@ -87,12 +87,11 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
         return constraint;
     }
 
-    static QString repeatedSliderNoRigidBody = LogHandler::getInstance().addRepeatedMessageRegex(
-        "ObjectConstraintSlider::getConstraint -- no rigidBody.*");
+    static int repeatMessageID = LogHandler::getInstance().newRepeatedMessageID();
 
     btRigidBody* rigidBodyA = getRigidBody();
     if (!rigidBodyA) {
-        qCDebug(physics) << "ObjectConstraintSlider::getConstraint -- no rigidBodyA";
+        HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintSlider::getConstraint -- no rigidBodyA");
         return nullptr;
     }
 
@@ -121,7 +120,7 @@ btTypedConstraint* ObjectConstraintSlider::getConstraint() {
 
         btRigidBody* rigidBodyB = getOtherRigidBody(otherEntityID);
         if (!rigidBodyB) {
-            qCDebug(physics) << "ObjectConstraintSlider::getConstraint -- no rigidBodyB";
+            HIFI_FCDEBUG_ID(physics(), repeatMessageID, "ObjectConstraintSlider::getConstraint -- no rigidBodyB");
             return nullptr;
         }
 
@@ -261,6 +260,31 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
     return true;
 }
 
+/**jsdoc
+ * The <code>"slider"</code> {@link Entities.ActionType|ActionType} lets an entity slide and rotate along an axis, or connects 
+ * two entities that slide and rotate along a shared axis.
+ * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}.
+ *
+ * @typedef {object} Entities.ActionArguments-Slider
+ * @property {Vec3} point=0,0,0 - The local position of a point in the entity that slides along the axis.
+ * @property {Vec3} axis=1,0,0 - The axis of the entity that slides along the joint. Must be a non-zero vector.
+ * @property {Uuid} otherEntityID=null - The ID of the other entity that is connected to the joint, if any. If non is 
+ *     specified then the first entity simply slides and rotates about its specified <code>axis</code>.
+ * @property {Vec3} otherPoint=0,0,0 - The local position of a point in the other entity that slides along the axis.
+ * @property {Vec3} axis=1,0,0 - The axis of the other entity that slides along the joint. Must be a non-zero vector.
+ * @property {number} linearLow=1.17e-38 - The most negative linear offset from the entity's initial point that the entity can 
+ *     have along the slider.
+ * @property {number} linearHigh=3.40e+38 - The most positive linear offset from the entity's initial point that the entity can 
+ *     have along the slider. 
+ * @property {number} angularLow=-6.283 - The most negative angle that the entity can rotate about the axis if the action 
+ *     involves only one entity, otherwise the most negative angle the rotation can be between the two entities. In radians.
+ * @property {number} angularHigh=6.283 - The most positive angle that the entity can rotate about the axis if the action 
+ *     involves only one entity, otherwise the most positive angle the rotation can be between the two entities. In radians.
+ * @property {number} linearPosition=0 - The current linear offset the entity is from its initial point if the action involves 
+ *     only one entity, otherwise the linear offset between the two entities' action points. <em>Read-only.</em>
+ * @property {number} angularPosition=0 - The current angular offset of the entity from its initial rotation if the action 
+ *     involves only one entity, otherwise the angular offset between the two entities. <em>Read-only.</em>
+ */
 QVariantMap ObjectConstraintSlider::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {

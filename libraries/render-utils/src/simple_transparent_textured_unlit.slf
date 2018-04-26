@@ -17,11 +17,8 @@
 // the albedo texture
 uniform sampler2D originalTexture;
 
-// the interpolated normal
-in vec3 _normal;
 in vec4 _color;
 in vec2 _texCoord0;
-
 
 layout(location = 0) out vec4 _fragColor0;
 
@@ -29,7 +26,7 @@ void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0.st);
     float colorAlpha = _color.a;
     if (_color.a <= 0.0) {
-        texel = colorToLinearRGBA(texel);
+        texel = color_sRGBAToLinear(texel);
         colorAlpha = -_color.a;
     }
     _fragColor0 = vec4(_color.rgb * texel.rgb, colorAlpha * texel.a);

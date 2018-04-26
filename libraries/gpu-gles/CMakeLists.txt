@@ -1,11 +1,5 @@
 set(TARGET_NAME gpu-gles)
-setup_hifi_library(OpenGL)
-link_hifi_libraries(shared gl gpu)
+setup_hifi_library(Gui Concurrent)
+link_hifi_libraries(shared gl gpu gpu-gl-common)
 GroupSources("src")
-
 target_opengl()
-target_nsight()
-
-if (NOT ANDROID)
-  target_glew()
-endif ()

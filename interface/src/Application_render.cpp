@@ -55,7 +55,7 @@ void Application::paintGL() {
         // If a display plugin loses it's underlying support, it
         // needs to be able to signal us to not use it
         if (!displayPlugin->beginFrameRender(_renderFrameCount)) {
-            updateDisplayMode();
+            QMetaObject::invokeMethod(this, "updateDisplayMode");
             return;
         }
     }
@@ -90,10 +90,10 @@ void Application::paintGL() {
 
     {
         PROFILE_RANGE(render, "/gpuContextReset");
-        _gpuContext->beginFrame(HMDSensorPose);
+        _gpuContext->beginFrame(_appRenderArgs._view, HMDSensorPose);
         // Reset the gpu::Context Stages
         // Back to the default framebuffer;
-        gpu::doInBatch(_gpuContext, [&](gpu::Batch& batch) {
+        gpu::doInBatch("Application_render::gpuContextReset", _gpuContext, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
     }
@@ -104,8 +104,7 @@ void Application::paintGL() {
         PerformanceTimer perfTimer("renderOverlay");
         // NOTE: There is no batch associated with this renderArgs
         // the ApplicationOverlay class assumes it's viewport is setup to be the device size
-        QSize size = getDeviceSize();
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
+        renderArgs._viewport = glm::ivec4(0, 0, getDeviceSize());
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
@@ -179,7 +178,7 @@ public:
 render::ItemID WorldBoxRenderData::_item{ render::Item::INVALID_ITEM_ID };
 
 namespace render {
-    template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
+    template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape().withTagBits(ItemKey::TAG_BITS_0 | ItemKey::TAG_BITS_1); }
     template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff) { return Item::Bound(); }
     template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::WorldAxes)) {
@@ -217,7 +216,7 @@ void Application::runRenderFrame(RenderArgs* renderArgs) {
 
     // Make sure the WorldBox is in the scene
     // For the record, this one RenderItem is the first one we created and added to the scene.
-    // We could meoee that code elsewhere but you know...
+    // We could move that code elsewhere but you know...
     if (!render::Item::isValidID(WorldBoxRenderData::_item)) {
         auto worldBoxRenderData = std::make_shared<WorldBoxRenderData>();
         auto worldBoxRenderPayload = std::make_shared<WorldBoxRenderData::Payload>(worldBoxRenderData);

@@ -37,15 +37,13 @@ OctreeSceneStats::OctreeSceneStats() :
     _incomingBytes(0),
     _incomingWastedBytes(0),
     _incomingOctreeSequenceNumberStats(),
-    _incomingFlightTimeAverage(samples),
-    _jurisdictionRoot(NULL)
+    _incomingFlightTimeAverage(samples)
 {
     reset();
 }
 
 // copy constructor
-OctreeSceneStats::OctreeSceneStats(const OctreeSceneStats& other) :
-_jurisdictionRoot(NULL) {
+OctreeSceneStats::OctreeSceneStats(const OctreeSceneStats& other) {
     copyFromOther(other);
 }
 
@@ -109,26 +107,6 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
     _existsInPacketBitsWritten = other._existsInPacketBitsWritten;
     _treesRemoved = other._treesRemoved;
 
-    // before copying the jurisdictions, delete any current values...
-    _jurisdictionRoot = nullptr;
-    _jurisdictionEndNodes.clear();
-
-    // Now copy the values from the other
-    if (other._jurisdictionRoot) {
-        auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(other._jurisdictionRoot.get()));
-        _jurisdictionRoot = createOctalCodePtr(bytes);
-        memcpy(_jurisdictionRoot.get(), other._jurisdictionRoot.get(), bytes);
-    }
-    for (size_t i = 0; i < other._jurisdictionEndNodes.size(); i++) {
-        auto& endNodeCode = other._jurisdictionEndNodes[i];
-        if (endNodeCode) {
-            auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode.get()));
-            auto endNodeCodeCopy = createOctalCodePtr(bytes);
-            memcpy(endNodeCodeCopy.get(), endNodeCode.get(), bytes);
-            _jurisdictionEndNodes.push_back(endNodeCodeCopy);
-        }
-    }
-
     _incomingPacket = other._incomingPacket;
     _incomingBytes = other._incomingBytes;
     _incomingWastedBytes = other._incomingWastedBytes;
@@ -141,8 +119,7 @@ OctreeSceneStats::~OctreeSceneStats() {
     reset();
 }
 
-void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, const OctreeElementPointer& root,
-                                    JurisdictionMap* jurisdictionMap) {
+void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, const OctreeElementPointer& root) {
     reset(); // resets packet and octree stats
     _isStarted = true;
     _start = usecTimestampNow();
@@ -153,14 +130,6 @@ void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, const Octre
 
     _isFullScene = isFullScene;
     _isMoving = isMoving;
-
-    // setup jurisdictions
-    if (jurisdictionMap) {
-        std::tie(_jurisdictionRoot, _jurisdictionEndNodes) = jurisdictionMap->getRootAndEndNodeOctalCodes();
-    } else {
-        _jurisdictionRoot = nullptr;
-        _jurisdictionEndNodes.clear();
-    }
 }
 
 void OctreeSceneStats::sceneCompleted() {
@@ -236,9 +205,6 @@ void OctreeSceneStats::reset() {
     _existsBitsWritten = 0;
     _existsInPacketBitsWritten = 0;
     _treesRemoved = 0;
-
-    _jurisdictionRoot = nullptr;
-    _jurisdictionEndNodes.clear();
 }
 
 void OctreeSceneStats::packetSent(int bytes) {
@@ -318,10 +284,6 @@ void OctreeSceneStats::didntFit(const OctreeElementPointer& element) {
     }
 }
 
-void OctreeSceneStats::colorBitsWritten() {
-    _colorBitsWritten++;
-}
-
 void OctreeSceneStats::existsBitsWritten() {
     _existsBitsWritten++;
 }
@@ -373,29 +335,6 @@ int OctreeSceneStats::packIntoPacket() {
     _statsPacket->writePrimitive(_existsBitsWritten);
     _statsPacket->writePrimitive(_existsInPacketBitsWritten);
     _statsPacket->writePrimitive(_treesRemoved);
-
-    // add the root jurisdiction
-    if (_jurisdictionRoot) {
-        // copy the
-        int bytes = (int)bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_jurisdictionRoot.get()));
-        _statsPacket->writePrimitive(bytes);
-        _statsPacket->write(reinterpret_cast<char*>(_jurisdictionRoot.get()), bytes);
-
-        // if and only if there's a root jurisdiction, also include the end elements
-        int endNodeCount = (int)_jurisdictionEndNodes.size();
-
-        _statsPacket->writePrimitive(endNodeCount);
-
-        for (int i=0; i < endNodeCount; i++) {
-            auto& endNodeCode = _jurisdictionEndNodes[i];
-            auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode.get()));
-            _statsPacket->writePrimitive(bytes);
-            _statsPacket->write(reinterpret_cast<char*>(endNodeCode.get()), bytes);
-        }
-    } else {
-        int bytes = 0;
-        _statsPacket->writePrimitive(bytes);
-    }
 
     return _statsPacket->getPayloadSize();
 }
@@ -458,38 +397,6 @@ int OctreeSceneStats::unpackFromPacket(ReceivedMessage& packet) {
     packet.readPrimitive(&_existsBitsWritten);
     packet.readPrimitive(&_existsInPacketBitsWritten);
     packet.readPrimitive(&_treesRemoved);
-    // before allocating new juridiction, clean up existing ones
-    _jurisdictionRoot = nullptr;
-    _jurisdictionEndNodes.clear();
-
-    // read the root jurisdiction
-    int bytes = 0;
-    packet.readPrimitive(&bytes);
-
-    if (bytes == 0) {
-        _jurisdictionRoot = nullptr;
-        _jurisdictionEndNodes.clear();
-    } else {
-        _jurisdictionRoot = createOctalCodePtr(bytes);
-        packet.read(reinterpret_cast<char*>(_jurisdictionRoot.get()), bytes);
-
-        // if and only if there's a root jurisdiction, also include the end elements
-        _jurisdictionEndNodes.clear();
-        
-        int endNodeCount = 0;
-        packet.readPrimitive(&endNodeCount);
-        
-        for (int i=0; i < endNodeCount; i++) {
-            int bytes = 0;
-            
-            packet.readPrimitive(&bytes);
-            
-            auto endNodeCode = createOctalCodePtr(bytes);
-            packet.read(reinterpret_cast<char*>(endNodeCode.get()), bytes);
-            
-            _jurisdictionEndNodes.push_back(endNodeCode);
-        }
-    }
 
     // running averages
     _elapsedAverage.updateAverage((float)_elapsed);
@@ -725,12 +632,8 @@ void OctreeSceneStats::trackIncomingOctreePacket(ReceivedMessage& message, bool 
     const qint64 MAX_RESONABLE_FLIGHT_TIME = 200 * USECS_PER_SECOND; // 200 seconds is more than enough time for a packet to arrive
     const qint64 MIN_RESONABLE_FLIGHT_TIME = -1 * (qint64)USECS_PER_SECOND; // more than 1 second of "reverse flight time" would be unreasonable
     if (flightTime > MAX_RESONABLE_FLIGHT_TIME || flightTime < MIN_RESONABLE_FLIGHT_TIME) {
-        static QString repeatedMessage
-            = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "ignoring unreasonable packet... flightTime: -?\\d+ nodeClockSkewUsec: -?\\d+ usecs");
-
-        qCDebug(octree) << "ignoring unreasonable packet... flightTime:" << flightTime
-                    << "nodeClockSkewUsec:" << nodeClockSkewUsec << "usecs";;
+        HIFI_FCDEBUG(octree(), "ignoring unreasonable packet... flightTime:" << flightTime
+                    << "nodeClockSkewUsec:" << nodeClockSkewUsec << "usecs");
         return; // ignore any packets that are unreasonable
     }
 

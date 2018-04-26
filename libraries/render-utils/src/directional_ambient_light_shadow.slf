@@ -26,16 +26,19 @@ void main(void) {
     DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
 
-    vec4 worldPos = getViewInverse() * vec4(frag.position.xyz, 1.0);
-    float shadowAttenuation = evalShadowAttenuation(worldPos);
+    vec4 viewPos = vec4(frag.position.xyz, 1.0);
+    vec4 worldPos = getViewInverse() * viewPos;
+    Light shadowLight = getKeyLight();
+    vec3 worldLightDirection = getLightDirection(shadowLight);
+    float shadowAttenuation = evalShadowAttenuation(worldLightDirection, worldPos, -viewPos.z, frag.normal);
 
     if (frag.mode == FRAG_MODE_UNLIT) {
         discard;
     } else if (frag.mode == FRAG_MODE_LIGHTMAPPED) {
         discard;
     } else {
-        vec4 midNormalCurvature;
-        vec4 lowNormalCurvature;
+        vec4 midNormalCurvature = vec4(0);
+        vec4 lowNormalCurvature = vec4(0);
         if (frag.mode == FRAG_MODE_SCATTERING) {
             unpackMidLowNormalCurvature(_texCoord0, midNormalCurvature, lowNormalCurvature);
         }

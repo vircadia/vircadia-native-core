@@ -79,12 +79,12 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 }
 
 void MainWindow::moveEvent(QMoveEvent* event) {
-    emit windowGeometryChanged(QRect(event->pos(), size()));
+    emit windowGeometryChanged(QRect(QPoint(geometry().x(), geometry().y()), size()));  // Geometry excluding the window frame.
     QMainWindow::moveEvent(event);
 }
 
 void MainWindow::resizeEvent(QResizeEvent* event) {
-    emit windowGeometryChanged(QRect(QPoint(x(), y()), event->size()));
+    emit windowGeometryChanged(QRect(QPoint(geometry().x(), geometry().y()), size()));  // Geometry excluding the window frame.
     QMainWindow::resizeEvent(event);
 }
 
@@ -107,12 +107,12 @@ void MainWindow::changeEvent(QEvent* event) {
         QWindowStateChangeEvent* stateChangeEvent = static_cast<QWindowStateChangeEvent*>(event);
         if ((stateChangeEvent->oldState() == Qt::WindowNoState ||
             stateChangeEvent->oldState() == Qt::WindowMaximized) &&
-            windowState() == Qt::WindowMinimized) {
+            (windowState() & Qt::WindowMinimized) == Qt::WindowMinimized) {
             emit windowShown(false);
             emit windowMinimizedChanged(true);
         } else {
             emit windowShown(true);
-            if (stateChangeEvent->oldState() == Qt::WindowMinimized) {
+            if ((stateChangeEvent->oldState() & Qt::WindowMinimized) == Qt::WindowMinimized) {
                 emit windowMinimizedChanged(false);
             }
         }

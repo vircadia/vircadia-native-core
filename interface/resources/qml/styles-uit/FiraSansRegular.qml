@@ -9,15 +9,12 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
 
 Text {
     id: root
-    FontLoader { id: firaSansRegular; source: "../../fonts/FiraSans-Regular.ttf"; }
     property real size: 32
     font.pixelSize: size
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
-    font.family: firaSansRegular.name
+    font.family: "Fira Sans"
 }

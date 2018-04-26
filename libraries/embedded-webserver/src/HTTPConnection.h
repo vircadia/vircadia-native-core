@@ -26,6 +26,8 @@
 #include <QPair>
 #include <QUrl>
 
+#include <memory>
+
 class QTcpSocket;
 class HTTPManager;
 class MaskFilter;
@@ -70,8 +72,8 @@ public:
     /// Returns a reference to the request URL.
     const QUrl& requestUrl () const { return _requestUrl; }
 
-    /// Returns a reference to the request headers.
-    const Headers& requestHeaders () const { return _requestHeaders; }
+    /// Returns a copy of the request header value. If it does not exist, it will return a default constructed QByteArray.
+    QByteArray requestHeader(const QString& key) const { return _requestHeaders.value(key.toLower().toLocal8Bit()); }
 
     /// Returns a reference to the request content.
     const QByteArray& requestContent () const { return _requestContent; }
@@ -87,6 +89,9 @@ public:
     void respond (const char* code, const QByteArray& content = QByteArray(),
         const char* contentType = DefaultContentType,
         const Headers& headers = Headers());
+    void respond (const char* code, std::unique_ptr<QIODevice> device,
+        const char* contentType = DefaultContentType,
+        const Headers& headers = Headers());
 
 protected slots:
 
@@ -100,6 +105,7 @@ protected slots:
     void readContent ();
 
 protected:
+    void respondWithStatusAndHeaders(const char* code, const char* contentType, const Headers& headers, qint64 size);
 
     /// The parent HTTP manager
     HTTPManager* _parentManager;
@@ -127,6 +133,9 @@ protected:
 
     /// The content of the request.
     QByteArray _requestContent;
+
+    /// Response content
+    std::unique_ptr<QIODevice> _responseDevice;
 };
 
 #endif // hifi_HTTPConnection_h
