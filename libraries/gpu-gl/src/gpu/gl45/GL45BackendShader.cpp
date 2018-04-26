@@ -15,17 +15,15 @@ using namespace gpu::gl45;
 
 // GLSL version
 std::string GL45Backend::getBackendShaderHeader() const {
-    static const std::string header(
-        R"SHADER(#version 450 core
-        #define GPU_GL450
-        #define PRECISIONQ
-        #define BITFIELD int
-        )SHADER"
+    const char header[] = 
+R"GLSL(#version 450 core
+#define GPU_GL450
+)GLSL"
 #ifdef GPU_SSBO_TRANSFORM_OBJECT
-        R"SHADER(#define GPU_SSBO_TRANSFORM_OBJECT)SHADER"
+        R"GLSL(#define GPU_SSBO_TRANSFORM_OBJECT 1)GLSL"
 #endif
-    );
-    return header;
+    ;
+    return std::string(header);
 }
 
 int GL45Backend::makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) {

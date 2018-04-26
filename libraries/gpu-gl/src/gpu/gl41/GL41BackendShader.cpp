@@ -14,13 +14,7 @@ using namespace gpu::gl41;
 
 // GLSL version
 std::string GL41Backend::getBackendShaderHeader() const {
-    static const std::string header(
-        R"SHADER(#version 410 core
-        #define GPU_GL410
-        #define PRECISIONQ
-        #define BITFIELD int
-        )SHADER");
-    return header;
+    return std::string("#version 410 core\n#define GPU_GL410 1");
 }
 
 int GL41Backend::makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) {
