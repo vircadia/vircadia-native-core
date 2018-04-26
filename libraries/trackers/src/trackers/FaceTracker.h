@@ -64,29 +64,22 @@ signals:
      * @function FaceTracker.muteToggled
      * @returns {Signal}
      */
-
     void muteToggled();
 
 public slots:
 
-    /**jsdoc
-     * @function FaceTracker.setEnabled
-     * @param {boolean} enabled
-     */
-
+    // No JSDoc here because it's overridden in DdeFaceTracker.
     virtual void setEnabled(bool enabled) = 0;
     
     /**jsdoc
      * @function FaceTracker.toggleMute
      */
-
     void toggleMute();
 
     /**jsdoc
      * @function FaceTracker.getMuted
      * @returns {boolean} 
      */
-
     bool getMuted() { return _isMuted; }
 
 protected:

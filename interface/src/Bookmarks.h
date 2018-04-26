@@ -49,7 +49,6 @@ protected:
 
 protected slots:
     /**jsdoc
-     * Delete 
      * @function AvatarBookmarks.deleteBookmark
      */
     void deleteBookmark();
