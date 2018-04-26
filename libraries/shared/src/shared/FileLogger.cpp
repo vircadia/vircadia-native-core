@@ -36,17 +36,15 @@ protected:
 private:
     const FileLogger& _logger;
     QMutex _fileMutex;
-    uint64_t _lastRollTime;
+    std::chrono::system_clock::time_point _lastRollTime;
 };
-
-
 
 static const QString FILENAME_FORMAT = "hifi-log_%1%2.txt";
 static const QString DATETIME_FORMAT = "yyyy-MM-dd_hh.mm.ss";
 static const QString LOGS_DIRECTORY = "Logs";
-static const QString IPADDR_WILDCARD = "[0-9]*.[0-9]*.[0-9]*.[0-9]*";
-static const QString DATETIME_WILDCARD = "20[0-9][0-9]-[0,1][0-9]-[0-3][0-9]_[0-2][0-9].[0-6][0-9].[0-6][0-9]";
-static const QString FILENAME_WILDCARD = "hifi-log_" + IPADDR_WILDCARD + "_" + DATETIME_WILDCARD + ".txt";
+static const QString DATETIME_WILDCARD = "20[0-9][0-9]-[01][0-9]-[0-3][0-9]_[0-2][0-9]\\.[0-6][0-9]\\.[0-6][0-9]";
+static const QString SESSION_WILDCARD = "[0-9a-z]{8}(-[0-9a-z]{4}){3}-[0-9a-z]{12}";
+static QRegExp LOG_FILENAME_REGEX { "hifi-log_" + DATETIME_WILDCARD + "(_" + SESSION_WILDCARD + ")?\.txt" };
 static QUuid SESSION_ID;
 
 // Max log size is 512 KB. We send log files to our crash reporter, so we want to keep this relatively
@@ -104,20 +102,21 @@ void FilePersistThread::rollFileIfNecessary(QFile& file, bool notifyListenersIfR
 
             _lastRollTime = now;
         }
-        QStringList nameFilters;
-        nameFilters << FILENAME_WILDCARD;
 
-        QDir logQDir(FileUtils::standardPath(LOGS_DIRECTORY));
-        logQDir.setNameFilters(nameFilters);
-        logQDir.setSorting(QDir::Time);
-        QFileInfoList filesInDir = logQDir.entryInfoList();
+        QDir logDir(FileUtils::standardPath(LOGS_DIRECTORY));
+        logDir.setSorting(QDir::Time);
+        logDir.setFilter(QDir::Files);
         qint64 totalSizeOfDir = 0;
-        foreach(QFileInfo dirItm, filesInDir){
-            if (totalSizeOfDir < MAX_LOG_DIR_SIZE){
-                totalSizeOfDir += dirItm.size();
-            } else {
-                QFile file(dirItm.filePath());
-                file.remove();
+        QFileInfoList filesInDir = logDir.entryInfoList();
+        for (auto& fileInfo : filesInDir) {
+            if (!LOG_FILENAME_REGEX.exactMatch(fileInfo.fileName())) {
+                continue;
+            }
+            totalSizeOfDir += fileInfo.size();
+            if (totalSizeOfDir > MAX_LOG_DIR_SIZE){
+                qDebug() << "Removing log file: " << fileInfo.fileName();
+                QFile oldLogFile(fileInfo.filePath());
+                oldLogFile.remove();
             }
         }
     }
