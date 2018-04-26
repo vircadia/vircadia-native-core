@@ -4,8 +4,8 @@ set(EXTERNAL_NAME serverless-content)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL http://cdn.highfidelity.com/content-sets/serverless-tutorial-RC66-v4.zip
-  URL_MD5 d4f42f630986c83427ff39e1fe9908c6
+  URL http://cdn.highfidelity.com/content-sets/serverless-tutorial-RC66-v5.zip
+  URL_MD5 4e1837bdbf0ee053b413ac92adce94b5
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
