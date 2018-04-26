@@ -222,7 +222,7 @@ const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const
     return *this;
 }
 
-Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const StereoState& _stereo, const Transform& xformView) const {
+Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const StereoState& _stereo, const Transform& xformView, Vec2 normalizedJitter) const {
     TransformCamera result = *this;
     Transform offsetTransform = xformView;
     if (!_stereo._skybox) {
@@ -231,10 +231,21 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
         // FIXME: If "skybox" the ipd is set to 0 for now, let s try to propose a better solution for this in the future
     }
     result._projection = _stereo._eyeProjections[eye];
+    normalizedJitter.x *= 2.0f;
+    result._projection[2][0] += normalizedJitter.x;
+    result._projection[2][1] += normalizedJitter.y;
     result.recomputeDerived(offsetTransform);
 
     result._stereoInfo = Vec4(1.0f, (float)eye, 0.0f, 0.0f);
 
+    return result;
+}
+
+Backend::TransformCamera Backend::TransformCamera::getMonoCamera(const Transform& xformView, Vec2 normalizedJitter) const {
+    TransformCamera result = *this;
+    result._projection[2][0] += normalizedJitter.x;
+    result._projection[2][1] += normalizedJitter.y;
+    result.recomputeDerived(xformView);
     return result;
 }
 

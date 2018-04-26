@@ -114,6 +114,11 @@ btConvexHullShape* createConvexHull(const ShapeInfo::PointList& points) {
         minCorner = glm::min(minCorner, points[i]);
     }
     center /= (float)(points.size());
+    if (glm::any(glm::isnan(center))) {
+        // don't feed garbage to Bullet
+        assert(false); // crash here in DEBUG so we can investigate source of bad input
+        return nullptr;
+    }
 
     float margin = hull->getMargin();
 
@@ -265,7 +270,7 @@ btTriangleIndexVertexArray* createStaticMeshArray(const ShapeInfo& info) {
 }
 
 const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
-    btCollisionShape* shape = NULL;
+    btCollisionShape* shape = nullptr;
     int type = info.getType();
     switch(type) {
         case SHAPE_TYPE_BOX: {

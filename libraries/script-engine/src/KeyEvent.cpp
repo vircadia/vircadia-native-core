@@ -150,6 +150,29 @@ KeyEvent::operator QKeySequence() const {
     return QKeySequence(resultCode);
 }
 
+/**jsdoc
+ * A keyboard key event.
+ * @typedef {object} KeyEvent
+ * @property {number} key - The Qt keyboard code of the key pressed. For a list of keyboard codes, see 
+ *     <a href="http://doc.qt.io/qt-5/qt.html#Key-enum">http://doc.qt.io/qt-5/qt.html#Key-enum</a>.
+ * @property {string} text - A string describing the key. For example, <code>"a"</code> for the "A" key if the Shift is not 
+ *     pressed, <code>"F1"</code> for the F1 key, <code>"SPACE"</code> for the space bar.
+ * @property {boolean} isShifted - <code>true</code> if a Shift key was pressed when the event was generated, otherwise 
+ *     <code>false</code>.
+ * @property {boolean} isMeta - <code>true</code> if a meta key was pressed when the event was generated, otherwise
+ *     <code>false</code>. On Windows the "meta" key is the Windows key; on OSX it is the Control (Splat) key. 
+ * @property {boolean} isControl - <code>true</code> if a control key was pressed when the event was generated, otherwise
+ *     <code>false</code>. On Windows the "control" key is the Ctrl key; on OSX it is the Command key.
+ * @property {boolean} isAlt - <code>true</code> if an Alt key was pressed when the event was generated, otherwise 
+ *     <code>false</code>.
+ * @property {boolean} isKeypad - <code>true</code> if the key is on the numeric keypad, otherwise <code>false</code>.
+ * @property {boolean} isAutoRepeat - <code>true</code> if the event is a repeat for key that is being held down, otherwise 
+ *     <code>false</code>.
+ * @example <caption>Report the KeyEvent details for each key press.</caption>
+ * Controller.keyPressEvent.connect(function (event) {
+ *     print(JSON.stringify(event));
+ * });
+ */
 QScriptValue KeyEvent::toScriptValue(QScriptEngine* engine, const KeyEvent& event) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("key", event.key);
@@ -274,7 +297,6 @@ void KeyEvent::fromScriptValue(const QScriptValue& object, KeyEvent& event) {
             }
         }
     }
-    
     
     const bool wantDebug = false;
     if (wantDebug) {

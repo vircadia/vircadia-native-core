@@ -35,6 +35,9 @@ void main(void) {
     pixels[7] = texelFetch(colorTexture, ivec2(gl_FragCoord.xy)+ivec2(0,1), 0);
     pixels[8] = texelFetch(colorTexture, ivec2(gl_FragCoord.xy)+ivec2(1,1), 0);
 
-    sharpenedPixel = pixels[4]*7.8 - (pixels[1]+pixels[3]+pixels[5]+pixels[7]) - (pixels[0]+pixels[2]+pixels[6]+pixels[8])*0.7;
-    outFragColor = mix(pixels[4], sharpenedPixel, sharpenIntensity);
+    sharpenedPixel = pixels[4]*6.8 - (pixels[1]+pixels[3]+pixels[5]+pixels[7]) - (pixels[0]+pixels[2]+pixels[6]+pixels[8])*0.7;
+
+	vec4 minColor = max(vec4(0), pixels[4]-vec4(0.5));
+	vec4 maxColor = pixels[4]+vec4(0.5);
+    outFragColor = clamp(pixels[4] + sharpenedPixel * sharpenIntensity, minColor, maxColor);
 }

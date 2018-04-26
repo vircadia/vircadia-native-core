@@ -98,7 +98,7 @@ void TestWindow::beginFrame() {
     _preparePrimaryFramebuffer.run(_renderContext, primaryFramebuffer);
 
     DeferredFrameTransformPointer frameTransform;
-    _generateDeferredFrameTransform.run(_renderContext, frameTransform);
+    _generateDeferredFrameTransform.run(_renderContext, glm::vec2(0.0f, 0.0f), frameTransform);
 
     LightingModelPointer lightingModel;
     _generateLightingModel.run(_renderContext, lightingModel);
