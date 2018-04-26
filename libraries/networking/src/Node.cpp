@@ -89,7 +89,7 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
     const HifiSockAddr& localSocket, QObject* parent) :
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
-    _authenticateHash(new HMACAuth), _pingMs(-1),  // "Uninitialized"
+    _pingMs(-1),  // "Uninitialized"
     _clockSkewUsec(0),
     _mutex(),
     _clockSkewMovingPercentile(30, 0.8f)   // moving 80th percentile of 30 samples
@@ -199,6 +199,10 @@ QDebug operator<<(QDebug debug, const Node& node) {
 void Node::setConnectionSecret(const QUuid& connectionSecret) {
     if (_connectionSecret == connectionSecret) {
         return;
+    }
+
+    if (!_authenticateHash) {
+        _authenticateHash.reset(new HMACAuth());
     }
 
     _connectionSecret = connectionSecret;

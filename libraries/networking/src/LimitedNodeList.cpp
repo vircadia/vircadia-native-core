@@ -331,10 +331,14 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             if (verifiedPacket && !ignoreVerification) {
 
                 QByteArray packetHeaderHash = NLPacket::verificationHashInHeader(packet);
-                QByteArray expectedHash = NLPacket::hashForPacketAndHMAC(packet, sourceNode->getAuthenticateHash());
+                QByteArray expectedHash;
+                auto sourceNodeHMACAuth = sourceNode->getAuthenticateHash();
+                if (sourceNode->getAuthenticateHash()) {
+                    expectedHash = NLPacket::hashForPacketAndHMAC(packet, *sourceNodeHMACAuth);
+                }
 
                 // check if the HMAC-md5 hash in the header matches the hash we would expect
-                if (packetHeaderHash != expectedHash) {
+                if (!sourceNodeHMACAuth || packetHeaderHash != expectedHash) {
                     static QMultiMap<QUuid, PacketType> hashDebugSuppressMap;
 
                     if (!hashDebugSuppressMap.contains(sourceID, headerType)) {
@@ -396,7 +400,7 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node&
     emit dataSent(destinationNode.getType(), packet.getDataSize());
     destinationNode.recordBytesSent(packet.getDataSize());
 
-    return sendUnreliablePacket(packet, *destinationNode.getActiveSocket(), &destinationNode.getAuthenticateHash());
+    return sendUnreliablePacket(packet, *destinationNode.getActiveSocket(), destinationNode.getAuthenticateHash());
 }
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
@@ -419,7 +423,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
         emit dataSent(destinationNode.getType(), packet->getDataSize());
         destinationNode.recordBytesSent(packet->getDataSize());
 
-        return sendPacket(std::move(packet), *activeSocket, &destinationNode.getAuthenticateHash());
+        return sendPacket(std::move(packet), *activeSocket, destinationNode.getAuthenticateHash());
     } else {
         qCDebug(networking) << "LimitedNodeList::sendPacket called without active socket for node" << destinationNode << "- not sending";
         return ERROR_SENDING_PACKET_BYTES;
@@ -447,14 +451,14 @@ qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetLi
 
     if (activeSocket) {
         qint64 bytesSent = 0;
-        auto& connectionHash = destinationNode.getAuthenticateHash();
+        auto connectionHash = destinationNode.getAuthenticateHash();
 
         // close the last packet in the list
         packetList.closeCurrentPacket();
 
         while (!packetList._packets.empty()) {
             bytesSent += sendPacket(packetList.takeFront<NLPacket>(), *activeSocket,
-                &connectionHash);
+                connectionHash);
         }
 
         emit dataSent(destinationNode.getType(), bytesSent);
@@ -502,7 +506,7 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
         for (std::unique_ptr<udt::Packet>& packet : packetList->_packets) {
             NLPacket* nlPacket = static_cast<NLPacket*>(packet.get());
             collectPacketStats(*nlPacket);
-            fillPacketHeader(*nlPacket, &destinationNode.getAuthenticateHash());
+            fillPacketHeader(*nlPacket, destinationNode.getAuthenticateHash());
         }
 
         return _nodeSocket.writePacketList(std::move(packetList), *activeSocket);
@@ -525,7 +529,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
     auto& destinationSockAddr = (overridenSockAddr.isNull()) ? *destinationNode.getActiveSocket()
                                                              : overridenSockAddr;
 
-    return sendPacket(std::move(packet), destinationSockAddr, &destinationNode.getAuthenticateHash());
+    return sendPacket(std::move(packet), destinationSockAddr, destinationNode.getAuthenticateHash());
 }
 
 int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {

@@ -9,12 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "HMACAuth.h"
+
 #include <openssl/opensslv.h>
 #include <openssl/hmac.h>
 
-#include "HMACAuth.h"
-
 #include <QUuid>
+#include "NetworkLogging.h"
+#include <cassert>
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000
 HMACAuth::HMACAuth(AuthMethod authMethod)
@@ -86,9 +88,17 @@ HMACAuth::HMACHash HMACAuth::result() {
     HMACHash hashValue(EVP_MAX_MD_SIZE);
     unsigned int hashLen;
     QMutexLocker lock(&_lock);
-    if (HMAC_Final(_hmacContext, &hashValue[0], &hashLen)) {
+    
+    auto hmacResult = HMAC_Final(_hmacContext, &hashValue[0], &hashLen);
+    
+    if (hmacResult) {
         hashValue.resize((size_t)hashLen);
+    } else {
+        // the HMAC_FINAL call failed - should not be possible to get into this state
+        qCWarning(networking) << "Error occured calling HMAC_Final";
+        assert(hmacResult);
     }
+
     // Clear state for possible reuse.
     HMAC_Init_ex(_hmacContext, nullptr, 0, nullptr, nullptr);
     return hashValue;
@@ -97,6 +107,8 @@ HMACAuth::HMACHash HMACAuth::result() {
 bool HMACAuth::calculateHash(HMACHash& hashResult, const char* data, int dataLen) {
     QMutexLocker lock(&_lock);
     if (!HMAC_Update(_hmacContext, reinterpret_cast<const unsigned char*>(data), dataLen)) {
+        qCWarning(networking) << "Error occured calling HMAC_Update";
+        assert(false);
         return false;
     }
 
@@ -108,5 +120,7 @@ bool HMACAuth::calculateHash(HMACHash& hashResult, const char* data, int dataLen
         HMAC_Init_ex(_hmacContext, nullptr, 0, nullptr, nullptr);
         return true;
     }
+    qCWarning(networking) << "Error occured calling HMAC_Final";
+    assert(false);
     return false;
 }
