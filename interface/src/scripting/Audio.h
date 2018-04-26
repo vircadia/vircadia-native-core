@@ -31,10 +31,10 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      * @namespace Audio
      * @property {boolean} muted
      * @property {boolean} noiseReduction
-     * @property {boolean} inputVolume
-     * @property {boolean} inputLevel
-     * @property {string} context
-     * @property {} devices
+     * @property {number} inputVolume
+     * @property {number} inputLevel <em>Read-only.</em>
+     * @property {string} context <em>Read-only.</em>
+     * @property {} devices <em>Read-only.</em>
      */
  
     Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)
@@ -66,7 +66,6 @@ public:
      * @param {} device
      * @param {boolean} isHMD 
      */
-
     Q_INVOKABLE void setInputDevice(const QAudioDeviceInfo& device, bool isHMD);
 
     /**jsdoc
@@ -74,40 +73,36 @@ public:
      * @param {} device
      * @param {boolean} isHMD
      */
-
     Q_INVOKABLE void setOutputDevice(const QAudioDeviceInfo& device, bool isHMD);
 
     /**jsdoc
      * @function Audio.setReverb
      * @param {boolean} enable
      */
-
     Q_INVOKABLE void setReverb(bool enable);
     
     /**jsdoc
      * @function Audio.setReverbOptions
      * @param {} options
      */
-
     Q_INVOKABLE void setReverbOptions(const AudioEffectOptions* options);
    
     /**jsdoc
-     * @function Audio.setReverbOptions
+     * @function Audio.startRecording
      * @param {string} filename
+     * @returns {boolean}
      */
-
     Q_INVOKABLE bool startRecording(const QString& filename);
     
     /**jsdoc
      * @function Audio.stopRecording
      */
-
     Q_INVOKABLE void stopRecording();
 
     /**jsdoc
      * @function Audio.getRecording
+     * @returns {boolean}
      */
-
     Q_INVOKABLE bool getRecording();
 
 signals:
@@ -116,39 +111,34 @@ signals:
      * @function Audio.nop
      * @returns {Signal}
      */
-
     void nop();
 
     /**jsdoc
-     * @function Audio.nop
-     * @param {bool} isMuted
+     * @function Audio.mutedChanged
+     * @param {boolean} isMuted
      * @returns {Signal}
      */
-
     void mutedChanged(bool isMuted);
     
     /**jsdoc
      * @function Audio.noiseReductionChanged
-     * @param {bool} isEnabled
+     * @param {boolean} isEnabled
      * @returns {Signal}
      */
-
     void noiseReductionChanged(bool isEnabled);
 
     /**jsdoc
      * @function Audio.inputVolumeChanged
-     * @param {float} volume
+     * @param {number} volume
      * @returns {Signal}
      */
-
     void inputVolumeChanged(float volume);
 
     /**jsdoc
      * @function Audio.inputLevelChanged
-     * @param {float} level
+     * @param {number} level
      * @returns {Signal}
      */
-
     void inputLevelChanged(float level);
 
     /**jsdoc
@@ -156,7 +146,6 @@ signals:
      * @param {string} context
      * @returns {Signal}
      */
-
     void contextChanged(const QString& context);
 
 public slots:
@@ -165,7 +154,6 @@ public slots:
      * @function Audio.onContextChanged
      * @returns {Signal}
      */
-
     void onContextChanged();
 
 private slots:

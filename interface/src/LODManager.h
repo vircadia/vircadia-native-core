@@ -49,21 +49,18 @@ public:
      * @function LODManager.setAutomaticLODAdjust
      * @param {boolean} value
      */
-
     Q_INVOKABLE void setAutomaticLODAdjust(bool value) { _automaticLODAdjust = value; }
 
     /**jsdoc
      * @function LODManager.getAutomaticLODAdjust
      * @returns {boolean}
      */
-
     Q_INVOKABLE bool getAutomaticLODAdjust() const { return _automaticLODAdjust; }
 
     /**jsdoc
      * @function LODManager.setDesktopLODDecreaseFPS
-     * @param {float} value
+     * @param {number} value
      */
-
     Q_INVOKABLE void setDesktopLODDecreaseFPS(float value);
 
     /**jsdoc
@@ -77,28 +74,25 @@ public:
      * @function LODManager.getDesktopLODIncreaseFPS
      * @returns {number}
      */
-
     Q_INVOKABLE float getDesktopLODIncreaseFPS() const;
 
     /**jsdoc
      * @function LODManager.setHMDLODDecreaseFPS
      * @param {number} value
      */
-   
+  
     Q_INVOKABLE void setHMDLODDecreaseFPS(float value);
 
     /**jsdoc
      * @function LODManager.getHMDLODDecreaseFPS
      * @returns {number}
      */
-
     Q_INVOKABLE float getHMDLODDecreaseFPS() const;
 
     /**jsdoc
      * @function LODManager.getHMDLODIncreaseFPS
      * @returns {number}
      */
-    
     Q_INVOKABLE float getHMDLODIncreaseFPS() const;
 
     // User Tweakable LOD Items
@@ -106,61 +100,54 @@ public:
      * @function LODManager.getLODFeedbackText
      * @returns {string}
      */
-
     Q_INVOKABLE QString getLODFeedbackText();
 
     /**jsdoc
      * @function LODManager.setOctreeSizeScale
      * @param {number} sizeScale
      */
-
     Q_INVOKABLE void setOctreeSizeScale(float sizeScale);
 
     /**jsdoc
      * @function LODManager.getOctreeSizeScale
      * @returns {number}
      */
-
     Q_INVOKABLE float getOctreeSizeScale() const { return _octreeSizeScale; }
 
     /**jsdoc
      * @function LODManager.setBoundaryLevelAdjust
      * @param {number} boundaryLevelAdjust
      */
-
     Q_INVOKABLE void setBoundaryLevelAdjust(int boundaryLevelAdjust);
 
     /**jsdoc
      * @function LODManager.getBoundaryLevelAdjust
      * @returns {number}
      */
-
     Q_INVOKABLE int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
     /**jsdoc
      * @function LODManager.getLODDecreaseFPS
      * @returns {number}
      */
-
     Q_INVOKABLE float getLODDecreaseFPS() const;
 
     /**jsdoc
      * @function LODManager.getLODIncreaseFPS
      * @returns {number}
      */
-
     Q_INVOKABLE float getLODIncreaseFPS() const;
 
     /**jsdoc
      * @namespace LODManager
-     * @property presentTime {number}
-     * @property engineRunTime {number}
-     * @property gpuTime {number}
-     * @property avgRenderTime {number}
-     * @property fps {number}
-     * @property lodLevel {number}
-     * @property lodDecreaseFPS {number}
-     * @property lodIncreaseFPS {number}
+     * @property {number} presentTime <em>Read-only.</em>
+     * @property {number} engineRunTime <em>Read-only.</em>
+     * @property {number} gpuTime <em>Read-only.</em>
+     * @property {number} avgRenderTime <em>Read-only.</em>
+     * @property {number} fps <em>Read-only.</em>
+     * @property {number} lodLevel <em>Read-only.</em>
+     * @property {number} lodDecreaseFPS <em>Read-only.</em>
+     * @property {number} lodIncreaseFPS <em>Read-only.</em>
      */
 
     Q_PROPERTY(float presentTime READ getPresentTime)
@@ -195,14 +182,12 @@ signals:
      * @function LODManager.LODIncreased
      * @returns {Signal}
      */
-
     void LODIncreased();
 
     /**jsdoc
      * @function LODManager.LODDecreased
      * @returns {Signal}
      */
-
     void LODDecreased();
 
 private:
