@@ -82,8 +82,8 @@ class MyAvatar : public Avatar {
      * @property {number} audioListenerModeCamera=1 - The audio listening position is at the camera. <em>Read-only.</em>
      * @property {number} audioListenerModeCustom=2 - The audio listening position is at a the position specified by set by the 
      *     <code>customListenPosition</code> and <code>customListenOrientation</code> property values. <em>Read-only.</em>
-     * @property hasScriptedBlendshapes {boolean} Blendshapes will be transmitted over the network if set to true.
-     * @property hasAudioEnabledFaceMovement {boolean} If set to true, voice audio will move the mouth Blendshapes while MyAvatar.hasScriptedBlendshapes is enabled.
+     * @property {boolean} hasScriptedBlendshapes=false - Blendshapes will be transmitted over the network if set to true.
+     * @property {boolean} hasAudioEnabledFaceMovement=true - If set to true, voice audio will move the mouth Blendshapes while MyAvatar.hasScriptedBlendshapes is enabled.
      * @property {Vec3} customListenPosition=Vec3.ZERO - The listening position used when the <code>audioListenerMode</code>
      *     property value is <code>audioListenerModeCustom</code>.
      * @property {Quat} customListenOrientation=Quat.IDENTITY - The listening orientation used when the 
