@@ -567,7 +567,7 @@ Grabber.prototype.moveEventProcess = function() {
     }
 
     if (!this.actionID) {
-        if (!entityIsGrabbedByOther(this.entityID)) {
+        if (!entityIsGrabbedByOther(this.entityID) && !entityIsEquipped(this.entityID)) {
             this.actionID = Entities.addAction("far-grab", this.entityID, actionArgs);
         }
     } else {
