@@ -4731,16 +4731,14 @@ void Application::init() {
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
-    if (auto avatar = getMyAvatar()) {
-        if (urls.size() > 0) {
-            auto scriptEngines = DependencyManager::get<ScriptEngines>();
-            auto runningScripts = scriptEngines->getRunningScripts();
-            for (auto url : urls) {
-                int index = runningScripts.indexOf(url);
-                if (index < 0) {
-                    scriptEngines->loadScript(url);
-                    avatar->addScriptToUnload(url);
-                }
+    if (urls.size() > 0) {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>();
+        auto runningScripts = scriptEngines->getRunningScripts();
+        for (auto url : urls) {
+            int index = runningScripts.indexOf(url);
+            if (index < 0) {
+                scriptEngines->loadScript(url);
+                getMyAvatar()->addScriptToUnload(url);
             }
         }
     }

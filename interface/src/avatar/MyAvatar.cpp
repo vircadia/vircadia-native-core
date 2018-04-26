@@ -2838,7 +2838,7 @@ float MyAvatar::getWalkSpeed() const {
     return _walkSpeed.get() * _walkSpeedScalar;
 }
 
-void MyAvatar::addScriptToUnload(QString& url) {
+void MyAvatar::addScriptToUnload(const QString& url) {
     _scriptsToUnload.push_back(url);
 }
 

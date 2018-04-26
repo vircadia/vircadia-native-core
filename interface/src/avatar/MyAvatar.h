@@ -594,7 +594,7 @@ public:
     void setWalkSpeed(float value);
     float getWalkSpeed() const;
 
-    void addScriptToUnload(QString& url);
+    void addScriptToUnload(const QString& url);
     const QVector<QString>& getScriptsToUnload() const { return _scriptsToUnload; };
 
 public slots:
