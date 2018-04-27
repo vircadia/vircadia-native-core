@@ -193,6 +193,7 @@ Rectangle {
             anchors.rightMargin: 30
             anchors.verticalCenter: avatarNameLabel.verticalCenter
             glyphText: "."
+            glyphSize: 22
 
             MouseArea {
                 anchors.fill: parent

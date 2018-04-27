@@ -8,6 +8,7 @@ ShadowRectangle {
     color: 'white'
     property alias glyphText: glyph.text
     property alias glyphRotation: glyph.rotation
+    property alias glyphSize: glyph.size
 
     radius: 3
     border.color: 'black'
