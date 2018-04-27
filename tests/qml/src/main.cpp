@@ -44,8 +44,6 @@
 #include <unordered_set>
 #include <array>
 
-#pragma optimize("", off)
-
 namespace gl {
     extern void initModuleGl();
 }
