@@ -16,4 +16,5 @@
     <color name="menuOption">#F2F2F2</color>
     <color name="colorLoginError">#FF7171</color>
     <color name="black_060">#99000000</color>
+    <color name="statusbar_color">#292929</color>
 </resources>
