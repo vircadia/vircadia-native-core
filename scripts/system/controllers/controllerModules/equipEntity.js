@@ -790,7 +790,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     };
     
     var onMousePress = function(event) {
-        if (isInEditMode() || event.isRightButton) { // don't consider any mouse clicks on the entity while in edit
+        if (isInEditMode() || !event.isLeftButton) { // don't consider any left clicks on the entity while in edit
             return;
         }
         var pickRay = Camera.computePickRay(event.x, event.y);
