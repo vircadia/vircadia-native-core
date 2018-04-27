@@ -1,23 +1,15 @@
-import "../../controls" as HifiControls
+import "../../controls-uit" as HifiControlsUit
 import "../../styles-uit"
 
 import QtQuick 2.0
 import QtQuick.Controls 2.2
 
-TextField {
+HifiControlsUit.TextField {
     id: control
     font.family: "Fira Sans"
     font.pixelSize: 15;
-    color: 'black'
 
     AvatarAppStyle {
         id: style
-    }
-
-    background: Rectangle {
-        implicitWidth: 200
-        implicitHeight: 40
-        color: style.colors.inputFieldBackground
-        border.color: style.colors.lightGray
     }
 }
