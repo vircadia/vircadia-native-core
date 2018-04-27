@@ -295,10 +295,10 @@ Rectangle {
                 width: parent.width;
                 height: 40;
                 
-                RalewaySemiBold {
+                RalewayRegular {
                     text: model.appUrl;
                     // Text size
-                    size: 18;
+                    size: 16;
                     // Anchors
                     anchors.left: parent.left;
                     anchors.leftMargin: 12;
@@ -589,7 +589,7 @@ Rectangle {
 
         ListView {
             id: purchasesContentsList;
-            visible: ((root.isShowingMyItems && filteredPurchasesModel.count !== 0) || (!root.isShowingMyItems && filteredPurchasesModel.count !== 0)) && !installedAppsList.visible;
+            visible: (root.isShowingMyItems && filteredPurchasesModel.count !== 0) || (!root.isShowingMyItems && filteredPurchasesModel.count !== 0);
             clip: true;
             model: filteredPurchasesModel;
             snapMode: ListView.SnapToItem;
@@ -776,7 +776,7 @@ Rectangle {
 
         Rectangle {
             id: updatesAvailableBanner;
-            visible: root.numUpdatesAvailable > 0 && !root.isShowingMyItems && !installedAppsContainer.visible;
+            visible: root.numUpdatesAvailable > 0 && !root.isShowingMyItems;
             anchors.bottom: parent.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
