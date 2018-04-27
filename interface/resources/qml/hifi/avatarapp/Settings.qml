@@ -10,12 +10,7 @@ Rectangle {
     id: settings
 
     color: 'white'
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: header.bottom
-    anchors.bottom: parent.bottom
     visible: false;
-    z: 3
 
     property alias onSaveClicked: dialogButtons.onYesClicked
     property alias onCancelClicked: dialogButtons.onNoClicked
@@ -26,6 +21,15 @@ Rectangle {
 
     function close() {
         visible = false
+    }
+
+    // This object is always used in a popup.
+    // This MouseArea is used to prevent a user from being
+    //     able to click on a button/mouseArea underneath the popup.
+    MouseArea {
+        anchors.fill: parent;
+        propagateComposedEvents: false;
+        hoverEnabled: true;
     }
 
     Item {

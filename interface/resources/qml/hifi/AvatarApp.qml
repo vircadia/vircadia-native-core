@@ -54,10 +54,25 @@ Rectangle {
         id: header
         z: 100
 
-        pageTitle: !settings.visible ? "Avatar" : "Avatar Settings"
-        avatarIconVisible: !settings.visible
-        settingsButtonVisible: !settings.visible
+        property string currentPage: "Avatar"
+        property bool mainPageVisible: !settings.visible && !adjustWearables.visible
 
+        Binding on currentPage {
+            when: settings.visible
+            value: "Avatar Settings"
+        }
+        Binding on currentPage {
+            when: adjustWearables.visible
+            value: "Adjust Wearables"
+        }
+        Binding on currentPage {
+            when: header.mainPageVisible
+            value: "Avatar"
+        }
+
+        pageTitle: currentPage
+        avatarIconVisible: mainPageVisible
+        settingsButtonVisible: mainPageVisible
         onSettingsClicked: {
             settings.open();
         }
@@ -65,6 +80,12 @@ Rectangle {
 
     Settings {
         id: settings
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: header.bottom
+        anchors.bottom: parent.bottom
+
+        z: 3
 
         onSaveClicked: function() {
             close();
@@ -72,6 +93,16 @@ Rectangle {
         onCancelClicked: function() {
             close();
         }
+    }
+
+    AdjustWearables {
+        id: adjustWearables
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: header.bottom
+        anchors.bottom: parent.bottom
+
+        z: 3
     }
 
     Rectangle {
@@ -714,11 +745,6 @@ Rectangle {
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 19
         }
-    }
-
-    AdjustWearables {
-        id: adjustWearables
-        z: 2
     }
 
     MessageBox {

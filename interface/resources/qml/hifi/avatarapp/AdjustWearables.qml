@@ -9,7 +9,7 @@ Rectangle {
     visible: false;
     width: 480
     height: 706
-    color: 'lightgray'
+    color: 'white'
 
     property bool modified: false;
     Component.onCompleted: {
@@ -50,18 +50,6 @@ Rectangle {
         spacing: 20
         width: parent.width - 30 * 2
 
-        TextStyle5 {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: "Adjust Wearables"
-        }
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 2
-            color: 'gray'
-        }
-
         HifiControlsUit.ComboBox {
             anchors.left: parent.left
             anchors.right: parent.right
@@ -91,6 +79,8 @@ Rectangle {
 
             Vector3 {
                 id: position
+                backgroundColor: "lightgray"
+
                 onXvalueChanged: modified = true;
                 onYvalueChanged: modified = true;
                 onZvalueChanged: modified = true;
@@ -115,6 +105,8 @@ Rectangle {
 
             Vector3 {
                 id: rotation
+                backgroundColor: "lightgray"
+
                 onXvalueChanged: modified = true;
                 onYvalueChanged: modified = true;
                 onZvalueChanged: modified = true;
@@ -136,7 +128,7 @@ Rectangle {
                 HifiControlsUit.SpinBox {
                     id: scalespinner
                     value: 0
-                    backgroundColor: "darkgray"
+                    backgroundColor: "lightgray"
                     width: position.spinboxWidth
                     colorScheme: hifi.colorSchemes.light
                     onValueChanged: modified = true;
