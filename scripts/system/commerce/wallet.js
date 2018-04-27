@@ -557,12 +557,14 @@
         }
 
         if (onWalletScreen) {
+            if (!isWired) {
+                Users.usernameFromIDReply.connect(usernameFromIDReply);
+                Controller.mousePressEvent.connect(handleMouseEvent);
+                Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+                triggerMapping.enable();
+                triggerPressMapping.enable();
+            }
             isWired = true;
-            Users.usernameFromIDReply.connect(usernameFromIDReply);
-            Controller.mousePressEvent.connect(handleMouseEvent);
-            Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-            triggerMapping.enable();
-            triggerPressMapping.enable();
         } else {
             off();
         }
