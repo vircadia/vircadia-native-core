@@ -583,6 +583,7 @@ Rectangle {
                         ShadowRectangle {
                             width: 92
                             height: 92
+                            radius: 5
                             color: style.colors.blueHighlight
                             visible: url === ''
 
