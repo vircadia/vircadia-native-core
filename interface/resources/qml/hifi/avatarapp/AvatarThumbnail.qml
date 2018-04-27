@@ -20,7 +20,7 @@ Item {
     ShadowImage {
         id: avatarImage
         anchors.fill: parent
-        radius: 6
+        radius: 5
     }
 
     AvatarWearablesIndicator {
