@@ -333,7 +333,7 @@ Rectangle {
             anchors.left: parent.left
             anchors.leftMargin: 30
             anchors.right: parent.right
-            anchors.rightMargin: 30
+            anchors.rightMargin: 0
 
             anchors.top: favoritesLabel.bottom
             anchors.topMargin: 9
@@ -345,6 +345,8 @@ Rectangle {
                 interactive: false;
                 currentIndex: (selectedAvatarId !== '' && !pageOfAvatars.isUpdating) ? pageOfAvatars.findAvatar(selectedAvatarId) : -1
 
+                property int horizontalSpacing: 18
+                property int verticalSpacing: 36
                 AvatarsModel {
                     id: allAvatars
 
@@ -441,10 +443,10 @@ Rectangle {
                     }
                 }
 
-                flow: GridView.FlowTopToBottom
+                flow: GridView.FlowLeftToRight
 
-                cellHeight: 92 + 36
-                cellWidth: 92 + 18
+                cellHeight: 92 + verticalSpacing
+                cellWidth: 92 + horizontalSpacing
 
                 delegate: Item {
                     id: delegateRoot
