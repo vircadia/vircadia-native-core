@@ -45,19 +45,15 @@
 #include <array>
 
 namespace gl {
-    extern void initModuleGl();
+extern void initModuleGl();
 }
 
 class QTestItem : public QQuickItem {
     Q_OBJECT
 public:
-    QTestItem(QQuickItem* parent = nullptr) : QQuickItem(parent) {
-        qDebug() << __FUNCTION__;
-    }
+    QTestItem(QQuickItem* parent = nullptr) : QQuickItem(parent) { qDebug() << __FUNCTION__; }
 
-    ~QTestItem() {
-        qDebug() << __FUNCTION__;
-    }
+    ~QTestItem() { qDebug() << __FUNCTION__; }
 };
 
 QUrl getTestResource(const QString& relativePath) {
@@ -70,7 +66,6 @@ QUrl getTestResource(const QString& relativePath) {
     }
     return QUrl::fromLocalFile(dir + relativePath);
 }
-
 
 #define DIVISIONS_X 5
 #define DIVISIONS_Y 5
@@ -164,60 +159,40 @@ void TestWindow::resizeWindow(const QSize& size) {
 }
 
 static const int DEFAULT_MAX_FPS = 10;
-static const int YOUTUBE_MAX_FPS = 30;
 static const QString CONTROL_URL{ "/qml/controls/WebEntityView.qml" };
 static const char* URL_PROPERTY{ "url" };
 
-QString getSourceUrl() {
+QString getSourceUrl(bool video) {
     static const std::vector<QString> SOURCE_URLS{
         "https://www.reddit.com/wiki/random",
         "https://en.wikipedia.org/wiki/Wikipedia:Random",
         "https://slashdot.org/",
-        //"https://www.youtube.com/watch?v=gDXwhHm4GhM",
-        //"https://www.youtube.com/watch?v=Ch_hoYPPeGc",
     };
 
-    auto index = rand() % SOURCE_URLS.size();
-    return SOURCE_URLS[index];
+    static const std::vector<QString> VIDEO_SOURCE_URLS{
+        "https://www.youtube.com/watch?v=gDXwhHm4GhM",
+        "https://www.youtube.com/watch?v=Ch_hoYPPeGc",
+    };
+
+    const auto& sourceUrls = video ? VIDEO_SOURCE_URLS : SOURCE_URLS;
+    auto index = rand() % sourceUrls.size();
+    return sourceUrls[index];
 }
 
-#define CACHE_WEBVIEWS 0
-
-#if CACHE_WEBVIEWS
-static std::list<QmlPtr> _cache;
-#endif
-
-hifi::qml::QmlContextObjectCallback callback = [](QQmlContext* context, QQuickItem* item) {
-    item->setProperty(URL_PROPERTY, getSourceUrl());
-};
-
-void TestWindow::buildSurface(QmlInfo& qmlInfo, bool allowVideo) {
+void TestWindow::buildSurface(QmlInfo& qmlInfo, bool video) {
     ++_surfaceCount;
     auto lifetimeSecs = (uint32_t)(5.0f + (randFloat() * 10.0f));
     auto lifetimeUsecs = (USECS_PER_SECOND * lifetimeSecs);
     qmlInfo.lifetime = lifetimeUsecs + usecTimestampNow();
     qmlInfo.texture = 0;
-#if CACHE_WEBVIEWS
-    if (_cache.empty()) {
-        _cache.emplace_back(new hifi::qml::OffscreenSurface());
-        auto& surface = _cache.back();
-        surface->load(getTestResource(CONTROL_URL));
-        surface->setMaxFps(DEFAULT_MAX_FPS);
-    }
-    qmlInfo.surface = _cache.front();
-    _cache.pop_front();
-#else
     qmlInfo.surface.reset(new hifi::qml::OffscreenSurface());
-    qmlInfo.surface->load(getTestResource(CONTROL_URL));
+    qmlInfo.surface->load(getTestResource(CONTROL_URL), [video](QQmlContext* context, QQuickItem* item) {
+        item->setProperty(URL_PROPERTY, getSourceUrl(video));
+    });
     qmlInfo.surface->setMaxFps(DEFAULT_MAX_FPS);
-#endif
-
     qmlInfo.surface->resize(_qmlSize);
-    auto url = allowVideo ? "https://www.youtube.com/watch?v=gDXwhHm4GhM" : getSourceUrl();
-    qmlInfo.surface->getRootItem()->setProperty(URL_PROPERTY, url);
     qmlInfo.surface->resume();
 }
-
 
 void TestWindow::destroySurface(QmlInfo& qmlInfo) {
     auto& surface = qmlInfo.surface;
@@ -228,9 +203,6 @@ void TestWindow::destroySurface(QmlInfo& qmlInfo) {
         webView->setProperty(URL_PROPERTY, "about:blank");
     }
     surface->pause();
-#if CACHE_WEBVIEWS
-    _cache.push_back(surface);
-#endif
     surface.reset();
 }
 
@@ -296,7 +268,6 @@ void TestWindow::draw() {
     _glf.glViewport(0, 0, size.width(), size.height());
     _glf.glClearColor(1, 0, 0, 1);
     _glf.glClear(GL_COLOR_BUFFER_BIT);
-
     for (uint32_t x = 0; x < DIVISIONS_X; ++x) {
         for (uint32_t y = 0; y < DIVISIONS_Y; ++y) {
             auto& qmlInfo = _surfaces[x][y];
@@ -313,8 +284,6 @@ void TestWindow::draw() {
                                         GL_COLOR_BUFFER_BIT, GL_NEAREST);
         }
     }
-    _glf.glFlush();
-
     _glContext.swapBuffers(this);
 }
 
@@ -325,8 +294,7 @@ void TestWindow::resizeEvent(QResizeEvent* ev) {
 int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     TestWindow window;
-    app.exec();
-    return 0;
+    return app.exec();
 }
 
 #include "main.moc"

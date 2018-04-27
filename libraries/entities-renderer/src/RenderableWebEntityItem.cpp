@@ -318,8 +318,10 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
 
 void WebEntityRenderer::destroyWebSurface() {
     QSharedPointer<OffscreenQmlSurface> webSurface;
+    ContentType contentType{ ContentType::NoContent };
     withWriteLock([&] {
         webSurface.swap(_webSurface);
+        std::swap(contentType, _contentType);
     });
 
     if (webSurface) {
@@ -328,12 +330,9 @@ void WebEntityRenderer::destroyWebSurface() {
 
         // Fix for crash in QtWebEngineCore when rapidly switching domains
         // Call stop on the QWebEngineView before destroying OffscreenQMLSurface.
-        if (rootItem) {
-            QObject* obj = rootItem->findChild<QObject*>("webEngineView");
-            if (obj) {
-                // stop loading
-                QMetaObject::invokeMethod(obj, "stop");
-            }
+        if (rootItem && contentType == ContentType::HtmlContent) {
+            // stop loading
+            QMetaObject::invokeMethod(rootItem, "stop");
         }
 
         webSurface->pause();
