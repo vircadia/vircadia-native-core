@@ -1055,12 +1055,14 @@ var selectionDisplay = null; // for gridTool.js to ignore
         }
 
         if (onCommerceScreen) {
+            if (!isWired) {
+                Users.usernameFromIDReply.connect(usernameFromIDReply);
+                Controller.mousePressEvent.connect(handleMouseEvent);
+                Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+                triggerMapping.enable();
+                triggerPressMapping.enable();
+            }
             isWired = true;
-            Users.usernameFromIDReply.connect(usernameFromIDReply);
-            Controller.mousePressEvent.connect(handleMouseEvent);
-            Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-            triggerMapping.enable();
-            triggerPressMapping.enable();
             Wallet.refreshWalletStatus();
         } else {
             off();

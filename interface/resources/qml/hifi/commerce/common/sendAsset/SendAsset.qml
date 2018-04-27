@@ -1308,7 +1308,7 @@ Item {
             anchors.right: parent.right;
             anchors.rightMargin: root.assetName === "" ? 15 : 50;
             anchors.bottom: parent.bottom;
-            anchors.bottomMargin: root.assetName === "" ? 15 : 300;
+            anchors.bottomMargin: root.assetName === "" ? 15 : 240;
             color: "#FFFFFF";
 
             RalewaySemiBold {
@@ -1403,12 +1403,12 @@ Item {
                 id: giftContainer_paymentSuccess;
                 visible: root.assetName !== "";
                 anchors.top: sendToContainer_paymentSuccess.bottom;
-                anchors.topMargin: 16;
+                anchors.topMargin: 8;
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
-                height: 80;
+                height: 30;
 
                 RalewaySemiBold {
                     id: gift_paymentSuccess;
@@ -1431,6 +1431,7 @@ Item {
                     anchors.top: parent.top;
                     anchors.left: gift_paymentSuccess.right;
                     anchors.right: parent.right;
+                    height: parent.height;
                     // Text size
                     size: 18;
                     // Style
@@ -1522,7 +1523,7 @@ Item {
                 colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                 anchors.horizontalCenter: parent.horizontalCenter;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 80;
+                anchors.bottomMargin: root.assetName === "" ? 80 : 30;
                 height: 50;
                 width: 120;
                 text: "Close";
