@@ -115,6 +115,7 @@ private:
 class UrlHandler : public QObject {
     Q_OBJECT
 public:
+    UrlHandler(QObject* parent = nullptr) : QObject(parent) {}
     Q_INVOKABLE bool canHandleUrl(const QString& url) {
         static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
         return handler && handler->canAcceptURL(url);
@@ -257,7 +258,7 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
 
     auto rootContext = engine->rootContext();
     rootContext->setContextProperty("GL", ::getGLContextData());
-    rootContext->setContextProperty("urlHandler", new UrlHandler());
+    rootContext->setContextProperty("urlHandler", new UrlHandler(rootContext));
     rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
     rootContext->setContextProperty("ApplicationInterface", qApp);
     auto javaScriptToInject = getEventBridgeJavascript();
