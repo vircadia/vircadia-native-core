@@ -150,17 +150,15 @@
     // Relevant Variables:
     //   -button: The tablet button.
     //   -buttonName: The name of the button.
-    //   -showSpectatorInDesktop: Set to "true" to show the "SPECTATOR" app in desktop mode.
     var button = false;
     var buttonName = "SPECTATOR";
-    var showSpectatorInDesktop = false;
-    function addOrRemoveButton(isShuttingDown, isHMDMode) {
+    function addOrRemoveButton(isShuttingDown) {
         if (!tablet) {
             print("Warning in addOrRemoveButton(): 'tablet' undefined!");
             return;
         }
         if (!button) {
-            if ((isHMDMode || showSpectatorInDesktop) && !isShuttingDown) {
+            if (!isShuttingDown) {
                 button = tablet.addButton({
                     text: buttonName,
                     icon: "icons/tablet-icons/spectator-i.svg",
@@ -169,7 +167,7 @@
                 button.clicked.connect(onTabletButtonClicked);
             }
         } else if (button) {
-            if ((!isHMDMode && !showSpectatorInDesktop) || isShuttingDown) {
+            if (isShuttingDown) {
                 button.clicked.disconnect(onTabletButtonClicked);
                 tablet.removeButton(button);
                 button = false;
@@ -189,7 +187,7 @@
     var tablet = null;
     function startup() {
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        addOrRemoveButton(false, HMD.active);
+        addOrRemoveButton(false);
         tablet.screenChanged.connect(onTabletScreenChanged);
         Window.domainChanged.connect(onDomainChanged);
         Window.geometryChanged.connect(resizeViewFinderOverlay);
@@ -320,14 +318,14 @@
 
     const SWITCH_VIEW_FROM_CONTROLLER_DEFAULT = false;
     var switchViewFromController = !!Settings.getValue('spectatorCamera/switchViewFromController', SWITCH_VIEW_FROM_CONTROLLER_DEFAULT);
-    function setControllerMappingStatus(status) {
-        if (!controllerMapping) {
+    function setSwitchViewControllerMappingStatus(status) {
+        if (!switchViewControllerMapping) {
             return;
         }
         if (status) {
-            controllerMapping.enable();
+            switchViewControllerMapping.enable();
         } else {
-            controllerMapping.disable();
+            switchViewControllerMapping.disable();
         }
     }
     function setSwitchViewFromController(setting) {
@@ -335,8 +333,29 @@
             return;
         }
         switchViewFromController = setting;
-        setControllerMappingStatus(switchViewFromController);
+        setSwitchViewControllerMappingStatus(switchViewFromController);
         Settings.setValue('spectatorCamera/switchViewFromController', setting);
+    }
+    
+    const TAKE_SNAPSHOT_FROM_CONTROLLER_DEFAULT = false;
+    var takeSnapshotFromController = !!Settings.getValue('spectatorCamera/takeSnapshotFromController', TAKE_SNAPSHOT_FROM_CONTROLLER_DEFAULT);
+    function setTakeSnapshotControllerMappingStatus(status) {
+        if (!takeSnapshotControllerMapping) {
+            return;
+        }
+        if (status) {
+            takeSnapshotControllerMapping.enable();
+        } else {
+            takeSnapshotControllerMapping.disable();
+        }
+    }
+    function setTakeSnapshotFromController(setting) {
+        if (setting === takeSnapshotFromController) {
+            return;
+        }
+        takeSnapshotFromController = setting;
+        setTakeSnapshotControllerMappingStatus(takeSnapshotFromController);
+        Settings.setValue('spectatorCamera/takeSnapshotFromController', setting);
     }
 
     // Function Name: registerButtonMappings()
@@ -345,11 +364,61 @@
     //   -Updates controller button mappings for Spectator Camera.
     //
     // Relevant Variables:
-    //   -controllerMappingName: The name of the controller mapping.
-    //   -controllerMapping: The controller mapping itself.
+    //   -switchViewControllerMappingName: The name of the controller mapping.
+    //   -switchViewControllerMapping: The controller mapping itself.
+    //   -takeSnapshotControllerMappingName: The name of the controller mapping.
+    //   -takeSnapshotControllerMapping: The controller mapping itself.
     //   -controllerType: "OculusTouch", "Vive", "Other".
-    var controllerMappingName;
-    var controllerMapping;
+    var switchViewControllerMapping;
+    var switchViewControllerMappingName = 'Hifi-SpectatorCamera-Mapping-SwitchView';
+    function registerSwitchViewControllerMapping() {
+        switchViewControllerMapping = Controller.newMapping(switchViewControllerMappingName);
+        if (controllerType === "OculusTouch") {
+            switchViewControllerMapping.from(Controller.Standard.LS).to(function (value) {
+                if (value === 1.0) {
+                    setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
+                }
+                return;
+            });
+        } else if (controllerType === "Vive") {
+            switchViewControllerMapping.from(Controller.Standard.LeftPrimaryThumb).to(function (value) {
+                if (value === 1.0) {
+                    setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
+                }
+                return;
+            });
+        }
+    }
+    var takeSnapshotControllerMapping;
+    var takeSnapshotControllerMappingName = 'Hifi-SpectatorCamera-Mapping-TakeSnapshot';
+    function maybeTakeSnapshot() {
+        if (camera) {
+            Audio.playSound(SNAPSHOT_SOUND, {
+                position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
+                localOnly: true,
+                volume: 1.0
+            });
+            Window.takeSecondaryCameraSnapshot();
+        }
+    }
+    function registerTakeSnapshotControllerMapping() {
+        takeSnapshotControllerMapping = Controller.newMapping(takeSnapshotControllerMappingName);
+        if (controllerType === "OculusTouch") {
+            takeSnapshotControllerMapping.from(Controller.Standard.RS).to(function (value) {
+                if (value === 1.0) {
+                    maybeTakeSnapshot();
+                }
+                return;
+            });
+        } else if (controllerType === "Vive") {
+            takeSnapshotControllerMapping.from(Controller.Standard.RightPrimaryThumb).to(function (value) {
+                if (value === 1.0) {
+                    maybeTakeSnapshot();
+                }
+                return;
+            });
+        }
+    }
     var controllerType = "Other";
     function registerButtonMappings() {
         var VRDevices = Controller.getDeviceNames().toString();
@@ -359,30 +428,32 @@
             } else if (VRDevices.indexOf("OculusTouch") !== -1) {
                 controllerType = "OculusTouch";
             } else {
-                sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
+                sendToQml({
+                    method: 'updateControllerMappingCheckbox',
+                    switchViewSetting: switchViewFromController,
+                    takeSnapshotSetting: takeSnapshotFromController,
+                    controller: controllerType
+                });
                 return; // Neither Vive nor Touch detected
             }
         }
 
-        controllerMappingName = 'Hifi-SpectatorCamera-Mapping';
-        controllerMapping = Controller.newMapping(controllerMappingName);
-        if (controllerType === "OculusTouch") {
-            controllerMapping.from(Controller.Standard.LS).to(function (value) {
-                if (value === 1.0) {
-                    setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
-                }
-                return;
-            });
-        } else if (controllerType === "Vive") {
-            controllerMapping.from(Controller.Standard.LeftPrimaryThumb).to(function (value) {
-                if (value === 1.0) {
-                    setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
-                }
-                return;
-            });
+        if (!switchViewControllerMapping) {
+            registerSwitchViewControllerMapping();
         }
-        setControllerMappingStatus(switchViewFromController);
-        sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
+        setSwitchViewControllerMappingStatus(switchViewFromController);
+
+        if (!takeSnapshotControllerMapping) {
+            registerTakeSnapshotControllerMapping();
+        }
+        setTakeSnapshotControllerMappingStatus(switchViewFromController);
+
+        sendToQml({
+            method: 'updateControllerMappingCheckbox',
+            switchViewSetting: switchViewFromController,
+            takeSnapshotSetting: takeSnapshotFromController,
+            controller: controllerType
+        });
     }
 
     // Function Name: onTabletButtonClicked()
@@ -393,7 +464,7 @@
     // Relevant Variables:
     //   -SPECTATOR_CAMERA_QML_SOURCE: The path to the SpectatorCamera QML
     //   -onSpectatorCameraScreen: true/false depending on whether we're looking at the spectator camera app.
-    var SPECTATOR_CAMERA_QML_SOURCE = "hifi/SpectatorCamera.qml";
+    var SPECTATOR_CAMERA_QML_SOURCE = Script.resolvePath("SpectatorCamera.qml");
     var onSpectatorCameraScreen = false;
     function onTabletButtonClicked() {
         if (!tablet) {
@@ -405,15 +476,6 @@
             tablet.gotoHomeScreen();
         } else {
             tablet.loadQMLSource(SPECTATOR_CAMERA_QML_SOURCE);
-            sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
-            sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
-            if (!controllerMapping) {
-                registerButtonMappings();
-            } else {
-                sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
-            }
-            Menu.setIsOptionChecked("Disable Preview", false);
-            Menu.setIsOptionChecked("Mono Preview", true);
         }
     }
 
@@ -428,6 +490,23 @@
         // Change button to active when window is first openend OR if the camera is on, false otherwise.
         if (button) {
             button.editProperties({ isActive: onSpectatorCameraScreen || camera });
+        }
+
+        if (onSpectatorCameraScreen) {
+            sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
+            sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
+            if (!switchViewControllerMapping) {
+                registerButtonMappings();
+            } else {
+                sendToQml({
+                    method: 'updateControllerMappingCheckbox',
+                    switchViewSetting: switchViewFromController,
+                    takeSnapshotSetting: takeSnapshotFromController,
+                    controller: controllerType
+                });
+            }
+            Menu.setIsOptionChecked("Disable Preview", false);
+            Menu.setIsOptionChecked("Mono Preview", true);
         }
     }
 
@@ -459,6 +538,9 @@
             case 'changeSwitchViewFromControllerPreference':
                 setSwitchViewFromController(message.params);
                 break;
+            case 'changeTakeSnapshotFromControllerPreference':
+                setTakeSnapshotFromController(message.params);
+                break;
             default:
                 print('Unrecognized message from SpectatorCamera.qml:', JSON.stringify(message));
         }
@@ -469,12 +551,11 @@
     // Description:
     //   -Called from C++ when HMD mode is changed. The argument "isHMDMode" is true if HMD is on; false otherwise.
     function onHMDChanged(isHMDMode) {
-        if (!controllerMapping) {
+        if (!switchViewControllerMapping || !takeSnapshotControllerMapping) {
             registerButtonMappings();
         }
         setDisplay(monitorShowsCameraView);
-        addOrRemoveButton(false, isHMDMode);
-        if (!isHMDMode && !showSpectatorInDesktop) {
+        if (!isHMDMode) {
             spectatorCameraOff();
         }
     }
@@ -487,7 +568,7 @@
         spectatorCameraOff();
         Window.domainChanged.disconnect(onDomainChanged);
         Window.geometryChanged.disconnect(resizeViewFinderOverlay);
-        addOrRemoveButton(true, HMD.active);
+        addOrRemoveButton(true);
         if (tablet) {
             tablet.screenChanged.disconnect(onTabletScreenChanged);
             if (onSpectatorCameraScreen) {
@@ -496,8 +577,11 @@
         }
         HMD.displayModeChanged.disconnect(onHMDChanged);
         Controller.keyPressEvent.disconnect(keyPressEvent);
-        if (controllerMapping) {
-            controllerMapping.disable();
+        if (switchViewControllerMapping) {
+            switchViewControllerMapping.disable();
+        }
+        if (takeSnapshotControllerMapping) {
+            takeSnapshotControllerMapping.disable();
         }
     }
 
@@ -511,6 +595,7 @@
 
     // These functions will be called when the script is loaded.
     var CAMERA_ON_SOUND = SoundCache.getSound(Script.resolvePath("cameraOn.wav"));
+    var SNAPSHOT_SOUND = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/snap.wav");
     startup();
     Script.scriptEnding.connect(shutdown);
 
