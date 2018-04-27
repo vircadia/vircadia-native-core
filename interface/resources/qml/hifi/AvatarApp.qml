@@ -22,6 +22,10 @@ Rectangle {
         console.debug('selectedAvatar: ', selectedAvatar ? selectedAvatar.url : selectedAvatar)
     }
 
+    function isEqualById(avatar, avatarId) {
+        return (avatar.url + avatar.name) === avatarId
+    }
+
     property string avatarName: selectedAvatar ? selectedAvatar.name : ''
     property string avatarUrl: selectedAvatar ? selectedAvatar.url : null
     property int avatarWearablesCount: selectedAvatar && selectedAvatar.wearables !== '' ? selectedAvatar.wearables.split('|').length : 0
@@ -39,11 +43,7 @@ Rectangle {
             }
         }
 
-        selectedAvatarId = allAvatars.get(0).url
-        console.debug('wearables: ', selectedAvatar.wearables)
-
-        view.setPage(0)
-        console.debug('view.currentIndex: ', view.currentIndex);
+        view.selectAvatar(allAvatars.get(1));
     }
 
     AvatarAppStyle {
@@ -347,20 +347,35 @@ Rectangle {
 
                 property int horizontalSpacing: 18
                 property int verticalSpacing: 36
+
+                function selectAvatar(avatar) {
+                    selectedAvatarId = avatar.url + avatar.name;
+                    var avatarIndex = allAvatars.findAvatarIndex(selectedAvatarId);
+                    allAvatars.move(avatarIndex, 0, 1);
+                    view.setPage(0);
+                }
+
                 AvatarsModel {
                     id: allAvatars
+
+                    function findAvatarIndex(avatarId) {
+                        for(var i = 0; i < count; ++i) {
+                            if(isEqualById(get(i), avatarId)) {
+                                console.debug('avatar found by index: ', i)
+                                return i;
+                            }
+                        }
+                        return -1;
+                    }
 
                     function findAvatar(avatarId) {
                         console.debug('AvatarsModel: find avatar by', avatarId);
 
-                        for(var i = 0; i < count; ++i) {
-                            if(get(i).url === avatarId) {
-                                console.debug('avatar found by index: ', i)
-                                return get(i);
-                            }
-                        }
+                        var avatarIndex = findAvatarIndex(avatarId);
+                        if(avatarIndex === -1)
+                            return undefined;
 
-                        return -1;
+                        return get(avatarIndex);
                     }
                 }
 
@@ -418,7 +433,7 @@ Rectangle {
                         console.debug('pageOfAvatars.findAvatar: ', avatarId);
 
                         for(var i = 0; i < count; ++i) {
-                            if(get(i).url === avatarId) {
+                            if(isEqualById(get(i), avatarId)) {
                                 console.debug('avatar found by index: ', i)
                                 return i;
                             }
@@ -540,11 +555,8 @@ Rectangle {
                                             popup.bodyText = 'This will switch your current avatar and ararables that you are wearing with a new avatar and wearables.'
                                             popup.imageSource = null;
                                             popup.onButton2Clicked = function() {
-                                                selectedAvatarId = currentItem.url;
                                                 popup.close();
-
-                                                pageOfAvatars.move(index, 0, 1);
-                                                delegateRoot.GridView.view.currentIndex = 0;
+                                                view.selectAvatar(currentItem);
                                             }
                                             popup.open();
                                         }
