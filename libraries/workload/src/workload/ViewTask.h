@@ -103,6 +103,7 @@ namespace workload {
         Q_OBJECT
         Q_PROPERTY(bool regulateViewRanges READ regulateViewRanges WRITE setRegulateViewRanges NOTIFY dirty)
 
+
         Q_PROPERTY(float r1Timing READ r1Timing NOTIFY dirty)
         Q_PROPERTY(float r2Timing READ r2Timing NOTIFY dirty)
         Q_PROPERTY(float r3Timing READ r3Timing NOTIFY dirty)
@@ -164,6 +165,7 @@ namespace workload {
         float r2RangeFront() const { return dataExport.ranges[workload::Region::R2].y; }
         float r3RangeFront() const { return dataExport.ranges[workload::Region::R3].y; }
 
+
         struct Data {
             bool regulateViewRanges{ true };
         } data;
@@ -172,9 +174,14 @@ namespace workload {
             static const int SIZE{ workload::Region::NUM_VIEW_REGIONS };
             float timings[SIZE];
             glm::vec2 ranges[SIZE];
+            QVector<qreal> _timings { 6, 2.0 };
+
         } dataExport;
 
         void emitDirty() { emit dirty(); }
+
+    public slots:
+        Q_INVOKABLE QVector<qreal> getTimings() const { return dataExport._timings; }
     signals:
         void dirty();
     };
