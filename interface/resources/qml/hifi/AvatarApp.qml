@@ -570,12 +570,13 @@ Rectangle {
                             source: favoriteAvatarImage
                             saturation: 0.2
                             visible: isInManageState && !container.highlighted
+                            visible: isInManageState && !container.highlighted && url !== ''
                         }
 
                         HiFiGlyphs {
                             anchors.fill: parent
                             text: "{"
-                            visible: isInManageState && !container.highlighted
+                            visible: isInManageState && !container.highlighted && url !== ''
                             horizontalAlignment: Text.AlignHCenter
                             size: 56
                         }
@@ -585,7 +586,7 @@ Rectangle {
                             height: 92
                             radius: 5
                             color: style.colors.blueHighlight
-                            visible: url === ''
+                            visible: url === '' && !isInManageState
 
                             HiFiGlyphs {
                                 anchors.centerIn: parent
@@ -632,6 +633,7 @@ Rectangle {
                         horizontalAlignment: Text.AlignHCenter
                         wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                         text: name
+                        visible: url !== '' || !isInManageState
                     }
                 }
             }
