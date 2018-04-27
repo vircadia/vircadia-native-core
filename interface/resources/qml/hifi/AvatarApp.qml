@@ -584,7 +584,7 @@ Rectangle {
                                 onClicked: {
                                     console.debug('getAvatarsUrl: ', getAvatarsUrl);
 
-                                    popup.button2text = 'BodyMarkt'
+                                    popup.button2text = 'BodyMart'
                                     popup.button1text = 'CANCEL'
                                     popup.titleText = 'Get Avatars'
 
