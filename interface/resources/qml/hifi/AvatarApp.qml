@@ -39,7 +39,7 @@ Rectangle {
             }
         }
 
-        selectedAvatarId = allAvatars.get(1).url
+        selectedAvatarId = allAvatars.get(0).url
         console.debug('wearables: ', selectedAvatar.wearables)
 
         view.setPage(0)
@@ -540,7 +540,9 @@ Rectangle {
                                             popup.onButton2Clicked = function() {
                                                 selectedAvatarId = currentItem.url;
                                                 popup.close();
-                                                delegateRoot.GridView.view.currentIndex = index;
+
+                                                pageOfAvatars.move(index, 0, 1);
+                                                delegateRoot.GridView.view.currentIndex = 0;
                                             }
                                             popup.open();
                                         }
