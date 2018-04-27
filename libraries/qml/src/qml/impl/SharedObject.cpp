@@ -97,12 +97,13 @@ SharedObject::~SharedObject() {
     }
 
     // _rootItem is parented to the quickWindow, so needs no explicit destruction
-    //if (_rootItem) {
-    //    delete _rootItem;
-    //    _rootItem = nullptr;
-    //}
 
-    releaseEngine(_qmlContext->engine());
+    if (_qmlContext) {
+        auto engine = _qmlContext->engine();
+        delete _qmlContext;
+        _qmlContext = nullptr;
+        releaseEngine(engine);
+    }
 }
 
 void SharedObject::create(OffscreenSurface* surface) {
@@ -210,9 +211,9 @@ QQmlEngine* SharedObject::acquireEngine(OffscreenSurface* surface) {
     if (!globalEngine) {
         Q_ASSERT(0 == globalEngineRefCount);
         globalEngine = new QQmlEngine();
-        surface->initializeQmlEngine(result);
-        ++globalEngineRefCount;
+        surface->initializeEngine(result);
     }
+    ++globalEngineRefCount;
     result = globalEngine;
 #else
     result = new QQmlEngine();
