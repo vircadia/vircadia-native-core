@@ -338,13 +338,6 @@ bool ViewFrustum::boxIntersectsKeyhole(const AABox& box) const {
     return true;
 }
 
-bool closeEnough(float a, float b, float relativeError) {
-    assert(relativeError >= 0.0f);
-    // NOTE: we add EPSILON to the denominator so we can avoid checking for division by zero.
-    // This method works fine when: fabsf(a + b) >> EPSILON
-    return fabsf(a - b) / (0.5f * fabsf(a + b) + EPSILON) < relativeError;
-}
-
 // TODO: the slop and relative error should be passed in by argument rather than hard-coded.
 bool ViewFrustum::isVerySimilar(const ViewFrustum& other) const {
     const float MIN_POSITION_SLOP_SQUARED = 25.0f; // 5 meters squared

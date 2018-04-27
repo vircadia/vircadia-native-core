@@ -15,44 +15,14 @@
 #include <queue>
 #include <unordered_set>
 
-#include <AACube.h>
-#include <DiffTraversal.h>
-#include <EntityTreeElement.h>
-
-const float SQRT_TWO_OVER_TWO = 0.7071067811865f;
-const float DEFAULT_VIEW_RADIUS = 10.0f;
-
-// ConicalViewFrustum is an approximation of a ViewFrustum for fast calculation of sort priority.
-class ConicalViewFrustum {
-public:
-    ConicalViewFrustum() {}
-    ConicalViewFrustum(const ViewFrustum& viewFrustum) { set(viewFrustum); }
-    void set(const ViewFrustum& viewFrustum);
-    float computePriority(const AACube& cube) const;
-private:
-    glm::vec3 _position { 0.0f, 0.0f, 0.0f };
-    glm::vec3 _direction { 0.0f, 0.0f, 1.0f };
-    float _sinAngle { SQRT_TWO_OVER_TWO };
-    float _cosAngle { SQRT_TWO_OVER_TWO };
-    float _radius { DEFAULT_VIEW_RADIUS };
-};
-
-// Simple wrapper around a set of conical view frustums
-class ConicalView {
-public:
-    ConicalView() {}
-    void set(const DiffTraversal::View& view);
-    float computePriority(const AACube& cube) const;
-private:
-    std::vector<ConicalViewFrustum> _conicalViewFrustums;
-};
+#include "EntityItem.h"
 
 // PrioritizedEntity is a placeholder in a sorted queue.
 class PrioritizedEntity {
 public:
-    static const float DO_NOT_SEND;
-    static const float FORCE_REMOVE;
-    static const float WHEN_IN_DOUBT_PRIORITY;
+    static constexpr float DO_NOT_SEND { -1.0e-6f };
+    static constexpr float FORCE_REMOVE { -1.0e-5f };
+    static constexpr float WHEN_IN_DOUBT_PRIORITY { 1.0f };
 
     PrioritizedEntity(EntityItemPointer entity, float priority, bool forceRemove = false) : _weakEntity(entity), _rawEntityPointer(entity.get()), _priority(priority), _forceRemove(forceRemove) {}
     EntityItemPointer getEntity() const { return _weakEntity.lock(); }
