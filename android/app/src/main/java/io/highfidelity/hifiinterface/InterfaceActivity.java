@@ -41,11 +41,8 @@ public class InterfaceActivity extends QtActivity {
     //private native void nativeOnResume();
     private native void nativeOnDestroy();
     private native void nativeGotoUrl(String url);
-    private native void nativeGoBackFromAndroidActivity();
     private native void nativeEnterBackground();
     private native void nativeEnterForeground();
-    //private native void saveRealScreenSize(int width, int height);
-    //private native void setAppVersion(String version);
     private native long nativeOnExitVr();
 
     private AssetManager assetManager;
@@ -92,7 +89,6 @@ public class InterfaceActivity extends QtActivity {
 
         Point size = new Point();
         getWindowManager().getDefaultDisplay().getRealSize(size);
-//        saveRealScreenSize(size.x, size.y);
 
         try {
             PackageInfo pInfo = this.getPackageManager().getPackageInfo(getPackageName(), 0);
@@ -201,7 +197,6 @@ public class InterfaceActivity extends QtActivity {
         if (intent.hasExtra(DOMAIN_URL)) {
             nativeGotoUrl(intent.getStringExtra(DOMAIN_URL));
         }
-        nativeGoBackFromAndroidActivity();
     }
 
     public void openAndroidActivity(String activityName) {

@@ -182,10 +182,6 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnResu
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnExitVr(JNIEnv* env, jobject obj) {
 }
 
-JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeGoBackFromAndroidActivity(JNIEnv *env, jobject instance) {
-    AndroidHelper::instance().goBackFromAndroidActivity();
-}
-
 // HifiUtils
 JNIEXPORT jstring JNICALL Java_io_highfidelity_hifiinterface_HifiUtils_getCurrentAddress(JNIEnv *env, jobject instance) {
     QSharedPointer<AddressManager> addressManager = DependencyManager::get<AddressManager>();

@@ -25,7 +25,6 @@ public:
     }
     void requestActivity(const QString &activityName);
     void notifyLoadComplete();
-    void goBackFromAndroidActivity();
 
     void notifyLoginComplete(bool success);
     void performHapticFeedback(const QString& feedbackConstant);
@@ -36,7 +35,6 @@ public:
     void operator=(AndroidHelper const&) = delete;
 signals:
     void androidActivityRequested(const QString &activityName);
-    void backFromAndroidActivity();
     void qtAppLoadComplete();
     void loginComplete(bool success);
     void hapticFeedbackRequested(const QString &feedbackConstant);

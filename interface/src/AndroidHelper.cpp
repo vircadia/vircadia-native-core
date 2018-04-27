@@ -40,10 +40,6 @@ void AndroidHelper::notifyLoadComplete() {
     emit qtAppLoadComplete();
 }
 
-void AndroidHelper::goBackFromAndroidActivity() {
-    emit backFromAndroidActivity();
-}
-
 void AndroidHelper::notifyLoginComplete(bool success) {
     emit loginComplete(success);
 }

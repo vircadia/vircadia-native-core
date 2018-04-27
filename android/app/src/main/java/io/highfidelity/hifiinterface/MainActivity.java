@@ -82,54 +82,40 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void loadHomeFragment() {
         Fragment fragment = HomeFragment.newInstance();
 
-        FragmentManager fragmentManager = getFragmentManager();
-        FragmentTransaction ft = fragmentManager.beginTransaction();
-        ft.replace(R.id.content_frame, fragment);
-        ft.commit();
-
-        setTitle(getString(R.string.home));
-        mDrawerLayout.closeDrawer(mNavigationView);
+        loadFragment(fragment, getString(R.string.home), false);
     }
 
     private void loadLoginFragment() {
         Fragment fragment = LoginFragment.newInstance();
 
-        FragmentManager fragmentManager = getFragmentManager();
-        FragmentTransaction ft = fragmentManager.beginTransaction();
-        ft.replace(R.id.content_frame, fragment).addToBackStack(null);
-        ft.commit();
-
-        // update selected item title, then close the drawer
-        setTitle(getString(R.string.login));
-        mDrawerLayout.closeDrawer(mNavigationView);
+        loadFragment(fragment, getString(R.string.login), true);
     }
 
     private void loadGotoFragment() {
         Fragment fragment = GotoFragment.newInstance();
 
-        FragmentManager fragmentManager = getFragmentManager();
-        FragmentTransaction ft = fragmentManager.beginTransaction();
-        ft.replace(R.id.content_frame, fragment).addToBackStack(null);
-        ft.commit();
-
-        // update selected item title, then close the drawer
-        setTitle(getString(R.string.go_to));
-        mDrawerLayout.closeDrawer(mNavigationView);
+        loadFragment(fragment, getString(R.string.go_to), true);
     }
 
     private void loadPrivacyPolicyFragment() {
         Fragment fragment = PolicyFragment.newInstance();
 
+        loadFragment(fragment, getString(R.string.privacyPolicy), true);
+    }
+
+    private void loadFragment(Fragment fragment, String title, boolean addToBackStack) {
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction ft = fragmentManager.beginTransaction();
-        ft.replace(R.id.content_frame, fragment).addToBackStack(null);
+        ft.replace(R.id.content_frame, fragment);
+        if (addToBackStack) {
+            ft.addToBackStack(null);
+        }
         ft.commit();
-
-        // update selected item title, then close the drawer
-        setTitle(getString(R.string.privacyPolicy));
+        setTitle(title);
         mDrawerLayout.closeDrawer(mNavigationView);
     }
 
+    
     private void updateLoginMenu() {
         TextView loginOption = findViewById(R.id.login);
         TextView logoutOption = findViewById(R.id.logout);
