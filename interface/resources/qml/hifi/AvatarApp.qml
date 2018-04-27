@@ -97,14 +97,47 @@ Rectangle {
             text: 'Display Name'
         }
 
-        InputTextStyle4 {
+        TextField {
+            id: displayNameInput
             anchors.left: displayNameLabel.right
             anchors.leftMargin: 30
             anchors.verticalCenter: displayNameLabel.verticalCenter
             anchors.right: parent.right
             anchors.rightMargin: 36
             width: 232
+
+            property bool error: text === '';
             text: 'ThisIsDisplayName'
+
+            states: [
+                State {
+                    name: "hovered"
+                    when: displayNameInput.hovered && !displayNameInput.focus && !displayNameInput.error;
+                    PropertyChanges { target: displayNameInputBackground; color: '#afafaf' }
+                },
+                State {
+                    name: "focused"
+                    when: displayNameInput.focus && !displayNameInput.error
+                    PropertyChanges { target: displayNameInputBackground; color: '#f2f2f2' }
+                    PropertyChanges { target: displayNameInputBackground; border.color: '#00b4ef' }
+                },
+                State {
+                    name: "error"
+                    when: displayNameInput.error
+                    PropertyChanges { target: displayNameInputBackground; color: '#f2f2f2' }
+                    PropertyChanges { target: displayNameInputBackground; border.color: '#e84e62' }
+                }
+            ]
+
+            background: Rectangle {
+                id: displayNameInputBackground
+                implicitWidth: 200
+                implicitHeight: 40
+                color: '#d4d4d4'
+                border.color: '#afafaf'
+                border.width: 1
+                radius: 2
+            }
 
             HiFiGlyphs {
                 anchors.right: parent.right
