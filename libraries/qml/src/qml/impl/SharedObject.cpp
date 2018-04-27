@@ -90,13 +90,16 @@ SharedObject::~SharedObject() {
         _renderControl = nullptr;
     }
 
+    if (_rootItem) {
+        delete _rootItem;
+        _rootItem = nullptr;
+    }
+
     if (_quickWindow) {
         _quickWindow->destroy();
         delete _quickWindow;
         _quickWindow = nullptr;
     }
-
-    // _rootItem is parented to the quickWindow, so needs no explicit destruction
 
     if (_qmlContext) {
         auto engine = _qmlContext->engine();

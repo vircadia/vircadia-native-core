@@ -10,6 +10,21 @@
 
 import QtQuick 2.5
 import QtWebEngine 1.5
+import Hifi 1.0
+
+/*
+TestItem {
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: 10
+        color: "blue"
+        property string url: ""
+        ColorAnimation on color {
+            loops: Animation.Infinite; from: "blue"; to: "yellow"; duration: 1000 
+        }
+    }
+}
+*/
 
 WebEngineView {
     id: webViewCore

@@ -48,6 +48,17 @@ namespace gl {
     extern void initModuleGl();
 }
 
+class QTestItem : public QQuickItem {
+    Q_OBJECT
+public:
+    QTestItem(QQuickItem* parent = nullptr) : QQuickItem(parent) {
+        qDebug() << __FUNCTION__;
+    }
+
+    ~QTestItem() {
+        qDebug() << __FUNCTION__;
+    }
+};
 
 QUrl getTestResource(const QString& relativePath) {
     static QString dir;
@@ -89,9 +100,10 @@ private:
     GLuint _fbo{ 0 };
     const QSize _qmlSize{ 640, 480 };
     bool _aboutToQuit{ false };
+    uint64_t _createStopTime;
     void initGl();
     void updateSurfaces();
-    void buildSurface(QmlInfo& qmlInfo);
+    void buildSurface(QmlInfo& qmlInfo, bool allowVideo);
     void destroySurface(QmlInfo& qmlInfo);
     void resizeWindow(const QSize& size);
     void draw();
@@ -111,8 +123,10 @@ TestWindow::TestWindow() {
     QSurfaceFormat::setDefaultFormat(format);
     setFormat(format);
 
-    show();
+    qmlRegisterType<QTestItem>("Hifi", 1, 0, "TestItem");
 
+    show();
+    _createStopTime = usecTimestampNow() + (3000u * USECS_PER_SECOND);
 
     resize(QSize(800, 600));
 
@@ -167,40 +181,56 @@ QString getSourceUrl() {
     return SOURCE_URLS[index];
 }
 
+#define CACHE_WEBVIEWS 0
 
+#if CACHE_WEBVIEWS
+static std::list<QmlPtr> _cache;
+#endif
 
-void TestWindow::buildSurface(QmlInfo& qmlInfo) {
+hifi::qml::QmlContextObjectCallback callback = [](QQmlContext* context, QQuickItem* item) {
+    item->setProperty(URL_PROPERTY, getSourceUrl());
+};
+
+void TestWindow::buildSurface(QmlInfo& qmlInfo, bool allowVideo) {
     ++_surfaceCount;
-    auto lifetimeSecs = (uint32_t)(2.0f + (randFloat() * 10.0f));
+    auto lifetimeSecs = (uint32_t)(5.0f + (randFloat() * 10.0f));
     auto lifetimeUsecs = (USECS_PER_SECOND * lifetimeSecs);
     qmlInfo.lifetime = lifetimeUsecs + usecTimestampNow();
     qmlInfo.texture = 0;
-    auto& surface = qmlInfo.surface;
-    surface.reset(new hifi::qml::OffscreenSurface());
-    surface->setMaxFps(DEFAULT_MAX_FPS);
-    surface->resize(_qmlSize);
-    surface->setMaxFps(DEFAULT_MAX_FPS);
-    hifi::qml::QmlContextObjectCallback callback = [](QQmlContext* context, QQuickItem* item) {
-        item->setProperty(URL_PROPERTY, getSourceUrl());
-    };
-    surface->load(getTestResource(CONTROL_URL), callback);
-    surface->resume();
+#if CACHE_WEBVIEWS
+    if (_cache.empty()) {
+        _cache.emplace_back(new hifi::qml::OffscreenSurface());
+        auto& surface = _cache.back();
+        surface->load(getTestResource(CONTROL_URL));
+        surface->setMaxFps(DEFAULT_MAX_FPS);
+    }
+    qmlInfo.surface = _cache.front();
+    _cache.pop_front();
+#else
+    qmlInfo.surface.reset(new hifi::qml::OffscreenSurface());
+    qmlInfo.surface->load(getTestResource(CONTROL_URL));
+    qmlInfo.surface->setMaxFps(DEFAULT_MAX_FPS);
+#endif
+
+    qmlInfo.surface->resize(_qmlSize);
+    auto url = allowVideo ? "https://www.youtube.com/watch?v=gDXwhHm4GhM" : getSourceUrl();
+    qmlInfo.surface->getRootItem()->setProperty(URL_PROPERTY, url);
+    qmlInfo.surface->resume();
 }
+
 
 void TestWindow::destroySurface(QmlInfo& qmlInfo) {
     auto& surface = qmlInfo.surface;
-    QQuickItem* rootItem = surface->getRootItem();
-    if (rootItem) {
-        QObject* obj = rootItem->findChild<QObject*>("webEngineView");
-        if (!obj && rootItem->objectName() == "webEngineView") {
-            obj = rootItem;
-        }
-        if (obj) {
-            // stop loading
-            QMetaObject::invokeMethod(obj, "stop");
-        }
+    auto webView = surface->getRootItem();
+    if (webView) {
+        // stop loading
+        QMetaObject::invokeMethod(webView, "stop");
+        webView->setProperty(URL_PROPERTY, "about:blank");
     }
     surface->pause();
+#if CACHE_WEBVIEWS
+    _cache.push_back(surface);
+#endif
     surface.reset();
 }
 
@@ -211,8 +241,8 @@ void TestWindow::updateSurfaces() {
         for (size_t y = 0; y < DIVISIONS_Y; ++y) {
             auto& qmlInfo = _surfaces[x][y];
             if (!qmlInfo.surface) {
-                if (randFloat() > 0.99f) {
-                    buildSurface(qmlInfo);
+                if (now < _createStopTime && randFloat() > 0.99f) {
+                    buildSurface(qmlInfo, x == 0 && y == 0);
                 } else {
                     continue;
                 }
@@ -298,3 +328,5 @@ int main(int argc, char** argv) {
     app.exec();
     return 0;
 }
+
+#include "main.moc"
