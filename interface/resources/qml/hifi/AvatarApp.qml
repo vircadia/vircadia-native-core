@@ -135,7 +135,6 @@ Rectangle {
 
         Row {
             id: star
-
             anchors.top: parent.top
             anchors.topMargin: 119
             anchors.left: avatarImage.right
@@ -153,21 +152,21 @@ Rectangle {
             TextStyle5 {
                 text: isAvatarInFavorites ? avatarName : "Add to Favorites"
                 anchors.verticalCenter: parent.verticalCenter
+            }
+        }
 
-                MouseArea {
-                    enabled: !isAvatarInFavorites
-                    anchors.fill: parent
-                    onClicked: {
-                        console.debug('selectedAvatar.url', selectedAvatar.url)
-                        createFavorite.onSaveClicked = function() {
-                            selectedAvatar.favorite = true;
-                            pageOfAvatars.setProperty(view.currentIndex, 'favorite', selectedAvatar.favorite)
-                            createFavorite.close();
-                        }
-
-                        createFavorite.open(selectedAvatar);
-                    }
+        MouseArea {
+            enabled: !isAvatarInFavorites
+            anchors.fill: star
+            onClicked: {
+                console.debug('selectedAvatar.url', selectedAvatar.url)
+                createFavorite.onSaveClicked = function() {
+                    selectedAvatar.favorite = true;
+                    pageOfAvatars.setProperty(view.currentIndex, 'favorite', selectedAvatar.favorite)
+                    createFavorite.close();
                 }
+
+                createFavorite.open(selectedAvatar);
             }
         }
 
