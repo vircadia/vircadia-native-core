@@ -161,16 +161,9 @@ Rectangle {
                 ButtonGroup.group: leftRight
                 checked: true
 
+                colorScheme: hifi.colorSchemes.light
                 text: "Left hand"
                 boxSize: 20
-
-                contentItem: TextStyle9 {
-                    text: leftHandRadioButton.text
-                    color: 'black'
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    leftPadding: leftHandRadioButton.indicator.width + leftHandRadioButton.spacing
-                }
             }
 
             HifiControlsUit.RadioButton {
@@ -180,16 +173,9 @@ Rectangle {
                 Layout.column: 2
                 ButtonGroup.group: leftRight
 
+                colorScheme: hifi.colorSchemes.light
                 text: "Right hand"
                 boxSize: 20
-
-                contentItem: TextStyle9 {
-                    text: rightHandRadioButton.text
-                    color: 'black'
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    leftPadding: rightHandRadioButton.indicator.width + rightHandRadioButton.spacing
-                }
             }
 
             RalewaySemiBold {
@@ -210,20 +196,17 @@ Rectangle {
                 Layout.row: 1
                 Layout.column: 1
                 Layout.leftMargin: -18
-
                 ButtonGroup.group: onOff
+
+                colorScheme: hifi.colorSchemes.light
                 checked: true
 
                 text: "ON"
                 boxSize: 20
+            }
 
-                contentItem: TextStyle9 {
-                    text: onRadioButton.text
-                    color: 'black'
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    leftPadding: onRadioButton.indicator.width + onRadioButton.spacing
-                }
+            HifiConstants {
+                id: hifi
             }
 
             HifiControlsUit.RadioButton {
@@ -232,17 +215,10 @@ Rectangle {
                 Layout.row: 1
                 Layout.column: 2
                 ButtonGroup.group: onOff
+                colorScheme: hifi.colorSchemes.light
 
                 text: "OFF"
                 boxSize: 20
-
-                contentItem: TextStyle9 {
-                    text: offRadioButton.text
-                    color: 'black'
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    leftPadding: offRadioButton.indicator.width + offRadioButton.spacing
-                }
             }
         }
 
