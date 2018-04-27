@@ -273,9 +273,9 @@ QVariantList ScriptEngines::getRunning() {
         } else {
             displayURLString = displayURL.toDisplayString(QUrl::FormattingOptions(QUrl::FullyEncoded));
         }
-        resultNode.insert("url", displayURLString);
         // The path contains the exact path/URL of the script, which also is used in the stopScript function.
-        resultNode.insert("path", normalizeScriptURL(runningScript).toString());
+        resultNode.insert("path", displayURLString);
+        resultNode.insert("url", normalizeScriptURL(runningScript).toString());
         resultNode.insert("local", runningScriptURL.isLocalFile());
         result.append(resultNode);
     }

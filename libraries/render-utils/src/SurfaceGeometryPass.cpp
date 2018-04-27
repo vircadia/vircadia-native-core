@@ -168,7 +168,7 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
     outputs.edit4() = halfNormalTexture;
    
     auto linearDepthPipeline = getLinearDepthPipeline(renderContext);
-    auto downsamplePipeline = getDownsamplePipeline();
+    auto downsamplePipeline = getDownsamplePipeline(renderContext);
 
     auto depthViewport = args->_viewport;
     auto halfViewport = depthViewport >> 1;
@@ -241,18 +241,11 @@ const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline(const render
 }
 
 
-const gpu::PipelinePointer& LinearDepthPass::getDownsamplePipeline() {
+const gpu::PipelinePointer& LinearDepthPass::getDownsamplePipeline(const render::RenderContextPointer& renderContext) {
     if (!_downsamplePipeline) {
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
         auto ps = surfaceGeometry_downsampleDepthNormal_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DepthLinearPass_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("linearDepthMap"), DepthLinearPass_DepthMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), DepthLinearPass_NormalMapSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         PrepareStencil::testShape(*state);
@@ -261,6 +254,16 @@ const gpu::PipelinePointer& LinearDepthPass::getDownsamplePipeline() {
 
         // Good to go add the brand new pipeline
         _downsamplePipeline = gpu::Pipeline::create(program, state);
+
+        gpu::doInBatch("LinearDepthPass::run", renderContext->args->_context, [program](gpu::Batch& batch) {
+            batch.runLambda([program]() {
+                gpu::Shader::BindingSet slotBindings;
+                slotBindings.insert(gpu::Shader::Binding("deferredFrameTransformBuffer", DepthLinearPass_FrameTransformSlot));
+                slotBindings.insert(gpu::Shader::Binding("linearDepthMap", DepthLinearPass_DepthMapSlot));
+                slotBindings.insert(gpu::Shader::Binding("normalMap", DepthLinearPass_NormalMapSlot));
+                gpu::Shader::makeProgram(*program, slotBindings);
+            });
+        });
     }
 
     return _downsamplePipeline;
