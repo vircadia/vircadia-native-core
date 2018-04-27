@@ -239,6 +239,7 @@ void DomainHandler::activateICELocalSocket() {
     _domainURL.setHost(_sockAddr.getAddress().toString());
     emit domainURLChanged(_domainURL);
     emit completedSocketDiscovery();
+    clearPendingCheckins();  // Clear outstanding count.
 }
 
 void DomainHandler::activateICEPublicSocket() {
@@ -248,6 +249,7 @@ void DomainHandler::activateICEPublicSocket() {
     _domainURL.setHost(_sockAddr.getAddress().toString());
     emit domainURLChanged(_domainURL);
     emit completedSocketDiscovery();
+    clearPendingCheckins();  // Clear outstanding count.
 }
 
 QString DomainHandler::getViewPointFromNamedPath(QString namedPath) {
@@ -339,6 +341,7 @@ void DomainHandler::processSettingsPacketList(QSharedPointer<ReceivedMessage> pa
         qCDebug(networking) << "Received domain settings: \n" << _settingsObject;
     }
 
+    clearPendingCheckins();  // Reset outstanding check-ins.
     emit settingsReceived(_settingsObject);
 }
 
