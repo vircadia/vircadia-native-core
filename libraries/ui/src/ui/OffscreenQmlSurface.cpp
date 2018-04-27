@@ -223,6 +223,17 @@ void AudioHandler::run() {
     qDebug() << "QML Audio changed to " << _newTargetDevice;
 }
 
+OffscreenQmlSurface::~OffscreenQmlSurface() {
+    clearFocusItem();
+}
+
+void OffscreenQmlSurface::clearFocusItem() {
+    if (_currentFocusItem) {
+        disconnect(_currentFocusItem, &QObject::destroyed, this, &OffscreenQmlSurface::focusDestroyed);
+    }
+    _currentFocusItem = nullptr;
+}
+
 void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     Parent::initializeEngine(engine);
     new QQmlFileSelector(engine);
@@ -545,27 +556,21 @@ bool OffscreenQmlSurface::handlePointerEvent(const PointerEvent& event, class QT
 }
 
 void OffscreenQmlSurface::focusDestroyed(QObject* obj) {
-    if (_currentFocusItem) {
-        disconnect(_currentFocusItem, &QObject::destroyed, this, &OffscreenQmlSurface::focusDestroyed);
-    }
-    _currentFocusItem = nullptr;
+    clearFocusItem();
 }
 
 void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
+    clearFocusItem();
+
     QQuickItem* item = static_cast<QQuickItem*>(object);
     if (!item) {
         setFocusText(false);
-        _currentFocusItem = nullptr;
         return;
     }
 
     QInputMethodQueryEvent query(Qt::ImEnabled);
     qApp->sendEvent(object, &query);
     setFocusText(query.value(Qt::ImEnabled).toBool());
-
-    if (_currentFocusItem) {
-        disconnect(_currentFocusItem, &QObject::destroyed, this, 0);
-    }
 
     // Raise and lower keyboard for QML text fields.
     // HTML text fields are handled in emitWebEvent() methods - testing READ_ONLY_PROPERTY prevents action for HTML files.
