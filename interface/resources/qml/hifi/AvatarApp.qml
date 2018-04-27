@@ -565,11 +565,11 @@ Rectangle {
                             }
                         }
 
-                        Colorize {
+                        Rectangle {
                             anchors.fill: favoriteAvatarImage
-                            source: favoriteAvatarImage
-                            saturation: 0.2
-                            visible: isInManageState && !container.highlighted
+                            color: '#AFAFAF'
+                            opacity: 0.4
+                            radius: 5
                             visible: isInManageState && !container.highlighted && url !== ''
                         }
 
