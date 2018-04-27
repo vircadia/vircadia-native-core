@@ -381,6 +381,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         bool includeThisAvatar = true;
         auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
         QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
+
+        lastSentJointsForOther.resize(otherAvatar->getJointCount());
+
         bool distanceAdjust = true;
         glm::vec3 viewerPosition = myPosition;
         AvatarDataPacket::HasFlags hasFlagsOut; // the result of the toByteArray

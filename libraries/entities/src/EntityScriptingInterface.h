@@ -393,7 +393,7 @@ public slots:
     * @param {Entities.EntityType} entityName - The name of the entity to search for.
     * @param {Vec3} center - The point about which to search.
     * @param {number} radius - The radius within which to search.
-    * @param {bool} caseSensitiveSearch - Choose whether to to return case sensitive results back.
+    * @param {boolean} caseSensitiveSearch - Choose whether to to return case sensitive results back.
     * @returns {Uuid[]} An array of entity IDs of the specified type that intersect the search sphere. The array is empty if
     *     no entities could be found.
     * @example <caption>Get back a list of entities</caption>

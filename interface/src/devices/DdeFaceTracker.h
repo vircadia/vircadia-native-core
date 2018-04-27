@@ -67,13 +67,11 @@ public slots:
      * @function FaceTracker.setEnabled
      * @param {boolean} enabled
      */
-
     void setEnabled(bool enabled) override;
 
     /**jsdoc
      * @function FaceTracker.calibrate
      */
-
     void calibrate();
 
 private slots:

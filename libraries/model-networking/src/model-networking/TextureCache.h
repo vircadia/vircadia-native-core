@@ -137,10 +137,6 @@ using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
 
 Q_DECLARE_METATYPE(QWeakPointer<NetworkTexture>)
 
-/**jsdoc
- * API to manage Texture Cache resources
- * @namespace TextureCache
- */
 
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {
@@ -148,78 +144,61 @@ class TextureCache : public ResourceCache, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    // Copied over from ResourceCache (see ResourceCache.h for reason)
+
+    // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
 
     /**jsdoc
-     * @namespace TextureCache
-     * @property numTotal {number} total number of total resources
-     * @property numCached {number} total number of cached resource
-     * @property sizeTotal {number} size in bytes of all resources
-     * @property sizeCached {number} size in bytes of all cached resources
-     */
+    * API to manage texture cache resources.
+    * @namespace TextureCache
+    *
+    * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
+    * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
+    * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
+    * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
+    */
 
-    /**jsdoc
-     * Returns the total number of resources
-     * @function TextureCache.getNumTotalResources
-     * @returns {number}
-     */
 
-    /**jsdoc
-     * Returns the total size in bytes of all resources
-     * @function TextureCache.getSizeTotalResources
-     * @returns {number}
-     */
+    // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
 
-    /**jsdoc
-     * Returns the total number of cached resources
-     * @function TextureCache.getNumCachedResources
-     * @returns {number}
-     */
+   /**jsdoc
+    * Get the list of all resource URLs.
+    * @function TextureCache.getResourceList
+    * @return {string[]}
+    */
 
-    /**jsdoc
-     * Returns the total size in bytes of cached resources
-     * @function TextureCache.getSizeCachedResources
-     * @returns {number}
-     */
+   /**jsdoc
+    * @function TextureCache.dirty
+    * @returns {Signal}
+    */
 
-    /**jsdoc
-     * Returns list of all resource urls
-     * @function TextureCache.getResourceList
-     * @returns {string[]}
-     */
+   /**jsdoc
+    * @function TextureCache.updateTotalSize
+    * @param {number} deltaSize
+    */
 
-    /**jsdoc
-     * Returns animation resource for particular animation
-     * @function TextureCache.getAnimation
-     * @param url {string} url to load
-     * @returns {Resource} animation
-     */
+   /**jsdoc
+    * @function TextureCache.prefetch
+    * @param {string} url
+    * @param {object} extra
+    * @returns {object}
+    */
 
-    /**jsdoc
-     * Asynchronously loads a resource from the spedified URL and returns it.
-     * @param url {string} url of resource to load
-     * @param fallback {string} fallback URL if load of the desired url fails
-     * @function TextureCache.getResource
-     * @returns {Resource}
-     */
+   /**jsdoc
+    * Asynchronously loads a resource from the specified URL and returns it.
+    * @function TextureCache.getResource
+    * @param {string} url - URL of the resource to load.
+    * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
+    * @param {} [extra=null]
+    * @return {Resource}
+    */
 
-    /**jsdoc
-     * Prefetches a resource.
-     * @param url {string} url of resource to load
-     * @function TextureCache.prefetch
-     * @returns {Resource}
-     */
+   /**jsdoc
+    * Prefetches a resource.
+    * @function TextureCache.prefetch
+    * @param {string} url - URL of the resource to prefetch.
+    * @return {Resource}
+    */
 
-    /**jsdoc
-     * @param {number} deltaSize
-     * @function TextureCache.updateTotalSize
-     * @returns {Resource}
-     */
-
-    /**jsdoc
-     * @function TextureCache.dirty
-     * @returns {Signal}
-     */
 
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
     /// has two lines: the first, a set of random numbers in [0, 255] to be used as permutation offsets, and
@@ -265,6 +244,13 @@ signals:
     void spectatorCameraFramebufferReset();
 
 protected:
+    
+    /**jsdoc
+     * @function TextureCache.prefect
+     * @param {string} url
+     * @param {number} type
+     * @param {number} [maxNumPixels=67108864]
+     */
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
