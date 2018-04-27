@@ -467,9 +467,13 @@ Rectangle {
                             }
                         ]
 
+                        property bool highlighted: delegateRoot.GridView.isCurrentItem
+
                         AvatarThumbnail {
                             id: favoriteAvatarImage
                             imageUrl: url
+                            border.color: container.highlighted ? style.colors.blueHighlight : 'transparent'
+                            border.width: container.highlighted ? 2 : 0
                             wearablesCount: (wearables && wearables !== '') ? wearables.split('|').length : 0
                             onWearablesCountChanged: {
                                 console.debug('delegate: AvatarThumbnail.wearablesCount: ', wearablesCount)
@@ -546,26 +550,17 @@ Rectangle {
                             }
                         }
 
-                        Rectangle {
-                            id: highlight
-                            anchors.fill: favoriteAvatarImage
-                            visible: delegateRoot.GridView.isCurrentItem
-                            color: 'transparent'
-                            border.width: 2
-                            border.color: style.colors.blueHighlight
-                        }
-
                         Colorize {
                             anchors.fill: favoriteAvatarImage
                             source: favoriteAvatarImage
                             saturation: 0.2
-                            visible: isInManageState && !highlight.visible
+                            visible: isInManageState && !container.highlighted
                         }
 
                         HiFiGlyphs {
                             anchors.fill: parent
                             text: "{"
-                            visible: isInManageState && !highlight.visible
+                            visible: isInManageState && !container.highlighted
                             horizontalAlignment: Text.AlignHCenter
                             size: 56
                         }

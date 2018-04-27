@@ -3,6 +3,7 @@ import QtQuick 2.9
 Item {
     width: 92
     height: 92
+    property alias wearableIndicator: indicator
 
     property int wearablesCount: 0
     onWearablesCountChanged: {
@@ -14,6 +15,7 @@ Item {
     property alias dropShadowVerticalOffset: avatarImage.dropShadowVerticalOffset
 
     property alias imageUrl: avatarImage.source
+    property alias border: avatarImage.border
 
     ShadowImage {
         id: avatarImage
@@ -22,6 +24,7 @@ Item {
     }
 
     AvatarWearablesIndicator {
+        id: indicator
         anchors.left: avatarImage.left
         anchors.bottom: avatarImage.bottom
         anchors.leftMargin: 57
