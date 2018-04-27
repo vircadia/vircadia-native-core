@@ -13,6 +13,16 @@
 
 #include "Engine.h"
 
+template <typename T>
+QVariantList toVariantList(const QList<T> &list)
+{
+    QVariantList newList;
+    foreach(const T &item, list)
+        newList << item;
+
+    return newList;
+}
+
 namespace workload {
     class SetupViewsConfig : public Job::Config{
         Q_OBJECT
@@ -174,14 +184,14 @@ namespace workload {
             static const int SIZE{ workload::Region::NUM_VIEW_REGIONS };
             float timings[SIZE];
             glm::vec2 ranges[SIZE];
-            QVector<qreal> _timings { 6, 2.0 };
+            QList<qreal> _timings { 6, 2.0 };
 
         } dataExport;
 
         void emitDirty() { emit dirty(); }
 
     public slots:
-        Q_INVOKABLE QVector<qreal> getTimings() const { return dataExport._timings; }
+        Q_INVOKABLE QVariantList getTimings() const { return  toVariantList(dataExport._timings); }
     signals:
         void dirty();
     };
