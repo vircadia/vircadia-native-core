@@ -715,10 +715,11 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         // insert the new node and release our read lock
 #if defined(Q_OS_ANDROID) || (defined(__clang__) && defined(Q_OS_LINUX))
         _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
+        _localIDMap.insert(std::pair<Node::LocalID, SharedNodePointer>(localID, newNodePointer));
 #else
         _nodeHash.emplace(newNode->getUUID(), newNodePointer);
-#endif
         _localIDMap.emplace(localID, newNodePointer);
+#endif
         readLocker.unlock();
 
         qCDebug(networking) << "Added" << *newNode;
