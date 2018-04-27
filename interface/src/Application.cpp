@@ -3554,7 +3554,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     } else {
                         showCursor(Cursor::Icon::DEFAULT);
                     }
-                } else {
+                } else if (!event->isAutoRepeat()){
                     resetSensors(true);
                 }
                 break;
