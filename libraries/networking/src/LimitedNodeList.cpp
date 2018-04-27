@@ -578,9 +578,10 @@ void LimitedNodeList::reset() {
 
     // we need to make sure any socket connections are gone so wait on that here
     _nodeSocket.clearConnections();
+    _connectionIDs.clear();
 }
 
-bool LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
+bool LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID, ConnectionID newConnectionID) {
     QReadLocker readLocker(&_nodeMutex);
 
     NodeHash::iterator it = _nodeHash.find(nodeUUID);
@@ -594,7 +595,7 @@ bool LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
             _nodeHash.unsafe_erase(it);
         }
 
-        handleNodeKill(matchingNode);
+        handleNodeKill(matchingNode, newConnectionID);
         return true;
     }
 
@@ -609,13 +610,22 @@ void LimitedNodeList::processKillNode(ReceivedMessage& message) {
     killNodeWithUUID(nodeUUID);
 }
 
-void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
+void LimitedNodeList::handleNodeKill(const SharedNodePointer& node, ConnectionID nextConnectionID) {
     qCDebug(networking) << "Killed" << *node;
     node->stopPingTimer();
     emit nodeKilled(node);
 
     if (auto activeSocket = node->getActiveSocket()) {
         _nodeSocket.cleanupConnection(*activeSocket);
+    }
+
+    auto it = _connectionIDs.find(node->getUUID());
+    if (it != _connectionIDs.end()) {
+        if (nextConnectionID == NULL_CONNECTION_ID) {
+            it->second++;
+        } else {
+            it->second = nextConnectionID;
+        }
     }
 }
 
@@ -638,6 +648,11 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
 
         return matchingNode;
     } else {
+        auto it = _connectionIDs.find(uuid);
+        if (it == _connectionIDs.end()) {
+            _connectionIDs[uuid] = INITIAL_CONNECTION_ID;
+        }
+
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
         newNode->setIsReplicated(isReplicated);
@@ -712,13 +727,13 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
     }
 }
 
-std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(PingType_t pingType) {
-    int packetSize = sizeof(PingType_t) + sizeof(quint64);
+std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(const QUuid& nodeId, PingType_t pingType) {
+    int packetSize = sizeof(PingType_t) + sizeof(quint64) + sizeof(int64_t);
 
     auto pingPacket = NLPacket::create(PacketType::Ping, packetSize);
-
     pingPacket->writePrimitive(pingType);
     pingPacket->writePrimitive(usecTimestampNow());
+    pingPacket->writePrimitive(_connectionIDs[nodeId]);
 
     return pingPacket;
 }

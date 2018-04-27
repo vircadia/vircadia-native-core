@@ -31,9 +31,26 @@ using namespace crashpad;
 static const std::string BACKTRACE_URL { CMAKE_BACKTRACE_URL };
 static const std::string BACKTRACE_TOKEN { CMAKE_BACKTRACE_TOKEN };
 
+static std::wstring gIPCPipe;
+
 extern QString qAppFileName();
 
 // crashpad::AnnotationList* crashpadAnnotations { nullptr };
+
+#include <Windows.h>
+
+LONG WINAPI vectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
+    if (pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_HEAP_CORRUPTION ||
+        pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_STACK_BUFFER_OVERRUN) {
+        CrashpadClient client;
+        if (gIPCPipe.length()) {
+            client.SetHandlerIPCPipe(gIPCPipe);
+        }
+        client.DumpAndCrash(pExceptionInfo);
+    }
+
+    return EXCEPTION_CONTINUE_SEARCH;
+}
 
 bool startCrashHandler() {
     if (BACKTRACE_URL.empty() || BACKTRACE_TOKEN.empty()) {
@@ -76,7 +93,12 @@ bool startCrashHandler() {
     // Enable automated uploads.
     database->GetSettings()->SetUploadsEnabled(true);
 
-    return client.StartHandler(handler, db, db, BACKTRACE_URL, annotations, arguments, true, true);
+    bool result = client.StartHandler(handler, db, db, BACKTRACE_URL, annotations, arguments, true, true);
+    gIPCPipe = client.GetHandlerIPCPipe();
+
+    AddVectoredExceptionHandler(0, vectoredExceptionHandler);
+
+    return result;
 }
 
 void setCrashAnnotation(std::string name, std::string value) {
