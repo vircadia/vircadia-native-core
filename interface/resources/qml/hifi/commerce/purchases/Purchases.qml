@@ -124,6 +124,14 @@ Rectangle {
                 root.numUpdatesAvailable = result.data.updates.length;
             }
         }
+
+        onAppInstalled: {
+            root.installedApps = Commerce.getInstalledApps();
+        }
+
+        onAppUninstalled: {
+            root.installedApps = Commerce.getInstalledApps();
+        }
     }
 
     Timer {
@@ -249,6 +257,145 @@ Rectangle {
             Commerce.getWalletStatus();
         }
     }
+        
+    Item {
+        id: installedAppsContainer;
+        z: 998;
+        visible: false;
+        anchors.top: titleBarContainer.bottom;
+        anchors.topMargin: -titleBarContainer.additionalDropdownHeight;
+        anchors.left: parent.left;
+        anchors.bottom: parent.bottom;
+        width: parent.width;
+
+        RalewayRegular {
+            id: installedAppsHeader;
+            anchors.top: parent.top;
+            anchors.topMargin: 10;
+            anchors.left: parent.left;
+            anchors.leftMargin: 12;
+            height: 80;
+            width: paintedWidth;
+            text: "All Installed Marketplace Apps";
+            color: hifi.colors.black;
+            size: 22;
+        }
+
+        ListView {
+            id: installedAppsList;
+            clip: true;
+            model: installedAppsModel;
+            snapMode: ListView.SnapToItem;
+            // Anchors
+            anchors.top: installedAppsHeader.bottom;
+            anchors.left: parent.left;
+            anchors.bottom: sideloadAppButton.top;
+            width: parent.width;
+            delegate: Item {
+                width: parent.width;
+                height: 40;
+                
+                RalewaySemiBold {
+                    text: model.appUrl;
+                    // Text size
+                    size: 18;
+                    // Anchors
+                    anchors.left: parent.left;
+                    anchors.leftMargin: 12;
+                    height: parent.height;
+                    anchors.right: sideloadAppOpenButton.left;
+                    anchors.rightMargin: 8;
+                    elide: Text.ElideRight;
+                    // Style
+                    color: hifi.colors.black;
+                    // Alignment
+                    verticalAlignment: Text.AlignVCenter;
+
+                    MouseArea {
+                        anchors.fill: parent;
+                        onClicked: {
+                            Window.copyToClipboard((model.appUrl).slice(0, -9));
+                        }
+                    }
+                }
+
+                HifiControlsUit.Button {
+                    id: sideloadAppOpenButton;
+                    text: "OPEN";
+                    color: hifi.buttons.blue;
+                    colorScheme: hifi.colorSchemes.dark;
+                    anchors.top: parent.top;
+                    anchors.topMargin: 2;
+                    anchors.bottom: parent.bottom;
+                    anchors.bottomMargin: 2;
+                    anchors.right: uninstallGlyph.left;
+                    anchors.rightMargin: 8;
+                    width: 80;
+                    onClicked: {
+                        Commerce.openApp(model.appUrl);
+                    }
+                }
+            
+                HiFiGlyphs {
+                    id: uninstallGlyph;
+                    text: hifi.glyphs.close;
+                    color: hifi.colors.black;
+                    size: 22;
+                    anchors.top: parent.top;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: 6;
+                    width: 35;
+                    height: parent.height;
+                    horizontalAlignment: Text.AlignHCenter;
+                    MouseArea {
+                        anchors.fill: parent;
+                        hoverEnabled: true;
+                        onEntered: {
+                            parent.text = hifi.glyphs.closeInverted;
+                        }
+                        onExited: {
+                            parent.text = hifi.glyphs.close;
+                        }
+                        onClicked: {
+                            Commerce.uninstallApp(model.appUrl);
+                        }
+                    }
+                }
+            }
+        }
+        HifiControlsUit.Button {
+            id: sideloadAppButton;
+            color: hifi.buttons.blue;
+            colorScheme: hifi.colorSchemes.dark;
+            anchors.bottom: parent.bottom;
+            anchors.bottomMargin: 8;
+            anchors.left: parent.left;
+            anchors.leftMargin: 8;
+            anchors.right: closeAppListButton.left;
+            anchors.rightMargin: 8;
+            height: 40;
+            text: "SIDELOAD APP FROM LOCAL DISK";
+            onClicked: {
+                Window.browseChanged.connect(onFileOpenChanged); 
+                Window.browseAsync("Locate your app's .app.json file", "", "*.app.json");
+            }
+        }
+        HifiControlsUit.Button {
+            id: closeAppListButton;
+            color: hifi.buttons.white;
+            colorScheme: hifi.colorSchemes.dark;
+            anchors.bottom: parent.bottom;
+            anchors.bottomMargin: 8;
+            anchors.right: parent.right;
+            anchors.rightMargin: 8;
+            width: 100;
+            height: 40;
+            text: "BACK";
+            onClicked: {
+                installedAppsContainer.visible = false;
+            }
+        }
+    }
 
     HifiWallet.NeedsLogIn {
         id: needsLogIn;
@@ -317,7 +464,7 @@ Rectangle {
     //
     Item {
         id: purchasesContentsContainer;
-        visible: root.activeView === "purchasesMain";
+        visible: root.activeView === "purchasesMain" && !installedAppsList.visible;
         // Anchors
         anchors.left: parent.left;
         anchors.right: parent.right;
@@ -442,7 +589,7 @@ Rectangle {
 
         ListView {
             id: purchasesContentsList;
-            visible: (root.isShowingMyItems && filteredPurchasesModel.count !== 0) || (!root.isShowingMyItems && filteredPurchasesModel.count !== 0);
+            visible: ((root.isShowingMyItems && filteredPurchasesModel.count !== 0) || (!root.isShowingMyItems && filteredPurchasesModel.count !== 0)) && !installedAppsList.visible;
             clip: true;
             model: filteredPurchasesModel;
             snapMode: ListView.SnapToItem;
@@ -629,7 +776,7 @@ Rectangle {
 
         Rectangle {
             id: updatesAvailableBanner;
-            visible: root.numUpdatesAvailable > 0 && !root.isShowingMyItems;
+            visible: root.numUpdatesAvailable > 0 && !root.isShowingMyItems && !installedAppsContainer.visible;
             anchors.bottom: parent.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
@@ -957,6 +1104,39 @@ Rectangle {
                 }
             }
         }
+    }
+
+    Keys.onPressed: {
+        if ((event.key == Qt.Key_F) && (event.modifiers & Qt.ControlModifier)) {
+            installedAppsContainer.visible = !installedAppsContainer.visible;
+            console.log("User changed visibility of installedAppsContainer to " + installedAppsContainer.visible);
+        }
+    }
+    function onFileOpenChanged(filename) {
+        // disconnect the event, otherwise the requests will stack up
+        try { // Not all calls to onFileOpenChanged() connect an event.
+            Window.browseChanged.disconnect(onFileOpenChanged);
+        } catch (e) {
+            console.log('Purchases.qml ignoring', e);
+        }
+        if (filename) {
+            Commerce.installApp(filename);
+        }
+    }
+    ListModel {
+        id: installedAppsModel;
+    }
+    onInstalledAppsChanged: {
+        installedAppsModel.clear();
+        var installedAppsArray = root.installedApps.split(",");
+        var installedAppsObject = [];
+        // "- 1" because the last app string ends with ","
+        for (var i = 0; i < installedAppsArray.length - 1; i++) {
+            installedAppsObject[i] = {
+                "appUrl": installedAppsArray[i]
+            }
+        }
+        installedAppsModel.append(installedAppsObject);
     }
 
     //
