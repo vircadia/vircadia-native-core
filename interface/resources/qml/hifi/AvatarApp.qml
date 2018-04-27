@@ -552,7 +552,7 @@ Rectangle {
                                             popup.button2text = 'CONFIRM'
                                             popup.button1text = 'CANCEL'
                                             popup.titleText = 'Load Favorite: {AvatarName}'.replace('{AvatarName}', currentItem.name)
-                                            popup.bodyText = 'This will switch your current avatar and ararables that you are wearing with a new avatar and wearables.'
+                                            popup.bodyText = 'This will switch your current avatar and wearables that you are wearing with a new avatar and wearables.'
                                             popup.imageSource = null;
                                             popup.onButton2Clicked = function() {
                                                 popup.close();
