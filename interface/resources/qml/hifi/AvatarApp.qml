@@ -646,6 +646,7 @@ Rectangle {
                 text: "\ue01d";
                 size: 50
                 color: view.hasPrev ? 'black' : 'gray'
+                visible: view.hasNext || view.hasPrev
                 horizontalAlignment: Text.AlignHCenter
                 MouseArea {
                     anchors.fill: parent
@@ -662,6 +663,7 @@ Rectangle {
                 text: "\ue01d";
                 size: 50
                 color: view.hasNext ? 'black' : 'gray'
+                visible: view.hasNext || view.hasPrev
                 horizontalAlignment: Text.AlignHCenter
                 MouseArea {
                     anchors.fill: parent
