@@ -5315,6 +5315,7 @@ void Application::update(float deltaTime) {
 
         if (_physicsEnabled) {
             auto t0 = std::chrono::high_resolution_clock::now();
+            auto t1 = t0;
             {
                 PROFILE_RANGE(simulation_physics, "PrePhysics");
                 PerformanceTimer perfTimer("prePhysics)");
@@ -5338,6 +5339,8 @@ void Application::update(float deltaTime) {
 
                 _entitySimulation->applyDynamicChanges();
 
+                t1 = std::chrono::high_resolution_clock::now();
+
                 avatarManager->getObjectsToRemoveFromPhysics(motionStates);
                 _physicsEngine->removeObjects(motionStates);
                 avatarManager->getObjectsToAddToPhysics(motionStates);
@@ -5350,6 +5353,7 @@ void Application::update(float deltaTime) {
                     dynamic->prepareForPhysicsSimulation();
                 });
             }
+            auto t2 = std::chrono::high_resolution_clock::now();
             {
                 PROFILE_RANGE(simulation_physics, "StepPhysics");
                 PerformanceTimer perfTimer("stepPhysics");
@@ -5357,6 +5361,7 @@ void Application::update(float deltaTime) {
                     _physicsEngine->stepSimulation();
                 });
             }
+            auto t3 = std::chrono::high_resolution_clock::now();
             {
                 if (_physicsEngine->hasOutgoingChanges()) {
                     {
@@ -5402,7 +5407,7 @@ void Application::update(float deltaTime) {
                         // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
                         _physicsEngine->dumpStatsIfNecessary();
                     }
-                    auto t1 = std::chrono::high_resolution_clock::now();
+                    auto t4 = std::chrono::high_resolution_clock::now();
 
                     if (!_aboutToQuit) {
                         // NOTE: the getEntities()->update() call below will wait for lock
@@ -5410,11 +5415,16 @@ void Application::update(float deltaTime) {
                         getEntities()->update(true); // update the models...
                     }
 
-                    auto t2 = std::chrono::high_resolution_clock::now();
+                    auto t5 = std::chrono::high_resolution_clock::now();
 
-                    workload::Timings timings(2);
-                    timings[0] = (t1 - t0);
-                    timings[1] = (t2 - t1);
+                    workload::Timings timings(6);
+                    timings[0] = (t4 - t0);
+                    timings[1] = (t5 - t4);
+                    timings[2] = (t4 - t3);
+                    timings[3] = (t3 - t2);
+                    timings[4] = (t2 - t1);
+                    timings[5] = (t1 - t0);
+
                     _gameWorkload.updateSimulationTimings(timings);
 
                 }
