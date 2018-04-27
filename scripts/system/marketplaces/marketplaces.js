@@ -153,40 +153,16 @@ var selectionDisplay = null; // for gridTool.js to ignore
     }
 
     // BEGIN AVATAR SELECTOR LOGIC
-    var UNSELECTED_TEXTURES = {
-        "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png"),
-        "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png")
-    };
-    var SELECTED_TEXTURES = {
-        "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png"),
-        "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png")
-    };
-    var HOVER_TEXTURES = {
-        "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-hover.png"),
-        "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-hover.png")
-    };
-
     var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6 };
     var SELECTED_COLOR = { red: 0xF3, green: 0x91, blue: 0x29 };
     var HOVER_COLOR = { red: 0xD0, green: 0xD0, blue: 0xD0 };
-    var conserveResources = true;
 
     var overlays = {}; // Keeps track of all our extended overlay data objects, keyed by target identifier.
 
-    function ExtendedOverlay(key, type, properties, selected, hasModel) { // A wrapper around overlays to store the key it is associated with.
+    function ExtendedOverlay(key, type, properties) { // A wrapper around overlays to store the key it is associated with.
         overlays[key] = this;
-        if (hasModel) {
-            var modelKey = key + "-m";
-            this.model = new ExtendedOverlay(modelKey, "model", {
-                url: Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx"),
-                textures: textures(selected),
-                ignoreRayIntersection: true
-            }, false, false);
-        } else {
-            this.model = undefined;
-        }
         this.key = key;
-        this.selected = selected || false; // not undefined
+        this.selected = false;
         this.hovering = false;
         this.activeOverlay = Overlays.addOverlay(type, properties); // We could use different overlays for (un)selected...
     }
@@ -208,10 +184,6 @@ var selectionDisplay = null; // for gridTool.js to ignore
         }
         return { red: scale(base.red), green: scale(base.green), blue: scale(base.blue) };
     }
-
-    function textures(selected, hovering) {
-        return hovering ? HOVER_TEXTURES : selected ? SELECTED_TEXTURES : UNSELECTED_TEXTURES;
-    }
     // so we don't have to traverse the overlays to get the last one
     var lastHoveringId = 0;
     ExtendedOverlay.prototype.hover = function (hovering) {
@@ -223,9 +195,6 @@ var selectionDisplay = null; // for gridTool.js to ignore
             lastHoveringId = 0;
         }
         this.editOverlay({ color: color(this.selected, hovering) });
-        if (this.model) {
-            this.model.editOverlay({ textures: textures(this.selected, hovering) });
-        }
         if (hovering) {
             // un-hover the last hovering overlay
             if (lastHoveringId && lastHoveringId !== this.key) {
@@ -240,15 +209,12 @@ var selectionDisplay = null; // for gridTool.js to ignore
         }
 
         this.editOverlay({ color: color(selected, this.hovering) });
-        if (this.model) {
-            this.model.editOverlay({ textures: textures(selected) });
-        }
         this.selected = selected;
     };
     // Class methods:
-    var selectedIds = [];
+    var selectedId = false;
     ExtendedOverlay.isSelected = function (id) {
-        return -1 !== selectedIds.indexOf(id);
+        return selectedId === id;
     };
     ExtendedOverlay.get = function (key) { // answer the extended overlay data object associated with the given avatar identifier
         return overlays[key];
@@ -285,51 +251,14 @@ var selectionDisplay = null; // for gridTool.js to ignore
         });
     };
 
-    function HighlightedEntity(id, entityProperties) {
-        this.id = id;
-        this.overlay = Overlays.addOverlay('cube', {
-            position: entityProperties.position,
-            rotation: entityProperties.rotation,
-            dimensions: entityProperties.dimensions,
-            solid: false,
-            color: {
-                red: 0xF3,
-                green: 0x91,
-                blue: 0x29
-            },
-            ignoreRayIntersection: true,
-            drawInFront: false // Arguable. For now, let's not distract with mysterious wires around the scene.
-        });
-        HighlightedEntity.overlays.push(this);
-    }
-    HighlightedEntity.overlays = [];
-    HighlightedEntity.clearOverlays = function clearHighlightedEntities() {
-        HighlightedEntity.overlays.forEach(function (highlighted) {
-            Overlays.deleteOverlay(highlighted.overlay);
-        });
-        HighlightedEntity.overlays = [];
-    };
-    HighlightedEntity.updateOverlays = function updateHighlightedEntities() {
-        HighlightedEntity.overlays.forEach(function (highlighted) {
-            var properties = Entities.getEntityProperties(highlighted.id, ['position', 'rotation', 'dimensions']);
-            Overlays.editOverlay(highlighted.overlay, {
-                position: properties.position,
-                rotation: properties.rotation,
-                dimensions: properties.dimensions
-            });
-        });
-    };
-
-
     function addAvatarNode(id) {
-        var selected = ExtendedOverlay.isSelected(id);
         return new ExtendedOverlay(id, "sphere", {
             drawInFront: true,
             solid: true,
             alpha: 0.8,
-            color: color(selected, false),
+            color: color(false, false),
             ignoreRayIntersection: false
-        }, selected, !conserveResources);
+        });
     }
 
     var pingPong = true;
@@ -368,14 +297,6 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 position: target,
                 dimensions: 0.032 * distance
             });
-            if (overlay.model) {
-                overlay.model.ping = pingPong;
-                overlay.model.editOverlay({
-                    position: target,
-                    scale: 0.2 * distance, // constant apparent size
-                    rotation: Camera.orientation
-                });
-            }
         });
         pingPong = !pingPong;
         ExtendedOverlay.some(function (overlay) { // Remove any that weren't updated. (User is gone.)
@@ -383,13 +304,10 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 overlay.deleteOverlay();
             }
         });
-        // We could re-populateNearbyUserList if anything added or removed, but not for now.
-        HighlightedEntity.updateOverlays();
     }
     function removeOverlays() {
-        selectedIds = [];
+        selectedId = false;
         lastHoveringId = 0;
-        HighlightedEntity.clearOverlays();
         ExtendedOverlay.some(function (overlay) {
             overlay.deleteOverlay();
         });
@@ -399,7 +317,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
     // Clicks.
     //
     function usernameFromIDReply(id, username, machineFingerprint, isAdmin) {
-        if (selectedIds[0] === id) {
+        if (selectedId === id) {
             var message = {
                 method: 'updateSelectedRecipientUsername',
                 userName: username === "" ? "unknown username" : username
@@ -411,13 +329,13 @@ var selectionDisplay = null; // for gridTool.js to ignore
         ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
             var nextSelectedStatus = !overlay.selected;
             var avatarId = overlay.key;
-            selectedIds = nextSelectedStatus ? [avatarId] : [];
+            selectedId = nextSelectedStatus ? avatarId : false;
             if (nextSelectedStatus) {
                 Users.requestUsernameFromID(avatarId);
             }
             var message = {
                 method: 'selectRecipient',
-                id: [avatarId],
+                id: avatarId,
                 isSelected: nextSelectedStatus,
                 displayName: '"' + AvatarList.getAvatar(avatarId).sessionDisplayName + '"',
                 userName: ''
@@ -430,24 +348,6 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 overlay.select(selected);
             });
 
-            HighlightedEntity.clearOverlays();
-            if (selectedIds.length) {
-                Entities.findEntitiesInFrustum(Camera.frustum).forEach(function (id) {
-                    // Because lastEditedBy is per session, the vast majority of entities won't match,
-                    // so it would probably be worth reducing marshalling costs by asking for just we need.
-                    // However, providing property name(s) is advisory and some additional properties are
-                    // included anyway. As it turns out, asking for 'lastEditedBy' gives 'position', 'rotation',
-                    // and 'dimensions', too, so we might as well make use of them instead of making a second
-                    // getEntityProperties call.
-                    // It would be nice if we could harden this against future changes by specifying all
-                    // and only these four in an array, but see
-                    // https://highfidelity.fogbugz.com/f/cases/2728/Entities-getEntityProperties-id-lastEditedBy-name-lastEditedBy-doesn-t-work
-                    var properties = Entities.getEntityProperties(id, 'lastEditedBy');
-                    if (ExtendedOverlay.isSelected(properties.lastEditedBy)) {
-                        new HighlightedEntity(id, properties);
-                    }
-                });
-            }
             return true;
         });
     }

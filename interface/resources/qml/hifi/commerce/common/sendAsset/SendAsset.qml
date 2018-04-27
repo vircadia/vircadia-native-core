@@ -1768,7 +1768,7 @@ Item {
         switch (message.method) {
             case 'selectRecipient':
                 if (message.isSelected) {
-                    chooseRecipientNearby.selectedRecipient = message.id[0];
+                    chooseRecipientNearby.selectedRecipient = message.id;
                     sendAssetStep.selectedRecipientDisplayName = message.displayName;
                     sendAssetStep.selectedRecipientUserName = message.userName;
                 } else {
