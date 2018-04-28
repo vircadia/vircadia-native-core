@@ -11,22 +11,22 @@ let dir_out = path.join(__dirname, 'out');
 let dir_grav = path.join(dir_out, 'grav');
 let dir_css = path.join(dir_grav, 'css');
 let dir_js = path.join(dir_grav, 'js');
-let dir_twig = path.join(dir_grav, 'templates');
+let dir_template = path.join(dir_grav, 'templates');
 
 let dir_md = path.join(dir_grav, '06.api-reference');
-let dir_md_classes = path.join(dir_md, 'Objects');
-let dir_md_namespaces = path.join(dir_md, 'Namespaces');
-let dir_md_globals = path.join(dir_md, 'Globals');
+let dir_md_objects = path.join(dir_md, '02.Objects');
+let dir_md_namespaces = path.join(dir_md, '01.Namespaces');
+let dir_md_globals = path.join(dir_md, '03.Globals');
 
 // maps for sorting
 let map_dir_md = {
-    "Class": dir_md_classes,
+    "Class": dir_md_objects,
     "Namespace": dir_md_namespaces,
-    "Global": dir_md_globals
+    "Global": dir_md_globals,
 }
 
 // html variables to be replaced
-const html_reg_static = /\<span class="type-signature"\>(static)\<\/span>/g;
+const html_reg_static = /<span class="type-signature">\(static\)<\/span>/g
 const html_reg_title = /\<h1.+?\>.+?\<\/h1\>/g;
 const html_reg_htmlExt = /\.html/g;
 
@@ -37,7 +37,7 @@ if (fs.existsSync(dir_grav)){
 }
 
 // array to itterate over and create if doesn't exist
-let dirArray = [dir_grav, dir_css, dir_js, dir_twig, dir_md, dir_md_classes, dir_md_namespaces, dir_md_globals];
+let dirArray = [dir_grav, dir_css, dir_js, dir_template, dir_md, dir_md_objects, dir_md_namespaces, dir_md_globals];
 
 dirArray.forEach(function(dir){
     if (!fs.existsSync(dir)) {
@@ -45,85 +45,77 @@ dirArray.forEach(function(dir){
     }
 })
 
-// read jsdoc output folder
+function createMD(title, directory){
+    let mdSource = makeMdSource(title);
+    let destinationMDFile = path.join(directory, `API_${title}.md`);
+    fs.writeFileSync(destinationMDFile, mdSource);
+}
 
-/*
+function createTemplate(title,directory, content ){
+    let twigBasePartial = makeTwigFile(content);
+    let destinationFile = path.join(directory, `API_${title}.html.twig`);
+    fs.writeFileSync(destinationFile, twigBasePartial);
+}
+
+createMD("API-Reference", dir_md);
+createTemplate("API-Reference", dir_template,"");
+createMD("Globals", dir_md_globals);
+createTemplate("Globals", dir_template,"");
+createMD("Namespaces", dir_md_namespaces);
+createTemplate("Namespaces", dir_template,"");
+createMD("Objects", dir_md_objects);
+createTemplate("Objects", dir_template,"");
+
+// read jsdoc output folder
 
 let files = fs.readdirSync(dir_out);
 files.forEach(function (file){
     let curSource = path.join(dir_out, file);
-    if (path.extname(curSource) == ".html") {
-
+    if (path.extname(curSource) == ".html" && path.basename(curSource, '.html') !== "index") {
         // clean up the html source
 
         let loadedHtml = prepareHtml(curSource);
 
-        // extract the title and the main div
+        // extract the title, groupename, and the main div
 
-        let splitTile = loadedHtml("title").text().split(": ");
-        let groupName = splitTitle[0];
-        let htmlTitle = splitTile.pop();
-        console.log(groupName);
-        // let mainDiv = loadedHtml("#main").html();
-        // let mainDivNoTitle = mainDiv.replace(/\<h1.+?\>.+?\<\/h1\>/g, "");
-        // let mainDivStripLinks = mainDivNoTitle.replace(/\.html/g, "");
+        let splitTitle = loadedHtml("title").text().split(": ");
+        // console.log(splitTitle);
+        let groupName = splitTitle[1];
+        let htmlTitle = splitTitle.pop();
+        // strip out undesired regex
+        let mainDiv = loadedHtml("#main").html();
+        let mainDivRegexed = mainDiv.replace(html_reg_static,"")
+                                    .replace(html_reg_title,"")
+                                    .replace(html_reg_htmlExt,"")
 
         // create the .md file and corresponding folder
 
-        // let mdSource = makeMdSource(htmlTitle);
-        // let destinationDirectory = path.join(dir_md, htmlTitle);
-        // if (!fs.existsSync(destinationDirectory)) {
-        //     fs.mkdirSync(destinationDirectory);
-        // }
-        // let destinationMDFile = path.join(destinationDirectory, `API_${htmlTitle}.md`);
-        // fs.writeFileSync(destinationMDFile, mdSource);
+        if (htmlTitle !== "Global"){
+            let mdSource = makeMdSource(htmlTitle);
+            let destinationDirectory = path.join(map_dir_md[groupName], htmlTitle);
+            if (!fs.existsSync(destinationDirectory)) {
+                fs.mkdirSync(destinationDirectory);
+            }
+            let destinationMDFile = path.join(destinationDirectory, `API_${htmlTitle}.md`);
+            fs.writeFileSync(destinationMDFile, mdSource);
+        } else {
+            let mdSource = makeMdSource(htmlTitle);
+            let destinationMDFile = path.join(map_dir_md[groupName], `API_Globals.md`);
+            fs.writeFileSync(destinationMDFile, mdSource);
+        }
+
 
         // create the twig template
 
-        // let twigBasePartial = makeTwigFile(mainDivStripLinks);
-        // let destinationFile = path.join(dir_twig, `API_${htmlTitle}.html.twig`);
-        // fs.writeFileSync(destinationFile, twigBasePartial);
+        let twigBasePartial = makeTwigFile(mainDivRegexed);
+        let destinationFile = path.join(dir_template, `API_${htmlTitle}.html.twig`);
+        fs.writeFileSync(destinationFile, twigBasePartial);
     }
 })
 
-*/
+// let curSource = path.join(dir_out, "Camera.html");
 
-let curSource = path.join(dir_out, "Camera.html");
 
-// clean up the html source
-
-let loadedHtml = prepareHtml(curSource);
-
-// extract the title, groupename, and the main div
-
-let splitTitle = loadedHtml("title").text().split(": ");
-let groupName = splitTitle[1];
-let htmlTitle = splitTitle.pop();
-console.log("groupname:", groupName);
-console.log("htmlTitle:", htmlTitle);
-
-// strip out undesired regex
-let mainDiv = loadedHtml("#main").html();
-let mainDivRegexed = mainDiv.replace(html_reg_static,"")
-                            .replace(html_reg_title,"")
-                            .replace(html_reg_htmlExt,"")
-
-// create the .md file and corresponding folder
-
-console.log(map_dir_md[groupName]);
-let mdSource = makeMdSource(htmlTitle);
-let destinationDirectory = path.join(map_dir_md[groupName], htmlTitle);
-if (!fs.existsSync(destinationDirectory)) {
-    fs.mkdirSync(destinationDirectory);
-}
-let destinationMDFile = path.join(destinationDirectory, `API_${htmlTitle}.md`);
-fs.writeFileSync(destinationMDFile, mdSource);
-
-// create the twig template
-
-let twigBasePartial = makeTwigFile(mainDivRegexed);
-let destinationFile = path.join(dir_twig, `API_${htmlTitle}.html.twig`);
-fs.writeFileSync(destinationFile, twigBasePartial);
 
 function prepareHtml(source){
     let htmlBefore = fs.readFileSync(source, {encoding: 'utf8'});
@@ -181,47 +173,26 @@ function makeTwigFile(contentHtml){
 let targertTwigDirectory = "D:/ROLC/Organize/O_Projects/Hifi/Docs/hifi-docs-grav/user/themes/learn2/";
 let targetMDDirectory = "D:/ROLC/Organize/O_Projects/Hifi/Docs/hifi-docs-grav-content/";
 
-let chapterMD =
-`---
-title: 'High Fidelity API Reference'
-taxonomy:
-    category:
-        - docs
----
-
-### 
-
-# API Reference
-
-**Under Construction**: We're currently working on creating an API Reference where you can access functions and events easily. 
-
-Check out our latest API Reference here. We're doing our best to keep this reference up-to-date with each release. If you don't find information you are looking for, contact us at [docs@highfidelity.io](mailto:docs@highfidelity.io). 
-
-`
-
 // Copy files to the Twig Directory
-let files = fs.readdirSync(path.resolve(targertTwigDirectory));
-files.forEach(function(file){
+let templateFiles = fs.readdirSync(path.resolve(targertTwigDirectory));
+templateFiles.forEach(function(file){
     let curSource = path.join(targertTwigDirectory, file);    
     if(path.basename(file, '.html').indexOf("API") > -1){
         fs.unlink(curSource);
     }
 })
 
-copyFolderRecursiveSync(dir_twig, targertTwigDirectory);
+copyFolderRecursiveSync(dir_template, targertTwigDirectory);
 
 // Copy files to the Md Directory
 
 let baseMdRefDir = path.join(targetMDDirectory,"06.api-reference");
 
-if (fs.existsSync(targetMDDirectory)){
+if (fs.existsSync(baseMdRefDir)){
     rimraf.sync(baseMdRefDir);
 }
 
 copyFolderRecursiveSync(dir_md, targetMDDirectory);
-let chapterDestinationFile = path.join(baseMdRefDir, `chapter.md`);
-fs.writeFileSync(chapterDestinationFile, chapterMD);
-
 
 // helper functions
 function copyFileSync( source, target ) {
@@ -247,12 +218,12 @@ function copyFolderRecursiveSync( source, target ) {
     var files = [];
 
     //check if folder needs to be created or integrated
-    console.log("target:" + target)
-    console.log("source:" + source)
-    console.log("basename source:" +  path.basename( source ))
+    // console.log("target:" + target)
+    // console.log("source:" + source)
+    // console.log("basename source:" +  path.basename( source ))
     
     var targetFolder = path.join( target, path.basename( source ) );
-    console.log("targetFolder:" + targetFolder);
+    // console.log("targetFolder:" + targetFolder);
     if ( !fs.existsSync( targetFolder ) ) {
         fs.mkdirSync( targetFolder );
     }
