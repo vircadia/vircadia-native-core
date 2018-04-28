@@ -106,7 +106,7 @@ exports.handlers = {
 
             // Append an Available In: table at the end of the namespace description.
             if (rows.length > 0) {
-                var table = "<br><br><table><td>Available In:<td>" + rows.join("<td>") + "</table>";
+                var table = "<br><br><table><tr><th>Available in:</th><td>" + rows.join("</td><td>") + "</td></tr></table>";
                 e.doclet.description = e.doclet.description + table;
             }
         }
@@ -124,7 +124,7 @@ exports.defineTags = function (dictionary) {
     });
 
     // @hifi-assignment-client
-    dictionary.defineTag("hifi-assigment-client", {
+    dictionary.defineTag("hifi-assignment-client", {
         onTagged: function (doclet, tag) {
             doclet.hifiAssignmentClient = true;
         }
