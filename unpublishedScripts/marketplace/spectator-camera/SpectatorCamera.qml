@@ -185,33 +185,11 @@ Rectangle {
     // SPECTATOR APP DESCRIPTION END
     //
 
-	Item {
-		visible: !HMD.active;
-        height: root.height - spectatorDescriptionContainer.height - titleBarContainer.height;
-        anchors.top: spectatorDescriptionContainer.bottom;
-        anchors.topMargin: 20;
-        anchors.left: parent.left;
-        anchors.leftMargin: 25;
-        anchors.right: parent.right;
-        anchors.rightMargin: anchors.leftMargin;
-
-        HifiStylesUit.FiraSansRegular {
-            text: "Spectator Camera only works in VR mode.\nPlease put on your headset.";
-            size: 18;
-            color: hifi.colors.lightGrayText;
-            anchors.fill: parent;
-            horizontalAlignment: Text.AlignHCenter;
-            verticalAlignment: Text.AlignVCenter;
-            wrapMode: Text.Wrap;
-        }
-	}
-
     //
     // SPECTATOR CONTROLS START
     //
     Item {
         id: spectatorControlsContainer;
-		visible: HMD.active;
         // Size
         height: root.height - spectatorDescriptionContainer.height - titleBarContainer.height;
         // Anchors
@@ -332,7 +310,7 @@ Rectangle {
             colorScheme: hifi.colorSchemes.dark;
             anchors.left: parent.left;
             anchors.top: monitorShowsSwitch.bottom;
-            anchors.topMargin: 25;
+            anchors.topMargin: 14;
             text: "";
             boxSize: 24;
             onClicked: {
@@ -343,6 +321,7 @@ Rectangle {
         // "Take Snapshot" Checkbox
         HifiControlsUit.CheckBox {
             id: takeSnapshotFromControllerCheckBox;
+            visible: HMD.active;
             colorScheme: hifi.colorSchemes.dark;
             anchors.left: parent.left;
             anchors.top: switchViewFromControllerCheckBox.bottom;
@@ -353,6 +332,21 @@ Rectangle {
                 sendToScript({method: 'changeTakeSnapshotFromControllerPreference', params: checked});
             }
         }
+
+		HifiControlsUit.Button {
+			id: take360SnapshotButton;
+            text: "Take 360 Snapshot"
+			colorScheme: hifi.colorSchemes.dark;
+			color: hifi.buttons.blue;
+			anchors.top: takeSnapshotFromControllerCheckBox.visible ? takeSnapshotFromControllerCheckBox.bottom : switchViewFromControllerCheckBox.bottom;
+			anchors.topMargin: 8;
+			anchors.left: parent.left;
+			anchors.right: parent.right;
+			height: 40;
+			onClicked: {
+				sendToScript({method: 'takeSecondaryCamera360Snapshot'});
+			}
+		}
     }
     //
     // SPECTATOR CONTROLS END

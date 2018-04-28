@@ -38,6 +38,7 @@ class Snapshot : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 public:
     static QString saveSnapshot(QImage image, const QString& filename);
+    static void save360Snapshot(const QString& filename);
     static QTemporaryFile* saveTempSnapshot(QImage image);
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
 

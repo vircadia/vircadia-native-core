@@ -7278,6 +7278,12 @@ void Application::takeSecondaryCameraSnapshot(const QString& filename) {
     });
 }
 
+void Application::takeSecondaryCamera360Snapshot(const QString& filename) {
+    postLambdaEvent([filename, this] {
+        Snapshot::save360Snapshot(filename);
+    });
+}
+
 void Application::shareSnapshot(const QString& path, const QUrl& href) {
     postLambdaEvent([path, href] {
         // not much to do here, everything is done in snapshot code...

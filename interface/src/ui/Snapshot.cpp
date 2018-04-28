@@ -29,8 +29,12 @@
 #include <NodeList.h>
 #include <OffscreenUi.h>
 #include <SharedUtil.h>
+#include <SecondaryCamera.h>
+#include <plugins/DisplayPlugin.h>
 
 #include "Application.h"
+#include "scripting/WindowScriptingInterface.h"
+#include "MainWindow.h"
 #include "Snapshot.h"
 #include "SnapshotUploader.h"
 
@@ -85,6 +89,84 @@ QString Snapshot::saveSnapshot(QImage image, const QString& filename) {
     delete snapshotFile;
 
     return snapshotPath;
+}
+
+void Snapshot::save360Snapshot(const QString& filename) {
+    SecondaryCameraJobConfig* secondaryCameraRenderConfig = static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
+
+    // Save initial values of secondary camera render config
+    auto oldAttachedEntityId = secondaryCameraRenderConfig->property("attachedEntityId");
+    auto oldOrientation = secondaryCameraRenderConfig->property("orientation");
+    auto oldvFoV = secondaryCameraRenderConfig->property("vFoV");
+    auto oldNearClipPlaneDistance = secondaryCameraRenderConfig->property("nearClipPlaneDistance");
+    auto oldFarClipPlaneDistance = secondaryCameraRenderConfig->property("farClipPlaneDistance");
+
+    // Initialize some secondary camera render config options for 360 snapshot capture
+    secondaryCameraRenderConfig->resetSizeSpectatorCamera(2048, 2048);
+    secondaryCameraRenderConfig->setProperty("attachedEntityId", "");
+    secondaryCameraRenderConfig->setProperty("vFoV", 90.0f);
+    secondaryCameraRenderConfig->setProperty("nearClipPlaneDistance", 0.5f);
+    secondaryCameraRenderConfig->setProperty("farClipPlaneDistance", 1000.0f);
+
+    secondaryCameraRenderConfig->setOrientation(glm::quat(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f))));
+
+    qint16 snapshotIndex = 0;
+
+    QTimer* snapshotTimer = new QTimer();
+    snapshotTimer->setSingleShot(false);
+    snapshotTimer->setInterval(200);
+    connect(snapshotTimer, &QTimer::timeout, [&] {
+        SecondaryCameraJobConfig* config = static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
+        qDebug() << "ZRF HERE" << snapshotIndex;
+        if (snapshotIndex == 0) {
+            QImage downImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
+            Snapshot::saveSnapshot(downImage, "down");
+            config->setOrientation(glm::quat(glm::radians(glm::vec3(0.0f, 0.0f, 0.0f))));
+        } else if (snapshotIndex == 1) {
+            QImage frontImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
+            Snapshot::saveSnapshot(frontImage, "front");
+            config->setOrientation(glm::quat(glm::radians(glm::vec3(0.0f, 90.0f, 0.0f))));
+        } else if (snapshotIndex == 2) {
+            QImage leftImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
+            Snapshot::saveSnapshot(leftImage, "left");
+            config->setOrientation(glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f))));
+        } else if (snapshotIndex == 3) {
+            QImage backImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
+            Snapshot::saveSnapshot(backImage, "back");
+            config->setOrientation(glm::quat(glm::radians(glm::vec3(0.0f, 270.0f, 0.0f))));
+        } else if (snapshotIndex == 4) {
+            QImage rightImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
+            Snapshot::saveSnapshot(rightImage, "right");
+            config->setOrientation(glm::quat(glm::radians(glm::vec3(90.0f, 0.0f, 0.0f))));
+        } else if (snapshotIndex == 5) {
+            QImage upImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
+            Snapshot::saveSnapshot(upImage, "up");
+        } else if (snapshotIndex == 6) {
+            // Reset secondary camera render config
+            config->resetSizeSpectatorCamera(qApp->getWindow()->geometry().width(), qApp->getWindow()->geometry().height());
+            config->setProperty("attachedEntityId", oldAttachedEntityId);
+            config->setProperty("vFoV", oldvFoV);
+            config->setProperty("nearClipPlaneDistance", oldNearClipPlaneDistance);
+            config->setProperty("farClipPlaneDistance", oldFarClipPlaneDistance);
+
+            QFile* snapshotFile = savedFileForSnapshot(qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), false, filename);
+
+            // we don't need the snapshot file, so close it, grab its filename and delete it
+            snapshotFile->close();
+
+            QString snapshotPath = QFileInfo(*snapshotFile).absoluteFilePath();
+
+            delete snapshotFile;
+
+            snapshotTimer->stop();
+            snapshotTimer->deleteLater();
+
+            emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
+        }
+
+        snapshotIndex++;
+    });
+    snapshotTimer->start();
 }
 
 QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {

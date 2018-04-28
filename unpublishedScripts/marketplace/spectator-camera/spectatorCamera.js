@@ -46,7 +46,6 @@
     //      -Far clip plane distance
     //   -viewFinderOverlay: The in-world overlay that displays the spectator camera's view.
     //   -camera: The in-world entity that corresponds to the spectator camera.
-    //   -cameraIsDynamic: "false" for now - maybe it shouldn't be? False means that the camera won't drift when you let go...
     //   -cameraRotation: The rotation of the spectator camera.
     //   -cameraPosition: The position of the spectator camera.
     //   -glassPaneWidth: The width of the glass pane above the spectator camera that holds the viewFinderOverlay.
@@ -56,7 +55,6 @@
     var spectatorCameraConfig = Render.getConfig("SecondaryCamera");
     var viewFinderOverlay = false;
     var camera = false;
-    var cameraIsDynamic = false;
     var cameraRotation;
     var cameraPosition;
     var glassPaneWidth = 0.16;
@@ -70,11 +68,11 @@
         spectatorCameraConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
         cameraRotation = Quat.multiply(MyAvatar.orientation, Quat.fromPitchYawRollDegrees(15, -155, 0)), cameraPosition = inFrontOf(0.85, Vec3.sum(MyAvatar.position, { x: 0, y: 0.28, z: 0 }));
         camera = Entities.addEntity({
-            "angularDamping": 1,
-            "damping": 1,
+            "angularDamping": 0.8,
+            "damping": 0.8,
             "collidesWith": "static,dynamic,kinematic,",
             "collisionMask": 7,
-            "dynamic": cameraIsDynamic,
+            "dynamic": true,
             "modelURL": Script.resolvePath("spectator-camera.fbx"),
             "registrationPoint": {
                 "x": 0.56,
@@ -89,8 +87,12 @@
         }, true);
         spectatorCameraConfig.attachedEntityId = camera;
         updateOverlay();
-        setDisplay(monitorShowsCameraView);
-        // Change button to active when window is first openend OR if the camera is on, false otherwise.
+        if (!HMD.active) {
+            setMonitorShowsCameraView(false);
+        } else {
+            setDisplay(monitorShowsCameraView);
+        }
+        // Change button to active when window is first opened OR if the camera is on, false otherwise.
         if (button) {
             button.editProperties({ isActive: onSpectatorCameraScreen || camera });
         }
@@ -238,7 +240,7 @@
     function setDisplay(showCameraView) {
 
         var url = (camera) ? (showCameraView ? "resource://spectatorCameraFrame" : "resource://hmdPreviewFrame") : "";
-        sendToQml({ method: 'showPreviewTextureNotInstructions', setting: !!url, url: url});
+        sendToQml({ method: 'showPreviewTextureNotInstructions', setting: !!url, url: url });
 
         // FIXME: temporary hack to avoid setting the display texture to hmdPreviewFrame
         // until it is the correct mono.
@@ -336,7 +338,7 @@
         setSwitchViewControllerMappingStatus(switchViewFromController);
         Settings.setValue('spectatorCamera/switchViewFromController', setting);
     }
-    
+
     const TAKE_SNAPSHOT_FROM_CONTROLLER_DEFAULT = false;
     var takeSnapshotFromController = !!Settings.getValue('spectatorCamera/takeSnapshotFromController', TAKE_SNAPSHOT_FROM_CONTROLLER_DEFAULT);
     function setTakeSnapshotControllerMappingStatus(status) {
@@ -399,6 +401,16 @@
                 volume: 1.0
             });
             Window.takeSecondaryCameraSnapshot();
+        }
+    }
+    function maybeTake360Snapshot() {
+        if (camera) {
+            Audio.playSound(SNAPSHOT_SOUND, {
+                position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
+                localOnly: true,
+                volume: 1.0
+            });
+            Window.takeSecondaryCamera360Snapshot();
         }
     }
     function registerTakeSnapshotControllerMapping() {
@@ -540,6 +552,9 @@
                 break;
             case 'changeTakeSnapshotFromControllerPreference':
                 setTakeSnapshotFromController(message.params);
+                break;
+            case 'takeSecondaryCamera360Snapshot':
+                maybeTake360Snapshot();
                 break;
             default:
                 print('Unrecognized message from SpectatorCamera.qml:', JSON.stringify(message));

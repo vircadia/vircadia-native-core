@@ -367,6 +367,18 @@ public slots:
     void takeSecondaryCameraSnapshot(const QString& filename = QString());
 
     /**jsdoc
+    * Takes a 360 snapshot of the current view from the secondary camera that can be set up through the {@link Render} API.
+    * NOTE:  to provide a non-default value - all previous parameters must be provided.
+    * @function Window.takeSecondaryCameraSnapshot
+    * @param {string} [filename=""] - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
+    *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
+    *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
+    *
+    * var filename = QString();
+    */
+    void takeSecondaryCamera360Snapshot(const QString& filename = QString());
+
+    /**jsdoc
      * Emit a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that
      * indicates whether or not a user connection was successfully made using the Web API.
      * @function Window.makeConnection
