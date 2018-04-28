@@ -22,6 +22,5 @@ namespace {
 }
 void MiniPromise::registerMetaTypes(QObject* engine) {
     auto scriptEngine = qobject_cast<QScriptEngine*>(engine);
-    qDebug() << "----------------------- MiniPromise::registerMetaTypes ------------" << scriptEngine;
     qScriptRegisterMetaType(scriptEngine, promiseToScriptValue, promiseFromScriptValue);
 }

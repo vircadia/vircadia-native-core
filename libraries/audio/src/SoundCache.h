@@ -16,84 +16,32 @@
 
 #include "Sound.h"
 
-/**jsdoc
- * API to manage Sound Cache resources
- * @namespace SoundCache
- */
-
-
 /// Scriptable interface for sound loading.
 class SoundCache : public ResourceCache, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
 public:
-    // Copied over from ResourceCache (see ResourceCache.h for reason)
+
+    // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
 
     /**jsdoc
+     * API to manage sound cache resources.
      * @namespace SoundCache
-     * @property numTotal {number} total number of total resources
-     * @property numCached {number} total number of cached resource
-     * @property sizeTotal {number} size in bytes of all resources
-     * @property sizeCached {number} size in bytes of all cached resources
+     *
+     * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
+     * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
+     * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
+     * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
      */
 
-    /**jsdoc
-     * Returns the total number of resources
-     * @function SoundCache.getNumTotalResources
-     * @returns {number}
-     */
+
+     // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
 
     /**jsdoc
-     * Returns the total size in bytes of all resources
-     * @function SoundCache.getSizeTotalResources
-     * @returns {number}
-     */
-
-    /**jsdoc
-     * Returns the total number of cached resources
-     * @function SoundCache.getNumCachedResources
-     * @returns {number}
-     */
-
-    /**jsdoc
-     * Returns the total size in bytes of cached resources
-     * @function SoundCache.getSizeCachedResources
-     * @returns {number}
-     */
-
-    /**jsdoc
-     * Returns list of all resource urls
+     * Get the list of all resource URLs.
      * @function SoundCache.getResourceList
-     * @returns {string[]}
-     */
-
-    /**jsdoc
-     * Returns animation resource for particular animation
-     * @function SoundCache.getAnimation
-     * @param url {string} url to load
-     * @returns {Resource} animation
-     */
-
-    /**jsdoc
-     * Asynchronously loads a resource from the spedified URL and returns it.
-     * @param url {string} url of resource to load
-     * @param fallback {string} fallback URL if load of the desired url fails
-     * @function SoundCache.getResource
-     * @returns {Resource}
-     */
-
-    /**jsdoc
-     * Prefetches a resource.
-     * @param url {string} url of resource to load
-     * @function SoundCache.prefetch
-     * @returns {Resource}
-     */
-
-    /**jsdoc
-     * @param {number} deltaSize
-     * @function SoundCache.updateTotalSize
-     * @returns {Resource}
+     * @return {string[]}
      */
 
     /**jsdoc
@@ -101,12 +49,40 @@ public:
      * @returns {Signal}
      */
 
+    /**jsdoc
+     * @function SoundCache.updateTotalSize
+     * @param {number} deltaSize
+     */
+
+    /**jsdoc
+     * @function SoundCache.prefetch
+     * @param {string} url
+     * @param {object} extra
+     * @returns {object}
+     */
+
+    /**jsdoc
+     * Asynchronously loads a resource from the specified URL and returns it.
+     * @function SoundCache.getResource
+     * @param {string} url - URL of the resource to load.
+     * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
+     * @param {} [extra=null]
+     * @return {Resource}
+     */
+
+    /**jsdoc
+     * Prefetches a resource.
+     * @function SoundCache.prefetch
+     * @param {string} url - URL of the resource to prefetch.
+     * @return {Resource}
+     */
+
+
     /**jsdoc 
      * @function SoundCache.getSound
      * @param {string} url
-     * @returns {}
+     * @returns {object}
      */
-
     Q_INVOKABLE SharedSoundPointer getSound(const QUrl& url);
 protected:
     virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,

@@ -738,6 +738,9 @@ Menu::Menu() {
     connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
 #endif
 
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::VerboseLogging, 0, false,
+                                           qApp, SLOT(updateVerboseLogging()));
+
 #if 0 ///  -------------- REMOVED FOR NOW --------------
     addDisabledActionAndSeparator(navigateMenu, "History");
     QAction* backAction = addActionToQMenuAndActionHash(navigateMenu, MenuOption::Back, 0, addressManager.data(), SLOT(goBack()));
