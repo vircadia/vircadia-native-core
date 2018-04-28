@@ -94,14 +94,14 @@ exports.handlers = {
             if (e.doclet.hifiInterface) {
                 rows.push("Interface Scripts");
             }
-            if (e.doclet.hifiAssignmentClient) {
-                rows.push("Assignment Client Scripts");
-            }
             if (e.doclet.hifiClientEntity) {
                 rows.push("Client Entity Scripts");
             }
             if (e.doclet.hifiServerEntity) {
                 rows.push("Server Entity Scripts");
+            }
+            if (e.doclet.hifiAssignmentClient) {
+                rows.push("Assignment Client Scripts");
             }
 
             // Append an Available In: table at the end of the namespace description.
