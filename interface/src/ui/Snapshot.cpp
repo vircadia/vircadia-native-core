@@ -89,10 +89,10 @@ QString Snapshot::saveSnapshot(QImage image, const QString& filename) {
 
 QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {
     // return whatever we get back from saved file for snapshot
-    return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true));
+    return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true, QString(), QString()));
 }
 
-QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QString& userSelectedFilename) {
+QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QString& userSelectedFilename, QString userSelectedPathname) {
 
     // adding URL to snapshot
     QUrl currentURL = DependencyManager::get<AddressManager>()->currentPublicAddress();
@@ -117,7 +117,13 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QSt
     const int IMAGE_QUALITY = 100;
 
     if (!isTemporary) {
-        QString snapshotFullPath = snapshotsLocation.get();
+        // If user has requested specific path then use it, else use the application value
+        QString snapshotFullPath;
+        if (!userSelectedPathname.isNull()) {
+            snapshotFullPath = userSelectedPathname;
+        } else {
+            snapshotFullPath = snapshotsLocation.get();
+        }
 
         if (snapshotFullPath.isEmpty()) {
             snapshotFullPath = OffscreenUi::getExistingDirectory(nullptr, "Choose Snapshots Directory", QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
