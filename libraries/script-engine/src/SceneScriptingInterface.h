@@ -112,6 +112,10 @@ namespace SceneScripting {
     
     /**jsdoc
      * @class Scene.Stage
+     *
+     * @hifi-interface
+     * @hifi-client-entity
+     *
      * @property {string} backgroundMode
      * @property {Scene.Stage.KeyLight} keyLight
      * @property {Scene.Stage.Location} location
@@ -171,6 +175,10 @@ namespace SceneScripting {
 
 /**jsdoc
  * @namespace Scene
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @property {boolean} shouldRenderAvatars
  * @property {boolean} shouldRenderEntities
  * @property {Scene.Stage} stage

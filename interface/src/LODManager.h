@@ -10,8 +10,11 @@
 //
 
 /**jsdoc
- * The LOD class manages your Level of Detail functions within interface
+ * The LODManager API manages your Level of Detail functions within interface.
  * @namespace LODManager 
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 
 #ifndef hifi_LODManager_h

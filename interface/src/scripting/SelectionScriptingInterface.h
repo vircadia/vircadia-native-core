@@ -86,6 +86,9 @@ protected:
  * The <code>Selection</code> API provides a means of grouping together avatars, entities, and overlays in named lists.
  * @namespace Selection
  *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @example <caption>Outline an entity when it is grabbed by a controller.</caption>
  * // Create a box and copy the following text into the entity's "Script URL" field.
  * (function () {

@@ -25,6 +25,10 @@ class QScriptValue;
 
 /**jsdoc
  * @namespace Recording
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-assignment-client
  */
 class RecordingScriptingInterface : public QObject, public Dependency {
     Q_OBJECT

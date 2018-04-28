@@ -107,7 +107,7 @@ exports.handlers = {
             // Append an Available In: table at the end of the namespace description.
             if (rows.length > 0) {
                 var table = "<br><br><table><tr><th>Available in:</th><td>" + rows.join("</td><td>") + "</td></tr></table>";
-                e.doclet.description = e.doclet.description + table;
+                e.doclet.description = (e.doclet.description ? e.doclet.description : "") + table;
             }
         }
     }

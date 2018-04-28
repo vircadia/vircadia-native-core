@@ -29,6 +29,10 @@ class ScriptEngine;
 
 /**jsdoc
  * @namespace ScriptDiscoveryService
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @property {string} debugScriptUrl
  * @property {string} defaultScriptsPath
  * @property {ScriptsModel} scriptsModel

@@ -151,6 +151,9 @@ public:
     * API to manage texture cache resources.
     * @namespace TextureCache
     *
+    * @hifi-interface
+    * @hifi-client-entity
+    *
     * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
     * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
     * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>

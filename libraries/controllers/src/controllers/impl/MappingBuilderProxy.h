@@ -49,9 +49,12 @@ class UserInputMapper;
  *     output that already has a route the new route is ignored.</li>
  *     <li>New mappings override previous mappings: each output is processed using the route in the most recently enabled 
  *     mapping that contains that output.</li>
- * </p>
+ * </ul>
  *
  * @class MappingObject
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 
 /**jsdoc
