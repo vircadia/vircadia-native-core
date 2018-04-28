@@ -5,6 +5,7 @@
     const pretty = require('pretty');
     const cheerio = require('cheerio');
     const rimraf = require('rimraf');
+    const dedent = require('dedent-js');
 
 // Required directories
     let dir_out = path.join(__dirname, 'out');
@@ -46,16 +47,31 @@
     const html_reg_htmlExt = /\.html/g;
     const html_reg_objectHeader = /<header>[\s\S]+?<\/header>/;
     const html_reg_objectSpanNew = /<h4 class="name"[\s\S]+?<\/span><\/h4>/;
+    const html_reg_brRemove = /<br>[\s\S]+?<br>/;
+
+// Mapping for GroupNames and Members
+    let groupNameMemberMap = {
+        "Objects": [],
+        "Namespaces": [],
+        "Globals": []
+    }
 
 // Procedural functions
-    function createMD(title, directory, needsDir){
+    function createMD(title, directory, needsDir, isGlobal){
         let mdSource = makeMdSource(title);
+        
+        // if (isGlobal){
+        //     mdSource = 
+        //     destinationMDFile = path.join(directory, `Globals.md`);
+        // }
+
         if (needsDir){
             if (!fs.existsSync(directory)) {
                 fs.mkdirSync(directory);
             }
         }
-        let destinationMDFile = path.join(directory, `API_${title}.md`);
+
+        let destinationMDFile = path.join(directory, `API_${title}.md`);        
         fs.writeFileSync(destinationMDFile, mdSource);
     }
 
@@ -112,71 +128,97 @@
     }
 
     function makeMdSource(title){
-            return (
-        `---
-        title: '${title}'
-        taxonomy:
-            category:
-                - docs
-        visible: true
-        ---
-        `
-            )
+        return dedent(
+            `
+            ---
+            title: ${title}
+            taxonomy:
+                category:
+                    - docs
+            visible: true
+            ---
+            `
+        )
     }
 
     function makeTwigFile(contentHtml){
-        return (
-        `
-        {% extends 'partials/base_noGit.html.twig' %}
-        {% set tags = page.taxonomy.tag %}
-        {% if tags %}
-            {% set progress = page.collection({'items':{'@taxonomy':{'category': 'docs', 'tag': tags}},'order': {'by': 'default', 'dir': 'asc'}}) %}
-        {% else %}
-            {% set progress = page.collection({'items':{'@taxonomy':{'category': 'docs'}},'order': {'by': 'default', 'dir': 'asc'}}) %}
-        {% endif %}
-        
-        {% block navigation %}
-            <div id="navigation">
-            {% if not progress.isFirst(page.path) %}
-                <a class="nav nav-prev" href="{{ progress.nextSibling(page.path).url }}"> <img src="{{ url('theme://images/left-arrow.png') }}"></a>
+        return dedent(
+            `
+            {% extends 'partials/base_noGit.html.twig' %}
+            {% set tags = page.taxonomy.tag %}
+            {% if tags %}
+                {% set progress = page.collection({'items':{'@taxonomy':{'category': 'docs', 'tag': tags}},'order': {'by': 'default', 'dir': 'asc'}}) %}
+            {% else %}
+                {% set progress = page.collection({'items':{'@taxonomy':{'category': 'docs'}},'order': {'by': 'default', 'dir': 'asc'}}) %}
             {% endif %}
-        
-            {% if not progress.isLast(page.path) %}
-                <a class="nav nav-next" href="{{ progress.prevSibling(page.path).url }}"><img src="{{ url('theme://images/right-arrow.png') }}"></a>
-            {% endif %}
-            </div>
-        {% endblock %}
-        
-        {% block content %}
-            <div id="body-inner">
-            <h1>{{ page.title }}</h1>
-            ${contentHtml}
-            </div>
-        {% endblock %}
-        `
-            )
+            
+            {% block navigation %}
+                <div id="navigation">
+                {% if not progress.isFirst(page.path) %}
+                    <a class="nav nav-prev" href="{{ progress.nextSibling(page.path).url }}"> <img src="{{ url('theme://images/left-arrow.png') }}"></a>
+                {% endif %}
+            
+                {% if not progress.isLast(page.path) %}
+                    <a class="nav nav-next" href="{{ progress.prevSibling(page.path).url }}"><img src="{{ url('theme://images/right-arrow.png') }}"></a>
+                {% endif %}
+                </div>
+            {% endblock %}
+            
+            {% block content %}
+                <div id="body-inner">
+                <h1>{{ page.title }}</h1>
+                ${contentHtml}
+                </div>
+            {% endblock %}
+            `
+        )
     }
 
     function handleNamespace(title, content){
+        groupNameMemberMap["Namespaces"].push(title);
         let destinationDirectory = path.join(map_dir_md["Namespace"], title);
         createMD(title, destinationDirectory, true);
         createTemplate(title, content);
     }
 
     function handleClass(title, content){
+        groupNameMemberMap["Objects"].push(title);
         let destinationDirectory = path.join(map_dir_md["Class"], title);
         createMD(title, destinationDirectory, true)
 
         let formatedHtml = content
-                            .replace(html_reg_objectHeader,"")
-                            .replace(html_reg_objectSpanNew,"");
+                            .replace(html_reg_objectSpanNew,"")
+                            .replace(html_reg_brRemove, "");
         createTemplate(title, formatedHtml);
-        
     }
 
     function handleGlobal(title, content){
-        createMD("API_Globals", map_dir_md["Global"], false);
-        createTemplate("API_Globals", content); 
+        groupNameMemberMap["Globals"].push("Globals");
+        createMD("Globals", map_dir_md["Global"], false, true);
+        createTemplate("Globals", content); 
+    }
+
+    function makeGroupTOC(group){
+            let mappedGroup;
+        if (!Array.isArray(group)){
+            mappedGroup = groupNameMemberMap[group];
+        } else {
+            mappedGroup = group;
+        }
+        let htmlGroup = mappedGroup.map( item => {
+            return dedent(
+                `
+                <div>
+                    <a href="/api-reference/${
+                        !Array.isArray(group)
+                        ? `${group.toLowerCase()}/` + item.toLowerCase()
+                        : item.toLowerCase()
+                    }/">${item}</a>
+                </div>
+                `
+            )
+        })
+        return htmlGroup.join("\n");
     }
 
 // Remove grav directory if exists to make sure old files aren't kept
@@ -212,9 +254,11 @@
                 let mainDiv = loadedHtml("#main").html();
                 
             // Strip out undesired regex
-                let mainDivRegexed = mainDiv.replace(html_reg_static,"")
-                                            .replace(html_reg_title,"")
-                                            .replace(html_reg_htmlExt,"");
+                let mainDivRegexed = mainDiv
+                                        .replace(html_reg_static,"")
+                                        .replace(html_reg_title,"")
+                                        .replace(html_reg_objectHeader,"")
+                                        .replace(html_reg_htmlExt,"");
             // Handle Unique Categories
                 switch(groupName){
                     case "Namespace":
@@ -233,10 +277,9 @@
     })
 
 // Create the base Templates after processing individual files
-    createTemplate("API-Reference","");
-    createTemplate("Globals","");
-    createTemplate("Namespaces","");
-    createTemplate("Objects","");
+    createTemplate("API-Reference", makeGroupTOC(["Namespaces", "Objects", "Globals"]));
+    createTemplate("Namespaces", makeGroupTOC("Namespaces"));
+    createTemplate("Objects", makeGroupTOC("Objects"));
 
 // Copy files to the Twig Directory
     let templateFiles = fs.readdirSync(path.resolve(targetTemplateDirectory));
