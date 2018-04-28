@@ -28,7 +28,11 @@
  * physics.
  *
  * @namespace Window
- * @property {number} innerWidth - The width of the drawable area of the Interface window (i.e., without borders or other 
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
+ * @property {number} innerWidth - The width of the drawable area of the Interface window (i.e., without borders or other
  *     chrome), in pixels. <em>Read-only.</em>
  * @property {number} innerHeight - The height of the drawable area of the Interface window (i.e., without borders or other
  *     chrome), in pixels. <em>Read-only.</em>

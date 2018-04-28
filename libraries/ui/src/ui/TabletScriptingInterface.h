@@ -40,6 +40,9 @@ class OffscreenQmlSurface;
 
 /**jsdoc
  * @namespace Tablet
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 class TabletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -176,6 +179,10 @@ Q_DECLARE_METATYPE(TabletButtonsProxyModel*);
 
 /**jsdoc
  * @class TabletProxy
+  *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @property {string} name - Name of this tablet. <em>Read-only.</em>
  * @property {boolean} toolbarMode - Used to transition this tablet into and out of toolbar mode.
  *     When tablet is in toolbar mode, all its buttons will appear in a floating toolbar.
@@ -410,6 +417,10 @@ Q_DECLARE_METATYPE(TabletProxy*);
 
 /**jsdoc
  * @class TabletButtonProxy
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @property {Uuid} uuid - Uniquely identifies this button. <em>Read-only.</em>
  * @property {TabletButtonProxy.ButtonProperties} properties
  */

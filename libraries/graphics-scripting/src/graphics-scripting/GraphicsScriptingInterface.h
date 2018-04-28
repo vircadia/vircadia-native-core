@@ -24,6 +24,9 @@
 /**jsdoc
  * The experimental Graphics API <em>(experimental)</em> lets you query and manage certain graphics-related structures (like underlying meshes and textures) from scripting.
  * @namespace Graphics
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 
 class GraphicsScriptingInterface : public QObject, public QScriptable, public Dependency {
