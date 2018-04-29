@@ -287,23 +287,43 @@ Menu::Menu() {
         settings->setValue("play_notification_sounds_type_0", action->isChecked());
     });
     // Settings > Notifications > Level of Detail
-    addActionToQMenuAndActionHash(notificationsMenu, "Level of Detail");
-
+    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Level of Detail", 0,
+                                                    settings->getValue("play_notification_sounds_type_1").toBool());
+    connect(action, &QAction::triggered, [action, settings] {
+        settings->setValue("play_notification_sounds_type_1", action->isChecked());
+    });
     // Settings > Notifications > Connection
-    addActionToQMenuAndActionHash(notificationsMenu, "Connection");
-    
+    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Connection", 0,
+                                                    settings->getValue("play_notification_sounds_type_2").toBool());
+    connect(action, &QAction::triggered, [action, settings] {
+        settings->setValue("play_notification_sounds_type_2", action->isChecked());
+    });
     // Settings > Notifications > Connection Refused
-    addActionToQMenuAndActionHash(notificationsMenu, "Connection Refused");
-    
+    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Connection Refused", 0,
+                                                    settings->getValue("play_notification_sounds_type_3").toBool());
+    connect(action, &QAction::triggered, [action, settings] {
+        settings->setValue("play_notification_sounds_type_3", action->isChecked());
+    });
     // Settings > Notifications > Edit Error
-    addActionToQMenuAndActionHash(notificationsMenu, "Edit Error");
-    
+    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Edit Error", 0,
+                                                    settings->getValue("play_notification_sounds_type_4").toBool());
+    connect(action, &QAction::triggered, [action, settings] {
+        settings->setValue("play_notification_sounds_type_4", action->isChecked());
+    });
     // Settings > Notifications > Tablet
-    addActionToQMenuAndActionHash(notificationsMenu, "Tablet");
-    
+    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Tablet", 0,
+                                                    settings->getValue("play_notification_sounds_type_5").toBool());
+    connect(action, &QAction::triggered, [action, settings] {
+        settings->setValue("play_notification_sounds_type_5", action->isChecked());
+    });
     // Settings > Notifications > Wallet
     addActionToQMenuAndActionHash(notificationsMenu, "Wallet");
-    
+    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Wallet", 0,
+                                                    settings->getValue("play_notification_sounds_type_6").toBool());
+    connect(action, &QAction::triggered, [action, settings] {
+        settings->setValue("play_notification_sounds_type_6", action->isChecked());
+    });
+
     // Settings > Developer Menu
     addCheckableActionToQMenuAndActionHash(settingsMenu, "Developer Menu", 0, false, this, SLOT(toggleDeveloperMenus()));
     
