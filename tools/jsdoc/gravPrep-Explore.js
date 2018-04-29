@@ -48,16 +48,6 @@
     const html_reg_objectHeader = /<header>[\s\S]+?<\/header>/;
     const html_reg_objectSpanNew = /<h4 class="name"[\s\S]+?<\/span><\/h4>/;
     const html_reg_brRemove = /<br>[\s\S]+?<br>/;
-    const html_reg_methodEdit = /<h3 class="subsection-title">Methods<\/h3>/;
-    const html_reg_methodEdit_replace = '<h5 class="subsection-title">Methods</h5>';
-    const html_reg_classesEdit = /<h3 class="subsection-title">Classes<\/h3>/;
-    const html_reg_classesEdit_replace = '<h5 class="subsection-title">Classes</h5>';
-    const html_reg_typeEdit = /(<h5>Returns[\s\S]*?Type)(<\/dt[\s\S]*?type">)(.*?)(<\/span><\/dd>[\s\S]*?<\/dl>)/g;
-    const html_reg_typeEdit_replace = '$1: $3</dt></dl>'
-    const html_reg_methodSize = /(<h4)( class="name"[\s\S].*?<\/span>)(<\/h4>)/g;
-    const html_reg_methodSize_replace = '<h5$2</h5>';
-    const html_reg_returnSize = /<h5>Returns:<\/h5>/g;
-    const html_reg_returnSize_replace = '<h6>Returns:<\/h6>';
 
 // Mapping for GroupNames and Members
     let groupNameMemberMap = {
@@ -182,6 +172,7 @@
     function handleNamespace(title, content){
         groupNameMemberMap["Namespaces"].push(title);
         let destinationDirectory = path.join(map_dir_md["Namespace"], title);
+
         createMD(title, destinationDirectory, true);
         createTemplate(title, content);
     }
@@ -193,6 +184,7 @@
 
         let formatedHtml = content
                             .replace(html_reg_objectSpanNew,"")
+                            .replace(html_reg_brRemove, "");
         createTemplate(title, formatedHtml);
     }
 
@@ -244,48 +236,51 @@
     })
 
 // Read jsdoc output folder and process html files
-    let files = fs.readdirSync(dir_out);
-    files.forEach(function (file){
-        let curSource = path.join(dir_out, file);
-        if (path.extname(curSource) == ".html" && path.basename(curSource, '.html') !== "index") {
-            // Clean up the html source
-                let loadedHtml = prepareHtml(curSource);
+    let curSource = path.join(dir_out, "Selection.html");
+        // Clean up the html source
+            let loadedHtml = prepareHtml(curSource);
 
-            // Extract the title, group name, and the main div
-                let splitTitle = loadedHtml("title").text().split(": ");
-                let groupName = splitTitle[1];
-                let htmlTitle = splitTitle.pop();
-                let mainDiv = loadedHtml("#main")
+        // Extract the title, group name, and the main div
+            let splitTitle = loadedHtml("title").text().split(": ");
+            let groupName = splitTitle[1];
+            let htmlTitle = splitTitle.pop();
+            let mainDiv = loadedHtml("#main")
+        
+        // Exploring Extractions
+            let array = mainDiv.find('h4').toArray();
             
-            // regex edits
-                let mainDivRegexed = mainDiv.html()
-                                        .replace(html_reg_static,"")
-                                        .replace(html_reg_title,"")
-                                        .replace(html_reg_objectHeader,"")
-                                        .replace(html_reg_htmlExt,"")
-                                        .replace(html_reg_brRemove, "")
-                                        .replace(html_reg_methodEdit, html_reg_methodEdit_replace)
-                                        .replace(html_reg_classesEdit, html_reg_classesEdit_replace)                                        
-                                        .replace(html_reg_typeEdit, html_reg_typeEdit_replace)
-                                        .replace(html_reg_returnSize, html_reg_returnSize_replace)
-                                        .replace(html_reg_methodSize, html_reg_methodSize_replace);
-                                        
-            // Handle Unique Categories
-                switch(groupName){
-                    case "Namespace":
-                        handleNamespace(htmlTitle, mainDivRegexed);
-                        break;
-                    case "Class":
-                        handleClass(htmlTitle, mainDivRegexed);
-                        break;
-                    case "Global":
-                        handleGlobal(htmlTitle, mainDivRegexed);
-                        break;
-                    default:
-                        console.log(`Case not handled for ${groupName}`);
+            // console.log(array[2])
+            var reducedArray = array.reduce((prev, cur) => {
+                try {
+                    // console.log(cur.children[1]);
+                    prev.push(cur.children[1].data);
+                } catch(e) {
+
                 }
-        }
-    })
+                return prev;
+            }, [])
+            console.log("name", reducedArray.length);
+            
+        // Strip out undesired regex
+            let mainDivRegexed = mainDiv.html()
+                                    .replace(html_reg_static,"")
+                                    .replace(html_reg_title,"")
+                                    .replace(html_reg_objectHeader,"")
+                                    .replace(html_reg_htmlExt,"");
+        // Handle Unique Categories
+            switch(groupName){
+                case "Namespace":
+                    handleNamespace(htmlTitle, mainDivRegexed);
+                    break;
+                case "Class":
+                    handleClass(htmlTitle, mainDivRegexed);
+                    break;
+                case "Global":
+                    handleGlobal(htmlTitle, mainDivRegexed);
+                    break;
+                default:
+                    console.log(`Case not handled for ${groupName}`);
+            }
 
 // Create the base Templates after processing individual files
     createTemplate("API-Reference", makeGroupTOC(["Namespaces", "Objects", "Globals"]));
