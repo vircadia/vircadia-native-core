@@ -48,6 +48,20 @@
     const html_reg_objectHeader = /<header>[\s\S]+?<\/header>/;
     const html_reg_objectSpanNew = /<h4 class="name"[\s\S]+?<\/span><\/h4>/;
     const html_reg_brRemove = /<br>[\s\S]+?<br>/;
+    const html_reg_subsectionEdit = /(<h. class="subsection-title">)([\s\S]*?)(<\/h.>)/g;
+    const html_reg_subsectionEdit_replace = '<h4 class="subsection-title">$2</h4>';
+    const html_reg_typeEdit = /(<h5>Returns[\s\S]*?Type)(<\/dt[\s\S]*?type">)(.*?)(<\/span><\/dd>[\s\S]*?<\/dl>)/g;
+    const html_reg_typeEdit_replace = '$1: $3</dt></dl>'
+    const html_reg_methodSize = /(<h4)( class="name"[\s\S].*?<\/span>)(<\/h4>)/g;
+    const html_reg_methodSize_replace = '<h5$2</h5>';
+    const html_reg_returnSize = /<h5>Returns:<\/h5>/g;
+    const html_reg_returnSize_replace = '<h6>Returns:<\/h6>';
+    const html_reg_findByName = '<h5 class="name"';
+    const html_reg_findByMethod = `<h4 class="subsection-title">Methods</h4>`
+    const html_reg_findByArticleClose = `</article>`
+    const html_reg_signalTitle = `<h4 class="subsection-title">Signals</h4>`;
+    
+    
 
 // Mapping for GroupNames and Members
     let groupNameMemberMap = {
@@ -71,7 +85,9 @@
     }
 
     function createTemplate(title,content){
+        // console.log("content:", content)
         let twigBasePartial = makeTwigFile(content);
+        // console.log("TWIG BASE:", twigBasePartial)
         let destinationFile = path.join(dir_template, `API_${title}.html.twig`);
         fs.writeFileSync(destinationFile, twigBasePartial);
     }
@@ -170,6 +186,7 @@
     }
 
     function handleNamespace(title, content){
+        // console.log("Content from namespcae:", content)
         groupNameMemberMap["Namespaces"].push(title);
         let destinationDirectory = path.join(map_dir_md["Namespace"], title);
 
@@ -236,7 +253,7 @@
     })
 
 // Read jsdoc output folder and process html files
-    let curSource = path.join(dir_out, "Selection.html");
+    let curSource = path.join(dir_out, "AvatarInputs.html");
         // Clean up the html source
             let loadedHtml = prepareHtml(curSource);
 
@@ -244,29 +261,102 @@
             let splitTitle = loadedHtml("title").text().split(": ");
             let groupName = splitTitle[1];
             let htmlTitle = splitTitle.pop();
+            // console.log("first loaded:", loadedHtml("#main").html())
             let mainDiv = loadedHtml("#main")
-        
+
+            // let signatures = mainDiv.find(".name")
         // Exploring Extractions
-            let array = mainDiv.find('h4').toArray();
+            // let array = mainDiv.find('h4').toArray();
             
             // console.log(array[2])
-            var reducedArray = array.reduce((prev, cur) => {
-                try {
-                    // console.log(cur.children[1]);
-                    prev.push(cur.children[1].data);
-                } catch(e) {
+            // var reducedArray = array.reduce((prev, cur) => {
+            //     try {
+            //         // console.log(cur.children[1]);
+            //         prev.push(cur.children[1].data);
+            //     } catch(e) {
 
-                }
-                return prev;
-            }, [])
-            console.log("name", reducedArray.length);
+            //     }
+            //     return prev;
+            // }, [])
+            // console.log("name", reducedArray.length);
             
-        // Strip out undesired regex
+        // regex edits
             let mainDivRegexed = mainDiv.html()
                                     .replace(html_reg_static,"")
                                     .replace(html_reg_title,"")
                                     .replace(html_reg_objectHeader,"")
-                                    .replace(html_reg_htmlExt,"");
+                                    .replace(html_reg_htmlExt,"")
+                                    .replace(html_reg_brRemove, "")
+                                    .replace(html_reg_subsectionEdit, html_reg_subsectionEdit_replace)
+                                    .replace(html_reg_typeEdit, html_reg_typeEdit_replace)
+                                    .replace(html_reg_returnSize, html_reg_returnSize_replace)
+                                    .replace(html_reg_methodSize, html_reg_methodSize_replace);
+           
+            function splitBy(content, searchTerm){
+                let foundArray = [];
+                let curIndex = -1;
+                let nextIndex = 0;
+                let findbyNameLength = searchTerm.length;
+                let curfoundArrayIndex = 0;
+                let curArticleCloseIndex = -1;
+                do {
+                    curArticleCloseIndex = content.indexOf("</article>");                    
+                    curIndex = content.indexOf(searchTerm);
+                    nextIndex = content.indexOf(searchTerm,curIndex+findbyNameLength);
+                    if (nextIndex === -1){
+                        nextIndex = curArticleCloseIndex
+                    }
+                    foundArray.push(content.slice(curIndex, nextIndex))
+                    content = content.replace(foundArray[curfoundArrayIndex], "");
+                    curfoundArrayIndex++;
+                } while (curIndex > -1)
+                return [content, foundArray];
+            }
+
+            function extractSignals(methodArray){
+                let newMethodArray = [];
+                let signalArray = [];
+                methodArray.forEach( method => {
+                    method.indexOf("Signal") > -1
+                    ? signalArray.push(method)
+                    : newMethodArray.push(method);
+                })
+                return [newMethodArray, signalArray]
+            }
+
+            function append(content, areaToAppendTo, contentToAppend, appendBefore){
+                var contentArray = content.split("\n");
+                // console.log("contentArray:", contentArray)
+                // console.log("areaToAppendTo:", areaToAppendTo)
+                var foundIndex = findArrayTrim(contentArray, areaToAppendTo)
+                console.log(foundIndex)
+                foundIndex = appendBefore ? foundIndex : foundIndex +1
+                
+                contentArray.splice(foundIndex,0,contentToAppend)
+                return contentArray.join("\n")
+            }
+
+            function findArrayTrim(array, searchTerm){
+                var index = -1;
+                for (var i = 0; i < array.length; i++){
+                    index = array[i].trim().indexOf(searchTerm.trim());
+                    if (index > -1){
+                        return i
+                    }
+                }
+                return index;
+            }
+
+            var nameArray = splitBy(mainDivRegexed, html_reg_findByName);
+            let currentContent = nameArray[0];
+            let separatedMethods = extractSignals(nameArray[1]);
+            let methodsToAppend = separatedMethods[0].join("\n");
+            separatedMethods[1].unshift(html_reg_signalTitle)
+            let signalsToAppend = separatedMethods[1].join("\n");
+            currentContent = append(currentContent, html_reg_findByMethod, methodsToAppend);
+            mainDivRegexed = append(currentContent, html_reg_findByArticleClose, signalsToAppend,true);        
+
+            // console.log(mainDivRegexed);
         // Handle Unique Categories
             switch(groupName){
                 case "Namespace":

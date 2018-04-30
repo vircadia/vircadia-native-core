@@ -7,6 +7,16 @@
     const rimraf = require('rimraf');
     const dedent = require('dedent-js');
 
+// Arg Vars
+    const copyLocal = process.argv[2];
+    console.log("copyLocal:", copyLocal);
+    let targetTemplateDirectory = ''
+    let targetMDDirectory = ''
+    if (copyLocal){
+        targetTemplateDirectory = process.argv[3];
+        targetMDDirectory = process.argv[4];;
+    }
+
 // Required directories
     let dir_out = path.join(__dirname, 'out');
 
@@ -19,11 +29,7 @@
     let dir_md_objects = path.join(dir_md, '02.Objects');
     let dir_md_namespaces = path.join(dir_md, '01.Namespaces');
     let dir_md_globals = path.join(dir_md, '03.Globals');
-
-// Target Copy Directories
-    let targetTemplateDirectory = "D:/ROLC/Organize/O_Projects/Hifi/Docs/hifi-docs-grav/user/themes/learn2/";
-    let targetMDDirectory = "D:/ROLC/Organize/O_Projects/Hifi/Docs/hifi-docs-grav-content/";
-
+    
 // Array to itterate over and create if doesn't exist
     let dirArray = [dir_grav, dir_css, dir_js, dir_template, dir_md, dir_md_objects, dir_md_namespaces, dir_md_globals];
 
@@ -48,16 +54,21 @@
     const html_reg_objectHeader = /<header>[\s\S]+?<\/header>/;
     const html_reg_objectSpanNew = /<h4 class="name"[\s\S]+?<\/span><\/h4>/;
     const html_reg_brRemove = /<br>[\s\S]+?<br>/;
-    const html_reg_methodEdit = /<h3 class="subsection-title">Methods<\/h3>/;
-    const html_reg_methodEdit_replace = '<h5 class="subsection-title">Methods</h5>';
-    const html_reg_classesEdit = /<h3 class="subsection-title">Classes<\/h3>/;
-    const html_reg_classesEdit_replace = '<h5 class="subsection-title">Classes</h5>';
+    const html_reg_subsectionEdit = /(<h. class="subsection-title">)([\s\S]*?)(<\/h.>)/g;
+    const html_reg_subsectionEdit_replace = '<h4 class="subsection-title">$2</h4>';
+    const html_reg_propertiesHeaderEdit = '<h4 class="subsection-title">Properties:</h4>';
+    const html_reg_propertiesHeaderEdit_Replace = '<h4 class="subsection-title">Properties</h4>';
     const html_reg_typeEdit = /(<h5>Returns[\s\S]*?Type)(<\/dt[\s\S]*?type">)(.*?)(<\/span><\/dd>[\s\S]*?<\/dl>)/g;
     const html_reg_typeEdit_replace = '$1: $3</dt></dl>'
     const html_reg_methodSize = /(<h4)( class="name"[\s\S].*?<\/span>)(<\/h4>)/g;
     const html_reg_methodSize_replace = '<h5$2</h5>';
     const html_reg_returnSize = /<h5>Returns:<\/h5>/g;
     const html_reg_returnSize_replace = '<h6>Returns:<\/h6>';
+    const html_reg_findByName = '<h5 class="name"';
+    const html_reg_findByMethod = `<h4 class="subsection-title">Methods</h4>`
+    const html_reg_findByArticleClose = `</article>`
+    const html_reg_signalTitle = `<h4 class="subsection-title">Signals</h4>`;
+
 
 // Mapping for GroupNames and Members
     let groupNameMemberMap = {
@@ -67,6 +78,7 @@
     }
 
 // Procedural functions
+    // Create the actual MD file
     function createMD(title, directory, needsDir, isGlobal){
         let mdSource = makeMdSource(title);
         
@@ -80,12 +92,14 @@
         fs.writeFileSync(destinationMDFile, mdSource);
     }
 
+    // Create the actual Template file
     function createTemplate(title,content){
         let twigBasePartial = makeTwigFile(content);
         let destinationFile = path.join(dir_template, `API_${title}.html.twig`);
         fs.writeFileSync(destinationFile, twigBasePartial);
     }
 
+    // Copy file from source to target - used for recurssive call
     function copyFileSync( source, target ) {
         let targetFile = target;
 
@@ -102,6 +116,7 @@
         fs.writeFileSync(targetFile, fs.readFileSync(source));
     }
 
+    // Copy file from source to target
     function copyFolderRecursiveSync( source, target ) {
         var files = [];
 
@@ -125,6 +140,7 @@
         }
     }
 
+    // Clean up the Html
     function prepareHtml(source){
         let htmlBefore = fs.readFileSync(source, {encoding: 'utf8'});
         let htmlAfter = htmlclean(htmlBefore);
@@ -132,6 +148,7 @@
         return cheerio.load(htmlAfterPretty);
     }
 
+    // Base file for MD's
     function makeMdSource(title){
         return dedent(
             `
@@ -146,6 +163,7 @@
         )
     }
 
+    // Base file for Templates
     function makeTwigFile(contentHtml){
         return dedent(
             `
@@ -179,6 +197,7 @@
         )
     }
 
+    // Handle NameSpace Group   
     function handleNamespace(title, content){
         groupNameMemberMap["Namespaces"].push(title);
         let destinationDirectory = path.join(map_dir_md["Namespace"], title);
@@ -186,6 +205,7 @@
         createTemplate(title, content);
     }
 
+    // Handle Class Group       
     function handleClass(title, content){
         groupNameMemberMap["Objects"].push(title);
         let destinationDirectory = path.join(map_dir_md["Class"], title);
@@ -196,12 +216,14 @@
         createTemplate(title, formatedHtml);
     }
 
+    // Handle Global Group           
     function handleGlobal(title, content){
         groupNameMemberMap["Globals"].push("Globals");
         createMD("Globals", map_dir_md["Global"], false, true);
         createTemplate("Globals", content); 
     }
 
+    // Handle Group TOCs               
     function makeGroupTOC(group){
             let mappedGroup;
         if (!Array.isArray(group)){
@@ -224,6 +246,69 @@
         })
         return htmlGroup.join("\n");
     }
+
+    // Helper for splitting up html 
+    // Takes: Content to split, SearchTerm to Split by, and term to End Splitting By
+    // Returns: [newContent after Split, Array of extracted ]
+    function splitBy(content, searchTerm, endSplitTerm){
+        let foundArray = [];
+        let curIndex = -1;
+        let nextIndex = 0;
+        let findbyNameLength = searchTerm.length;
+        let curfoundArrayIndex = 0;
+        let curEndSplitTermIndex = -1;
+        do {
+            curEndSplitTermIndex = content.indexOf(endSplitTerm);                    
+            curIndex = content.indexOf(searchTerm);
+            // Search after initial index + length of searchterm
+            nextIndex = content.indexOf(searchTerm,curIndex+findbyNameLength);
+            if (nextIndex === -1){
+                nextIndex = curEndSplitTermIndex
+            }
+            foundArray.push(content.slice(curIndex, nextIndex))
+            // remove that content
+            content = content.replace(foundArray[curfoundArrayIndex], "");
+            curfoundArrayIndex++;
+        } while (curIndex > -1)
+        return [content, foundArray];
+    }
+
+    // Split the signals and methods [Might make this more generic]
+    function splitMethodsAndSignals(methodArray){
+        let newMethodArray = [];
+        let signalArray = [];
+        methodArray.forEach( method => {
+            method.indexOf("Signal") > -1
+            ? signalArray.push(method)
+            : newMethodArray.push(method);2
+        })
+        return [newMethodArray, signalArray]
+    }
+
+    // Helper to append
+    // Takes content, the search term to appendTo, the content to append, 
+    // and bool if the append is before the found area
+    function append(content, searchTermToAppendto, contentToAppend, appendBefore){
+        let contentArray = content.split("\n");
+        let foundIndex = findArrayTrim(contentArray, searchTermToAppendto)
+        foundIndex = appendBefore ? foundIndex : foundIndex +1
+        
+        contentArray.splice(foundIndex,0,contentToAppend)
+        return contentArray.join("\n")
+    }
+
+    // Helper function for append
+    function findArrayTrim(array, searchTerm){
+        var index = -1;
+        for (var i = 0; i < array.length; i++){
+            index = array[i].trim().indexOf(searchTerm.trim());
+            if (index > -1){
+                return i
+            }
+        }
+        return index;
+    }
+
 
 // Remove grav directory if exists to make sure old files aren't kept
     if (fs.existsSync(dir_grav)){
@@ -257,29 +342,51 @@
                 let htmlTitle = splitTitle.pop();
                 let mainDiv = loadedHtml("#main")
             
-            // regex edits
+            // Basic Regex HTML edits
                 let mainDivRegexed = mainDiv.html()
                                         .replace(html_reg_static,"")
                                         .replace(html_reg_title,"")
                                         .replace(html_reg_objectHeader,"")
                                         .replace(html_reg_htmlExt,"")
                                         .replace(html_reg_brRemove, "")
-                                        .replace(html_reg_methodEdit, html_reg_methodEdit_replace)
-                                        .replace(html_reg_classesEdit, html_reg_classesEdit_replace)                                        
+                                        .replace(html_reg_subsectionEdit, html_reg_subsectionEdit_replace)
+                                        .replace(html_reg_propertiesHeaderEdit, html_reg_propertiesHeaderEdit_Replace)
                                         .replace(html_reg_typeEdit, html_reg_typeEdit_replace)
                                         .replace(html_reg_returnSize, html_reg_returnSize_replace)
                                         .replace(html_reg_methodSize, html_reg_methodSize_replace);
-                                        
+            
+            // Further HTML Manipulation
+                // Split HTML by Each named entry
+                let contentSplitArray = splitBy(mainDivRegexed, html_reg_findByName);
+                // Create a reference to the current content after split and the split functions
+                let currentContent = contentSplitArray[0];
+                // Create references to the split methods and signals
+                let splitSignalsAndMethods = splitMethodsAndSignals(contentSplitArray[1]);
+                let splitMethods = splitSignalsAndMethods[0];
+                let splitSignals = splitSignalsAndMethods[1];
+                // Append Signals and Methods to the current Content
+                currentContent = append(currentContent, html_reg_findByMethod, splitMethods.join('\n'));
+                console.log(path.basename(curSource, '.html'), splitSignals.length);                
+                if (splitSignals.length > 0) {
+                    // Add the Signals header to the Signals HTML
+                    splitSignals.unshift(html_reg_signalTitle)
+                    currentContent = append(currentContent, html_reg_findByArticleClose, splitSignals.join('\n',true));        
+                }
+
+                // Final Pretty Content
+                currentContent = htmlclean(currentContent);
+                currentContent = pretty(currentContent);
+        
             // Handle Unique Categories
                 switch(groupName){
                     case "Namespace":
-                        handleNamespace(htmlTitle, mainDivRegexed);
+                        handleNamespace(htmlTitle, currentContent);
                         break;
                     case "Class":
-                        handleClass(htmlTitle, mainDivRegexed);
+                        handleClass(htmlTitle, currentContent);
                         break;
                     case "Global":
-                        handleGlobal(htmlTitle, mainDivRegexed);
+                        handleGlobal(htmlTitle, currentContent);
                         break;
                     default:
                         console.log(`Case not handled for ${groupName}`);
@@ -292,22 +399,25 @@
     createTemplate("Namespaces", makeGroupTOC("Namespaces"));
     createTemplate("Objects", makeGroupTOC("Objects"));
 
-// Copy files to the Twig Directory
-    let templateFiles = fs.readdirSync(path.resolve(targetTemplateDirectory));
-    // Remove Existing API files
-    templateFiles.forEach(function(file){
-        let curSource = path.join(targetTemplateDirectory, file);
-            
-        if(path.basename(file, '.html').indexOf("API") > -1){
-            fs.unlink(curSource);
+// Copy the files to the target Directories if Local
+    if (copyLocal){
+        // Copy files to the Twig Directory
+        let templateFiles = fs.readdirSync(path.resolve(targetTemplateDirectory));
+        // Remove Existing API files
+        templateFiles.forEach(function(file){
+            let curSource = path.join(targetTemplateDirectory, file);
+                
+            if(path.basename(file, '.html').indexOf("API") > -1){
+                fs.unlink(curSource);
+            }
+        })
+        copyFolderRecursiveSync(dir_template, targetTemplateDirectory);
+    
+        // Copy files to the Md Directory
+        let baseMdRefDir = path.join(targetMDDirectory,"06.api-reference");
+        // Remove existing MD directory
+        if (fs.existsSync(baseMdRefDir)){
+            rimraf.sync(baseMdRefDir);
         }
-    })
-    copyFolderRecursiveSync(dir_template, targetTemplateDirectory);
-
-// Copy files to the Md Directory
-    let baseMdRefDir = path.join(targetMDDirectory,"06.api-reference");
-    // Remove existing MD directory
-    if (fs.existsSync(baseMdRefDir)){
-        rimraf.sync(baseMdRefDir);
+        copyFolderRecursiveSync(dir_md, targetMDDirectory);
     }
-    copyFolderRecursiveSync(dir_md, targetMDDirectory);
