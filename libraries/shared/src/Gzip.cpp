@@ -60,6 +60,9 @@ bool gunzip(QByteArray source, QByteArray &destination) {
             switch (status) {
                 case Z_NEED_DICT:
                     status = Z_DATA_ERROR;
+#if defined(__GNUC__)
+                    [[gnu::fallthrough]];
+#endif
                 case Z_DATA_ERROR:
                 case Z_MEM_ERROR:
                 case Z_STREAM_ERROR:
