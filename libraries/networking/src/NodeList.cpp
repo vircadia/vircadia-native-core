@@ -534,8 +534,6 @@ void NodeList::processDomainServerPathResponse(QSharedPointer<ReceivedMessage> m
         qCDebug(networking) << "Could not go to viewpoint" << viewpoint
             << "which was the lookup result for path" << pathQuery;
     }
-
-    _domainHandler.clearPendingCheckins();
 }
 
 void NodeList::handleICEConnectionToDomainServer() {
