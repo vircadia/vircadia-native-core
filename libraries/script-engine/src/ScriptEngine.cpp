@@ -192,6 +192,7 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
             break;
         case Context::AGENT_SCRIPT:
             _type = Type::AGENT;
+            break;
     }
 
     connect(this, &QScriptEngine::signalHandlerException, this, [this](const QScriptValue& exception) {
