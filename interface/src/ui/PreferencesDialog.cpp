@@ -14,6 +14,7 @@
 #include <ScriptEngines.h>
 #include <OffscreenUi.h>
 #include <Preferences.h>
+#include <QRandomGenerator>
 #include <display-plugins/CompositorHelper.h>
 
 #include "Application.h"
@@ -23,6 +24,9 @@
 #include "Snapshot.h"
 #include "SnapshotAnimated.h"
 #include "UserActivityLogger.h"
+
+#include "controllers/impl/MappingBuilderProxy.h"
+#include "controllers/impl/RouteBuilderProxy.h"
 
 void setupPreferences() {
     auto preferences = DependencyManager::get<Preferences>();
@@ -214,8 +218,69 @@ void setupPreferences() {
 
     //TODO: Update with advanced movement logic, test that it works
     {
+
+        using namespace controller;
+        auto controllerScriptingInterface = DependencyManager::get<ScriptingInterface>().data();
+        static QString advMovementsMappingName = QString("Hifi-AdvancedMovement-Dev-%1").arg(QRandomGenerator().generateDouble());
+        static bool advMovementsIsDisabled = false;
+        static bool inFlipTurn = false;
+
+        //code need to be revise so it should make correct iteration thru controller interface
+        /*
+        if (!advMovementsIsDisabled) {
+            MappingBuilderProxy* basicMapping = static_cast<MappingBuilderProxy*>
+                    (controllerScriptingInterface->newMapping(advMovementsMappingName));
+            const auto standard = controllerScriptingInterface->getStandard();
+            const auto hardware = controllerScriptingInterface->getHardware();
+            qDebug() << "hardware" << hardware;
+            RouteBuilderProxy* fromMapping = static_cast<RouteBuilderProxy*>
+                    (basicMapping->fromQml(QJSValue(standard.value("LY").toFloat())));
+            for(QMap<QString, QVariant>::const_iterator i = standard.find("LY"); i != standard.end(); ++i) {
+                auto stick = controllerScriptingInterface->getValue(standard.value("LS").toInt());
+                const float value = i.value().toFloat();
+                if(value == 1.0f && hardware.contains("OculusTouch")) {
+                    //rotate180
+                    myAvatar->setWorldOrientation(Quat().multiply(myAvatar->getWorldOrientation(),
+                                                           Quat().angleAxis(180.0, glm::vec3(0,1,0))));
+
+                } else if (hardware.contains("Vive")) {
+                    if (value > 0.75f && inFlipTurn == false) {
+                        inFlipTurn = true;
+                        //rotate180();
+                        QTimer::singleShot(1000, []() { inFlipTurn = false; } );
+                    }
+                }
+            }
+            for(QMap<QString, QVariant>::const_iterator i = standard.find("RY"); i != standard.end(); ++i) {
+                auto stick = controllerScriptingInterface->getValue(standard.value("RS").toInt());
+                const float value = i.value().toFloat();
+                if(value == 1.0f && hardware.contains("OculusTouch")) {
+                    //rotate180
+                    myAvatar->setWorldOrientation(Quat().multiply(myAvatar->getWorldOrientation(),
+                                                           Quat().angleAxis(180.0, glm::vec3(0,1,0))));
+                } else if (hardware.contains("Vive")) {
+                    if (value > 0.75f && inFlipTurn == false) {
+                        inFlipTurn = true;
+                        //rotate180
+                        myAvatar->setWorldOrientation(Quat().multiply(myAvatar->getWorldOrientation(),
+                                                               Quat().angleAxis(180.0, glm::vec3(0,1,0))));
+
+                        QTimer::singleShot(1000, []() { inFlipTurn = false; } );
+                    }
+                }
+            }
+        }*/
         auto getter = [=]()->bool { return myAvatar->useAdvancedMovementControls(); };
-        auto setter = [=](bool value) { myAvatar->setUseAdvancedMovementControls(value); };
+        auto setter = [=](bool value) {
+            auto controllerScriptingInterface = DependencyManager::get<ScriptingInterface>().data();
+            myAvatar->setUseAdvancedMovementControls(value);
+            if (value) {
+                controllerScriptingInterface->enableMapping(advMovementsMappingName);
+            } else {
+                controllerScriptingInterface->disableMapping(advMovementsMappingName);
+            }
+
+        };
         preferences->addPreference(new CheckPreference(MOVEMENT, "Advanced movement for hand controllers", getter, setter));
     }
 

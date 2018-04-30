@@ -818,12 +818,6 @@ Menu::Menu() {
     
     helpMenu->addSeparator();
     
-    // Help > Check for Updates
-    //ToDo: Add check for updates
-    addActionToQMenuAndActionHash(helpMenu, "Check for Updates");
-    
-    helpMenu->addSeparator();
-    
     // Help > Release Notes
     action = addActionToQMenuAndActionHash(helpMenu, "Release Notes");
     connect(action, &QAction::triggered, qApp, [] {
