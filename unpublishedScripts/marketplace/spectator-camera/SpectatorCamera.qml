@@ -189,7 +189,7 @@ Rectangle {
         z: 999;
         id: processingSnapshot;
         anchors.fill: parent;
-        visible: !take360SnapshotButton.enabled;
+        visible: !take360SnapshotButton.enabled && cameraToggleButton.camIsOn;
         color: Qt.rgba(0.0, 0.0, 0.0, 0.8);        
 
         // This object is always used in a popup.
@@ -255,7 +255,6 @@ Rectangle {
             onClicked: {
 				camIsOn = !camIsOn;
                 sendToScript({method: (camIsOn ? 'spectatorCameraOn' : 'spectatorCameraOff')});
-                fieldOfViewSlider.value = 45.0;
                 sendToScript({method: 'updateCameravFoV', vFoV: fieldOfViewSlider.value});
             }
         }
@@ -306,7 +305,6 @@ Rectangle {
 
         Item {
             id: fieldOfView;
-            visible: cameraToggleButton.camIsOn;
             anchors.top: spectatorCameraImageContainer.bottom;
             anchors.topMargin: 8;
             anchors.left: parent.left;
@@ -373,8 +371,8 @@ Rectangle {
             text: hifi.glyphs.screen;
             size: 32;
             color: hifi.colors.blueHighlight;
-            anchors.top: spectatorCameraImageContainer.bottom;
-            anchors.topMargin: 13;
+            anchors.top: fieldOfView.bottom;
+            anchors.topMargin: 8;
             anchors.left: parent.left;
         }
         // "Monitor Shows" Switch Label
@@ -382,7 +380,7 @@ Rectangle {
             id: monitorShowsSwitchLabel;
             visible: HMD.active;
             text: "MONITOR SHOWS:";
-            anchors.top: spectatorCameraImageContainer.bottom;
+            anchors.top: fieldOfView.bottom;
             anchors.topMargin: 20;
             anchors.left: monitorShowsSwitchLabelGlyph.right;
             anchors.leftMargin: 6;
@@ -441,7 +439,7 @@ Rectangle {
 
 		HifiControlsUit.Button {
 			id: takeSnapshotButton;
-            visible: cameraToggleButton.camIsOn;
+            enabled: cameraToggleButton.camIsOn;
             text: "Take Still Snapshot";
 			colorScheme: hifi.colorSchemes.dark;
 			color: hifi.buttons.blue;
@@ -456,7 +454,7 @@ Rectangle {
 		}
 		HifiControlsUit.Button {
 			id: take360SnapshotButton;
-            visible: cameraToggleButton.camIsOn;
+            enabled: cameraToggleButton.camIsOn;
             text: "Take 360 Snapshot";
 			colorScheme: hifi.colorSchemes.dark;
 			color: hifi.buttons.blue;
@@ -526,7 +524,7 @@ Rectangle {
         break;
         case 'enable360SnapshotButton':
             take360SnapshotButton.text = "Take 360 Snapshot";
-            take360SnapshotButton.enabled = true;
+            take360SnapshotButton.enabled = cameraToggleButton.camIsOn;
         break;
         default:
             console.log('Unrecognized message from spectatorCamera.js:', JSON.stringify(message));
