@@ -397,12 +397,11 @@ protected:
     QHash<EntityItemID, EntityItemPointer> _entitiesToAdd;
 
     Q_INVOKABLE void startChallengeOwnershipTimer(const EntityItemID& entityItemID);
-    Q_INVOKABLE void startPendingTransferStatusTimer(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
 
 private:
     void sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
     void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
-    void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation);
+    void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
 
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };
 

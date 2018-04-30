@@ -10,6 +10,7 @@
 // Inline functions to implement audio dynamics processing
 //
 
+#include <stddef.h>
 #include <math.h>
 #include <stdint.h>
 
