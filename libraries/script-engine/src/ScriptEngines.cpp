@@ -538,7 +538,6 @@ int ScriptEngines::runScriptInitializers(ScriptEnginePointer scriptEngine) {
     int ii=0;
     for (auto initializer : _scriptInitializers) {
         ii++;
-        qDebug() << "initializer" << ii;
         initializer(scriptEngine);
     }
     return ii;
