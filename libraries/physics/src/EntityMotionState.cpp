@@ -819,7 +819,6 @@ void EntityMotionState::initForOwned() {
 }
 
 void EntityMotionState::computeNewBidPriority(uint8_t newPriority) {
-    uint8_t oldPriority = _bidPriority;
     if (_region == workload::Region::R1) {
         _bidPriority = glm::max<uint8_t>(VOLUNTEER_SIMULATION_PRIORITY, glm::max<uint8_t>(_bidPriority, newPriority));
     } else {
