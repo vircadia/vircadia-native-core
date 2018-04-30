@@ -242,7 +242,6 @@
     function setDisplay(showCameraView) {
 
         var url = (camera) ? (showCameraView ? "resource://spectatorCameraFrame" : "resource://hmdPreviewFrame") : "";
-        sendToQml({ method: 'showPreviewTextureNotInstructions', setting: !!url, url: url });
 
         // FIXME: temporary hack to avoid setting the display texture to hmdPreviewFrame
         // until it is the correct mono.
@@ -255,11 +254,11 @@
     const MONITOR_SHOWS_CAMERA_VIEW_DEFAULT = false;
     var monitorShowsCameraView = !!Settings.getValue('spectatorCamera/monitorShowsCameraView', MONITOR_SHOWS_CAMERA_VIEW_DEFAULT);
     function setMonitorShowsCameraView(showCameraView) {
+        setDisplay(showCameraView);
         if (showCameraView === monitorShowsCameraView) {
             return;
         }
         monitorShowsCameraView = showCameraView;
-        setDisplay(showCameraView);
         Settings.setValue('spectatorCamera/monitorShowsCameraView', showCameraView);
     }
     function setMonitorShowsCameraViewAndSendToQml(showCameraView) {

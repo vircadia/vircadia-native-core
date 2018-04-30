@@ -517,11 +517,6 @@ Rectangle {
 				takeSnapshotFromControllerCheckBox.visible = false;
             }
         break;
-        case 'showPreviewTextureNotInstructions':
-            console.log('showPreviewTextureNotInstructions recvd', JSON.stringify(message));
-            spectatorCameraPreview.url = message.url;
-            spectatorCameraPreview.visible = message.setting;
-        break;
         case 'enable360SnapshotButton':
             take360SnapshotButton.text = "Take 360 Snapshot";
             take360SnapshotButton.enabled = cameraToggleButton.camIsOn;
