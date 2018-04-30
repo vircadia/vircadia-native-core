@@ -193,6 +193,7 @@
         tablet.screenChanged.connect(onTabletScreenChanged);
         Window.domainChanged.connect(onDomainChanged);
         Window.geometryChanged.connect(resizeViewFinderOverlay);
+        Window.stillSnapshotTaken.connect(onStillSnapshotTaken);
         Window.equirectangularSnapshotTaken.connect(onEquirectangularSnapshotTaken);
         Controller.keyPressEvent.connect(keyPressEvent);
         HMD.displayModeChanged.connect(onHMDChanged);
@@ -394,14 +395,21 @@
     }
     var takeSnapshotControllerMapping;
     var takeSnapshotControllerMappingName = 'Hifi-SpectatorCamera-Mapping-TakeSnapshot';
+    function onStillSnapshotTaken() {
+        Render.getConfig("SecondaryCameraJob.ToneMapping").curve = 1;
+    }
     function maybeTakeSnapshot() {
         if (camera) {
-            Audio.playSound(SNAPSHOT_SOUND, {
-                position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
-                localOnly: true,
-                volume: 1.0
-            });
-            Window.takeSecondaryCameraSnapshot();
+            Render.getConfig("SecondaryCameraJob.ToneMapping").curve = 0;
+            // Wait a moment before taking the snapshot for the tonemapping curve to update
+            Script.setTimeout(function () {
+                Audio.playSound(SNAPSHOT_SOUND, {
+                    position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
+                    localOnly: true,
+                    volume: 1.0
+                });
+                Window.takeSecondaryCameraSnapshot();
+            }, 250);
         }
     }
     function onEquirectangularSnapshotTaken() {
@@ -559,6 +567,12 @@
             case 'changeTakeSnapshotFromControllerPreference':
                 setTakeSnapshotFromController(message.params);
                 break;
+            case 'updateCameravFoV':
+                spectatorCameraConfig.vFoV = message.vFoV;
+                break;
+            case 'takeSecondaryCameraSnapshot':
+                maybeTakeSnapshot();
+                break;
             case 'takeSecondaryCamera360Snapshot':
                 maybeTake360Snapshot();
                 break;
@@ -589,6 +603,7 @@
         spectatorCameraOff();
         Window.domainChanged.disconnect(onDomainChanged);
         Window.geometryChanged.disconnect(resizeViewFinderOverlay);
+        Window.stillSnapshotTaken.disconnect(onStillSnapshotTaken);
         Window.equirectangularSnapshotTaken.disconnect(onEquirectangularSnapshotTaken);
         addOrRemoveButton(true);
         if (tablet) {

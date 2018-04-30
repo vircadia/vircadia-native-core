@@ -28,7 +28,7 @@ Rectangle {
     // The letterbox used for popup messages
     Hifi.LetterboxMessage {
         id: letterboxMessage;
-        z: 999; // Force the popup on top of everything else
+        z: 998; // Force the popup on top of everything else
     }
     function letterbox(headerGlyph, headerText, message) {
         letterboxMessage.headerGlyph = headerGlyph;
@@ -45,7 +45,7 @@ Rectangle {
         id: titleBarContainer;
         // Size
         width: root.width;
-        height: 50;
+        height: 40;
         // Anchors
         anchors.left: parent.left;
         anchors.top: parent.top;
@@ -185,6 +185,46 @@ Rectangle {
     // SPECTATOR APP DESCRIPTION END
     //
 
+    Rectangle {
+        z: 999;
+        id: processingSnapshot;
+        anchors.fill: parent;
+        visible: !take360SnapshotButton.enabled;
+        color: Qt.rgba(0.0, 0.0, 0.0, 0.8);        
+
+        // This object is always used in a popup.
+        // This MouseArea is used to prevent a user from being
+        //     able to click on a button/mouseArea underneath the popup/section.
+        MouseArea {
+            anchors.fill: parent;
+            hoverEnabled: true;
+            propagateComposedEvents: false;
+        }
+                
+        AnimatedImage {
+            id: processingImage;
+            source: "processing.gif"
+            width: 74;
+            height: width;
+            anchors.verticalCenter: parent.verticalCenter;
+            anchors.horizontalCenter: parent.horizontalCenter;
+        }
+
+        HifiStylesUit.RalewaySemiBold {
+            text: "Processing...";
+            // Anchors
+            anchors.top: processingImage.bottom;
+            anchors.topMargin: 4;
+            anchors.horizontalCenter: parent.horizontalCenter;
+            width: paintedWidth;
+            // Text size
+            size: 26;
+            // Style
+            color: hifi.colors.white;
+            verticalAlignment: Text.AlignVCenter;
+        }
+    }
+
     //
     // SPECTATOR CONTROLS START
     //
@@ -194,7 +234,7 @@ Rectangle {
         height: root.height - spectatorDescriptionContainer.height - titleBarContainer.height;
         // Anchors
         anchors.top: spectatorDescriptionContainer.bottom;
-        anchors.topMargin: 20;
+        anchors.topMargin: 8;
         anchors.left: parent.left;
         anchors.leftMargin: 25;
         anchors.right: parent.right;
@@ -215,7 +255,8 @@ Rectangle {
             onClicked: {
 				camIsOn = !camIsOn;
                 sendToScript({method: (camIsOn ? 'spectatorCameraOn' : 'spectatorCameraOff')});
-                spectatorCameraPreview.ready = camIsOn;
+                fieldOfViewSlider.value = 45.0;
+                sendToScript({method: 'updateCameravFoV', vFoV: fieldOfViewSlider.value});
             }
         }
 
@@ -224,7 +265,7 @@ Rectangle {
             id: spectatorCameraImageContainer;
             anchors.left: parent.left;
             anchors.top: cameraToggleButton.bottom;
-            anchors.topMargin: 20;
+            anchors.topMargin: 8;
             anchors.right: parent.right;
             height: 250;
             color: cameraToggleButton.camIsOn ? "transparent" : "black";
@@ -259,6 +300,67 @@ Rectangle {
                 onVisibleChanged: {
                     ready = cameraToggleButton.camIsOn;
                     update();
+                }
+            }
+        }
+
+        Item {
+            id: fieldOfView;
+            visible: cameraToggleButton.camIsOn;
+            anchors.top: spectatorCameraImageContainer.bottom;
+            anchors.topMargin: 8;
+            anchors.left: parent.left;
+            anchors.leftMargin: 8;
+            anchors.right: parent.right;
+            height: 35;
+
+            HifiStylesUit.FiraSansRegular {
+                id: fieldOfViewLabel;
+                text: "Field of View (" + fieldOfViewSlider.value + "): ";
+                size: 16;
+                color: hifi.colors.lightGrayText;
+                anchors.left: parent.left;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                width: 140;
+                horizontalAlignment: Text.AlignLeft;
+                verticalAlignment: Text.AlignVCenter;
+            }
+
+            HifiControlsUit.Slider {
+                id: fieldOfViewSlider;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                anchors.right: resetvFoV.left;
+                anchors.rightMargin: 8;
+                anchors.left: fieldOfViewLabel.right;
+                anchors.leftMargin: 8;
+                colorScheme: hifi.colorSchemes.dark;
+                from: 10.0;
+                to: 120.0;
+                value: 45.0;
+                stepSize: 1;
+
+                onValueChanged: {
+                    sendToScript({method: 'updateCameravFoV', vFoV: value});
+                }
+                onPressedChanged: {
+                    if (!pressed) {
+                        sendToScript({method: 'updateCameravFoV', vFoV: value});
+                    }
+                }
+            }
+
+            HifiControlsUit.GlyphButton {
+                id: resetvFoV;
+                anchors.verticalCenter: parent.verticalCenter;
+                anchors.right: parent.right;
+                anchors.rightMargin: 6;
+                height: parent.height - 8;
+                width: height;
+                glyph: hifi.glyphs.reload;
+                onClicked: {
+                    fieldOfViewSlider.value = 45.0;
                 }
             }
         }
@@ -338,19 +440,34 @@ Rectangle {
         }
 
 		HifiControlsUit.Button {
-			id: take360SnapshotButton;
-            text: "Take 360 Snapshot";
-            enabled: cameraToggleButton.camIsOn;
+			id: takeSnapshotButton;
+            visible: cameraToggleButton.camIsOn;
+            text: "Take Still Snapshot";
 			colorScheme: hifi.colorSchemes.dark;
 			color: hifi.buttons.blue;
-			anchors.top: takeSnapshotFromControllerCheckBox.visible ? takeSnapshotFromControllerCheckBox.bottom : spectatorCameraImageContainer.bottom;
+			anchors.top: takeSnapshotFromControllerCheckBox.visible ? takeSnapshotFromControllerCheckBox.bottom : fieldOfView.bottom;
 			anchors.topMargin: 8;
 			anchors.left: parent.left;
+            width: parent.width/2 - 10;
+			height: 40;
+			onClicked: {
+				sendToScript({method: 'takeSecondaryCameraSnapshot'});
+			}
+		}
+		HifiControlsUit.Button {
+			id: take360SnapshotButton;
+            visible: cameraToggleButton.camIsOn;
+            text: "Take 360 Snapshot";
+			colorScheme: hifi.colorSchemes.dark;
+			color: hifi.buttons.blue;
+			anchors.top: takeSnapshotFromControllerCheckBox.visible ? takeSnapshotFromControllerCheckBox.bottom : fieldOfView.bottom;
+			anchors.topMargin: 8;
 			anchors.right: parent.right;
+            width: parent.width/2 - 10;
 			height: 40;
 			onClicked: {
                 take360SnapshotButton.enabled = false;
-                take360SnapshotButton.text = "360 SNAPSHOT PROCESSING...";
+                take360SnapshotButton.text = "PROCESSING...";
 				sendToScript({method: 'takeSecondaryCamera360Snapshot'});
 			}
 		}
@@ -409,7 +526,7 @@ Rectangle {
         break;
         case 'enable360SnapshotButton':
             take360SnapshotButton.text = "Take 360 Snapshot";
-            take360SnapshotButton.enabled = cameraToggleButton.camIsOn;
+            take360SnapshotButton.enabled = true;
         break;
         default:
             console.log('Unrecognized message from spectatorCamera.js:', JSON.stringify(message));

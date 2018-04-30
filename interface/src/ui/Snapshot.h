@@ -54,6 +54,7 @@ public slots:
 private:
     static QFile* savedFileForSnapshot(QImage & image, bool isTemporary, const QString& userSelectedFilename = QString());
 
+    static QTimer snapshotTimer;
     static qint16 snapshotIndex;
     static QVariant oldAttachedEntityId;
     static QVariant oldOrientation;

@@ -38,6 +38,7 @@
 #include "MainWindow.h"
 #include "Snapshot.h"
 #include "SnapshotUploader.h"
+#include "ToneMappingEffect.h"
 
 // filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
 // %1 <= username, %2 <= date and time, %3 <= current location
@@ -92,6 +93,7 @@ QString Snapshot::saveSnapshot(QImage image, const QString& filename) {
     return snapshotPath;
 }
 
+QTimer Snapshot::snapshotTimer;
 
 qint16 Snapshot::snapshotIndex = 0;
 QVariant Snapshot::oldAttachedEntityId = 0;
@@ -118,6 +120,8 @@ void Snapshot::save360Snapshot(const glm::vec3& cameraPosition, const QString& f
     oldFarClipPlaneDistance = secondaryCameraRenderConfig->property("farClipPlaneDistance");
 
     // Initialize some secondary camera render config options for 360 snapshot capture
+    static_cast<ToneMappingConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCameraJob.ToneMapping"))->setCurve(0);
+
     secondaryCameraRenderConfig->resetSizeSpectatorCamera(2048, 2048);
     secondaryCameraRenderConfig->setProperty("attachedEntityId", "");
     secondaryCameraRenderConfig->setPosition(cameraPosition);
@@ -129,10 +133,9 @@ void Snapshot::save360Snapshot(const glm::vec3& cameraPosition, const QString& f
 
     snapshotIndex = 0;
 
-    QTimer* snapshotTimer = new QTimer();
-    snapshotTimer->setSingleShot(false);
-    snapshotTimer->setInterval(250);
-    connect(snapshotTimer, &QTimer::timeout, [&] {
+    snapshotTimer.setSingleShot(false);
+    snapshotTimer.setInterval(250);
+    connect(&snapshotTimer, &QTimer::timeout, [] {
         SecondaryCameraJobConfig* config = static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
         if (snapshotIndex == 0) {
             downImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
@@ -153,6 +156,7 @@ void Snapshot::save360Snapshot(const glm::vec3& cameraPosition, const QString& f
             upImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
         } else {
             // Reset secondary camera render config
+            static_cast<ToneMappingConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCameraJob.ToneMapping"))->setCurve(1);
             config->resetSizeSpectatorCamera(qApp->getWindow()->geometry().width(), qApp->getWindow()->geometry().height());
             config->setProperty("attachedEntityId", oldAttachedEntityId);
             config->setProperty("vFoV", oldvFoV);
@@ -162,15 +166,17 @@ void Snapshot::save360Snapshot(const glm::vec3& cameraPosition, const QString& f
             // Process six QImages
             QtConcurrent::run(convertToEquirectangular);
 
-            snapshotTimer->stop();
-            snapshotTimer->deleteLater();
+            snapshotTimer.stop();
         }
 
         snapshotIndex++;
     });
-    snapshotTimer->start();
+    snapshotTimer.start();
 }
 void Snapshot::convertToEquirectangular() {
+    // I got help from StackOverflow while writing this code:
+    // https://stackoverflow.com/questions/34250742/converting-a-cubemap-into-equirectangular-panorama
+
     float outputImageWidth = 8192.0f;
     float outputImageHeight = 4096.0f;
     QImage outputImage(outputImageWidth, outputImageHeight, QImage::Format_RGB32);
