@@ -135,6 +135,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             return false;
         });
 
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
         updateLoginMenu();
 
         Window window = getWindow();
