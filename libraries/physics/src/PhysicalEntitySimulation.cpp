@@ -53,7 +53,9 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     bool canBeKinematic = region <= workload::Region::R3;
     if (shouldBePhysical) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-        if (!motionState) {
+        if (motionState) {
+            motionState->setRegion(region);
+        } else {
             _entitiesToAddToPhysics.insert(entity);
         }
     } else if (canBeKinematic && entity->isMovingRelativeToParent()) {
@@ -139,6 +141,7 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
         } else {
             _incomingChanges.insert(motionState);
         }
+        motionState->setRegion(region);
     } else if (shouldBePhysical) {
         // The intent is for this object to be in the PhysicsEngine, but it has no MotionState yet.
         // Perhaps it's shape has changed and it can now be added?

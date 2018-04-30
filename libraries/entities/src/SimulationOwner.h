@@ -76,11 +76,11 @@
 //    (12) When entityA, locally owned at priority = N, collides with an unowned entityB the owner will
 //         also bid for entityB at priority = N-1 (or VOLUNTEER, whichever is larger).
 //
-//    (13) When an entity comes to rest and is deactivated in the physics simulation the owner will
-//         send an update to: clear their ownerhsip, set priority to zero, and set the object's
-//         velocities to be zero.  As per a normal bid, the owner does NOT assume that its ownership
-//         has been cleared until it hears from the entity-server.  This, if the packet is lost the
-//         owner will re-send after some period.
+//    (13) When an entity comes to rest and is deactivated in the physics simulation the owner will send
+//         an update to: clear their ownerhsip, set priority to zero, and set the object's velocities to
+//         zero.  As per a normal bid, the owner does NOT assume that its ownership has been cleared until
+//         it hears from the entity-server.  Thus, if the packet is lost the owner will re-send after some
+//         period.
 //
 //    (14) When an entity's ownership priority drops below VOLUNTEER other participants may bid for it
 //         immediately at priority = VOLUNTEER.
