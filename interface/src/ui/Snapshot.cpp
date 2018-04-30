@@ -20,6 +20,7 @@
 #include <QtCore/QJsonArray>
 #include <QtNetwork/QHttpMultiPart>
 #include <QtGui/QImage>
+#include <QtConcurrent/QtConcurrentRun>
 
 #include <AccountManager.h>
 #include <AddressManager.h>
@@ -91,57 +92,66 @@ QString Snapshot::saveSnapshot(QImage image, const QString& filename) {
     return snapshotPath;
 }
 
-void Snapshot::save360Snapshot(const QString& filename) {
+
+qint16 Snapshot::snapshotIndex = 0;
+QVariant Snapshot::oldAttachedEntityId = 0;
+QVariant Snapshot::oldOrientation = 0;
+QVariant Snapshot::oldvFoV = 0;
+QVariant Snapshot::oldNearClipPlaneDistance = 0;
+QVariant Snapshot::oldFarClipPlaneDistance = 0;
+
+QImage Snapshot::downImage;
+QImage Snapshot::frontImage;
+QImage Snapshot::leftImage;
+QImage Snapshot::backImage;
+QImage Snapshot::rightImage;
+QImage Snapshot::upImage;
+
+void Snapshot::save360Snapshot(const glm::vec3& cameraPosition, const QString& filename) {
     SecondaryCameraJobConfig* secondaryCameraRenderConfig = static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
 
     // Save initial values of secondary camera render config
-    auto oldAttachedEntityId = secondaryCameraRenderConfig->property("attachedEntityId");
-    auto oldOrientation = secondaryCameraRenderConfig->property("orientation");
-    auto oldvFoV = secondaryCameraRenderConfig->property("vFoV");
-    auto oldNearClipPlaneDistance = secondaryCameraRenderConfig->property("nearClipPlaneDistance");
-    auto oldFarClipPlaneDistance = secondaryCameraRenderConfig->property("farClipPlaneDistance");
+    oldAttachedEntityId = secondaryCameraRenderConfig->property("attachedEntityId");
+    oldOrientation = secondaryCameraRenderConfig->property("orientation");
+    oldvFoV = secondaryCameraRenderConfig->property("vFoV");
+    oldNearClipPlaneDistance = secondaryCameraRenderConfig->property("nearClipPlaneDistance");
+    oldFarClipPlaneDistance = secondaryCameraRenderConfig->property("farClipPlaneDistance");
 
     // Initialize some secondary camera render config options for 360 snapshot capture
     secondaryCameraRenderConfig->resetSizeSpectatorCamera(2048, 2048);
     secondaryCameraRenderConfig->setProperty("attachedEntityId", "");
+    secondaryCameraRenderConfig->setPosition(cameraPosition);
     secondaryCameraRenderConfig->setProperty("vFoV", 90.0f);
-    secondaryCameraRenderConfig->setProperty("nearClipPlaneDistance", 0.5f);
-    secondaryCameraRenderConfig->setProperty("farClipPlaneDistance", 1000.0f);
+    secondaryCameraRenderConfig->setProperty("nearClipPlaneDistance", 0.3f);
+    secondaryCameraRenderConfig->setProperty("farClipPlaneDistance", 5000.0f);
 
     secondaryCameraRenderConfig->setOrientation(glm::quat(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f))));
 
-    qint16 snapshotIndex = 0;
+    snapshotIndex = 0;
 
     QTimer* snapshotTimer = new QTimer();
     snapshotTimer->setSingleShot(false);
-    snapshotTimer->setInterval(200);
+    snapshotTimer->setInterval(250);
     connect(snapshotTimer, &QTimer::timeout, [&] {
         SecondaryCameraJobConfig* config = static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
-        qDebug() << "ZRF HERE" << snapshotIndex;
         if (snapshotIndex == 0) {
-            QImage downImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
-            Snapshot::saveSnapshot(downImage, "down");
+            downImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
             config->setOrientation(glm::quat(glm::radians(glm::vec3(0.0f, 0.0f, 0.0f))));
         } else if (snapshotIndex == 1) {
-            QImage frontImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
-            Snapshot::saveSnapshot(frontImage, "front");
+            frontImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
             config->setOrientation(glm::quat(glm::radians(glm::vec3(0.0f, 90.0f, 0.0f))));
         } else if (snapshotIndex == 2) {
-            QImage leftImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
-            Snapshot::saveSnapshot(leftImage, "left");
+            leftImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
             config->setOrientation(glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f))));
         } else if (snapshotIndex == 3) {
-            QImage backImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
-            Snapshot::saveSnapshot(backImage, "back");
+            backImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
             config->setOrientation(glm::quat(glm::radians(glm::vec3(0.0f, 270.0f, 0.0f))));
         } else if (snapshotIndex == 4) {
-            QImage rightImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
-            Snapshot::saveSnapshot(rightImage, "right");
+            rightImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
             config->setOrientation(glm::quat(glm::radians(glm::vec3(90.0f, 0.0f, 0.0f))));
         } else if (snapshotIndex == 5) {
-            QImage upImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
-            Snapshot::saveSnapshot(upImage, "up");
-        } else if (snapshotIndex == 6) {
+            upImage = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
+        } else {
             // Reset secondary camera render config
             config->resetSizeSpectatorCamera(qApp->getWindow()->geometry().width(), qApp->getWindow()->geometry().height());
             config->setProperty("attachedEntityId", oldAttachedEntityId);
@@ -149,24 +159,96 @@ void Snapshot::save360Snapshot(const QString& filename) {
             config->setProperty("nearClipPlaneDistance", oldNearClipPlaneDistance);
             config->setProperty("farClipPlaneDistance", oldFarClipPlaneDistance);
 
-            QFile* snapshotFile = savedFileForSnapshot(qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), false, filename);
-
-            // we don't need the snapshot file, so close it, grab its filename and delete it
-            snapshotFile->close();
-
-            QString snapshotPath = QFileInfo(*snapshotFile).absoluteFilePath();
-
-            delete snapshotFile;
+            // Process six QImages
+            QtConcurrent::run(convertToEquirectangular);
 
             snapshotTimer->stop();
             snapshotTimer->deleteLater();
-
-            emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
         }
 
         snapshotIndex++;
     });
     snapshotTimer->start();
+}
+void Snapshot::convertToEquirectangular() {
+    float outputImageWidth = 8192.0f;
+    float outputImageHeight = 4096.0f;
+    QImage outputImage(outputImageWidth, outputImageHeight, QImage::Format_RGB32);
+    outputImage.fill(0);
+    QRgb sourceColorValue;
+    float phi, theta;
+    int cubeFaceWidth = 2048.0f;
+    int cubeFaceHeight = 2048.0f;
+
+    for (int j = 0; j < outputImageHeight; j++) {
+        theta = (1.0f - ((float)j / outputImageHeight)) * PI;
+
+        for (int i = 0; i < outputImageWidth; i++) {
+            phi = ((float)i / outputImageWidth) * 2.0f * PI;
+
+            float x, y, z;
+            x = glm::sin(phi) * glm::sin(theta) * -1.0f;
+            y = glm::cos(theta);
+            z = glm::cos(phi) * glm::sin(theta) * -1.0f;
+
+            float xa, ya, za;
+            float a;
+
+            a = std::max(std::max(std::abs(x), std::abs(y)), std::abs(z));
+
+            xa = x / a;
+            ya = y / a;
+            za = z / a;
+
+            // Pixel in the source images
+            int xPixel, yPixel;
+            QImage sourceImage;
+
+            if (xa == 1) {
+                // Right image
+                xPixel = (int)((((za + 1.0f) / 2.0f) - 1.0f) * cubeFaceWidth);
+                yPixel = (int)((((ya + 1.0f) / 2.0f)) * cubeFaceHeight);
+                sourceImage = rightImage;
+            } else if (xa == -1) {
+                // Left image
+                xPixel = (int)((((za + 1.0f) / 2.0f)) * cubeFaceWidth);
+                yPixel = (int)((((ya + 1.0f) / 2.0f)) * cubeFaceHeight);
+                sourceImage = leftImage;
+            } else if (ya == 1) {
+                // Down image
+                xPixel = (int)((((xa + 1.0f) / 2.0f)) * cubeFaceWidth);
+                yPixel = (int)((((za + 1.0f) / 2.0f) - 1.0f) * cubeFaceHeight);
+                sourceImage = downImage;
+            } else if (ya == -1) {
+                // Up image
+                xPixel = (int)((((xa + 1.0f) / 2.0f)) * cubeFaceWidth);
+                yPixel = (int)((((za + 1.0f) / 2.0f)) * cubeFaceHeight);
+                sourceImage = upImage;
+            } else if (za == 1) {
+                // Front image
+                xPixel = (int)((((xa + 1.0f) / 2.0f)) * cubeFaceWidth);
+                yPixel = (int)((((ya + 1.0f) / 2.0f)) * cubeFaceHeight);
+                sourceImage = frontImage;
+            } else if (za == -1) {
+                // Back image
+                xPixel = (int)((((xa + 1.0f) / 2.0f) - 1.0f) * cubeFaceWidth);
+                yPixel = (int)((((ya + 1.0f) / 2.0f)) * cubeFaceHeight);
+                sourceImage = backImage;
+            } else {
+                qDebug() << "Unknown face encountered when processing 360 Snapshot";
+                xPixel = 0;
+                yPixel = 0;
+            }
+
+            xPixel = std::min(std::abs(xPixel), 2047);
+            yPixel = std::min(std::abs(yPixel), 2047);
+
+            sourceColorValue = sourceImage.pixel(xPixel, yPixel);
+            outputImage.setPixel(i, j, sourceColorValue);
+        }
+    }
+
+    emit DependencyManager::get<WindowScriptingInterface>()->equirectangularSnapshotTaken(saveSnapshot(outputImage, QString()), true);
 }
 
 QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {

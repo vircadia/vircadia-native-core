@@ -672,6 +672,7 @@
     Menu.menuItemEvent.connect(menuItemEvent);
     Window.domainConnectionRefused.connect(onDomainConnectionRefused);
     Window.stillSnapshotTaken.connect(onSnapshotTaken);
+    Window.equirectangularSnapshotTaken.connect(onSnapshotTaken);
     Window.processingGifStarted.connect(processingGif);
     Window.connectionAdded.connect(connectionAdded);
     Window.connectionError.connect(connectionError);

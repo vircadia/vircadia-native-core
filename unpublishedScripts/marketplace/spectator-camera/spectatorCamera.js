@@ -68,8 +68,8 @@
         spectatorCameraConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
         cameraRotation = Quat.multiply(MyAvatar.orientation, Quat.fromPitchYawRollDegrees(15, -155, 0)), cameraPosition = inFrontOf(0.85, Vec3.sum(MyAvatar.position, { x: 0, y: 0.28, z: 0 }));
         camera = Entities.addEntity({
-            "angularDamping": 0.8,
-            "damping": 0.8,
+            "angularDamping": 0.95,
+            "damping": 0.95,
             "collidesWith": "static,dynamic,kinematic,",
             "collisionMask": 7,
             "dynamic": true,
@@ -193,6 +193,7 @@
         tablet.screenChanged.connect(onTabletScreenChanged);
         Window.domainChanged.connect(onDomainChanged);
         Window.geometryChanged.connect(resizeViewFinderOverlay);
+        Window.equirectangularSnapshotTaken.connect(onEquirectangularSnapshotTaken);
         Controller.keyPressEvent.connect(keyPressEvent);
         HMD.displayModeChanged.connect(onHMDChanged);
         viewFinderOverlay = false;
@@ -403,6 +404,11 @@
             Window.takeSecondaryCameraSnapshot();
         }
     }
+    function onEquirectangularSnapshotTaken() {
+        sendToQml({
+            method: 'enable360SnapshotButton'
+        });
+    }
     function maybeTake360Snapshot() {
         if (camera) {
             Audio.playSound(SNAPSHOT_SOUND, {
@@ -410,7 +416,7 @@
                 localOnly: true,
                 volume: 1.0
             });
-            Window.takeSecondaryCamera360Snapshot();
+            Window.takeSecondaryCamera360Snapshot(Entities.getEntityProperties(camera, ["positon"]).position);
         }
     }
     function registerTakeSnapshotControllerMapping() {
@@ -583,6 +589,7 @@
         spectatorCameraOff();
         Window.domainChanged.disconnect(onDomainChanged);
         Window.geometryChanged.disconnect(resizeViewFinderOverlay);
+        Window.equirectangularSnapshotTaken.disconnect(onEquirectangularSnapshotTaken);
         addOrRemoveButton(true);
         if (tablet) {
             tablet.screenChanged.disconnect(onTabletScreenChanged);

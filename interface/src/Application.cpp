@@ -7278,9 +7278,9 @@ void Application::takeSecondaryCameraSnapshot(const QString& filename) {
     });
 }
 
-void Application::takeSecondaryCamera360Snapshot(const QString& filename) {
-    postLambdaEvent([filename, this] {
-        Snapshot::save360Snapshot(filename);
+void Application::takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const QString& filename) {
+    postLambdaEvent([filename, cameraPosition, this] {
+        Snapshot::save360Snapshot(cameraPosition, filename);
     });
 }
 

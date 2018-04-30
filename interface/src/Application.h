@@ -273,7 +273,7 @@ public:
 
     void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
     void takeSecondaryCameraSnapshot(const QString& filename = QString());
-    void takeSecondaryCamera360Snapshot(const QString& filename = QString());
+    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const QString& filename = QString());
 
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 

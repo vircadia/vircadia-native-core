@@ -239,7 +239,7 @@ Rectangle {
             // Instructions (visible when display texture isn't set)
             HifiStylesUit.FiraSansRegular {
                 id: spectatorCameraInstructions;
-                text: "Turn on Spectator Camera for a preview\nof what your monitor shows.";
+                text: "Turn on Spectator Camera for a preview\nof " + (HMD.active ? "what your monitor shows." : "the camera's view.");
                 size: 16;
                 color: hifi.colors.lightGrayText;
                 visible: !cameraToggleButton.camIsOn;
@@ -252,7 +252,7 @@ Rectangle {
             Hifi.ResourceImageItem {
                 id: spectatorCameraPreview;
                 visible: cameraToggleButton.camIsOn;
-                url: monitorShowsSwitch.checked ? "resource://spectatorCameraFrame" : "resource://hmdPreviewFrame";
+                url: monitorShowsSwitch.checked || !HMD.active ? "resource://spectatorCameraFrame" : "resource://hmdPreviewFrame";
                 ready: cameraToggleButton.camIsOn;
                 mirrorVertically: true;
                 anchors.fill: parent;
@@ -267,6 +267,7 @@ Rectangle {
         // "Monitor Shows" Switch Label Glyph
         HifiStylesUit.HiFiGlyphs {
             id: monitorShowsSwitchLabelGlyph;
+            visible: HMD.active;
             text: hifi.glyphs.screen;
             size: 32;
             color: hifi.colors.blueHighlight;
@@ -277,6 +278,7 @@ Rectangle {
         // "Monitor Shows" Switch Label
         HifiStylesUit.RalewayLight {
             id: monitorShowsSwitchLabel;
+            visible: HMD.active;
             text: "MONITOR SHOWS:";
             anchors.top: spectatorCameraImageContainer.bottom;
             anchors.topMargin: 20;
@@ -291,6 +293,7 @@ Rectangle {
         // "Monitor Shows" Switch
         HifiControlsUit.Switch {
             id: monitorShowsSwitch;
+            visible: HMD.active;
             height: 30;
             anchors.left: parent.left;
             anchors.right: parent.right;
@@ -307,6 +310,7 @@ Rectangle {
         // "Switch View From Controller" Checkbox
         HifiControlsUit.CheckBox {
             id: switchViewFromControllerCheckBox;
+            visible: HMD.active;
             colorScheme: hifi.colorSchemes.dark;
             anchors.left: parent.left;
             anchors.top: monitorShowsSwitch.bottom;
@@ -335,15 +339,18 @@ Rectangle {
 
 		HifiControlsUit.Button {
 			id: take360SnapshotButton;
-            text: "Take 360 Snapshot"
+            text: "Take 360 Snapshot";
+            enabled: cameraToggleButton.camIsOn;
 			colorScheme: hifi.colorSchemes.dark;
 			color: hifi.buttons.blue;
-			anchors.top: takeSnapshotFromControllerCheckBox.visible ? takeSnapshotFromControllerCheckBox.bottom : switchViewFromControllerCheckBox.bottom;
+			anchors.top: takeSnapshotFromControllerCheckBox.visible ? takeSnapshotFromControllerCheckBox.bottom : spectatorCameraImageContainer.bottom;
 			anchors.topMargin: 8;
 			anchors.left: parent.left;
 			anchors.right: parent.right;
 			height: 40;
 			onClicked: {
+                take360SnapshotButton.enabled = false;
+                take360SnapshotButton.text = "360 SNAPSHOT PROCESSING...";
 				sendToScript({method: 'takeSecondaryCamera360Snapshot'});
 			}
 		}
@@ -399,6 +406,10 @@ Rectangle {
             console.log('showPreviewTextureNotInstructions recvd', JSON.stringify(message));
             spectatorCameraPreview.url = message.url;
             spectatorCameraPreview.visible = message.setting;
+        break;
+        case 'enable360SnapshotButton':
+            take360SnapshotButton.text = "Take 360 Snapshot";
+            take360SnapshotButton.enabled = cameraToggleButton.camIsOn;
         break;
         default:
             console.log('Unrecognized message from spectatorCamera.js:', JSON.stringify(message));
