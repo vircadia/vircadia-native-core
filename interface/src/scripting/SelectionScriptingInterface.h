@@ -182,7 +182,7 @@ public:
 
     /**jsdoc
     * Get the list of avatars, entities, and overlays stored in a selection list.
-    * @function Selection.getList
+    * @function Selection.getSelectedItemsList
     * @param {string} listName - The name of the selection list.
     * @return {Selection.SelectedItemsList} The content of a selection list. If the list name doesn't exist, the function 
     *     returns an empty object with no properties.
@@ -257,7 +257,7 @@ public:
     void onSelectedItemsListChanged(const QString& listName);
 
 signals:
-    /**jsoc
+    /**jsdoc
      * Triggered when a list's content changes.
      * @function Selection.selectedItemsListChanged
      * @param {string} listName - The name of the selection list that changed.

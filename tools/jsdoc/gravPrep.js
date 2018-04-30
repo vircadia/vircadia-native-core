@@ -357,6 +357,12 @@
             
             // Further HTML Manipulation
                 // Split HTML by Each named entry
+                if (path.basename(curSource, '.html') === "Controller"){
+                    var cleanup = htmlclean(mainDivRegexed);
+                    cleanup = pretty(cleanup)
+                    fs.writeFileSync(__dirname+'/Examine/ControllerExamine', cleanup);
+                }
+
                 let contentSplitArray = splitBy(mainDivRegexed, html_reg_findByName);
                 // Create a reference to the current content after split and the split functions
                 let currentContent = contentSplitArray[0];
