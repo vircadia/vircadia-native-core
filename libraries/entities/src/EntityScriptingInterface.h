@@ -388,6 +388,22 @@ public slots:
     Q_INVOKABLE QVector<QUuid> findEntitiesByType(const QString entityType, const glm::vec3& center, float radius) const;
 
     /**jsdoc
+    * Find all entities of a particular name that intersect a sphere defined by a center point and radius.
+    * @function Entities.findEntitiesByName
+    * @param {string} entityName - The name of the entity to search for.
+    * @param {Vec3} center - The point about which to search.
+    * @param {number} radius - The radius within which to search.
+    * @param {boolean} [caseSensitive=false] - If <code>true</code> then the search is case-sensitive.
+    * @returns {Uuid[]} An array of entity IDs that have the specified name and intersect the search sphere. The array is empty 
+    *     if no entities could be found.
+    * @example <caption>Report the number of entities with the name, "Light-Target".</caption>
+    * var entityIDs = Entities.findEntitiesByName("Light-Target", MyAvatar.position, 10, false);
+    * print("Number of entities with the name "Light-Target": " + entityIDs.length);
+    */
+    Q_INVOKABLE QVector<QUuid> findEntitiesByName(const QString entityName, const glm::vec3& center, float radius, 
+        bool caseSensitiveSearch = false ) const;
+
+    /**jsdoc
      * Find the first entity intersected by a {@link PickRay}. <code>Light</code> and <code>Zone</code> entities are not 
      * intersected unless they've been configured as pickable using {@link Entities.setLightsArePickable|setLightsArePickable}
      * and {@link Entities.setZonesArePickable|setZonesArePickable}, respectively.<br />
@@ -694,7 +710,7 @@ public slots:
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
      * @param {Vec3} voxelCoords - The voxel coordinates. May be fractional and outside the entity's bounding box.
      * @returns {Vec3} The world coordinates of the <code>voxelCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3|Vec3.ZERO}.
+     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}.
      * @example <caption>Create a PolyVox cube with the 0,0,0 voxel replaced by a sphere.</caption>
      * // Cube PolyVox with 0,0,0 voxel missing.
      * var polyVox = Entities.addEntity({
@@ -729,7 +745,7 @@ public slots:
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
      * @param {Vec3} worldCoords - The world coordinates. May be outside the entity's bounding box.
      * @returns {Vec3} The voxel coordinates of the <code>worldCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3|Vec3.ZERO}. The value may be fractional.
+     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}. The value may be fractional.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE glm::vec3 worldCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 worldCoords);
@@ -741,7 +757,7 @@ public slots:
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
      * @param {Vec3} voxelCoords - The voxel coordinates. May be fractional and outside the entity's bounding box.
      * @returns {Vec3} The local coordinates of the <code>voxelCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3|Vec3.ZERO}.
+     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}.
      * @example <caption>Get the world dimensions of a voxel in a PolyVox entity.</caption>
      * var polyVox = Entities.addEntity({
      *     type: "PolyVox",
@@ -763,7 +779,7 @@ public slots:
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
      * @param {Vec3} localCoords - The local coordinates. May be outside the entity's bounding box.
      * @returns {Vec3} The voxel coordinates of the <code>worldCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3|Vec3.ZERO}. The value may be fractional.
+     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}. The value may be fractional.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE glm::vec3 localCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 localCoords);
@@ -1649,7 +1665,7 @@ signals:
 
     /**jsdoc
      * Triggered when a mouse button is double-clicked while the mouse cursor is on an entity.
-     * @function Entities.mousePressOnEntity
+     * @function Entities.mouseDoublePressOnEntity
      * @param {Uuid} entityID - The ID of the entity that was double-pressed.
      * @param {PointerEvent} event - Details of the event.
      * @returns {Signal}

@@ -17,8 +17,8 @@
    <widget class="QPushButton" name="closeButton">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>420</y>
+      <x>360</x>
+      <y>400</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -44,7 +44,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>255</y>
+      <y>285</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -57,7 +57,7 @@
     <property name="geometry">
      <rect>
       <x>360</x>
-      <y>75</y>
+      <y>35</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -70,7 +70,7 @@
     <property name="geometry">
      <rect>
       <x>23</x>
-      <y>220</y>
+      <y>250</y>
       <width>131</width>
       <height>20</height>
      </rect>
@@ -86,7 +86,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>310</y>
+      <y>340</y>
       <width>255</width>
       <height>23</height>
      </rect>
@@ -99,26 +99,52 @@
     <property name="geometry">
      <rect>
       <x>360</x>
-      <y>140</y>
+      <y>100</y>
       <width>220</width>
       <height>40</height>
      </rect>
     </property>
     <property name="text">
-     <string>Create Recursive Scripts Recursively</string>
+     <string>Create all  Recursive Scripts</string>
     </property>
    </widget>
    <widget class="QPushButton" name="createMDFileButton">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>90</y>
+      <y>80</y>
       <width>220</width>
       <height>40</height>
      </rect>
     </property>
     <property name="text">
      <string>Create MD file</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="createAllMDFilesButton">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>130</y>
+      <width>220</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Create all  MD files</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="createTestsOutlineButton">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>180</y>
+      <width>220</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Create Tests Outline</string>
     </property>
    </widget>
   </widget>

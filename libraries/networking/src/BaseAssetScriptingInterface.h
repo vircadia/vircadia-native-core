@@ -31,12 +31,54 @@ public:
     BaseAssetScriptingInterface(QObject* parent = nullptr);
 
 public slots:
+
+    /**jsdoc
+     * @function Assets.isValidPath
+     * @param {string} input
+     * @returns {boolean} 
+     */
     bool isValidPath(QString input) { return AssetUtils::isValidPath(input); }
+
+    /**jsdoc
+     * @function Assets.isValidFilePath
+     * @param {string} input
+     * @returns {boolean} 
+     */
     bool isValidFilePath(QString input) { return AssetUtils::isValidFilePath(input); }
+
+    /**jsdoc
+     * @function Assets.getATPUrl
+     * @param {string} input
+     * @returns {string} 
+     */
     QUrl getATPUrl(QString input) { return AssetUtils::getATPUrl(input); }
+
+    /**jsdoc
+     * @function Assets.extractAssetHash
+     * @param {string} input
+     * @returns {string} 
+     */
     QString extractAssetHash(QString input) { return AssetUtils::extractAssetHash(input); }
+
+    /**jsdoc
+     * @function Assets.isValidHash
+     * @param {string} input
+     * @returns {boolean} 
+     */
     bool isValidHash(QString input) { return AssetUtils::isValidHash(input); }
+
+    /**jsdoc
+     * @function Assets.hashData
+     * @param {} data
+     * @returns {object} 
+     */
     QByteArray hashData(const QByteArray& data) { return AssetUtils::hashData(data); }
+
+    /**jsdoc
+     * @function Assets.hashDataHex
+     * @param {} data
+     * @returns {string} 
+     */
     QString hashDataHex(const QByteArray& data) { return hashData(data).toHex(); }
 
 protected:

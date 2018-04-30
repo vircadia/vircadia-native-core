@@ -41,7 +41,7 @@ void PhysicalEntitySimulation::init(
 
 // begin EntitySimulation overrides
 void PhysicalEntitySimulation::updateEntitiesInternal(uint64_t now) {
-    // Do nothing here because the "internal" update the PhysicsEngine::stepSimualtion() which is done elsewhere.
+    // Do nothing here because the "internal" update the PhysicsEngine::stepSimulation() which is done elsewhere.
 }
 
 void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
@@ -158,7 +158,6 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(&(*stateItr));
         assert(motionState);
         EntityItemPointer entity = motionState->getEntity();
-        entity->setPhysicsInfo(nullptr);
         // TODO: someday when we invert the entities/physics lib dependencies we can let EntityItem delete its own PhysicsInfo
         // until then we must do it here
         delete motionState;

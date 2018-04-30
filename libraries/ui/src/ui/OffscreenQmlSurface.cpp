@@ -48,7 +48,7 @@
 #include <gl/Context.h>
 #include <shared/ReadWriteLockable.h>
 
-#include "ImageProvider.h"
+#include "SecurityImageProvider.h"
 #include "types/FileTypeProfile.h"
 #include "types/HFWebEngineProfile.h"
 #include "types/SoundEffect.h"
@@ -102,7 +102,7 @@ class AudioHandler : public QObject, QRunnable {
 public:
     AudioHandler(OffscreenQmlSurface* surface, const QString& deviceName, QObject* parent = nullptr);
 
-    virtual ~AudioHandler() { qDebug() << "Audio Handler Destroyed"; }
+    virtual ~AudioHandler() { }
 
     void run() override;
 
@@ -233,8 +233,8 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
         qmlRegisterType<SoundEffect>("Hifi", 1, 0, "SoundEffect");
     });
 
-    // register the pixmap image provider (used only for security image, for now)
-    engine->addImageProvider(ImageProvider::PROVIDER_NAME, new ImageProvider());
+    // Register the pixmap Security Image Provider
+    engine->addImageProvider(SecurityImageProvider::PROVIDER_NAME, new SecurityImageProvider());
 
     engine->setNetworkAccessManagerFactory(new QmlNetworkAccessManagerFactory);
     auto importList = engine->importPathList();
@@ -256,6 +256,15 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
 #if !defined(Q_OS_ANDROID)
     rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
     rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
+    {
+        PROFILE_RANGE(startup, "FileTypeProfile");
+        rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
+    }
+    {
+        PROFILE_RANGE(startup, "HFWebEngineProfile");
+        rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
+        
+    }
 #endif
     rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
     rootContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
@@ -335,6 +344,7 @@ void OffscreenQmlSurface::onRootCreated() {
         tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", this);
         QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
         getSurfaceContext()->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
+        getSurfaceContext()->engine()->addImageProvider(SecurityImageProvider::PROVIDER_NAME, new SecurityImageProvider());
     }
     QMetaObject::invokeMethod(this, "forceQmlAudioOutputDeviceUpdate", Qt::QueuedConnection);
 }

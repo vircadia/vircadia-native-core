@@ -365,6 +365,11 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         return true;
     }
 
+    if (usecTimestampNow() > _entity->getSimulationOwnershipExpiry()) {
+        // send update every so often else server will revoke our ownership
+        return true;
+    }
+
     _lastStep = simulationStep;
     if (glm::length2(_serverVelocity) > 0.0f) {
         // the entity-server doesn't know where avatars are, so it doesn't do simple extrapolation for children of
@@ -525,8 +530,6 @@ void EntityMotionState::sendBid(OctreeEditPacketSender* packetSender, uint32_t s
     properties.setSimulationOwner(Physics::getSessionUUID(), bidPriority);
     // copy _bidPriority into pendingPriority...
     _entity->setPendingOwnershipPriority(_bidPriority, now);
-    // don't forget to remember that we have made a bid
-    _entity->rememberHasSimulationOwnershipBid();
 
     EntityTreeElementPointer element = _entity->getElement();
     EntityTreePointer tree = element ? element->getTree() : nullptr;
@@ -585,6 +588,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     // set the LastEdited of the properties but NOT the entity itself
     quint64 now = usecTimestampNow();
     properties.setLastEdited(now);
+    _entity->setSimulationOwnershipExpiry(now + MAX_OUTGOING_SIMULATION_UPDATE_PERIOD);
 
     if (_numInactiveUpdates > 0) {
         // the entity is stopped and inactive so we tell the server we're clearing simulatorID

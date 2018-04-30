@@ -91,3 +91,6 @@ interface/compiledResources
 
 # GPUCache
 interface/resources/GPUCache/*
+
+# package lock file for JSDoc tool
+tools/jsdoc/package-lock.json

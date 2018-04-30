@@ -112,6 +112,11 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
 
     resetClientEditStats();
     clearDeletedEntities();
+
+    {
+        QWriteLocker locker(&_needsParentFixupLock);
+        _needsParentFixup.clear();
+    }
 }
 
 void EntityTree::readBitstreamToTree(const unsigned char* bitstream,
@@ -370,12 +375,18 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                             simulationBlocked = false;
                         }
                     }
+                    if (!simulationBlocked) {
+                        entity->setSimulationOwnershipExpiry(usecTimestampNow() + MAX_INCOMING_SIMULATION_UPDATE_PERIOD);
+                    }
                 } else {
                     // the entire update is suspect --> ignore it
                     return false;
                 }
             } else if (simulationBlocked) {
                 simulationBlocked = senderID != entity->getSimulatorID();
+                if (!simulationBlocked) {
+                    entity->setSimulationOwnershipExpiry(usecTimestampNow() + MAX_INCOMING_SIMULATION_UPDATE_PERIOD);
+                }
             }
             if (simulationBlocked) {
                 // squash ownership and physics-related changes.
@@ -1149,7 +1160,9 @@ void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) 
     });
     connect(_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
         qCDebug(entities) << "Ownership challenge timed out, deleting entity" << entityItemID;
-        deleteEntity(entityItemID, true);
+        withWriteLock([&] {
+            deleteEntity(entityItemID, true);
+        });
         if (_challengeOwnershipTimeoutTimer) {
             _challengeOwnershipTimeoutTimer->stop();
             _challengeOwnershipTimeoutTimer->deleteLater();
@@ -1157,16 +1170,6 @@ void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) 
     });
     _challengeOwnershipTimeoutTimer->setSingleShot(true);
     _challengeOwnershipTimeoutTimer->start(5000);
-}
-
-void EntityTree::startPendingTransferStatusTimer(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode) {
-    qCDebug(entities) << "'transfer_status' is 'pending', checking again in 90 seconds..." << entityItemID;
-    QTimer* transferStatusRetryTimer = new QTimer(this);
-    connect(transferStatusRetryTimer, &QTimer::timeout, this, [=]() {
-        validatePop(certID, entityItemID, senderNode, true);
-    });
-    transferStatusRetryTimer->setSingleShot(true);
-    transferStatusRetryTimer->start(90000);
 }
 
 QByteArray EntityTree::computeNonce(const QString& certID, const QString ownerKey) {
@@ -1257,7 +1260,9 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
 
     if (text == "") {
         qCDebug(entities) << "CRITICAL ERROR: Couldn't compute nonce. Deleting entity...";
-        deleteEntity(entityItemID, true);
+        withWriteLock([&] {
+            deleteEntity(entityItemID, true);
+        });
     } else {
         qCDebug(entities) << "Challenging ownership of Cert ID" << certID;
         // 2. Send the nonce to the rezzing avatar's node
@@ -1306,7 +1311,7 @@ void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& certID, c
     nodeList->sendPacket(std::move(challengeOwnershipPacket), *(nodeList->nodeWithUUID(QUuid::fromRfc4122(nodeToChallenge))));
 }
 
-void EntityTree::validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation) {
+void EntityTree::validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode) {
     // Start owner verification.
     auto nodeList = DependencyManager::get<NodeList>();
     //     First, asynchronously hit "proof_of_purchase_status?transaction_type=transfer" endpoint.
@@ -1320,8 +1325,7 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
     request["certificate_id"] = certID;
     networkRequest.setUrl(requestURL);
 
-    QNetworkReply* networkReply = NULL;
-    networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
+    QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
 
     connect(networkReply, &QNetworkReply::finished, [=]() {
         QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
@@ -1330,37 +1334,28 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
         if (networkReply->error() == QNetworkReply::NoError) {
             if (!jsonObject["invalid_reason"].toString().isEmpty()) {
                 qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
-                deleteEntity(entityItemID, true);
+                withWriteLock([&] {
+                    deleteEntity(entityItemID, true);
+                });
             } else if (jsonObject["transfer_status"].toArray().first().toString() == "failed") {
                 qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
-                deleteEntity(entityItemID, true);
-            } else if (jsonObject["transfer_status"].toArray().first().toString() == "pending") {
-                if (isRetryingValidation) {
-                    qCDebug(entities) << "'transfer_status' is 'pending' after retry, deleting entity" << entityItemID;
+                withWriteLock([&] {
                     deleteEntity(entityItemID, true);
-                } else {
-                    if (thread() != QThread::currentThread()) {
-                        QMetaObject::invokeMethod(this, "startPendingTransferStatusTimer",
-                            Q_ARG(const QString&, certID),
-                            Q_ARG(const EntityItemID&, entityItemID),
-                            Q_ARG(const SharedNodePointer&, senderNode));
-                        return;
-                    } else {
-                        startPendingTransferStatusTimer(certID, entityItemID, senderNode);
-                    }
-                }
+                });
             } else {
                 // Second, challenge ownership of the PoP cert
+                // (ignore pending status; a failure will be cleaned up during DDV)
                 sendChallengeOwnershipPacket(certID,
                     jsonObject["transfer_recipient_key"].toString(),
                     entityItemID,
                     senderNode);
-
             }
         } else {
             qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << entityItemID
                 << "More info:" << jsonObject;
-            deleteEntity(entityItemID, true);
+            withWriteLock([&] {
+                deleteEntity(entityItemID, true);
+            });
         }
 
         networkReply->deleteLater();
@@ -1597,7 +1592,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                 // Delete the entity we just added if it doesn't pass static certificate verification
                                 deleteEntity(entityItemID, true);
                             } else {
-                                validatePop(properties.getCertificateID(), entityItemID, senderNode, false);
+                                validatePop(properties.getCertificateID(), entityItemID, senderNode);
                             }
                         }
 
@@ -1628,11 +1623,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                     }
                 } else {
-                    static QString repeatedMessage =
-                        LogHandler::getInstance().addRepeatedMessageRegex("^Edit failed.*");
-                    qCDebug(entities) << "Edit failed. [" << message.getType() <<"] " <<
+                    HIFI_FCDEBUG(entities(), "Edit failed. [" << message.getType() <<"] " <<
                             "entity id:" << entityItemID << 
-                            "existingEntity pointer:" << existingEntity.get();
+                            "existingEntity pointer:" << existingEntity.get());
                 }
             }
 
@@ -1794,9 +1787,9 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
 
 void EntityTree::update(bool simulate) {
     PROFILE_RANGE(simulation_physics, "UpdateTree");
-    fixupNeedsParentFixups();
-    if (simulate && _simulation) {
-        withWriteLock([&] {
+    withWriteLock([&] {
+        fixupNeedsParentFixups();
+        if (simulate && _simulation) {
             _simulation->updateEntities();
             {
                 PROFILE_RANGE(simulation_physics, "Deletes");
@@ -1814,8 +1807,8 @@ void EntityTree::update(bool simulate) {
                     deleteEntities(idsToDelete, true);
                 }
             }
-        });
-    }
+        }
+    });
 }
 
 quint64 EntityTree::getAdjustedConsiderSince(quint64 sinceTime) {
@@ -2265,7 +2258,10 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
         if (args->otherTree) {
             args->otherTree->withWriteLock([&] {
                 EntityItemPointer entity = args->otherTree->addEntity(newID, properties);
-                entity->deserializeActions();
+                if (entity) {
+                    entity->deserializeActions();
+                }
+                // else: there was an error adding this entity
             });
         }
         return newID;
@@ -2284,7 +2280,9 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer
     QScriptEngine scriptEngine;
     RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues,
                                             skipThoseWithBadParents, _myAvatar);
-    recurseTreeWithOperator(&theOperator);
+    withReadLock([&] {
+        recurseTreeWithOperator(&theOperator);
+    });
     return true;
 }
 
@@ -2299,6 +2297,16 @@ bool EntityTree::readFromMap(QVariantMap& map) {
 
     if (map.contains("DataVersion")) {
         _persistDataVersion = map["DataVersion"].toInt();
+    }
+
+    _namedPaths.clear();
+    if (map.contains("Paths")) {
+        QVariantMap namedPathsMap = map["Paths"].toMap();
+        for(QVariantMap::const_iterator iter = namedPathsMap.begin(); iter != namedPathsMap.end(); ++iter) {
+            QString namedPathName = iter.key();
+            QString namedPathViewPoint = iter.value().toString();
+            _namedPaths[namedPathName] = namedPathViewPoint;
+        }
     }
 
     // map will have a top-level list keyed as "Entities".  This will be extracted
@@ -2373,6 +2381,30 @@ bool EntityTree::readFromMap(QVariantMap& map) {
                 properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
             } else {
                 properties.setSkyboxMode(COMPONENT_MODE_INHERIT);
+            }
+        }
+
+        // Convert old materials so that they use materialData instead of userData
+        if (contentVersion < (int)EntityVersion::MaterialData && properties.getType() == EntityTypes::EntityType::Material) {
+            if (properties.getMaterialURL().startsWith("userData")) {
+                QString materialURL = properties.getMaterialURL();
+                properties.setMaterialURL(materialURL.replace("userData", "materialData"));
+
+                QJsonObject userData = QJsonDocument::fromJson(properties.getUserData().toUtf8()).object();
+                QJsonObject materialData;
+                QJsonValue materialVersion = userData["materialVersion"];
+                if (!materialVersion.isNull()) {
+                    materialData.insert("materialVersion", materialVersion);
+                    userData.remove("materialVersion");
+                }
+                QJsonValue materials = userData["materials"];
+                if (!materials.isNull()) {
+                    materialData.insert("materials", materials);
+                    userData.remove("materials");
+                }
+
+                properties.setMaterialData(QJsonDocument(materialData).toJson());
+                properties.setUserData(QJsonDocument(userData).toJson());
             }
         }
 

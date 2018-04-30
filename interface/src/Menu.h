@@ -105,7 +105,8 @@ namespace MenuOption {
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
     const QString ExpandPaintGLTiming = "Expand /paintGL";
-    const QString ExpandPhysicsSimulationTiming = "Expand /physics";
+    const QString ExpandSimulationTiming = "Expand /simulation";
+    const QString ExpandPhysicsTiming = "Expand /physics";
     const QString ExpandUpdateTiming = "Expand /update";
     const QString FirstPerson = "First Person";
     const QString FirstPersonHMD = "Enter First Person Mode in HMD";
@@ -141,6 +142,7 @@ namespace MenuOption {
     const QString Pair = "Pair";
     const QString PhysicsShowHulls = "Draw Collision Shapes";
     const QString PhysicsShowOwned = "Highlight Simulation Ownership";
+    const QString VerboseLogging = "Verbose Logging";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "General...";
     const QString Quit =  "Quit";
@@ -155,6 +157,10 @@ namespace MenuOption {
     const QString RenderMaxTexture512MB = "512 MB";
     const QString RenderMaxTexture1024MB = "1024 MB";
     const QString RenderMaxTexture2048MB = "2048 MB";
+    const QString RenderMaxTexture3072MB = "3072 MB";
+    const QString RenderMaxTexture4096MB = "4096 MB";
+    const QString RenderMaxTexture6144MB = "6144 MB";
+    const QString RenderMaxTexture8192MB = "8192 MB";
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";

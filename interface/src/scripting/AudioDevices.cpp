@@ -108,11 +108,9 @@ AudioDeviceList::~AudioDeviceList() {
     // store the selected device
     foreach(std::shared_ptr<AudioDevice> adevice, _devices) {
         if (adevice->selectedDesktop) {
-            qDebug() << "Saving Desktop for" << _mode << "name" << adevice->info.deviceName();
             settingDesktop.set(adevice->info.deviceName());
         }
         if (adevice->selectedHMD) {
-            qDebug() << "Saving HMD for" << _mode << "name" << adevice->info.deviceName();
             settingHMD.set(adevice->info.deviceName());
         }
     }
@@ -188,7 +186,7 @@ void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device, bool isHMD
 
     for (auto i = 0; i < _devices.size(); ++i) {
         std::shared_ptr<AudioDevice> device = _devices[i];
-        bool &isSelected = isHMD ? device->selectedHMD : device->selectedDesktop;
+        bool& isSelected = isHMD ? device->selectedHMD : device->selectedDesktop;
         if (isSelected && device->info != selectedDevice) {
             isSelected = false;
         } else if (device->info == selectedDevice) {
@@ -259,7 +257,7 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
 
     foreach(const QAudioDeviceInfo& deviceInfo, devices) {
         for (bool isHMD : {false, true}) {
-            auto &backupSelectedDeviceName = isHMD ? _backupSelectedHMDDeviceName : _backupSelectedDesktopDeviceName;
+            auto& backupSelectedDeviceName = isHMD ? _backupSelectedHMDDeviceName : _backupSelectedDesktopDeviceName;
             if (deviceInfo.deviceName() == backupSelectedDeviceName) {
                 QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
                 selectedDevice = deviceInfo;
@@ -278,7 +276,7 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
 
         for (bool isHMD : {false, true}) {
             QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
-            bool &isSelected = isHMD ? device.selectedHMD : device.selectedDesktop;
+            bool& isSelected = isHMD ? device.selectedHMD : device.selectedDesktop;
 
             if (!selectedDevice.isNull()) {
                 isSelected = (device.info == selectedDevice);
@@ -311,7 +309,6 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
             }
         }
 
-        qDebug() << "adding audio device:" << device.display << device.selectedDesktop << device.selectedHMD << _mode;
         newDevices.push_back(newDevice(device));
     }
 

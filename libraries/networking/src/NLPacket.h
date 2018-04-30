@@ -22,31 +22,29 @@ class NLPacket : public udt::Packet {
     Q_OBJECT
 public:
     //
-    //    |      BYTE     |      BYTE     |      BYTE     |      BYTE     |
+    //    NLPacket format:
     //
+    //    |      BYTE     |      BYTE     |      BYTE     |      BYTE     |
     //     0                   1                   2                   3
     //     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //    |  Packet Type  |    Version    |                               |
-    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
+    //    |  Packet Type  |    Version    | Local Node ID - sourced only  |
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     //    |                                                               |
-    //    |                       Node UUID - 16 bytes                    |
-    //    |                   (ONLY FOR SOURCED PACKETS)                  |
-    //    |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //    |                               |                               |
-    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
+    //    |                 MD5 Verification - 16 bytes                   |
+    //    |                 (ONLY FOR VERIFIED PACKETS)                   |
     //    |                                                               |
-    //    |                   MD5 Verification - 16 bytes                 |
-    //    |                   (ONLY FOR VERIFIED PACKETS)                 |
-    //    |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //    |                               |                               |
-    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
-    //    NLPacket Header Format
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //
 
+    using LocalID = NetworkLocalID;
+    static const LocalID NULL_LOCAL_ID = 0;
+    
+    static const int NUM_BYTES_LOCALID = sizeof(LocalID);
     // this is used by the Octree classes - must be known at compile time
     static const int MAX_PACKET_HEADER_SIZE =
         sizeof(udt::Packet::SequenceNumberAndBitField) + sizeof(udt::Packet::MessageNumberAndBitField) +
-        sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
+        sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_LOCALID + NUM_BYTES_MD5_HASH;
     
     static std::unique_ptr<NLPacket> create(PacketType type, qint64 size = -1,
                     bool isReliable = false, bool isPartOfMessage = false, PacketVersion version = 0);
@@ -69,7 +67,7 @@ public:
     static PacketType typeInHeader(const udt::Packet& packet);
     static PacketVersion versionInHeader(const udt::Packet& packet);
     
-    static QUuid sourceIDInHeader(const udt::Packet& packet);
+    static LocalID sourceIDInHeader(const udt::Packet& packet);
     static QByteArray verificationHashInHeader(const udt::Packet& packet);
     static QByteArray hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret);
     
@@ -79,9 +77,9 @@ public:
     PacketVersion getVersion() const { return _version; }
     void setVersion(PacketVersion version);
 
-    const QUuid& getSourceID() const { return _sourceID; }
-    
-    void writeSourceID(const QUuid& sourceID) const;
+    LocalID getSourceID() const { return _sourceID; }
+
+    void writeSourceID(LocalID sourceID) const;
     void writeVerificationHashGivenSecret(const QUuid& connectionSecret) const;
 
 protected:
@@ -106,7 +104,7 @@ protected:
     
     PacketType _type;
     PacketVersion _version;
-    mutable QUuid _sourceID;
+    mutable LocalID _sourceID;
 };
 
 #endif // hifi_NLPacket_h

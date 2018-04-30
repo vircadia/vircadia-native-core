@@ -27,6 +27,8 @@
 #include "impl/SharedObject.h"
 #include "impl/TextureCache.h"
 
+#include "Profile.h"
+
 using namespace hifi::qml;
 using namespace hifi::qml::impl;
 
@@ -64,14 +66,10 @@ OffscreenSurface::OffscreenSurface()
 }
 
 OffscreenSurface::~OffscreenSurface() {
-    disconnect(qApp);
-    _sharedObject->destroy();
+    delete _sharedObject;
 }
 
 bool OffscreenSurface::fetchTexture(TextureAndFence& textureAndFence) {
-    if (!_sharedObject) {
-        return false;
-    }
     hifi::qml::impl::TextureAndFence typedTextureAndFence;
     bool result = _sharedObject->fetchTexture(typedTextureAndFence);
     textureAndFence = typedTextureAndFence;
@@ -284,6 +282,7 @@ void OffscreenSurface::loadInternal(const QUrl& qmlSource,
                                     bool createNewContext,
                                     QQuickItem* parent,
                                     const QmlContextObjectCallback& callback) {
+    PROFILE_RANGE_EX(app, "OffscreenSurface::loadInternal", 0xffff00ff, 0, { std::make_pair("url", qmlSource.toDisplayString()) });
     if (QThread::currentThread() != thread()) {
         qFatal("Called load on a non-surface thread");
     }
@@ -304,7 +303,11 @@ void OffscreenSurface::loadInternal(const QUrl& qmlSource,
     }
 
     auto targetContext = contextForUrl(finalQmlSource, parent, createNewContext);
-    auto qmlComponent = new QQmlComponent(getSurfaceContext()->engine(), finalQmlSource, QQmlComponent::PreferSynchronous);
+    QQmlComponent* qmlComponent;
+    {
+        PROFILE_RANGE(app, "new QQmlComponent");
+        qmlComponent = new QQmlComponent(getSurfaceContext()->engine(), finalQmlSource, QQmlComponent::PreferSynchronous);
+     }
     if (qmlComponent->isLoading()) {
         connect(qmlComponent, &QQmlComponent::statusChanged, this,
                 [=](QQmlComponent::Status) { finishQmlLoad(qmlComponent, targetContext, parent, callback); });
@@ -318,6 +321,7 @@ void OffscreenSurface::finishQmlLoad(QQmlComponent* qmlComponent,
                                      QQmlContext* qmlContext,
                                      QQuickItem* parent,
                                      const QmlContextObjectCallback& callback) {
+    PROFILE_RANGE(app, "finishQmlLoad");
     disconnect(qmlComponent, &QQmlComponent::statusChanged, this, 0);
     if (qmlComponent->isError()) {
         for (const auto& error : qmlComponent->errors()) {
