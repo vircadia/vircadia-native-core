@@ -3166,9 +3166,6 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // If this is a first run we short-circuit the address passed in
     if (firstRun.get()) {
-#if !defined(Q_OS_ANDROID)
-        showHelp();
-#endif
         DependencyManager::get<AddressManager>()->goToEntry();
         sentTo = SENT_TO_ENTRY;
         firstRun.set(false);
