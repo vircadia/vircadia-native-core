@@ -291,7 +291,7 @@ public:
     void replaceDomainContent(const QString& url);
 
     void loadAvatarScripts(const QVector<QString>& urls);
-    void unloadAvatarScripts(const QVector<QString>& urls);
+    void unloadAvatarScripts();
 
 signals:
     void svoImportRequested(const QString& url);

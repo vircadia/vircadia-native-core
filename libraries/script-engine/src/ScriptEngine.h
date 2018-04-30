@@ -99,6 +99,14 @@ public:
         AGENT_SCRIPT
     };
 
+    enum Type {
+        CLIENT,
+        ENTITY_CLIENT,
+        ENTITY_SERVER,
+        AGENT,
+        AVATAR
+    };
+
     static int processLevelMaxRetries;
     ScriptEngine(Context context, const QString& scriptContents = NO_SCRIPT, const QString& fileNameString = QString("about:ScriptEngine"));
     ~ScriptEngine();
@@ -209,6 +217,9 @@ public:
 
     Q_INVOKABLE QUuid generateUUID() { return QUuid::createUuid(); }
 
+    void setType(Type type) { _type = type; };
+    Type getType() { return _type; };
+
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
 
@@ -293,6 +304,7 @@ protected:
     void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
 
     Context _context;
+    Type _type;
     QString _scriptContents;
     QString _parentURL;
     std::atomic<bool> _isFinished { false };

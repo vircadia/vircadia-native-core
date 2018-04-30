@@ -123,6 +123,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
     connect(_skeletonModel.get(), &Model::setURLFinished, this, [this](bool success) {
         if (success) {
+            qApp->unloadAvatarScripts();
             auto geometry = getSkeletonModel()->getFBXGeometry();
             qApp->loadAvatarScripts(geometry.scripts);
         }
@@ -1469,7 +1470,6 @@ void MyAvatar::clearJointsData() {
 }
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
-    qApp->unloadAvatarScripts(_scriptsToUnload);
     _skeletonModelChangeCount++;
     int skeletonModelChangeCount = _skeletonModelChangeCount;
     Avatar::setSkeletonModelURL(skeletonModelURL);
@@ -2836,10 +2836,6 @@ float MyAvatar::getUserEyeHeight() const {
 
 float MyAvatar::getWalkSpeed() const {
     return _walkSpeed.get() * _walkSpeedScalar;
-}
-
-void MyAvatar::addScriptToUnload(const QString& url) {
-    _scriptsToUnload.push_back(url);
 }
 
 void MyAvatar::setSprintMode(bool sprint) {

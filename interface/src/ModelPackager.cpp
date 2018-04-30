@@ -177,6 +177,7 @@ bool ModelPackager::zipModel() {
         _scriptDir = _modelFile.path() + "/" + scriptField;
         QDir wdir = QDir(_scriptDir);
         _mapping.remove(SCRIPT_FIELD);
+        wdir.setSorting(QDir::Name | QDir::Reversed);
         auto list = wdir.entryList(QDir::NoDotAndDotDot | QDir::AllEntries);
         for (auto script : list) {
             auto sc = tempDir.relativeFilePath(scriptDir.path()) + "/" + QUrl(script).fileName();

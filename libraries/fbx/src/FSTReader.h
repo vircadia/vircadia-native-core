@@ -50,6 +50,8 @@ public:
     /// Predicts the type of model by examining the mapping 
     static ModelType predictModelType(const QVariantHash& mapping);
 
+    static QVector<QString> getScripts(const QUrl& fstUrl, const QVariantHash& mapping = QVariantHash());
+
     static QString getNameFromType(ModelType modelType);
     static FSTReader::ModelType getTypeFromName(const QString& name);
     static QVariantHash downloadMapping(const QString& url);

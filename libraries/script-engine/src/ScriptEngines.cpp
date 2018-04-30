@@ -427,11 +427,13 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
         if (_scriptEnginesHash.contains(scriptURL)) {
             ScriptEnginePointer scriptEngine = _scriptEnginesHash[scriptURL];
             if (restart) {
+                bool isUserLoaded = scriptEngine->isUserLoaded();
+                ScriptEngine::Type type = scriptEngine->getType();
                 auto scriptCache = DependencyManager::get<ScriptCache>();
                 scriptCache->deleteScript(scriptURL);
                 connect(scriptEngine.data(), &ScriptEngine::finished,
-                        this, [this](QString scriptName, ScriptEnginePointer engine) {
-                    reloadScript(scriptName);
+                        this, [this, isUserLoaded, type](QString scriptName, ScriptEnginePointer engine) {
+                    reloadScript(scriptName, isUserLoaded)->setType(type);
                 });
             }
             scriptEngine->stop();

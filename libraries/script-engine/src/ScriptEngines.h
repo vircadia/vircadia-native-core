@@ -110,7 +110,7 @@ protected slots:
 protected:
     friend class ScriptEngine;
 
-    void reloadScript(const QString& scriptName) { loadScript(scriptName, true, false, false, true); }
+    ScriptEnginePointer reloadScript(const QString& scriptName, bool isUserLoaded = true) { return loadScript(scriptName, isUserLoaded, false, false, true); }
     void removeScriptEngine(ScriptEnginePointer);
     void onScriptEngineLoaded(const QString& scriptFilename);
     void onScriptEngineError(const QString& scriptFilename);

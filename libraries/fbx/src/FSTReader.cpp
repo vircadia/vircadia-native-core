@@ -187,6 +187,28 @@ FSTReader::ModelType FSTReader::predictModelType(const QVariantHash& mapping) {
     return ENTITY_MODEL;
 }
 
+QVector<QString> FSTReader::getScripts(const QUrl& url, const QVariantHash& mapping) {
+
+    auto fstMapping = mapping.isEmpty() ? downloadMapping(url.toString()) : mapping;
+    QVector<QString> scriptPaths;
+    if (!fstMapping.value(SCRIPT_FIELD).isNull()) {
+        auto scripts = fstMapping.values(SCRIPT_FIELD).toVector();
+        if (scripts.size() > 0) {
+            for (auto &script : scripts) {
+                QString scriptPath = script.toString();
+                if (QUrl(scriptPath).isRelative()) {
+                    if (scriptPath.at(0) == '/') {
+                        scriptPath = scriptPath.right(scriptPath.length() - 1);
+                    }
+                    scriptPath = url.resolved(QUrl(scriptPath)).toString();
+                }
+                scriptPaths.push_back(scriptPath);
+            }
+        }
+    }
+    return scriptPaths;
+}
+
 QVariantHash FSTReader::downloadMapping(const QString& url) {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(url);

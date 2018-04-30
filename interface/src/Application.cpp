@@ -1231,6 +1231,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(scriptEngines, &ScriptEngines::scriptsReloading, scriptEngines, [this] {
         getEntities()->reloadEntityScripts();
+        loadAvatarScripts(getMyAvatar()->getSkeletonModel()->getFBXGeometry().scripts);
     }, Qt::QueuedConnection);
 
     connect(scriptEngines, &ScriptEngines::scriptLoadError,
@@ -2285,10 +2286,6 @@ void Application::onAboutToQuit() {
 
     // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
     DependencyManager::get<OffscreenUi>()->hide("RunningScripts");
-    if (auto avatar = getMyAvatar()) {
-        auto urls = avatar->getScriptsToUnload();
-        unloadAvatarScripts(urls);
-    }
     
     _aboutToQuit = true;
 
@@ -4737,18 +4734,24 @@ void Application::loadAvatarScripts(const QVector<QString>& urls) {
         for (auto url : urls) {
             int index = runningScripts.indexOf(url);
             if (index < 0) {
-                scriptEngines->loadScript(url);
-                getMyAvatar()->addScriptToUnload(url);
+                auto scriptEnginePointer = scriptEngines->loadScript(url, false);
+                if (scriptEnginePointer) {
+                    scriptEnginePointer->setType(ScriptEngine::Type::AVATAR);
+                }
             }
         }
     }
 }
 
-void Application::unloadAvatarScripts(const QVector<QString>& urls) {
-    if (urls.size() > 0) {
-        auto scriptEngines = DependencyManager::get<ScriptEngines>();
+void Application::unloadAvatarScripts() {
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    auto urls = scriptEngines->getRunningScripts();
+    if (urls.size() > 0) {        
         for (auto url : urls) {
-            scriptEngines->stopScript(url, false);
+            auto scriptEngine = scriptEngines->getScriptEngine(url);
+            if (scriptEngine->getType() == ScriptEngine::Type::AVATAR) {
+                scriptEngines->stopScript(url, false);
+            }
         }
     }
 }

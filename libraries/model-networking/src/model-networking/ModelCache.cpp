@@ -83,6 +83,14 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
             _textureBaseUrl = url.resolved(QUrl("."));
         }
 
+        auto scripts = FSTReader::getScripts(_url, mapping);
+        if (scripts.size() > 0) {
+            mapping.remove(SCRIPT_FIELD);
+            for (auto &scriptPath : scripts) {
+                mapping.insertMulti(SCRIPT_FIELD, scriptPath);
+            }
+        }
+
         auto animGraphVariant = mapping.value("animGraphUrl");
         if (animGraphVariant.isValid()) {
             QUrl fstUrl(animGraphVariant.toString());
@@ -210,19 +218,12 @@ void GeometryReader::run() {
                 throw QString("unsupported format");
             }
 
-            // Store fst scripts on geometry
+            // Add scripts to fbxgeometry
             if (!_mapping.value(SCRIPT_FIELD).isNull()) {
                 QVariantList scripts = _mapping.values(SCRIPT_FIELD);
                 if (scripts.size() > 0) {
                     for (auto &script : scripts) {
-                        QString scriptUrl = script.toString();
-                        if (QUrl(scriptUrl).isRelative()) {
-                            if (scriptUrl.at(0) == '/') {
-                                scriptUrl = scriptUrl.right(scriptUrl.length() - 1);                           
-                            }
-                            scriptUrl = _url.resolved(QUrl(scriptUrl)).toString();
-                        }                        
-                        fbxGeometry->scripts.push_back(scriptUrl);
+                        fbxGeometry->scripts.push_back(script.toString());
                     }
                 }
             }
