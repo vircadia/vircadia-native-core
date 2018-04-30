@@ -240,7 +240,6 @@
     //     3. Camera is on; "Monitor Shows" is "HMD Preview":  "url" is ""
     //     4. Camera is on; "Monitor Shows" is "Camera View":  "url" is "resource://spectatorCameraFrame"
     function setDisplay(showCameraView) {
-
         var url = (camera) ? (showCameraView ? "resource://spectatorCameraFrame" : "resource://hmdPreviewFrame") : "";
 
         // FIXME: temporary hack to avoid setting the display texture to hmdPreviewFrame
@@ -255,9 +254,6 @@
     var monitorShowsCameraView = !!Settings.getValue('spectatorCamera/monitorShowsCameraView', MONITOR_SHOWS_CAMERA_VIEW_DEFAULT);
     function setMonitorShowsCameraView(showCameraView) {
         setDisplay(showCameraView);
-        if (showCameraView === monitorShowsCameraView) {
-            return;
-        }
         monitorShowsCameraView = showCameraView;
         Settings.setValue('spectatorCamera/monitorShowsCameraView', showCameraView);
     }
@@ -588,9 +584,10 @@
         if (!switchViewControllerMapping || !takeSnapshotControllerMapping) {
             registerButtonMappings();
         }
-        setDisplay(monitorShowsCameraView);
         if (!isHMDMode) {
-            spectatorCameraOff();
+            setMonitorShowsCameraView(false);
+        } else {
+            setDisplay(monitorShowsCameraView);
         }
     }
 
