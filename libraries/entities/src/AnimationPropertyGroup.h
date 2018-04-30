@@ -77,6 +77,10 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
+    float getNumFrames() const;
+    float computeLoopedFrame(float frame) const;
+    bool isValidAndRunning() const;
+
     DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, URL, url, QString, "");
     DEFINE_PROPERTY(PROP_ANIMATION_FPS, FPS, fps, float, 30.0f);
     DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, CurrentFrame, currentFrame, float, 0.0f);

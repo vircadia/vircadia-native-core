@@ -102,7 +102,7 @@ class AudioHandler : public QObject, QRunnable {
 public:
     AudioHandler(OffscreenQmlSurface* surface, const QString& deviceName, QObject* parent = nullptr);
 
-    virtual ~AudioHandler() { qDebug() << "Audio Handler Destroyed"; }
+    virtual ~AudioHandler() { }
 
     void run() override;
 

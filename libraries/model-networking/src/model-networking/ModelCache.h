@@ -137,6 +137,62 @@ class ModelCache : public ResourceCache, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
+
+    // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
+
+    /**jsdoc
+     * API to manage model cache resources.
+     * @namespace ModelCache
+     *
+     * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
+     * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
+     * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
+     * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
+     */
+
+
+    // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
+
+    /**jsdoc
+     * Get the list of all resource URLs.
+     * @function ModelCache.getResourceList
+     * @return {string[]}
+     */
+
+    /**jsdoc
+     * @function ModelCache.dirty
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * @function ModelCache.updateTotalSize
+     * @param {number} deltaSize
+     */
+
+    /**jsdoc
+     * @function ModelCache.prefetch
+     * @param {string} url
+     * @param {object} extra
+     * @returns {object}
+     */
+
+    /**jsdoc
+     * Asynchronously loads a resource from the specified URL and returns it.
+     * @function ModelCache.getResource
+     * @param {string} url - URL of the resource to load.
+     * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
+     * @param {} [extra=null]
+     * @return {Resource}
+     */
+
+    /**jsdoc
+     * Prefetches a resource.
+     * @function ModelCache.prefetch
+     * @param {string} url - URL of the resource to prefetch.
+     * @return {Resource}
+     */
+
+
     GeometryResource::Pointer getGeometryResource(const QUrl& url,
                                                   const QVariantHash& mapping = QVariantHash(),
                                                   const QUrl& textureBaseUrl = QUrl());

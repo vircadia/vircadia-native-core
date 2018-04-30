@@ -145,6 +145,16 @@
 #include <avatars-renderer/ScriptAvatar.h>
 #include <RenderableEntityItem.h>
 
+#include <AnimationLogging.h>
+#include <AvatarLogging.h>
+#include <ScriptEngineLogging.h>
+#include <ModelFormatLogging.h>
+#include <controllers/Logging.h>
+#include <NetworkLogging.h>
+#include <shared/StorageLogging.h>
+#include <ScriptEngineLogging.h>
+#include <ui/Logging.h>
+
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
@@ -1307,6 +1317,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
 
+    updateVerboseLogging();
+
     init();
     qCDebug(interfaceapp, "init() complete.");
 
@@ -1323,48 +1335,47 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
-    // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
-    // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
-    static const QString TESTER = "HIFI_TESTER";
-    auto gpuIdent = GPUIdent::getInstance();
-    auto glContextData = getGLContextData();
-    QJsonObject properties = {
-        { "version", applicationVersion() },
-        { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) },
-        { "previousSessionCrashed", _previousSessionCrashed },
-        { "previousSessionRuntime", sessionRunTime.get() },
-        { "cpu_architecture", QSysInfo::currentCpuArchitecture() },
-        { "kernel_type", QSysInfo::kernelType() },
-        { "kernel_version", QSysInfo::kernelVersion() },
-        { "os_type", QSysInfo::productType() },
-        { "os_version", QSysInfo::productVersion() },
-        { "gpu_name", gpuIdent->getName() },
-        { "gpu_driver", gpuIdent->getDriver() },
-        { "gpu_memory", static_cast<qint64>(gpuIdent->getMemory()) },
-        { "gl_version_int", glVersionToInteger(glContextData.value("version").toString()) },
-        { "gl_version", glContextData["version"] },
-        { "gl_vender", glContextData["vendor"] },
-        { "gl_sl_version", glContextData["sl_version"] },
-        { "gl_renderer", glContextData["renderer"] },
-        { "ideal_thread_count", QThread::idealThreadCount() }
-    };
-    auto macVersion = QSysInfo::macVersion();
-    if (macVersion != QSysInfo::MV_None) {
-        properties["os_osx_version"] = QSysInfo::macVersion();
-    }
-    auto windowsVersion = QSysInfo::windowsVersion();
-    if (windowsVersion != QSysInfo::WV_None) {
-        properties["os_win_version"] = QSysInfo::windowsVersion();
+    constexpr auto INSTALLER_INI_NAME = "installer.ini";
+    auto iniPath = QDir(applicationDirPath()).filePath(INSTALLER_INI_NAME);
+    QFile installerFile { iniPath };
+    std::unordered_map<QString, QString> installerKeyValues;
+    if (installerFile.open(QIODevice::ReadOnly)) {
+        while (!installerFile.atEnd()) {
+            auto line = installerFile.readLine();
+            if (!line.isEmpty()) {
+                auto index = line.indexOf("=");
+                if (index >= 0) {
+                    installerKeyValues[line.mid(0, index).trimmed()] = line.mid(index + 1).trimmed();
+                }
+            }
+        }
     }
 
-    ProcessorInfo procInfo;
-    if (getProcessorInfo(procInfo)) {
-        properties["processor_core_count"] = procInfo.numProcessorCores;
-        properties["logical_processor_count"] = procInfo.numLogicalProcessors;
-        properties["processor_l1_cache_count"] = procInfo.numProcessorCachesL1;
-        properties["processor_l2_cache_count"] = procInfo.numProcessorCachesL2;
-        properties["processor_l3_cache_count"] = procInfo.numProcessorCachesL3;
+    // In practice we shouldn't run across installs that don't have a known installer type.
+    // Client or Client+Server installs should always have the installer.ini next to their
+    // respective interface.exe, and Steam installs will be detected as such. If a user were
+    // to delete the installer.ini, though, and as an example, we won't know the context of the 
+    // original install.
+    constexpr auto INSTALLER_KEY_TYPE = "type";
+    constexpr auto INSTALLER_KEY_CAMPAIGN = "campaign";
+    constexpr auto INSTALLER_TYPE_UNKNOWN = "unknown";
+    constexpr auto INSTALLER_TYPE_STEAM = "steam";
+
+    auto typeIt = installerKeyValues.find(INSTALLER_KEY_TYPE);
+    QString installerType = INSTALLER_TYPE_UNKNOWN;
+    if (typeIt == installerKeyValues.end()) {
+        if (property(hifi::properties::STEAM).toBool()) {
+            installerType = INSTALLER_TYPE_STEAM;
+        }
+    } else {
+        installerType = typeIt->second;
     }
+
+    auto campaignIt = installerKeyValues.find(INSTALLER_KEY_CAMPAIGN);
+    QString installerCampaign = campaignIt != installerKeyValues.end() ? campaignIt->second : "";
+
+    qDebug() << "Detected installer type:" << installerType;
+    qDebug() << "Detected installer campaign:" << installerCampaign;
 
     // add firstRun flag from settings to launch event
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
@@ -1387,6 +1398,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         QJsonObject properties = {
             { "version", applicationVersion() },
             { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) },
+            { "installer_campaign", installerCampaign },
+            { "installer_type", installerType },
             { "previousSessionCrashed", _previousSessionCrashed },
             { "previousSessionRuntime", sessionRunTime.get() },
             { "cpu_architecture", QSysInfo::currentCpuArchitecture() },
@@ -1706,7 +1719,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     const QString HIFI_NO_UPDATER_COMMAND_LINE_KEY = "--no-updater";
     bool noUpdater = arguments().indexOf(HIFI_NO_UPDATER_COMMAND_LINE_KEY) != -1;
     if (!noUpdater) {
+        constexpr auto INSTALLER_TYPE_CLIENT_ONLY = "client_only";
+
         auto applicationUpdater = DependencyManager::get<AutoUpdater>();
+
+        AutoUpdater::InstallerType type = installerType == INSTALLER_TYPE_CLIENT_ONLY
+            ? AutoUpdater::InstallerType::CLIENT_ONLY : AutoUpdater::InstallerType::FULL;
+
+        applicationUpdater->setInstallerType(type);
+        applicationUpdater->setInstallerCampaign(installerCampaign);
         connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
         applicationUpdater->checkForUpdate();
     }
@@ -2168,6 +2189,46 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #if defined(Q_OS_ANDROID)
     AndroidHelper::instance().notifyLoadComplete();
 #endif
+}
+
+void Application::updateVerboseLogging() {
+    bool enable = Menu::getInstance()->isOptionChecked(MenuOption::VerboseLogging);
+
+    const_cast<QLoggingCategory*>(&animation())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&animation())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&controllers())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&controllers())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&resourceLog())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&resourceLog())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&networking())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&networking())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&asset_client())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&asset_client())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&messages_client())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&messages_client())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&storagelogging())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&storagelogging())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&uiLogging())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&uiLogging())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&glLogging())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&glLogging())->setEnabled(QtInfoMsg, enable);
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -3041,7 +3102,6 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     PROFILE_RANGE(render, __FUNCTION__);
 
     bool sandboxIsRunning = SandboxUtils::readStatus(reply->readAll());
-    qDebug() << "HandleSandboxStatus" << sandboxIsRunning;
 
     enum HandControllerType {
         Vive,
@@ -4758,7 +4818,7 @@ void Application::updateLOD(float deltaTime) const {
     }
 }
 
-void Application::pushPostUpdateLambda(void* key, std::function<void()> func) {
+void Application::pushPostUpdateLambda(void* key, const std::function<void()>& func) {
     std::unique_lock<std::mutex> guard(_postUpdateLambdasLock);
     _postUpdateLambdas[key] = func;
 }
@@ -7368,12 +7428,21 @@ void Application::windowMinimizedChanged(bool minimized) {
     }
 }
 
-void Application::postLambdaEvent(std::function<void()> f) {
+void Application::postLambdaEvent(const std::function<void()>& f) {
     if (this->thread() == QThread::currentThread()) {
         f();
     } else {
         QCoreApplication::postEvent(this, new LambdaEvent(f));
     }
+}
+
+void Application::sendLambdaEvent(const std::function<void()>& f) {
+    if (this->thread() == QThread::currentThread()) {
+        f();
+    } else {
+        LambdaEvent event(f);
+        QCoreApplication::sendEvent(this, &event);
+    } 
 }
 
 void Application::initPlugins(const QStringList& arguments) {

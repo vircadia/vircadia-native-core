@@ -1,4 +1,4 @@
-//
+ //
 //  Bookmarks.h
 //  interface/src
 //
@@ -48,6 +48,9 @@ protected:
     bool _isMenuSorted;
 
 protected slots:
+    /**jsdoc
+     * @function AvatarBookmarks.deleteBookmark
+     */
     void deleteBookmark();
 
 private:
