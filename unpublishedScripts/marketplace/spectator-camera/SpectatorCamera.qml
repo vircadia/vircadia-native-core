@@ -316,7 +316,7 @@ Rectangle {
 
             HifiStylesUit.FiraSansRegular {
                 id: fieldOfViewLabel;
-                text: "Field of View (" + fieldOfViewSlider.value + "): ";
+                text: "Field of View (" + fieldOfViewSlider.value + "\u00B0): ";
                 size: 16;
                 color: hifi.colors.lightGrayText;
                 anchors.left: parent.left;
