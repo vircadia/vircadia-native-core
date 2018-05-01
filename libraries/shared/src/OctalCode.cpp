@@ -213,7 +213,7 @@ void setOctalCodeSectionValue(unsigned char* octalCode, int section, char sectio
     int byteForSection = (BITS_IN_OCTAL * section / BITS_IN_BYTE);
     unsigned char* byteAt = octalCode + 1 + byteForSection;
     char bitInByte = (BITS_IN_OCTAL * section) % BITS_IN_BYTE;
-    char shiftBy = BITS_IN_BYTE - bitInByte - BITS_IN_OCTAL;
+    int8_t shiftBy = BITS_IN_BYTE - bitInByte - BITS_IN_OCTAL;
     const unsigned char UNSHIFTED_MASK = 0x07;
     unsigned char shiftedMask;
     unsigned char shiftedValue;

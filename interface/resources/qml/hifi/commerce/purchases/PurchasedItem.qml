@@ -239,7 +239,6 @@ Item {
                     width: 62;
 
                     onLoaded: {
-                        item.enabled = (root.purchaseStatus === "confirmed");
                         item.buttonGlyphText = hifi.glyphs.gift;
                         item.buttonText = "Gift";
                         item.buttonClicked = function() {

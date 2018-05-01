@@ -16,7 +16,8 @@
 #include "Bookmarks.h"
 
 /**jsdoc 
- * This API helps manage adding and deleting Avatar bookmarks
+ * This API helps manage adding and deleting avatar bookmarks.
+ * @namespace AvatarBookmarks
  */
 
 class AvatarBookmarks: public Bookmarks, public  Dependency {
@@ -27,16 +28,12 @@ public:
     AvatarBookmarks();
     void setupMenus(Menu* menubar, MenuWrapper* menu) override;
 
-/**jsdoc 
- * Add the current Avatar to your Avatar Bookmarks
- * @function AvatarBookmarks.addBookMark
- */
-
-/**jsdoc
- * @function AvatarBookmarks.deleteBookMark
- */
 
 public slots:
+    /**jsdoc 
+     * Add the current Avatar to your avatar bookmarks.
+     * @function AvatarBookmarks.addBookMark
+     */
     void addBookmark();
 
 protected:
