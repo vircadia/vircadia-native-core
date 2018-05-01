@@ -181,22 +181,31 @@ void AvatarBookmarks::addBookmark() {
             return;
         }
 
-        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-
-        const QString& avatarUrl = myAvatar->getSkeletonModelURL().toString();
-        const QVariant& avatarScale = myAvatar->getAvatarScale();
-
-        // If Avatar attachments ever change, this is where to update them, when saving remember to also append to AVATAR_BOOKMARK_VERSION
-        QVariantMap bookmark;
-        bookmark.insert(ENTRY_VERSION, AVATAR_BOOKMARK_VERSION);
-        bookmark.insert(ENTRY_AVATAR_URL, avatarUrl);
-        bookmark.insert(ENTRY_AVATAR_SCALE, avatarScale);
-        bookmark.insert(ENTRY_AVATAR_ATTACHMENTS, myAvatar->getAttachmentsVariant());
-        bookmark.insert(ENTRY_AVATAR_ENTITIES, myAvatar->getAvatarEntitiesVariant());
-
-        Bookmarks::addBookmarkToFile(bookmarkName, bookmark);
+        addBookmark(bookmarkName);
     });
+}
 
+void AvatarBookmarks::addBookmark(QString bookmarkName)
+{
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+
+    const QString& avatarUrl = myAvatar->getSkeletonModelURL().toString();
+    const QVariant& avatarScale = myAvatar->getAvatarScale();
+
+    // If Avatar attachments ever change, this is where to update them, when saving remember to also append to AVATAR_BOOKMARK_VERSION
+    QVariantMap bookmark;
+    bookmark.insert(ENTRY_VERSION, AVATAR_BOOKMARK_VERSION);
+    bookmark.insert(ENTRY_AVATAR_URL, avatarUrl);
+    bookmark.insert(ENTRY_AVATAR_SCALE, avatarScale);
+    bookmark.insert(ENTRY_AVATAR_ATTACHMENTS, myAvatar->getAttachmentsVariant());
+    bookmark.insert(ENTRY_AVATAR_ENTITIES, myAvatar->getAvatarEntitiesVariant());
+
+    Bookmarks::addBookmarkToFile(bookmarkName, bookmark);
+}
+
+void AvatarBookmarks::removeBookmark(QString bookmarkName)
+{
+    Bookmarks::deleteBookmark(bookmarkName);
 }
 
 void AvatarBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) {

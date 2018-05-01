@@ -31,6 +31,8 @@ public:
     QString addressForBookmark(const QString& name) const;
 
 protected:
+    void deleteBookmark(const QString& bookmarkName);
+
     void addBookmarkToFile(const QString& bookmarkName, const QVariant& bookmark);
     virtual void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) = 0;
     void enableMenuItems(bool enabled);
