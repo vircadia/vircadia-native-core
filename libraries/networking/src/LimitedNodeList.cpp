@@ -314,9 +314,9 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
         QUuid sourceID = sourceNode ? sourceNode->getUUID() : QUuid();
 
         if (!sourceNode &&
-            sourceLocalID == getDomainLocalID() &&
             packet.getSenderSockAddr() == getDomainSockAddr() &&
-            PacketTypeEnum::getDomainSourcedPackets().contains(headerType)) {
+            PacketTypeEnum::getDomainSourcedPackets().contains(headerType) &&
+            sourceLocalID == getDomainLocalID()) {
             // This is a packet sourced by the domain server
 
             emit dataReceived(NodeType::Unassigned, packet.getPayloadSize());
