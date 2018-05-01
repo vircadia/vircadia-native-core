@@ -16,7 +16,6 @@
 var mappingName, basicMapping, isChecked;
 
 var TURN_RATE = 1000;
-var MENU_ITEM_NAME = "Advanced Movement For Hand Controllers";
 var isDisabled = false;
 var previousSetting = MyAvatar.useAdvancedMovementControls;
 if (previousSetting === false) {
@@ -27,15 +26,6 @@ if (previousSetting === false) {
 if (previousSetting === true) {
     previousSetting = true;
     isChecked = true;
-}
-
-function addAdvancedMovementItemToSettingsMenu() {
-    Menu.addMenuItem({
-        menuName: "Settings",
-        menuItemName: MENU_ITEM_NAME,
-        isCheckable: true,
-        isChecked: previousSetting
-    });
 }
 
 function rotate180() {
@@ -100,29 +90,10 @@ function disableMappings() {
 }
 
 function scriptEnding() {
-    Menu.removeMenuItem("Settings", MENU_ITEM_NAME);
     disableMappings();
 }
 
-
-function menuItemEvent(menuItem) {
-    if (menuItem == MENU_ITEM_NAME) {
-        isChecked = Menu.isOptionChecked(MENU_ITEM_NAME);
-        if (isChecked === true) {
-            MyAvatar.useAdvancedMovementControls = true;
-            disableMappings();
-        } else if (isChecked === false) {
-            MyAvatar.useAdvancedMovementControls = false;
-            enableMappings();
-        }
-    }
-}
-
-addAdvancedMovementItemToSettingsMenu();
-
 Script.scriptEnding.connect(scriptEnding);
-
-Menu.menuItemEvent.connect(menuItemEvent);
 
 registerBasicMapping();
 
@@ -151,11 +122,16 @@ HMD.displayModeChanged.connect(function(isHMDMode) {
 
 var HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL = 'Hifi-Advanced-Movement-Disabler';
 function handleMessage(channel, message, sender) {
-    if (channel == HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL) {
-        if (message == 'disable') {
+    if (channel === HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL) {
+        if (message === 'disable') {
             isDisabled = true;
-        } else if (message == 'enable') {
+        } else if (message === 'enable') {
             isDisabled = false;
+        } else if (message === 'enable_mappings') {
+            print("enable mappings")
+            enableMappings();
+        } else if (message === 'disable_mappings') {
+            disableMappings();
         }
     }
 }

@@ -56,6 +56,7 @@
 #include "ui/Snapshot.h"
 #include "SoundCache.h"
 #include "raypick/PointerScriptingInterface.h"
+#include <display-plugins/CompositorHelper.h>
 
 static int MAX_WINDOW_SIZE = 4096;
 static const float METERS_TO_INCHES = 39.3701f;
@@ -256,6 +257,8 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("Pointers", DependencyManager::get<PointerScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Web3DOverlay", this);
         _webSurface->getSurfaceContext()->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("Reticle", qApp->getApplicationCompositor().getReticleInterface());
+        _webSurface->getSurfaceContext()->setContextProperty("desktop", DependencyManager::get<OffscreenUi>()->getDesktop());
 
         // Override min fps for tablet UI, for silky smooth scrolling
         setMaxFPS(90);
