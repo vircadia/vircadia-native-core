@@ -615,11 +615,14 @@ void Wallet::updateImageProvider() {
     securityImageProvider->setSecurityImage(_securityImage);
 
     // inform tablet security image provider
-    auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
+    TabletProxy* tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
     if (tablet) {
-        QQmlEngine* tabletEngine = tablet->getTabletSurface()->getSurfaceContext()->engine();
-        securityImageProvider = reinterpret_cast<SecurityImageProvider*>(tabletEngine->imageProvider(SecurityImageProvider::PROVIDER_NAME));
-        securityImageProvider->setSecurityImage(_securityImage);
+        OffscreenQmlSurface* tabletSurface = tablet->getTabletSurface();
+        if (tabletSurface) {
+            QQmlEngine* tabletEngine = tabletSurface->getSurfaceContext()->engine();
+            securityImageProvider = reinterpret_cast<SecurityImageProvider*>(tabletEngine->imageProvider(SecurityImageProvider::PROVIDER_NAME));
+            securityImageProvider->setSecurityImage(_securityImage);
+        }
     }
 }
 
