@@ -28,7 +28,7 @@ class ScriptEngine;
 /**jsdoc
  * The Controller API provides facilities to interact with computer and controller hardware.
  *
- * <h5>Functions:</h5>
+ * <h5>Functions</h5>
  *
  * <p>Properties</p>
  * <ul>
@@ -141,6 +141,61 @@ class ScriptEngine;
  *   <li>{@link Controller.loadInputRecording|loadInputRecording}</li>
  *   <li>{@link Controller.startInputPlayback|startInputPlayback}</li>
  *   <li>{@link Controller.stopInputPlayback|stopInputPlayback}</li>
+ * </ul>
+ *
+ * <h5>Entity Methods:</h5>
+ *
+ * <p>The default scripts implement hand controller actions that use {@link Entities.callEntityMethod} to call entity script 
+ * methods, if present in the entity being interacted with.</p>
+ *
+ * <table>
+ *   <thead>
+ *     <tr><th>Method Name</th><th>Description</th><th>Example</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr>
+ *       <td><code>startFarTrigger</code><br /><code>continueFarTrigger</code><br /><code>stopFarTrigger</code></td>
+ *       <td>These methods are called when a user is more than 0.3m away from the entity, the entity is triggerable, and the 
+ *         user starts, continues, or stops squeezing the trigger.</td>
+ *       </td>
+ *       <td>A light switch that can be toggled on and off from a distance.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><code>startNearTrigger</code><br /><code>continueNearTrigger</code><br /><code>stopNearTrigger</code></td>
+ *       <td>These methods are called when a user is less than 0.3m away from the entity, the entity is triggerable, and the 
+ *         user starts, continues, or stops squeezing the trigger.</td>
+ *       <td>A doorbell that can be rung when a user is near.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><code>startDistanceGrab</code><br /><code>continueDistanceGrab</code><br /></td>
+ *       <td>These methods are called when a user is more than 0.3m away from the entity, the entity is either cloneable, or
+ *         grabbable and not locked, and the user starts or continues to squeeze the trigger.</td>
+ *       <td>A comet that emits icy particle trails when a user is dragging it through the sky.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><code>startNearGrab</code><br /><code>continueNearGrab</code><br /></td>
+ *       <td>These methods are called when a user is less than 0.3m away from the entity, the entity is either cloneable, or 
+ *         grabbable and not locked, and the user starts or continues to squeeze the trigger.</td>
+ *       <td>A ball that glows when it's being held close.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><code>releaseGrab</code></td>
+ *       <td>This method is called when a user releases the trigger when having been either distance or near grabbing an 
+ *         entity.</td>
+ *       <td>Turn off the ball glow or comet trail with the user finishes grabbing it.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><code>startEquip</code><br /><code>continueEquip</code><br /><code>releaseEquip</code></td>
+ *       <td>These methods are called when a user starts, continues, or stops equipping an entity.</td>
+ *       <td>A glass that stays in the user's hand after the trigger is clicked.</td>
+ *     </tr>
+ *   </tbody>
+ * </table>
+ * <p>All the entity methods are called with the following two arguments:</p>
+ * <ul>
+ *   <li>The entity ID.</li>
+ *   <li>A string, <code>"hand,userID"</code> &mdash; where "hand" is <code>"left"</code> or <code>"right"</code>, and "userID"
+ *     is the user's {@link MyAvatar|MyAvatar.sessionUUID}.</li>
  * </ul>
  *
  * @namespace Controller
