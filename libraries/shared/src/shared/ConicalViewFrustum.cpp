@@ -45,7 +45,7 @@ bool ConicalViewFrustum::isVerySimilar(const ConicalViewFrustum& other) const {
     const float MIN_RELATIVE_ERROR = 0.01f; // 1%
 
     return glm::distance2(_position, other._position) < MIN_POSITION_SLOP_SQUARED &&
-    angleBetween(_direction, other._direction) > MIN_ANGLE_BETWEEN &&
+    angleBetween(_direction, other._direction) < MIN_ANGLE_BETWEEN &&
     closeEnough(_angle, other._angle, MIN_RELATIVE_ERROR) &&
     closeEnough(_farClip, other._farClip, MIN_RELATIVE_ERROR) &&
     closeEnough(_radius, other._radius, MIN_RELATIVE_ERROR);

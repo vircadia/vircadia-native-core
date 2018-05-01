@@ -95,7 +95,6 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
 int OctreeQuery::parseData(ReceivedMessage& message) {
  
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(message.getRawMessage());
-    const unsigned char* endPosition = startPosition + message.getSize();
     const unsigned char* sourceBuffer = startPosition;
 
     // unpack the connection ID
