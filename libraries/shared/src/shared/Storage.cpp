@@ -10,7 +10,7 @@
 
 #include <QtCore/QFileInfo>
 #include <QtCore/QDebug>
-#include <QtCore/QLoggingCategory>
+#include "StorageLogging.h"
 
 Q_LOGGING_CATEGORY(storagelogging, "hifi.core.storage")
 

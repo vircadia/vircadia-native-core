@@ -43,12 +43,10 @@ void ConnectionMonitor::init() {
 }
 
 void ConnectionMonitor::startTimer() {
-    qDebug() << "ConnectionMonitor: Starting timer";
     _timer.start(DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
 }
 
 void ConnectionMonitor::stopTimer() {
-    qDebug() << "ConnectionMonitor: Stopping timer";
     _timer.stop();
     DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(false);
 }

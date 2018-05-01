@@ -145,6 +145,16 @@
 #include <avatars-renderer/ScriptAvatar.h>
 #include <RenderableEntityItem.h>
 
+#include <AnimationLogging.h>
+#include <AvatarLogging.h>
+#include <ScriptEngineLogging.h>
+#include <ModelFormatLogging.h>
+#include <controllers/Logging.h>
+#include <NetworkLogging.h>
+#include <shared/StorageLogging.h>
+#include <ScriptEngineLogging.h>
+#include <ui/Logging.h>
+
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
@@ -1060,6 +1070,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
     }
+    setCrashAnnotation("steam", property(hifi::properties::STEAM).toBool() ? "1" : "0");
+
     qCDebug(interfaceapp) << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
     qCDebug(interfaceapp) << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
     qCDebug(interfaceapp) << "[VERSION] VERSION:" << BuildInfo::VERSION;
@@ -1145,6 +1157,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
     connect(&domainHandler, SIGNAL(domainURLChanged(QUrl)), SLOT(domainURLChanged(QUrl)));
+    connect(&domainHandler, &DomainHandler::domainURLChanged, [](QUrl domainURL){
+        setCrashAnnotation("domain", domainURL.toString().toStdString());
+    });
     connect(&domainHandler, SIGNAL(resetting()), SLOT(resettingDomain()));
     connect(&domainHandler, SIGNAL(connectedToDomain(QUrl)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
@@ -1190,6 +1205,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
     connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
+    connect(accountManager.data(), &AccountManager::usernameChanged, [](QString username){
+        setCrashAnnotation("username", username.toStdString());
+    });
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager->setIsAgent(true);
@@ -1207,12 +1225,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
     connect(this, &Application::activeDisplayPluginChanged, this, [](){
         qApp->setProperty(hifi::properties::HMD, qApp->isHMDMode());
+        auto displayPlugin = qApp->getActiveDisplayPlugin();
+        setCrashAnnotation("display_plugin", displayPlugin->getName().toStdString());
+        setCrashAnnotation("hmd", displayPlugin->isHmd() ? "1" : "0");
     });
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateSystemTabletMode);
 
     // Save avatar location immediately after a teleport.
     connect(myAvatar.get(), &MyAvatar::positionGoneTo,
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
+
+    connect(myAvatar.get(), &MyAvatar::skeletonModelURLChanged, [](){
+        QUrl avatarURL = qApp->getMyAvatar()->getSkeletonModelURL();
+        setCrashAnnotation("avatar", avatarURL.toString().toStdString());
+    });
+
 
     // Inititalize sample before registering
     _sampleSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/sample.wav"));
@@ -1306,6 +1333,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
 
+    updateVerboseLogging();
+
     init();
     qCDebug(interfaceapp, "init() complete.");
 
@@ -1376,6 +1405,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         userActivityLogger.disable(false);
     }
 
+    QString machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
+
     if (userActivityLogger.isEnabled()) {
         // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
         // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
@@ -1425,10 +1456,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["first_run"] = firstRun.get();
 
         // add the user's machine ID to the launch event
-        properties["machine_fingerprint"] = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
+        properties["machine_fingerprint"] = machineFingerPrint;
 
         userActivityLogger.logAction("launch", properties);
     }
+
+    setCrashAnnotation("machine_fingerprint", machineFingerPrint.toStdString());
 
     _entityEditSender.setMyAvatar(myAvatar.get());
 
@@ -2172,6 +2205,46 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _pendingRenderEvent = false;
 
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
+}
+
+void Application::updateVerboseLogging() {
+    bool enable = Menu::getInstance()->isOptionChecked(MenuOption::VerboseLogging);
+
+    const_cast<QLoggingCategory*>(&animation())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&animation())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&controllers())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&controllers())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&resourceLog())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&resourceLog())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&networking())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&networking())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&asset_client())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&asset_client())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&messages_client())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&messages_client())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&storagelogging())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&storagelogging())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&uiLogging())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&uiLogging())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&glLogging())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&glLogging())->setEnabled(QtInfoMsg, enable);
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -3042,7 +3115,6 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     PROFILE_RANGE(render, __FUNCTION__);
 
     bool sandboxIsRunning = SandboxUtils::readStatus(reply->readAll());
-    qDebug() << "HandleSandboxStatus" << sandboxIsRunning;
 
     enum HandControllerType {
         Vive,

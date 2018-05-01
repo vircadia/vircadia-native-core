@@ -21,12 +21,17 @@ Item {
     signal newViewRequestedCallback(var request)
     signal loadingChangedCallback(var loadRequest)
 
+
     width: parent.width
 
     property bool interactive: false
 
     StylesUIt.HifiConstants {
         id: hifi
+    }
+
+    function stop() {
+        webViewCore.stop();
     }
 
     function unfocus() {
