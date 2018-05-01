@@ -5852,7 +5852,7 @@ void Application::sendAvatarViewFrustum() {
         viewFrustumByteArray += _secondaryViewFrustum.toByteArray();
     }
 
-    auto avatarPacket = NLPacket::create(PacketType::ViewFrustum, viewFrustumByteArray.size() + sizeof(numFrustums));
+    auto avatarPacket = NLPacket::create(PacketType::AvatarQuery, viewFrustumByteArray.size() + sizeof(numFrustums));
     avatarPacket->writePrimitive(numFrustums);
     avatarPacket->write(viewFrustumByteArray);
 

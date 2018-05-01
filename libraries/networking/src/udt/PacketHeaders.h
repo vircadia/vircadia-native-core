@@ -103,7 +103,7 @@ public:
         RadiusIgnoreRequest,
         UsernameFromIDRequest,
         UsernameFromIDReply,
-        ViewFrustum,
+        AvatarQuery,
         RequestsDomainListData,
         PerAvatarGainSet,
         EntityScriptGetStatus,
@@ -328,7 +328,7 @@ enum class PingVersion : PacketVersion {
     IncludeConnectionID = 18
 };
 
-enum class ViewFrustumVersion : PacketVersion {
+enum class AvatarQueryVersion : PacketVersion {
     SendMultipleFrustums = 21
 };
 

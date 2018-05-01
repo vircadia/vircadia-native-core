@@ -34,7 +34,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityPhysics:
             return static_cast<PacketVersion>(EntityVersion::MaterialData);
         case PacketType::EntityQuery:
-            return static_cast<PacketVersion>(EntityQueryPacketVersion::MultiFrustumQuery);
+            return static_cast<PacketVersion>(EntityQueryPacketVersion::ConicalFrustums);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
@@ -90,8 +90,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return 18;  // replace min_avatar_scale and max_avatar_scale with min_avatar_height and max_avatar_height
         case PacketType::Ping:
             return static_cast<PacketVersion>(PingVersion::IncludeConnectionID);
-        case PacketType::ViewFrustum:
-            return static_cast<PacketVersion>(ViewFrustumVersion::SendMultipleFrustums);
+        case PacketType::AvatarQuery:
+            return static_cast<PacketVersion>(AvatarQueryVersion::SendMultipleFrustums);
         default:
             return 20;
     }
