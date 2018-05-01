@@ -73,9 +73,9 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     return data;
 }
 
-QString Snapshot::saveSnapshot(QImage image, const QString& filename) {
+QString Snapshot::saveSnapshot(QImage image, const QString& filename, const QString& pathname) {
 
-    QFile* snapshotFile = savedFileForSnapshot(image, false, filename);
+    QFile* snapshotFile = savedFileForSnapshot(image, false, filename, pathname);
 
     // we don't need the snapshot file, so close it, grab its filename and delete it
     snapshotFile->close();
