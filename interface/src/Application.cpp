@@ -996,13 +996,22 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
     {
-        const QString TEST_SCRIPT = "--testScript";
+        const QString TEST_SCRIPT { "--testScript" };
+        const QString TEST_SNAPSHOT_LOCATION { "--testSnapshotLocation" };
+
         const QStringList args = arguments();
         for (int i = 0; i < args.size() - 1; ++i) {
             if (args.at(i) == TEST_SCRIPT) {
                 QString testScriptPath = args.at(i + 1);
                 if (QFileInfo(testScriptPath).exists()) {
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
+                } 
+            } else if (args.at(i) == TEST_SNAPSHOT_LOCATION) {
+                // Set test snapshot location only if it is a writeable directory
+                QString pathname(args.at(i + 1));
+                QFileInfo fileInfo(pathname);
+                if (fileInfo.isDir() && fileInfo.isWritable()) {
+                    testSnapshotLocation = pathname;
                 }
             }
         }
@@ -7331,7 +7340,7 @@ void Application::loadAvatarBrowser() const {
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
     postLambdaEvent([notify, includeAnimated, aspectRatio, filename, this] {
         // Get a screenshot and save it
-        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio), filename);
+        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio), filename, QString());
         // If we're not doing an animated snapshot as well...
         if (!includeAnimated) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
@@ -7345,7 +7354,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
 
 void Application::takeSecondaryCameraSnapshot(const QString& filename) {
     postLambdaEvent([filename, this] {
-        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename);
+        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename, testSnapshotLocation);
         emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
     });
 }

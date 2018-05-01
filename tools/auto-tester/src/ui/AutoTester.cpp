@@ -10,6 +10,8 @@
 //
 #include "AutoTester.h"
 
+#include <QMessageBox>
+
 AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
     ui.setupUi(this);
     ui.checkBoxInteractiveMode->setChecked(true);
@@ -18,6 +20,9 @@ AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
     test = new Test();
 
     signalMapper = new QSignalMapper();
+
+    connect(ui.actionClose, &QAction::triggered, this, &AutoTester::on_closeButton_clicked);
+    connect(ui.actionAbout, &QAction::triggered, this, &AutoTester::about);
 }
 
 void AutoTester::on_evaluateTestsButton_clicked() {
@@ -99,4 +104,9 @@ void AutoTester::saveImage(int index) {
     } else {
         ui.progressBar->setValue(_numberOfImagesDownloaded);
     }
+}
+
+void AutoTester::about() {
+    QMessageBox messageBox;
+    messageBox.information(0, "About", QString("Built ") + __DATE__ + " : " + __TIME__);
 }
