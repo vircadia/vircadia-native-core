@@ -2646,6 +2646,9 @@ void Application::initializeDisplayPlugins() {
     updateRenderArgs(0.0f);
 
     _offscreenContext->makeCurrent();
+
+#define ENABLE_SPLASH_FRAME 0
+#if ENABLE_SPLASH_FRAME
     {
         QMutexLocker viewLocker(&_renderArgsMutex);
 
@@ -2666,14 +2669,10 @@ void Application::initializeDisplayPlugins() {
             batch.resetStages();
             batch.enableStereo(false);
             batch.setFramebuffer(finalFramebuffer);
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, { 0, 1, 1, 1 });
-
+            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, { 0, 0, 0, 1 });
             batch.enableSkybox(true);
             batch.enableStereo(_appRenderArgs._isStereo);
             batch.setViewportTransform({ 0, 0, finalFramebuffer->getSize() });
-            batch.runLambda([] {
-                // update uniform values
-            });
             procedural->render(batch, _appRenderArgs._renderArgs.getViewFrustum());
         });
         auto frame = _gpuContext->endFrame();
@@ -2685,6 +2684,7 @@ void Application::initializeDisplayPlugins() {
         };
         _displayPlugin->submitFrame(frame);
     }
+#endif
 }
 
 void Application::initializeRenderEngine() {
