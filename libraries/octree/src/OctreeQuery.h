@@ -16,8 +16,7 @@
 #include <QtCore/QReadWriteLock>
 
 #include <NodeData.h>
-
-#include <ViewFrustum.h>
+#include <shared/ConicalViewFrustum.h>
 
 #include "OctreeConstants.h"
 
@@ -37,12 +36,10 @@ public:
     bool hasMainViewFrustum() const { return _hasMainFrustum; }
     void setMainViewFrustum(const ViewFrustum& viewFrustum) { _hasMainFrustum = true; _mainViewFrustum = viewFrustum; }
     void clearMainViewFrustum() { _hasMainFrustum = false; }
-    const ViewFrustum& getMainViewFrustum() const { return _mainViewFrustum; }
 
     bool hasSecondaryViewFrustum() const { return _hasSecondaryFrustum; }
     void setSecondaryViewFrustum(const ViewFrustum& viewFrustum) { _hasSecondaryFrustum = true; _secondaryViewFrustum = viewFrustum; }
     void clearSecondaryViewFrustum() { _hasSecondaryFrustum = false; }
-    const ViewFrustum& getSecondaryViewFrustum() const { return _secondaryViewFrustum; }
 
     // getters/setters for JSON filter
     QJsonObject getJSONParameters() { QReadLocker locker { &_jsonParametersLock }; return _jsonParameters; }
@@ -68,9 +65,9 @@ public slots:
 
 protected:
     bool _hasMainFrustum { false };
-    ViewFrustum _mainViewFrustum;
+    ConicalViewFrustum _mainViewFrustum;
     bool _hasSecondaryFrustum { false };
-    ViewFrustum _secondaryViewFrustum;
+    ConicalViewFrustum _secondaryViewFrustum;
 
     // octree server sending items
     int _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;

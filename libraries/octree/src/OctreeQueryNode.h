@@ -14,14 +14,14 @@
 
 #include <iostream>
 
-#include <NodeData.h>
+#include <qqueue.h>
+
 #include "OctreeConstants.h"
 #include "OctreeElementBag.h"
 #include "OctreePacketData.h"
 #include "OctreeQuery.h"
 #include "OctreeSceneStats.h"
 #include "SentPacketHistory.h"
-#include <qqueue.h>
 
 class OctreeSendThread;
 class OctreeServer;
@@ -49,8 +49,8 @@ public:
 
     OctreeElementExtraEncodeData extraEncodeData;
 
-    void copyCurrentMainViewFrustum(ViewFrustum& viewOut) const;
-    void copyCurrentSecondaryViewFrustum(ViewFrustum& viewOut) const;
+    void copyCurrentMainViewFrustum(ConicalViewFrustum& viewOut) const;
+    void copyCurrentSecondaryViewFrustum(ConicalViewFrustum& viewOut) const;
 
     // These are not classic setters because they are calculating and maintaining state
     // which is set asynchronously through the network receive
@@ -97,8 +97,8 @@ private:
     quint64 _firstSuppressedPacket { usecTimestampNow() };
 
     mutable QMutex _viewMutex { QMutex::Recursive };
-    ViewFrustum _currentMainViewFrustum;
-    ViewFrustum _currentSecondaryViewFrustum;
+    ConicalViewFrustum _currentMainViewFrustum;
+    ConicalViewFrustum _currentSecondaryViewFrustum;
     bool _viewFrustumChanging { false };
     bool _viewFrustumJustStoppedChanging { true };
 

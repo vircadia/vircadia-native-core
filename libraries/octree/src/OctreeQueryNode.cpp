@@ -139,12 +139,12 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, unsigned int by
     }
 }
 
-void OctreeQueryNode::copyCurrentMainViewFrustum(ViewFrustum& viewOut) const {
+void OctreeQueryNode::copyCurrentMainViewFrustum(ConicalViewFrustum& viewOut) const {
     QMutexLocker viewLocker(&_viewMutex);
     viewOut = _currentMainViewFrustum;
 }
 
-void OctreeQueryNode::copyCurrentSecondaryViewFrustum(ViewFrustum& viewOut) const {
+void OctreeQueryNode::copyCurrentSecondaryViewFrustum(ConicalViewFrustum& viewOut) const {
     QMutexLocker viewLocker(&_viewMutex);
     viewOut = _currentSecondaryViewFrustum;
 }

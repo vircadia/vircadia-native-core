@@ -108,7 +108,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
 
         DiffTraversal::View newView;
 
-        ViewFrustum viewFrustum;
+        ConicalViewFrustum viewFrustum;
         if (nodeData->hasMainViewFrustum()) {
             nodeData->copyCurrentMainViewFrustum(viewFrustum);
             newView.viewFrustums.push_back(viewFrustum);

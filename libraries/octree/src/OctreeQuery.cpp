@@ -50,15 +50,11 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += sizeof(frustumFlags);
 
     if (_hasMainFrustum) {
-        auto byteArray = _mainViewFrustum.toByteArray();
-        memcpy(destinationBuffer, byteArray.constData(), byteArray.size());
-        destinationBuffer += byteArray.size();
+        destinationBuffer += _mainViewFrustum.serialize(destinationBuffer);
     }
 
     if (_hasSecondaryFrustum) {
-        auto byteArray = _secondaryViewFrustum.toByteArray();
-        memcpy(destinationBuffer, byteArray.constData(), byteArray.size());
-        destinationBuffer += byteArray.size();
+        destinationBuffer += _secondaryViewFrustum.serialize(destinationBuffer);
     }
     
     // desired Max Octree PPS
@@ -131,15 +127,11 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
     _hasSecondaryFrustum = frustumFlags & QUERY_HAS_SECONDARY_FRUSTUM;
 
     if (_hasMainFrustum) {
-        auto bytesLeft = endPosition - sourceBuffer;
-        auto byteArray = QByteArray::fromRawData(reinterpret_cast<const char*>(sourceBuffer), bytesLeft);
-        sourceBuffer += _mainViewFrustum.fromByteArray(byteArray);
+        sourceBuffer += _mainViewFrustum.deserialize(sourceBuffer);
     }
 
     if (_hasSecondaryFrustum) {
-        auto bytesLeft = endPosition - sourceBuffer;
-        auto byteArray = QByteArray::fromRawData(reinterpret_cast<const char*>(sourceBuffer), bytesLeft);
-        sourceBuffer += _secondaryViewFrustum.fromByteArray(byteArray);
+        sourceBuffer += _secondaryViewFrustum.deserialize(sourceBuffer);
     }
 
     // desired Max Octree PPS
