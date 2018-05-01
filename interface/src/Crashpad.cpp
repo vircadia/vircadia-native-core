@@ -15,6 +15,8 @@
 
 #if HAS_CRASHPAD
 
+#include <mutex>
+
 #include <QStandardPaths>
 #include <QDir>
 
@@ -23,8 +25,8 @@
 #include <client/crashpad_client.h>
 #include <client/crash_report_database.h>
 #include <client/settings.h>
-// #include <client/annotation_list.h>
-// #include <client/crashpad_info.h>
+#include <client/annotation_list.h>
+#include <client/crashpad_info.h>
 
 using namespace crashpad;
 
@@ -35,7 +37,8 @@ static std::wstring gIPCPipe;
 
 extern QString qAppFileName();
 
-// crashpad::AnnotationList* crashpadAnnotations { nullptr };
+std::mutex annotationMutex;
+crashpad::SimpleStringDictionary* crashpadAnnotations { nullptr };
 
 #include <Windows.h>
 
@@ -102,12 +105,14 @@ bool startCrashHandler() {
 }
 
 void setCrashAnnotation(std::string name, std::string value) {
-    // if (!crashpadAnnotations) {
-    //     crashpadAnnotations = new crashpad::AnnotationList(); // don't free this, let it leak
-    //     crashpad::CrashpadInfo* crashpad_info = crashpad::GetCrashpadInfo();
-    //     crashpad_info->set_simple_annotations(crashpadAnnotations);
-    // }
-    // crashpadAnnotations->SetKeyValue(name, value);
+    std::lock_guard<std::mutex> guard(annotationMutex);
+    if (!crashpadAnnotations) {
+        crashpadAnnotations = new crashpad::SimpleStringDictionary(); // don't free this, let it leak
+        crashpad::CrashpadInfo* crashpad_info = crashpad::CrashpadInfo::GetCrashpadInfo();
+        crashpad_info->set_simple_annotations(crashpadAnnotations);
+    }
+    std::replace(value.begin(), value.end(), ',', ';');
+    crashpadAnnotations->SetKeyValue(name, value);
 }
 
 #else
