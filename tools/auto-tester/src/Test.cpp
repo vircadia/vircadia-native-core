@@ -221,8 +221,11 @@ void Test::startTestsEvaluation() {
             QString expectedImageFilenameTail = currentFilename.left(currentFilename.length() - 4).right(NUM_DIGITS);
             QString expectedImageStoredFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + ".png";
 
-            QString imageURLString("https://github.com/" + githubUser + "/hifi_tests/blob/" + gitHubBranch + "/" + 
-                expectedImagePartialSourceDirectory + "/" + expectedImageStoredFilename + "?raw=true");
+        //https://raw.githubusercontent.com/highfidelity/hifi_tests/master/tests/content/entity/zone/zoneOrientation/ExpectedImage_00001.png
+
+
+            QString imageURLString("https://raw.githubusercontent.com/" + githubUser + "/hifi_tests/" + gitHubBranch + "/" + 
+                expectedImagePartialSourceDirectory + "/" + expectedImageStoredFilename);
 
             expectedImagesURLs << imageURLString;
 

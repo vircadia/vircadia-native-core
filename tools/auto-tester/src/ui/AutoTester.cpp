@@ -86,6 +86,7 @@ void AutoTester::downloadImages(const QStringList& URLs, const QString& director
 }
 
 void AutoTester::saveImage(int index) {
+    QByteArray q = downloaders[index]->downloadedData();
     QPixmap pixmap;
     pixmap.loadFromData(downloaders[index]->downloadedData());
 
