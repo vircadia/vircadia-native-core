@@ -189,7 +189,6 @@ const int AntialiasingPass_NextMapSlot = 4;
 
 Antialiasing::Antialiasing(bool isSharpenEnabled) : 
     _isSharpenEnabled{ isSharpenEnabled } {
-    _antialiasingBuffers = std::make_shared<gpu::FramebufferSwapChain>(2U);
 }
 
 Antialiasing::~Antialiasing() {
@@ -325,25 +324,25 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
     int width = sourceBuffer->getWidth();
     int height = sourceBuffer->getHeight();
 
-    if (_antialiasingBuffers->get(0)) {
-        if (_antialiasingBuffers->get(0)->getSize() != uvec2(width, height)) {// || (sourceBuffer && (_antialiasingBuffer->getRenderBuffer(1) != sourceBuffer->getRenderBuffer(0)))) {
-            _antialiasingBuffers->edit(0).reset();
-            _antialiasingBuffers->edit(1).reset();
-            _antialiasingTextures[0].reset();
-            _antialiasingTextures[1].reset();
-        }
+    if (_antialiasingBuffers && _antialiasingBuffers->get(0) && _antialiasingBuffers->get(0)->getSize() != uvec2(width, height)) {
+        _antialiasingBuffers.reset();
+        _antialiasingTextures[0].reset();
+        _antialiasingTextures[1].reset();
     }
 
-    if (!_antialiasingBuffers->get(0)) {
+
+    if (!_antialiasingBuffers) {
+        std::vector<gpu::FramebufferPointer> antiAliasingBuffers;
         // Link the antialiasing FBO to texture
         auto format = sourceBuffer->getRenderBuffer(0)->getTexelFormat();
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP);
         for (int i = 0; i < 2; i++) {
-            auto& antiAliasingBuffer = _antialiasingBuffers->edit(i);
-            antiAliasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("antialiasing"));
+            antiAliasingBuffers.emplace_back(gpu::Framebuffer::create("antialiasing"));
+            const auto& antiAliasingBuffer = antiAliasingBuffers.back();
             _antialiasingTextures[i] = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, defaultSampler);
             antiAliasingBuffer->setRenderBuffer(0, _antialiasingTextures[i]);
         }
+        _antialiasingBuffers = std::make_shared<gpu::FramebufferSwapChain>(antiAliasingBuffers);
     }
     
     gpu::doInBatch("Antialiasing::run", args->_context, [&](gpu::Batch& batch) {
