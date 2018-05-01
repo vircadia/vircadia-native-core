@@ -159,6 +159,8 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     // remove the objects (aka MotionStates) from physics
     _physicsEngine->removeSetOfObjects(_physicalObjects);
 
+    clearOwnershipData();
+
     // delete the MotionStates
     for (auto stateItr : _physicalObjects) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(&(*stateItr));
@@ -171,7 +173,6 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     _physicalObjects.clear();
 
     // clear all other lists specific to this derived class
-    clearOwnershipData();
     _entitiesToRemoveFromPhysics.clear();
     _entitiesToAddToPhysics.clear();
     _incomingChanges.clear();
