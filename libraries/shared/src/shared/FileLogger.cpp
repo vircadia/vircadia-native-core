@@ -36,7 +36,6 @@ protected:
 private:
     const FileLogger& _logger;
     QMutex _fileMutex;
-    std::chrono::system_clock::time_point _lastRollTime;
 };
 
 static const QString FILENAME_FORMAT = "hifi-log_%1%2.txt";
@@ -52,7 +51,6 @@ static QUuid SESSION_ID;
 static const qint64 MAX_LOG_SIZE = 512 * 1024;
 // Max log files found in the log directory is 100.
 static const qint64 MAX_LOG_DIR_SIZE = 512 * 1024 * 100;
-static const std::chrono::minutes MAX_LOG_AGE { 60 };
 
 static FilePersistThread* _persistThreadInstance;
 
@@ -83,12 +81,10 @@ FilePersistThread::FilePersistThread(const FileLogger& logger) : _logger(logger)
     if (file.exists()) {
         rollFileIfNecessary(file, false);
     }
-    _lastRollTime = std::chrono::system_clock::now();
 }
 
 void FilePersistThread::rollFileIfNecessary(QFile& file, bool notifyListenersIfRolled) {
-    auto now = std::chrono::system_clock::now();
-    if ((file.size() > MAX_LOG_SIZE) || (now - _lastRollTime) > MAX_LOG_AGE) {
+    if (file.size() > MAX_LOG_SIZE) {
         QString newFileName = getLogRollerFilename();
         if (file.copy(newFileName)) {
             file.open(QIODevice::WriteOnly | QIODevice::Truncate);
@@ -97,8 +93,6 @@ void FilePersistThread::rollFileIfNecessary(QFile& file, bool notifyListenersIfR
             if (notifyListenersIfRolled) {
                 emit rollingLogFile(newFileName);
             }
-
-            _lastRollTime = std::chrono::system_clock::now();
         }
 
         QDir logDir(FileUtils::standardPath(LOGS_DIRECTORY));
