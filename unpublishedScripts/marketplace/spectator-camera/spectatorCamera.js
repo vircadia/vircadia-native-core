@@ -72,7 +72,7 @@
             "damping": 0.95,
             "collidesWith": "static,dynamic,kinematic,",
             "collisionMask": 7,
-            "dynamic": true,
+            "dynamic": false,
             "modelURL": Script.resolvePath("spectator-camera.fbx"),
             "registrationPoint": {
                 "x": 0.56,
