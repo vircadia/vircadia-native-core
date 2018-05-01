@@ -12,6 +12,8 @@
 #ifndef hifi_task_Config_h
 #define hifi_task_Config_h
 
+#include <chrono>
+
 #include <QtCore/qobject.h>
 #include <QtCore/qjsondocument.h>
 #include <QtCore/qjsonobject.h>
@@ -112,7 +114,7 @@ public:
 
     // Running Time measurement
     // The new stats signal is emitted once per run time of a job when stats  (cpu runtime) are updated
-    void setCPURunTime(double mstime) { _msCPURunTime = mstime; emit newStats(); }
+    void setCPURunTime(const std::chrono::nanoseconds& runtime) { _msCPURunTime = runtime.count() / 1000000.0; emit newStats(); }
     double getCPURunTime() const { return _msCPURunTime; }
 
     Q_INVOKABLE virtual bool isTask() const { return false; }

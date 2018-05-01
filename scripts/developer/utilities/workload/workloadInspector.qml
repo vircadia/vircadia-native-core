@@ -15,6 +15,7 @@ import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
 import "../render/configSlider"
 import "../lib/jet/qml" as Jet
+import "../lib/plotperf"
 
 
 Rectangle {
@@ -35,6 +36,10 @@ Rectangle {
         sendToScript({method: "clearScene", params: { count:2 }}); 
     }
 
+    function broadcastChangeSize(value) {
+        sendToScript({method: "changeSize", params: { count:value }});         
+    }
+
     function broadcastChangeResolution(value) {
         sendToScript({method: "changeResolution", params: { count:value }});         
     }
@@ -45,10 +50,15 @@ Rectangle {
 
     function fromScript(message) {
         switch (message.method) {
+        case "gridSize":
+            print("assigned value! " + message.params.v)
+            gridSizeLabel.text = ("Grid size [m] = " + message.params.v)
+            gridSize.setValue(message.params.v)
+            break;
         case "resolution":
             print("assigned value! " + message.params.v)
             resolution.setValue(message.params.v)
-            break;
+            break;           
         case "objectCount":
             print("assigned objectCount! " + message.params.v)
             objectCount.text = ("Num objects = " + message.params.v)
@@ -57,6 +67,7 @@ Rectangle {
     }
   
     Column {
+        id: stats
         spacing: 5
         anchors.left: parent.left
         anchors.right: parent.right       
@@ -91,6 +102,26 @@ Rectangle {
         }
 
         RowLayout {
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            HifiControls.CheckBox {
+                boxSize: 20
+                text: "Simulate Secondary"
+                checked: Workload.getConfig("setupViews")["simulateSecondaryCamera"]
+                onCheckedChanged: { Workload.getConfig("setupViews")["simulateSecondaryCamera"] = checked; }
+            }
+        }
+
+        Separator {}
+        HifiControls.CheckBox {
+            boxSize: 20
+            text: "Regulate View Ranges"
+            checked: Workload.getConfig("controlViews")["regulateViewRanges"]
+            onCheckedChanged: { Workload.getConfig("controlViews")["regulateViewRanges"] = checked; }
+        }
+
+        RowLayout {
+            visible: !Workload.getConfig("controlViews")["regulateViewRanges"]
             anchors.left: parent.left
             anchors.right: parent.right 
             Column {
@@ -148,6 +179,100 @@ Rectangle {
                 }
             }
         }
+        /*RowLayout {
+            visible: Workload.getConfig("controlViews")["regulateViewRanges"]
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            Column {
+                anchors.left: parent.left
+                anchors.right: parent.horizontalCenter 
+                HifiControls.Label {
+                    text: "Back [m]"       
+                    anchors.horizontalCenter: parent.horizontalCenter 
+                }
+                Repeater {
+                    model: [ 
+                        "R1:r1RangeBack:50.0:0.0",
+                        "R2:r2RangeBack:50.0:0.0",
+                        "R3:r3RangeBack:50.0:0.0"
+                    ]
+                    ConfigSlider {
+                        label: qsTr(modelData.split(":")[0])
+                        config:  Workload.getConfig("controlViews")
+                        property: modelData.split(":")[1]
+                        max: modelData.split(":")[2]
+                        min: modelData.split(":")[3]
+                        integral: true
+
+                        labelAreaWidthScale: 0.4
+                        anchors.left: parent.left
+                        anchors.right: parent.right 
+                    }
+                }
+            }
+            Column {
+                anchors.left: parent.horizontalCenter
+                anchors.right: parent.right 
+                HifiControls.Label {
+                    text: "Front [m]"       
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+                Repeater {
+                    model: [ 
+                        "r1RangeFront:300:1.0",
+                        "r2RangeFront:300:1.0",
+                        "r3RangeFront:300:1.0"
+                    ]
+                    ConfigSlider {
+                        showLabel: false
+                        config:  Workload.getConfig("controlViews")
+                        property: modelData.split(":")[0]
+                        max: modelData.split(":")[1]
+                        min: modelData.split(":")[2]
+                        integral: true
+
+                        labelAreaWidthScale: 0.3
+                        anchors.left: parent.left
+                        anchors.right: parent.right 
+                    }
+                }
+            }
+        }*/
+        property var controlViews: Workload.getConfig("controlViews")
+
+        PlotPerf {
+            title: "Timings"
+            height: 100
+            object: stats.controlViews
+            valueScale: 1.0
+            valueUnit: "ms"
+            plots: [
+                {
+                    prop: "r2Timing",
+                    label: "Physics + Collisions",
+                    color: "#1AC567"
+                },
+                {
+                    prop: "r3Timing",
+                    label: "Kinematic + Update",
+                    color: "#1A67C5"
+                }
+            ]
+        }
+        Separator {} 
+        HifiControls.Label {
+            text: "Numbers:";     
+        }
+        HifiControls.Label {
+            text: "R1= " + Workload.getConfig("regionState")["numR1"];     
+        } 
+        HifiControls.Label {
+            text: "R2= " + Workload.getConfig("regionState")["numR2"];     
+        } 
+        HifiControls.Label {
+            text: "R3= " + Workload.getConfig("regionState")["numR3"];     
+        }
+
         Separator {}
         HifiControls.Label {
             text: "Display"       
@@ -169,6 +294,7 @@ Rectangle {
             text: "Test"       
         }
         Row {
+            spacing: 5
             anchors.left: parent.left
             anchors.right: parent.right 
             HifiControls.Button {
@@ -185,15 +311,34 @@ Rectangle {
                     _workload.broadcastClearScene()
                 }
             }
-            HifiControls.Button {
+            /*HifiControls.Button {
                 text: "bump floor"
                 onClicked: {
                     print("pressed")
                     _workload.broadcastBumpUpFloor()
                 }
-            }
+            }*/
         }
-    
+        HifiControls.Label {
+            id: gridSizeLabel
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            text: "Grid side size [m]"                       
+        }
+        HifiControls.Slider {
+            id: gridSize
+            stepSize: 1.0
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            anchors.rightMargin: 0
+            anchors.topMargin: 0
+            minimumValue: 1
+            maximumValue: 200
+            value: 100
+
+            onValueChanged: { _workload.broadcastChangeSize(value) }
+        }
+
         HifiControls.Label {
             id: objectCount
             anchors.left: parent.left

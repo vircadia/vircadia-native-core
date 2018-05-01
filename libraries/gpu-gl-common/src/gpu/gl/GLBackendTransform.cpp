@@ -28,6 +28,12 @@ void GLBackend::do_setProjectionTransform(const Batch& batch, size_t paramOffset
     _transform._invalidProj = true;
 }
 
+void GLBackend::do_setProjectionJitter(const Batch& batch, size_t paramOffset) {
+	_transform._projectionJitter.x = batch._params[paramOffset]._float;
+	_transform._projectionJitter.y = batch._params[paramOffset+1]._float;
+	_transform._invalidProj = true;
+}
+
 void GLBackend::do_setViewportTransform(const Batch& batch, size_t paramOffset) {
     memcpy(&_transform._viewport, batch.readData(batch._params[paramOffset]._uint), sizeof(Vec4i));
 
@@ -90,7 +96,7 @@ void GLBackend::syncTransformStateCache() {
     _transform._enabledDrawcallInfoBuffer = false;
 }
 
-void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo) {
+void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo, Vec2u framebufferSize) {
     // Check all the dirty flags and update the state accordingly
     if (_invalidViewport) {
         _camera._viewport = glm::vec4(_viewport);
@@ -117,20 +123,21 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
 
     if (_invalidView || _invalidProj || _invalidViewport) {
         size_t offset = _cameraUboSize * _cameras.size();
+		Vec2 finalJitter = _projectionJitter / Vec2(framebufferSize);
         _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
 
         if (stereo.isStereo()) {
 #ifdef GPU_STEREO_CAMERA_BUFFER
-        _cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _view), _camera.getEyeCamera(1, stereo, _view)));
+        _cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _view, finalJitter), _camera.getEyeCamera(1, stereo, _view, finalJitter)));
 #else
-        _cameras.push_back((_camera.getEyeCamera(0, stereo, _view)));
-        _cameras.push_back((_camera.getEyeCamera(1, stereo, _view)));
+        _cameras.push_back((_camera.getEyeCamera(0, stereo, _view, finalJitter)));
+        _cameras.push_back((_camera.getEyeCamera(1, stereo, _view, finalJitter)));
 #endif
         } else {
 #ifdef GPU_STEREO_CAMERA_BUFFER
-            _cameras.push_back(CameraBufferElement(_camera.recomputeDerived(_view)));
+            _cameras.push_back(CameraBufferElement(_camera.getMonoCamera(_view, finalJitter)));
 #else
-            _cameras.push_back((_camera.recomputeDerived(_view)));
+            _cameras.push_back((_camera.getMonoCamera(_view, finalJitter)));
 #endif
         }
     }

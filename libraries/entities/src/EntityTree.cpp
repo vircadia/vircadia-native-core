@@ -1822,6 +1822,7 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
 
 void EntityTree::update(bool simulate) {
     PROFILE_RANGE(simulation_physics, "UpdateTree");
+    PerformanceTimer perfTimer("UpdateTreen");
     withWriteLock([&] {
         fixupNeedsParentFixups();
         if (simulate && _simulation) {

@@ -50,12 +50,13 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     assert(!entity->isDead());
     uint8_t region = _space->getRegion(entity->getSpaceIndex());
     bool shouldBePhysical = region < workload::Region::R3 && entity->shouldBePhysical();
+    bool canBeKinematic = region <= workload::Region::R3;
     if (shouldBePhysical) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (!motionState) {
             _entitiesToAddToPhysics.insert(entity);
         }
-    } else if (entity->isMovingRelativeToParent()) {
+    } else if (canBeKinematic && entity->isMovingRelativeToParent()) {
         _simpleKinematicEntities.insert(entity);
     }
 }
@@ -124,6 +125,7 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
     uint8_t region = _space->getRegion(entity->getSpaceIndex());
     bool shouldBePhysical = region < workload::Region::R3 && entity->shouldBePhysical();
+    bool canBeKinematic = region <= workload::Region::R3;
     if (motionState) {
         if (!shouldBePhysical) {
             // the entity should be removed from the physical simulation
@@ -131,7 +133,7 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
             _physicalObjects.remove(motionState);
             removeOwnershipData(motionState);
             _entitiesToRemoveFromPhysics.insert(entity);
-            if (entity->isMovingRelativeToParent()) {
+            if (canBeKinematic && entity->isMovingRelativeToParent()) {
                 _simpleKinematicEntities.insert(entity);
             }
         } else {
@@ -142,7 +144,7 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
         // Perhaps it's shape has changed and it can now be added?
         _entitiesToAddToPhysics.insert(entity);
         _simpleKinematicEntities.remove(entity); // just in case it's non-physical-kinematic
-    } else if (entity->isMovingRelativeToParent()) {
+    } else if (canBeKinematic && entity->isMovingRelativeToParent()) {
         _simpleKinematicEntities.insert(entity);
     } else {
         _simpleKinematicEntities.remove(entity); // just in case it's non-physical-kinematic
@@ -190,18 +192,21 @@ const VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToRemoveFromPhys
     for (auto entity: _entitiesToRemoveFromPhysics) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         assert(motionState);
+      // TODO CLEan this, just a n extra check to avoid the crash that shouldn;t happen
+      if (motionState) {
 
-        _entitiesToAddToPhysics.remove(entity);
-        if (entity->isDead() && entity->getElement()) {
-            _deadEntities.insert(entity);
+            _entitiesToAddToPhysics.remove(entity);
+            if (entity->isDead() && entity->getElement()) {
+                _deadEntities.insert(entity);
+            }
+
+            _incomingChanges.remove(motionState);
+            removeOwnershipData(motionState);
+            _physicalObjects.remove(motionState);
+
+            // remember this motionState and delete it later (after removing its RigidBody from the PhysicsEngine)
+            _objectsToDelete.push_back(motionState);
         }
-
-        _incomingChanges.remove(motionState);
-        removeOwnershipData(motionState);
-        _physicalObjects.remove(motionState);
-
-        // remember this motionState and delete it later (after removing its RigidBody from the PhysicsEngine)
-        _objectsToDelete.push_back(motionState);
     }
     _entitiesToRemoveFromPhysics.clear();
     return _objectsToDelete;

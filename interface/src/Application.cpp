@@ -4330,6 +4330,8 @@ void Application::idle() {
     }
 
     {
+      //  workload::Timings timings(1, PerformanceTimer::getTimerRecord("/idle/update/simulation").getAverage());
+     //   _gameWorkload.updateSimulationTimings(timings);
         _gameWorkload.updateViews(_viewFrustum, getMyAvatar()->getHeadPosition());
         _gameWorkload._engine->run();
     }
@@ -5310,7 +5312,9 @@ void Application::update(float deltaTime) {
     {
         PROFILE_RANGE(simulation_physics, "Simulation");
         PerformanceTimer perfTimer("simulation");
+
         if (_physicsEnabled) {
+            auto t0 = std::chrono::high_resolution_clock::now();
             {
                 PROFILE_RANGE(simulation_physics, "PrePhysics");
                 PerformanceTimer perfTimer("prePhysics)");
@@ -5398,12 +5402,21 @@ void Application::update(float deltaTime) {
                         // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
                         _physicsEngine->dumpStatsIfNecessary();
                     }
+                    auto t1 = std::chrono::high_resolution_clock::now();
 
                     if (!_aboutToQuit) {
                         // NOTE: the getEntities()->update() call below will wait for lock
                         // and will provide non-physical entity motion
                         getEntities()->update(true); // update the models...
                     }
+
+                    auto t2 = std::chrono::high_resolution_clock::now();
+
+                    workload::Timings timings(2);
+                    timings[0] = (t1 - t0);
+                    timings[1] = (t2 - t1);
+                    _gameWorkload.updateSimulationTimings(timings);
+
                 }
             }
         } else {

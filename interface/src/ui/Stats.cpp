@@ -489,9 +489,9 @@ void Stats::updateStats(bool force) {
             };
             for (int32_t j = 0; j < categories.size(); ++j) {
                 QString recordKey = "/idle/update/" + categories[j];
-                itr = allRecords.find(recordKey);
-                if (itr != allRecords.end()) {
-                    float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
+                auto record = PerformanceTimer::getTimerRecord(recordKey);
+                if (record.getCount()) {
+                    float dt = (float) record.getMovingAverage() / (float)USECS_PER_MSEC;
                     QString message = QString("\n    %1 = %2").arg(categories[j]).arg(dt);
                     idleUpdateStats.push(SortableStat(message, dt));
                 }

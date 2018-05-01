@@ -25,6 +25,7 @@ struct WorkloadView {
     vec4 direction_far;
     vec4 fov;
     vec4 origin;
+    vec4 backFront[2];
     vec4 regions[3];
 };
 
