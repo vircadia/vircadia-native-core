@@ -904,6 +904,9 @@ private:
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
+
+    // load avatar scripts once when rig is ready
+    bool _shouldLoadScripts { false };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

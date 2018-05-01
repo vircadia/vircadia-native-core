@@ -124,8 +124,14 @@ MyAvatar::MyAvatar(QThread* thread) :
     connect(_skeletonModel.get(), &Model::setURLFinished, this, [this](bool success) {
         if (success) {
             qApp->unloadAvatarScripts();
+            _shouldLoadScripts = true;
+        }
+    });
+    connect(_skeletonModel.get(), &Model::rigReady, this, [this]() {
+        if (_shouldLoadScripts) {
             auto geometry = getSkeletonModel()->getFBXGeometry();
             qApp->loadAvatarScripts(geometry.scripts);
+            _shouldLoadScripts = false;
         }
     });
     connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
