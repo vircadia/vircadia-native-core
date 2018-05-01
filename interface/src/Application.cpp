@@ -2671,6 +2671,9 @@ void Application::initializeDisplayPlugins() {
             batch.enableSkybox(true);
             batch.enableStereo(_appRenderArgs._isStereo);
             batch.setViewportTransform({ 0, 0, finalFramebuffer->getSize() });
+            batch.runLambda([] {
+                // update uniform values
+            });
             procedural->render(batch, _appRenderArgs._renderArgs.getViewFrustum());
         });
         auto frame = _gpuContext->endFrame();
@@ -3016,7 +3019,7 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
             _thirdPersonHMDCameraBoomValid = false;
 
             _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
-            if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+            if (isOptionChecked(MenuOption::CenterPlayerInView)) {
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                     + _myCamera.getOrientation() * boomOffset);
             }
