@@ -17,38 +17,24 @@ void ConicalViewFrustum::set(const ViewFrustum& viewFrustum) {
     // The ConicalViewFrustum has two parts: a central sphere (same as ViewFrustum) and a circular cone that bounds the frustum part.
     // Why?  Because approximate intersection tests are much faster to compute for a cone than for a frustum.
     _position = viewFrustum.getPosition();
-    _direction = viewFrustum.getDirection();
     _radius = viewFrustum.getCenterRadius();
     _farClip = viewFrustum.getFarClip();
 
-    // Considering the rectangle intersection the frustum and the perpendicular plane 1 unit
-    // away from the frustum's origin
-    // We are looking for the angle between the ray that goes through the center of the rectangle
-    // and the ray that goes through one of the corners of the rectangle
-    // (Both rays coming from the frustum's origin)
-    // This angle will let us construct a cone in which the frustum is inscribed
-    // Let's define:
-    // A = aspect ratio = width / height
-    // fov = vertical field of view
-    // y = half height of the rectangle
-    // x = half width of the rectangle
-    // r = half diagonal of the rectangle
-    // then, we have:
-    // y / 1 = tan(fov / 2)
-    // x = A * y = A * tan(fov / 2)
-    // r^2 = x^2 + y^2 = (A^2 + 1) * tan^2(fov / 2)
-    // r / 1 = tan(angle) = sqrt((A^2 + 1) * tan^2(fov / 2))
-    // angle = atan(sqrt((A^2 + 1) * tan^2(fov / 2)))
-    float A = viewFrustum.getAspectRatio();
-    float t = tanf(0.5f * viewFrustum.getFieldOfView());
+    auto topLeft = viewFrustum.getNearTopLeft() - _position;
+    auto topRight = viewFrustum.getNearTopRight() - _position;
+    auto bottomLeft = viewFrustum.getNearBottomLeft() - _position;
+    auto bottomRight = viewFrustum.getNearBottomRight() - _position;
+    auto centerAxis = 0.25f * (topLeft + topRight + bottomLeft + bottomRight); // Take the average
 
-    auto tan2Angle = (A * A + 1.0f) * (t * t);
-    _angle = atanf(sqrt(tan2Angle));
-
-    calculate();
+    _direction = glm::normalize(centerAxis);
+    _angle = std::max(std::max(angleBetween(_direction, topLeft),
+                               angleBetween(_direction, topRight)),
+                      std::max(angleBetween(_direction, bottomLeft),
+                               angleBetween(_direction, bottomRight)));
 }
 
 void ConicalViewFrustum::calculate() {
+    // Pre-compute cos and sin for faster checks
     _cosAngle = cosf(_angle);
     _sinAngle = sqrtf(1.0f - _cosAngle * _cosAngle);
 }
