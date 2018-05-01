@@ -22,6 +22,7 @@ Rectangle {
     HifiStylesUit.HifiConstants { id: hifi; }
 
     id: root;
+    property bool processing360Snapshot: false;
     // Style
     color: hifi.colors.baseGray;
 
@@ -189,8 +190,8 @@ Rectangle {
         z: 999;
         id: processingSnapshot;
         anchors.fill: parent;
-        visible: !take360SnapshotButton.enabled && cameraToggleButton.camIsOn;
-        color: Qt.rgba(0.0, 0.0, 0.0, 0.8);        
+        visible: root.processing360Snapshot;
+        color: Qt.rgba(0.0, 0.0, 0.0, 0.85);        
 
         // This object is always used in a popup.
         // This MouseArea is used to prevent a user from being
@@ -464,8 +465,7 @@ Rectangle {
             width: parent.width/2 - 10;
 			height: 40;
 			onClicked: {
-                take360SnapshotButton.enabled = false;
-                take360SnapshotButton.text = "PROCESSING...";
+                root.processing360Snapshot = true;
 				sendToScript({method: 'takeSecondaryCamera360Snapshot'});
 			}
 		}
@@ -517,9 +517,8 @@ Rectangle {
 				takeSnapshotFromControllerCheckBox.visible = false;
             }
         break;
-        case 'enable360SnapshotButton':
-            take360SnapshotButton.text = "Take 360 Snapshot";
-            take360SnapshotButton.enabled = cameraToggleButton.camIsOn;
+        case 'finishedProcessing360Snapshot':
+            root.processing360Snapshot = false;
         break;
         default:
             console.log('Unrecognized message from spectatorCamera.js:', JSON.stringify(message));

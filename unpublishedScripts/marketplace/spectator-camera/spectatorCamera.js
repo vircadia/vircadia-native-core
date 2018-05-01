@@ -408,8 +408,11 @@
         }
     }
     function onEquirectangularSnapshotTaken() {
+        if (monitorShowsCameraView) {
+            setDisplay(true);
+        }
         sendToQml({
-            method: 'enable360SnapshotButton'
+            method: 'finishedProcessing360Snapshot'
         });
     }
     function maybeTake360Snapshot() {
@@ -419,6 +422,9 @@
                 localOnly: true,
                 volume: 1.0
             });
+            if (HMD.active && monitorShowsCameraView) {
+                setDisplay(false);
+            }
             Window.takeSecondaryCamera360Snapshot(Entities.getEntityProperties(camera, ["positon"]).position);
         }
     }

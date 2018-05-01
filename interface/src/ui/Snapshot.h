@@ -37,6 +37,8 @@ class Snapshot : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:
+    Snapshot();
+
     static QString saveSnapshot(QImage image, const QString& filename);
     static void save360Snapshot(const glm::vec3& cameraPosition, const QString& filename);
     static QTemporaryFile* saveTempSnapshot(QImage image);
@@ -51,11 +53,17 @@ signals:
 public slots:
     Q_INVOKABLE QString getSnapshotsLocation();
     Q_INVOKABLE void setSnapshotsLocation(const QString& location);
+
+private slots:
+    static void takeNextSnapshot();
+
 private:
     static QFile* savedFileForSnapshot(QImage & image, bool isTemporary, const QString& userSelectedFilename = QString());
 
+    static QString snapshotFilename;
     static QTimer snapshotTimer;
     static qint16 snapshotIndex;
+    static bool oldEnabled;
     static QVariant oldAttachedEntityId;
     static QVariant oldOrientation;
     static QVariant oldvFoV;

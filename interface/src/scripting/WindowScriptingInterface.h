@@ -367,9 +367,9 @@ public slots:
     void takeSecondaryCameraSnapshot(const QString& filename = QString());
 
     /**jsdoc
-    * Takes a 360 snapshot of the current view from the secondary camera that can be set up through the {@link Render} API.
-    * NOTE:  to provide a non-default value - all previous parameters must be provided.
+    * Takes a 360 snapshot given a position of the secondary camera (which does not need to have been previously set up).
     * @function Window.takeSecondaryCameraSnapshot
+    * @param {vec3} [cameraPosition] - The (x, y, z) position of the camera for the 360 snapshot
     * @param {string} [filename=""] - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
     *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
     *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
@@ -587,10 +587,10 @@ signals:
     void stillSnapshotTaken(const QString& pathStillSnapshot, bool notify);
 
     /**jsdoc
-    * Triggered when a still equirectangular snapshot has been taken by calling {@link Window.take360Snapshot|take360Snapshot}
+    * Triggered when a still equirectangular snapshot has been taken by calling {@link Window.takeSecondaryCamera360Snapshot|takeSecondaryCamera360Snapshot}
     * @function Window.equirectangularSnapshotTaken
     * @param {string} pathStillSnapshot - The path and name of the snapshot image file.
-    * @param {boolean} notify - The value of the <code>notify</code> parameter that {@link Window.take360Snapshot|take360Snapshot}
+    * @param {boolean} notify - The value of the <code>notify</code> parameter that {@link Window.takeSecondaryCamera360Snapshot|takeSecondaryCamera360Snapshot}
     *     was called with.
     * @returns {Signal}
     */
