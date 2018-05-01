@@ -36,10 +36,11 @@ enum class BakedAssetType : int {
     Undefined
 };
 
-// ATTENTION! If you change the current version for an asset type, you will also
-// need to update the function currentBakeVersionForAssetType() inside of AssetServer.cpp.
+// ATTENTION! Do not remove baking versions, and do not reorder them. If you add
+// a new value, it will immediately become the "current" version.
 enum class ModelBakeVersion : BakeVersion {
     Initial = INITIAL_BAKE_VERSION,
+    MetaTextureJson,
 
     COUNT
 };
@@ -47,6 +48,7 @@ enum class ModelBakeVersion : BakeVersion {
 // ATTENTION! See above.
 enum class TextureBakeVersion : BakeVersion {
     Initial = INITIAL_BAKE_VERSION,
+    MetaTextureJson,
 
     COUNT
 };
