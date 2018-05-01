@@ -588,6 +588,7 @@ void AnimExpression::evalUnaryMinus(const AnimVariantMap& map, std::stack<OpCode
             PUSH(false);
             break;
         }
+        break;
     }
     case OpCode::Int:
         PUSH(-rhs.intVal);

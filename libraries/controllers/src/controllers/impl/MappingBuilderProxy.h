@@ -39,7 +39,9 @@ class UserInputMapper;
  *     methods.</li>
  *     <li>Use {@link Controller.parseMapping} or {@link Controller.loadMapping} to load a {@link Controller.MappingJSON}.</li>
  * </ul>
- * <p>Enable the mapping using {@link MappingObject#enable|enable} or {@link Controller.enableMapping} for it to take effect.
+ *
+ * <p>Enable the mapping using {@link MappingObject#enable|enable} or {@link Controller.enableMapping} for it to take 
+ * effect.</p>
  *
  * <p>Mappings and their routes are applied according to the following rules:</p>
  * <ul>
