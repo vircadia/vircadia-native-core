@@ -10,8 +10,6 @@
 //
 #include "AutoTester.h"
 
-#include <QMessageBox>
-
 AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
     ui.setupUi(this);
     ui.checkBoxInteractiveMode->setChecked(true);
@@ -91,11 +89,17 @@ void AutoTester::saveImage(int index) {
     QPixmap pixmap;
     pixmap.loadFromData(downloaders[index]->downloadedData());
 
+    int sdf = pixmap.width();
     QImage image = pixmap.toImage();
     image = image.convertToFormat(QImage::Format_ARGB32);
 
     QString fullPathname = _directoryName + "/" + _filenames[index];
-    image.save(fullPathname, 0, 100);
+    if (!image.save(fullPathname, 0, 100)) {
+        QMessageBox messageBox;
+        messageBox.information(0, "Test Aborted", "Failed to save image: " + _filenames[index]);
+        ui.progressBar->setVisible(false);
+        return;
+    }
 
     ++_numberOfImagesDownloaded;
 

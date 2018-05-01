@@ -52,9 +52,9 @@ private:
     // Used to enable passing a parameter to slots
     QSignalMapper* signalMapper;
 
-    int _numberOfImagesToDownload;
-    int _numberOfImagesDownloaded;
-    int _index;
+    int _numberOfImagesToDownload { 0 };
+    int _numberOfImagesDownloaded { 0 };
+    int _index { 0 };
 };
 
 #endif // hifi_AutoTester_h
