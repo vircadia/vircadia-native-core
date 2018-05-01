@@ -46,10 +46,10 @@ void GLBackend::do_setFramebuffer(const Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_setFramebufferSwapChain(const Batch& batch, size_t paramOffset) {
-    auto swapChain = batch._swapChains.get(batch._params[paramOffset]._uint);
+    auto swapChain = std::static_pointer_cast<FramebufferSwapChain>(batch._swapChains.get(batch._params[paramOffset]._uint));
     if (swapChain) {
         auto index = batch._params[paramOffset + 1]._uint;
-        FramebufferPointer framebuffer = static_cast<const FramebufferSwapChain*>(swapChain.get())->get(index);
+        const auto& framebuffer = swapChain->get(index);
         setFramebuffer(framebuffer);
     }
 }
