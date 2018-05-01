@@ -7,6 +7,16 @@
     const rimraf = require('rimraf');
     const dedent = require('dedent-js');
 
+// Arg Vars
+    const copyLocal = process.argv[2];
+    console.log("copyLocal:", copyLocal);
+    let targetTemplateDirectory = ''
+    let targetMDDirectory = ''
+    if (copyLocal){
+        targetTemplateDirectory = process.argv[3];
+        targetMDDirectory = process.argv[4];;
+    }
+
 // Required directories
     let dir_out = path.join(__dirname, 'out');
 
@@ -19,11 +29,7 @@
     let dir_md_objects = path.join(dir_md, '02.Objects');
     let dir_md_namespaces = path.join(dir_md, '01.Namespaces');
     let dir_md_globals = path.join(dir_md, '03.Globals');
-
-// Target Copy Directories
-    let targetTemplateDirectory = "D:/ROLC/Organize/O_Projects/Hifi/Docs/hifi-docs-grav/user/themes/learn2/";
-    let targetMDDirectory = "D:/ROLC/Organize/O_Projects/Hifi/Docs/hifi-docs-grav-content/";
-
+    
 // Array to itterate over and create if doesn't exist
     let dirArray = [dir_grav, dir_css, dir_js, dir_template, dir_md, dir_md_objects, dir_md_namespaces, dir_md_globals];
 
@@ -50,18 +56,22 @@
     const html_reg_brRemove = /<br>[\s\S]+?<br>/;
     const html_reg_subsectionEdit = /(<h. class="subsection-title">)([\s\S]*?)(<\/h.>)/g;
     const html_reg_subsectionEdit_replace = '<h4 class="subsection-title">$2</h4>';
+    const html_reg_propertiesHeaderEdit = '<h4 class="subsection-title">Properties:</h4>';
+    const html_reg_propertiesHeaderEdit_Replace = '<h4 class="subsection-title">Properties</h4>';
     const html_reg_typeEdit = /(<h5>Returns[\s\S]*?Type)(<\/dt[\s\S]*?type">)(.*?)(<\/span><\/dd>[\s\S]*?<\/dl>)/g;
     const html_reg_typeEdit_replace = '$1: $3</dt></dl>'
     const html_reg_methodSize = /(<h4)( class="name"[\s\S].*?<\/span>)(<\/h4>)/g;
     const html_reg_methodSize_replace = '<h5$2</h5>';
+    const html_reg_typeDefSize = /(<h4)( class="name"[\s\S].*?)(<\/h4>)/g;
+    const html_reg_typeDefSize_replace = '<h5$2</h5>';
     const html_reg_returnSize = /<h5>Returns:<\/h5>/g;
     const html_reg_returnSize_replace = '<h6>Returns:<\/h6>';
     const html_reg_findByName = '<h5 class="name"';
-    const html_reg_findByMethod = `<h4 class="subsection-title">Methods</h4>`
+    const html_reg_findByTitle = '<h1>';   
+    const html_reg_findByMethod = `<h4 class="subsection-title">Methods</h4>`;
     const html_reg_findByArticleClose = `</article>`
     const html_reg_signalTitle = `<h4 class="subsection-title">Signals</h4>`;
-    
-    
+    const html_reg_typeDefinitonsTitle = `<h4 class="subsection-title">Type Definitions</h4>`;
 
 // Mapping for GroupNames and Members
     let groupNameMemberMap = {
@@ -71,6 +81,7 @@
     }
 
 // Procedural functions
+    // Create the actual MD file
     function createMD(title, directory, needsDir, isGlobal){
         let mdSource = makeMdSource(title);
         
@@ -84,14 +95,14 @@
         fs.writeFileSync(destinationMDFile, mdSource);
     }
 
+    // Create the actual Template file
     function createTemplate(title,content){
-        // console.log("content:", content)
         let twigBasePartial = makeTwigFile(content);
-        // console.log("TWIG BASE:", twigBasePartial)
         let destinationFile = path.join(dir_template, `API_${title}.html.twig`);
         fs.writeFileSync(destinationFile, twigBasePartial);
     }
 
+    // Copy file from source to target - used for recurssive call
     function copyFileSync( source, target ) {
         let targetFile = target;
 
@@ -108,6 +119,7 @@
         fs.writeFileSync(targetFile, fs.readFileSync(source));
     }
 
+    // Copy file from source to target
     function copyFolderRecursiveSync( source, target ) {
         var files = [];
 
@@ -131,6 +143,7 @@
         }
     }
 
+    // Clean up the Html
     function prepareHtml(source){
         let htmlBefore = fs.readFileSync(source, {encoding: 'utf8'});
         let htmlAfter = htmlclean(htmlBefore);
@@ -138,6 +151,7 @@
         return cheerio.load(htmlAfterPretty);
     }
 
+    // Base file for MD's
     function makeMdSource(title){
         return dedent(
             `
@@ -152,6 +166,7 @@
         )
     }
 
+    // Base file for Templates
     function makeTwigFile(contentHtml){
         return dedent(
             `
@@ -185,15 +200,15 @@
         )
     }
 
+    // Handle NameSpace Group   
     function handleNamespace(title, content){
-        // console.log("Content from namespcae:", content)
         groupNameMemberMap["Namespaces"].push(title);
         let destinationDirectory = path.join(map_dir_md["Namespace"], title);
-
         createMD(title, destinationDirectory, true);
         createTemplate(title, content);
     }
 
+    // Handle Class Group       
     function handleClass(title, content){
         groupNameMemberMap["Objects"].push(title);
         let destinationDirectory = path.join(map_dir_md["Class"], title);
@@ -201,18 +216,19 @@
 
         let formatedHtml = content
                             .replace(html_reg_objectSpanNew,"")
-                            .replace(html_reg_brRemove, "");
         createTemplate(title, formatedHtml);
     }
 
+    // Handle Global Group           
     function handleGlobal(title, content){
         groupNameMemberMap["Globals"].push("Globals");
         createMD("Globals", map_dir_md["Global"], false, true);
         createTemplate("Globals", content); 
     }
 
+    // Handle Group TOCs               
     function makeGroupTOC(group){
-            let mappedGroup;
+        let mappedGroup;
         if (!Array.isArray(group)){
             mappedGroup = groupNameMemberMap[group];
         } else {
@@ -234,6 +250,112 @@
         return htmlGroup.join("\n");
     }
 
+    // Handle Class TOCS
+    function makeClassTOC(group){
+        let linkArray = []
+        group.forEach( item => {
+            linkArray.push(`<div><h5>${item.type}</h5></div>`)            
+            item.array.forEach( link => {
+               linkArray.push(`<div><a href="#.${link.slice(1)}">${link.slice(1)}</a></div>`)
+            })
+        })
+        return linkArray.join("\n");
+    }
+
+    // Extract IDS for TOC
+    function extractIDs(groupToExtract){
+        let firstLine = "";
+        let id = "";
+        let extractedIDs = [];
+        groupToExtract.forEach((item)=>{
+            firstLine = item.split("\n")[0];
+            try {
+                id = firstLine.split('id="')[1].split(`"`)[0];
+            } catch (e){
+
+            }
+            extractedIDs.push(id)
+        })
+        return extractedIDs;
+    }
+
+    // Helper for splitting up html 
+    // Takes: Content to split, SearchTerm to Split by, term to End Splitting By, and negate Term object array
+    // negateTermObject { term: "<code>", distance: "3"}
+    // Returns: [newContent after Split, Array of extracted ]
+    function splitBy(content, searchTerm, endSplitTerm){
+        let foundArray = [];
+        let curIndex = -1;
+        let afterCurSearchIndex = -1
+        let negateTermIndex = -1;
+        let nextIndex = 0;
+        let findbyNameLength = searchTerm.length;
+        let curfoundArrayIndex = 0;
+        let curEndSplitTermIndex = -1;
+        do {
+            curEndSplitTermIndex = content.indexOf(endSplitTerm);
+            curIndex = content.indexOf(searchTerm);
+            afterCurSearchIndex = curIndex+findbyNameLength;
+            nextIndex = content.indexOf(searchTerm,afterCurSearchIndex);
+            if (nextIndex === -1){
+                nextIndex = curEndSplitTermIndex;
+            }
+            foundArray.push(content.slice(curIndex, nextIndex))
+            // remove that content
+            content = content.replace(foundArray[curfoundArrayIndex], "");
+            curfoundArrayIndex++;
+        } while (curIndex > -1)
+        return [content, foundArray];
+    }
+
+    // Split the signals, methods, and typeDefs [Might make this more generic]
+    function splitMethodsSignalsAndTypeDefs(allItemToSplit){
+        let methodArray = [];
+        let signalArray = [];
+        let typeDefArray = [];
+        console.log(allItemToSplit.length);
+        allItemToSplit.forEach( method => {
+            firstLine = method.split("\n")[0];            
+            if (firstLine.indexOf("Signal") > -1){
+                console.log("Found signal")
+                signalArray.push(method);
+            } else if (firstLine.indexOf("span") > -1) {
+                // console.log("Found method")
+                methodArray.push(method);
+            } else {
+                // console.log("Found typeDef")
+                
+                typeDefArray.push(method);
+            }
+        })
+        return [methodArray, signalArray, typeDefArray];
+    }
+
+    // Helper to append
+    // Takes content, the search term to appendTo, the content to append, 
+    // and bool if the append is before the found area
+    function append(content, searchTermToAppendto, contentToAppend, appendBefore){
+        let contentArray = content.split("\n");
+        let foundIndex = findArrayTrim(contentArray, searchTermToAppendto)
+        foundIndex = appendBefore ? foundIndex : foundIndex +1
+        
+        contentArray.splice(foundIndex,0,contentToAppend)
+        return contentArray.join("\n")
+    }
+
+    // Helper function for append
+    function findArrayTrim(array, searchTerm){
+        var index = -1;
+        for (var i = 0; i < array.length; i++){
+            index = array[i].trim().indexOf(searchTerm.trim());
+            if (index > -1){
+                return i
+            }
+        }
+        return index;
+    }
+
+
 // Remove grav directory if exists to make sure old files aren't kept
     if (fs.existsSync(dir_grav)){
         console.log("dir_grav exists");
@@ -253,7 +375,8 @@
     })
 
 // Read jsdoc output folder and process html files
-    let curSource = path.join(dir_out, "AvatarInputs.html");
+    let curSource = path.join(dir_out, "Controller.html");
+    if (path.extname(curSource) == ".html" && path.basename(curSource, '.html') !== "index") {
         // Clean up the html source
             let loadedHtml = prepareHtml(curSource);
 
@@ -261,26 +384,12 @@
             let splitTitle = loadedHtml("title").text().split(": ");
             let groupName = splitTitle[1];
             let htmlTitle = splitTitle.pop();
-            // console.log("first loaded:", loadedHtml("#main").html())
             let mainDiv = loadedHtml("#main")
 
-            // let signatures = mainDiv.find(".name")
-        // Exploring Extractions
-            // let array = mainDiv.find('h4').toArray();
-            
-            // console.log(array[2])
-            // var reducedArray = array.reduce((prev, cur) => {
-            //     try {
-            //         // console.log(cur.children[1]);
-            //         prev.push(cur.children[1].data);
-            //     } catch(e) {
-
-            //     }
-            //     return prev;
-            // }, [])
-            // console.log("name", reducedArray.length);
-            
-        // regex edits
+            let methodIDs = [];
+            let signalIDs = [];
+            let typeDefIDs = [];
+        // Basic Regex HTML edits
             let mainDivRegexed = mainDiv.html()
                                     .replace(html_reg_static,"")
                                     .replace(html_reg_title,"")
@@ -288,96 +397,74 @@
                                     .replace(html_reg_htmlExt,"")
                                     .replace(html_reg_brRemove, "")
                                     .replace(html_reg_subsectionEdit, html_reg_subsectionEdit_replace)
+                                    .replace(html_reg_propertiesHeaderEdit, html_reg_propertiesHeaderEdit_Replace)
                                     .replace(html_reg_typeEdit, html_reg_typeEdit_replace)
                                     .replace(html_reg_returnSize, html_reg_returnSize_replace)
-                                    .replace(html_reg_methodSize, html_reg_methodSize_replace);
-           
-            function splitBy(content, searchTerm){
-                let foundArray = [];
-                let curIndex = -1;
-                let nextIndex = 0;
-                let findbyNameLength = searchTerm.length;
-                let curfoundArrayIndex = 0;
-                let curArticleCloseIndex = -1;
-                do {
-                    curArticleCloseIndex = content.indexOf("</article>");                    
-                    curIndex = content.indexOf(searchTerm);
-                    nextIndex = content.indexOf(searchTerm,curIndex+findbyNameLength);
-                    if (nextIndex === -1){
-                        nextIndex = curArticleCloseIndex
-                    }
-                    foundArray.push(content.slice(curIndex, nextIndex))
-                    content = content.replace(foundArray[curfoundArrayIndex], "");
-                    curfoundArrayIndex++;
-                } while (curIndex > -1)
-                return [content, foundArray];
+                                    .replace(html_reg_methodSize, html_reg_methodSize_replace)
+                                    .replace(html_reg_typeDefSize, html_reg_typeDefSize_replace)
+                                    .replace(html_reg_typeDefinitonsTitle, "");
+                                    
+        
+        // Further HTML Manipulation
+            // Split HTML by Each named entry
+            let contentSplitArray = splitBy(mainDivRegexed, html_reg_findByName, html_reg_findByArticleClose);
+            // Create a reference to the current content after split and the split functions
+            let currentContent = contentSplitArray[0];
+            // Create references to the split methods and signals
+            let splitMethodsSignalsAndTypeDefs = splitMethodsSignalsAndTypeDefs(contentSplitArray[1]);
+            let splitMethods = splitMethodsSignalsAndTypeDefs[0];
+            let splitSignals = splitMethodsSignalsAndTypeDefs[1];
+            let splitTypeDefintions = splitMethodsSignalsAndTypeDefs[2];
+            let splitMethodIDS = extractIDs(splitMethods);
+            let splitSignalIDS = extractIDs(splitSignals);
+            let splitTypeDefinitionIDS = extractIDs(splitTypeDefintions);
+            let classTOC = makeClassTOC([
+                {type: "Methods", array: splitMethodIDS},
+                {type: "Signals", array: splitSignalIDS},
+                {type: "Type Definitions", array: splitTypeDefinitionIDS}
+            ]);
+
+            // Append Signals and Methods to the current Content
+            currentContent = append(currentContent, html_reg_findByTitle, classTOC);         
+            currentContent = append(currentContent, html_reg_findByMethod, splitMethods.join('\n'));
+            if (splitSignals.length > 0) {
+                // Add the Signals header to the Signals HTML
+                splitSignals.unshift(html_reg_signalTitle)
+                currentContent = append(currentContent, html_reg_findByArticleClose, splitSignals.join('\n'),true);        
+            }
+            if (splitTypeDefintions.length > 0) {
+                // Add the Signals header to the Signals HTML
+                splitTypeDefintions.unshift(html_reg_typeDefinitonsTitle)
+                currentContent = append(currentContent, html_reg_findByArticleClose, splitTypeDefintions.join('\n'), true);        
             }
 
-            function extractSignals(methodArray){
-                let newMethodArray = [];
-                let signalArray = [];
-                methodArray.forEach( method => {
-                    method.indexOf("Signal") > -1
-                    ? signalArray.push(method)
-                    : newMethodArray.push(method);
-                })
-                return [newMethodArray, signalArray]
-            }
-
-            function append(content, areaToAppendTo, contentToAppend, appendBefore){
-                var contentArray = content.split("\n");
-                // console.log("contentArray:", contentArray)
-                // console.log("areaToAppendTo:", areaToAppendTo)
-                var foundIndex = findArrayTrim(contentArray, areaToAppendTo)
-                console.log(foundIndex)
-                foundIndex = appendBefore ? foundIndex : foundIndex +1
-                
-                contentArray.splice(foundIndex,0,contentToAppend)
-                return contentArray.join("\n")
-            }
-
-            function findArrayTrim(array, searchTerm){
-                var index = -1;
-                for (var i = 0; i < array.length; i++){
-                    index = array[i].trim().indexOf(searchTerm.trim());
-                    if (index > -1){
-                        return i
-                    }
-                }
-                return index;
-            }
-
-            var nameArray = splitBy(mainDivRegexed, html_reg_findByName);
-            let currentContent = nameArray[0];
-            let separatedMethods = extractSignals(nameArray[1]);
-            let methodsToAppend = separatedMethods[0].join("\n");
-            separatedMethods[1].unshift(html_reg_signalTitle)
-            let signalsToAppend = separatedMethods[1].join("\n");
-            currentContent = append(currentContent, html_reg_findByMethod, methodsToAppend);
-            mainDivRegexed = append(currentContent, html_reg_findByArticleClose, signalsToAppend,true);        
-
-            // console.log(mainDivRegexed);
+            // Final Pretty Content
+            currentContent = htmlclean(currentContent);
+            currentContent = pretty(currentContent);
         // Handle Unique Categories
             switch(groupName){
                 case "Namespace":
-                    handleNamespace(htmlTitle, mainDivRegexed);
+                    handleNamespace(htmlTitle, currentContent);
                     break;
                 case "Class":
-                    handleClass(htmlTitle, mainDivRegexed);
+                    handleClass(htmlTitle, currentContent);
                     break;
                 case "Global":
-                    handleGlobal(htmlTitle, mainDivRegexed);
+                    handleGlobal(htmlTitle, currentContent);
                     break;
                 default:
                     console.log(`Case not handled for ${groupName}`);
             }
+    }
 
 // Create the base Templates after processing individual files
-    createTemplate("API-Reference", makeGroupTOC(["Namespaces", "Objects", "Globals"]));
-    createTemplate("Namespaces", makeGroupTOC("Namespaces"));
-    createTemplate("Objects", makeGroupTOC("Objects"));
+createTemplate("API-Reference", makeGroupTOC(["Namespaces", "Objects", "Globals"]));
+createTemplate("Namespaces", makeGroupTOC("Namespaces"));
+createTemplate("Objects", makeGroupTOC("Objects"));
 
-// Copy files to the Twig Directory
+// Copy the files to the target Directories if Local
+if (copyLocal){
+    // Copy files to the Twig Directory
     let templateFiles = fs.readdirSync(path.resolve(targetTemplateDirectory));
     // Remove Existing API files
     templateFiles.forEach(function(file){
@@ -389,10 +476,11 @@
     })
     copyFolderRecursiveSync(dir_template, targetTemplateDirectory);
 
-// Copy files to the Md Directory
+    // Copy files to the Md Directory
     let baseMdRefDir = path.join(targetMDDirectory,"06.api-reference");
     // Remove existing MD directory
     if (fs.existsSync(baseMdRefDir)){
         rimraf.sync(baseMdRefDir);
     }
     copyFolderRecursiveSync(dir_md, targetMDDirectory);
+}

@@ -62,12 +62,17 @@
     const html_reg_typeEdit_replace = '$1: $3</dt></dl>'
     const html_reg_methodSize = /(<h4)( class="name"[\s\S].*?<\/span>)(<\/h4>)/g;
     const html_reg_methodSize_replace = '<h5$2</h5>';
+    const html_reg_typeDefSize = /(<h4)( class="name"[\s\S].*?)(<\/h4>)/g;
+    const html_reg_typeDefSize_replace = '<h5$2</h5>';
     const html_reg_returnSize = /<h5>Returns:<\/h5>/g;
     const html_reg_returnSize_replace = '<h6>Returns:<\/h6>';
     const html_reg_findByName = '<h5 class="name"';
-    const html_reg_findByMethod = `<h4 class="subsection-title">Methods</h4>`
+    const html_reg_findByTitle = '<h1>';   
+    const html_reg_findByMethod = `<h4 class="subsection-title">Methods</h4>`;
     const html_reg_findByArticleClose = `</article>`
     const html_reg_signalTitle = `<h4 class="subsection-title">Signals</h4>`;
+    const html_reg_typeDefinitonsTitle = `<h4 class="subsection-title">Type Definitions</h4>`;
+    const html_reg_firstTableClose = `</table>`;
 
 
 // Mapping for GroupNames and Members
@@ -136,7 +141,7 @@
                 } else {
                     copyFileSync( curSource, targetFolder );
                 }
-            } );
+            });
         }
     }
 
@@ -247,23 +252,55 @@
         return htmlGroup.join("\n");
     }
 
+    // Handle Class TOCS
+    function makeClassTOC(group){
+        let linkArray = []
+        group.forEach( item => {
+            linkArray.push(`<div><h5>${item.type}</h5></div>`)            
+            item.array.forEach( link => {
+                linkArray.push(`<div><a href="#.${link.slice(1)}">${link.slice(1)}</a></div>`)
+            })
+            linkArray.push("<br>");
+        })
+        return linkArray.join("\n");
+    }
+
+    // Extract IDS for TOC
+    function extractIDs(groupToExtract){
+        let firstLine = "";
+        let id = "";
+        let extractedIDs = [];
+        groupToExtract.forEach((item)=>{
+            firstLine = item.split("\n")[0];
+            try {
+                id = firstLine.split('id="')[1].split(`"`)[0];
+            } catch (e){
+
+            }
+            extractedIDs.push(id)
+        })
+        return extractedIDs;
+    }
+
     // Helper for splitting up html 
     // Takes: Content to split, SearchTerm to Split by, and term to End Splitting By
     // Returns: [newContent after Split, Array of extracted ]
     function splitBy(content, searchTerm, endSplitTerm){
         let foundArray = [];
         let curIndex = -1;
+        let afterCurSearchIndex = -1
+        let negateTermIndex = -1;
         let nextIndex = 0;
         let findbyNameLength = searchTerm.length;
         let curfoundArrayIndex = 0;
         let curEndSplitTermIndex = -1;
         do {
-            curEndSplitTermIndex = content.indexOf(endSplitTerm);                    
+            curEndSplitTermIndex = content.indexOf(endSplitTerm);
             curIndex = content.indexOf(searchTerm);
-            // Search after initial index + length of searchterm
-            nextIndex = content.indexOf(searchTerm,curIndex+findbyNameLength);
+            afterCurSearchIndex = curIndex+findbyNameLength;
+            nextIndex = content.indexOf(searchTerm,afterCurSearchIndex);
             if (nextIndex === -1){
-                nextIndex = curEndSplitTermIndex
+                nextIndex = curEndSplitTermIndex;
             }
             foundArray.push(content.slice(curIndex, nextIndex))
             // remove that content
@@ -274,15 +311,27 @@
     }
 
     // Split the signals and methods [Might make this more generic]
-    function splitMethodsAndSignals(methodArray){
-        let newMethodArray = [];
+    function splitMethodsSignalsAndTypeDefs(allItemToSplit){
+        let methodArray = [];
         let signalArray = [];
-        methodArray.forEach( method => {
-            method.indexOf("Signal") > -1
-            ? signalArray.push(method)
-            : newMethodArray.push(method);2
+        let typeDefArray = [];
+        // console.log(allItemToSplit.length);
+        allItemToSplit.forEach( method => {
+            firstLine = method.split("\n")[0];            
+            if (firstLine.indexOf("Signal") > -1){
+                // console.log("Found signal")
+                signalArray.push(method);
+            } else if (firstLine.indexOf("span") > -1) {
+                // console.log("Found method")
+                methodArray.push(method);
+            } else {
+                // console.log("Found typeDef")
+                if(firstLine.trim() !== ""){
+                    typeDefArray.push(method);
+                }
+            }
         })
-        return [newMethodArray, signalArray]
+        return [methodArray, signalArray, typeDefArray];
     }
 
     // Helper to append
@@ -337,51 +386,74 @@
                 let loadedHtml = prepareHtml(curSource);
 
             // Extract the title, group name, and the main div
-                let splitTitle = loadedHtml("title").text().split(": ");
-                let groupName = splitTitle[1];
-                let htmlTitle = splitTitle.pop();
-                let mainDiv = loadedHtml("#main")
-            
-            // Basic Regex HTML edits
-                let mainDivRegexed = mainDiv.html()
-                                        .replace(html_reg_static,"")
-                                        .replace(html_reg_title,"")
-                                        .replace(html_reg_objectHeader,"")
-                                        .replace(html_reg_htmlExt,"")
-                                        .replace(html_reg_brRemove, "")
-                                        .replace(html_reg_subsectionEdit, html_reg_subsectionEdit_replace)
-                                        .replace(html_reg_propertiesHeaderEdit, html_reg_propertiesHeaderEdit_Replace)
-                                        .replace(html_reg_typeEdit, html_reg_typeEdit_replace)
-                                        .replace(html_reg_returnSize, html_reg_returnSize_replace)
-                                        .replace(html_reg_methodSize, html_reg_methodSize_replace);
-            
-            // Further HTML Manipulation
-                // Split HTML by Each named entry
-                if (path.basename(curSource, '.html') === "Controller"){
-                    var cleanup = htmlclean(mainDivRegexed);
-                    cleanup = pretty(cleanup)
-                    fs.writeFileSync(__dirname+'/Examine/ControllerExamine', cleanup);
-                }
+            let splitTitle = loadedHtml("title").text().split(": ");
+            let groupName = splitTitle[1];
+            let htmlTitle = splitTitle.pop();
+            let mainDiv = loadedHtml("#main")
 
-                let contentSplitArray = splitBy(mainDivRegexed, html_reg_findByName);
-                // Create a reference to the current content after split and the split functions
-                let currentContent = contentSplitArray[0];
-                // Create references to the split methods and signals
-                let splitSignalsAndMethods = splitMethodsAndSignals(contentSplitArray[1]);
-                let splitMethods = splitSignalsAndMethods[0];
-                let splitSignals = splitSignalsAndMethods[1];
-                // Append Signals and Methods to the current Content
-                currentContent = append(currentContent, html_reg_findByMethod, splitMethods.join('\n'));
-                console.log(path.basename(curSource, '.html'), splitSignals.length);                
-                if (splitSignals.length > 0) {
-                    // Add the Signals header to the Signals HTML
-                    splitSignals.unshift(html_reg_signalTitle)
-                    currentContent = append(currentContent, html_reg_findByArticleClose, splitSignals.join('\n',true));        
-                }
+            let methodIDs = [];
+            let signalIDs = [];
+            let typeDefIDs = [];
+        // Basic Regex HTML edits
+            let mainDivRegexed = mainDiv.html()
+                                    .replace(html_reg_static,"")
+                                    .replace(html_reg_title,"")
+                                    .replace(html_reg_objectHeader,"")
+                                    .replace(html_reg_htmlExt,"")
+                                    .replace(html_reg_brRemove, "")
+                                    .replace(html_reg_subsectionEdit, html_reg_subsectionEdit_replace)
+                                    .replace(html_reg_propertiesHeaderEdit, html_reg_propertiesHeaderEdit_Replace)
+                                    .replace(html_reg_typeEdit, html_reg_typeEdit_replace)
+                                    .replace(html_reg_returnSize, html_reg_returnSize_replace)
+                                    .replace(html_reg_methodSize, html_reg_methodSize_replace)
+                                    .replace(html_reg_typeDefSize, html_reg_typeDefSize_replace)
+                                    .replace(html_reg_typeDefinitonsTitle, "")
+                                    .replace(html_reg_findByMethod, "");                                    
+        
+        // Further HTML Manipulation
+            // Split HTML by Each named entry
+            let contentSplitArray = splitBy(mainDivRegexed, html_reg_findByName, html_reg_findByArticleClose);
+            // Create a reference to the current content after split and the split functions
+            let currentContent = contentSplitArray[0];
+            // Create references to the split methods and signals
+            let processedMethodsSignalsAndTypeDefs = splitMethodsSignalsAndTypeDefs(contentSplitArray[1]);
+            let splitMethods = processedMethodsSignalsAndTypeDefs[0];
+            let splitSignals = processedMethodsSignalsAndTypeDefs[1];
+            let splitTypeDefintions = processedMethodsSignalsAndTypeDefs[2];
+            let splitMethodIDS = extractIDs(splitMethods);
+            let splitSignalIDS = extractIDs(splitSignals);
+            let splitTypeDefinitionIDS = extractIDs(splitTypeDefintions);
+            let arrayToPassToClassToc = [];
 
-                // Final Pretty Content
-                currentContent = htmlclean(currentContent);
-                currentContent = pretty(currentContent);
+            // Append Signals and Methods to the current Content
+            if (splitMethods.length > 0) {
+                arrayToPassToClassToc.push({type: "Methods", array: splitMethodIDS});            
+                // Add the Signals header to the Signals HTML
+                splitMethods.unshift(html_reg_findByMethod)
+                currentContent = append(currentContent, html_reg_findByArticleClose, splitMethods.join('\n'), true);
+            }
+            if (splitSignals.length > 0) {
+                arrayToPassToClassToc.push({type: "Signals", array: splitSignalIDS});
+                // Add the Signals header to the Signals HTML
+                splitSignals.unshift(html_reg_signalTitle)
+                currentContent = append(currentContent, html_reg_findByArticleClose, splitSignals.join('\n'),true);        
+            }
+            if (splitTypeDefintions.length > 0) {
+
+                // console.log(path.basename(curSource, '.html'));
+                // console.log(splitTypeDefintions.length);
+                arrayToPassToClassToc.push({type: "Type Definitions", array: splitTypeDefinitionIDS});                
+                // Add the Signals header to the Signals HTML
+                splitTypeDefintions.unshift(html_reg_typeDefinitonsTitle)
+                currentContent = append(currentContent, html_reg_findByArticleClose, splitTypeDefintions.join('\n'), true);        
+            }
+
+            let classTOC = makeClassTOC(arrayToPassToClassToc);
+            currentContent = append(currentContent, html_reg_firstTableClose, classTOC);         
+            
+            // Final Pretty Content
+            currentContent = htmlclean(currentContent);
+            currentContent = pretty(currentContent);
         
             // Handle Unique Categories
                 switch(groupName){
