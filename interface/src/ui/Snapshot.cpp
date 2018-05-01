@@ -92,7 +92,7 @@ QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {
     return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true, QString(), QString()));
 }
 
-QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QString& userSelectedFilename, QString userSelectedPathname) {
+QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QString& userSelectedFilename, const QString& userSelectedPathname) {
 
     // adding URL to snapshot
     QUrl currentURL = DependencyManager::get<AddressManager>()->currentPublicAddress();
