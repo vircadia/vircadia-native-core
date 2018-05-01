@@ -1,4 +1,4 @@
-﻿//
+//
 //  GLBackendPipeline.cpp
 //  libraries/gpu/src/gpu
 //
@@ -263,7 +263,7 @@ void GLBackend::do_setResourceFramebufferSwapChainTexture(const Batch& batch, si
         return;
     }
 
-    SwapChainPointer swapChain = batch._swapChains.get(batch._params[paramOffset + 0]._uint);
+    auto swapChain = std::static_pointer_cast<FramebufferSwapChain>(batch._swapChains.get(batch._params[paramOffset + 0]._uint));
 
     if (!swapChain) {
         releaseResourceTexture(slot);
@@ -271,9 +271,8 @@ void GLBackend::do_setResourceFramebufferSwapChainTexture(const Batch& batch, si
     }
     auto index = batch._params[paramOffset + 2]._uint;
     auto renderBufferSlot = batch._params[paramOffset + 3]._uint;
-    FramebufferPointer resourceFramebuffer = static_cast<const FramebufferSwapChain*>(swapChain.get())->get(index);
-    TexturePointer resourceTexture = resourceFramebuffer->getRenderBuffer(renderBufferSlot);
-
+    auto resourceFramebuffer = swapChain->get(index);
+    auto resourceTexture = resourceFramebuffer->getRenderBuffer(renderBufferSlot);
     setResourceTexture(slot, resourceTexture);
 }
 
