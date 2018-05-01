@@ -614,13 +614,19 @@ void Agent::sendAvatarViewFrustum() {
     view.setPosition(scriptedAvatar->getWorldPosition());
     view.setOrientation(scriptedAvatar->getHeadOrientation());
     view.calculate();
+    ConicalViewFrustum conicalView { view };
+
+    auto avatarPacket = NLPacket::create(PacketType::AvatarQuery);
+    auto destinationBuffer = reinterpret_cast<unsigned char*>(avatarPacket->getPayload());
+    auto bufferStart = destinationBuffer;
 
     uint8_t numFrustums = 1;
-    auto viewFrustumByteArray = view.toByteArray();
+    memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
+    destinationBuffer += sizeof(numFrustums);
 
-    auto avatarPacket = NLPacket::create(PacketType::AvatarQuery, viewFrustumByteArray.size() + sizeof(numFrustums));
-    avatarPacket->writePrimitive(numFrustums);
-    avatarPacket->write(viewFrustumByteArray);
+    destinationBuffer += conicalView.serialize(destinationBuffer);
+
+    avatarPacket->setPayloadSize(destinationBuffer - bufferStart);
 
     DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket),
                                                          { NodeType::AvatarMixer });

@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 
 class AACube;
+class AABox;
 class ViewFrustum;
 using ViewFrustums = std::vector<ViewFrustum>;
 
@@ -42,7 +43,12 @@ public:
 
     bool isVerySimilar(const ConicalViewFrustum& other) const;
 
-    bool intersects(const glm::vec3& position, float distance, float radius) const;
+    bool intersects(const AACube& cube) const;
+    bool intersects(const AABox& box) const;
+    bool getAngularSize(const AACube& cube) const;
+    bool getAngularSize(const AABox& box) const;
+
+    bool intersects(const glm::vec3& relativePosition, float distance, float radius) const;
     bool getAngularSize(float distance, float radius) const;
 
     int serialize(unsigned char* destinationBuffer) const;

@@ -128,15 +128,16 @@ void AvatarMixerClientData::removeFromRadiusIgnoringSet(SharedNodePointer self, 
 
 void AvatarMixerClientData::readViewFrustumPacket(QByteArray message) {
     _currentViewFrustums.clear();
+
+    auto sourceBuffer = reinterpret_cast<const unsigned char*>(message.constData());
     
     uint8_t numFrustums = 0;
-    memcpy(&numFrustums, message.constData(), sizeof(numFrustums));
-    message.remove(0, sizeof(numFrustums));
+    memcpy(&numFrustums, sourceBuffer, sizeof(numFrustums));
+    sourceBuffer += sizeof(numFrustums);
 
     for (uint8_t i = 0; i < numFrustums; ++i) {
-        ViewFrustum frustum;
-        auto bytesRead = frustum.fromByteArray(message);
-        message.remove(0, bytesRead);
+        ConicalViewFrustum frustum;
+        sourceBuffer += frustum.deserialize(sourceBuffer);
 
         _currentViewFrustums.push_back(frustum);
     }
@@ -144,8 +145,8 @@ void AvatarMixerClientData::readViewFrustumPacket(QByteArray message) {
 
 bool AvatarMixerClientData::otherAvatarInView(const AABox& otherAvatarBox) {
     return std::any_of(std::begin(_currentViewFrustums), std::end(_currentViewFrustums),
-                       [&](const ViewFrustum& viewFrustum) {
-        return viewFrustum.boxIntersectsKeyhole(otherAvatarBox);
+                       [&](const ConicalViewFrustum& viewFrustum) {
+        return viewFrustum.intersects(otherAvatarBox);
     });
 }
 

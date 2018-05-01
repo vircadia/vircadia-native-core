@@ -47,6 +47,7 @@
 #include <AbstractUriHandler.h>
 #include <shared/RateCounter.h>
 #include <ThreadSafeValueCache.h>
+#include <shared/ConicalViewFrustum.h>
 #include <shared/FileLogger.h>
 
 #include <RunningMarker.h>
@@ -175,13 +176,13 @@ public:
     Camera& getCamera() { return _myCamera; }
     const Camera& getCamera() const { return _myCamera; }
     // Represents the current view frustum of the avatar.
-    void copyViewFrustum(ViewFrustum& viewOut) const override;
-    void copySecondaryViewFrustum(ViewFrustum& viewOut) const override;
-    bool hasSecondaryViewFrustum() const override { return _hasSecondaryViewFrustum; }
+    void copyViewFrustum(ViewFrustum& viewOut) const;
     // Represents the view frustum of the current rendering pass,
     // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
+
+    const ConicalViewFrustums& getConicalViews() const override { return _conicalViews; }
 
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
@@ -574,11 +575,10 @@ private:
 
     mutable QMutex _viewMutex { QMutex::Recursive };
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
-    ViewFrustum _lastQueriedViewFrustum; // last view frustum used to query octree servers
     ViewFrustum _displayViewFrustum;
-    ViewFrustum _secondaryViewFrustum;
-    ViewFrustum _lastQueriedSecondaryViewFrustum; // last secondary view frustum used to query octree servers
-    bool _hasSecondaryViewFrustum;
+
+    ConicalViewFrustums _conicalViews;
+    ConicalViewFrustums _lastQueriedViews; // last views used to query servers
     quint64 _lastQueriedTime;
 
     OctreeQuery _octreeQuery { true }; // NodeData derived class for querying octee cells from octree servers

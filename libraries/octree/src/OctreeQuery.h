@@ -33,13 +33,9 @@ public:
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(ReceivedMessage& message) override;
 
-    bool hasMainViewFrustum() const { return _hasMainFrustum; }
-    void setMainViewFrustum(const ViewFrustum& viewFrustum) { _hasMainFrustum = true; _mainViewFrustum = viewFrustum; }
-    void clearMainViewFrustum() { _hasMainFrustum = false; }
-
-    bool hasSecondaryViewFrustum() const { return _hasSecondaryFrustum; }
-    void setSecondaryViewFrustum(const ViewFrustum& viewFrustum) { _hasSecondaryFrustum = true; _secondaryViewFrustum = viewFrustum; }
-    void clearSecondaryViewFrustum() { _hasSecondaryFrustum = false; }
+    bool hasConicalViews() const { return !_conicalViews.empty(); }
+    void setConicalViews(ConicalViewFrustums views) { _conicalViews = views; }
+    void clearConicalViews() { _conicalViews.clear(); }
 
     // getters/setters for JSON filter
     QJsonObject getJSONParameters() { QReadLocker locker { &_jsonParametersLock }; return _jsonParameters; }
@@ -64,10 +60,7 @@ public slots:
     void setBoundaryLevelAdjust(int boundaryLevelAdjust) { _boundaryLevelAdjust = boundaryLevelAdjust; }
 
 protected:
-    bool _hasMainFrustum { false };
-    ConicalViewFrustum _mainViewFrustum;
-    bool _hasSecondaryFrustum { false };
-    ConicalViewFrustum _secondaryViewFrustum;
+    ConicalViewFrustums _conicalViews;
 
     // octree server sending items
     int _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;

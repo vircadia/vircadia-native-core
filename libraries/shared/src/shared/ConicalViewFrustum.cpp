@@ -11,6 +11,8 @@
 
 #include "ConicalViewFrustum.h"
 
+
+#include "../NumericalConstants.h"
 #include "../ViewFrustum.h"
 
 void ConicalViewFrustum::set(const ViewFrustum& viewFrustum) {
@@ -45,13 +47,46 @@ bool ConicalViewFrustum::isVerySimilar(const ConicalViewFrustum& other) const {
     const float MIN_RELATIVE_ERROR = 0.01f; // 1%
 
     return glm::distance2(_position, other._position) < MIN_POSITION_SLOP_SQUARED &&
-    angleBetween(_direction, other._direction) < MIN_ANGLE_BETWEEN &&
-    closeEnough(_angle, other._angle, MIN_RELATIVE_ERROR) &&
-    closeEnough(_farClip, other._farClip, MIN_RELATIVE_ERROR) &&
-    closeEnough(_radius, other._radius, MIN_RELATIVE_ERROR);
+            angleBetween(_direction, other._direction) < MIN_ANGLE_BETWEEN &&
+            closeEnough(_angle, other._angle, MIN_RELATIVE_ERROR) &&
+            closeEnough(_farClip, other._farClip, MIN_RELATIVE_ERROR) &&
+            closeEnough(_radius, other._radius, MIN_RELATIVE_ERROR);
 }
 
-bool ConicalViewFrustum::intersects(const glm::vec3& position, float distance, float radius) const {
+bool ConicalViewFrustum::intersects(const AACube& cube) const {
+    auto radius = 0.5f * SQRT_THREE * cube.getScale(); // radius of bounding sphere
+    auto position = cube.calcCenter() - _position; // position of bounding sphere in view-frame
+    float distance = glm::length(position);
+
+    return intersects(position, distance, radius);
+}
+
+bool ConicalViewFrustum::intersects(const AABox& box) const {
+    auto radius = 0.5f * glm::length(box.getScale()); // radius of bounding sphere
+    auto position = box.calcCenter() - _position; // position of bounding sphere in view-frame
+    float distance = glm::length(position);
+
+    return intersects(position, distance, radius);
+}
+
+bool ConicalViewFrustum::getAngularSize(const AACube& cube) const {
+    auto radius = 0.5f * SQRT_THREE * cube.getScale(); // radius of bounding sphere
+    auto position = cube.calcCenter() - _position; // position of bounding sphere in view-frame
+    float distance = glm::length(position);
+
+    return getAngularSize(distance, radius);
+}
+
+bool ConicalViewFrustum::getAngularSize(const AABox& box) const {
+    auto radius = 0.5f * glm::length(box.getScale()); // radius of bounding sphere
+    auto position = box.calcCenter() - _position; // position of bounding sphere in view-frame
+    float distance = glm::length(position);
+
+    return getAngularSize(distance, radius);
+}
+
+
+bool ConicalViewFrustum::intersects(const glm::vec3& relativePosition, float distance, float radius) const {
     if (distance < _radius + radius) {
         // Inside keyhole radius
         return true;
@@ -68,7 +103,7 @@ bool ConicalViewFrustum::intersects(const glm::vec3& position, float distance, f
     // The math here is left as an exercise for the reader with the following hints:
     // (1) We actually check the dot product of the cube's local position rather than the angle and
     // (2) we take advantage of this trig identity: cos(A+B) = cos(A)*cos(B) - sin(A)*sin(B)
-    return glm::dot(position, _direction) >
+    return glm::dot(relativePosition, _direction) >
            sqrtf(distance * distance - radius * radius) * _cosAngle - radius * _sinAngle;
 }
 

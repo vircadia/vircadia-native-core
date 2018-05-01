@@ -49,8 +49,7 @@ public:
 
     OctreeElementExtraEncodeData extraEncodeData;
 
-    void copyCurrentMainViewFrustum(ConicalViewFrustum& viewOut) const;
-    void copyCurrentSecondaryViewFrustum(ConicalViewFrustum& viewOut) const;
+    const ConicalViewFrustums& getCurrentViews() const { return _currentConicalViews; }
 
     // These are not classic setters because they are calculating and maintaining state
     // which is set asynchronously through the network receive
@@ -97,8 +96,7 @@ private:
     quint64 _firstSuppressedPacket { usecTimestampNow() };
 
     mutable QMutex _viewMutex { QMutex::Recursive };
-    ConicalViewFrustum _currentMainViewFrustum;
-    ConicalViewFrustum _currentSecondaryViewFrustum;
+    ConicalViewFrustums _currentConicalViews;
     bool _viewFrustumChanging { false };
     bool _viewFrustumJustStoppedChanging { true };
 

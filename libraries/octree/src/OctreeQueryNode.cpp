@@ -139,23 +139,13 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, unsigned int by
     }
 }
 
-void OctreeQueryNode::copyCurrentMainViewFrustum(ConicalViewFrustum& viewOut) const {
-    QMutexLocker viewLocker(&_viewMutex);
-    viewOut = _currentMainViewFrustum;
-}
-
-void OctreeQueryNode::copyCurrentSecondaryViewFrustum(ConicalViewFrustum& viewOut) const {
-    QMutexLocker viewLocker(&_viewMutex);
-    viewOut = _currentSecondaryViewFrustum;
-}
-
 bool OctreeQueryNode::updateCurrentViewFrustum() {
     // if shutting down, return immediately
     if (_isShuttingDown) {
         return false;
     }
     
-    if (!_hasMainFrustum && !_hasSecondaryFrustum) {
+    if (!hasConicalViews()) {
         // this client does not use a view frustum so the view frustum for this query has not changed
         return false;
     }
@@ -164,12 +154,17 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
 
     { // if there has been a change, then recalculate
         QMutexLocker viewLocker(&_viewMutex);
-        if (_hasMainFrustum && !_mainViewFrustum.isVerySimilar(_currentMainViewFrustum)) {
-            _currentMainViewFrustum = _mainViewFrustum;
-            currentViewFrustumChanged = true;
-        }
-        if (_hasSecondaryFrustum && !_secondaryViewFrustum.isVerySimilar(_currentSecondaryViewFrustum)) {
-            _currentSecondaryViewFrustum = _secondaryViewFrustum;
+
+        if (_conicalViews.size() == _currentConicalViews.size()) {
+            for (size_t i = 0; i < _conicalViews.size(); ++i) {
+                if (!_conicalViews[i].isVerySimilar(_currentConicalViews[i])) {
+                    _currentConicalViews = _conicalViews;
+                    currentViewFrustumChanged = true;
+                    break;
+                }
+            }
+        } else {
+            _currentConicalViews = _conicalViews;
             currentViewFrustumChanged = true;
         }
     }

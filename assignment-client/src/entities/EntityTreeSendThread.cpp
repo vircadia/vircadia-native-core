@@ -107,16 +107,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
 
 
         DiffTraversal::View newView;
-
-        ConicalViewFrustum viewFrustum;
-        if (nodeData->hasMainViewFrustum()) {
-            nodeData->copyCurrentMainViewFrustum(viewFrustum);
-            newView.viewFrustums.push_back(viewFrustum);
-        }
-        if (nodeData->hasSecondaryViewFrustum()) {
-            nodeData->copyCurrentSecondaryViewFrustum(viewFrustum);
-            newView.viewFrustums.push_back(viewFrustum);
-        }
+        newView.viewFrustums = nodeData->getCurrentViews();
 
         int32_t lodLevelOffset = nodeData->getBoundaryLevelAdjust() + (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
         newView.lodScaleFactor = powf(2.0f, lodLevelOffset);

@@ -5230,10 +5230,10 @@ void Application::updateSecondaryCameraViewFrustum() {
     assert(camera);
 
     if (!camera->isEnabled()) {
-        _hasSecondaryViewFrustum = false;
         return;
     }
 
+    ViewFrustum secondaryViewFrustum;
     if (camera->mirrorProjection && !camera->attachedEntityId.isNull()) {
         auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
         auto entityProperties = entityScriptingInterface->getEntityProperties(camera->attachedEntityId);
@@ -5258,36 +5258,37 @@ void Application::updateSecondaryCameraViewFrustum() {
 
         // set frustum position to be mirrored camera and set orientation to mirror's adjusted rotation
         glm::quat mirrorCameraOrientation = glm::quat_cast(worldFromMirrorRotation);
-        _secondaryViewFrustum.setPosition(mirrorCameraPositionWorld);
-        _secondaryViewFrustum.setOrientation(mirrorCameraOrientation);
+        secondaryViewFrustum.setPosition(mirrorCameraPositionWorld);
+        secondaryViewFrustum.setOrientation(mirrorCameraOrientation);
 
         // build frustum using mirror space translation of mirrored camera
         float nearClip = mirrorCameraPositionMirror.z + mirrorPropertiesDimensions.z * 2.0f;
         glm::vec3 upperRight = halfMirrorPropertiesDimensions - mirrorCameraPositionMirror;
         glm::vec3 bottomLeft = -halfMirrorPropertiesDimensions - mirrorCameraPositionMirror;
         glm::mat4 frustum = glm::frustum(bottomLeft.x, upperRight.x, bottomLeft.y, upperRight.y, nearClip, camera->farClipPlaneDistance);
-        _secondaryViewFrustum.setProjection(frustum);
+        secondaryViewFrustum.setProjection(frustum);
     } else {
         if (!camera->attachedEntityId.isNull()) {
             auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
             auto entityProperties = entityScriptingInterface->getEntityProperties(camera->attachedEntityId);
-            _secondaryViewFrustum.setPosition(entityProperties.getPosition());
-            _secondaryViewFrustum.setOrientation(entityProperties.getRotation());
+            secondaryViewFrustum.setPosition(entityProperties.getPosition());
+            secondaryViewFrustum.setOrientation(entityProperties.getRotation());
         } else {
-            _secondaryViewFrustum.setPosition(camera->position);
-            _secondaryViewFrustum.setOrientation(camera->orientation);
+            secondaryViewFrustum.setPosition(camera->position);
+            secondaryViewFrustum.setOrientation(camera->orientation);
         }
 
         float aspectRatio = (float)camera->textureWidth / (float)camera->textureHeight;
-        _secondaryViewFrustum.setProjection(camera->vFoV,
+        secondaryViewFrustum.setProjection(camera->vFoV,
                                             aspectRatio,
                                             camera->nearClipPlaneDistance,
                                             camera->farClipPlaneDistance);
     }
     // Without calculating the bound planes, the secondary camera will use the same culling frustum as the main camera,
     // which is not what we want here.
-    _secondaryViewFrustum.calculate();
-    _hasSecondaryViewFrustum = true;
+    secondaryViewFrustum.calculate();
+
+    _conicalViews.push_back(secondaryViewFrustum);
 }
 
 static bool domainLoadingInProgress = false;
@@ -5644,6 +5645,8 @@ void Application::update(float deltaTime) {
         QMutexLocker viewLocker(&_viewMutex);
         _myCamera.loadViewFrustum(_viewFrustum);
 
+        _conicalViews.clear();
+        _conicalViews.push_back(_viewFrustum);
         // TODO: Fix this by modeling the way the secondary camera works on how the main camera works
         // ie. Use a camera object stored in the game logic and informs the Engine on where the secondary
         // camera should be.
@@ -5660,18 +5663,29 @@ void Application::update(float deltaTime) {
         quint64 sinceLastQuery = now - _lastQueriedTime;
         const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
         bool queryIsDue = sinceLastQuery > TOO_LONG_SINCE_LAST_QUERY;
-        bool viewIsDifferentEnough = !_lastQueriedViewFrustum.isVerySimilar(_viewFrustum);
-        viewIsDifferentEnough |= _hasSecondaryViewFrustum && !_lastQueriedSecondaryViewFrustum.isVerySimilar(_secondaryViewFrustum);
+
+        bool viewIsDifferentEnough = false;
+        if (_conicalViews.size() == _lastQueriedViews.size()) {
+            for (size_t i = 0; i < _conicalViews.size(); ++i) {
+                if (!_conicalViews[i].isVerySimilar(_lastQueriedViews[i])) {
+                    viewIsDifferentEnough = true;
+                    break;
+                }
+            }
+        } else {
+            viewIsDifferentEnough = true;
+        }
+
         
         // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
         if (queryIsDue || viewIsDifferentEnough) {
-            _lastQueriedTime = now;
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                 queryOctree(NodeType::EntityServer, PacketType::EntityQuery);
             }
             sendAvatarViewFrustum();
-            _lastQueriedViewFrustum = _viewFrustum;
-            _lastQueriedSecondaryViewFrustum = _secondaryViewFrustum;
+
+            _lastQueriedViews = _conicalViews;
+            _lastQueriedTime = now;
         }
     }
 
@@ -5844,17 +5858,19 @@ void Application::update(float deltaTime) {
 }
 
 void Application::sendAvatarViewFrustum() {
-    uint8_t numFrustums = 1;
-    QByteArray viewFrustumByteArray = _viewFrustum.toByteArray();
+    auto avatarPacket = NLPacket::create(PacketType::AvatarQuery);
+    auto destinationBuffer = reinterpret_cast<unsigned char*>(avatarPacket->getPayload());
+    unsigned char* bufferStart = destinationBuffer;
 
-    if (_hasSecondaryViewFrustum) {
-        ++numFrustums;
-        viewFrustumByteArray += _secondaryViewFrustum.toByteArray();
+    uint8_t numFrustums = _conicalViews.size();
+    memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
+    destinationBuffer += sizeof(numFrustums);
+
+    for (const auto& view : _conicalViews) {
+        destinationBuffer += view.serialize(destinationBuffer);
     }
 
-    auto avatarPacket = NLPacket::create(PacketType::AvatarQuery, viewFrustumByteArray.size() + sizeof(numFrustums));
-    avatarPacket->writePrimitive(numFrustums);
-    avatarPacket->write(viewFrustumByteArray);
+    avatarPacket->setPayloadSize(destinationBuffer - bufferStart);
 
     DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
 }
@@ -5916,16 +5932,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
         return; // bail early if settings are not loaded
     }
 
-    ViewFrustum viewFrustum;
-    copyViewFrustum(viewFrustum);
-    _octreeQuery.setMainViewFrustum(viewFrustum);
-
-    if (hasSecondaryViewFrustum()) {
-        copySecondaryViewFrustum(viewFrustum);
-        _octreeQuery.setSecondaryViewFrustum(viewFrustum);
-    } else {
-        _octreeQuery.clearSecondaryViewFrustum();
-    }
+    _octreeQuery.setConicalViews(_conicalViews);
 
     auto lodManager = DependencyManager::get<LODManager>();
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
@@ -6008,11 +6015,6 @@ void Application::copyViewFrustum(ViewFrustum& viewOut) const {
 void Application::copyDisplayViewFrustum(ViewFrustum& viewOut) const {
     QMutexLocker viewLocker(&_viewMutex);
     viewOut = _displayViewFrustum;
-}
-
-void Application::copySecondaryViewFrustum(ViewFrustum& viewOut) const {
-    QMutexLocker viewLocker(&_viewMutex);
-    viewOut = _secondaryViewFrustum;
 }
 
 void Application::resetSensors(bool andReload) {
