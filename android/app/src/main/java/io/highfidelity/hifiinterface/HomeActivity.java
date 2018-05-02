@@ -2,6 +2,7 @@ package io.highfidelity.hifiinterface;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.content.ContextCompat;
@@ -76,7 +77,12 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
             @Override
             public void onItemClick(View view, int position, DomainAdapter.Domain domain) {
-                gotoDomain(domain.url);
+                new Handler(getMainLooper()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        gotoDomain(domain.url);
+                    }
+                }, 400); // a delay so the ripple effect can be seen
             }
         });
         mDomainAdapter.setListener(new DomainAdapter.AdapterListener() {
