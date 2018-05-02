@@ -69,12 +69,7 @@ private:
     static QVariant oldvFoV;
     static QVariant oldNearClipPlaneDistance;
     static QVariant oldFarClipPlaneDistance;
-    static QImage downImage;
-    static QImage frontImage;
-    static QImage leftImage;
-    static QImage backImage;
-    static QImage rightImage;
-    static QImage upImage;
+    static QImage imageArray[6];
     static void convertToEquirectangular();
 };
 
