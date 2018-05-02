@@ -115,11 +115,7 @@ public:
     uint64_t getLastOtherAvatarEncodeTime(QUuid otherAvatar) const;
     void setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, uint64_t time);
 
-    QVector<JointData>& getLastOtherAvatarSentJoints(QUuid otherAvatar) {
-        auto& lastOtherAvatarSentJoints = _lastOtherAvatarSentJoints[otherAvatar];
-        lastOtherAvatarSentJoints.resize(_avatar->getJointCount());
-        return lastOtherAvatarSentJoints;
-    }
+    QVector<JointData>& getLastOtherAvatarSentJoints(QUuid otherAvatar) { return _lastOtherAvatarSentJoints[otherAvatar]; }
 
     void queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
     int processPackets(); // returns number of packets processed

@@ -17,6 +17,7 @@ StackView {
     id: stack
     initialItem: inputConfiguration
     property alias messageVisible: imageMessageBox.visible
+    property alias selectedPlugin: box.currentText
     Rectangle {
         id: inputConfiguration
         anchors.fill: parent

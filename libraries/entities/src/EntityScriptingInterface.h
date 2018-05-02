@@ -388,6 +388,22 @@ public slots:
     Q_INVOKABLE QVector<QUuid> findEntitiesByType(const QString entityType, const glm::vec3& center, float radius) const;
 
     /**jsdoc
+    * Find all entities of a particular name that intersect a sphere defined by a center point and radius.
+    * @function Entities.findEntitiesByName
+    * @param {string} entityName - The name of the entity to search for.
+    * @param {Vec3} center - The point about which to search.
+    * @param {number} radius - The radius within which to search.
+    * @param {boolean} [caseSensitive=false] - If <code>true</code> then the search is case-sensitive.
+    * @returns {Uuid[]} An array of entity IDs that have the specified name and intersect the search sphere. The array is empty 
+    *     if no entities could be found.
+    * @example <caption>Report the number of entities with the name, "Light-Target".</caption>
+    * var entityIDs = Entities.findEntitiesByName("Light-Target", MyAvatar.position, 10, false);
+    * print("Number of entities with the name "Light-Target": " + entityIDs.length);
+    */
+    Q_INVOKABLE QVector<QUuid> findEntitiesByName(const QString entityName, const glm::vec3& center, float radius, 
+        bool caseSensitiveSearch = false ) const;
+
+    /**jsdoc
      * Find the first entity intersected by a {@link PickRay}. <code>Light</code> and <code>Zone</code> entities are not 
      * intersected unless they've been configured as pickable using {@link Entities.setLightsArePickable|setLightsArePickable}
      * and {@link Entities.setZonesArePickable|setZonesArePickable}, respectively.<br />

@@ -15,6 +15,8 @@
 
 #if HAS_CRASHPAD
 
+#include <mutex>
+
 #include <QStandardPaths>
 #include <QDir>
 
@@ -23,8 +25,8 @@
 #include <client/crashpad_client.h>
 #include <client/crash_report_database.h>
 #include <client/settings.h>
-// #include <client/annotation_list.h>
-// #include <client/crashpad_info.h>
+#include <client/annotation_list.h>
+#include <client/crashpad_info.h>
 
 using namespace crashpad;
 
@@ -35,32 +37,19 @@ static std::wstring gIPCPipe;
 
 extern QString qAppFileName();
 
-// crashpad::AnnotationList* crashpadAnnotations { nullptr };
+std::mutex annotationMutex;
+crashpad::SimpleStringDictionary* crashpadAnnotations { nullptr };
 
 #include <Windows.h>
 
 LONG WINAPI vectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
-    static const DWORD EXTERNAL_EXCEPTION_CODE{ 0xe06d7363 };
-    static const DWORD HEAP_CORRUPTION_CODE{ 0xc0000374 };
-
-    auto exceptionCode = pExceptionInfo->ExceptionRecord->ExceptionCode;
-    if (exceptionCode == EXTERNAL_EXCEPTION_CODE) {
-        return EXCEPTION_CONTINUE_SEARCH;
-    }
-
-    if (exceptionCode == HEAP_CORRUPTION_CODE) {
-        qCritical() << "VectoredExceptionHandler: Heap corruption:" << QString::number(exceptionCode, 16);
-
+    if (pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_HEAP_CORRUPTION ||
+        pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_STACK_BUFFER_OVERRUN) {
         CrashpadClient client;
         if (gIPCPipe.length()) {
-            bool rc = client.SetHandlerIPCPipe(gIPCPipe);
-            qCritical() << "SetHandlerIPCPipe = " << rc;
-        } else {
-            qCritical() << "No IPC Pipe was previously defined for crash handler.";
+            client.SetHandlerIPCPipe(gIPCPipe);
         }
-        qCritical() << "Calling DumpAndCrash()";
         client.DumpAndCrash(pExceptionInfo);
-        return EXCEPTION_CONTINUE_SEARCH;
     }
 
     return EXCEPTION_CONTINUE_SEARCH;
@@ -116,12 +105,14 @@ bool startCrashHandler() {
 }
 
 void setCrashAnnotation(std::string name, std::string value) {
-    // if (!crashpadAnnotations) {
-    //     crashpadAnnotations = new crashpad::AnnotationList(); // don't free this, let it leak
-    //     crashpad::CrashpadInfo* crashpad_info = crashpad::GetCrashpadInfo();
-    //     crashpad_info->set_simple_annotations(crashpadAnnotations);
-    // }
-    // crashpadAnnotations->SetKeyValue(name, value);
+    std::lock_guard<std::mutex> guard(annotationMutex);
+    if (!crashpadAnnotations) {
+        crashpadAnnotations = new crashpad::SimpleStringDictionary(); // don't free this, let it leak
+        crashpad::CrashpadInfo* crashpad_info = crashpad::CrashpadInfo::GetCrashpadInfo();
+        crashpad_info->set_simple_annotations(crashpadAnnotations);
+    }
+    std::replace(value.begin(), value.end(), ',', ';');
+    crashpadAnnotations->SetKeyValue(name, value);
 }
 
 #else
