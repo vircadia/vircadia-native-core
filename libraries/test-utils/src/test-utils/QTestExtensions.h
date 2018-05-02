@@ -313,27 +313,6 @@ inline QString getTestResource(const QString& relativePath) {
     return QDir::cleanPath(dir.absoluteFilePath(relativePath));
 }
 
-inline bool afterUsecs(quint64& startUsecs, quint64 maxIntervalUecs) {
-    auto now = usecTimestampNow();
-    auto interval = now - startUsecs;
-    if (interval > maxIntervalUecs) {
-        startUsecs = now;
-        return true;
-    }
-    return false;
-}
-
-inline bool afterSecs(quint64& startUsecs, quint64 maxIntervalSecs) {
-    return afterUsecs(startUsecs, maxIntervalSecs * USECS_PER_SECOND);
-}
-
-template <typename F>
-void doEvery(quint64& lastReportUsecs, quint64 secs, F lamdba) {
-    if (afterSecs(lastReportUsecs, secs)) {
-        lamdba();
-    }
-}
-
 inline void failAfter(quint64 startUsecs, quint64 secs, const char* message) {
     if (afterSecs(startUsecs, secs)) {
         QFAIL(message);

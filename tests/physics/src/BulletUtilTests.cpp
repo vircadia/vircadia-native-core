@@ -18,7 +18,7 @@
 #include <GLMHelpers.h>
 
 // Add additional qtest functionality (the include order is important!)
-#include "../QTestExtensions.h"
+#include <test-utils/QTestExtensions.h>
 
 // Constants
 const glm::vec3 origin(0.0f);
