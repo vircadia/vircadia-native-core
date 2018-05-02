@@ -22,7 +22,7 @@
 const float SQRT_TWO_OVER_TWO = 0.7071067811865f;
 const float DEFAULT_VIEW_RADIUS = 10.0f;
 
-// ConicalView is an approximation of a ViewFrustum for fast calculation of sort priority.
+// ConicalViewFrustum is an approximation of a ViewFrustum for fast calculation of sort priority.
 class ConicalViewFrustum {
 public:
     ConicalViewFrustum() {}
@@ -37,6 +37,7 @@ private:
     float _radius { DEFAULT_VIEW_RADIUS };
 };
 
+// Simple wrapper around a set of conical view frustums
 class ConicalView {
 public:
     ConicalView() {}
@@ -113,7 +114,7 @@ private:
                                               PrioritizedEntity::Compare>;
 
     PriorityQueue _queue;
-    // Keep dictionary of al the entities in the queue for fast contain checks.
+    // Keep dictionary of all the entities in the queue for fast contain checks.
     std::unordered_set<const EntityItem*> _entities;
 
 };

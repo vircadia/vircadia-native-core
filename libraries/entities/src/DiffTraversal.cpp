@@ -221,7 +221,7 @@ DiffTraversal::Type DiffTraversal::prepareNewTraversal(const DiffTraversal::View
     //
     //   _getNextVisibleElementCallback = identifies elements that need to be traversed,
     //        updates VisibleElement ref argument with pointer-to-element and view-intersection
-    //        (INSIDE, INTERSECtT, or OUTSIDE)
+    //        (INSIDE, INTERSECT, or OUTSIDE)
     //
     // external code should update the _scanElementCallback after calling prepareNewTraversal
     //

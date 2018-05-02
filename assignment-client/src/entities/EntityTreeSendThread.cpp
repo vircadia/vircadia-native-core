@@ -138,7 +138,6 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
                 if (entity) {
                     float priority = PrioritizedEntity::DO_NOT_SEND;
 
-
                     if (forceRemove) {
                         priority = PrioritizedEntity::FORCE_REMOVE;
                     } else {
@@ -153,7 +152,6 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
                             priority = PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
                         }
                     }
-
 
                     if (priority != PrioritizedEntity::DO_NOT_SEND) {
                         _sendQueue.emplace(entity, priority, forceRemove);
@@ -305,7 +303,8 @@ void EntityTreeSendThread::startNewTraversal(const DiffTraversal::View& view, En
                             } else {
                                 priority = PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
                             }
-                        } else if (entity->getLastEdited() > knownTimestamp->second) {
+                        } else if (entity->getLastEdited() > knownTimestamp->second ||
+                                   entity->getLastChangedOnServer() > knownTimestamp->second) {
                             // it is known and it changed --> put it on the queue with any priority
                             // TODO: sort these correctly
                             priority = PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
@@ -339,15 +338,13 @@ void EntityTreeSendThread::startNewTraversal(const DiffTraversal::View& view, En
                             // See the DiffTraversal::First case for an explanation of the "entity is too small" check
                             if ((next.intersection == ViewFrustum::INSIDE || view.intersects(cube)) &&
                                 view.isBigEnough(cube)) {
-                                    // If this entity wasn't in the last view or
-                                    // If this entity was skipped last time because it was too small, we still need to send it
                                     priority = _conicalView.computePriority(cube);
                             }
                         } else {
                             priority = PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
                         }
-                    } else if (entity->getLastEdited() > knownTimestamp->second
-                            || entity->getLastChangedOnServer() > knownTimestamp->second) {
+                    } else if (entity->getLastEdited() > knownTimestamp->second ||
+                               entity->getLastChangedOnServer() > knownTimestamp->second) {
                         // it is known and it changed --> put it on the queue with any priority
                         // TODO: sort these correctly
                         priority = PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
