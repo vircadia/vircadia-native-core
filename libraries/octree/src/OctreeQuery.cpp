@@ -35,7 +35,7 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += sizeof(_connectionID);
 
     // Number of frustums
-    uint8_t numFrustums = _conicalViews.size();
+    uint8_t numFrustums = (uint8_t)_conicalViews.size();
     memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
     destinationBuffer += sizeof(numFrustums);
 

@@ -5862,7 +5862,7 @@ void Application::queryAvatars() {
     auto destinationBuffer = reinterpret_cast<unsigned char*>(avatarPacket->getPayload());
     unsigned char* bufferStart = destinationBuffer;
 
-    uint8_t numFrustums = _conicalViews.size();
+    uint8_t numFrustums = (uint8_t)_conicalViews.size();
     memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
     destinationBuffer += sizeof(numFrustums);
 

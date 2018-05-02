@@ -443,8 +443,7 @@ protected:
     }
 
     const ConicalViewFrustums& getConicalViews() const override {
-        assert(false);
-        return ConicalViewFrustums();
+        return _view;
     }
 
     QThread* getMainThread() override {
@@ -1122,6 +1121,7 @@ private:
     graphics::LightPointer _globalLight { std::make_shared<graphics::Light>() };
     bool _ready { false };
     EntitySimulationPointer _entitySimulation;
+    ConicalViewFrustums _view;
 
     QStringList _commands;
     QString _commandPath;

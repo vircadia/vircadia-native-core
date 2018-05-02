@@ -126,7 +126,7 @@ void AvatarMixerClientData::removeFromRadiusIgnoringSet(SharedNodePointer self, 
     }
 }
 
-void AvatarMixerClientData::readViewFrustumPacket(QByteArray message) {
+void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
     _currentViewFrustums.clear();
 
     auto sourceBuffer = reinterpret_cast<const unsigned char*>(message.constData());
