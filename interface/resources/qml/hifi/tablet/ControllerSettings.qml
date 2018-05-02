@@ -15,20 +15,6 @@ import "../../controls"
 import "../../controls-uit" as HifiControls
 import "../../dialogs"
 
-PreferencesDialog {
-    id: root
-    objectName: "ControlSettings"
-    title: "Control Settings"
-    showCategories: ["VR Movement", "Mouse Sensitivity", "Game Controller", "Face Tracking", "Sixense Controllers", "Perception Neuron", "Kinect", "Leap Motion"]
-    property var settings: Settings {
-        category: root.objectName
-        property alias x: root.x
-        property alias y: root.y
-        property alias width: root.width
-        property alias height: root.height
-    }
-}
-/*
 StackView {
     id: stack
     initialItem: inputConfiguration
@@ -243,4 +229,3 @@ StackView {
         timer.start();
     }
 }
-*/
