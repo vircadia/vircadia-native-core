@@ -13,7 +13,6 @@
 #include "SecondaryCamera.h"
 #include <TextureCache.h>
 #include <gpu/Context.h>
-#include <EntityScriptingInterface.h>
 #include <glm/gtx/transform.hpp>
 
 using RenderArgsPointer = std::shared_ptr<RenderArgs>;
@@ -35,7 +34,6 @@ public:
     using JobModel = render::Job::ModelO<SecondaryCameraJob, RenderArgsPointer, Config>;
     SecondaryCameraJob() {
         _cachedArgsPointer = std::make_shared<RenderArgs>(_cachedArgs);
-        _entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
         _attachedEntityPropertyFlags += PROP_POSITION;
         _attachedEntityPropertyFlags += PROP_ROTATION;
     }
@@ -57,12 +55,16 @@ public:
             qWarning() << "ERROR: Cannot set mirror projection for SecondaryCamera without an attachedEntityId set.";
             return;
         }
-       
-        EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_attachedEntityId, 
-                                                                                               _attachedEntityPropertyFlags);
-        glm::vec3 mirrorPropertiesPosition = entityProperties.getPosition();
-        glm::quat mirrorPropertiesRotation = entityProperties.getRotation();
-        glm::vec3 mirrorPropertiesDimensions = entityProperties.getDimensions();
+        EntityItemPointer attachedEntity = qApp->getEntities()->getTree()->findEntityByID(_attachedEntityId);
+
+        if (!attachedEntity) {
+            qWarning() << "ERROR: Cannot get EntityItemPointer for _attachedEntityId.";
+            return;
+        }
+
+        glm::vec3 mirrorPropertiesPosition = attachedEntity->getWorldPosition();
+        glm::quat mirrorPropertiesRotation = attachedEntity->getWorldOrientation();
+        glm::vec3 mirrorPropertiesDimensions = attachedEntity->getScaledDimensions();
         glm::vec3 halfMirrorPropertiesDimensions = 0.5f * mirrorPropertiesDimensions;
 
         // setup mirror from world as inverse of world from mirror transformation using inverted x and z for mirrored image
@@ -117,10 +119,13 @@ public:
                 setMirrorProjection(srcViewFrustum);
             } else {
                 if (!_attachedEntityId.isNull()) {
-                    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_attachedEntityId, 
-                                                            _attachedEntityPropertyFlags);
-                    srcViewFrustum.setPosition(entityProperties.getPosition());
-                    srcViewFrustum.setOrientation(entityProperties.getRotation());
+                    EntityItemPointer attachedEntity = qApp->getEntities()->getTree()->findEntityByID(_attachedEntityId);
+                    if (!attachedEntity) {
+                        qWarning() << "ERROR: Cannot get EntityItemPointer for _attachedEntityId.";
+                        return;
+                    }
+                    srcViewFrustum.setPosition(attachedEntity->getWorldPosition());
+                    srcViewFrustum.setOrientation(attachedEntity->getWorldOrientation());
                 } else {
                     srcViewFrustum.setPosition(_position);
                     srcViewFrustum.setOrientation(_orientation);
@@ -152,7 +157,6 @@ private:
     int _textureHeight;
     bool _mirrorProjection;
     EntityPropertyFlags _attachedEntityPropertyFlags;
-    QSharedPointer<EntityScriptingInterface> _entityScriptingInterface;
 };
 
 void SecondaryCameraJobConfig::setPosition(glm::vec3 pos) {
