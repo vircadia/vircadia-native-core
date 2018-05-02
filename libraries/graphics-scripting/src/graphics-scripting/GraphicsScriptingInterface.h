@@ -39,7 +39,7 @@ public slots:
      *
      * @function Graphics.getModel
      * @param {UUID} entityID - The objectID of the model whose meshes are to be retrieved.
-     * @return {Graphics.Model} the resulting Model object
+     * @returns {Graphics.Model} the resulting Model object
      */
     scriptable::ScriptableModelPointer getModel(QUuid uuid);
 
@@ -54,7 +54,7 @@ public slots:
      *
      * @function Graphics.newMesh
      * @param {Graphics.IFSData} ifsMeshData Index-Faced Set (IFS) arrays used to create the new mesh.
-     * @return {Graphics.Mesh} the resulting Mesh / Mesh Part object
+     * @returns {Graphics.Mesh} the resulting Mesh / Mesh Part object
      */
     /**jsdoc
     * @typedef {object} Graphics.IFSData
