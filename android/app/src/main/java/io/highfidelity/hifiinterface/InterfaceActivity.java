@@ -101,13 +101,9 @@ public class InterfaceActivity extends QtActivity {
         final View rootView = getWindow().getDecorView().findViewById(android.R.id.content);
 
         // This is a workaround to hide the menu bar when the virtual keyboard is shown from Qt
-        rootView.getViewTreeObserver().addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                int heightDiff = rootView.getRootView().getHeight() - rootView.getHeight();
-                if (getActionBar().isShowing()) {
-                    getActionBar().hide();
-                }
+        rootView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            if (getActionBar() != null && getActionBar().isShowing()) {
+                getActionBar().hide();
             }
         });
         startActivity(new Intent(this, SplashActivity.class));
