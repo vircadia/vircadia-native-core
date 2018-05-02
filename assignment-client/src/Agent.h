@@ -107,6 +107,7 @@ private:
     int _numAvatarSoundSentBytes = 0;
     bool _isAvatar = false;
     QTimer* _avatarIdentityTimer = nullptr;
+    QTimer* _avatarViewTimer = nullptr;
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
 
     AudioGate _audioGate;

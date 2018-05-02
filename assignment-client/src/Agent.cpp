@@ -548,16 +548,18 @@ void Agent::setIsAvatar(bool isAvatar) {
     if (_isAvatar && !_avatarIdentityTimer) {
         // set up the avatar timers
         _avatarIdentityTimer = new QTimer(this);
+        _avatarViewTimer = new QTimer(this);
 
         // connect our slot
         connect(_avatarIdentityTimer, &QTimer::timeout, this, &Agent::sendAvatarIdentityPacket);
+        connect(_avatarViewTimer, &QTimer::timeout, this, &Agent::sendAvatarViewFrustum);
 
         // start the timers
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);  // FIXME - we shouldn't really need to constantly send identity packets
+        _avatarViewTimer->start(AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS);
 
         // tell the avatarAudioTimer to start ticking
         QMetaObject::invokeMethod(&_avatarAudioTimer, "start");
-
     }
 
     if (!_isAvatar) {
@@ -566,6 +568,10 @@ void Agent::setIsAvatar(bool isAvatar) {
             _avatarIdentityTimer->stop();
             delete _avatarIdentityTimer;
             _avatarIdentityTimer = nullptr;
+
+            _avatarViewTimer->stop();
+            delete _avatarViewTimer;
+            _avatarViewTimer = nullptr;
 
             // The avatar mixer never times out a connection (e.g., based on identity or data packets)
             // but rather keeps avatars in its list as long as "connected". As a result, clients timeout
@@ -585,6 +591,7 @@ void Agent::setIsAvatar(bool isAvatar) {
                 nodeList->sendPacket(std::move(packet), *node);
             });
         }
+
         QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
     }
 }
@@ -594,7 +601,6 @@ void Agent::sendAvatarIdentityPacket() {
         auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
         scriptedAvatar->markIdentityDataChanged();
         scriptedAvatar->sendIdentityPacket();
-        sendAvatarViewFrustum();
     }
 }
 
