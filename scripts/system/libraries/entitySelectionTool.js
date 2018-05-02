@@ -149,6 +149,17 @@ SelectionManager = (function() {
         that._update(true);
     };
 
+    that.removeEntities = function (entityIDs) {
+        for (var i = 0, length = entityIDs.length; i < length; i++) {
+            var idx = that.selections.indexOf(entityIDs[i]);
+            if (idx >= 0) {
+                that.selections.splice(idx, 1);
+                Selection.removeFromSelectedItemsList(HIGHLIGHT_LIST_NAME, "entity", entityIDs[i]);
+            }
+        }
+        that._update(true);
+    };
+
     that.clearSelections = function() {
         that.selections = [];
         that._update(true);

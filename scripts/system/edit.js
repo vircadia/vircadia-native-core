@@ -471,8 +471,23 @@ var toolBar = (function () {
         }
     }
 
+    var entitiesToDelete = [];
+    var deletedEntityTimer = null;
+    var DELETE_ENTITY_TIMER_TIMEOUT = 100;
+
     function checkDeletedEntityAndUpdate(entityID) {
-        selectionManager.removeEntity(entityID);
+        // Allow for multiple entity deletes before updating the entity list.
+        entitiesToDelete.push(entityID);
+        if (deletedEntityTimer !== null) {
+            Script.clearTimeout(deletedEntityTimer);
+        }
+        deletedEntityTimer = Script.setTimeout(function () {
+            selectionManager.removeEntities(entitiesToDelete);
+            entityListTool.clearEntityList();
+            entityListTool.sendUpdate();
+            entitiesToDelete = [];
+            deletedEntityTimer = null;
+        }, DELETE_ENTITY_TIMER_TIMEOUT);
     }
 
     function initialize() {
