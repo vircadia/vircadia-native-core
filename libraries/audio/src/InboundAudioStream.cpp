@@ -149,10 +149,8 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
             lostAudioData(packetsDropped);
 
             // fall through to OnTime case
-#if defined(__GNUC__)
-            [[gnu::fallthrough]];
-#endif
         }
+        // FALLTHRU
         case SequenceNumberStats::OnTime: {
             // Packet is on time; parse its data to the ringbuffer
             if (message.getType() == PacketType::SilentAudioFrame

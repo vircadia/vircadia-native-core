@@ -749,10 +749,8 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
         case ResourceRequest::Result::Timeout: {
             qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
             // Fall through to other cases
-#if defined(__GNUC__)
-            [[gnu::fallthrough]];
-#endif
         }
+        // FALLTHRU
         case ResourceRequest::Result::ServerUnavailable: {
             _attempts++;
             _attemptsRemaining--;
@@ -770,10 +768,8 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
                 break;
             }
             // fall through to final failure
-#if defined(__GNUC__)
-            [[gnu::fallthrough]];
-#endif
         }
+        // FALLTHRU
         default: {
             _attemptsRemaining = 0;
             qCDebug(networking) << "Error loading " << _url << "attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;
