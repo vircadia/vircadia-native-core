@@ -29,7 +29,7 @@ void AndroidHelper::init() {
 }
 
 QSharedPointer<AccountManager> AndroidHelper::getAccountManager() {
-    assert(_accountManager);
+    Q_ASSERT(_accountManager);
     return _accountManager;
 }
 
