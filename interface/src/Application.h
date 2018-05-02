@@ -492,9 +492,9 @@ private:
     void updateDialogs(float deltaTime) const;
 
     void queryOctree(NodeType_t serverType, PacketType packetType);
+    void queryAvatars();
 
     int sendNackPackets();
-    void sendAvatarViewFrustum();
 
     std::shared_ptr<MyAvatar> getMyAvatar() const;
 

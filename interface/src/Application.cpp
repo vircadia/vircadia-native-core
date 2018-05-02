@@ -5682,7 +5682,7 @@ void Application::update(float deltaTime) {
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                 queryOctree(NodeType::EntityServer, PacketType::EntityQuery);
             }
-            sendAvatarViewFrustum();
+            queryAvatars();
 
             _lastQueriedViews = _conicalViews;
             _lastQueriedTime = now;
@@ -5857,7 +5857,7 @@ void Application::update(float deltaTime) {
     }
 }
 
-void Application::sendAvatarViewFrustum() {
+void Application::queryAvatars() {
     auto avatarPacket = NLPacket::create(PacketType::AvatarQuery);
     auto destinationBuffer = reinterpret_cast<unsigned char*>(avatarPacket->getPayload());
     unsigned char* bufferStart = destinationBuffer;
