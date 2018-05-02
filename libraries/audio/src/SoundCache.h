@@ -36,12 +36,12 @@ public:
      */
 
 
-     // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
+    // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
 
     /**jsdoc
      * Get the list of all resource URLs.
      * @function SoundCache.getResourceList
-     * @return {string[]}
+     * @returns {string[]}
      */
 
     /**jsdoc
@@ -55,10 +55,11 @@ public:
      */
 
     /**jsdoc
+     * Prefetches a resource.
      * @function SoundCache.prefetch
-     * @param {string} url
-     * @param {object} extra
-     * @returns {object}
+     * @param {string} url - URL of the resource to prefetch.
+     * @param {object} [extra=null]
+     * @returns {Resource}
      */
 
     /**jsdoc
@@ -67,14 +68,7 @@ public:
      * @param {string} url - URL of the resource to load.
      * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
      * @param {} [extra=null]
-     * @return {Resource}
-     */
-
-    /**jsdoc
-     * Prefetches a resource.
-     * @function SoundCache.prefetch
-     * @param {string} url - URL of the resource to prefetch.
-     * @return {Resource}
+     * @returns {Resource}
      */
 
 
