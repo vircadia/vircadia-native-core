@@ -2143,6 +2143,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto scriptEngines = DependencyManager::get<ScriptEngines>();
         const auto testScript = property(hifi::properties::TEST).toUrl();
         scriptEngines->loadScript(testScript, false);
+
+        // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
+        if (arguments().contains("--url")) {
+            auto reply = SandboxUtils::getStatus();
+            connect(reply, &QNetworkReply::finished, this, [=] {
+                handleSandboxStatus(reply);
+            });
+        }
     } else {
         PROFILE_RANGE(render, "GetSandboxStatus");
         auto reply = SandboxUtils::getStatus();
