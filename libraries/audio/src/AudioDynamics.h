@@ -21,7 +21,15 @@
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
+#define FORCEINLINE __forceinline
+#elif defined(__GNUC__)
+#define FORCEINLINE inline __attribute__((always_inline))
+#else
+#define FORCEINLINE inline
+#endif
+
+#if defined(_MSC_VER)
 #include <intrin.h>
 #define MUL64(a,b)  __emul((a), (b))
 #else
@@ -42,14 +50,14 @@
 
 #include <xmmintrin.h>
 // convert float to int using round-to-nearest
-static inline int32_t floatToInt(float x) {
+FORCEINLINE static int32_t floatToInt(float x) {
     return _mm_cvt_ss2si(_mm_load_ss(&x));
 }
 
 #else 
 
 // convert float to int using round-to-nearest
-static inline int32_t floatToInt(float x) {
+FORCEINLINE static int32_t floatToInt(float x) {
     x += (x < 0.0f ? -0.5f : 0.5f); // round
     return (int32_t)x;
 }
@@ -60,12 +68,12 @@ static const double FIXQ31 = 2147483648.0;              // convert float to Q31
 static const double DB_TO_LOG2 = 0.16609640474436813;   // convert dB to log2
 
 // convert dB to amplitude
-static inline double dBToGain(double dB) {
+static double dBToGain(double dB) {
     return pow(10.0, dB / 20.0);
 }
 
 // convert milliseconds to first-order time constant
-static inline int32_t msToTc(double ms, double sampleRate) {
+static int32_t msToTc(double ms, double sampleRate) {
     double tc = exp(-1000.0 / (ms * sampleRate));
     return (int32_t)(FIXQ31 * tc);  // Q31
 }
@@ -144,7 +152,7 @@ static const int IEEE754_EXPN_BIAS = 127;
 // x < 2^(31-LOG2_HEADROOM) returns 0x7fffffff
 // x > 2^LOG2_HEADROOM undefined
 //
-static inline int32_t peaklog2(float* input) {
+FORCEINLINE static int32_t peaklog2(float* input) {
 
     // float as integer bits
     uint32_t u = *(uint32_t*)input;
@@ -180,7 +188,7 @@ static inline int32_t peaklog2(float* input) {
 // x < 2^(31-LOG2_HEADROOM) returns 0x7fffffff
 // x > 2^LOG2_HEADROOM undefined
 //
-static inline int32_t peaklog2(float* input0, float* input1) {
+FORCEINLINE static int32_t peaklog2(float* input0, float* input1) {
 
     // float as integer bits
     uint32_t u0 = *(uint32_t*)input0;
@@ -219,7 +227,7 @@ static inline int32_t peaklog2(float* input0, float* input1) {
 // x < 2^(31-LOG2_HEADROOM) returns 0x7fffffff
 // x > 2^LOG2_HEADROOM undefined
 //
-static inline int32_t peaklog2(float* input0, float* input1, float* input2, float* input3) {
+FORCEINLINE static int32_t peaklog2(float* input0, float* input1, float* input2, float* input3) {
 
     // float as integer bits
     uint32_t u0 = *(uint32_t*)input0;
@@ -261,7 +269,7 @@ static inline int32_t peaklog2(float* input0, float* input1, float* input2, floa
 // Count Leading Zeros
 // Emulates the CLZ (ARM) and LZCNT (x86) instruction
 //
-static inline int CLZ(uint32_t u) {
+FORCEINLINE static int CLZ(uint32_t u) {
 
     if (u == 0) {
         return 32;
@@ -294,7 +302,7 @@ static inline int CLZ(uint32_t u) {
 // Compute -log2(x) for x=[0,1] in Q31, result in Q26
 // x <= 0 returns 0x7fffffff
 //
-static inline int32_t fixlog2(int32_t x) {
+FORCEINLINE static int32_t fixlog2(int32_t x) {
 
     if (x <= 0) {
         return 0x7fffffff;
@@ -323,7 +331,7 @@ static inline int32_t fixlog2(int32_t x) {
 // Compute exp2(-x) for x=[0,32] in Q26, result in Q31
 // x <= 0 returns 0x7fffffff
 //
-static inline int32_t fixexp2(int32_t x) {
+FORCEINLINE static int32_t fixexp2(int32_t x) {
 
     if (x <= 0) {
         return 0x7fffffff;
@@ -349,7 +357,7 @@ static inline int32_t fixexp2(int32_t x) {
 }
 
 // fast TPDF dither in [-1.0f, 1.0f]
-static inline float dither() {
+FORCEINLINE static float dither() {
     static uint32_t rz = 0;
     rz = rz * 69069 + 1;
     int32_t r0 = rz & 0xffff;
