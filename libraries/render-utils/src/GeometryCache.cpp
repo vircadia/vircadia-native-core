@@ -2207,7 +2207,7 @@ static void buildWebShader(const gpu::ShaderPointer& vertShader, const gpu::Shad
                             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-    PrepareStencil::testMaskDrawShape(*state);
+    PrepareStencil::testMaskDrawShapeNoAA(*state);
 
     pipelinePointerOut = gpu::Pipeline::create(shaderPointerOut, state);
 }

@@ -66,6 +66,22 @@ bool oculusViaOpenVR() {
     return enableDebugOpenVR && isOculusPresent() && vr::VR_IsHmdPresent();
 }
 
+std::string getOpenVrDeviceName() {
+    auto system = acquireOpenVrSystem();
+    std::string trackingSystemName = "";
+    if (system) {
+        uint32_t HmdTrackingIndex = 0;
+        uint32_t bufferLength = system->GetStringTrackedDeviceProperty(HmdTrackingIndex, vr::Prop_TrackingSystemName_String, NULL, 0, NULL);
+        if (bufferLength > 0) {
+            char* stringBuffer = new char[bufferLength];
+            system->GetStringTrackedDeviceProperty(HmdTrackingIndex, vr::Prop_ManufacturerName_String, stringBuffer, bufferLength, NULL);
+            trackingSystemName = stringBuffer;
+            delete[] stringBuffer;
+        }
+    }
+    return trackingSystemName;
+}
+
 bool openVrSupported() {
     static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
     static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);

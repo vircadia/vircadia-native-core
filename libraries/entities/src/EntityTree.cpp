@@ -1172,16 +1172,6 @@ void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) 
     _challengeOwnershipTimeoutTimer->start(5000);
 }
 
-void EntityTree::startPendingTransferStatusTimer(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode) {
-    qCDebug(entities) << "'transfer_status' is 'pending', checking again in 90 seconds..." << entityItemID;
-    QTimer* transferStatusRetryTimer = new QTimer(this);
-    connect(transferStatusRetryTimer, &QTimer::timeout, this, [=]() {
-        validatePop(certID, entityItemID, senderNode, true);
-    });
-    transferStatusRetryTimer->setSingleShot(true);
-    transferStatusRetryTimer->start(90000);
-}
-
 QByteArray EntityTree::computeNonce(const QString& certID, const QString ownerKey) {
     QUuid nonce = QUuid::createUuid();  //random, 5-hex value, separated by "-"
     QByteArray nonceBytes = nonce.toByteArray();
@@ -1321,7 +1311,7 @@ void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& certID, c
     nodeList->sendPacket(std::move(challengeOwnershipPacket), *(nodeList->nodeWithUUID(QUuid::fromRfc4122(nodeToChallenge))));
 }
 
-void EntityTree::validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation) {
+void EntityTree::validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode) {
     // Start owner verification.
     auto nodeList = DependencyManager::get<NodeList>();
     //     First, asynchronously hit "proof_of_purchase_status?transaction_type=transfer" endpoint.
@@ -1352,30 +1342,13 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
                 withWriteLock([&] {
                     deleteEntity(entityItemID, true);
                 });
-            } else if (jsonObject["transfer_status"].toArray().first().toString() == "pending") {
-                if (isRetryingValidation) {
-                    qCDebug(entities) << "'transfer_status' is 'pending' after retry, deleting entity" << entityItemID;
-                    withWriteLock([&] {
-                        deleteEntity(entityItemID, true);
-                    });
-                } else {
-                    if (thread() != QThread::currentThread()) {
-                        QMetaObject::invokeMethod(this, "startPendingTransferStatusTimer",
-                            Q_ARG(const QString&, certID),
-                            Q_ARG(const EntityItemID&, entityItemID),
-                            Q_ARG(const SharedNodePointer&, senderNode));
-                        return;
-                    } else {
-                        startPendingTransferStatusTimer(certID, entityItemID, senderNode);
-                    }
-                }
             } else {
                 // Second, challenge ownership of the PoP cert
+                // (ignore pending status; a failure will be cleaned up during DDV)
                 sendChallengeOwnershipPacket(certID,
                     jsonObject["transfer_recipient_key"].toString(),
                     entityItemID,
                     senderNode);
-
             }
         } else {
             qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << entityItemID
@@ -1429,6 +1402,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
 
         case PacketType::EntityAdd:
             isAdd = true;  // fall through to next case
+            // FALLTHRU
         case PacketType::EntityPhysics:
         case PacketType::EntityEdit: {
             quint64 startDecode = 0, endDecode = 0;
@@ -1619,7 +1593,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                 // Delete the entity we just added if it doesn't pass static certificate verification
                                 deleteEntity(entityItemID, true);
                             } else {
-                                validatePop(properties.getCertificateID(), entityItemID, senderNode, false);
+                                validatePop(properties.getCertificateID(), entityItemID, senderNode);
                             }
                         }
 

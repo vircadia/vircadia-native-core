@@ -50,7 +50,7 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
     if (!_outputBuffer || _outputBuffer->getSize() != bufferSize) {
         auto colorTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(inputBuffer->getTexelFormat(), bufferSize.x, bufferSize.y,
-                                                gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
+                                                gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT, gpu::Sampler::WRAP_CLAMP)));
 
         _outputBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("BloomThreshold"));
         _outputBuffer->setRenderBuffer(0, colorTexture);
@@ -93,12 +93,14 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
     outputs = _outputBuffer;
 }
 
-BloomApply::BloomApply() {
+BloomApply::BloomApply() : _intensities{ 1.0f, 1.0f, 1.0f } {
 
 }
 
 void BloomApply::configure(const Config& config) {
-    _intensity = config.intensity;
+	_intensities.x = config.intensity / 3.0f;
+	_intensities.y = _intensities.x;
+	_intensities.z = _intensities.x;
 }
 
 void BloomApply::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -106,10 +108,10 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
 
-    static auto BLUR0_SLOT = 0;
-    static auto BLUR1_SLOT = 1;
-    static auto BLUR2_SLOT = 2;
-    static auto INTENSITY_SLOT = 3;
+    static const auto BLUR0_SLOT = 0;
+    static const auto BLUR1_SLOT = 1;
+    static const auto BLUR2_SLOT = 2;
+    static const auto INTENSITY_SLOT = 3;
 
     if (!_pipeline) {
         auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
@@ -149,7 +151,7 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
         batch.setResourceTexture(BLUR0_SLOT, blur0FB->getRenderBuffer(0));
         batch.setResourceTexture(BLUR1_SLOT, blur1FB->getRenderBuffer(0));
         batch.setResourceTexture(BLUR2_SLOT, blur2FB->getRenderBuffer(0));
-        batch._glUniform1f(INTENSITY_SLOT, _intensity / 3.0f);
+		batch._glUniform3f(INTENSITY_SLOT, _intensities.x, _intensities.y, _intensities.z);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
 }
@@ -306,19 +308,19 @@ float BloomConfig::getIntensity() const {
 void BloomConfig::setSize(float value) {
     std::string blurName{ "BloomBlurN" };
     auto sigma = 0.5f+value*3.5f;
+	auto task = static_cast<render::Task::TaskConcept*>(_task);
 
     for (auto i = 0; i < BLOOM_BLUR_LEVEL_COUNT; i++) {
         blurName.back() = '0' + i;
-        auto task = static_cast<render::Task::TaskConcept*>(_task);
         auto blurJobIt = task->editJob(blurName);
         assert(blurJobIt != task->_jobs.end());
         auto& gaussianBlur = blurJobIt->edit<render::BlurGaussian>();
         auto gaussianBlurParams = gaussianBlur.getParameters();
-        gaussianBlurParams->setFilterGaussianTaps(5, sigma);
-        // Gaussian blur increases at each level to have a slower rolloff on the edge
-        // of the response
-        sigma *= 1.5f;
+        gaussianBlurParams->setFilterGaussianTaps(9, sigma);
     }
+	auto blurJobIt = task->getJob("BloomApply");
+	assert(blurJobIt != task->_jobs.end());
+	blurJobIt->getConfiguration()->setProperty("sigma", sigma);
 }
 
 Bloom::Bloom() {
@@ -350,7 +352,7 @@ void Bloom::build(JobModel& task, const render::Varying& inputs, render::Varying
     // Mix all blur levels at quarter resolution
     const auto applyInput = BloomApply::Inputs(bloomInputBuffer, blurFB0, blurFB1, blurFB2).asVarying();
     task.addJob<BloomApply>("BloomApply", applyInput);
-    // And them blend result in additive manner on top of final color buffer
+    // And then blend result in additive manner on top of final color buffer
     const auto drawInput = BloomDraw::Inputs(frameBuffer, bloomInputBuffer).asVarying();
     task.addJob<BloomDraw>("BloomDraw", drawInput);
 

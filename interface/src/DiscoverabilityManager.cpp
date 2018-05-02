@@ -20,6 +20,7 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
+#include "Crashpad.h"
 #include "DiscoverabilityManager.h"
 #include "Menu.h"
 
@@ -127,10 +128,12 @@ void DiscoverabilityManager::updateLocation() {
                                    QNetworkAccessManager::PutOperation, callbackParameters);
     }
 
-    // Update Steam
+    // Update Steam and crash logger
+    QUrl currentAddress = addressManager->currentFacingPublicAddress();
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
-        steamClient->updateLocation(domainHandler.getHostname(), addressManager->currentFacingPublicAddress());
+        steamClient->updateLocation(domainHandler.getHostname(), currentAddress);
     }
+    setCrashAnnotation("address", currentAddress.toString().toStdString());
 }
 
 void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply) {

@@ -617,7 +617,7 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
             }
         } else {
             HIFI_FDEBUG("Packet of type" << headerType
-                << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceNode->getUUID()));
+                << "received from unknown node with Local ID" << localSourceID);
             return false;
         }
     }

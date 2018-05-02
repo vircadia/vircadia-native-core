@@ -19,6 +19,13 @@
 
 // TODO: if QT moc ever supports nested classes, subclass these to the interface instead of namespacing
 namespace SceneScripting {
+    
+    /**jsdoc
+     * @typedef Scene.Stage.Location
+     * @property {number} longitude
+     * @property {number} latitude
+     * @property {number} altitude
+     */
     class Location : public QObject {
         Q_OBJECT
 
@@ -41,6 +48,11 @@ namespace SceneScripting {
     };
     using LocationPointer = std::unique_ptr<Location>;
     
+    /**jsdoc
+     * @typedef Scene.Stage.Time
+     * @property {number} hour
+     * @property {number} day
+     */
     class Time : public QObject {
         Q_OBJECT
 
@@ -60,6 +72,13 @@ namespace SceneScripting {
     };
     using TimePointer = std::unique_ptr<Time>;
 
+    /**jsdoc
+     * @typedef Scene.Stage.KeyLight
+     * @property {Vec3} color
+     * @property {number} intensity
+     * @property {number} ambientIntensity
+     * @property {Vec3} direction
+     */
     class KeyLight : public QObject {
         Q_OBJECT
 
@@ -91,6 +110,14 @@ namespace SceneScripting {
     };
     using KeyLightPointer = std::unique_ptr<KeyLight>;
     
+    /**jsdoc
+     * @class Scene.Stage
+     * @property {string} backgroundMode
+     * @property {Scene.Stage.KeyLight} keyLight
+     * @property {Scene.Stage.Location} location
+     * @property {boolean} sunModel
+     * @property {Scene.Stage.Time} time
+     */
     class Stage : public QObject {
         Q_OBJECT
 
@@ -99,10 +126,22 @@ namespace SceneScripting {
             : _skyStage{ skyStage },
             _location{ new Location{ skyStage } }, _time{ new Time{ skyStage } }, _keyLight{ new KeyLight{ skyStage } }{}
 
+        /**jsdoc
+         * @function Scene.Stage.setOrientation
+         * @param {Quat} orientation
+         */
         Q_INVOKABLE void setOrientation(const glm::quat& orientation) const;
 
         Q_PROPERTY(Location* location READ getLocation)
+
         Location* getLocation() const { return _location.get(); }
+
+        /**jsdoc
+         * @function Scene.Stage.setLocation
+         * @param {number} longitude
+         * @param {number} latitude
+         * @param {number} altitude
+         */
         Q_INVOKABLE void setLocation(float longitude, float latitude, float altitude);
 
         Q_PROPERTY(Time* time READ getTime)
@@ -130,10 +169,15 @@ namespace SceneScripting {
     using StagePointer = std::unique_ptr<Stage>;
 };
 
+/**jsdoc
+ * @namespace Scene
+ * @property {boolean} shouldRenderAvatars
+ * @property {boolean} shouldRenderEntities
+ * @property {Scene.Stage} stage
+ */
 class SceneScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-     
 
 public:
     Q_PROPERTY(bool shouldRenderAvatars READ shouldRenderAvatars WRITE setShouldRenderAvatars)
@@ -149,7 +193,19 @@ public:
     graphics::SunSkyStagePointer getSkyStage() const;
 
 signals:
+
+    /**jsdoc
+     * @function Scene.shouldRenderAvatarsChanged
+     * @param {boolean} shouldRenderAvatars
+     * @returns {Signal}
+     */
     void shouldRenderAvatarsChanged(bool shouldRenderAvatars);
+
+    /**jsdoc
+     * @function Scene.shouldRenderEntitiesChanged
+     * @param {boolean} shouldRenderEntities
+     * @returns {Signal}
+     */
     void shouldRenderEntitiesChanged(bool shouldRenderEntities);
 
 protected:

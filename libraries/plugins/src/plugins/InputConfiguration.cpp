@@ -32,7 +32,8 @@ QStringList InputConfiguration::inputPlugins() {
     for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
         QString pluginName = plugin->getName();
         if (pluginName == QString("OpenVR")) {
-            inputPlugins << QString("Vive");
+            QString headsetName = plugin->getDeviceName();
+            inputPlugins << headsetName;
         } else {
             inputPlugins << pluginName;
         }
@@ -54,7 +55,8 @@ QStringList InputConfiguration::activeInputPlugins() {
         if (plugin->configurable()) {
             QString pluginName = plugin->getName();
             if (pluginName == QString("OpenVR")) {
-                activePlugins << QString("Vive");
+                QString headsetName = plugin->getDeviceName();
+                activePlugins << headsetName;
             } else {
                 activePlugins << pluginName;
             }
@@ -74,7 +76,7 @@ QString InputConfiguration::configurationLayout(QString pluginName) {
 
     QString sourcePath;
     for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
-        if (plugin->getName() == pluginName) {
+        if (plugin->getName() == pluginName || plugin->getDeviceName() == pluginName) {
             return plugin->configurationLayout();
         }
     }
