@@ -1269,6 +1269,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(scriptEngines, &ScriptEngines::scriptsReloading, scriptEngines, [this] {
         getEntities()->reloadEntityScripts();
+        loadAvatarScripts(getMyAvatar()->getScriptUrls());
     }, Qt::QueuedConnection);
 
     connect(scriptEngines, &ScriptEngines::scriptLoadError,
@@ -4833,6 +4834,31 @@ void Application::init() {
             avatar->setCollisionSound(sound);
         }
     }, Qt::QueuedConnection);
+}
+
+void Application::loadAvatarScripts(const QVector<QString>& urls) {
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    auto runningScripts = scriptEngines->getRunningScripts();
+    for (auto url : urls) {
+        int index = runningScripts.indexOf(url);
+        if (index < 0) {
+            auto scriptEnginePointer = scriptEngines->loadScript(url, false);
+            if (scriptEnginePointer) {
+                scriptEnginePointer->setType(ScriptEngine::Type::AVATAR);
+            }
+        }
+    }
+}
+
+void Application::unloadAvatarScripts() {
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    auto urls = scriptEngines->getRunningScripts();
+    for (auto url : urls) {
+        auto scriptEngine = scriptEngines->getScriptEngine(url);
+        if (scriptEngine->getType() == ScriptEngine::Type::AVATAR) {
+            scriptEngines->stopScript(url, false);
+        }
+    }
 }
 
 void Application::updateLOD(float deltaTime) const {

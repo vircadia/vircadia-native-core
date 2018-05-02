@@ -103,7 +103,7 @@ EntityListTool = function(opts) {
 
         var selectedIDs = [];
         for (var j = 0; j < selectionManager.selections.length; j++) {
-            selectedIDs.push(selectionManager.selections[j].id);
+            selectedIDs.push(selectionManager.selections[j]);
         }
 
         var data = {

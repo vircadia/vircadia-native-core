@@ -290,6 +290,9 @@ public:
 
     void replaceDomainContent(const QString& url);
 
+    void loadAvatarScripts(const QVector<QString>& urls);
+    void unloadAvatarScripts();
+
 #if defined(Q_OS_ANDROID)
     void enterBackground();
     void enterForeground();
