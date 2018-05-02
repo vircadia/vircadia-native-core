@@ -153,7 +153,7 @@ SelectionManager = (function() {
         that._update(true);
     };
 
-    that.removeEntities = function (entityIDs) {
+    that.removeEntities = function(entityIDs) {
         for (var i = 0, length = entityIDs.length; i < length; i++) {
             removeEntityByID(entityIDs[i]);
         }
