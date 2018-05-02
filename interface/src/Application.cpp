@@ -252,6 +252,7 @@ extern "C" {
 
 #if defined(Q_OS_ANDROID)
 #include <android/log.h>
+#include "AndroidHelper.h"
 #endif
 
 enum ApplicationEvent {
@@ -2732,6 +2733,9 @@ void Application::initializeUi() {
     offscreenUi->resume();
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
         resizeGL();
+        if (_touchscreenVirtualPadDevice) {
+            _touchscreenVirtualPadDevice->resize();
+        }
     });
 
     // This will set up the input plugins UI
@@ -3167,11 +3171,14 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // If this is a first run we short-circuit the address passed in
     if (firstRun.get()) {
-#if !defined(Q_OS_ANDROID)
+#if defined(Q_OS_ANDROID)
+        qCDebug(interfaceapp) << "First run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("default location") : addressLookupString);
+        DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+#else
         showHelp();
-#endif
         DependencyManager::get<AddressManager>()->goToEntry();
         sentTo = SENT_TO_ENTRY;
+#endif
         firstRun.set(false);
 
     } else {
@@ -3741,6 +3748,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
 void Application::keyReleaseEvent(QKeyEvent* event) {
     _keysPressed.remove(event->key());
 
+#if defined(Q_OS_ANDROID)
+    if (event->key() == Qt::Key_Back) {
+        event->accept();
+        openAndroidActivity("Home");
+    }
+#endif
     _controllerScriptingInterface->emitKeyReleaseEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -8035,4 +8048,29 @@ void Application::saveNextPhysicsStats(QString filename) {
     _physicsEngine->saveNextPhysicsStats(filename);
 }
 
+void Application::openAndroidActivity(const QString& activityName) {
+#if defined(Q_OS_ANDROID)
+    AndroidHelper::instance().requestActivity(activityName);
+#endif
+}
+
+#if defined(Q_OS_ANDROID)
+void Application::enterBackground() {
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
+                              "stop", Qt::BlockingQueuedConnection);
+    //GC: commenting it out until we fix it
+    //getActiveDisplayPlugin()->deactivate();
+}
+void Application::enterForeground() {
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
+                                  "start", Qt::BlockingQueuedConnection);
+    //GC: commenting it out until we fix it
+    /*if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
+        qWarning() << "Could not re-activate display plugin";
+    }*/
+
+}
+#endif
+
+#include "Application_jni.cpp"
 #include "Application.moc"

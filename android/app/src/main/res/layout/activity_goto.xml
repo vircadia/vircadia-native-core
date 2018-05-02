@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root_activity_goto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="io.highfidelity.hifiinterface.GotoActivity">
+
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        app:layout_constraintTop_toTopOf="@id/root_activity_goto"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
+
+    <EditText
+        android:id="@+id/url_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/HifiEditText"
+        android:layout_marginStart="@dimen/activity_horizontal_margin"
+        android:layout_marginEnd="@dimen/activity_horizontal_margin"
+        android:hint="@string/goto_url_hint"
+        android:inputType="textUri"
+        android:imeOptions="actionGo"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        />
+    <android.support.v7.widget.AppCompatButton
+        android:id="@+id/go_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/button_horizontal_margin"
+        android:text="@string/go"
+        app:layout_constraintTop_toBottomOf="@id/url_text"
+        app:layout_constraintEnd_toEndOf="@id/root_activity_goto"/>
+
+</android.support.constraint.ConstraintLayout>

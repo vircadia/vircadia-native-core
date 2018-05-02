@@ -9,7 +9,7 @@ import "../../controls" as HifiControls
 import ".."
 
 Item {
-    id: bar
+    id: actionBar
     x:0
     y:0
     width: 300
@@ -22,7 +22,7 @@ Item {
     property bool shown: true
 
     onShownChanged: {
-        bar.visible = shown;
+        actionBar.visible = shown;
     }
 
 	Rectangle {
@@ -38,26 +38,13 @@ Item {
         }
     }
 
-    function relocateAndResize(newWindowWidth, newWindowHeight) {
-        x = newWindowWidth-328;
-        y = 19;
+    Component.onCompleted: {
+        // put on bottom
+        x = 7;
+        y = 7;
         width = 300;
         height = 300;
     }
-
-    function onWindowGeometryChanged(rect) {
-        relocateAndResize(rect.width, rect.height);
-    }
-
-    Component.onCompleted: {
-        relocateAndResize(parent.width, parent.height);
-        Window.geometryChanged.connect(onWindowGeometryChanged); // In devices with bars appearing at startup we should listen for this
-    }
-
-    Component.onDestruction: {
-        Window.geometryChanged.disconnect(onWindowGeometryChanged);
-    }
-
     
     function addButton(properties) {
         var component = Qt.createComponent("button.qml");
