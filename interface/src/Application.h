@@ -732,6 +732,6 @@ private:
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
 
-    QString testSnapshotLocation { QString() };
+    QString testSnapshotLocation;
 };
 #endif // hifi_Application_h
