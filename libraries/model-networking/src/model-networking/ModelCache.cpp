@@ -221,10 +221,8 @@ void GeometryReader::run() {
             // Add scripts to fbxgeometry
             if (!_mapping.value(SCRIPT_FIELD).isNull()) {
                 QVariantList scripts = _mapping.values(SCRIPT_FIELD);
-                if (scripts.size() > 0) {
-                    for (auto &script : scripts) {
-                        fbxGeometry->scripts.push_back(script.toString());
-                    }
+                for (auto &script : scripts) {
+                    fbxGeometry->scripts.push_back(script.toString());
                 }
             }
 

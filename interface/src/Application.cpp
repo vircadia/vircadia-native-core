@@ -1231,7 +1231,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(scriptEngines, &ScriptEngines::scriptsReloading, scriptEngines, [this] {
         getEntities()->reloadEntityScripts();
-        loadAvatarScripts(getMyAvatar()->getSkeletonModel()->getFBXGeometry().scripts);
+        loadAvatarScripts(getMyAvatar()->getScriptUrls());
     }, Qt::QueuedConnection);
 
     connect(scriptEngines, &ScriptEngines::scriptLoadError,
@@ -4728,16 +4728,14 @@ void Application::init() {
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
-    if (urls.size() > 0) {
-        auto scriptEngines = DependencyManager::get<ScriptEngines>();
-        auto runningScripts = scriptEngines->getRunningScripts();
-        for (auto url : urls) {
-            int index = runningScripts.indexOf(url);
-            if (index < 0) {
-                auto scriptEnginePointer = scriptEngines->loadScript(url, false);
-                if (scriptEnginePointer) {
-                    scriptEnginePointer->setType(ScriptEngine::Type::AVATAR);
-                }
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    auto runningScripts = scriptEngines->getRunningScripts();
+    for (auto url : urls) {
+        int index = runningScripts.indexOf(url);
+        if (index < 0) {
+            auto scriptEnginePointer = scriptEngines->loadScript(url, false);
+            if (scriptEnginePointer) {
+                scriptEnginePointer->setType(ScriptEngine::Type::AVATAR);
             }
         }
     }
@@ -4746,12 +4744,10 @@ void Application::loadAvatarScripts(const QVector<QString>& urls) {
 void Application::unloadAvatarScripts() {
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     auto urls = scriptEngines->getRunningScripts();
-    if (urls.size() > 0) {        
-        for (auto url : urls) {
-            auto scriptEngine = scriptEngines->getScriptEngine(url);
-            if (scriptEngine->getType() == ScriptEngine::Type::AVATAR) {
-                scriptEngines->stopScript(url, false);
-            }
+    for (auto url : urls) {
+        auto scriptEngine = scriptEngines->getScriptEngine(url);
+        if (scriptEngine->getType() == ScriptEngine::Type::AVATAR) {
+            scriptEngines->stopScript(url, false);
         }
     }
 }

@@ -193,17 +193,15 @@ QVector<QString> FSTReader::getScripts(const QUrl& url, const QVariantHash& mapp
     QVector<QString> scriptPaths;
     if (!fstMapping.value(SCRIPT_FIELD).isNull()) {
         auto scripts = fstMapping.values(SCRIPT_FIELD).toVector();
-        if (scripts.size() > 0) {
-            for (auto &script : scripts) {
-                QString scriptPath = script.toString();
-                if (QUrl(scriptPath).isRelative()) {
-                    if (scriptPath.at(0) == '/') {
-                        scriptPath = scriptPath.right(scriptPath.length() - 1);
-                    }
-                    scriptPath = url.resolved(QUrl(scriptPath)).toString();
+        for (auto &script : scripts) {
+            QString scriptPath = script.toString();
+            if (QUrl(scriptPath).isRelative()) {
+                if (scriptPath.at(0) == '/') {
+                    scriptPath = scriptPath.right(scriptPath.length() - 1);
                 }
-                scriptPaths.push_back(scriptPath);
+                scriptPath = url.resolved(QUrl(scriptPath)).toString();
             }
+            scriptPaths.push_back(scriptPath);
         }
     }
     return scriptPaths;

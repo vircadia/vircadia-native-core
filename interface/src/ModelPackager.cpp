@@ -210,7 +210,6 @@ bool ModelPackager::zipModel() {
     _mapping[TEXDIR_FIELD] = tempDir.relativeFilePath(texDir.path());
 
     for (auto multi : _mapping.values(SCRIPT_FIELD)) {
-        
         multi.fromValue(tempDir.relativeFilePath(scriptDir.path()) + multi.toString());
     }
     // Copy FST

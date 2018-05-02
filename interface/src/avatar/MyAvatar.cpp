@@ -2852,6 +2852,11 @@ void MyAvatar::setWalkSpeed(float value) {
     _walkSpeed.set(value);
 }
 
+QVector<QString> MyAvatar::getScriptUrls() {
+    QVector<QString> scripts = _skeletonModel->isLoaded() ? _skeletonModel->getFBXGeometry().scripts : QVector<QString>();
+    return scripts;
+}
+
 glm::vec3 MyAvatar::getPositionForAudio() {
     glm::vec3 result;
     switch (_audioListenerMode) {
