@@ -405,7 +405,7 @@ public slots:
     Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
 
     void updateVerboseLogging();
-    Q_INVOKABLE void openAndroidActivity(const QString& activityName);
+    Q_INVOKABLE void openAndroidActivity(const QString& activityName, const bool backToScene);
     Q_INVOKABLE void performHapticFeedback(const QString& feedbackConstant);
 
 private slots:
