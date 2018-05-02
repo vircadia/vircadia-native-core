@@ -95,7 +95,7 @@
      <number>24</number>
     </property>
    </widget>
-   <widget class="QPushButton" name="createRecursiveScriptsRecursivelyButton">
+   <widget class="QPushButton" name="createAllRecursiveScriptsButton">
     <property name="geometry">
      <rect>
       <x>360</x>
