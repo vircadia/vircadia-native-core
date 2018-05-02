@@ -315,9 +315,10 @@ NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, 
     _textureSource = std::make_shared<gpu::TextureSource>(url, (int)type);
     _lowestRequestedMipLevel = 0;
 
-    if (url.fileName().endsWith(TEXTURE_META_EXTENSION)) {
+    auto fileNameLowercase = url.fileName().toLower();
+    if (fileNameLowercase.endsWith(TEXTURE_META_EXTENSION)) {
         _currentlyLoadingResourceType = ResourceType::META;
-    } else if (url.fileName().endsWith(".ktx")) {
+    } else if (fileNameLowercase.endsWith(".ktx")) {
         _currentlyLoadingResourceType = ResourceType::KTX;
     } else {
         _currentlyLoadingResourceType = ResourceType::ORIGINAL;
