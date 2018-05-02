@@ -27,6 +27,10 @@ if (WIN32)
     add_dependency_external_projects(wasapi)
 endif()
 
+if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    target_link_libraries(${TARGET_NAME} atomic)
+endif()
+
 package_libraries_for_deployment()
 
 
