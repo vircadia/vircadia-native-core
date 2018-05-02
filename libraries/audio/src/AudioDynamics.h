@@ -10,9 +10,9 @@
 // Inline functions to implement audio dynamics processing
 //
 
-#include <stddef.h>
 #include <math.h>
 #include <stdint.h>
+#include <stddef.h>
 
 #ifndef MAX
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -147,13 +147,13 @@ static const int IEEE754_EXPN_BIAS = 127;
 static inline int32_t peaklog2(float* input) {
 
     // float as integer bits
-    int32_t u = *(int32_t*)input;
+    uint32_t u = *(uint32_t*)input;
 
     // absolute value
-    int32_t peak = u & IEEE754_FABS_MASK;
+    uint32_t peak = u & IEEE754_FABS_MASK;
 
     // split into e and x - 1.0
-    int32_t e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
+    int e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
     int32_t x = (peak << IEEE754_EXPN_BITS) & 0x7fffffff;
 
     // saturate
@@ -183,16 +183,16 @@ static inline int32_t peaklog2(float* input) {
 static inline int32_t peaklog2(float* input0, float* input1) {
 
     // float as integer bits
-    int32_t u0 = *(int32_t*)input0;
-    int32_t u1 = *(int32_t*)input1;
+    uint32_t u0 = *(uint32_t*)input0;
+    uint32_t u1 = *(uint32_t*)input1;
 
     // max absolute value
     u0 &= IEEE754_FABS_MASK;
     u1 &= IEEE754_FABS_MASK;
-    int32_t peak = MAX(u0, u1);
+    uint32_t peak = MAX(u0, u1);
 
     // split into e and x - 1.0
-    int32_t e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
+    int e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
     int32_t x = (peak << IEEE754_EXPN_BITS) & 0x7fffffff;
 
     // saturate
@@ -222,20 +222,20 @@ static inline int32_t peaklog2(float* input0, float* input1) {
 static inline int32_t peaklog2(float* input0, float* input1, float* input2, float* input3) {
 
     // float as integer bits
-    int32_t u0 = *(int32_t*)input0;
-    int32_t u1 = *(int32_t*)input1;
-    int32_t u2 = *(int32_t*)input2;
-    int32_t u3 = *(int32_t*)input3;
+    uint32_t u0 = *(uint32_t*)input0;
+    uint32_t u1 = *(uint32_t*)input1;
+    uint32_t u2 = *(uint32_t*)input2;
+    uint32_t u3 = *(uint32_t*)input3;
 
     // max absolute value
     u0 &= IEEE754_FABS_MASK;
     u1 &= IEEE754_FABS_MASK;
     u2 &= IEEE754_FABS_MASK;
     u3 &= IEEE754_FABS_MASK;
-    int32_t peak = MAX(MAX(u0, u1), MAX(u2, u3));
+    uint32_t peak = MAX(MAX(u0, u1), MAX(u2, u3));
 
     // split into e and x - 1.0
-    int32_t e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
+    int e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
     int32_t x = (peak << IEEE754_EXPN_BITS) & 0x7fffffff;
 
     // saturate
@@ -303,8 +303,7 @@ static inline int32_t fixlog2(int32_t x) {
     // split into e and x - 1.0
     uint32_t u = (uint32_t)x;
     int e = CLZ(u);
-    u <<= e;            // normalize to [0x80000000, 0xffffffff]
-    x = u & 0x7fffffff; // x - 1.0
+    x = (u << e) & 0x7fffffff;
 
     int k = x >> (31 - LOG2_TABBITS);
 
