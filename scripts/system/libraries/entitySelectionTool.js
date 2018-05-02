@@ -140,22 +140,22 @@ SelectionManager = (function() {
         that._update(true);
     };
 
-    that.removeEntity = function(entityID) {
+    function removeEntityByID(entityID) {
         var idx = that.selections.indexOf(entityID);
         if (idx >= 0) {
             that.selections.splice(idx, 1);
             Selection.removeFromSelectedItemsList(HIGHLIGHT_LIST_NAME, "entity", entityID);
         }
+    }
+
+    that.removeEntity = function (entityID) {
+        removeEntityByID(entityID);
         that._update(true);
     };
 
     that.removeEntities = function (entityIDs) {
         for (var i = 0, length = entityIDs.length; i < length; i++) {
-            var idx = that.selections.indexOf(entityIDs[i]);
-            if (idx >= 0) {
-                that.selections.splice(idx, 1);
-                Selection.removeFromSelectedItemsList(HIGHLIGHT_LIST_NAME, "entity", entityIDs[i]);
-            }
+            removeEntityByID(entityIDs[i]);
         }
         that._update(true);
     };
