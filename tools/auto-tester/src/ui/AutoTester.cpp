@@ -15,12 +15,17 @@ AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
     ui.checkBoxInteractiveMode->setChecked(true);
     ui.progressBar->setVisible(false);
 
-    test = new Test();
-
     signalMapper = new QSignalMapper();
 
     connect(ui.actionClose, &QAction::triggered, this, &AutoTester::on_closeButton_clicked);
     connect(ui.actionAbout, &QAction::triggered, this, &AutoTester::about);
+
+    test = new Test();
+}
+
+void AutoTester::runFromCommandLine(const QString& testFolder) {
+    isRunningFromCommandline = true;
+    test->startTestsEvaluation(testFolder);
 }
 
 void AutoTester::on_evaluateTestsButton_clicked() {
@@ -86,7 +91,6 @@ void AutoTester::downloadImages(const QStringList& URLs, const QString& director
 }
 
 void AutoTester::saveImage(int index) {
-    QByteArray q = downloaders[index]->downloadedData();
     QPixmap pixmap;
     pixmap.loadFromData(downloaders[index]->downloadedData());
 
@@ -105,7 +109,7 @@ void AutoTester::saveImage(int index) {
     ++_numberOfImagesDownloaded;
 
     if (_numberOfImagesDownloaded == _numberOfImagesToDownload) {
-        test->finishTestsEvaluation(ui.checkBoxInteractiveMode->isChecked(), ui.progressBar);
+        test->finishTestsEvaluation(isRunningFromCommandline, ui.checkBoxInteractiveMode->isChecked(), ui.progressBar);
     } else {
         ui.progressBar->setValue(_numberOfImagesDownloaded);
     }

@@ -22,6 +22,9 @@ class AutoTester : public QMainWindow {
 
 public:
     AutoTester(QWidget *parent = Q_NULLPTR);
+
+    void runFromCommandLine(const QString& testFolder);
+
     void downloadImage(const QUrl& url);
     void downloadImages(const QStringList& URLs, const QString& directoryName, const QStringList& filenames);
 
@@ -55,6 +58,8 @@ private:
     int _numberOfImagesToDownload { 0 };
     int _numberOfImagesDownloaded { 0 };
     int _index { 0 };
+
+    bool isRunningFromCommandline { false };
 };
 
 #endif // hifi_AutoTester_h
