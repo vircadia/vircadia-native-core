@@ -7882,6 +7882,26 @@ void Application::switchDisplayMode() {
     _previousHMDWornStatus = currentHMDWornStatus;
 }
 
+void Application::setShowBulletWireframe(bool value) {
+    _physicsEngine->setShowBulletWireframe(value);
+}
+
+void Application::setShowBulletAABBs(bool value) {
+    _physicsEngine->setShowBulletAABBs(value);
+}
+
+void Application::setShowBulletContactPoints(bool value) {
+    _physicsEngine->setShowBulletContactPoints(value);
+}
+
+void Application::setShowBulletConstraints(bool value) {
+    _physicsEngine->setShowBulletConstraints(value);
+}
+
+void Application::setShowBulletConstraintLimits(bool value) {
+    _physicsEngine->setShowBulletConstraintLimits(value);
+}
+
 void Application::startHMDStandBySession() {
     _autoSwitchDisplayModeSupportedHMDPlugin->startStandBySession();
 }
