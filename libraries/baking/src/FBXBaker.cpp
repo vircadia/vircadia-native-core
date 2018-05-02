@@ -74,62 +74,6 @@ void FBXBaker::bakeSourceCopy() {
     checkIfTexturesFinished();
 }
 
-void FBXBaker::embedTextureMetaData() {
-    std::vector<FBXNode> embeddedTextureNodes;
-
-    for (FBXNode& rootChild : _rootNode.children) {
-        if (rootChild.name == "Objects") {
-            qlonglong maxId = 0;
-            for (auto &child : rootChild.children) {
-                if (child.properties.length() == 3) {
-                    maxId = std::max(maxId, child.properties[0].toLongLong());
-                }
-            }
-
-            for (auto& object : rootChild.children) {
-                if (object.name == "Texture") {
-                    QVariant relativeFilename;
-                    for (auto& child : object.children) {
-                        if (child.name == "RelativeFilename") {
-                            relativeFilename = child.properties[0];
-                            break;
-                        }
-                    }
-
-                    if (relativeFilename.isNull() || !relativeFilename.toString().endsWith(BAKED_META_TEXTURE_SUFFIX)) {
-                        continue;
-                    }
-
-                    FBXNode videoNode;
-                    videoNode.name = "Video";
-                    videoNode.properties.append(++maxId);
-                    videoNode.properties.append(object.properties[1]);
-                    videoNode.properties.append("Clip");
-
-                    QString bakedTextureFilePath {
-                        _bakedOutputDir + "/" + relativeFilename.toString()
-                    };
-                    qDebug() << "Location of texture: " << bakedTextureFilePath;
-
-                    QFile textureFile { bakedTextureFilePath };
-                    if (!textureFile.open(QIODevice::ReadOnly)) {
-                        qWarning() << "Failed to open: " << bakedTextureFilePath;
-                        continue;
-                    }
-
-                    videoNode.children.append({ "RelativeFilename", { relativeFilename }, { } });
-                    videoNode.children.append({ "Content", { textureFile.readAll() }, { } });
-
-                    rootChild.children.append(videoNode);
-
-                    textureFile.close();
-                }
-            }
-        }
-    }
-
-}
-
 void FBXBaker::setupOutputFolder() {
     // make sure there isn't already an output directory using the same name
     if (QDir(_bakedOutputDir).exists()) {

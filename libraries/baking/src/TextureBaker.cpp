@@ -128,11 +128,11 @@ void TextureBaker::processTexture() {
         auto filePath = _outputDirectory.absoluteFilePath(_textureURL.fileName());
         QFile file { filePath };
         if (!file.open(QIODevice::WriteOnly) || file.write(_originalTexture) == -1) {
-            handleError("Could not write meta texture for " + _textureURL.toString());
+            handleError("Could not write original texture for " + _textureURL.toString());
             return;
         }
         _outputFiles.push_back(filePath);
-        meta.original =_metaTexturePathPrefix +_textureURL.fileName();
+        meta.original = _metaTexturePathPrefix +_textureURL.fileName();
     }
 
     // IMPORTANT: _originalTexture is empty past this point
@@ -157,18 +157,17 @@ void TextureBaker::processTexture() {
         return;
     }
 
-    const char* data = reinterpret_cast<const char*>(memKTX->_storage->data());
-    const size_t length = memKTX->_storage->size();
     const char* name = khronos::gl::texture::toString(memKTX->_header.getGLInternaFormat());
     if (name == nullptr) {
         handleError("Could not determine internal format for compressed KTX: " + _textureURL.toString());
         return;
     }
 
-    qDebug() << "Found type: " << name;
-
     // attempt to write the baked texture to the destination file path
     {
+        const char* data = reinterpret_cast<const char*>(memKTX->_storage->data());
+        const size_t length = memKTX->_storage->size();
+
         auto fileName = _baseFilename + BAKED_TEXTURE_BCN_SUFFIX;
         auto filePath = _outputDirectory.absoluteFilePath(fileName);
         QFile bakedTextureFile { filePath };

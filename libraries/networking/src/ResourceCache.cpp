@@ -619,7 +619,6 @@ void Resource::init(bool resetLoaded) {
         _loaded = false;
     }
     _attempts = 0;
-    qDebug() << "Initting resource: " << _url;
     
     if (_url.isEmpty()) {
         _startedLoading = _loaded = true;
@@ -672,7 +671,6 @@ void Resource::makeRequest() {
 
     PROFILE_ASYNC_BEGIN(resource, "Resource:" + getType(), QString::number(_requestID), { { "url", _url.toString() }, { "activeURL", _activeUrl.toString() } });
 
-    qDebug() << "Making request to " << _activeUrl;
     _request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, _activeUrl);
 
     if (!_request) {

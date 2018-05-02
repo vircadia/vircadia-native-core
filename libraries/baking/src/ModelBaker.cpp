@@ -537,8 +537,6 @@ void ModelBaker::embedTextureMetaData() {
                 }
             }
 
-            qDebug() << "Max id found was: " << maxId;
-
             for (auto& object : rootChild.children) {
                 if (object.name == "Texture") {
                     QVariant relativeFilename;
@@ -567,7 +565,6 @@ void ModelBaker::embedTextureMetaData() {
                     QString bakedTextureFilePath {
                         _bakedOutputDir + "/" + relativeFilename.toString()
                     };
-                    qDebug() << "Location of texture: " << bakedTextureFilePath;
 
                     QFile textureFile { bakedTextureFilePath };
                     if (!textureFile.open(QIODevice::ReadOnly)) {
@@ -585,7 +582,6 @@ void ModelBaker::embedTextureMetaData() {
             }
         }
     }
-
 }
 
 void ModelBaker::exportScene() {

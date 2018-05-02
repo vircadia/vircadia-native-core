@@ -1101,7 +1101,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     }
                     if (!content.isEmpty()) {
                         _textureContent.insert(filepath, content);
-                        qDebug() << "Adding content: " << filepath << content.length();
                     }
                 } else if (object.name == "Material") {
                     FBXMaterial material;
