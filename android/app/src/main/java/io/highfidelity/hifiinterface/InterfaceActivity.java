@@ -31,12 +31,18 @@ import android.view.View;
 
 public class InterfaceActivity extends QtActivity {
 
+    public static final String DOMAIN_URL = "url";
+    private static final String TAG = "Interface";
+
     //public static native void handleHifiURL(String hifiURLString);
     private native long nativeOnCreate(InterfaceActivity instance, AssetManager assetManager);
     //private native void nativeOnPause();
     //private native void nativeOnResume();
-    //private native void nativeOnStop();
-    //private native void nativeOnStart();
+    private native void nativeOnDestroy();
+    private native void nativeGotoUrl(String url);
+    private native void nativeGoBackFromAndroidActivity();
+    private native void nativeEnterBackground();
+    private native void nativeEnterForeground();
     //private native void saveRealScreenSize(int width, int height);
     //private native void setAppVersion(String version);
     private native long nativeOnExitVr();
@@ -57,11 +63,13 @@ public class InterfaceActivity extends QtActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        Intent intent = getIntent();
+        if (intent.hasExtra(DOMAIN_URL) && !intent.getStringExtra(DOMAIN_URL).isEmpty()) {
+            intent.putExtra("applicationArguments", "--url " + intent.getStringExtra(DOMAIN_URL));
+        }
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        
-        // Get the intent that started this activity in case we have a hifi:// URL to parse
-        Intent intent = getIntent();
+
         if (intent.getAction() == Intent.ACTION_VIEW) {
             Uri data = intent.getData();
 
@@ -116,14 +124,13 @@ public class InterfaceActivity extends QtActivity {
     @Override
     protected void onStart() {
         super.onStart();
-//        nativeOnStart();
+        nativeEnterForeground();
     }
 
     @Override
     protected void onStop() {
-        Log.d("[Background]","Calling nativeOnStop from InterfaceActivity");
-//        nativeOnStop();
         super.onStop();
+        nativeEnterBackground();
     }
 
     @Override
@@ -131,6 +138,12 @@ public class InterfaceActivity extends QtActivity {
         super.onResume();
         //nativeOnResume();
         //gvrApi.resumeTracking();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        nativeOnDestroy();
     }
 
     @Override
@@ -175,4 +188,32 @@ public class InterfaceActivity extends QtActivity {
         }
     }
 
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (intent.hasExtra(DOMAIN_URL)) {
+            nativeGotoUrl(intent.getStringExtra(DOMAIN_URL));
+        }
+        nativeGoBackFromAndroidActivity();
+    }
+
+    public void openAndroidActivity(String activityName) {
+        switch (activityName) {
+            case "Home": {
+                Intent intent = new Intent(this, HomeActivity.class);
+                intent.putExtra(HomeActivity.PARAM_NOT_START_INTERFACE_ACTIVITY, true);
+                startActivity(intent);
+                break;
+            }
+            default: {
+                Log.w(TAG, "Could not open activity by name " + activityName);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        openAndroidActivity("Home");
+    }
 }

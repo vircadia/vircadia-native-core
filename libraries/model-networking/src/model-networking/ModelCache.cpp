@@ -66,6 +66,7 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
     auto mapping = FSTReader::readMapping(data);
 
     QString filename = mapping.value("filename").toString();
+
     if (filename.isNull()) {
         qCDebug(modelnetworking) << "Mapping file" << _url << "has no \"filename\" field";
         finishedLoading(false);
@@ -80,6 +81,14 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
             _textureBaseUrl = resolveTextureBaseUrl(url, _url.resolved(texdir));
         } else {
             _textureBaseUrl = url.resolved(QUrl("."));
+        }
+
+        auto scripts = FSTReader::getScripts(_url, mapping);
+        if (scripts.size() > 0) {
+            mapping.remove(SCRIPT_FIELD);
+            for (auto &scriptPath : scripts) {
+                mapping.insertMulti(SCRIPT_FIELD, scriptPath);
+            }
         }
 
         auto animGraphVariant = mapping.value("animGraphUrl");
@@ -207,6 +216,14 @@ void GeometryReader::run() {
                 }
             } else {
                 throw QString("unsupported format");
+            }
+
+            // Add scripts to fbxgeometry
+            if (!_mapping.value(SCRIPT_FIELD).isNull()) {
+                QVariantList scripts = _mapping.values(SCRIPT_FIELD);
+                for (auto &script : scripts) {
+                    fbxGeometry->scripts.push_back(script.toString());
+                }
             }
 
             // Ensure the resource has not been deleted
