@@ -14,7 +14,7 @@
 var DEFAULT_SCRIPTS_COMBINED = [
     "system/progress.js",
     "system/+android/touchscreenvirtualpad.js",
-    "system/+android/bottombar.js",
+    "system/+android/actionbar.js",
     "system/+android/audio.js" ,
     "system/+android/modes.js",
     "system/+android/stats.js"/*,

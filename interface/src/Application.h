@@ -290,6 +290,14 @@ public:
 
     void replaceDomainContent(const QString& url);
 
+    void loadAvatarScripts(const QVector<QString>& urls);
+    void unloadAvatarScripts();
+
+#if defined(Q_OS_ANDROID)
+    void enterBackground();
+    void enterForeground();
+#endif
+
 signals:
     void svoImportRequested(const QString& url);
 
@@ -400,6 +408,8 @@ public slots:
     Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
 
     void updateVerboseLogging();
+    Q_INVOKABLE void openAndroidActivity(const QString& activityName);
+
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);

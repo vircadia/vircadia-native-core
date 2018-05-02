@@ -249,7 +249,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                     indexToDirect = true;
                 }
             }
-            if (indexToDirect && data.normalIndices.isEmpty()) {
+            if (indexToDirect && data.colorIndices.isEmpty()) {
                 // hack to work around wacky Makehuman exports
                 data.colorsByVertex = true;
             }
