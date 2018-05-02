@@ -411,6 +411,7 @@ public slots:
     Q_INVOKABLE void openAndroidActivity(const QString& activityName, const bool backToScene);
     Q_INVOKABLE void performHapticFeedback(const QString& feedbackConstant);
 
+
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
