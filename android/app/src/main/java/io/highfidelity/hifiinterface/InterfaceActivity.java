@@ -199,10 +199,13 @@ public class InterfaceActivity extends QtActivity {
         }
     }
 
-    public void openAndroidActivity(String activityName) {
+    public void openAndroidActivity(String activityName, boolean backToScene) {
         switch (activityName) {
-            case "Home": {
+            case "Home":
+            case "Login": {
                 Intent intent = new Intent(this, MainActivity.class);
+                intent.putExtra(MainActivity.EXTRA_FRAGMENT, activityName);
+                intent.putExtra(MainActivity.EXTRA_BACK_TO_SCENE, backToScene);
                 startActivity(intent);
                 break;
             }
@@ -228,7 +231,7 @@ public class InterfaceActivity extends QtActivity {
 
     @Override
     public void onBackPressed() {
-        openAndroidActivity("Home");
+        openAndroidActivity("Home", false);
     }
 
 }

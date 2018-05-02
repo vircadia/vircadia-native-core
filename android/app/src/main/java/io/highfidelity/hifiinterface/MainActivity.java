@@ -17,6 +17,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -40,6 +41,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                                                 GotoFragment.OnGotoInteractionListener {
 
     private static final int PROFILE_PICTURE_PLACEHOLDER = R.drawable.default_profile_avatar;
+    public static final String DEFAULT_FRAGMENT = "Home";
+    public static final String EXTRA_FRAGMENT = "fragment";
+    public static final String EXTRA_BACK_TO_SCENE = "backToScene";
+
     private String TAG = "HighFidelity";
 
     public native boolean nativeIsLoggedIn();
@@ -50,6 +55,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private NavigationView mNavigationView;
     private ImageView mProfilePicture;
     private TextView mDisplayName;
+
+    private boolean backToScene;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,7 +83,34 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         window.setStatusBarColor(ContextCompat.getColor(this, R.color.statusbar_color));
 
-        loadHomeFragment();
+        if (getIntent() != null) {
+            if (getIntent().hasExtra(EXTRA_FRAGMENT)) {
+                loadFragment(getIntent().getStringExtra(EXTRA_FRAGMENT));
+            } else {
+                loadFragment(DEFAULT_FRAGMENT);
+            }
+
+            if (getIntent().hasExtra(EXTRA_BACK_TO_SCENE)) {
+                backToScene = getIntent().getBooleanExtra(EXTRA_BACK_TO_SCENE, false);
+            }
+        }
+    }
+
+    private void loadFragment(String fragment) {
+        switch (fragment) {
+            case "Login":
+                loadLoginFragment();
+                break;
+            case "Home":
+                loadHomeFragment();
+                break;
+            case "Privacy Policy":
+                loadPrivacyPolicyFragment();
+                break;
+            default:
+                Log.e(TAG, "Unknown fragment " + fragment);
+        }
+
     }
 
     private void loadHomeFragment() {
@@ -200,6 +234,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         goToDomain(domainUrl);
     }
 
+    private void goToLastLocation() {
+        goToDomain("");
+    }
+
     private void goToDomain(String domainUrl) {
         Intent intent = new Intent(this, InterfaceActivity.class);
         intent.putExtra(InterfaceActivity.DOMAIN_URL, domainUrl);
@@ -212,6 +250,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public void onLoginCompleted() {
         loadHomeFragment();
         updateLoginMenu();
+        if (backToScene) {
+            backToScene = false;
+            goToLastLocation();
+        }
     }
 
     public void handleUsernameChanged(String username) {
@@ -246,7 +288,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         @Override
         public void onError(Exception e) {
             mProfilePicture.setImageResource(PROFILE_PICTURE_PLACEHOLDER);
-
         }
     }
 
@@ -255,8 +296,24 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int index = getFragmentManager().getBackStackEntryCount() - 1;
         if (index > -1) {
             super.onBackPressed();
+            if (backToScene) {
+                backToScene = false;
+                goToLastLocation();
+            }
         } else {
-            finishAffinity();
+                finishAffinity();
         }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+        savedInstanceState.putBoolean(EXTRA_BACK_TO_SCENE, backToScene);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        backToScene = savedInstanceState.getBoolean(EXTRA_BACK_TO_SCENE, false);
     }
 }

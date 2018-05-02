@@ -43,7 +43,7 @@ function onBackPressed() {
 }
 
 function onBackClicked() {
-   App.openAndroidActivity("Home");
+   App.openAndroidActivity("Home", false);
 }
 
 

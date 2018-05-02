@@ -151,9 +151,10 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCrea
     unpackAndroidAssets();
     qInstallMessageHandler(oldMessageHandler);
 
-    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::androidActivityRequested, [](const QString& a) {
+    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::androidActivityRequested, [](const QString& a, const bool backToScene) {
         QAndroidJniObject string = QAndroidJniObject::fromString(a);
-        __interfaceActivity.callMethod<void>("openAndroidActivity", "(Ljava/lang/String;)V", string.object<jstring>());
+        jboolean jBackToScene = (jboolean) backToScene;
+        __interfaceActivity.callMethod<void>("openAndroidActivity", "(Ljava/lang/String;Z)V", string.object<jstring>(), jBackToScene);
     });
 
     QObject::connect(&AndroidHelper::instance(), &AndroidHelper::hapticFeedbackRequested, [](const QString &c) {

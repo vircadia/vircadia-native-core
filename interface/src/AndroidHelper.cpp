@@ -14,7 +14,6 @@
 AndroidHelper::AndroidHelper() :
 _accountManager ()
 {
-    workerThread.start();
 }
 
 AndroidHelper::~AndroidHelper() {
@@ -22,18 +21,20 @@ AndroidHelper::~AndroidHelper() {
     workerThread.wait();
 }
 
+void AndroidHelper::init() {
+    qDebug() << "[LOGIN] AndroidHelper::init";
+    workerThread.start();
+    _accountManager = DependencyManager::get<AccountManager>();
+    _accountManager->moveToThread(&workerThread);
+}
+
 QSharedPointer<AccountManager> AndroidHelper::getAccountManager() {
-    if (!_accountManager) {
-        _accountManager = QSharedPointer<AccountManager>(new AccountManager, &QObject::deleteLater);
-        _accountManager->setIsAgent(true);
-        _accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
-        _accountManager->moveToThread(&workerThread);
-    }
+    assert(_accountManager);
     return _accountManager;
 }
 
-void AndroidHelper::requestActivity(const QString &activityName) {
-    emit androidActivityRequested(activityName);
+void AndroidHelper::requestActivity(const QString &activityName, const bool backToScene) {
+    emit androidActivityRequested(activityName, backToScene);
 }
 
 void AndroidHelper::notifyLoadComplete() {
@@ -48,3 +49,6 @@ void AndroidHelper::performHapticFeedback(const QString& feedbackConstant) {
     emit hapticFeedbackRequested(feedbackConstant);
 }
 
+void AndroidHelper::showLoginDialog() {
+    emit androidActivityRequested("Login", true);
+}

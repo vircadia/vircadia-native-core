@@ -830,7 +830,11 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Cursor::Manager>();
     DependencyManager::set<VirtualPad::Manager>();
     DependencyManager::set<DesktopPreviewProvider>();
+#if defined(Q_OS_ANDROID)
+    DependencyManager::set<AccountManager>(); // use the default user agent getter
+#else
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
+#endif
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
     DependencyManager::set<ScriptInitializerMixin, NativeScriptInitializers>();
@@ -1189,7 +1193,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             nodeList.data(), SLOT(reset()));
 
     auto dialogsManager = DependencyManager::get<DialogsManager>();
+#if defined(Q_OS_ANDROID)
+    connect(accountManager.data(), &AccountManager::authRequired, this, []() {
+        AndroidHelper::instance().showLoginDialog();
+    });
+#else
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
+#endif
     connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
@@ -2166,6 +2176,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 
 #if defined(Q_OS_ANDROID)
+    AndroidHelper::instance().init();
     AndroidHelper::instance().notifyLoadComplete();
 #endif
 }
@@ -3673,7 +3684,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 #if defined(Q_OS_ANDROID)
     if (event->key() == Qt::Key_Back) {
         event->accept();
-        openAndroidActivity("Home");
+        openAndroidActivity("Home", false);
     }
 #endif
     _controllerScriptingInterface->emitKeyReleaseEvent(event); // send events to any registered scripts
@@ -7936,9 +7947,9 @@ void Application::saveNextPhysicsStats(QString filename) {
     _physicsEngine->saveNextPhysicsStats(filename);
 }
 
-void Application::openAndroidActivity(const QString& activityName) {
+void Application::openAndroidActivity(const QString& activityName, const bool backToScene) {
 #if defined(Q_OS_ANDROID)
-    AndroidHelper::instance().requestActivity(activityName);
+    AndroidHelper::instance().requestActivity(activityName, backToScene);
 #endif
 }
 

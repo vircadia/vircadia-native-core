@@ -23,7 +23,8 @@ public:
             static AndroidHelper instance;
             return instance;
     }
-    void requestActivity(const QString &activityName);
+    void init();
+    void requestActivity(const QString &activityName, const bool backToScene);
     void notifyLoadComplete();
 
     void notifyLoginComplete(bool success);
@@ -33,8 +34,12 @@ public:
 
     AndroidHelper(AndroidHelper const&)  = delete;
     void operator=(AndroidHelper const&) = delete;
+
+public slots:
+    void showLoginDialog();
+
 signals:
-    void androidActivityRequested(const QString &activityName);
+    void androidActivityRequested(const QString &activityName, const bool backToScene);
     void qtAppLoadComplete();
     void loginComplete(bool success);
     void hapticFeedbackRequested(const QString &feedbackConstant);
