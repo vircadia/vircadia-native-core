@@ -63,7 +63,7 @@ struct AssetMeta {
     AssetMeta() {
     }
 
-    BakeVersion bakeVersion;
+    BakeVersion bakeVersion { INITIAL_BAKE_VERSION };
     bool failedLastBake { false };
     QString lastBakeErrors;
 };
