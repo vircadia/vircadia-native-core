@@ -150,6 +150,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
 
             // fall through to OnTime case
         }
+        // FALLTHRU
         case SequenceNumberStats::OnTime: {
             // Packet is on time; parse its data to the ringbuffer
             if (message.getType() == PacketType::SilentAudioFrame
