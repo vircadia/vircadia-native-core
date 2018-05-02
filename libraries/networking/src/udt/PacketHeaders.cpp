@@ -91,7 +91,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::Ping:
             return static_cast<PacketVersion>(PingVersion::IncludeConnectionID);
         case PacketType::AvatarQuery:
-            return static_cast<PacketVersion>(AvatarQueryVersion::SendMultipleFrustums);
+            return static_cast<PacketVersion>(AvatarQueryVersion::ConicalFrustums);
         default:
             return 20;
     }

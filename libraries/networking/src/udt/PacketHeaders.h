@@ -330,7 +330,8 @@ enum class PingVersion : PacketVersion {
 };
 
 enum class AvatarQueryVersion : PacketVersion {
-    SendMultipleFrustums = 21
+    SendMultipleFrustums = 21,
+    ConicalFrustums = 22
 };
 
 #endif // hifi_PacketHeaders_h
