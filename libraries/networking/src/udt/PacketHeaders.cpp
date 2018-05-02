@@ -91,7 +91,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::Ping:
             return static_cast<PacketVersion>(PingVersion::IncludeConnectionID);
         default:
-            return 19;
+            return 20;
     }
 }
 

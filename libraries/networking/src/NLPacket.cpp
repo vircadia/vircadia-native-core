@@ -11,8 +11,6 @@
 
 #include "NLPacket.h"
 
-#include "HMACAuth.h"
-
 int NLPacket::localHeaderSize(PacketType type) {
     bool nonSourced = PacketTypeEnum::getNonSourcedPackets().contains(type);
     bool nonVerified = PacketTypeEnum::getNonVerifiedPackets().contains(type);
@@ -152,14 +150,18 @@ QByteArray NLPacket::verificationHashInHeader(const udt::Packet& packet) {
     return QByteArray(packet.getData() + offset, NUM_BYTES_MD5_HASH);
 }
 
-QByteArray NLPacket::hashForPacketAndHMAC(const udt::Packet& packet, HMACAuth& hash) {
+QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret) {
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    
     int offset = Packet::totalHeaderSize(packet.isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion)
         + NUM_BYTES_LOCALID + NUM_BYTES_MD5_HASH;
     
     // add the packet payload and the connection UUID
     hash.addData(packet.getData() + offset, packet.getDataSize() - offset);
-    auto hashResult { hash.result() };
-    return QByteArray((const char*) hashResult.data(), (int) hashResult.size());
+    hash.addData(connectionSecret.toRfc4122());
+    
+    // return the hash
+    return hash.result();
 }
 
 void NLPacket::writeTypeAndVersion() {
@@ -212,14 +214,14 @@ void NLPacket::writeSourceID(LocalID sourceID) const {
     _sourceID = sourceID;
 }
 
-void NLPacket::writeVerificationHash(HMACAuth& hmacAuth) const {
+void NLPacket::writeVerificationHashGivenSecret(const QUuid& connectionSecret) const {
     Q_ASSERT(!PacketTypeEnum::getNonSourcedPackets().contains(_type) &&
              !PacketTypeEnum::getNonVerifiedPackets().contains(_type));
     
     auto offset = Packet::totalHeaderSize(isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion)
                 + NUM_BYTES_LOCALID;
 
-    QByteArray verificationHash = hashForPacketAndHMAC(*this, hmacAuth);
+    QByteArray verificationHash = hashForPacketAndSecret(*this, connectionSecret);
     
     memcpy(_packet.get() + offset, verificationHash.data(), verificationHash.size());
 }

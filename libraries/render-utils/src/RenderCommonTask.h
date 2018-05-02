@@ -60,7 +60,7 @@ protected:
 
 class DrawOverlay3D {
 public:
-    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
+    using Inputs = render::VaryingSet3<render::ItemBounds, LightingModelPointer, glm::vec2>;
 
     using Config = DrawOverlay3DConfig;
     using JobModel = render::Job::ModelI<DrawOverlay3D, Inputs, Config>;

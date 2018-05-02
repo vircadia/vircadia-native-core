@@ -80,7 +80,6 @@ void DialogsManager::showFeed() {
 }
 
 void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
-    qDebug() << "DialogsManager::setDomainConnectionFailureVisibility: visible" << visible;
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
 

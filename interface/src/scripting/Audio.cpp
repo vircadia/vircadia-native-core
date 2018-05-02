@@ -147,7 +147,7 @@ void Audio::setInputVolume(float volume) {
 }
 
 float Audio::getInputLevel() const {
-    return resultWithReadLock<bool>([&] {
+    return resultWithReadLock<float>([&] {
         return _inputLevel;
     });
 }
