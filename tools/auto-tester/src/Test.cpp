@@ -371,7 +371,8 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
     textStream << "var autoTester = Script.require(\"https://github.com/" + githubUser + "/hifi_tests/blob/" 
         + gitHubBranch + "/tests/utils/autoTester.js?raw=true\");" << endl;
 
-    textStream << "autoTester.enableRecursive();" << endl << endl;
+    textStream << "autoTester.enableRecursive();" << endl;
+    textStream << "autoTester.enableAuto();" << endl << endl;
 
     QVector<QString> testPathnames;
 
