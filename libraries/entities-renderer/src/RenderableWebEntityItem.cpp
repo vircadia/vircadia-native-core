@@ -308,12 +308,7 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
             item->setProperty(URL_PROPERTY, _lastSourceUrl);
         });
     } else if (_contentType == ContentType::QmlContent) {
-        _webSurface->load(_lastSourceUrl, [this](QQmlContext* context, QObject* item) {
-            if (item && item->objectName() == "tabletRoot") {
-                auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-                tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface.data());
-            }
-        });
+        _webSurface->load(_lastSourceUrl);
     }
     _fadeStartTime = usecTimestampNow();
     _webSurface->resume();
@@ -323,32 +318,21 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
 
 void WebEntityRenderer::destroyWebSurface() {
     QSharedPointer<OffscreenQmlSurface> webSurface;
+    ContentType contentType{ ContentType::NoContent };
     withWriteLock([&] {
         webSurface.swap(_webSurface);
+        std::swap(contentType, _contentType);
     });
 
     if (webSurface) {
         --_currentWebCount;
         QQuickItem* rootItem = webSurface->getRootItem();
-        // Explicitly set the web URL to an empty string, in an effort to get a 
-        // faster shutdown of any chromium processes interacting with audio
-        if (rootItem && _contentType == ContentType::HtmlContent) {
-            rootItem->setProperty(URL_PROPERTY, "");
-        }
-
-        if (rootItem && rootItem->objectName() == "tabletRoot") {
-            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
-        }
 
         // Fix for crash in QtWebEngineCore when rapidly switching domains
         // Call stop on the QWebEngineView before destroying OffscreenQMLSurface.
-        if (rootItem) {
-            QObject* obj = rootItem->findChild<QObject*>("webEngineView");
-            if (obj) {
-                // stop loading
-                QMetaObject::invokeMethod(obj, "stop");
-            }
+        if (rootItem && contentType == ContentType::HtmlContent) {
+            // stop loading
+            QMetaObject::invokeMethod(rootItem, "stop");
         }
 
         webSurface->pause();

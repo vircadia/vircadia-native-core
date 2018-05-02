@@ -1402,6 +1402,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
 
         case PacketType::EntityAdd:
             isAdd = true;  // fall through to next case
+            // FALLTHRU
         case PacketType::EntityPhysics:
         case PacketType::EntityEdit: {
             quint64 startDecode = 0, endDecode = 0;

@@ -9,11 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/**jsdoc
- * The LOD class manages your Level of Detail functions within interface
- * @namespace LODManager 
- */
-
 #ifndef hifi_LODManager_h
 #define hifi_LODManager_h
 
@@ -39,9 +34,31 @@ const float ADJUST_LOD_MIN_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE * 0.04f;
 
 class AABox;
 
+/**jsdoc
+ * The LOD class manages your Level of Detail functions within Interface.
+ * @namespace LODManager
+ * @property {number} presentTime <em>Read-only.</em>
+ * @property {number} engineRunTime <em>Read-only.</em>
+ * @property {number} gpuTime <em>Read-only.</em>
+ * @property {number} avgRenderTime <em>Read-only.</em>
+ * @property {number} fps <em>Read-only.</em>
+ * @property {number} lodLevel <em>Read-only.</em>
+ * @property {number} lodDecreaseFPS <em>Read-only.</em>
+ * @property {number} lodIncreaseFPS <em>Read-only.</em>
+ */
+
 class LODManager : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
+
+    Q_PROPERTY(float presentTime READ getPresentTime)
+    Q_PROPERTY(float engineRunTime READ getEngineRunTime)
+    Q_PROPERTY(float gpuTime READ getGPUTime)
+    Q_PROPERTY(float avgRenderTime READ getAverageRenderTime)
+    Q_PROPERTY(float fps READ getMaxTheoreticalFPS)
+    Q_PROPERTY(float lodLevel READ getLODLevel)
+    Q_PROPERTY(float lodDecreaseFPS READ getLODDecreaseFPS)
+    Q_PROPERTY(float lodIncreaseFPS READ getLODIncreaseFPS)
 
 public:
      
@@ -137,28 +154,6 @@ public:
      * @returns {number}
      */
     Q_INVOKABLE float getLODIncreaseFPS() const;
-
-    /**jsdoc
-     * @namespace LODManager
-     * @property {number} presentTime <em>Read-only.</em>
-     * @property {number} engineRunTime <em>Read-only.</em>
-     * @property {number} gpuTime <em>Read-only.</em>
-     * @property {number} avgRenderTime <em>Read-only.</em>
-     * @property {number} fps <em>Read-only.</em>
-     * @property {number} lodLevel <em>Read-only.</em>
-     * @property {number} lodDecreaseFPS <em>Read-only.</em>
-     * @property {number} lodIncreaseFPS <em>Read-only.</em>
-     */
-
-    Q_PROPERTY(float presentTime READ getPresentTime)
-    Q_PROPERTY(float engineRunTime READ getEngineRunTime)
-    Q_PROPERTY(float gpuTime READ getGPUTime)
-    Q_PROPERTY(float avgRenderTime READ getAverageRenderTime)
-    Q_PROPERTY(float fps READ getMaxTheoreticalFPS)
-    Q_PROPERTY(float lodLevel READ getLODLevel)
-
-    Q_PROPERTY(float lodDecreaseFPS READ getLODDecreaseFPS)
-    Q_PROPERTY(float lodIncreaseFPS READ getLODIncreaseFPS)
 
     float getPresentTime() const { return _presentTime; }
     float getEngineRunTime() const { return _engineRunTime; }
