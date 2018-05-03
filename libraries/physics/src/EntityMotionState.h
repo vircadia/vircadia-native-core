@@ -14,6 +14,7 @@
 
 #include <EntityTypes.h>
 #include <AACube.h>
+#include <workload/Region.h>
 
 #include "ObjectMotionState.h"
 
@@ -93,6 +94,8 @@ public:
     friend class PhysicalEntitySimulation;
     OwnershipState getOwnershipState() const { return _ownershipState; }
 
+    void setRegion(uint8_t region);
+
 protected:
     void updateSendVelocities();
     uint64_t getNextBidExpiry() const { return _nextBidExpiry; }
@@ -102,11 +105,10 @@ protected:
     void updateServerPhysicsVariables();
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
 
-    // changes _bidPriority only if priority is larger
-    void upgradeBidPriority(uint8_t priority);
+    // computes _bidPriority using newPriority and special case rules
+    void computeNewBidPriority(uint8_t newPriority);
 
-    // upgradeBidPriority to value stored in _entity
-    void slaveBidPriority();
+    void slaveBidPriority(); // computeNewBidPriority() with value stored in _entity
 
     void clearObjectVelocities() const;
 
@@ -155,6 +157,7 @@ protected:
     mutable uint8_t _accelerationNearlyGravityCount;
     uint8_t _numInactiveUpdates { 1 };
     uint8_t _bidPriority { 0 };
+    uint8_t _region { workload::Region::INVALID };
     bool _serverVariablesSet { false };
 };
 

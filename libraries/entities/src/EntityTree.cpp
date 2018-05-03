@@ -360,7 +360,12 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                     // the sender is trying to take or continue ownership
                     if (entity->getSimulatorID().isNull()) {
                         // the sender is taking ownership
-                        properties.promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        SimulationOwner owner = properties.getSimulationOwner();
+                        if (owner.getPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
+                            // the entity-server always promotes VOLUNTEER to RECRUIT to avoid ownership thrash
+                            // when dynamic objects first activate and multiple participants bid simultaneously
+                            properties.promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        }
                         simulationBlocked = false;
                     } else if (entity->getSimulatorID() == senderID) {
                         // the sender is asserting ownership, maybe changing priority
@@ -392,6 +397,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
             }
             if (simulationBlocked) {
                 // squash ownership and physics-related changes.
+                // TODO? replace these eight calls with just one?
                 properties.setSimulationOwnerChanged(false);
                 properties.setPositionChanged(false);
                 properties.setRotationChanged(false);
@@ -1795,7 +1801,7 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
 
 void EntityTree::update(bool simulate) {
     PROFILE_RANGE(simulation_physics, "UpdateTree");
-    PerformanceTimer perfTimer("UpdateTreen");
+    PerformanceTimer perfTimer("updateTree");
     withWriteLock([&] {
         fixupNeedsParentFixups();
         if (simulate && _simulation) {
