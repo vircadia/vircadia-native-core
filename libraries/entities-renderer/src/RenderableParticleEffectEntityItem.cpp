@@ -23,8 +23,8 @@ using namespace render::entities;
 static uint8_t CUSTOM_PIPELINE_NUMBER = 0;
 static gpu::Stream::FormatPointer _vertexFormat;
 static std::weak_ptr<gpu::Pipeline> _texturedPipeline;
-// FIXME: This is interfering with the uniform buffers in DeferredLightingEffect.cpp, so use 11 to avoid collisions
-static int32_t PARTICLE_UNIFORM_SLOT { 11 };
+// FIXME: This is interfering with the uniform buffers in DeferredLightingEffect.cpp, so use 12 to avoid collisions
+static int32_t PARTICLE_UNIFORM_SLOT { 12 };
 
 static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, gpu::Batch& batch) {
     auto texturedPipeline = _texturedPipeline.lock();
