@@ -121,6 +121,19 @@ MyAvatar::MyAvatar(QThread* thread) :
 
     _skeletonModel = std::make_shared<MySkeletonModel>(this, nullptr);
     connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
+    connect(_skeletonModel.get(), &Model::setURLFinished, this, [this](bool success) {
+        if (success) {
+            qApp->unloadAvatarScripts();
+            _shouldLoadScripts = true;
+        }
+    });
+    connect(_skeletonModel.get(), &Model::rigReady, this, [this]() {
+        if (_shouldLoadScripts) {
+            auto geometry = getSkeletonModel()->getFBXGeometry();
+            qApp->loadAvatarScripts(geometry.scripts);
+            _shouldLoadScripts = false;
+        }
+    });
     connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
     connect(_skeletonModel.get(), &Model::rigReset, this, &Avatar::rigReset);
 
@@ -2837,6 +2850,11 @@ void MyAvatar::setSprintMode(bool sprint) {
 
 void MyAvatar::setWalkSpeed(float value) {
     _walkSpeed.set(value);
+}
+
+QVector<QString> MyAvatar::getScriptUrls() {
+    QVector<QString> scripts = _skeletonModel->isLoaded() ? _skeletonModel->getFBXGeometry().scripts : QVector<QString>();
+    return scripts;
 }
 
 glm::vec3 MyAvatar::getPositionForAudio() {

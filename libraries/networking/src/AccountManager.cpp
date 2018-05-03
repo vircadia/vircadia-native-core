@@ -106,7 +106,11 @@ void AccountManager::logout() {
 }
 
 QString accountFileDir() {
+#if defined(Q_OS_ANDROID)
+    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/../files";
+#else
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+#endif
 }
 
 QString accountFilePath() {
