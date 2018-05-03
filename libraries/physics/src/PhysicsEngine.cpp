@@ -22,6 +22,7 @@
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
+#include "PhysicsDebugDraw.h"
 #include "ThreadSafeDynamicsWorld.h"
 #include "PhysicsLogging.h"
 
@@ -49,6 +50,10 @@ void PhysicsEngine::init() {
         _broadphaseFilter = new btDbvtBroadphase();
         _constraintSolver = new btSequentialImpulseConstraintSolver;
         _dynamicsWorld = new ThreadSafeDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig);
+        _physicsDebugDraw.reset(new PhysicsDebugDraw());
+
+        // hook up debug draw renderer
+        _dynamicsWorld->setDebugDrawer(_physicsDebugDraw.get());
 
         _ghostPairCallback = new btGhostPairCallback();
         _dynamicsWorld->getPairCache()->setInternalGhostPairCallback(_ghostPairCallback);
@@ -334,6 +339,10 @@ void PhysicsEngine::stepSimulation() {
         }
 
         _hasOutgoingChanges = true;
+    }
+
+    if (_physicsDebugDraw->getDebugMode()) {
+        _dynamicsWorld->debugDrawWorld();
     }
 }
 
@@ -787,3 +796,49 @@ void PhysicsEngine::forEachDynamic(std::function<void(EntityDynamicPointer)> act
         }
     }
 }
+
+void PhysicsEngine::setShowBulletWireframe(bool value) {
+    int mode = _physicsDebugDraw->getDebugMode();
+    if (value) {
+        _physicsDebugDraw->setDebugMode(mode | btIDebugDraw::DBG_DrawWireframe);
+    } else {
+        _physicsDebugDraw->setDebugMode(mode & ~btIDebugDraw::DBG_DrawWireframe);
+    }
+}
+
+void PhysicsEngine::setShowBulletAABBs(bool value) {
+    int mode = _physicsDebugDraw->getDebugMode();
+    if (value) {
+        _physicsDebugDraw->setDebugMode(mode | btIDebugDraw::DBG_DrawAabb);
+    } else {
+        _physicsDebugDraw->setDebugMode(mode & ~btIDebugDraw::DBG_DrawAabb);
+    }
+}
+
+void PhysicsEngine::setShowBulletContactPoints(bool value) {
+    int mode = _physicsDebugDraw->getDebugMode();
+    if (value) {
+        _physicsDebugDraw->setDebugMode(mode | btIDebugDraw::DBG_DrawContactPoints);
+    } else {
+        _physicsDebugDraw->setDebugMode(mode & ~btIDebugDraw::DBG_DrawContactPoints);
+    }
+}
+
+void PhysicsEngine::setShowBulletConstraints(bool value) {
+    int mode = _physicsDebugDraw->getDebugMode();
+    if (value) {
+        _physicsDebugDraw->setDebugMode(mode | btIDebugDraw::DBG_DrawConstraints);
+    } else {
+        _physicsDebugDraw->setDebugMode(mode & ~btIDebugDraw::DBG_DrawConstraints);
+    }
+}
+
+void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
+    int mode = _physicsDebugDraw->getDebugMode();
+    if (value) {
+        _physicsDebugDraw->setDebugMode(mode | btIDebugDraw::DBG_DrawConstraintLimits);
+    } else {
+        _physicsDebugDraw->setDebugMode(mode & ~btIDebugDraw::DBG_DrawConstraintLimits);
+    }
+}
+
