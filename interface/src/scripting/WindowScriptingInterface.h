@@ -376,7 +376,7 @@ public slots:
     *
     * var filename = QString();
     */
-    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const QString& filename = QString());
+    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat = false, const QString& filename = QString());
 
     /**jsdoc
      * Emit a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that
@@ -588,13 +588,13 @@ signals:
 
     /**jsdoc
     * Triggered when a still equirectangular snapshot has been taken by calling {@link Window.takeSecondaryCamera360Snapshot|takeSecondaryCamera360Snapshot}
-    * @function Window.equirectangularSnapshotTaken
+    * @function Window.snapshot360Taken
     * @param {string} pathStillSnapshot - The path and name of the snapshot image file.
     * @param {boolean} notify - The value of the <code>notify</code> parameter that {@link Window.takeSecondaryCamera360Snapshot|takeSecondaryCamera360Snapshot}
     *     was called with.
     * @returns {Signal}
     */
-    void equirectangularSnapshotTaken(const QString& pathEquirectangularSnapshot, bool notify);
+    void snapshot360Taken(const QString& path360Snapshot, bool notify);
 
     /**jsdoc
      * Triggered when a snapshot submitted via {@link Window.shareSnapshot|shareSnapshot} is ready for sharing. The snapshot

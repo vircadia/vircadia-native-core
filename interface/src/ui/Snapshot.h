@@ -40,7 +40,7 @@ public:
     Snapshot();
 
     static QString saveSnapshot(QImage image, const QString& filename);
-    static void save360Snapshot(const glm::vec3& cameraPosition, const QString& filename);
+    static void save360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const QString& filename);
     static QTemporaryFile* saveTempSnapshot(QImage image);
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
 
@@ -61,6 +61,7 @@ private:
     static QFile* savedFileForSnapshot(QImage & image, bool isTemporary, const QString& userSelectedFilename = QString());
 
     static QString snapshotFilename;
+    static bool cubemapOutputFormat;
     static QTimer snapshotTimer;
     static qint16 snapshotIndex;
     static bool oldEnabled;
@@ -70,6 +71,7 @@ private:
     static QVariant oldNearClipPlaneDistance;
     static QVariant oldFarClipPlaneDistance;
     static QImage imageArray[6];
+    static void convertToCubemap();
     static void convertToEquirectangular();
 };
 

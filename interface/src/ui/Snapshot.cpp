@@ -20,6 +20,7 @@
 #include <QtCore/QJsonArray>
 #include <QtNetwork/QHttpMultiPart>
 #include <QtGui/QImage>
+#include <QPainter>
 #include <QtConcurrent/QtConcurrentRun>
 
 #include <AccountManager.h>
@@ -102,6 +103,7 @@ QString Snapshot::saveSnapshot(QImage image, const QString& filename) {
 }
 
 QString Snapshot::snapshotFilename;
+bool Snapshot::cubemapOutputFormat;
 qint16 Snapshot::snapshotIndex = 0;
 bool Snapshot::oldEnabled = false;
 QVariant Snapshot::oldAttachedEntityId = 0;
@@ -110,8 +112,9 @@ QVariant Snapshot::oldvFoV = 0;
 QVariant Snapshot::oldNearClipPlaneDistance = 0;
 QVariant Snapshot::oldFarClipPlaneDistance = 0;
 static const float CUBEMAP_SIDE_PIXEL_DIMENSION = 2048.0f;
-void Snapshot::save360Snapshot(const glm::vec3& cameraPosition, const QString& filename) {
+void Snapshot::save360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const QString& filename) {
     Snapshot::snapshotFilename = filename;
+    Snapshot::cubemapOutputFormat = cubemapOutputFormat;
     SecondaryCameraJobConfig* secondaryCameraRenderConfig = static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
 
     // Save initial values of secondary camera render config
@@ -191,10 +194,52 @@ void Snapshot::takeNextSnapshot() {
         }
 
         // Process six QImages
-        QtConcurrent::run(Snapshot::convertToEquirectangular);
+        if (Snapshot::cubemapOutputFormat) {
+            QtConcurrent::run(Snapshot::convertToCubemap);
+        } else {
+            QtConcurrent::run(Snapshot::convertToEquirectangular);
+        }
     }
 
     Snapshot::snapshotIndex++;
+}
+
+void Snapshot::convertToCubemap() {
+    float outputImageHeight = CUBEMAP_SIDE_PIXEL_DIMENSION * 3.0f;
+    float outputImageWidth = CUBEMAP_SIDE_PIXEL_DIMENSION * 4.0f;
+
+    QImage outputImage(outputImageWidth, outputImageHeight, QImage::Format_RGB32);
+
+    QPainter painter(&outputImage);
+    QPoint destPos;
+
+    // Paint DownImage
+    destPos = QPoint(CUBEMAP_SIDE_PIXEL_DIMENSION, CUBEMAP_SIDE_PIXEL_DIMENSION * 2.0f);
+    painter.drawImage(destPos, Snapshot::imageArray[0]);
+
+    // Paint FrontImage
+    destPos = QPoint(CUBEMAP_SIDE_PIXEL_DIMENSION, CUBEMAP_SIDE_PIXEL_DIMENSION);
+    painter.drawImage(destPos, Snapshot::imageArray[1]);
+
+    // Paint LeftImage
+    destPos = QPoint(0, CUBEMAP_SIDE_PIXEL_DIMENSION);
+    painter.drawImage(destPos, Snapshot::imageArray[2]);
+
+    // Paint BackImage
+    destPos = QPoint(CUBEMAP_SIDE_PIXEL_DIMENSION * 3.0f, CUBEMAP_SIDE_PIXEL_DIMENSION);
+    painter.drawImage(destPos, Snapshot::imageArray[3]);
+
+    // Paint RightImage
+    destPos = QPoint(CUBEMAP_SIDE_PIXEL_DIMENSION * 2.0f, CUBEMAP_SIDE_PIXEL_DIMENSION);
+    painter.drawImage(destPos, Snapshot::imageArray[4]);
+
+    // Paint UpImage
+    destPos = QPoint(CUBEMAP_SIDE_PIXEL_DIMENSION, 0);
+    painter.drawImage(destPos, Snapshot::imageArray[5]);
+
+    painter.end();
+
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshot360Taken(saveSnapshot(outputImage, Snapshot::snapshotFilename), true);
 }
 
 void Snapshot::convertToEquirectangular() {
@@ -278,7 +323,7 @@ void Snapshot::convertToEquirectangular() {
         }
     }
 
-    emit DependencyManager::get<WindowScriptingInterface>()->equirectangularSnapshotTaken(saveSnapshot(outputImage, Snapshot::snapshotFilename), true);
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshot360Taken(saveSnapshot(outputImage, Snapshot::snapshotFilename), true);
 }
 
 QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {

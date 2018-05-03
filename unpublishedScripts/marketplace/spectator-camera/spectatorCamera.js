@@ -194,7 +194,7 @@
         Window.domainChanged.connect(onDomainChanged);
         Window.geometryChanged.connect(resizeViewFinderOverlay);
         Window.stillSnapshotTaken.connect(onStillSnapshotTaken);
-        Window.equirectangularSnapshotTaken.connect(onEquirectangularSnapshotTaken);
+        Window.snapshot360Taken.connect(on360SnapshotTaken);
         Controller.keyPressEvent.connect(keyPressEvent);
         HMD.displayModeChanged.connect(onHMDChanged);
         viewFinderOverlay = false;
@@ -407,7 +407,7 @@
             }, 250);
         }
     }
-    function onEquirectangularSnapshotTaken() {
+    function on360SnapshotTaken() {
         if (monitorShowsCameraView) {
             setDisplay(true);
         }
@@ -606,7 +606,7 @@
         Window.domainChanged.disconnect(onDomainChanged);
         Window.geometryChanged.disconnect(resizeViewFinderOverlay);
         Window.stillSnapshotTaken.disconnect(onStillSnapshotTaken);
-        Window.equirectangularSnapshotTaken.disconnect(onEquirectangularSnapshotTaken);
+        Window.snapshot360Taken.disconnect(on360SnapshotTaken);
         addOrRemoveButton(true);
         if (tablet) {
             tablet.screenChanged.disconnect(onTabletScreenChanged);
