@@ -89,7 +89,9 @@
                 }
                 if (this.isGrabable(controllerData, props) || this.hasHyperLink(props)) {
                     dispatcherUtils.highlightTargetEntity(props.id);
-                    newHighlightedEntities.push(props.id);
+                    if (newHighlightedEntities.indexOf(props.id) < 0) {
+                        newHighlightedEntities.push(props.id);
+                    }
                 }
             }
 
