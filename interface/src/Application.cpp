@@ -2160,7 +2160,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     if (testProperty.isValid()) {
         auto scriptEngines = DependencyManager::get<ScriptEngines>();
         const auto testScript = property(hifi::properties::TEST).toUrl();
-        scriptEngines->loadScript(testScript, false);
+       
+        // Set last parameter to exit interface when the test script finishes
+        scriptEngines->loadScript(testScript, false, false, false, false, true);
 
         // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
         if (arguments().contains("--url")) {

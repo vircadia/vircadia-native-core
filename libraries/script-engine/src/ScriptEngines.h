@@ -91,7 +91,7 @@ public:
      * @returns {boolean}
      */
     Q_INVOKABLE ScriptEnginePointer loadScript(const QUrl& scriptFilename = QString(),
-        bool isUserLoaded = true, bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
+        bool isUserLoaded = true, bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false, bool exitWhenFinished = false);
 
     /**jsdoc
      * @function ScriptDiscoveryService.stopScript
@@ -266,6 +266,7 @@ protected:
     ScriptEnginePointer reloadScript(const QString& scriptName, bool isUserLoaded = true) { return loadScript(scriptName, isUserLoaded, false, false, true); }
     void removeScriptEngine(ScriptEnginePointer);
     void onScriptEngineLoaded(const QString& scriptFilename);
+    void exitWhenFinished();
     void onScriptEngineError(const QString& scriptFilename);
     void launchScriptEngine(ScriptEnginePointer);
 
