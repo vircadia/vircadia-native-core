@@ -743,6 +743,9 @@ extern DisplayPluginList getDisplayPlugins();
 extern InputPluginList getInputPlugins();
 extern void saveInputPluginSettings(const InputPluginList& plugins);
 
+const QString TEST_SCRIPT { "--testScript" };
+const QString TEST_SNAPSHOT_LOCATION { "--testSnapshotLocation" };
+
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
 
@@ -777,7 +780,22 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 
     static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
     bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
-    bool previousSessionCrashed = CrashHandler::checkForResetSettings(runningMarkerExisted, suppressPrompt);
+
+    // Ignore any previous crashes if running from command line with a test script.  
+    bool inTestMode { false };
+    for (int i = 0; i < argc; ++i) {
+        QString parameter(argv[i]);
+        if (parameter == TEST_SCRIPT) {
+            inTestMode = true;
+            break;
+        }
+    }
+
+    bool previousSessionCrashed { false };
+    if (!inTestMode) {
+        previousSessionCrashed = CrashHandler::checkForResetSettings(runningMarkerExisted, suppressPrompt);
+    }
+
     // get dir to use for cache
     static const auto CACHE_SWITCH = "--cache";
     QString cacheDir = getCmdOption(argc, const_cast<const char**>(argv), CACHE_SWITCH);
@@ -997,10 +1015,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
     {
-        const QString TEST_SCRIPT { "--testScript" };
-        const QString TEST_SNAPSHOT_LOCATION { "--testSnapshotLocation" };
-
         const QStringList args = arguments();
+
         for (int i = 0; i < args.size() - 1; ++i) {
             if (args.at(i) == TEST_SCRIPT) {
                 QString testScriptPath = args.at(i + 1);
