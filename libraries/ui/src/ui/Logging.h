@@ -6,8 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_Controllers_Logging_h
-#define hifi_Controllers_Logging_h
+#ifndef hifi_UI_Logging_h
+#define hifi_UI_Logging_h
 
 #include <QLoggingCategory>
 

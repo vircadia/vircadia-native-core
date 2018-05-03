@@ -13,6 +13,7 @@
 
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
+#include <unordered_map>
 
 AutoUpdater::AutoUpdater() {
 #if defined Q_OS_WIN32
@@ -43,63 +44,114 @@ void AutoUpdater::parseLatestVersionData() {
     QNetworkReply* sender = qobject_cast<QNetworkReply*>(QObject::sender());
     
     QXmlStreamReader xml(sender);
+
+    struct InstallerURLs {
+        QString full;
+        QString clientOnly;
+    };
     
-    int version;
+    int version { 0 };
     QString downloadUrl;
     QString releaseTime;
     QString releaseNotes;
     QString commitSha;
     QString pullRequestNumber;
     
-    while (!xml.atEnd() && !xml.hasError()) {
-        if (xml.name().toString() == "project" &&
-            xml.attributes().hasAttribute("name") &&
-            xml.attributes().value("name").toString() == "interface") {
-            xml.readNext();
-            
-            while (!xml.atEnd() && !xml.hasError() && xml.name().toString() != "project") {
-                if (xml.name().toString() == "platform" &&
+    while (xml.readNextStartElement()) {
+        if (xml.name() == "projects") {
+            while (xml.readNextStartElement()) {
+                if (xml.name().toString() == "project" &&
                     xml.attributes().hasAttribute("name") &&
-                    xml.attributes().value("name").toString() == _operatingSystem) {
-                    xml.readNext();
-                    while (!xml.atEnd() && !xml.hasError() &&
-                           xml.name().toString() != "platform") {
-                        
-                        if (xml.name().toString() == "build" && xml.tokenType() != QXmlStreamReader::EndElement) {
-                            xml.readNext();
-                            version = xml.readElementText().toInt();
-                            xml.readNext();
-                            downloadUrl = xml.readElementText();
-                            xml.readNext();
-                            releaseTime = xml.readElementText();
-                            xml.readNext();
-                            if (xml.name().toString() == "notes" && xml.tokenType() != QXmlStreamReader::EndElement) {
-                                xml.readNext();
-                                while (!xml.atEnd() && !xml.hasError() && xml.name().toString() != "notes") {
-                                    if (xml.name().toString() == "note" && xml.tokenType() != QXmlStreamReader::EndElement) {
-                                        releaseNotes = releaseNotes + "\n" + xml.readElementText();
+                    xml.attributes().value("name").toString() == "interface") {
+
+                    while (xml.readNextStartElement()) {
+
+                        if (xml.name().toString() == "platform" &&
+                            xml.attributes().hasAttribute("name") &&
+                            xml.attributes().value("name").toString() == _operatingSystem) {
+
+                            while (xml.readNextStartElement()) {
+                                if (xml.name() == "build") {
+                                    QHash<QString, InstallerURLs> campaignInstallers;
+
+                                    while (xml.readNextStartElement()) {
+                                        if (xml.name() == "version") {
+                                            version = xml.readElementText().toInt();
+                                        } else if (xml.name() == "url") {
+                                            downloadUrl = xml.readElementText();
+                                        } else if (xml.name() == "installers") {
+                                            while (xml.readNextStartElement()) {
+                                                QString campaign = xml.name().toString();
+                                                QString full;
+                                                QString clientOnly;
+                                                while (xml.readNextStartElement()) {
+                                                    if (xml.name() == "full") {
+                                                        full = xml.readElementText();
+                                                    } else if (xml.name() == "client_only") {
+                                                        clientOnly = xml.readElementText();
+                                                    } else {
+                                                        xml.skipCurrentElement();
+                                                    }
+                                                }
+                                                campaignInstallers[campaign] = { full, clientOnly };
+                                            }
+                                        } else if (xml.name() == "timestamp") {
+                                            releaseTime = xml.readElementText();
+                                        } else if (xml.name() == "notes") {
+                                            while (xml.readNextStartElement()) {
+                                                if (xml.name() == "note") {
+                                                    releaseNotes = releaseNotes + "\n" + xml.readElementText();
+                                                } else {
+                                                    xml.skipCurrentElement();
+                                                }
+                                            }
+                                        } else if (xml.name() == "sha") {
+                                            commitSha = xml.readElementText();
+                                        } else if (xml.name() == "pull_request") {
+                                            pullRequestNumber = xml.readElementText();
+                                        } else {
+                                            xml.skipCurrentElement();
+                                        }
                                     }
-                                    xml.readNext();
+
+                                    static const QString DEFAULT_INSTALLER_CAMPAIGN_NAME = "standard";
+                                    for (auto& campaign : { _installerCampaign, DEFAULT_INSTALLER_CAMPAIGN_NAME }) {
+                                        auto it = campaignInstallers.find(campaign);
+                                        if (it != campaignInstallers.end()) {
+                                            auto& urls = *it;
+                                            if (_installerType == InstallerType::CLIENT_ONLY) {
+                                                if (!urls.clientOnly.isEmpty()) {
+                                                    downloadUrl = urls.clientOnly;
+                                                    break;
+                                                }
+                                            } else {
+                                                if (!urls.full.isEmpty()) {
+                                                    downloadUrl = urls.full;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    appendBuildData(version, downloadUrl, releaseTime, releaseNotes, pullRequestNumber);
+                                    releaseNotes = "";
+                                } else {
+                                    xml.skipCurrentElement();
                                 }
                             }
-                            xml.readNext();
-                            commitSha = xml.readElementText();
-                            xml.readNext();
-                            pullRequestNumber = xml.readElementText();
-                            appendBuildData(version, downloadUrl, releaseTime, releaseNotes, pullRequestNumber);
-                            releaseNotes = "";
+                        } else {
+                            xml.skipCurrentElement();
                         }
-                        
-                        xml.readNext();
                     }
+                } else {
+                    xml.skipCurrentElement();
                 }
-                xml.readNext();
             }
-            
         } else {
-            xml.readNext();
+            xml.skipCurrentElement();
         }
     }
+
     sender->deleteLater();
     emit latestVersionDataParsed();
 }
