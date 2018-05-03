@@ -750,6 +750,7 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
             qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
             // Fall through to other cases
         }
+        // FALLTHRU
         case ResourceRequest::Result::ServerUnavailable: {
             _attempts++;
             _attemptsRemaining--;
@@ -768,6 +769,7 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
             }
             // fall through to final failure
         }
+        // FALLTHRU
         default: {
             _attemptsRemaining = 0;
             qCDebug(networking) << "Error loading " << _url << "attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;

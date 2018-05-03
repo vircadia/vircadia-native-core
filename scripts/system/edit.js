@@ -1291,6 +1291,7 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("Edit", MENU_EASE_ON_FOCUS);
     Menu.removeMenuItem("Edit", MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE);
     Menu.removeMenuItem("Edit", MENU_SHOW_ZONES_IN_EDIT_MODE);
+    Menu.removeMenuItem("Edit", MENU_CREATE_ENTITIES_GRABBABLE);
 }
 
 Script.scriptEnding.connect(function () {
