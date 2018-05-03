@@ -24,6 +24,9 @@
 
 /**jsdoc
  * @namespace SpeechRecognizer
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 class SpeechRecognizer : public QObject, public Dependency {
     Q_OBJECT

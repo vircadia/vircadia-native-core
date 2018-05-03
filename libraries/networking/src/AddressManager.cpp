@@ -114,8 +114,6 @@ QUrl AddressManager::currentFacingPublicAddress() const {
 void AddressManager::loadSettings(const QString& lookupString) {
 #if defined(USE_GLES) && defined(Q_OS_WIN)
     handleUrl(QUrl("hifi://127.0.0.0"), LookupTrigger::StartupFromSettings);
-#elif defined(Q_OS_ANDROID)
-    handleUrl(QUrl("hifi://pikachu/167.11,0.745735,181.529/0,0.887027,0,-0.461717"), LookupTrigger::StartupFromSettings);
 #else
     if (lookupString.isEmpty()) {
         handleUrl(currentAddressHandle.get(), LookupTrigger::StartupFromSettings);
@@ -333,12 +331,14 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
     return false;
 }
 
+static const QString LOCALHOST = "localhost";
+
 bool isPossiblePlaceName(QString possiblePlaceName) {
     bool result { false };
     int length = possiblePlaceName.length();
     static const int MINIMUM_PLACENAME_LENGTH = 1;
     static const int MAXIMUM_PLACENAME_LENGTH = 64;
-    if (possiblePlaceName.toLower() != "localhost" &&
+    if (possiblePlaceName.toLower() != LOCALHOST &&
         length >= MINIMUM_PLACENAME_LENGTH && length <= MAXIMUM_PLACENAME_LENGTH) {
         const QRegExp PLACE_NAME_REGEX = QRegExp("^[0-9A-Za-z](([0-9A-Za-z]|-(?!-))*[^\\W_]$|$)");
         result = PLACE_NAME_REGEX.indexIn(possiblePlaceName) == 0;
@@ -358,7 +358,7 @@ void AddressManager::handleLookupString(const QString& lookupString, bool fromSu
             sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
 
             lookupURL = QUrl(sanitizedString);
-            if (lookupURL.scheme().isEmpty()) {
+            if (lookupURL.scheme().isEmpty() || lookupURL.scheme().toLower() == LOCALHOST) {
                 lookupURL = QUrl("hifi://" + sanitizedString);
             }
         } else {
@@ -607,7 +607,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
     if (ipAddressRegex.indexIn(lookupString) != -1) {
         QString domainIPString = ipAddressRegex.cap(1);
 
-        quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        quint16 domainPort = 0;
         if (!ipAddressRegex.cap(2).isEmpty()) {
             domainPort = (quint16) ipAddressRegex.cap(2).toInt();
         }
@@ -629,7 +629,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
     if (hostnameRegex.indexIn(lookupString) != -1) {
         QString domainHostname = hostnameRegex.cap(1);
 
-        quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        quint16 domainPort = 0;
 
         if (!hostnameRegex.cap(2).isEmpty()) {
             domainPort = (quint16)hostnameRegex.cap(2).toInt();

@@ -26,6 +26,10 @@ class AvatarInputs : public QObject {
     /**jsdoc 
      * API to help manage your Avatar's input
      * @namespace AvatarInputs
+     *
+     * @hifi-interface
+     * @hifi-client-entity
+     *
      * @property {boolean} cameraEnabled <em>Read-only.</em>
      * @property {boolean} cameraMuted <em>Read-only.</em>
      * @property {boolean} isHMD <em>Read-only.</em>

@@ -94,6 +94,12 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
  * Interface has displayed and so knows about.
  *
  * @namespace Entities
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
  * @property {Uuid} keyboardFocusEntity - Get or set the {@link Entities.EntityType|Web} entity that has keyboard focus.
  *     If no entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
  *     clear keyboard focus.
@@ -390,17 +396,18 @@ public slots:
     /**jsdoc
     * Find all entities of a particular name that intersect a sphere defined by a center point and radius.
     * @function Entities.findEntitiesByName
-    * @param {Entities.EntityType} entityName - The name of the entity to search for.
+    * @param {string} entityName - The name of the entity to search for.
     * @param {Vec3} center - The point about which to search.
     * @param {number} radius - The radius within which to search.
-    * @param {boolean} caseSensitiveSearch - Choose whether to to return case sensitive results back.
-    * @returns {Uuid[]} An array of entity IDs of the specified type that intersect the search sphere. The array is empty if
-    *     no entities could be found.
-    * @example <caption>Get back a list of entities</caption>
+    * @param {boolean} [caseSensitive=false] - If <code>true</code> then the search is case-sensitive.
+    * @returns {Uuid[]} An array of entity IDs that have the specified name and intersect the search sphere. The array is empty 
+    *     if no entities could be found.
+    * @example <caption>Report the number of entities with the name, "Light-Target".</caption>
     * var entityIDs = Entities.findEntitiesByName("Light-Target", MyAvatar.position, 10, false);
-    * print("Number of Entities with the name Light-Target " + entityIDs.length);
+    * print("Number of entities with the name "Light-Target": " + entityIDs.length);
     */
-    Q_INVOKABLE QVector<QUuid> findEntitiesByName(const QString entityName, const glm::vec3& center, float radius, bool caseSensitiveSearch = false ) const;
+    Q_INVOKABLE QVector<QUuid> findEntitiesByName(const QString entityName, const glm::vec3& center, float radius, 
+        bool caseSensitiveSearch = false ) const;
 
     /**jsdoc
      * Find the first entity intersected by a {@link PickRay}. <code>Light</code> and <code>Zone</code> entities are not 

@@ -180,6 +180,21 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
     // don't delete `ScriptEngines` until all `ScriptEngine`s are gone
     _scriptEngines(DependencyManager::get<ScriptEngines>())
 {
+    switch (_context) {
+        case Context::CLIENT_SCRIPT:
+            _type = Type::CLIENT;
+            break;
+        case Context::ENTITY_CLIENT_SCRIPT:
+            _type = Type::ENTITY_CLIENT;
+            break;
+        case Context::ENTITY_SERVER_SCRIPT:
+            _type = Type::ENTITY_SERVER;
+            break;
+        case Context::AGENT_SCRIPT:
+            _type = Type::AGENT;
+            break;
+    }
+
     connect(this, &QScriptEngine::signalHandlerException, this, [this](const QScriptValue& exception) {
         if (hasUncaughtException()) {
             // the engine's uncaughtException() seems to produce much better stack traces here
@@ -2161,6 +2176,32 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
     }, forceRedownload);
 }
 
+/**jsdoc
+ * Triggered when the script starts for a user.
+ * <p>Note: Can only be connected to via <code>this.preload = function (...) { ... }</code> in the entity script.</p>
+ * <table><tr><th>Available in:</th><td>Client Entity Scripts</td><td>Server Entity Scripts</td></tr></table>
+ * @function Entities.preload
+ * @param {Uuid} entityID - The ID of the entity that the script is running in.
+ * @returns {Signal}
+ * @example <caption>Get the ID of the entity that a client entity script is running in.</caption>
+ * var entityScript = (function () {
+ *     this.entityID = Uuid.NULL;
+ *
+ *     this.preload = function (entityID) {
+ *         this.entityID = entityID;
+ *         print("Entity ID: " + this.entityID);
+ *     };
+ * );
+ *
+ * var entityID = Entities.addEntity({
+ *     type: "Box",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+ *     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+ *     color: { red: 255, green: 0, blue: 0 },
+ *     script: "(" + entityScript + ")",  // Could host the script on a Web server instead.
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
 // since all of these operations can be asynch we will always do the actual work in the response handler
 // for the download
 void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success , const QString& status) {
@@ -2345,6 +2386,13 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     processDeferredEntityLoads(entityScript, entityID);
 }
 
+/**jsdoc
+ * Triggered when the script terminates for a user.
+ * <p>Note: Can only be connected to via <code>this.unoad = function () { ... }</code> in the entity script.</p>
+ * <table><tr><th>Available in:</th><td>Client Entity Scripts</td><td>Server Entity Scripts</td></tr></table>
+ * @function Entities.unload
+ * @returns {Signal}
+ */
 void ScriptEngine::unloadEntityScript(const EntityItemID& entityID, bool shouldRemoveFromMap) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING

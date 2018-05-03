@@ -301,7 +301,7 @@ bool QmlCommerce::uninstallApp(const QString& itemHref) {
     // Read from the file to know what .js script to stop
     QFile appFile(_appsPath + "/" + appHref.fileName());
     if (!appFile.open(QIODevice::ReadOnly)) {
-        qCDebug(commerce) << "Couldn't open local .app.json file for deletion.";
+        qCDebug(commerce) << "Couldn't open local .app.json file for deletion. Cannot continue with app uninstallation. App filename is:" << appHref.fileName();
         return false;
     }
     QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(appFile.readAll());
@@ -309,15 +309,13 @@ bool QmlCommerce::uninstallApp(const QString& itemHref) {
     QString scriptUrl = appFileJsonObject["scriptURL"].toString();
 
     if (!DependencyManager::get<ScriptEngines>()->stopScript(scriptUrl.trimmed(), false)) {
-        qCDebug(commerce) << "Couldn't stop script.";
-        return false;
+        qCWarning(commerce) << "Couldn't stop script during app uninstall. Continuing anyway. ScriptURL is:" << scriptUrl.trimmed();
     }
 
     // Delete the .app.json from the filesystem
     // remove() closes the file first.
     if (!appFile.remove()) {
-        qCDebug(commerce) << "Couldn't delete local .app.json file.";
-        return false;
+        qCWarning(commerce) << "Couldn't delete local .app.json file during app uninstall. Continuing anyway. App filename is:" << appHref.fileName();
     }
 
     emit appUninstalled(itemHref);

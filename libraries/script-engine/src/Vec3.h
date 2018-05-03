@@ -47,6 +47,12 @@
  *
  * @namespace Vec3
  * @variation 0
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
  * @property {Vec3} UNIT_X - <code>{ x: 1, y: 0, z: 0 }</code> : Unit vector in the x-axis direction. <em>Read-only.</em>
  * @property {Vec3} UNIT_Y - <code>{ x: 0, y: 1, z: 0 }</code> : Unit vector in the y-axis direction. <em>Read-only.</em>
  * @property {Vec3} UNIT_Z - <code>{ x: 0, y: 0, z: 1 }</code> : Unit vector in the z-axis direction. <em>Read-only.</em>
