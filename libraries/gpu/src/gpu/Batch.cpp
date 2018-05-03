@@ -34,7 +34,7 @@ ProfileRangeBatch::~ProfileRangeBatch() {
 using namespace gpu;
 
 // FIXME make these backend / pipeline dependent.
-static const int MAX_NUM_UNIFORM_BUFFERS = 15;
+static const int MAX_NUM_UNIFORM_BUFFERS = 14;
 static const int MAX_NUM_RESOURCE_BUFFERS = 16;
 static const int MAX_NUM_RESOURCE_TEXTURES = 16;
 
