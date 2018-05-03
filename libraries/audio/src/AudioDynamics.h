@@ -68,12 +68,12 @@ static const double FIXQ31 = 2147483648.0;              // convert float to Q31
 static const double DB_TO_LOG2 = 0.16609640474436813;   // convert dB to log2
 
 // convert dB to amplitude
-static double dBToGain(double dB) {
+FORCEINLINE static double dBToGain(double dB) {
     return pow(10.0, dB / 20.0);
 }
 
 // convert milliseconds to first-order time constant
-static int32_t msToTc(double ms, double sampleRate) {
+FORCEINLINE static int32_t msToTc(double ms, double sampleRate) {
     double tc = exp(-1000.0 / (ms * sampleRate));
     return (int32_t)(FIXQ31 * tc);  // Q31
 }
