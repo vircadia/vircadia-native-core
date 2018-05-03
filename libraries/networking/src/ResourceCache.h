@@ -215,7 +215,7 @@ public:
     /**jsdoc
      * Get the list of all resource URLs.
      * @function ResourceCache.getResourceList
-     * @return {string[]}
+     * @returns {string[]}
      */
     Q_INVOKABLE QVariantList getResourceList();
 
@@ -257,10 +257,11 @@ protected slots:
     void updateTotalSize(const qint64& deltaSize);
 
     /**jsdoc
+     * Prefetches a resource.
      * @function ResourceCache.prefetch
-     * @param {string} url
-     * @param {object} extra
-     * @returns {object}
+     * @param {string} url - URL of the resource to prefetch.
+     * @param {object} [extra=null]
+     * @returns {Resource}
      */
     // Prefetches a resource to be held by the QScriptEngine.
     // Left as a protected member so subclasses can overload prefetch
@@ -273,7 +274,7 @@ protected slots:
      * @param {string} url - URL of the resource to load.
      * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
      * @param {} [extra=null]
-     * @return {Resource}
+     * @returns {Resource}
      */
     /// Loads a resource from the specified URL and returns it.
     /// If the caller is on a different thread than the ResourceCache,
@@ -291,12 +292,7 @@ protected:
     // Pointers created through this method should be owned by the caller,
     // which should be a QScriptEngine with ScriptableResource registered, so that
     // the QScriptEngine will delete the pointer when it is garbage collected.
-    /**jsdoc
-     * Prefetches a resource.
-     * @function ResourceCache.prefetch
-     * @param {string} url - URL of the resource to prefetch.
-     * @return {Resource}
-     */
+    // JSDoc is provided on more general function signature.
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr); }
 
     /// Creates a new resource.
