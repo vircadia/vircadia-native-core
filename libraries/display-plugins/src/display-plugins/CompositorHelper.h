@@ -174,6 +174,10 @@ private:
 
 /**jsdoc
  * @namespace Reticle
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @property {boolean} allowMouseCapture
  * @property {number} depth
  * @property {Vec2} maximumPosition

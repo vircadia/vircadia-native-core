@@ -68,6 +68,9 @@ public:
  * <p>Has properties and functions below in addition to those of <a href="http://doc.qt.io/qt-5/qabstractitemmodel.html">
  * http://doc.qt.io/qt-5/qabstractitemmodel.html</a>.</p>
  * @class ScriptsModel
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 class ScriptsModel : public QAbstractItemModel {
     Q_OBJECT

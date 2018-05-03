@@ -29,6 +29,11 @@ public:
      * API to manage sound cache resources.
      * @namespace SoundCache
      *
+     * @hifi-interface
+     * @hifi-client-entity
+     * @hifi-server-entity
+     * @hifi-assignment-client
+     *
      * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
      * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
      * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
