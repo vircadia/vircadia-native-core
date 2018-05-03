@@ -456,7 +456,7 @@ void ScriptEngines::reloadAllScripts() {
 }
 
 ScriptEnginePointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserLoaded, bool loadScriptFromEditor,
-                                        bool activateMainWindow, bool reload, bool exitWhenFinished) {
+                                              bool activateMainWindow, bool reload, bool exitWhenFinished) {
     if (thread() != QThread::currentThread()) {
         ScriptEnginePointer result { nullptr };
         BLOCKING_INVOKE_METHOD(this, "loadScript", Q_RETURN_ARG(ScriptEnginePointer, result),
@@ -496,7 +496,7 @@ ScriptEnginePointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool i
         connect(scriptEngine.data(), &ScriptEngine::scriptLoaded, this, &ScriptEngines::onScriptEngineLoaded);
         connect(scriptEngine.data(), &ScriptEngine::errorLoadingScript, this, &ScriptEngines::onScriptEngineError);
 
-        // Shutdown interface when script finishes, if requested
+        // Shutdown Interface when script finishes, if requested
         if (exitWhenFinished) {
             connect(scriptEngine.data(), &ScriptEngine::finished, this, &ScriptEngines::exitWhenFinished);
         }
