@@ -163,44 +163,38 @@ public:
 
     // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
 
-   /**jsdoc
-    * Get the list of all resource URLs.
-    * @function TextureCache.getResourceList
-    * @return {string[]}
-    */
+    /**jsdoc
+     * Get the list of all resource URLs.
+     * @function TextureCache.getResourceList
+     * @returns {string[]}
+     */
 
-   /**jsdoc
-    * @function TextureCache.dirty
-    * @returns {Signal}
-    */
+    /**jsdoc
+     * @function TextureCache.dirty
+     * @returns {Signal}
+     */
 
-   /**jsdoc
-    * @function TextureCache.updateTotalSize
-    * @param {number} deltaSize
-    */
+    /**jsdoc
+     * @function TextureCache.updateTotalSize
+     * @param {number} deltaSize
+     */
 
-   /**jsdoc
-    * @function TextureCache.prefetch
-    * @param {string} url
-    * @param {object} extra
-    * @returns {object}
-    */
+    /**jsdoc
+     * Prefetches a resource.
+     * @function TextureCache.prefetch
+     * @param {string} url - URL of the resource to prefetch.
+     * @param {object} [extra=null]
+     * @returns {Resource}
+     */
 
-   /**jsdoc
-    * Asynchronously loads a resource from the specified URL and returns it.
-    * @function TextureCache.getResource
-    * @param {string} url - URL of the resource to load.
-    * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
-    * @param {} [extra=null]
-    * @return {Resource}
-    */
-
-   /**jsdoc
-    * Prefetches a resource.
-    * @function TextureCache.prefetch
-    * @param {string} url - URL of the resource to prefetch.
-    * @return {Resource}
-    */
+    /**jsdoc
+     * Asynchronously loads a resource from the specified URL and returns it.
+     * @function TextureCache.getResource
+     * @param {string} url - URL of the resource to load.
+     * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
+     * @param {} [extra=null]
+     * @returns {Resource}
+     */
 
 
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
@@ -249,10 +243,11 @@ signals:
 protected:
     
     /**jsdoc
-     * @function TextureCache.prefect
+     * @function TextureCache.prefetch
      * @param {string} url
      * @param {number} type
      * @param {number} [maxNumPixels=67108864]
+     * @returns {Resource}
      */
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
