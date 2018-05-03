@@ -12,7 +12,7 @@
 
 /* jslint bitwise: true */
 
-/* global Script, print, Entities, Picks, HMD */
+/* global Script, print, Entities, Picks, HMD, Controller, MyAvatar*/
 
 
 (function() {
@@ -20,6 +20,7 @@
 
     function MouseHighlightEntities() {
         this.highlightedEntity = null;
+        this.grabbedEntity = null;
 
         this.parameters = dispatcherUtils.makeDispatcherModuleParameters(
             5,
@@ -27,13 +28,18 @@
             [],
             100);
 
+        this.setGrabbedEntity = function(entity) {
+            this.grabbedEntity = entity;
+            this.highlightedEntity = null;
+        };
+
         this.isReady = function(controllerData) {
             if (HMD.active) {
                 if (this.highlightedEntity) {
                     dispatcherUtils.unhighlightTargetEntity(this.highlightedEntity);
                     this.highlightedEntity = null;
                 }
-            } else {
+            } else if (!this.grabbedEntity) {
                 var pickResult = controllerData.mouseRayPick;
                 if (pickResult.type === Picks.INTERSECTED_ENTITY) {
                     var targetEntityID = pickResult.objectID;
@@ -70,8 +76,29 @@
     var mouseHighlightEntities = new MouseHighlightEntities();
     dispatcherUtils.enableDispatcherModule("MouseHighlightEntities", mouseHighlightEntities);
 
+    var handleMessage = function(channel, message, sender) {
+        var data;
+        if (sender === MyAvatar.sessionUUID) {
+            if (channel === 'Hifi-Object-Manipulation') {
+                try {
+                    data = JSON.parse(message);
+                    if (data.action === 'grab') {
+                        var grabbedEntity = data.grabbedEntity;
+                        mouseHighlightEntities.setGrabbedEntity(grabbedEntity);
+                    } else if (data.action === 'release') {
+                        mouseHighlightEntities.setGrabbedEntity(null);
+                    }
+                } catch (e) {
+                    print("Warning: mouseHighlightEntities -- error parsing Hifi-Object-Manipulation: " + message);
+                }
+            }
+        }
+    };
+
     function cleanup() {
         dispatcherUtils.disableDispatcherModule("MouseHighlightEntities");
     }
+    Messages.subscribe('Hifi-Object-Manipulation');
+    Messages.messageReceived.connect(handleMessage);
     Script.scriptEnding.connect(cleanup);
 })();
