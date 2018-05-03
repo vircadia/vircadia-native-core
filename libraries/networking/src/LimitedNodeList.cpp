@@ -302,6 +302,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
         }
     } else {
         NLPacket::LocalID sourceLocalID = Node::NULL_LOCAL_ID;
+
         // check if we were passed a sourceNode hint or if we need to look it up
         if (!sourceNode) {
             // figure out which node this is from
@@ -314,6 +315,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
         QUuid sourceID = sourceNode ? sourceNode->getUUID() : QUuid();
 
         if (!sourceNode &&
+            !isDomainServer() &&
             sourceLocalID == getDomainLocalID() &&
             packet.getSenderSockAddr() == getDomainSockAddr() &&
             PacketTypeEnum::getDomainSourcedPackets().contains(headerType)) {
@@ -608,6 +610,7 @@ bool LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID, ConnectionID newCo
 
         {
             QWriteLocker writeLocker(&_nodeMutex);
+            _localIDMap.unsafe_erase(matchingNode->getLocalID());
             _nodeHash.unsafe_erase(it);
         }
 

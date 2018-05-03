@@ -26,6 +26,7 @@ public:
 
     // Plugin functions
     virtual void init() override;
+    virtual void resize();
     virtual bool isSupported() const override;
     virtual const QString getName() const override { return NAME; }
 

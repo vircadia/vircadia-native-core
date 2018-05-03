@@ -89,6 +89,12 @@ class ScriptableResource : public QObject {
 
     /**jsdoc
      * @constructor Resource
+     *
+     * @hifi-interface
+     * @hifi-client-entity
+     * @hifi-server-entity
+     * @hifi-assignment-client
+     *
      * @property {string} url - URL of this resource.
      * @property {Resource.State} state - Current loading state.
      */

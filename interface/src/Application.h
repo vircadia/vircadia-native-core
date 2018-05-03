@@ -243,6 +243,7 @@ public:
 
     bool isAboutToQuit() const { return _aboutToQuit; }
     bool isPhysicsEnabled() const { return _physicsEnabled; }
+    PhysicsEnginePointer getPhysicsEngine() { return _physicsEngine; }
 
     // the isHMDMode is true whenever we use the interface from an HMD and not a standard flat display
     // rendering of several elements depend on that
@@ -289,6 +290,14 @@ public:
     bool isServerlessMode() const;
 
     void replaceDomainContent(const QString& url);
+
+    void loadAvatarScripts(const QVector<QString>& urls);
+    void unloadAvatarScripts();
+
+#if defined(Q_OS_ANDROID)
+    void enterBackground();
+    void enterForeground();
+#endif
 
 signals:
     void svoImportRequested(const QString& url);
@@ -400,6 +409,8 @@ public slots:
     Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
 
     void updateVerboseLogging();
+    Q_INVOKABLE void openAndroidActivity(const QString& activityName);
+
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
@@ -452,6 +463,12 @@ private slots:
 
     void handleSandboxStatus(QNetworkReply* reply);
     void switchDisplayMode();
+
+    void setShowBulletWireframe(bool value);
+    void setShowBulletAABBs(bool value);
+    void setShowBulletContactPoints(bool value);
+    void setShowBulletConstraints(bool value);
+    void setShowBulletConstraintLimits(bool value);
 
 private:
     void init();

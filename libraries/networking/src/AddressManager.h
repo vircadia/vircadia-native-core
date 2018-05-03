@@ -33,6 +33,11 @@ const QString GET_PLACE = "/api/v1/places/%1";
  * The location API provides facilities related to your current location in the metaverse.
  *
  * @namespace location
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-assignment-client
+ *
  * @property {Uuid} domainID - A UUID uniquely identifying the domain you're visiting. Is {@link Uuid|Uuid.NULL} if you're not
  *     connected to the domain or are in a serverless domain.
  *     <em>Read-only.</em>

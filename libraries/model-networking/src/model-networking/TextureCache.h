@@ -148,14 +148,17 @@ public:
     // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
 
     /**jsdoc
-     * API to manage texture cache resources.
-     * @namespace TextureCache
-     *
-     * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
-     * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
-     * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
-     * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
-     */
+    * API to manage texture cache resources.
+    * @namespace TextureCache
+    *
+    * @hifi-interface
+    * @hifi-client-entity
+    *
+    * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
+    * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
+    * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
+    * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
+    */
 
 
     // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
