@@ -743,7 +743,9 @@ extern DisplayPluginList getDisplayPlugins();
 extern InputPluginList getInputPlugins();
 extern void saveInputPluginSettings(const InputPluginList& plugins);
 
+// Parameters used for running tests from teh command line
 const QString TEST_SCRIPT { "--testScript" };
+const QString TEST_QUIT_WHEN_FINISHED { "--quitWhenFinished" };
 const QString TEST_SNAPSHOT_LOCATION { "--testSnapshotLocation" };
 
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
@@ -1018,11 +1020,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         const QStringList args = arguments();
 
         for (int i = 0; i < args.size() - 1; ++i) {
-            if (args.at(i) == TEST_SCRIPT) {
+            if (args.at(i) == TEST_SCRIPT  && (i + 1) < args.size()) {
                 QString testScriptPath = args.at(i + 1);
                 if (QFileInfo(testScriptPath).exists()) {
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
-                } 
+                }
+
+				// quite when finished parameter must directly follow the test script
+                if ((i + 2) < args.size() && args.at(i + 2) == TEST_QUIT_WHEN_FINISHED) {
+                    quitWhenFinished = true;
+                }
             } else if (args.at(i) == TEST_SNAPSHOT_LOCATION) {
                 // Set test snapshot location only if it is a writeable directory
                 QString pathname(args.at(i + 1));
@@ -2161,8 +2168,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto scriptEngines = DependencyManager::get<ScriptEngines>();
         const auto testScript = property(hifi::properties::TEST).toUrl();
        
-        // Set last parameter to exit interface when the test script finishes
-        scriptEngines->loadScript(testScript, false, false, false, false, true);
+        // Set last parameter to exit interface when the test script finishes, if so requested
+        scriptEngines->loadScript(testScript, false, false, false, false, quitWhenFinished);
 
         // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
         if (arguments().contains("--url")) {

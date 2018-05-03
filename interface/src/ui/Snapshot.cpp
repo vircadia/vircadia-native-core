@@ -73,6 +73,7 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     return data;
 }
 
+#pragma optimize("", off)
 QString Snapshot::saveSnapshot(QImage image, const QString& filename, const QString& pathname) {
 
     QFile* snapshotFile = savedFileForSnapshot(image, false, filename, pathname);
@@ -92,6 +93,7 @@ QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {
     return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true, QString(), QString()));
 }
 
+#pragma optimize("", off)
 QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QString& userSelectedFilename, const QString& userSelectedPathname) {
 
     // adding URL to snapshot
