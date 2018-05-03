@@ -235,6 +235,24 @@ function adjustPositionPerBoundingBox(position, direction, registration, dimensi
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
 
+// Handles any edit mode updates required when domains have switched
+function checkEditPermissionsAndUpdate() {
+    if ((createButton === null) || (createButton === undefined)) {
+        //--EARLY EXIT--( nothing to safely update )
+        return;
+    }
+
+    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
+    createButton.editProperties({
+        icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
+        captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
+    });
+
+    if (!hasRezPermissions && isActive) {
+        that.setActive(false);
+        tablet.gotoHomeScreen();
+    }
+}
 
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditing"; // for communication with other scripts
@@ -449,25 +467,6 @@ var toolBar = (function () {
         case "newMaterialDialogAdd":
             handleNewMaterialDialogResult(message.params);
             break;
-        }
-    }
-
-    // Handles any edit mode updates required when domains have switched
-    function checkEditPermissionsAndUpdate() {
-        if ((createButton === null) || (createButton === undefined)) {
-            //--EARLY EXIT--( nothing to safely update )
-            return;
-        }
-
-        var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
-        createButton.editProperties({
-            icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
-            captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
-        });
-
-        if (!hasRezPermissions && isActive) {
-            that.setActive(false);
-            tablet.gotoHomeScreen();
         }
     }
 
