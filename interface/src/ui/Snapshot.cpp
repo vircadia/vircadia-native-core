@@ -73,7 +73,6 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     return data;
 }
 
-#pragma optimize("", off)
 QString Snapshot::saveSnapshot(QImage image, const QString& filename, const QString& pathname) {
 
     QFile* snapshotFile = savedFileForSnapshot(image, false, filename, pathname);
