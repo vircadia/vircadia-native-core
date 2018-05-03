@@ -366,10 +366,10 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
     }
 
     QTextStream textStream(&allTestsFilename);
-    textStream << "// This is an automatically generated file, created by auto-tester" << endl << endl;
+    textStream << "// This is an automatically generated file, created by auto-tester on " << __DATE__ << ",  " << __TIME__ << endl << endl;
 
     textStream << "var autoTester = Script.require(\"https://github.com/" + githubUser + "/hifi_tests/blob/" 
-        + gitHubBranch + "/tests/utils/autoTester.js?raw=true\");" << endl;
+        + gitHubBranch + "/tests/utils/autoTester.js?raw=true\");" << endl << endl;
 
     textStream << "autoTester.enableRecursive();" << endl;
     textStream << "autoTester.enableAuto();" << endl << endl;
