@@ -122,6 +122,7 @@ public:
         Builder& withDynamic() { _flags.set(DYNAMIC); return (*this); }
         Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
         Builder& withInvisible() { _flags.set(INVISIBLE); return (*this); }
+        Builder& withVisible() { _flags.reset(INVISIBLE); return (*this); }
         Builder& withShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
         Builder& withLayered() { _flags.set(LAYERED); return (*this); }
         Builder& withMetaCullGroup() { _flags.set(META_CULL_GROUP); return (*this); }

@@ -12,6 +12,8 @@
 #ifndef hifi_task_Config_h
 #define hifi_task_Config_h
 
+#include <chrono>
+
 #include <QtCore/qobject.h>
 #include <QtCore/qjsondocument.h>
 #include <QtCore/qjsonobject.h>
@@ -108,10 +110,18 @@ public:
     Q_INVOKABLE QString toJSON() { return QJsonDocument(toJsonValue(*this).toObject()).toJson(QJsonDocument::Compact); }
     Q_INVOKABLE void load(const QVariantMap& map) { qObjectFromJsonValue(QJsonObject::fromVariantMap(map), *this); emit loaded(); }
 
+    Q_INVOKABLE QObject* getConfig(const QString& name) { return nullptr; }
+
     // Running Time measurement
     // The new stats signal is emitted once per run time of a job when stats  (cpu runtime) are updated
-    void setCPURunTime(double mstime) { _msCPURunTime = mstime; emit newStats(); }
+    void setCPURunTime(const std::chrono::nanoseconds& runtime) { _msCPURunTime = std::chrono::duration<double, std::milli>(runtime).count(); emit newStats(); }
     double getCPURunTime() const { return _msCPURunTime; }
+
+    // Describe the node graph data connections of the associated Job/Task
+    Q_INVOKABLE virtual bool isTask() const { return false; }
+    Q_INVOKABLE virtual QObjectList getSubConfigs() const { return QObjectList(); }
+    Q_INVOKABLE virtual int getNumSubs() const { return 0; }
+    Q_INVOKABLE virtual QObject* getSubConfig(int i) const { return nullptr; }
 
 public slots:
     void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); emit loaded(); }
@@ -121,6 +131,8 @@ signals:
     void newStats();
     void dirtyEnabled();
 };
+
+using QConfigPointer = std::shared_ptr<JobConfig>;
 
 class TConfigProxy {
 public:
@@ -134,10 +146,8 @@ public:
 
     using Persistent = PersistentConfig<TaskConfig>;
 
-    TaskConfig() = default ;
+    TaskConfig() = default;
     TaskConfig(bool enabled) : JobConfig(enabled) {}
-
-
 
     // Get a sub job config through task.getConfig(path)
     // where path can be:
@@ -170,6 +180,21 @@ public:
         return root->findChild<typename T::Config*>(tokens.front());
     }
 
+    Q_INVOKABLE bool isTask() const override { return true; }
+    Q_INVOKABLE QObjectList getSubConfigs() const override {
+        auto list = findChildren<JobConfig*>(QRegExp(".*"), Qt::FindDirectChildrenOnly);
+        QObjectList returned;
+        for (int i = 0; i < list.size(); i++) {
+            returned.push_back(list[i]);
+        }
+        return returned;
+    }
+    Q_INVOKABLE int getNumSubs() const override { return getSubConfigs().size(); }
+    Q_INVOKABLE QObject* getSubConfig(int i) const override {
+        auto subs = getSubConfigs();
+        return ((i < 0 || i >= subs.size()) ? nullptr : subs[i]);
+    }
+
     void connectChildConfig(QConfigPointer childConfig, const std::string& name);
     void transferChildrenConfigs(QConfigPointer source);
 
@@ -178,8 +203,6 @@ public:
 public slots:
     void refresh();
 };
-
-using QConfigPointer = std::shared_ptr<QObject>;
 
 }
 
