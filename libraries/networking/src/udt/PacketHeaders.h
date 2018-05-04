@@ -250,7 +250,8 @@ enum class EntityQueryPacketVersion: PacketVersion {
 enum class AssetServerPacketVersion: PacketVersion {
     VegasCongestionControl = 19,
     RangeRequestSupport,
-    RedirectedMappings
+    RedirectedMappings,
+    BakingTextureMeta
 };
 
 enum class AvatarMixerPacketVersion : PacketVersion {
