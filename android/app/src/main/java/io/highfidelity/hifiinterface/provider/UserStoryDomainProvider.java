@@ -109,15 +109,17 @@ public class UserStoryDomainProvider implements DomainProvider {
         }
 
         private boolean matches(UserStory story) {
-            if (mWords.length<=0) return true;
-
-            boolean res = true;
-            for (String word: mWords) {
-                res = res && story.searchText().contains(word);
-                if (!res) break;
+            if (mWords.length <= 0) {
+                return true;
             }
 
-            return res;
+            for (String word : mWords) {
+                if (!story.searchText().contains(word)) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private void addToSuggestions(UserStory story) {

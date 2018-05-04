@@ -120,7 +120,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void afterTextChanged(Editable editable) {
                 mDomainAdapter.loadDomains(editable.toString());
-                if(editable.length()>0) {
+                if (editable.length() > 0) {
                     mSearchIconView.setVisibility(View.GONE);
                     mClearSearch.setVisibility(View.VISIBLE);
                 } else {
