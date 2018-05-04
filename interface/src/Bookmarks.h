@@ -40,9 +40,10 @@ protected:
     void insert(const QString& name, const QVariant& address);  // Overwrites any existing entry with same name.
     void sortActions(Menu* menubar, MenuWrapper* menu);
     int getMenuItemLocation(QList<QAction*> actions, const QString& name) const;
-    
+    void removeBookmarkFromMenu(Menu* menubar, const QString& name);
     bool contains(const QString& name) const;
-    
+    void remove(const QString& name);
+
     QVariantMap _bookmarks;  // { name: url, ... }
     QPointer<MenuWrapper> _bookmarksMenu;
     QPointer<QAction> _deleteBookmarksAction;
@@ -59,12 +60,9 @@ protected slots:
     void deleteBookmark();
 
 private:
-    void remove(const QString& name);
     static bool sortOrder(QAction* a, QAction* b);
 
     void persistToFile();
-
-    void removeBookmarkFromMenu(Menu* menubar, const QString& name);
 };
 
 #endif // hifi_Bookmarks_h

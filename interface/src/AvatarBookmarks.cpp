@@ -17,7 +17,9 @@
 #include <QStandardPaths>
 #include <QQmlContext>
 #include <QList>
+#include <QtCore/QThread>
 
+#include <shared/QtHelpers.h>
 #include <Application.h>
 #include <OffscreenUi.h>
 #include <avatar/AvatarManager.h>
@@ -94,6 +96,74 @@ void addAvatarEntities(const QVariantList& avatarEntities) {
 AvatarBookmarks::AvatarBookmarks() {
     _bookmarksFilename = PathUtils::getAppDataPath() + "/" + AVATARBOOKMARKS_FILENAME;
     readFromFile();
+}
+
+void AvatarBookmarks::addBookmark(const QString& bookmarkName) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "addBookmark", Q_ARG(QString, bookmarkName));
+        return;
+    }
+    Menu* menubar = Menu::getInstance();
+    QVariantMap bookmark = getAvatarDataToBookmark();
+    addBookmarkToMenu(menubar, bookmarkName, bookmark);
+    insert(bookmarkName, bookmark);
+    enableMenuItems(true);
+}
+
+void AvatarBookmarks::saveBookmark(const QString& bookmarkName) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "saveBookmark", Q_ARG(QString, bookmarkName));
+        return;
+    }
+    if (contains(bookmarkName)) {
+        QVariantMap bookmark = getAvatarDataToBookmark();
+        insert(bookmarkName, bookmark);
+    }
+}
+
+void AvatarBookmarks::removeBookmark(const QString& bookmarkName) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "removeBookmark", Q_ARG(QString, bookmarkName));
+        return;
+    }
+
+    Menu* menubar = Menu::getInstance();
+    Bookmarks::removeBookmarkFromMenu(Menu::getInstance(), bookmarkName);
+    remove(bookmarkName);
+
+    if (_bookmarksMenu->actions().count() == 0) {
+        enableMenuItems(false);
+    }
+}
+
+void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "reloadBookmark", Q_ARG(QString, bookmarkName));
+        return;
+    }
+
+    auto bookmarkEntry = _bookmarks.find(bookmarkName);
+
+    if (bookmarkEntry != _bookmarks.end()) {
+        QVariantMap bookmark = bookmarkEntry.value().toMap();
+        if (!bookmark.empty()) {
+            auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            myAvatar->removeAvatarEntities();
+            const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();
+            myAvatar->useFullAvatarURL(avatarUrl);
+            qCDebug(interfaceapp) << "Avatar On " << avatarUrl;
+            const QList<QVariant>& attachments = bookmark.value(ENTRY_AVATAR_ATTACHMENTS, QList<QVariant>()).toList();
+
+            qCDebug(interfaceapp) << "Attach " << attachments;
+            myAvatar->setAttachmentsVariant(attachments);
+
+            const float& qScale = bookmark.value(ENTRY_AVATAR_SCALE, 1.0f).toFloat();
+            myAvatar->setAvatarScale(qScale);
+
+            const QVariantList& avatarEntities = bookmark.value(ENTRY_AVATAR_ENTITIES, QVariantList()).toList();
+            addAvatarEntities(avatarEntities);
+        }
+    }
 }
 
 void AvatarBookmarks::readFromFile() {
@@ -181,12 +251,12 @@ void AvatarBookmarks::addBookmark() {
             return;
         }
 
-        addBookmark(bookmarkName);
+        QVariantMap bookmark = getAvatarDataToBookmark();
+        Bookmarks::addBookmarkToFile(bookmarkName, bookmark);
     });
 }
 
-void AvatarBookmarks::addBookmark(QString bookmarkName)
-{
+QVariantMap AvatarBookmarks::getAvatarDataToBookmark() {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     const QString& avatarUrl = myAvatar->getSkeletonModelURL().toString();
@@ -199,13 +269,7 @@ void AvatarBookmarks::addBookmark(QString bookmarkName)
     bookmark.insert(ENTRY_AVATAR_SCALE, avatarScale);
     bookmark.insert(ENTRY_AVATAR_ATTACHMENTS, myAvatar->getAttachmentsVariant());
     bookmark.insert(ENTRY_AVATAR_ENTITIES, myAvatar->getAvatarEntitiesVariant());
-
-    Bookmarks::addBookmarkToFile(bookmarkName, bookmark);
-}
-
-void AvatarBookmarks::removeBookmark(QString bookmarkName)
-{
-    Bookmarks::deleteBookmark(bookmarkName);
+    return bookmark;
 }
 
 void AvatarBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) {

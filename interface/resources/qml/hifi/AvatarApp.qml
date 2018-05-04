@@ -11,7 +11,6 @@ Rectangle {
     width: 480
 	height: 706
     color: style.colors.white
-
     property string getAvatarsMethod: 'getAvatars'
 
     signal sendToScript(var message);
@@ -486,6 +485,7 @@ Rectangle {
                 property int verticalSpacing: 36
 
                 function selectAvatar(avatar) {
+                    AvatarBookmarks.loadBookmark(avatar.name);
                     selectedAvatarId = avatar.name;
                     var avatarIndex = allAvatars.findAvatarIndex(selectedAvatarId);
                     allAvatars.move(avatarIndex, 0, 1);

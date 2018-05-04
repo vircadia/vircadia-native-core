@@ -39,13 +39,16 @@ public slots:
      * @function AvatarBookmarks.addBookMark
      */
     void addBookmark();
-    void addBookmark(QString bookmarkName);
-    void removeBookmark(QString bookmarkName);
+    void addBookmark(const QString& bookmarkName);
+    void saveBookmark(const QString& bookmarkName);
+    void loadBookmark(const QString& bookmarkName);
+    void removeBookmark(const QString& bookmarkName);
     QVariantMap getBookmarks() { return _bookmarks; }
 
 protected:
     void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) override;
     void readFromFile() override;
+    QVariantMap getAvatarDataToBookmark();
 
 private:
     const QString AVATARBOOKMARKS_FILENAME = "avatarbookmarks.json";
