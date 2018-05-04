@@ -18,6 +18,10 @@
 /**jsdoc 
  * This API helps manage adding and deleting avatar bookmarks.
  * @namespace AvatarBookmarks
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  */
 
 class AvatarBookmarks: public Bookmarks, public  Dependency {

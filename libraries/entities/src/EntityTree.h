@@ -27,9 +27,6 @@ using EntityTreePointer = std::shared_ptr<EntityTree>;
 #include "MovingEntitiesOperator.h"
 
 class EntityEditFilters;
-class Model;
-using ModelPointer = std::shared_ptr<Model>;
-using ModelWeakPointer = std::weak_ptr<Model>;
 
 class EntitySimulation;
 

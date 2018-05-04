@@ -22,6 +22,10 @@
  * The Paths API provides absolute paths to the scripts and resources directories.
  *
  * @namespace Paths
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @deprecated The Paths API is deprecated. Use {@link Script.resolvePath} and {@link Script.resourcesPath} instead.
  * @readonly
  * @property {string} defaultScripts - The path to the scripts directory. <em>Read-only.</em>

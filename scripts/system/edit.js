@@ -471,6 +471,25 @@ var toolBar = (function () {
         }
     }
 
+    var entitiesToDelete = [];
+    var deletedEntityTimer = null;
+    var DELETE_ENTITY_TIMER_TIMEOUT = 100;
+
+    function checkDeletedEntityAndUpdate(entityID) {
+        // Allow for multiple entity deletes before updating the entity list.
+        entitiesToDelete.push(entityID);
+        if (deletedEntityTimer !== null) {
+            Script.clearTimeout(deletedEntityTimer);
+        }
+        deletedEntityTimer = Script.setTimeout(function () {
+            selectionManager.removeEntities(entitiesToDelete);
+            entityListTool.clearEntityList();
+            entityListTool.sendUpdate();
+            entitiesToDelete = [];
+            deletedEntityTimer = null;
+        }, DELETE_ENTITY_TIMER_TIMEOUT);
+    }
+
     function initialize() {
         Script.scriptEnding.connect(cleanup);
         Window.domainChanged.connect(function () {
@@ -493,8 +512,10 @@ var toolBar = (function () {
         Entities.canRezTmpChanged.connect(checkEditPermissionsAndUpdate);
         Entities.canRezCertifiedChanged.connect(checkEditPermissionsAndUpdate);
         Entities.canRezTmpCertifiedChanged.connect(checkEditPermissionsAndUpdate);
-
         var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
+
+        Entities.deletingEntity.connect(checkDeletedEntityAndUpdate);
+
         var createButtonIconRsrc = (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON);
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
@@ -1291,6 +1312,7 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("Edit", MENU_EASE_ON_FOCUS);
     Menu.removeMenuItem("Edit", MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE);
     Menu.removeMenuItem("Edit", MENU_SHOW_ZONES_IN_EDIT_MODE);
+    Menu.removeMenuItem("Edit", MENU_CREATE_ENTITIES_GRABBABLE);
 }
 
 Script.scriptEnding.connect(function () {

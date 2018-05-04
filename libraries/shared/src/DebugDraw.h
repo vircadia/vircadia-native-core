@@ -25,6 +25,11 @@
  * Helper functions to render ephemeral debug markers and lines.
  * DebugDraw markers and lines are only visible locally, they are not visible by other users.
  * @namespace DebugDraw
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
  */
 class DebugDraw : public QObject {
     Q_OBJECT

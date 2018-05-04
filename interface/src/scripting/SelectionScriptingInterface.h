@@ -86,6 +86,9 @@ protected:
  * The <code>Selection</code> API provides a means of grouping together avatars, entities, and overlays in named lists.
  * @namespace Selection
  *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @example <caption>Outline an entity when it is grabbed by a controller.</caption>
  * // Create a box and copy the following text into the entity's "Script URL" field.
  * (function () {
@@ -131,7 +134,7 @@ public:
     /**jsdoc
     * Get the names of all the selection lists.
     * @function Selection.getListNames
-    * @return {list[]} An array of names of all the selection lists.
+    * @returns {list[]} An array of names of all the selection lists.
     */
     Q_INVOKABLE QStringList getListNames() const;
 
@@ -181,7 +184,7 @@ public:
     * Get the list of avatars, entities, and overlays stored in a selection list.
     * @function Selection.getList
     * @param {string} listName - The name of the selection list.
-    * @return {Selection.SelectedItemsList} The content of a selection list. If the list name doesn't exist, the function 
+    * @returns {Selection.SelectedItemsList} The content of a selection list. If the list name doesn't exist, the function 
     *     returns an empty object with no properties.
     */
     Q_INVOKABLE QVariantMap getSelectedItemsList(const QString& listName) const;
@@ -189,7 +192,7 @@ public:
     /**jsdoc
     * Get the names of the highlighted selection lists.
     * @function Selection.getHighlightedListNames
-    * @return {string[]} An array of names of the selection list currently highlight enabled.
+    * @returns {string[]} An array of names of the selection list currently highlight enabled.
     */
     Q_INVOKABLE QStringList getHighlightedListNames() const;
 

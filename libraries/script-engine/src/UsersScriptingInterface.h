@@ -18,7 +18,12 @@
 
 /**jsdoc
  * @namespace Users
- * @property {boolean} canKick - <code>true</code> if the domain server allows the node or avatar to kick (ban) avatars, 
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-assignment-client
+ *
+ * @property {boolean} canKick - <code>true</code> if the domain server allows the node or avatar to kick (ban) avatars,
  *     otherwise <code>false</code>. <em>Read-only.</em>
  * @property {boolean} requestsDomainListData - <code>true</code> if the avatar requests extra data from the mixers (such as 
  *     positional data of an avatar you've ignored). <em>Read-only.</em>

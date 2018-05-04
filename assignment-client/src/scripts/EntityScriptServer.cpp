@@ -294,7 +294,6 @@ void EntityScriptServer::run() {
     queryJSONParameters[EntityJSONQueryProperties::FLAGS_PROPERTY] = queryFlags;
     
     // setup the JSON parameters so that OctreeQuery does not use a frustum and uses our JSON filter
-    _entityViewer.getOctreeQuery().setUsesFrustum(false);
     _entityViewer.getOctreeQuery().setJSONParameters(queryJSONParameters);
 
     entityScriptingInterface->setEntityTree(_entityViewer.getTree());

@@ -76,13 +76,15 @@ glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float proportion) {
 
 // Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
 int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix) {
-    int16_t outVal = (int16_t)(scalar * (float)(1 << radix));
-    memcpy(buffer, &outVal, sizeof(uint16_t));
-    return sizeof(uint16_t);
+    int16_t twoByteFixed = (int16_t)(scalar * (float)(1 << radix));
+    memcpy(buffer, &twoByteFixed, sizeof(int16_t));
+    return sizeof(int16_t);
 }
 
 int unpackFloatScalarFromSignedTwoByteFixed(const int16_t* byteFixedPointer, float* destinationPointer, int radix) {
-    *destinationPointer = *byteFixedPointer / (float)(1 << radix);
+    int16_t twoByteFixed;
+    memcpy(&twoByteFixed, byteFixedPointer, sizeof(int16_t));
+    *destinationPointer = twoByteFixed / (float)(1 << radix);
     return sizeof(int16_t);
 }
 
@@ -102,18 +104,19 @@ int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm
     return sourceBuffer - startPosition;
 }
 
-
 int packFloatAngleToTwoByte(unsigned char* buffer, float degrees) {
     const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0f);
 
-    uint16_t angleHolder = floorf((degrees + 180.0f) * ANGLE_CONVERSION_RATIO);
-    memcpy(buffer, &angleHolder, sizeof(uint16_t));
+    uint16_t twoByteAngle = floorf((degrees + 180.0f) * ANGLE_CONVERSION_RATIO);
+    memcpy(buffer, &twoByteAngle, sizeof(uint16_t));
 
     return sizeof(uint16_t);
 }
 
 int unpackFloatAngleFromTwoByte(const uint16_t* byteAnglePointer, float* destinationPointer) {
-    *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0f - 180.0f;
+    uint16_t twoByteAngle;
+    memcpy(&twoByteAngle, byteAnglePointer, sizeof(uint16_t));
+    *destinationPointer = (twoByteAngle / (float) std::numeric_limits<uint16_t>::max()) * 360.0f - 180.0f;
     return sizeof(uint16_t);
 }
 

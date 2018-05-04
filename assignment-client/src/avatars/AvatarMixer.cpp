@@ -521,11 +521,9 @@ void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> messag
     auto start = usecTimestampNow();
     getOrCreateClientData(senderNode);
 
-    if (senderNode->getLinkedData()) {
-        AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
-        if (nodeData != nullptr) {
-            nodeData->readViewFrustumPacket(message->getMessage());
-        }
+    AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+    if (nodeData) {
+        nodeData->readViewFrustumPacket(message->getMessage());
     }
 
     auto end = usecTimestampNow();
