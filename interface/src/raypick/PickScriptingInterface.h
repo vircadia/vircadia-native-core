@@ -18,6 +18,10 @@
  * The Picks API lets you create and manage objects for repeatedly calculating intersections in different ways.
  *
  * @namespace Picks
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @property PICK_NOTHING {number} A filter flag.  Don't intersect with anything.
  * @property PICK_ENTITIES {number} A filter flag.  Include entities when intersecting.
  * @property PICK_OVERLAYS {number} A filter flag.  Include overlays when intersecting.
