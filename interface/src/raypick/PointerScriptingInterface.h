@@ -19,6 +19,9 @@
  *  Pointers can also be configured to automatically generate PointerEvents.
  *
  * @namespace Pointers
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 
 class PointerScriptingInterface : public QObject, public Dependency {

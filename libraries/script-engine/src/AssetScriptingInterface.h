@@ -27,6 +27,11 @@
 /**jsdoc
  * The Assets API allows you to communicate with the Asset Browser.
  * @namespace Assets
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
  */
 class AssetScriptingInterface : public BaseAssetScriptingInterface, QScriptable {
     Q_OBJECT

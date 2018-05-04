@@ -94,6 +94,12 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
  * Interface has displayed and so knows about.
  *
  * @namespace Entities
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
  * @property {Uuid} keyboardFocusEntity - Get or set the {@link Entities.EntityType|Web} entity that has keyboard focus.
  *     If no entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
  *     clear keyboard focus.

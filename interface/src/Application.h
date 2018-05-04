@@ -149,6 +149,8 @@ public:
     void initializeRenderEngine();
     void initializeUi();
 
+    void updateSecondaryCameraViewFrustum();
+
     void updateCamera(RenderArgs& renderArgs, float deltaTime);
     void paintGL();
     void resizeGL();
@@ -173,11 +175,14 @@ public:
     Camera& getCamera() { return _myCamera; }
     const Camera& getCamera() const { return _myCamera; }
     // Represents the current view frustum of the avatar.
-    void copyViewFrustum(ViewFrustum& viewOut) const;
+    void copyViewFrustum(ViewFrustum& viewOut) const override;
+    void copySecondaryViewFrustum(ViewFrustum& viewOut) const override;
+    bool hasSecondaryViewFrustum() const override { return _hasSecondaryViewFrustum; }
     // Represents the view frustum of the current rendering pass,
     // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
+
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
@@ -565,8 +570,11 @@ private:
 
     mutable QMutex _viewMutex { QMutex::Recursive };
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
-    ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
+    ViewFrustum _lastQueriedViewFrustum; // last view frustum used to query octree servers
     ViewFrustum _displayViewFrustum;
+    ViewFrustum _secondaryViewFrustum;
+    ViewFrustum _lastQueriedSecondaryViewFrustum; // last secondary view frustum used to query octree servers
+    bool _hasSecondaryViewFrustum;
     quint64 _lastQueriedTime;
 
     OctreeQuery _octreeQuery { true }; // NodeData derived class for querying octee cells from octree servers

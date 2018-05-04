@@ -729,7 +729,7 @@ Rectangle {
                                 }
                                 lightboxPopup.button2text = "CONFIRM";
                                 lightboxPopup.button2method = function() {
-                                    MyAvatar.skeletonModelURL = '';
+                                    MyAvatar.useFullAvatarURL('');
                                     root.activeView = "giftAsset";
                                     lightboxPopup.visible = false;
                                 };

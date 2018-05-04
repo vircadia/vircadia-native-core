@@ -89,6 +89,12 @@ public:
 
 /**jsdoc
  * @namespace Script
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
  * @property {string} context
  */
 class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
