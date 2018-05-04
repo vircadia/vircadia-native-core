@@ -94,7 +94,6 @@ void AutoTester::saveImage(int index) {
     QPixmap pixmap;
     pixmap.loadFromData(downloaders[index]->downloadedData());
 
-    int sdf = pixmap.width();
     QImage image = pixmap.toImage();
     image = image.convertToFormat(QImage::Format_ARGB32);
 
