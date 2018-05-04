@@ -109,14 +109,6 @@ TestWindow::TestWindow() {
     Setting::init();
 
     setSurfaceType(QSurface::OpenGLSurface);
-    QSurfaceFormat format;
-    format.setDepthBufferSize(24);
-    format.setStencilBufferSize(8);
-    format.setVersion(4, 5);
-    format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
-    format.setOption(QSurfaceFormat::DebugContext);
-    QSurfaceFormat::setDefaultFormat(format);
-    setFormat(format);
 
     qmlRegisterType<QTestItem>("Hifi", 1, 0, "TestItem");
 
@@ -301,6 +293,16 @@ void TestWindow::resizeEvent(QResizeEvent* ev) {
 }
 
 int main(int argc, char** argv) {
+
+    QSurfaceFormat format;
+    format.setDepthBufferSize(24);
+    format.setStencilBufferSize(8);
+    format.setVersion(4, 1);
+    format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
+    format.setOption(QSurfaceFormat::DebugContext);
+    QSurfaceFormat::setDefaultFormat(format);
+    // setFormat(format);
+
     QGuiApplication app(argc, argv);
     TestWindow window;
     return app.exec();
