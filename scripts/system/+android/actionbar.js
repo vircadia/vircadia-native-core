@@ -39,11 +39,11 @@ function init() {
 }
 
 function onBackPressed() {
-   App.performHapticFeedback("CONTEXT_CLICK");
+   Controller.triggerHapticPulse(Controller.findDevice("TouchscreenVirtualPad"), 0.1, 1.0, 0);
 }
 
 function onBackClicked() {
-   App.openAndroidActivity("Home", false);
+   Window.openAndroidActivity("Home", false);
 }
 
 

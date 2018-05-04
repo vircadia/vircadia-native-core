@@ -198,6 +198,7 @@ public class InterfaceActivity extends QtActivity {
     public void openAndroidActivity(String activityName, boolean backToScene) {
         switch (activityName) {
             case "Home":
+            case "Privacy Policy":
             case "Login": {
                 Intent intent = new Intent(this, MainActivity.class);
                 intent.putExtra(MainActivity.EXTRA_FRAGMENT, activityName);

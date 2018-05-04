@@ -99,7 +99,7 @@ function actionOnObjectFromEvent(event) {
             var entity = Entities.getEntityProperties(
                     entitiesByOverlayID[rayIntersection.overlayID],
                     [ "sourceUrl" ]);
-            App.openUrl(entity.sourceUrl);
+            Window.openUrl(entity.sourceUrl);
             return true;
         }
     }
@@ -110,7 +110,7 @@ function actionOnObjectFromEvent(event) {
         if (rayIntersection.properties.type == "Web") {
             printd("found web element to "
                     + rayIntersection.properties.sourceUrl);
-            App.openUrl(rayIntersection.properties.sourceUrl);
+            Window.openUrl(rayIntersection.properties.sourceUrl);
             return true;
         }
     }

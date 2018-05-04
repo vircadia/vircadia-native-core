@@ -84,6 +84,10 @@ namespace VirtualPad {
         _jumpButtonPosition = point;
     }
 
+    void Manager::requestHapticFeedback() {
+        emit hapticFeedbackRequested();
+    }
+
     Instance* Manager::getLeftVirtualPad() {
         return &_leftVPadInstance;
     }

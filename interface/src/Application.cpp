@@ -2764,6 +2764,13 @@ void Application::initializeUi() {
         }
         if (TouchscreenVirtualPadDevice::NAME == inputPlugin->getName()) {
             _touchscreenVirtualPadDevice = std::dynamic_pointer_cast<TouchscreenVirtualPadDevice>(inputPlugin);
+#if defined(Q_OS_ANDROID)
+            auto& virtualPadManager = VirtualPad::Manager::instance();
+            connect(&virtualPadManager, &VirtualPad::Manager::hapticFeedbackRequested,
+                    this, []() {
+                        AndroidHelper::instance().performHapticFeedback("CONTEXT_CLICK");
+                    });
+#endif
         }
     }
 
@@ -3766,7 +3773,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 #if defined(Q_OS_ANDROID)
     if (event->key() == Qt::Key_Back) {
         event->accept();
-        openAndroidActivity("Home", false);
+        AndroidHelper::instance().requestActivity("Home", false);
     }
 #endif
     _controllerScriptingInterface->emitKeyReleaseEvent(event); // send events to any registered scripts
@@ -6376,8 +6383,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
 
-    scriptEngine->registerGlobalObject("App", this);
-
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
     DependencyManager::get<PickScriptingInterface>()->registerMetaTypes(scriptEngine.data());
@@ -8083,32 +8088,18 @@ void Application::saveNextPhysicsStats(QString filename) {
     _physicsEngine->saveNextPhysicsStats(filename);
 }
 
-void Application::openAndroidActivity(const QString& activityName, const bool backToScene) {
-#if defined(Q_OS_ANDROID)
-    AndroidHelper::instance().requestActivity(activityName, backToScene);
-#endif
-}
-
-void Application::performHapticFeedback(const QString& feedbackConstant) {
-#if defined(Q_OS_ANDROID)
-    AndroidHelper::instance().performHapticFeedback(feedbackConstant);
-#endif
-}
-
 #if defined(Q_OS_ANDROID)
 void Application::enterBackground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
-    //GC: commenting it out until we fix it
-    //getActiveDisplayPlugin()->deactivate();
+    getActiveDisplayPlugin()->deactivate();
 }
 void Application::enterForeground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                                   "start", Qt::BlockingQueuedConnection);
-    //GC: commenting it out until we fix it
-    /*if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
+    if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
         qWarning() << "Could not re-activate display plugin";
-    }*/
+    }
 
 }
 #endif

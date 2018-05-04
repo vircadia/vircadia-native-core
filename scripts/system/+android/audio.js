@@ -49,7 +49,7 @@ function onMuteClicked() {
 }
 
 function onMutePressed() {
-    App.performHapticFeedback("CONTEXT_CLICK");
+    Controller.triggerHapticPulse(Controller.findDevice("TouchscreenVirtualPad"), 0.1, 1.0, 0);
 }
 
 function onMuteToggled() {
