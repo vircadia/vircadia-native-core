@@ -12,10 +12,11 @@
 
 /* jslint bitwise: true */
 
-/* global Script, print, Entities, Picks, HMD, Controller, MyAvatar*/
+/* global Script, print, Entities, Picks, HMD, Controller, MyAvatar, isInEditMode*/
 
 
 (function() {
+    Script.include("/~/system/libraries/utils.js");
     var dispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
 
     function MouseHighlightEntities() {
@@ -39,7 +40,7 @@
                     dispatcherUtils.unhighlightTargetEntity(this.highlightedEntity);
                     this.highlightedEntity = null;
                 }
-            } else if (!this.grabbedEntity) {
+            } else if (!this.grabbedEntity && !isInEditMode()) {
                 var pickResult = controllerData.mouseRayPick;
                 if (pickResult.type === Picks.INTERSECTED_ENTITY) {
                     var targetEntityID = pickResult.objectID;
