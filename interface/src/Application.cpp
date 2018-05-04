@@ -5249,9 +5249,8 @@ void Application::updateSecondaryCameraViewFrustum() {
     auto renderConfig = _renderEngine->getConfiguration();
     assert(renderConfig);
     auto camera = dynamic_cast<SecondaryCameraJobConfig*>(renderConfig->getConfig("SecondaryCamera"));
-    assert(camera);
 
-    if (!camera->isEnabled()) {
+    if (!camera || !camera->isEnabled()) {
         _hasSecondaryViewFrustum = false;
         return;
     }
