@@ -30,7 +30,6 @@ import io.highfidelity.hifiinterface.provider.UserStoryDomainProvider;
  */
 public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder> {
 
-    private static final java.lang.String DOMAINS_FILE = "hifi_domains.json";
     private static final String TAG = "HiFi Interface";
     private Context mContext;
     private LayoutInflater mInflater;
@@ -74,39 +73,6 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
                 if (mAdapterListener != null) mAdapterListener.onError(e, message);
             }
         });
-    }
-
-    private void loadDomainsLocalFile() {
-        try {
-            JSONObject json = new JSONObject(loadJSONFromAsset());
-            JSONArray hifiDomains = json.getJSONArray("hifi_domains");
-            List<Domain> domains = new ArrayList<>();
-            for (int i = 0; i < hifiDomains.length(); i++) {
-                JSONObject jDomain = hifiDomains.getJSONObject(i);
-
-                String domainName = jDomain.getString("name");
-                String domainUrl = jDomain.getString("url");
-                String domainThumb = jDomain.getString("thumbnail");
-
-                domains.add(new Domain(domainName, domainUrl, domainThumb));
-            }
-            mDomains = domains.toArray(mDomains);
-        } catch (IOException e) {
-            Log.e(TAG, "Error loading domains from local file", e);
-        } catch (JSONException e) {
-            Log.e(TAG, "Error loading domains from local file", e);
-        }
-    }
-
-    public String loadJSONFromAsset() throws IOException {
-        String json = null;
-        InputStream is = mContext.getAssets().open(DOMAINS_FILE);
-        int size = is.available();
-        byte[] buffer = new byte[size];
-        is.read(buffer);
-        is.close();
-        json = new String(buffer, "UTF-8");
-        return json;
     }
 
     @Override
