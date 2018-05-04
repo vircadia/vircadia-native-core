@@ -35,6 +35,7 @@
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
 #include <avatars-renderer/OtherAvatar.h>
+#include <shared/ConicalViewFrustum.h>
 
 #include "Application.h"
 #include "AvatarManager.h"
@@ -156,17 +157,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     };
 
 
-    ViewFrustums views;
-
-    ViewFrustum view;
-    qApp->copyCurrentViewFrustum(view);
-    views.push_back(view);
-
-    if (qApp->hasSecondaryViewFrustum()) {
-        qApp->copySecondaryViewFrustum(view);
-        views.push_back(view);
-    }
-
+    const auto& views = qApp->getConicalViews();
     PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(views,
             AvatarData::_avatarSortCoefficientSize,
             AvatarData::_avatarSortCoefficientCenter,

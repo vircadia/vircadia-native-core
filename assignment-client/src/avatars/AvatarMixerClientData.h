@@ -28,7 +28,7 @@
 #include <PortableHighResolutionClock.h>
 #include <SimpleMovingAverage.h>
 #include <UUIDHasher.h>
-#include <ViewFrustum.h>
+#include <shared/ConicalViewFrustum.h>
 
 const QString OUTBOUND_AVATAR_DATA_STATS_KEY = "outbound_av_data_kbps";
 const QString INBOUND_AVATAR_DATA_STATS_KEY = "inbound_av_data_kbps";
@@ -98,7 +98,7 @@ public:
     void removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other);
     void ignoreOther(SharedNodePointer self, SharedNodePointer other);
 
-    void readViewFrustumPacket(QByteArray message);
+    void readViewFrustumPacket(const QByteArray& message);
 
     bool otherAvatarInView(const AABox& otherAvatarBox);
 
@@ -110,7 +110,7 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
-    const ViewFrustums& getViewFrustums() const { return _currentViewFrustums; }
+    const ConicalViewFrustums& getViewFrustums() const { return _currentViewFrustums; }
 
     uint64_t getLastOtherAvatarEncodeTime(QUuid otherAvatar) const;
     void setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, uint64_t time);
@@ -150,7 +150,7 @@ private:
 
     SimpleMovingAverage _avgOtherAvatarDataRate;
     std::unordered_set<QUuid> _radiusIgnoredOthers;
-    ViewFrustums _currentViewFrustums;
+    ConicalViewFrustums _currentViewFrustums;
 
     int _recentOtherAvatarsInView { 0 };
     int _recentOtherAvatarsOutOfView { 0 };

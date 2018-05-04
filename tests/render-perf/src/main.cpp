@@ -34,6 +34,7 @@
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QApplication>
 
+#include <shared/ConicalViewFrustum.h>
 #include <shared/RateCounter.h>
 #include <shared/NetworkUtils.h>
 #include <shared/FileLogger.h>
@@ -441,14 +442,8 @@ protected:
         viewOut = _viewFrustum;
     }
 
-    void copyViewFrustum(ViewFrustum& viewOut) const override {
-        viewOut = _viewFrustum;
-    }
-
-    void copySecondaryViewFrustum(ViewFrustum& viewOut) const override {}
-
-    bool hasSecondaryViewFrustum() const override {
-        return false;
+    const ConicalViewFrustums& getConicalViews() const override {
+        return _view;
     }
 
     QThread* getMainThread() override {
@@ -1126,6 +1121,7 @@ private:
     graphics::LightPointer _globalLight { std::make_shared<graphics::Light>() };
     bool _ready { false };
     EntitySimulationPointer _entitySimulation;
+    ConicalViewFrustums _view;
 
     QStringList _commands;
     QString _commandPath;
