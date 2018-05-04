@@ -147,20 +147,21 @@ void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
             batch.setViewportTransform(ivec4(uvec2(0), getRecommendedRenderSize()));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         });
-
-        // render stick head
-        auto jumpTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getJumpButtonPosition(),
-                                                                                                    _virtualPadJumpBtnPixelSize, _virtualPadJumpBtnPixelSize);
-        render([&](gpu::Batch& batch) {
-            batch.enableStereo(false);
-            batch.setProjectionTransform(mat4());
-            batch.setPipeline(_cursorPipeline);
-            batch.setResourceTexture(0, _virtualPadJumpBtnTexture);
-            batch.resetViewTransform();
-            batch.setModelTransform(jumpTransform);
-            batch.setViewportTransform(ivec4(uvec2(0), getRecommendedRenderSize()));
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
-        });
+        if (!virtualPadManager.getLeftVirtualPad()->isBeingTouched()) {
+            // render stick head
+            auto jumpTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getJumpButtonPosition(),
+                                                                                                        _virtualPadJumpBtnPixelSize, _virtualPadJumpBtnPixelSize);
+            render([&](gpu::Batch& batch) {
+                batch.enableStereo(false);
+                batch.setProjectionTransform(mat4());
+                batch.setPipeline(_cursorPipeline);
+                batch.setResourceTexture(0, _virtualPadJumpBtnTexture);
+                batch.resetViewTransform();
+                batch.setModelTransform(jumpTransform);
+                batch.setViewportTransform(ivec4(uvec2(0), getRecommendedRenderSize()));
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            });
+        }
     }
 #endif
     Parent::compositeExtra();

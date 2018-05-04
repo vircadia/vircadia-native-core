@@ -296,7 +296,8 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
     }
 }
 
-void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, const ViewFrustum& view, render::Transaction& transaction) {
+void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, const ViewFrustums& views,
+                                               render::Transaction& transaction) {
     PROFILE_RANGE_EX(simulation_physics, "ChangeInScene", 0xffff00ff, (uint64_t)_changedEntities.size());
     PerformanceTimer pt("change");
     std::unordered_set<EntityItemID> changedEntities;
@@ -357,7 +358,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 
         // prioritize and sort the renderables
         uint64_t sortStart = usecTimestampNow();
-        PrioritySortUtil::PriorityQueue<SortableRenderer> sortedRenderables(view);
+        PrioritySortUtil::PriorityQueue<SortableRenderer> sortedRenderables(views);
         {
             PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
@@ -415,9 +416,20 @@ void EntityTreeRenderer::update(bool simulate) {
             if (scene) {
                 render::Transaction transaction;
                 addPendingEntities(scene, transaction);
+
+                ViewFrustums views;
+
                 ViewFrustum view;
-                _viewState->copyCurrentViewFrustum(view);
-                updateChangedEntities(scene, view, transaction);
+                _viewState->copyViewFrustum(view);
+                views.push_back(view);
+
+                if (_viewState->hasSecondaryViewFrustum()) {
+                    _viewState->copySecondaryViewFrustum(view);
+                    views.push_back(view);
+                }
+
+
+                updateChangedEntities(scene, views, transaction);
                 scene->enqueueTransaction(transaction);
             }
         }

@@ -21,6 +21,10 @@ Item {
     property bool passwordField: false
     property alias flickable: webroot.interactive
 
+    function stop() {
+        webroot.stop();
+    }
+
     // FIXME - Keyboard HMD only: Make Interface either set keyboardRaised property directly in OffscreenQmlSurface
     // or provide HMDinfo object to QML in RenderableWebEntityItem and do the following.
     /*

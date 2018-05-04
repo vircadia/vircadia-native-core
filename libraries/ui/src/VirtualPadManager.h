@@ -54,7 +54,7 @@ namespace VirtualPad {
         static const float JUMP_BTN_TRIMMED_RADIUS_PIXELS;
         static const float JUMP_BTN_FULL_PIXELS;
         static const float JUMP_BTN_BOTTOM_MARGIN_PIXELS;
-        static const float JUMP_BTN_LEFT_MARGIN_PIXELS;
+        static const float JUMP_BTN_RIGHT_MARGIN_PIXELS;
 
     private:
         Instance _leftVPadInstance;
