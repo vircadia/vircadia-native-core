@@ -200,7 +200,10 @@ class ScriptEngine;
  *
  * @namespace Controller
  *
- * @property {Controller.Actions} Actions - Predefined actions on Interface and the user's avatar. These can be used as end 
+ * @hifi-interface
+ * @hifi-client-entity
+ *
+ * @property {Controller.Actions} Actions - Predefined actions on Interface and the user's avatar. These can be used as end
  *     points in a {@link RouteObject} mapping. A synonym for <code>Controller.Hardware.Actions</code>.
  *     <em>Read-only.</em><br />
  *     Default mappings are provided from the <code>Controller.Hardware.Keyboard</code> and <code>Controller.Standard</code> to 

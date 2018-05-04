@@ -29,6 +29,9 @@
 /**jsdoc 
  * The FaceTracker API helps manage facial tracking hardware. 
  * @namespace FaceTracker
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 
 class DdeFaceTracker : public FaceTracker, public Dependency {

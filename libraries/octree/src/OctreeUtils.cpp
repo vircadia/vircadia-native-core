@@ -16,6 +16,7 @@
 #include <glm/glm.hpp>
 
 #include <AABox.h>
+#include <AACube.h>
 
 float calculateRenderAccuracy(const glm::vec3& position,
         const AABox& bounds,
@@ -73,4 +74,10 @@ float getOrthographicAccuracySize(float octreeSizeScale, int boundaryLevelAdjust
     // Smallest visible element is 1cm
     const float smallestSize = 0.01f;
     return (smallestSize * MAX_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT) / boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale);
+}
+
+bool isAngularSizeBigEnough(glm::vec3 position, const AACube& cube, float lodScaleFactor, float minDiameter) {
+    float distance = glm::distance(cube.calcCenter(), position) + MIN_VISIBLE_DISTANCE;
+    float angularDiameter = cube.getScale() / distance;
+    return angularDiameter > minDiameter * lodScaleFactor;
 }

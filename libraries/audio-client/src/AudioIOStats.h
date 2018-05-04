@@ -41,6 +41,10 @@ class AudioStreamStatsInterface : public QObject {
 
     /**jsdoc
      * @class AudioStats.AudioStreamStats
+     *
+     * @hifi-interface
+     * @hifi-client-entity
+     *
      * @property {number} lossRate <em>Read-only.</em>
      * @property {number} lossCount <em>Read-only.</em>
      * @property {number} lossRateWindow <em>Read-only.</em>
@@ -185,6 +189,10 @@ class AudioStatsInterface : public QObject {
     /**jsdoc
      * Audio stats from the client.
      * @namespace AudioStats
+     *
+     * @hifi-interface
+     * @hifi-client-entity
+     *
      * @property {number} pingMs <em>Read-only.</em>
      * @property {number} inputReadMsMax <em>Read-only.</em>
      * @property {number} inputUnplayedMsMax <em>Read-only.</em>

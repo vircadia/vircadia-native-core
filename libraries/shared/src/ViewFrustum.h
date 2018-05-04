@@ -48,6 +48,7 @@ public:
 
     // setters for lens attributes
     void setProjection(const glm::mat4 & projection);
+    void setProjection(float cameraFov, float cameraAspectRatio, float cameraNearClip, float cameraFarClip);
     void setFocalLength(float focalLength) { _focalLength = focalLength; }
     bool isPerspective() const;
 
@@ -147,7 +148,7 @@ public:
     void invalidate(); // causes all reasonable intersection tests to fail
 
     QByteArray toByteArray();
-    void fromByteArray(const QByteArray& input);
+    int fromByteArray(const QByteArray& input);
 
 private:
     glm::mat4 _view;
@@ -188,5 +189,6 @@ private:
 
 };
 using ViewFrustumPointer = std::shared_ptr<ViewFrustum>;
+using ViewFrustums = std::vector<ViewFrustum>;
 
 #endif // hifi_ViewFrustum_h
