@@ -11,6 +11,7 @@
 
 #include "TextureMeta.h"
 
+#include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
 
@@ -19,7 +20,12 @@ const QString TEXTURE_META_EXTENSION = ".texmeta.json";
 bool TextureMeta::deserialize(const QByteArray& data, TextureMeta* meta) {
     QJsonParseError error;
     auto doc = QJsonDocument::fromJson(data, &error);
+    if (error.error != QJsonParseError::NoError) {
+        qDebug() << "Failed to parse TextureMeta:" << error.errorString();
+        return false;
+    }
     if (!doc.isObject()) {
+        qDebug() << "Unable to process TextureMeta: top-level value is not an Object";
         return false;
     }
 
