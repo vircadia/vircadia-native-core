@@ -90,6 +90,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return 18;  // replace min_avatar_scale and max_avatar_scale with min_avatar_height and max_avatar_height
         case PacketType::Ping:
             return static_cast<PacketVersion>(PingVersion::IncludeConnectionID);
+        case PacketType::ViewFrustum:
+            return static_cast<PacketVersion>(ViewFrustumVersion::SendMultipleFrustums);
         default:
             return 20;
     }

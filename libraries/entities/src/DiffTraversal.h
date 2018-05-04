@@ -36,7 +36,7 @@ public:
         bool isVerySimilar(const View& view) const;
         ViewFrustum::intersection calculateIntersection(const AACube& cube) const;
 
-        std::vector<ViewFrustum> viewFrustums;
+        ViewFrustums viewFrustums;
         uint64_t startTime { 0 };
         float lodScaleFactor { 1.0f };
     };
