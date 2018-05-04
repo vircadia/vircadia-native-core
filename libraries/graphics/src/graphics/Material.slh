@@ -13,9 +13,6 @@
 
 // The material values (at least the material key) must be precisely bitwise accurate
 // to what is provided by the uniform buffer, or the material key has the wrong bits
-#ifdef GL_ES
-precision highp float;
-#endif
 
 struct Material {
     PRECISIONQ vec4 _emissiveOpacity;
