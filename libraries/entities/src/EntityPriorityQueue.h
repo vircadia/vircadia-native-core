@@ -20,8 +20,8 @@
 // PrioritizedEntity is a placeholder in a sorted queue.
 class PrioritizedEntity {
 public:
-    static constexpr float DO_NOT_SEND { -1.0e-6f };
-    static constexpr float FORCE_REMOVE { -1.0e-5f };
+    static constexpr float DO_NOT_SEND { -1.0e6f };
+    static constexpr float FORCE_REMOVE { -1.0e5f };
     static constexpr float WHEN_IN_DOUBT_PRIORITY { 1.0f };
 
     PrioritizedEntity(EntityItemPointer entity, float priority, bool forceRemove = false) : _weakEntity(entity), _rawEntityPointer(entity.get()), _priority(priority), _forceRemove(forceRemove) {}

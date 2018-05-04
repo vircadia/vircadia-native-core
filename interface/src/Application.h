@@ -111,7 +111,8 @@ class Application : public QApplication,
                     public AbstractViewStateInterface,
                     public AbstractScriptingServicesInterface,
                     public AbstractUriHandler,
-                    public PluginContainer {
+                    public PluginContainer
+{
     Q_OBJECT
 
     // TODO? Get rid of those
@@ -579,7 +580,10 @@ private:
 
     ConicalViewFrustums _conicalViews;
     ConicalViewFrustums _lastQueriedViews; // last views used to query servers
-    quint64 _lastQueriedTime;
+
+    using SteadyClock = std::chrono::steady_clock;
+    using TimePoint = SteadyClock::time_point;
+    TimePoint _queryExpiry;
 
     OctreeQuery _octreeQuery { true }; // NodeData derived class for querying octee cells from octree servers
 

@@ -967,7 +967,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _entitySimulation(new PhysicalEntitySimulation()),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
     _entityClipboard(new EntityTree()),
-    _lastQueriedTime(usecTimestampNow()),
     _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
     _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
     _hmdTabletScale("hmdTabletScale", DEFAULT_HMD_TABLET_SCALE_PERCENT),
@@ -5084,7 +5083,7 @@ void Application::reloadResourceCaches() {
     resetPhysicsReadyInformation();
 
     // Query the octree to refresh everything in view
-    _lastQueriedTime = 0;
+    _queryExpiry = SteadyClock::now();
     _octreeQuery.incrementConnectionID();
 
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery);
@@ -5660,9 +5659,6 @@ void Application::update(float deltaTime) {
         PROFILE_RANGE_EX(app, "QueryOctree", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         PerformanceTimer perfTimer("queryOctree");
         QMutexLocker viewLocker(&_viewMutex);
-        quint64 sinceLastQuery = now - _lastQueriedTime;
-        const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
-        bool queryIsDue = sinceLastQuery > TOO_LONG_SINCE_LAST_QUERY;
 
         bool viewIsDifferentEnough = false;
         if (_conicalViews.size() == _lastQueriedViews.size()) {
@@ -5678,14 +5674,16 @@ void Application::update(float deltaTime) {
 
         
         // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
-        if (queryIsDue || viewIsDifferentEnough) {
+        static const std::chrono::seconds MIN_PERIOD_BETWEEN_QUERIES { 3 };
+        auto now = SteadyClock::now();
+        if (now > _queryExpiry || viewIsDifferentEnough) {
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                 queryOctree(NodeType::EntityServer, PacketType::EntityQuery);
             }
             queryAvatars();
 
             _lastQueriedViews = _conicalViews;
-            _lastQueriedTime = now;
+            _queryExpiry = now + MIN_PERIOD_BETWEEN_QUERIES;
         }
     }
 
@@ -6142,7 +6140,7 @@ void Application::nodeActivated(SharedNodePointer node) {
     // If we get a new EntityServer activated, reset lastQueried time
     // so we will do a proper query during update
     if (node->getType() == NodeType::EntityServer) {
-        _lastQueriedTime = 0;
+        _queryExpiry = SteadyClock::now();
         _octreeQuery.incrementConnectionID();
     }
 
@@ -6151,6 +6149,8 @@ void Application::nodeActivated(SharedNodePointer node) {
     }
 
     if (node->getType() == NodeType::AvatarMixer) {
+        _queryExpiry = SteadyClock::now();
+
         // new avatar mixer, send off our identity packet on next update loop
         // Reset skeletonModelUrl if the last server modified our choice.
         // Override the avatar url (but not model name) here too.
