@@ -282,9 +282,9 @@ Menu::Menu() {
 
     // Settings > Notifications > Snapshot
     action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Snapshot", 0,
-                                                    settings->getValue("play_notification_sounds_type_0").toBool());
+                                                    settings->getValue(MenuOption::NotificationSoundsSnapshot).toBool());
     connect(action, &QAction::triggered, [action, settings] {
-        settings->setValue("play_notification_sounds_type_0", action->isChecked());
+        settings->setValue(MenuOption::NotificationSoundsSnapshot, action->isChecked());
     });
     // Settings > Notifications > Level of Detail
     action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Level of Detail", 0,

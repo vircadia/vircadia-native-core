@@ -3601,13 +3601,14 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 AudioInjectorOptions options;
                 options.localOnly = true;
                 options.stereo = true;
-
-                if (_snapshotSoundInjector) {
-                    _snapshotSoundInjector->setOptions(options);
-                    _snapshotSoundInjector->restart();
-                } else {
-                    QByteArray samples = _snapshotSound->getByteArray();
-                    _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+                if (SettingsScriptingInterface::getInstance()->getValue(MenuOption::NotificationSoundsSnapshot).toBool()) {
+                    if (_snapshotSoundInjector) {
+                        _snapshotSoundInjector->setOptions(options);
+                        _snapshotSoundInjector->restart();
+                    } else {
+                        QByteArray samples = _snapshotSound->getByteArray();
+                        _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+                    }
                 }
                 takeSnapshot(true);
                 break;
