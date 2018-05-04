@@ -277,9 +277,6 @@ namespace AvatarDataPacket {
 
 const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
 
-const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
-const int AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS = 100;
-
 // See also static AvatarData::defaultFullAvatarModelUrl().
 const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
 

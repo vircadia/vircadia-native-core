@@ -554,6 +554,9 @@ void Agent::setIsAvatar(bool isAvatar) {
         connect(_avatarIdentityTimer, &QTimer::timeout, this, &Agent::sendAvatarIdentityPacket);
         connect(_avatarViewTimer, &QTimer::timeout, this, &Agent::sendAvatarViewFrustum);
 
+        static const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
+        static const int AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS = 1000;
+
         // start the timers
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);  // FIXME - we shouldn't really need to constantly send identity packets
         _avatarViewTimer->start(AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS);
