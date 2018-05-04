@@ -441,6 +441,16 @@ protected:
         viewOut = _viewFrustum;
     }
 
+    void copyViewFrustum(ViewFrustum& viewOut) const override {
+        viewOut = _viewFrustum;
+    }
+
+    void copySecondaryViewFrustum(ViewFrustum& viewOut) const override {}
+
+    bool hasSecondaryViewFrustum() const override {
+        return false;
+    }
+
     QThread* getMainThread() override {
         return QThread::currentThread();
     }

@@ -15,6 +15,7 @@
 #include "OctreeConstants.h"
 
 class AABox;
+class AACube;
 class QJsonDocument;
 
 /// renderAccuracy represents a floating point "visibility" of an object based on it's view from the camera. At a simple
@@ -35,5 +36,7 @@ const float MIN_ELEMENT_ANGULAR_DIAMETER = 0.0043301f; // radians
 const float SQRT_THREE = 1.73205080f;
 const float MIN_ENTITY_ANGULAR_DIAMETER = MIN_ELEMENT_ANGULAR_DIAMETER * SQRT_THREE;
 const float MIN_VISIBLE_DISTANCE = 0.0001f; // helps avoid divide-by-zero check
+
+bool isAngularSizeBigEnough(glm::vec3 position, const AACube& cube, float lodScaleFactor, float minDiameter);
 
 #endif // hifi_OctreeUtils_h

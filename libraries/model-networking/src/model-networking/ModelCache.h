@@ -55,6 +55,7 @@ public:
 
     virtual bool areTexturesLoaded() const;
     const QUrl& getAnimGraphOverrideUrl() const { return _animGraphOverrideUrl; }
+    const QVariantHash& getMapping() const { return _mapping; }
 
 protected:
     friend class GeometryMappingResource;
@@ -68,6 +69,7 @@ protected:
     NetworkMaterials _materials;
 
     QUrl _animGraphOverrideUrl;
+    QVariantHash _mapping;  // parsed contents of FST file.
 
 private:
     mutable bool _areTexturesLoaded { false };

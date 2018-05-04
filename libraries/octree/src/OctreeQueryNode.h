@@ -49,7 +49,8 @@ public:
 
     OctreeElementExtraEncodeData extraEncodeData;
 
-    void copyCurrentViewFrustum(ViewFrustum& viewOut) const;
+    void copyCurrentMainViewFrustum(ViewFrustum& viewOut) const;
+    void copyCurrentSecondaryViewFrustum(ViewFrustum& viewOut) const;
 
     // These are not classic setters because they are calculating and maintaining state
     // which is set asynchronously through the network receive
@@ -87,9 +88,6 @@ public:
     void setShouldForceFullScene(bool shouldForceFullScene) { _shouldForceFullScene = shouldForceFullScene; }
 
 private:
-    OctreeQueryNode(const OctreeQueryNode &);
-    OctreeQueryNode& operator= (const OctreeQueryNode&);
-
     bool _viewSent { false };
     std::unique_ptr<NLPacket> _octreePacket;
     bool _octreePacketWaiting;
@@ -99,7 +97,8 @@ private:
     quint64 _firstSuppressedPacket { usecTimestampNow() };
 
     mutable QMutex _viewMutex { QMutex::Recursive };
-    ViewFrustum _currentViewFrustum;
+    ViewFrustum _currentMainViewFrustum;
+    ViewFrustum _currentSecondaryViewFrustum;
     bool _viewFrustumChanging { false };
     bool _viewFrustumJustStoppedChanging { true };
 
