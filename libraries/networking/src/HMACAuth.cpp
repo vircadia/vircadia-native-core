@@ -106,21 +106,12 @@ HMACAuth::HMACHash HMACAuth::result() {
 
 bool HMACAuth::calculateHash(HMACHash& hashResult, const char* data, int dataLen) {
     QMutexLocker lock(&_lock);
-    if (!HMAC_Update(_hmacContext, reinterpret_cast<const unsigned char*>(data), dataLen)) {
-        qCWarning(networking) << "Error occured calling HMAC_Update";
+    if (!addData(data, dataLen)) {
+        qCWarning(networking) << "Error occured calling HMACAuth::addData()";
         assert(false);
         return false;
     }
 
-    hashResult.resize(EVP_MAX_MD_SIZE);
-    unsigned int hashLen;
-    if (HMAC_Final(_hmacContext, &hashResult[0], &hashLen)) {
-        hashResult.resize((size_t)hashLen);
-        // Clear state for possible reuse.
-        HMAC_Init_ex(_hmacContext, nullptr, 0, nullptr, nullptr);
-        return true;
-    }
-    qCWarning(networking) << "Error occured calling HMAC_Final";
-    assert(false);
-    return false;
+    hashResult = result();
+    return true;
 }
