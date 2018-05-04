@@ -530,26 +530,6 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
             QStringList tokens = line.split('"');
             relevantTextFromTest.title = tokens[1];
 
-        } else if (lineAssertPlatform.match(line).hasMatch()) {
-            QStringList platforms = line.split('"');
-            relevantTextFromTest.platform = platforms[1];
-
-        } else if (lineAssertDisplay.match(line).hasMatch()) {
-            QStringList displays = line.split('"');
-            relevantTextFromTest.display = displays[1];
-
-        } else if (lineAssertCPU.match(line).hasMatch()) {
-            QStringList cpus = line.split('"');
-            relevantTextFromTest.cpu = cpus[1];
-
-        } else if (lineAssertGPU.match(line).hasMatch()) {
-            QStringList gpus = line.split('"');
-            relevantTextFromTest.gpu = gpus[1];
-
-        } else if (lineAssertPhysicalMemoryGB.match(line).hasMatch()) {
-            QStringList physicalMemoryGB = line.split('"');
-            relevantTextFromTest.physicalMemoryGB = physicalMemoryGB[1];
-
         } else if (lineStepSnapshot.match(line).hasMatch()) {
             QStringList tokens = line.split('"');
             QString nameOfStep = tokens[1];
@@ -652,58 +632,6 @@ void Test::createMDFile(const QString& testDirectory) {
 
     stream << "## Preconditions" << "\n";
     stream << "- In an empty region of a domain with editing rights." << "\n\n";
-
-    // Platform
-    QStringList  platforms = testScriptLines.platform.split(" ");;
-    if (platforms.size() > 0) {
-        stream << "## Platforms\n";
-        stream << "Run the test on each of the following platforms\n";
-        for (int i = 0; i < platforms.size(); ++i) {
-            // Note that the platforms parameter may include extra spaces, these appear as empty strings in the list
-            if (platforms[i] != QString()) {
-                stream << " - " << platforms[i] << "\n";
-            }
-        }
-    }
-
-    // Display
-    QStringList  displays = testScriptLines.display.split(" ");
-    if (displays.size()) {
-            stream << "## Displays\n";
-        stream << "Run the test on each of the following displays\n";
-        for (int i = 0; i < displays.size(); ++i) {
-            // Note that the displays parameter may include extra spaces, these appear as empty strings in the list
-            if (displays[i] != QString()) {
-                stream << " - " << displays[i] << "\n";
-            }
-        }
-    }
-
-    // CPU
-    QStringList  cpus = testScriptLines.cpu.split(" ");
-    if (cpus.size() > 0) {
-        stream << "## Processors\n";
-        stream << "Run the test on each of the following processors\n";
-        for (int i = 0; i < cpus.size(); ++i) {
-            // Note that the cpus parameter may include extra spaces, these appear as empty strings in the list
-            if (cpus[i] != QString()) {
-                stream << " - " << cpus[i] << "\n";
-            }
-        }
-    }
-
-    // GPU
-    QStringList  gpus = testScriptLines.gpu.split(" ");
-    if (gpus.size() > 0) {
-        stream << "## Graphics Cards\n";
-        stream << "Run the test on graphics cards from each of the following vendors\n";
-        for (int i = 0; i < gpus.size(); ++i) {
-            // Note that the gpus parameter may include extra spaces, these appear as empty strings in the list
-            if (gpus[i] != QString()) {
-                stream << " - " << gpus[i] << "\n";
-            }
-        }
-    }
 
     stream << "## Steps\n";
     stream << "Press space bar to advance step by step\n\n";
