@@ -1022,7 +1022,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         for (int i = 0; i < args.size() - 1; ++i) {
             if (args.at(i) == TEST_SCRIPT  && (i + 1) < args.size()) {
                 QString testScriptPath = args.at(i + 1);
-                if (QFileInfo(testScriptPath).exists()) {
+
+                // If the URL scheme is "http(s)" then use as is, else - treat it as a local file
+                // This is done so as not break previous command line scripts
+                if (testScriptPath.left(4) == "http") {
+                    setProperty(hifi::properties::TEST, QUrl::fromUserInput(testScriptPath));
+                } else if (QFileInfo(testScriptPath).exists()) {
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
                 }
 
