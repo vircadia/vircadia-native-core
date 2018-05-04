@@ -33,7 +33,8 @@ Rectangle {
                     'name' : avatarName,
                     'url' : Qt.resolvedUrl(allAvatars.urls[i++ % allAvatars.urls.length]),
                     'wearables' : '',
-                    'entry' : getAvatarsReply.bookmarks[avatarName]
+                    'entry' : getAvatarsReply.bookmarks[avatarName],
+                    'getMoreAvatars' : false
                 };
 
                 allAvatars.append(avatarEntry);
@@ -79,7 +80,8 @@ Rectangle {
                     'name' : '',
                     'url' : Qt.resolvedUrl(allAvatars.urls[i++ % allAvatars.urls.length]),
                     'wearables' : '',
-                    'entry' : currentAvatar
+                    'entry' : currentAvatar,
+                    'getMoreAvatars' : false
                 };
 
                 selectedAvatar = currentAvatarEntry;
