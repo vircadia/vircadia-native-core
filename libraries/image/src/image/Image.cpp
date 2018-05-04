@@ -31,8 +31,14 @@ using namespace gpu;
 #define CPU_MIPMAPS 1
 #include <nvtt/nvtt.h>
 
+#include <Etc.h>
+
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
+#ifdef Q_OS_ANDROID
+static const glm::uvec2 MAX_TEXTURE_SIZE(1024);
+#else
 static const glm::uvec2 MAX_TEXTURE_SIZE(4096);
+#endif
 bool DEV_DECIMATE_TEXTURES = false;
 std::atomic<size_t> DECIMATED_TEXTURE_COUNT{ 0 };
 std::atomic<size_t> RECTIFIED_TEXTURE_COUNT{ 0 };
