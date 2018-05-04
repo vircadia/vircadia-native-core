@@ -44,15 +44,14 @@
     };
 
     function scheduleBringToView(timeout) {
-
-        var timer = setTimeout(function () {
-            clearTimeout(timer);
-
+        setTimeout(function () {
+            // If the element is not visible because the keyboard has been raised over the top of it, scroll it into view.
             var elementRect = document.activeElement.getBoundingClientRect();
-            var absoluteElementTop = elementRect.top + window.scrollY;
-            var middle = absoluteElementTop - (window.innerHeight / 2);
-
-            window.scrollTo(0, middle);
+            var VISUAL_MARGIN = 3
+            var delta = elementRect.y + elementRect.height + VISUAL_MARGIN - window.innerHeight;
+            if (delta > 0) {
+                window.scrollBy(0, delta);
+            }
         }, timeout);
     }
 
