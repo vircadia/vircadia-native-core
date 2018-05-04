@@ -246,9 +246,9 @@ bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers, FBXNode& dracoMe
 
 QString ModelBaker::compressTexture(QString modelTextureFileName, image::TextureUsage::Type textureType) {
 
-    QFileInfo modelTextureFileInfo{ modelTextureFileName.replace("\\", "/") };
+    QFileInfo modelTextureFileInfo { modelTextureFileName.replace("\\", "/") };
     
-    if (modelTextureFileInfo.suffix() == BAKED_TEXTURE_KTX_EXT.mid(1)) {
+    if (modelTextureFileInfo.suffix().toLower() == BAKED_TEXTURE_KTX_EXT.mid(1)) {
         // re-baking a model that already references baked textures
         // this is an error - return from here
         handleError("Cannot re-bake a file that already references compressed textures");
