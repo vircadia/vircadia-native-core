@@ -225,6 +225,12 @@ int unpackOrientationQuatFromSixBytes(const unsigned char* buffer, glm::quat& qu
     return 6;
 }
 
+bool closeEnough(float a, float b, float relativeError) {
+    assert(relativeError >= 0.0f);
+    // NOTE: we add EPSILON to the denominator so we can avoid checking for division by zero.
+    // This method works fine when: fabsf(a + b) >> EPSILON
+    return fabsf(a - b) / (0.5f * fabsf(a + b) + EPSILON) < relativeError;
+}
 
 //  Safe version of glm::eulerAngles; uses the factorization method described in David Eberly's
 //  http://www.geometrictools.com/Documentation/EulerAngles.pdf (via Clyde,

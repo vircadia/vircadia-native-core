@@ -6,11 +6,11 @@
 //  Copyright 2015 High Fidelity, Inc.
 //
 
+#include "AudioReverb.h"
+
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
-
-#include "AudioReverb.h"
 
 #ifdef _MSC_VER
 #include <intrin.h>

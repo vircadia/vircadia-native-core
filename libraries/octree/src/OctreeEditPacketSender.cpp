@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctreeEditPacketSender.h"
+
 #include <assert.h>
 
 #include <PerfStat.h>
@@ -16,7 +18,6 @@
 #include <OctalCode.h>
 #include <udt/PacketHeaders.h>
 #include "OctreeLogging.h"
-#include "OctreeEditPacketSender.h"
 
 const int OctreeEditPacketSender::DEFAULT_MAX_PENDING_MESSAGES = PacketSender::DEFAULT_PACKETS_PER_SECOND;
 

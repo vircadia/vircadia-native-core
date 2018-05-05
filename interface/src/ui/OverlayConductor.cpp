@@ -8,13 +8,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OverlayConductor.h"
+
 #include <OffscreenUi.h>
 #include <display-plugins/CompositorHelper.h>
 
 #include "Application.h"
 #include "avatar/AvatarManager.h"
 #include "InterfaceLogging.h"
-#include "OverlayConductor.h"
 
 OverlayConductor::OverlayConductor() {
 

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "RSAKeypairGenerator.h"
+
 #include <openssl/err.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
@@ -16,8 +18,6 @@
 #include <qdebug.h>
 
 #include "NetworkLogging.h"
-
-#include "RSAKeypairGenerator.h"
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif

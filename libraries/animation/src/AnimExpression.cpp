@@ -8,10 +8,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <StreamUtils.h>
+#include "AnimExpression.h"
+
 #include <QRegExp>
 
-#include "AnimExpression.h"
+#include <StreamUtils.h>
+
 #include "AnimationLogging.h"
 
 AnimExpression::AnimExpression(const QString& str) :

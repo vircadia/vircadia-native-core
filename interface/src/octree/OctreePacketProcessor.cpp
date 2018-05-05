@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctreePacketProcessor.h"
+
 #include <PerfStat.h>
 
 #include "Application.h"
 #include "Menu.h"
-#include "OctreePacketProcessor.h"
 #include "SceneScriptingInterface.h"
 
 OctreePacketProcessor::OctreePacketProcessor() {

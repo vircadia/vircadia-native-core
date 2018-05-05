@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AvatarMixerSlave.h"
+
 #include <algorithm>
 #include <random>
 
@@ -28,10 +30,8 @@
 #include <StDev.h>
 #include <UUID.h>
 
-
 #include "AvatarMixer.h"
 #include "AvatarMixerClientData.h"
-#include "AvatarMixerSlave.h"
 
 void AvatarMixerSlave::configure(ConstIter begin, ConstIter end) {
     _begin = begin;
