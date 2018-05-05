@@ -21,22 +21,22 @@
 
 #include "Baker.h"
 
-extern const QString BAKED_TEXTURE_EXT;
+extern const QString BAKED_TEXTURE_KTX_EXT;
+extern const QString BAKED_META_TEXTURE_SUFFIX;
 
 class TextureBaker : public Baker {
     Q_OBJECT
 
 public:
     TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType,
-                 const QDir& outputDirectory, const QString& bakedFilename = QString(),
-                 const QByteArray& textureContent = QByteArray());
+                 const QDir& outputDirectory, const QString& metaTexturePathPrefix = "",
+                 const QString& baseFilename = QString(), const QByteArray& textureContent = QByteArray());
 
     const QByteArray& getOriginalTexture() const { return _originalTexture; }
 
     QUrl getTextureURL() const { return _textureURL; }
 
-    QString getDestinationFilePath() const { return _outputDirectory.absoluteFilePath(_bakedTextureFileName); }
-    QString getBakedTextureFileName() const { return _bakedTextureFileName; }
+    QString getMetaTextureFileName() const { return _metaTextureFileName; }
 
     virtual void setWasAborted(bool wasAborted) override;
 
@@ -58,8 +58,10 @@ private:
     QByteArray _originalTexture;
     image::TextureUsage::Type _textureType;
 
+    QString _baseFilename;
     QDir _outputDirectory;
-    QString _bakedTextureFileName;
+    QString _metaTextureFileName;
+    QString _metaTexturePathPrefix;
 
     std::atomic<bool> _abortProcessing { false };
 };

@@ -581,6 +581,7 @@ void Resource::refresh() {
         ResourceCache::requestCompleted(_self);
     }
     
+    _activeUrl = _url;
     init();
     ensureLoading();
     emit onRefresh();
@@ -618,7 +619,6 @@ void Resource::init(bool resetLoaded) {
         _loaded = false;
     }
     _attempts = 0;
-    _activeUrl = _url;
     
     if (_url.isEmpty()) {
         _startedLoading = _loaded = true;
@@ -724,7 +724,7 @@ void Resource::handleReplyFinished() {
     auto result = _request->getResult();
     if (result == ResourceRequest::Success) {
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
-        qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
+        qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_activeUrl.toDisplayString(), extraInfo);
 
         auto relativePathURL = _request->getRelativePathUrl();
         if (!relativePathURL.isEmpty()) {

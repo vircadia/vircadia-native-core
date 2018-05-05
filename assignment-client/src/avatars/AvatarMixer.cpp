@@ -47,7 +47,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AvatarData, this, "queueIncomingPacket");
     packetReceiver.registerListener(PacketType::AdjustAvatarSorting, this, "handleAdjustAvatarSorting");
-    packetReceiver.registerListener(PacketType::ViewFrustum, this, "handleViewFrustumPacket");
+    packetReceiver.registerListener(PacketType::AvatarQuery, this, "handleAvatarQueryPacket");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
@@ -517,15 +517,13 @@ void AvatarMixer::handleAdjustAvatarSorting(QSharedPointer<ReceivedMessage> mess
 }
 
 
-void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+void AvatarMixer::handleAvatarQueryPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     auto start = usecTimestampNow();
     getOrCreateClientData(senderNode);
 
-    if (senderNode->getLinkedData()) {
-        AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
-        if (nodeData != nullptr) {
-            nodeData->readViewFrustumPacket(message->getMessage());
-        }
+    AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+    if (nodeData) {
+        nodeData->readViewFrustumPacket(message->getMessage());
     }
 
     auto end = usecTimestampNow();
@@ -685,7 +683,7 @@ void AvatarMixer::sendStatsPacket() {
     incomingPacketStats["handleNodeIgnoreRequestPacket"] = TIGHT_LOOP_STAT_UINT64(_handleNodeIgnoreRequestPacketElapsedTime);
     incomingPacketStats["handleRadiusIgnoreRequestPacket"] = TIGHT_LOOP_STAT_UINT64(_handleRadiusIgnoreRequestPacketElapsedTime);
     incomingPacketStats["handleRequestsDomainListDataPacket"] = TIGHT_LOOP_STAT_UINT64(_handleRequestsDomainListDataPacketElapsedTime);
-    incomingPacketStats["handleViewFrustumPacket"] = TIGHT_LOOP_STAT_UINT64(_handleViewFrustumPacketElapsedTime);
+    incomingPacketStats["handleAvatarQueryPacket"] = TIGHT_LOOP_STAT_UINT64(_handleViewFrustumPacketElapsedTime);
 
     singleCoreTasks["incoming_packets"] = incomingPacketStats;
     singleCoreTasks["sendStats"] = (float)_sendStatsElapsedTime;

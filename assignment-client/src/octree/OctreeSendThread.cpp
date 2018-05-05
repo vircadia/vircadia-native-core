@@ -330,8 +330,9 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
     } else {
         // we aren't forcing a full scene, check if something else suggests we should
         isFullScene = nodeData->haveJSONParametersChanged() ||
-            (nodeData->getUsesFrustum()
-             && ((!viewFrustumChanged && nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged()));
+                      (nodeData->hasConicalViews() &&
+                       (nodeData->getViewFrustumJustStoppedChanging() ||
+                        nodeData->hasLodChanged()));
     }
 
     if (nodeData->isPacketWaiting()) {
@@ -445,7 +446,6 @@ void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, Octre
     params.trackSend = [this](const QUuid& dataID, quint64 dataEdited) {
         _myServer->trackSend(dataID, dataEdited, _nodeUuid);
     };
-    nodeData->copyCurrentViewFrustum(params.viewFrustum);
 
     bool somethingToSend = true; // assume we have something
     bool hadSomething = hasSomethingToSend(nodeData);
