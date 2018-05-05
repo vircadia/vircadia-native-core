@@ -46,13 +46,14 @@ struct GPUKTXPayload {
 
         memcpy(data, &_samplerDesc, sizeof(Sampler::Desc));
         data += sizeof(Sampler::Desc);
-        
+
         // We can't copy the bitset in Texture::Usage in a crossplateform manner
         // So serialize it manually
-        *(uint32*)data = _usage._flags.to_ulong();
+        uint32 usageData = _usage._flags.to_ulong();
+        memcpy(data, &usageData, sizeof(uint32));
         data += sizeof(uint32);
 
-        *(TextureUsageType*)data = _usageType;
+        memcpy(data, &_usageType, sizeof(TextureUsageType));
         data += sizeof(TextureUsageType);
 
         return data + PADDING;
@@ -77,10 +78,12 @@ struct GPUKTXPayload {
 
         memcpy(&_samplerDesc, data, sizeof(Sampler::Desc));
         data += sizeof(Sampler::Desc);
-        
+
         // We can't copy the bitset in Texture::Usage in a crossplateform manner
         // So unserialize it manually
-        _usage = Texture::Usage(*(const uint32*)data);
+        uint32 usageData;
+        memcpy(&usageData, data, sizeof(uint32));
+        _usage = Texture::Usage(usageData);
         data += sizeof(uint32);
 
         _usageType = *(const TextureUsageType*)data;
