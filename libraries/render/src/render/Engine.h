@@ -25,7 +25,7 @@ namespace render {
 
     class RenderContext : public task::JobContext {
     public:
-        RenderContext() : task::JobContext(trace_render()) {}
+        RenderContext() : task::JobContext() {}
         virtual ~RenderContext() {}
 
         RenderArgs* args;
@@ -33,7 +33,9 @@ namespace render {
     };
     using RenderContextPointer = std::shared_ptr<RenderContext>;
 
-    Task_DeclareTypeAliases(RenderContext)
+    Task_DeclareCategoryTimeProfilerClass(RenderTimeProfiler, trace_render);
+
+    Task_DeclareTypeAliases(RenderContext, RenderTimeProfiler)
 
     // Versions of the COnfig integrating a gpu & batch timer
     class GPUJobConfig : public JobConfig {
