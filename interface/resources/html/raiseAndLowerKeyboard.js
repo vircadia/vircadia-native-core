@@ -45,12 +45,15 @@
 
     function scheduleBringToView(timeout) {
         setTimeout(function () {
-            // If the element is not visible because the keyboard has been raised over the top of it, scroll it into view.
+            // If the element is not visible because the keyboard has been raised over the top of it, scroll it up into view.
+            // If the element is not visible because the keyboard raising has moved it off screen, scroll it down into view.
             var elementRect = document.activeElement.getBoundingClientRect();
             var VISUAL_MARGIN = 3
             var delta = elementRect.y + elementRect.height + VISUAL_MARGIN - window.innerHeight;
             if (delta > 0) {
                 window.scrollBy(0, delta);
+            } else if (elementRect.y < VISUAL_MARGIN) {
+                window.scrollBy(0, elementRect.y - VISUAL_MARGIN);
             }
         }, timeout);
     }
