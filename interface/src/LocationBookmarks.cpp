@@ -12,16 +12,11 @@
 #include "LocationBookmarks.h"
 
 #include <QAction>
-#include <QInputDialog>
-#include <QMessageBox>
 #include <QStandardPaths>
-#include <QtQuick/QQuickWindow>
 
 #include <AddressManager.h>
-#include <Application.h>
 #include <OffscreenUi.h>
 
-#include "MainWindow.h"
 #include "Menu.h"
 
 const QString LocationBookmarks::HOME_BOOKMARK = "Home";

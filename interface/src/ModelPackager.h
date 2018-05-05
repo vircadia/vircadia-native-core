@@ -12,6 +12,8 @@
 #ifndef hifi_ModelPackager_h
 #define hifi_ModelPackager_h
 
+#include <memory>
+
 #include <QFileInfo>
 #include <QVariantHash>
 
