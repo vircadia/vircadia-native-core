@@ -9,10 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <qscriptengine.h>
-#include <qscriptvalue.h>
-
 #include "WheelEvent.h"
+
+#include <QScriptEngine>
+#include <QScriptValue>
 
 WheelEvent::WheelEvent() :
     x(0.0f),

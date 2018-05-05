@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Node.h"
+
 #include <cstring>
 #include <stdio.h>
 
@@ -20,8 +22,6 @@
 #include "NetworkLogging.h"
 #include "NodePermissions.h"
 #include "SharedUtil.h"
-
-#include "Node.h"
 
 const QString UNKNOWN_NodeType_t_NAME = "Unknown";
 

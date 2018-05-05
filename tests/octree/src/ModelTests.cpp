@@ -12,6 +12,9 @@
 //    * need to add expected results and accumulation of test success/failure
 //
 
+#include "ModelTests.h" // needs to be EntityTests.h soon
+//#include "EntityTests.h"
+
 #include <QDebug>
 
 #include <EntityItem.h>
@@ -21,9 +24,6 @@
 #include <OctreeConstants.h>
 #include <PropertyFlags.h>
 #include <SharedUtil.h>
-
-//#include "EntityTests.h"
-#include "ModelTests.h" // needs to be EntityTests.h soon
 
 QTEST_MAIN(EntityTests)
 

@@ -26,7 +26,7 @@
 #include <QtGui/QWindow>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QImage>
-#include <QtGui/QOpenGLFunctions_4_5_Core>
+#include <QtGui/QOpenGLFunctions_4_1_Core>
 #include <QtGui/QOpenGLContext>
 #include <QtQuick/QQuickItem>
 #include <QtQml/QQmlContext>
@@ -88,7 +88,7 @@ private:
     OffscreenGLCanvas _sharedContext;
     std::array<std::array<QmlInfo, DIVISIONS_Y>, DIVISIONS_X> _surfaces;
 
-    QOpenGLFunctions_4_5_Core _glf;
+    QOpenGLFunctions_4_1_Core _glf;
     std::function<void(uint32_t, void*)> _discardLamdba;
     QSize _size;
     size_t _surfaceCount{ 0 };
@@ -109,14 +109,6 @@ TestWindow::TestWindow() {
     Setting::init();
 
     setSurfaceType(QSurface::OpenGLSurface);
-    QSurfaceFormat format;
-    format.setDepthBufferSize(24);
-    format.setStencilBufferSize(8);
-    format.setVersion(4, 5);
-    format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
-    format.setOption(QSurfaceFormat::DebugContext);
-    QSurfaceFormat::setDefaultFormat(format);
-    setFormat(format);
 
     qmlRegisterType<QTestItem>("Hifi", 1, 0, "TestItem");
 
@@ -145,7 +137,7 @@ void TestWindow::initGl() {
     gl::initModuleGl();
 
     _glf.initializeOpenGLFunctions();
-    _glf.glCreateFramebuffers(1, &_fbo);
+    _glf.glGenFramebuffers(1, &_fbo);
 
     if (!_sharedContext.create(&_glContext) || !_sharedContext.makeCurrent()) {
         qFatal("Unable to intialize Shared GL context");
@@ -196,6 +188,12 @@ void TestWindow::buildSurface(QmlInfo& qmlInfo, bool video) {
 
 void TestWindow::destroySurface(QmlInfo& qmlInfo) {
     auto& surface = qmlInfo.surface;
+    auto& currentTexture = qmlInfo.texture;
+    if (currentTexture) {
+        auto readFence = _glf.glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        glFlush();
+        _discardLamdba(currentTexture, readFence);
+    }
     auto webView = surface->getRootItem();
     if (webView) {
         // stop loading
@@ -274,16 +272,19 @@ void TestWindow::draw() {
             if (!qmlInfo.surface || !qmlInfo.texture) {
                 continue;
             }
-            _glf.glNamedFramebufferTexture(_fbo, GL_COLOR_ATTACHMENT0, qmlInfo.texture, 0);
-            _glf.glBlitNamedFramebuffer(_fbo, 0,
-                                        // src coordinates
-                                        0, 0, _qmlSize.width() - 1, _qmlSize.height() - 1,
-                                        // dst coordinates
-                                        incrementX * x, incrementY * y, incrementX * (x + 1), incrementY * (y + 1),
-                                        // blit mask and filter
-                                        GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            _glf.glBindFramebuffer(GL_READ_FRAMEBUFFER, _fbo);
+            _glf.glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, qmlInfo.texture, 0);
+            _glf.glBlitFramebuffer(
+                // src coordinates
+                0, 0, _qmlSize.width() - 1, _qmlSize.height() - 1,
+                // dst coordinates
+                incrementX * x, incrementY * y, incrementX * (x + 1), incrementY * (y + 1),
+                // blit mask and filter
+                GL_COLOR_BUFFER_BIT, GL_NEAREST);
         }
     }
+    _glf.glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+    _glf.glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
     _glContext.swapBuffers(this);
 }
 
@@ -292,6 +293,16 @@ void TestWindow::resizeEvent(QResizeEvent* ev) {
 }
 
 int main(int argc, char** argv) {
+
+    QSurfaceFormat format;
+    format.setDepthBufferSize(24);
+    format.setStencilBufferSize(8);
+    format.setVersion(4, 1);
+    format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
+    format.setOption(QSurfaceFormat::DebugContext);
+    QSurfaceFormat::setDefaultFormat(format);
+    // setFormat(format);
+
     QGuiApplication app(argc, argv);
     TestWindow window;
     return app.exec();

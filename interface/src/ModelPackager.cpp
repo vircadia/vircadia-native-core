@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModelPackager.h"
+
 #include <QFile>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -20,8 +22,6 @@
 #include "ModelSelector.h"
 #include "ModelPropertiesDialog.h"
 #include "InterfaceLogging.h"
-
-#include "ModelPackager.h"
 
 static const int MAX_TEXTURE_SIZE = 1024;
 

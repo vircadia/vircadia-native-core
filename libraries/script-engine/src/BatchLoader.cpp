@@ -9,15 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "BatchLoader.h"
+
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
-
 #include <QFile>
 #include <QPointer>
-#include "ScriptEngineLogging.h"
-#include "BatchLoader.h"
+
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
+
+#include "ScriptEngineLogging.h"
 #include "ResourceManager.h"
 #include "ScriptEngines.h"
 #include "ScriptCache.h"

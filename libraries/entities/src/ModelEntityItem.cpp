@@ -9,18 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModelEntityItem.h"
+
 #include <QtCore/QJsonDocument>
+
+#include <glm/gtx/transform.hpp>
 
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
-#include <glm/gtx/transform.hpp>
 
 #include "EntitiesLogging.h"
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "ResourceCache.h"
-#include "ModelEntityItem.h"
 
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_COMPOUND_SHAPE_URL = QString("");

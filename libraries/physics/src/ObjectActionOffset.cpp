@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "QVariantGLM.h"
-
 #include "ObjectActionOffset.h"
+
+#include "QVariantGLM.h"
 
 #include "PhysicsLogging.h"
 
