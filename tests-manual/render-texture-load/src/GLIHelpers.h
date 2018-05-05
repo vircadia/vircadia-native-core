@@ -15,7 +15,7 @@
 // Work around for a bug in the MSVC compiler that chokes when you use GLI and Qt headers together.
 #define gli glm
 
-#ifdef Q_OS_MAC
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-variable"
 #pragma clang diagnostic ignored "-Wignored-qualifiers"
@@ -33,7 +33,7 @@
 
 #include <gli/gli.hpp>
 
-#ifdef Q_OS_MAC
+#if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
 
