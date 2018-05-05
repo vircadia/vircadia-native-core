@@ -33,6 +33,10 @@
 
 #include "FBXBaker.h"
 
+#ifdef HIFI_DUMP_FBX
+#include "FBXToJSON.h"
+#endif
+
 void FBXBaker::bake() {    
     qDebug() << "FBXBaker" << _modelURL << "bake starting";
 
@@ -194,6 +198,21 @@ void FBXBaker::importScene() {
 
     qCDebug(model_baking) << "Parsing" << _modelURL;
     _rootNode = reader._rootNode = reader.parseFBX(&fbxFile);
+
+#ifdef HIFI_DUMP_FBX
+    {
+        FBXToJSON fbxToJSON;
+        fbxToJSON << _rootNode;
+        QFileInfo modelFile(_originalModelFilePath);
+        QString outFilename(_bakedOutputDir + "/" + modelFile.completeBaseName() + "_FBX.json");
+        QFile jsonFile(outFilename);
+        if (jsonFile.open(QIODevice::WriteOnly)) {
+            jsonFile.write(fbxToJSON.str().c_str(), fbxToJSON.str().length());
+            jsonFile.close();
+        }
+    }
+#endif
+
     _geometry = reader.extractFBXGeometry({}, _modelURL.toString());
     _textureContentMap = reader._textureContent;
 }
@@ -373,6 +392,20 @@ void FBXBaker::exportScene() {
     bakedFile.write(fbxData);
 
     _outputFiles.push_back(_bakedModelFilePath);
+
+#ifdef HIFI_DUMP_FBX
+    {
+        FBXToJSON fbxToJSON;
+        fbxToJSON << _rootNode;
+        QFileInfo modelFile(_bakedModelFilePath);
+        QString outFilename(modelFile.dir().absolutePath() + "/" + modelFile.completeBaseName() + "_FBX.json");
+        QFile jsonFile(outFilename);
+        if (jsonFile.open(QIODevice::WriteOnly)) {
+            jsonFile.write(fbxToJSON.str().c_str(), fbxToJSON.str().length());
+            jsonFile.close();
+        }
+    }
+#endif
 
     qCDebug(model_baking) << "Exported" << _modelURL << "with re-written paths to" << _bakedModelFilePath;
 }

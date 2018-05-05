@@ -15,12 +15,15 @@
 template<typename T>
 inline FBXToJSON& FBXToJSON::operator<<(QVector<T>& arrayProp) {
     *this << "[";
+    char comma = ' ';
     for (auto& prop : arrayProp) {
-        *(std::ostringstream*)this << prop << ", ";
+        *(std::ostringstream*)this << comma << prop;
+        comma = ',';
     }
     *this << "] ";
+
     if (arrayProp.size() > 4) {
-        *this << "# " << arrayProp.size() << " items";
+        *this << "// " << arrayProp.size() << " items";
     }
     *this << '\n';
 
@@ -34,10 +37,12 @@ FBXToJSON& FBXToJSON::operator<<(const FBXNode& fbxNode) {
     if (nodeName.empty()) nodeName = "nodename";
 
     *this << string(_indentLevel * 4, ' ') << '"' << nodeName << "\":    {\n";
+
     ++_indentLevel;
     int p = 0;
+    char* eol = "";
     for (auto& prop : fbxNode.properties) {
-        *this << string(_indentLevel * 4, ' ') << "\"p" << p++ << "\":   ";
+        *this << eol << string(_indentLevel * 4, ' ') << "\"p" << p++ << "\":   ";
         switch (prop.userType()) {
         case QMetaType::Short:
         case QMetaType::Bool:
@@ -69,14 +74,16 @@ FBXToJSON& FBXToJSON::operator<<(const FBXNode& fbxNode) {
             }
             break;
         }
-        *this << ",\n";
+        eol = ",\n";
     }
 
-    for (auto child : fbxNode.children) {
+    for (auto& child : fbxNode.children) {
+        *this << eol;
         *this << child;
+        eol = ",\n";
     }
 
-    *this << string(_indentLevel * 4, ' ') << "},\n";
+    *this << "\n" << string(_indentLevel * 4, ' ') << "}";
     --_indentLevel;
     return *this;
 }
