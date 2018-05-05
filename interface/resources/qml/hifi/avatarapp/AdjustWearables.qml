@@ -22,9 +22,30 @@ Rectangle {
 
     property var onButton2Clicked;
     property var onButton1Clicked;
+    property var jointNames;
 
-    function open() {
+    function open(avatar) {
+        console.debug('AdjustWearables.qml: open');
+
         visible = true;
+        wearablesCombobox.model.clear();
+
+        console.debug('AdjustWearables.qml: avatar.wearables.count: ', avatar.wearables.count);
+        for(var i = 0; i < avatar.wearables.count; ++i) {
+            var wearable = avatar.wearables.get(i).properties;
+            console.debug('wearable: ', JSON.stringify(wearable, null, '\t'))
+
+            for(var j = (wearable.modelURL.length - 1); j >= 0; --j) {
+                if(wearable.modelURL[j] === '/') {
+                    wearable.text = wearable.modelURL.substring(j + 1) + ' [%jointIndex%]'.replace('%jointIndex%', jointNames[wearable.parentJointIndex]);
+                    console.debug('wearable.text = ', wearable.text);
+                    break;
+                }
+            }
+            wearablesCombobox.model.append(wearable);
+        }
+
+        wearablesCombobox.currentIndex = 0;
     }
 
     function close() {
@@ -51,14 +72,13 @@ Rectangle {
         width: parent.width - 30 * 2
 
         HifiControlsUit.ComboBox {
+            id: wearablesCombobox
             anchors.left: parent.left
             anchors.right: parent.right
+            comboBox.textRole: "text"
 
-            model: [
-                'Fedora.fbx [HeadTop_End]',
-                'Fedora1.fbx [HeadTop_End]',
-                'Fedora2.fbx [HeadTop_End]'
-            ]
+            model: ListModel {
+            }
         }
 
         Column {

@@ -19,10 +19,17 @@ Rectangle {
         sendToScript(message);
     }
 
+    ListModel { // the only purpose of this model is to convert JS object to ListElement
+        id: currentAvatarModel
+    }
+
+    property var jointNames;
+
     function fromScript(message) {
         console.debug('AvatarApp.qml: fromScript: ', JSON.stringify(message, null, '\t'))
 
         if(message.method === 'initialize') {
+            jointNames = message.reply.jointNames;
             emitSendToScript({'method' : getAvatarsMethod});
         } else if(message.method === getAvatarsMethod) {
             var getAvatarsReply = message.reply;
@@ -32,7 +39,7 @@ Rectangle {
                 var avatarEntry = {
                     'name' : avatarName,
                     'url' : Qt.resolvedUrl(allAvatars.urls[i++ % allAvatars.urls.length]),
-                    'wearables' : '',
+                    'wearables' : getAvatarsReply.bookmarks[avatarName].avatarEntites ? getAvatarsReply.bookmarks[avatarName].avatarEntites : [],
                     'entry' : getAvatarsReply.bookmarks[avatarName],
                     'getMoreAvatars' : false
                 };
@@ -76,13 +83,17 @@ Rectangle {
             console.debug('selectedAvatarIndex = -1, avatar is not favorite')
 
             if(selectedAvatarIndex === -1) {
-                var currentAvatarEntry = {
+
+                var currentAvatarEntry =  {
                     'name' : '',
                     'url' : Qt.resolvedUrl(allAvatars.urls[i++ % allAvatars.urls.length]),
-                    'wearables' : '',
+                    'wearables' : currentAvatar.avatarEntites ? currentAvatar.avatarEntites : [],
                     'entry' : currentAvatar,
                     'getMoreAvatars' : false
                 };
+
+                currentAvatarModel.append(currentAvatarEntry);
+                currentAvatarEntry = allAvatars.get(allAvatars.count - 1);
 
                 selectedAvatar = currentAvatarEntry;
                 view.setPage(0);
@@ -111,7 +122,7 @@ Rectangle {
 
     property string avatarName: selectedAvatar ? selectedAvatar.name : ''
     property string avatarUrl: selectedAvatar ? selectedAvatar.url : null
-    property int avatarWearablesCount: selectedAvatar && selectedAvatar.wearables !== '' ? selectedAvatar.wearables.split('|').length : 0
+    property int avatarWearablesCount: selectedAvatar ? selectedAvatar.wearables.count : 0
     property bool isAvatarInFavorites: selectedAvatar ? allAvatars.findAvatar(selectedAvatar.name) !== undefined : false
 
     property bool isInManageState: false
@@ -174,6 +185,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.top: header.bottom
         anchors.bottom: parent.bottom
+        jointNames: root.jointNames
 
         z: 3
     }
@@ -364,7 +376,8 @@ Rectangle {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    adjustWearables.open();
+                    console.debug('adjustWearables.open');
+                    adjustWearables.open(selectedAvatar);
                 }
             }
         }
@@ -395,7 +408,7 @@ Rectangle {
                             var avatar = {
                                 'url': Qt.resolvedUrl('../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d-2.png'),
                                 'name': 'Lexi' + (++debug_newAvatarIndex),
-                                'wearables': ''
+                                'wearables': []
                             };
 
                             allAvatars.append(avatar)
@@ -629,7 +642,7 @@ Rectangle {
                             imageUrl: url
                             border.color: container.highlighted ? style.colors.blueHighlight : 'transparent'
                             border.width: container.highlighted ? 2 : 0
-                            wearablesCount: (!getMoreAvatars && wearables && wearables !== '') ? wearables.split('|').length : 0
+                            wearablesCount: !getMoreAvatars ? wearables.count : 0
                             onWearablesCountChanged: {
                                 console.debug('delegate: AvatarThumbnail.wearablesCount: ', wearablesCount)
                             }
@@ -882,7 +895,7 @@ Rectangle {
                         var avatar = {
                             'url': Qt.resolvedUrl(url),
                             'name': 'Lexi' + (++newAvatarIndex),
-                            'wearables': 'hat|sunglasses|bracelet'
+                            'wearables': []
                         };
 
                         allAvatars.append(avatar)

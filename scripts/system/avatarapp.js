@@ -21,7 +21,7 @@ Script.include("/~/system/libraries/controllers.js");
 // constants from AvatarBookmarks.h
 var ENTRY_AVATAR_URL = "avatarUrl";
 var ENTRY_AVATAR_ATTACHMENTS = "attachments";
-var ENTRY_AVATAR_ENTITIES = "avatarEntities";
+var ENTRY_AVATAR_ENTITIES = "avatarEntites";
 var ENTRY_AVATAR_SCALE = "avatarScale";
 var ENTRY_VERSION = "version";
 
@@ -134,7 +134,15 @@ function onTabletScreenChanged(type, url) {
     button.editProperties({isActive: onAvatarAppScreen});
 
     if (onAvatarAppScreen) {
-        sendToQml({'method' : 'initialize'})
+
+        var message = {
+            'method' : 'initialize',
+            'reply' : {
+                'jointNames' : MyAvatar.getJointNames()
+            }
+        };
+
+        sendToQml(message)
     }
 
     console.debug('onAvatarAppScreen: ', onAvatarAppScreen);
