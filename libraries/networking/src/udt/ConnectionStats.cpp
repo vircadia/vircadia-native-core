@@ -9,8 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QDebug>
 #include "ConnectionStats.h"
+
+#include <QtCore/QDebug>
 
 using namespace udt;
 using namespace std::chrono;

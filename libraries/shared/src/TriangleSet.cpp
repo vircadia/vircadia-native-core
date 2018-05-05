@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "GLMHelpers.h"
 #include "TriangleSet.h"
 
+#include "GLMHelpers.h"
 
 void TriangleSet::insert(const Triangle& t) {
     _isBalanced = false;

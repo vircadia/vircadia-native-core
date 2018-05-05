@@ -8,8 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-#include <QtCore/QtGlobal>
-
+#include "GPUIdent.h"
 
 #ifdef Q_OS_WIN
 #include <string>
@@ -24,8 +23,9 @@
 #include <OpenGL/OpenGL.h>
 #endif
 
+#include <QtCore/QtGlobal>
+
 #include "SharedLogging.h"
-#include "GPUIdent.h"
 
 GPUIdent GPUIdent::_instance {};
 

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AvatarMixer.h"
+
 #include <cfloat>
 #include <chrono>
 #include <memory>
@@ -31,8 +33,6 @@
 #include <UUID.h>
 #include <TryLocker.h>
 
-#include "AvatarMixer.h"
-
 const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 
 // FIXME - what we'd actually like to do is send to users at ~50% of their present rate down to 30hz. Assume 90 for now.
@@ -47,7 +47,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AvatarData, this, "queueIncomingPacket");
     packetReceiver.registerListener(PacketType::AdjustAvatarSorting, this, "handleAdjustAvatarSorting");
-    packetReceiver.registerListener(PacketType::ViewFrustum, this, "handleViewFrustumPacket");
+    packetReceiver.registerListener(PacketType::AvatarQuery, this, "handleAvatarQueryPacket");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
@@ -517,7 +517,7 @@ void AvatarMixer::handleAdjustAvatarSorting(QSharedPointer<ReceivedMessage> mess
 }
 
 
-void AvatarMixer::handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+void AvatarMixer::handleAvatarQueryPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     auto start = usecTimestampNow();
     getOrCreateClientData(senderNode);
 
@@ -683,7 +683,7 @@ void AvatarMixer::sendStatsPacket() {
     incomingPacketStats["handleNodeIgnoreRequestPacket"] = TIGHT_LOOP_STAT_UINT64(_handleNodeIgnoreRequestPacketElapsedTime);
     incomingPacketStats["handleRadiusIgnoreRequestPacket"] = TIGHT_LOOP_STAT_UINT64(_handleRadiusIgnoreRequestPacketElapsedTime);
     incomingPacketStats["handleRequestsDomainListDataPacket"] = TIGHT_LOOP_STAT_UINT64(_handleRequestsDomainListDataPacketElapsedTime);
-    incomingPacketStats["handleViewFrustumPacket"] = TIGHT_LOOP_STAT_UINT64(_handleViewFrustumPacketElapsedTime);
+    incomingPacketStats["handleAvatarQueryPacket"] = TIGHT_LOOP_STAT_UINT64(_handleViewFrustumPacketElapsedTime);
 
     singleCoreTasks["incoming_packets"] = incomingPacketStats;
     singleCoreTasks["sendStats"] = (float)_sendStatsElapsedTime;

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "BakerCLI.h"
+
 #include <QObject>
 #include <QImageReader>
 #include <QtCore/QDebug>
@@ -16,7 +18,6 @@
 
 #include "OvenCLIApplication.h"
 #include "ModelBakingLoggingCategory.h"
-#include "BakerCLI.h"
 #include "FBXBaker.h"
 #include "JSBaker.h"
 #include "TextureBaker.h"

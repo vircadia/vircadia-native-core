@@ -18,10 +18,6 @@
 #include <GLMHelpers.h>
 #include <udt/PacketHeaders.h>
 
-using QueryFlags = uint8_t;
-const QueryFlags QUERY_HAS_MAIN_FRUSTUM = 1U << 0;
-const QueryFlags QUERY_HAS_SECONDARY_FRUSTUM = 1U << 1;
-
 OctreeQuery::OctreeQuery(bool randomizeConnectionID) {
     if (randomizeConnectionID) {
         // randomize our initial octree query connection ID using random_device
@@ -38,27 +34,13 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     memcpy(destinationBuffer, &_connectionID, sizeof(_connectionID));
     destinationBuffer += sizeof(_connectionID);
 
-    // flags for wether the frustums are present
-    QueryFlags frustumFlags = 0;
-    if (_hasMainFrustum) {
-        frustumFlags |= QUERY_HAS_MAIN_FRUSTUM;
-    }
-    if (_hasSecondaryFrustum) {
-        frustumFlags |= QUERY_HAS_SECONDARY_FRUSTUM;
-    }
-    memcpy(destinationBuffer, &frustumFlags, sizeof(frustumFlags));
-    destinationBuffer += sizeof(frustumFlags);
+    // Number of frustums
+    uint8_t numFrustums = (uint8_t)_conicalViews.size();
+    memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
+    destinationBuffer += sizeof(numFrustums);
 
-    if (_hasMainFrustum) {
-        auto byteArray = _mainViewFrustum.toByteArray();
-        memcpy(destinationBuffer, byteArray.constData(), byteArray.size());
-        destinationBuffer += byteArray.size();
-    }
-
-    if (_hasSecondaryFrustum) {
-        auto byteArray = _secondaryViewFrustum.toByteArray();
-        memcpy(destinationBuffer, byteArray.constData(), byteArray.size());
-        destinationBuffer += byteArray.size();
+    for (const auto& view : _conicalViews) {
+        destinationBuffer += view.serialize(destinationBuffer);
     }
     
     // desired Max Octree PPS
@@ -99,7 +81,6 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
 int OctreeQuery::parseData(ReceivedMessage& message) {
  
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(message.getRawMessage());
-    const unsigned char* endPosition = startPosition + message.getSize();
     const unsigned char* sourceBuffer = startPosition;
 
     // unpack the connection ID
@@ -123,23 +104,15 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
     }
 
     // check if this query uses a view frustum
-    QueryFlags frustumFlags { 0 };
-    memcpy(&frustumFlags, sourceBuffer, sizeof(frustumFlags));
-    sourceBuffer += sizeof(frustumFlags);
+    uint8_t numFrustums = 0;
+    memcpy(&numFrustums, sourceBuffer, sizeof(numFrustums));
+    sourceBuffer += sizeof(numFrustums);
 
-    _hasMainFrustum = frustumFlags & QUERY_HAS_MAIN_FRUSTUM;
-    _hasSecondaryFrustum = frustumFlags & QUERY_HAS_SECONDARY_FRUSTUM;
-
-    if (_hasMainFrustum) {
-        auto bytesLeft = endPosition - sourceBuffer;
-        auto byteArray = QByteArray::fromRawData(reinterpret_cast<const char*>(sourceBuffer), bytesLeft);
-        sourceBuffer += _mainViewFrustum.fromByteArray(byteArray);
-    }
-
-    if (_hasSecondaryFrustum) {
-        auto bytesLeft = endPosition - sourceBuffer;
-        auto byteArray = QByteArray::fromRawData(reinterpret_cast<const char*>(sourceBuffer), bytesLeft);
-        sourceBuffer += _secondaryViewFrustum.fromByteArray(byteArray);
+    _conicalViews.clear();
+    for (int i = 0; i < numFrustums; ++i) {
+        ConicalViewFrustum view;
+        sourceBuffer += view.deserialize(sourceBuffer);
+        _conicalViews.push_back(view);
     }
 
     // desired Max Octree PPS

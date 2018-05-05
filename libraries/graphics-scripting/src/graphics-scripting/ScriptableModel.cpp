@@ -8,14 +8,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "GraphicsScriptingUtil.h"
 #include "ScriptableModel.h"
-#include "ScriptableMesh.h"
 
 #include <QtScript/QScriptEngine>
 
+#include "GraphicsScriptingUtil.h"
+#include "ScriptableMesh.h"
 #include "graphics/Material.h"
-
 #include "image/Image.h"
 
 // #define SCRIPTABLE_MESH_DEBUG 1

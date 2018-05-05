@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "PolyLineEntityItem.h"
 
 #include <QDebug>
 
@@ -19,7 +20,6 @@
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "OctreeConstants.h"
-#include "PolyLineEntityItem.h"
 
 const float PolyLineEntityItem::DEFAULT_LINE_WIDTH = 0.1f;
 const int PolyLineEntityItem::MAX_POINTS_PER_LINE = 60;

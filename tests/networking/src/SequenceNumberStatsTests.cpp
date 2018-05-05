@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "SequenceNumberStatsTests.h"
+
 #include <limits>
 
 #include <SharedUtil.h>
-
-#include "SequenceNumberStatsTests.h"
 
 QTEST_MAIN(SequenceNumberStatsTests)
 

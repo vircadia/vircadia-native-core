@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ViewFrustum.h"
-
 #include "LightStage.h"
 
 #include <cmath>
+
+#include "ViewFrustum.h"
 
 std::string LightStage::_stageName { "LIGHT_STAGE"};
 const glm::mat4 LightStage::Shadow::_biasMatrix{

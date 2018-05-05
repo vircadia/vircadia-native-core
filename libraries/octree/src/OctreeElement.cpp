@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctreeElement.h"
+
 #include <assert.h>
 #include <cmath>
 #include <cstring>
@@ -21,17 +23,16 @@
 #include <LogHandler.h>
 #include <NodeList.h>
 #include <PerfStat.h>
+#include <Trace.h>
 
 #include "AACube.h"
 #include "Logging.h"
 #include "OctalCode.h"
 #include "Octree.h"
 #include "OctreeConstants.h"
-#include "OctreeElement.h"
 #include "OctreeLogging.h"
 #include "OctreeUtils.h"
 #include "SharedUtil.h"
-#include <Trace.h>
 
 AtomicUIntStat OctreeElement::_octreeMemoryUsage { 0 };
 AtomicUIntStat OctreeElement::_octcodeMemoryUsage { 0 };

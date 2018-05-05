@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AssignmentClientMonitor.h"
+
 #include <memory>
 #include <signal.h>
 
@@ -19,7 +21,6 @@
 #include <LogHandler.h>
 #include <udt/PacketHeaders.h>
 
-#include "AssignmentClientMonitor.h"
 #include "AssignmentClientApp.h"
 #include "AssignmentClientChildData.h"
 #include "SharedUtil.h"
