@@ -797,36 +797,32 @@ Rectangle {
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
 
-            HiFiGlyphs {
-                rotation: 180
-                text: "\ue01d";
-                size: 50
-                color: view.hasPrev ? 'black' : 'gray'
-                visible: view.hasNext || view.hasPrev
-                horizontalAlignment: Text.AlignHCenter
-                MouseArea {
-                    anchors.fill: parent
-                    enabled: view.hasPrev
-                    onClicked: {
-                        view.setPage(view.currentPage - 1)
-                    }
+            Rectangle {
+                width: 40
+                height: 40
+                color: 'transparent'
+
+                PageIndicator {
+                    x: 1
+                    hasNext: view.hasNext
+                    hasPrev: view.hasPrev
+                    onClicked: view.setPage(view.currentPage - 1)
                 }
             }
 
             spacing: 0
 
-            HiFiGlyphs {
-                text: "\ue01d";
-                size: 50
-                color: view.hasNext ? 'black' : 'gray'
-                visible: view.hasNext || view.hasPrev
-                horizontalAlignment: Text.AlignHCenter
-                MouseArea {
-                    anchors.fill: parent
-                    enabled: view.hasNext
-                    onClicked: {
-                        view.setPage(view.currentPage + 1)
-                    }
+            Rectangle {
+                width: 40
+                height: 40
+                color: 'transparent'
+
+                PageIndicator {
+                    x: -1
+                    isPrevious: false
+                    hasNext: view.hasNext
+                    hasPrev: view.hasPrev
+                    onClicked: view.setPage(view.currentPage + 1)
                 }
             }
 
