@@ -33,19 +33,7 @@ Rectangle {
             emitSendToScript({'method' : getAvatarsMethod});
         } else if(message.method === getAvatarsMethod) {
             var getAvatarsReply = message.reply;
-            var i = 0;
-
-            for(var avatarName in getAvatarsReply.bookmarks) {
-                var avatarEntry = {
-                    'name' : avatarName,
-                    'url' : Qt.resolvedUrl(allAvatars.urls[i++ % allAvatars.urls.length]),
-                    'wearables' : getAvatarsReply.bookmarks[avatarName].avatarEntites ? getAvatarsReply.bookmarks[avatarName].avatarEntites : [],
-                    'entry' : getAvatarsReply.bookmarks[avatarName],
-                    'getMoreAvatars' : false
-                };
-
-                allAvatars.append(avatarEntry);
-            }
+            allAvatars.populate(getAvatarsReply.bookmarks);
 
             var currentAvatar = getAvatarsReply.currentAvatar;
             console.debug('currentAvatar: ', JSON.stringify(currentAvatar, null, '\t'));

@@ -3,58 +3,26 @@ import QtQuick 2.9
 ListModel {
     id: model
 
-    property var urls: [
-        '../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d.png',
-        '../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d-1.png',
-        '../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d-2.png',
-        '../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d-3.png',
-        '../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d-4.png',
-        '../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d-5.png',
-        '../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d-5.png',
-    ]
+    function populate(bookmarks) {
+        for(var avatarName in bookmarks) {
+            var splittedUrl = bookmarks[avatarName].avatarUrl.split('/');
+            var marketId = splittedUrl[splittedUrl.length - 2];
+            var indexOfVSuffix = marketId.indexOf('-v');
+            if(indexOfVSuffix !== -1) {
+                marketId = marketId.substring(0, indexOfVSuffix);
+            }
+            var avatarThumbnailUrl = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/%marketId%/medium/hifi-mp-%marketId%.jpg"
+                .split('%marketId%').join(marketId);
 
-    /*
-    ListElement {
-        url: '../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d.png'
-        name: 'Woody'
-        wearables: ''
-        favorite: false
+            var avatarEntry = {
+                'name' : avatarName,
+                'url' : avatarThumbnailUrl,
+                'wearables' : bookmarks[avatarName].avatarEntites ? bookmarks[avatarName].avatarEntites : [],
+                'entry' : bookmarks[avatarName],
+                'getMoreAvatars' : false
+            };
+
+            append(avatarEntry);
+        }
     }
-    ListElement {
-        url: '../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d-1.png'
-        name: 'Damien'
-        wearables: ''
-        favorite: false
-    }
-    ListElement {
-        url: '../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d-2.png'
-        name: 'Lexi'
-        wearables: ''
-        favorite: false
-    }
-    ListElement {
-        url: '../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d-3.png'
-        name: 'Judie'
-        wearables: ''
-        favorite: true
-    }
-    ListElement {
-        url: '../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d-4.png'
-        name: 'Alex'
-        wearables: ''
-        favorite: true
-    }
-    ListElement {
-        url: '../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d-5.png'
-        name: 'Matthew'
-        wearables: ''
-        favorite: true
-    }
-    ListElement {
-        url: '../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d-5.png'
-        name: 'Ogre'
-        wearables: ''
-        favorite: true
-    }
-    */
 }
