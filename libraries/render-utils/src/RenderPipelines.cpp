@@ -10,10 +10,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "RenderPipelines.h"
+
 #include <functional>
 
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
+#include <model-networking/TextureCache.h>
 
 #include "StencilMaskPass.h"
 #include "DeferredLightingEffect.h"
@@ -614,9 +617,6 @@ void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state) {
         ShapeKey::Filter::Builder().withSkinned().withDualQuatSkinned().withFade(),
         skinModelShadowFadeDualQuatProgram, state);
 }
-
-#include "RenderPipelines.h"
-#include <model-networking/TextureCache.h>
 
 // FIXME find a better way to setup the default textures
 void RenderPipelines::bindMaterial(const graphics::MaterialPointer& material, gpu::Batch& batch, bool enableTextures) {

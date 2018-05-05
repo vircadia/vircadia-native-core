@@ -548,18 +548,18 @@ void Agent::setIsAvatar(bool isAvatar) {
     if (_isAvatar && !_avatarIdentityTimer) {
         // set up the avatar timers
         _avatarIdentityTimer = new QTimer(this);
-        _avatarViewTimer = new QTimer(this);
+        _avatarQueryTimer = new QTimer(this);
 
         // connect our slot
         connect(_avatarIdentityTimer, &QTimer::timeout, this, &Agent::sendAvatarIdentityPacket);
-        connect(_avatarViewTimer, &QTimer::timeout, this, &Agent::sendAvatarViewFrustum);
+        connect(_avatarQueryTimer, &QTimer::timeout, this, &Agent::queryAvatars);
 
         static const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
         static const int AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS = 1000;
 
         // start the timers
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);  // FIXME - we shouldn't really need to constantly send identity packets
-        _avatarViewTimer->start(AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS);
+        _avatarQueryTimer->start(AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS);
 
         // tell the avatarAudioTimer to start ticking
         QMetaObject::invokeMethod(&_avatarAudioTimer, "start");
@@ -572,9 +572,9 @@ void Agent::setIsAvatar(bool isAvatar) {
             delete _avatarIdentityTimer;
             _avatarIdentityTimer = nullptr;
 
-            _avatarViewTimer->stop();
-            delete _avatarViewTimer;
-            _avatarViewTimer = nullptr;
+            _avatarQueryTimer->stop();
+            delete _avatarQueryTimer;
+            _avatarQueryTimer = nullptr;
 
             // The avatar mixer never times out a connection (e.g., based on identity or data packets)
             // but rather keeps avatars in its list as long as "connected". As a result, clients timeout
@@ -607,20 +607,26 @@ void Agent::sendAvatarIdentityPacket() {
     }
 }
 
-void Agent::sendAvatarViewFrustum() {
+void Agent::queryAvatars() {
     auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
 
     ViewFrustum view;
     view.setPosition(scriptedAvatar->getWorldPosition());
     view.setOrientation(scriptedAvatar->getHeadOrientation());
     view.calculate();
+    ConicalViewFrustum conicalView { view };
+
+    auto avatarPacket = NLPacket::create(PacketType::AvatarQuery);
+    auto destinationBuffer = reinterpret_cast<unsigned char*>(avatarPacket->getPayload());
+    auto bufferStart = destinationBuffer;
 
     uint8_t numFrustums = 1;
-    auto viewFrustumByteArray = view.toByteArray();
+    memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
+    destinationBuffer += sizeof(numFrustums);
 
-    auto avatarPacket = NLPacket::create(PacketType::ViewFrustum, viewFrustumByteArray.size() + sizeof(numFrustums));
-    avatarPacket->writePrimitive(numFrustums);
-    avatarPacket->write(viewFrustumByteArray);
+    destinationBuffer += conicalView.serialize(destinationBuffer);
+
+    avatarPacket->setPayloadSize(destinationBuffer - bufferStart);
 
     DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket),
                                                          { NodeType::AvatarMixer });

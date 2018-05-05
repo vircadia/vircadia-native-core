@@ -15,7 +15,7 @@
 #include <queue>
 
 #include "NumericalConstants.h"
-#include "ViewFrustum.h"
+#include "shared/ConicalViewFrustum.h"
 
 /*   PrioritySortUtil is a helper for sorting 3D things relative to a ViewFrustum.  To use:
 
@@ -84,12 +84,12 @@ namespace PrioritySortUtil {
     class PriorityQueue {
     public:
         PriorityQueue() = delete;
-        PriorityQueue(const ViewFrustums& views) : _views(views) { }
-        PriorityQueue(const ViewFrustums& views, float angularWeight, float centerWeight, float ageWeight)
+        PriorityQueue(const ConicalViewFrustums& views) : _views(views) { }
+        PriorityQueue(const ConicalViewFrustums& views, float angularWeight, float centerWeight, float ageWeight)
                 : _views(views), _angularWeight(angularWeight), _centerWeight(centerWeight), _ageWeight(ageWeight)
         { }
 
-        void setViews(const ViewFrustums& views) { _views = views; }
+        void setViews(const ConicalViewFrustums& views) { _views = views; }
 
         void setWeights(float angularWeight, float centerWeight, float ageWeight) {
             _angularWeight = angularWeight;
@@ -118,7 +118,7 @@ namespace PrioritySortUtil {
             return priority;
         }
 
-        float computePriority(const ViewFrustum& view, const T& thing) const {
+        float computePriority(const ConicalViewFrustum& view, const T& thing) const {
             // priority = weighted linear combination of multiple values:
             //   (a) angular size
             //   (b) proximity to center of view
@@ -143,8 +143,8 @@ namespace PrioritySortUtil {
                 + _ageWeight * cosineAngleFactor * age;
 
             // decrement priority of things outside keyhole
-            if (distance - radius > view.getCenterRadius()) {
-                if (!view.sphereIntersectsFrustum(position, radius)) {
+            if (distance - radius > view.getRadius()) {
+                if (!view.intersects(offset, distance, radius)) {
                     constexpr float OUT_OF_VIEW_PENALTY = -10.0f;
                     priority += OUT_OF_VIEW_PENALTY;
                 }
@@ -152,7 +152,7 @@ namespace PrioritySortUtil {
             return priority;
         }
 
-        ViewFrustums _views;
+        ConicalViewFrustums _views;
         std::priority_queue<T> _queue;
         float _angularWeight { DEFAULT_ANGULAR_COEF };
         float _centerWeight { DEFAULT_CENTER_COEF };

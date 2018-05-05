@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "SnapshotAnimated.h"
+
 #include <QtCore/QDateTime>
 #include <QtCore/QObject>
 #include <QtCore/QString>
@@ -16,7 +18,6 @@
 #include <QtConcurrent/QtConcurrentRun>
 
 #include <plugins/DisplayPlugin.h>
-#include "SnapshotAnimated.h"
 
 QTimer* SnapshotAnimated::snapshotAnimatedTimer = NULL;
 qint64 SnapshotAnimated::snapshotAnimatedTimestamp = 0;

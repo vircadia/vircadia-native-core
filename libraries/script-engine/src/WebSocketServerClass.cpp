@@ -11,8 +11,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ScriptEngine.h"
 #include "WebSocketServerClass.h"
+
+#include "ScriptEngine.h"
 
 WebSocketServerClass::WebSocketServerClass(QScriptEngine* engine, const QString& serverName, const quint16 port) :
     _webSocketServer(serverName, QWebSocketServer::SslMode::NonSecureMode),

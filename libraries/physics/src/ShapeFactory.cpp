@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ShapeFactory.h"
+
 #include <glm/gtx/norm.hpp>
 
 #include <SharedUtil.h> // for MILLIMETERS_PER_METER
 
-#include "ShapeFactory.h"
 #include "BulletUtil.h"
 
 

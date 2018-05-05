@@ -9,13 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "InboundAudioStream.h"
+
 #include <glm/glm.hpp>
 
 #include <NLPacket.h>
 #include <Node.h>
 #include <NodeList.h>
 
-#include "InboundAudioStream.h"
 #include "AudioLogging.h"
 
 const bool InboundAudioStream::DEFAULT_DYNAMIC_JITTER_BUFFER_ENABLED = true;

@@ -19,7 +19,6 @@
 #include <OctreeSceneStats.h>
 
 #define MAX_STATS 100
-#define DEFAULT_COLOR 0
 
 class OctreeStatsDialog : public QDialog {
     Q_OBJECT
@@ -42,7 +41,7 @@ protected:
     // Emits a 'closed' signal when this dialog is closed.
     void closeEvent(QCloseEvent*) override;
 
-    int AddStatItem(const char* caption, unsigned colorRGBA = DEFAULT_COLOR);
+    int AddStatItem(const char* caption, unsigned colorRGBA = 0);
     void RemoveStatItem(int item);
     void showAllOctreeServers();
 

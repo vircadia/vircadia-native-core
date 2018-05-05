@@ -9,12 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QDebug>
+#include "ShapeManager.h"
 
 #include <glm/gtx/norm.hpp>
 
+#include <QDebug>
+
 #include "ShapeFactory.h"
-#include "ShapeManager.h"
 
 ShapeManager::ShapeManager() {
 }
