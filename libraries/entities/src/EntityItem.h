@@ -288,10 +288,10 @@ public:
     bool getCollisionless() const;
     void setCollisionless(bool value);
 
-    uint8_t getCollisionMask() const;
+    uint16_t getCollisionMask() const;
     void setCollisionMask(uint8_t value);
 
-    void computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const;
+    void computeCollisionGroupAndFinalMask(int32_t& group, int32_t& mask) const;
 
     bool getDynamic() const;
     void setDynamic(bool value);
@@ -580,7 +580,7 @@ protected:
     bool _visible { ENTITY_ITEM_DEFAULT_VISIBLE };
     bool _canCastShadow{ ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
     bool _collisionless { ENTITY_ITEM_DEFAULT_COLLISIONLESS };
-    uint8_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
+    uint16_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
     bool _dynamic { ENTITY_ITEM_DEFAULT_DYNAMIC };
     bool _locked { ENTITY_ITEM_DEFAULT_LOCKED };
     QString _userData { ENTITY_ITEM_DEFAULT_USER_DATA };
