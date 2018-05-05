@@ -154,6 +154,13 @@
 #include <shared/StorageLogging.h>
 #include <ScriptEngineLogging.h>
 #include <ui/Logging.h>
+#include <SharedLogging.h>
+#include <plugins/PluginLogging.h>
+#include <gpu/GPULogging.h>
+#include <ScriptEngineLogging.h>
+#include <gpu/gl/GLShared.h>
+#include <qml/Logging.h>
+#include <EntitiesLogging.h>
 
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
@@ -1372,8 +1379,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
 
-    updateVerboseLogging();
-
     init();
     qCDebug(interfaceapp, "init() complete.");
 
@@ -1712,6 +1717,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateHeartbeat();
 
     loadSettings();
+
+    updateVerboseLogging();
 
     // Now that we've loaded the menu and thus switched to the previous display plugin
     // we can unlock the desktop repositioning code, since all the positions will be
@@ -2254,10 +2261,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _pendingRenderEvent = false;
 
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
+
+    updateVerboseLogging();
 }
 
 void Application::updateVerboseLogging() {
-    bool enable = Menu::getInstance()->isOptionChecked(MenuOption::VerboseLogging);
+    auto menu = Menu::getInstance();
+    if (!menu) {
+        return;
+    }
+    bool enable = menu->isOptionChecked(MenuOption::VerboseLogging);
 
     const_cast<QLoggingCategory*>(&animation())->setEnabled(QtDebugMsg, enable);
     const_cast<QLoggingCategory*>(&animation())->setEnabled(QtInfoMsg, enable);
@@ -2267,6 +2280,12 @@ void Application::updateVerboseLogging() {
 
     const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtDebugMsg, enable);
     const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&scriptengine_module())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&scriptengine_module())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&scriptengine_script())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&scriptengine_script())->setEnabled(QtInfoMsg, enable);
 
     const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtDebugMsg, enable);
     const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtInfoMsg, enable);
@@ -2294,6 +2313,24 @@ void Application::updateVerboseLogging() {
 
     const_cast<QLoggingCategory*>(&glLogging())->setEnabled(QtDebugMsg, enable);
     const_cast<QLoggingCategory*>(&glLogging())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&shared())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&shared())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&plugins())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&plugins())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&gpulogging())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&gpulogging())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&gpugllogging())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&gpugllogging())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&qmlLogging())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&qmlLogging())->setEnabled(QtInfoMsg, enable);
+
+    const_cast<QLoggingCategory*>(&entities())->setEnabled(QtDebugMsg, enable);
+    const_cast<QLoggingCategory*>(&entities())->setEnabled(QtInfoMsg, enable);
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
