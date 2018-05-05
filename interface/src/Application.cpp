@@ -252,6 +252,7 @@ extern "C" {
 
 #if defined(Q_OS_ANDROID)
 #include <android/log.h>
+#include "AndroidHelper.h"
 #endif
 
 enum ApplicationEvent {
@@ -1258,6 +1259,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(scriptEngines, &ScriptEngines::scriptsReloading, scriptEngines, [this] {
         getEntities()->reloadEntityScripts();
+        loadAvatarScripts(getMyAvatar()->getScriptUrls());
     }, Qt::QueuedConnection);
 
     connect(scriptEngines, &ScriptEngines::scriptLoadError,
@@ -2731,6 +2733,9 @@ void Application::initializeUi() {
     offscreenUi->resume();
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
         resizeGL();
+        if (_touchscreenVirtualPadDevice) {
+            _touchscreenVirtualPadDevice->resize();
+        }
     });
 
     // This will set up the input plugins UI
@@ -3166,11 +3171,14 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // If this is a first run we short-circuit the address passed in
     if (firstRun.get()) {
-#if !defined(Q_OS_ANDROID)
+#if defined(Q_OS_ANDROID)
+        qCDebug(interfaceapp) << "First run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("default location") : addressLookupString);
+        DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+#else
         showHelp();
-#endif
         DependencyManager::get<AddressManager>()->goToEntry();
         sentTo = SENT_TO_ENTRY;
+#endif
         firstRun.set(false);
 
     } else {
@@ -3741,6 +3749,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
 void Application::keyReleaseEvent(QKeyEvent* event) {
     _keysPressed.remove(event->key());
 
+#if defined(Q_OS_ANDROID)
+    if (event->key() == Qt::Key_Back) {
+        event->accept();
+        openAndroidActivity("Home");
+    }
+#endif
     _controllerScriptingInterface->emitKeyReleaseEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -4808,6 +4822,31 @@ void Application::init() {
     }, Qt::QueuedConnection);
 }
 
+void Application::loadAvatarScripts(const QVector<QString>& urls) {
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    auto runningScripts = scriptEngines->getRunningScripts();
+    for (auto url : urls) {
+        int index = runningScripts.indexOf(url);
+        if (index < 0) {
+            auto scriptEnginePointer = scriptEngines->loadScript(url, false);
+            if (scriptEnginePointer) {
+                scriptEnginePointer->setType(ScriptEngine::Type::AVATAR);
+            }
+        }
+    }
+}
+
+void Application::unloadAvatarScripts() {
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    auto urls = scriptEngines->getRunningScripts();
+    for (auto url : urls) {
+        auto scriptEngine = scriptEngines->getScriptEngine(url);
+        if (scriptEngine->getType() == ScriptEngine::Type::AVATAR) {
+            scriptEngines->stopScript(url, false);
+        }
+    }
+}
+
 void Application::updateLOD(float deltaTime) const {
     PerformanceTimer perfTimer("LOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
@@ -5176,6 +5215,78 @@ void Application::updateDialogs(float deltaTime) const {
     }
 }
 
+void Application::updateSecondaryCameraViewFrustum() {
+    // TODO: Fix this by modeling the way the secondary camera works on how the main camera works
+    // ie. Use a camera object stored in the game logic and informs the Engine on where the secondary
+    // camera should be.
+
+    // Code based on SecondaryCameraJob
+    auto renderConfig = _renderEngine->getConfiguration();
+    assert(renderConfig);
+    auto camera = dynamic_cast<SecondaryCameraJobConfig*>(renderConfig->getConfig("SecondaryCamera"));
+    assert(camera);
+
+    if (!camera->isEnabled()) {
+        _hasSecondaryViewFrustum = false;
+        return;
+    }
+
+    if (camera->mirrorProjection && !camera->attachedEntityId.isNull()) {
+        auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+        auto entityProperties = entityScriptingInterface->getEntityProperties(camera->attachedEntityId);
+        glm::vec3 mirrorPropertiesPosition = entityProperties.getPosition();
+        glm::quat mirrorPropertiesRotation = entityProperties.getRotation();
+        glm::vec3 mirrorPropertiesDimensions = entityProperties.getDimensions();
+        glm::vec3 halfMirrorPropertiesDimensions = 0.5f * mirrorPropertiesDimensions;
+
+        // setup mirror from world as inverse of world from mirror transformation using inverted x and z for mirrored image
+        // TODO: we are assuming here that UP is world y-axis
+        glm::mat4 worldFromMirrorRotation = glm::mat4_cast(mirrorPropertiesRotation) * glm::scale(vec3(-1.0f, 1.0f, -1.0f));
+        glm::mat4 worldFromMirrorTranslation = glm::translate(mirrorPropertiesPosition);
+        glm::mat4 worldFromMirror = worldFromMirrorTranslation * worldFromMirrorRotation;
+        glm::mat4 mirrorFromWorld = glm::inverse(worldFromMirror);
+
+        // get mirror camera position by reflecting main camera position's z coordinate in mirror space
+        glm::vec3 mainCameraPositionWorld = getCamera().getPosition();
+        glm::vec3 mainCameraPositionMirror = vec3(mirrorFromWorld * vec4(mainCameraPositionWorld, 1.0f));
+        glm::vec3 mirrorCameraPositionMirror = vec3(mainCameraPositionMirror.x, mainCameraPositionMirror.y,
+                                                    -mainCameraPositionMirror.z);
+        glm::vec3 mirrorCameraPositionWorld = vec3(worldFromMirror * vec4(mirrorCameraPositionMirror, 1.0f));
+
+        // set frustum position to be mirrored camera and set orientation to mirror's adjusted rotation
+        glm::quat mirrorCameraOrientation = glm::quat_cast(worldFromMirrorRotation);
+        _secondaryViewFrustum.setPosition(mirrorCameraPositionWorld);
+        _secondaryViewFrustum.setOrientation(mirrorCameraOrientation);
+
+        // build frustum using mirror space translation of mirrored camera
+        float nearClip = mirrorCameraPositionMirror.z + mirrorPropertiesDimensions.z * 2.0f;
+        glm::vec3 upperRight = halfMirrorPropertiesDimensions - mirrorCameraPositionMirror;
+        glm::vec3 bottomLeft = -halfMirrorPropertiesDimensions - mirrorCameraPositionMirror;
+        glm::mat4 frustum = glm::frustum(bottomLeft.x, upperRight.x, bottomLeft.y, upperRight.y, nearClip, camera->farClipPlaneDistance);
+        _secondaryViewFrustum.setProjection(frustum);
+    } else {
+        if (!camera->attachedEntityId.isNull()) {
+            auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+            auto entityProperties = entityScriptingInterface->getEntityProperties(camera->attachedEntityId);
+            _secondaryViewFrustum.setPosition(entityProperties.getPosition());
+            _secondaryViewFrustum.setOrientation(entityProperties.getRotation());
+        } else {
+            _secondaryViewFrustum.setPosition(camera->position);
+            _secondaryViewFrustum.setOrientation(camera->orientation);
+        }
+
+        float aspectRatio = (float)camera->textureWidth / (float)camera->textureHeight;
+        _secondaryViewFrustum.setProjection(camera->vFoV,
+                                            aspectRatio,
+                                            camera->nearClipPlaneDistance,
+                                            camera->farClipPlaneDistance);
+    }
+    // Without calculating the bound planes, the secondary camera will use the same culling frustum as the main camera,
+    // which is not what we want here.
+    _secondaryViewFrustum.calculate();
+    _hasSecondaryViewFrustum = true;
+}
+
 static bool domainLoadingInProgress = false;
 
 void Application::update(float deltaTime) {
@@ -5529,6 +5640,11 @@ void Application::update(float deltaTime) {
     {
         QMutexLocker viewLocker(&_viewMutex);
         _myCamera.loadViewFrustum(_viewFrustum);
+
+        // TODO: Fix this by modeling the way the secondary camera works on how the main camera works
+        // ie. Use a camera object stored in the game logic and informs the Engine on where the secondary
+        // camera should be.
+        updateSecondaryCameraViewFrustum();
     }
 
     quint64 now = usecTimestampNow();
@@ -5542,6 +5658,8 @@ void Application::update(float deltaTime) {
         const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
         bool queryIsDue = sinceLastQuery > TOO_LONG_SINCE_LAST_QUERY;
         bool viewIsDifferentEnough = !_lastQueriedViewFrustum.isVerySimilar(_viewFrustum);
+        viewIsDifferentEnough |= _hasSecondaryViewFrustum && !_lastQueriedSecondaryViewFrustum.isVerySimilar(_secondaryViewFrustum);
+        
         // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
         if (queryIsDue || viewIsDifferentEnough) {
             _lastQueriedTime = now;
@@ -5550,6 +5668,7 @@ void Application::update(float deltaTime) {
             }
             sendAvatarViewFrustum();
             _lastQueriedViewFrustum = _viewFrustum;
+            _lastQueriedSecondaryViewFrustum = _secondaryViewFrustum;
         }
     }
 
@@ -5722,8 +5841,16 @@ void Application::update(float deltaTime) {
 }
 
 void Application::sendAvatarViewFrustum() {
+    uint8_t numFrustums = 1;
     QByteArray viewFrustumByteArray = _viewFrustum.toByteArray();
-    auto avatarPacket = NLPacket::create(PacketType::ViewFrustum, viewFrustumByteArray.size());
+
+    if (_hasSecondaryViewFrustum) {
+        ++numFrustums;
+        viewFrustumByteArray += _secondaryViewFrustum.toByteArray();
+    }
+
+    auto avatarPacket = NLPacket::create(PacketType::ViewFrustum, viewFrustumByteArray.size() + sizeof(numFrustums));
+    avatarPacket->writePrimitive(numFrustums);
     avatarPacket->write(viewFrustumByteArray);
 
     DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
@@ -5788,14 +5915,15 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
 
     ViewFrustum viewFrustum;
     copyViewFrustum(viewFrustum);
-    _octreeQuery.setCameraPosition(viewFrustum.getPosition());
-    _octreeQuery.setCameraOrientation(viewFrustum.getOrientation());
-    _octreeQuery.setCameraFov(viewFrustum.getFieldOfView());
-    _octreeQuery.setCameraAspectRatio(viewFrustum.getAspectRatio());
-    _octreeQuery.setCameraNearClip(viewFrustum.getNearClip());
-    _octreeQuery.setCameraFarClip(viewFrustum.getFarClip());
-    _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
-    _octreeQuery.setCameraCenterRadius(viewFrustum.getCenterRadius());
+    _octreeQuery.setMainViewFrustum(viewFrustum);
+
+    if (hasSecondaryViewFrustum()) {
+        copySecondaryViewFrustum(viewFrustum);
+        _octreeQuery.setSecondaryViewFrustum(viewFrustum);
+    } else {
+        _octreeQuery.clearSecondaryViewFrustum();
+    }
+
     auto lodManager = DependencyManager::get<LODManager>();
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
@@ -5877,6 +6005,11 @@ void Application::copyViewFrustum(ViewFrustum& viewOut) const {
 void Application::copyDisplayViewFrustum(ViewFrustum& viewOut) const {
     QMutexLocker viewLocker(&_viewMutex);
     viewOut = _displayViewFrustum;
+}
+
+void Application::copySecondaryViewFrustum(ViewFrustum& viewOut) const {
+    QMutexLocker viewLocker(&_viewMutex);
+    viewOut = _secondaryViewFrustum;
 }
 
 void Application::resetSensors(bool andReload) {
@@ -7819,6 +7952,26 @@ void Application::switchDisplayMode() {
     _previousHMDWornStatus = currentHMDWornStatus;
 }
 
+void Application::setShowBulletWireframe(bool value) {
+    _physicsEngine->setShowBulletWireframe(value);
+}
+
+void Application::setShowBulletAABBs(bool value) {
+    _physicsEngine->setShowBulletAABBs(value);
+}
+
+void Application::setShowBulletContactPoints(bool value) {
+    _physicsEngine->setShowBulletContactPoints(value);
+}
+
+void Application::setShowBulletConstraints(bool value) {
+    _physicsEngine->setShowBulletConstraints(value);
+}
+
+void Application::setShowBulletConstraintLimits(bool value) {
+    _physicsEngine->setShowBulletConstraintLimits(value);
+}
+
 void Application::startHMDStandBySession() {
     _autoSwitchDisplayModeSupportedHMDPlugin->startStandBySession();
 }
@@ -7999,4 +8152,29 @@ void Application::saveNextPhysicsStats(QString filename) {
     _physicsEngine->saveNextPhysicsStats(filename);
 }
 
+void Application::openAndroidActivity(const QString& activityName) {
+#if defined(Q_OS_ANDROID)
+    AndroidHelper::instance().requestActivity(activityName);
+#endif
+}
+
+#if defined(Q_OS_ANDROID)
+void Application::enterBackground() {
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
+                              "stop", Qt::BlockingQueuedConnection);
+    //GC: commenting it out until we fix it
+    //getActiveDisplayPlugin()->deactivate();
+}
+void Application::enterForeground() {
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
+                                  "start", Qt::BlockingQueuedConnection);
+    //GC: commenting it out until we fix it
+    /*if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
+        qWarning() << "Could not re-activate display plugin";
+    }*/
+
+}
+#endif
+
+#include "Application_jni.cpp"
 #include "Application.moc"

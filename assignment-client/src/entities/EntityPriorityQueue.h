@@ -13,18 +13,20 @@
 #define hifi_EntityPriorityQueue_h
 
 #include <queue>
+#include <unordered_set>
 
 #include <AACube.h>
+#include <DiffTraversal.h>
 #include <EntityTreeElement.h>
 
 const float SQRT_TWO_OVER_TWO = 0.7071067811865f;
 const float DEFAULT_VIEW_RADIUS = 10.0f;
 
-// ConicalView is an approximation of a ViewFrustum for fast calculation of sort priority.
-class ConicalView {
+// ConicalViewFrustum is an approximation of a ViewFrustum for fast calculation of sort priority.
+class ConicalViewFrustum {
 public:
-    ConicalView() {}
-    ConicalView(const ViewFrustum& viewFrustum) { set(viewFrustum); }
+    ConicalViewFrustum() {}
+    ConicalViewFrustum(const ViewFrustum& viewFrustum) { set(viewFrustum); }
     void set(const ViewFrustum& viewFrustum);
     float computePriority(const AACube& cube) const;
 private:
@@ -33,6 +35,16 @@ private:
     float _sinAngle { SQRT_TWO_OVER_TWO };
     float _cosAngle { SQRT_TWO_OVER_TWO };
     float _radius { DEFAULT_VIEW_RADIUS };
+};
+
+// Simple wrapper around a set of conical view frustums
+class ConicalView {
+public:
+    ConicalView() {}
+    void set(const DiffTraversal::View& view);
+    float computePriority(const AACube& cube) const;
+private:
+    std::vector<ConicalViewFrustum> _conicalViewFrustums;
 };
 
 // PrioritizedEntity is a placeholder in a sorted queue.
@@ -61,6 +73,50 @@ private:
     bool _forceRemove;
 };
 
-using EntityPriorityQueue = std::priority_queue< PrioritizedEntity, std::vector<PrioritizedEntity>, PrioritizedEntity::Compare >;
+class EntityPriorityQueue {
+public:
+    inline bool empty() const {
+        assert(_queue.empty() == _entities.empty());
+        return _queue.empty();
+    }
+
+    inline const PrioritizedEntity& top() const {
+        assert(!_queue.empty());
+        return _queue.top();
+    }
+
+    inline bool contains(const EntityItem* entity) const {
+        return _entities.find(entity) != std::end(_entities);
+    }
+
+    inline void emplace(const EntityItemPointer& entity, float priority, bool forceRemove = false) {
+        assert(entity && !contains(entity.get()));
+        _queue.emplace(entity, priority, forceRemove);
+        _entities.insert(entity.get());
+        assert(_queue.size() == _entities.size());
+    }
+
+    inline void pop() {
+        assert(!empty());
+        _entities.erase(_queue.top().getRawEntityPointer());
+        _queue.pop();
+        assert(_queue.size() == _entities.size());
+    }
+
+    inline void swap(EntityPriorityQueue& other) {
+        std::swap(_queue, other._queue);
+        std::swap(_entities, other._entities);
+    }
+
+private:
+    using PriorityQueue = std::priority_queue<PrioritizedEntity,
+                                              std::vector<PrioritizedEntity>,
+                                              PrioritizedEntity::Compare>;
+
+    PriorityQueue _queue;
+    // Keep dictionary of all the entities in the queue for fast contain checks.
+    std::unordered_set<const EntityItem*> _entities;
+
+};
 
 #endif // hifi_EntityPriorityQueue_h

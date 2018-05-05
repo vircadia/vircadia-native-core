@@ -1200,7 +1200,7 @@ static inline float dither() {
     rz = rz * 69069 + 1;
     int32_t r0 = rz & 0xffff;
     int32_t r1 = rz >> 16;
-    return (int32_t)(r0 - r1) * (1/65536.0f);
+    return (r0 - r1) * (1/65536.0f);
 }
 
 // convert float to int16_t with dither, interleave stereo

@@ -244,7 +244,8 @@ enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
     JSONFilterWithFamilyTree = 19,
     ConnectionIdentifier = 20,
-    RemovedJurisdictions = 21
+    RemovedJurisdictions = 21,
+    MultiFrustumQuery = 22
 };
 
 enum class AssetServerPacketVersion: PacketVersion {
@@ -325,6 +326,10 @@ enum class IcePingVersion : PacketVersion {
 
 enum class PingVersion : PacketVersion {
     IncludeConnectionID = 18
+};
+
+enum class ViewFrustumVersion : PacketVersion {
+    SendMultipleFrustums = 21
 };
 
 #endif // hifi_PacketHeaders_h

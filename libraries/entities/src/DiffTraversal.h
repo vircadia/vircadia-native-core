@@ -30,10 +30,15 @@ public:
     // View is a struct with a ViewFrustum and LOD parameters
     class View {
     public:
-        ViewFrustum viewFrustum;
+        bool isBigEnough(const AACube& cube, float minDiameter = MIN_ENTITY_ANGULAR_DIAMETER) const;
+        bool intersects(const AACube& cube) const;
+        bool usesViewFrustums() const;
+        bool isVerySimilar(const View& view) const;
+        ViewFrustum::intersection calculateIntersection(const AACube& cube) const;
+
+        ViewFrustums viewFrustums;
         uint64_t startTime { 0 };
         float lodScaleFactor { 1.0f };
-        bool usesViewFrustum { true };
     };
 
     // Waypoint is an bookmark in a "path" of waypoints during a traversal.
@@ -57,15 +62,12 @@ public:
 
     DiffTraversal();
 
-    Type prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, 
-        bool usesViewFrustum);
+    Type prepareNewTraversal(const DiffTraversal::View& view, EntityTreeElementPointer root);
 
-    const ViewFrustum& getCurrentView() const { return _currentView.viewFrustum; }
-    const ViewFrustum& getCompletedView() const { return _completedView.viewFrustum; }
+    const View& getCurrentView() const { return _currentView; }
+    const View& getCompletedView() const { return _completedView; }
 
-    bool doesCurrentUseViewFrustum() const { return _currentView.usesViewFrustum; }
-    float getCurrentLODScaleFactor() const { return _currentView.lodScaleFactor; }
-    float getCompletedLODScaleFactor() const { return _completedView.lodScaleFactor; }
+    bool doesCurrentUseViewFrustum() const { return _currentView.usesViewFrustums(); }
 
     uint64_t getStartOfCompletedTraversal() const { return _completedView.startTime; }
     bool finished() const { return _path.empty(); }

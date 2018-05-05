@@ -89,6 +89,12 @@ public:
 
 /**jsdoc
  * @namespace Script
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
  * @property {string} context
  */
 class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
@@ -101,6 +107,14 @@ public:
         ENTITY_CLIENT_SCRIPT,
         ENTITY_SERVER_SCRIPT,
         AGENT_SCRIPT
+    };
+
+    enum Type {
+        CLIENT,
+        ENTITY_CLIENT,
+        ENTITY_SERVER,
+        AGENT,
+        AVATAR
     };
 
     static int processLevelMaxRetries;
@@ -493,6 +507,9 @@ public:
      */
     Q_INVOKABLE QUuid generateUUID() { return QUuid::createUuid(); }
 
+    void setType(Type type) { _type = type; };
+    Type getType() { return _type; };
+
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
 
@@ -724,6 +741,7 @@ protected:
     void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
 
     Context _context;
+    Type _type;
     QString _scriptContents;
     QString _parentURL;
     std::atomic<bool> _isFinished { false };

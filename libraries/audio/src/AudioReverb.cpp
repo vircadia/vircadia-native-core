@@ -13,18 +13,11 @@
 #include "AudioReverb.h"
 
 #ifdef _MSC_VER
-
 #include <intrin.h>
-inline static int MULHI(int a, int b) {
-    long long c = __emul(a, b);
-    return ((int*)&c)[1];
-}
-
+#define MULHI(a,b)  ((int32_t)(__emul(a, b) >> 32))
 #else
-
-#define MULHI(a,b)  (int)(((long long)(a) * (b)) >> 32)
-
-#endif  // _MSC_VER
+#define MULHI(a,b)  ((int32_t)(((int64_t)(a) * (int64_t)(b)) >> 32))
+#endif
 
 #ifndef MAX
 #define MAX(a,b)    (((a) > (b)) ? (a) : (b))
@@ -1954,7 +1947,7 @@ static inline float dither() {
     rz = rz * 69069 + 1;
     int32_t r0 = rz & 0xffff;
     int32_t r1 = rz >> 16;
-    return (int32_t)(r0 - r1) * (1/65536.0f);
+    return (r0 - r1) * (1/65536.0f);
 }
 
 // convert float to int16_t with dither, interleave stereo
