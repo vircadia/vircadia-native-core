@@ -9,12 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AvatarMixerClientData.h"
+
 #include <udt/PacketHeaders.h>
 
 #include <DependencyManager.h>
 #include <NodeList.h>
-
-#include "AvatarMixerClientData.h"
 
 AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID) :
     NodeData(nodeID)

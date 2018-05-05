@@ -12,6 +12,12 @@
 #ifndef hifi_DeleteEntityOperator_h
 #define hifi_DeleteEntityOperator_h
 
+#include <QSet>
+
+#include <AACube.h>
+
+#include "EntityItem.h"
+
 class EntityToDeleteDetails {
 public:
     EntityItemPointer entity;

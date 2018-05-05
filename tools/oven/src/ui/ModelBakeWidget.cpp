@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModelBakeWidget.h"
+
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QLabel>
@@ -26,7 +28,6 @@
 #include "OvenMainWindow.h"
 #include "FBXBaker.h"
 #include "OBJBaker.h"
-#include "ModelBakeWidget.h"
 
 
 static const auto EXPORT_DIR_SETTING_KEY = "model_export_directory";

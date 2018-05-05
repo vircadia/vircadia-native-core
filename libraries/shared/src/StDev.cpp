@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "StDev.h"
+
 #include <limits>   
 #include <cmath>
 #include <cstring>
-
-#include "StDev.h"
 
 StDev::StDev() :
     _sampleCount(0)

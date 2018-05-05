@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModelPropertiesDialog.h"
+
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
@@ -22,8 +24,6 @@
 #include <FSTReader.h>
 #include <GLMHelpers.h>
 #include <OffscreenUi.h>
-
-#include "ModelPropertiesDialog.h"
 
 
 ModelPropertiesDialog::ModelPropertiesDialog(FSTReader::ModelType modelType, const QVariantHash& originalMapping,

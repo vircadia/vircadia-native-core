@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ATPClientApp.h"
+
 #include <QDataStream>
 #include <QTextStream>
 #include <QThread>
@@ -24,8 +26,6 @@
 #include <SettingHandle.h>
 #include <AssetUpload.h>
 #include <StatTracker.h>
-
-#include "ATPClientApp.h"
 
 #define HIGH_FIDELITY_ATP_CLIENT_USER_AGENT "Mozilla/5.0 (HighFidelityATPClient)"
 #define TIMEOUT_MILLISECONDS 8000

@@ -9,10 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "MeshMassProperties.h"
+
 #include <assert.h>
 #include <stdint.h>
-
-#include "MeshMassProperties.h"
 
 // this method is included for unit test verification
 void computeBoxInertia(btScalar mass, const btVector3& diagonal, btMatrix3x3& inertia) {

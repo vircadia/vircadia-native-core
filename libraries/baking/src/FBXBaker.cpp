@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "FBXBaker.h"
+
 #include <cmath> // need this include so we don't get an error looking for std::isnan
 
 #include <QtConcurrent>
@@ -30,8 +32,6 @@
 
 #include "ModelBakingLoggingCategory.h"
 #include "TextureBaker.h"
-
-#include "FBXBaker.h"
 
 void FBXBaker::bake() {    
     qDebug() << "FBXBaker" << _modelURL << "bake starting";

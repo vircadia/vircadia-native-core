@@ -14,8 +14,7 @@
 
 #include <QSet>
 
-#include "EntityTypes.h"
-#include "EntityTreeElement.h"
+#include "EntityItem.h"
 
 class EntityToMoveDetails {
 public:

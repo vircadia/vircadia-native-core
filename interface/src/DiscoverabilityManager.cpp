@@ -9,7 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DiscoverabilityManager.h"
+
 #include <QtCore/QJsonDocument>
+#include <QThread>
 
 #include <AccountManager.h>
 #include <AddressManager.h>
@@ -21,10 +24,7 @@
 #include <UUID.h>
 
 #include "Crashpad.h"
-#include "DiscoverabilityManager.h"
 #include "Menu.h"
-
-#include <QThread>
 
 const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::Connections;
 

@@ -8,6 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AnimNodeLoader.h"
+
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -19,7 +21,6 @@
 #include "AnimBlendLinearMove.h"
 #include "AnimationLogging.h"
 #include "AnimOverlay.h"
-#include "AnimNodeLoader.h"
 #include "AnimStateMachine.h"
 #include "AnimManipulator.h"
 #include "AnimInverseKinematics.h"
