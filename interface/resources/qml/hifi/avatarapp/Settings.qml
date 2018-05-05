@@ -70,35 +70,12 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
-                Slider {
+                HifiControlsUit.Slider {
                     id: slider
                     from: 0
                     to: 100
                     anchors.verticalCenter: parent.verticalCenter
                     Layout.fillWidth: true
-
-                    handle: Rectangle {
-                        width: 18
-                        height: 18
-                        color: 'white'
-                        radius: 9
-                        border.width: 1
-                        border.color: 'black'
-                        x: slider.leftPadding + slider.visualPosition * (slider.availableWidth - width)
-                        y: slider.topPadding + slider.availableHeight / 2 - height / 2
-                    }
-                    background: Rectangle {
-                        x: slider.leftPadding
-                        y: slider.topPadding + slider.availableHeight / 2 - height / 2
-                        implicitWidth: 200
-                        implicitHeight: 18
-                        width: slider.availableWidth
-                        height: implicitHeight
-                        radius: 9
-                        border.color: 'black'
-                        border.width: 1
-                        color: '#f2f2f2'
-                    }
                 }
 
                 HiFiGlyphs {
