@@ -15,18 +15,18 @@ namespace gpu {
     class SwapChain {
     public:
 
-        SwapChain(unsigned int size = 2U) : _size{ size } {}
+        SwapChain(uint8_t size = 2U) : _size{ size } {}
         virtual ~SwapChain() {}
 
         void advance() {
             _frontIndex = (_frontIndex + 1) % _size;
         }
 
-        unsigned int getSize() const { return _size; }
+        uint8_t getSize() const { return _size; }
 
     protected:
-        unsigned int _size;
-        unsigned int _frontIndex{ 0U };
+        const uint8_t _size;
+        uint8_t _frontIndex{ 0U };
 
     };
     typedef std::shared_ptr<SwapChain> SwapChainPointer;
@@ -41,16 +41,13 @@ namespace gpu {
 
         using Type = R;
         using TypePointer = std::shared_ptr<R>;
+        using TypeConstPointer = std::shared_ptr<const R>;
 
-        ResourceSwapChain(unsigned int size = 2U) : SwapChain{ size } {}
-
-        void reset() {
-            for (auto& ptr : _resources) {
-                ptr.reset();
+        ResourceSwapChain(const std::vector<TypePointer>& v) : SwapChain{ std::min<uint8_t>((uint8_t)v.size(), MAX_SIZE) } {
+            for (size_t i = 0; i < _size; ++i) {
+                _resources[i] = v[i];
             }
         }
-
-        TypePointer& edit(unsigned int index) { return _resources[(index + _frontIndex) % _size]; }
         const TypePointer& get(unsigned int index) const { return _resources[(index + _frontIndex) % _size]; }
 
     private:

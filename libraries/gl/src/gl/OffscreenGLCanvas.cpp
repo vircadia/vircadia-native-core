@@ -17,14 +17,17 @@
 #include <QtCore/QProcessEnvironment>
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
+#include <QtCore/QThreadStorage>
+#include <QtCore/QPointer>
 #include <QtGui/QOffscreenSurface>
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QOpenGLDebugLogger>
 
+#include <DependencyManager.h>
+
 #include "Context.h"
 #include "GLHelpers.h"
 #include "GLLogging.h"
-
 
 OffscreenGLCanvas::OffscreenGLCanvas() :
     _context(new QOpenGLContext),
@@ -33,6 +36,8 @@ OffscreenGLCanvas::OffscreenGLCanvas() :
 }
 
 OffscreenGLCanvas::~OffscreenGLCanvas() {
+    clearThreadContext();
+
     // A context with logging enabled needs to be current when it's destroyed
     _context->makeCurrent(_offscreenSurface);
     delete _context;
@@ -117,25 +122,51 @@ QObject* OffscreenGLCanvas::getContextObject() {
 }
 
 void OffscreenGLCanvas::moveToThreadWithContext(QThread* thread) {
+    clearThreadContext();
     moveToThread(thread);
     _context->moveToThread(thread);
 }
 
-static const char* THREAD_CONTEXT_PROPERTY = "offscreenGlCanvas";
+struct ThreadContextStorage : public Dependency {
+    QThreadStorage<QPointer<OffscreenGLCanvas>> threadContext;
+};
 
 void OffscreenGLCanvas::setThreadContext() {
-    QThread::currentThread()->setProperty(THREAD_CONTEXT_PROPERTY, QVariant::fromValue<QObject*>(this));
+    if (!DependencyManager::isSet<ThreadContextStorage>()) {
+        DependencyManager::set<ThreadContextStorage>();
+    }
+    auto threadContextStorage = DependencyManager::get<ThreadContextStorage>();
+    QPointer<OffscreenGLCanvas> p(this);
+    threadContextStorage->threadContext.setLocalData(p);
+}
+
+void OffscreenGLCanvas::clearThreadContext() {
+    if (!DependencyManager::isSet<ThreadContextStorage>()) {
+        return;
+    }
+    auto threadContextStorage = DependencyManager::get<ThreadContextStorage>();
+    if (!threadContextStorage->threadContext.hasLocalData()) {
+        return;
+    }
+    auto& threadContext = threadContextStorage->threadContext.localData();
+    if (this != threadContext.operator OffscreenGLCanvas *()) {
+        return;
+    }
+    threadContextStorage->threadContext.setLocalData(nullptr);
 }
 
 bool OffscreenGLCanvas::restoreThreadContext() {
     // Restore the rendering context for this thread
-    auto threadCanvasVariant = QThread::currentThread()->property(THREAD_CONTEXT_PROPERTY);
-    if (!threadCanvasVariant.isValid()) {
+    if (!DependencyManager::isSet<ThreadContextStorage>()) {
         return false;
     }
 
-    auto threadCanvasObject = qvariant_cast<QObject*>(threadCanvasVariant);
-    auto threadCanvas = static_cast<OffscreenGLCanvas*>(threadCanvasObject);
+    auto threadContextStorage = DependencyManager::get<ThreadContextStorage>();
+    if (!threadContextStorage->threadContext.hasLocalData()) {
+        return false;
+    }
+
+    auto threadCanvas = threadContextStorage->threadContext.localData();
     if (!threadCanvas) {
         return false;
     }
