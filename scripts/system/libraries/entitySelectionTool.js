@@ -723,10 +723,6 @@ SelectionDisplay = (function() {
                 return false;
             }
 
-            /*
-            entityIconOverlayManager.setIconsSelectable(SelectionManager.selections, true);
-            */
-
             var hitTool = handleTools[ hitOverlayID ];
             if (hitTool) {
                 activeTool = hitTool;
