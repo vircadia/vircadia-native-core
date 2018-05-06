@@ -441,7 +441,10 @@ void TabletProxy::emitWebEvent(const QVariant& msg) {
 
 void TabletProxy::onTabletShown() {
     if (_tabletShown) {
-        static_cast<TabletScriptingInterface*>(parent())->playSound(TabletScriptingInterface::TabletOpen);
+        Setting::Handle<bool> notificationSoundTablet{ "play_notification_sounds_tablet", true};
+        if (notificationSoundTablet.get()) {
+            static_cast<TabletScriptingInterface*>(parent())->playSound(TabletScriptingInterface::TabletOpen);
+        }
         if (_showRunningScripts) {
             _showRunningScripts = false;
             pushOntoStack("hifi/dialogs/TabletRunningScripts.qml");

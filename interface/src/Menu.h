@@ -218,6 +218,7 @@ namespace MenuOption {
     const QString Shadows = "Shadows";
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString NotificationSoundsSnapshot = "play_notification_sounds_snapshot";
+    const QString NotificationSoundsTablet = "play_notification_sounds_tablet";
 }
 
 #endif // hifi_Menu_h

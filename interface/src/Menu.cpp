@@ -311,9 +311,10 @@ Menu::Menu() {
     });
     // Settings > Notifications > Tablet
     action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Tablet", 0,
-                                                    settings->getValue("play_notification_sounds_type_5").toBool());
+                                                    settings->getValue(MenuOption::NotificationSoundsTablet).toBool());
     connect(action, &QAction::triggered, [action, settings] {
-        settings->setValue("play_notification_sounds_type_5", action->isChecked());
+        settings->setValue(MenuOption::NotificationSoundsTablet, action->isChecked());
+        qDebug() << "vladest. tablet sound check up" << settings->getValue(MenuOption::NotificationSoundsTablet).toBool();
     });
     // Settings > Notifications > Wallet
     addActionToQMenuAndActionHash(notificationsMenu, "Wallet");
