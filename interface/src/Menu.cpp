@@ -314,7 +314,6 @@ Menu::Menu() {
                                                     settings->getValue(MenuOption::NotificationSoundsTablet).toBool());
     connect(action, &QAction::triggered, [action, settings] {
         settings->setValue(MenuOption::NotificationSoundsTablet, action->isChecked());
-        qDebug() << "vladest. tablet sound check up" << settings->getValue(MenuOption::NotificationSoundsTablet).toBool();
     });
     // Settings > Notifications > Wallet
     addActionToQMenuAndActionHash(notificationsMenu, "Wallet");
