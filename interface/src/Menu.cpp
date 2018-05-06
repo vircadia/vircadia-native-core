@@ -270,9 +270,9 @@ Menu::Menu() {
     // Settings > Notifications > Play Notification Sounds
     SettingsScriptingInterface* settings = SettingsScriptingInterface::getInstance();
     action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Play Notification Sounds", 0,
-                                                    settings->getValue("play_notification_sounds").toBool());
+                                                    settings->getValue(MenuOption::NotificationSounds).toBool());
     connect(action, &QAction::triggered, [action, settings] {
-        settings->setValue("play_notification_sounds", action->isChecked());
+        settings->setValue(MenuOption::NotificationSounds, action->isChecked());
     });
     notificationsMenu->addSeparator();
 

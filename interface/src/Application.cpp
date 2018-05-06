@@ -3609,7 +3609,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 AudioInjectorOptions options;
                 options.localOnly = true;
                 options.stereo = true;
-                if (SettingsScriptingInterface::getInstance()->getValue(MenuOption::NotificationSoundsSnapshot).toBool()) {
+                Setting::Handle<bool> notificationSounds{ MenuOption::NotificationSounds, true};
+                Setting::Handle<bool> notificationSoundSnapshot{ MenuOption::NotificationSoundsSnapshot, true};
+                if (notificationSounds.get() && notificationSoundSnapshot.get()) {
                     if (_snapshotSoundInjector) {
                         _snapshotSoundInjector->setOptions(options);
                         _snapshotSoundInjector->restart();
