@@ -86,7 +86,7 @@ struct GPUKTXPayload {
         _usage = Texture::Usage(usageData);
         data += sizeof(uint32);
 
-        _usageType = *(const TextureUsageType*)data;
+        memcpy(&_usageType, data, sizeof(TextureUsageType));
         return true;
     }
 
