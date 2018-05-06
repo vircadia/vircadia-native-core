@@ -574,7 +574,7 @@ SelectionDisplay = (function() {
         handleScaleFREdge,
         handleScaleFLEdge,
         handleCloner,
-        selectionBox
+        selectionBox  // Must be last overlay.
     ];
 
     overlayNames[handleTranslateXCone] = "handleTranslateXCone";
@@ -689,6 +689,13 @@ SelectionDisplay = (function() {
         }
 
         return intersectObj;
+    }
+
+    function isPointInsideBox(point, box) {
+        var position = Vec3.subtract(point, box.position);
+        position = Vec3.multiplyQbyV(Quat.inverse(box.rotation), position);
+        return Math.abs(position.x) <= box.dimensions.x / 2 && Math.abs(position.y) <= box.dimensions.y / 2
+            && Math.abs(position.z) <= box.dimensions.z / 2;
     }
 
     // FUNCTION: MOUSE PRESS EVENT
@@ -1307,12 +1314,13 @@ SelectionDisplay = (function() {
             var inModeRotate = isActiveTool(handleRotatePitchRing) || 
                                isActiveTool(handleRotateYawRing) || 
                                isActiveTool(handleRotateRollRing);
-            Overlays.editOverlay(selectionBox, {
+            var selectionBoxGeometry = {
                 position: position,
                 rotation: rotation,
-                dimensions: dimensions,
-                visible: !inModeRotate
-            });
+                dimensions: dimensions
+            };
+            selectionBoxGeometry.visible = !inModeRotate && !isPointInsideBox(Camera.position, selectionBoxGeometry);
+            Overlays.editOverlay(selectionBox, selectionBoxGeometry);
 
             // UPDATE CLONER (CURRENTLY HIDDEN FOR NOW)
             var handleClonerOffset =  { 
@@ -1383,8 +1391,9 @@ SelectionDisplay = (function() {
     };
 
     // FUNCTION: SET OVERLAYS VISIBLE
-    that.setOverlaysVisible = function(isVisible) {
-        for (var i = 0; i < allOverlays.length; i++) {
+    that.setOverlaysVisible = function (isVisible) {
+        // Don't set selectionBox (last) overlay's visibility.
+        for (var i = 0, length = allOverlays.length - 1; i < length; i++) {
             Overlays.editOverlay(allOverlays[i], { visible: isVisible });
         }
     };
