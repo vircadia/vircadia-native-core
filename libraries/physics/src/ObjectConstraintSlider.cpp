@@ -9,12 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ObjectConstraintSlider.h"
+
 #include <LogHandler.h>
 
 #include "QVariantGLM.h"
 
 #include "EntityTree.h"
-#include "ObjectConstraintSlider.h"
 #include "PhysicsLogging.h"
 
 

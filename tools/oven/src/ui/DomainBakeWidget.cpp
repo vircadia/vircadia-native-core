@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DomainBakeWidget.h"
+
 #include <QtConcurrent>
 
 #include <QtWidgets/QCheckBox>
@@ -22,8 +24,6 @@
 #include <QtCore/QDebug>
 
 #include "../OvenGUIApplication.h"
-
-#include "DomainBakeWidget.h"
 
 static const QString DOMAIN_NAME_SETTING_KEY = "domain_name";
 static const QString EXPORT_DIR_SETTING_KEY = "domain_export_directory";

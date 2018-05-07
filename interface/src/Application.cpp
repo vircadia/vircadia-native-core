@@ -1334,6 +1334,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Create the main thread context, the GPU backend, and the display plugins
     initializeGL();
+    DependencyManager::get<TextureCache>()->setGPUContext(_gpuContext);
     qCDebug(interfaceapp, "Initialized Display.");
     // Create the rendering engine.  This can be slow on some machines due to lots of 
     // GPU pipeline creation.
@@ -3655,7 +3656,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     } else {
                         showCursor(Cursor::Icon::DEFAULT);
                     }
-                } else {
+                } else if (!event->isAutoRepeat()){
                     resetSensors(true);
                 }
                 break;

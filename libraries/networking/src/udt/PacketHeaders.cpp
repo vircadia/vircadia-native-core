@@ -59,11 +59,10 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return 17;
         case PacketType::AssetMappingOperation:
         case PacketType::AssetMappingOperationReply:
-            return static_cast<PacketVersion>(AssetServerPacketVersion::RedirectedMappings);
         case PacketType::AssetGetInfo:
         case PacketType::AssetGet:
         case PacketType::AssetUpload:
-            return static_cast<PacketVersion>(AssetServerPacketVersion::RangeRequestSupport);
+            return static_cast<PacketVersion>(AssetServerPacketVersion::BakingTextureMeta);
         case PacketType::NodeIgnoreRequest:
             return 18; // Introduction of node ignore request (which replaced an unused packet tpye)
 
