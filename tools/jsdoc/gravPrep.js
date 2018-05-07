@@ -43,6 +43,12 @@
         "Namespace": dir_md_namespaces,
         "Global": dir_md_globals
     }
+// Map for Links
+    let map_links = {
+        "Global": "globals",
+        "Namespace": "namespaces",
+        "Class": "objects"
+    }
 
 // Base Grouping Directories for MD files
     let baseMDDirectories = ["API-Reference", "Globals", "Namespaces", "Objects"]
@@ -52,7 +58,7 @@
     const html_reg_title = /\<h1.+?\>.+?\<\/h1\>/g;
     const html_reg_htmlExt = /\.html/g;
     const html_reg_objectHeader = /<header>[\s\S]+?<\/header>/;
-    const html_reg_objectSpanNew = /<h4 class="name"[\s\S]+?<\/span><\/h4>/;
+    const html_reg_objectSpanNew = /<h5 class="name"[\s\S]+?<\/span><\/h5>/;
     const html_reg_brRemove = /<br>[\s\S]+?<br>/;
     const html_reg_subsectionEdit = /(<h. class="subsection-title">)([\s\S]*?)(<\/h.>)/g;
     const html_reg_subsectionEdit_replace = '<h4 class="subsection-title">$2</h4>';
@@ -69,11 +75,21 @@
     const html_reg_findByName = '<h5 class="name"';
     const html_reg_findByTitle = '<h1>';   
     const html_reg_findByMethod = `<h4 class="subsection-title">Methods</h4>`;
+    const html_reg_containerOverview = `<div class="container-overview">`   
+    const html_reg_findByArticleOpen = `<article>`
     const html_reg_findByArticleClose = `</article>`
     const html_reg_signalTitle = `<h4 class="subsection-title">Signals</h4>`;
     const html_reg_typeDefinitonsTitle = `<h4 class="subsection-title">Type Definitions</h4>`;
     const html_reg_firstTableClose = `</table>`;
-
+    const html_reg_fixLinkHashIssue = /(<a href=")(.*?)(\.)(.*?">)/g;
+    const html_reg_fixLinkHashIssue_replace = "$1$2#$4"
+    const html_reg_findLinks = /(<a href="[\s\S]+?<\/a>)/g;
+    const html_reg_findLinksNoHashes = /(<a href=")([^#]+?)(">[\s\S]+?<\/a>)/g;  
+    const html_reg_findGlobalLinks = /(<a href=")(global)(#[\s\S]+?<\/a>)/g;
+    const html_reg_findGlobalLinks_replace = "$1\/api-reference\/globals$3";
+    const html_reg_findGeneralLinks = /(<a href=")([A-Z])([\s\S]*?)("[\s\S]*?<\/a>)/g;
+    const html_reg_findClassLinks = /(<a href=")([\.|\w]+?)(#[\.|\w]+?)(">[\s\S]+?<\/a>)/g;
+    
 
 // Mapping for GroupNames and Members
     let groupNameMemberMap = {
@@ -83,7 +99,73 @@
     }
 
 // Procedural functions
+
+    function isMultipleDots(content){
+        let count = 0;
+        let regEx = /\./g
+        let tempArray;
+        while ((tempArray = regEx.exec(content)) !== null){
+            count++;
+        }
+        if (count > 1){
+            return true;
+        }
+    }
+
+    function modifyClassLinks(match, p1,p2,p3,p4){
+        let matchedp = [p2,p3].join("");
+        if(!isMultipleDots(matchedp)){
+            return;
+        }
+        p2 = p2.split('.')[1].toLowerCase();
+        return [p1,p2,p3,p4].join("");
+    }
+
+    function lowerCaseGeneralLinks(match, p1, p2, p3, p4){
+        let modifiedString = [p1,p2.toLowerCase(),p3,p4].join("");
+        return modifiedString;
+    }
+
+    function contentReplace(content, title){
+        var linksNoHashes = [];
+        var tempArray;
+        while(( tempArray = html_reg_findLinksNoHashes.exec(content)) !== null ){
+            let tempArrayToPush = tempArray.slice(0,4)
+            tempArrayToPush.push(tempArray.index);
+            linksNoHashes.push(tempArrayToPush);
+        }        
+        if (!linksNoHashes){
+            return content;
+        }
+        for(var i = linksNoHashes.length-1; i > -1; i--){
+            if (linksNoHashes[i][0].indexOf("http") > -1){
+                continue;
+            }          
+            let linkLength = linksNoHashes[i][0].length;  
+            let group1 = linksNoHashes[i][1];
+            let group2 = linksNoHashes[i][2];
+            if (group2.indexOf(".") > -1){
+                group2 = group2.split(".")[1].toLowerCase();
+            }
+            let group3 = linksNoHashes[i][3];
+            let index = linksNoHashes[i][4];
+            let newString = `${group1}/api-reference/${returnRightGroup(group2)}/${group2.toLowerCase()}${group3}`;            
+            content = [content.slice(0,index), newString, content.slice(index+linkLength)].join("");
+        }
+        return content;
+    }
+
     // Create the actual MD file
+    function returnRightGroup(methodToCheck){
+        for ( var key in groupNameMemberMap ){
+            for (i = 0; i < groupNameMemberMap[key].length; i++ ){
+                if (methodToCheck.toLowerCase() === groupNameMemberMap[key][i].toLowerCase()){
+                    return key.toLowerCase();
+                }
+            }
+        }
+    }
+
     function createMD(title, directory, needsDir, isGlobal){
         let mdSource = makeMdSource(title);
         
@@ -110,10 +192,7 @@
 
         // If target is a directory a new file with the same name will be created
         if ( fs.existsSync( target ) ) {
-            // console.log("target exists");
             if ( fs.lstatSync( target ).isDirectory() ) {
-                // console.log("target is a directory");
-                
                 targetFile = path.join( target, path.basename( source ) );
             }
         }
@@ -204,7 +283,6 @@
 
     // Handle NameSpace Group   
     function handleNamespace(title, content){
-        groupNameMemberMap["Namespaces"].push(title);
         let destinationDirectory = path.join(map_dir_md["Namespace"], title);
         createMD(title, destinationDirectory, true);
         createTemplate(title, content);
@@ -212,7 +290,6 @@
 
     // Handle Class Group       
     function handleClass(title, content){
-        groupNameMemberMap["Objects"].push(title);
         let destinationDirectory = path.join(map_dir_md["Class"], title);
         createMD(title, destinationDirectory, true)
 
@@ -223,7 +300,6 @@
 
     // Handle Global Group           
     function handleGlobal(title, content){
-        groupNameMemberMap["Globals"].push("Globals");
         createMD("Globals", map_dir_md["Global"], false, true);
         createTemplate("Globals", content); 
     }
@@ -258,7 +334,12 @@
         group.forEach( item => {
             linkArray.push(`<div><h5>${item.type}</h5></div>`)            
             item.array.forEach( link => {
-                linkArray.push(`<div><a href="#.${link.slice(1)}">${link.slice(1)}</a></div>`)
+               if ( link.indexOf('.') > -1 ){
+                    linkArray.push(`<div><a href="#${link}">${link.slice(1)}</a></div>`);
+                } else {
+                    linkArray.push(`<div><a href="#${link}">${link}</a></div>`);
+                                  
+                }
             })
             linkArray.push("<br>");
         })
@@ -315,23 +396,25 @@
         let methodArray = [];
         let signalArray = [];
         let typeDefArray = [];
-        // console.log(allItemToSplit.length);
-        allItemToSplit.forEach( method => {
-            firstLine = method.split("\n")[0];            
+        let description;
+        
+        allItemToSplit.forEach( content => {
+            firstLine = content.split("\n")[0];            
             if (firstLine.indexOf("Signal") > -1){
-                // console.log("Found signal")
-                signalArray.push(method);
+                signalArray.push(content);
             } else if (firstLine.indexOf("span") > -1) {
-                // console.log("Found method")
-                methodArray.push(method);
+                if (content.indexOf("Available in:") > -1){
+                    description = content;
+                } else {
+                    methodArray.push(content);
+                }
             } else {
-                // console.log("Found typeDef")
                 if(firstLine.trim() !== ""){
-                    typeDefArray.push(method);
+                    typeDefArray.push(content);
                 }
             }
         })
-        return [methodArray, signalArray, typeDefArray];
+        return [methodArray, signalArray, typeDefArray, description];
     }
 
     // Helper to append
@@ -378,12 +461,34 @@
     })
 
 // Read jsdoc output folder and process html files
+    let links = [];
+    let unTouchedLinks = [];
     let files = fs.readdirSync(dir_out);
+    // Create initial Group name member map to handle individual link :: TODO find better way to do this
+    files.forEach(function (file){
+        let curSource = path.join(dir_out, file);
+        if (path.extname(curSource) == ".html" && path.basename(curSource, '.html') !== "index") {
+            let loadedHtml = prepareHtml(curSource);
+            let splitTitle = loadedHtml("title").text().split(": ");
+            let groupName = splitTitle[1];
+            let htmlTitle = splitTitle.pop();
+            switch(groupName){
+                case "Namespace":
+                    groupNameMemberMap["Namespaces"].push(htmlTitle);
+                    break;
+                case "Class":
+                    groupNameMemberMap["Objects"].push(htmlTitle);
+                    break;
+                default:
+                    console.log(`Case not handled for ${groupName}`);
+            }
+        }
+    })
     files.forEach(function (file){
         let curSource = path.join(dir_out, file);
         if (path.extname(curSource) == ".html" && path.basename(curSource, '.html') !== "index") {
             // Clean up the html source
-                let loadedHtml = prepareHtml(curSource);
+            let loadedHtml = prepareHtml(curSource);
 
             // Extract the title, group name, and the main div
             let splitTitle = loadedHtml("title").text().split(": ");
@@ -408,8 +513,20 @@
                                     .replace(html_reg_methodSize, html_reg_methodSize_replace)
                                     .replace(html_reg_typeDefSize, html_reg_typeDefSize_replace)
                                     .replace(html_reg_typeDefinitonsTitle, "")
-                                    .replace(html_reg_findByMethod, "");                                    
-        
+                                    .replace(html_reg_findGlobalLinks, html_reg_findGlobalLinks_replace)
+                                    .replace(html_reg_findGeneralLinks, lowerCaseGeneralLinks)
+                                    .replace(html_reg_findClassLinks, modifyClassLinks)
+                                    .replace(html_reg_findByMethod, "");          
+            
+            // Fix for namespace and object links
+            mainDivRegexed = contentReplace(mainDivRegexed, htmlTitle);
+            
+            // Grab all links for link changes
+            let matches = mainDivRegexed.match(html_reg_findLinks);
+            if (matches){
+                unTouchedLinks.push(`${htmlTitle}:\n ${matches.join('\n')}`);                
+            }
+
         // Further HTML Manipulation
             // Split HTML by Each named entry
             let contentSplitArray = splitBy(mainDivRegexed, html_reg_findByName, html_reg_findByArticleClose);
@@ -420,12 +537,15 @@
             let splitMethods = processedMethodsSignalsAndTypeDefs[0];
             let splitSignals = processedMethodsSignalsAndTypeDefs[1];
             let splitTypeDefintions = processedMethodsSignalsAndTypeDefs[2];
+            let splitDescription = processedMethodsSignalsAndTypeDefs[3];
             let splitMethodIDS = extractIDs(splitMethods);
             let splitSignalIDS = extractIDs(splitSignals);
             let splitTypeDefinitionIDS = extractIDs(splitTypeDefintions);
             let arrayToPassToClassToc = [];
 
-            // Append Signals and Methods to the current Content
+            if (splitDescription) {
+                currentContent = append(currentContent, html_reg_containerOverview, splitDescription);
+            }
             if (splitMethods.length > 0) {
                 arrayToPassToClassToc.push({type: "Methods", array: splitMethodIDS});            
                 // Add the Signals header to the Signals HTML
@@ -439,9 +559,6 @@
                 currentContent = append(currentContent, html_reg_findByArticleClose, splitSignals.join('\n'),true);        
             }
             if (splitTypeDefintions.length > 0) {
-
-                // console.log(path.basename(curSource, '.html'));
-                // console.log(splitTypeDefintions.length);
                 arrayToPassToClassToc.push({type: "Type Definitions", array: splitTypeDefinitionIDS});                
                 // Add the Signals header to the Signals HTML
                 splitTypeDefintions.unshift(html_reg_typeDefinitonsTitle)
@@ -449,7 +566,11 @@
             }
 
             let classTOC = makeClassTOC(arrayToPassToClassToc);
-            currentContent = append(currentContent, html_reg_firstTableClose, classTOC);         
+            if (groupName === "Global"){
+                currentContent = append(currentContent, html_reg_findByTitle, classTOC);         
+            } else {
+                currentContent = append(currentContent, html_reg_firstTableClose, classTOC);    
+            }
             
             // Final Pretty Content
             currentContent = htmlclean(currentContent);
@@ -477,6 +598,8 @@
     createTemplate("Namespaces", makeGroupTOC("Namespaces"));
     createTemplate("Objects", makeGroupTOC("Objects"));
 
+    fs.writeFileSync('Links-Untouched', unTouchedLinks.join('\n'));
+
 // Copy the files to the target Directories if Local
     if (copyLocal){
         // Copy files to the Twig Directory
@@ -488,6 +611,7 @@
             if(path.basename(file, '.html').indexOf("API") > -1){
                 fs.unlink(curSource);
             }
+            
         })
         copyFolderRecursiveSync(dir_template, targetTemplateDirectory);
     

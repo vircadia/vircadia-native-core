@@ -1,5 +1,71 @@
 var fs = require('fs');
 var path = require('path');
+var request = require('request');
+
+var badLinks = [];
+var baseLink = `http://localhost:8000/api-reference/`;
+var linkList = fs.readFileSync(__dirname + '/Links-Untouched','utf8').split('\n');
+console.log("link list", linkList);
+// console.log("filtered List", JSON.stringify(filteredList));
+var linkHash = {};
+
+var currentGroup;
+linkList.forEach( link => {
+    link = link.trim()
+    console.log("link", link)
+    if (link.slice(-1) === ':'){
+        currentGroup = link.slice(0, link.length-1);
+        // console.log("current Group: ", currentGroup);
+        linkHash[currentGroup] = {};
+    } else {
+        if (!linkHash[currentGroup][link]){
+            linkHash[currentGroup][link] = link;
+        }
+    }
+});
+
+// console.log("linkHash:", JSON.stringify(linkHash))
+var badLinks = [];
+
+
+var stream = fs.createWriteStream("badLinks", {flags: 'a'});
+var linkReg = /="([\s\S]*?)"/g
+var keys = Object.keys(linkHash);
+
+keys.forEach( key => {
+    for (var linkKey in linkHash[key]){
+        var link = linkHash[key][linkKey];
+        console.log("link", link);
+        var extractLink = link.split(`"`)[1];
+        console.log("extractLink", extractLink)
+        if (!extractLink.indexOf('http') > -1){
+            extractLink = baseLink + extractLink;
+        }
+        console.log("about to make a request for", extractLink)
+        setTimeout(function(){
+            request.get(extractLink)
+            .on('response', response => {
+            if (response.statusCode(404)){
+                console.log("found bad link")
+                console.log(JSON.stringify({file: key, link: extractLink}))
+                
+                // badLinks.push({file: key, link: link})
+                stream.write(JSON.stringify({file: key, link: extractLink}));
+            }
+        }, 4000)
+        })
+        
+    }
+    
+})
+stream.end();
+// */
+
+/*
+
+*/
+
+
 
 function endsWith(path, exts) {
     var result = false;
@@ -74,14 +140,19 @@ function parse() {
                 // load entire file into a string
                 var data = fs.readFileSync(pathDir, "utf8");
                 var fileName = path.basename(file);
-                var badJSDocWarnings = checkForBadJSDoc(data, fileName);
-                if (badJSDocWarnings.length > 0){
-                    warnings.push(badJSDocWarnings);
-                }
-                var badWordsList = checkForBadwordlist(data, fileName);
-                if (badWordsList){
-                    warnings.push(badWordsList);
-                }
+                // var badJSDocWarnings = checkForBadJSDoc(data, fileName);
+                // if (badJSDocWarnings.length > 0){
+                //     warnings.push(badJSDocWarnings);
+                // }
+                // var badWordsList = checkForBadwordlist(data, fileName);
+                // if (badWordsList){
+                //     warnings.push(badWordsList);
+                // }
+                // var dotDescriptionList = checkForDotDescription(data, fileName);
+                // if (dotDescriptionList.length > 0){
+                //     warnings.push(dotDescriptionList);
+                // }
+                
                 
             }
         });
@@ -100,6 +171,16 @@ function checkForBadJSDoc(dataToSearch, file){
         if (filtered.length > 0){
             warningList.push(new WarningObject(file, "badJSDOC", filtered));
         }
+    }
+    return warningList;
+}
+
+function checkForDotDescription(dataToSearch, file){
+    var warningList = [];
+    var reg = /@property {.+?\..+?}/g
+    var matches = dataToSearch.match(reg);
+    if (matches) {
+        warningList.push(new WarningObject(file, "dotDescription", matches));
     }
     return warningList;
 }
