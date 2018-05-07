@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Menu.h"
+
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QShortcut>
@@ -51,8 +53,6 @@
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
-
-#include "Menu.h"
 
 extern bool DEV_DECIMATE_TEXTURES;
 

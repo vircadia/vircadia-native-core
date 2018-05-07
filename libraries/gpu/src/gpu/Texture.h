@@ -37,6 +37,10 @@ namespace ktx {
     using KeyValues = std::list<KeyValue>;
 }
 
+namespace khronos { namespace gl { namespace texture {
+    enum class InternalFormat: uint32_t;
+}}}
+
 namespace gpu {
 
 
@@ -565,6 +569,7 @@ public:
 
     static bool evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header);
     static bool evalTextureFormat(const ktx::Header& header, Element& mipFormat, Element& texelFormat);
+    static bool getCompressedFormat(khronos::gl::texture::InternalFormat format, Element& elFormat);
 
 protected:
     const TextureUsageType _usageType;

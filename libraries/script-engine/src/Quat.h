@@ -20,6 +20,8 @@
 #include <QString>
 #include <QtScript/QScriptable>
 
+#include <GLMHelpers.h>
+
 /**jsdoc
  * A quaternion value. See also the {@link Quat(0)|Quat} object.
  * @typedef {object} Quat
@@ -35,6 +37,12 @@
  * of gimbal lock.
  * @namespace Quat
  * @variation 0
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
  * @property IDENTITY {Quat} <code>{ x: 0, y: 0, z: 0, w: 1 }</code> : The identity rotation, i.e., no rotation.
  *     <em>Read-only.</em>
  * @example <caption>Print the <code>IDENTITY</code> value.</caption>

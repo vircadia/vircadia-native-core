@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "FSTReader.h"
+
 #include <QBuffer>
 #include <QEventLoop>
 #include <QNetworkReply>
@@ -16,8 +18,6 @@
 
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
-
-#include "FSTReader.h"
 
 QVariantHash FSTReader::parseMapping(QIODevice* device) {
     QVariantHash properties;

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ThreadedAssignment.h"
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
@@ -16,8 +18,6 @@
 #include <QtCore/QTimer>
 
 #include <LogHandler.h>
-
-#include "ThreadedAssignment.h"
 
 #include "NetworkLogging.h"
 

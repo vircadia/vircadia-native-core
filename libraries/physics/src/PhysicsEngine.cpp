@@ -9,18 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <PhysicsCollisionGroups.h>
+#include "PhysicsEngine.h"
 
 #include <functional>
 
 #include <QFile>
 
 #include <PerfStat.h>
+#include <PhysicsCollisionGroups.h>
 #include <Profile.h>
 
 #include "CharacterController.h"
 #include "ObjectMotionState.h"
-#include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsDebugDraw.h"
 #include "ThreadSafeDynamicsWorld.h"

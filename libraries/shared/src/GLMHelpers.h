@@ -137,6 +137,8 @@ int unpackFloatScalarFromSignedTwoByteFixed(const int16_t* byteFixedPointer, flo
 int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix);
 int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm::vec3& destination, int radix);
 
+bool closeEnough(float a, float b, float relativeError);
+
 /// \return vec3 with euler angles in radians
 glm::vec3 safeEulerAngles(const glm::quat& q);
 
