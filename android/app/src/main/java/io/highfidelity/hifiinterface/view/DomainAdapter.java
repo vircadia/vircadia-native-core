@@ -1,6 +1,7 @@
 package io.highfidelity.hifiinterface.view;
 
 import android.content.Context;
+import android.net.Uri;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -8,6 +9,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -19,69 +22,57 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.highfidelity.hifiinterface.R;
+import io.highfidelity.hifiinterface.provider.DomainProvider;
+import io.highfidelity.hifiinterface.provider.UserStoryDomainProvider;
 
 /**
  * Created by Gabriel Calero & Cristian Duarte on 3/20/18.
  */
 public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder> {
 
-    private static final java.lang.String DOMAINS_FILE = "hifi_domains.json";
     private static final String TAG = "HiFi Interface";
     private Context mContext;
     private LayoutInflater mInflater;
     private ItemClickListener mClickListener;
-
-    public class Domain {
-        public String name;
-        public String url;
-        public String thumbnail;
-        Domain(String name, String url, String thumbnail) {
-            this.name = name;
-            this.thumbnail = thumbnail;
-            this.url = url;
-        }
-    }
+    private String mProtocol;
+    private UserStoryDomainProvider domainProvider;
+    private AdapterListener mAdapterListener;
 
     // references to our domains
     private Domain[] mDomains = {};
 
-    public DomainAdapter(Context c) {
+    public DomainAdapter(Context c, String protocol) {
         mContext = c;
         this.mInflater = LayoutInflater.from(mContext);
-        loadDomains();
+        mProtocol = protocol;
+        domainProvider = new UserStoryDomainProvider(mProtocol);
+        loadDomains("");
     }
 
-    private void loadDomains() {
-        try {
-            JSONObject json = new JSONObject(loadJSONFromAsset());
-            JSONArray hifiDomains = json.getJSONArray("hifi_domains");
-            List<Domain> domains = new ArrayList<>();
-            for (int i = 0; i < hifiDomains.length(); i++) {
-                JSONObject jDomain = hifiDomains.getJSONObject(i);
+    public void setListener(AdapterListener adapterListener) {
+        mAdapterListener = adapterListener;
+    }
 
-                String domainName = jDomain.getString("name");
-                String domainUrl = jDomain.getString("url");
-                String domainThumb = jDomain.getString("thumbnail");
-
-                domains.add(new Domain(domainName, domainUrl, domainThumb));
+    public void loadDomains(String filterText) {
+        domainProvider.retrieve(filterText, new DomainProvider.DomainCallback() {
+            @Override
+            public void retrieveOk(List<Domain> domain) {
+                mDomains = new Domain[domain.size()];
+                mDomains = domain.toArray(mDomains);
+                notifyDataSetChanged();
+                if (mDomains.length == 0) {
+                    if (mAdapterListener != null) mAdapterListener.onEmptyAdapter();
+                } else {
+                    if (mAdapterListener != null) mAdapterListener.onNonEmptyAdapter();
+                }
             }
-            mDomains = domains.toArray(mDomains);
-        } catch (IOException e) {
-            Log.e(TAG, "Error loading domains from local file", e);
-        } catch (JSONException e) {
-            Log.e(TAG, "Error loading domains from local file", e);
-        }
-    }
 
-    public String loadJSONFromAsset() throws IOException {
-        String json = null;
-        InputStream is = mContext.getAssets().open(DOMAINS_FILE);
-        int size = is.available();
-        byte[] buffer = new byte[size];
-        is.read(buffer);
-        is.close();
-        json = new String(buffer, "UTF-8");
-        return json;
+            @Override
+            public void retrieveError(Exception e, String message) {
+                Log.e("DOMAINS", message, e);
+                if (mAdapterListener != null) mAdapterListener.onError(e, message);
+            }
+        });
     }
 
     @Override
@@ -94,7 +85,10 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
     public void onBindViewHolder(ViewHolder holder, int position) {
         // TODO
         //holder.thumbnail.setImageResource(mDomains[position].thumbnail);
-        holder.mDomainName.setText(mDomains[position].name);
+        Domain domain = mDomains[position];
+        holder.mDomainName.setText(domain.name);
+        Uri uri = Uri.parse(domain.thumbnail);
+        Picasso.get().load(uri).into(holder.mThumbnail);
     }
 
     @Override
@@ -127,5 +121,22 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
     // parent activity will implement this method to respond to click events
     public interface ItemClickListener {
         void onItemClick(View view, int position, Domain domain);
+    }
+
+    public static class Domain {
+        public String name;
+        public String url;
+        public String thumbnail;
+        public Domain(String name, String url, String thumbnail) {
+            this.name = name;
+            this.thumbnail = thumbnail;
+            this.url = url;
+        }
+    }
+
+    public interface AdapterListener {
+        void onEmptyAdapter();
+        void onNonEmptyAdapter();
+        void onError(Exception e, String message);
     }
 }

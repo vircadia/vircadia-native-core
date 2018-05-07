@@ -230,5 +230,4 @@ public class InterfaceActivity extends QtActivity {
     public void onBackPressed() {
         openAndroidActivity("Home", false);
     }
-
 }

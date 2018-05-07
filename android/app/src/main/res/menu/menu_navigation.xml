@@ -5,8 +5,4 @@
         android:id="@+id/action_home"
         android:title="@string/home"
         />
-    <item
-        android:id="@+id/action_goto"
-        android:title="@string/action_goto"
-        />
 </menu>

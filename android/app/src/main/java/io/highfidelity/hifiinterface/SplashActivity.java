@@ -3,6 +3,7 @@ package io.highfidelity.hifiinterface;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
 
 public class SplashActivity extends Activity {
@@ -36,7 +37,10 @@ public class SplashActivity extends Activity {
     }
 
     public void onAppLoadedComplete() {
-        startActivity(new Intent(this, MainActivity.class));
-        finish();
+        // Give interface more time so textures don't fail(got deleted) on Adreno (joystick)
+        new Handler(getMainLooper()).postDelayed(() -> {
+            startActivity(new Intent(this, MainActivity.class));
+            new Handler(getMainLooper()).postDelayed(() -> SplashActivity.this.finish(), 1000);
+        }, 500);
     }
 }

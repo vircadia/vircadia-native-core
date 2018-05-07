@@ -2,26 +2,34 @@ package io.highfidelity.hifiinterface.fragment;
 
 import android.app.Fragment;
 import android.content.Context;
-import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.SearchView;
-import android.widget.TabHost;
-import android.widget.TabWidget;
+import android.view.WindowManager;
+import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import io.highfidelity.hifiinterface.HifiUtils;
 import io.highfidelity.hifiinterface.R;
 import io.highfidelity.hifiinterface.view.DomainAdapter;
 
 public class HomeFragment extends Fragment {
 
-    public static final int ENTER_DOMAIN_URL = 1;
+    private DomainAdapter mDomainAdapter;
+    private RecyclerView mDomainsView;
+    private TextView searchNoResultsView;
+    private ImageView mSearchIconView;
+    private ImageView mClearSearch;
+    private EditText mSearchView;
 
-    private DomainAdapter domainAdapter;
 
     private OnHomeInteractionListener mListener;
 
@@ -46,50 +54,76 @@ public class HomeFragment extends Fragment {
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_home, container, false);
 
-        TabHost tabs = rootView.findViewById(R.id.tabhost);
-        tabs.setup();
+        searchNoResultsView = rootView.findViewById(R.id.searchNoResultsView);
 
-        TabHost.TabSpec spec=tabs.newTabSpec("featured");
-        spec.setContent(R.id.featured);
-        spec.setIndicator(getString(R.string.featured));
-        tabs.addTab(spec);
-
-        spec = tabs.newTabSpec("popular");
-        spec.setContent(R.id.popular);
-        spec.setIndicator(getString(R.string.popular));
-        tabs.addTab(spec);
-
-        spec = tabs.newTabSpec("bookmarks");
-        spec.setContent(R.id.bookmarks);
-        spec.setIndicator(getString(R.string.bookmarks));
-        tabs.addTab(spec);
-
-        tabs.setCurrentTab(0);
-
-        TabWidget tabwidget=tabs.getTabWidget();
-        for(int i=0; i<tabwidget.getChildCount(); i++){
-            TextView tv= tabwidget.getChildAt(i).findViewById(android.R.id.title);
-            tv.setTextAppearance(R.style.TabText);
-        }
-
-
-        RecyclerView domainsView = rootView.findViewById(R.id.rvDomains);
+        mDomainsView = rootView.findViewById(R.id.rvDomains);
         int numberOfColumns = 1;
         GridLayoutManager gridLayoutMgr = new GridLayoutManager(getContext(), numberOfColumns);
-        domainsView.setLayoutManager(gridLayoutMgr);
-        domainAdapter = new DomainAdapter(getContext());
-        domainAdapter.setClickListener((view, position, domain) -> mListener.onSelectedDomain(domain.url));
-        domainsView.setAdapter(domainAdapter);
+        mDomainsView.setLayoutManager(gridLayoutMgr);
+        mDomainAdapter = new DomainAdapter(getContext(), HifiUtils.getInstance().protocolVersionSignature());
+        mDomainAdapter.setClickListener((view, position, domain) -> {
+            new Handler(getActivity().getMainLooper()).postDelayed(() -> mListener.onSelectedDomain(domain.url), 400); // a delay so the ripple effect can be seen
+        });
+        mDomainAdapter.setListener(new DomainAdapter.AdapterListener() {
+            @Override
+            public void onEmptyAdapter() {
+                searchNoResultsView.setText(R.string.search_no_results);
+                searchNoResultsView.setVisibility(View.VISIBLE);
+                mDomainsView.setVisibility(View.GONE);
+            }
 
-        SearchView searchView = rootView.findViewById(R.id.searchView);
-        int searchPlateId = searchView.getContext().getResources().getIdentifier("android:id/search_plate", null, null);
-        View searchPlate = searchView.findViewById(searchPlateId);
-        if (searchPlate != null) {
-            searchPlate.setBackgroundColor (Color.TRANSPARENT);
-            int searchTextId = searchPlate.getContext ().getResources ().getIdentifier ("android:id/search_src_text", null, null);
-            TextView searchTextView = searchView.findViewById(searchTextId);
-            searchTextView.setTextAppearance(R.style.SearchText);
-        }
+            @Override
+            public void onNonEmptyAdapter() {
+                searchNoResultsView.setVisibility(View.GONE);
+                mDomainsView.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onError(Exception e, String message) {
+
+            }
+        });
+        mDomainsView.setAdapter(mDomainAdapter);
+
+        mSearchView = rootView.findViewById(R.id.searchView);
+        mSearchIconView = rootView.findViewById(R.id.search_mag_icon);
+        mClearSearch = rootView.findViewById(R.id.search_clear);
+
+        mSearchView.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                mDomainAdapter.loadDomains(editable.toString());
+                if (editable.length() > 0) {
+                    mSearchIconView.setVisibility(View.GONE);
+                    mClearSearch.setVisibility(View.VISIBLE);
+                } else {
+                    mSearchIconView.setVisibility(View.VISIBLE);
+                    mClearSearch.setVisibility(View.GONE);
+                }
+            }
+        });
+        mSearchView.setOnKeyListener((view, i, keyEvent) -> {
+            if (i == KeyEvent.KEYCODE_ENTER) {
+                String urlString = mSearchView.getText().toString();
+                if (!urlString.trim().isEmpty()) {
+                    urlString = HifiUtils.getInstance().sanitizeHifiUrl(urlString);
+                }
+                mListener.onSelectedDomain(urlString);
+                return true;
+            }
+            return false;
+        });
+
+        mClearSearch.setOnClickListener(view -> onSearchClear(view));
+
+        getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
         return rootView;
     }
 
@@ -113,5 +147,10 @@ public class HomeFragment extends Fragment {
     public interface OnHomeInteractionListener {
         void onSelectedDomain(String domainUrl);
     }
+
+    public void onSearchClear(View view) {
+        mSearchView.setText("");
+    }
+
 
 }

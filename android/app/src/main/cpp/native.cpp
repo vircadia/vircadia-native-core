@@ -21,6 +21,7 @@
 
 #include <AddressManager.h>
 #include "AndroidHelper.h"
+#include <udt/PacketHeaders.h>
 
 QAndroidJniObject __interfaceActivity;
 QAndroidJniObject __loginCompletedListener;
@@ -203,6 +204,10 @@ JNIEXPORT jstring JNICALL Java_io_highfidelity_hifiinterface_HifiUtils_getCurren
     }
 
     return env->NewStringUTF(str.toLatin1().data());
+}
+
+JNIEXPORT jstring JNICALL Java_io_highfidelity_hifiinterface_HifiUtils_protocolVersionSignature(JNIEnv *env, jobject instance) {
+    return env->NewStringUTF(protocolVersionsSignatureBase64().toLatin1().data());
 }
 
 JNIEXPORT void JNICALL

@@ -23,12 +23,29 @@ public class HifiUtils {
         return instance;
     }
 
+    public String sanitizeHifiUrl(String urlString) {
+        urlString = urlString.trim();
+        if (!urlString.isEmpty()) {
+            URI uri;
+            try {
+                uri = new URI(urlString);
+            } catch (URISyntaxException e) {
+                return urlString;
+            }
+            if (uri.getScheme() == null || uri.getScheme().isEmpty()) {
+                urlString = "hifi://" + urlString;
+            }
+        }
+        return urlString;
+    }
+
+
     public String absoluteHifiAssetUrl(String urlString) {
         return absoluteHifiAssetUrl(urlString, METAVERSE_BASE_URL);
     }
 
     public String absoluteHifiAssetUrl(String urlString, String baseUrl) {
-        urlString = urlString.trim();
+            urlString = urlString.trim();
         if (!urlString.isEmpty()) {
             URI uri;
             try {
@@ -44,5 +61,7 @@ public class HifiUtils {
     }
 
     public native String getCurrentAddress();
+
+    public native String protocolVersionSignature();
 
 }

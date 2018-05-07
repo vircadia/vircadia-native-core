@@ -29,7 +29,6 @@ import android.widget.TextView;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
-import io.highfidelity.hifiinterface.fragment.GotoFragment;
 import io.highfidelity.hifiinterface.fragment.HomeFragment;
 import io.highfidelity.hifiinterface.fragment.LoginFragment;
 import io.highfidelity.hifiinterface.fragment.PolicyFragment;
@@ -37,8 +36,7 @@ import io.highfidelity.hifiinterface.task.DownloadProfileImageTask;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
                                                                 LoginFragment.OnLoginInteractionListener,
-                                                                HomeFragment.OnHomeInteractionListener,
-                                                                GotoFragment.OnGotoInteractionListener {
+                                                                HomeFragment.OnHomeInteractionListener {
 
     private static final int PROFILE_PICTURE_PLACEHOLDER = R.drawable.default_profile_avatar;
     public static final String DEFAULT_FRAGMENT = "Home";
@@ -125,12 +123,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         loadFragment(fragment, getString(R.string.login), true);
     }
 
-    private void loadGotoFragment() {
-        Fragment fragment = GotoFragment.newInstance();
-
-        loadFragment(fragment, getString(R.string.go_to), true);
-    }
-
     private void loadPrivacyPolicyFragment() {
         Fragment fragment = PolicyFragment.newInstance();
 
@@ -204,9 +196,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             case R.id.action_home:
                 loadHomeFragment();
                 return true;
-            case R.id.action_goto:
-                loadGotoFragment();
-                return true;
         }
         return false;
     }
@@ -224,10 +213,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public void onLogoutClicked(View view) {
         nativeLogout();
         updateLoginMenu();
-    }
-
-    public void onEnteredDomain(String domainUrl) {
-        goToDomain(domainUrl);
     }
 
     public void onSelectedDomain(String domainUrl) {
