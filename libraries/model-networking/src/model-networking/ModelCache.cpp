@@ -63,16 +63,18 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
     PROFILE_ASYNC_BEGIN(resource_parse_geometry, "GeometryMappingResource::downloadFinished", _url.toString(),
                          { { "url", _url.toString() } });
 
-    auto mapping = FSTReader::readMapping(data);
+    // store parsed contents of FST file
+    _mapping = FSTReader::readMapping(data);
 
-    QString filename = mapping.value("filename").toString();
+    QString filename = _mapping.value("filename").toString();
+
     if (filename.isNull()) {
         qCDebug(modelnetworking) << "Mapping file" << _url << "has no \"filename\" field";
         finishedLoading(false);
     } else {
         QUrl url = _url.resolved(filename);
 
-        QString texdir = mapping.value(TEXDIR_FIELD).toString();
+        QString texdir = _mapping.value(TEXDIR_FIELD).toString();
         if (!texdir.isNull()) {
             if (!texdir.endsWith('/')) {
                 texdir += '/';
@@ -82,7 +84,8 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
             _textureBaseUrl = url.resolved(QUrl("."));
         }
 
-        auto animGraphVariant = mapping.value("animGraphUrl");
+        auto animGraphVariant = _mapping.value("animGraphUrl");
+
         if (animGraphVariant.isValid()) {
             QUrl fstUrl(animGraphVariant.toString());
             if (fstUrl.isValid()) {
@@ -95,7 +98,7 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
         }
 
         auto modelCache = DependencyManager::get<ModelCache>();
-        GeometryExtra extra{ mapping, _textureBaseUrl, false };
+        GeometryExtra extra{ _mapping, _textureBaseUrl, false };
 
         // Get the raw GeometryResource
         _geometryResource = modelCache->getResource(url, QUrl(), &extra).staticCast<GeometryResource>();
@@ -362,6 +365,7 @@ Geometry::Geometry(const Geometry& geometry) {
     }
 
     _animGraphOverrideUrl = geometry._animGraphOverrideUrl;
+    _mapping = geometry._mapping;
 }
 
 void Geometry::setTextures(const QVariantMap& textureMap) {
