@@ -16,6 +16,7 @@
 
 #include <QString>
 #include <QStandardPaths>
+#include <QUrl>
 
 #include <SettingHandle.h>
 #include <DependencyManager.h>

@@ -17,8 +17,9 @@
 #include "../octree/OctreeSendThread.h"
 
 #include <DiffTraversal.h>
+#include <EntityPriorityQueue.h>
+#include <shared/ConicalViewFrustum.h>
 
-#include "EntityPriorityQueue.h"
 
 class EntityNodeData;
 class EntityItem;
@@ -51,7 +52,6 @@ private:
     DiffTraversal _traversal;
     EntityPriorityQueue _sendQueue;
     std::unordered_map<EntityItem*, uint64_t> _knownState;
-    ConicalView _conicalView; // cached optimized view for fast priority calculations
 
     // packet construction stuff
     EntityTreeElementExtraEncodeDataPointer _extraEncodeData { new EntityTreeElementExtraEncodeData() };

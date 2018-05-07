@@ -18,6 +18,8 @@
 #include <QScriptValue>
 #include <QString>
 #include <QStringList>
+
+#include <AccountManager.h>
 #include <DiscoverabilityManager.h>
 
 class DownloadInfoResult {
