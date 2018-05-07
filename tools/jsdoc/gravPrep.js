@@ -115,10 +115,14 @@
     function modifyClassLinks(match, p1,p2,p3,p4){
         let matchedp = [p2,p3].join("");
         if(!isMultipleDots(matchedp)){
-            return;
+            console.log("not multiple");
+            console.log("matchedp:", matchedp)
+            return match;
         }
         p2 = p2.split('.')[1].toLowerCase();
-        return [p1,p2,p3,p4].join("");
+        let newString =  [p1,p2,p3,p4].join("");
+        // console.log("new String:", newString);
+        return newString;
     }
 
     function lowerCaseGeneralLinks(match, p1, p2, p3, p4){
@@ -136,7 +140,7 @@
         }        
         if (!linksNoHashes){
             return content;
-        }
+        }   
         for(var i = linksNoHashes.length-1; i > -1; i--){
             if (linksNoHashes[i][0].indexOf("http") > -1){
                 continue;
@@ -149,7 +153,8 @@
             }
             let group3 = linksNoHashes[i][3];
             let index = linksNoHashes[i][4];
-            let newString = `${group1}/api-reference/${returnRightGroup(group2)}/${group2.toLowerCase()}${group3}`;            
+            let newString = `${group1}/api-reference/${returnRightGroup(group2)}/${group2.toLowerCase()}${group3}`;  
+            // console.log("newString", newString);       
             content = [content.slice(0,index), newString, content.slice(index+linkLength)].join("");
         }
         return content;
@@ -161,6 +166,8 @@
             for (i = 0; i < groupNameMemberMap[key].length; i++ ){
                 if (methodToCheck.toLowerCase() === groupNameMemberMap[key][i].toLowerCase()){
                     return key.toLowerCase();
+                } else {
+                    // console.log("Couldn't find group: ", methodToCheck);
                 }
             }
         }

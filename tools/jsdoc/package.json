@@ -1,6 +1,7 @@
 {
   "name": "hifiJSDoc",
   "dependencies": {
+    "axios": "^0.18.0",
     "cheerio": "^1.0.0-rc.2",
     "dedent-js": "^1.0.1",
     "htmlclean": "^3.0.8",

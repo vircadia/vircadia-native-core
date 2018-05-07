@@ -1,18 +1,20 @@
 var fs = require('fs');
 var path = require('path');
 var request = require('request');
+var axios = require('axios');
 
 var badLinks = [];
-var baseLink = `http://localhost:8000/api-reference/`;
+// var baseLink = `http://localhost:8000/api-reference/`;
+var baseLink = `https://docs.highfidelity.com`;
 var linkList = fs.readFileSync(__dirname + '/Links-Untouched','utf8').split('\n');
-console.log("link list", linkList);
+// console.log("link list", linkList);
 // console.log("filtered List", JSON.stringify(filteredList));
 var linkHash = {};
 
 var currentGroup;
 linkList.forEach( link => {
     link = link.trim()
-    console.log("link", link)
+    // console.log("link", link)
     if (link.slice(-1) === ':'){
         currentGroup = link.slice(0, link.length-1);
         // console.log("current Group: ", currentGroup);
@@ -35,37 +37,39 @@ var keys = Object.keys(linkHash);
 keys.forEach( key => {
     for (var linkKey in linkHash[key]){
         var link = linkHash[key][linkKey];
-        console.log("link", link);
+        // console.log("link", link);
         var extractLink = link.split(`"`)[1];
-        console.log("extractLink", extractLink)
-        if (!extractLink.indexOf('http') > -1){
-            extractLink = baseLink + extractLink;
-        }
-        console.log("about to make a request for", extractLink)
-        setTimeout(function(){
-            request.get(extractLink)
-            .on('response', response => {
-            if (response.statusCode(404)){
-                console.log("found bad link")
-                console.log(JSON.stringify({file: key, link: extractLink}))
-                
-                // badLinks.push({file: key, link: link})
-                stream.write(JSON.stringify({file: key, link: extractLink}));
-            }
-        }, 4000)
-        })
         
-    }
+        if (!(extractLink.indexOf(':') > -1)){
+            console.log(" adding link")
+            extractLink = baseLink + extractLink;
+        } else {
+            // console.log("found https")
+        }
+        console.log("extractLink", extractLink)
     
-})
+        // console.log("about to make a request for", extractLink)
+            axios.get(extractLink)
+            .then( response => {
+                console.log("response")
+                if (response.status === 404){
+                    console.log("found bad link")
+                //     console.log(JSON.stringify({file: key, link: extractLink}))
+                //     stream.write(JSON.stringify({file: key, link: extractLink}));
+                }
+            })
+            .catch( error => {
+                console.log("error")
+                // console.log(error);
+                // if (error.response.status === 404){
+                //     console.log("found bad link")
+                //     console.log(JSON.stringify({file: key, link: extractLink}))
+                //     stream.write(JSON.stringify({file: key, link: extractLink}));
+                // }
+            })
+            }
+        })
 stream.end();
-// */
-
-/*
-
-*/
-
-
 
 function endsWith(path, exts) {
     var result = false;
