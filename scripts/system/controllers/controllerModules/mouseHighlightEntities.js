@@ -63,6 +63,9 @@
                             this.highlightedEntity = targetEntityID;
                         }
                     }
+                } else if (this.highlightedEntity) {
+                    dispatcherUtils.unhighlightTargetEntity(this.highlightedEntity);
+                    this.highlightedEntity = null;
                 }
             }
 
