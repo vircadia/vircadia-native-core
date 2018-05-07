@@ -56,6 +56,12 @@
             return canGrabEntity;
         };
 
+        this.clearAll = function() {
+            this.highlightedEntities.forEach(function(entity) {
+                dispatcherUtils.unhighlightTargetEntity(entity);
+            });
+        };
+
         this.hasHyperLink = function(props) {
             return (props.href !== "" && props.href !== undefined);
         };
@@ -89,7 +95,9 @@
                 }
                 if (this.isGrabable(controllerData, props) || this.hasHyperLink(props)) {
                     dispatcherUtils.highlightTargetEntity(props.id);
-                    newHighlightedEntities.push(props.id);
+                    if (newHighlightedEntities.indexOf(props.id) < 0) {
+                        newHighlightedEntities.push(props.id);
+                    }
                 }
             }
 
@@ -119,7 +127,6 @@
             if (channel === 'Hifi-unhighlight-entity') {
                 try {
                     data = JSON.parse(message);
-
                     var hand = data.hand;
                     if (hand === dispatcherUtils.LEFT_HAND) {
                         leftHighlightNearbyEntities.removeEntityFromHighlightList(data.entityID);
@@ -129,6 +136,9 @@
                 } catch (e) {
                     print("Failed to parse message");
                 }
+            } else if (channel === 'Hifi-unhighlight-all') {
+                leftHighlightNearbyEntities.clearAll();
+                rightHighlightNearbyEntities.clearAll();
             }
         }
     };
@@ -143,6 +153,7 @@
         dispatcherUtils.disableDispatcherModule("RightHighlightNearbyEntities");
     }
     Messages.subscribe('Hifi-unhighlight-entity');
+    Messages.subscribe('Hifi-unhighlight-all');
     Messages.messageReceived.connect(handleMessage);
     Script.scriptEnding.connect(cleanup);
 }());
