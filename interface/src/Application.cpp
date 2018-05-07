@@ -744,9 +744,9 @@ extern InputPluginList getInputPlugins();
 extern void saveInputPluginSettings(const InputPluginList& plugins);
 
 // Parameters used for running tests from teh command line
-const QString TEST_SCRIPT { "--testScript" };
-const QString TEST_QUIT_WHEN_FINISHED { "--quitWhenFinished" };
-const QString TEST_SNAPSHOT_LOCATION { "--testSnapshotLocation" };
+const QString TEST_SCRIPT_COMMAND { "--testScript" };
+const QString TEST_QUIT_WHEN_FINISHED_OPTION { "quitWhenFinished" };
+const QString TEST_SNAPSHOT_LOCATION_COMMAND { "--testSnapshotLocation" };
 
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
@@ -787,7 +787,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     bool inTestMode { false };
     for (int i = 0; i < argc; ++i) {
         QString parameter(argv[i]);
-        if (parameter == TEST_SCRIPT) {
+        if (parameter == TEST_SCRIPT_COMMAND) {
             inTestMode = true;
             break;
         }
@@ -1019,7 +1019,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         const QStringList args = arguments();
 
         for (int i = 0; i < args.size() - 1; ++i) {
-            if (args.at(i) == TEST_SCRIPT  && (i + 1) < args.size()) {
+            if (args.at(i) == TEST_SCRIPT_COMMAND && (i + 1) < args.size()) {
                 QString testScriptPath = args.at(i + 1);
 
                 // If the URL scheme is "http(s)" then use as is, else - treat it as a local file
@@ -1031,10 +1031,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 }
 
 				// quite when finished parameter must directly follow the test script
-                if ((i + 2) < args.size() && args.at(i + 2) == TEST_QUIT_WHEN_FINISHED) {
+                if ((i + 2) < args.size() && args.at(i + 2) == TEST_QUIT_WHEN_FINISHED_OPTION) {
                     quitWhenFinished = true;
                 }
-            } else if (args.at(i) == TEST_SNAPSHOT_LOCATION) {
+            } else if (args.at(i) == TEST_SNAPSHOT_LOCATION_COMMAND) {
                 // Set test snapshot location only if it is a writeable directory
                 QString pathname(args.at(i + 1));
                 QFileInfo fileInfo(pathname);
