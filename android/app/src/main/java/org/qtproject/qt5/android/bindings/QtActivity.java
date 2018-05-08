@@ -504,7 +504,7 @@ public class QtActivity extends Activity {
         // GC: this trick allow us to show a splash activity until Qt app finishes
         // loading
         if (!isLoading) {
-            QtApplication.invokeDelegate();
+            //QtApplication.invokeDelegate();
         }
     }
     //---------------------------------------------------------------------------
@@ -644,7 +644,7 @@ public class QtActivity extends Activity {
     @Override
     protected void onStop() {
         super.onStop();
-        QtApplication.invokeDelegate();
+        //QtApplication.invokeDelegate();
     }
     //---------------------------------------------------------------------------
 

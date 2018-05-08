@@ -14,22 +14,13 @@
 AndroidHelper::AndroidHelper() :
 _accountManager ()
 {
-    workerThread.start();
 }
 
 AndroidHelper::~AndroidHelper() {
-    workerThread.quit();
-    workerThread.wait();
 }
 
 QSharedPointer<AccountManager> AndroidHelper::getAccountManager() {
-
-    _accountManager = QSharedPointer<AccountManager>(new AccountManager, &QObject::deleteLater);
-    _accountManager->setIsAgent(true);
-    _accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
-    _accountManager->moveToThread(&workerThread);
-
-    return _accountManager;
+    return DependencyManager::get<AccountManager>();
 }
 
 void AndroidHelper::requestActivity(const QString &activityName) {
@@ -46,4 +37,12 @@ void AndroidHelper::goBackFromAndroidActivity() {
 
 void AndroidHelper::notifyLoginComplete(bool success) {
     emit loginComplete(success);
+}
+
+void AndroidHelper::setInBackground(bool background) {
+    inBackground = background;
+}
+
+bool AndroidHelper::isInBackground() {
+    return inBackground;
 }

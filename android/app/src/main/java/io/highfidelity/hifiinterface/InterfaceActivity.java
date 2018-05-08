@@ -130,15 +130,13 @@ public class InterfaceActivity extends QtActivity {
         if (!isLoading) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         }
-        // TODO Fix displayPlugin deactivate so it doesn't leave us with a black screen Interface
-        //nativeEnterForeground();
+        nativeEnterForeground();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        // TODO Fix displayPlugin deactivate so it doesn't leave us with a black screen Interface
-        //nativeEnterBackground();
+        nativeEnterBackground();
     }
 
     @Override
