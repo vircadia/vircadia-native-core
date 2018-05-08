@@ -24,7 +24,7 @@ public:
     FBXToJSON& operator<<(const FBXNode& fbxNode);
 
 private:
-    template<typename T> FBXToJSON& operator<<(QVector<T>& arrayProp);
+    template<typename T> FBXToJSON& operator<<(const QVector<T>& arrayProp);
     static std::string stringEscape(const std::string& in);
     int _indentLevel { 0 };
 };

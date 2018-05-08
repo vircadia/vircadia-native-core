@@ -15,7 +15,7 @@
 using std::string;
 
 template<typename T>
-inline FBXToJSON& FBXToJSON::operator<<(QVector<T>& arrayProp) {
+inline FBXToJSON& FBXToJSON::operator<<(const QVector<T>& arrayProp) {
     *this << "[";
     char comma = ' ';
     for (auto& prop : arrayProp) {
@@ -44,7 +44,7 @@ FBXToJSON& FBXToJSON::operator<<(const FBXNode& fbxNode) {
 
     ++_indentLevel;
     int p = 0;
-    char* eol = "";
+    const char* eol = "";
     for (auto& prop : fbxNode.properties) {
         *this << eol << string(_indentLevel * 4, ' ') << "\"p" << p++ << "\":   ";
         switch (prop.userType()) {
