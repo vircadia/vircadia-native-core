@@ -19,8 +19,6 @@
 
 #include "TestHelpers.h"
 
-#pragma optimize("", off)
-
 std::string vertexShaderSource = R"SHADER(
 #line 14
 layout(location = 0) out vec2 outTexCoord0;
