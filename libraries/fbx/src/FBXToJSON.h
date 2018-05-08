@@ -2,7 +2,7 @@
 //  FBXToJSON.h
 //  libraries/fbx/src
 //
-//  Created by Simon Walton on 5/4/2013.
+//  Created by Simon Walton on 5/4/2018.
 //  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -13,6 +13,7 @@
 #define hifi_FBXToJSON_h
 
 #include <sstream>
+#include <string>
 
 // Forward declarations.
 class FBXNode;
@@ -24,6 +25,7 @@ public:
 
 private:
     template<typename T> FBXToJSON& operator<<(QVector<T>& arrayProp);
+    static std::string stringEscape(const std::string& in);
     int _indentLevel { 0 };
 };
 

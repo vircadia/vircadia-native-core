@@ -2,7 +2,7 @@
 //  FBXToJSON.cpp
 //  libraries/fbx/src
 //
-//  Created by Simon Walton on 5/4/2013.
+//  Created by Simon Walton on 5/4/2018.
 //  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -11,6 +11,8 @@
 
 #include "FBXToJSON.h"
 #include "FBX.h"
+
+using std::string;
 
 template<typename T>
 inline FBXToJSON& FBXToJSON::operator<<(QVector<T>& arrayProp) {
@@ -31,10 +33,12 @@ inline FBXToJSON& FBXToJSON::operator<<(QVector<T>& arrayProp) {
 }
 
 FBXToJSON& FBXToJSON::operator<<(const FBXNode& fbxNode) {
-    using std::string;
-
     string nodeName(fbxNode.name);
-    if (nodeName.empty()) nodeName = "nodename";
+    if (nodeName.empty()) {
+        nodeName = "node";
+    } else {
+        nodeName = stringEscape(nodeName);
+    }
 
     *this << string(_indentLevel * 4, ' ') << '"' << nodeName << "\":    {\n";
 
@@ -55,7 +59,7 @@ FBXToJSON& FBXToJSON::operator<<(const FBXNode& fbxNode) {
 
         case QMetaType::QString:
         case QMetaType::QByteArray:
-            *this << '"' << prop.toString().toStdString() << '"';
+            *this << '"' << stringEscape(prop.toByteArray().toStdString()) << '"';
             break;
            
         default:
@@ -86,4 +90,25 @@ FBXToJSON& FBXToJSON::operator<<(const FBXNode& fbxNode) {
     *this << "\n" << string(_indentLevel * 4, ' ') << "}";
     --_indentLevel;
     return *this;
+}
+
+string FBXToJSON::stringEscape(const string& in) {
+    string out;
+    out.reserve(in.length());
+    
+    for (unsigned char inChar: in) {
+        if (inChar == '"') {
+            out.append(R"(\")");
+        }
+        else if (inChar == '\\') {
+            out.append(R"(\\)");
+        }
+        else if (inChar < 0x20 || inChar == 0x7f) {
+            char h[5];
+            sprintf(h, "\\x%02x", inChar);
+            out.append(h);
+        }
+        else out.append(1, inChar);
+    }
+    return out;
 }
