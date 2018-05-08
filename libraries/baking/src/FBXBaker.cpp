@@ -33,7 +33,6 @@
 #include "ModelBakingLoggingCategory.h"
 #include "TextureBaker.h"
 
-#define HIFI_DUMP_FBX
 #ifdef HIFI_DUMP_FBX
 #include "FBXToJSON.h"
 #endif

@@ -24,7 +24,6 @@
 #include <draco/mesh/triangle_soup_mesh_builder.h>
 #include <draco/compression/encode.h>
 
-#define HIFI_DUMP_FBX
 #ifdef HIFI_DUMP_FBX
 #include "FBXToJSON.h"
 #endif
