@@ -62,8 +62,7 @@ QByteArray FBXWriter::encodeFBX(const FBXNode& root) {
     out.setVersion(QDataStream::Qt_4_5);
 
     out.writeRawData(FBX_BINARY_PROLOG, FBX_BINARY_PROLOG.size());
-    auto bytes = QByteArray(FBX_HEADER_BYTES_BEFORE_VERSION - FBX_BINARY_PROLOG.size(), '\0');
-    out.writeRawData(bytes, bytes.size());
+    out.writeRawData("\0\x1a", 3);  // Blender needs this header component.
 
 #ifdef USE_FBX_2016_FORMAT
     out << FBX_VERSION_2016;
