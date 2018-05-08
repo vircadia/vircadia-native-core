@@ -95,6 +95,7 @@ int main(int argc, char *argv[]) {
     app.setApplicationName("Amazing Application");
     QDir::setCurrent(getRelativeDir(".."));
 
+    /*
     QtWebEngine::initialize();
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
@@ -117,9 +118,21 @@ int main(int argc, char *argv[]) {
     setChild(engine, "urlHandler");
     engine.rootContext()->setContextProperty("DebugQML", true);
     engine.rootContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
+    */
 
-    //engine.load(QUrl(QStringLiteral("qrc:/qml/gallery/main.qml")));
-    engine.load(QUrl(QStringLiteral("qml/main.qml")));
+    QQmlApplicationEngine engine;
+    addImportPath(engine, "qml");
+    addImportPath(engine, "../../interface/resources/qml");
+    addImportPath(engine, "../../interface/resources");
+    addImportPath(engine, "../../scripts/developer/tests");
+
+    QFontDatabase::addApplicationFont("../../interface/resources/fonts/FiraSans-Regular.ttf");
+    QFontDatabase::addApplicationFont("../../interface/resources/fonts/FiraSans-SemiBold.ttf");
+    QFontDatabase::addApplicationFont("../../interface/resources/fonts/hifi-glyphs.ttf");
+
+    engine.load(QUrl(QStringLiteral("qml/ControlsGalleryWindow.qml")));
+
+    /*
     for (QObject* rootObject : engine.rootObjects()) {
         if (rootObject->objectName() == "MainWindow") {
             Reticle* reticle = new Reticle(rootObject);
@@ -129,6 +142,7 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
+    */
     return app.exec();
 }
 

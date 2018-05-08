@@ -17,6 +17,10 @@ import "../controls-uit" as HifiControls
 SpinBox {
     id: spinBox
 
+    HifiConstants {
+        id: hifi
+    }
+
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme === hifi.colorSchemes.light
     property string label: ""

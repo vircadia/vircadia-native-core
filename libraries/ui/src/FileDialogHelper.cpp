@@ -52,7 +52,7 @@ QUrl FileDialogHelper::pathToUrl(const QString& path) {
 
 
 QUrl FileDialogHelper::saveHelper(const QString& saveText, const QUrl& currentFolder, const QStringList& selectionFilters) {
-    qDebug(uiLogging) << "Calling save helper with " << saveText << " " << currentFolder << " " << selectionFilters;
+    // qDebug(uiLogging) << "Calling save helper with " << saveText << " " << currentFolder << " " << selectionFilters;
 
     QFileInfo fileInfo(saveText);
 
