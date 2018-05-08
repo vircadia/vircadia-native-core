@@ -90,7 +90,7 @@ QString Snapshot::saveSnapshot(QImage image, const QString& filename, const QStr
 
 QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {
     // return whatever we get back from saved file for snapshot
-    return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true, QString(), QString()));
+    return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true));
 }
 
 QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QString& userSelectedFilename, const QString& userSelectedPathname) {

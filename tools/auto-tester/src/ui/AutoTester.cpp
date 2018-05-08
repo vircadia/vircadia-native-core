@@ -99,8 +99,7 @@ void AutoTester::saveImage(int index) {
 
     QString fullPathname = _directoryName + "/" + _filenames[index];
     if (!image.save(fullPathname, 0, 100)) {
-        QMessageBox messageBox;
-        messageBox.information(0, "Test Aborted", "Failed to save image: " + _filenames[index]);
+        QMessageBox::information(0, "Test Aborted", "Failed to save image: " + _filenames[index]);
         ui.progressBar->setVisible(false);
         return;
     }

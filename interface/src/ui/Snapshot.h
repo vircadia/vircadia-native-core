@@ -52,7 +52,10 @@ public slots:
     Q_INVOKABLE QString getSnapshotsLocation();
     Q_INVOKABLE void setSnapshotsLocation(const QString& location);
 private:
-    static QFile* savedFileForSnapshot(QImage & image, bool isTemporary, const QString& userSelectedFilename, const QString& userSelectedPathname);
+    static QFile* savedFileForSnapshot(QImage& image,
+                                       bool isTemporary,
+                                       const QString& userSelectedFilename = QString(),
+                                       const QString& userSelectedPathname = QString());
 };
 
 #endif // hifi_Snapshot_h
