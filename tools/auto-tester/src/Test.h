@@ -30,10 +30,6 @@ using StepList = std::vector<Step*>;
 class ExtractedText {
 public:
     QString title;
-    QString platform;
-    QString display;
-    QString cpu;
-    QString gpu;
     StepList stepList;
 };
 
