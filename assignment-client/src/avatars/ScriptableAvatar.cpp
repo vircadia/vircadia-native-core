@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ScriptableAvatar.h"
+
 #include <QDebug>
 #include <QThread>
 #include <glm/gtx/transform.hpp>
@@ -16,7 +18,6 @@
 #include <shared/QtHelpers.h>
 #include <GLMHelpers.h>
 #include <AnimUtil.h>
-#include "ScriptableAvatar.h"
 
 
 QByteArray ScriptableAvatar::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) {

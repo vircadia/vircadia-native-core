@@ -9,22 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "CommerceLogging.h"
-#include "Ledger.h"
 #include "Wallet.h"
-#include "Application.h"
-#include "ui/SecurityImageProvider.h"
-#include "scripting/HMDScriptingInterface.h"
-#include <ui/TabletScriptingInterface.h>
-
-#include <PathUtils.h>
-#include <OffscreenUi.h>
-#include <AccountManager.h>
-
-#include <QFile>
-#include <QCryptographicHash>
-#include <QQmlContext>
-#include <QBuffer>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -33,13 +18,28 @@
 #include <openssl/evp.h>
 #include <openssl/aes.h>
 #include <openssl/ecdsa.h>
-
 // I know, right?  But per https://www.openssl.org/docs/faq.html
 // this avoids OPENSSL_Uplink(00007FF847238000,08): no OPENSSL_Applink
 // at runtime.
 #ifdef Q_OS_WIN
 #include <openssl/applink.c>
 #endif
+
+#include <QFile>
+#include <QCryptographicHash>
+#include <QQmlContext>
+#include <QBuffer>
+
+#include <PathUtils.h>
+#include <OffscreenUi.h>
+#include <AccountManager.h>
+#include <ui/TabletScriptingInterface.h>
+
+#include "Application.h"
+#include "CommerceLogging.h"
+#include "Ledger.h"
+#include "ui/SecurityImageProvider.h"
+#include "scripting/HMDScriptingInterface.h"
 
 static const char* KEY_FILE = "hifikey";
 static const char* INSTRUCTIONS_FILE = "backup_instructions.html";
@@ -615,9 +615,15 @@ void Wallet::updateImageProvider() {
     securityImageProvider->setSecurityImage(_securityImage);
 
     // inform tablet security image provider
-    QQmlEngine* tabletEngine = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system")->getTabletSurface()->getSurfaceContext()->engine();
-    securityImageProvider = reinterpret_cast<SecurityImageProvider*>(tabletEngine->imageProvider(SecurityImageProvider::PROVIDER_NAME));
-    securityImageProvider->setSecurityImage(_securityImage);
+    TabletProxy* tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
+    if (tablet) {
+        OffscreenQmlSurface* tabletSurface = tablet->getTabletSurface();
+        if (tabletSurface) {
+            QQmlEngine* tabletEngine = tabletSurface->getSurfaceContext()->engine();
+            securityImageProvider = reinterpret_cast<SecurityImageProvider*>(tabletEngine->imageProvider(SecurityImageProvider::PROVIDER_NAME));
+            securityImageProvider->setSecurityImage(_securityImage);
+        }
+    }
 }
 
 void Wallet::chooseSecurityImage(const QString& filename) {

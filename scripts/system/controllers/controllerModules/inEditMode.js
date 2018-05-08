@@ -78,6 +78,7 @@ Script.include("/~/system/libraries/utils.js");
                 if (controllerData.triggerValues[this.hand] < TRIGGER_ON_VALUE) {
                     this.triggerClicked = false;
                 }
+                Messages.sendLocalMessage('Hifi-unhighlight-all', '');
                 return makeRunningValues(true, [], []);
             }
             this.triggerClicked = false;

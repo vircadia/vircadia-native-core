@@ -9,24 +9,28 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QDebug>
-#include <QHash>
-#include <QObject>
-#include <QtCore/QJsonDocument>
+#include "EntityItemProperties.h"
+
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/ecdsa.h>
-#include <NetworkAccessManager.h>
+
+#include <QDebug>
+#include <QHash>
+#include <QObject>
+#include <QtCore/QJsonDocument>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
+
+#include <NetworkAccessManager.h>
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <Extents.h>
+
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
-#include "EntityItemProperties.h"
 #include "ModelEntityItem.h"
 #include "PolyLineEntityItem.h"
 

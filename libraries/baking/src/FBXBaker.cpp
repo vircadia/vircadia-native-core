@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "FBXBaker.h"
+
 #include <cmath> // need this include so we don't get an error looking for std::isnan
 
 #include <QtConcurrent>
@@ -31,8 +33,7 @@
 #include "ModelBakingLoggingCategory.h"
 #include "TextureBaker.h"
 
-#include "FBXBaker.h"
-
+#define HIFI_DUMP_FBX
 #ifdef HIFI_DUMP_FBX
 #include "FBXToJSON.h"
 #endif
@@ -69,13 +70,6 @@ void FBXBaker::bakeSourceCopy() {
     }
 
     rewriteAndBakeSceneModels();
-
-    if (shouldStop()) {
-        return;
-    }
-
-    // export the FBX with re-written texture references
-    exportScene();
 
     if (shouldStop()) {
         return;
@@ -373,6 +367,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
     }
 }
 
+#if 0
 void FBXBaker::exportScene() {
     // save the relative path to this FBX inside our passed output folder
     auto fileName = _modelURL.fileName();
@@ -410,3 +405,4 @@ void FBXBaker::exportScene() {
 
     qCDebug(model_baking) << "Exported" << _modelURL << "with re-written paths to" << _bakedModelFilePath;
 }
+#endif

@@ -12,10 +12,14 @@
 #ifndef hifi_ModelPackager_h
 #define hifi_ModelPackager_h
 
+#include <memory>
+
 #include <QFileInfo>
 #include <QVariantHash>
 
 #include "ui/ModelsBrowser.h"
+
+class FBXGeometry;
 
 class ModelPackager : public QObject {
 public:
@@ -37,10 +41,12 @@ private:
     QFileInfo _fbxInfo;
     FSTReader::ModelType _modelType;
     QString _texDir;
+    QString _scriptDir;
 
     QVariantHash _mapping;
     std::unique_ptr<FBXGeometry> _geometry;
     QStringList _textures;
+    QStringList _scripts;
 };
 
 

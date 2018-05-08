@@ -9,10 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QDebug>
-#include <RegisteredMetaTypes.h>
 #include "MenuItemProperties.h"
 
+#include <QDebug>
+#include <RegisteredMetaTypes.h>
 
 
 MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& menuItemName,

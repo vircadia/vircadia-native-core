@@ -17,6 +17,8 @@
 #include <render/RenderFetchCullSortTask.h>
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
+#include <TextureCache.h>
+#include <ViewFrustum.h>
 
 class MainRenderTask {
 public:

@@ -24,7 +24,9 @@
 #include <graphics/TextureMap.h>
 #include <image/Image.h>
 #include <ktx/KTX.h>
+#include <TextureMeta.h>
 
+#include <gpu/Context.h>
 #include "KTXCache.h"
 
 namespace gpu {
@@ -75,11 +77,13 @@ protected:
 
     virtual bool isCacheable() const override { return _loaded; }
 
-    virtual void downloadFinished(const QByteArray& data) override;
+    Q_INVOKABLE virtual void downloadFinished(const QByteArray& data) override;
 
     bool handleFailedRequest(ResourceRequest::Result result) override;
 
-    Q_INVOKABLE void loadContent(const QByteArray& content);
+    Q_INVOKABLE void loadMetaContent(const QByteArray& content);
+    Q_INVOKABLE void loadTextureContent(const QByteArray& content);
+
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 
     Q_INVOKABLE void startRequestForNextMipLevel();
@@ -93,6 +97,14 @@ private:
 
     image::TextureUsage::Type _type;
 
+    enum class ResourceType {
+        META,
+        ORIGINAL,
+        KTX
+    };
+
+    ResourceType _currentlyLoadingResourceType { ResourceType::META };
+
     static const uint16_t NULL_MIP_LEVEL;
     enum KTXResourceState {
         PENDING_INITIAL_LOAD = 0,
@@ -103,7 +115,6 @@ private:
         FAILED_TO_LOAD
     };
 
-    bool _sourceIsKTX { false };
     KTXResourceState _ktxResourceState { PENDING_INITIAL_LOAD };
 
     // The current mips that are currently being requested w/ _ktxMipRequest
@@ -151,6 +162,9 @@ public:
     * API to manage texture cache resources.
     * @namespace TextureCache
     *
+    * @hifi-interface
+    * @hifi-client-entity
+    *
     * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
     * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
     * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
@@ -160,44 +174,38 @@ public:
 
     // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
 
-   /**jsdoc
-    * Get the list of all resource URLs.
-    * @function TextureCache.getResourceList
-    * @return {string[]}
-    */
+    /**jsdoc
+     * Get the list of all resource URLs.
+     * @function TextureCache.getResourceList
+     * @returns {string[]}
+     */
 
-   /**jsdoc
-    * @function TextureCache.dirty
-    * @returns {Signal}
-    */
+    /**jsdoc
+     * @function TextureCache.dirty
+     * @returns {Signal}
+     */
 
-   /**jsdoc
-    * @function TextureCache.updateTotalSize
-    * @param {number} deltaSize
-    */
+    /**jsdoc
+     * @function TextureCache.updateTotalSize
+     * @param {number} deltaSize
+     */
 
-   /**jsdoc
-    * @function TextureCache.prefetch
-    * @param {string} url
-    * @param {object} extra
-    * @returns {object}
-    */
+    /**jsdoc
+     * Prefetches a resource.
+     * @function TextureCache.prefetch
+     * @param {string} url - URL of the resource to prefetch.
+     * @param {object} [extra=null]
+     * @returns {Resource}
+     */
 
-   /**jsdoc
-    * Asynchronously loads a resource from the specified URL and returns it.
-    * @function TextureCache.getResource
-    * @param {string} url - URL of the resource to load.
-    * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
-    * @param {} [extra=null]
-    * @return {Resource}
-    */
-
-   /**jsdoc
-    * Prefetches a resource.
-    * @function TextureCache.prefetch
-    * @param {string} url - URL of the resource to prefetch.
-    * @return {Resource}
-    */
+    /**jsdoc
+     * Asynchronously loads a resource from the specified URL and returns it.
+     * @function TextureCache.getResource
+     * @param {string} url - URL of the resource to load.
+     * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
+     * @param {} [extra=null]
+     * @returns {Resource}
+     */
 
 
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
@@ -236,6 +244,9 @@ public:
     static const int DEFAULT_SPECTATOR_CAM_WIDTH { 2048 };
     static const int DEFAULT_SPECTATOR_CAM_HEIGHT { 1024 };
 
+    void setGPUContext(const gpu::ContextPointer& context) { _gpuContext = context; }
+    gpu::ContextPointer getGPUContext() const { return _gpuContext; }
+
 signals:
     /**jsdoc 
      * @function TextureCache.spectatorCameraFramebufferReset
@@ -246,10 +257,11 @@ signals:
 protected:
     
     /**jsdoc
-     * @function TextureCache.prefect
+     * @function TextureCache.prefetch
      * @param {string} url
      * @param {number} type
      * @param {number} [maxNumPixels=67108864]
+     * @returns {Resource}
      */
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
@@ -267,6 +279,8 @@ private:
 
     static const std::string KTX_DIRNAME;
     static const std::string KTX_EXT;
+
+    gpu::ContextPointer _gpuContext { nullptr };
 
     std::shared_ptr<cache::FileCache> _ktxCache { std::make_shared<KTXCache>(KTX_DIRNAME, KTX_EXT) };
 

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ScriptEngine.h"
+
 #include <chrono>
 #include <thread>
 
@@ -67,7 +69,6 @@
 #include "ScriptAvatarData.h"
 #include "ScriptCache.h"
 #include "ScriptEngineLogging.h"
-#include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
 #include "WebSocketClass.h"
@@ -180,6 +181,21 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
     // don't delete `ScriptEngines` until all `ScriptEngine`s are gone
     _scriptEngines(DependencyManager::get<ScriptEngines>())
 {
+    switch (_context) {
+        case Context::CLIENT_SCRIPT:
+            _type = Type::CLIENT;
+            break;
+        case Context::ENTITY_CLIENT_SCRIPT:
+            _type = Type::ENTITY_CLIENT;
+            break;
+        case Context::ENTITY_SERVER_SCRIPT:
+            _type = Type::ENTITY_SERVER;
+            break;
+        case Context::AGENT_SCRIPT:
+            _type = Type::AGENT;
+            break;
+    }
+
     connect(this, &QScriptEngine::signalHandlerException, this, [this](const QScriptValue& exception) {
         if (hasUncaughtException()) {
             // the engine's uncaughtException() seems to produce much better stack traces here

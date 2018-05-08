@@ -52,9 +52,9 @@ public:
 
         batch.setInputFormat(_vertexFormat);
         batch.setInputBuffer(0, _vertexBuffer, 0, sizeof(Vertex));
-        batch.setIndexBuffer(gpu::UINT16, _indexBuffer, 0);
+        batch.setIndexBuffer(gpu::UINT32, _indexBuffer, 0);
 
-        auto numIndices = _indexBuffer->getSize() / sizeof(uint16_t);
+        auto numIndices = _indexBuffer->getSize() / sizeof(uint32_t);
         batch.drawIndexed(gpu::LINES, (int)numIndices);
     }
 
@@ -135,9 +135,9 @@ AnimDebugDraw::AnimDebugDraw() :
         AnimDebugDrawData::Vertex { glm::vec3(1.0, 1.0f, 1.0f), toRGBA(0, 0, 255, 255) },
         AnimDebugDrawData::Vertex { glm::vec3(1.0, 1.0f, 2.0f), toRGBA(0, 0, 255, 255) },
     });
-    static std::vector<uint16_t> indices({ 0, 1, 2, 3, 4, 5 });
+    static std::vector<uint32_t> indices({ 0, 1, 2, 3, 4, 5 });
     _animDebugDrawData->_vertexBuffer->setSubData<AnimDebugDrawData::Vertex>(0, vertices);
-    _animDebugDrawData->_indexBuffer->setSubData<uint16_t>(0, indices);
+    _animDebugDrawData->_indexBuffer->setSubData<uint32_t>(0, indices);
 }
 
 AnimDebugDraw::~AnimDebugDraw() {
@@ -425,9 +425,9 @@ void AnimDebugDraw::update() {
 
         data._isVisible = (numVerts > 0);
 
-        data._indexBuffer->resize(sizeof(uint16_t) * numVerts);
+        data._indexBuffer->resize(sizeof(uint32_t) * numVerts);
         for (int i = 0; i < numVerts; i++) {
-            data._indexBuffer->setSubData<uint16_t>(i, (uint16_t)i);;
+            data._indexBuffer->setSubData<uint32_t>(i, (uint32_t)i);;
         }
     });
     scene->enqueueTransaction(transaction);

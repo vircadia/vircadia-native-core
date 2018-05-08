@@ -141,7 +141,6 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
             out << prop.toInt();
             break;
 
-        encodeNode(out, FBXNode());
         case QMetaType::Float:
             out.device()->write("F", 1);
             out << prop.toFloat();

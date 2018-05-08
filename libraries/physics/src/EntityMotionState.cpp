@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityMotionState.h"
+
 #include <glm/gtx/norm.hpp>
 
 #include <EntityItem.h>
@@ -19,7 +21,6 @@
 #include <Profile.h>
 
 #include "BulletUtil.h"
-#include "EntityMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
@@ -447,7 +448,12 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     // this case is prevented by setting _ownershipState to UNOWNABLE in EntityMotionState::ctor
     assert(!(_entity->getClientOnly() && _entity->getOwningAvatarID() != Physics::getSessionUUID()));
 
-    if (_entity->dynamicDataNeedsTransmit() || _entity->queryAACubeNeedsUpdate()) {
+    // shouldSendUpdate() sould NOT be triggering updates to maintain the queryAACube of dynamic entities.
+    // The server is supposed to predict the transform of such moving things.  The client performs a "double prediction"
+    // where it predicts what the the server is doing, and only sends updates whent the entity's true transform
+    // differs significantly.  That is what the remoteSimulationOutOfSync() logic is all about.
+    if (_entity->dynamicDataNeedsTransmit() ||
+            (!_entity->getDynamic() && _entity->queryAACubeNeedsUpdate())) {
         return true;
     }
 

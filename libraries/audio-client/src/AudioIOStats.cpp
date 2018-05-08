@@ -9,14 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioIOStats.h"
+
 #include <AudioConstants.h>
 #include <MixedProcessedAudioStream.h>
 #include <NodeList.h>
 #include <PositionalAudioStream.h>
 
 #include "AudioClient.h"
-
-#include "AudioIOStats.h"
 
 // This is called 1x/sec (see AudioClient) and we want it to log the last 5s
 static const int INPUT_READS_WINDOW = 5;
