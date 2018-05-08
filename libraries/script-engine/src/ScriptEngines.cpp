@@ -498,6 +498,11 @@ ScriptEnginePointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool i
         connect(scriptEngine.data(), &ScriptEngine::scriptLoaded, this, &ScriptEngines::onScriptEngineLoaded);
         connect(scriptEngine.data(), &ScriptEngine::errorLoadingScript, this, &ScriptEngines::onScriptEngineError);
 
+        // Shutdown Interface when script finishes, if requested
+        if (quitWhenFinished) {
+            connect(scriptEngine.data(), &ScriptEngine::finished, this, &ScriptEngines::quitWhenFinished);
+        }
+
         // get the script engine object to load the script at the designated script URL
         scriptEngine->loadURL(scriptUrl, reload);
     }
@@ -536,6 +541,10 @@ void ScriptEngines::onScriptEngineLoaded(const QString& rawScriptURL) {
     // Update settings with new script
     saveScripts();
     emit scriptCountChanged();
+}
+
+void ScriptEngines::quitWhenFinished() {
+    qApp->quit();
 }
 
 int ScriptEngines::runScriptInitializers(ScriptEnginePointer scriptEngine) {

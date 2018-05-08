@@ -267,6 +267,7 @@ protected:
     ScriptEnginePointer reloadScript(const QString& scriptName, bool isUserLoaded = true) { return loadScript(scriptName, isUserLoaded, false, false, true); }
     void removeScriptEngine(ScriptEnginePointer);
     void onScriptEngineLoaded(const QString& scriptFilename);
+    void quitWhenFinished();
     void onScriptEngineError(const QString& scriptFilename);
     void launchScriptEngine(ScriptEnginePointer);
 
