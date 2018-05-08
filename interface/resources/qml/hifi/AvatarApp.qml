@@ -25,12 +25,34 @@ Rectangle {
 
     property var jointNames;
 
+    function setCurrentAvatar(currentAvatar) {
+        currentAvatarModel.clear();
+
+        root.currentAvatar =  {
+            'name' : '',
+            'url' : allAvatars.makeThumbnailUrl(currentAvatar.avatarUrl),
+            'wearables' : currentAvatar.avatarEntites ? currentAvatar.avatarEntites : [],
+            'entry' : currentAvatar,
+            'getMoreAvatars' : false
+        };
+
+        console.debug('AvatarApp.qml: currentAvatar: ', JSON.stringify(root.currentAvatar, null, '\t'))
+        currentAvatarModel.append(root.currentAvatar);
+        root.currentAvatar = currentAvatarModel.get(currentAvatarModel.count - 1);
+    }
+
     function fromScript(message) {
         console.debug('AvatarApp.qml: fromScript: ', JSON.stringify(message, null, '\t'))
 
         if(message.method === 'initialize') {
             jointNames = message.reply.jointNames;
             emitSendToScript({'method' : getAvatarsMethod});
+        } else if(message.method === 'bookmarkLoaded') {
+            setCurrentAvatar(message.reply.currentAvatar);
+            selectedAvatarId = message.reply.name;
+            var avatarIndex = allAvatars.findAvatarIndex(selectedAvatarId);
+            allAvatars.move(avatarIndex, 0, 1);
+            view.setPage(0);
         } else if(message.method === getAvatarsMethod) {
             var getAvatarsReply = message.reply;
             allAvatars.populate(getAvatarsReply.bookmarks);
@@ -70,20 +92,10 @@ Rectangle {
 
             console.debug('selectedAvatarIndex = -1, avatar is not favorite')
 
+            setCurrentAvatar(currentAvatar);
+
             if(selectedAvatarIndex === -1) {
-
-                var currentAvatarEntry =  {
-                    'name' : '',
-                    'url' : Qt.resolvedUrl(allAvatars.urls[i++ % allAvatars.urls.length]),
-                    'wearables' : currentAvatar.avatarEntites ? currentAvatar.avatarEntites : [],
-                    'entry' : currentAvatar,
-                    'getMoreAvatars' : false
-                };
-
-                currentAvatarModel.append(currentAvatarEntry);
-                currentAvatarEntry = allAvatars.get(allAvatars.count - 1);
-
-                selectedAvatar = currentAvatarEntry;
+                selectedAvatar = root.currentAvatar;
                 view.setPage(0);
 
                 console.debug('selectedAvatar = ', JSON.stringify(selectedAvatar, null, '\t'))
@@ -92,6 +104,8 @@ Rectangle {
             }
         }
     }
+
+    property var currentAvatar;
 
     property string selectedAvatarId: ''
     onSelectedAvatarIdChanged: {
@@ -174,6 +188,9 @@ Rectangle {
         anchors.top: header.bottom
         anchors.bottom: parent.bottom
         jointNames: root.jointNames
+        onWearableChanged: {
+            emitSendToScript({'method' : 'adjustWearable', 'id' : id, 'properties' : properties})
+        }
 
         z: 3
     }
@@ -365,7 +382,7 @@ Rectangle {
                 anchors.fill: parent
                 onClicked: {
                     console.debug('adjustWearables.open');
-                    adjustWearables.open(selectedAvatar);
+                    adjustWearables.open(currentAvatar);
                 }
             }
         }
@@ -488,11 +505,7 @@ Rectangle {
                 property int verticalSpacing: 36
 
                 function selectAvatar(avatar) {
-                    AvatarBookmarks.loadBookmark(avatar.name);
-                    selectedAvatarId = avatar.name;
-                    var avatarIndex = allAvatars.findAvatarIndex(selectedAvatarId);
-                    allAvatars.move(avatarIndex, 0, 1);
-                    view.setPage(0);
+                    emitSendToScript({'method' : 'selectAvatar', 'name' : avatar.name})
                 }
 
                 AvatarsModel {
@@ -630,7 +643,10 @@ Rectangle {
                             imageUrl: url
                             border.color: container.highlighted ? style.colors.blueHighlight : 'transparent'
                             border.width: container.highlighted ? 2 : 0
-                            wearablesCount: !getMoreAvatars ? wearables.count : 0
+                            wearablesCount: {
+                                console.debug('getMoreAvatars: ', getMoreAvatars, 'name: ', name);
+                                return !getMoreAvatars ? wearables.count : 0
+                            }
                             onWearablesCountChanged: {
                                 console.debug('delegate: AvatarThumbnail.wearablesCount: ', wearablesCount)
                             }

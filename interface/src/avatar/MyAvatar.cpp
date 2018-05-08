@@ -1596,7 +1596,11 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
             auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(child);
             if (modelEntity) {
                 QVariantMap avatarEntityData;
-                EntityItemProperties entityProperties = modelEntity->getProperties();
+                EncodeBitstreamParams params;
+                auto desiredProperties = modelEntity->getEntityProperties(params);
+                desiredProperties += PROP_LOCAL_POSITION;
+                desiredProperties += PROP_LOCAL_ROTATION;
+                EntityItemProperties entityProperties = modelEntity->getProperties(desiredProperties);
                 QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
                 avatarEntityData["properties"] = scriptProperties.toVariant();
                 avatarEntitiesData.append(QVariant(avatarEntityData));

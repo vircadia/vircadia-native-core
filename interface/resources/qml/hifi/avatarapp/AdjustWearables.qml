@@ -11,6 +11,8 @@ Rectangle {
     height: 706
     color: 'white'
 
+    signal wearableChanged(var id, var properties);
+
     property bool modified: false;
     Component.onCompleted: {
         modified = false;
@@ -24,11 +26,13 @@ Rectangle {
     property var onButton1Clicked;
     property var jointNames;
 
+    property var wearables: ({})
     function open(avatar) {
-        console.debug('AdjustWearables.qml: open');
+        console.debug('AdjustWearables.qml: open: ', JSON.stringify(avatar, null, '\t'));
 
         visible = true;
         wearablesCombobox.model.clear();
+        wearables = {};
 
         console.debug('AdjustWearables.qml: avatar.wearables.count: ', avatar.wearables.count);
         for(var i = 0; i < avatar.wearables.count; ++i) {
@@ -38,6 +42,12 @@ Rectangle {
             for(var j = (wearable.modelURL.length - 1); j >= 0; --j) {
                 if(wearable.modelURL[j] === '/') {
                     wearable.text = wearable.modelURL.substring(j + 1) + ' [%jointIndex%]'.replace('%jointIndex%', jointNames[wearable.parentJointIndex]);
+                    wearables[wearable.id] = {
+                        position: wearable.localPosition,
+                        rotation: wearable.localRotation,
+                        dimensions: wearable.dimensions
+                    };
+
                     console.debug('wearable.text = ', wearable.text);
                     break;
                 }
@@ -79,6 +89,25 @@ Rectangle {
 
             model: ListModel {
             }
+
+            comboBox.onCurrentIndexChanged: {
+                console.debug('wearable index changed: ', currentIndex);
+                var currentWearable = wearablesCombobox.model.get(currentIndex)
+
+                if(currentWearable) {
+                    position.notify = false;
+                    position.xvalue = currentWearable.localPosition.x
+                    position.yvalue = currentWearable.localPosition.y
+                    position.zvalue = currentWearable.localPosition.z
+                    position.notify = true;
+
+                    rotation.notify = false;
+                    rotation.xvalue = currentWearable.localRotationAngles.x
+                    rotation.yvalue = currentWearable.localRotationAngles.y
+                    rotation.zvalue = currentWearable.localRotationAngles.z
+                    rotation.notify = true;
+                }
+            }
         }
 
         Column {
@@ -101,9 +130,25 @@ Rectangle {
                 id: position
                 backgroundColor: "lightgray"
 
-                onXvalueChanged: modified = true;
-                onYvalueChanged: modified = true;
-                onZvalueChanged: modified = true;
+                function notifyPositionChanged() {
+                    modified = true;
+                    var properties = {};
+                    properties.localPosition = { 'x' : xvalue, 'y' : yvalue, 'z' : zvalue }
+
+                    var currentWearable = wearablesCombobox.model.get(wearablesCombobox.currentIndex)
+                    wearableChanged(currentWearable.id, properties);
+                }
+
+                property bool notify: false;
+
+                onXvalueChanged: if(notify) notifyPositionChanged();
+                onYvalueChanged: if(notify) notifyPositionChanged();
+                onZvalueChanged: if(notify) notifyPositionChanged();
+
+                decimals: 4
+                realFrom: -100
+                realTo: 100
+                realStepSize: 0.0001
             }
         }
 
@@ -127,9 +172,25 @@ Rectangle {
                 id: rotation
                 backgroundColor: "lightgray"
 
-                onXvalueChanged: modified = true;
-                onYvalueChanged: modified = true;
-                onZvalueChanged: modified = true;
+                function notifyRotationChanged() {
+                    modified = true;
+                    var properties = {};
+                    properties.localRotationAngles = { 'x' : xvalue, 'y' : yvalue, 'z' : zvalue }
+
+                    var currentWearable = wearablesCombobox.model.get(wearablesCombobox.currentIndex)
+                    wearableChanged(currentWearable.id, properties);
+                }
+
+                property bool notify: false;
+
+                onXvalueChanged: if(notify) notifyRotationChanged();
+                onYvalueChanged: if(notify) notifyRotationChanged();
+                onZvalueChanged: if(notify) notifyRotationChanged();
+
+                decimals: 4
+                realFrom: -100
+                realTo: 100
+                realStepSize: 0.0001
             }
         }
 

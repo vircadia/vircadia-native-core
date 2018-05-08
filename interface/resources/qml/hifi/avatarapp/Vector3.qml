@@ -5,6 +5,7 @@ import "../../controls-uit" as HifiControlsUit
 import "../../controls" as HifiControls
 
 Row {
+    id: root
     width: parent.width
     height: xspinner.controlHeight
 
@@ -12,11 +13,16 @@ Row {
     property int spinboxWidth: (parent.width - 2 * spinboxSpace) / 3
     property color backgroundColor: "darkgray"
 
+    property int decimals: 4
+    property real realFrom: 0
+    property real realTo: 100
+    property real realStepSize: 0.0001
+
     spacing: spinboxSpace
 
-    property real xvalue: xspinner.value
-    property real yvalue: yspinner.value
-    property real zvalue: zspinner.value
+    property alias xvalue: xspinner.realValue
+    property alias yvalue: yspinner.realValue
+    property alias zvalue: zspinner.realValue
 
     HifiControlsUit.SpinBox {
         id: xspinner
@@ -25,6 +31,10 @@ Row {
         backgroundColor: parent.backgroundColor
         colorLabelInside: hifi.colors.redHighlight
         colorScheme: hifi.colorSchemes.light
+        decimals: root.decimals;
+        realFrom: root.realFrom
+        realTo: root.realTo
+        realStepSize: root.realStepSize
     }
 
     HifiControlsUit.SpinBox {
@@ -34,6 +44,10 @@ Row {
         backgroundColor: parent.backgroundColor
         colorLabelInside: hifi.colors.greenHighlight
         colorScheme: hifi.colorSchemes.light
+        decimals: root.decimals;
+        realFrom: root.realFrom
+        realTo: root.realTo
+        realStepSize: root.realStepSize
     }
 
     HifiControlsUit.SpinBox {
@@ -43,5 +57,9 @@ Row {
         backgroundColor: parent.backgroundColor
         colorLabelInside: hifi.colors.primaryHighlight
         colorScheme: hifi.colorSchemes.light
+        decimals: root.decimals;
+        realFrom: root.realFrom
+        realTo: root.realTo
+        realStepSize: root.realStepSize
     }
 }

@@ -162,6 +162,8 @@ void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
 
             const QVariantList& avatarEntities = bookmark.value(ENTRY_AVATAR_ENTITIES, QVariantList()).toList();
             addAvatarEntities(avatarEntities);
+
+            emit bookmarkLoaded(bookmarkName);
         }
     }
 }
@@ -234,6 +236,7 @@ void AvatarBookmarks::changeToBookmarkedAvatar() {
             const QVariantList& avatarEntities = bookmark.value(ENTRY_AVATAR_ENTITIES, QVariantList()).toList();
             addAvatarEntities(avatarEntities);
 
+            emit bookmarkLoaded(action->text());
         } else {
             qCDebug(interfaceapp) << " Bookmark entry does not match client version, make sure client has a handler for the new AvatarBookmark";
         }

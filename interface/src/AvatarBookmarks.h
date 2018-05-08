@@ -45,6 +45,9 @@ public slots:
     void removeBookmark(const QString& bookmarkName);
     QVariantMap getBookmarks() { return _bookmarks; }
 
+signals:
+    void bookmarkLoaded(const QString& bookmarkName);
+
 protected:
     void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) override;
     void readFromFile() override;
