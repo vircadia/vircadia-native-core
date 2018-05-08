@@ -2847,32 +2847,37 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     return createMatFromQuatAndPos(headOrientationYawOnly, bodyPos);
 }
 
-float slope(float num) {
-    float constantK = 1.0;
+// ease in function for dampening cg movement
+static float slope(float num) {
+    const float CURVE_CONSTANT = 1.0f;
     float ret = 1.0f;
     if (num > 0.0f) {
-        ret = 1.0f - (1.0f / (1.0f + constantK * num));
+        ret = 1.0f - (1.0f / (1.0f + CURVE_CONSTANT * num));
     }
     return ret;
 }
 
-glm::vec3 dampenCgMovement(glm::vec3 rawCg, float baseOfSupportScale) {
+// This function gives a soft clamp at the edge of the base of support
+// dampenCgMovement returns the cg value in Avatar space.
+// rawCg is also in Avatar space
+// baseOfSupportScale is based on the height of the user
+static glm::vec3 dampenCgMovement(glm::vec3 rawCg, float baseOfSupportScale) {
     float distanceFromCenterZ = rawCg.z;
     float distanceFromCenterX = rawCg.x;
 
-    // The dampening scale factors makes the slope function soft clamp the 
-    // cg at the edge of the base of support of the feet, in the lateral and posterior directions. 
-    // In the forward direction we need a different scale because forward is in 
-    // the direction of the hip extensor joint, which means bending usually happens 
+    // The dampening scale factors makes the slope function soft clamp the
+    // cg at the edge of the base of support of the feet, in the lateral and posterior directions.
+    // In the forward direction we need a different scale because forward is in
+    // the direction of the hip extensor joint, which means bending usually happens
     // well before reaching the edge of the base of support.
     // The scale of the base of support reflects the size of the user in real life.
-    float forwardDampeningFactor = 0.5f;
-    float lateralAndBackDampeningScaleFactor = 2.0f;
-    float clampFront = DEFAULT_AVATAR_SUPPORT_BASE_FRONT * forwardDampeningFactor * baseOfSupportScale;
+    const float forwardDampeningFactor = 0.5f;
+    const float lateralAndBackDampeningScaleFactor = 2.0f;
+    const float clampFront = DEFAULT_AVATAR_SUPPORT_BASE_FRONT * forwardDampeningFactor * baseOfSupportScale;
     float clampBack = DEFAULT_AVATAR_SUPPORT_BASE_BACK * lateralAndBackDampeningScaleFactor * baseOfSupportScale;
     float clampLeft = DEFAULT_AVATAR_SUPPORT_BASE_LEFT * lateralAndBackDampeningScaleFactor * baseOfSupportScale;
     float clampRight = DEFAULT_AVATAR_SUPPORT_BASE_RIGHT * lateralAndBackDampeningScaleFactor * baseOfSupportScale;
-    glm::vec3 dampedCg = {0.0f,0.0f,0.0f};
+    glm::vec3 dampedCg(0.0f, 0.0f, 0.0f);
 
     // find the damped z coord of the cg
     if (rawCg.z < 0.0f) {
@@ -2906,8 +2911,9 @@ glm::vec3 dampenCgMovement(glm::vec3 rawCg, float baseOfSupportScale) {
     return dampedCg;
 }
 
+// computeCounterBalance returns the center of gravity in Avatar space
 glm::vec3 MyAvatar::computeCounterBalance() const {
-    struct jointMass {
+    struct JointMass {
         QString name;
         float weight;
         glm::vec3 position;
@@ -2925,14 +2931,14 @@ glm::vec3 MyAvatar::computeCounterBalance() const {
     // find the current center of gravity position based on head and hand moments
     float hipsMass = 40.0f;
     float totalMass = 0.0f;
-    glm::vec3 sumOfMoments = { 0.0f, 0.0f, 0.0f };
+    glm::vec3 sumOfMoments(0.0f, 0.0f, 0.0f);
     for (int i = 0; i < 3; i++) {
         const QString jointName = cgMasses[i].name;
         cgMasses[i].position = getAbsoluteJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint(jointName));
         sumOfMoments += cgMasses[i].weight * cgMasses[i].position;
         totalMass += cgMasses[i].weight;
     }
-    glm::vec3 currentCg = (1 / totalMass) * sumOfMoments;
+    glm::vec3 currentCg = (1.0f / totalMass) * sumOfMoments;
     currentCg.y = 0.0f;
     // dampening the center of gravity, in effect, limits the value to the perimeter of the base of support
     float baseScale = 1.0f;
@@ -2969,7 +2975,8 @@ glm::vec3 MyAvatar::computeCounterBalance() const {
     return counterBalancedCg;
 }
 
-glm::quat computeNewHipsRotation(glm::quat hipYawRot, glm::vec3 curHead, glm::vec3 hipPos) {
+// this function matches the hips rotation to the new cg head axis
+static glm::quat computeNewHipsRotation(glm::quat hipYawRot, glm::vec3 curHead, glm::vec3 hipPos) {
     glm::vec3 spineVec = curHead - hipPos;
     glm::quat finalRot = Quaternions::IDENTITY;
 
