@@ -4330,13 +4330,7 @@ void setupCpuMonitorThread() {
 
 void Application::idle() {
     PerformanceTimer perfTimer("idle");
-
-#if defined(Q_OS_ANDROID)
-    if (AndroidHelper::instance().isInBackground()) {
-        return;
-    }
-#endif
-
+    
     // Update the deadlock watchdog
     updateHeartbeat();
 
@@ -8183,13 +8177,15 @@ void Application::openAndroidActivity(const QString& activityName) {
 void Application::enterBackground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
-    AndroidHelper::instance().setInBackground(true);
+    getActiveDisplayPlugin()->deactivate();
 }
 
 void Application::enterForeground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                                   "start", Qt::BlockingQueuedConnection);
-    AndroidHelper::instance().setInBackground(false);
+    if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
+        qWarning() << "Could not re-activate display plugin";
+    }
 }
 #endif
 

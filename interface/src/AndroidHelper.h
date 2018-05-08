@@ -26,8 +26,6 @@ public:
     void requestActivity(const QString &activityName);
     void notifyLoadComplete();
     void goBackFromAndroidActivity();
-    void setInBackground(bool background);
-    bool isInBackground();
 
     void notifyLoginComplete(bool success);
 
@@ -45,8 +43,6 @@ signals:
 private:
     AndroidHelper();
     ~AndroidHelper();
-    QSharedPointer<AccountManager> _accountManager;
-    bool inBackground;
 };
 
 #endif

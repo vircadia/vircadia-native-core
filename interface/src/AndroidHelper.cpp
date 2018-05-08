@@ -11,9 +11,7 @@
 #include "AndroidHelper.h"
 #include <QDebug>
 
-AndroidHelper::AndroidHelper() :
-_accountManager ()
-{
+AndroidHelper::AndroidHelper() {
 }
 
 AndroidHelper::~AndroidHelper() {
@@ -37,12 +35,4 @@ void AndroidHelper::goBackFromAndroidActivity() {
 
 void AndroidHelper::notifyLoginComplete(bool success) {
     emit loginComplete(success);
-}
-
-void AndroidHelper::setInBackground(bool background) {
-    inBackground = background;
-}
-
-bool AndroidHelper::isInBackground() {
-    return inBackground;
 }
