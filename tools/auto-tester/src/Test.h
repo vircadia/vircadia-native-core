@@ -76,8 +76,6 @@ private:
     const QString TEST_RESULTS_FOLDER { "TestResults" };
     const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
 
-    QMessageBox messageBox;
-
     QDir imageDirectory;
 
     MismatchWindow mismatchWindow;

@@ -115,6 +115,5 @@ void AutoTester::saveImage(int index) {
 }
 
 void AutoTester::about() {
-    QMessageBox messageBox;
-    messageBox.information(0, "About", QString("Built ") + __DATE__ + " : " + __TIME__);
+    QMessageBox::information(0, "About", QString("Built ") + __DATE__ + " : " + __TIME__);
 }
