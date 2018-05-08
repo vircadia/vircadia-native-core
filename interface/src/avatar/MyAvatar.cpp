@@ -3049,6 +3049,30 @@ void drawBaseOfSupport(float baseOfSupportScale, float footLocal, glm::mat4 avat
     DebugDraw::getInstance().drawRay(frontLeft, frontRight, rayColor);
 }
 
+// cancel out roll and pitch test fix
+glm::quat cancelOutRollAndPitch2(const glm::quat& q) {
+    glm::vec3 zAxis = q * glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 newZ;
+    glm::vec3 newX;
+    glm::vec3 newY;
+    // cancel out the roll and pitch
+    if (zAxis.x == 0 && zAxis.z == 0.0f) {
+        if (fabs(zAxis.y) > 0.0) {
+            // new z is the up axis, that is the direction the body is pointing
+            newZ = glm::normalize(q * glm::vec3(0.0f, 1.0f, 0.0f));
+        } 
+        newX = glm::cross(vec3(0.0f, 1.0f, 0.0f), newZ);
+        newY = glm::cross(newZ, newX);
+    }
+    else {
+        newZ = glm::normalize(vec3(zAxis.x, 0.0f, zAxis.z));
+        newX = glm::cross(vec3(0.0f, 1.0f, 0.0f), newZ);
+        newY = glm::cross(newZ, newX);
+    }
+    glm::mat4 temp(glm::vec4(newX, 0.0f), glm::vec4(newY, 0.0f), glm::vec4(newZ, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    return glm::quat_cast(temp);
+}
+
 glm::mat4 MyAvatar::deriveBodyUsingCgModel() const {
     glm::mat4 worldToSensorMat = glm::inverse(getSensorToWorldMatrix());
     glm::mat4 avatarToWorldMat = getTransform().getMatrix();
@@ -3062,7 +3086,7 @@ glm::mat4 MyAvatar::deriveBodyUsingCgModel() const {
         // rotate by 180 Y to put the head in same frame as the avatar
         headOrientation = headPose.rotation * Quaternions::Y_180;
     }
-    const glm::quat headOrientationYawOnly = cancelOutRollAndPitch(headOrientation);
+    const glm::quat headOrientationYawOnly = cancelOutRollAndPitch2(headOrientation);
     const float MIX_RATIO = 0.15f;
     // here we mix in some of the head yaw into the hip yaw
     glm::quat hipYawRot = glm::normalize(glm::lerp(glmExtractRotation(avatarToSensorMat), headOrientationYawOnly, MIX_RATIO));
