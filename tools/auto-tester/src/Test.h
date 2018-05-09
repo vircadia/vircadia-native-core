@@ -91,7 +91,12 @@ private:
     const int NUM_DIGITS { 5 };
     const QString EXPECTED_IMAGE_PREFIX { "ExpectedImage_" };
 
-    QString pathToTestResultsDirectory;
+    // We have to directories to work with.
+    // The first is the directory containing the test we are working with
+    // The second contains the snapshots taken for test runs that need to be evaluated
+    QString testDirectory;
+    QString snapshotDirectory;
+
     QStringList expectedImagesFilenames;
     QStringList expectedImagesFullFilenames;
     QStringList resultImagesFullFilenames;
