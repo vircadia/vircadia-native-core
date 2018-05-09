@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModelPackager.h"
+
 #include <QFile>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -20,8 +22,6 @@
 #include "ModelSelector.h"
 #include "ModelPropertiesDialog.h"
 #include "InterfaceLogging.h"
-
-#include "ModelPackager.h"
 
 static const int MAX_TEXTURE_SIZE = 1024;
 
@@ -156,9 +156,11 @@ bool ModelPackager::zipModel() {
     
     QByteArray nameField = _mapping.value(NAME_FIELD).toByteArray();
     tempDir.mkpath(nameField + "/textures");
+    tempDir.mkpath(nameField + "/scripts");
     QDir fbxDir(tempDir.path() + "/" + nameField);
     QDir texDir(fbxDir.path() + "/textures");
-    
+    QDir scriptDir(fbxDir.path() + "/scripts");
+
     // Copy textures
     listTextures();
     if (!_textures.empty()) {
@@ -166,6 +168,23 @@ bool ModelPackager::zipModel() {
         _texDir = _modelFile.path() + "/" + texdirField;
         copyTextures(_texDir, texDir);
     }
+
+    // Copy scripts
+    QByteArray scriptField = _mapping.value(SCRIPT_FIELD).toByteArray();
+    _mapping.remove(SCRIPT_FIELD);
+    if (scriptField.size() > 1) {
+        tempDir.mkpath(nameField + "/scripts");
+        _scriptDir = _modelFile.path() + "/" + scriptField;
+        QDir wdir = QDir(_scriptDir);
+        _mapping.remove(SCRIPT_FIELD);
+        wdir.setSorting(QDir::Name | QDir::Reversed);
+        auto list = wdir.entryList(QDir::NoDotAndDotDot | QDir::AllEntries);
+        for (auto script : list) {
+            auto sc = tempDir.relativeFilePath(scriptDir.path()) + "/" + QUrl(script).fileName();
+            _mapping.insertMulti(SCRIPT_FIELD, sc);
+        }
+        copyDirectoryContent(wdir, scriptDir);
+    } 
     
     // Copy LODs
     QVariantHash lodField = _mapping.value(LOD_FIELD).toHash();
@@ -189,7 +208,10 @@ bool ModelPackager::zipModel() {
     // Correct FST
     _mapping[FILENAME_FIELD] = tempDir.relativeFilePath(newPath);
     _mapping[TEXDIR_FIELD] = tempDir.relativeFilePath(texDir.path());
-    
+
+    for (auto multi : _mapping.values(SCRIPT_FIELD)) {
+        multi.fromValue(tempDir.relativeFilePath(scriptDir.path()) + multi.toString());
+    }
     // Copy FST
     QFile fst(tempDir.path() + "/" + nameField + ".fst");
     if (fst.open(QIODevice::WriteOnly)) {
@@ -237,7 +259,9 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
     if (!mapping.contains(TEXDIR_FIELD)) {
         mapping.insert(TEXDIR_FIELD, ".");
     }
-    
+    if (!mapping.contains(SCRIPT_FIELD)) {
+        mapping.insert(SCRIPT_FIELD, ".");
+    }
     // mixamo/autodesk defaults
     if (!mapping.contains(SCALE_FIELD)) {
         mapping.insert(SCALE_FIELD, 1.0);

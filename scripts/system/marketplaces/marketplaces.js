@@ -789,10 +789,14 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var savedDisablePreviewOptionLocked = false;
     var savedDisablePreviewOption = Menu.isOptionChecked("Disable Preview");;
     function maybeEnableHMDPreview() {
-        setTabletVisibleInSecondaryCamera(true);
-        DesktopPreviewProvider.setPreviewDisabledReason("USER");
-        Menu.setIsOptionChecked("Disable Preview", savedDisablePreviewOption);
-        savedDisablePreviewOptionLocked = false;
+        // Set a small timeout to prevent sensitive data from being shown during
+        // UI fade
+        Script.setTimeout(function () {
+            setTabletVisibleInSecondaryCamera(true);
+            DesktopPreviewProvider.setPreviewDisabledReason("USER");
+            Menu.setIsOptionChecked("Disable Preview", savedDisablePreviewOption);
+            savedDisablePreviewOptionLocked = false;
+        }, 150);
     }
 
     // Function Name: fromQml()

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityMotionState.h"
+
 #include <glm/gtx/norm.hpp>
 
 #include <EntityItem.h>
@@ -19,7 +21,6 @@
 #include <Profile.h>
 
 #include "BulletUtil.h"
-#include "EntityMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"

@@ -13,6 +13,7 @@
 #define hifi_LocationBookmarks_h
 
 #include <DependencyManager.h>
+
 #include "Bookmarks.h"
 
 class LocationBookmarks : public Bookmarks, public  Dependency  {

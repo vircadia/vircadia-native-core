@@ -27,8 +27,14 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
 
     /**jsdoc
      * The Audio API features tools to help control audio contexts and settings.
-     * 
+     *
      * @namespace Audio
+     *
+     * @hifi-interface
+     * @hifi-client-entity
+     * @hifi-server-entity
+     * @hifi-assignment-client
+     *
      * @property {boolean} muted
      * @property {boolean} noiseReduction
      * @property {number} inputVolume

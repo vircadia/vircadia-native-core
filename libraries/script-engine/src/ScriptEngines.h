@@ -29,6 +29,10 @@ class ScriptEngine;
 
 /**jsdoc
  * @namespace ScriptDiscoveryService
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @property {string} debugScriptUrl
  * @property {string} defaultScriptsPath
  * @property {ScriptsModel} scriptsModel
@@ -84,10 +88,11 @@ public:
      * @param {boolean} [loadScriptFromEditor=false]
      * @param {boolean} [activateMainWindow=false]
      * @param {boolean} [reload=false]
+     * @param {boolean} [quitWhenFinished=false]
      * @returns {boolean}
      */
     Q_INVOKABLE ScriptEnginePointer loadScript(const QUrl& scriptFilename = QString(),
-        bool isUserLoaded = true, bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
+        bool isUserLoaded = true, bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false, bool quitWhenFinished = false);
 
     /**jsdoc
      * @function ScriptDiscoveryService.stopScript
@@ -259,9 +264,10 @@ protected slots:
 protected:
     friend class ScriptEngine;
 
-    void reloadScript(const QString& scriptName) { loadScript(scriptName, true, false, false, true); }
+    ScriptEnginePointer reloadScript(const QString& scriptName, bool isUserLoaded = true) { return loadScript(scriptName, isUserLoaded, false, false, true); }
     void removeScriptEngine(ScriptEnginePointer);
     void onScriptEngineLoaded(const QString& scriptFilename);
+    void quitWhenFinished();
     void onScriptEngineError(const QString& scriptFilename);
     void launchScriptEngine(ScriptEnginePointer);
 

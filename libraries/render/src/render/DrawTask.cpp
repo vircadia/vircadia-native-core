@@ -9,18 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <LogHandler.h>
-
 #include "DrawTask.h"
-#include "Logging.h"
 
 #include <algorithm>
 #include <assert.h>
 
+#include <LogHandler.h>
 #include <PerfStat.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
+
+#include "Logging.h"
 
 #include "drawItemBounds_vert.h"
 #include "drawItemBounds_frag.h"

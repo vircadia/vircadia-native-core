@@ -9,10 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "UIUtil.h"
+
 #include <QStyle>
 #include <QStyleOptionTitleBar>
-
-#include "UIUtil.h"
 
 int UIUtil::getWindowTitleBarHeight(const QWidget* window) {
     QStyleOptionTitleBar options;

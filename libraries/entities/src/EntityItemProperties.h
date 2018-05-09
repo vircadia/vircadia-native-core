@@ -27,6 +27,7 @@
 #include <PropertyFlags.h>
 #include <OctreeConstants.h>
 #include <ShapeInfo.h>
+#include <ColorUtils.h>
 
 #include "AnimationPropertyGroup.h"
 #include "EntityItemID.h"

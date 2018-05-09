@@ -28,7 +28,11 @@ class QScriptEngine;
  * The HMD API provides access to the HMD used in VR display mode.
  *
  * @namespace HMD
- * @property {Vec3} position - The position of the HMD if currently in VR display mode, otherwise 
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
+ * @property {Vec3} position - The position of the HMD if currently in VR display mode, otherwise
  *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
  * @property {Quat} orientation - The orientation of the HMD if currently in VR display mode, otherwise 
  *     {@link Quat(0)|Quat.IDENTITY}. <em>Read-only.</em>
