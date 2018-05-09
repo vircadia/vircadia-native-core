@@ -96,6 +96,7 @@ var adjustWearables = {
     }
 }
 
+var currentAvatarWearablesBackup = null;
 var currentAvatar = getMyAvatar();
 var selectedAvatarEntityGrabbable = false;
 var selectedAvatarEntity = null;
@@ -128,10 +129,20 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         AvatarBookmarks.loadBookmark(message.name);
         break;
     case 'adjustWearablesOpened':
+        currentAvatarWearablesBackup = getMyAvatarWearables();
         adjustWearables.setOpened(true);
         Entities.mousePressOnEntity.connect(onSelectedEntity);
         break;
     case 'adjustWearablesClosed':
+        if(!message.save) {
+            // revert changes using snapshot of wearables
+            console.debug('reverting... ');
+            if(currentAvatarWearablesBackup !== null) {
+                AvatarBookmarks.updateAvatarEntities(currentAvatarWearablesBackup);
+                sendToQml({'method' : 'wearablesUpdated', 'wearables' : currentAvatarWearablesBackup, 'avatarName' : message.avatarName})
+            }
+        }
+
         adjustWearables.setOpened(false);
         ensureWearableSelected(null);
         Entities.mousePressOnEntity.disconnect(onSelectedEntity);

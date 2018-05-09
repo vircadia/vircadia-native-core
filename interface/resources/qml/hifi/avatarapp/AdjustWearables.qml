@@ -16,7 +16,7 @@ Rectangle {
     signal wearableDeleted(string avatarName, var id);
 
     signal adjustWearablesOpened();
-    signal adjustWearablesClosed();
+    signal adjustWearablesClosed(bool status);
 
     property bool modified: false;
     Component.onCompleted: {
@@ -27,19 +27,9 @@ Rectangle {
         console.debug('modified: ', modified)
     }
 
-    property var onButton2Clicked;
-    property var onButton1Clicked;
     property var jointNames;
-    property var wearables: ({})
     property string avatarName: ''
     property var wearablesModel;
-
-    function backupWearables(avatar) {
-        for(var i = 0; i < avatar.wearables.count; ++i) {
-            var wearable = avatar.wearables.get(i).properties;
-            wearables[wearable.id] = JSON.stringify(wearable)
-        }
-    }
 
     function open(avatar) {
         adjustWearablesOpened();
@@ -48,13 +38,15 @@ Rectangle {
         visible = true;
         avatarName = avatar.name;
         wearablesModel = avatar.wearables;
-        wearables = {};
-
         refresh(avatar);
-        backupWearables(avatar);
     }
 
     function refresh(avatar) {
+        console.debug('refresh: ');
+        for(var i = 0; i < avatar.wearables.count; ++i) {
+            console.debug('wearable: ', avatar.wearables.get(i).properties.id);
+        }
+
         wearablesCombobox.model.clear();
         console.debug('AdjustWearables.qml: open: avatar.wearables.count: ', avatar.wearables.count);
         for(var i = 0; i < avatar.wearables.count; ++i) {
@@ -109,9 +101,9 @@ Rectangle {
         }
     }
 
-    function close() {
+    function close(status) {
         visible = false;
-        adjustWearablesClosed();
+        adjustWearablesClosed(status);
     }
 
     HifiConstants { id: hifi }
@@ -324,19 +316,11 @@ Rectangle {
         noText: "CANCEL"
 
         onYesClicked: function() {
-            if(onButton2Clicked) {
-                onButton2Clicked();
-            } else {
-                root.close();
-            }
+            root.close(true);
         }
 
         onNoClicked: function() {
-            if(onButton1Clicked) {
-                onButton1Clicked();
-            } else {
-                root.close();
-            }
+            root.close(false);
         }
     }
 }

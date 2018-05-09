@@ -43,6 +43,7 @@ public slots:
     void saveBookmark(const QString& bookmarkName);
     void loadBookmark(const QString& bookmarkName);
     void removeBookmark(const QString& bookmarkName);
+    void updateAvatarEntities(const QVariantList& avatarEntities);
     QVariantMap getBookmarks() { return _bookmarks; }
 
 signals:

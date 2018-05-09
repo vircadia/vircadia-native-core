@@ -136,6 +136,14 @@ void AvatarBookmarks::removeBookmark(const QString& bookmarkName) {
     }
 }
 
+void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities)
+{
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    myAvatar->removeAvatarEntities();
+
+    addAvatarEntities(avatarEntities);
+}
+
 void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
     if (QThread::currentThread() != thread()) {
         BLOCKING_INVOKE_METHOD(this, "loadBookmark", Q_ARG(QString, bookmarkName));

@@ -56,11 +56,22 @@ Rectangle {
             adjustWearables.refreshWearable(message.entityID, message.wearableIndex, message.properties);
         } else if(message.method === 'wearablesUpdated') {
             var wearablesModel = currentAvatarModel.get(0).wearables;
+
+            console.debug('handling wearablesUpdated, new wearables count:', message.wearables.length, ': old wearables: ');
+            for(var i = 0; i < wearablesModel.count; ++i) {
+                console.debug('wearable: ', wearablesModel.get(i).properties.id);
+            }
+
             wearablesModel.clear();
             message.wearables.forEach(function(wearable) {
                 wearablesModel.append(wearable);
             });
-            console.debug('wearablesUpdated: ', JSON.stringify(wearablesModel, 0, 4), '*****', JSON.stringify(message.wearables, 0, 4));
+
+            console.debug('handling wearablesUpdated: new wearables: ');
+            for(var i = 0; i < wearablesModel.count; ++i) {
+                console.debug('wearable: ', wearablesModel.get(i).properties.id);
+            }
+
             adjustWearables.refresh(root.currentAvatar);
         } else if(message.method === 'bookmarkLoaded') {
             setCurrentAvatar(message.reply.currentAvatar);
@@ -210,10 +221,10 @@ Rectangle {
             emitSendToScript({'method' : 'deleteWearable', 'entityID' : id, 'avatarName' : avatarName});
         }
         onAdjustWearablesOpened: {
-            emitSendToScript({'method' : 'adjustWearablesOpened'});
+            emitSendToScript({'method' : 'adjustWearablesOpened', 'avatarName' : avatarName});
         }
         onAdjustWearablesClosed: {
-            emitSendToScript({'method' : 'adjustWearablesClosed'});
+            emitSendToScript({'method' : 'adjustWearablesClosed', 'save' : status, 'avatarName' : avatarName});
         }
         onWearableSelected: {
             emitSendToScript({'method' : 'selectWearable', 'entityID' : id});
