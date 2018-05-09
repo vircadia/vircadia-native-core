@@ -3022,11 +3022,10 @@ glm::quat cancelOutRollAndPitch2(const glm::quat& q) {
         if (fabs(zAxis.y) > 0.0) {
             // new z is the up axis, that is the direction the body is pointing
             newZ = glm::normalize(q * glm::vec3(0.0f, 1.0f, 0.0f));
-        } 
+        }
         newX = glm::cross(vec3(0.0f, 1.0f, 0.0f), newZ);
         newY = glm::cross(newZ, newX);
-    }
-    else {
+    } else {
         newZ = glm::normalize(vec3(zAxis.x, 0.0f, zAxis.z));
         newX = glm::cross(vec3(0.0f, 1.0f, 0.0f), newZ);
         newY = glm::cross(newZ, newX);
@@ -3057,10 +3056,10 @@ glm::mat4 MyAvatar::deriveBodyUsingCgModel() const {
 
     // get the new center of gravity
     const glm::vec3 cgHipsPosition = computeCounterBalance();
-    
+
     // find the new hips rotation using the new head-hips axis as the up axis
     glm::mat4 avatarHipsMat = computeNewHipsMatrix(glmExtractRotation(avatarHeadMat), extractTranslation(avatarHeadMat), cgHipsPosition);
-    
+
     // convert hips from avatar to sensor space
     return worldToSensorMat * avatarToWorldMat * avatarHipsMat;
 }
