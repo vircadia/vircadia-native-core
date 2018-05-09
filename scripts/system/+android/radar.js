@@ -346,9 +346,9 @@ function pinchUpdate(event) {
     }
 
     Camera.position = { 
-        x: Camera.position.x, 
-        y:radarHeight, 
-        z:Camera.position.z 
+        x : Camera.position.x, 
+        y : radarHeight, 
+        z : Camera.position.z 
     };
 
     if (!draggingCamera) {
@@ -360,7 +360,7 @@ function pinchUpdate(event) {
 }
 
 function isInsideSquare(coords0, coords1, halfside) {
-    return coords0 != undefined && coords1!= undefined &&
+    return coords0 != undefined && coords1 != undefined &&
             Math.abs(coords0.x - coords1.x) <= halfside
             && Math.abs(coords0.y - coords1.y) <= halfside;
 }
@@ -372,7 +372,7 @@ function dragScrollUpdate(event) {
     // drag management
     var pickRay = Camera.computePickRay(event.x, event.y);
     var dragAt = Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction,
-            radarHeight-MyAvatar.position.y));
+            radarHeight - MyAvatar.position.y));
 
     if (lastDragAt === undefined || lastDragAt === null) {
         lastDragAt = dragAt;
@@ -1082,29 +1082,20 @@ function renderAllOthersAvatarIcons() {
     }
 }
 
-/*******************************************************************************
- * Entities (to remark) cache structure for showing entities markers
- ******************************************************************************/
-
 var ICON_ENTITY_DEFAULT_DIMENSIONS = {
     x : 0.10,
     y : 0.00001,
     z : 0.10
 };
 
-var entityIconModelDimensionsVal = {
-    x : 0,
-    y : 0.00001,
-    z : 0
-};
+
 function teleportIconModelDimensions(y) {
-    // given the current height, give a size
-    // TODO: receive entity.position.y and substract to radarHeight
+    var teleportModelDimensions = ICON_ENTITY_DEFAULT_DIMENSIONS;
     var xz = -0.002831 * (radarHeight - y) + 0.1;
-    entityIconModelDimensionsVal.x = xz;
-    entityIconModelDimensionsVal.z = xz;
+    teleportModelDimensions.x = xz;
+    teleportModelDimensions.z = xz;
     // reuse object
-    return entityIconModelDimensionsVal;
+    return teleportModelDimensions;
 }
 
 /*******************************************************************************
