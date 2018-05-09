@@ -13,8 +13,6 @@
 #define hifi_Android_Helper_h
 
 #include <QObject>
-#include <QThread>
-#include <AccountManager.h>
 
 class AndroidHelper : public QObject {
     Q_OBJECT
