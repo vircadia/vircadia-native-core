@@ -9,6 +9,8 @@
 #pragma once
 
 #include <QtTest/QtTest>
+#include <QtCore/QTemporaryDir>
+
 #include <gpu/Forward.h>
 #include <gl/OffscreenGLCanvas.h>
 
@@ -18,7 +20,7 @@ class TextureTest : public QObject {
 private:
     void beginFrame();
     void endFrame();
-    void renderFrame(const std::function<void(gpu::Batch&)>& = [](gpu::Batch&){});
+    void renderFrame(const std::function<void(gpu::Batch&)>& = [](gpu::Batch&) {});
 
 private slots:
     void initTestCase();
@@ -26,6 +28,8 @@ private slots:
     void testTextureLoading();
 
 private:
+    QString _resourcesPath;
+    QTemporaryDir _testDataDir;
     OffscreenGLCanvas _canvas;
     gpu::ContextPointer _gpuContext;
     gpu::PipelinePointer _pipeline;

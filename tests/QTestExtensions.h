@@ -13,8 +13,9 @@
 #define hifi_QTestExtensions_hpp
 
 #include <QtTest/QtTest>
+#include <QtCore/QFileInfo>
 #include <functional>
-
+#include <NumericalConstants.h>
 #include "GLMTestUtils.h"
 
 // Implements several extensions to QtTest.
@@ -302,3 +303,43 @@ inline auto errorTest (float actual, float expected, float acceptableRelativeErr
     QCOMPARE_WITH_LAMBDA(actual, expected, errorTest(actual, expected, relativeError))
 
 
+
+inline QString getTestResource(const QString& relativePath) {
+    static QDir dir;
+    static std::once_flag once;
+    std::call_once(once, []{
+        QFileInfo fileInfo(__FILE__);
+        auto parentDir = fileInfo.absoluteDir();
+        auto rootDir = parentDir.absoluteFilePath("..");
+        dir = QDir::cleanPath(rootDir); 
+    });
+        
+    return QDir::cleanPath(dir.absoluteFilePath(relativePath));
+}
+
+inline bool afterUsecs(uint64_t& startUsecs, uint64_t maxIntervalUecs) {
+    auto now = usecTimestampNow();
+    auto interval = now - startUsecs;
+    if (interval > maxIntervalUecs) {
+        startUsecs = now;
+        return true;
+    }
+    return false;
+}
+
+inline bool afterSecs(uint64_t& startUsecs, uint64_t maxIntervalSecs) {
+    return afterUsecs(startUsecs, maxIntervalSecs * USECS_PER_SECOND);
+}
+
+template <typename F>
+void reportEvery(uint64_t& lastReportUsecs, uint64_t secs, F lamdba) {
+    if (afterSecs(lastReportUsecs, secs)) {
+        lamdba();
+    }
+}
+
+inline void failAfter(uint64_t startUsecs, uint64_t secs, const char* message) {
+    if (afterSecs(startUsecs, secs)) {
+        QFAIL(message);
+    }
+}
