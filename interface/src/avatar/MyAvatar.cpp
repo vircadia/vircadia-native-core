@@ -2978,7 +2978,8 @@ static glm::quat computeNewHipsRotation(glm::vec3 curHead, glm::vec3 hipPos) {
     glm::quat finalRot = Quaternions::IDENTITY;
     glm::vec3 newYaxisHips = glm::normalize(spineVec);
     glm::vec3 forward(0.0f, 0.0f, 1.0f);
-    if ((fabs(spineVec.y) == 0.0f) && (glm::length(spineVec) > 0.0f)){
+    const float EPSILON = 0.0001f;
+    if ((fabs(spineVec.y) < EPSILON) && (glm::length(spineVec) > 0.0f)) {
         //y equals zero and hips position != head position
         forward = glm::vec3(0.0f, 1.0f, 0.0f);
     }
@@ -3042,6 +3043,16 @@ glm::quat cancelOutRollAndPitch2(const glm::quat& q) {
     return glm::quat_cast(temp);
 }
 
+static glm::quat saferLerp(const glm::quat& a, const glm::quat& b, float alpha) {
+    // adjust signs if necessary
+    glm::quat bTemp = b;
+    float dot = glm::dot(a, bTemp);
+    if (dot < 0.0f) {
+        bTemp = -bTemp;
+    }
+    return glm::normalize(glm::lerp(a, bTemp, alpha));
+}
+
 // this function finds the hips position using a center of gravity model that 
 // balances the head and hands with the hips over the base of support
 // returns the rotation and position of the Avatar in Sensor space
@@ -3058,10 +3069,11 @@ glm::mat4 MyAvatar::deriveBodyUsingCgModel() const {
         // rotate by 180 Y to put the head in same frame as the avatar
         headOrientation = headPose.rotation * Quaternions::Y_180;
     }
-    const glm::quat headOrientationYawOnly = cancelOutRollAndPitch2(headOrientation);
+    const glm::quat headOrientationYawOnly = cancelOutRollAndPitch(headOrientation);
     const float MIX_RATIO = 0.5f;
     // here we mix in some of the head yaw into the hip yaw
-    glm::quat hipYawRot = glm::normalize(glm::lerp(glmExtractRotation(avatarToSensorMat), headOrientationYawOnly, MIX_RATIO));
+    glm::quat hipYawRot = glm::normalize(saferLerp(glmExtractRotation(avatarToSensorMat), headOrientationYawOnly, MIX_RATIO));
+    // glm::quat hipYawRot = glmExtractRotation(avatarToSensorMat);
     glm::vec3 newLocalHeadPos = glm::inverse(hipYawRot) * (headPosition - extractTranslation(avatarToSensorMat));
 
     if (_enableDebugDrawBaseOfSupport) {
@@ -3078,6 +3090,7 @@ glm::mat4 MyAvatar::deriveBodyUsingCgModel() const {
     // find the new hips rotation using the new head-hips axis as the up axis
     glm::quat newHipsRotation = computeNewHipsRotation(newLocalHeadPos, cgHipsPosition);
     return createMatFromQuatAndPos(hipYawRot*newHipsRotation, hipsPositionFinal);
+    // return createMatFromQuatAndPos(hipYawRot, hipsPositionFinal);
 }
 
 float MyAvatar::getUserHeight() const {
