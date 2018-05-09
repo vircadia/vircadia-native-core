@@ -3073,7 +3073,6 @@ glm::mat4 MyAvatar::deriveBodyUsingCgModel() const {
     const float MIX_RATIO = 0.5f;
     // here we mix in some of the head yaw into the hip yaw
     glm::quat hipYawRot = glm::normalize(saferLerp(glmExtractRotation(avatarToSensorMat), headOrientationYawOnly, MIX_RATIO));
-    // glm::quat hipYawRot = glmExtractRotation(avatarToSensorMat);
     glm::vec3 newLocalHeadPos = glm::inverse(hipYawRot) * (headPosition - extractTranslation(avatarToSensorMat));
 
     if (_enableDebugDrawBaseOfSupport) {
@@ -3090,7 +3089,6 @@ glm::mat4 MyAvatar::deriveBodyUsingCgModel() const {
     // find the new hips rotation using the new head-hips axis as the up axis
     glm::quat newHipsRotation = computeNewHipsRotation(newLocalHeadPos, cgHipsPosition);
     return createMatFromQuatAndPos(hipYawRot*newHipsRotation, hipsPositionFinal);
-    // return createMatFromQuatAndPos(hipYawRot, hipsPositionFinal);
 }
 
 float MyAvatar::getUserHeight() const {
