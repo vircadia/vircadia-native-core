@@ -18,6 +18,8 @@ var METERS_ABOVE_HEAD = 0.4;
 var TEXT_LINE_HEIGHT = .1;
 var TEXT_MARGIN = 0.025;
 
+var HIDE_MS = 10000;
+
 var currentTouchToAnalize = null;
 var rayExclusionList = [];
 
@@ -29,21 +31,31 @@ var currentlyShownAvatar = {
 
 var logEnabled = false;
 
+var hideTimer = null;
+
 function printd(str) {
     if (logEnabled) {       
         print("[displayNames.js] " + str);
     }
 }
 
+function clearOverlay() {
+    currentlyShownAvatar.avatar = null;
+    if (currentlyShownAvatar.overlay) {
+        Overlays.editOverlay(currentlyShownAvatar.overlay, {visible: false});
+    }
+}
+
 function touchedAvatar(avatarID, avatarData) {
     printd("[AVATARNAME] touchEnd FOUND " + JSON.stringify(avatarData));
 
+    if (hideTimer) {
+        Script.clearTimeout(hideTimer);
+    }
+
     // Case: touching an already selected avatar
     if (currentlyShownAvatar.avatar && currentlyShownAvatar.avatarID == avatarID) {
-        currentlyShownAvatar.avatar = null;
-        if (currentlyShownAvatar.overlay) {
-            Overlays.editOverlay(currentlyShownAvatar.overlay, {visible: false});
-        }
+        clearOverlay();
         return;
     }
 
@@ -77,12 +89,16 @@ function touchedAvatar(avatarID, avatarData) {
             x: textSize.width + 2 * TEXT_MARGIN,
             y: TEXT_LINE_HEIGHT + 2 * TEXT_MARGIN
         },
-        localPosition: {x: 0, y: METERS_ABOVE_HEAD, z:0 },
+        localPosition: { x: 0, y: METERS_ABOVE_HEAD, z: 0 },
         text: nameToShow,
         parentID: avatarData.sessionUUID,
         parentJointIndex: avatarData.getJointIndex("Head"),
         visible: true
     });
+
+    hideTimer = Script.setTimeout(function() {
+        clearOverlay();
+    }, HIDE_MS);
 }
 
 function touchBegin(event) {
