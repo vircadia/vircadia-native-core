@@ -16,8 +16,8 @@
 #define LightVolumeConstRef LightVolume
 
 struct LightVolume {
-    PRECISIONQ vec4 positionRadius;
-    PRECISIONQ vec4 directionSpotCos;
+    vec4 positionRadius;
+    vec4 directionSpotCos;
 };
 
 bool lightVolume_isPoint(LightVolume lv) { return bool(lv.directionSpotCos.w < 0.f); }
