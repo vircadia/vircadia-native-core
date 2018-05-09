@@ -34,7 +34,7 @@ vec3 getLightIrradiance(Light l) { return lightIrradiance_getIrradiance(l.irradi
 // Light Ambient
 
 struct LightAmbient {
-    PRECISIONQ vec4 _ambient;
+    vec4 _ambient;
     SphericalHarmonics _ambientSphere;
     mat4 transform;
 };

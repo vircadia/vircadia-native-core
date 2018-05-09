@@ -7,13 +7,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ResourceTests.h"
+
 #include <QNetworkDiskCache>
 
 #include "ResourceCache.h"
 #include "NetworkAccessManager.h"
 #include "DependencyManager.h"
-
-#include "ResourceTests.h"
 
 QTEST_MAIN(ResourceTests)
 

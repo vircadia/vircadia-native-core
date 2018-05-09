@@ -16,6 +16,7 @@
 
 #include <QString>
 #include <QStandardPaths>
+#include <QUrl>
 
 #include <SettingHandle.h>
 #include <DependencyManager.h>
@@ -38,8 +39,7 @@ class Snapshot : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 public:
     Snapshot();
-
-    static QString saveSnapshot(QImage image, const QString& filename);
+    static QString saveSnapshot(QImage image, const QString& filename, const QString& pathname = QString());
     static void save360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const QString& filename);
     static QTemporaryFile* saveTempSnapshot(QImage image);
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
@@ -58,7 +58,10 @@ private slots:
     static void takeNextSnapshot();
 
 private:
-    static QFile* savedFileForSnapshot(QImage & image, bool isTemporary, const QString& userSelectedFilename = QString());
+    static QFile* savedFileForSnapshot(QImage& image,
+                                       bool isTemporary,
+                                       const QString& userSelectedFilename = QString(),
+                                       const QString& userSelectedPathname = QString());
 
     static QString snapshotFilename;
     static bool cubemapOutputFormat;

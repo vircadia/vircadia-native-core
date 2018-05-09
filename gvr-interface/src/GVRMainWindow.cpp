@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "GVRMainWindow.h"
+
 #include <QtGui/QKeyEvent>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QInputDialog>
@@ -36,8 +38,6 @@ const float LIBOVR_LONG_PRESS_DURATION = 0.75f;
 #include "InterfaceView.h"
 #include "LoginDialog.h"
 #include "RenderingClient.h"
-
-#include "GVRMainWindow.h"
 
 
 

@@ -9,10 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <glm/glm.hpp>
-#include <QDebug>
-#include "SharedLogging.h"
 #include "PIDController.h"
+
+#include <glm/glm.hpp>
+
+#include <QDebug>
+
+#include "SharedLogging.h"
 
 float PIDController::update(float measuredValue, float dt, bool resetAccumulator) {
     const float error = getMeasuredValueSetpoint() - measuredValue;   // Sign is the direction we want measuredValue to go. Positive means go higher.

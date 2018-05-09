@@ -14,9 +14,9 @@
 #define LightIrradianceConstRef LightIrradiance
 
 struct LightIrradiance {
-    PRECISIONQ vec4 colorIntensity;
+    vec4 colorIntensity;
     // falloffRadius, cutoffRadius, falloffSpot, spare
-    PRECISIONQ vec4 attenuation;
+    vec4 attenuation;
 };
 
 

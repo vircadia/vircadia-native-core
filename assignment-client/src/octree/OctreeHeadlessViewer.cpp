@@ -19,7 +19,10 @@ void OctreeHeadlessViewer::queryOctree() {
     PacketType packetType = getMyQueryMessageType();
 
     if (_hasViewFrustum) {
-        _octreeQuery.setMainViewFrustum(_viewFrustum);
+        ConicalViewFrustums views { _viewFrustum };
+        _octreeQuery.setConicalViews(views);
+    } else {
+        _octreeQuery.clearConicalViews();
     }
 
     auto nodeList = DependencyManager::get<NodeList>();

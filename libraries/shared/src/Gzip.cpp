@@ -9,8 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <zlib.h>
 #include "Gzip.h"
+
+#include <zlib.h>
 
 const int GZIP_WINDOWS_BIT = 31;
 const int GZIP_CHUNK_SIZE = 4096;

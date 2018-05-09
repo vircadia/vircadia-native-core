@@ -9,14 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "PerfStat.h"
+
 #include <cstdio>
 #include <map>
 #include <string>
 
 #include <QDebug>
 #include <QThread>
-
-#include "PerfStat.h"
 
 #include "NumericalConstants.h"
 #include "SharedLogging.h"

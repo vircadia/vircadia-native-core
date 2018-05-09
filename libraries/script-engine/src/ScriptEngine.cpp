@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ScriptEngine.h"
+
 #include <chrono>
 #include <thread>
 
@@ -67,7 +69,6 @@
 #include "ScriptAvatarData.h"
 #include "ScriptCache.h"
 #include "ScriptEngineLogging.h"
-#include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
 #include "WebSocketClass.h"
