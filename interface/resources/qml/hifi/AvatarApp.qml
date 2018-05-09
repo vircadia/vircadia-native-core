@@ -21,24 +21,29 @@ Rectangle {
 
     ListModel { // the only purpose of this model is to convert JS object to ListElement
         id: currentAvatarModel
+        dynamicRoles: true;
+        function makeAvatarEntry(avatarObject) {
+            clear();
+            append(avatarObject);
+            return get(count - 1);
+        }
     }
 
     property var jointNames;
 
-    function setCurrentAvatar(currentAvatar) {
-        currentAvatarModel.clear();
-
-        root.currentAvatar =  {
+    property var currentAvatar: null;
+    function setCurrentAvatar(avatar) {
+        var currentAvatarObject =  {
             'name' : '',
-            'url' : allAvatars.makeThumbnailUrl(currentAvatar.avatarUrl),
-            'wearables' : currentAvatar.avatarEntites ? currentAvatar.avatarEntites : [],
-            'entry' : currentAvatar,
+            'url' : allAvatars.makeThumbnailUrl(avatar.avatarUrl),
+            'wearables' : avatar.avatarEntites ? avatar.avatarEntites : [],
+            'entry' : avatar,
             'getMoreAvatars' : false
         };
 
-        console.debug('AvatarApp.qml: currentAvatar: ', JSON.stringify(root.currentAvatar, null, '\t'))
-        currentAvatarModel.append(root.currentAvatar);
-        root.currentAvatar = currentAvatarModel.get(currentAvatarModel.count - 1);
+        currentAvatar = currentAvatarModel.makeAvatarEntry(currentAvatarObject);
+        console.debug('AvatarApp.qml: currentAvatarObject: ', currentAvatarObject, 'currentAvatar: ', currentAvatar, JSON.stringify(currentAvatar.wearables, 0, 4));
+        console.debug('currentAvatar.wearables: ', currentAvatar.wearables);
     }
 
     function fromScript(message) {
@@ -47,6 +52,16 @@ Rectangle {
         if(message.method === 'initialize') {
             jointNames = message.reply.jointNames;
             emitSendToScript({'method' : getAvatarsMethod});
+        } else if(message.method === 'wearableUpdated') {
+            adjustWearables.refreshWearable(message.entityID, message.wearableIndex, message.properties);
+        } else if(message.method === 'wearablesUpdated') {
+            var wearablesModel = currentAvatarModel.get(0).wearables;
+            wearablesModel.clear();
+            message.wearables.forEach(function(wearable) {
+                wearablesModel.append(wearable);
+            });
+            console.debug('wearablesUpdated: ', JSON.stringify(wearablesModel, 0, 4), '*****', JSON.stringify(message.wearables, 0, 4));
+            adjustWearables.refresh(root.currentAvatar);
         } else if(message.method === 'bookmarkLoaded') {
             setCurrentAvatar(message.reply.currentAvatar);
             selectedAvatarId = message.reply.name;
@@ -66,7 +81,7 @@ Rectangle {
             for(var i = 0; i < allAvatars.count; ++i) {
                 var thesame = true;
                 for(var prop in currentAvatar) {
-                    console.debug('prop', prop);
+                    // console.debug('prop', prop);
 
                     var v1 = currentAvatar[prop];
                     var v2 = allAvatars.get(i).entry[prop];
@@ -75,14 +90,14 @@ Rectangle {
                     var s1 = JSON.stringify(v1);
                     var s2 = JSON.stringify(v2);
 
-                    console.debug('comparing\n', s1, 'to\n', s2, '...');
+                    // console.debug('comparing\n', s1, 'to\n', s2, '...');
                     if(s1 !== s2) {
                         if(!(Array.isArray(v1) && v1.length === 0 && v2 === undefined)) {
                             thesame = false;
                             break;
                         }
                     }
-                    console.debug('values seems to be the same...');
+                    // console.debug('values seems to be the same...');
                 }
                 if(thesame) {
                     selectedAvatarIndex = i;
@@ -102,10 +117,10 @@ Rectangle {
             } else {
                 view.selectAvatar(allAvatars.get(selectedAvatarIndex));
             }
+        } else if(message.method === 'selectAvatarEntity') {
+            adjustWearables.selectWearableByID(message.entityID);
         }
     }
-
-    property var currentAvatar;
 
     property string selectedAvatarId: ''
     onSelectedAvatarIdChanged: {
@@ -188,8 +203,20 @@ Rectangle {
         anchors.top: header.bottom
         anchors.bottom: parent.bottom
         jointNames: root.jointNames
-        onWearableChanged: {
-            emitSendToScript({'method' : 'adjustWearable', 'id' : id, 'properties' : properties})
+        onWearableUpdated: {
+            emitSendToScript({'method' : 'adjustWearable', 'entityID' : id, 'wearableIndex' : index, 'properties' : properties})
+        }
+        onWearableDeleted: {
+            emitSendToScript({'method' : 'deleteWearable', 'entityID' : id, 'avatarName' : avatarName});
+        }
+        onAdjustWearablesOpened: {
+            emitSendToScript({'method' : 'adjustWearablesOpened'});
+        }
+        onAdjustWearablesClosed: {
+            emitSendToScript({'method' : 'adjustWearablesClosed'});
+        }
+        onWearableSelected: {
+            emitSendToScript({'method' : 'selectWearable', 'entityID' : id});
         }
 
         z: 3

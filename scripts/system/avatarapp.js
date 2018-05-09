@@ -25,22 +25,80 @@ var ENTRY_AVATAR_ENTITIES = "avatarEntites";
 var ENTRY_AVATAR_SCALE = "avatarScale";
 var ENTRY_VERSION = "version";
 
-function getCurrentAvatar() {
-    var currentAvatar = {}
-    currentAvatar[ENTRY_AVATAR_URL] = MyAvatar.skeletonModelURL;
-    currentAvatar[ENTRY_AVATAR_SCALE] = MyAvatar.getAvatarScale();
-    currentAvatar[ENTRY_AVATAR_ATTACHMENTS] = MyAvatar.getAttachmentsVariant();
-    currentAvatar[ENTRY_AVATAR_ENTITIES] = MyAvatar.getAvatarEntitiesVariant();
+function getMyAvatarWearables() {
+    var wearablesArray = MyAvatar.getAvatarEntitiesVariant();
 
-    for(var i = 0; i < currentAvatar[ENTRY_AVATAR_ENTITIES].length; ++i) {
-        var wearable = currentAvatar[ENTRY_AVATAR_ENTITIES][i];
-        console.debug('updating localRotationAngles for wearable: ', JSON.stringify(wearable, null, '\t'));
+    console.debug('avatarapp.js: getMyAvatarWearables(): wearables count: ', wearablesArray.length);
+    for(var i = 0; i < wearablesArray.length; ++i) {
+        var wearable = wearablesArray[i];
+        console.debug('updating localRotationAngles for wearable: ',
+                      wearable.properties.id,
+                      wearable.properties.itemName,
+                      wearable.properties.parentID,
+                      wearable.properties.owningAvatarID,
+                      isGrabbable(wearable.properties.id));
+
         var localRotation = wearable.properties.localRotation;
         wearable.properties.localRotationAngles = Quat.safeEulerAngles(localRotation)
     }
 
-    return currentAvatar;
+    return wearablesArray;
+
+    /*
+    var getAttachedModelEntities = function() {
+        var resultEntities = [];
+        Entities.findEntitiesByType('Model', MyAvatar.position, 100).forEach(function(entityID) {
+            if (isEntityBeingWorn(entityID)) {
+                resultEntities.push({properties : entityID});
+            }
+        });
+        return resultEntities;
+    };
+
+    return getAttachedModelEntities();
+    */
 }
+
+function getMyAvatar() {
+    var avatar = {}
+    avatar[ENTRY_AVATAR_URL] = MyAvatar.skeletonModelURL;
+    avatar[ENTRY_AVATAR_SCALE] = MyAvatar.getAvatarScale();
+    avatar[ENTRY_AVATAR_ATTACHMENTS] = MyAvatar.getAttachmentsVariant();
+    avatar[ENTRY_AVATAR_ENTITIES] = getMyAvatarWearables();
+    console.debug('getMyAvatar: ', JSON.stringify(avatar, null, 4));
+
+    return avatar;
+}
+
+function updateAvatarWearables(avatar, wearables) {
+    avatar[ENTRY_AVATAR_ENTITIES] = wearables;
+}
+
+var adjustWearables = {
+    opened : false,
+    cameraMode : '',
+    setOpened : function(value) {
+        if(this.opened !== value) {
+            console.debug('avatarapp.js: adjustWearables.setOpened: ', value)
+            if(value) {
+                this.cameraMode = Camera.mode;
+                console.debug('avatarapp.js: adjustWearables.setOpened: storing camera mode: ', this.cameraMode);
+
+                if(!HMD.active) {
+                    Camera.mode = 'mirror';
+                }
+            } else {
+                Camera.mode = this.cameraMode;
+            }
+
+            this.opened = value;
+        }
+    }
+}
+
+var currentAvatar = getMyAvatar();
+var selectedAvatarEntityGrabbable = false;
+var selectedAvatarEntity = null;
 
 function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
     console.debug('fromQml: message = ', JSON.stringify(message, null, '\t'))
@@ -50,7 +108,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
 
         message.reply = {
             'bookmarks' : AvatarBookmarks.getBookmarks(),
-            'currentAvatar' : getCurrentAvatar()
+            'currentAvatar' : currentAvatar
         };
 
         console.debug('avatarapp.js: currentAvatar: ', JSON.stringify(message.reply.currentAvatar, null, '\t'))
@@ -59,30 +117,130 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
     case 'adjustWearable':
         if(message.properties.localRotationAngles) {
             message.properties.localRotation = Quat.fromVec3Degrees(message.properties.localRotationAngles)
-            delete message.properties.localRotationAngles;
         }
 
-        console.debug('Entities.editEntity(message.id, message.properties)'.replace('message.id', message.id).replace('message.properties', JSON.stringify(message.properties)));
-        Entities.editEntity(message.id, message.properties);
+        console.debug('Entities.editEntity(message.entityID, message.properties)'.replace('message.entityID', message.entityID).replace('message.properties', JSON.stringify(message.properties)));
+        Entities.editEntity(message.entityID, message.properties);
+        sendToQml({'method' : 'wearableUpdated', 'wearable' : message.entityID, wearableIndex : message.wearableIndex, properties : message.properties})
         break;
     case 'selectAvatar':
         console.debug('avatarapp.js: selecting avatar: ', message.name);
         AvatarBookmarks.loadBookmark(message.name);
         break;
+    case 'adjustWearablesOpened':
+        adjustWearables.setOpened(true);
+        Entities.mousePressOnEntity.connect(onSelectedEntity);
+        break;
+    case 'adjustWearablesClosed':
+        adjustWearables.setOpened(false);
+        ensureWearableSelected(null);
+        Entities.mousePressOnEntity.disconnect(onSelectedEntity);
+        break;
+    case 'selectWearable':
+        ensureWearableSelected(message.entityID);
+        break;
+    case 'deleteWearable':
+        console.debug('before deleting: wearables.length: ', getMyAvatarWearables().length);
+        console.debug(JSON.stringify(Entities.getEntityProperties(message.entityID, ['parentID'])));
 
+        Entities.editEntity(message.entityID, { parentID : null }) // 2do: remove this hack when backend will be fixed
+        console.debug(JSON.stringify(Entities.getEntityProperties(message.entityID, ['parentID'])));
+
+        Entities.deleteEntity(message.entityID);
+        var wearables = getMyAvatarWearables();
+        console.debug('after deleting: wearables.length: ', wearables.length);
+
+        updateAvatarWearables(currentAvatar, wearables);
+        sendToQml({'method' : 'wearablesUpdated', 'wearables' : wearables, 'avatarName' : message.avatarName})
+        break;
     default:
         print('Unrecognized message from AvatarApp.qml:', JSON.stringify(message));
     }
 }
 
+function isGrabbable(entityID) {
+    if(entityID === null) {
+        return false;
+    }
+
+    var properties = Entities.getEntityProperties(entityID, ['clientOnly', 'userData']);
+    if (properties.clientOnly) {
+        var userData;
+        try {
+            userData = JSON.parse(properties.userData);
+        } catch (e) {
+            userData = {};
+        }
+
+        return userData.grabbableKey && userData.grabbableKey.grabbable;
+    }
+
+    return false;
+}
+
+function setGrabbable(entityID, grabbable) {
+    console.debug('making entity', entityID, grabbable ? 'grabbable' : 'not grabbable');
+
+    var properties = Entities.getEntityProperties(entityID, ['clientOnly', 'userData']);
+    if (properties.clientOnly) {
+        var userData;
+        try {
+            userData = JSON.parse(properties.userData);
+        } catch (e) {
+            userData = {};
+        }
+
+        if (userData.grabbableKey === undefined) {
+            userData.grabbableKey = {};
+        }
+        userData.grabbableKey.grabbable = grabbable;
+        Entities.editEntity(entityID, {userData: JSON.stringify(userData)});
+    }
+}
+
+function ensureWearableSelected(entityID) {
+    if(selectedAvatarEntity !== entityID) {
+
+        if(selectedAvatarEntity !== null) {
+            setGrabbable(selectedAvatarEntity, selectedAvatarEntityGrabbable);
+        }
+
+        selectedAvatarEntity = entityID;
+        selectedAvatarEntityGrabbable = isGrabbable(entityID);
+
+        if(selectedAvatarEntity !== null) {
+            setGrabbable(selectedAvatarEntity, true);
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+function isEntityBeingWorn(entityID) {
+    return Entities.getEntityProperties(entityID, 'parentID').parentID === MyAvatar.sessionUUID;
+};
+
+function onSelectedEntity(entityID, pointerEvent) {
+    if (isEntityBeingWorn(entityID)) {
+        console.debug('onSelectedEntity: clicked on wearable', entityID);
+
+        if(ensureWearableSelected(entityID)) {
+            sendToQml({'method' : 'selectAvatarEntity', 'entityID' : selectedAvatarEntity});
+        }
+    }
+}
+
 function sendToQml(message) {
+    console.debug('avatarapp.js: sendToQml: ', JSON.stringify(message, 0, 4));
     tablet.sendToQml(message);
 }
 
 function onBookmarkLoaded(bookmarkName) {
-    var currentAvatar = getCurrentAvatar();
+    currentAvatar = getMyAvatar();
     console.debug('avatarapp.js: onBookmarkLoaded: ', JSON.stringify(currentAvatar, 0, 4));
-    sendToQml({'method' : 'bookmarkLoaded', 'reply' : {'name' : bookmarkName, 'currentAvatar' : getCurrentAvatar()} });
+    sendToQml({'method' : 'bookmarkLoaded', 'reply' : {'name' : bookmarkName, 'currentAvatar' : currentAvatar} });
 }
 
 //
@@ -103,6 +261,7 @@ function startup() {
     button.clicked.connect(onTabletButtonClicked);
     tablet.screenChanged.connect(onTabletScreenChanged);
     AvatarBookmarks.bookmarkLoaded.connect(onBookmarkLoaded);
+
 //    Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
 //    Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
 //    Users.avatarDisconnected.connect(avatarDisconnected);
@@ -120,6 +279,12 @@ function off() {
         //Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
         tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
         isWired = false;
+    }
+
+    if(adjustWearables.opened) {
+        adjustWearables.setOpened(false);
+        ensureWearableSelected(null);
+        Entities.mousePressOnEntity.disconnect(onSelectedEntity);
     }
 }
 
@@ -188,6 +353,8 @@ function onTabletScreenChanged(type, url) {
 }
 
 function shutdown() {
+    console.debug('shutdown: adjustWearables.opened', adjustWearables.opened);
+
     if (onAvatarAppScreen) {
         tablet.gotoHomeScreen();
     }
