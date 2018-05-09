@@ -30,8 +30,12 @@ public:
     bool setKey(const QUuid& uidKey);
     // Calculate complete hash in one.
     bool calculateHash(HMACHash& hashResult, const char* data, int dataLen);
-    // Append data to be hashed.
+
+    // Append to data to be hashed.
     bool addData(const char* data, int dataLen);
+    // Get the resulting hash from calls to addData().
+    // Note that only one hash may be calculated at a time for each
+    // HMACAuth instance if this interface is used.
     HMACHash result();
 
 private:
