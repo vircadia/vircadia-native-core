@@ -17,10 +17,6 @@ AndroidHelper::AndroidHelper() {
 AndroidHelper::~AndroidHelper() {
 }
 
-QSharedPointer<AccountManager> AndroidHelper::getAccountManager() {
-    return DependencyManager::get<AccountManager>();
-}
-
 void AndroidHelper::requestActivity(const QString &activityName) {
     emit androidActivityRequested(activityName);
 }
@@ -33,6 +29,3 @@ void AndroidHelper::goBackFromAndroidActivity() {
     emit backFromAndroidActivity();
 }
 
-void AndroidHelper::notifyLoginComplete(bool success) {
-    emit loginComplete(success);
-}

@@ -218,20 +218,17 @@ Java_io_highfidelity_hifiinterface_LoginActivity_nativeLogin(JNIEnv *env, jobjec
     env->ReleaseStringUTFChars(username_, c_username);
     env->ReleaseStringUTFChars(password_, c_password);
 
-    QSharedPointer<AccountManager> accountManager = AndroidHelper::instance().getAccountManager();
+    auto accountManager = DependencyManager::get<AccountManager>();
 
     __loginActivity = QAndroidJniObject(instance);
 
     QObject::connect(accountManager.data(), &AccountManager::loginComplete, [](const QUrl& authURL) {
-        AndroidHelper::instance().notifyLoginComplete(true);
+        jboolean jSuccess = (jboolean) true;
+        __loginActivity.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
     });
 
     QObject::connect(accountManager.data(), &AccountManager::loginFailed, []() {
-        AndroidHelper::instance().notifyLoginComplete(false);
-    });
-
-    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::loginComplete, [](bool success) {
-        jboolean jSuccess = (jboolean) success;
+        jboolean jSuccess = (jboolean) false;
         __loginActivity.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
     });
 
@@ -256,18 +253,18 @@ Java_io_highfidelity_hifiinterface_SplashActivity_registerLoadCompleteListener(J
 }
 JNIEXPORT jboolean JNICALL
 Java_io_highfidelity_hifiinterface_HomeActivity_nativeIsLoggedIn(JNIEnv *env, jobject instance) {
-    return AndroidHelper::instance().getAccountManager()->isLoggedIn();
+    return DependencyManager::get<AccountManager>()->isLoggedIn();
 }
 
 JNIEXPORT void JNICALL
 Java_io_highfidelity_hifiinterface_HomeActivity_nativeLogout(JNIEnv *env, jobject instance) {
-    AndroidHelper::instance().getAccountManager()->logout();
+    DependencyManager::get<AccountManager>()->logout();
 }
 
 JNIEXPORT jstring JNICALL
 Java_io_highfidelity_hifiinterface_HomeActivity_nativeGetDisplayName(JNIEnv *env,
                                                                      jobject instance) {
-    QString username = AndroidHelper::instance().getAccountManager()->getAccountInfo().getUsername();
+    QString username = DependencyManager::get<AccountManager>()->getAccountInfo().getUsername();
     return env->NewStringUTF(username.toLatin1().data());
 }
 

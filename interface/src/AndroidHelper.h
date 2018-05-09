@@ -27,18 +27,12 @@ public:
     void notifyLoadComplete();
     void goBackFromAndroidActivity();
 
-    void notifyLoginComplete(bool success);
-
-    QSharedPointer<AccountManager> getAccountManager();
-
     AndroidHelper(AndroidHelper const&)  = delete;
     void operator=(AndroidHelper const&) = delete;
 signals:
     void androidActivityRequested(const QString &activityName);
     void backFromAndroidActivity();
     void qtAppLoadComplete();
-
-    void loginComplete(bool success);
 
 private:
     AndroidHelper();

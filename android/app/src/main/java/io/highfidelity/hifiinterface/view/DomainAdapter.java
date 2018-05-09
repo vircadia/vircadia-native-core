@@ -60,10 +60,12 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
                 mDomains = new Domain[domain.size()];
                 mDomains = domain.toArray(mDomains);
                 notifyDataSetChanged();
-                if (mDomains.length == 0) {
-                    if (mAdapterListener != null) mAdapterListener.onEmptyAdapter();
-                } else {
-                    if (mAdapterListener != null) mAdapterListener.onNonEmptyAdapter();
+                if (mAdapterListener != null) {
+                    if (mDomains.length == 0) {
+                        mAdapterListener.onEmptyAdapter();
+                    } else {
+                        mAdapterListener.onNonEmptyAdapter();
+                    }
                 }
             }
 
