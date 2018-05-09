@@ -14,7 +14,6 @@ import QtQuick.Layouts 1.3
 import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
 import  "configSlider"
-import "../lib/jet/qml" as Jet
 
 Rectangle {
     HifiConstants { id: hifi;}
@@ -276,14 +275,12 @@ Rectangle {
             }
         }
         Separator {}
-
-        Jet.TaskList {
-            rootConfig: Render
-            anchors.left: parent.left
-            anchors.right: parent.right 
-        
-            height: 200
+        HifiControls.Button {
+            text: "Engine"
+           // activeFocusOnPress: false
+            onClicked: {
+               sendToScript({method: "openEngineView"}); 
+            }
         }
     }
-    //}
 }

@@ -32,13 +32,8 @@ Rectangle {
 
     Component.onCompleted: {
         var message = ""
-        var functor = Jet.job_print_functor(function (line) { message += line + "\n"; });
+        var functor = Jet.job_print_functor(function (line) { message += line + "\n"; }, false);
         Jet.task_traverseTree(rootConfig, functor);
-        textArea.append(message);
-     }
-    function fromScript(mope) {
-        var message ='Received \n';
-        message += mope;
         textArea.append(message);
     }
 
