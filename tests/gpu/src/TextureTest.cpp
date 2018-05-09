@@ -8,6 +8,7 @@
 
 #include "TextureTest.h"
 
+#include <iostream>
 #include <QtCore/QTemporaryFile>
 
 #include <gpu/Forward.h>
@@ -22,13 +23,12 @@
 
 #include "../../QTestExtensions.h"
 
-#pragma optimize("", off)
-
 QTEST_MAIN(TextureTest)
 
 #define LOAD_TEXTURE_COUNT 40
 
 static const QString TEST_DATA("https://hifi-public.s3.amazonaws.com/austin/test_data/test_ktx.zip");
+static const QString TEST_DIR_NAME("{630b8f02-52af-4cdf-a896-24e472b94b28}");
 
 std::string vertexShaderSource = R"SHADER(
 #line 14
@@ -65,9 +65,18 @@ void main() {
 
 )SHADER";
 
-#define USE_SERVER_DATA 1
+QtMessageHandler originalHandler;
+
+void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+#if defined(Q_OS_WIN)
+    OutputDebugStringA(message.toStdString().c_str());
+    OutputDebugStringA("\n");
+#endif
+    originalHandler(type, context, message);
+}
 
 void TextureTest::initTestCase() {
+    originalHandler = qInstallMessageHandler(messageHandler);
     _resourcesPath = getTestResource("interface/resources");
     getDefaultOpenGLSurfaceFormat();
     _canvas.create();
@@ -77,32 +86,21 @@ void TextureTest::initTestCase() {
     gl::initModuleGl();
     gpu::Context::init<gpu::gl::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
-#if USE_SERVER_DATA
-    if (!_testDataDir.isValid()) {
-        qFatal("Unable to create temp directory");
-    }
 
-    QString path = _testDataDir.path();
-    FileDownloader(TEST_DATA,
-                   [&](const QByteArray& data) {
-                       QTemporaryFile zipFile;
-                       if (zipFile.open()) {
-                           zipFile.write(data);
-                           zipFile.close();
-                       }
-                       if (!_testDataDir.isValid()) {
-                           qFatal("Unable to create temp dir");
-                       }
-                       auto files = JlCompress::extractDir(zipFile.fileName(), _testDataDir.path());
-                       for (const auto& file : files) {
-                           qDebug() << file;
-                       }
-                   })
-        .waitForDownload();
-    _resourcesPath = _testDataDir.path();
-#else
-    _resourcesPath = "D:/test_ktx";
-#endif
+    _resourcesPath = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/" + TEST_DIR_NAME;
+    if (!QFileInfo(_resourcesPath).exists()) {
+        QDir(_resourcesPath).mkpath(".");
+        FileDownloader(TEST_DATA,
+                       [&](const QByteArray& data) {
+                           QTemporaryFile zipFile;
+                           if (zipFile.open()) {
+                               zipFile.write(data);
+                               zipFile.close();
+                           }
+                           JlCompress::extractDir(zipFile.fileName(), _resourcesPath);
+                       })
+            .waitForDownload();
+    }
 
     _canvas.makeCurrent();
     {
