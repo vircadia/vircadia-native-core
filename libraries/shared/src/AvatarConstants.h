@@ -24,6 +24,13 @@ const float DEFAULT_AVATAR_SUPPORT_BASE_LEFT  = -0.25f;
 const float DEFAULT_AVATAR_SUPPORT_BASE_RIGHT =  0.25f;
 const float DEFAULT_AVATAR_SUPPORT_BASE_FRONT = -0.20f;
 const float DEFAULT_AVATAR_SUPPORT_BASE_BACK  =  0.10f;
+const float DEFAULT_AVATAR_FORWARD_DAMPENING_FACTOR = 0.5f;
+const float DEFAULT_AVATAR_LATERAL_DAMPENING_FACTOR = 2.0f;
+const float DEFAULT_AVATAR_HIPS_MASS = 40.0f;
+const float DEFAULT_AVATAR_HEAD_MASS = 20.0f;
+const float DEFAULT_AVATAR_LEFTHAND_MASS = 2.0f;
+const float DEFAULT_AVATAR_RIGHTHAND_MASS = 2.0f;
+
 
 // Used when avatar is missing joints... (avatar space)
 const glm::quat DEFAULT_AVATAR_MIDDLE_EYE_ROT { Quaternions::Y_180 };
