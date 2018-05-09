@@ -66,10 +66,12 @@
     const html_reg_propertiesHeaderEdit_Replace = '<h4 class="subsection-title">Properties</h4>';
     const html_reg_typeEdit = /(<h5>Returns[\s\S]*?Type)(<\/dt[\s\S]*?type">)(.*?)(<\/span><\/dd>[\s\S]*?<\/dl>)/g;
     const html_reg_typeEdit_replace = '$1: $3</dt></dl>'
-    const html_reg_methodSize = /(<h4)( class="name"[\s\S].*?<\/span>)(<\/h4>)/g;
+    const html_reg_methodSize = /(<h4)( class="name"[\s\S]*?<\/span>)(<\/h4>)/g;
     const html_reg_methodSize_replace = '<h5$2</h5>';
     const html_reg_typeDefSize = /(<h4)( class="name"[\s\S].*?)(<\/h4>)/g;
     const html_reg_typeDefSize_replace = '<h5$2</h5>';
+    const html_reg_typeReturnSize = /<h5>Type:\<\/h5>/g;
+    const html_reg_typeReturnSize_replace = '<h6>Type:<h6>';
     const html_reg_returnSize = /<h5>Returns:<\/h5>/g;
     const html_reg_returnSize_replace = '<h6>Returns:<\/h6>';
     const html_reg_findByName = '<h5 class="name"';
@@ -89,7 +91,10 @@
     const html_reg_findGlobalLinks_replace = "$1\/api-reference\/globals$3";
     const html_reg_findGeneralLinks = /(<a href=")([A-Z])([\s\S]*?)("[\s\S]*?<\/a>)/g;
     const html_reg_findClassLinks = /(<a href=")([\.|\w]+?)(#[\.|\w]+?)(">[\s\S]+?<\/a>)/g;
-    
+    const html_reg_pretty = /(<pre class="prettyprint">)([\s\S]*?)(<\/pre>)/g;
+    const html_reg_pretty_replace = "<pre>$2<\/pre>";
+    const html_reg_code = /(<code>)([\s\S]*?)(<\/code>)/g;
+    const html_reg_code_replace = "$1$2$3";
 
 // Mapping for GroupNames and Members
     let groupNameMemberMap = {
@@ -281,9 +286,11 @@
             {% endblock %}
             
             {% block content %}
-                <div id="body-inner">
-                <h1>{{ page.title }}</h1>
-                ${contentHtml}
+                <div id="api-specific">
+                    <div id="body-inner">
+                        <h1>{{ page.title }}</h1>
+                        ${contentHtml}
+                    </div>
                 </div>
             {% endblock %}
             `
@@ -525,6 +532,9 @@
                                     .replace(html_reg_findGlobalLinks, html_reg_findGlobalLinks_replace)
                                     .replace(html_reg_findGeneralLinks, lowerCaseGeneralLinks)
                                     .replace(html_reg_findClassLinks, modifyClassLinks)
+                                    .replace(html_reg_typeReturnSize, html_reg_typeReturnSize_replace)
+                                    .replace(html_reg_code, html_reg_code_replace)
+                                    .replace(html_reg_pretty, html_reg_pretty_replace)
                                     .replace(html_reg_findByMethod, "");          
             
             // Fix for namespace and object links
