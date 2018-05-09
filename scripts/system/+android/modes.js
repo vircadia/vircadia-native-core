@@ -28,6 +28,7 @@ modeLabel[MODE_MY_VIEW]="MY VIEW";
 var logEnabled = false;
 var radar = Script.require('./radar.js');
 var uniqueColor = Script.require('./uniqueColor.js');
+var displayNames = Script.require('./displayNames.js');
 
 function printd(str) {
     if (logEnabled) {       
