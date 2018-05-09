@@ -73,7 +73,6 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
     _myAvatar->updateAvatarEntity(entityItemID, binaryProperties);
 
     entity->setLastBroadcast(usecTimestampNow());
-    return;
 }
 
 
@@ -81,10 +80,6 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
                                                     EntityTreePointer entityTree,
                                                     EntityItemID entityItemID,
                                                     const EntityItemProperties& properties) {
-    if (!_shouldSend) {
-        return; // bail early
-    }
-
     if (properties.getClientOnly() && properties.getOwningAvatarID() == _myAvatar->getID()) {
         // this is an avatar-based entity --> update our avatar-data rather than sending to the entity-server
         queueEditAvatarEntityMessage(type, entityTree, entityItemID, properties);
@@ -143,9 +138,6 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
 }
 
 void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityItemID) {
-    if (!_shouldSend) {
-        return; // bail early
-    }
 
     // in case this was a clientOnly entity:
     if(_myAvatar) {
