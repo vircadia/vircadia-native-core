@@ -27,7 +27,7 @@ Test::Test() {
     mismatchWindow.setModal(true);
 }
 
-bool Test::createTestResultsFolderPath(QString directory) {
+bool Test::createTestResultsFolderPath(const QString& directory) {
     QDateTime now = QDateTime::currentDateTime();
     testResultsFolderPath =  directory + "/" + TEST_RESULTS_FOLDER + "--" + now.toString(DATETIME_FORMAT);
     QDir testResultsFolder(testResultsFolderPath);
@@ -72,7 +72,7 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
         QImage expectedImage(expectedImagesFullFilenames[i]);
 
         if (resultImage.width() != expectedImage.width() || resultImage.height() != expectedImage.height()) {
-            messageBox.critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Images are not the same size");
+            QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Images are not the same size");
             exit(-1);
         }
 
@@ -80,7 +80,7 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
         try {
             similarityIndex = imageComparer.compareImages(resultImage, expectedImage);
         } catch (...) {
-            messageBox.critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Image not in expected format");
+            QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Image not in expected format");
             exit(-1);
         }
 
@@ -125,22 +125,22 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
     return success;
 }
 
-void Test::appendTestResultsToFile(QString testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage) {
+void Test::appendTestResultsToFile(const QString& testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage) {
     if (!QDir().exists(testResultsFolderPath)) {
-        messageBox.critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Folder " + testResultsFolderPath + " not found");
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Folder " + testResultsFolderPath + " not found");
         exit(-1);
     }
 
     QString failureFolderPath { testResultsFolderPath + "/" + "Failure_" + QString::number(index) };
     if (!QDir().mkdir(failureFolderPath)) {
-        messageBox.critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create folder " + failureFolderPath);
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create folder " + failureFolderPath);
         exit(-1);
     }
     ++index;
 
     QFile descriptionFile(failureFolderPath + "/" + TEST_RESULTS_FILENAME);
     if (!descriptionFile.open(QIODevice::ReadWrite)) {
-        messageBox.critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + TEST_RESULTS_FILENAME);
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + TEST_RESULTS_FILENAME);
         exit(-1);
     }
 
@@ -160,21 +160,21 @@ void Test::appendTestResultsToFile(QString testResultsFolderPath, TestFailure te
     sourceFile = testFailure._pathname + testFailure._expectedImageFilename;
     destinationFile = failureFolderPath + "/" + "Expected Image.jpg";
     if (!QFile::copy(sourceFile, destinationFile)) {
-        messageBox.critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to copy " + sourceFile + " to " + destinationFile);
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to copy " + sourceFile + " to " + destinationFile);
         exit(-1);
     }
 
     sourceFile = testFailure._pathname + testFailure._actualImageFilename;
     destinationFile = failureFolderPath + "/" + "Actual Image.jpg";
     if (!QFile::copy(sourceFile, destinationFile)) {
-        messageBox.critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to copy " + sourceFile + " to " + destinationFile);
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to copy " + sourceFile + " to " + destinationFile);
         exit(-1);
     }
 
     comparisonImage.save(failureFolderPath + "/" + "Difference Image.jpg");
 }
 
-void Test::startTestsEvaluation() {
+void Test::startTestsEvaluation(const QString& testFolder) {
     // Get list of JPEG images in folder, sorted by name
     QString previousSelection = snapshotDirectory;
 
@@ -226,8 +226,8 @@ void Test::startTestsEvaluation() {
             QString expectedImageFilenameTail = currentFilename.left(currentFilename.length() - 4).right(NUM_DIGITS);
             QString expectedImageStoredFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + ".png";
 
-            QString imageURLString("https://github.com/" + githubUser + "/hifi_tests/blob/" + gitHubBranch + "/" + 
-                expectedImagePartialSourceDirectory + "/" + expectedImageStoredFilename + "?raw=true");
+            QString imageURLString("https://raw.githubusercontent.com/" + githubUser + "/hifi_tests/" + gitHubBranch + "/" + 
+                expectedImagePartialSourceDirectory + "/" + expectedImageStoredFilename);
 
             expectedImagesURLs << imageURLString;
 
@@ -242,19 +242,21 @@ void Test::startTestsEvaluation() {
     autoTester->downloadImages(expectedImagesURLs, snapshotDirectory, expectedImagesFilenames);
 }
 
-void Test::finishTestsEvaluation(bool interactiveMode, QProgressBar* progressBar) {
-    bool success = compareImageLists(interactiveMode, progressBar);
+void Test::finishTestsEvaluation(bool isRunningFromCommandline, bool interactiveMode, QProgressBar* progressBar) {
+    bool success = compareImageLists((!isRunningFromCommandline && interactiveMode), progressBar);
     
-    if (success) {
-        messageBox.information(0, "Success", "All images are as expected");
-    } else {
-        messageBox.information(0, "Failure", "One or more images are not as expected");
+    if (!isRunningFromCommandline) {
+        if (success) {
+            QMessageBox::information(0, "Success", "All images are as expected");
+        } else {
+            QMessageBox::information(0, "Failure", "One or more images are not as expected");
+        }
     }
 
     zipAndDeleteTestResultsFolder();
 }
 
-bool Test::isAValidDirectory(QString pathname) {
+bool Test::isAValidDirectory(const QString& pathname) {
     // Only process directories
     QDir dir(pathname);
     if (!dir.exists()) {
@@ -269,7 +271,7 @@ bool Test::isAValidDirectory(QString pathname) {
     return true;
 }
 
-QString Test::extractPathFromTestsDown(QString fullPath) {
+QString Test::extractPathFromTestsDown(const QString& fullPath) {
     // `fullPath` includes the full path to the test.  We need the portion below (and including) `tests`
     QStringList pathParts = fullPath.split('/');
     int i{ 0 };
@@ -278,7 +280,7 @@ QString Test::extractPathFromTestsDown(QString fullPath) {
     }
 
     if (i == pathParts.length()) {
-        messageBox.critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Bad testPathname");
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Bad testPathname");
         exit(-1);
     }
 
@@ -361,14 +363,14 @@ void Test::createAllRecursiveScripts() {
         }
     }
 
-    messageBox.information(0, "Success", "Scripts have been created");
+    QMessageBox::information(0, "Success", "Scripts have been created");
 }
 
-void Test::createRecursiveScript(QString topLevelDirectory, bool interactiveMode) {
+void Test::createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode) {
     const QString recursiveTestsFilename("testRecursive.js");
     QFile allTestsFilename(topLevelDirectory + "/" + recursiveTestsFilename);
     if (!allTestsFilename.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        messageBox.critical(0,
+        QMessageBox::critical(0,
             "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
             "Failed to create \"" + recursiveTestsFilename + "\" in directory \"" + topLevelDirectory + "\""
         );
@@ -377,12 +379,15 @@ void Test::createRecursiveScript(QString topLevelDirectory, bool interactiveMode
     }
 
     QTextStream textStream(&allTestsFilename);
-    textStream << "// This is an automatically generated file, created by auto-tester" << endl << endl;
+
+    const QString DATE_TIME_FORMAT("MMM d yyyy, h:mm");
+    textStream << "// This is an automatically generated file, created by auto-tester on " << QDateTime::currentDateTime().toString(DATE_TIME_FORMAT) << endl << endl;
 
     textStream << "var autoTester = Script.require(\"https://github.com/" + githubUser + "/hifi_tests/blob/" 
-        + gitHubBranch + "/tests/utils/autoTester.js?raw=true\");" << endl;
+        + gitHubBranch + "/tests/utils/autoTester.js?raw=true\");" << endl << endl;
 
-    textStream << "autoTester.enableRecursive();" << endl << endl;
+    textStream << "autoTester.enableRecursive();" << endl;
+    textStream << "autoTester.enableAuto();" << endl << endl;
 
     QVector<QString> testPathnames;
 
@@ -417,7 +422,7 @@ void Test::createRecursiveScript(QString topLevelDirectory, bool interactiveMode
     }
 
     if (interactiveMode && testPathnames.length() <= 0) {
-        messageBox.information(0, "Failure", "No \"" + TEST_FILENAME + "\" files found");
+        QMessageBox::information(0, "Failure", "No \"" + TEST_FILENAME + "\" files found");
         allTestsFilename.close();
         return;
     }
@@ -428,7 +433,7 @@ void Test::createRecursiveScript(QString topLevelDirectory, bool interactiveMode
     allTestsFilename.close();
     
     if (interactiveMode) {
-        messageBox.information(0, "Success", "Script has been created");
+        QMessageBox::information(0, "Success", "Script has been created");
     }
 }
 
@@ -466,7 +471,7 @@ void Test::createTest() {
         QString fullCurrentFilename = snapshotDirectory + "/" + currentFilename;
         if (isInSnapshotFilenameFormat("jpg", currentFilename)) {
             if (i >= maxImages) {
-                messageBox.critical(0, "Error", "More than " + QString::number(maxImages) + " images not supported");
+                QMessageBox::critical(0, "Error", "More than " + QString::number(maxImages) + " images not supported");
                 exit(-1);
             }
             QString newFilename = "ExpectedImage_" + QString::number(i - 1).rightJustified(5, '0') + ".png";
@@ -475,14 +480,14 @@ void Test::createTest() {
             try {
                 copyJPGtoPNG(fullCurrentFilename, fullNewFileName);
             } catch (...) {
-                messageBox.critical(0, "Error", "Could not delete existing file: " + currentFilename + "\nTest creation aborted");
+                QMessageBox::critical(0, "Error", "Could not delete existing file: " + currentFilename + "\nTest creation aborted");
                 exit(-1);
             }
             ++i;
         }
     }
 
-    messageBox.information(0, "Success", "Test images have been created");
+    QMessageBox::information(0, "Success", "Test images have been created");
 }
 
 ExtractedText Test::getTestScriptLines(QString testFileName) {
@@ -491,7 +496,7 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
     QFile inputFile(testFileName);
     inputFile.open(QIODevice::ReadOnly);
     if (!inputFile.isOpen()) {
-        messageBox.critical(0,
+        QMessageBox::critical(0,
             "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
             "Failed to open \"" + testFileName
         );
@@ -509,6 +514,7 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
     const QString functionParameter("function" + ws + "\\(testType" + ws + "\\)");
     QString regexTestTitle(ws + functionPerformName + "\\(" + quotedString + "\\," + ws + ownPath + "\\," + ws + functionParameter + ws + "{" + ".*");
     QRegularExpression lineContainingTitle = QRegularExpression(regexTestTitle);
+
 
     // Each step is either of the following forms:
     //        autoTester.addStepSnapshot("Take snapshot"...
@@ -534,6 +540,7 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
             step->text = nameOfStep;
             step->takeSnapshot = true;
             relevantTextFromTest.stepList.emplace_back(step);
+
         } else if (lineStep.match(line).hasMatch()) {
             QStringList tokens = line.split('"');
             QString nameOfStep = tokens[1];
@@ -567,7 +574,7 @@ void Test::createMDFile() {
 
     createMDFile(testDirectory);
 
-    messageBox.information(0, "Success", "MD file has been created");
+    QMessageBox::information(0, "Success", "MD file has been created");
 }
 
 void Test::createAllMDFiles() {
@@ -607,15 +614,15 @@ void Test::createAllMDFiles() {
         }
     }
 
-    messageBox.information(0, "Success", "MD files have been created");
+    QMessageBox::information(0, "Success", "MD files have been created");
 }
 
-void Test::createMDFile(QString testDirectory) {
+void Test::createMDFile(const QString& testDirectory) {
     // Verify folder contains test.js file
     QString testFileName(testDirectory + "/" + TEST_FILENAME);
     QFileInfo testFileInfo(testFileName);
     if (!testFileInfo.exists()) {
-        messageBox.critical(0, "Error", "Could not find file: " + TEST_FILENAME);
+        QMessageBox::critical(0, "Error", "Could not find file: " + TEST_FILENAME);
         return;
     }
 
@@ -624,7 +631,7 @@ void Test::createMDFile(QString testDirectory) {
     QString mdFilename(testDirectory + "/" + "test.md");
     QFile mdFile(mdFilename);
     if (!mdFile.open(QIODevice::WriteOnly)) {
-        messageBox.critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + mdFilename);
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + mdFilename);
         exit(-1);
     }
 
@@ -649,7 +656,7 @@ void Test::createMDFile(QString testDirectory) {
     for (size_t i = 0; i < testScriptLines.stepList.size(); ++i) {
         stream << "### Step " << QString::number(i + 1) << "\n";
         stream << "- " << testScriptLines.stepList[i]->text << "\n";
-        if (testScriptLines.stepList[i]->takeSnapshot) {
+        if ((i + 1 < testScriptLines.stepList.size()) && testScriptLines.stepList[i]->takeSnapshot) {
             stream << "- ![](./ExpectedImage_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png)\n";
             ++snapShotIndex;
         }
@@ -674,7 +681,7 @@ void Test::createTestsOutline() {
     QString mdFilename(testDirectory + "/" + testsOutlineFilename);
     QFile mdFile(mdFilename);
     if (!mdFile.open(QIODevice::WriteOnly)) {
-        messageBox.critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + mdFilename);
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + mdFilename);
         exit(-1);
     }
 
@@ -732,10 +739,10 @@ void Test::createTestsOutline() {
 
     mdFile.close();
 
-    messageBox.information(0, "Success", "Test outline file " + testsOutlineFilename + " has been created");
+    QMessageBox::information(0, "Success", "Test outline file " + testsOutlineFilename + " has been created");
 }
 
-void Test::copyJPGtoPNG(QString sourceJPGFullFilename, QString destinationPNGFullFilename) {
+void Test::copyJPGtoPNG(const QString& sourceJPGFullFilename, const QString& destinationPNGFullFilename) {
     QFile::remove(destinationPNGFullFilename);
 
     QImageReader reader;
@@ -748,7 +755,7 @@ void Test::copyJPGtoPNG(QString sourceJPGFullFilename, QString destinationPNGFul
     writer.write(image);
 }
 
-QStringList Test::createListOfAll_imagesInDirectory(QString imageFormat, QString pathToImageDirectory) {
+QStringList Test::createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory) {
     imageDirectory = QDir(pathToImageDirectory);
     QStringList nameFilters;
     nameFilters << "*." + imageFormat;
@@ -761,7 +768,7 @@ QStringList Test::createListOfAll_imagesInDirectory(QString imageFormat, QString
 //      Filename (i.e. without extension) contains _tests_ (this is based on all test scripts being within the tests folder
 //      Last 5 characters in filename are digits
 //      Extension is jpg
-bool Test::isInSnapshotFilenameFormat(QString imageFormat, QString filename) {
+bool Test::isInSnapshotFilenameFormat(const QString& imageFormat, const QString& filename) {
     QStringList filenameParts = filename.split(".");
 
     bool filnameHasNoPeriods = (filenameParts.size() == 2);
@@ -778,7 +785,7 @@ bool Test::isInSnapshotFilenameFormat(QString imageFormat, QString filename) {
 // For a file named "D_GitHub_hifi-tests_tests_content_entity_zone_create_0.jpg", the test directory is
 // D:/GitHub/hifi-tests/tests/content/entity/zone/create
 // This method assumes the filename is in the correct format
-QString Test::getExpectedImageDestinationDirectory(QString filename) {
+QString Test::getExpectedImageDestinationDirectory(const QString& filename) {
     QString filenameWithoutExtension = filename.split(".")[0];
     QStringList filenameParts = filenameWithoutExtension.split("_");
 
@@ -795,7 +802,7 @@ QString Test::getExpectedImageDestinationDirectory(QString filename) {
 // is ...tests/content/entity/zone/create
 // This is used to create the full URL
 // This method assumes the filename is in the correct format
-QString Test::getExpectedImagePartialSourceDirectory(QString filename) {
+QString Test::getExpectedImagePartialSourceDirectory(const QString& filename) {
     QString filenameWithoutExtension = filename.split(".")[0];
     QStringList filenameParts = filenameWithoutExtension.split("_");
 
@@ -807,7 +814,7 @@ QString Test::getExpectedImagePartialSourceDirectory(QString filename) {
     }
 
     if (i < 0) {
-        messageBox.critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Bad filename");
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Bad filename");
         exit(-1);
     }
 

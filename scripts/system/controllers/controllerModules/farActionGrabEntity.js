@@ -564,6 +564,9 @@ Script.include("/~/system/libraries/Xform.js");
                     }
                 } else if (this.distanceRotating) {
                     this.distanceRotate(otherFarGrabModule);
+                } else if (this.highlightedEntity) {
+                    Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity", this.highlightedEntity);
+                    this.highlightedEntity = null;
                 }
             }
             return this.exitIfDisabled(controllerData);
