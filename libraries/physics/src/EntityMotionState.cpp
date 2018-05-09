@@ -732,8 +732,8 @@ void EntityMotionState::measureBodyAcceleration() {
         glm::vec3 velocity = getBodyLinearVelocityGTSigma();
 
         const float MIN_DAMPING_FACTOR = 0.01f;
-        float dampingAttenuationFactor = 1.0f / glm::max(powf(1.0f - _body->getLinearDamping(), dt), MIN_DAMPING_FACTOR);
-        _measuredAcceleration = (velocity * dampingAttenuationFactor - _lastVelocity) * invDt;
+        float invDampingAttenuationFactor = 1.0f / glm::max(powf(1.0f - _body->getLinearDamping(), dt), MIN_DAMPING_FACTOR);
+        _measuredAcceleration = (velocity * invDampingAttenuationFactor - _lastVelocity) * invDt;
         _lastVelocity = velocity;
         if (numSubsteps > PHYSICS_ENGINE_MAX_NUM_SUBSTEPS) {
             // we fall in here when _lastMeasureStep is old: the body has just become active
