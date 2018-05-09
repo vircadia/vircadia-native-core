@@ -104,9 +104,9 @@ def packages = [
         checksum: 'a8ee8584cf1ccd34766c7ddd9d5e5449',
     ],
     glm: [
-        file: 'https://hifi-public.s3.amazonaws.com/austin/android/glm-0.9.8.tgz',
-        versionId: 'BlkJNwaYV2Gfy5XwMeU7K0uzPDRKFMt2',
-        checksum: 'd2b42cee31d2bc17bab6ce69e6b3f30a',
+        file: 'https://hifi-public.s3.amazonaws.com/dependencies/android/glm-0.9.8.5-patched.tgz',
+        versionId: 'cskfMoJrFlAeqI3WPxemyO_Cxt7rT9EJ',
+        checksum: '067b5fe16b220b5b1a1039ba51b062ae',
     ],
     gvr: [
         file: 'https://hifi-public.s3.amazonaws.com/austin/android/gvrsdk_v1.101.0.tgz',
