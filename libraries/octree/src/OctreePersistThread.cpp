@@ -26,6 +26,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QRegExp>
 
 #include <NumericalConstants.h>
 #include <PerfStat.h>
@@ -35,7 +36,11 @@
 #include "OctreeUtils.h"
 #include "OctreeDataUtils.h"
 
-const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
+const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL { 1000 * 30 }; // every 30 seconds
+
+constexpr int MAX_OCTREE_REPLACEMENT_BACKUP_FILES_COUNT { 20 };
+//constexpr int MAX_OCTREE_REPLACEMENT_BACKUP_FILES_SIZE_BYTES { 50 * 1000 * 1000 };
+constexpr size_t MAX_OCTREE_REPLACEMENT_BACKUP_FILES_SIZE_BYTES { 70000 };
 
 OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& filename, int persistInterval,
                                          bool debugTimestampNow, QString persistAsFileType) :
@@ -280,6 +285,37 @@ QByteArray OctreePersistThread::getPersistFileContents() const {
     return fileContents;
 }
 
+void OctreePersistThread::cleanupOldReplacementBackups() {
+    QRegExp filenameRegex { ".*\\.backup\\.\\d{8}-\\d{6}$" };
+    QFileInfo persistFile { _filename };
+    QDir backupDir { persistFile.absolutePath() };
+    backupDir.setSorting(QDir::SortFlag::Time);
+    backupDir.setFilter(QDir::Filter::Files);
+    qDebug() << "Scanning backups for cleanup:" << backupDir.absolutePath();
+
+    auto count = 0;
+    size_t totalSize = 0;
+    for (auto fileInfo : backupDir.entryInfoList()) {
+        auto absPath = fileInfo.absoluteFilePath();
+        qDebug() << "Found:" << absPath;
+        if (filenameRegex.exactMatch(absPath)) {
+            totalSize += fileInfo.size();
+            if (count >= MAX_OCTREE_REPLACEMENT_BACKUP_FILES_COUNT || totalSize > MAX_OCTREE_REPLACEMENT_BACKUP_FILES_SIZE_BYTES) {
+                qDebug() << "Removing:" << absPath;
+                QFile backup(absPath);
+                if (backup.remove()) {
+                    qDebug() << "Removed backup:" << absPath;
+                } else {
+                    qWarning() << "Failed to remove backup:" << absPath;
+
+                }
+            }
+            count++;
+        }
+    }
+    qDebug() << "Found" << count << "backups";
+}
+
 void OctreePersistThread::persist() {
     if (_tree->isDirty() && _initialLoadComplete) {
 
@@ -291,20 +327,20 @@ void OctreePersistThread::persist() {
 
         _tree->incrementPersistDataVersion();
 
-        // create our "lock" file to indicate we're saving.
-        QString lockFileName = _filename + ".lock";
-        std::ofstream lockFile(lockFileName.toLocal8Bit().constData(), std::ios::out|std::ios::binary);
-        if(lockFile.is_open()) {
-            qCDebug(octree) << "saving Octree lock file created at:" << lockFileName;
-
-            _tree->writeToFile(_filename.toLocal8Bit().constData(), NULL, _persistAsFileType);
+        QString tempFilename = getTempFilename();
+        qCDebug(octree) << "Saving temporary Octree file to:" << tempFilename;
+        if (_tree->writeToFile(tempFilename.toLocal8Bit().constData(), nullptr, _persistAsFileType)) {
+            QFile tempFile { tempFilename };
             _tree->clearDirtyBit(); // tree is clean after saving
-            qCDebug(octree) << "DONE saving Octree to file...";
-
-            lockFile.close();
-            qCDebug(octree) << "saving Octree lock file closed:" << lockFileName;
-            remove(lockFileName.toLocal8Bit().constData());
-            qCDebug(octree) << "saving Octree lock file removed:" << lockFileName;
+            QFile::remove(_filename);
+            if (tempFile.rename(_filename)) {
+                qCDebug(octree) << "DONE moving temporary Octree file to" << _filename;
+            } else {
+                qCWarning(octree) << "Failed to move temporary Octree file to " << _filename;
+                tempFile.remove();
+            }
+        } else {
+            qCWarning(octree) << "Failed to open temp Octree file at" << tempFilename;
         }
 
         sendLatestEntityDataToDS();
