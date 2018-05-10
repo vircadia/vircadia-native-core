@@ -333,7 +333,6 @@ QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
     EntityItemID newEntityID;
     EntityItemProperties properties = getEntityProperties(entityIDToClone);
     if (addLocalEntityCopy(properties, newEntityID)) {
-        qCDebug(entities) << "DBACK POOPY cloneEntity addLocalEntityCopy" << newEntityID;
         getEntityPacketSender()->queueCloneEntityMessage(entityIDToClone, newEntityID);
         return newEntityID;
     } else {

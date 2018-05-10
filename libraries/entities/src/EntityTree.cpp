@@ -1659,7 +1659,6 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                             if (isClone) {
                                 entityToClone->addCloneID(newEntity->getEntityItemID());
                                 newEntity->setCloneParent(entityIDToClone);
-                                qCDebug(entities) << "DBACK POOPY addedEntity clone " << newEntity->getEntityItemID();
                             }
 
                             startLogging = usecTimestampNow();
