@@ -38,12 +38,11 @@
 const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
 OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& filename, int persistInterval,
-                                         bool debugTimestampNow, QString persistAsFileType, const QByteArray& replacementData) :
+                                         bool debugTimestampNow, QString persistAsFileType) :
     _tree(tree),
     _filename(filename),
     _persistInterval(persistInterval),
     _initialLoadComplete(false),
-    _replacementData(replacementData),
     _loadTimeUSecs(0),
     _lastCheck(0),
     _debugTimestampNow(debugTimestampNow),
@@ -54,6 +53,140 @@ OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& file
     QString sansExt = fileNameWithoutExtension(_filename, PERSIST_EXTENSIONS);
     _filename = sansExt + "." + _persistAsFileType;
 }
+
+void OctreePersistThread::start() {
+    cleanupOldReplacementBackups();
+
+    QFile tempFile { getTempFilename() };
+    if (tempFile.exists()) {
+        qWarning(octree) << "Found temporary octree file at" << tempFile.fileName();
+        qDebug(octree) << "Attempting to recover from temporary octree file";
+        QFile::remove(_filename);
+        if (tempFile.rename(_filename)) {
+            qDebug(octree) << "Successfully recovered from temporary octree file";
+        } else {
+            qWarning(octree) << "Failed to recover from temporary octree file";
+            tempFile.remove();
+        }
+    }
+
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::OctreeDataFileReply, this, "handleOctreeDataFileReply");
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    const DomainHandler& domainHandler = nodeList->getDomainHandler();
+
+    auto packet = NLPacket::create(PacketType::OctreeDataFileRequest, -1, true, false);
+
+    OctreeUtils::RawOctreeData data;
+    qCDebug(octree) << "Reading octree data from" << _filename;
+    if (data.readOctreeDataInfoFromFile(_filename)) {
+        qCDebug(octree) << "Current octree data: ID(" << data.id << ") DataVersion(" << data.version << ")";
+        packet->writePrimitive(true);
+        auto id = data.id.toRfc4122();
+        packet->write(id);
+        packet->writePrimitive(data.version);
+    } else {
+        qCWarning(octree) << "No octree data found";
+        packet->writePrimitive(false);
+    }
+
+    qCDebug(octree) << "Sending request for octree data to DS";
+    nodeList->sendPacket(std::move(packet), domainHandler.getSockAddr());
+}
+
+void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessage> message) {
+    if (_initialLoadComplete) {
+        qCWarning(octree) << "Received OctreeDataFileReply after initial load had completed";
+        return;
+    }
+
+    bool includesNewData;
+    message->readPrimitive(&includesNewData);
+    QByteArray replacementData;
+    if (includesNewData) {
+        replacementData = message->readAll();
+        replaceData(replacementData);
+        qDebug() << "Got reply to octree data file request, new data sent";
+    } else {
+        qDebug() << "Got reply to octree data file request, current entity data is sufficient";
+        
+        OctreeUtils::RawEntityData data;
+        qCDebug(octree) << "Reading octree data from" << _filename;
+        if (data.readOctreeDataInfoFromFile(_filename)) {
+            if (data.id.isNull()) {
+                qCDebug(octree) << "Current octree data has a null id, updating";
+                data.resetIdAndVersion();
+
+                QFile file(_filename);
+                if (file.open(QIODevice::WriteOnly)) {
+                    auto entityData = data.toGzippedByteArray();
+                    file.write(entityData);
+                    file.close();
+                } else {
+                    qCDebug(octree) << "Failed to update octree data";
+                }
+            }
+        }
+    }
+
+    quint64 loadStarted = usecTimestampNow();
+    qCDebug(octree) << "loading Octrees from file: " << _filename << "...";
+
+    OctreeUtils::RawOctreeData data;
+    if (data.readOctreeDataInfoFromFile(_filename)) {
+        qDebug() << "Setting entity version info to: " << data.id << data.version;
+        _tree->setOctreeVersionInfo(data.id, data.version);
+    }
+
+    bool persistentFileRead;
+
+    _tree->withWriteLock([&] {
+        PerformanceWarning warn(true, "Loading Octree File", true);
+
+        persistentFileRead = _tree->readFromFile(_filename.toLocal8Bit().constData());
+        _tree->pruneTree();
+    });
+
+    quint64 loadDone = usecTimestampNow();
+    _loadTimeUSecs = loadDone - loadStarted;
+
+    _tree->clearDirtyBit(); // the tree is clean since we just loaded it
+    qCDebug(octree, "DONE loading Octrees from file... fileRead=%s", debug::valueOf(persistentFileRead));
+
+    unsigned long nodeCount = OctreeElement::getNodeCount();
+    unsigned long internalNodeCount = OctreeElement::getInternalNodeCount();
+    unsigned long leafNodeCount = OctreeElement::getLeafNodeCount();
+    qCDebug(octree, "Nodes after loading scene %lu nodes %lu internal %lu leaves", nodeCount, internalNodeCount, leafNodeCount);
+
+    bool wantDebug = false;
+    if (wantDebug) {
+        double usecPerGet = (double)OctreeElement::getGetChildAtIndexTime() 
+                                / (double)OctreeElement::getGetChildAtIndexCalls();
+        qCDebug(octree) << "getChildAtIndexCalls=" << OctreeElement::getGetChildAtIndexCalls()
+                << " getChildAtIndexTime=" << OctreeElement::getGetChildAtIndexTime() << " perGet=" << usecPerGet;
+
+        double usecPerSet = (double)OctreeElement::getSetChildAtIndexTime() 
+                                / (double)OctreeElement::getSetChildAtIndexCalls();
+        qCDebug(octree) << "setChildAtIndexCalls=" << OctreeElement::getSetChildAtIndexCalls()
+                << " setChildAtIndexTime=" << OctreeElement::getSetChildAtIndexTime() << " perSet=" << usecPerSet;
+    }
+
+    _initialLoadComplete = true;
+
+    // Since we just loaded the persistent file, we can consider ourselves as having "just checked" for persistance.
+    _lastCheck = usecTimestampNow(); // we just loaded, no need to save again
+
+    if (replacementData.isNull()) {
+        sendLatestEntityDataToDS();
+    }
+
+    qDebug() << "Starting timer";
+    QTimer::singleShot(_persistInterval, this, &OctreePersistThread::process);
+
+    emit loadCompleted();
+}
+
 
 QString OctreePersistThread::getPersistFileMimeType() const {
     if (_persistAsFileType == "json") {
@@ -96,68 +229,9 @@ bool OctreePersistThread::backupCurrentFile() {
 }
 
 bool OctreePersistThread::process() {
+    qDebug() << "Processing...";
 
-    if (!_initialLoadComplete) {
-        quint64 loadStarted = usecTimestampNow();
-        qCDebug(octree) << "loading Octrees from file: " << _filename << "...";
-
-        if (!_replacementData.isNull()) {
-            replaceData(_replacementData);
-        }
-
-        OctreeUtils::RawOctreeData data;
-        if (data.readOctreeDataInfoFromFile(_filename)) {
-            qDebug() << "Setting entity version info to: " << data.id << data.dataVersion;
-            _tree->setOctreeVersionInfo(data.id, data.dataVersion);
-        }
-
-        bool persistentFileRead;
-
-        _tree->withWriteLock([&] {
-            PerformanceWarning warn(true, "Loading Octree File", true);
-
-            persistentFileRead = _tree->readFromFile(_filename.toLocal8Bit().constData());
-            _tree->pruneTree();
-        });
-
-        quint64 loadDone = usecTimestampNow();
-        _loadTimeUSecs = loadDone - loadStarted;
-
-        _tree->clearDirtyBit(); // the tree is clean since we just loaded it
-        qCDebug(octree, "DONE loading Octrees from file... fileRead=%s", debug::valueOf(persistentFileRead));
-
-        unsigned long nodeCount = OctreeElement::getNodeCount();
-        unsigned long internalNodeCount = OctreeElement::getInternalNodeCount();
-        unsigned long leafNodeCount = OctreeElement::getLeafNodeCount();
-        qCDebug(octree, "Nodes after loading scene %lu nodes %lu internal %lu leaves", nodeCount, internalNodeCount, leafNodeCount);
-
-        bool wantDebug = false;
-        if (wantDebug) {
-            double usecPerGet = (double)OctreeElement::getGetChildAtIndexTime() 
-                                    / (double)OctreeElement::getGetChildAtIndexCalls();
-            qCDebug(octree) << "getChildAtIndexCalls=" << OctreeElement::getGetChildAtIndexCalls()
-                    << " getChildAtIndexTime=" << OctreeElement::getGetChildAtIndexTime() << " perGet=" << usecPerGet;
-
-            double usecPerSet = (double)OctreeElement::getSetChildAtIndexTime() 
-                                    / (double)OctreeElement::getSetChildAtIndexCalls();
-            qCDebug(octree) << "setChildAtIndexCalls=" << OctreeElement::getSetChildAtIndexCalls()
-                    << " setChildAtIndexTime=" << OctreeElement::getSetChildAtIndexTime() << " perSet=" << usecPerSet;
-        }
-
-        _initialLoadComplete = true;
-
-        // Since we just loaded the persistent file, we can consider ourselves as having "just checked" for persistance.
-        _lastCheck = usecTimestampNow(); // we just loaded, no need to save again
-
-        if (_replacementData.isNull()) {
-            sendLatestEntityDataToDS();
-        }
-        _replacementData.clear();
-
-        emit loadCompleted();
-    }
-
-    if (isStillRunning()) {
+    if (true) { //isStillRunning()) {
         quint64 MSECS_TO_USECS = 1000;
         quint64 USECS_TO_SLEEP = 10 * MSECS_TO_USECS; // every 10ms
         std::this_thread::sleep_for(std::chrono::microseconds(USECS_TO_SLEEP));
@@ -186,14 +260,15 @@ bool OctreePersistThread::process() {
         }
         
     }
-    return isStillRunning();  // keep running till they terminate us
+    //return isStillRunning();  // keep running till they terminate us
+    QTimer::singleShot(1000, this, &OctreePersistThread::process);
+    return true;
 }
 
 void OctreePersistThread::aboutToFinish() {
     qCDebug(octree) << "Persist thread about to finish...";
     persist();
     qCDebug(octree) << "Persist thread done with about to finish...";
-    _stopThread = true;
 }
 
 QByteArray OctreePersistThread::getPersistFileContents() const {
