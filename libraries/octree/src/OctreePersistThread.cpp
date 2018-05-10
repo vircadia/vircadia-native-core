@@ -36,13 +36,12 @@
 #include "OctreeUtils.h"
 #include "OctreeDataUtils.h"
 
-const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL { 1000 * 30 }; // every 30 seconds
+const std::chrono::seconds OctreePersistThread::DEFAULT_PERSIST_INTERVAL { 30 };
 
 constexpr int MAX_OCTREE_REPLACEMENT_BACKUP_FILES_COUNT { 20 };
-//constexpr int MAX_OCTREE_REPLACEMENT_BACKUP_FILES_SIZE_BYTES { 50 * 1000 * 1000 };
-constexpr size_t MAX_OCTREE_REPLACEMENT_BACKUP_FILES_SIZE_BYTES { 70000 };
+constexpr size_t MAX_OCTREE_REPLACEMENT_BACKUP_FILES_SIZE_BYTES { 50 * 1000 * 1000 };
 
-OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& filename, int persistInterval,
+OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& filename, std::chrono::milliseconds persistInterval,
                                          bool debugTimestampNow, QString persistAsFileType) :
     _tree(tree),
     _filename(filename),
@@ -187,7 +186,8 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
     }
 
     qDebug() << "Starting timer";
-    QTimer::singleShot(_persistInterval, this, &OctreePersistThread::process);
+    QTimer::singleShot(std::chrono::milliseconds(_persistInterval).count(), this, &OctreePersistThread::process);
+    QTimer::singleShot(std::chrono::milliseconds(1000).count(), this, &OctreePersistThread::process);
 
     emit loadCompleted();
 }
@@ -246,7 +246,7 @@ bool OctreePersistThread::process() {
 
         quint64 now = usecTimestampNow();
         quint64 sinceLastSave = now - _lastCheck;
-        quint64 intervalToCheck = _persistInterval * MSECS_TO_USECS;
+        quint64 intervalToCheck = std::chrono::microseconds(_persistInterval).count();
 
         if (sinceLastSave > intervalToCheck) {
             _lastCheck = now;

@@ -193,7 +193,7 @@ protected:
     OctreePersistThread* _persistManager;
     QThread _persistThread;
 
-    int _persistInterval;
+    std::chrono::milliseconds _persistInterval;
     bool _persistFileDownload;
     int _maxBackupVersions;
 

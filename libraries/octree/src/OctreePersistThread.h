@@ -30,11 +30,11 @@ public:
         quint64 lastBackup;
     };
 
-    static const int DEFAULT_PERSIST_INTERVAL;
+    static const std::chrono::seconds DEFAULT_PERSIST_INTERVAL;
 
     OctreePersistThread(OctreePointer tree,
                         const QString& filename,
-                        int persistInterval = DEFAULT_PERSIST_INTERVAL,
+                        std::chrono::milliseconds persistInterval = DEFAULT_PERSIST_INTERVAL,
                         bool debugTimestampNow = false,
                         QString persistAsFileType = "json.gz");
 
@@ -70,7 +70,7 @@ protected:
 private:
     OctreePointer _tree;
     QString _filename;
-    int _persistInterval;
+    std::chrono::milliseconds _persistInterval;
     bool _initialLoadComplete;
 
     quint64 _loadTimeUSecs;

@@ -1050,8 +1050,13 @@ void OctreeServer::readConfiguration() {
         _persistAsFileType = "json.gz";
 
         _persistInterval = OctreePersistThread::DEFAULT_PERSIST_INTERVAL;
-        readOptionInt(QString("persistInterval"), settingsSectionObject, _persistInterval);
-        qDebug() << "persistInterval=" << _persistInterval;
+        int result { -1 };
+        readOptionInt(QString("persistInterval"), settingsSectionObject, result);
+        if (result != -1) {
+            _persistInterval = std::chrono::seconds(result);
+        }
+
+        qDebug() << "persistInterval=" << _persistInterval.count();
 
         readOptionBool(QString("persistFileDownload"), settingsSectionObject, _persistFileDownload);
         qDebug() << "persistFileDownload=" << _persistFileDownload;
