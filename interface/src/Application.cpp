@@ -2256,7 +2256,6 @@ void Application::updateVerboseLogging() {
     QString rules =
         "hifi.*.debug=%1\n"
         "hifi.*.info=%1\n"
-        "hifi.audio-stream.warning=false\n"
         "hifi.audio-stream.debug=false\n"
         "hifi.audio-stream.info=false";
     rules = rules.arg(enable ? "true" : "false");
