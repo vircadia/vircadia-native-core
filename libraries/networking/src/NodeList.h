@@ -167,7 +167,7 @@ private:
     HifiSockAddr _assignmentServerSocket;
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;
-    bool _requestsDomainListData;
+    bool _requestsDomainListData { false };
 
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;

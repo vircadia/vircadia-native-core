@@ -47,6 +47,7 @@
 #include <AbstractUriHandler.h>
 #include <shared/RateCounter.h>
 #include <ThreadSafeValueCache.h>
+#include <shared/ConicalViewFrustum.h>
 #include <shared/FileLogger.h>
 
 #include <RunningMarker.h>
@@ -110,7 +111,8 @@ class Application : public QApplication,
                     public AbstractViewStateInterface,
                     public AbstractScriptingServicesInterface,
                     public AbstractUriHandler,
-                    public PluginContainer {
+                    public PluginContainer
+{
     Q_OBJECT
 
     // TODO? Get rid of those
@@ -149,6 +151,8 @@ public:
     void initializeRenderEngine();
     void initializeUi();
 
+    void updateSecondaryCameraViewFrustum();
+
     void updateCamera(RenderArgs& renderArgs, float deltaTime);
     void paintGL();
     void resizeGL();
@@ -178,6 +182,9 @@ public:
     // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
+
+    const ConicalViewFrustums& getConicalViews() const override { return _conicalViews; }
+
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
@@ -486,9 +493,9 @@ private:
     void updateDialogs(float deltaTime) const;
 
     void queryOctree(NodeType_t serverType, PacketType packetType);
+    void queryAvatars();
 
     int sendNackPackets();
-    void sendAvatarViewFrustum();
 
     std::shared_ptr<MyAvatar> getMyAvatar() const;
 
@@ -569,9 +576,14 @@ private:
 
     mutable QMutex _viewMutex { QMutex::Recursive };
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
-    ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
     ViewFrustum _displayViewFrustum;
-    quint64 _lastQueriedTime;
+
+    ConicalViewFrustums _conicalViews;
+    ConicalViewFrustums _lastQueriedViews; // last views used to query servers
+
+    using SteadyClock = std::chrono::steady_clock;
+    using TimePoint = SteadyClock::time_point;
+    TimePoint _queryExpiry;
 
     OctreeQuery _octreeQuery { true }; // NodeData derived class for querying octee cells from octree servers
 
@@ -738,5 +750,8 @@ private:
 
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
+
+    QString testSnapshotLocation;
+    bool quitWhenFinished { false };
 };
 #endif // hifi_Application_h

@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// FIXME ordering of headers
-#include "Application.h"
 #include "GLCanvas.h"
+
+#include "Application.h"
 
 bool GLCanvas::event(QEvent* event) {
     if (QEvent::Paint == event->type() && qApp->isAboutToQuit()) {

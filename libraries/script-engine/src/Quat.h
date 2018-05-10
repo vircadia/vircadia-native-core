@@ -20,6 +20,8 @@
 #include <QString>
 #include <QtScript/QScriptable>
 
+#include <GLMHelpers.h>
+
 /**jsdoc
  * A quaternion value. See also the {@link Quat(0)|Quat} object.
  * @typedef {object} Quat

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "SkyboxBakeWidget.h"
+
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QLabel>
@@ -21,9 +23,9 @@
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
 
-#include "../OvenGUIApplication.h"
+#include <TextureBaker.h>
 
-#include "SkyboxBakeWidget.h"
+#include "../OvenGUIApplication.h"
 
 static const auto EXPORT_DIR_SETTING_KEY = "skybox_export_directory";
 static const auto SELECTION_START_DIR_SETTING_KEY = "skybox_search_directory";

@@ -59,7 +59,6 @@ const int LOW_RES_MOVING_ADJUST  = 1;
 
 class EncodeBitstreamParams {
 public:
-    ViewFrustum viewFrustum;
     bool includeExistsBits;
     NodeData* nodeData;
 

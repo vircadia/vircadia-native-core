@@ -30,7 +30,7 @@
     "fs-extra": "^1.0.0",
     "node-notifier": "^5.2.1",
     "os-homedir": "^1.0.1",
-    "request": "^2.67.0",
+    "request": "^2.85.0",
     "request-progress": "1.0.2",
     "tar-fs": "^1.12.0",
     "yargs": "^3.30.0"
