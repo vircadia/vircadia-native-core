@@ -514,7 +514,6 @@ Rectangle {
             anchors.right: parent.right
             anchors.rightMargin: 30
             text: isInManageState ? "Back" : "Manage"
-            color: style.colors.blueHighlight
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
@@ -540,7 +539,7 @@ Rectangle {
                 currentIndex: (selectedAvatarId !== '' && !pageOfAvatars.isUpdating) ? pageOfAvatars.findAvatar(selectedAvatarId) : -1
 
                 property int horizontalSpacing: 18
-                property int verticalSpacing: 36
+                property int verticalSpacing: 44
 
                 function selectAvatar(avatar) {
                     emitSendToScript({'method' : 'selectAvatar', 'name' : avatar.name})

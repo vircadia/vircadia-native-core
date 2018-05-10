@@ -1,6 +1,6 @@
 import "../../controls" as HifiControls
 import "../../styles-uit"
 
-RalewayBold {
-    size: 18;
+FiraSansSemiBold {
+    size: 22;
 }

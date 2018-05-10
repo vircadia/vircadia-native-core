@@ -2,5 +2,9 @@ import "../../controls" as HifiControls
 import "../../styles-uit"
 
 RalewayRegular {
-    size: 18;
+    AvatarAppStyle {
+        id: style
+    }
+    color: style.colors.blueHighlight
+    size: 22;
 }

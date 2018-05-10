@@ -3,5 +3,5 @@ import "../../styles-uit"
 
 RalewaySemiBold {
     size: 14;
-    font.letterSpacing: 1.1;
+    font.letterSpacing: 1.1
 }
