@@ -145,16 +145,6 @@
 #include <avatars-renderer/ScriptAvatar.h>
 #include <RenderableEntityItem.h>
 
-#include <AnimationLogging.h>
-#include <AvatarLogging.h>
-#include <ScriptEngineLogging.h>
-#include <ModelFormatLogging.h>
-#include <controllers/Logging.h>
-#include <NetworkLogging.h>
-#include <shared/StorageLogging.h>
-#include <ScriptEngineLogging.h>
-#include <ui/Logging.h>
-
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
@@ -1372,8 +1362,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
 
-    updateVerboseLogging();
-
     init();
     qCDebug(interfaceapp, "init() complete.");
 
@@ -1712,6 +1700,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateHeartbeat();
 
     loadSettings();
+
+    updateVerboseLogging();
 
     // Now that we've loaded the menu and thus switched to the previous display plugin
     // we can unlock the desktop repositioning code, since all the positions will be
@@ -2165,7 +2155,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return entityServerNode && !isPhysicsEnabled();
     });
 
-    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/snap.wav"));
+    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/snapshot/snap.wav"));
 
     QVariant testProperty = property(hifi::properties::TEST);
     qDebug() << testProperty;
@@ -2257,43 +2247,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 }
 
 void Application::updateVerboseLogging() {
-    bool enable = Menu::getInstance()->isOptionChecked(MenuOption::VerboseLogging);
+    auto menu = Menu::getInstance();
+    if (!menu) {
+        return;
+    }
+    bool enable = menu->isOptionChecked(MenuOption::VerboseLogging);
 
-    const_cast<QLoggingCategory*>(&animation())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&animation())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&controllers())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&controllers())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&resourceLog())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&resourceLog())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&networking())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&networking())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&asset_client())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&asset_client())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&messages_client())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&messages_client())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&storagelogging())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&storagelogging())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&uiLogging())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&uiLogging())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&glLogging())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&glLogging())->setEnabled(QtInfoMsg, enable);
+    QString rules = "*.debug=%1\n"
+        "*.info=%1";
+    rules = rules.arg(enable ? "true" : "false");
+    QLoggingCategory::setFilterRules(rules);
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -3222,7 +3185,6 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         qCDebug(interfaceapp) << "First run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("default location") : addressLookupString);
         DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
 #else
-        showHelp();
         DependencyManager::get<AddressManager>()->goToEntry();
         sentTo = SENT_TO_ENTRY;
 #endif
