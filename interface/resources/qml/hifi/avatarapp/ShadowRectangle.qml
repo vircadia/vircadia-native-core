@@ -4,6 +4,7 @@ import QtGraphicalEffects 1.0
 
 Item {
     property alias color: rectangle.color
+    property alias gradient: rectangle.gradient
     property alias border: rectangle.border
     property alias radius: rectangle.radius
 

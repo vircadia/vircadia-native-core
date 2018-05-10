@@ -5,6 +5,6 @@ RalewaySemiBold {
     AvatarAppStyle {
         id: style
     }
-    color: style.colors.blueHightlight
+    color: style.colors.blueHighlight
     size: 20;
 }

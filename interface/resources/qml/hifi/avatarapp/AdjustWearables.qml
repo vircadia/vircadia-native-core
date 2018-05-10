@@ -292,6 +292,7 @@ Rectangle {
                 }
 
                 HifiControlsUit.Button {
+                    fontSize: 18
                     anchors.right: parent.right
                     color: hifi.buttons.red;
                     colorScheme: hifi.colorSchemes.dark;

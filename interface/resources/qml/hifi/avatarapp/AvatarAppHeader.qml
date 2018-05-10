@@ -6,7 +6,7 @@ ShadowRectangle {
     id: header
     anchors.left: parent.left
     anchors.right: parent.right
-    height: 84
+    height: 60
 
     property alias pageTitle: title.text
     property alias avatarIconVisible: avatarIcon.visible
@@ -24,8 +24,7 @@ ShadowRectangle {
         id: avatarIcon
         anchors.left: parent.left
         anchors.leftMargin: 23
-        anchors.top: parent.top
-        anchors.topMargin: 29
+        anchors.verticalCenter: header.verticalCenter
 
         size: 38
         text: "<"

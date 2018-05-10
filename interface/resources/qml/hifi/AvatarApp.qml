@@ -252,7 +252,7 @@ Rectangle {
             anchors.left: parent.left
             anchors.leftMargin: 30
             anchors.top: parent.top
-            anchors.topMargin: 34
+            anchors.topMargin: 25
             text: 'Display Name'
         }
 
@@ -262,7 +262,7 @@ Rectangle {
             anchors.leftMargin: 30
             anchors.verticalCenter: displayNameLabel.verticalCenter
             anchors.right: parent.right
-            anchors.rightMargin: 36
+            anchors.rightMargin: 30
             width: 232
 
             property bool error: text === '';
@@ -327,8 +327,8 @@ Rectangle {
 
         Row {
             id: star
-            anchors.top: parent.top
-            anchors.topMargin: 119
+            anchors.top: avatarImage.top
+            anchors.topMargin: 11
             anchors.left: avatarImage.right
             anchors.leftMargin: 30.5
 
@@ -369,8 +369,8 @@ Rectangle {
             text: avatarName
             anchors.left: avatarImage.right
             anchors.leftMargin: 30
-            anchors.top: parent.top
-            anchors.topMargin: 154
+            anchors.top: star.bottom
+            anchors.topMargin: 11
         }
 
         TextStyle3 {
@@ -379,6 +379,7 @@ Rectangle {
             anchors.leftMargin: 30
             anchors.top: avatarNameLabel.bottom
             anchors.topMargin: 16
+            color: 'black'
             text: 'Wearables'
         }
 
@@ -431,6 +432,7 @@ Rectangle {
             anchors.verticalCenter: wearablesLabel.verticalCenter
             font.underline: true
             text: "Add"
+            color: 'black'
             visible: avatarWearablesCount === 0
 
             MouseArea {
@@ -490,7 +492,7 @@ Rectangle {
 
     Rectangle {
         id: favoritesBlock
-        height: 369
+        height: 407
 
         anchors.left: parent.left
         anchors.right: parent.right
@@ -501,7 +503,7 @@ Rectangle {
         TextStyle1 {
             id: favoritesLabel
             anchors.top: parent.top
-            anchors.topMargin: 9
+            anchors.topMargin: 15
             anchors.left: parent.left
             anchors.leftMargin: 30
             text: "Favorites"
@@ -510,7 +512,7 @@ Rectangle {
         TextStyle8 {
             id: manageLabel
             anchors.top: parent.top
-            anchors.topMargin: 9
+            anchors.topMargin: 20
             anchors.right: parent.right
             anchors.rightMargin: 30
             text: isInManageState ? "Back" : "Manage"
@@ -529,7 +531,7 @@ Rectangle {
             anchors.rightMargin: 0
 
             anchors.top: favoritesLabel.bottom
-            anchors.topMargin: 9
+            anchors.topMargin: 20
             anchors.bottom: parent.bottom
 
             GridView {
@@ -868,7 +870,7 @@ Rectangle {
             }
 
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 19
+            anchors.bottomMargin: 20
         }
     }
 
