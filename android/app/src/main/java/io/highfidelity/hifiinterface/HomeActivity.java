@@ -25,6 +25,8 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.qtproject.qt5.android.bindings.QtActivity;
+
 import io.highfidelity.hifiinterface.view.DomainAdapter;
 
 public class HomeActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -234,7 +236,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     }
     @Override
     public void onBackPressed() {
-        finishAffinity();
+        QtActivity.forceQuit();
+        finish();
     }
 
     public void onSearchClear(View view) {

@@ -69,6 +69,9 @@ public class QtActivity extends Activity {
     private QtActivityLoader m_loader = new QtActivityLoader(this);
 
     public boolean isLoading;
+    private boolean forcedQuit;
+
+    public static QtActivity instance;
 
     public QtActivity() {
     }
@@ -237,6 +240,7 @@ public class QtActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         onCreateHook(savedInstanceState);
+        instance = this;
     }
     //---------------------------------------------------------------------------
 
@@ -362,6 +366,7 @@ public class QtActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         QtApplication.invokeDelegate();
+        instance = null;
     }
     //---------------------------------------------------------------------------
 
@@ -504,7 +509,7 @@ public class QtActivity extends Activity {
         // GC: this trick allow us to show a splash activity until Qt app finishes
         // loading
         if (!isLoading) {
-            //QtApplication.invokeDelegate();
+            QtApplication.invokeDelegate();
         }
     }
     //---------------------------------------------------------------------------
@@ -638,14 +643,26 @@ public class QtActivity extends Activity {
     protected void onStart() {
         super.onStart();
         QtApplication.invokeDelegate();
+        if (forcedQuit) {
+            finish();
+        }
     }
     //---------------------------------------------------------------------------
 
     @Override
     protected void onStop() {
         super.onStop();
-        //QtApplication.invokeDelegate();
+        if (forcedQuit) {
+            QtApplication.invokeDelegate();
+        }
     }
+
+    public static void forceQuit() {
+        if (instance != null) {
+            instance.forcedQuit = true;
+        }
+    }
+
     //---------------------------------------------------------------------------
 
     @Override
