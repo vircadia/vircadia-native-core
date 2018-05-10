@@ -159,7 +159,7 @@ void AutoUpdater::parseLatestVersionData() {
 }
 
 void AutoUpdater::checkVersionAndNotify() {
-    if (BuildInfo::STABLE_BUILD == "0" || _builds.empty()) {
+    if (BuildInfo::BUILD_TYPE != BuildInfo::BuildType::Stable || _builds.empty()) {
         // No version checking is required in nightly/PR/dev builds or when no build
         // data was found for the platform
         return;

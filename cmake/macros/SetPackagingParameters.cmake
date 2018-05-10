@@ -17,6 +17,7 @@ macro(SET_PACKAGING_PARAMETERS)
   set(DEV_BUILD 0)
   set(BUILD_GLOBAL_SERVICES "DEVELOPMENT")
   set(USE_STABLE_GLOBAL_SERVICES 0)
+  set(BUILD_NUMBER 0)
 
   set_from_env(RELEASE_TYPE RELEASE_TYPE "DEV")
   set_from_env(RELEASE_NUMBER RELEASE_NUMBER "")
@@ -71,8 +72,16 @@ macro(SET_PACKAGING_PARAMETERS)
   endif ()
 
   string(TIMESTAMP BUILD_TIME "%d/%m/%Y")
-  
-  if (PRODUCTION_BUILD OR PR_BUILD AND NOT STABLE_BUILD)
+
+  # if STABLE_BUILD is 1, PRODUCTION_BUILD must be 1 and
+  # DEV_BUILD and PR_BUILD must be 0
+  if (STABLE_BUILD)
+    if ((NOT PRODUCTION_BUILD) OR PR_BUILD OR DEV_BUILD)
+      message(FATAL_ERROR "Cannot produce STABLE_BUILD without PRODUCTION_BUILD")
+    endif ()
+  endif ()
+
+  if ((PRODUCTION_BUILD OR PR_BUILD) AND NOT STABLE_BUILD)
     # append the abbreviated commit SHA to the build version
     # since this is a PR build or master/nightly builds
     execute_process(
@@ -83,14 +92,10 @@ macro(SET_PACKAGING_PARAMETERS)
     )
 
     set(BUILD_VERSION "${BUILD_VERSION}-${GIT_COMMIT_HASH}")
-  endif ()
 
-  # if STABLE_BUILD is 1, PRODUCTION_BUILD must be 1 and
-  # DEV_BUILD and PR_BUILD must be 0
-  if (STABLE_BUILD)
-    if (NOT PRODUCTION_BUILD OR PR_BUILD OR DEV_BUILD)
-      message(FATAL_ERROR "Cannot produce STABLE_BUILD without PRODUCTION_BUILD")
-    endif ()
+    # pass along a release number without the SHA in case somebody
+    # wants to compare master or PR builds as integers
+    set(BUILD_NUMBER ${RELEASE_NUMBER})
   endif ()
 
   if (DEPLOY_PACKAGE)
