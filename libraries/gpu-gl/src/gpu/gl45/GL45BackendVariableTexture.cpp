@@ -31,7 +31,6 @@ using GL45Texture = GL45Backend::GL45Texture;
 using GL45VariableAllocationTexture = GL45Backend::GL45VariableAllocationTexture;
 
 GL45VariableAllocationTexture::GL45VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45Texture(backend, texture) {
-    ++_frameTexturesCreated;
     Backend::textureResourceCount.increment();
 }
 
@@ -104,7 +103,6 @@ GL45ResourceTexture::GL45ResourceTexture(const std::weak_ptr<GLBackend>& backend
     uint16_t allocatedMip = std::max<uint16_t>(_minAllocatedMip, targetMip);
 
     allocateStorage(allocatedMip);
-    _memoryPressureStateStale = true;
     copyMipsFromTexture();
     syncSampler();
 }
@@ -148,7 +146,7 @@ void GL45ResourceTexture::syncSampler() const {
 #endif
 }
 
-void GL45ResourceTexture::promote() {
+size_t GL45ResourceTexture::promote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip > 0);
 
@@ -191,11 +189,10 @@ void GL45ResourceTexture::promote() {
     // update the memory usage
     Backend::textureResourceGPUMemSize.update(oldSize, 0);
     // no change to Backend::textureResourcePopulatedGPUMemSize
-
-    populateTransferQueue();
+    return (_size - oldSize);
 }
 
-void GL45ResourceTexture::demote() {
+size_t GL45ResourceTexture::demote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip < _maxAllocatedMip);
     auto oldId = _id;
@@ -242,16 +239,16 @@ void GL45ResourceTexture::demote() {
         }
        decrementPopulatedSize(amountUnpopulated);
     }
-
-    populateTransferQueue();
+    return (oldSize - _size);
 }
 
-void GL45ResourceTexture::populateTransferQueue() {
+void GL45ResourceTexture::populateTransferQueue(TransferQueue& pendingTransfers) {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
+    sanityCheck();
+
     if (_populatedMip <= _allocatedMip) {
         return;
     }
-    _pendingTransfers = TransferQueue();
 
     const uint8_t maxFace = GLTexture::getFaceCount(_target);
     uint16_t sourceMip = _populatedMip;
@@ -267,7 +264,7 @@ void GL45ResourceTexture::populateTransferQueue() {
             // If the mip is less than the max transfer size, then just do it in one transfer
             if (glm::all(glm::lessThanEqual(mipDimensions, MAX_TRANSFER_DIMENSIONS))) {
                 // Can the mip be transferred in one go
-                _pendingTransfers.emplace(new TransferJob(*this, sourceMip, targetMip, face));
+                pendingTransfers.emplace(new TransferJob(_gpuObject, sourceMip, targetMip, face));
                 continue;
             }
 
@@ -284,14 +281,15 @@ void GL45ResourceTexture::populateTransferQueue() {
             uint32_t lineOffset = 0;
             while (lineOffset < lines) {
                 uint32_t linesToCopy = std::min<uint32_t>(lines - lineOffset, linesPerTransfer);
-                _pendingTransfers.emplace(new TransferJob(*this, sourceMip, targetMip, face, linesToCopy, lineOffset));
+                pendingTransfers.emplace(new TransferJob(_gpuObject, sourceMip, targetMip, face, linesToCopy, lineOffset));
                 lineOffset += linesToCopy;
             }
         }
 
         // queue up the sampler and populated mip change for after the transfer has completed
-        _pendingTransfers.emplace(new TransferJob(*this, [=] {
+        pendingTransfers.emplace(new TransferJob([=] {
             _populatedMip = sourceMip;
+            sanityCheck();
             syncSampler();
         }));
     } while (sourceMip != _allocatedMip);
