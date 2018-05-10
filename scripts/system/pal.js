@@ -744,12 +744,12 @@ function receiveMessage(channel, messageString, senderID) {
     var message = JSON.parse(messageString);
     switch (message.method) {
     case 'select':
-	if (!onPalScreen) {
-	    tablet.loadQMLSource(PAL_QML_SOURCE);
-	    Script.setTimeout(function () { sendToQml(message); }, 1000);
-	} else {
+        if (!onPalScreen) {
+            tablet.loadQMLSource(PAL_QML_SOURCE);
+            Script.setTimeout(function () { sendToQml(message); }, 1000);
+        } else {
             sendToQml(message); // Accepts objects, not just strings.
-	}
+        }
         break;
     }
 }
