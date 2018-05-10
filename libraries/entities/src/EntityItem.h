@@ -289,7 +289,7 @@ public:
     void setCollisionless(bool value);
 
     uint16_t getCollisionMask() const;
-    void setCollisionMask(uint8_t value);
+    void setCollisionMask(uint16_t value);
 
     void computeCollisionGroupAndFinalMask(int32_t& group, int32_t& mask) const;
 
