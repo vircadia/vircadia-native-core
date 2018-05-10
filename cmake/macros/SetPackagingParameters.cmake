@@ -32,6 +32,16 @@ macro(SET_PACKAGING_PARAMETERS)
   set(CLIENT_COMPONENT client)
   set(SERVER_COMPONENT server)
 
+  # grab the abbreviated commit SHA
+  # since is added to the build version for PR builds and master/nightly builds
+  execute_process(
+    COMMAND git log -1 --format=%h
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+  )
+
   if (RELEASE_TYPE STREQUAL "PRODUCTION")
     set(DEPLOY_PACKAGE TRUE)
     set(PRODUCTION_BUILD 1)
@@ -50,12 +60,15 @@ macro(SET_PACKAGING_PARAMETERS)
       message(STATUS "The RELEASE_TYPE is PRODUCTION and the BUILD_BRANCH is stable...")
       set(BUILD_GLOBAL_SERVICES "STABLE")
       set(USE_STABLE_GLOBAL_SERVICES 1)
-    endif()
+    else ()
+      # assume this is a master/nightly build and append the short commit SHA
+      set(BUILD_VERSION "${BUILD_VERSION}-${GIT_COMMIT_HASH}")
+    endif ()
 
   elseif (RELEASE_TYPE STREQUAL "PR")
     set(DEPLOY_PACKAGE TRUE)
     set(PR_BUILD 1)
-    set(BUILD_VERSION "PR${RELEASE_NUMBER}")
+    set(BUILD_VERSION "PR${RELEASE_NUMBER}-${GIT_COMMIT_HASH}")
     set(BUILD_ORGANIZATION "High Fidelity - ${BUILD_VERSION}")
     set(INTERFACE_BUNDLE_NAME "Interface")
     set(INTERFACE_ICON_PREFIX "interface-beta")
