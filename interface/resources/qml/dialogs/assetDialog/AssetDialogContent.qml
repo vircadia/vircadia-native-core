@@ -20,14 +20,8 @@ Item {
     // Set from OffscreenUi::assetDialog()
     property alias dir: assetTableModel.folder
     property alias filter: selectionType.filtersString
-    property int options  // Not used.
 
     property bool selectDirectory: false
-
-    // Not implemented.
-    // property bool saveDialog: false;
-    // property bool multiSelect: false;
-
     property bool singleClickNavigate: false
 
     HifiConstants { id: hifi }
@@ -84,7 +78,6 @@ Item {
                 size: 28
                 width: height
                 enabled: destination !== ""
-                // onClicked: d.navigateHome();
                 onClicked: assetTableModel.folder = destination;
             }
         }
