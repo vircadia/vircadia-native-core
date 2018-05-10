@@ -470,7 +470,6 @@ var toolBar = (function () {
         }
     }
 
-
     // Handles any edit mode updates required when domains have switched
     function checkEditPermissionsAndUpdate() {
         if ((createButton === null) || (createButton === undefined)) {
