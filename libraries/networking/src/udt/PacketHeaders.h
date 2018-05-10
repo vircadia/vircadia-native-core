@@ -75,6 +75,7 @@ public:
         EntityData,
         EntityQuery,
         EntityAdd,
+        EntityClone,
         EntityErase,
         EntityEdit,
         DomainServerConnectionToken,
@@ -232,7 +233,8 @@ enum class EntityVersion : PacketVersion {
     SoftEntities,
     MaterialEntities,
     ShadowControl,
-    MaterialData
+    MaterialData,
+    CloneableData
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

@@ -272,6 +272,11 @@ public:
     DEFINE_PROPERTY_REF(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString, ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS);
     DEFINE_PROPERTY(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool, ENTITY_ITEM_DEFAULT_RELAY_PARENT_JOINTS);
 
+    DEFINE_PROPERTY(PROP_CLONEABLE, Cloneable, cloneable, bool, ENTITY_ITEM_CLONEABLE);
+    DEFINE_PROPERTY(PROP_CLONEABLE_LIFETIME, CloneableLifetime, cloneableLifetime, float, ENTITY_ITEM_CLONEABLE_LIFETIME);
+    DEFINE_PROPERTY(PROP_CLONEABLE_LIMIT, CloneableLimit, cloneableLimit, float, ENTITY_ITEM_CLONEABLE_LIMIT);
+    DEFINE_PROPERTY(PROP_CLONEABLE_DYNAMIC, CloneableDynamic, cloneableDynamic, bool, ENTITY_ITEM_CLONEABLE_DYNAMIC);
+
     static QString getComponentModeString(uint32_t mode);
     static QString getComponentModeAsString(uint32_t mode);
 
@@ -294,6 +299,8 @@ public:
                                        QByteArray& buffer, EntityPropertyFlags requestedProperties, EntityPropertyFlags& didntFitProperties);
 
     static bool encodeEraseEntityMessage(const EntityItemID& entityItemID, QByteArray& buffer);
+    static bool encodeCloneEntityMessage(const EntityItemID& entityIDToClone, const EntityItemID& newEntityID, QByteArray& buffer);
+    static bool decodeCloneEntityMessage(const QByteArray& buffer, int& processedBytes, EntityItemID& entityIDToClone, EntityItemID& newEntityID);
 
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
                                        EntityItemID& entityID, EntityItemProperties& properties);

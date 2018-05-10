@@ -99,7 +99,7 @@ Buffer::Update::Update(const Buffer& parent) : buffer(parent) {
 void Buffer::Update::apply() const {
     // Make sure we're loaded in order
     buffer._applyUpdateCount++;
-    assert(buffer._applyUpdateCount == updateNumber);
+    //assert(buffer._applyUpdateCount == updateNumber);
 
     const auto pageSize = buffer._pages._pageSize;
     buffer._renderSysmem.resize(size);

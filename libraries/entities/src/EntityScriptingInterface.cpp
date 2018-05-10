@@ -258,33 +258,9 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     propertiesWithSimID = convertPropertiesFromScriptSemantics(propertiesWithSimID, scalesWithParent);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
-    EntityItemID id = EntityItemID(QUuid::createUuid());
-
+    EntityItemID id;
     // If we have a local entity tree set, then also update it.
-    bool success = true;
-    if (_entityTree) {
-        _entityTree->withWriteLock([&] {
-            EntityItemPointer entity = _entityTree->addEntity(id, propertiesWithSimID);
-            if (entity) {
-                if (propertiesWithSimID.queryAACubeRelatedPropertyChanged()) {
-                    // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
-                    bool success;
-                    AACube queryAACube = entity->getQueryAACube(success);
-                    if (success) {
-                        propertiesWithSimID.setQueryAACube(queryAACube);
-                    }
-                }
-
-                entity->setLastBroadcast(usecTimestampNow());
-                // since we're creating this object we will immediately volunteer to own its simulation
-                entity->flagForOwnershipBid(VOLUNTEER_SIMULATION_PRIORITY);
-                propertiesWithSimID.setLastEdited(entity->getLastEdited());
-            } else {
-                qCDebug(entities) << "script failed to add new Entity to local Octree";
-                success = false;
-            }
-        });
-    }
+    bool success = addLocalEntityCopy(propertiesWithSimID, id);
 
     // queue the packet
     if (success) {
@@ -293,6 +269,39 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     } else {
         return QUuid();
     }
+}
+
+bool EntityScriptingInterface::addLocalEntityCopy(EntityItemProperties& properties, EntityItemID& id) {
+    bool success = true;
+
+    id = EntityItemID(QUuid::createUuid());
+
+    if (_entityTree) {
+        _entityTree->withWriteLock([&] {
+            EntityItemPointer entity = _entityTree->addEntity(id, properties);
+            if (entity) {
+                if (properties.queryAACubeRelatedPropertyChanged()) {
+                    // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
+                    bool success;
+                    AACube queryAACube = entity->getQueryAACube(success);
+                    if (success) {
+                        properties.setQueryAACube(queryAACube);
+                    }
+                }
+
+                entity->setLastBroadcast(usecTimestampNow());
+                // since we're creating this object we will immediately volunteer to own its simulation
+                entity->flagForOwnershipBid(VOLUNTEER_SIMULATION_PRIORITY);
+                properties.setLastEdited(entity->getLastEdited());
+            }
+            else {
+                qCDebug(entities) << "script failed to add new Entity to local Octree";
+                success = false;
+            }
+        });
+    }
+
+    return success;
 }
 
 QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& textures,
@@ -318,6 +327,18 @@ QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QStrin
     properties.setLastEditedBy(sessionID);
 
     return addEntity(properties);
+}
+
+QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
+    EntityItemID newEntityID;
+    EntityItemProperties properties = getEntityProperties(entityIDToClone);
+    if (addLocalEntityCopy(properties, newEntityID)) {
+        qCDebug(entities) << "DBACK POOPY cloneEntity addLocalEntityCopy" << newEntityID;
+        getEntityPacketSender()->queueCloneEntityMessage(entityIDToClone, newEntityID);
+        return newEntityID;
+    } else {
+        return QUuid();
+    }
 }
 
 EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity) {
