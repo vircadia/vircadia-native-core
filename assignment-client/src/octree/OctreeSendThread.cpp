@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctreeSendThread.h"
+
 #include <chrono>
 #include <thread>
 
@@ -17,7 +19,6 @@
 #include <udt/PacketHeaders.h>
 #include <PerfStat.h>
 
-#include "OctreeSendThread.h"
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
 #include "OctreeLogging.h"

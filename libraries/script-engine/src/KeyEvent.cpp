@@ -9,12 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "KeyEvent.h"
+
 #include <qdebug.h>
 #include <qscriptengine.h>
 
 #include "ScriptEngineLogging.h"
-
-#include "KeyEvent.h"
 
 KeyEvent::KeyEvent() :
     key(0),

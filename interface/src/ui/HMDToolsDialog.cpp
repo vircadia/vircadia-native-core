@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "HMDToolsDialog.h"
+
 #include <QDesktopWidget>
 #include <QDialogButtonBox>
 #include <QFormLayout>
@@ -25,8 +27,7 @@
 #include "Application.h"
 #include "MainWindow.h"
 #include "Menu.h"
-#include "ui/DialogsManager.h"
-#include "ui/HMDToolsDialog.h"
+#include "DialogsManager.h"
 
 static const int WIDTH = 350;
 static const int HEIGHT = 100;

@@ -750,5 +750,8 @@ private:
 
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
+
+    QString testSnapshotLocation;
+    bool quitWhenFinished { false };
 };
 #endif // hifi_Application_h

@@ -9,11 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "SnapshotUploader.h"
+
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonArray>
+
 #include <AddressManager.h>
+
 #include "scripting/WindowScriptingInterface.h"
-#include "SnapshotUploader.h"
 
 SnapshotUploader::SnapshotUploader(QUrl inWorldLocation, QString pathname) :
     _inWorldLocation(inWorldLocation),

@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
-#include <glm/gtc/random.hpp>
+#include "AmbientOcclusionEffect.h"
 
 #include <algorithm> //min max and more
 
+#include <glm/gtc/random.hpp>
 
 #include <PathUtils.h>
 #include <SharedUtil.h>
@@ -22,7 +22,6 @@
 #include "RenderUtilsLogging.h"
 
 #include "DeferredLightingEffect.h"
-#include "AmbientOcclusionEffect.h"
 #include "TextureCache.h"
 #include "FramebufferCache.h"
 #include "DependencyManager.h"

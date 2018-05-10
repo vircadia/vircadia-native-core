@@ -347,7 +347,8 @@ void ScriptEngines::saveScripts() {
     {
         QReadLocker lock(&_scriptEnginesHashLock);
         for (auto it = _scriptEnginesHash.begin(); it != _scriptEnginesHash.end(); ++it) {
-            if (it.value() && it.value()->isUserLoaded()) {
+            // Save user-loaded scripts, only if they are set to quit when finished
+            if (it.value() && it.value()->isUserLoaded()  && !it.value()->isQuitWhenFinished()) {
                 auto normalizedUrl = normalizeScriptURL(it.key());
                 list.append(normalizedUrl.toString());
             }
@@ -456,7 +457,7 @@ void ScriptEngines::reloadAllScripts() {
 }
 
 ScriptEnginePointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserLoaded, bool loadScriptFromEditor,
-                                        bool activateMainWindow, bool reload) {
+                                              bool activateMainWindow, bool reload, bool quitWhenFinished) {
     if (thread() != QThread::currentThread()) {
         ScriptEnginePointer result { nullptr };
         BLOCKING_INVOKE_METHOD(this, "loadScript", Q_RETURN_ARG(ScriptEnginePointer, result),
@@ -488,6 +489,7 @@ ScriptEnginePointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool i
     scriptEngine = ScriptEnginePointer(new ScriptEngine(_context, NO_SCRIPT, "about:" + scriptFilename.fileName()));
     addScriptEngine(scriptEngine);
     scriptEngine->setUserLoaded(isUserLoaded);
+    scriptEngine->setQuitWhenFinished(quitWhenFinished);
 
     if (scriptFilename.isEmpty() || !scriptUrl.isValid()) {
         launchScriptEngine(scriptEngine);
@@ -495,6 +497,11 @@ ScriptEnginePointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool i
         // connect to the appropriate signals of this script engine
         connect(scriptEngine.data(), &ScriptEngine::scriptLoaded, this, &ScriptEngines::onScriptEngineLoaded);
         connect(scriptEngine.data(), &ScriptEngine::errorLoadingScript, this, &ScriptEngines::onScriptEngineError);
+
+        // Shutdown Interface when script finishes, if requested
+        if (quitWhenFinished) {
+            connect(scriptEngine.data(), &ScriptEngine::finished, this, &ScriptEngines::quitWhenFinished);
+        }
 
         // get the script engine object to load the script at the designated script URL
         scriptEngine->loadURL(scriptUrl, reload);
@@ -534,6 +541,10 @@ void ScriptEngines::onScriptEngineLoaded(const QString& rawScriptURL) {
     // Update settings with new script
     saveScripts();
     emit scriptCountChanged();
+}
+
+void ScriptEngines::quitWhenFinished() {
+    qApp->quit();
 }
 
 int ScriptEngines::runScriptInitializers(ScriptEnginePointer scriptEngine) {

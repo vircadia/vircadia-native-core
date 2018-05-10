@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioSRC.h"
+
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "AudioSRC.h"
 #include "AudioSRCData.h"
 
 #ifndef MAX

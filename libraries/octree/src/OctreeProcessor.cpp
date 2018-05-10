@@ -8,16 +8,17 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include "OctreeProcessor.h"
+
+#include <stdint.h>
 
 #include <glm/glm.hpp>
-#include <stdint.h>
 
 #include <NumericalConstants.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
 
 #include "OctreeLogging.h"
-#include "OctreeProcessor.h"
 
 OctreeProcessor::OctreeProcessor() :
     _tree(NULL),

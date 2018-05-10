@@ -9,14 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "TouchEvent.h"
+
 #include <qscriptengine.h>
 #include <qscriptvalue.h>
-#include <QTouchEvent>
 
 #include <RegisteredMetaTypes.h>
 #include <NumericalConstants.h>
-
-#include "TouchEvent.h"
 
 TouchEvent::TouchEvent() :
     x(0.0f),

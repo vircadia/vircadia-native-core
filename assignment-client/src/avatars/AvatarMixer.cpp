@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AvatarMixer.h"
+
 #include <cfloat>
 #include <chrono>
 #include <memory>
@@ -30,8 +32,6 @@
 #include <SharedUtil.h>
 #include <UUID.h>
 #include <TryLocker.h>
-
-#include "AvatarMixer.h"
 
 const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 

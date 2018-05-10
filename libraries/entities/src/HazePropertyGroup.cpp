@@ -9,9 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "HazePropertyGroup.h"
+
 #include <OctreePacketData.h>
 
-#include "HazePropertyGroup.h"
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 

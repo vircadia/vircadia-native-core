@@ -16,9 +16,9 @@
 #import <AppKit/NSSpeechRecognizer.h>
 #import <AppKit/NSWorkspace.h>
 
-#include <QDebug>
-
 #include "SpeechRecognizer.h"
+
+#include <QDebug>
 
 @interface SpeechRecognizerDelegate : NSObject <NSSpeechRecognizerDelegate> {
     SpeechRecognizer* _listener;
