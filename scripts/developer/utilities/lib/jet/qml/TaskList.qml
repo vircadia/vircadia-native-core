@@ -17,7 +17,9 @@ import "qrc:///qml/controls-uit" as HifiControls
 
 import "../jet.js" as Jet
 
-Rectangle {
+Rectangle {   
+    HifiConstants { id: hifi;}
+    color: hifi.colors.baseGray;
     id: root
  //   width: parent ? parent.width : 200
  //   height: parent ? parent.height : 400

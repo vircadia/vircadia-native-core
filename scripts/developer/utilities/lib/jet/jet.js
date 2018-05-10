@@ -45,6 +45,15 @@ function job_propKeys(job) {
     return propKeys; 
 }
 
+// Use this function to create a functor that will fill the specifed array with one entry name per task and job and it s rank
+function job_list_functor(jobList, maxDepth) {
+    if (maxDepth === undefined) maxDepth = 100
+    return function (job, depth, index) {
+        jobList.push(job.objectName);
+        return depth < maxDepth;
+    }
+} 
+
 // Use this function to create a functor that will print the content of the Job visited calling the  specified 'printout' function
 function job_print_functor(printout, showProps, maxDepth) {
     if (maxDepth === undefined) maxDepth = 100

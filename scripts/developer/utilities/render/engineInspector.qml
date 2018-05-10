@@ -20,10 +20,10 @@ Item {
     HifiConstants { id: hifi;}
     id: render;   
     anchors.fill: parent
-    
+
     property var mainViewTask: Render.getConfig("RenderMainView")
 
-    Jet.TaskList {
+    Jet.TaskListView {
         rootConfig: Render
         anchors.fill: render        
     }
