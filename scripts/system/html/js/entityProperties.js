@@ -1045,7 +1045,7 @@ function loaded() {
                         elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
                         elCloneableLimit.value = properties.cloneableLimit;
                         elCloneableLifetime.value = properties.cloneableLifetime;
-						
+                        
                         var grabbablesSet = false;
                         var parsedUserData = {};
                         try {
@@ -1439,11 +1439,11 @@ function loaded() {
             }
             userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, true);
         });
-		
-		elCloneable.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneable'));
-		elCloneableDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneableDynamic'));
-		elCloneableLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneableLifetime'));
-		elCloneableLimit.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneableLimit'));
+        
+        elCloneable.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneable'));
+        elCloneableDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneableDynamic'));
+        elCloneableLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneableLifetime'));
+        elCloneableLimit.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneableLimit'));
 
         elWantsTrigger.addEventListener('change', function() {
             userDataChanger("grabbableKey", "wantsTrigger", elWantsTrigger, elUserData, false);

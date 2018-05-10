@@ -47,13 +47,13 @@ propsAreCloneDynamic = function(props) {
 };
 
 cloneEntity = function(props, worldEntityProps) {
-	var entityToClone = props.id;
+    var entityToClone = props.id;
     var certificateID = Entities.getEntityProperties(entityToClone, ['certificateID']).certificateID;
-	// ensure entity is cloneable and does not have a certificate ID, whereas cloneable limits
-	// will now be handled by the server where the entity add will fail if limit reached
-	if (entityIsCloneable(props) && (certificateID === undefined || certificateID.length === 0)) {
-		var cloneID = Entities.cloneEntity(entityToClone);
-		return cloneID;
-	}
-	return null;
+    // ensure entity is cloneable and does not have a certificate ID, whereas cloneable limits
+    // will now be handled by the server where the entity add will fail if limit reached
+    if (entityIsCloneable(props) && (certificateID === undefined || certificateID.length === 0)) {
+        var cloneID = Entities.cloneEntity(entityToClone);
+        return cloneID;
+    }
+    return null;
 };
