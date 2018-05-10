@@ -128,6 +128,10 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         console.debug('avatarapp.js: selecting avatar: ', message.name);
         AvatarBookmarks.loadBookmark(message.name);
         break;
+    case 'deleteAvatar':
+        console.debug('avatarapp.js: deleting avatar: ', message.name);
+        AvatarBookmarks.removeBookmark(message.name);
+        break;
     case 'adjustWearablesOpened':
         currentAvatarWearablesBackup = getMyAvatarWearables();
         adjustWearables.setOpened(true);
@@ -254,6 +258,11 @@ function onBookmarkLoaded(bookmarkName) {
     sendToQml({'method' : 'bookmarkLoaded', 'reply' : {'name' : bookmarkName, 'currentAvatar' : currentAvatar} });
 }
 
+function onBookmarkDeleted(bookmarkName) {
+    console.debug('avatarapp.js: onBookmarkDeleted: ', bookmarkName);
+    sendToQml({'method' : 'bookmarkDeleted', 'name' : bookmarkName});
+}
+
 //
 // Manage the connection between the button and the window.
 //
@@ -272,6 +281,7 @@ function startup() {
     button.clicked.connect(onTabletButtonClicked);
     tablet.screenChanged.connect(onTabletScreenChanged);
     AvatarBookmarks.bookmarkLoaded.connect(onBookmarkLoaded);
+    AvatarBookmarks.bookmarkDeleted.connect(onBookmarkDeleted);
 
 //    Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
 //    Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
@@ -373,6 +383,7 @@ function shutdown() {
     tablet.removeButton(button);
     tablet.screenChanged.disconnect(onTabletScreenChanged);
     AvatarBookmarks.bookmarkLoaded.disconnect(onBookmarkLoaded);
+    AvatarBookmarks.bookmarkDeleted.disconnect(onBookmarkDeleted);
 
 //    Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
 //    Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);

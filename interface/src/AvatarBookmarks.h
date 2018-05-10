@@ -48,6 +48,7 @@ public slots:
 
 signals:
     void bookmarkLoaded(const QString& bookmarkName);
+    void bookmarkDeleted(const QString& bookmarkName);
 
 protected:
     void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) override;

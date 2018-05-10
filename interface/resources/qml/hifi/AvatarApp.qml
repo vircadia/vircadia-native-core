@@ -79,6 +79,31 @@ Rectangle {
             var avatarIndex = allAvatars.findAvatarIndex(selectedAvatarId);
             allAvatars.move(avatarIndex, 0, 1);
             view.setPage(0);
+        } else if(message.method === 'bookmarkDeleted') {
+            pageOfAvatars.isUpdating = true;
+
+            var index = pageOfAvatars.findAvatarIndex(message.name);
+            var absoluteIndex = view.currentPage * view.itemsPerPage + index
+            console.debug('removed ', absoluteIndex, 'view.currentPage', view.currentPage,
+                          'view.itemsPerPage: ', view.itemsPerPage, 'index', index, 'pageOfAvatars', pageOfAvatars, 'pageOfAvatars.count', pageOfAvatars)
+
+            allAvatars.remove(absoluteIndex)
+            pageOfAvatars.remove(index);
+
+            var itemsOnPage = pageOfAvatars.count;
+            var newItemIndex = view.currentPage * view.itemsPerPage + itemsOnPage;
+
+            console.debug('newItemIndex: ', newItemIndex, 'allAvatars.count - 1: ', allAvatars.count - 1, 'pageOfAvatars.count:', pageOfAvatars.count);
+
+            if(newItemIndex <= (allAvatars.count - 1)) {
+                pageOfAvatars.append(allAvatars.get(newItemIndex));
+            } else {
+                if(!pageOfAvatars.hasGetAvatars())
+                    pageOfAvatars.appendGetAvatars();
+            }
+
+            console.debug('removed ', absoluteIndex, 'newItemIndex: ', newItemIndex, 'allAvatars.count:', allAvatars.count, 'pageOfAvatars.count:', pageOfAvatars.count)
+            pageOfAvatars.isUpdating = false;
         } else if(message.method === getAvatarsMethod) {
             var getAvatarsReply = message.reply;
             allAvatars.populate(getAvatarsReply.bookmarks);
@@ -142,10 +167,6 @@ Rectangle {
     property var selectedAvatar;
     onSelectedAvatarChanged: {
         console.debug('onSelectedAvatarChanged.selectedAvatar: ', JSON.stringify(selectedAvatar, null, '\t'));
-    }
-
-    function isEqualById(avatar, avatarId) {
-        return (avatar.name) === avatarId
     }
 
     property string avatarName: selectedAvatar ? selectedAvatar.name : ''
@@ -525,28 +546,12 @@ Rectangle {
                     emitSendToScript({'method' : 'selectAvatar', 'name' : avatar.name})
                 }
 
+                function deleteAvatar(avatar) {
+                    emitSendToScript({'method' : 'deleteAvatar', 'name' : avatar.name})
+                }
+
                 AvatarsModel {
                     id: allAvatars
-
-                    function findAvatarIndex(avatarId) {
-                        for(var i = 0; i < count; ++i) {
-                            if(isEqualById(get(i), avatarId)) {
-                                console.debug('avatar found by index: ', i)
-                                return i;
-                            }
-                        }
-                        return -1;
-                    }
-
-                    function findAvatar(avatarId) {
-                        console.debug('AvatarsModel: find avatar by', avatarId);
-
-                        var avatarIndex = findAvatarIndex(avatarId);
-                        if(avatarIndex === -1)
-                            return undefined;
-
-                        return get(avatarIndex);
-                    }
                 }
 
                 property int itemsPerPage: 8
@@ -593,24 +598,11 @@ Rectangle {
                     pageOfAvatars.isUpdating = false;
                 }
 
-                model: ListModel {
+                model: AvatarsModel {
                     id: pageOfAvatars
 
                     property bool isUpdating: false;
                     property var getMoreAvatarsEntry: {'url' : '', 'name' : '', 'getMoreAvatars' : true}
-
-                    function findAvatar(avatarId) {
-                        console.debug('pageOfAvatars.findAvatar: ', avatarId);
-
-                        for(var i = 0; i < count; ++i) {
-                            if(isEqualById(get(i), avatarId)) {
-                                console.debug('avatar found by index: ', i)
-                                return i;
-                            }
-                        }
-
-                        return -1;
-                    }
 
                     function appendGetAvatars() {
                         append(getMoreAvatarsEntry);
@@ -682,31 +674,7 @@ Rectangle {
                                     if(isInManageState) {
                                         var currentItem = delegateRoot.GridView.view.model.get(index);
                                         popup.showDeleteFavorite(currentItem.name, function() {
-                                            pageOfAvatars.isUpdating = true;
-
-                                            console.debug('removing ', index)
-
-                                            var absoluteIndex = view.currentPage * view.itemsPerPage + index
-                                            console.debug('removed ', absoluteIndex, 'view.currentPage', view.currentPage,
-                                                          'view.itemsPerPage: ', view.itemsPerPage, 'index', index, 'pageOfAvatars', pageOfAvatars, 'pageOfAvatars.count', pageOfAvatars)
-
-                                            allAvatars.remove(absoluteIndex)
-                                            pageOfAvatars.remove(index);
-
-                                            var itemsOnPage = pageOfAvatars.count;
-                                            var newItemIndex = view.currentPage * view.itemsPerPage + itemsOnPage;
-
-                                            console.debug('newItemIndex: ', newItemIndex, 'allAvatars.count - 1: ', allAvatars.count - 1, 'pageOfAvatars.count:', pageOfAvatars.count);
-
-                                            if(newItemIndex <= (allAvatars.count - 1)) {
-                                                pageOfAvatars.append(allAvatars.get(newItemIndex));
-                                            } else {
-                                                if(!pageOfAvatars.hasGetAvatars())
-                                                    pageOfAvatars.appendGetAvatars();
-                                            }
-
-                                            console.debug('removed ', absoluteIndex, 'newItemIndex: ', newItemIndex, 'allAvatars.count:', allAvatars.count, 'pageOfAvatars.count:', pageOfAvatars.count)
-                                            pageOfAvatars.isUpdating = false;
+                                            view.deleteAvatar(currentItem);
                                         });
                                     } else {
                                         if(delegateRoot.GridView.view.currentIndex !== index) {

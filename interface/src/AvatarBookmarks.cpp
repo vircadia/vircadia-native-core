@@ -134,6 +134,8 @@ void AvatarBookmarks::removeBookmark(const QString& bookmarkName) {
     if (_bookmarksMenu->actions().count() == 0) {
         enableMenuItems(false);
     }
+
+    emit bookmarkDeleted(bookmarkName);
 }
 
 void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities)

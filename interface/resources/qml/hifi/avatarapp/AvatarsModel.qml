@@ -31,4 +31,25 @@ ListModel {
             append(avatarEntry);
         }
     }
+
+    function findAvatarIndex(avatarName) {
+        for(var i = 0; i < count; ++i) {
+            if(get(i).name === avatarName) {
+                console.debug('avatar found by index: ', i)
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function findAvatar(avatarName) {
+        console.debug('AvatarsModel: find avatar by', avatarName);
+
+        var avatarIndex = findAvatarIndex(avatarName);
+        if(avatarIndex === -1)
+            return undefined;
+
+        return get(avatarIndex);
+    }
+
 }
