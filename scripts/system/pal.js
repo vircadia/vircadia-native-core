@@ -251,6 +251,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             });
         }
         break;
+    case 'refresh': // old name for refreshNearby
     case 'refreshNearby':
         data = {};
         ExtendedOverlay.some(function (overlay) { // capture the audio data
@@ -743,10 +744,13 @@ function receiveMessage(channel, messageString, senderID) {
     var message = JSON.parse(messageString);
     switch (message.method) {
     case 'select':
-        sendToQml(message); // Accepts objects, not just strings.
+	if (!onPalScreen) {
+	    tablet.loadQMLSource(PAL_QML_SOURCE);
+	    Script.setTimeout(function () { sendToQml(message); }, 1000);
+	} else {
+            sendToQml(message); // Accepts objects, not just strings.
+	}
         break;
-    default:
-        print('Unrecognized PAL message', messageString);
     }
 }
 
