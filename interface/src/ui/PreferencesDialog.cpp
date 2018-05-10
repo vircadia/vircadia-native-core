@@ -16,6 +16,7 @@
 #include <Preferences.h>
 #include <QRandomGenerator>
 #include <MessagesClient.h>
+#include <RenderShadowTask.h>
 #include <display-plugins/CompositorHelper.h>
 
 #include "Application.h"
@@ -78,6 +79,29 @@ void setupPreferences() {
         auto getterSQ = []()->float { return 1.0; };
         auto setterSQ = [](float value) { };
         preferences->addPreference(new SliderPreference(GRAPHICS_QUALITY, "Shadow Quality", getterSQ, setterSQ));
+
+        auto getterShadow = []()->bool {
+                bool ret = false;
+                auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+                if (renderConfig) {
+                    auto mainViewShadowTaskConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
+                    if (mainViewShadowTaskConfig) {
+                            ret = (mainViewShadowTaskConfig->getPreset() == QStringLiteral("Enabled"));
+                    }
+                }
+                return ret;
+        };
+        auto setterShadow = [](bool value) {
+            auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+            if (renderConfig) {
+                auto mainViewShadowTaskConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
+                if (mainViewShadowTaskConfig) {
+                    mainViewShadowTaskConfig->setPreset(value ? QStringLiteral("Enabled")
+                                                              : QStringLiteral("None"));
+                }
+            }
+        };
+        preferences->addPreference(new CheckPreference(GRAPHICS_QUALITY, "Enable/disable shadows", getterShadow, setterShadow));
     }
 
     // UI
@@ -238,7 +262,6 @@ void setupPreferences() {
         auto setter = [=](bool value) {
             auto messagesClient = DependencyManager::get<MessagesClient>().data();
             myAvatar->setUseAdvancedMovementControls(value);
-            qDebug() << "vladest movement" << value;
             if (value) {
                 messagesClient->sendMessage(movementsControlChannel, QStringLiteral("enable_mappings"), true);
             } else {
