@@ -20,11 +20,8 @@ macro(SET_PACKAGING_PARAMETERS)
 
   set_from_env(RELEASE_TYPE RELEASE_TYPE "DEV")
   set_from_env(RELEASE_NUMBER RELEASE_NUMBER "")
-  set_from_env(BUILD_BRANCH BRANCH "")
-  string(TOLOWER "${BUILD_BRANCH}" BUILD_BRANCH)
+  set_from_env(STABLE_BUILD STABLE_BUILD 0)
 
-  message(STATUS "The BUILD_BRANCH variable is: ${BUILD_BRANCH}")
-  message(STATUS "The BRANCH environment variable is: $ENV{BRANCH}")
   message(STATUS "The RELEASE_TYPE variable is: ${RELEASE_TYPE}")
 
   # setup component categories for installer
@@ -56,8 +53,8 @@ macro(SET_PACKAGING_PARAMETERS)
 
     # if the build is a PRODUCTION_BUILD from the "stable" branch
     # then use the STABLE gobal services
-    if (BUILD_BRANCH STREQUAL "stable")
-      message(STATUS "The RELEASE_TYPE is PRODUCTION and the BUILD_BRANCH is stable...")
+    if (STABLE_BUILD)
+      message(STATUS "The RELEASE_TYPE is PRODUCTION and STABLE_BUILD is 1")
       set(BUILD_GLOBAL_SERVICES "STABLE")
       set(USE_STABLE_GLOBAL_SERVICES 1)
     else ()
@@ -87,6 +84,14 @@ macro(SET_PACKAGING_PARAMETERS)
   endif ()
 
   string(TIMESTAMP BUILD_TIME "%d/%m/%Y")
+  
+  # if STABLE_BUILD is 1, PRODUCTION_BUILD must be 1 and
+  # DEV_BUILD and PR_BUILD must be 0
+  if (STABLE_BUILD)
+    if (NOT PRODUCTION_BUILD OR PR_BUILD OR DEV_BUILD)
+      message(FATAL_ERROR "Cannot produce STABLE_BUILD without PRODUCTION_BUILD")
+    endif ()
+  endif ()
 
   if (DEPLOY_PACKAGE)
     # for deployed packages always grab the serverless content

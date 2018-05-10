@@ -22,7 +22,7 @@ android {
                     '-DHIFI_ANDROID_PRECOMPILED=' + HIFI_ANDROID_PRECOMPILED,
                     '-DRELEASE_NUMBER=' + RELEASE_NUMBER,
                     '-DRELEASE_TYPE=' + RELEASE_TYPE,
-                    '-DBUILD_BRANCH=' + BUILD_BRANCH,
+                    '-DSTABLE_BUILD=' + STABLE_BUILD,
                     '-DDISABLE_QML=OFF',
                     '-DDISABLE_KTX_CACHE=OFF'
             }
@@ -116,4 +116,3 @@ dependencies {
 
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 }
-
