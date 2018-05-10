@@ -17,6 +17,7 @@
 #include <QString>
 #include <QStandardPaths>
 #include <QUrl>
+#include <QTimer>
 
 #include <SettingHandle.h>
 #include <DependencyManager.h>
@@ -62,7 +63,6 @@ private:
                                        bool isTemporary,
                                        const QString& userSelectedFilename = QString(),
                                        const QString& userSelectedPathname = QString());
-
     static QString snapshotFilename;
     static bool cubemapOutputFormat;
     static QTimer snapshotTimer;
