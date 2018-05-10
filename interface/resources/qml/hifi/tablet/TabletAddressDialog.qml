@@ -9,8 +9,8 @@
 //
 
 import Hifi 1.0
-import QtQuick 2.5
-import QtQuick.Controls 1.4
+import QtQuick 2.7
+import QtQuick.Controls 2.2
 import QtQuick.Controls.Styles 1.4
 import QtGraphicalEffects 1.0
 import "../../controls"
@@ -113,7 +113,6 @@ StackView {
         id: addressBarDialog
 
         property bool keyboardEnabled: false
-        property bool keyboardRaised: false
         property bool punctuationMode: false
 
         width: parent.width
@@ -404,11 +403,10 @@ StackView {
                 addressLine.text = "";
             }
         }
-           
 
         HifiControls.Keyboard {
             id: keyboard
-            raised: parent.keyboardEnabled && parent.keyboardRaised
+            raised: parent.keyboardEnabled
             numeric: parent.punctuationMode
             anchors {
                 bottom: parent.bottom
@@ -416,7 +414,7 @@ StackView {
                 right: parent.right
             }
         }
-        
+
     }
 
     function updateLocationText(enteringAddress) {

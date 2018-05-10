@@ -40,7 +40,6 @@
 #endif
 
 
-
 // Let these be configured by the one define picked above
 #ifdef GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
 #define GPU_STEREO_DRAWCALL_DOUBLED
@@ -92,7 +91,7 @@ public:
 
     // this is the maximum per shader stage on the low end apple
     // TODO make it platform dependant at init time
-    static const int MAX_NUM_UNIFORM_BUFFERS = 12;
+    static const int MAX_NUM_UNIFORM_BUFFERS = 14;
     size_t getMaxNumUniformBuffers() const { return MAX_NUM_UNIFORM_BUFFERS; }
 
     // this is the maximum per shader stage on the low end apple
@@ -101,6 +100,12 @@ public:
     size_t getMaxNumResourceBuffers() const { return MAX_NUM_RESOURCE_BUFFERS; }
     static const int MAX_NUM_RESOURCE_TEXTURES = 16;
     size_t getMaxNumResourceTextures() const { return MAX_NUM_RESOURCE_TEXTURES; }
+
+    // Texture Tables offers 2 dedicated slot (taken from the ubo slots)
+    static const int MAX_NUM_RESOURCE_TABLE_TEXTURES = 2;
+    static const int RESOURCE_TABLE_TEXTURE_SLOT_OFFSET = TRANSFORM_CAMERA_SLOT + 1;
+    size_t getMaxNumResourceTextureTables() const { return MAX_NUM_RESOURCE_TABLE_TEXTURES; }
+
 
     // Draw Stage
     virtual void do_draw(const Batch& batch, size_t paramOffset) = 0;
@@ -121,6 +126,7 @@ public:
     virtual void do_setModelTransform(const Batch& batch, size_t paramOffset) final;
     virtual void do_setViewTransform(const Batch& batch, size_t paramOffset) final;
     virtual void do_setProjectionTransform(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setProjectionJitter(const Batch& batch, size_t paramOffset) final;
     virtual void do_setViewportTransform(const Batch& batch, size_t paramOffset) final;
     virtual void do_setDepthRangeTransform(const Batch& batch, size_t paramOffset) final;
 
@@ -130,6 +136,7 @@ public:
     // Resource Stage
     virtual void do_setResourceBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_setResourceTexture(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setResourceTextureTable(const Batch& batch, size_t paramOffset);
     virtual void do_setResourceFramebufferSwapChainTexture(const Batch& batch, size_t paramOffset) final;
 
     // Pipeline Stage
@@ -229,6 +236,10 @@ public:
 protected:
 
     void recycle() const override;
+
+    // FIXME instead of a single flag, create a features struct similar to
+    // https://www.khronos.org/registry/vulkan/specs/1.0/man/html/VkPhysicalDeviceFeatures.html
+    virtual bool supportsBindless() const { return false;  }
 
     static const size_t INVALID_OFFSET = (size_t)-1;
     bool _inRenderTransferPass { false };
@@ -357,6 +368,7 @@ protected:
         Mat4 _projection;
         Vec4i _viewport { 0, 0, 1, 1 };
         Vec2 _depthRange { 0.0f, 1.0f };
+        Vec2 _projectionJitter{ 0.0f, 0.0f };
         bool _invalidView { false };
         bool _invalidProj { false };
         bool _invalidViewport { false };
@@ -369,7 +381,7 @@ protected:
         mutable List::const_iterator _camerasItr;
         mutable size_t _currentCameraOffset{ INVALID_OFFSET };
 
-        void preUpdate(size_t commandIndex, const StereoState& stereo);
+        void preUpdate(size_t commandIndex, const StereoState& stereo, Vec2u framebufferSize);
         void update(size_t commandIndex, const StereoState& stereo) const;
         void bindCurrentCamera(int stereoSide) const;
     } _transform;
@@ -388,6 +400,10 @@ protected:
     // This is using different gl object  depending on the gl version
     virtual bool bindResourceBuffer(uint32_t slot, BufferPointer& buffer) = 0;
     virtual void releaseResourceBuffer(uint32_t slot) = 0;
+
+    // Helper function that provides common code used by do_setResourceTexture and 
+    // do_setResourceTextureTable (in non-bindless mode)
+    void bindResourceTexture(uint32_t slot, const TexturePointer& texture);
 
     // update resource cache and do the gl unbind call with the current gpu::Texture cached at slot s
     void releaseResourceTexture(uint32_t slot);
@@ -438,7 +454,7 @@ protected:
     // Backend dependant compilation of the shader
     virtual GLShader* compileBackendProgram(const Shader& program, const Shader::CompilationHandler& handler);
     virtual GLShader* compileBackendShader(const Shader& shader, const Shader::CompilationHandler& handler);
-    virtual std::string getBackendShaderHeader() const;
+    virtual std::string getBackendShaderHeader() const = 0;
     virtual void makeProgramBindings(ShaderObject& shaderObject);
     class ElementResource {
     public:

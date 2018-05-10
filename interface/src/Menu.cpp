@@ -229,21 +229,21 @@ Menu::Menu() {
 
     // View > First Person
     auto firstPersonAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::FirstPerson, Qt::CTRL | Qt::Key_F,
+                                   viewMenu, MenuOption::FirstPerson, Qt::Key_1,
                                    true, qApp, SLOT(cameraMenuChanged())));
 
     firstPersonAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     // View > Third Person
     auto thirdPersonAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::ThirdPerson, Qt::CTRL | Qt::Key_G,
+                                   viewMenu, MenuOption::ThirdPerson, Qt::Key_3,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
     thirdPersonAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     // View > Mirror
     auto viewMirrorAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::FullscreenMirror, Qt::CTRL | Qt::Key_H,
+                                   viewMenu, MenuOption::FullscreenMirror, Qt::Key_2,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
     viewMirrorAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
@@ -683,11 +683,12 @@ Menu::Menu() {
             qApp, SLOT(enablePerfStats(bool)));
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::OnlyDisplayTopTen, 0, true);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandUpdateTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandSimulationTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPhysicsTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMyAvatarTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMyAvatarSimulateTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandOtherAvatarTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPaintGLTiming, 0, false);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPhysicsSimulationTiming, 0, false);
 
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
     addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, qApp, SLOT(runTests()));

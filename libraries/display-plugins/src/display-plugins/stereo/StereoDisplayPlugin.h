@@ -31,7 +31,7 @@ public:
 protected:
     virtual bool internalActivate() override;
     virtual void internalDeactivate() override;
-    void updateScreen();
+    void updateScreen(uint32_t i);
 
     float _ipd{ 0.064f };
     QScreen* _screen;

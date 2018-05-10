@@ -78,6 +78,11 @@ public slots:
 
     Q_INVOKABLE void profileRange(const QString& name, QScriptValue function);
 
+    /**jsdoc
+    * Clear all caches (menu command Reload Content)
+    */
+    void clearCaches();
+
 private:
     bool waitForCondition(qint64 maxWaitMs, std::function<bool()> condition);
 };

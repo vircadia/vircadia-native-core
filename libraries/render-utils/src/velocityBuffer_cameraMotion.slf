@@ -28,11 +28,11 @@ void main(void) {
 	float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;
 
 	// The position of the pixel fragment in Eye space then in world space
-    vec3 eyePos = evalEyePositionFromZdb(stereoSide.x, Zdb, texcoordPos);
+    vec3 eyePos = evalUnjitteredEyePositionFromZdb(stereoSide.x, Zdb, texcoordPos);
 	vec3 worldPos = (getViewInverse() * vec4(eyePos, 1.0)).xyz;
     
     vec3 prevEyePos = (getPreviousView() * vec4(worldPos, 1.0)).xyz;
-    vec4 prevClipPos = (frameTransform._projection[stereoSide.x] * vec4(prevEyePos, 1.0));
+    vec4 prevClipPos = (getUnjitteredProjection(stereoSide.x) * vec4(prevEyePos, 1.0));
     vec2 prevUV =  0.5 * (prevClipPos.xy / prevClipPos.w) + vec2(0.5);
 
     //vec2 imageSize = getWidthHeight(0);

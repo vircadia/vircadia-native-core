@@ -380,7 +380,7 @@ void Agent::executeScript() {
 
     using namespace recording;
     static const FrameType AVATAR_FRAME_TYPE = Frame::registerFrameType(AvatarData::FRAME_NAME);
-    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this, scriptedAvatar](Frame::ConstPointer frame) {
+    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [scriptedAvatar](Frame::ConstPointer frame) {
 
         auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
         bool useFrameSkeleton = recordingInterface->getPlayerUseSkeletonModel();

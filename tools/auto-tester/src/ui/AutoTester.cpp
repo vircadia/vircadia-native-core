@@ -28,12 +28,24 @@ void AutoTester::on_createRecursiveScriptButton_clicked() {
     test->createRecursiveScript();
 }
 
-void AutoTester::on_createRecursiveScriptsRecursivelyButton_clicked() {
-    test->createRecursiveScriptsRecursively();
+void AutoTester::on_createAllRecursiveScriptsButton_clicked() {
+    test->createAllRecursiveScripts();
 }
 
 void AutoTester::on_createTestButton_clicked() {
-    test->createTest();
+	test->createTest();
+}
+
+void AutoTester::on_createMDFileButton_clicked() {
+    test->createMDFile();
+}
+
+void AutoTester::on_createAllMDFilesButton_clicked() {
+    test->createAllMDFiles();
+}
+
+void AutoTester::on_createTestsOutlineButton_clicked() {
+    test->createTestsOutline();
 }
 
 void AutoTester::on_closeButton_clicked() {

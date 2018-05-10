@@ -30,7 +30,6 @@ public:
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
-    // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
@@ -47,10 +46,9 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    // update() and needstocallupdate() added back for the entity property fix
+
     virtual void update(const quint64& now) override;
-    virtual bool needsToCallUpdate() const override;
-    void updateFrameCount();
+    bool needsToCallUpdate() const override { return isAnimatingSomething(); }
 
     virtual void debugDump() const override;
 
@@ -133,6 +131,7 @@ public:
 
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
+    bool applyNewAnimationProperties(AnimationPropertyGroup newProperties);
     ShapeType computeTrueShapeType() const;
 
 protected:
@@ -173,7 +172,6 @@ protected:
 
 private:
     uint64_t _lastAnimated{ 0 };
-    AnimationPropertyGroup _previousAnimationProperties;
     float _currentFrame{ -1.0f };
 };
 

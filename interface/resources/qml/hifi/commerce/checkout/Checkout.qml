@@ -96,6 +96,7 @@ Rectangle {
                 root.activeView = "checkoutFailure";
                 UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned, result.message);
             } else {
+                root.certificateId = result.data.certificate_id;
                 root.itemHref = result.data.download_url;
                 if (result.data.categories.indexOf("Wearables") > -1) {
                     root.itemType = "wearable";
@@ -188,7 +189,7 @@ Rectangle {
     onItemHrefChanged: {
         if (root.itemHref.indexOf(".fst") > -1) {
             root.itemType = "avatar";
-        } else if (root.itemHref.indexOf('.json.gz') > -1) {
+        } else if (root.itemHref.indexOf('.json.gz') > -1 || root.itemHref.indexOf('.content.zip') > -1) {
             root.itemType = "contentSet";
         } else if (root.itemHref.indexOf('.app.json') > -1) {
             root.itemType = "app";
@@ -256,9 +257,14 @@ Rectangle {
                     lightboxPopup.bodyImageSource = msg.securityImageSource;
                     lightboxPopup.bodyText = lightboxPopup.securityPicBodyText;
                     lightboxPopup.button1text = "CLOSE";
-                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button1method = function() {
+                        lightboxPopup.visible = false;
+                    }
                     lightboxPopup.button2text = "GO TO WALLET";
-                    lightboxPopup.button2method = "sendToParent({method: 'checkout_openWallet'});";
+                    lightboxPopup.button2method = function() {
+                        lightboxPopup.visible = false;
+                        sendToScript({method: 'checkout_openWallet'});
+                    };
                     lightboxPopup.visible = true;
                 } else {
                     sendToScript(msg);
@@ -622,10 +628,16 @@ Rectangle {
                                 lightboxPopup.bodyText = "You will not be able to replace this domain's content with <b>" + root.itemName +
                                     " </b>until the server owner gives you 'Replace Content' permissions.<br><br>Are you sure you want to purchase this content set?";
                                 lightboxPopup.button1text = "CANCEL";
-                                lightboxPopup.button1method = "root.visible = false;"
+                                lightboxPopup.button1method = function() {
+                                    lightboxPopup.visible = false;
+                                }
                                 lightboxPopup.button2text = "CONFIRM";
-                                lightboxPopup.button2method = "Commerce.buy('" + root.itemId + "', " + root.itemPrice + ");" +
-                                    "root.visible = false; buyButton.enabled = false; loading.visible = true;";
+                                lightboxPopup.button2method = function() {
+                                    Commerce.buy(root.itemId, root.itemPrice);
+                                    lightboxPopup.visible = false;
+                                    buyButton.enabled = false;
+                                    loading.visible = true;
+                                };
                                 lightboxPopup.visible = true;
                             } else {
                                 buyButton.enabled = false;
@@ -770,19 +782,30 @@ Rectangle {
                         "<a href='https://docs.highfidelity.com/create-and-explore/start-working-in-your-sandbox/restoring-sandbox-content'>" +
                         "click here to open info on your desktop browser.";
                     lightboxPopup.button1text = "CANCEL";
-                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button1method = function() {
+                        lightboxPopup.visible = false;
+                    }
                     lightboxPopup.button2text = "CONFIRM";
-                    lightboxPopup.button2method = "Commerce.replaceContentSet('" + root.itemHref + "');" + 
-                    "root.visible = false;rezzedNotifContainer.visible = true; rezzedNotifContainerTimer.start();" + 
-                    "UserActivityLogger.commerceEntityRezzed('" + root.itemId + "', 'checkout', '" + root.itemType + "');";
+                    lightboxPopup.button2method = function() {
+                        Commerce.replaceContentSet(root.itemHref, root.certificateId);
+                        lightboxPopup.visible = false;
+                        rezzedNotifContainer.visible = true;
+                        rezzedNotifContainerTimer.start();
+                        UserActivityLogger.commerceEntityRezzed(root.itemId, 'checkout', root.itemType);
+                    };
                     lightboxPopup.visible = true;
                 } else if (root.itemType === "avatar") {
                     lightboxPopup.titleText = "Change Avatar";
                     lightboxPopup.bodyText = "This will change your current avatar to " + root.itemName + " while retaining your wearables.";
                     lightboxPopup.button1text = "CANCEL";
-                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button1method = function() {
+                        lightboxPopup.visible = false;
+                    }
                     lightboxPopup.button2text = "CONFIRM";
-                    lightboxPopup.button2method = "MyAvatar.useFullAvatarURL('" + root.itemHref + "'); root.visible = false;";
+                    lightboxPopup.button2method = function() {
+                        MyAvatar.useFullAvatarURL(root.itemHref);
+                        lightboxPopup.visible = false;
+                    };
                     lightboxPopup.visible = true;
                 } else if (root.itemType === "app") {
                     if (root.isInstalled) {
@@ -821,9 +844,14 @@ Rectangle {
                 lightboxPopup.bodyText = "You don't have permission to rez certified items in this domain.<br><br>" +
                     "Use the <b>GOTO app</b> to visit another domain or <b>go to your own sandbox.</b>";
                 lightboxPopup.button1text = "CLOSE";
-                lightboxPopup.button1method = "root.visible = false;"
+                lightboxPopup.button1method = function() {
+                    lightboxPopup.visible = false;
+                }
                 lightboxPopup.button2text = "OPEN GOTO";
-                lightboxPopup.button2method = "sendToParent({method: 'purchases_openGoTo'});";
+                lightboxPopup.button2method = function() {
+                    sendToScript({method: 'purchases_openGoTo'});
+                    lightboxPopup.visible = false;
+                };
                 lightboxPopup.visible = true;
             }
         }
@@ -917,7 +945,9 @@ Rectangle {
                 lightboxPopup.bodyText = 'Your item is marked "pending" while your purchase is being confirmed.<br><br>' +
                 'Confirmations usually take about 90 seconds.';
                 lightboxPopup.button1text = "CLOSE";
-                lightboxPopup.button1method = "root.visible = false;"
+                lightboxPopup.button1method = function() {
+                    lightboxPopup.visible = false;
+                }
                 lightboxPopup.visible = true;
             }
         }

@@ -13,8 +13,9 @@
 #include "Ledger.h"
 #include "Wallet.h"
 #include "Application.h"
-#include "ui/ImageProvider.h"
+#include "ui/SecurityImageProvider.h"
 #include "scripting/HMDScriptingInterface.h"
+#include <ui/TabletScriptingInterface.h>
 
 #include <PathUtils.h>
 #include <OffscreenUi.h>
@@ -566,7 +567,6 @@ bool Wallet::generateKeyPair() {
 }
 
 QStringList Wallet::listPublicKeys() {
-    qCInfo(commerce) << "Enumerating public keys.";
     return _publicKeys;
 }
 
@@ -607,11 +607,23 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
 }
 
 void Wallet::updateImageProvider() {
-    // inform the image provider.  Note it doesn't matter which one you inform, as the
-    // images are statics
-    auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
-    auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
-    imageProvider->setSecurityImage(_securityImage);
+    SecurityImageProvider* securityImageProvider;
+
+    // inform offscreenUI security image provider
+    QQmlEngine* engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
+    securityImageProvider = reinterpret_cast<SecurityImageProvider*>(engine->imageProvider(SecurityImageProvider::PROVIDER_NAME));
+    securityImageProvider->setSecurityImage(_securityImage);
+
+    // inform tablet security image provider
+    TabletProxy* tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
+    if (tablet) {
+        OffscreenQmlSurface* tabletSurface = tablet->getTabletSurface();
+        if (tabletSurface) {
+            QQmlEngine* tabletEngine = tabletSurface->getSurfaceContext()->engine();
+            securityImageProvider = reinterpret_cast<SecurityImageProvider*>(tabletEngine->imageProvider(SecurityImageProvider::PROVIDER_NAME));
+            securityImageProvider->setSecurityImage(_securityImage);
+        }
+    }
 }
 
 void Wallet::chooseSecurityImage(const QString& filename) {
@@ -651,6 +663,7 @@ bool Wallet::getSecurityImage() {
 
     // if already decrypted, don't do it again
     if (_securityImage) {
+        updateImageProvider();
         emit securityImageResult(true);
         return true;
     }

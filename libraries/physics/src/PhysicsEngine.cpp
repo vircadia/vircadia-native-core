@@ -413,7 +413,7 @@ void PhysicsEngine::harvestPerformanceStats() {
             if (QString(itr->Get_Current_Name()) == "stepSimulation") {
                 itr->Enter_Child(childIndex);
                 StatsHarvester harvester;
-                harvester.recurse(itr, "step/");
+                harvester.recurse(itr, "physics/");
                 break;
             }
             itr->Next();
@@ -571,7 +571,7 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
             // modify the logic below.
             //
             // We only create events when at least one of the objects is (or should be) owned in the local simulation.
-            if (motionStateA && (motionStateA->shouldBeLocallyOwned())) {
+            if (motionStateA && (motionStateA->isLocallyOwnedOrShouldBe())) {
                 QUuid idA = motionStateA->getObjectID();
                 QUuid idB;
                 if (motionStateB) {
@@ -582,7 +582,7 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
                     (motionStateB ? motionStateB->getObjectLinearVelocityChange() : glm::vec3(0.0f));
                 glm::vec3 penetration = bulletToGLM(contact.distance * contact.normalWorldOnB);
                 _collisionEvents.push_back(Collision(type, idA, idB, position, penetration, velocityChange));
-            } else if (motionStateB && (motionStateB->shouldBeLocallyOwned())) {
+            } else if (motionStateB && (motionStateB->isLocallyOwnedOrShouldBe())) {
                 QUuid idB = motionStateB->getObjectID();
                 QUuid idA;
                 if (motionStateA) {

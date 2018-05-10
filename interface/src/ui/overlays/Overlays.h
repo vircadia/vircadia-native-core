@@ -236,6 +236,50 @@ public slots:
     QString getOverlayType(OverlayID overlayId);
 
     /**jsdoc
+     * Get the overlay script object. In particular, this is useful for accessing the event bridge for a <code>web3d</code> 
+     * overlay.
+     * @function Overlays.getOverlayObject
+     * @param {Uuid} overlayID - The ID of the overlay to get the script object of.
+     * @returns {object} The script object for the overlay if found.
+     * @example <caption>Receive "hello" messages from a <code>web3d</code> overlay.</caption>
+     * // HTML file: name "web3d.html".
+     * <!DOCTYPE html>
+     * <html>
+     * <head>
+     *     <title>HELLO</title>
+     * </head>
+     * <body>
+     *     <h1>HELLO</h1></h1>
+     *     <script>
+     *         setInterval(function () {
+     *             EventBridge.emitWebEvent("hello");
+     *         }, 2000);
+     *     </script>
+     * </body>
+     * </html>
+     *
+     * // Script file.
+     * var web3dOverlay = Overlays.addOverlay("web3d", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, {x: 0, y: 0.5, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     url: Script.resolvePath("web3d.html"),
+     *     alpha: 1.0
+     * });
+     *
+     * function onWebEventReceived(event) {
+     *     print("onWebEventReceived() : " + JSON.stringify(event));
+     * }
+     *
+     * overlayObject = Overlays.getOverlayObject(web3dOverlay);
+     * overlayObject.webEventReceived.connect(onWebEventReceived);
+     *
+     * Script.scriptEnding.connect(function () {
+     *     Overlays.deleteOverlay(web3dOverlay);
+     * });
+     */
+    QObject* getOverlayObject(OverlayID id);
+
+    /**jsdoc
      * Get the ID of the 2D overlay at a particular point on the screen or HUD.
      * @function Overlays.getOverlayAtPoint
      * @param {Vec2} point - The point to check for an overlay.

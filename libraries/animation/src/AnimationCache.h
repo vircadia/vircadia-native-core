@@ -29,18 +29,67 @@ class AnimationCache : public ResourceCache, public Dependency  {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
-    /**jsdoc
-     * @namespace AnimationCache
-     * @augments ResourceCache
-     */
-
 public:
 
+    // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
+
     /**jsdoc
-     * Returns animation resource for particular animation
+     * API to manage animation cache resources.
+     * @namespace AnimationCache
+     *
+     * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
+     * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
+     * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
+     * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
+     */
+
+     // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
+
+     /**jsdoc
+     * Get the list of all resource URLs.
+     * @function AnimationCache.getResourceList
+     * @return {string[]}
+     */
+
+     /**jsdoc
+     * @function AnimationCache.dirty
+     * @returns {Signal}
+     */
+
+     /**jsdoc
+     * @function AnimationCache.updateTotalSize
+     * @param {number} deltaSize
+     */
+
+     /**jsdoc
+     * @function AnimationCache.prefetch
+     * @param {string} url
+     * @param {object} extra
+     * @returns {object}
+     */
+
+     /**jsdoc
+     * Asynchronously loads a resource from the specified URL and returns it.
+     * @function AnimationCache.getResource
+     * @param {string} url - URL of the resource to load.
+     * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
+     * @param {} [extra=null]
+     * @return {Resource}
+     */
+
+     /**jsdoc
+     * Prefetches a resource.
+     * @function AnimationCache.prefetch
+     * @param {string} url - URL of the resource to prefetch.
+     * @return {Resource}
+     */
+
+
+    /**jsdoc
+     * Returns animation resource for particular animation.
      * @function AnimationCache.getAnimation
-     * @param url {string} url to load
-     * @return {Resource} animation
+     * @param {string} url - URL to load.
+     * @returns {Resource} animation
      */
     Q_INVOKABLE AnimationPointer getAnimation(const QString& url) { return getAnimation(QUrl(url)); }
     Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);

@@ -13,9 +13,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global HIFI_PUBLIC_BUCKET, SPACE_LOCAL, Script, SelectionManager */
-
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+/* global SPACE_LOCAL, SelectionManager */
 
 SPACE_LOCAL = "local";
 SPACE_WORLD = "world";
@@ -50,6 +48,7 @@ SelectionManager = (function() {
             messageParsed = JSON.parse(message);
         } catch (err) {
             print("ERROR: entitySelectionTool.handleEntitySelectionToolUpdates - got malformed message: " + message);
+            return;
         }
 
         if (messageParsed.method === "selectEntity") {
@@ -154,6 +153,20 @@ SelectionManager = (function() {
         that.selections = [];
         that._update(true);
     };
+
+    that.duplicateSelection = function() {
+        var duplicatedEntityIDs = [];
+        Object.keys(that.savedProperties).forEach(function(otherEntityID) {
+            var properties = that.savedProperties[otherEntityID];
+            if (!properties.locked && (!properties.clientOnly || properties.owningAvatarID === MyAvatar.sessionUUID)) {
+                duplicatedEntityIDs.push({
+                    entityID: Entities.addEntity(properties),
+                    properties: properties
+                });
+            }
+        });
+        return duplicatedEntityIDs;
+    }
 
     that._update = function(selectionUpdated) {
         var properties = null;
@@ -443,7 +456,7 @@ SelectionDisplay = (function() {
         solid: true,
         visible: false,
         ignoreRayIntersection: true,
-        drawInFront: true,
+        drawInFront: true
     }
     var handleStretchXPanel = Overlays.addOverlay("shape", handlePropertiesStretchPanel);
     Overlays.editOverlay(handleStretchXPanel, { color : COLOR_RED });
@@ -749,6 +762,7 @@ SelectionDisplay = (function() {
         } else if (overlay === handleTranslateZCylinder) {
             return handleTranslateZCone;
         }
+        return Uuid.NULL;
     };
 
     // FUNCTION: MOUSE MOVE EVENT
@@ -1038,13 +1052,13 @@ SelectionDisplay = (function() {
             var toCameraDistance = getDistanceToCamera(position);
 
             var localRotationX = Quat.fromPitchYawRollDegrees(0, 0, -90);
-            rotationX = Quat.multiply(rotation, localRotationX);
+            var rotationX = Quat.multiply(rotation, localRotationX);
             worldRotationX = rotationX;
             var localRotationY = Quat.fromPitchYawRollDegrees(0, 90, 0);
-            rotationY = Quat.multiply(rotation, localRotationY);
+            var rotationY = Quat.multiply(rotation, localRotationY);
             worldRotationY = rotationY;
             var localRotationZ = Quat.fromPitchYawRollDegrees(90, 0, 0);
-            rotationZ = Quat.multiply(rotation, localRotationZ);
+            var rotationZ = Quat.multiply(rotation, localRotationZ);
             worldRotationZ = rotationZ;
 
             // in HMD we clamp the overlays to the bounding box for now so lasers can hit them
@@ -1260,10 +1274,9 @@ SelectionDisplay = (function() {
                 dimensions: stretchPanelXDimensions
             });
             var stretchPanelYDimensions = Vec3.subtract(scaleLTNCubePositionRotated, scaleRTFCubePositionRotated);
-            var tempX = Math.abs(stretchPanelYDimensions.x);
             stretchPanelYDimensions.x = Math.abs(stretchPanelYDimensions.z);
             stretchPanelYDimensions.y = STRETCH_PANEL_WIDTH;
-            stretchPanelYDimensions.z = tempX;
+            stretchPanelYDimensions.z = Math.abs(stretchPanelYDimensions.x);
             var stretchPanelYPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:0, y:dimensions.y / 2, z:0 }));
             Overlays.editOverlay(handleStretchYPanel, { 
                 position: stretchPanelYPosition, 
@@ -1271,9 +1284,8 @@ SelectionDisplay = (function() {
                 dimensions: stretchPanelYDimensions
             });
             var stretchPanelZDimensions = Vec3.subtract(scaleLTNCubePositionRotated, scaleRBFCubePositionRotated);
-            var tempX = Math.abs(stretchPanelZDimensions.x);
             stretchPanelZDimensions.x = Math.abs(stretchPanelZDimensions.y);
-            stretchPanelZDimensions.y = tempX;
+            stretchPanelZDimensions.y = Math.abs(stretchPanelZDimensions.x);
             stretchPanelZDimensions.z = STRETCH_PANEL_WIDTH;
             var stretchPanelZPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:0, y:0, z:dimensions.z / 2 }));
             Overlays.editOverlay(handleStretchZPanel, { 
@@ -1519,17 +1531,7 @@ SelectionDisplay = (function() {
             // copy of the selected entities and move the _original_ entities, not
             // the new ones.
             if (event.isAlt || doClone) {
-                duplicatedEntityIDs = [];
-                for (var otherEntityID in SelectionManager.savedProperties) {
-                    var properties = SelectionManager.savedProperties[otherEntityID];
-                    if (!properties.locked) {
-                        var entityID = Entities.addEntity(properties);
-                        duplicatedEntityIDs.push({
-                            entityID: entityID,
-                            properties: properties
-                        });
-                    }
-                }
+                duplicatedEntityIDs = SelectionManager.duplicateSelection();
             } else {
                 duplicatedEntityIDs = null;
             }
@@ -1663,11 +1665,11 @@ SelectionDisplay = (function() {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
                 if (direction === TRANSLATE_DIRECTION.X) {
-                    pickNormal = { x:0, y:0, z:1 };
+                    pickNormal = { x:0, y:1, z:1 };
                 } else if (direction === TRANSLATE_DIRECTION.Y) {
-                    pickNormal = { x:1, y:0, z:0 };
+                    pickNormal = { x:1, y:0, z:1 };
                 } else if (direction === TRANSLATE_DIRECTION.Z) {
-                    pickNormal = { x:0, y:1, z:0 };
+                    pickNormal = { x:1, y:1, z:0 };
                 }
 
                 var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
@@ -1690,17 +1692,7 @@ SelectionDisplay = (function() {
                 // copy of the selected entities and move the _original_ entities, not
                 // the new ones.
                 if (event.isAlt) {
-                    duplicatedEntityIDs = [];
-                    for (var otherEntityID in SelectionManager.savedProperties) {
-                        var properties = SelectionManager.savedProperties[otherEntityID];
-                        if (!properties.locked) {
-                            var entityID = Entities.addEntity(properties);
-                            duplicatedEntityIDs.push({
-                                entityID: entityID,
-                                properties: properties
-                            });
-                        }
-                    }
+                    duplicatedEntityIDs = SelectionManager.duplicateSelection();
                 } else {
                     duplicatedEntityIDs = null;
                 }
@@ -1711,7 +1703,6 @@ SelectionDisplay = (function() {
             onMove: function(event) {
                 pickRay = generalComputePickRay(event.x, event.y);
     
-                // translate mode left/right based on view toward entity
                 var newIntersection = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, pickNormal);
                 var vector = Vec3.subtract(newIntersection, lastPick);
                 
@@ -1729,7 +1720,7 @@ SelectionDisplay = (function() {
                 var dotVector = Vec3.dot(vector, projectionVector);
                 vector = Vec3.multiply(dotVector, projectionVector);
                 vector = grid.snapToGrid(vector);
-    
+                
                 var wantDebug = false;
                 if (wantDebug) {
                     print("translateUpDown... ");
@@ -2037,10 +2028,10 @@ SelectionDisplay = (function() {
             vector = grid.snapToSpacing(vector);
     
             var changeInDimensions = Vec3.multiply(NEGATE_VECTOR, vec3Mult(localSigns, vector));
-            if (directionEnum === STRETCH_DIRECTION.ALL) {	
-                var toCameraDistance = getDistanceToCamera(position);	
-                var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE;	
-                changeInDimensions = Vec3.multiply(changeInDimensions, dimensionsMultiple);	
+            if (directionEnum === STRETCH_DIRECTION.ALL) {  
+                var toCameraDistance = getDistanceToCamera(position);   
+                var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE; 
+                changeInDimensions = Vec3.multiply(changeInDimensions, dimensionsMultiple); 
             }
 
             var newDimensions;

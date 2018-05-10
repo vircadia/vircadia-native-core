@@ -144,11 +144,6 @@ void OctreeQueryNode::copyCurrentViewFrustum(ViewFrustum& viewOut) const {
     viewOut = _currentViewFrustum;
 }
 
-void OctreeQueryNode::copyLastKnownViewFrustum(ViewFrustum& viewOut) const {
-    QMutexLocker viewLocker(&_viewMutex);
-    viewOut = _lastKnownViewFrustum;
-}
-
 bool OctreeQueryNode::updateCurrentViewFrustum() {
     // if shutting down, return immediately
     if (_isShuttingDown) {
@@ -226,70 +221,6 @@ void OctreeQueryNode::setViewSent(bool viewSent) {
     if (viewSent) {
         _viewFrustumJustStoppedChanging = false;
         _lodChanged = false;
-    }
-}
-
-void OctreeQueryNode::updateLastKnownViewFrustum() {
-    // if shutting down, return immediately
-    if (_isShuttingDown) {
-        return;
-    }
-
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        bool frustumChanges = !_lastKnownViewFrustum.isVerySimilar(_currentViewFrustum);
-
-        if (frustumChanges) {
-            // save our currentViewFrustum into our lastKnownViewFrustum
-            _lastKnownViewFrustum = _currentViewFrustum;
-        }
-    }
-
-    // save that we know the view has been sent.
-    setLastTimeBagEmpty();
-}
-
-
-bool OctreeQueryNode::moveShouldDump() const {
-    // if shutting down, return immediately
-    if (_isShuttingDown) {
-        return false;
-    }
-
-    QMutexLocker viewLocker(&_viewMutex);
-    glm::vec3 oldPosition = _lastKnownViewFrustum.getPosition();
-    glm::vec3 newPosition = _currentViewFrustum.getPosition();
-
-    // theoretically we could make this slightly larger but relative to avatar scale.
-    const float MAXIMUM_MOVE_WITHOUT_DUMP = 0.0f;
-    return glm::distance(newPosition, oldPosition) > MAXIMUM_MOVE_WITHOUT_DUMP;
-}
-
-void OctreeQueryNode::dumpOutOfView() {
-    // if shutting down, return immediately
-    if (_isShuttingDown) {
-        return;
-    }
-
-    int stillInView = 0;
-    int outOfView = 0;
-    OctreeElementBag tempBag;
-    ViewFrustum viewCopy;
-    copyCurrentViewFrustum(viewCopy);
-    while (OctreeElementPointer elementToCheck = elementBag.extract()) {
-        if (elementToCheck->isInView(viewCopy)) {
-            tempBag.insert(elementToCheck);
-            stillInView++;
-        } else {
-            outOfView++;
-        }
-    }
-    if (stillInView > 0) {
-        while (OctreeElementPointer elementToKeepInBag = tempBag.extract()) {
-            if (elementToKeepInBag->isInView(viewCopy)) {
-                elementBag.insert(elementToKeepInBag);
-            }
-        }
     }
 }
 

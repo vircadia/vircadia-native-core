@@ -12,27 +12,6 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-// GLSL version
-std::string GLBackend::getBackendShaderHeader() const {
-
-#if defined(USE_GLES)
-    static const std::string header(
-R"SHADER(#version 310 es
-#extension GL_EXT_texture_buffer : enable
-precision lowp float; // check precision 2
-precision lowp samplerBuffer;
-precision lowp sampler2DShadow;
-)SHADER");
-#else
-    static const std::string header(
-R"SHADER(#version 410 core
-)SHADER");
-#endif
-
-    return header;
-}
-
-
 // Shader domain
 static const size_t NUM_SHADER_DOMAINS = 3;
 static_assert(Shader::Type::NUM_DOMAINS == NUM_SHADER_DOMAINS, "GL shader domains must equal defined GPU shader domains");
@@ -78,6 +57,11 @@ R"SHADER(
 #endif
 };
 
+// TextureTable specific defines
+static const std::string textureTableVersion {
+    "#extension GL_ARB_bindless_texture : require\n#define GPU_TEXTURE_TABLE_BINDLESS\n"
+};
+
 // Versions specific of the shader
 static const std::array<std::string, GLShader::NumVersions> VERSION_DEFINES { {
     "",
@@ -96,9 +80,9 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, const Shader::Co
         auto& shaderObject = shaderObjects[version];
 
         std::string shaderDefines = getBackendShaderHeader() + "\n"
+            + (supportsBindless() ? textureTableVersion : "\n")
             + DOMAIN_DEFINES[shader.getType()] + "\n"
             + VERSION_DEFINES[version];
-
         if (handler) {
             bool retest = true;
             std::string currentSrc = shaderSource;
@@ -120,7 +104,7 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, const Shader::Co
             compilationLogs[version].compiled = ::gl::compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, compilationLogs[version].message);
         }
 
-         if (!compilationLogs[version].compiled) {
+        if (!compilationLogs[version].compiled) {
             qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Shader didn't compile:\n" << compilationLogs[version].message.c_str();
             shader.setCompilationLogs(compilationLogs);
             return nullptr;

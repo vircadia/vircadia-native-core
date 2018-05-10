@@ -1,9 +1,4 @@
-
 import QtQuick 2.3
-import QtQuick.Controls 1.4
-import QtWebChannel 1.0
-import QtWebEngine 1.2
-import QtWebSockets 1.0
 
 import "windows" as Windows
 import "controls"

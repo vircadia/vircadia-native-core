@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars:true, plusplus:true, forin:true*/
-/*global Script, Settings, Window, Controller, Overlays, SoundArray, LODManager, MyAvatar, Tablet, Camera, HMD, Menu, Quat, Vec3*/
+/*global Script, Settings, Window, Controller, Overlays, SoundArray, MyAvatar, Tablet, Camera, HMD, Menu, Quat, Vec3*/
 //
 //  notifications.js
 //  Version 0.801
@@ -84,21 +84,18 @@
     var NOTIFICATION_MENU_ITEM_POST = " Notifications";
     var PLAY_NOTIFICATION_SOUNDS_SETTING = "play_notification_sounds";
     var PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE = "play_notification_sounds_type_";
-    var lodTextID = false;
-    var NOTIFICATIONS_MESSAGE_CHANNEL = "Hifi-Notifications"
+    var NOTIFICATIONS_MESSAGE_CHANNEL = "Hifi-Notifications";
 
     var NotificationType = {
         UNKNOWN: 0,
         SNAPSHOT: 1,
-        LOD_WARNING: 2,
-        CONNECTION_REFUSED: 3,
-        EDIT_ERROR: 4,
-        TABLET: 5,
-        CONNECTION: 6,
-        WALLET: 7,
+        CONNECTION_REFUSED: 2,
+        EDIT_ERROR: 3,
+        TABLET: 4,
+        CONNECTION: 5,
+        WALLET: 6,
         properties: [
             { text: "Snapshot" },
-            { text: "Level of Detail" },
             { text: "Connection Refused" },
             { text: "Edit error" },
             { text: "Tablet" },
@@ -153,10 +150,6 @@
 
     //  This handles the final dismissal of a notification after fading
     function dismiss(firstNoteOut, firstButOut, firstOut) {
-        if (firstNoteOut === lodTextID) {
-            lodTextID = false;
-        }
-
         Overlays.deleteOverlay(firstNoteOut);
         Overlays.deleteOverlay(firstButOut);
         notifications.splice(firstOut, 1);
@@ -418,9 +411,6 @@
 
     function deleteNotification(index) {
         var notificationTextID = notifications[index];
-        if (notificationTextID === lodTextID) {
-            lodTextID = false;
-        }
         Overlays.deleteOverlay(notificationTextID);
         Overlays.deleteOverlay(buttons[index]);
         notifications.splice(index, 1);
@@ -673,20 +663,6 @@
             Settings.setValue(PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE + notificationType, Menu.isOptionChecked(menuItem));
         }
     }
-
-    LODManager.LODDecreased.connect(function () {
-        var warningText = "\n" +
-            "Due to the complexity of the content, the \n" +
-            "level of detail has been decreased. " +
-            "You can now see: \n" +
-            LODManager.getLODFeedbackText();
-
-        if (lodTextID === false) {
-            lodTextID = createNotification(warningText, NotificationType.LOD_WARNING);
-        } else {
-            Overlays.editOverlay(lodTextID, { text: warningText });
-        }
-    });
 
     Controller.keyPressEvent.connect(keyPressEvent);
     Controller.mousePressEvent.connect(mousePressEvent);

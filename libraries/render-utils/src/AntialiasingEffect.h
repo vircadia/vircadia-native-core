@@ -26,11 +26,7 @@ class JitterSampleConfig : public render::Job::Config {
         Q_PROPERTY(bool stop MEMBER stop NOTIFY dirty)
         Q_PROPERTY(int index READ getIndex NOTIFY dirty)
 public:
-    JitterSampleConfig() : render::Job::Config(true) {
-        // FIXME: For RC66 disable Taa by default
-        // Disable jitter by default for now by default:
-        none();
-    }
+    JitterSampleConfig() : render::Job::Config(true) {}
 
     float scale{ 0.5f };
     bool stop{ false };
@@ -62,14 +58,15 @@ class JitterSample {
 public:
 
     enum {
-        SEQUENCE_LENGTH = 128 
+        SEQUENCE_LENGTH = 64 
     };
 
     using Config = JitterSampleConfig;
-    using JobModel = render::Job::Model<JitterSample, Config>;
+	using Output = glm::vec2;
+    using JobModel = render::Job::ModelO<JitterSample, Output, Config>;
 
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext);
+    void run(const render::RenderContextPointer& renderContext, Output& jitter);
 
 private:
 
@@ -109,18 +106,15 @@ class AntialiasingConfig : public render::Job::Config {
 public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
-    float blend{ 0.05f };
-    float sharpen{ 0.15f };
+    float blend{ 0.25f };
+    float sharpen{ 0.05f };
 
     bool constrainColor{ true };
-    float covarianceGamma{ 0.9f };
+    float covarianceGamma{ 0.65f };
     bool feedbackColor{ false };
 
     float debugX{ 0.0f };
-    // FIXME: For RC66 disable Taa by default
-    // Fall back to FXAA :(
-    // float debugFXAAX{ 1.0f };
-    float debugFXAAX{ 0.0f };
+    float debugFXAAX{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
     glm::vec2 debugCursorTexcoord{ 0.5f, 0.5f };
     float debugOrbZoom{ 2.0f };
@@ -138,7 +132,7 @@ signals:
 
 struct TAAParams {
     float nope{ 0.0f };
-    float blend{ 0.05f };
+    float blend{ 0.15f };
     float covarianceGamma{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
 
@@ -175,7 +169,7 @@ public:
     using Config = AntialiasingConfig;
     using JobModel = render::Job::ModelI<Antialiasing, Inputs, Config>;
 
-    Antialiasing();
+    Antialiasing(bool isSharpenEnabled = true);
     ~Antialiasing();
     void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
@@ -196,6 +190,7 @@ private:
     TAAParamsBuffer _params;
     float _sharpen{ 0.15f };
     int _sharpenLoc{ -1 };
+    bool _isSharpenEnabled{ true };
 };
 
 

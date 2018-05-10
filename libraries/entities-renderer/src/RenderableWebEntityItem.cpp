@@ -246,8 +246,11 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     batch.setResourceTexture(0, _texture);
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
 
+    // Turn off jitter for these entities
+    batch.pushProjectionJitter();
     DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, fadeRatio < OPAQUE_ALPHA_THRESHOLD);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio), _geometryId);
+    batch.popProjectionJitter();
 }
 
 bool WebEntityRenderer::hasWebSurface() {
@@ -278,7 +281,7 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
     // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
     // and the current rendering load)
     _webSurface->setMaxFps(DEFAULT_MAX_FPS);
-    QObject::connect(_webSurface.data(), &OffscreenQmlSurface::rootContextCreated, [this](QQmlContext* surfaceContext) {
+    QObject::connect(_webSurface.data(), &OffscreenQmlSurface::rootContextCreated, [](QQmlContext* surfaceContext) {
         // FIXME - Keyboard HMD only: Possibly add "HMDinfo" object to context for WebView.qml.
         surfaceContext->setContextProperty("desktop", QVariant());
         // Let us interact with the keyboard
