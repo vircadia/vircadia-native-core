@@ -206,7 +206,7 @@ void TextureTest::testTextureLoading() {
     auto lastReport = usecTimestampNow();
     auto start = usecTimestampNow();
     while (expectedAllocation != allocatedMemory) {
-        reportEvery(lastReport, 4, reportLambda);
+        doEvery(lastReport, 4, reportLambda);
         failAfter(start, 10, "Failed to allocate texture memory after 10 seconds");
         renderFrame(renderTexturesLamdba);
         allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
@@ -218,7 +218,7 @@ void TextureTest::testTextureLoading() {
     start = usecTimestampNow();
     // Cycle frames we're fully populated
     while (allocatedMemory != populatedMemory || 0 != gpu::Context::getTexturePendingGPUTransferMemSize()) {
-        reportEvery(lastReport, 4, reportLambda);
+        doEvery(lastReport, 4, reportLambda);
         failAfter(start, 10, "Failed to populate texture memory after 10 seconds");
         renderFrame();
         allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
@@ -240,7 +240,7 @@ void TextureTest::testTextureLoading() {
     start = usecTimestampNow();
     // Cycle frames until the allocated memory is below the max memory
     while (allocatedMemory > maxMemory || allocatedMemory != populatedMemory) {
-        reportEvery(lastReport, 4, reportLambda);
+        doEvery(lastReport, 4, reportLambda);
         failAfter(start, 10, "Failed to deallocate texture memory after 10 seconds");
         renderFrame(renderTexturesLamdba);
         allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
@@ -259,7 +259,7 @@ void TextureTest::testTextureLoading() {
     gpu::Texture::setAllowedGPUMemoryUsage(0);
     // Cycle frames we're fully populated
     while (allocatedMemory != expectedAllocation || allocatedMemory != populatedMemory) {
-        reportEvery(lastReport, 4, reportLambda);
+        doEvery(lastReport, 4, reportLambda);
         failAfter(start, 10, "Failed to populate texture memory after 10 seconds");
         renderFrame();
         allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
@@ -268,4 +268,17 @@ void TextureTest::testTextureLoading() {
     reportLambda();
     QCOMPARE(allocatedMemory, expectedAllocation);
     QCOMPARE(populatedMemory, allocatedMemory);
+
+    _textures.clear();
+    // Cycle frames we're fully populated
+    while (allocatedMemory != 0) {
+        failAfter(start, 10, "Failed to clear texture memory after 10 seconds");
+        renderFrame();
+        allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
+        populatedMemory = gpu::Context::getTextureResourcePopulatedGPUMemSize();
+    }
+    QCOMPARE(allocatedMemory, 0);
+    QCOMPARE(populatedMemory, 0);
+    qDebug() << "Done";
+
 }
