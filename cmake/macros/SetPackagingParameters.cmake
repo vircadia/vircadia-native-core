@@ -29,16 +29,6 @@ macro(SET_PACKAGING_PARAMETERS)
   set(CLIENT_COMPONENT client)
   set(SERVER_COMPONENT server)
 
-  # grab the abbreviated commit SHA
-  # since is added to the build version for PR builds and master/nightly builds
-  execute_process(
-    COMMAND git log -1 --format=%h
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_COMMIT_HASH
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    ERROR_QUIET
-  )
-
   if (RELEASE_TYPE STREQUAL "PRODUCTION")
     set(DEPLOY_PACKAGE TRUE)
     set(PRODUCTION_BUILD 1)
@@ -57,16 +47,13 @@ macro(SET_PACKAGING_PARAMETERS)
       message(STATUS "The RELEASE_TYPE is PRODUCTION and STABLE_BUILD is 1")
       set(BUILD_GLOBAL_SERVICES "STABLE")
       set(USE_STABLE_GLOBAL_SERVICES 1)
-    else ()
-      # assume this is a master/nightly build and append the short commit SHA
-      set(BUILD_VERSION "${BUILD_VERSION}-${GIT_COMMIT_HASH}")
     endif ()
 
   elseif (RELEASE_TYPE STREQUAL "PR")
     set(DEPLOY_PACKAGE TRUE)
     set(PR_BUILD 1)
-    set(BUILD_VERSION "PR${RELEASE_NUMBER}-${GIT_COMMIT_HASH}")
-    set(BUILD_ORGANIZATION "High Fidelity - ${BUILD_VERSION}")
+    set(BUILD_VERSION "PR${RELEASE_NUMBER}")
+    set(BUILD_ORGANIZATION "High Fidelity - PR${RELEASE_NUMBER}")
     set(INTERFACE_BUNDLE_NAME "Interface")
     set(INTERFACE_ICON_PREFIX "interface-beta")
 
@@ -85,6 +72,19 @@ macro(SET_PACKAGING_PARAMETERS)
 
   string(TIMESTAMP BUILD_TIME "%d/%m/%Y")
   
+  if (PRODUCTION_BUILD OR PR_BUILD AND NOT STABLE_BUILD)
+    # append the abbreviated commit SHA to the build version
+    # since this is a PR build or master/nightly builds
+    execute_process(
+      COMMAND git log -1 --format=%h
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+      OUTPUT_VARIABLE GIT_COMMIT_HASH
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    set(BUILD_VERSION "${BUILD_VERSION}-${GIT_COMMIT_HASH}")
+  endif ()
+
   # if STABLE_BUILD is 1, PRODUCTION_BUILD must be 1 and
   # DEV_BUILD and PR_BUILD must be 0
   if (STABLE_BUILD)
