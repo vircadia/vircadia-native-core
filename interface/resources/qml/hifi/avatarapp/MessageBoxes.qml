@@ -1,0 +1,93 @@
+import QtQuick 2.5
+
+MessageBox {
+    id: popup
+
+    function showSpecifyAvatarUrl(callback) {
+        popup.onButton2Clicked = callback;
+        popup.titleText = 'Specify Avatar URL'
+        popup.bodyText = 'If you want to add a custom avatar, you can specify the URL of the avatar file' +
+                '(“.fst” extension) here. <a href="#">Learn to make a custom avatar by opening this link on your desktop.</a>'
+        popup.inputText.visible = true;
+        popup.inputText.placeholderText = 'Enter Avatar Url';
+        popup.button1text = 'CANCEL';
+        popup.button2text = 'CONFIRM';
+
+        popup.open();
+    }
+
+    property url getWearablesUrl: '../../../images/samples/hifi-place-77312e4b-6f48-4eb4-87e2-50444d8e56d1.png'
+
+    function showGetWearables(callback) {
+        popup.button2text = 'AvatarIsland'
+        popup.button1text = 'CANCEL'
+        popup.titleText = 'Get Wearables'
+        popup.bodyText = 'Buy wearables from <a href="https://fake.link">Marketplace</a>' + '\n' +
+                         'Wear wearable from <a href="https://fake.link">My Purchases</a>' + '\n' +
+                         'You can visit the domain “AvatarIsland”' + '\n' +
+                         'to get wearables'
+
+        popup.imageSource = getWearablesUrl;
+        popup.onButton2Clicked = function() {
+            popup.close();
+
+            if(callback)
+                callback();
+        }
+        popup.open();
+    }
+
+    function showDeleteFavorite(favoriteName, callback) {
+        popup.titleText = 'Delete Favorite: {AvatarName}'.replace('{AvatarName}', favoriteName)
+        popup.bodyText = 'This will delete your favorite. You will retain access to the wearables and avatar that made up the favorite from My Purchases.'
+        popup.imageSource = null;
+        popup.button1text = 'CANCEL'
+        popup.button2text = 'DELETE'
+
+        popup.onButton2Clicked = function() {
+            popup.close();
+
+            if(callback)
+                callback();
+        }
+        popup.open();
+    }
+
+    function showLoadFavorite(favoriteName, callback) {
+        popup.button2text = 'CONFIRM'
+        popup.button1text = 'CANCEL'
+        popup.titleText = 'Load Favorite: {AvatarName}'.replace('{AvatarName}', favoriteName)
+        popup.bodyText = 'This will switch your current avatar and wearables that you are wearing with a new avatar and wearables.'
+        popup.imageSource = null;
+        popup.onButton2Clicked = function() {
+            popup.close();
+
+            if(callback)
+                callback();
+        }
+        popup.open();
+    }
+
+    property url getAvatarsUrl: '../../../images/samples/hifi-place-get-avatars.png'
+
+    function showBuyAvatars(callback) {
+        popup.button2text = 'BodyMart'
+        popup.button1text = 'CANCEL'
+        popup.titleText = 'Get Avatars'
+
+        popup.bodyText = 'Buy avatars from <a href="https://fake.link">Marketplace</a>' + '\n' +
+                         'Wear avatars from <a href="https://fake.link">My Purchases</a>' + '\n' +
+                         'You can visit the domain “BodyMart”' + '\n' +
+                         'to get avatars'
+
+        popup.imageSource = getAvatarsUrl;
+        popup.onButton2Clicked = function() {
+            popup.close();
+
+            if(callback)
+                callback();
+        }
+        popup.open();
+    }
+}
+
