@@ -6188,7 +6188,8 @@ void Application::updateWindowTitle() const {
     auto nodeList = DependencyManager::get<NodeList>();
     auto accountManager = DependencyManager::get<AccountManager>();
 
-    QString buildVersion = " (build " + applicationVersion() + ")";
+    QString buildVersion = " - "
+        + (BuildInfo::STABLE_BUILD == "1" ? QString("Version") : QString("Build")) + " " + applicationVersion();
 
     QString loginStatus = accountManager->isLoggedIn() ? "" : " (NOT LOGGED IN)";
 
