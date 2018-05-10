@@ -285,6 +285,15 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [action, settings] {
         settings->setValue(MenuOption::NotificationSoundsSnapshot, action->isChecked());
     });
+    // Settings > Notifications > Tablet
+    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Tablet", 0,
+                                                    settings->getValue(MenuOption::NotificationSoundsTablet).toBool());
+    connect(action, &QAction::triggered, [action, settings] {
+        settings->setValue(MenuOption::NotificationSoundsTablet, action->isChecked());
+    });
+
+    //Further sound notificaions disabled until new notification system will be implemented
+    /*
     // Settings > Notifications > Level of Detail
     action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Level of Detail", 0,
                                                     settings->getValue("play_notification_sounds_type_1").toBool());
@@ -309,12 +318,6 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [action, settings] {
         settings->setValue("play_notification_sounds_type_4", action->isChecked());
     });
-    // Settings > Notifications > Tablet
-    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Tablet", 0,
-                                                    settings->getValue(MenuOption::NotificationSoundsTablet).toBool());
-    connect(action, &QAction::triggered, [action, settings] {
-        settings->setValue(MenuOption::NotificationSoundsTablet, action->isChecked());
-    });
     // Settings > Notifications > Wallet
     addActionToQMenuAndActionHash(notificationsMenu, "Wallet");
     action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Wallet", 0,
@@ -322,7 +325,7 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [action, settings] {
         settings->setValue("play_notification_sounds_type_6", action->isChecked());
     });
-
+*/
     // Settings > Developer Menu
     addCheckableActionToQMenuAndActionHash(settingsMenu, "Developer Menu", 0, false, this, SLOT(toggleDeveloperMenus()));
     
