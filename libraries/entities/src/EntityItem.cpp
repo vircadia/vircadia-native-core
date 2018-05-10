@@ -1085,7 +1085,7 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
 
     const float MAX_TIME_ELAPSED = 1.0f; // seconds
     if (timeElapsed > MAX_TIME_ELAPSED) {
-        qCWarning(entities) << "kinematic timestep = " << timeElapsed << " truncated to " << MAX_TIME_ELAPSED;
+        qCDebug(entities) << "kinematic timestep = " << timeElapsed << " truncated to " << MAX_TIME_ELAPSED;
     }
     timeElapsed = glm::min(timeElapsed, MAX_TIME_ELAPSED);
 

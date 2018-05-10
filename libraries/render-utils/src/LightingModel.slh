@@ -14,10 +14,10 @@
 <@func declareLightingModel()@>
 
 struct LightingModel {
-    PRECISIONQ vec4 _UnlitEmissiveLightmapBackground;
-    PRECISIONQ vec4 _ScatteringDiffuseSpecularAlbedo;
-    PRECISIONQ vec4 _AmbientDirectionalPointSpot;
-    PRECISIONQ vec4 _ShowContourObscuranceWireframe;
+    vec4 _UnlitEmissiveLightmapBackground;
+    vec4 _ScatteringDiffuseSpecularAlbedo;
+    vec4 _AmbientDirectionalPointSpot;
+    vec4 _ShowContourObscuranceWireframe;
 };
 
 uniform lightingModelBuffer{
