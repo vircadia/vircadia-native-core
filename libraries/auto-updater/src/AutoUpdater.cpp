@@ -11,6 +11,8 @@
 
 #include "AutoUpdater.h"
 
+#include <BuildInfo.h>
+
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
 #include <unordered_map>
@@ -157,10 +159,8 @@ void AutoUpdater::parseLatestVersionData() {
 }
 
 void AutoUpdater::checkVersionAndNotify() {
-    if (QCoreApplication::applicationVersion() == "dev" ||
-        QCoreApplication::applicationVersion().contains("PR") ||
-        _builds.empty()) {
-        // No version checking is required in dev builds or when no build
+    if (BuildInfo::STABLE_BUILD == "0" || _builds.empty()) {
+        // No version checking is required in nightly/PR/dev builds or when no build
         // data was found for the platform
         return;
     }
