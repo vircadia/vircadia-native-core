@@ -145,16 +145,6 @@
 #include <avatars-renderer/ScriptAvatar.h>
 #include <RenderableEntityItem.h>
 
-#include <AnimationLogging.h>
-#include <AvatarLogging.h>
-#include <ScriptEngineLogging.h>
-#include <ModelFormatLogging.h>
-#include <controllers/Logging.h>
-#include <NetworkLogging.h>
-#include <shared/StorageLogging.h>
-#include <ScriptEngineLogging.h>
-#include <ui/Logging.h>
-
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
@@ -743,6 +733,11 @@ extern DisplayPluginList getDisplayPlugins();
 extern InputPluginList getInputPlugins();
 extern void saveInputPluginSettings(const InputPluginList& plugins);
 
+// Parameters used for running tests from teh command line
+const QString TEST_SCRIPT_COMMAND { "--testScript" };
+const QString TEST_QUIT_WHEN_FINISHED_OPTION { "quitWhenFinished" };
+const QString TEST_SNAPSHOT_LOCATION_COMMAND { "--testSnapshotLocation" };
+
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
 
@@ -777,7 +772,22 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 
     static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
     bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
-    bool previousSessionCrashed = CrashHandler::checkForResetSettings(runningMarkerExisted, suppressPrompt);
+
+    // Ignore any previous crashes if running from command line with a test script.  
+    bool inTestMode { false };
+    for (int i = 0; i < argc; ++i) {
+        QString parameter(argv[i]);
+        if (parameter == TEST_SCRIPT_COMMAND) {
+            inTestMode = true;
+            break;
+        }
+    }
+
+    bool previousSessionCrashed { false };
+    if (!inTestMode) {
+        previousSessionCrashed = CrashHandler::checkForResetSettings(runningMarkerExisted, suppressPrompt);
+    }
+
     // get dir to use for cache
     static const auto CACHE_SWITCH = "--cache";
     QString cacheDir = getCmdOption(argc, const_cast<const char**>(argv), CACHE_SWITCH);
@@ -996,13 +1006,30 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
     {
-        const QString TEST_SCRIPT = "--testScript";
         const QStringList args = arguments();
+
         for (int i = 0; i < args.size() - 1; ++i) {
-            if (args.at(i) == TEST_SCRIPT) {
+            if (args.at(i) == TEST_SCRIPT_COMMAND && (i + 1) < args.size()) {
                 QString testScriptPath = args.at(i + 1);
-                if (QFileInfo(testScriptPath).exists()) {
+
+                // If the URL scheme is http(s) or ftp, then use as is, else - treat it as a local file
+                // This is done so as not break previous command line scripts
+                if (testScriptPath.left(URL_SCHEME_HTTP.length()) == URL_SCHEME_HTTP || testScriptPath.left(URL_SCHEME_FTP.length()) == URL_SCHEME_FTP) {
+                    setProperty(hifi::properties::TEST, QUrl::fromUserInput(testScriptPath));
+                } else if (QFileInfo(testScriptPath).exists()) {
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
+                }
+
+				// quite when finished parameter must directly follow the test script
+                if ((i + 2) < args.size() && args.at(i + 2) == TEST_QUIT_WHEN_FINISHED_OPTION) {
+                    quitWhenFinished = true;
+                }
+            } else if (args.at(i) == TEST_SNAPSHOT_LOCATION_COMMAND) {
+                // Set test snapshot location only if it is a writeable directory
+                QString pathname(args.at(i + 1));
+                QFileInfo fileInfo(pathname);
+                if (fileInfo.isDir() && fileInfo.isWritable()) {
+                    testSnapshotLocation = pathname;
                 }
             }
         }
@@ -1334,8 +1361,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Initialize the user interface and menu system
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
-
-    updateVerboseLogging();
 
     init();
     qCDebug(interfaceapp, "init() complete.");
@@ -1675,6 +1700,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateHeartbeat();
 
     loadSettings();
+
+    updateVerboseLogging();
 
     // Now that we've loaded the menu and thus switched to the previous display plugin
     // we can unlock the desktop repositioning code, since all the positions will be
@@ -2128,14 +2155,24 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return entityServerNode && !isPhysicsEnabled();
     });
 
-    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/snap.wav"));
+    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/snapshot/snap.wav"));
 
     QVariant testProperty = property(hifi::properties::TEST);
     qDebug() << testProperty;
     if (testProperty.isValid()) {
         auto scriptEngines = DependencyManager::get<ScriptEngines>();
         const auto testScript = property(hifi::properties::TEST).toUrl();
-        scriptEngines->loadScript(testScript, false);
+       
+        // Set last parameter to exit interface when the test script finishes, if so requested
+        scriptEngines->loadScript(testScript, false, false, false, false, quitWhenFinished);
+
+        // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
+        if (arguments().contains("--url")) {
+            auto reply = SandboxUtils::getStatus();
+            connect(reply, &QNetworkReply::finished, this, [=] {
+                handleSandboxStatus(reply);
+            });
+        }
     } else {
         PROFILE_RANGE(render, "GetSandboxStatus");
         auto reply = SandboxUtils::getStatus();
@@ -2210,43 +2247,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 }
 
 void Application::updateVerboseLogging() {
-    bool enable = Menu::getInstance()->isOptionChecked(MenuOption::VerboseLogging);
+    auto menu = Menu::getInstance();
+    if (!menu) {
+        return;
+    }
+    bool enable = menu->isOptionChecked(MenuOption::VerboseLogging);
 
-    const_cast<QLoggingCategory*>(&animation())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&animation())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&avatars())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&scriptengine())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&modelformat())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&controllers())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&controllers())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&resourceLog())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&resourceLog())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&networking())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&networking())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&asset_client())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&asset_client())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&messages_client())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&messages_client())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&storagelogging())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&storagelogging())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&uiLogging())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&uiLogging())->setEnabled(QtInfoMsg, enable);
-
-    const_cast<QLoggingCategory*>(&glLogging())->setEnabled(QtDebugMsg, enable);
-    const_cast<QLoggingCategory*>(&glLogging())->setEnabled(QtInfoMsg, enable);
+    QString rules = "*.debug=%1\n"
+        "*.info=%1";
+    rules = rules.arg(enable ? "true" : "false");
+    QLoggingCategory::setFilterRules(rules);
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -3175,7 +3185,6 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         qCDebug(interfaceapp) << "First run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("default location") : addressLookupString);
         DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
 #else
-        showHelp();
         DependencyManager::get<AddressManager>()->goToEntry();
         sentTo = SENT_TO_ENTRY;
 #endif
@@ -3637,7 +3646,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     } else {
                         showCursor(Cursor::Icon::DEFAULT);
                     }
-                } else {
+                } else if (!event->isAutoRepeat()){
                     resetSensors(true);
                 }
                 break;
@@ -7460,7 +7469,7 @@ void Application::loadAvatarBrowser() const {
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
     postLambdaEvent([notify, includeAnimated, aspectRatio, filename, this] {
         // Get a screenshot and save it
-        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio), filename);
+        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio), filename, testSnapshotLocation);
         // If we're not doing an animated snapshot as well...
         if (!includeAnimated) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
@@ -7474,7 +7483,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
 
 void Application::takeSecondaryCameraSnapshot(const QString& filename) {
     postLambdaEvent([filename, this] {
-        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename);
+        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename, testSnapshotLocation);
         emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
     });
 }
