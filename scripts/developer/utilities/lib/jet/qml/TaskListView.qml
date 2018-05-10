@@ -29,21 +29,47 @@ Rectangle {
 
     Component.onCompleted: {
         var message = ""
-        var functor = Jet.job_print_functor(function (line) { message += line + "\n"; }, false);
+       // functor = Jet.job_print_functor(function (line) { message += line + "\n"; }, false);
         
-        functor = Jet.job_list_functor(root.myArray);
+      //  functor = Jet.job_list_functor(root.myArray);
+
+        var maxDepth = 4;
+        
+        var jobTreePath = []
+        var jobsRoot;
+
+        var functor = function (job, depth, index) {
+            var newItem = {"name": job.objectName, "level": depth, "index": index, "subNode": [], "init": depth < maxDepth, "path": ""}
+            if (depth == 0) {
+                jobsModel.append(newItem)
+                jobsRoot = jobsModel.get(0).subNode;
+            } else {
+                if (jobTreePath.length < depth) {
+                    var node = jobsRoot;
+                    var path;
+                    for (var n = 0; n < jobTreePath.length; n++) {
+                        newItem.path += (n > 0 ? "." : "") + node.get(jobTreePath[n]).name
+                        node = node.get(jobTreePath[n]).subNode
+                    }
+                    node.append(newItem)
+                    jobTreePath.push(0);
+                } else if (jobTreePath.length >= depth) {
+                    var node = jobsRoot;
+                    for (var n = 0; n < (depth - 1); n++) {
+                        newItem.path += (n > 0 ? "." : "") + node.get(jobTreePath[n]).name
+                        node = node.get(jobTreePath[n]).subNode
+                    }
+                    node.append(newItem)
+                    jobTreePath[depth-1] = index;
+                    while (jobTreePath.length > depth) {
+                        jobTreePath.pop();
+                    }                       
+                }
+            }
+            return true;
+        }
 
         Jet.task_traverseTree(rootConfig, functor);
-        //print(JSON.stringify(root.myArray))
-     //   theView.model = root.myArray.length
-        for (var i = 0; i < root.myArray.length; i++) {
-           jobsModel.append({"on": true, "name": root.myArray[i]})
-        }
-     //   theView.model = root.myArray
-    }
-
-    function getJobName(i) {
-        return root.myArray[i];
     }
 
     ListModel {
@@ -51,17 +77,47 @@ Rectangle {
     }
 
     Component {
-        id: itemDelegate
-        //HifiControls.Label { text: "I am item number: " + index }
-        HifiControls.CheckBox { text: name + index;
-         checked: true; }
+        id: objRecursiveDelegate
+        Column {
+            id: objRecursiveColumn
+            clip: true
+            visible: model.init
+            
+            MouseArea {
+                width: objRow.implicitWidth
+                height: objRow.implicitHeight 
+                onDoubleClicked: {
+                    for(var i = 1; i < parent.children.length - 1; ++i) {
+                        parent.children[i].visible = !parent.children[i].visible
+                    }
+                }
+                Row {
+                    id: objRow
+                    Item {
+                        height: 1
+                        width: model.level * 15
+                    }
+                    HifiControls.CheckBox {
+                        property var config: root.rootConfig.getConfig(model.path + "." + model.name);
+                        text: (objRecursiveColumn.children.length > 2 ?
+                                objRecursiveColumn.children[1].visible ?
+                                qsTr("-  ") : qsTr("+ ") : qsTr("   ")) + model.name + " ms=" + config.cpuRunTime.toFixed(3)
+                        checked: config.enabled
+                    }
+                }
+            }
+            Repeater {
+                model: subNode
+                delegate: objRecursiveDelegate
+            }
+        }
     }
 
     ListView {
         id: theView
         anchors.fill: parent
         model: jobsModel
-        delegate: itemDelegate
+        delegate: objRecursiveDelegate
     }
 
 }

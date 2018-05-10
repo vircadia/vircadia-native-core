@@ -12,15 +12,15 @@
 
  // traverse task tree
 function task_traverse(root, functor, depth) {
-   // if (root.isTask()) { 
+    if (root.isTask()) { 
         depth++;
         for (var i = 0; i <root.getNumSubs(); i++) {
             var sub = root.getSubConfig(i);
             if (functor(sub, depth, i)) {
-                task_traverse(sub, functor, depth)
+                task_traverse(sub, functor, depth, 0)
             }
         }
-   // }    
+    }    
 }
 function task_traverseTree(root, functor) {
     if (functor(root, 0, 0)) {
