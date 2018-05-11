@@ -107,51 +107,19 @@ Rectangle {
         } else if(message.method === getAvatarsMethod) {
             var getAvatarsReply = message.reply;
             allAvatars.populate(getAvatarsReply.bookmarks);
+            setCurrentAvatar(getAvatarsReply.currentAvatar);
 
-            var currentAvatar = getAvatarsReply.currentAvatar;
             console.debug('currentAvatar: ', JSON.stringify(currentAvatar, null, '\t'));
-            var selectedAvatarIndex = -1;
+            var bookmarkAvatarIndex = allAvatars.findAvatarIndexByValue(currentAvatar);
 
-            // 2DO: find better way of determining selected avatar in bookmarks
-            console.debug('allAvatars.count: ', allAvatars.count);
-            for(var i = 0; i < allAvatars.count; ++i) {
-                var thesame = true;
-                for(var prop in currentAvatar) {
-                    // console.debug('prop', prop);
-
-                    var v1 = currentAvatar[prop];
-                    var v2 = allAvatars.get(i).entry[prop];
-                    console.debug('v1', v1, 'v2', v2);
-
-                    var s1 = JSON.stringify(v1);
-                    var s2 = JSON.stringify(v2);
-
-                    // console.debug('comparing\n', s1, 'to\n', s2, '...');
-                    if(s1 !== s2) {
-                        if(!(Array.isArray(v1) && v1.length === 0 && v2 === undefined)) {
-                            thesame = false;
-                            break;
-                        }
-                    }
-                    // console.debug('values seems to be the same...');
-                }
-                if(thesame) {
-                    selectedAvatarIndex = i;
-                    break;
-                }
-            }
-
-            console.debug('selectedAvatarIndex = -1, avatar is not favorite')
-
-            setCurrentAvatar(currentAvatar);
-
-            if(selectedAvatarIndex === -1) {
+            if(bookmarkAvatarIndex === -1) {
+                console.debug('bookmarkAvatarIndex = -1, avatar is not favorite')
                 selectedAvatar = root.currentAvatar;
                 view.setPage(0);
 
                 console.debug('selectedAvatar = ', JSON.stringify(selectedAvatar, null, '\t'))
             } else {
-                view.selectAvatar(allAvatars.get(selectedAvatarIndex));
+                view.selectAvatar(allAvatars.get(bookmarkAvatarIndex));
             }
         } else if(message.method === 'selectAvatarEntity') {
             adjustWearables.selectWearableByID(message.entityID);
@@ -537,7 +505,7 @@ Rectangle {
                 id: view
                 anchors.fill: parent
                 interactive: false;
-                currentIndex: (selectedAvatarId !== '' && !pageOfAvatars.isUpdating) ? pageOfAvatars.findAvatar(selectedAvatarId) : -1
+                currentIndex: (selectedAvatarId !== '' && !pageOfAvatars.isUpdating) ? pageOfAvatars.findAvatarIndex(selectedAvatarId) : -1
 
                 property int horizontalSpacing: 18
                 property int verticalSpacing: 44
@@ -840,10 +808,9 @@ Rectangle {
                         gotoAvatarAppPanel.visible = false;
 
                         var i = allAvatars.count + 1;
-                        var url = allAvatars.urls[i++ % allAvatars.urls.length]
 
                         var avatar = {
-                            'url': Qt.resolvedUrl(url),
+                            'url': '',
                             'name': 'Lexi' + (++newAvatarIndex),
                             'wearables': []
                         };

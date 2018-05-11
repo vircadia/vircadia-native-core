@@ -32,6 +32,78 @@ ListModel {
         }
     }
 
+    function arraysAreEqual(a1, a2, comparer) {
+        if(Array.isArray(a1) && Array.isArray(a2)) {
+            if(a1.length !== a2.length) {
+                return false;
+            }
+
+            for(var i = 0; i < a1.length; ++i) {
+                if(!comparer(a1[i], a2[i])) {
+                    return false;
+                }
+            }
+        } else if(Array.isArray(a1)) {
+            return a1.length === 0;
+        } else if(Array.isArray(a2)) {
+            return a2.length === 0;
+        }
+
+        return true;
+    }
+
+    function compareArrays(a1, a2, props) {
+        for(var prop in props) {
+            if(JSON.stringify(a1[prop]) !== JSON.stringify(a2[prop])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    function compareWearables(w1, w2) {
+        return compareArrays(w1, w2, ['modelUrl', 'parentJointIndex', 'marketplaceID', 'itemName', 'script', 'rotation'])
+    }
+
+    function compareAttachments(a1, a2) {
+        return compareAttachments(a1, a2, ['position', 'orientation', 'parentJointIndex', 'modelurl'])
+    }
+
+    function findAvatarIndexByValue(avatar) {
+
+        var index = -1;
+        var avatarObject = avatar.entry;
+
+        // 2DO: find better way of determining selected avatar in bookmarks
+        console.debug('allAvatars.count: ', allAvatars.count);
+        for(var i = 0; i < allAvatars.count; ++i) {
+            var thesame = true;
+            var bookmarkedAvatarObject = allAvatars.get(i).entry;
+
+            if(bookmarkedAvatarObject.avatarUrl !== avatarObject.avatarUrl)
+                continue;
+
+            if(bookmarkedAvatarObject.avatarScale !== avatarObject.avatarScale)
+                continue;
+
+            if(!arraysAreEqual(bookmarkedAvatarObject.attachments, avatarObject.attachments, compareAttachments)) {
+                continue;
+            }
+
+            if(!arraysAreEqual(bookmarkedAvatarObject.avatarEntities, avatarObject.avatarEntities, compareWearables)) {
+                continue;
+            }
+
+            if(thesame) {
+                index = i;
+                break;
+            }
+        }
+
+        return index;
+    }
+
     function findAvatarIndex(avatarName) {
         for(var i = 0; i < count; ++i) {
             if(get(i).name === avatarName) {
