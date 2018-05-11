@@ -31,12 +31,20 @@ Rectangle {
 
     property var jointNames;
 
+    property string avatarName: currentAvatar ? currentAvatar.name : ''
+    property string avatarUrl: currentAvatar ? currentAvatar.url : null
+    property bool isAvatarInFavorites: currentAvatar ? allAvatars.findAvatar(currentAvatar.name) !== undefined : false
+    property int avatarWearablesCount: currentAvatar ? currentAvatar.wearables.count : 0
     property var currentAvatar: null;
     function setCurrentAvatar(avatar) {
+
+        var avatarThumbnailUrl = allAvatars.makeThumbnailUrl(avatar.avatarUrl);
         var currentAvatarObject =  {
             'name' : '',
-            'url' : allAvatars.makeThumbnailUrl(avatar.avatarUrl),
+            'scale' : avatar.avatarScale,
+            'url' : avatarThumbnailUrl,
             'wearables' : avatar.avatarEntites ? avatar.avatarEntites : [],
+            'attachments' : avatar.attachments ? avatar.attachments : [],
             'entry' : avatar,
             'getMoreAvatars' : false
         };
@@ -72,11 +80,11 @@ Rectangle {
                 console.debug('wearable: ', wearablesModel.get(i).properties.id);
             }
 
-            adjustWearables.refresh(root.currentAvatar);
+            adjustWearables.refresh(currentAvatar);
         } else if(message.method === 'bookmarkLoaded') {
             setCurrentAvatar(message.reply.currentAvatar);
-            selectedAvatarId = message.reply.name;
-            var avatarIndex = allAvatars.findAvatarIndex(selectedAvatarId);
+            selectedAvatarName = message.reply.name;
+            var avatarIndex = allAvatars.findAvatarIndex(selectedAvatarName);
             allAvatars.move(avatarIndex, 0, 1);
             view.setPage(0);
         } else if(message.method === 'bookmarkDeleted') {
@@ -110,37 +118,32 @@ Rectangle {
             setCurrentAvatar(getAvatarsReply.currentAvatar);
 
             console.debug('currentAvatar: ', JSON.stringify(currentAvatar, null, '\t'));
-            var bookmarkAvatarIndex = allAvatars.findAvatarIndexByValue(currentAvatar);
-
-            if(bookmarkAvatarIndex === -1) {
-                console.debug('bookmarkAvatarIndex = -1, avatar is not favorite')
-                selectedAvatar = root.currentAvatar;
-                view.setPage(0);
-
-                console.debug('selectedAvatar = ', JSON.stringify(selectedAvatar, null, '\t'))
-            } else {
-                view.selectAvatar(allAvatars.get(bookmarkAvatarIndex));
-            }
+            updateCurrentAvatarInBookmarks(currentAvatar);
         } else if(message.method === 'selectAvatarEntity') {
             adjustWearables.selectWearableByID(message.entityID);
         }
     }
 
-    property string selectedAvatarId: ''
-    onSelectedAvatarIdChanged: {
-        console.debug('selectedAvatarId: ', selectedAvatarId)
-        selectedAvatar = allAvatars.findAvatar(selectedAvatarId);
+    function updateCurrentAvatarInBookmarks(avatar) {
+        var bookmarkAvatarIndex = allAvatars.findAvatarIndexByValue(avatar);
+
+        if(bookmarkAvatarIndex === -1) {
+            console.debug('bookmarkAvatarIndex = -1, avatar is not favorite')
+            avatar.name = '';
+            selectedAvatarName = '';
+            view.setPage(0);
+        } else {
+            console.debug('bookmarkAvatarIndex = ', bookmarkAvatarIndex, 'avatar is among favorites!')
+            var bookmarkAvatar = allAvatars.get(bookmarkAvatarIndex);
+            avatar.name = bookmarkAvatar.name;
+            view.selectAvatar(bookmarkAvatar);
+        }
     }
 
-    property var selectedAvatar;
-    onSelectedAvatarChanged: {
-        console.debug('onSelectedAvatarChanged.selectedAvatar: ', JSON.stringify(selectedAvatar, null, '\t'));
+    property string selectedAvatarName: ''
+    onSelectedAvatarNameChanged: {
+        console.debug('selectedAvatarId: ', selectedAvatarName)
     }
-
-    property string avatarName: selectedAvatar ? selectedAvatar.name : ''
-    property string avatarUrl: selectedAvatar ? selectedAvatar.url : null
-    property int avatarWearablesCount: selectedAvatar ? selectedAvatar.wearables.count : 0
-    property bool isAvatarInFavorites: selectedAvatar ? allAvatars.findAvatar(selectedAvatar.name) !== undefined : false
 
     property bool isInManageState: false
 
@@ -214,6 +217,9 @@ Rectangle {
         }
         onAdjustWearablesClosed: {
             emitSendToScript({'method' : 'adjustWearablesClosed', 'save' : status, 'avatarName' : avatarName});
+            if(status) {
+                updateCurrentAvatarInBookmarks(currentAvatar);
+            }
         }
         onWearableSelected: {
             emitSendToScript({'method' : 'selectWearable', 'entityID' : id});
@@ -340,16 +346,28 @@ Rectangle {
             enabled: !isAvatarInFavorites
             anchors.fill: star
             onClicked: {
-                console.debug('selectedAvatar.url', selectedAvatar.url)
                 createFavorite.onSaveClicked = function() {
-                    var newAvatar = JSON.parse(JSON.stringify(selectedAvatar));
+                    var entry = currentAvatar.entry;
+                    console.debug('was: ', JSON.stringify(entry, 0, 4));
+
+                    var wearables = [];
+                    for(var i = 0; i < currentAvatar.wearables.count; ++i) {
+                        wearables.push(currentAvatar.wearables.get(i));
+                    }
+
+                    entry.avatarEntites = wearables;
+                    console.debug('became: ', JSON.stringify(entry, 0, 4));
+
+                    /*
+                    var newAvatar = JSON.parse(JSON.stringify(currentAvatar));
                     newAvatar.name = createFavorite.favoriteNameText;
                     allAvatars.append(newAvatar);
                     view.selectAvatar(newAvatar);
+                    */
                     createFavorite.close();
                 }
 
-                createFavorite.open(selectedAvatar);
+                createFavorite.open(root.currentAvatar);
             }
         }
 
@@ -505,7 +523,7 @@ Rectangle {
                 id: view
                 anchors.fill: parent
                 interactive: false;
-                currentIndex: (selectedAvatarId !== '' && !pageOfAvatars.isUpdating) ? pageOfAvatars.findAvatarIndex(selectedAvatarId) : -1
+                currentIndex: (selectedAvatarName !== '' && !pageOfAvatars.isUpdating) ? pageOfAvatars.findAvatarIndex(selectedAvatarName) : -1
 
                 property int horizontalSpacing: 18
                 property int verticalSpacing: 44
@@ -532,7 +550,7 @@ Rectangle {
                 onCurrentPageChanged: {
                     console.debug('currentPage: ', currentPage)
                     currentIndex = Qt.binding(function() {
-                        return (selectedAvatarId !== '' && !pageOfAvatars.isUpdating) ? pageOfAvatars.findAvatar(selectedAvatarId) : -1
+                        return (selectedAvatarName !== '' && !pageOfAvatars.isUpdating) ? pageOfAvatars.findAvatar(selectedAvatarName) : -1
                     })
                 }
 

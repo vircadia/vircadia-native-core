@@ -27,7 +27,7 @@ Rectangle {
     function open(avatar) {
         favoriteName.text = '';
         avatarImageUrl = avatar.url;
-        wearablesCount = avatar.wearables !== '' ? avatar.wearables.split('|').length : 0;
+        wearablesCount = avatar.wearables.count;
 
         visible = true;
     }

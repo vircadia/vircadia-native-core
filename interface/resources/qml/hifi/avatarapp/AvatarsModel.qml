@@ -18,13 +18,16 @@ ListModel {
 
     function populate(bookmarks) {
         for(var avatarName in bookmarks) {
-            var avatarThumbnailUrl = makeThumbnailUrl(bookmarks[avatarName].avatarUrl);
+            var avatar = bookmarks[avatarName];
+            var avatarThumbnailUrl = makeThumbnailUrl(avatar.avatarUrl);
 
             var avatarEntry = {
                 'name' : avatarName,
+                'scale' : avatar.avatarScale,
                 'url' : avatarThumbnailUrl,
-                'wearables' : bookmarks[avatarName].avatarEntites ? bookmarks[avatarName].avatarEntites : [],
-                'entry' : bookmarks[avatarName],
+                'wearables' : avatar.avatarEntites ? avatar.avatarEntites : [],
+                'attachments' : avatar.attachments ? avatar.attachments : [],
+                'entry' : avatar,
                 'getMoreAvatars' : false
             };
 
@@ -52,6 +55,25 @@ ListModel {
         return true;
     }
 
+    function modelsAreEqual(m1, m2, comparer) {
+        if(m1.count !== m2.count) {
+            return false;
+        }
+
+        for(var i = 0; i < m1.count; ++i) {
+            var e1 = m1.get(i);
+            var e2 = m2.get(i);
+
+            console.debug('comparing ', JSON.stringify(e1), JSON.stringify(e2));
+
+            if(!comparer(e1, e2)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     function compareArrays(a1, a2, props) {
         for(var prop in props) {
             if(JSON.stringify(a1[prop]) !== JSON.stringify(a2[prop])) {
@@ -73,25 +95,25 @@ ListModel {
     function findAvatarIndexByValue(avatar) {
 
         var index = -1;
-        var avatarObject = avatar.entry;
+        console.debug('findAvatarIndexByValue: ', JSON.stringify(avatar));
 
         // 2DO: find better way of determining selected avatar in bookmarks
         console.debug('allAvatars.count: ', allAvatars.count);
         for(var i = 0; i < allAvatars.count; ++i) {
             var thesame = true;
-            var bookmarkedAvatarObject = allAvatars.get(i).entry;
+            var bookmarkedAvatar = allAvatars.get(i);
 
-            if(bookmarkedAvatarObject.avatarUrl !== avatarObject.avatarUrl)
+            if(bookmarkedAvatar.avatarUrl !== avatar.avatarUrl)
                 continue;
 
-            if(bookmarkedAvatarObject.avatarScale !== avatarObject.avatarScale)
+            if(bookmarkedAvatar.avatarScale !== avatar.avatarScale)
                 continue;
 
-            if(!arraysAreEqual(bookmarkedAvatarObject.attachments, avatarObject.attachments, compareAttachments)) {
+            if(!modelsAreEqual(bookmarkedAvatar.attachments, avatar.attachments, compareAttachments)) {
                 continue;
             }
 
-            if(!arraysAreEqual(bookmarkedAvatarObject.avatarEntities, avatarObject.avatarEntities, compareWearables)) {
+            if(!modelsAreEqual(bookmarkedAvatar.wearables, avatar.wearables, compareWearables)) {
                 continue;
             }
 
