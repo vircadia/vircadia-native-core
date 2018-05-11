@@ -236,7 +236,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     }
     @Override
     public void onBackPressed() {
-        finish();
+        finishAffinity();
     }
 
     public void onSearchClear(View view) {

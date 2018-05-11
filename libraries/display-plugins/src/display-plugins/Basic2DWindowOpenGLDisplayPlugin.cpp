@@ -28,82 +28,82 @@ void Basic2DWindowOpenGLDisplayPlugin::customizeContext() {
     qreal dpi = getFullscreenTarget()->physicalDotsPerInch();
     _virtualPadPixelSize = dpi * VirtualPad::Manager::BASE_DIAMETER_PIXELS / VirtualPad::Manager::DPI;
 
-    if (!_virtualPadStickTexture) {
-        auto iconPath = PathUtils::resourcesPath() + "images/analog_stick.png";
-        auto image = QImage(iconPath);
-        if (image.format() != QImage::Format_ARGB32) {
-            image = image.convertToFormat(QImage::Format_ARGB32);
-        }
-        if ((image.width() > 0) && (image.height() > 0)) {
-            image = image.scaled(_virtualPadPixelSize, _virtualPadPixelSize, Qt::KeepAspectRatio);
+    auto iconPath = PathUtils::resourcesPath() + "images/analog_stick.png";
+    auto image = QImage(iconPath);
+    if (image.format() != QImage::Format_ARGB32) {
+        image = image.convertToFormat(QImage::Format_ARGB32);
+    }
+    if ((image.width() > 0) && (image.height() > 0)) {
+        image = image.scaled(_virtualPadPixelSize, _virtualPadPixelSize, Qt::KeepAspectRatio);
 
-            _virtualPadStickTexture = gpu::Texture::createStrict(
-                    gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
-                    image.width(), image.height(),
-                    gpu::Texture::MAX_NUM_MIPS,
-                    gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
-            _virtualPadStickTexture->setSource("virtualPad stick");
-            auto usage = gpu::Texture::Usage::Builder().withColor().withAlpha();
-            _virtualPadStickTexture->setUsage(usage.build());
-            _virtualPadStickTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
-            _virtualPadStickTexture->assignStoredMip(0, image.byteCount(), image.constBits());
-            _virtualPadStickTexture->setAutoGenerateMips(true);
-        }
+        _virtualPadStickTexture = gpu::Texture::createStrict(
+                gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
+                image.width(), image.height(),
+                gpu::Texture::MAX_NUM_MIPS,
+                gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
+        _virtualPadStickTexture->setSource("virtualPad stick");
+        auto usage = gpu::Texture::Usage::Builder().withColor().withAlpha();
+        _virtualPadStickTexture->setUsage(usage.build());
+        _virtualPadStickTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
+        _virtualPadStickTexture->assignStoredMip(0, image.byteCount(), image.constBits());
+        _virtualPadStickTexture->setAutoGenerateMips(true);
     }
 
-    if (!_virtualPadStickBaseTexture) {
-        auto iconPath = PathUtils::resourcesPath() + "images/analog_stick_base.png";
-        auto image = QImage(iconPath);
-        if (image.format() != QImage::Format_ARGB32) {
-            image = image.convertToFormat(QImage::Format_ARGB32);
-        }
-        if ((image.width() > 0) && (image.height() > 0)) {
-            image = image.scaled(_virtualPadPixelSize, _virtualPadPixelSize, Qt::KeepAspectRatio);
 
-            _virtualPadStickBaseTexture = gpu::Texture::createStrict(
-                    gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
-                    image.width(), image.height(),
-                    gpu::Texture::MAX_NUM_MIPS,
-                    gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
-            _virtualPadStickBaseTexture->setSource("virtualPad base");
-            auto usage = gpu::Texture::Usage::Builder().withColor().withAlpha();
-            _virtualPadStickBaseTexture->setUsage(usage.build());
-            _virtualPadStickBaseTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
-            _virtualPadStickBaseTexture->assignStoredMip(0, image.byteCount(), image.constBits());
-            _virtualPadStickBaseTexture->setAutoGenerateMips(true);
-        }
+    iconPath = PathUtils::resourcesPath() + "images/analog_stick_base.png";
+    image = QImage(iconPath);
+    if (image.format() != QImage::Format_ARGB32) {
+        image = image.convertToFormat(QImage::Format_ARGB32);
+    }
+    if ((image.width() > 0) && (image.height() > 0)) {
+        image = image.scaled(_virtualPadPixelSize, _virtualPadPixelSize, Qt::KeepAspectRatio);
+
+        _virtualPadStickBaseTexture = gpu::Texture::createStrict(
+                gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
+                image.width(), image.height(),
+                gpu::Texture::MAX_NUM_MIPS,
+                gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
+        _virtualPadStickBaseTexture->setSource("virtualPad base");
+        auto usage = gpu::Texture::Usage::Builder().withColor().withAlpha();
+        _virtualPadStickBaseTexture->setUsage(usage.build());
+        _virtualPadStickBaseTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
+        _virtualPadStickBaseTexture->assignStoredMip(0, image.byteCount(), image.constBits());
+        _virtualPadStickBaseTexture->setAutoGenerateMips(true);
     }
 
 
     _virtualPadJumpBtnPixelSize = dpi * VirtualPad::Manager::JUMP_BTN_FULL_PIXELS / VirtualPad::Manager::DPI;
-    if (!_virtualPadJumpBtnTexture) {
-        auto iconPath = PathUtils::resourcesPath() + "images/fly.png";
-        auto image = QImage(iconPath);
-        if (image.format() != QImage::Format_ARGB32) {
-            image = image.convertToFormat(QImage::Format_ARGB32);
-        }
-        if ((image.width() > 0) && (image.height() > 0)) {
-            image = image.scaled(_virtualPadJumpBtnPixelSize, _virtualPadJumpBtnPixelSize, Qt::KeepAspectRatio);
-            image = image.mirrored();
+    iconPath = PathUtils::resourcesPath() + "images/fly.png";
+    image = QImage(iconPath);
+    if (image.format() != QImage::Format_ARGB32) {
+        image = image.convertToFormat(QImage::Format_ARGB32);
+    }
+    if ((image.width() > 0) && (image.height() > 0)) {
+        image = image.scaled(_virtualPadJumpBtnPixelSize, _virtualPadJumpBtnPixelSize, Qt::KeepAspectRatio);
+        image = image.mirrored();
 
-            _virtualPadJumpBtnTexture = gpu::Texture::createStrict(
-                    gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
-                    image.width(), image.height(),
-                    gpu::Texture::MAX_NUM_MIPS,
-                    gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
-            _virtualPadJumpBtnTexture->setSource("virtualPad jump");
-            auto usage = gpu::Texture::Usage::Builder().withColor().withAlpha();
-            _virtualPadJumpBtnTexture->setUsage(usage.build());
-            _virtualPadJumpBtnTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
-            _virtualPadJumpBtnTexture->assignStoredMip(0, image.byteCount(), image.constBits());
-            _virtualPadJumpBtnTexture->setAutoGenerateMips(true);
-        }
+        _virtualPadJumpBtnTexture = gpu::Texture::createStrict(
+                gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
+                image.width(), image.height(),
+                gpu::Texture::MAX_NUM_MIPS,
+                gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
+        _virtualPadJumpBtnTexture->setSource("virtualPad jump");
+        auto usage = gpu::Texture::Usage::Builder().withColor().withAlpha();
+        _virtualPadJumpBtnTexture->setUsage(usage.build());
+        _virtualPadJumpBtnTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
+        _virtualPadJumpBtnTexture->assignStoredMip(0, image.byteCount(), image.constBits());
+        _virtualPadJumpBtnTexture->setAutoGenerateMips(true);
     }
 #endif
     Parent::customizeContext();
 }
 
 void Basic2DWindowOpenGLDisplayPlugin::uncustomizeContext() {
+#if defined(Q_OS_ANDROID)
+    _virtualPadStickTexture.reset();
+    _virtualPadStickBaseTexture.reset();
+    _virtualPadJumpBtnTexture.reset();
+#endif
     Parent::uncustomizeContext();
 }
 
