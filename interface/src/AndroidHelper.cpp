@@ -10,11 +10,19 @@
 //
 #include "AndroidHelper.h"
 #include <QDebug>
+#include <AccountManager.h>
 
 AndroidHelper::AndroidHelper() {
+    workerThread.start();
 }
 
 AndroidHelper::~AndroidHelper() {
+    workerThread.quit();
+    workerThread.wait();
+}
+
+void AndroidHelper::init() {
+    DependencyManager::get<AccountManager>()->moveToThread(&workerThread);
 }
 
 void AndroidHelper::requestActivity(const QString &activityName) {

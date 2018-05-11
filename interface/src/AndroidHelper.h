@@ -13,6 +13,7 @@
 #define hifi_Android_Helper_h
 
 #include <QObject>
+#include <QThread>
 
 class AndroidHelper : public QObject {
     Q_OBJECT
@@ -21,6 +22,7 @@ public:
             static AndroidHelper instance;
             return instance;
     }
+    void init();
     void requestActivity(const QString &activityName);
     void notifyLoadComplete();
     void goBackFromAndroidActivity();
@@ -35,6 +37,7 @@ signals:
 private:
     AndroidHelper();
     ~AndroidHelper();
+    QThread workerThread;
 };
 
 #endif
