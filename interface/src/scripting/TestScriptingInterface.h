@@ -83,6 +83,11 @@ public slots:
     */
     void clearCaches();
 
+    /**jsdoc
+    * Save a JSON object to a file in the test results location
+    */
+    void saveObject(QVariant v, const QString& filename);
+
 private:
     bool waitForCondition(qint64 maxWaitMs, std::function<bool()> condition);
 };
