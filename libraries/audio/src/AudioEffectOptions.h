@@ -15,6 +15,37 @@
 #include <QtScript/QScriptContext>
 #include <QtScript/QScriptEngine>
 
+/**jsdoc
+ * @class AudioEffectOptions
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
+ * @property {number} bandwidth
+ * @property {number} preDelay
+ * @property {number} lateDelay
+ * @property {number} reverbTime
+ * @property {number} earlyDiffusion
+ * @property {number} lateDiffusion
+ * @property {number} roomSize
+ * @property {number} density
+ * @property {number} bassMult
+ * @property {number} bassFreq
+ * @property {number} highGain
+ * @property {number} highFreq
+ * @property {number} modRate
+ * @property {number} modDepth
+ * @property {number} earlyGain
+ * @property {number} lateGain
+ * @property {number} earlyMixLeft
+ * @property {number} earlyMixRight
+ * @property {number} lateMixLeft
+ * @property {number} lateMixRight
+ * @property {number} wetDryMix
+ */
+
 class AudioEffectOptions : public QObject {
     Q_OBJECT
 
