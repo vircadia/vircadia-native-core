@@ -17,6 +17,7 @@
 
 /**jsdoc
  * @class AudioEffectOptions
+ * @param {object} [properties=null]
  *
  * @hifi-interface
  * @hifi-client-entity
