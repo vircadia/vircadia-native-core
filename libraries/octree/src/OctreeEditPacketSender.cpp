@@ -23,7 +23,6 @@ const int OctreeEditPacketSender::DEFAULT_MAX_PENDING_MESSAGES = PacketSender::D
 
 
 OctreeEditPacketSender::OctreeEditPacketSender() :
-    _shouldSend(true),
     _maxPendingMessages(DEFAULT_MAX_PENDING_MESSAGES),
     _releaseQueuedMessagesPending(false)
 {
@@ -146,10 +145,6 @@ void OctreeEditPacketSender::queuePendingPacketToNodes(std::unique_ptr<NLPacket>
 }
 
 void OctreeEditPacketSender::queuePacketToNodes(std::unique_ptr<NLPacket> packet) {
-    if (!_shouldSend) {
-        return; // bail early
-    }
-
     assert(serversExist()); // we must have servers to be here!!
 
     auto node = DependencyManager::get<NodeList>()->soloNodeOfType(getMyNodeType());
@@ -161,10 +156,6 @@ void OctreeEditPacketSender::queuePacketToNodes(std::unique_ptr<NLPacket> packet
 
 // NOTE: editMessage - is JUST the octcode/color and does not contain the packet header
 void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, QByteArray& editMessage) {
-
-    if (!_shouldSend) {
-        return; // bail early
-    }
 
     // If we don't have servers, then we will simply queue up all of these packets and wait till we have
     // servers for processing

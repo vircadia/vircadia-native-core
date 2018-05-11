@@ -92,7 +92,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AvatarQuery:
             return static_cast<PacketVersion>(AvatarQueryVersion::ConicalFrustums);
         default:
-            return 20;
+            return 21;
     }
 }
 
