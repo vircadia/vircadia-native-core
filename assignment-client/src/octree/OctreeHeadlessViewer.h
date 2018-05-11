@@ -105,10 +105,11 @@ public slots:
     float getVoxelSizeScale() const { return _octreeQuery.getOctreeSizeScale(); }
 
     /**jsdoc
-     * @function EntityViewer.
+     * @function EntityViewer.getBoundaryLevelAdjust
      * @returns {number}
      */
     int getBoundaryLevelAdjust() const { return _octreeQuery.getBoundaryLevelAdjust(); }
+
     /**jsdoc
      * @function EntityViewer.getMaxPacketsPerSecond
      * @returns {number}
