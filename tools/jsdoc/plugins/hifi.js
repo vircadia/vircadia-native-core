@@ -21,6 +21,8 @@ exports.handlers = {
         // directories to scan for jsdoc comments
         var dirList = [
             '../../assignment-client/src',
+            '../../assignment-client/src/entities',
+            '../../assignment-client/src/octree',
             '../../interface/src',
             '../../interface/src/assets',
             '../../interface/src/audio',
