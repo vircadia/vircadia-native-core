@@ -17,7 +17,6 @@ std::string GL41Backend::getBackendShaderHeader() const {
     static const std::string header(
         R"SHADER(#version 410 core
         #define GPU_GL410
-        #define PRECISIONQ
         #define BITFIELD int
         )SHADER");
     return header;
