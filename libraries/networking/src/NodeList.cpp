@@ -594,6 +594,8 @@ void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<ReceivedM
     }
     // read in the connection token from the packet, then send domain-server checkin
     _domainHandler.setConnectionToken(QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID)));
+
+    _domainHandler.clearPendingCheckins();
     sendDomainServerCheckIn();
 }
 
@@ -605,7 +607,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     }
 
     // this is a packet from the domain server, reset the count of un-replied check-ins
-    _domainHandler.domainListReceived();
+    _domainHandler.clearPendingCheckins();
 
     // emit our signal so listeners know we just heard from the DS
     emit receivedDomainServerList();

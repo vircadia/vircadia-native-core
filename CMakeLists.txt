@@ -180,6 +180,7 @@ add_subdirectory(tools)
 
 if (BUILD_TESTS)
   add_subdirectory(tests)
+  add_subdirectory(tests-manual)
 endif()
 
 if (BUILD_INSTALLER)

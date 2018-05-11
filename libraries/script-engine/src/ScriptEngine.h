@@ -526,6 +526,9 @@ public:
     void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded; }
     bool isUserLoaded() const { return _isUserLoaded; }
 
+    void setQuitWhenFinished(const bool quitWhenFinished) { _quitWhenFinished = quitWhenFinished; }
+    bool isQuitWhenFinished() const { return _quitWhenFinished; }
+
     // NOTE - this is used by the TypedArray implementation. we need to review this for thread safety
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
 
@@ -767,6 +770,8 @@ protected:
     ConsoleScriptingInterface _consoleScriptingInterface;
     std::atomic<bool> _isUserLoaded { false };
     bool _isReloading { false };
+
+    std::atomic<bool> _quitWhenFinished;
 
     ArrayBufferClass* _arrayBufferClass;
 
