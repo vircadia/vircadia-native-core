@@ -14,6 +14,7 @@
 
 #include <QObject>
 #include <QThread>
+#include <AccountManager.h>
 
 class AndroidHelper : public QObject {
     Q_OBJECT
@@ -26,6 +27,7 @@ public:
     void requestActivity(const QString &activityName);
     void notifyLoadComplete();
     void goBackFromAndroidActivity();
+    QSharedPointer<AccountManager> getAccountManager() { return _accountManager; }
 
     AndroidHelper(AndroidHelper const&)  = delete;
     void operator=(AndroidHelper const&) = delete;
@@ -37,6 +39,7 @@ signals:
 private:
     AndroidHelper();
     ~AndroidHelper();
+    QSharedPointer<AccountManager> _accountManager;
     QThread workerThread;
 };
 
