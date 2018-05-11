@@ -156,6 +156,8 @@ protected:
     uint8_t _numInactiveUpdates { 1 };
     uint8_t _bidPriority { 0 };
     bool _serverVariablesSet { false };
+
+    bool isServerlessMode();
 };
 
 #endif // hifi_EntityMotionState_h
