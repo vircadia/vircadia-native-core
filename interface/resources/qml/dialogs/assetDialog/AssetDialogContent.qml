@@ -21,6 +21,7 @@ Item {
     // Set from OffscreenUi::assetDialog()
     property alias dir: assetTableModel.folder
     property alias filter: selectionType.filtersString
+    property int options
 
     property bool selectDirectory: false
     property bool singleClickNavigate: false
