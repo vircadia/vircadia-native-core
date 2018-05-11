@@ -29,13 +29,30 @@ public:
     void addPacketStatsAndSendStatsPacket(QJsonObject statsObject);
 
 public slots:
+    // JSDoc: Overridden in Agent.h.
     /// threaded run of assignment
     virtual void run() = 0;
+
+    /**jsdoc
+     * @function Agent.stop
+     */
     Q_INVOKABLE virtual void stop() { setFinished(true); }
+
+    /**jsdoc
+     * @function Agent.sendStatsPacket
+     */
     virtual void sendStatsPacket();
+
+    /**jsdoc
+     * @function Agent.clearQueuedCheckIns
+     */
     void clearQueuedCheckIns() { _numQueuedCheckIns = 0; }
 
 signals:
+    /**jsdoc
+     * @function Agent.finished
+     * @returns {Signal}
+     */
     void finished();
 
 protected:
@@ -47,6 +64,9 @@ protected:
     int _numQueuedCheckIns { 0 };
 
 protected slots:
+    /**jsdoc
+     * @function Agent.domainSettingsRequestFailed
+     */
     void domainSettingsRequestFailed();
 
 private slots:
