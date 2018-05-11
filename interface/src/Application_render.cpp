@@ -13,8 +13,9 @@
 
 #include <display-plugins/CompositorHelper.h>
 #include <FramebufferCache.h>
-#include "ui/Stats.h"
+#include <plugins/PluginManager.h>
 #include <SceneScriptingInterface.h>
+#include "ui/Stats.h"
 #include "Util.h"
 
 
@@ -233,3 +234,4 @@ void Application::runRenderFrame(RenderArgs* renderArgs) {
         _renderEngine->run();
     }
 }
+
