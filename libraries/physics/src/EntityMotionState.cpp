@@ -349,7 +349,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
 
     if (_numInactiveUpdates > 0) {
         const uint8_t MAX_NUM_INACTIVE_UPDATES = 20;
-        if (_numInactiveUpdates > MAX_NUM_INACTIVE_UPDATES) {
+        if (_numInactiveUpdates > MAX_NUM_INACTIVE_UPDATES || isServerlessMode()) {
             // clear local ownership (stop sending updates) and let the server clear itself
             _entity->clearSimulationOwnership();
             return false;
@@ -832,4 +832,10 @@ void EntityMotionState::clearObjectVelocities() const {
         }
     }
     _entity->setAcceleration(glm::vec3(0.0f));
+}
+
+bool EntityMotionState::isServerlessMode() {
+    EntityTreeElementPointer element = _entity->getElement();
+    EntityTreePointer tree = element ? element->getTree() : nullptr;
+    return tree ? tree->isServerlessMode() : false;
 }

@@ -18,6 +18,7 @@ private slots:
     void initTestCase();
     void downloadFirst();
     void downloadAgain();
+    void cleanupTestCase();
 };
 
 #endif // hifi_ResourceTests_h
