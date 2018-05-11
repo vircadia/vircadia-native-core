@@ -21,6 +21,7 @@
 ProceduralSkybox::ProceduralSkybox() : graphics::Skybox() {
     _procedural._vertexSource = skybox_vert::getSource();
     _procedural._opaquefragmentSource = skybox_frag::getSource();
+    _procedural._transparentfragmentSource = skybox_frag::getSource();
     // Adjust the pipeline state for background using the stencil test
     _procedural.setDoesFade(false);
     // Must match PrepareStencil::STENCIL_BACKGROUND
@@ -60,9 +61,13 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
     batch.setModelTransform(Transform()); // only for Mac
 
     auto& procedural = skybox._procedural;
-    procedural.prepare(batch, glm::vec3(0), glm::vec3(1), glm::quat());
+
+//    procedural.prepare(batch, glm::vec3(0), glm::vec3(1), glm::quat());
+    procedural.prepare(batch, glm::vec3(0), glm::vec3(1), glm::quat(), glm::vec4(glm::vec3(1.0f), 0.9));
+
     auto textureSlot = procedural.getOpaqueShader()->getTextures().findLocation("cubeMap");
     auto bufferSlot = procedural.getOpaqueShader()->getUniformBuffers().findLocation("skyboxBuffer");
+
     skybox.prepare(batch, textureSlot, bufferSlot);
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 }

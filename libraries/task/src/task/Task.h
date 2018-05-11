@@ -379,7 +379,7 @@ public:
     using TaskType = Task<JC, TP>;
     using ConceptPointer = typename TaskType::ConceptPointer;
 
-    Engine(ConceptPointer concept) : TaskType(concept) {}
+    Engine(const ConceptPointer& concept, const ContextPointer& context) : TaskType(concept), _context(context) {}
     ~Engine() = default;
 
     void reset(const ContextPointer& context) { _context = context; }

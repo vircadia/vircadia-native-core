@@ -20,7 +20,7 @@ import "../jet.js" as Jet
 Rectangle {
     HifiConstants { id: hifi;}
     color: hifi.colors.baseGray;
-    id: root
+    id: root;
 
  //   width: parent ? parent.width : 200
  //   height: parent ? parent.height : 400
@@ -29,11 +29,7 @@ Rectangle {
 
     Component.onCompleted: {
         var message = ""
-       // functor = Jet.job_print_functor(function (line) { message += line + "\n"; }, false);
-        
-      //  functor = Jet.job_list_functor(root.myArray);
-
-        var maxDepth = 4;
+        var maxDepth = 3;
         
         var jobTreePath = []
         var jobsRoot;
@@ -72,6 +68,7 @@ Rectangle {
         Jet.task_traverseTree(rootConfig, functor);
     }
 
+    
     ListModel {
         id: jobsModel
     }
@@ -101,7 +98,7 @@ Rectangle {
                         property var config: root.rootConfig.getConfig(model.path + "." + model.name);
                         text: (objRecursiveColumn.children.length > 2 ?
                                 objRecursiveColumn.children[1].visible ?
-                                qsTr("-  ") : qsTr("+ ") : qsTr("   ")) + model.name + " ms=" + config.cpuRunTime.toFixed(3)
+                                qsTr("-  ") : qsTr("+ ") : qsTr("   ")) + model.name + " ms=" + config.cpuRunTime.toFixed(2)
                         checked: config.enabled
                     }
                 }
@@ -113,11 +110,12 @@ Rectangle {
         }
     }
 
-    ListView {
-        id: theView
-        anchors.fill: parent
-        model: jobsModel
-        delegate: objRecursiveDelegate
+    Original.ScrollView {
+        anchors.fill: parent 
+        ListView {
+            id: theView
+            model: jobsModel
+            delegate: objRecursiveDelegate
+        }
     }
-
 }

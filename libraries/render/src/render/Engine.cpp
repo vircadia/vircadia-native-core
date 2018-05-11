@@ -36,8 +36,7 @@ public:
     }
 };
 
-Engine::Engine() : Task(EngineTask::JobModel::create("Engine")),
-    _renderContext(std::make_shared<RenderContext>())
+Engine::Engine() : _Engine(EngineTask::JobModel::create("Engine"), std::make_shared<RenderContext>())
 {
 }
 
