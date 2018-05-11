@@ -270,18 +270,24 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         // Leave this here for debugging
         // qCDebug(procedural) << "FragmentShader:\n" << fragmentShaderSource.c_str();
 
+		gpu::Shader::BindingSet slotBindings;
+		slotBindings.insert(gpu::Shader::Binding(std::string("iChannel0"), 0));
+		slotBindings.insert(gpu::Shader::Binding(std::string("iChannel1"), 1));
+		slotBindings.insert(gpu::Shader::Binding(std::string("iChannel2"), 2));
+		slotBindings.insert(gpu::Shader::Binding(std::string("iChannel3"), 3));
+
         _opaqueFragmentShader = gpu::Shader::createPixel(opaqueShaderSource);
         _opaqueShader = gpu::Shader::createProgram(_vertexShader, _opaqueFragmentShader);
-        _transparentFragmentShader = gpu::Shader::createPixel(transparentShaderSource);
-        _transparentShader = gpu::Shader::createProgram(_vertexShader, _transparentFragmentShader);
+		gpu::Shader::makeProgram(*_opaqueShader, slotBindings);
 
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("iChannel0"), 0));
-        slotBindings.insert(gpu::Shader::Binding(std::string("iChannel1"), 1));
-        slotBindings.insert(gpu::Shader::Binding(std::string("iChannel2"), 2));
-        slotBindings.insert(gpu::Shader::Binding(std::string("iChannel3"), 3));
-        gpu::Shader::makeProgram(*_opaqueShader, slotBindings);
-        gpu::Shader::makeProgram(*_transparentShader, slotBindings);
+		if (!transparentShaderSource.empty() && transparentShaderSource != opaqueShaderSource) {
+			_transparentFragmentShader = gpu::Shader::createPixel(transparentShaderSource);
+			_transparentShader = gpu::Shader::createProgram(_vertexShader, _transparentFragmentShader);
+			gpu::Shader::makeProgram(*_transparentShader, slotBindings);
+		} else {
+			_transparentFragmentShader = _opaqueFragmentShader;
+			_transparentShader = _opaqueShader;
+		}
 
         _opaquePipeline = gpu::Pipeline::create(_opaqueShader, _opaqueState);
         _transparentPipeline = gpu::Pipeline::create(_transparentShader, _transparentState);
