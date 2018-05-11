@@ -236,8 +236,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     }
     @Override
     public void onBackPressed() {
-        QtActivity.forceQuit();
-        finish();
+        finishAffinity();
     }
 
     public void onSearchClear(View view) {
