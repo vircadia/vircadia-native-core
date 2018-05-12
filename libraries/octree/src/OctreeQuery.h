@@ -60,6 +60,7 @@ public slots:
     void setBoundaryLevelAdjust(int boundaryLevelAdjust) { _boundaryLevelAdjust = boundaryLevelAdjust; }
 
 protected:
+    QMutex _conicalViewsLock;
     ConicalViewFrustums _conicalViews;
 
     // octree server sending items
