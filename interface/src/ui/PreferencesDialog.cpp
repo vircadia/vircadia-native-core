@@ -73,9 +73,12 @@ void setupPreferences() {
     // Graphics quality
     static const QString GRAPHICS_QUALITY { "Graphics Quality" };
     {
-        auto getter = []()->float { return DependencyManager::get<LODManager>()->getLODLevel(); };
-        auto setter = [](float value) {  };
-        preferences->addPreference(new SliderPreference(GRAPHICS_QUALITY, "World Detail", getter, setter));
+        auto getter = []()->float { return DependencyManager::get<LODManager>()->getOctreeSizeScale()/TREE_SCALE; };
+        auto setter = [](float value) {  DependencyManager::get<LODManager>()->setOctreeSizeScale(value*TREE_SCALE); };
+        auto wodSlider = new SliderPreference(GRAPHICS_QUALITY, "World Detail", getter, setter);
+        wodSlider->setMin(0);
+        wodSlider->setMax(2000);
+        preferences->addPreference(wodSlider);
         auto getterSQ = []()->float { return 1.0; };
         auto setterSQ = [](float value) { };
         preferences->addPreference(new SliderPreference(GRAPHICS_QUALITY, "Shadow Quality", getterSQ, setterSQ));

@@ -53,6 +53,8 @@ Preference {
         Slider {
             id: slider
             value: preference.value
+            minimumValue: preference.min
+            maximumValue: preference.max
             width: 130
             anchors {
                 right: parent.right

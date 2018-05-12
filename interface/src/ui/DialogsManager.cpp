@@ -23,7 +23,6 @@
 #include "ConnectionFailureDialog.h"
 #include "DomainConnectionDialog.h"
 #include "HMDToolsDialog.h"
-#include "LodToolsDialog.h"
 #include "LoginDialog.h"
 #include "OctreeStatsDialog.h"
 #include "PreferencesDialog.h"
@@ -124,16 +123,6 @@ void DialogsManager::octreeStatsDetails() {
         _octreeStatsDialog->show();
     }
     _octreeStatsDialog->raise();
-}
-
-void DialogsManager::lodTools() {
-    if (!_lodToolsDialog) {
-        maybeCreateDialog(_lodToolsDialog);
-
-        connect(_lodToolsDialog, SIGNAL(closed()), _lodToolsDialog, SLOT(deleteLater()));
-        _lodToolsDialog->show();
-    }
-    _lodToolsDialog->raise();
 }
 
 void DialogsManager::hmdTools(bool showTools) {

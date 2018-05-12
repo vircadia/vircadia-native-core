@@ -121,7 +121,6 @@ namespace MenuOption {
     const QString ActionMotorControl = "Enable Default Motor Control";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
-    const QString LodTools = "LOD Tools";
     const QString Login = "Login/Sign Up";
     const QString Log = "Log";
     const QString LogExtraTimings = "Log Extra Timing Details";

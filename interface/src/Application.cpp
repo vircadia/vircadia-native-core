@@ -3690,8 +3690,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     Menu::getInstance()->triggerOption(MenuOption::Log);
                 } else if (isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::AddressBar);
-                } else if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::LodTools);
                 }
                 break;
 
@@ -7508,18 +7506,6 @@ void Application::loadScriptURLDialog() const {
 SharedSoundPointer Application::getSampleSound() const {
     return _sampleSound;
 }
-
-void Application::loadLODToolsDialog() {
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
-    if (tablet->getToolbarMode() || (!tablet->getTabletRoot() && !isHMDMode())) {
-        auto dialogsManager = DependencyManager::get<DialogsManager>();
-        dialogsManager->lodTools();
-    } else {
-        tablet->pushOntoStack("hifi/dialogs/TabletLODTools.qml");
-    }
-}
-
 
 void Application::loadEntityStatisticsDialog() {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();

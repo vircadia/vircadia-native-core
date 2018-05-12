@@ -83,9 +83,6 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     if (dialogsManager->getOctreeStatsDialog()) {
         watchWindow(dialogsManager->getOctreeStatsDialog()->windowHandle());
     }
-    if (dialogsManager->getLodToolsDialog()) {
-        watchWindow(dialogsManager->getLodToolsDialog()->windowHandle());
-    }
     
     connect(_switchModeButton, &QPushButton::clicked, [this]{
         toggleHMDMode();
