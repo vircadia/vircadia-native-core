@@ -3633,3 +3633,14 @@ bool EntityItemProperties::verifyStaticCertificateProperties() {
     // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
     return verifySignature(EntityItem::_marketplacePublicKey, getStaticCertificateHash(), QByteArray::fromBase64(getCertificateID().toUtf8()));
 }
+
+void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityIDToClone) {
+    setName(getName() + "-clone-" + entityIDToClone.toString());
+    setLocked(false);
+    setLifetime(getCloneableLifetime());
+    setDynamic(getCloneableDynamic());
+    setCloneable(ENTITY_ITEM_CLONEABLE);
+    setCloneableLifetime(ENTITY_ITEM_CLONEABLE_LIFETIME);
+    setCloneableLimit(ENTITY_ITEM_CLONEABLE_LIMIT);
+    setCloneableDynamic(ENTITY_ITEM_CLONEABLE_DYNAMIC);
+}

@@ -332,6 +332,7 @@ QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QStrin
 QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
     EntityItemID newEntityID;
     EntityItemProperties properties = getEntityProperties(entityIDToClone);
+    properties.convertToCloneProperties(entityIDToClone);
     if (addLocalEntityCopy(properties, newEntityID)) {
         getEntityPacketSender()->queueCloneEntityMessage(entityIDToClone, newEntityID);
         return newEntityID;

@@ -156,10 +156,6 @@ void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityI
 }
 
 void EntityEditPacketSender::queueCloneEntityMessage(const EntityItemID& entityIDToClone, const EntityItemID& newEntityID) {
-    if (!_shouldSend) {
-        return; // bail early
-    }
-
     QByteArray bufferOut(NLPacket::maxPayloadSize(PacketType::EntityClone), 0);
 
     if (EntityItemProperties::encodeCloneEntityMessage(entityIDToClone, newEntityID, bufferOut)) {

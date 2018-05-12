@@ -1623,14 +1623,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         qCDebug(entities) << "User attempted to clone entity ID:" << entityIDToClone << " which reached it's cloneable limit.";
                     } else {
                         if (isClone) {
-                            properties.setName(properties.getName() + "-clone-" + entityIDToClone.toString());
-                            properties.setLocked(false);
-                            properties.setLifetime(properties.getCloneableLifetime());
-                            properties.setDynamic(properties.getCloneableDynamic());
-                            properties.setCloneable(ENTITY_ITEM_CLONEABLE);
-                            properties.setCloneableLifetime(ENTITY_ITEM_CLONEABLE_LIFETIME);
-                            properties.setCloneableLimit(ENTITY_ITEM_CLONEABLE_LIMIT);
-                            properties.setCloneableDynamic(ENTITY_ITEM_CLONEABLE_DYNAMIC);
+                            properties.convertToCloneProperties(entityIDToClone);
                         }
 
                         // this is a new entity... assign a new entityID

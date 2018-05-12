@@ -376,6 +376,8 @@ public:
     bool verifyStaticCertificateProperties();
     static bool verifySignature(const QString& key, const QByteArray& text, const QByteArray& signature);
 
+    void convertToCloneProperties(const EntityItemID& entityIDToClone);
+
 protected:
     QString getCollisionMaskAsString() const;
     void setCollisionMaskFromString(const QString& maskString);
