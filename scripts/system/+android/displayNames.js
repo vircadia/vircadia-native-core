@@ -128,7 +128,13 @@ function excludeMyAvatar() {
     rayExclusionList = [MyAvatar.sessionUUID];
 }
 
+var runAtLeastOnce = false;
+
 function ending() {
+    if (!runAtLeastOnce) {
+        return;
+    }
+
     Controller.touchBeginEvent.disconnect(touchBegin);
     Controller.touchEndEvent.disconnect(touchEnd);
     Controller.mousePressEvent.disconnect(touchBegin);
@@ -157,6 +163,8 @@ function init() {
 
     rayExclusionList = [MyAvatar.sessionUUID];
     MyAvatar.sessionUUIDChanged.connect(excludeMyAvatar);
+
+    runAtLeastOnce = true;
 }
 
 module.exports = {
