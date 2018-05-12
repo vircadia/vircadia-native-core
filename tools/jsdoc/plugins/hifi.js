@@ -44,6 +44,7 @@ exports.handlers = {
             '../../libraries/controllers/src/controllers/impl/',
             '../../libraries/display-plugins/src/display-plugins/',
             '../../libraries/entities/src',
+            '../../libraries/graphics/src/graphics/',
             '../../libraries/graphics-scripting/src/graphics-scripting/',
             '../../libraries/input-plugins/src/input-plugins',
             '../../libraries/model-networking/src/model-networking/',
