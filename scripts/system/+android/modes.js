@@ -88,8 +88,10 @@ function switchToMode(newMode) {
 
     if (currentMode == MODE_RADAR) {
         radar.startRadarMode();
+        displayNames.ending();
     } else  if (currentMode == MODE_MY_VIEW) {
         // nothing to do yet
+        displayNames.init();
     } else {
         printd("Unknown view mode " + currentMode);
     }

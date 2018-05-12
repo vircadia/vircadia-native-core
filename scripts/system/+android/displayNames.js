@@ -124,6 +124,10 @@ function touchEnd(event) {
     currentTouchToAnalyze = null;
 }
 
+function excludeMyAvatar() {
+    rayExclusionList = [MyAvatar.sessionUUID];
+}
+
 function ending() {
     Controller.touchBeginEvent.disconnect(touchBegin);
     Controller.touchEndEvent.disconnect(touchEnd);
@@ -137,6 +141,8 @@ function ending() {
     if (currentlyShownAvatar.avatar) {
         currentlyShownAvatar.avatar = null;
     }
+
+    MyAvatar.sessionUUIDChanged.disconnect(excludeMyAvatar);
 }
 
 function init() {
@@ -150,11 +156,14 @@ function init() {
     });
 
     rayExclusionList = [MyAvatar.sessionUUID];
-    MyAvatar.sessionUUIDChanged.connect(function() {
-        rayExclusionList = [MyAvatar.sessionUUID];
-    });
+    MyAvatar.sessionUUIDChanged.connect(excludeMyAvatar);
 }
 
-init();
+module.exports = {
+    init: init,
+    ending: ending
+}
+
+//init(); // Enable to use in desktop as a standalone
 
 }()); // END LOCAL_SCOPE
