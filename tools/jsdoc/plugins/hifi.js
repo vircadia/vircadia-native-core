@@ -47,6 +47,7 @@ exports.handlers = {
             '../../libraries/graphics/src/graphics/',
             '../../libraries/graphics-scripting/src/graphics-scripting/',
             '../../libraries/input-plugins/src/input-plugins',
+            '../../libraries/midi/src',
             '../../libraries/model-networking/src/model-networking/',
             '../../libraries/networking/src',
             '../../libraries/octree/src',
