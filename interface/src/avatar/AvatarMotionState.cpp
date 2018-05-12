@@ -21,6 +21,17 @@ AvatarMotionState::AvatarMotionState(AvatarSharedPointer avatar, const btCollisi
     _type = MOTIONSTATE_TYPE_AVATAR;
 }
 
+void AvatarMotionState::handleEasyChanges(uint32_t& flags) {
+    ObjectMotionState::handleEasyChanges(flags);
+    if (flags & Simulation::DIRTY_PHYSICS_ACTIVATION && !_body->isActive()) {
+        _body->activate();
+    }
+}
+
+bool AvatarMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
+    return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
+}
+
 AvatarMotionState::~AvatarMotionState() {
     assert(_avatar);
     _avatar = nullptr;
@@ -46,6 +57,9 @@ PhysicsMotionType AvatarMotionState::computePhysicsMotionType() const {
 const btCollisionShape* AvatarMotionState::computeNewShape() {
     ShapeInfo shapeInfo;
     std::static_pointer_cast<Avatar>(_avatar)->computeShapeInfo(shapeInfo);
+    glm::vec3 halfExtents = shapeInfo.getHalfExtents();
+    halfExtents.y = 0.0f;
+    _radius2 = glm::length2(halfExtents);
     return getShapeManager()->getShape(shapeInfo);
 }
 
@@ -60,7 +74,7 @@ void AvatarMotionState::getWorldTransform(btTransform& worldTrans) const {
     worldTrans.setRotation(glmToBullet(getObjectRotation()));
     if (_body) {
         _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
-        _body->setAngularVelocity(glmToBullet(getObjectLinearVelocity()));
+        _body->setAngularVelocity(glmToBullet(getObjectAngularVelocity()));
     }
 }
 
@@ -72,13 +86,23 @@ void AvatarMotionState::setWorldTransform(const btTransform& worldTrans) {
     const float SPRING_TIMESCALE = 0.5f;
     float tau = PHYSICS_ENGINE_FIXED_SUBSTEP / SPRING_TIMESCALE;
     btVector3 currentPosition = worldTrans.getOrigin();
-    btVector3 targetPosition = glmToBullet(getObjectPosition());
-    btTransform newTransform;
-    newTransform.setOrigin((1.0f - tau) * currentPosition + tau * targetPosition);
-    newTransform.setRotation(glmToBullet(getObjectRotation()));
-    _body->setWorldTransform(newTransform);
-    _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
-    _body->setAngularVelocity(glmToBullet(getObjectLinearVelocity()));
+    btVector3 offsetToTarget = glmToBullet(getObjectPosition()) - currentPosition;
+    float distance2 = offsetToTarget.length2();
+    const float TWO_SQUARED = 4.0f;
+    if (distance2 > TWO_SQUARED * _radius2) {
+        // reduce the offsetToTarget by slamming the position
+        btTransform newTransform;
+        newTransform.setOrigin(currentPosition + tau * offsetToTarget);
+        newTransform.setRotation(glmToBullet(getObjectRotation()));
+        _body->setWorldTransform(newTransform);
+        _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
+        _body->setAngularVelocity(glmToBullet(getObjectAngularVelocity()));
+    } else {
+        // reduce the offsetToTarget by slamming the velocity
+        btVector3 velocity = glmToBullet(getObjectLinearVelocity()) + (1.0f / SPRING_TIMESCALE) * offsetToTarget;
+        _body->setLinearVelocity(velocity);
+        _body->setAngularVelocity(glmToBullet(getObjectAngularVelocity()));
+    }
 }
 
 // These pure virtual methods must be implemented for each MotionState type
@@ -143,5 +167,10 @@ QUuid AvatarMotionState::getSimulatorID() const {
 void AvatarMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
     group = BULLET_COLLISION_GROUP_OTHER_AVATAR;
     mask = Physics::getDefaultCollisionMask(group);
+}
+
+// virtual
+float AvatarMotionState::getMass() const {
+    return std::static_pointer_cast<Avatar>(_avatar)->computeMass();
 }
 
