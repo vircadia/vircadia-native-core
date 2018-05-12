@@ -397,7 +397,7 @@ void ObjectActionTractor::deserialize(QByteArray serializedArguments) {
 
     EntityDynamicType type;
     dataStream >> type;
-    assert(type == getType());
+    assert(type == getType() || type == DYNAMIC_TYPE_SPRING);
 
     QUuid id;
     dataStream >> id;
