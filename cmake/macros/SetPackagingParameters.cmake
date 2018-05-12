@@ -84,12 +84,34 @@ macro(SET_PACKAGING_PARAMETERS)
   if ((PRODUCTION_BUILD OR PR_BUILD) AND NOT STABLE_BUILD)
     # append the abbreviated commit SHA to the build version
     # since this is a PR build or master/nightly builds
+
+    # for PR_BUILDS, we need to grab the abbreviated SHA
+    # for the second parent of HEAD (not HEAD) since that is the
+    # SHA of the commit merged to master for the build
+    if (PR_BUILD)
+      set(_GIT_LOG_FORMAT "%p")
+    else ()
+      set(_GIT_LOG_FORMAT "%h")
+    endif ()
+
     execute_process(
-      COMMAND git log -1 --format=%h
+      COMMAND git log -1 --format=${_GIT_LOG_FORMAT}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-      OUTPUT_VARIABLE GIT_COMMIT_HASH
+      OUTPUT_VARIABLE _GIT_LOG_OUTPUT
+      ERROR_VARIABLE _GIT_LOG_ERROR
       OUTPUT_STRIP_TRAILING_WHITESPACE
     )
+
+    if (PR_BUILD)
+      separate_arguments(_COMMIT_PARENTS UNIX_COMMAND ${_GIT_LOG_OUTPUT})
+      list(GET _COMMIT_PARENTS 1 GIT_COMMIT_HASH)
+    else ()
+      set(GIT_COMMIT_HASH _GIT_LOG_OUTPUT)
+    endif ()
+
+    if (_GIT_LOG_ERROR OR NOT GIT_COMMIT_HASH)
+      message(FATAL_ERROR "Could not retreive abbreviated SHA for PR or production master build")
+    endif ()
 
     set(BUILD_VERSION "${BUILD_VERSION}-${GIT_COMMIT_HASH}")
 
