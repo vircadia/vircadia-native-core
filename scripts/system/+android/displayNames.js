@@ -20,8 +20,8 @@ var TEXT_MARGIN = 0.025;
 
 var HIDE_MS = 10000;
 
-var currentTouchToAnalize = null;
-var rayExclusionList = [];
+var currentTouchToAnalyze = null;
+var rayExclusionList = []; // Updated at sessionUUID changes
 
 var currentlyShownAvatar = {
     avatarID: null,
@@ -102,47 +102,26 @@ function touchedAvatar(avatarID, avatarData) {
 }
 
 function touchBegin(event) {
-    var pickRay = Camera.computePickRay(event.x, event.y);
-    var avatarRay = AvatarManager.findRayIntersection(pickRay, [], rayExclusionList);
-    if (avatarRay.intersects) {
-        currentTouchToAnalize = {
-            touchBegin: event,
-            avatarRay: avatarRay
-        };
-        printd("[AVATARNAME] touchBegin intersection " + JSON.stringify(currentTouchToAnalize));
-    } else {
-        printd("[AVATARNAME] touchBegin no intersection");
-    }
+    currentTouchToAnalyze = event;
 }
 
 function touchEnd(event) {
-    if (!currentTouchToAnalize) {
-        printd("[AVATARNAME] touchEnd no current touch");
-        currentTouchToAnalize = null;
-        return;
-    }
-
-    // manage touches only if begin an end do:
-    // - touch/release the same avatar
-    // - minimal distance (so no apparent movent was intended but a touch/click)
-    // - (hold or short click don't matter)
-
-    if (Vec3.distance({x: event.x, y: event.y }, {x: currentTouchToAnalize.touchBegin.x, y: currentTouchToAnalize.touchBegin.y}) > MAX_DISTANCE_PX) {
+    if (Vec3.distance({x: event.x, y: event.y }, {x: currentTouchToAnalyze.x, y: currentTouchToAnalyze.y}) > MAX_DISTANCE_PX) {
         printd("[AVATARNAME] touchEnd moved too much");
-        currentTouchToAnalize = null;
+        currentTouchToAnalyze = null;
         return;
     }
 
     var pickRay = Camera.computePickRay(event.x, event.y);
     var avatarRay = AvatarManager.findRayIntersection(pickRay, [], rayExclusionList);
 
-    if (avatarRay.intersects && avatarRay.avatarID == currentTouchToAnalize.avatarRay.avatarID) {
+    if (avatarRay.intersects) {
         touchedAvatar(avatarRay.avatarID, AvatarManager.getAvatar(avatarRay.avatarID));
     } else {
         printd("[AVATARNAME] touchEnd released outside the avatar");
     }
 
-    currentTouchToAnalize = null;
+    currentTouchToAnalyze = null;
 }
 
 function ending() {
@@ -168,6 +147,11 @@ function init() {
 
     Script.scriptEnding.connect(function () {
         ending();
+    });
+
+    rayExclusionList = [MyAvatar.sessionUUID];
+    MyAvatar.sessionUUIDChanged.connect(function() {
+        rayExclusionList = [MyAvatar.sessionUUID];
     });
 }
 
