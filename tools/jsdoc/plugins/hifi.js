@@ -52,6 +52,7 @@ exports.handlers = {
             '../../libraries/networking/src',
             '../../libraries/octree/src',
             '../../libraries/physics/src',
+            '../../libraries/plugins/src/plugins',
             '../../libraries/pointers/src',
             '../../libraries/script-engine/src',
             '../../libraries/shared/src',
