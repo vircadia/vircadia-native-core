@@ -483,8 +483,8 @@ public slots:
     /**jsdoc
      * Gets the status of server entity script attached to an entity
      * @function Entities.getServerScriptStatus
-     * @property {Uuid} entityID - The ID of the entity to get the server entity script status for.
-     * @property {Entities~getServerScriptStatusCallback} callback - The function to call upon completion.
+     * @param {Uuid} entityID - The ID of the entity to get the server entity script status for.
+     * @param {Entities~getServerScriptStatusCallback} callback - The function to call upon completion.
      * @returns {boolean} <code>true</code> always.
      */
     /**jsdoc
