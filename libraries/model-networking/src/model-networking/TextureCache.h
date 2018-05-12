@@ -24,7 +24,9 @@
 #include <graphics/TextureMap.h>
 #include <image/Image.h>
 #include <ktx/KTX.h>
+#include <TextureMeta.h>
 
+#include <gpu/Context.h>
 #include "KTXCache.h"
 
 namespace gpu {
@@ -75,11 +77,13 @@ protected:
 
     virtual bool isCacheable() const override { return _loaded; }
 
-    virtual void downloadFinished(const QByteArray& data) override;
+    Q_INVOKABLE virtual void downloadFinished(const QByteArray& data) override;
 
     bool handleFailedRequest(ResourceRequest::Result result) override;
 
-    Q_INVOKABLE void loadContent(const QByteArray& content);
+    Q_INVOKABLE void loadMetaContent(const QByteArray& content);
+    Q_INVOKABLE void loadTextureContent(const QByteArray& content);
+
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 
     Q_INVOKABLE void startRequestForNextMipLevel();
@@ -93,6 +97,14 @@ private:
 
     image::TextureUsage::Type _type;
 
+    enum class ResourceType {
+        META,
+        ORIGINAL,
+        KTX
+    };
+
+    ResourceType _currentlyLoadingResourceType { ResourceType::META };
+
     static const uint16_t NULL_MIP_LEVEL;
     enum KTXResourceState {
         PENDING_INITIAL_LOAD = 0,
@@ -103,7 +115,6 @@ private:
         FAILED_TO_LOAD
     };
 
-    bool _sourceIsKTX { false };
     KTXResourceState _ktxResourceState { PENDING_INITIAL_LOAD };
 
     // The current mips that are currently being requested w/ _ktxMipRequest
@@ -233,6 +244,9 @@ public:
     static const int DEFAULT_SPECTATOR_CAM_WIDTH { 2048 };
     static const int DEFAULT_SPECTATOR_CAM_HEIGHT { 1024 };
 
+    void setGPUContext(const gpu::ContextPointer& context) { _gpuContext = context; }
+    gpu::ContextPointer getGPUContext() const { return _gpuContext; }
+
 signals:
     /**jsdoc 
      * @function TextureCache.spectatorCameraFramebufferReset
@@ -265,6 +279,8 @@ private:
 
     static const std::string KTX_DIRNAME;
     static const std::string KTX_EXT;
+
+    gpu::ContextPointer _gpuContext { nullptr };
 
     std::shared_ptr<cache::FileCache> _ktxCache { std::make_shared<KTXCache>(KTX_DIRNAME, KTX_EXT) };
 

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "LODManager.h"
+
 #include <SettingHandle.h>
 #include <OctreeUtils.h>
 #include <Util.h>
@@ -16,8 +18,6 @@
 #include "Application.h"
 #include "ui/DialogsManager.h"
 #include "InterfaceLogging.h"
-
-#include "LODManager.h"
 
 
 Setting::Handle<float> desktopLODDecreaseFPS("desktopLODDecreaseFPS", DEFAULT_DESKTOP_LOD_DOWN_FPS);

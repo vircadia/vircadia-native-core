@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioRingBuffer.h"
+
 #include <cstdlib>
 #include <cstring>
 #include <functional>
@@ -20,8 +22,6 @@
 #include <LogHandler.h>
 
 #include "AudioLogging.h"
-
-#include "AudioRingBuffer.h"
 
 static const QString RING_BUFFER_OVERFLOW_DEBUG { "AudioRingBuffer::writeData has overflown the buffer. Overwriting old data." };
 static const QString DROPPED_SILENT_DEBUG { "AudioRingBuffer::addSilentSamples dropping silent samples to prevent overflow." };

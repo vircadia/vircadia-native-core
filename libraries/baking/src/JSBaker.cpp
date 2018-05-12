@@ -9,9 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "JSBaker.h"
+
 #include <PathUtils.h>
 
-#include "JSBaker.h"
 #include "Baker.h"
 
 const int ASCII_CHARACTERS_UPPER_LIMIT = 126;

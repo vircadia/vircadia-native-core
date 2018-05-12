@@ -9,13 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Client.h"
+
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <HifiSockAddr.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
-
-#include "Client.h"
 
 Client::Client(QObject* parent) :
     QObject(parent)

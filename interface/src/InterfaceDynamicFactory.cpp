@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
+#include "InterfaceDynamicFactory.h"
 
 #include <avatar/AvatarActionHold.h>
 #include <avatar/AvatarActionFarGrab.h>
@@ -21,9 +21,6 @@
 #include <ObjectConstraintBallSocket.h>
 #include <ObjectConstraintConeTwist.h>
 #include <LogHandler.h>
-
-#include "InterfaceDynamicFactory.h"
-
 
 EntityDynamicPointer interfaceDynamicFactory(EntityDynamicType type, const QUuid& id, EntityItemPointer ownerEntity) {
     switch (type) {
