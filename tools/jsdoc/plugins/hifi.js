@@ -57,6 +57,7 @@ exports.handlers = {
             '../../libraries/script-engine/src',
             '../../libraries/shared/src',
             '../../libraries/shared/src/shared',
+            '../../libraries/task/src/task',
             '../../libraries/trackers/src/trackers',
             '../../libraries/ui/src',
             '../../libraries/ui/src/ui',
