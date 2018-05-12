@@ -57,6 +57,7 @@ exports.handlers = {
             '../../libraries/shared/src',
             '../../libraries/shared/src/shared',
             '../../libraries/trackers/src/trackers',
+            '../../libraries/ui/src',
             '../../libraries/ui/src/ui',
             '../../plugins/oculus/src',
             '../../plugins/openvr/src'
