@@ -66,9 +66,9 @@
     const html_reg_propertiesHeaderEdit_Replace = '<h4 class="subsection-title">Properties</h4>';
     const html_reg_typeEdit = /(<h5>Returns[\s\S]*?Type)(<\/dt[\s\S]*?type">)(.*?)(<\/span><\/dd>[\s\S]*?<\/dl>)/g;
     const html_reg_typeEdit_replace = '$1: $3</dt></dl>'
-    const html_reg_methodSize = /(<h4)( class="name"[\s\S]*?<\/span>)(<\/h4>)/g;
+    const html_reg_methodSize = /(<h4)( class="name"[\s\S]*?<\/span>)(<\/h4>\n)/gm;
     const html_reg_methodSize_replace = '<h5$2</h5>';
-    const html_reg_typeDefSize = /(<h4)( class="name"[\s\S].*?)(<\/h4>)/g;
+    const html_reg_typeDefSize = /(<h4)( class="name"[\s\S]*?)(<\/h4>\n)/g;
     const html_reg_typeDefSize_replace = '<h5$2</h5>';
     const html_reg_typeReturnSize = /<h5>Type:\<\/h5>/g;
     const html_reg_typeReturnSize_replace = '<h6>Type:<h6>';
@@ -525,9 +525,9 @@
                                     .replace(html_reg_subsectionEdit, html_reg_subsectionEdit_replace)
                                     .replace(html_reg_propertiesHeaderEdit, html_reg_propertiesHeaderEdit_Replace)
                                     .replace(html_reg_typeEdit, html_reg_typeEdit_replace)
+                                    .replace(html_reg_typeDefSize, html_reg_typeDefSize_replace)                                   
                                     .replace(html_reg_returnSize, html_reg_returnSize_replace)
                                     .replace(html_reg_methodSize, html_reg_methodSize_replace)
-                                    .replace(html_reg_typeDefSize, html_reg_typeDefSize_replace)
                                     .replace(html_reg_typeDefinitonsTitle, "")
                                     .replace(html_reg_findGlobalLinks, html_reg_findGlobalLinks_replace)
                                     .replace(html_reg_findGeneralLinks, lowerCaseGeneralLinks)

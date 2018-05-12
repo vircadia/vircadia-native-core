@@ -1140,7 +1140,6 @@ HMD:
 location:
  <a href="/api-reference/namespaces/uuid">Uuid</a>
 <a href="/api-reference/namespaces/uuid">Uuid.NULL</a>
-<a href="/api-reference/namespaces/uuid">Uuid</a>
 <a href="location#.goBack">goBack</a>
 <a href="location#.goForward">goForward</a>
 <a href="location#.LookupTrigger">location.LookupTrigger</a>
@@ -1986,8 +1985,10 @@ Users:
 <a href="/api-reference/namespaces/uuid">Uuid</a>
 <a href="/api-reference/namespaces/uuid">Uuid</a>
 <a href="/api-reference/namespaces/uuid">Uuid</a>
+<a href="users#.usernameFromIDReply">usernameFromIDReply</a>
 <a href="/api-reference/namespaces/uuid">Uuid</a>
 <a href="/api-reference/namespaces/uuid">Uuid</a>
+<a href="users#.requestUsernameFromID">requestUsernameFromID</a>
 <a href="/api-reference/namespaces/uuid">Uuid</a>
 Uuid:
  <a href="/api-reference/namespaces/uuid">Uuid</a>
