@@ -37,6 +37,32 @@ public:
      */
     Q_INVOKABLE void editProperties(const QVariantMap& properties);
 
+
+    // QmlWrapper methods.
+
+    /**jsdoc
+     * @function ToolbarButtonProxy#writeProperty
+     * @parm {string} propertyName
+     * @param {object} propertyValue
+     */
+
+    /**jsdoc
+     * @function ToolbarButtonProxy#writeProperties
+     * @param {object} properties
+     */
+
+    /**jsdoc
+     * @function ToolbarButtonProxy#readProperty
+     * @param {string} propertyName
+     * @returns {object}
+     */
+
+    /**jsdoc
+     * @function ToolbarButtonProxy#readProperties
+     * @param {string[]} propertyList
+     * @returns {object}
+     */
+
 signals:
 
     /**jsdoc
@@ -65,16 +91,42 @@ public:
 
     /**jsdoc
      * @function ToolbarProxy#addButton
-     * @property {object} properties
+     * @param {object} properties
      * @returns {ToolbarButtonProxy}
      */
     Q_INVOKABLE ToolbarButtonProxy* addButton(const QVariant& properties);
 
     /**jsdoc
      * @function ToolbarProxy#removeButton
-     * @property {string} name
+     * @param {string} name
      */
     Q_INVOKABLE void removeButton(const QVariant& name);
+
+
+    // QmlWrapper methods.
+
+    /**jsdoc
+     * @function ToolbarProxy#writeProperty
+     * @parm {string} propertyName
+     * @param {object} propertyValue
+     */
+
+    /**jsdoc
+     * @function ToolbarProxy#writeProperties
+     * @param {object} properties
+     */
+
+    /**jsdoc
+     * @function ToolbarProxy#readProperty
+     * @param {string} propertyName
+     * @returns {object}
+     */
+
+    /**jsdoc
+     * @function ToolbarProxy#readProperties
+     * @param {string[]} propertyList
+     * @returns {object}
+     */
 };
 
 Q_DECLARE_METATYPE(ToolbarProxy*);
