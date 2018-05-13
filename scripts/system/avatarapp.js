@@ -143,7 +143,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             console.debug('reverting... ');
             if(currentAvatarWearablesBackup !== null) {
                 AvatarBookmarks.updateAvatarEntities(currentAvatarWearablesBackup);
-                sendToQml({'method' : 'wearablesUpdated', 'wearables' : currentAvatarWearablesBackup, 'avatarName' : message.avatarName})
+                sendToQml({'method' : 'wearablesUpdated', 'wearables' : getMyAvatarWearables(), 'avatarName' : message.avatarName});
             }
         }
 
