@@ -641,8 +641,6 @@ void EntityTree::unhookChildAvatar(const EntityItemID entityID) {
             child->setParentID(nullptr);
         }
     });
-
-    entity->setParentID(nullptr);
 }
 
 void EntityTree::cleanupCloneIDs(const EntityItemID& entityID) {
