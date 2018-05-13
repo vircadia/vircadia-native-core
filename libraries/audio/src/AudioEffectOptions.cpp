@@ -58,6 +58,30 @@ static void setOption(QScriptValue arguments, const QString name, float defaultV
     variable = arguments.property(name).isNumber() ? (float)arguments.property(name).toNumber() : defaultValue;
 }
 
+/**jsdoc
+ * @typedef {object} AudioEffectOptions.ReverbOptions
+ * @property {number} bandwidth
+ * @property {number} preDelay
+ * @property {number} lateDelay
+ * @property {number} reverbTime
+ * @property {number} earlyDiffusion
+ * @property {number} lateDiffusion
+ * @property {number} roomSize
+ * @property {number} density
+ * @property {number} bassMult
+ * @property {number} bassFreq
+ * @property {number} highGain
+ * @property {number} highFreq
+ * @property {number} modRate
+ * @property {number} modDepth
+ * @property {number} earlyGain
+ * @property {number} lateGain
+ * @property {number} earlyMixLeft
+ * @property {number} earlyMixRight
+ * @property {number} lateMixLeft
+ * @property {number} lateMixRight
+ * @property {number} wetDryMix
+ */
 AudioEffectOptions::AudioEffectOptions(QScriptValue arguments) {
     setOption(arguments, BANDWIDTH_HANDLE, BANDWIDTH_DEFAULT, _bandwidth);
     setOption(arguments, PRE_DELAY_HANDLE, PRE_DELAY_DEFAULT, _preDelay);
