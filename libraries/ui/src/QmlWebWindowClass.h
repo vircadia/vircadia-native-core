@@ -11,6 +11,17 @@
 
 #include "QmlWindowClass.h"
 
+/**jsdoc
+ * @class OverlayWebWindow
+ * @augments OverlayWindow
+ * @param {object} [properties=null]
+ *
+ * @hifi-interface
+ * @hifi-client-en
+ *
+ * @property {string} url - <em>Read-only.</em>
+ */
+
 // FIXME refactor this class to be a QQuickItem derived type and eliminate the needless wrapping 
 class QmlWebWindowClass : public QmlWindowClass {
     Q_OBJECT
@@ -20,11 +31,29 @@ public:
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
 
 public slots:
+
+    /**jsdoc
+     * @function OverlayWebWindow.getURL
+     * @returns {string}
+     */
     QString getURL();
+    /**jsdoc
+     * @function OverlayWebWindow.setURL
+     * @param {string} url
+     */
     void setURL(const QString& url);
+
+    /**jsdoc
+     * @function OverlayWebWindow.getURL
+     * @param {string} script
+     */
     void setScriptURL(const QString& script);
 
 signals:
+    /**jsdoc
+     * @function OverlayWebWindow.getURL
+     * @returns {Signal}
+     */
     void urlChanged();
 
 protected:
