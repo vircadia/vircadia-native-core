@@ -108,6 +108,8 @@ void AvatarBookmarks::addBookmark(const QString& bookmarkName) {
     addBookmarkToMenu(menubar, bookmarkName, bookmark);
     insert(bookmarkName, bookmark);
     enableMenuItems(true);
+
+    emit bookmarkAdded(bookmarkName);
 }
 
 void AvatarBookmarks::saveBookmark(const QString& bookmarkName) {
@@ -210,6 +212,25 @@ void AvatarBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
     }
 
     Bookmarks::sortActions(menubar, _bookmarksMenu);
+}
+
+QVariantMap AvatarBookmarks::getBookmark(const QString &bookmarkName)
+{
+    if (QThread::currentThread() != thread()) {
+        QVariantMap result;
+        BLOCKING_INVOKE_METHOD(this, "getBookmark", Q_RETURN_ARG(QVariantMap, result), Q_ARG(QString, bookmarkName));
+        return result;
+    }
+
+    QVariantMap bookmark;
+
+    auto bookmarkEntry = _bookmarks.find(bookmarkName);
+
+    if (bookmarkEntry != _bookmarks.end()) {
+        bookmark = bookmarkEntry.value().toMap();
+    }
+
+    return bookmark;
 }
 
 void AvatarBookmarks::changeToBookmarkedAvatar() {

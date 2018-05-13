@@ -25,6 +25,10 @@ var ENTRY_AVATAR_ENTITIES = "avatarEntites";
 var ENTRY_AVATAR_SCALE = "avatarScale";
 var ENTRY_VERSION = "version";
 
+function executeLater(callback) {
+    Script.setTimeout(callback, 300);
+}
+
 function getMyAvatarWearables() {
     var wearablesArray = MyAvatar.getAvatarEntitiesVariant();
 
@@ -70,8 +74,17 @@ function getMyAvatar() {
     return avatar;
 }
 
-function updateAvatarWearables(avatar, wearables) {
-    avatar[ENTRY_AVATAR_ENTITIES] = wearables;
+function updateAvatarWearables(avatar, bookmarkAvatarName) {
+    console.debug('avatarapp.js: scheduling wearablesUpdated notify for', bookmarkAvatarName);
+
+    executeLater(function() {
+        console.debug('avatarapp.js: executing wearablesUpdated notify for', bookmarkAvatarName);
+
+        var wearables = getMyAvatarWearables();
+        avatar[ENTRY_AVATAR_ENTITIES] = wearables;
+
+        sendToQml({'method' : 'wearablesUpdated', 'wearables' : wearables, 'avatarName' : bookmarkAvatarName})
+    });
 }
 
 var adjustWearables = {
@@ -132,19 +145,30 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         console.debug('avatarapp.js: deleting avatar: ', message.name);
         AvatarBookmarks.removeBookmark(message.name);
         break;
+    case 'addAvatar':
+        console.debug('avatarapp.js: saving avatar: ', message.name);
+        AvatarBookmarks.addBookmark(message.name);
+        break;
     case 'adjustWearablesOpened':
+        console.debug('avatarapp.js: adjustWearablesOpened');
+
         currentAvatarWearablesBackup = getMyAvatarWearables();
         adjustWearables.setOpened(true);
         Entities.mousePressOnEntity.connect(onSelectedEntity);
         break;
     case 'adjustWearablesClosed':
+        console.debug('avatarapp.js: adjustWearablesClosed');
+
         if(!message.save) {
             // revert changes using snapshot of wearables
             console.debug('reverting... ');
             if(currentAvatarWearablesBackup !== null) {
                 AvatarBookmarks.updateAvatarEntities(currentAvatarWearablesBackup);
-                sendToQml({'method' : 'wearablesUpdated', 'wearables' : getMyAvatarWearables(), 'avatarName' : message.avatarName});
+                updateAvatarWearables(currentAvatar, message.avatarName);
             }
+        } else {
+            console.debug('saving... ');
+            sendToQml({'method' : 'updateAvatarInBookmarks'});
         }
 
         adjustWearables.setOpened(false);
@@ -155,18 +179,9 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         ensureWearableSelected(message.entityID);
         break;
     case 'deleteWearable':
-        console.debug('before deleting: wearables.length: ', getMyAvatarWearables().length);
-        console.debug(JSON.stringify(Entities.getEntityProperties(message.entityID, ['parentID'])));
-
-        Entities.editEntity(message.entityID, { parentID : null }) // 2do: remove this hack when backend will be fixed
-        console.debug(JSON.stringify(Entities.getEntityProperties(message.entityID, ['parentID'])));
-
+        console.debug('avatarapp.js: deleteWearable: ', message.entityID, 'from avatar: ', message.avatarName);
         Entities.deleteEntity(message.entityID);
-        var wearables = getMyAvatarWearables();
-        console.debug('after deleting: wearables.length: ', wearables.length);
-
-        updateAvatarWearables(currentAvatar, wearables);
-        sendToQml({'method' : 'wearablesUpdated', 'wearables' : wearables, 'avatarName' : message.avatarName})
+        updateAvatarWearables(currentAvatar, message.avatarName);
         break;
     default:
         print('Unrecognized message from AvatarApp.qml:', JSON.stringify(message));
@@ -253,14 +268,23 @@ function sendToQml(message) {
 }
 
 function onBookmarkLoaded(bookmarkName) {
-    currentAvatar = getMyAvatar();
-    console.debug('avatarapp.js: onBookmarkLoaded: ', JSON.stringify(currentAvatar, 0, 4));
-    sendToQml({'method' : 'bookmarkLoaded', 'reply' : {'name' : bookmarkName, 'currentAvatar' : currentAvatar} });
+    console.debug('avatarapp.js: scheduling onBookmarkLoaded: ', bookmarkName);
+
+    executeLater(function() {
+        currentAvatar = getMyAvatar();
+        console.debug('avatarapp.js: executing onBookmarkLoaded: ', JSON.stringify(currentAvatar, 0, 4));
+        sendToQml({'method' : 'bookmarkLoaded', 'reply' : {'name' : bookmarkName, 'currentAvatar' : currentAvatar} });
+    });
 }
 
 function onBookmarkDeleted(bookmarkName) {
     console.debug('avatarapp.js: onBookmarkDeleted: ', bookmarkName);
     sendToQml({'method' : 'bookmarkDeleted', 'name' : bookmarkName});
+}
+
+function onBookmarkAdded(bookmarkName) {
+    console.debug('avatarapp.js: onBookmarkAdded: ', bookmarkName);
+    sendToQml({ 'method': 'bookmarkAdded', 'bookmarkName': bookmarkName, 'bookmark': AvatarBookmarks.getBookmark(bookmarkName) });
 }
 
 //
@@ -282,6 +306,7 @@ function startup() {
     tablet.screenChanged.connect(onTabletScreenChanged);
     AvatarBookmarks.bookmarkLoaded.connect(onBookmarkLoaded);
     AvatarBookmarks.bookmarkDeleted.connect(onBookmarkDeleted);
+    AvatarBookmarks.bookmarkAdded.connect(onBookmarkAdded);
 
 //    Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
 //    Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
@@ -384,6 +409,7 @@ function shutdown() {
     tablet.screenChanged.disconnect(onTabletScreenChanged);
     AvatarBookmarks.bookmarkLoaded.disconnect(onBookmarkLoaded);
     AvatarBookmarks.bookmarkDeleted.disconnect(onBookmarkDeleted);
+    AvatarBookmarks.bookmarkAdded.disconnect(onBookmarkAdded);
 
 //    Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
 //    Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);

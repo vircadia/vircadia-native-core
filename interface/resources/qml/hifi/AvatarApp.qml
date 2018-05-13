@@ -36,11 +36,11 @@ Rectangle {
     property bool isAvatarInFavorites: currentAvatar ? allAvatars.findAvatar(currentAvatar.name) !== undefined : false
     property int avatarWearablesCount: currentAvatar ? currentAvatar.wearables.count : 0
     property var currentAvatar: null;
-    function setCurrentAvatar(avatar) {
+    function setCurrentAvatar(avatar, bookmarkName) {
 
         var avatarThumbnailUrl = allAvatars.makeThumbnailUrl(avatar.avatarUrl);
         var currentAvatarObject =  {
-            'name' : '',
+            'name' : bookmarkName,
             'scale' : avatar.avatarScale,
             'url' : avatarThumbnailUrl,
             'wearables' : avatar.avatarEntites ? avatar.avatarEntites : [],
@@ -63,7 +63,7 @@ Rectangle {
         } else if(message.method === 'wearableUpdated') {
             adjustWearables.refreshWearable(message.entityID, message.wearableIndex, message.properties);
         } else if(message.method === 'wearablesUpdated') {
-            var wearablesModel = currentAvatarModel.get(0).wearables;
+            var wearablesModel = currentAvatar.wearables;
 
             console.debug('handling wearablesUpdated, new wearables count:', message.wearables.length, ': old wearables: ');
             for(var i = 0; i < wearablesModel.count; ++i) {
@@ -82,11 +82,13 @@ Rectangle {
 
             adjustWearables.refresh(currentAvatar);
         } else if(message.method === 'bookmarkLoaded') {
-            setCurrentAvatar(message.reply.currentAvatar);
-            selectedAvatarName = message.reply.name;
-            var avatarIndex = allAvatars.findAvatarIndex(selectedAvatarName);
+            setCurrentAvatar(message.reply.currentAvatar, message.reply.name);
+            var avatarIndex = allAvatars.findAvatarIndex(currentAvatar.name);
             allAvatars.move(avatarIndex, 0, 1);
             view.setPage(0);
+        } else if(message.method === 'bookmarkAdded') {
+            var avatarIndex = allAvatars.addAvatarEntry(message.bookmark, message.bookmarkName);
+            updateCurrentAvatarInBookmarks(currentAvatar);
         } else if(message.method === 'bookmarkDeleted') {
             pageOfAvatars.isUpdating = true;
 
@@ -115,9 +117,11 @@ Rectangle {
         } else if(message.method === getAvatarsMethod) {
             var getAvatarsReply = message.reply;
             allAvatars.populate(getAvatarsReply.bookmarks);
-            setCurrentAvatar(getAvatarsReply.currentAvatar);
+            setCurrentAvatar(getAvatarsReply.currentAvatar, '');
 
             console.debug('currentAvatar: ', JSON.stringify(currentAvatar, null, '\t'));
+            updateCurrentAvatarInBookmarks(currentAvatar);
+        } else if(message.method === 'updateAvatarInBookmarks') {
             updateCurrentAvatarInBookmarks(currentAvatar);
         } else if(message.method === 'selectAvatarEntity') {
             adjustWearables.selectWearableByID(message.entityID);
@@ -130,7 +134,6 @@ Rectangle {
         if(bookmarkAvatarIndex === -1) {
             console.debug('bookmarkAvatarIndex = -1, avatar is not favorite')
             avatar.name = '';
-            selectedAvatarName = '';
             view.setPage(0);
         } else {
             console.debug('bookmarkAvatarIndex = ', bookmarkAvatarIndex, 'avatar is among favorites!')
@@ -138,11 +141,6 @@ Rectangle {
             avatar.name = bookmarkAvatar.name;
             view.selectAvatar(bookmarkAvatar);
         }
-    }
-
-    property string selectedAvatarName: ''
-    onSelectedAvatarNameChanged: {
-        console.debug('selectedAvatarId: ', selectedAvatarName)
     }
 
     property bool isInManageState: false
@@ -217,9 +215,6 @@ Rectangle {
         }
         onAdjustWearablesClosed: {
             emitSendToScript({'method' : 'adjustWearablesClosed', 'save' : status, 'avatarName' : avatarName});
-            if(status) {
-                updateCurrentAvatarInBookmarks(currentAvatar);
-            }
         }
         onWearableSelected: {
             emitSendToScript({'method' : 'selectWearable', 'entityID' : id});
@@ -356,14 +351,11 @@ Rectangle {
                     }
 
                     entry.avatarEntites = wearables;
+                    currentAvatar.name = createFavorite.favoriteNameText;
+
                     console.debug('became: ', JSON.stringify(entry, 0, 4));
 
-                    /*
-                    var newAvatar = JSON.parse(JSON.stringify(currentAvatar));
-                    newAvatar.name = createFavorite.favoriteNameText;
-                    allAvatars.append(newAvatar);
-                    view.selectAvatar(newAvatar);
-                    */
+                    emitSendToScript({'method': 'addAvatar', 'name' : currentAvatar.name});
                     createFavorite.close();
                 }
 
@@ -523,7 +515,11 @@ Rectangle {
                 id: view
                 anchors.fill: parent
                 interactive: false;
-                currentIndex: (selectedAvatarName !== '' && !pageOfAvatars.isUpdating) ? pageOfAvatars.findAvatarIndex(selectedAvatarName) : -1
+                currentIndex: currentAvatarIndexInBookmarksPage();
+
+                function currentAvatarIndexInBookmarksPage() {
+                    return (currentAvatar && currentAvatar.name !== '' && !pageOfAvatars.isUpdating) ? pageOfAvatars.findAvatarIndex(currentAvatar.name) : -1;
+                }
 
                 property int horizontalSpacing: 18
                 property int verticalSpacing: 44
@@ -549,9 +545,7 @@ Rectangle {
                 property int currentPage: 0;
                 onCurrentPageChanged: {
                     console.debug('currentPage: ', currentPage)
-                    currentIndex = Qt.binding(function() {
-                        return (selectedAvatarName !== '' && !pageOfAvatars.isUpdating) ? pageOfAvatars.findAvatar(selectedAvatarName) : -1
-                    })
+                    currentIndex = Qt.binding(currentAvatarIndexInBookmarksPage);
                 }
 
                 property bool hasNext: currentPage < (totalPages - 1)

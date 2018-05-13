@@ -15,8 +15,8 @@ Rectangle {
     signal wearableSelected(var id);
     signal wearableDeleted(string avatarName, var id);
 
-    signal adjustWearablesOpened();
-    signal adjustWearablesClosed(bool status);
+    signal adjustWearablesOpened(var avatarName);
+    signal adjustWearablesClosed(bool status, var avatarName);
 
     property bool modified: false;
     Component.onCompleted: {
@@ -32,8 +32,9 @@ Rectangle {
     property var wearablesModel;
 
     function open(avatar) {
-        adjustWearablesOpened();
         console.debug('AdjustWearables.qml: open: ', JSON.stringify(avatar, null, '\t'));
+
+        adjustWearablesOpened(avatar.name);
 
         visible = true;
         avatarName = avatar.name;
@@ -103,7 +104,7 @@ Rectangle {
 
     function close(status) {
         visible = false;
-        adjustWearablesClosed(status);
+        adjustWearablesClosed(status, avatarName);
     }
 
     HifiConstants { id: hifi }

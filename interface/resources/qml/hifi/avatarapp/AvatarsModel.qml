@@ -16,20 +16,35 @@ ListModel {
         return avatarThumbnailUrl;
     }
 
+    function makeAvatarEntry(avatar, avatarName) {
+        console.debug('makeAvatarEntry: ', avatarName, JSON.stringify(avatar));
+        var avatarThumbnailUrl = makeThumbnailUrl(avatar.avatarUrl);
+
+        return {
+            'name' : avatarName,
+            'scale' : avatar.avatarScale,
+            'url' : avatarThumbnailUrl,
+            'wearables' : avatar.avatarEntites ? avatar.avatarEntites : [],
+            'attachments' : avatar.attachments ? avatar.attachments : [],
+            'entry' : avatar,
+            'getMoreAvatars' : false
+        };
+
+    }
+
+    function addAvatarEntry(avatar, avatarName) {
+        console.debug('addAvatarEntry: ', avatarName);
+
+        var avatarEntry = makeAvatarEntry(avatar, avatarName);
+        append(avatarEntry);
+
+        return allAvatars.count - 1;
+    }
+
     function populate(bookmarks) {
         for(var avatarName in bookmarks) {
             var avatar = bookmarks[avatarName];
-            var avatarThumbnailUrl = makeThumbnailUrl(avatar.avatarUrl);
-
-            var avatarEntry = {
-                'name' : avatarName,
-                'scale' : avatar.avatarScale,
-                'url' : avatarThumbnailUrl,
-                'wearables' : avatar.avatarEntites ? avatar.avatarEntites : [],
-                'attachments' : avatar.attachments ? avatar.attachments : [],
-                'entry' : avatar,
-                'getMoreAvatars' : false
-            };
+            var avatarEntry = makeAvatarEntry(avatar, avatarName);
 
             append(avatarEntry);
         }
@@ -62,11 +77,20 @@ ListModel {
 
         for(var i = 0; i < m1.count; ++i) {
             var e1 = m1.get(i);
-            var e2 = m2.get(i);
 
-            console.debug('comparing ', JSON.stringify(e1), JSON.stringify(e2));
+            var allDifferent = true;
 
-            if(!comparer(e1, e2)) {
+            // it turns out order of wearables can randomly change so make position-independent comparison here
+            for(var j = 0; j < m2.count; ++j) {
+                var e2 = m2.get(j);
+
+                if(comparer(e1, e2)) {
+                    allDifferent = false;
+                    break;
+                }
+            }
+
+            if(allDifferent) {
                 return false;
             }
         }
@@ -74,10 +98,47 @@ ListModel {
         return true;
     }
 
-    function compareArrays(a1, a2, props) {
-        for(var prop in props) {
-            if(JSON.stringify(a1[prop]) !== JSON.stringify(a2[prop])) {
+    function compareNumericObjects(o1, o2) {
+        if(o1 === undefined && o2 !== undefined)
+            return false;
+        if(o1 !== undefined && o2 === undefined)
+            return false;
+
+        for(var prop in o1) {
+            var v1 = o1[prop];
+            var v2 = o2[prop];
+
+            if(v1 !== v2 && Math.round(v1 * 1000) != Math.round(v2 * 1000))
                 return false;
+        }
+
+        return true;
+    }
+
+    function compareObjects(o1, o2, props, arrayProp) {
+
+        console.debug('compare ojects: o1 = ', JSON.stringify(o1, null, 4), 'o2 = ', JSON.stringify(o2, null, 4));
+        for(var i = 0; i < props.length; ++i) {
+            var prop = props[i];
+            var propertyName = prop.propertyName;
+            var comparer = prop.comparer;
+
+            var o1Value = arrayProp ? o1[arrayProp][propertyName] : o1[propertyName];
+            var o2Value = arrayProp ? o2[arrayProp][propertyName] : o2[propertyName];
+
+            console.debug('compare values for key: ', propertyName, comparer ? 'using specified comparer' : 'using default comparer', ', o1 = ', JSON.stringify(o1Value, null, 4), 'o2 = ', JSON.stringify(o2Value, null, 4));
+
+            if(comparer) {
+                if(comparer(o1Value, o2Value) === false) {
+                    console.debug('not equal');
+                    return false;
+                } else {
+                    console.debug('equal');
+                }
+            } else {
+                if(JSON.stringify(o1Value) !== JSON.stringify(o2Value)) {
+                    return false;
+                }
             }
         }
 
@@ -85,11 +146,22 @@ ListModel {
     }
 
     function compareWearables(w1, w2) {
-        return compareArrays(w1, w2, ['modelUrl', 'parentJointIndex', 'marketplaceID', 'itemName', 'script', 'rotation'])
+        return compareObjects(w1, w2, [{'propertyName' : 'modelURL'},
+                                       {'propertyName' : 'parentJointIndex'},
+                                       {'propertyName' : 'marketplaceID'},
+                                       {'propertyName' : 'itemName'},
+                                       {'propertyName' : 'script'},
+                                       {'propertyName' : 'rotation', 'comparer' : compareNumericObjects},
+                                       {'propertyName' : 'localPosition', 'comparer' : compareNumericObjects},
+                                       {'propertyName' : 'localRotation', 'comparer' : compareNumericObjects},
+                                       {'propertyName' : 'dimensions', 'comparer' : compareNumericObjects}], 'properties')
     }
 
     function compareAttachments(a1, a2) {
-        return compareAttachments(a1, a2, ['position', 'orientation', 'parentJointIndex', 'modelurl'])
+        return compareObjects(a1, a2, [{'propertyName' : 'position', 'comparer' : compareNumericObjects},
+                                       {'propertyName' : 'orientation'},
+                                       {'propertyName' : 'parentJointIndex'},
+                                       {'propertyName' : 'modelurl'}])
     }
 
     function findAvatarIndexByValue(avatar) {
