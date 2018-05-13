@@ -994,7 +994,6 @@ signals:
      * @param {Rect} childrenRect
      * @returns {Signal}
      */
-    void childrenRectChanged(const QRectF &);
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
@@ -1002,7 +1001,6 @@ signals:
      * @param {number} baselineOffset
      * @returns {Signal}
      */
-    void baselineOffsetChanged(qreal);
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
@@ -1010,7 +1008,6 @@ signals:
      * @param {string} state
      * @returns {Signal}
      */
-    void stateChanged(const QString &);
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
@@ -1018,7 +1015,6 @@ signals:
      * @param {boolean} focus
      * @returns {Signal}
      */
-    void focusChanged(bool);
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
@@ -1026,7 +1022,6 @@ signals:
      * @param {boolean} activeFocus
      * @returns {Signal}
      */
-    void activeFocusChanged(bool);
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
@@ -1034,7 +1029,6 @@ signals:
      * @param {boolean} activeFocusOnTab
      * @returns {Signal}
      */
-    void activeFocusOnTabChanged(bool);
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
@@ -1042,7 +1036,6 @@ signals:
      * @param {object} parent
      * @returns {Signal}
      */
-    void parentChanged(QQuickItem *);
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
@@ -1050,7 +1043,6 @@ signals:
      * @param {number} transformOrigin
      * @returns {Signal}
      */
-    void transformOriginChanged(TransformOrigin);
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
@@ -1058,7 +1050,6 @@ signals:
      * @param {boolean} smooth
      * @returns {Signal}
      */
-    void smoothChanged(bool);
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
@@ -1066,7 +1057,6 @@ signals:
      * @param {boolean} antialiasing
      * @returns {Signal}
      */
-    void antialiasingChanged(bool);
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
@@ -1074,7 +1064,6 @@ signals:
      * @param {boolean} clip
      * @returns {Signal}
      */
-    void clipChanged(bool);
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
@@ -1082,107 +1071,90 @@ signals:
      * @param {object} window
      * @returns {Signal}
      */
-    void windowChanged(QQuickWindow* window);
-
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
      * @function Stats.TODO
      * @returns {Signal}
      */
-    void childrenChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
      * @function Stats.TODO
      * @returns {Signal}
      */
-    void opacityChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
      * @function Stats.TODO
      * @returns {Signal}
      */
-    void enabledChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
      * @function Stats.TODO
      * @returns {Signal}
      */
-    void visibleChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
      * @function Stats.TODO
      * @returns {Signal}
      */
-    void visibleChildrenChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
      * @function Stats.TODO
      * @returns {Signal}
      */
-    void rotationChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
      * @function Stats.TODO
      * @returns {Signal}
      */
-    void scaleChanged();
-
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
      * @function Stats.TODO
      * @returns {Signal}
      */
-    void xChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
      * @function Stats.TODO
      * @returns {Signal}
      */
-    void yChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
      * @function Stats.TODO
      * @returns {Signal}
      */
-    void widthChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
      * @function Stats.TODO
      * @returns {Signal}
      */
-    void heightChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
      * @function Stats.TODO
      * @returns {Signal}
      */
-    void zChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
      * @function Stats.TODO
      * @returns {Signal}
      */
-    void implicitWidthChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>TODO</code> property changes.
      * @function Stats.TODO
      * @returns {Signal}
      */
-    void implicitHeightChanged();
 
 
     // QQuickItem functions.
@@ -1193,52 +1165,43 @@ signals:
      * @param {Size} [targetSize=0,0]
      * @returns {boolean}
      */
-    Q_INVOKABLE bool grabToImage(const QJSValue &callback, const QSize &targetSize = QSize());
 
     /**jsdoc
      * @function Stats.contains
      * @param {Vec2} point
      * @returns {boolean}
      */
-    Q_INVOKABLE virtual bool contains(const QPointF &point) const;
 
     /**jsdoc
      * @function Stats.mapFromItem
      * @param {object} item
      */
-    Q_INVOKABLE void mapFromItem(QQmlV4Function*) const;
 
     /**jsdoc
      * @function Stats.mapToItem
      * @param {object} item
      */
-    Q_INVOKABLE void mapToItem(QQmlV4Function*) const;
 
     /**jsdoc
      * @function Stats.mapFromGlobal
      * @param {object} global
      */
-    Q_INVOKABLE void mapFromGlobal(QQmlV4Function*) const;
 
     /**jsdoc
      * @function Stats.mapToGlobal
      * @param {object} global
      */
-    Q_INVOKABLE void mapToGlobal(QQmlV4Function*) const;
 
     /**jsdoc
      * @function Stats.forceActiveFocus
      * @param {number} [reason=7]
      */
-    Q_INVOKABLE void forceActiveFocus();
-    Q_INVOKABLE void forceActiveFocus(Qt::FocusReason reason);
 
     /**jsdoc
      * @function Stats.nextItemInFocusChain
      * @param {boolean} [forward=true]
      * @returns {object}
      */
-    Q_INVOKABLE QQuickItem *nextItemInFocusChain(bool forward = true);
 
     /**jsdoc
      * @function Stats.childAt
@@ -1246,7 +1209,6 @@ signals:
      * @param {number} y
      * @returns {object}
      */
-    Q_INVOKABLE QQuickItem *childAt(qreal x, qreal y) const;
 
 private:
     int _recentMaxPackets{ 0 } ; // recent max incoming voxel packets to process
