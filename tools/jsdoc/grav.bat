@@ -1,1 +1,1 @@
-node gravPrep true "D:\ROLC_High-Fidelity\02_Organize\O_Projects\Docs\Docs-Repo\hifi-docs-grav\user\themes\learn2" "D:\ROLC_High-Fidelity\02_Organize\O_Projects\Docs\Docs-Content\hifi-docs-grav-content"
+node gravPrep true "D:\ROLC_High-Fidelity\02_Organize\O_Projects\Docs\hifi-docs-grav\user\themes\learn2" "D:\ROLC_High-Fidelity\02_Organize\O_Projects\Docs\hifi-docs-grav-content"

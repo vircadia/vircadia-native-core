@@ -95,7 +95,13 @@
     const html_reg_pretty_replace = "<pre>$2<\/pre>";
     const html_reg_code = /(<code>)([\s\S]*?)(<\/code>)/g;
     const html_reg_code_replace = "$1$2$3";
-
+    const html_reg_availableIn = /(<table>[\s\S]+?Available in:[\s\S]+?<\/table>)/g;
+    const html_reg_findControllerPropertiesHeader = "<h5>Properties</h5>";
+    const html_reg_findControllerCuratedList = /<h5>Functions<\/h5>[\s\S]*?<p>Input Recordings[\s\S]*?<\/ul>/g
+    const html_reg_findEntityMethods = /<h5>Entity Methods:[\s\S]+?<\/ul>/g;
+    const html_reg_EntityMethodsHeader = '<h5>Entity Methods:</h5>';
+    const html_reg_EntityMethodsHeader_replace = '<h5>Entity Methods</h5>';
+    
 // Mapping for GroupNames and Members
     let groupNameMemberMap = {
         "Objects": [],
@@ -416,7 +422,7 @@
         
         allItemToSplit.forEach( content => {
             firstLine = content.split("\n")[0];            
-            if (firstLine.indexOf("Signal") > -1){
+            if (firstLine.indexOf("{Signal}") > -1){
                 signalArray.push(content);
             } else if (firstLine.indexOf("span") > -1) {
                 if (content.indexOf("Available in:") > -1){
@@ -587,6 +593,14 @@
             let classTOC = makeClassTOC(arrayToPassToClassToc);
             if (groupName === "Global"){
                 currentContent = append(currentContent, html_reg_findByTitle, classTOC);         
+            } else if (htmlTitle === "Controller") {
+                // currentContent = currentContent.replace(html_reg_availableIn, "");
+                let curatedList = currentContent.match(html_reg_findControllerCuratedList);
+                currentContent = currentContent.replace(html_reg_findControllerCuratedList, "");
+                let entityMethods = currentContent.match(html_reg_findEntityMethods);
+                currentContent = currentContent.replace(html_reg_findEntityMethods, "");
+                currentContent = append(currentContent, html_reg_firstTableClose, [classTOC, curatedList, entityMethods].join("\n"));
+                currentContent = currentContent.replace(html_reg_EntityMethodsHeader, html_reg_EntityMethodsHeader_replace);
             } else {
                 currentContent = append(currentContent, html_reg_firstTableClose, classTOC);    
             }
