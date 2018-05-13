@@ -20,6 +20,9 @@ exports.handlers = {
 
         // directories to scan for jsdoc comments
         var dirList = [
+            '../../assignment-client/src',
+            '../../assignment-client/src/entities',
+            '../../assignment-client/src/octree',
             '../../interface/src',
             '../../interface/src/assets',
             '../../interface/src/audio',
@@ -41,17 +44,22 @@ exports.handlers = {
             '../../libraries/controllers/src/controllers/impl/',
             '../../libraries/display-plugins/src/display-plugins/',
             '../../libraries/entities/src',
+            '../../libraries/graphics/src/graphics/',
             '../../libraries/graphics-scripting/src/graphics-scripting/',
             '../../libraries/input-plugins/src/input-plugins',
+            '../../libraries/midi/src',
             '../../libraries/model-networking/src/model-networking/',
             '../../libraries/networking/src',
             '../../libraries/octree/src',
             '../../libraries/physics/src',
+            '../../libraries/plugins/src/plugins',
             '../../libraries/pointers/src',
             '../../libraries/script-engine/src',
             '../../libraries/shared/src',
             '../../libraries/shared/src/shared',
+            '../../libraries/task/src/task',
             '../../libraries/trackers/src/trackers',
+            '../../libraries/ui/src',
             '../../libraries/ui/src/ui',
             '../../plugins/oculus/src',
             '../../plugins/openvr/src'
