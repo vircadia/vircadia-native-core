@@ -465,7 +465,7 @@ Item {
 
         Item {
             id: statusContainer;
-            visible: root.purchaseStatus === "pending" || root.purchaseStatus === "invalidated" || root.numberSold > -1;
+            visible: root.purchaseStatus === "pending" || !root.valid || root.numberSold > -1;
             anchors.left: itemName.left;
             anchors.right: itemName.right;
             anchors.top: itemName.bottom;
@@ -482,7 +482,7 @@ Item {
                 text: {
                         if (root.purchaseStatus === "pending") {
                             "PENDING..."
-                        } else if (root.purchaseStatus === "invalidated") {
+                        } else if (!root.valid) {
                             "INVALIDATED"
                         } else if (root.numberSold > -1) {
                             ("Sales: " + root.numberSold + "/" + (root.limitedRun === -1 ? "\u221e" : root.limitedRun))
@@ -494,7 +494,7 @@ Item {
                 color: {
                         if (root.purchaseStatus === "pending") {
                             hifi.colors.blueAccent
-                        } else if (root.purchaseStatus === "invalidated") {
+                        } else if (!root.valid) {
                             hifi.colors.redAccent
                         } else {
                             hifi.colors.baseGray
@@ -508,7 +508,7 @@ Item {
                 text: {
                         if (root.purchaseStatus === "pending") {
                             hifi.glyphs.question
-                        } else if (root.purchaseStatus === "invalidated") {
+                        } else if (!root.valid) {
                             hifi.glyphs.question
                         } else {
                             ""
@@ -525,7 +525,7 @@ Item {
                 color: {
                         if (root.purchaseStatus === "pending") {
                             hifi.colors.blueAccent
-                        } else if (root.purchaseStatus === "invalidated") {
+                        } else if (!root.valid) {
                             hifi.colors.redAccent
                         } else {
                             hifi.colors.baseGray
@@ -540,7 +540,7 @@ Item {
                 onClicked: {
                     if (root.purchaseStatus === "pending") {
                         sendToPurchases({method: 'showPendingLightbox'});
-                    } else if (root.purchaseStatus === "invalidated") {
+                    } else if (!root.valid) {
                         sendToPurchases({method: 'showInvalidatedLightbox'});
                     }
                 }
@@ -548,7 +548,7 @@ Item {
                     if (root.purchaseStatus === "pending") {
                         statusText.color = hifi.colors.blueHighlight;
                         statusIcon.color = hifi.colors.blueHighlight;
-                    } else if (root.purchaseStatus === "invalidated") {
+                    } else if (!root.valid) {
                         statusText.color = hifi.colors.redAccent;
                         statusIcon.color = hifi.colors.redAccent;
                     }
@@ -557,7 +557,7 @@ Item {
                     if (root.purchaseStatus === "pending") {
                         statusText.color = hifi.colors.blueAccent;
                         statusIcon.color = hifi.colors.blueAccent;
-                    } else if (root.purchaseStatus === "invalidated") {
+                    } else if (!root.valid) {
                         statusText.color = hifi.colors.redHighlight;
                         statusIcon.color = hifi.colors.redHighlight;
                     }
@@ -647,7 +647,6 @@ Item {
             width: 160;
             height: 40;
             enabled: root.hasPermissionToRezThis &&
-                root.purchaseStatus !== "invalidated" &&
                 MyAvatar.skeletonModelURL !== root.itemHref &&
                 root.valid;
 
