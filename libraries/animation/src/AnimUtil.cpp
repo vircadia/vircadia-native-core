@@ -9,7 +9,9 @@
 //
 
 #include "AnimUtil.h"
-#include "GLMHelpers.h"
+#include <GLMHelpers.h>
+#include <NumericalConstants.h>
+#include <DebugDraw.h>
 
 // TODO: use restrict keyword
 // TODO: excellent candidate for simd vectorization.
@@ -106,4 +108,40 @@ AnimPose boneLookAt(const glm::vec3& target, const AnimPose& bone) {
                      glm::vec4(glm::normalize(glm::cross(v, u)), 0.0f),
                      glm::vec4(bone.trans(), 1.0f));
     return AnimPose(lookAt);
+}
+
+// This will attempt to determine the proper body facing of a characters body
+// assumes headRot is z-forward and y-up.
+// and returns a bodyRot that is also z-forward and y-up
+glm::quat computeBodyFacingFromHead(const glm::quat& headRot, const glm::vec3& up) {
+
+    glm::vec3 bodyUp = glm::normalize(up);
+
+    // initially take the body facing from the head.
+    glm::vec3 headUp = headRot * Vectors::UNIT_Y;
+    glm::vec3 headForward = headRot * Vectors::UNIT_Z;
+    const float THRESHOLD = cosf(glm::radians(30.0f));
+
+    glm::vec3 bodyForward = headForward;
+
+    float dot = glm::dot(headForward, bodyUp);
+
+    if (dot < -THRESHOLD) { // head is looking down
+        // the body should face in the same direction as the top the head.
+        bodyForward = headUp;
+    } else if (dot > THRESHOLD) {  // head is looking upward
+        // the body should face away from the top of the head.
+        bodyForward = -headUp;
+    }
+
+    // cancel out upward component
+    bodyForward = glm::normalize(bodyForward - dot * bodyUp);
+
+    glm::vec3 u, v, w;
+    generateBasisVectors(bodyForward, bodyUp, u, v, w);
+
+    // create matrix from orthogonal basis vectors
+    glm::mat4 bodyMat(glm::vec4(w, 0.0f), glm::vec4(v, 0.0f), glm::vec4(u, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+    return glmExtractRotation(bodyMat);
 }

@@ -83,6 +83,7 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
         hipsPos = headPos + tiltRot * (hipsPos - headPos);
     }
 
+    // AJT: TODO can we remove this?
     return AnimPose(hipsRot * Quaternions::Y_180, hipsPos);
 }
 

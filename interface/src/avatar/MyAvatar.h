@@ -978,14 +978,14 @@ public:
 
 
     // derive avatar body position and orientation from the current HMD Sensor location.
-    // results are in HMD frame
+    // results are in sensor frame (-z forward)
     glm::mat4 deriveBodyFromHMDSensor() const;
 
     glm::vec3 computeCounterBalance() const;
 
     // derive avatar body position and orientation from using the current HMD Sensor location in relation to the previous
     // location of the base of support of the avatar.
-    // results are in HMD frame
+    // results are in sensor frame (-z foward)
     glm::mat4 deriveBodyUsingCgModel() const;
 
     /**jsdoc
@@ -1495,8 +1495,8 @@ private:
     glm::quat _hmdSensorOrientation;
     glm::vec3 _hmdSensorPosition;
     // cache head controller pose in sensor space
-    glm::vec2 _headControllerFacing;  // facing vector in xz plane
-    glm::vec2 _headControllerFacingMovingAverage { 0, 0 };   // facing vector in xz plane
+    glm::vec2 _headControllerFacing;  // facing vector in xz plane (sensor space)
+    glm::vec2 _headControllerFacingMovingAverage { 0.0f, 0.0f };   // facing vector in xz plane (sensor space)
 
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.
