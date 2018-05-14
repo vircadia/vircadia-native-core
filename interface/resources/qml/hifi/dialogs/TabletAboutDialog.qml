@@ -1,0 +1,120 @@
+//
+//  TabletAssetDialog.qml
+//
+//  Created by David Rowe on 18 Apr 2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+import QtQuick 2.5
+
+import "../../styles-uit"
+
+Rectangle {
+    width: 480
+    height: 706
+
+    HifiConstants { id: hifi; }
+
+    color: hifi.colors.baseGray
+
+    Column {
+        x: 45
+        y: 30
+        spacing: 5
+
+        Image {
+            sourceSize.width: 295
+            sourceSize.height: 75
+            source: "../../../images/about-highfidelity.png"
+        }
+        Column {
+            id: buildColumm
+            anchors.left: parent.left
+            anchors.leftMargin: 70
+            Row {
+                RalewayRegular {
+                    text: "Build"
+                    size: 16
+                    color: "white"
+                }
+                RalewayRegular {
+                    id: build
+                    size: 16
+                    color: "white"
+                }
+            }
+            Row {
+                RalewayRegular {
+                    text: "Released"
+                    size: 16
+                    color: "white"
+                }
+                RalewayRegular {
+                    id: released
+                    size: 16
+                    color: "white"
+                }
+            }
+        }
+        Item { height: 10; width: 1 }
+        RalewayRegular {
+            text: "An open-source virtual reality platform."
+            size: 20
+            color: "white"
+        }
+        RalewayRegular {
+            textFormat: Text.RichText
+            color: "white"
+            text: "<a href=\"https:/www.highfidelity.com\">www.highfidelity.com</a>."
+            size: 20
+        }
+        Item { height: 40; width: 1 }
+        Row {
+            spacing: 5
+            Image {
+                sourceSize.width: 34
+                sourceSize.height: 25
+                source: "../../../images/about-qt.png"
+            }
+            RalewayRegular {
+                color: "white"
+                text: "Built using Qt 5.10.1"
+                size: 12
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            Item { height: 1; width: 15 }
+            Image {
+                sourceSize.width: 70
+                sourceSize.height: 26
+                source: "../../../images/about-physics.png"
+            }
+            RalewayRegular {
+                color: "white"
+                text: "Physics powered by Bullet"
+                size: 12
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+        Item { height: 20; width: 1 }
+        RalewayRegular {
+            textFormat: Text.RichText
+            color: "white"
+            text: "Blockchain technology from <a href=\"https://elementsproject.org/elements/\">Elements</a>."
+            size: 14
+        }
+        RalewayRegular {
+            color: "white"
+            text: "© 2018 High Fidelity. All rights reserved."
+            size: 14
+        }
+        RalewayRegular {
+            textFormat: Text.RichText
+            color: "white"
+            text: "Distributed under the <a href=\"http://www.apache.org/licenses/LICENSE-2.0.html\">Apache License, Version 2.0.</a>."
+            size: 14
+        }
+    }
+}

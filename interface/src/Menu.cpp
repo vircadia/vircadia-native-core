@@ -814,9 +814,11 @@ Menu::Menu() {
     MenuWrapper * helpMenu = addMenu("Help");
     
     // Help > About High Fidelity
-    //TODO: Add dialog to show about: Logo, Company, Version
-    addActionToQMenuAndActionHash(helpMenu, "About High Fidelity");
-    
+    action = addActionToQMenuAndActionHash(helpMenu, "About High Fidelity");
+    connect(action, &QAction::triggered, [] {
+        qApp->showDialog(QString("hifi/dialogs/AboutDialog.qml"),
+            QString("hifi/dialogs/TabletAboutDialog.qml"), "AboutDialog");
+    });
     helpMenu->addSeparator();
     
     // Help > HiFi Docs
