@@ -147,6 +147,7 @@ private: \
  * @property {boolean} visible
  *
  * @property {string} state
+ * @property {object} anchors - <em>Read-only.</em>
  * @property {number} baselineOffset
  *
  * @property {boolean} clip
@@ -163,6 +164,8 @@ private: \
  * @property {boolean} antialiasing
  * @property {number} implicitWidth
  * @property {number} implicitHeight
+ *
+ * @property {object} layer - <em>Read-only.</em>
  */
 // Properties from x onwards are QQuickItem properties.
 
@@ -989,170 +992,163 @@ signals:
     // QQuickItem signals.
 
     /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @param {Rect} childrenRect
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @param {number} baselineOffset
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @param {string} state
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @param {boolean} focus
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @param {boolean} activeFocus
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @param {boolean} activeFocusOnTab
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
+     * Triggered when the parent item changes.
+     * @function Stats.parentChanged
      * @param {object} parent
      * @returns {Signal}
      */
 
     /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @param {number} transformOrigin
+     * Triggered when the value of the <code>x</code> property changes.
+     * @function Stats.xChanged
      * @returns {Signal}
      */
 
     /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @param {boolean} smooth
+     * Triggered when the value of the <code>y</code> property changes.
+     * @function Stats.yChanged
      * @returns {Signal}
      */
 
     /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @param {boolean} antialiasing
+     * Triggered when the value of the <code>z</code> property changes.
+     * @function Stats.zChanged
      * @returns {Signal}
      */
 
     /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
+     * Triggered when the value of the <code>width</code> property changes.
+     * @function Stats.widthChanged
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>height</code> property changes.
+     * @function Stats.heightChanged
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>opacity</code> property changes.
+     * @function Stats.opacityChanged
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>enabled</code> property changes.
+     * @function Stats.enabledChanged
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>visibleChanged</code> property changes.
+     * @function Stats.visibleChanged
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the list of visible children changes.
+     * @function Stats.visibleChildrenChanged
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>state</code> property changes.
+     * @function Stats.stateChanged
+     * @paramm {string} state
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the position and size of the rectangle containing the children changes.
+     * @function Stats.childrenRectChanged
+     * @param {Rect} childrenRect
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>baselineOffset</code> property changes.
+     * @function Stats.baselineOffsetChanged
+     * @param {number} baselineOffset
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>clip</code> property changes.
+     * @function Stats.clipChanged
      * @param {boolean} clip
      * @returns {Signal}
      */
 
     /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
+     * Triggered when the value of the <code>focus</code> property changes.
+     * @function Stats.focusChanged
+     * @param {boolean} focus
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>activeFocus</code> property changes.
+     * @function Stats.activeFocusChanged
+     * @param {boolean} activeFocus
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>activeFocusOnTab</code> property changes.
+     * @function Stats.activeFocusOnTabChanged
+     * @param {boolean} activeFocusOnTab
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>rotation</code> property changes.
+     * @function Stats.rotationChanged
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>scaleChanged</code> property changes.
+     * @function Stats.scaleChanged
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>transformOrigin</code> property changes.
+     * @function Stats.transformOriginChanged
+     * @param {number} transformOrigin
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>smooth</code> property changes.
+     * @function Stats.smoothChanged
+     * @param {boolean} smooth
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>antialiasing</code> property changes.
+     * @function Stats.antialiasingChanged
+     * @param {boolean} antialiasing
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>implicitWidth</code> property changes.
+     * @function Stats.implicitWidthChanged
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * Triggered when the value of the <code>implicitHeight</code> property changes.
+     * @function Stats.implicitHeightChanged
+     * @returns {Signal}
+     */
+
+     /**jsdoc
+     * @function Stats.windowChanged
      * @param {object} window
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * Triggered when the value of the <code>TODO</code> property changes.
-     * @function Stats.TODO
      * @returns {Signal}
      */
 
@@ -1208,6 +1204,10 @@ signals:
      * @param {number} x
      * @param {number} y
      * @returns {object}
+     */
+
+    /**jsdoc
+     * @function Stats.update
      */
 
 private:

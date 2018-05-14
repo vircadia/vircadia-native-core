@@ -83,14 +83,14 @@ signals:
 
     /**jsdoc
      * @function Wallet.ownershipVerificationSuccess
-     * @property {Uuid} entityID
+     * @param {Uuid} entityID
      * @returns {Signal}
      */
     void ownershipVerificationSuccess(const QUuid& entityID);
 
     /**jsdoc
      * @function Wallet.ownershipVerificationFailed
-     * @property {Uuid} entityID
+     * @param {Uuid} entityID
      * @returns {Signal}
      */
     void ownershipVerificationFailed(const QUuid& entityID);

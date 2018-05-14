@@ -14,7 +14,7 @@
 /**jsdoc
  * @class OverlayWebWindow
  * @augments OverlayWindow
- * @param {object} [properties=null]
+ * @param {OverlayWindow.Properties} [properties=null]
  *
  * @hifi-interface
  * @hifi-client-en

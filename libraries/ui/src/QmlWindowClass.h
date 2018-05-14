@@ -21,7 +21,7 @@ class QScriptContext;
 
 /**jsdoc
  * @class OverlayWindow
- * @param {object} [properties=null]
+ * @param {OverlayWindow.Properties} [properties=null]
  *
  * @hifi-interface
  * @hifi-client-en
@@ -45,7 +45,7 @@ public:
 
     /**jsdoc
      * @function OverlayWindow.initQml
-     * @param {object} properties
+     * @param {OverlayWindow.Properties} properties
      */
     Q_INVOKABLE virtual void initQml(QVariantMap properties);
 
@@ -220,8 +220,25 @@ signals:
     void webEventReceived(const QVariant& message);
 
 protected slots:
+
+    /**jsdoc
+     * @function OverlayWindow.hasMoved
+     * @param {Vec2} position
+     * @returns {Signal}
+     */
     void hasMoved(QVector2D);
+
+    /**jsdoc
+     * @function OverlayWindow.hasClosed
+     * @returns {Signal}
+     */
     void hasClosed();
+
+    /**jsdoc
+     * @function OverlayWindow.qmlToScript
+     * @param {object} message
+     * @returns {Signal}
+     */
     void qmlToScript(const QVariant& message);
 
 protected:

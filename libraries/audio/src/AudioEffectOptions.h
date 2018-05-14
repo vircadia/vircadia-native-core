@@ -17,34 +17,34 @@
 
 /**jsdoc
  * @class AudioEffectOptions
- * @param {object} [properties=null]
+ * @param {AudioEffectOptions.ReverbOptions} [reverbOptions=null]
  *
  * @hifi-interface
  * @hifi-client-entity
  * @hifi-server-entity
  * @hifi-assignment-client
  *
- * @property {number} bandwidth
- * @property {number} preDelay
- * @property {number} lateDelay
- * @property {number} reverbTime
- * @property {number} earlyDiffusion
- * @property {number} lateDiffusion
- * @property {number} roomSize
- * @property {number} density
- * @property {number} bassMult
- * @property {number} bassFreq
- * @property {number} highGain
- * @property {number} highFreq
- * @property {number} modRate
- * @property {number} modDepth
- * @property {number} earlyGain
- * @property {number} lateGain
- * @property {number} earlyMixLeft
- * @property {number} earlyMixRight
- * @property {number} lateMixLeft
- * @property {number} lateMixRight
- * @property {number} wetDryMix
+ * @property {number} bandwidth=10000
+ * @property {number} preDelay=20
+ * @property {number} lateDelay=0
+ * @property {number} reverbTime=2
+ * @property {number} earlyDiffusion=100
+ * @property {number} lateDiffusion=100
+ * @property {number} roomSize=50
+ * @property {number} density=100
+ * @property {number} bassMult=1.5
+ * @property {number} bassFreq=250
+ * @property {number} highGain=-6
+ * @property {number} highFreq=3000
+ * @property {number} modRate=2.3
+ * @property {number} modDepth=50
+ * @property {number} earlyGain=0
+ * @property {number} lateGain=0
+ * @property {number} earlyMixLeft=20
+ * @property {number} earlyMixRight=20
+ * @property {number} lateMixLeft=90
+ * @property {number} lateMixRight=90
+ * @property {number} wetDryMix=50
  */
 
 class AudioEffectOptions : public QObject {
