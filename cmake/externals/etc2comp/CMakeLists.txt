@@ -5,10 +5,12 @@ if (ANDROID)
 endif ()
 
 include(ExternalProject)
+# We use a patched version of etc2comp that properly generates all the necessary mips
+# See https://github.com/google/etc2comp/pull/29
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL https://hifi-public.s3.amazonaws.com/dependencies/etc2comp-master.zip
-  URL_MD5 d0969e14af6b10b3306f880c8e2b1184
+  URL https://hifi-public.s3.amazonaws.com/dependencies/etc2comp-patched.zip
+  URL_MD5 6fe3629de8ff99bc99f8c14558d841a3
   CMAKE_ARGS ${ANDROID_CMAKE_ARGS}
   BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
   INSTALL_COMMAND ""

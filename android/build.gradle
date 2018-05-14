@@ -146,9 +146,9 @@ def packages = [
         includeLibs: ['libplugins_libhifiCodec.so']
     ],
     etc2comp: [
-        file: 'etc2comp-armv8-libcpp.tgz',
-        versionId: '1WfqJYWLOP0g22eikYjBzn62gza7MKE6',
-        checksum: '0b4c2e6de728546845f0e471dfdeb604'
+        file: 'etc2comp-patched-armv8-libcpp.tgz',
+        versionId: 'bHhGECRAQR1vkpshBcK6ByNc1BQIM8gU',
+        checksum: '14b02795d774457a33bbc60e00a786bc'
     ]
 ]
 
