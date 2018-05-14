@@ -430,7 +430,7 @@ Rectangle {
                     }
 
                     popup.showGetWearables(function() {
-                        gotoAvatarAppPanel.visible = true;
+                        emitSendToScript({'method' : 'navigate', 'url' : 'hifi://AvatarIsland'})
                     })
                 }
             }
@@ -674,7 +674,7 @@ Rectangle {
 
                                 onClicked: {
                                     popup.showBuyAvatars(function() {
-                                        gotoAvatarAppPanel.visible = true;
+                                        emitSendToScript({'method' : 'navigate', 'url' : 'hifi://BodyMart'})
                                     });
                                 }
                             }
@@ -741,77 +741,5 @@ Rectangle {
 
     CreateFavoriteDialog {
         id: createFavorite
-    }
-
-    Rectangle {
-        id: gotoAvatarAppPanel
-        anchors.fill: parent
-        anchors.leftMargin: 19
-        anchors.rightMargin: 19
-
-        // color: 'green'
-        visible: false
-
-        Rectangle {
-            width: 442
-            height: 447
-            // color: 'yellow'
-
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 259
-
-            TextStyle1 {
-                anchors.fill: parent
-                horizontalAlignment: "AlignHCenter"
-                wrapMode: "WordWrap"
-                text: "You are teleported to “AvatarIsland” VR world and you buy a hat, sunglasses and a bracelet."
-            }
-        }
-
-        Rectangle {
-            width: 442
-            height: 177
-            // color: 'yellow'
-
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 40
-
-            TextStyle1 {
-                anchors.fill: parent
-                horizontalAlignment: "AlignHCenter"
-                wrapMode: "WordWrap"
-                text: '<a href="https://fake.link">Click here to open the Avatar app.</a>'
-
-                MouseArea {
-                    anchors.fill: parent
-                    property int newAvatarIndex: 0
-
-                    onClicked: {
-                        gotoAvatarAppPanel.visible = false;
-
-                        var i = allAvatars.count + 1;
-
-                        var avatar = {
-                            'url': '',
-                            'name': 'Lexi' + (++newAvatarIndex),
-                            'wearables': []
-                        };
-
-                        allAvatars.append(avatar)
-
-                        if(pageOfAvatars.hasGetAvatars())
-                            pageOfAvatars.removeGetAvatars();
-
-                        if(pageOfAvatars.count !== view.itemsPerPage)
-                            pageOfAvatars.append(avatar);
-
-                        if(pageOfAvatars.count !== view.itemsPerPage)
-                            pageOfAvatars.appendGetAvatars();
-
-                        console.debug('avatar appended: allAvatars.count: ', allAvatars.count, 'pageOfAvatars.count: ', pageOfAvatars.count);
-                    }
-                }
-            }
-        }
     }
 }

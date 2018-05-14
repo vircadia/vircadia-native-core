@@ -128,15 +128,6 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         console.debug('avatarapp.js: currentAvatar: ', JSON.stringify(message.reply.currentAvatar, null, '\t'))
         sendToQml(message)
         break;
-    case 'adjustWearable':
-        if(message.properties.localRotationAngles) {
-            message.properties.localRotation = Quat.fromVec3Degrees(message.properties.localRotationAngles)
-        }
-
-        console.debug('Entities.editEntity(message.entityID, message.properties)'.replace('message.entityID', message.entityID).replace('message.properties', JSON.stringify(message.properties)));
-        Entities.editEntity(message.entityID, message.properties);
-        sendToQml({'method' : 'wearableUpdated', 'wearable' : message.entityID, wearableIndex : message.wearableIndex, properties : message.properties})
-        break;
     case 'selectAvatar':
         console.debug('avatarapp.js: selecting avatar: ', message.name);
         AvatarBookmarks.loadBookmark(message.name);
@@ -148,6 +139,14 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
     case 'addAvatar':
         console.debug('avatarapp.js: saving avatar: ', message.name);
         AvatarBookmarks.addBookmark(message.name);
+        break;
+    case 'adjustWearable':
+        if(message.properties.localRotationAngles) {
+            message.properties.localRotation = Quat.fromVec3Degrees(message.properties.localRotationAngles)
+        }
+        console.debug('Entities.editEntity(message.entityID, message.properties)'.replace('message.entityID', message.entityID).replace('message.properties', JSON.stringify(message.properties)));
+        Entities.editEntity(message.entityID, message.properties);
+        sendToQml({'method' : 'wearableUpdated', 'wearable' : message.entityID, wearableIndex : message.wearableIndex, properties : message.properties})
         break;
     case 'adjustWearablesOpened':
         console.debug('avatarapp.js: adjustWearablesOpened');
@@ -189,6 +188,10 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             MyAvatar.displayName = message.displayName;
             UserActivityLogger.palAction("display_name_change", message.displayName);
         }
+        break;
+    case 'navigate':
+        console.debug('avatarapp.js: navigate: ', message.url);
+        AddressManager.handleLookupString(message.url, false);
         break;
     default:
         print('Unrecognized message from AvatarApp.qml:', JSON.stringify(message));
