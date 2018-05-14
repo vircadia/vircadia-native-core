@@ -49,6 +49,7 @@ Item {
     property string upgradeTitle;
     property bool updateAvailable: root.upgradeUrl !== "" && !root.isShowingMyItems;
     property bool isShowingMyItems;
+    property bool valid;
 
     property string originalStatusText;
     property string originalStatusColor;
@@ -239,6 +240,7 @@ Item {
                     width: 62;
 
                     onLoaded: {
+                        item.enabled = root.valid;
                         item.buttonGlyphText = hifi.glyphs.gift;
                         item.buttonText = "Gift";
                         item.buttonClicked = function() {
@@ -646,7 +648,8 @@ Item {
             height: 40;
             enabled: root.hasPermissionToRezThis &&
                 root.purchaseStatus !== "invalidated" &&
-                MyAvatar.skeletonModelURL !== root.itemHref;
+                MyAvatar.skeletonModelURL !== root.itemHref &&
+                root.valid;
 
             onHoveredChanged: {
                 if (hovered) {

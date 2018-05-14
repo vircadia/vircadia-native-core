@@ -616,6 +616,7 @@ Rectangle {
                 upgradeTitle: model.upgrade_title;
                 itemType: model.itemType;
                 isShowingMyItems: root.isShowingMyItems;
+                valid: model.valid;
                 anchors.topMargin: 10;
                 anchors.bottomMargin: 10;
 
