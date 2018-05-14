@@ -118,7 +118,7 @@ private:
 
 class RenderShadowCascadeSetup {
 public:
-    using Outputs = render::VaryingSet2<render::ItemFilter, ViewFrustumPointer>;
+    using Outputs = render::VaryingSet3<render::ItemFilter, render::ItemFilter, ViewFrustumPointer>;
     using JobModel = render::Job::ModelO<RenderShadowCascadeSetup, Outputs>;
 
     RenderShadowCascadeSetup(unsigned int cascadeIndex, RenderShadowTask::CullFunctor& cullFunctor, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00) : 

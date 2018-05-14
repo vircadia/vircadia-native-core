@@ -124,14 +124,13 @@ macro(SETUP_HIFI_TESTCASE)
       # This target will also build + run the other test targets using ctest when built.
 
       add_custom_target(${TEST_TARGET}
-        COMMAND ctest .
         SOURCES ${TEST_PROJ_SRC_FILES}    # display source files under the testcase target
         DEPENDS ${${TEST_PROJ_NAME}_TARGETS})
+
       set_target_properties(${TEST_TARGET} PROPERTIES
+        FOLDER "Tests"
         EXCLUDE_FROM_DEFAULT_BUILD TRUE
         EXCLUDE_FROM_ALL TRUE)
-
-      set_target_properties(${TEST_TARGET} PROPERTIES FOLDER "Tests")
 
       list (APPEND ALL_TEST_TARGETS ${TEST_TARGET})
       set(ALL_TEST_TARGETS "${ALL_TEST_TARGETS}" PARENT_SCOPE)
