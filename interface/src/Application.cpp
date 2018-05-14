@@ -1033,7 +1033,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
                 QFileInfo fileInfo(path);
                 if (fileInfo.isDir() && fileInfo.isWritable()) {
-                    testResultsLocation = path;
+                    TestScriptingInterface::getInstance()->setTestResultsLocation(path);
                 }
             }
         }
@@ -7591,8 +7591,8 @@ void Application::loadAvatarBrowser() const {
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
     postLambdaEvent([notify, includeAnimated, aspectRatio, filename, this] {
         // Get a screenshot and save it
-        QString path =
-            Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio), filename, testResultsLocation);
+        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio), filename,
+                                              TestScriptingInterface::getInstance()->getTestResultsLocation());
 
         // If we're not doing an animated snapshot as well...
         if (!includeAnimated) {
@@ -7607,8 +7607,8 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
 
 void Application::takeSecondaryCameraSnapshot(const QString& filename) {
     postLambdaEvent([filename, this] {
-        QString snapshotPath =
-            Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename, testResultsLocation);
+        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename,
+                                                      TestScriptingInterface::getInstance()->getTestResultsLocation());
 
         emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
     });

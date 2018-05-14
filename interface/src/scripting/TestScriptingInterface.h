@@ -18,6 +18,10 @@ class QScriptValue;
 class TestScriptingInterface : public QObject {
     Q_OBJECT
 
+public:
+    void setTestResultsLocation(const QString path) { _testResultsLocation = path; }
+    const QString& getTestResultsLocation() { return _testResultsLocation;  };
+
 public slots:
     static TestScriptingInterface* getInstance();
 
@@ -45,7 +49,6 @@ public slots:
     * Waits for all pending downloads, parsing and texture transfers to be complete
     */
     void waitIdle();
-
 
     bool waitForConnection(qint64 maxWaitMs = 10000);
 
@@ -90,6 +93,7 @@ public slots:
 
 private:
     bool waitForCondition(qint64 maxWaitMs, std::function<bool()> condition);
+    QString _testResultsLocation;
 };
 
-#endif // hifi_TestScriptingInterface_h
+#endif  // hifi_TestScriptingInterface_h
