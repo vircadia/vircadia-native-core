@@ -27,6 +27,7 @@ Rectangle {
 
     property var onButton2Clicked;
     property var onButton1Clicked;
+    property var onLinkClicked;
 
     function open() {
         visible = true;
@@ -110,6 +111,11 @@ Rectangle {
                 height: paintedHeight;
                 verticalAlignment: Text.AlignTop;
                 wrapMode: Text.WordWrap;
+
+                onLinkActivated: {
+                    if(onLinkClicked)
+                        onLinkClicked(link);
+                }
             }
 
             Image {

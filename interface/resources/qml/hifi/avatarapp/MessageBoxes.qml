@@ -18,12 +18,12 @@ MessageBox {
 
     property url getWearablesUrl: '../../../images/samples/hifi-place-77312e4b-6f48-4eb4-87e2-50444d8e56d1.png'
 
-    function showGetWearables(callback) {
+    function showGetWearables(callback, linkCallback) {
         popup.button2text = 'AvatarIsland'
         popup.button1text = 'CANCEL'
         popup.titleText = 'Get Wearables'
-        popup.bodyText = 'Buy wearables from <a href="https://fake.link">Marketplace</a>' + '\n' +
-                         'Wear wearable from <a href="https://fake.link">My Purchases</a>' + '\n' +
+        popup.bodyText = 'Buy wearables from <a href="app://marketplace">Marketplace</a>' + '\n' +
+                         'Wear wearable from <a href="app://purchases">My Purchases</a>' + '\n' +
                          'You can visit the domain “AvatarIsland”' + '\n' +
                          'to get wearables'
 
@@ -34,6 +34,14 @@ MessageBox {
             if(callback)
                 callback();
         }
+
+        popup.onLinkClicked = function(link) {
+            popup.close();
+
+            if(linkCallback)
+                linkCallback(link);
+        }
+
         popup.open();
     }
 
@@ -70,13 +78,13 @@ MessageBox {
 
     property url getAvatarsUrl: '../../../images/samples/hifi-place-get-avatars.png'
 
-    function showBuyAvatars(callback) {
+    function showBuyAvatars(callback, linkCallback) {
         popup.button2text = 'BodyMart'
         popup.button1text = 'CANCEL'
         popup.titleText = 'Get Avatars'
 
-        popup.bodyText = 'Buy avatars from <a href="https://fake.link">Marketplace</a>' + '\n' +
-                         'Wear avatars from <a href="https://fake.link">My Purchases</a>' + '\n' +
+        popup.bodyText = 'Buy avatars from <a href="app://marketplace">Marketplace</a>' + '\n' +
+                         'Wear avatars from <a href="app://purchases">My Purchases</a>' + '\n' +
                          'You can visit the domain “BodyMart”' + '\n' +
                          'to get avatars'
 
@@ -87,6 +95,14 @@ MessageBox {
             if(callback)
                 callback();
         }
+
+        popup.onLinkClicked = function(link) {
+            popup.close();
+
+            if(linkCallback)
+                linkCallback(link);
+        }
+
         popup.open();
     }
 }

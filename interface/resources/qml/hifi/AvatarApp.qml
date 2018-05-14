@@ -431,7 +431,10 @@ Rectangle {
 
                     popup.showGetWearables(function() {
                         emitSendToScript({'method' : 'navigate', 'url' : 'hifi://AvatarIsland'})
-                    })
+                    }, function(link) {
+                        console.debug('link clicked', link);
+                        emitSendToScript({'method' : 'navigate', 'url' : link})
+                    });
                 }
             }
         }
@@ -675,6 +678,9 @@ Rectangle {
                                 onClicked: {
                                     popup.showBuyAvatars(function() {
                                         emitSendToScript({'method' : 'navigate', 'url' : 'hifi://BodyMart'})
+                                    }, function(link) {
+                                        console.debug('link clicked', link);
+                                        emitSendToScript({'method' : 'navigate', 'url' : link})
                                     });
                                 }
                             }

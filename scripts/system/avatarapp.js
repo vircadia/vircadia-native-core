@@ -47,20 +47,6 @@ function getMyAvatarWearables() {
     }
 
     return wearablesArray;
-
-    /*
-    var getAttachedModelEntities = function() {
-        var resultEntities = [];
-        Entities.findEntitiesByType('Model', MyAvatar.position, 100).forEach(function(entityID) {
-            if (isEntityBeingWorn(entityID)) {
-                resultEntities.push({properties : entityID});
-            }
-        });
-        return resultEntities;
-    };
-
-    return getAttachedModelEntities();
-    */
 }
 
 function getMyAvatar() {
@@ -113,6 +99,10 @@ var currentAvatarWearablesBackup = null;
 var currentAvatar = null;
 var selectedAvatarEntityGrabbable = false;
 var selectedAvatarEntity = null;
+
+var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
+var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
+var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
 
 function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
     console.debug('fromQml: message = ', JSON.stringify(message, null, '\t'))
@@ -191,7 +181,18 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break;
     case 'navigate':
         console.debug('avatarapp.js: navigate: ', message.url);
-        AddressManager.handleLookupString(message.url, false);
+        if(message.url.indexOf('app://') === 0) {
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system")
+
+            if(message.url === 'app://marketplace') {
+                tablet.gotoWebScreen(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+            } else if(message.url === 'app://purchases') {
+                tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
+            }
+
+        } else if(message.url.indexOf('hifi://') === 0) {
+            AddressManager.handleLookupString(message.url, false);
+        }
         break;
     default:
         print('Unrecognized message from AvatarApp.qml:', JSON.stringify(message));
