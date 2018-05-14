@@ -44,6 +44,14 @@ class OffscreenQmlSurface;
  * @hifi-interface
  * @hifi-client-entity
  */
+/**jsdoc
+ * @namespace tabletInterface
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
+ * @deprecated This API is deprecated and will be removed. Use {@link Tablet} instead.
+ */
 class TabletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
@@ -83,6 +91,13 @@ public:
      * @param {string} name - Tablet name.
      * @returns {TabletProxy} Tablet instance.
      */
+    /**jsdoc
+     * Creates or returns a new TabletProxy and returns it.
+     * @function tabletInterface.getTablet
+     * @param {string} name - Tablet name.
+     * @returns {TabletProxy} Tablet instance.
+     * @deprecated This function is deprecated and will be removed. Use {@link Tablet.getTablet} instead.
+     */
     Q_INVOKABLE TabletProxy* getTablet(const QString& tabletId);
 
     void preloadSounds();
@@ -90,6 +105,11 @@ public:
     /**jsdoc
      * @function Tablet.playSound
      * @param {Tablet.AudioEvents} sound
+     */
+    /**jsdoc
+     * @function tabletInterface.playSound
+     * @param {Tablet.AudioEvents} sound
+     * @deprecated This function is deprecated and will be removed. Use {@link Tablet.playSound} instead.
      */
     Q_INVOKABLE void playSound(TabletAudioEvents aEvent);
 
@@ -107,6 +127,12 @@ signals:
      * Triggered when a tablet message or dialog is created.
      * @function Tablet.tabletNotification
      * @returns {Signal}
+     */
+    /**jsdoc
+     * Triggered when a tablet message or dialog is created.
+     * @function tabletInterface.tabletNotification
+     * @returns {Signal}
+     * @deprecated This function is deprecated and will be removed. Use {@link Tablet.tabletNotification} instead.
      */
     void tabletNotification();
 
