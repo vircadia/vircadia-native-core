@@ -39,6 +39,7 @@ void AnimTests::initTestCase() {
 
 void AnimTests::cleanupTestCase() {
     //DependencyManager::destroy<AnimationCache>();
+    DependencyManager::get<ResourceManager>()->cleanup();
 }
 
 void AnimTests::testClipInternalState() {

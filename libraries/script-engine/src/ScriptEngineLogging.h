@@ -16,6 +16,7 @@
 
 Q_DECLARE_LOGGING_CATEGORY(scriptengine)
 Q_DECLARE_LOGGING_CATEGORY(scriptengine_module)
+Q_DECLARE_LOGGING_CATEGORY(scriptengine_script)
 
 #endif // hifi_ScriptEngineLogging_h
 
