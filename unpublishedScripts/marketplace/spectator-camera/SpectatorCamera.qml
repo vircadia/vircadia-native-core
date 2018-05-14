@@ -13,6 +13,9 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.7
+import QtQuick.Controls 2.2
+import QtGraphicalEffects 1.0
+
 import "qrc:////qml//styles-uit" as HifiStylesUit
 import "qrc:////qml//controls-uit" as HifiControlsUit
 import "qrc:////qml//controls" as HifiControls
@@ -56,8 +59,6 @@ Rectangle {
         HifiStylesUit.RalewaySemiBold {
             id: titleBarText;
             text: "Spectator Camera";
-            // Text size
-            size: hifi.fontSizes.overlayTitle;
             // Anchors
             anchors.left: parent.left;
             anchors.leftMargin: 30;
@@ -71,15 +72,50 @@ Rectangle {
             verticalAlignment: Text.AlignVCenter;
         }
 
-        HifiControlsUit.Switch {
+        Switch {
             id: masterSwitch;
+            focusPolicy: Qt.ClickFocus;
             width: 65;
-            height: parent.height;
+            height: 30;
+            anchors.verticalCenter: parent.verticalCenter;
             anchors.right: parent.right;
             anchors.rightMargin: 30;
+            hoverEnabled: true;
+
+            onHoveredChanged: {
+                if (hovered) {
+                    switchHandle.color = hifi.colors.blueHighlight;
+                } else {
+                    switchHandle.color = hifi.colors.lightGray;
+                }
+            }
+
             onCheckedChanged: {
                 sendToScript({method: (checked ? 'spectatorCameraOn' : 'spectatorCameraOff')});
                 sendToScript({method: 'updateCameravFoV', vFoV: fieldOfViewSlider.value});
+            }
+
+            background: Rectangle {
+                color: parent.checked ? "#1FC6A6" : hifi.colors.white;
+                implicitWidth: masterSwitch.switchWidth;
+                implicitHeight: masterSwitch.height;
+                radius: height/2;
+            }
+
+            indicator: Rectangle {
+                id: switchHandle;
+                implicitWidth: masterSwitch.height - 4;
+                implicitHeight: implicitWidth;
+                radius: implicitWidth/2;
+                border.color: "#E3E3E3";
+                color: "#404040";
+                x: Math.max(4, Math.min(parent.width - width - 4, parent.visualPosition * parent.width - (width / 2) - 4))
+                y: parent.height / 2 - height / 2;
+                Behavior on x {
+                    enabled: !masterSwitch.down
+                    SmoothedAnimation { velocity: 200 }
+                }
+
             }
         }
     }
@@ -132,19 +168,17 @@ Rectangle {
     //
     Item {
         id: spectatorControlsContainer;
-        // Size
-        height: root.height - spectatorDescriptionContainer.height - titleBarContainer.height;
         // Anchors
         anchors.top: titleBarContainer.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
+        anchors.bottom: parent.bottom;
 
         // Instructions or Preview
         Rectangle {
             id: spectatorCameraImageContainer;
             anchors.left: parent.left;
-            anchors.top: cameraToggleButton.bottom;
-            anchors.topMargin: 8;
+            anchors.top: parent.top;
             anchors.right: parent.right;
             height: 250;
             color: masterSwitch.checked ? "transparent" : "black";
@@ -161,7 +195,7 @@ Rectangle {
                 id: spectatorCameraInstructions;
                 text: "Turn on Spectator Camera for a preview\nof " + (HMD.active ? "what your monitor shows." : "the camera's view.");
                 size: 16;
-                color: hifi.colors.lightGrayText;
+                color: hifi.colors.white;
                 visible: !masterSwitch.checked;
                 anchors.fill: parent;
                 horizontalAlignment: Text.AlignHCenter;
@@ -172,7 +206,7 @@ Rectangle {
             Hifi.ResourceImageItem {
                 id: spectatorCameraPreview;
                 visible: masterSwitch.checked;
-                url: monitorShowsSwitch.checked || !HMD.active ? "resource://spectatorCameraFrame" : "resource://hmdPreviewFrame";
+                url: showCameraView.checked || !HMD.active ? "resource://spectatorCameraFrame" : "resource://hmdPreviewFrame";
                 ready: masterSwitch.checked;
                 mirrorVertically: true;
                 anchors.fill: parent;
@@ -183,13 +217,22 @@ Rectangle {
             }
 
             Item {
-                visible: true//HMD.active;
+                visible: HMD.active;
                 anchors.top: parent.top;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                height: 80;
+                height: 40;
 
-                // "Monitor Shows" Switch Label Glyph
+                LinearGradient {
+                    anchors.fill: parent;
+                    start: Qt.point(0, 0);
+                    end: Qt.point(0, height);
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: hifi.colors.black }
+                        GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0) }
+                    }
+                }
+
                 HifiStylesUit.HiFiGlyphs {
                     id: monitorShowsSwitchLabelGlyph;
                     text: hifi.glyphs.screen;
@@ -200,10 +243,9 @@ Rectangle {
                     anchors.left: parent.left;
                     anchors.leftMargin: 16;
                 }
-                // "Monitor Shows" Switch Label
                 HifiStylesUit.RalewayLight {
                     id: monitorShowsSwitchLabel;
-                    text: "MONITOR SHOWS:";
+                    text: "Monitor View:";
                     anchors.top: parent.top;
                     anchors.bottom: parent.bottom;
                     anchors.left: monitorShowsSwitchLabelGlyph.right;
@@ -216,7 +258,7 @@ Rectangle {
                 }
                 Item {
                     anchors.left: monitorShowsSwitchLabel.right;
-                    anchors.leftMargin: 10;
+                    anchors.leftMargin: 14;
                     anchors.right: parent.right;
                     anchors.rightMargin: 10;
                     anchors.top: parent.top;
@@ -225,8 +267,9 @@ Rectangle {
 			        HifiControlsUit.RadioButton {
 				        id: showCameraView;
 				        text: "Camera View";
-				        width: 140;
+				        width: 125;
                         anchors.left: parent.left;
+                        anchors.leftMargin: 10;
 				        anchors.verticalCenter: parent.verticalCenter;
 				        colorScheme: hifi.colorSchemes.dark;
 				        onClicked: {
@@ -248,8 +291,8 @@ Rectangle {
 				        id: showHmdPreview;
 				        text: "HMD";
 				        anchors.left: showCameraView.right;
-				        anchors.leftMargin: 10;
-                        anchors.right: parent.right;
+				        anchors.leftMargin: 20;
+                        width: 70;
 				        anchors.verticalCenter: parent.verticalCenter;
 				        colorScheme: hifi.colorSchemes.dark;
 				        onClicked: {
@@ -268,221 +311,243 @@ Rectangle {
 			        }
                 }
             }
+
+		    HifiControlsUit.Button {
+			    id: takeSnapshotButton;
+                enabled: masterSwitch.checked;
+                text: "SNAP PICTURE";
+			    colorScheme: hifi.colorSchemes.dark;
+			    color: hifi.buttons.white;
+                anchors.bottom: parent.bottom;
+                anchors.bottomMargin: 8;
+                anchors.right: take360SnapshotButton.left;
+                anchors.rightMargin: 12;
+                width: 135;
+			    height: 35;
+			    onClicked: {
+				    sendToScript({method: 'takeSecondaryCameraSnapshot'});
+			    }
+		    }
+		    HifiControlsUit.Button {
+			    id: take360SnapshotButton;
+                enabled: masterSwitch.checked;
+                text: "SNAP 360";
+			    colorScheme: hifi.colorSchemes.dark;
+			    color: hifi.buttons.white;
+                anchors.bottom: parent.bottom;
+                anchors.bottomMargin: 8;
+                anchors.right: parent.right;
+                anchors.rightMargin: 12;
+                width: 135;
+			    height: 35;
+			    onClicked: {
+                    root.processing360Snapshot = true;
+				    sendToScript({method: 'takeSecondaryCamera360Snapshot'});
+			    }
+		    }
         }
 
         Item {
-            id: fieldOfView;
             anchors.top: spectatorCameraImageContainer.bottom;
             anchors.topMargin: 8;
             anchors.left: parent.left;
-            anchors.leftMargin: 8;
+            anchors.leftMargin: 26;
             anchors.right: parent.right;
-            height: 35;
+            anchors.rightMargin: 26;
+            anchors.bottom: parent.bottom;
 
-            HifiStylesUit.FiraSansRegular {
-                id: fieldOfViewLabel;
-                text: "Field of View (" + fieldOfViewSlider.value + "\u00B0): ";
-                size: 16;
-                color: hifi.colors.lightGrayText;
+            Item {
+                id: fieldOfView;
+                visible: masterSwitch.checked;
+                anchors.top: parent.top;
                 anchors.left: parent.left;
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                width: 140;
-                horizontalAlignment: Text.AlignLeft;
-                verticalAlignment: Text.AlignVCenter;
-            }
+                anchors.right: parent.right;
+                height: 35;
 
-            HifiControlsUit.Slider {
-                id: fieldOfViewSlider;
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                anchors.right: resetvFoV.left;
-                anchors.rightMargin: 8;
-                anchors.left: fieldOfViewLabel.right;
-                anchors.leftMargin: 8;
-                colorScheme: hifi.colorSchemes.dark;
-                from: 10.0;
-                to: 120.0;
-                value: 45.0;
-                stepSize: 1;
-
-                onValueChanged: {
-                    sendToScript({method: 'updateCameravFoV', vFoV: value});
+                HifiStylesUit.RalewaySemiBold {
+                    id: fieldOfViewLabel;
+                    text: "Field of View (" + fieldOfViewSlider.value + "\u00B0): ";
+                    size: 20;
+                    color: hifi.colors.white;
+                    anchors.left: parent.left;
+                    anchors.top: parent.top;
+                    anchors.bottom: parent.bottom;
+                    width: 172;
+                    horizontalAlignment: Text.AlignLeft;
+                    verticalAlignment: Text.AlignVCenter;
                 }
-                onPressedChanged: {
-                    if (!pressed) {
+
+                HifiControlsUit.Slider {
+                    id: fieldOfViewSlider;
+                    anchors.top: parent.top;
+                    anchors.bottom: parent.bottom;
+                    anchors.right: resetvFoV.left;
+                    anchors.rightMargin: 8;
+                    anchors.left: fieldOfViewLabel.right;
+                    anchors.leftMargin: 8;
+                    colorScheme: hifi.colorSchemes.dark;
+                    from: 10.0;
+                    to: 120.0;
+                    value: 45.0;
+                    stepSize: 1;
+
+                    onValueChanged: {
                         sendToScript({method: 'updateCameravFoV', vFoV: value});
+                    }
+                    onPressedChanged: {
+                        if (!pressed) {
+                            sendToScript({method: 'updateCameravFoV', vFoV: value});
+                        }
+                    }
+                }
+
+                HifiControlsUit.GlyphButton {
+                    id: resetvFoV;
+                    anchors.verticalCenter: parent.verticalCenter;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: -8;
+                    height: parent.height - 8;
+                    width: height;
+                    glyph: hifi.glyphs.reload;
+                    onClicked: {
+                        fieldOfViewSlider.value = 45.0;
                     }
                 }
             }
 
-            HifiControlsUit.GlyphButton {
-                id: resetvFoV;
-                anchors.verticalCenter: parent.verticalCenter;
+            Item {
+                visible: HMD.active;
+                anchors.top: fieldOfView.bottom;
+                anchors.topMargin: 18;
+                anchors.left: parent.left;
                 anchors.right: parent.right;
-                anchors.rightMargin: 6;
-                height: parent.height - 8;
-                width: height;
-                glyph: hifi.glyphs.reload;
-                onClicked: {
-                    fieldOfViewSlider.value = 45.0;
+                height: childrenRect.height;
+
+                HifiStylesUit.RalewaySemiBold {
+                    id: shortcutsHeaderText;
+                    anchors.top: parent.top;
+                    anchors.left: parent.left;
+                    anchors.right: parent.right;
+                    height: paintedHeight;
+                    text: "Shortcuts";
+                    size: 20;
+                    color: hifi.colors.white;
+                }
+
+                // "Switch View From Controller" Checkbox
+                HifiControlsUit.CheckBox {
+                    id: switchViewFromControllerCheckBox;
+                    color: hifi.colors.white;
+                    colorScheme: hifi.colorSchemes.dark;
+                    anchors.left: parent.left;
+                    anchors.top: shortcutsHeaderText.bottom;
+                    anchors.topMargin: 8;
+                    text: "";
+                    labelFontSize: 20;
+                    labelFontWeight: Font.Normal;
+                    boxSize: 24;
+                    onClicked: {
+                        sendToScript({method: 'changeSwitchViewFromControllerPreference', params: checked});
+                    }
+                }
+
+                // "Take Snapshot" Checkbox
+                HifiControlsUit.CheckBox {
+                    id: takeSnapshotFromControllerCheckBox;
+                    color: hifi.colors.white;
+                    colorScheme: hifi.colorSchemes.dark;
+                    anchors.left: parent.left; 
+                    anchors.top: switchViewFromControllerCheckBox.bottom;
+                    anchors.topMargin: 4;
+                    text: "";
+                    labelFontSize: 20;
+                    labelFontWeight: Font.Normal;
+                    boxSize: 24;
+                    onClicked: {
+                        sendToScript({method: 'changeTakeSnapshotFromControllerPreference', params: checked});
+                    }
+                }
+            }
+
+            Item {
+                id: spectatorDescriptionContainer;
+                // Size
+                height: childrenRect.height;
+                // Anchors
+                anchors.left: parent.left;
+                anchors.right: parent.right;
+                anchors.bottom: parent.bottom;
+                anchors.bottomMargin: 40;
+
+                // "Spectator" app description text
+                HifiStylesUit.RalewayRegular {
+                    id: spectatorDescriptionText;
+                    text: "While you're using a VR headset, you can use this app to change what your monitor shows. " +
+                    "Try it when streaming or recording video.";
+                    // Text size
+                    size: 20;
+                    // Size
+                    height: paintedHeight;
+                    // Anchors
+                    anchors.left: parent.left;
+                    anchors.right: parent.right;
+                    anchors.top: parent.top;
+                    // Style
+                    color: hifi.colors.white;
+                    wrapMode: Text.Wrap;
+                    // Alignment
+                    horizontalAlignment: Text.AlignHLeft;
+                    verticalAlignment: Text.AlignVCenter;
+                }
+
+                // "Learn More" text
+                HifiStylesUit.RalewayRegular {
+                    id: spectatorLearnMoreText;
+                    text: "Learn More About Spectator";
+                    // Text size
+                    size: 20;
+                    // Size
+                    width: paintedWidth;
+                    height: paintedHeight;
+                    // Anchors
+                    anchors.top: spectatorDescriptionText.bottom;
+                    anchors.topMargin: 10;
+                    anchors.left: parent.left;
+                    anchors.right: parent.right;
+                    // Style
+                    color: hifi.colors.blueAccent;
+                    wrapMode: Text.WordWrap;
+                    font.underline: true;
+                    // Alignment
+                    horizontalAlignment: Text.AlignHLeft;
+                    verticalAlignment: Text.AlignVCenter;
+
+                    MouseArea {
+                        anchors.fill: parent;
+                        hoverEnabled: enabled;
+                        onClicked: {
+                            letterbox(hifi.glyphs.question,
+                                "Spectator Camera",
+                                "By default, your monitor shows a preview of what you're seeing in VR. " +
+                                "Using the Spectator Camera app, your monitor can display the view " +
+                                "from a virtual hand-held camera - perfect for taking selfies or filming " +
+                                "your friends!<br>" +
+                                "<h3>Streaming and Recording</h3>" +
+                                "We recommend OBS for streaming and recording the contents of your monitor to services like " +
+                                "Twitch, YouTube Live, and Facebook Live.<br><br>" +
+                                "To get started using OBS, click this link now. The page will open in an external browser:<br>" +
+                                '<font size="4"><a href="https://obsproject.com/forum/threads/official-overview-guide.402/">OBS Official Overview Guide</a></font><br><br>' +
+                                '<b>Snapshots</b> taken using Spectator Camera will be saved in your Snapshots Directory - change via Settings -> General.');
+                        }
+                        onEntered: parent.color = hifi.colors.blueHighlight;
+                        onExited: parent.color = hifi.colors.blueAccent;
+                    }
                 }
             }
         }
-
-        // "Switch View From Controller" Checkbox
-        HifiControlsUit.CheckBox {
-            id: switchViewFromControllerCheckBox;
-            visible: HMD.active;
-            colorScheme: hifi.colorSchemes.dark;
-            anchors.left: parent.left;
-            anchors.top: monitorShowsSwitch.bottom;
-            anchors.topMargin: 14;
-            text: "";
-            boxSize: 24;
-            onClicked: {
-                sendToScript({method: 'changeSwitchViewFromControllerPreference', params: checked});
-            }
-        }
-
-        // "Take Snapshot" Checkbox
-        HifiControlsUit.CheckBox {
-            id: takeSnapshotFromControllerCheckBox;
-            visible: HMD.active;
-            colorScheme: hifi.colorSchemes.dark;
-            anchors.left: parent.left;
-            anchors.top: switchViewFromControllerCheckBox.bottom;
-            anchors.topMargin: 10;
-            text: "";
-            boxSize: 24;
-            onClicked: {
-                sendToScript({method: 'changeTakeSnapshotFromControllerPreference', params: checked});
-            }
-        }
-
-		HifiControlsUit.Button {
-			id: takeSnapshotButton;
-            enabled: masterSwitch.checked;
-            text: "Take Still Snapshot";
-			colorScheme: hifi.colorSchemes.dark;
-			color: hifi.buttons.blue;
-			anchors.top: takeSnapshotFromControllerCheckBox.visible ? takeSnapshotFromControllerCheckBox.bottom : fieldOfView.bottom;
-			anchors.topMargin: 8;
-			anchors.left: parent.left;
-            width: parent.width/2 - 10;
-			height: 40;
-			onClicked: {
-				sendToScript({method: 'takeSecondaryCameraSnapshot'});
-			}
-		}
-		HifiControlsUit.Button {
-			id: take360SnapshotButton;
-            enabled: masterSwitch.checked;
-            text: "Take 360 Snapshot";
-			colorScheme: hifi.colorSchemes.dark;
-			color: hifi.buttons.blue;
-			anchors.top: takeSnapshotFromControllerCheckBox.visible ? takeSnapshotFromControllerCheckBox.bottom : fieldOfView.bottom;
-			anchors.topMargin: 8;
-			anchors.right: parent.right;
-            width: parent.width/2 - 10;
-			height: 40;
-			onClicked: {
-                root.processing360Snapshot = true;
-				sendToScript({method: 'takeSecondaryCamera360Snapshot'});
-			}
-		}
     }
     //
     // SPECTATOR CONTROLS END
-    //
-
-    //
-    // SPECTATOR APP DESCRIPTION START
-    //
-    Item {
-        id: spectatorDescriptionContainer;
-        // Size
-        width: root.width;
-        height: childrenRect.height;
-        // Anchors
-        anchors.left: parent.left;
-        anchors.bottom: anchors.bottom;
-
-        // "Spectator" app description text
-        HifiStylesUit.RalewayLight {
-            id: spectatorDescriptionText;
-            text: "Spectator lets you change what your monitor displays while you're using a VR headset. Use Spectator when streaming and recording video.";
-            // Text size
-            size: 14;
-            // Size
-            width: 350;
-            height: paintedHeight;
-            // Anchors
-            anchors.top: parent.top;
-            anchors.topMargin: 15;
-            anchors.left: spectatorDescriptionGlyph.right;
-            anchors.leftMargin: 40;
-            // Style
-            color: hifi.colors.lightGrayText;
-            wrapMode: Text.Wrap;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
-        }
-
-        // "Learn More" text
-        HifiStylesUit.RalewayRegular {
-            id: spectatorLearnMoreText;
-            text: "Learn More About Spectator";
-            // Text size
-            size: 14;
-            // Size
-            width: paintedWidth;
-            height: paintedHeight;
-            // Anchors
-            anchors.top: spectatorDescriptionText.bottom;
-            anchors.topMargin: 10;
-            anchors.left: spectatorDescriptionText.anchors.left;
-            anchors.leftMargin: spectatorDescriptionText.anchors.leftMargin;
-            // Style
-            color: hifi.colors.blueAccent;
-            wrapMode: Text.WordWrap;
-            font.underline: true;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
-
-            MouseArea {
-                anchors.fill: parent;
-                hoverEnabled: enabled;
-                onClicked: {
-                    letterbox(hifi.glyphs.question,
-                        "Spectator Camera",
-                        "By default, your monitor shows a preview of what you're seeing in VR. " +
-                        "Using the Spectator Camera app, your monitor can display the view " +
-                        "from a virtual hand-held camera - perfect for taking selfies or filming " +
-                        "your friends!<br>" +
-                        "<h3>Streaming and Recording</h3>" +
-                        "We recommend OBS for streaming and recording the contents of your monitor to services like " +
-                        "Twitch, YouTube Live, and Facebook Live.<br><br>" +
-                        "To get started using OBS, click this link now. The page will open in an external browser:<br>" +
-                        '<font size="4"><a href="https://obsproject.com/forum/threads/official-overview-guide.402/">OBS Official Overview Guide</a></font>');
-                }
-                onEntered: parent.color = hifi.colors.blueHighlight;
-                onExited: parent.color = hifi.colors.blueAccent;
-            }
-        }
-
-        // Separator
-        HifiControlsUit.Separator {
-            anchors.left: parent.left;
-            anchors.right: parent.right;
-            anchors.top: spectatorLearnMoreText.bottom;
-            anchors.topMargin: spectatorDescriptionText.anchors.topMargin;
-        }
-    }
-    //
-    // SPECTATOR APP DESCRIPTION END
     //
 
     //
@@ -507,7 +572,8 @@ Rectangle {
             masterSwitch.checked = message.params;
         break;
         case 'updateMonitorShowsSwitch':
-            monitorShowsSwitch.checked = message.params;
+            showCameraView.checked = message.params;
+            showHmdPreview.checked = !message.params;
         break;
         case 'updateControllerMappingCheckbox':
             switchViewFromControllerCheckBox.checked = message.switchViewSetting;
@@ -516,11 +582,11 @@ Rectangle {
             takeSnapshotFromControllerCheckBox.enabled = true;
 
             if (message.controller === "OculusTouch") {
-                switchViewFromControllerCheckBox.text = "Clicking Touch's Left Thumbstick Switches Monitor View";
-				takeSnapshotFromControllerCheckBox.text = "Clicking Touch's Right Thumbstick Takes Snapshot";
+                switchViewFromControllerCheckBox.text = "Left Thumbstick: Switch Monitor View";
+				takeSnapshotFromControllerCheckBox.text = "Right Thumbstick: Take Snapshot";
             } else if (message.controller === "Vive") {
-                switchViewFromControllerCheckBox.text = "Clicking Left Thumb Pad Switches Monitor View";
-				takeSnapshotFromControllerCheckBox.text = "Clicking Right Thumb Pad Takes Snapshot";
+                switchViewFromControllerCheckBox.text = "Left Thumb Pad: Switch Monitor View";
+				takeSnapshotFromControllerCheckBox.text = "Right Thumb Pad: Take Snapshot";
             } else {
                 switchViewFromControllerCheckBox.text = "Pressing Ctrl+0 Switches Monitor View";
                 switchViewFromControllerCheckBox.checked = true;
