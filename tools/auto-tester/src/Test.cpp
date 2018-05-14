@@ -175,40 +175,39 @@ void Test::appendTestResultsToFile(const QString& testResultsFolderPath, TestFai
 }
 
 void Test::startTestsEvaluation(const QString& testFolder) {
-    QString pathToTestResultsDirectory;
-    if (testFolder.isNull()) {
-        // Get list of JPEG images in folder, sorted by name
-        pathToTestResultsDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
-    } else {
-        pathToTestResultsDirectory = testFolder;
-    }
+    // Get list of JPEG images in folder, sorted by name
+    QString previousSelection = snapshotDirectory;
 
-    if (pathToTestResultsDirectory == QString()) {
+    snapshotDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images",
+                                                          previousSelection, QFileDialog::ShowDirsOnly);
+
+    // If user cancelled then restore previous selection and return
+    if (snapshotDirectory == "") {
+        snapshotDirectory = previousSelection;
         return;
     }
 
     // Quit if test results folder could not be created
-    if (!createTestResultsFolderPath(pathToTestResultsDirectory)) {
+    if (!createTestResultsFolderPath(snapshotDirectory)) {
         return;
     }
 
     // Before any processing - all images are converted to PNGs, as this is the format stored on GitHub
-    QStringList sortedSnapshotFilenames = createListOfAll_imagesInDirectory("jpg", pathToTestResultsDirectory);
+    QStringList sortedSnapshotFilenames = createListOfAll_imagesInDirectory("jpg", snapshotDirectory);
     foreach(QString filename, sortedSnapshotFilenames) {
         QStringList stringParts = filename.split(".");
-        copyJPGtoPNG(
-            pathToTestResultsDirectory + "/" + stringParts[0] + ".jpg", 
-            pathToTestResultsDirectory + "/" + stringParts[0] + ".png"
+        copyJPGtoPNG(snapshotDirectory + "/" + stringParts[0] + ".jpg", 
+            snapshotDirectory + "/" + stringParts[0] + ".png"
         );
 
-        QFile::remove(pathToTestResultsDirectory + "/" + stringParts[0] + ".jpg");
+        QFile::remove(snapshotDirectory + "/" + stringParts[0] + ".jpg");
     }
 
     // Create two lists.  The first is the test results,  the second is the expected images
     // The expected images are represented as a URL to enable download from GitHub
     // Images that are in the wrong format are ignored.
 
-    QStringList sortedTestResultsFilenames = createListOfAll_imagesInDirectory("png", pathToTestResultsDirectory);
+    QStringList sortedTestResultsFilenames = createListOfAll_imagesInDirectory("png", snapshotDirectory);
     QStringList expectedImagesURLs;
 
     resultImagesFullFilenames.clear();
@@ -216,7 +215,7 @@ void Test::startTestsEvaluation(const QString& testFolder) {
     expectedImagesFullFilenames.clear();
 
     foreach(QString currentFilename, sortedTestResultsFilenames) {
-        QString fullCurrentFilename = pathToTestResultsDirectory + "/" + currentFilename;
+        QString fullCurrentFilename = snapshotDirectory + "/" + currentFilename;
         if (isInSnapshotFilenameFormat("png", currentFilename)) {
             resultImagesFullFilenames << fullCurrentFilename;
 
@@ -236,11 +235,11 @@ void Test::startTestsEvaluation(const QString& testFolder) {
             QString expectedImageFilename = currentFilename.replace("/", "_").replace(".", "_EI.");
 
             expectedImagesFilenames << expectedImageFilename;
-            expectedImagesFullFilenames << pathToTestResultsDirectory + "/" + expectedImageFilename;
+            expectedImagesFullFilenames << snapshotDirectory + "/" + expectedImageFilename;
         }
     }
 
-    autoTester->downloadImages(expectedImagesURLs, pathToTestResultsDirectory, expectedImagesFilenames);
+    autoTester->downloadImages(expectedImagesURLs, snapshotDirectory, expectedImagesFilenames);
 }
 
 void Test::finishTestsEvaluation(bool isRunningFromCommandline, bool interactiveMode, QProgressBar* progressBar) {
@@ -303,25 +302,39 @@ void Test::importTest(QTextStream& textStream, const QString& testPathname) {
 // This script will run all text.js scripts in every applicable sub-folder
 void Test::createRecursiveScript() {
     // Select folder to start recursing from
-    QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder that will contain the top level test script", ".", QFileDialog::ShowDirsOnly);
-    if (topLevelDirectory == "") {
+    QString previousSelection = testDirectory;
+
+    testDirectory =
+        QFileDialog::getExistingDirectory(nullptr, "Please select folder that will contain the top level test script",
+                                          previousSelection, QFileDialog::ShowDirsOnly);
+
+    // If user cancelled then restore previous selection and return
+    if (testDirectory == "") {
+        testDirectory = previousSelection;
         return;
     }
 
-    createRecursiveScript(topLevelDirectory, true);
+    createRecursiveScript(testDirectory, true);
 }
 
 // This method creates a `testRecursive.js` script in every sub-folder.
 void Test::createAllRecursiveScripts() {
     // Select folder to start recursing from
-    QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select the root folder for the recursive scripts", ".", QFileDialog::ShowDirsOnly);
-    if (topLevelDirectory == "") {
+    QString previousSelection = testDirectory;
+
+    testDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select the root folder for the recursive scripts",
+                                                      previousSelection,
+                                                      QFileDialog::ShowDirsOnly);
+
+    // If user cancelled then restore previous selection and return
+    if (testDirectory == "") {
+        testDirectory = previousSelection;
         return;
     }
 
-    createRecursiveScript(topLevelDirectory, false);
+    createRecursiveScript(testDirectory, false);
 
-    QDirIterator it(topLevelDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    QDirIterator it(testDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
     while (it.hasNext()) {
         QString directory = it.next();
 
@@ -427,29 +440,42 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
 void Test::createTest() {
     // Rename files sequentially, as ExpectedResult_00000.jpeg, ExpectedResult_00001.jpg and so on
     // Any existing expected result images will be deleted
-    QString imageSourceDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
-    if (imageSourceDirectory == "") {
+    QString previousSelection = snapshotDirectory;
+
+    snapshotDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images",
+                                                          previousSelection,
+                                                          QFileDialog::ShowDirsOnly);
+
+    // If user cancelled then restore previous selection and return
+    if (snapshotDirectory == "") {
+        snapshotDirectory = previousSelection;
         return;
     }
 
-    QString imageDestinationDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder to save the test images", ".", QFileDialog::ShowDirsOnly);
-    if (imageDestinationDirectory == "") {
+    previousSelection = testDirectory;
+
+    QString testDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder to save the test images",
+                                                              previousSelection, QFileDialog::ShowDirsOnly);
+
+    // If user cancelled then restore previous selection and return
+    if (testDirectory == "") {
+        testDirectory = previousSelection;
         return;
     }
 
-    QStringList sortedImageFilenames = createListOfAll_imagesInDirectory("jpg", imageSourceDirectory);
+    QStringList sortedImageFilenames = createListOfAll_imagesInDirectory("jpg", snapshotDirectory);
 
     int i = 1; 
     const int maxImages = pow(10, NUM_DIGITS);
     foreach (QString currentFilename, sortedImageFilenames) {
-        QString fullCurrentFilename = imageSourceDirectory + "/" + currentFilename;
+        QString fullCurrentFilename = snapshotDirectory + "/" + currentFilename;
         if (isInSnapshotFilenameFormat("jpg", currentFilename)) {
             if (i >= maxImages) {
                 QMessageBox::critical(0, "Error", "More than " + QString::number(maxImages) + " images not supported");
                 exit(-1);
             }
             QString newFilename = "ExpectedImage_" + QString::number(i - 1).rightJustified(5, '0') + ".png";
-            QString fullNewFileName = imageDestinationDirectory + "/" + newFilename;
+            QString fullNewFileName = testDirectory + "/" + newFilename;
 
             try {
                 copyJPGtoPNG(fullCurrentFilename, fullNewFileName);
@@ -489,31 +515,6 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
     QString regexTestTitle(ws + functionPerformName + "\\(" + quotedString + "\\," + ws + ownPath + "\\," + ws + functionParameter + ws + "{" + ".*");
     QRegularExpression lineContainingTitle = QRegularExpression(regexTestTitle);
 
-    // Assert platform checks that test is running on the correct OS
-    const QString functionAssertPlatform(ws + "autoTester" + ws + "\\." + ws + "assertPlatform");
-    const QString regexAssertPlatform(ws + functionAssertPlatform + ws + "\\(" + ws + quotedString + ".*");
-    const QRegularExpression lineAssertPlatform = QRegularExpression(regexAssertPlatform);
-
-    // Assert display checks that test is running on the correct display
-    const QString functionAssertDisplay(ws + "autoTester" + ws + "\\." + ws + "assertDisplay");
-    const QString regexAssertDisplay(ws + functionAssertDisplay + ws + "\\(" + ws + quotedString + ".*");
-    const QRegularExpression lineAssertDisplay = QRegularExpression(regexAssertDisplay);
-
-    // Assert CPU checks that test is running on the correct type of CPU 
-    const QString functionAssertCPU(ws + "autoTester" + ws + "\\." + ws + "assertCPU");
-    const QString regexAssertCPU(ws + functionAssertCPU + ws + "\\(" + ws + quotedString + ".*");
-    const QRegularExpression lineAssertCPU = QRegularExpression(regexAssertCPU);
-
-    // Assert GPU checks that test is running on the correct type of GPU 
-    const QString functionAssertGPU(ws + "autoTester" + ws + "\\." + ws + "assertGPU");
-    const QString regexAssertGPU(ws + functionAssertGPU + ws + "\\(" + ws + quotedString + ".*");
-    const QRegularExpression lineAssertGPU = QRegularExpression(regexAssertGPU);
-
-    // Assert the correct amount of memory
-    const QString functionAssertPhysicalMemoryGB(ws + "autoTester" + ws + "\\." + ws + "assertPhysicalMemoryGB");
-    const QString regexAssertPhysicalMemoryGB(ws + functionAssertPhysicalMemoryGB + ws + "\\(" + ws + quotedString + ".*");
-    const QRegularExpression lineAssertPhysicalMemoryGB = QRegularExpression(regexAssertPhysicalMemoryGB);
-
 
     // Each step is either of the following forms:
     //        autoTester.addStepSnapshot("Take snapshot"...
@@ -523,7 +524,7 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
     const QRegularExpression lineStepSnapshot = QRegularExpression(regexStepSnapshot);
 
     const QString functionAddStepName(ws + "autoTester" + ws + "\\." + ws + "addStep");
-    const QString regexStep(ws + functionAddStepName + ws + "\\(" + ws + quotedString + ws + "\\)" + ".*");
+    const QString regexStep(ws + functionAddStepName + ws + "\\(" + ws + quotedString + ".*");
     const QRegularExpression lineStep = QRegularExpression(regexStep);
 
     while (!line.isNull()) {
@@ -531,7 +532,6 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
         if (lineContainingTitle.match(line).hasMatch()) {
             QStringList tokens = line.split('"');
             relevantTextFromTest.title = tokens[1];
-
         } else if (lineStepSnapshot.match(line).hasMatch()) {
             QStringList tokens = line.split('"');
             QString nameOfStep = tokens[1];
@@ -561,29 +561,43 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
 // The folder selected must contain a script named "test.js", the file produced is named "test.md"
 void Test::createMDFile() {
     // Folder selection
-    QString testDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test", ".", QFileDialog::ShowDirsOnly);
+    QString previousSelection = testDirectory;
+
+    testDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test", previousSelection,
+                                                      QFileDialog::ShowDirsOnly);
+
+    // If user cancelled then restore previous selection and return
     if (testDirectory == "") {
+        testDirectory = previousSelection;
         return;
     }
 
     createMDFile(testDirectory);
+
+    QMessageBox::information(0, "Success", "MD file has been created");
 }
 
 void Test::createAllMDFiles() {
     // Select folder to start recursing from
-    QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select the root folder for the MD files", ".", QFileDialog::ShowDirsOnly);
-    if (topLevelDirectory == "") {
+    QString previousSelection = testDirectory;
+
+    testDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select the root folder for the MD files",
+                                                      previousSelection, QFileDialog::ShowDirsOnly);
+
+    // If user cancelled then restore previous selection and return
+    if (testDirectory == "") {
+        testDirectory = previousSelection;
         return;
     }
 
     // First test if top-level folder has a test.js file
-    const QString testPathname{ topLevelDirectory + "/" + TEST_FILENAME };
+    const QString testPathname { testDirectory + "/" + TEST_FILENAME };
     QFileInfo fileInfo(testPathname);
     if (fileInfo.exists()) {
-        createMDFile(topLevelDirectory);
+        createMDFile(testDirectory);
     }
 
-    QDirIterator it(topLevelDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    QDirIterator it(testDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
     while (it.hasNext()) {
         QString directory = it.next();
 
@@ -638,31 +652,33 @@ void Test::createMDFile(const QString& testDirectory) {
     stream << "## Steps\n";
     stream << "Press space bar to advance step by step\n\n";
 
-    // Note that snapshots of step n are taken in step n+1
-    // (this implies that if the LAST step requests a snapshot then this will not work - caveat emptor)
     int snapShotIndex { 0 };
     for (size_t i = 0; i < testScriptLines.stepList.size(); ++i) {
         stream << "### Step " << QString::number(i + 1) << "\n";
         stream << "- " << testScriptLines.stepList[i]->text << "\n";
-        if ((i + 1 < testScriptLines.stepList.size()) && testScriptLines.stepList[i + 1]->takeSnapshot) {
+        if ((i + 1 < testScriptLines.stepList.size()) && testScriptLines.stepList[i]->takeSnapshot) {
             stream << "- ![](./ExpectedImage_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png)\n";
             ++snapShotIndex;
         }
     }
 
     mdFile.close();
-
-    QMessageBox::information(0, "Success", "Test MD file " + mdFilename + " has been created");
 }
 
 void Test::createTestsOutline() {
-    QString testsRootDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select the tests root folder", ".", QFileDialog::ShowDirsOnly);
-    if (testsRootDirectory == "") {
+    QString previousSelection = testDirectory;
+
+    testDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select the tests root folder", previousSelection,
+                                                      QFileDialog::ShowDirsOnly);
+
+    // If user cancelled then restore previous selection and return
+    if (testDirectory == "") {
+        testDirectory = previousSelection;
         return;
     }
 
     const QString testsOutlineFilename { "testsOutline.md" };
-    QString mdFilename(testsRootDirectory + "/" + testsOutlineFilename);
+    QString mdFilename(testDirectory + "/" + testsOutlineFilename);
     QFile mdFile(mdFilename);
     if (!mdFile.open(QIODevice::WriteOnly)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + mdFilename);
@@ -676,10 +692,10 @@ void Test::createTestsOutline() {
     stream << "Directories with an appended (*) have an automatic test\n\n";
 
     // We need to know our current depth, as this isn't given by QDirIterator
-    int rootDepth { testsRootDirectory.count('/') };
+    int rootDepth { testDirectory.count('/') };
 
     // Each test is shown as the folder name linking to the matching GitHub URL, and the path to the associated test.md file
-    QDirIterator it(testsRootDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    QDirIterator it(testDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
     while (it.hasNext()) {
         QString directory = it.next();
 
