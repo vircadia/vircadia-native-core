@@ -118,6 +118,7 @@ Rectangle {
             var getAvatarsReply = message.reply;
             allAvatars.populate(getAvatarsReply.bookmarks);
             setCurrentAvatar(getAvatarsReply.currentAvatar, '');
+            displayNameInput.text = getAvatarsReply.displayName;
 
             console.debug('currentAvatar: ', JSON.stringify(currentAvatar, null, '\t'));
             updateCurrentAvatarInBookmarks(currentAvatar);
@@ -246,8 +247,10 @@ Rectangle {
             text: 'Display Name'
         }
 
-        TextField {
+        InputField {
             id: displayNameInput
+
+            font.pixelSize: 18
             anchors.left: displayNameLabel.right
             anchors.leftMargin: 30
             anchors.verticalCenter: displayNameLabel.verticalCenter
@@ -255,44 +258,11 @@ Rectangle {
             anchors.rightMargin: 30
             width: 232
 
-            property bool error: text === '';
             text: 'ThisIsDisplayName'
 
-            states: [
-                State {
-                    name: "hovered"
-                    when: displayNameInput.hovered && !displayNameInput.focus && !displayNameInput.error;
-                    PropertyChanges { target: displayNameInputBackground; color: '#afafaf' }
-                },
-                State {
-                    name: "focused"
-                    when: displayNameInput.focus && !displayNameInput.error
-                    PropertyChanges { target: displayNameInputBackground; color: '#f2f2f2' }
-                    PropertyChanges { target: displayNameInputBackground; border.color: '#00b4ef' }
-                },
-                State {
-                    name: "error"
-                    when: displayNameInput.error
-                    PropertyChanges { target: displayNameInputBackground; color: '#f2f2f2' }
-                    PropertyChanges { target: displayNameInputBackground; border.color: '#e84e62' }
-                }
-            ]
-
-            background: Rectangle {
-                id: displayNameInputBackground
-                implicitWidth: 200
-                implicitHeight: 40
-                color: '#d4d4d4'
-                border.color: '#afafaf'
-                border.width: 1
-                radius: 2
-            }
-
-            HiFiGlyphs {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                size: 36
-                text: "\ue00d"
+            onEditingFinished: {
+                emitSendToScript({'method' : 'changeDisplayName', 'displayName' : text})
+                focus = false;
             }
         }
 

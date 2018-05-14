@@ -110,7 +110,7 @@ var adjustWearables = {
 }
 
 var currentAvatarWearablesBackup = null;
-var currentAvatar = getMyAvatar();
+var currentAvatar = null;
 var selectedAvatarEntityGrabbable = false;
 var selectedAvatarEntity = null;
 
@@ -119,12 +119,12 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
 
     switch (message.method) {
     case 'getAvatars':
-
+        currentAvatar = getMyAvatar();
         message.reply = {
             'bookmarks' : AvatarBookmarks.getBookmarks(),
-            'currentAvatar' : currentAvatar
+            'currentAvatar' : currentAvatar,
+            'displayName' : MyAvatar.displayName
         };
-
         console.debug('avatarapp.js: currentAvatar: ', JSON.stringify(message.reply.currentAvatar, null, '\t'))
         sendToQml(message)
         break;
@@ -182,6 +182,13 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         console.debug('avatarapp.js: deleteWearable: ', message.entityID, 'from avatar: ', message.avatarName);
         Entities.deleteEntity(message.entityID);
         updateAvatarWearables(currentAvatar, message.avatarName);
+        break;
+    case 'changeDisplayName':
+        console.debug('avatarapp.js: changeDisplayName: ', message.displayName);
+        if (MyAvatar.displayName !== message.displayName) {
+            MyAvatar.displayName = message.displayName;
+            UserActivityLogger.palAction("display_name_change", message.displayName);
+        }
         break;
     default:
         print('Unrecognized message from AvatarApp.qml:', JSON.stringify(message));
