@@ -21,7 +21,6 @@ var TEXT_MARGIN = 0.025;
 var HIDE_MS = 10000;
 
 var currentTouchToAnalyze = null;
-var rayExclusionList = []; // Updated at sessionUUID changes
 
 var currentlyShownAvatar = {
     avatarID: null,
@@ -113,7 +112,7 @@ function touchEnd(event) {
     }
 
     var pickRay = Camera.computePickRay(event.x, event.y);
-    var avatarRay = AvatarManager.findRayIntersection(pickRay, [], rayExclusionList);
+    var avatarRay = AvatarManager.findRayIntersection(pickRay, [], [MyAvatar.sessionUUID])
 
     if (avatarRay.intersects) {
         touchedAvatar(avatarRay.avatarID, AvatarManager.getAvatar(avatarRay.avatarID));
@@ -122,10 +121,6 @@ function touchEnd(event) {
     }
 
     currentTouchToAnalyze = null;
-}
-
-function excludeMyAvatar() {
-    rayExclusionList = [MyAvatar.sessionUUID];
 }
 
 var runAtLeastOnce = false;
@@ -147,8 +142,6 @@ function ending() {
     if (currentlyShownAvatar.avatar) {
         currentlyShownAvatar.avatar = null;
     }
-
-    MyAvatar.sessionUUIDChanged.disconnect(excludeMyAvatar);
 }
 
 function init() {
@@ -160,9 +153,6 @@ function init() {
     Script.scriptEnding.connect(function () {
         ending();
     });
-
-    rayExclusionList = [MyAvatar.sessionUUID];
-    MyAvatar.sessionUUIDChanged.connect(excludeMyAvatar);
 
     runAtLeastOnce = true;
 }
