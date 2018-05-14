@@ -30,7 +30,9 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/dialTone.js",
     "system/firstPersonHMD.js",
     "system/tablet-ui/tabletUI.js",
-    "system/emote.js"
+    "system/emote.js",
+    "system/createobject.js",
+    "system/deleteobject.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js"
