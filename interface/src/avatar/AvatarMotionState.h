@@ -81,7 +81,7 @@ protected:
     const btCollisionShape* computeNewShape() override;
 
     AvatarSharedPointer _avatar;
-    float _radius2 { 0.0f };
+    float _diameter { 0.0f };
 
     uint32_t _dirtyFlags;
 };
