@@ -436,6 +436,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_DPI, dpi);
     CHECK_PROPERTY_CHANGE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
 
+    CHECK_PROPERTY_CHANGE(PROP_CLONEABLE, cloneable);
+    CHECK_PROPERTY_CHANGE(PROP_CLONEABLE_LIFETIME, cloneableLifetime);
+    CHECK_PROPERTY_CHANGE(PROP_CLONEABLE_LIMIT, cloneableLimit);
+    CHECK_PROPERTY_CHANGE(PROP_CLONEABLE_DYNAMIC, cloneableDynamic);
+
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
     changedProperties += _ambientLight.getChangedProperties();
@@ -1430,6 +1435,11 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);  // Gettable but not settable except at entity creation
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);  // Gettable but not settable
 
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONEABLE, cloneable);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONEABLE_LIFETIME, cloneableLifetime);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONEABLE_LIMIT, cloneableLimit);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONEABLE_DYNAMIC, cloneableDynamic);
+
     // Rendering info
     if (!skipDefaults && !strictSemantics) {
         QScriptValue renderInfo = engine->newObject();
@@ -1641,6 +1651,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneable, bool, setCloneable);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneableLifetime, float, setCloneableLifetime);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneableLimit, float, setCloneableLimit);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneableDynamic, bool, setCloneableDynamic);
 
     _lastEdited = usecTimestampNow();
 }
@@ -2017,6 +2032,11 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 
         ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
 
+        ADD_PROPERTY_TO_MAP(PROP_CLONEABLE, Cloneable, cloneable, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CLONEABLE_LIFETIME, CloneableLifetime, cloneableLifetime, float);
+        ADD_PROPERTY_TO_MAP(PROP_CLONEABLE_LIMIT, CloneableLimit, cloneableLimit, float);
+        ADD_PROPERTY_TO_MAP(PROP_CLONEABLE_DYNAMIC, CloneableDynamic, cloneableDynamic, bool);
+
         // FIXME - these are not yet handled
         //ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
 
@@ -2331,6 +2351,11 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, properties.getEntityInstanceNumber());
             APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, properties.getCertificateID());
             APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, properties.getStaticCertificateVersion());
+
+            APPEND_ENTITY_PROPERTY(PROP_CLONEABLE, properties.getCloneable());
+            APPEND_ENTITY_PROPERTY(PROP_CLONEABLE_LIFETIME, properties.getCloneableLifetime());
+            APPEND_ENTITY_PROPERTY(PROP_CLONEABLE_LIMIT, properties.getCloneableLimit());
+            APPEND_ENTITY_PROPERTY(PROP_CLONEABLE_DYNAMIC, properties.getCloneableDynamic());
         }
 
         if (propertyCount > 0) {
@@ -2701,6 +2726,11 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CERTIFICATE_ID, QString, setCertificateID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
 
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONEABLE, bool, setCloneable);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONEABLE_LIFETIME, float, setCloneableLifetime);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONEABLE_LIMIT, float, setCloneableLimit);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONEABLE_DYNAMIC, bool, setCloneableDynamic);
+
     return valid;
 }
 
@@ -2776,6 +2806,54 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     outputLength += NUM_BYTES_RFC4122_UUID;
 
     buffer.resize(outputLength);
+
+    return true;
+}
+
+bool EntityItemProperties::encodeCloneEntityMessage(const EntityItemID& entityIDToClone, const EntityItemID& newEntityID, QByteArray& buffer) {
+
+    char* copyAt = buffer.data();
+    int outputLength = 0;
+
+    if (buffer.size() < (int)(sizeof(NUM_BYTES_RFC4122_UUID) * 2)) {
+        qCDebug(entities) << "ERROR - encodeCloneEntityMessage() called with buffer that is too small!";
+        return false;
+    }
+
+    memcpy(copyAt, entityIDToClone.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
+    copyAt += NUM_BYTES_RFC4122_UUID;
+    outputLength += NUM_BYTES_RFC4122_UUID;
+
+    memcpy(copyAt, newEntityID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
+    copyAt += NUM_BYTES_RFC4122_UUID;
+    outputLength += NUM_BYTES_RFC4122_UUID;
+
+    buffer.resize(outputLength);
+
+    return true;
+}
+
+bool EntityItemProperties::decodeCloneEntityMessage(const QByteArray& buffer, int& processedBytes, EntityItemID& entityIDToClone, EntityItemID& newEntityID) {
+
+    const unsigned char* packetData = (const unsigned char*)buffer.constData();
+    const unsigned char* dataAt = packetData;
+    size_t packetLength = buffer.size();
+    processedBytes = 0;
+
+    if (NUM_BYTES_RFC4122_UUID * 2 > packetLength) {
+        qCDebug(entities) << "EntityItemProperties::processEraseMessageDetails().... bailing because not enough bytes in buffer";
+        return false; // bail to prevent buffer overflow
+    }
+
+    QByteArray encodedID = buffer.mid((int)processedBytes, NUM_BYTES_RFC4122_UUID);
+    entityIDToClone = QUuid::fromRfc4122(encodedID);
+    dataAt += encodedID.size();
+    processedBytes += encodedID.size();
+
+    encodedID = buffer.mid((int)processedBytes, NUM_BYTES_RFC4122_UUID);
+    newEntityID = QUuid::fromRfc4122(encodedID);
+    dataAt += encodedID.size();
+    processedBytes += encodedID.size();
 
     return true;
 }
@@ -2941,6 +3019,11 @@ void EntityItemProperties::markAllChanged() {
 
     _dpiChanged = true;
     _relayParentJointsChanged = true;
+
+    _cloneableChanged = true;
+    _cloneableLifetimeChanged = true;
+    _cloneableLimitChanged = true;
+    _cloneableDynamicChanged = true;
 }
 
 // The minimum bounding box for the entity.
@@ -3373,6 +3456,20 @@ QList<QString> EntityItemProperties::listChangedProperties() {
         out += "isUVModeStretch";
     }
 
+    if (cloneableChanged()) {
+        out += "cloneable";
+    }
+    if (cloneableLifetimeChanged()) {
+        out += "cloneableLifetime";
+    }
+    if (cloneableLimitChanged()) {
+        out += "cloneableLimit";
+    }
+    if (cloneableDynamicChanged()) {
+        out += "cloneableDynamic";
+    }
+
+
     getAnimation().listChangedProperties(out);
     getKeyLight().listChangedProperties(out);
     getAmbientLight().listChangedProperties(out);
@@ -3535,4 +3632,15 @@ bool EntityItemProperties::verifyStaticCertificateProperties() {
     // True IFF a non-empty certificateID matches the static certificate json.
     // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
     return verifySignature(EntityItem::_marketplacePublicKey, getStaticCertificateHash(), QByteArray::fromBase64(getCertificateID().toUtf8()));
+}
+
+void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityIDToClone) {
+    setName(getName() + "-clone-" + entityIDToClone.toString());
+    setLocked(false);
+    setLifetime(getCloneableLifetime());
+    setDynamic(getCloneableDynamic());
+    setCloneable(ENTITY_ITEM_CLONEABLE);
+    setCloneableLifetime(ENTITY_ITEM_CLONEABLE_LIFETIME);
+    setCloneableLimit(ENTITY_ITEM_CLONEABLE_LIMIT);
+    setCloneableDynamic(ENTITY_ITEM_CLONEABLE_DYNAMIC);
 }

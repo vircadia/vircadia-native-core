@@ -124,6 +124,11 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
 
     requestedProperties += PROP_LAST_EDITED_BY;
 
+    requestedProperties += PROP_CLONEABLE;
+    requestedProperties += PROP_CLONEABLE_LIFETIME;
+    requestedProperties += PROP_CLONEABLE_LIMIT;
+    requestedProperties += PROP_CLONEABLE_DYNAMIC;
+
     return requestedProperties;
 }
 
@@ -287,6 +292,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, getParentJointIndex());
         APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, getQueryAACube());
         APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, getLastEditedBy());
+
+        APPEND_ENTITY_PROPERTY(PROP_CLONEABLE, getCloneable());
+        APPEND_ENTITY_PROPERTY(PROP_CLONEABLE_LIFETIME, getCloneableLifetime());
+        APPEND_ENTITY_PROPERTY(PROP_CLONEABLE_LIMIT, getCloneableLimit());
+        APPEND_ENTITY_PROPERTY(PROP_CLONEABLE_DYNAMIC, getCloneableDynamic());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -848,6 +858,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     READ_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, QUuid, setLastEditedBy);
 
+    READ_ENTITY_PROPERTY(PROP_CLONEABLE, bool, setCloneable);
+    READ_ENTITY_PROPERTY(PROP_CLONEABLE_LIFETIME, float, setCloneableLifetime);
+    READ_ENTITY_PROPERTY(PROP_CLONEABLE_LIMIT, float, setCloneableLimit);
+    READ_ENTITY_PROPERTY(PROP_CLONEABLE_DYNAMIC, bool, setCloneableDynamic);
+
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData, somethingChanged);
 
@@ -1275,6 +1290,11 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lastEditedBy, getLastEditedBy);
 
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneable, getCloneable);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneableLifetime, getCloneableLifetime);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneableLimit, getCloneableLimit);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneableDynamic, getCloneableDynamic);
+
     properties._defaultSettings = false;
 
     return properties;
@@ -1381,6 +1401,11 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(owningAvatarID, setOwningAvatarID);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lastEditedBy, setLastEditedBy);
+
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneable, setCloneable);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneableLifetime, setCloneableLifetime);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneableLimit, setCloneableLimit);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneableDynamic, setCloneableDynamic);
 
     if (updateQueryAACube()) {
         somethingChanged = true;
@@ -2974,4 +2999,77 @@ std::unordered_map<std::string, graphics::MultiMaterial> EntityItem::getMaterial
         toReturn = _materials;
     }
     return toReturn;
+}
+
+bool EntityItem::getCloneable() const {
+    bool result;
+    withReadLock([&] {
+        result = _cloneable;
+    });
+    return result;
+}
+
+void EntityItem::setCloneable(bool value) {
+    withWriteLock([&] {
+        _cloneable = value;
+    });
+}
+
+float EntityItem::getCloneableLifetime() const {
+    float result;
+    withReadLock([&] {
+        result = _cloneableLifetime;
+    });
+    return result;
+}
+
+void EntityItem::setCloneableLifetime(float value) {
+    withWriteLock([&] {
+        _cloneableLifetime = value;
+    });
+}
+
+float EntityItem::getCloneableLimit() const {
+    float result;
+    withReadLock([&] {
+        result = _cloneableLimit;
+    });
+    return result;
+}
+
+void EntityItem::setCloneableLimit(float value) {
+    withWriteLock([&] {
+        _cloneableLimit = value;
+    });
+}
+
+bool EntityItem::getCloneableDynamic() const {
+    bool result;
+    withReadLock([&] {
+        result = _cloneableDynamic;
+    });
+    return result;
+}
+
+void EntityItem::setCloneableDynamic(const bool value) {
+    withWriteLock([&] {
+        _cloneableDynamic = value;
+    });
+}
+
+bool EntityItem::addCloneID(const QUuid& cloneID) {
+    if (!_cloneIDs.contains(cloneID)) {
+        _cloneIDs.append(cloneID);
+        return true;
+    }
+    return false;
+}
+
+bool EntityItem::removeCloneID(const QUuid& cloneID) {
+    int index = _cloneIDs.indexOf(cloneID);
+    if (index > 0) {
+        _cloneIDs.removeAt(index);
+        return true;
+    }
+    return false;
 }

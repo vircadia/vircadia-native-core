@@ -97,4 +97,9 @@ const QUuid ENTITY_ITEM_DEFAULT_LAST_EDITED_BY = QUuid();
 
 const bool ENTITY_ITEM_DEFAULT_RELAY_PARENT_JOINTS = false;
 
+const bool ENTITY_ITEM_CLONEABLE = false;
+const float ENTITY_ITEM_CLONEABLE_LIFETIME = 300.0f;
+const int ENTITY_ITEM_CLONEABLE_LIMIT = 0;
+const bool ENTITY_ITEM_CLONEABLE_DYNAMIC = false;
+
 #endif // hifi_EntityItemPropertiesDefaults_h

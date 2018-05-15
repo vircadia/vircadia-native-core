@@ -242,6 +242,11 @@ enum EntityPropertyList {
     PROP_MATERIAL_MAPPING_ROT,
     PROP_MATERIAL_DATA,
 
+    PROP_CLONEABLE,
+    PROP_CLONEABLE_LIFETIME,
+    PROP_CLONEABLE_LIMIT,
+    PROP_CLONEABLE_DYNAMIC,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
