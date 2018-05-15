@@ -8,6 +8,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include <QDate>
+#include <QLocale>
 
 #include "AboutUtil.h"
 #include "BuildInfo.h"
@@ -17,7 +19,11 @@
 #include "Application.h"
 #include <OffscreenQmlDialog.h>
 
-AboutUtil::AboutUtil(QObject *parent) : QObject(parent) {}
+AboutUtil::AboutUtil(QObject *parent) : QObject(parent) {
+    QLocale locale_;
+    m_DateConverted = QDate::fromString(BuildInfo::BUILD_TIME, "dd/MM/yyyy").
+            toString(locale_.dateFormat(QLocale::ShortFormat));
+}
 
 AboutUtil *AboutUtil::getInstance()
 {
@@ -27,7 +33,7 @@ AboutUtil *AboutUtil::getInstance()
 
 QString AboutUtil::buildDate() const
 {
-    return BuildInfo::BUILD_TIME;
+    return m_DateConverted;
 }
 
 QString AboutUtil::buildVersion() const

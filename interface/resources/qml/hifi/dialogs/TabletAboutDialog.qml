@@ -27,6 +27,7 @@ Rectangle {
             sourceSize.height: 75
             source: "../../../images/about-highfidelity.png"
         }
+        Item { height: 30; width: 1 }
         Column {
             id: buildColumm
             anchors.left: parent.left
