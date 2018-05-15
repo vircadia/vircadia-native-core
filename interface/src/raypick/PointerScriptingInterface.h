@@ -16,7 +16,7 @@
 
 /**jsdoc
  * The Pointers API lets you create and manage objects for repeatedly calculating intersections in different ways, as well as the visual representation of those objects.
- *  Pointers can also be configured to automatically generate PointerEvents.
+ *  Pointers can also be configured to automatically generate {@link PointerEvent}s on {@link Entities} and {@link Overlays}.
  *
  * @namespace Pointers
  *
