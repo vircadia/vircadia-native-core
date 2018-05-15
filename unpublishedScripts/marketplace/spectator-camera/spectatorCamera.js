@@ -577,6 +577,14 @@
             case 'takeSecondaryCamera360Snapshot':
                 maybeTake360Snapshot();
                 break;
+            case 'openSettings':
+                if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))
+                    || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
+                    Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
+                } else {
+                    tablet.loadQMLOnTop("hifi/tablet/TabletGeneralPreferences.qml");
+                }
+                break;
             default:
                 print('Unrecognized message from SpectatorCamera.qml:', JSON.stringify(message));
         }

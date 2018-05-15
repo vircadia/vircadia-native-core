@@ -90,7 +90,7 @@ Rectangle {
                 }
             }
 
-            onCheckedChanged: {
+            onClicked: {
                 sendToScript({method: (checked ? 'spectatorCameraOn' : 'spectatorCameraOff')});
                 sendToScript({method: 'updateCameravFoV', vFoV: fieldOfViewSlider.value});
             }
@@ -172,7 +172,7 @@ Rectangle {
         anchors.top: titleBarContainer.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
-        anchors.bottom: parent.bottom;
+        anchors.bottom: footer.top;
 
         // Instructions or Preview
         Rectangle {
@@ -264,87 +264,87 @@ Rectangle {
                     anchors.top: parent.top;
                     anchors.bottom: parent.bottom;
 
-			        HifiControlsUit.RadioButton {
-				        id: showCameraView;
-				        text: "Camera View";
-				        width: 125;
+                    HifiControlsUit.RadioButton {
+                        id: showCameraView;
+                        text: "Camera View";
+                        width: 125;
                         anchors.left: parent.left;
                         anchors.leftMargin: 10;
-				        anchors.verticalCenter: parent.verticalCenter;
-				        colorScheme: hifi.colorSchemes.dark;
-				        onClicked: {
-					        if (showHmdPreview.checked) {
-						        showHmdPreview.checked = false;
-					        }
-					        if (!showCameraView.checked && !showHmdPreview.checked) {
-						        showCameraView.checked = true;
-					        }
-				        }
-				        onCheckedChanged: {
-					        if (checked) {
+                        anchors.verticalCenter: parent.verticalCenter;
+                        colorScheme: hifi.colorSchemes.dark;
+                        onClicked: {
+                            if (showHmdPreview.checked) {
+                                showHmdPreview.checked = false;
+                            }
+                            if (!showCameraView.checked && !showHmdPreview.checked) {
+                                showCameraView.checked = true;
+                            }
+                        }
+                        onCheckedChanged: {
+                            if (checked) {
                                 sendToScript({method: 'setMonitorShowsCameraView', params: true});
-					        }
-				        }
-			        }
+                            }
+                        }
+                    }
         
-			        HifiControlsUit.RadioButton {
-				        id: showHmdPreview;
-				        text: "HMD";
-				        anchors.left: showCameraView.right;
-				        anchors.leftMargin: 20;
-                        width: 70;
-				        anchors.verticalCenter: parent.verticalCenter;
-				        colorScheme: hifi.colorSchemes.dark;
-				        onClicked: {
-					        if (showCameraView.checked) {
-						        showCameraView.checked = false;
-					        }
-					        if (!showCameraView.checked && !showHmdPreview.checked) {
-						        showHmdPreview.checked = true;
-					        }
-				        }
-				        onCheckedChanged: {
-					        if (checked) {
+                    HifiControlsUit.RadioButton {
+                        id: showHmdPreview;
+                        text: "VR Preview";
+                        anchors.left: showCameraView.right;
+                        anchors.leftMargin: 10;
+                        width: 125;
+                        anchors.verticalCenter: parent.verticalCenter;
+                        colorScheme: hifi.colorSchemes.dark;
+                        onClicked: {
+                            if (showCameraView.checked) {
+                                showCameraView.checked = false;
+                            }
+                            if (!showCameraView.checked && !showHmdPreview.checked) {
+                                showHmdPreview.checked = true;
+                            }
+                        }
+                        onCheckedChanged: {
+                            if (checked) {
                                 sendToScript({method: 'setMonitorShowsCameraView', params: false});
-					        }
-				        }
-			        }
+                            }
+                        }
+                    }
                 }
             }
 
-		    HifiControlsUit.Button {
-			    id: takeSnapshotButton;
+            HifiControlsUit.Button {
+                id: takeSnapshotButton;
                 enabled: masterSwitch.checked;
                 text: "SNAP PICTURE";
-			    colorScheme: hifi.colorSchemes.dark;
-			    color: hifi.buttons.white;
+                colorScheme: hifi.colorSchemes.dark;
+                color: hifi.buttons.white;
                 anchors.bottom: parent.bottom;
                 anchors.bottomMargin: 8;
                 anchors.right: take360SnapshotButton.left;
                 anchors.rightMargin: 12;
                 width: 135;
-			    height: 35;
-			    onClicked: {
-				    sendToScript({method: 'takeSecondaryCameraSnapshot'});
-			    }
-		    }
-		    HifiControlsUit.Button {
-			    id: take360SnapshotButton;
+                height: 35;
+                onClicked: {
+                    sendToScript({method: 'takeSecondaryCameraSnapshot'});
+                }
+            }
+            HifiControlsUit.Button {
+                id: take360SnapshotButton;
                 enabled: masterSwitch.checked;
                 text: "SNAP 360";
-			    colorScheme: hifi.colorSchemes.dark;
-			    color: hifi.buttons.white;
+                colorScheme: hifi.colorSchemes.dark;
+                color: hifi.buttons.white;
                 anchors.bottom: parent.bottom;
                 anchors.bottomMargin: 8;
                 anchors.right: parent.right;
                 anchors.rightMargin: 12;
                 width: 135;
-			    height: 35;
-			    onClicked: {
+                height: 35;
+                onClicked: {
                     root.processing360Snapshot = true;
-				    sendToScript({method: 'takeSecondaryCamera360Snapshot'});
-			    }
-		    }
+                    sendToScript({method: 'takeSecondaryCamera360Snapshot'});
+                }
+            }
         }
 
         Item {
@@ -477,7 +477,7 @@ Rectangle {
                 anchors.left: parent.left;
                 anchors.right: parent.right;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 40;
+                anchors.bottomMargin: 12;
 
                 // "Spectator" app description text
                 HifiStylesUit.RalewayRegular {
@@ -546,6 +546,60 @@ Rectangle {
             }
         }
     }
+
+    Item {
+        id: footer;
+        anchors.bottom: parent.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+        height: 35;
+
+        // Separator
+        HifiControlsUit.Separator {
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            anchors.top: parent.top;
+        }
+
+        Item {
+            id: settingsButtonContainer;
+            anchors.top: parent.top;
+            anchors.left: parent.left;
+            anchors.bottom: parent.bottom;
+            width: childrenRect.width;
+
+            HifiStylesUit.HiFiGlyphs {
+                id: snapshotLocationGlyph;
+                text: hifi.glyphs.settings;
+                size: 30;
+                color: hifi.colors.lightGrayText;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                anchors.left: parent.left;
+                anchors.leftMargin: -1;
+                verticalAlignment: Text.AlignVCenter;
+            }
+            HifiStylesUit.RalewayLight {
+                id: snapshotLocationHeaderText;
+                text: "Change Snapshot Location";
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                anchors.left: snapshotLocationGlyph.right;
+                anchors.leftMargin: -3;
+                size: 18;
+                width: paintedWidth;
+                color: hifi.colors.lightGrayText;
+                verticalAlignment: Text.AlignVCenter;
+            }
+
+            MouseArea {
+                anchors.fill: parent;
+                onClicked: {
+                    sendToScript({method: 'openSettings'});
+                }
+            }
+        }
+    }
     //
     // SPECTATOR CONTROLS END
     //
@@ -583,15 +637,15 @@ Rectangle {
 
             if (message.controller === "OculusTouch") {
                 switchViewFromControllerCheckBox.text = "Left Thumbstick: Switch Monitor View";
-				takeSnapshotFromControllerCheckBox.text = "Right Thumbstick: Take Snapshot";
+                takeSnapshotFromControllerCheckBox.text = "Right Thumbstick: Take Snapshot";
             } else if (message.controller === "Vive") {
                 switchViewFromControllerCheckBox.text = "Left Thumb Pad: Switch Monitor View";
-				takeSnapshotFromControllerCheckBox.text = "Right Thumb Pad: Take Snapshot";
+                takeSnapshotFromControllerCheckBox.text = "Right Thumb Pad: Take Snapshot";
             } else {
                 switchViewFromControllerCheckBox.text = "Pressing Ctrl+0 Switches Monitor View";
                 switchViewFromControllerCheckBox.checked = true;
                 switchViewFromControllerCheckBox.enabled = false;
-				takeSnapshotFromControllerCheckBox.visible = false;
+                takeSnapshotFromControllerCheckBox.visible = false;
             }
         break;
         case 'finishedProcessing360Snapshot':
