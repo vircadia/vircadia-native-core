@@ -90,7 +90,7 @@ public:
     /**jsdoc
      * @function RayPick.getPrevRayPickResult
      * @param {number} id
-     * @returns {Picks.RayPickResult}
+     * @returns {RayPickResult}
      */
     Q_INVOKABLE QVariantMap getPrevRayPickResult(unsigned int uid);
 

@@ -98,7 +98,7 @@ unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
 }
 
 /**jsdoc
- * A set of properties that can be passed to {@link Picks.createPick} to create a new Ray Pick.
+ * A set of properties that can be passed to {@link Picks.createPick} to create a new Stylus Pick.
  * @typedef {object} Picks.StylusPickProperties
  * @property {number} [hand=-1] An integer.  0 == left, 1 == right.  Invalid otherwise.
  * @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.

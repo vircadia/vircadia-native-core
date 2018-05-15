@@ -99,7 +99,7 @@ public:
     /**jsdoc
      * An intersection result for a Ray Pick.
      *
-     * @typedef {Object} Picks.RayPickResult
+     * @typedef {Object} RayPickResult
      * @property {number} type The intersection type.
      * @property {boolean} intersects If there was a valid intersection (type != INTERSECTED_NONE)
      * @property {Uuid} objectID The ID of the intersected object.  Uuid.NULL for the HUD or invalid intersections.
@@ -113,7 +113,7 @@ public:
     /**jsdoc
      * An intersection result for a Stylus Pick.
      *
-     * @typedef {Object} Picks.StylusPickResult
+     * @typedef {Object} StylusPickResult
      * @property {number} type The intersection type.
      * @property {boolean} intersects If there was a valid intersection (type != INTERSECTED_NONE)
      * @property {Uuid} objectID The ID of the intersected object.  Uuid.NULL for the HUD or invalid intersections.
@@ -128,7 +128,7 @@ public:
      * Get the most recent pick result from this Pick.  This will be updated as long as the Pick is enabled.
      * @function Picks.getPrevPickResult
      * @param {number} uid The ID of the Pick, as returned by {@link Picks.createPick}.
-     * @returns {Picks.RayPickResult|Picks.StylusPickResult} The most recent intersection result.  This will be different for different PickTypes.
+     * @returns {RayPickResult|StylusPickResult} The most recent intersection result.  This will be different for different PickTypes.
      */
     Q_INVOKABLE QVariantMap getPrevPickResult(unsigned int uid);
 
