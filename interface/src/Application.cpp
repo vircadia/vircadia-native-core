@@ -220,6 +220,8 @@
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #include <DesktopPreviewProvider.h>
 
+#include "AboutUtil.h"
+
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
 
@@ -2968,6 +2970,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     surfaceContext->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
+    surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -6577,6 +6580,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
+    scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());
 
     scriptEngine->registerGlobalObject("App", this);
 

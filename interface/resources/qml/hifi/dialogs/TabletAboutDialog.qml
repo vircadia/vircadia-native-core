@@ -9,7 +9,6 @@
 //
 
 import QtQuick 2.5
-
 import "../../styles-uit"
 
 Rectangle {
@@ -34,29 +33,15 @@ Rectangle {
             id: buildColumm
             anchors.left: parent.left
             anchors.leftMargin: 70
-            Row {
-                RalewayRegular {
-                    text: "Build"
-                    size: 16
-                    color: "white"
-                }
-                RalewayRegular {
-                    id: build
-                    size: 16
-                    color: "white"
-                }
+            RalewayRegular {
+                text: "Build " + HiFiAbout.buildVersion
+                size: 16
+                color: "white"
             }
-            Row {
-                RalewayRegular {
-                    text: "Released"
-                    size: 16
-                    color: "white"
-                }
-                RalewayRegular {
-                    id: released
-                    size: 16
-                    color: "white"
-                }
+            RalewayRegular {
+                text: "Released " + HiFiAbout.buildDate
+                size: 16
+                color: "white"
             }
         }
         Item { height: 10; width: 1 }
@@ -82,7 +67,7 @@ Rectangle {
             }
             RalewayRegular {
                 color: "white"
-                text: "Built using Qt 5.10.1"
+                text: "Built using Qt " + HiFiAbout.qtVersion
                 size: 12
                 anchors.verticalCenter: parent.verticalCenter
             }
