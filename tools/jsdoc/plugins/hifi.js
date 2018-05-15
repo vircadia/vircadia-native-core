@@ -21,6 +21,7 @@ exports.handlers = {
         // directories to scan for jsdoc comments
         var dirList = [
             '../../assignment-client/src',
+            '../../assignment-client/src/avatars',
             '../../assignment-client/src/entities',
             '../../assignment-client/src/octree',
             '../../interface/src',
@@ -31,10 +32,10 @@ exports.handlers = {
             '../../interface/src/devices',
             '../../interface/src/java',
             '../../interface/src/networking',
-            '../../interface/src/ui/',
-            '../../interface/src/scripting',
-            '../../interface/src/ui/overlays',
             '../../interface/src/raypick',
+            '../../interface/src/scripting',
+            '../../interface/src/ui/',
+            '../../interface/src/ui/overlays',
             '../../libraries/animation/src',
             '../../libraries/audio-client/src',
             '../../libraries/audio/src',
