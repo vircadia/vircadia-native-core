@@ -1345,7 +1345,7 @@ private:
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
     bool getShouldRenderLocally() const { return _shouldRender; }
-    void setHasScriptedBlendshapes(bool hasScriptedBlendshapes) { _hasScriptedBlendShapes = hasScriptedBlendshapes; }
+    void setHasScriptedBlendshapes(bool hasScriptedBlendshapes);
     bool getHasScriptedBlendshapes() const override { return _hasScriptedBlendShapes; }
     void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) { _hasAudioEnabledFaceMovement = hasAudioEnabledFaceMovement; }
     bool getHasAudioEnabledFaceMovement() const override { return _hasAudioEnabledFaceMovement; }
@@ -1457,7 +1457,7 @@ private:
     bool _hmdRollControlEnabled { true };
     float _hmdRollControlDeadZone { ROLL_CONTROL_DEAD_ZONE_DEFAULT };
     float _hmdRollControlRate { ROLL_CONTROL_RATE_DEFAULT };
-    bool _hasScriptedBlendShapes { false };
+    std::atomic<bool> _hasScriptedBlendShapes { false };
     bool _hasAudioEnabledFaceMovement { true };
 
     // working copy -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
