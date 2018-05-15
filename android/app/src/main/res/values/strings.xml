@@ -9,11 +9,11 @@
     <string name="popular">POPULAR</string>
     <string name="bookmarks">BOOKMARKS</string>
     <string name="goto_url_hint">Type a domain url</string>
-    <string name="username_or_email">Username or email</string>
-    <string name="password">Password</string>
+    <string name="username_or_email">Username or email\u00A0</string>
+    <string name="password">Password\u00A0</string>
     <string name="login">Login</string>
     <string name="logout">Logout</string>
-    <string name="forgot_password">Forgot password?</string>
+    <string name="forgot_password">Forgot password?\u00A0</string>
     <string name="login_username_or_password_incorrect">Username or password incorrect.</string>
     <string name="logging_in">Logging into High Fidelity</string>
     <string name="search_hint"><i>Search for a place by name</i>\u00A0</string>

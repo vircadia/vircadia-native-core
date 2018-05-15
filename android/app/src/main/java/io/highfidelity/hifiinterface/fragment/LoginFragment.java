@@ -7,6 +7,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -53,6 +55,44 @@ public class LoginFragment extends Fragment {
         mLoginButton = rootView.findViewById(R.id.loginButton);
         mForgotPassword = rootView.findViewById(R.id.forgotPassword);
 
+        mUsername.addTextChangedListener(new TextWatcher() {
+            boolean ignoreNextChange = false;
+            boolean hadBlankSpace = false;
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int start, int count, int after) {
+                hadBlankSpace = charSequence.length() > 0 && charSequence.charAt(charSequence.length()-1) == ' ';
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                if (!ignoreNextChange) {
+                    ignoreNextChange = true;
+                    boolean spaceFound=false;
+                    for (int i=0; i< editable.length(); i++) {
+                        if (editable.charAt(i) == ' ') {
+                            spaceFound=true;
+                            editable.delete(i, i+1);
+                            i--;
+                        }
+                    }
+
+                    if (hadBlankSpace && !spaceFound && editable.length() > 0) {
+                        editable.delete(editable.length()-1, editable.length());
+                    }
+
+                    editable.append(' ');
+                    ignoreNextChange = false;
+                }
+
+            }
+        });
+
+
         mLoginButton.setOnClickListener(view -> login());
 
         mForgotPassword.setOnClickListener(view -> forgotPassword());
@@ -93,7 +133,7 @@ public class LoginFragment extends Fragment {
     }
 
     public void login() {
-        String username = mUsername.getText().toString();
+        String username = mUsername.getText().toString().trim();
         String password = mPassword.getText().toString();
         hideKeyboard();
         if (username.isEmpty() || password.isEmpty()) {
