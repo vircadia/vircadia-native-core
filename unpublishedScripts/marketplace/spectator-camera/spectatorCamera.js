@@ -506,6 +506,23 @@
         }
     }
 
+    function updateSpectatorCameraQML() {
+        sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
+        sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
+        if (!switchViewControllerMapping || !takeSnapshotControllerMapping) {
+            registerButtonMappings();
+        } else {
+            sendToQml({
+                method: 'updateControllerMappingCheckbox',
+                switchViewSetting: switchViewFromController,
+                takeSnapshotSetting: takeSnapshotFromController,
+                controller: controllerType
+            });
+        }
+        Menu.setIsOptionChecked("Disable Preview", false);
+        Menu.setIsOptionChecked("Mono Preview", true);
+    }
+
     // Function Name: onTabletScreenChanged()
     //
     // Description:
@@ -520,20 +537,7 @@
         }
 
         if (onSpectatorCameraScreen) {
-            sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
-            sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
-            if (!switchViewControllerMapping) {
-                registerButtonMappings();
-            } else {
-                sendToQml({
-                    method: 'updateControllerMappingCheckbox',
-                    switchViewSetting: switchViewFromController,
-                    takeSnapshotSetting: takeSnapshotFromController,
-                    controller: controllerType
-                });
-            }
-            Menu.setIsOptionChecked("Disable Preview", false);
-            Menu.setIsOptionChecked("Mono Preview", true);
+            updateSpectatorCameraQML();
         }
     }
 
@@ -582,7 +586,7 @@
                     || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
                     Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
                 } else {
-                    tablet.loadQMLOnTop("hifi/tablet/TabletGeneralPreferences.qml");
+                    tablet.pushOntoStack("hifi/tablet/TabletGeneralPreferences.qml");
                 }
                 break;
             default:

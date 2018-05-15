@@ -172,7 +172,7 @@ Rectangle {
         anchors.top: titleBarContainer.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
-        anchors.bottom: footer.top;
+        anchors.bottom: parent.bottom;
 
         // Instructions or Preview
         Rectangle {
@@ -316,7 +316,7 @@ Rectangle {
                 id: takeSnapshotButton;
                 enabled: masterSwitch.checked;
                 text: "SNAP PICTURE";
-                colorScheme: hifi.colorSchemes.dark;
+                colorScheme: hifi.colorSchemes.light;
                 color: hifi.buttons.white;
                 anchors.bottom: parent.bottom;
                 anchors.bottomMargin: 8;
@@ -332,7 +332,7 @@ Rectangle {
                 id: take360SnapshotButton;
                 enabled: masterSwitch.checked;
                 text: "SNAP 360";
-                colorScheme: hifi.colorSchemes.dark;
+                colorScheme: hifi.colorSchemes.light;
                 color: hifi.buttons.white;
                 anchors.bottom: parent.bottom;
                 anchors.bottomMargin: 8;
@@ -469,6 +469,20 @@ Rectangle {
                 }
             }
 
+            HifiControlsUit.Button {
+                text: "Change Snapshot Location";
+                colorScheme: hifi.colorSchemes.dark;
+                color: hifi.buttons.none;
+                anchors.bottom: spectatorDescriptionContainer.top;
+                anchors.bottomMargin: 16;
+                anchors.left: parent.left;
+                anchors.right: parent.right;
+                height: 35;
+                onClicked: {
+                    sendToScript({method: 'openSettings'});
+                }
+            }
+
             Item {
                 id: spectatorDescriptionContainer;
                 // Size
@@ -477,7 +491,7 @@ Rectangle {
                 anchors.left: parent.left;
                 anchors.right: parent.right;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 12;
+                anchors.bottomMargin: 20;
 
                 // "Spectator" app description text
                 HifiStylesUit.RalewayRegular {
@@ -542,60 +556,6 @@ Rectangle {
                         onEntered: parent.color = hifi.colors.blueHighlight;
                         onExited: parent.color = hifi.colors.blueAccent;
                     }
-                }
-            }
-        }
-    }
-
-    Item {
-        id: footer;
-        anchors.bottom: parent.bottom;
-        anchors.left: parent.left;
-        anchors.right: parent.right;
-        height: 35;
-
-        // Separator
-        HifiControlsUit.Separator {
-            anchors.left: parent.left;
-            anchors.right: parent.right;
-            anchors.top: parent.top;
-        }
-
-        Item {
-            id: settingsButtonContainer;
-            anchors.top: parent.top;
-            anchors.left: parent.left;
-            anchors.bottom: parent.bottom;
-            width: childrenRect.width;
-
-            HifiStylesUit.HiFiGlyphs {
-                id: snapshotLocationGlyph;
-                text: hifi.glyphs.settings;
-                size: 30;
-                color: hifi.colors.lightGrayText;
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                anchors.left: parent.left;
-                anchors.leftMargin: -1;
-                verticalAlignment: Text.AlignVCenter;
-            }
-            HifiStylesUit.RalewayLight {
-                id: snapshotLocationHeaderText;
-                text: "Change Snapshot Location";
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                anchors.left: snapshotLocationGlyph.right;
-                anchors.leftMargin: -3;
-                size: 18;
-                width: paintedWidth;
-                color: hifi.colors.lightGrayText;
-                verticalAlignment: Text.AlignVCenter;
-            }
-
-            MouseArea {
-                anchors.fill: parent;
-                onClicked: {
-                    sendToScript({method: 'openSettings'});
                 }
             }
         }
