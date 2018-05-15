@@ -15,9 +15,7 @@ Rectangle {
     width: 480
     height: 706
 
-    HifiConstants { id: hifi; }
-
-    color: hifi.colors.baseGray
+    color: "#404040"
 
     Column {
         x: 45
@@ -56,6 +54,9 @@ Rectangle {
             color: "white"
             text: "<a href=\"https:/www.highfidelity.com\">www.highfidelity.com</a>."
             size: 20
+            onLinkActivated: {
+                HiFiAbout.openUrl("https:/www.highfidelity.com");
+            }
         }
         Item { height: 40; width: 1 }
         Row {
@@ -64,6 +65,12 @@ Rectangle {
                 sourceSize.width: 34
                 sourceSize.height: 25
                 source: "../../../images/about-qt.png"
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        HiFiAbout.openUrl("https://www.qt.io/");
+                    }
+                }
             }
             RalewayRegular {
                 color: "white"
@@ -91,6 +98,9 @@ Rectangle {
             color: "white"
             text: "Blockchain technology from <a href=\"https://elementsproject.org/elements/\">Elements</a>."
             size: 14
+            onLinkActivated: {
+                HiFiAbout.openUrl("https://elementsproject.org/elements/");
+            }
         }
         RalewayRegular {
             color: "white"
@@ -103,6 +113,9 @@ Rectangle {
             linkColor: "#00B4EF"
             text: "Distributed under the <a href=\"http://www.apache.org/licenses/LICENSE-2.0.html\">Apache License, Version 2.0.</a>."
             size: 14
+            onLinkActivated: {
+                HiFiAbout.openUrl("http://www.apache.org/licenses/LICENSE-2.0.html");
+            }
         }
     }
 }
