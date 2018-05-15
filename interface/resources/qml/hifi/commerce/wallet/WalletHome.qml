@@ -18,27 +18,24 @@ import QtQuick.Controls 2.2
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
+import "../../../models" as HifiModels
 
 Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    property bool initialHistoryReceived: false;
-    property bool historyRequestPending: true;
-    property bool noMoreHistoryData: false;
+    property bool initialResultReceived: false;
     property int pendingCount: 0;
-    property int currentHistoryPage: 1;
-    property var pagesAlreadyAdded: new Array();
 
     onVisibleChanged: {
         if (visible) {
             transactionHistoryModel.clear();
             Commerce.balance();
-            initialHistoryReceived = false;
-            root.currentHistoryPage = 1;
-            root.noMoreHistoryData = false;
-            root.historyRequestPending = true;
-            Commerce.history(root.currentHistoryPage);
+            transactionHistoryModel.initialResultReceived = false;
+            transactionHistoryModel.nextPageToRetrieve = 1;
+            transactionHistoryModel.noMoreDataToRetrieve = false;
+            transactionHistoryModel.requestPending = true;
+            Commerce.history(transactionHistoryModel.nextPageToRetrieve);
             Commerce.getAvailableUpdates();
         } else {
             refreshTimer.stop();
@@ -53,84 +50,16 @@ Item {
         }
 
         onHistoryResult : {
-            root.initialHistoryReceived = true;
-            root.historyRequestPending = false;
+            
+            transactionHistoryModel.processResult(result.status, result.data.history);
 
-            if (result.status === 'success') {
-                var currentPage = parseInt(result.current_page);
-
-                if (result.data.history.length === 0) {
-                    root.noMoreHistoryData = true;
-                    console.log("No more data to retrieve from Commerce.history() endpoint.")
-                } else if (root.currentHistoryPage === 1) {
-                    var sameItemCount = 0;
-                    tempTransactionHistoryModel.clear();
-                
-                    tempTransactionHistoryModel.append(result.data.history);
-        
-                    for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
-                        if (!transactionHistoryModel.get(i)) {
-                            sameItemCount = -1;
-                            break;
-                        } else if (tempTransactionHistoryModel.get(i).transaction_type === transactionHistoryModel.get(i).transaction_type &&
-                        tempTransactionHistoryModel.get(i).text === transactionHistoryModel.get(i).text) {
-                            sameItemCount++;
-                        }
-                    }
-
-                    if (sameItemCount !== tempTransactionHistoryModel.count) {
-                        transactionHistoryModel.clear();
-                        for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
-                            transactionHistoryModel.append(tempTransactionHistoryModel.get(i));
-                        }
-                        calculatePendingAndInvalidated();
-                    }
-                } else {
-                    if (root.pagesAlreadyAdded.indexOf(currentPage) !== -1) {
-                        console.log("Page " + currentPage + " of history has already been added to the list.");
-                    } else {
-                        // First, add the history result to a temporary model
-                        tempTransactionHistoryModel.clear();
-                        tempTransactionHistoryModel.append(result.data.history);
-
-                        // Make a note that we've already added this page to the model...
-                        root.pagesAlreadyAdded.push(currentPage);
-
-                        var insertionIndex = 0;
-                        // If there's nothing in the model right now, we don't need to modify insertionIndex.
-                        if (transactionHistoryModel.count !== 0) {
-                            var currentIteratorPage;
-                            // Search through the whole transactionHistoryModel and look for the insertion point.
-                            // The insertion point is found when the result page from the server is less than
-                            //     the page that the current item came from, OR when we've reached the end of the whole model.
-                            for (var i = 0; i < transactionHistoryModel.count; i++) {
-                                currentIteratorPage = transactionHistoryModel.get(i).resultIsFromPage;
-                        
-                                if (currentPage < currentIteratorPage) {
-                                    insertionIndex = i;
-                                    break;
-                                } else if (i === transactionHistoryModel.count - 1) {
-                                    insertionIndex = i + 1;
-                                    break;
-                                }
-                            }
-                        }
-                    
-                        // Go through the results we just got back from the server, setting the "resultIsFromPage"
-                        //     property of those results and adding them to the main model.
-                        for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
-                            tempTransactionHistoryModel.setProperty(i, "resultIsFromPage", currentPage);
-                            transactionHistoryModel.insert(i + insertionIndex, tempTransactionHistoryModel.get(i))
-                        }
-
-                        calculatePendingAndInvalidated();
-                    }
-                }
+            if (!transactionHistoryModel.noMoreDataToRetrieve) {
+                calculatePendingAndInvalidated();
             }
 
             // Only auto-refresh if the user hasn't scrolled
             // and there is more data to grab
-            if (transactionHistory.atYBeginning && !root.noMoreHistoryData) {
+            if (transactionHistory.atYBeginning && !transactionHistoryModel.noMoreDataToRetrieve) {
                 refreshTimer.start();
             }
         }
@@ -235,7 +164,7 @@ Item {
         onTriggered: {
             if (transactionHistory.atYBeginning) {
                 console.log("Refreshing 1st Page of Recent Activity...");
-                root.historyRequestPending = true;
+                transactionHistoryModel.requestPending = true;
                 Commerce.balance();
                 Commerce.history(1);
             }
@@ -302,7 +231,7 @@ Item {
         ListModel {
             id: tempTransactionHistoryModel;
         }
-        ListModel {
+        HifiModels.PSFListModel {
             id: transactionHistoryModel;
         }
         Item {
@@ -313,7 +242,7 @@ Item {
             anchors.right: parent.right;
 
             Item {
-                visible: transactionHistoryModel.count === 0 && root.initialHistoryReceived;
+                visible: transactionHistoryModel.count === 0 && transactionHistoryModel.initialResultReceived;
                 anchors.centerIn: parent;
                 width: parent.width - 12;
                 height: parent.height;
@@ -462,11 +391,11 @@ Item {
                 onAtYEndChanged: {
                     if (transactionHistory.atYEnd) {
                         console.log("User scrolled to the bottom of 'Recent Activity'.");
-                        if (!root.historyRequestPending && !root.noMoreHistoryData) {
+                        if (!transactionHistoryModel.requestPending && !transactionHistoryModel.noMoreDataToRetrieve) {
                             // Grab next page of results and append to model
-                            root.historyRequestPending = true;
-                            Commerce.history(++root.currentHistoryPage);
-                            console.log("Fetching Page " + root.currentHistoryPage + " of Recent Activity...");
+                            transactionHistoryModel.requestPending = true;
+                            Commerce.history(++transactionHistoryModel.nextPageToRetrieve);
+                            console.log("Fetching Page " + transactionHistoryModel.nextPageToRetrieve + " of Recent Activity...");
                         }
                     }
                 }
