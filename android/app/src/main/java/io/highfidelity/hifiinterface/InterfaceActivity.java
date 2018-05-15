@@ -36,8 +36,6 @@ public class InterfaceActivity extends QtActivity {
 
     //public static native void handleHifiURL(String hifiURLString);
     private native long nativeOnCreate(InterfaceActivity instance, AssetManager assetManager);
-    //private native void nativeOnPause();
-    //private native void nativeOnResume();
     private native void nativeOnDestroy();
     private native void nativeGotoUrl(String url);
     private native void nativeGoBackFromAndroidActivity();
@@ -63,6 +61,7 @@ public class InterfaceActivity extends QtActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        super.isLoading = true;
         Intent intent = getIntent();
         if (intent.hasExtra(DOMAIN_URL) && !intent.getStringExtra(DOMAIN_URL).isEmpty()) {
             intent.putExtra("applicationArguments", "--url " + intent.getStringExtra(DOMAIN_URL));
@@ -112,31 +111,33 @@ public class InterfaceActivity extends QtActivity {
                 }
             }
         });
+        startActivity(new Intent(this, SplashActivity.class));
+
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        //nativeOnPause();
+        nativeEnterBackground();
         //gvrApi.pauseTracking();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        nativeEnterForeground();
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        nativeEnterBackground();
+
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        //nativeOnResume();
+        nativeEnterForeground();
         //gvrApi.resumeTracking();
     }
 
@@ -201,7 +202,6 @@ public class InterfaceActivity extends QtActivity {
         switch (activityName) {
             case "Home": {
                 Intent intent = new Intent(this, HomeActivity.class);
-                intent.putExtra(HomeActivity.PARAM_NOT_START_INTERFACE_ACTIVITY, true);
                 startActivity(intent);
                 break;
             }
@@ -210,6 +210,10 @@ public class InterfaceActivity extends QtActivity {
                 break;
             }
         }
+    }
+
+    public void onAppLoadedComplete() {
+        super.isLoading = false;
     }
 
     @Override
