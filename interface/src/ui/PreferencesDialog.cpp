@@ -252,9 +252,12 @@ void setupPreferences() {
     static const QString MOVEMENT{ "VR Movement" };
 
     {
+        auto getterFJ = [=]()->bool { return myAvatar->getFlyingEnabled(); };
+        auto setterFJ = [=](bool value) { myAvatar->setFlyingEnabled(value); };
+        preferences->addPreference(new CheckPreference(MOVEMENT, "Flying & jumping", getterFJ, setterFJ));
         auto getter = [=]()->bool { return myAvatar->getSnapTurn(); };
         auto setter = [=](bool value) { myAvatar->setSnapTurn(value); };
-        preferences->addPreference(new CheckPreference(MOVEMENT, "Snap turn rotation", getter, setter));
+        preferences->addPreference(new CheckPreference(MOVEMENT, "Snap turn / Smooth turn", getter, setter));
     }
 
     //TODO: Update with advanced movement logic, test that it works

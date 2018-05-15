@@ -35,6 +35,8 @@ public:
 public slots:
     void openUrl(const QString &url) const;
 private:
+
+    QString m_DateConverted;
 };
 
 #endif // hifi_AboutUtil_h
