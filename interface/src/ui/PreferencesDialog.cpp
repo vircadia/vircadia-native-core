@@ -250,11 +250,12 @@ void setupPreferences() {
     }
 
     static const QString MOVEMENT{ "VR Movement" };
-
     {
-        auto getterFJ = [=]()->bool { return myAvatar->getFlyingEnabled(); };
-        auto setterFJ = [=](bool value) { myAvatar->setFlyingEnabled(value); };
-        preferences->addPreference(new CheckPreference(MOVEMENT, "Flying & jumping", getterFJ, setterFJ));
+        auto getter = [=]()->bool { return myAvatar->getFlyingEnabled(); };
+        auto setter = [=](bool value) { myAvatar->setFlyingEnabled(value); };
+        preferences->addPreference(new CheckPreference(MOVEMENT, "Flying & jumping", getter, setter));
+    }
+    {
         auto getter = [=]()->bool { return myAvatar->getSnapTurn(); };
         auto setter = [=](bool value) { myAvatar->setSnapTurn(value); };
         preferences->addPreference(new CheckPreference(MOVEMENT, "Snap turn / Smooth turn", getter, setter));
@@ -289,11 +290,6 @@ void setupPreferences() {
         preference->setDecimals(3);
         preference->setStep(0.001f);
         preferences->addPreference(preference);
-    }
-    {
-        auto getter = [=]()->bool { return myAvatar->getFlyingEnabled(); };
-        auto setter = [=](bool value) { myAvatar->setFlyingEnabled(value); };
-        preferences->addPreference(new CheckPreference(MOVEMENT, "Enable Flying", getter, setter));
     }
 
     static const QString AVATAR_CAMERA{ "Mouse Sensitivity" };
