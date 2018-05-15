@@ -1660,14 +1660,28 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
         return result;
     }
 
-    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(parentID);
-    if (!entity) {
-        qCDebug(entities) << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
-        return result;
-    }
-
+    //EntityItemPointer entity = _entityTree->findEntityByEntityItemID(parentID);
+    //if (!entity) {
+    //    qCDebug(entities) << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
+    //    return result;
+    //}
     _entityTree->withReadLock([&] {
-        entity->forEachChild([&](SpatiallyNestablePointer child) {
+        QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
+        if (!parentFinder) {
+            return;
+        }
+        bool success;
+        SpatiallyNestableWeakPointer parentWP = parentFinder->find(parentID, success);
+        if (!success) {
+            return;
+        }
+        SpatiallyNestablePointer parent = parentWP.lock();
+        if (!parent) {
+            return;
+        }
+    //_entityTree->withReadLock([&] {
+        //entity->forEachChild([&](SpatiallyNestablePointer child) {
+        parent->forEachChild([&](SpatiallyNestablePointer child) {
             result.push_back(child->getID());
         });
     });

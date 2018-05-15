@@ -3,21 +3,20 @@
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
     function destroyBabies() {
-    var avatarEntityID = 
-    for(var ctr = 0; ctr < getChildrenIDs(); ctr++) {
-        avatarChildren.append(CreateEntity("Child" + ctr, Vec3.sum(position, { x: ctr, y: -1, z: ctr }), root));
-    }}
+        // TODO: destroy babies
+    }
+
 
     button = tablet.addButton({
-        icon: "icons/tablet-icons/clap-i.svg",
+        icon: "icons/tablet-icons/clap-a.svg",
         text: "Destroy OBJ", 
-        sortOrder: 1
+        sortOrder: 13
     });
 
-    button.clicked.connect(createBabies);
+    button.clicked.connect(destroyBabies);
 
     Script.scriptEnding.connect(function () {
-        button.clicked.disconnect(createBabies);
+        button.clicked.disconnect(destroyBabies);
         if (tablet) {
             tablet.removeButton(button);
         }
