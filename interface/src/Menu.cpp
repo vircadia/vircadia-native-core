@@ -236,8 +236,13 @@ Menu::Menu() {
     // Settings > Controls...
     action = addActionToQMenuAndActionHash(settingsMenu, "Controls...");
     connect(action, &QAction::triggered, [] {
-    qApp->showDialog(QString("hifi/tablet/ControllerSettings.qml"),
-        QString("hifi/tablet/ControllerSettings.qml"), "ControlSettings");
+            auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
+            auto hmd = DependencyManager::get<HMDScriptingInterface>();
+            tablet->loadQMLSource("hifi/tablet/ControllerSettings.qml");
+
+            if (!hmd->getShouldShowTablet()) {
+                hmd->toggleShouldShowTablet();
+            }
     });
 
     // Settings > Audio...
