@@ -62,13 +62,13 @@ void setupPreferences() {
     {
         auto getterY = []()->float { return 1.0; };
         auto setterY = [](float value) {  };
-        preferences->addPreference(new SliderPreference(MOUSE_SENSIVITY, "Y Input", getterY, setterY));
+        preferences->addPreference(new SliderPreference(MOUSE_SENSIVITY, "Mouse Look Y", getterY, setterY));
         auto getterX = []()->float { return 1.0; };
         auto setterX = [](float value) { };
-        preferences->addPreference(new SliderPreference(MOUSE_SENSIVITY, "X Input", getterX, setterX));
+        preferences->addPreference(new SliderPreference(MOUSE_SENSIVITY, "Mouse Look X", getterX, setterX));
         auto getterSW = []()->float { return 1.0; };
         auto setterSW = [](float value) { };
-        preferences->addPreference(new SliderPreference(MOUSE_SENSIVITY, "Scroll Wheel", getterSW, setterSW));
+        preferences->addPreference(new SliderPreference(MOUSE_SENSIVITY, "Mouse Look Zoom", getterSW, setterSW));
     }
     // Graphics quality
     static const QString GRAPHICS_QUALITY { "Graphics Quality" };
