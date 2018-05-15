@@ -36,7 +36,6 @@
 
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 
-const char* StandingHMDSensorMode { "Standing HMD Sensor Mode" }; // this probably shouldn't be hardcoded here
 const char* OpenVrThreadedSubmit { "OpenVR Threaded Submit" }; // this probably shouldn't be hardcoded here
 
 PoseData _nextRenderPoseData;
@@ -451,7 +450,6 @@ bool OpenVrDisplayPlugin::internalActivate() {
     qDebug() << "OpenVR Threaded submit enabled:  " << _threadedSubmit;
 
     _openVrDisplayActive = true;
-    _container->setIsOptionChecked(StandingHMDSensorMode, true);
     _system->GetRecommendedRenderTargetSize(&_renderTargetSize.x, &_renderTargetSize.y);
     // Recommended render target size is per-eye, so double the X size for 
     // left + right eyes
@@ -507,7 +505,6 @@ void OpenVrDisplayPlugin::internalDeactivate() {
     Parent::internalDeactivate();
 
     _openVrDisplayActive = false;
-    _container->setIsOptionChecked(StandingHMDSensorMode, false);
     if (_system) {
         // TODO: Invalidate poses. It's fine if someone else sets these shared values, but we're about to stop updating them, and
         // we don't want ViveControllerManager to consider old values to be valid.
