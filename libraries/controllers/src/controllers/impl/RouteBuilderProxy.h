@@ -29,12 +29,16 @@ class ScriptingInterface;
  * <p>A route in a {@link MappingObject} used by the {@link Controller} API.</p>
  *
  * <p>Create a route using {@link MappingObject} methods and apply this object's methods to process it, terminating with 
- * {@link RouteObject#to} to apply it to a <code>Standard</code> control, action, or script function.</p>
+ * {@link RouteObject#to} to apply it to a <code>Standard</code> control, action, or script function. Note: Loops are not 
+ * permitted.</p>
  *
  * <p>Some methods apply to routes with number data, some apply routes with {@link Pose} data, and some apply to both route 
  * types.<p>
  *
  * @class RouteObject
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 
 // TODO migrate functionality to a RouteBuilder class and make the proxy defer to that 

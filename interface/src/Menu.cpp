@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Menu.h"
+
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QShortcut>
@@ -51,8 +53,6 @@
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
-
-#include "Menu.h"
 
 extern bool DEV_DECIMATE_TEXTURES;
 
@@ -734,6 +734,12 @@ Menu::Menu() {
             0, false, drawStatusConfig, SLOT(setShowNetwork(bool)));
     }
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls, 0, false, qApp->getEntities().data(), SIGNAL(setRenderDebugHulls()));
+
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletWireframe, 0, false, qApp, SLOT(setShowBulletWireframe(bool)));
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletAABBs, 0, false, qApp, SLOT(setShowBulletAABBs(bool)));
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletContactPoints, 0, false, qApp, SLOT(setShowBulletContactPoints(bool)));
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletConstraints, 0, false, qApp, SLOT(setShowBulletConstraints(bool)));
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletConstraintLimits, 0, false, qApp, SLOT(setShowBulletConstraintLimits(bool)));
 
     // Developer > Ask to Reset Settings
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AskToResetSettings, 0, false);

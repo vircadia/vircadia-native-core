@@ -15,6 +15,7 @@
 #define hifi_ScriptUUID_h
 
 #include <QUuid>
+#include <QObject>
 #include <QtScript/QScriptable>
 
 /**jsdoc
@@ -23,6 +24,12 @@
  * hexadecimal digits.
  *
  * @namespace Uuid
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
  * @property NULL {Uuid} The null UUID, <code>{00000000-0000-0000-0000-000000000000}</code>.
  */
 

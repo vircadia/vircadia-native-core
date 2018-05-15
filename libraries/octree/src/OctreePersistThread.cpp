@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctreePersistThread.h"
+
 #include <chrono>
 #include <thread>
 
@@ -30,7 +32,6 @@
 #include <PathUtils.h>
 
 #include "OctreeLogging.h"
-#include "OctreePersistThread.h"
 #include "OctreeUtils.h"
 #include "OctreeDataUtils.h"
 

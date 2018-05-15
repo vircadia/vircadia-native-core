@@ -32,6 +32,9 @@ class MenuItemProperties;
  * If a menu item doesn't belong to a group it is always displayed.
  *
  * @namespace Menu
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 
 /**

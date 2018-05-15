@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ViewFrustum.h"
+
 #include <algorithm>
 #include <array>
 
@@ -16,15 +18,13 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/vector_angle.hpp>
-#include <QtCore/QDebug>
 
+#include <QtCore/QDebug>
 
 #include "GeometryUtil.h"
 #include "GLMHelpers.h"
 #include "NumericalConstants.h"
 #include "SharedLogging.h"
-//#include "OctreeConstants.h"
-#include "ViewFrustum.h"
 
 using namespace std;
 
@@ -73,6 +73,10 @@ void ViewFrustum::setProjection(const glm::mat4& projection) {
     _fieldOfView = abs(glm::degrees(2.0f * abs(glm::angle(vec3(0.0f, 0.0f, -1.0f), glm::normalize(vec3(top))))));
     _height = _corners[TOP_RIGHT_NEAR].y - _corners[BOTTOM_RIGHT_NEAR].y;
     _width = _corners[TOP_RIGHT_NEAR].x - _corners[TOP_LEFT_NEAR].x;
+}
+
+void ViewFrustum::setProjection(float cameraFov, float cameraAspectRatio, float cameraNearClip, float cameraFarClip) {
+    setProjection(glm::perspective(glm::radians(cameraFov), cameraAspectRatio, cameraNearClip, cameraFarClip));
 }
 
 // ViewFrustum::calculate()
@@ -132,71 +136,6 @@ const char* ViewFrustum::debugPlaneName (int plane) const {
         case FAR_PLANE:    return "Far Plane";
     }
     return "Unknown";
-}
-
-void ViewFrustum::fromByteArray(const QByteArray& input) {
-
-    // From the wire!
-    glm::vec3 cameraPosition;
-    glm::quat cameraOrientation;
-    float cameraCenterRadius;
-    float cameraFov;
-    float cameraAspectRatio;
-    float cameraNearClip;
-    float cameraFarClip;
-
-    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(input.constData());
-    const unsigned char* sourceBuffer = startPosition;
-
-    // camera details
-    memcpy(&cameraPosition, sourceBuffer, sizeof(cameraPosition));
-    sourceBuffer += sizeof(cameraPosition);
-    sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, cameraOrientation);
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*)sourceBuffer, &cameraFov);
-    sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, cameraAspectRatio);
-    sourceBuffer += unpackClipValueFromTwoByte(sourceBuffer, cameraNearClip);
-    sourceBuffer += unpackClipValueFromTwoByte(sourceBuffer, cameraFarClip);
-    memcpy(&cameraCenterRadius, sourceBuffer, sizeof(cameraCenterRadius));
-    sourceBuffer += sizeof(cameraCenterRadius);
-
-    setPosition(cameraPosition);
-    setOrientation(cameraOrientation);
-    setCenterRadius(cameraCenterRadius);
-
-    // Also make sure it's got the correct lens details from the camera
-    if (0.0f != cameraAspectRatio &&
-        0.0f != cameraNearClip &&
-        0.0f != cameraFarClip &&
-        cameraNearClip != cameraFarClip) {
-        setProjection(glm::perspective(
-            glm::radians(cameraFov),
-            cameraAspectRatio,
-            cameraNearClip,
-            cameraFarClip));
-
-        calculate();
-    }
-}
-
-
-QByteArray ViewFrustum::toByteArray() {
-    static const int LARGE_ENOUGH = 1024;
-    QByteArray viewFrustumDataByteArray(LARGE_ENOUGH, 0);
-    unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(viewFrustumDataByteArray.data());
-    unsigned char* startPosition = destinationBuffer;
-
-    // camera details
-    memcpy(destinationBuffer, &_position, sizeof(_position));
-    destinationBuffer += sizeof(_position);
-    destinationBuffer += packOrientationQuatToBytes(destinationBuffer, _orientation);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _fieldOfView);
-    destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _aspectRatio);
-    destinationBuffer += packClipValueToTwoByte(destinationBuffer, _nearClip);
-    destinationBuffer += packClipValueToTwoByte(destinationBuffer, _farClip);
-    memcpy(destinationBuffer, &_centerSphereRadius, sizeof(_centerSphereRadius));
-    destinationBuffer += sizeof(_centerSphereRadius);
-
-    return viewFrustumDataByteArray.left(destinationBuffer - startPosition);
 }
 
 ViewFrustum::intersection ViewFrustum::calculateCubeFrustumIntersection(const AACube& cube) const {
@@ -334,13 +273,6 @@ bool ViewFrustum::boxIntersectsKeyhole(const AABox& box) const {
         }
     }
     return true;
-}
-
-bool closeEnough(float a, float b, float relativeError) {
-    assert(relativeError >= 0.0f);
-    // NOTE: we add EPSILON to the denominator so we can avoid checking for division by zero.
-    // This method works fine when: fabsf(a + b) >> EPSILON
-    return fabsf(a - b) / (0.5f * fabsf(a + b) + EPSILON) < relativeError;
 }
 
 // TODO: the slop and relative error should be passed in by argument rather than hard-coded.

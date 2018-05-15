@@ -27,6 +27,11 @@
 /**jsdoc
  * The Assets API allows you to communicate with the Asset Browser.
  * @namespace Assets
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
  */
 class AssetScriptingInterface : public BaseAssetScriptingInterface, QScriptable {
     Q_OBJECT
@@ -181,36 +186,36 @@ public:
 
     /**jsdoc
      * @function Assets.deleteAsset
-     * @property {} options
-     * @property {} scope
-     * @property {} [callback = ""]
+     * @param {} options
+     * @param {} scope
+     * @param {} [callback = ""]
      */
 
     Q_INVOKABLE void deleteAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
     /**jsdoc
      * @function Assets.resolveAsset
-     * @property {} options
-     * @property {} scope
-     * @property {} [callback = ""]
+     * @param {} options
+     * @param {} scope
+     * @param {} [callback = ""]
      */
 
     Q_INVOKABLE void resolveAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
     /**jsdoc
      * @function Assets.decompressData
-     * @property {} options
-     * @property {} scope
-     * @property {} [callback = ""]
+     * @param {} options
+     * @param {} scope
+     * @param {} [callback = ""]
      */
 
     Q_INVOKABLE void decompressData(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
     /**jsdoc
      * @function Assets.compressData
-     * @property {} options
-     * @property {} scope
-     * @property {} [callback = ""]
+     * @param {} options
+     * @param {} scope
+     * @param {} [callback = ""]
      */
 
     Q_INVOKABLE void compressData(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
@@ -224,7 +229,7 @@ public:
     
     /**jsdoc
      * @function Assets.canWriteCacheValue
-     * @property {string} url
+     * @param {string} url
      * @returns {boolean}
      */
 
@@ -232,8 +237,8 @@ public:
     
     /**jsdoc
      * @function Assets.getCacheStatus
-     * @property {} scope
-     * @property {} [callback=undefined]
+     * @param {} scope
+     * @param {} [callback=undefined]
      */
 
     Q_INVOKABLE void getCacheStatus(QScriptValue scope, QScriptValue callback = QScriptValue()) {
@@ -242,38 +247,38 @@ public:
 
     /**jsdoc
      * @function Assets.queryCacheMeta
-     * @property {} options
-     * @property {} scope
-     * @property {} [callback=undefined]
+     * @param {} options
+     * @param {} scope
+     * @param {} [callback=undefined]
      */
 
     Q_INVOKABLE void queryCacheMeta(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
     /**jsdoc
      * @function Assets.loadFromCache
-     * @property {} options
-     * @property {} scope
-     * @property {} [callback=undefined]
+     * @param {} options
+     * @param {} scope
+     * @param {} [callback=undefined]
      */
 
     Q_INVOKABLE void loadFromCache(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
     /**jsdoc
      * @function Assets.saveToCache
-     * @property {} options
-     * @property {} scope
-     * @property {} [callback=undefined]
+     * @param {} options
+     * @param {} scope
+     * @param {} [callback=undefined]
      */
 
     Q_INVOKABLE void saveToCache(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
     /**jsdoc
      * @function Assets.saveToCache
-     * @property {} url
-     * @property {} data
-     * @property {} metadata
-     * @property {} scope
-     * @property {} [callback=undefined]
+     * @param {} url
+     * @param {} data
+     * @param {} metadata
+     * @param {} scope
+     * @param {} [callback=undefined]
      */
 
     Q_INVOKABLE void saveToCache(const QUrl& url, const QByteArray& data, const QVariantMap& metadata,

@@ -409,7 +409,7 @@ Grabber.prototype.pressEvent = function(event) {
     var args = "mouse";
     Entities.callEntityMethod(this.entityID, "startDistanceGrab", args);
 
-    Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+    Messages.sendLocalMessage('Hifi-Object-Manipulation', JSON.stringify({
         action: 'grab',
         grabbedEntity: this.entityID
     }));
@@ -450,7 +450,7 @@ Grabber.prototype.releaseEvent = function(event) {
         var args = "mouse";
         Entities.callEntityMethod(this.entityID, "releaseGrab", args);
 
-        Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+        Messages.sendLocalMessage('Hifi-Object-Manipulation', JSON.stringify({
             action: 'release',
             grabbedEntity: this.entityID,
             joint: "mouse"

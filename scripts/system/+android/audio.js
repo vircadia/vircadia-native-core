@@ -32,8 +32,9 @@ function init() {
         activeIcon: "icons/mic-mute-a.svg",
         text: "",
         bgOpacity: 0.0,
-        activeBgOpacity: 0.0,
-        bgColor: "#FFFFFF"
+        hoverBgOpacity: 0.0,
+        activeHoverBgOpacity: 0.0,
+        activeBgOpacity: 0.0
     });
 
     onMuteToggled();

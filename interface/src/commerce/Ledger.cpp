@@ -9,15 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Ledger.h"
+
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QTimeZone>
 #include <QJsonDocument>
-#include "Wallet.h"
-#include "Ledger.h"
-#include "CommerceLogging.h"
+
 #include <NetworkingConstants.h>
 #include <AddressManager.h>
+
+#include "Wallet.h"
+#include "CommerceLogging.h"
 
 // inventory answers {status: 'success', data: {assets: [{id: "guid", title: "name", preview: "url"}....]}}
 // balance answers {status: 'success', data: {balance: integer}}

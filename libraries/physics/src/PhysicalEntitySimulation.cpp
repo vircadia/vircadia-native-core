@@ -153,6 +153,8 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     // remove the objects (aka MotionStates) from physics
     _physicsEngine->removeSetOfObjects(_physicalObjects);
 
+    clearOwnershipData();
+
     // delete the MotionStates
     for (auto stateItr : _physicalObjects) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(&(*stateItr));
@@ -165,7 +167,6 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     _physicalObjects.clear();
 
     // clear all other lists specific to this derived class
-    clearOwnershipData();
     _entitiesToRemoveFromPhysics.clear();
     _entitiesToAddToPhysics.clear();
     _incomingChanges.clear();
@@ -327,10 +328,18 @@ void PhysicalEntitySimulation::handleChangedMotionStates(const VectorOfMotionSta
 }
 
 void PhysicalEntitySimulation::addOwnershipBid(EntityMotionState* motionState) {
-    motionState->initForBid();
-    motionState->sendBid(_entityPacketSender, _physicsEngine->getNumSubsteps());
-    _bids.push_back(motionState);
-    _nextBidExpiry = glm::min(_nextBidExpiry, motionState->getNextBidExpiry());
+    if (getEntityTree()->isServerlessMode()) {
+        EntityItemPointer entity = motionState->getEntity();
+        auto nodeList = DependencyManager::get<NodeList>();
+        auto sessionID = nodeList->getSessionUUID();
+        entity->setSimulationOwner(SimulationOwner(sessionID, SCRIPT_GRAB_SIMULATION_PRIORITY));
+        _owned.push_back(motionState);
+    } else {
+        motionState->initForBid();
+        motionState->sendBid(_entityPacketSender, _physicsEngine->getNumSubsteps());
+        _bids.push_back(motionState);
+        _nextBidExpiry = glm::min(_nextBidExpiry, motionState->getNextBidExpiry());
+    }
 }
 
 void PhysicalEntitySimulation::addOwnership(EntityMotionState* motionState) {

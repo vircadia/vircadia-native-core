@@ -12,6 +12,8 @@
 #ifndef hifi_AvatarMixerSlave_h
 #define hifi_AvatarMixerSlave_h
 
+#include <NodeList.h>
+
 class AvatarMixerClientData;
 
 class AvatarMixerSlaveStats {

@@ -91,7 +91,7 @@ public:
 
     // this is the maximum per shader stage on the low end apple
     // TODO make it platform dependant at init time
-    static const int MAX_NUM_UNIFORM_BUFFERS = 12;
+    static const int MAX_NUM_UNIFORM_BUFFERS = 14;
     size_t getMaxNumUniformBuffers() const { return MAX_NUM_UNIFORM_BUFFERS; }
 
     // this is the maximum per shader stage on the low end apple

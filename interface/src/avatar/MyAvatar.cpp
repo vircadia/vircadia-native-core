@@ -121,6 +121,19 @@ MyAvatar::MyAvatar(QThread* thread) :
 
     _skeletonModel = std::make_shared<MySkeletonModel>(this, nullptr);
     connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
+    connect(_skeletonModel.get(), &Model::setURLFinished, this, [this](bool success) {
+        if (success) {
+            qApp->unloadAvatarScripts();
+            _shouldLoadScripts = true;
+        }
+    });
+    connect(_skeletonModel.get(), &Model::rigReady, this, [this]() {
+        if (_shouldLoadScripts) {
+            auto geometry = getSkeletonModel()->getFBXGeometry();
+            qApp->loadAvatarScripts(geometry.scripts);
+            _shouldLoadScripts = false;
+        }
+    });
     connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
     connect(_skeletonModel.get(), &Model::rigReset, this, &Avatar::rigReset);
 
@@ -1473,6 +1486,15 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     std::shared_ptr<QMetaObject::Connection> skeletonConnection = std::make_shared<QMetaObject::Connection>();
     *skeletonConnection = QObject::connect(_skeletonModel.get(), &SkeletonModel::skeletonLoaded, [this, skeletonModelChangeCount, skeletonConnection]() {
        if (skeletonModelChangeCount == _skeletonModelChangeCount) {
+
+           if (_fullAvatarModelName.isEmpty()) {
+               // Store the FST file name into preferences
+               const auto& mapping = _skeletonModel->getGeometry()->getMapping();
+               if (mapping.value("name").isValid()) {
+                   _fullAvatarModelName = mapping.value("name").toString();
+               }
+           }
+
            initHeadBones();
            _skeletonModel->setCauterizeBoneSet(_headBoneSet);
            _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
@@ -1535,12 +1557,7 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
 
     if (_fullAvatarURLFromPreferences != fullAvatarURL) {
         _fullAvatarURLFromPreferences = fullAvatarURL;
-        if (modelName.isEmpty()) {
-            QVariantHash fullAvatarFST = FSTReader::downloadMapping(_fullAvatarURLFromPreferences.toString());
-            _fullAvatarModelName = fullAvatarFST["name"].toString();
-        } else {
-            _fullAvatarModelName = modelName;
-        }
+        _fullAvatarModelName = modelName;
     }
 
     const QString& urlString = fullAvatarURL.toString();
@@ -1548,8 +1565,8 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
         setSkeletonModelURL(fullAvatarURL);
         UserActivityLogger::getInstance().changedModel("skeleton", urlString);
     }
+
     markIdentityDataChanged();
-    
 }
 
 void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
@@ -2022,7 +2039,7 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
     }
 }
 
-void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
+void MyAvatar::preDisplaySide(const RenderArgs* renderArgs) {
 
     // toggle using the cauterizedBones depending on where the camera is and the rendering pass type.
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
@@ -2037,12 +2054,14 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
                 _attachmentData[i].jointName.compare("RightEye", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("HeadTop_End", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("Face", Qt::CaseInsensitive) == 0) {
+                uint8_t modelRenderTagBits = shouldDrawHead ? render::ItemKey::TAG_BITS_0 : render::ItemKey::TAG_BITS_NONE;
+                modelRenderTagBits |= render::ItemKey::TAG_BITS_1;
+                _attachmentModels[i]->setVisibleInScene(true, qApp->getMain3DScene(),
+                                                        modelRenderTagBits, false);
 
-                _attachmentModels[i]->setVisibleInScene(shouldDrawHead, qApp->getMain3DScene(),
-                                                        render::ItemKey::TAG_BITS_NONE, true);
-
-                _attachmentModels[i]->setCanCastShadow(shouldDrawHead, qApp->getMain3DScene(), 
-                                                       render::ItemKey::TAG_BITS_NONE, true);
+                uint8_t castShadowRenderTagBits = render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1;
+                _attachmentModels[i]->setCanCastShadow(true, qApp->getMain3DScene(),
+                                                       castShadowRenderTagBits, false);
             }
         }
     }
@@ -2837,6 +2856,11 @@ void MyAvatar::setSprintMode(bool sprint) {
 
 void MyAvatar::setWalkSpeed(float value) {
     _walkSpeed.set(value);
+}
+
+QVector<QString> MyAvatar::getScriptUrls() {
+    QVector<QString> scripts = _skeletonModel->isLoaded() ? _skeletonModel->getFBXGeometry().scripts : QVector<QString>();
+    return scripts;
 }
 
 glm::vec3 MyAvatar::getPositionForAudio() {

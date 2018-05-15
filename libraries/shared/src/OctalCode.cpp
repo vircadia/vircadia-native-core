@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctalCode.h"
+
 #include <algorithm> // std:min
 #include <cassert>
 #include <cmath>
@@ -17,7 +19,6 @@
 #include <QtCore/QDebug>
 
 #include "NumericalConstants.h"
-#include "OctalCode.h"
 #include "SharedUtil.h"
 
 int numberOfThreeBitSectionsInCode(const unsigned char* octalCode, int maxBytes) {

@@ -18,18 +18,13 @@
 #include <Octree.h>
 #include <SpatialParentFinder.h>
 
-class EntityTree;
-using EntityTreePointer = std::shared_ptr<EntityTree>;
-
 #include "AddEntityOperator.h"
 #include "EntityTreeElement.h"
 #include "DeleteEntityOperator.h"
 #include "MovingEntitiesOperator.h"
 
-class EntityEditFilters;
-class Model;
-using ModelPointer = std::shared_ptr<Model>;
-using ModelWeakPointer = std::weak_ptr<Model>;
+class EntityTree;
+using EntityTreePointer = std::shared_ptr<EntityTree>;
 
 class EntitySimulation;
 

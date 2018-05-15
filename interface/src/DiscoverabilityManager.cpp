@@ -9,7 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DiscoverabilityManager.h"
+
 #include <QtCore/QJsonDocument>
+#include <QThread>
 
 #include <AccountManager.h>
 #include <AddressManager.h>
@@ -20,10 +23,8 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
-#include "DiscoverabilityManager.h"
+#include "Crashpad.h"
 #include "Menu.h"
-
-#include <QThread>
 
 const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::Connections;
 
@@ -127,10 +128,12 @@ void DiscoverabilityManager::updateLocation() {
                                    QNetworkAccessManager::PutOperation, callbackParameters);
     }
 
-    // Update Steam
+    // Update Steam and crash logger
+    QUrl currentAddress = addressManager->currentFacingPublicAddress();
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
-        steamClient->updateLocation(domainHandler.getHostname(), addressManager->currentFacingPublicAddress());
+        steamClient->updateLocation(domainHandler.getHostname(), currentAddress);
     }
+    setCrashAnnotation("address", currentAddress.toString().toStdString());
 }
 
 void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply) {

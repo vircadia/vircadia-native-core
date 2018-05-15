@@ -89,6 +89,12 @@ public:
 
 /**jsdoc
  * @namespace Script
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
  * @property {string} context
  */
 class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
@@ -101,6 +107,14 @@ public:
         ENTITY_CLIENT_SCRIPT,
         ENTITY_SERVER_SCRIPT,
         AGENT_SCRIPT
+    };
+
+    enum Type {
+        CLIENT,
+        ENTITY_CLIENT,
+        ENTITY_SERVER,
+        AGENT,
+        AVATAR
     };
 
     static int processLevelMaxRetries;
@@ -493,6 +507,9 @@ public:
      */
     Q_INVOKABLE QUuid generateUUID() { return QUuid::createUuid(); }
 
+    void setType(Type type) { _type = type; };
+    Type getType() { return _type; };
+
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
 
@@ -508,6 +525,9 @@ public:
     // inside of Application so that the ScriptEngine class is not polluted by this notion
     void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded; }
     bool isUserLoaded() const { return _isUserLoaded; }
+
+    void setQuitWhenFinished(const bool quitWhenFinished) { _quitWhenFinished = quitWhenFinished; }
+    bool isQuitWhenFinished() const { return _quitWhenFinished; }
 
     // NOTE - this is used by the TypedArray implementation. we need to review this for thread safety
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
@@ -724,6 +744,7 @@ protected:
     void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
 
     Context _context;
+    Type _type;
     QString _scriptContents;
     QString _parentURL;
     std::atomic<bool> _isFinished { false };
@@ -749,6 +770,8 @@ protected:
     ConsoleScriptingInterface _consoleScriptingInterface;
     std::atomic<bool> _isUserLoaded { false };
     bool _isReloading { false };
+
+    std::atomic<bool> _quitWhenFinished;
 
     ArrayBufferClass* _arrayBufferClass;
 

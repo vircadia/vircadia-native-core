@@ -1,0 +1,24 @@
+{
+    "hifi_domains" : [
+        {
+            "name": "Your last location",
+            "url": "",
+            "thumbnail": ""
+        },
+        {
+            "name": "dev-mobile-master",
+            "url": "hifi://dev-mobile-master",
+            "thumbnail": ""
+        },
+        {
+            "name": "dev-mobile",
+            "url": "hifi://dev-mobile",
+            "thumbnail": ""
+        },
+        {
+            "name": "dev-welcome",
+            "url": "hifi://dev-welcome",
+            "thumbnail": ""
+        }
+    ]
+}

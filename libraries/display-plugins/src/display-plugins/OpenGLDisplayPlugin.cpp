@@ -336,9 +336,8 @@ void OpenGLDisplayPlugin::deactivate() {
 
     _container->showDisplayPluginsTools(false);
     if (!_container->currentDisplayActions().isEmpty()) {
-        auto menu = _container->getPrimaryMenu();
         foreach(auto itemInfo, _container->currentDisplayActions()) {
-            menu->removeMenuItem(itemInfo.first, itemInfo.second);
+            _container->removeMenuItem(itemInfo.first, itemInfo.second);
         }
         _container->currentDisplayActions().clear();
     }
