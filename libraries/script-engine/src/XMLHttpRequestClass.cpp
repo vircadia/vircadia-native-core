@@ -12,6 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "XMLHttpRequestClass.h"
+
 #include <QEventLoop>
 #include <qurlquery.h>
 
@@ -20,7 +22,6 @@
 #include <NetworkingConstants.h>
 
 #include "ScriptEngine.h"
-#include "XMLHttpRequestClass.h"
 
 const QString METAVERSE_API_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/api/";
 

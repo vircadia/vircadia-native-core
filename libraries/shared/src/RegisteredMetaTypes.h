@@ -361,6 +361,12 @@ using MeshPointer = std::shared_ptr<graphics::Mesh>;
 /**jsdoc
  * A handle for a mesh in an entity, such as returned by {@link Entities.getMeshes}.
  * @class MeshProxy
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
  * @deprecated Use the {@link Graphics} API instead.
  */
 class MeshProxy : public QObject {

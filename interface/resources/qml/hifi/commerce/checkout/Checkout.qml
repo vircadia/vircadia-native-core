@@ -787,7 +787,7 @@ Rectangle {
                     }
                     lightboxPopup.button2text = "CONFIRM";
                     lightboxPopup.button2method = function() {
-                        Commerce.replaceContentSet(root.itemHref);
+                        Commerce.replaceContentSet(root.itemHref, root.certificateId);
                         lightboxPopup.visible = false;
                         rezzedNotifContainer.visible = true;
                         rezzedNotifContainerTimer.start();

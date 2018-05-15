@@ -26,7 +26,7 @@
       <span class='step-description'>
         <a target='_blank' href='https://docs.highfidelity.com/create-and-explore/start-working-in-your-sandbox/place-names'>Place names</a> are similar to web addresses. Users who want to visit your domain can
         enter its Place Name in High Fidelity's Interface. You can choose a Place Name for your domain.</br>
-        People can also use your <b>domain's IP address (shown below)</b> to visit your High Fidelity domain.
+        Your domain may also be reachable by <b>IP address</b>.
       </span>
     </div>
   </div>
@@ -35,10 +35,10 @@
     <div class="centered-hack-parent">
       <div id="place-name-group" class="centered-hack">
         <p id="place-name-link"></p>
-          <div id="place-name-edit">
-            <span class='glyphicon glyphicon-pencil'></span>
-            <a href="#" id="change-place-name">Choose a custom Place Name instead</a>
-          </div>
+        <div id="place-name-edit">
+          <span class='glyphicon glyphicon-pencil'></span>
+          <a href="#" id="change-place-name">Choose a custom Place Name instead</a>
+        </div>
       </div>
     </div>
   </div>

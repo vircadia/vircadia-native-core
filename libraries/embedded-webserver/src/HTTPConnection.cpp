@@ -9,15 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "HTTPConnection.h"
 
 #include <QBuffer>
 #include <QCryptographicHash>
 #include <QTcpSocket>
+#include <QUrlQuery>
 
-#include "HTTPConnection.h"
 #include "EmbeddedWebserverLogging.h"
 #include "HTTPManager.h"
-#include <QUrlQuery>
 
 const char* HTTPConnection::StatusCode200 = "200 OK";
 const char* HTTPConnection::StatusCode301 = "301 Moved Permanently";

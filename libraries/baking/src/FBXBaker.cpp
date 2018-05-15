@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "FBXBaker.h"
+
 #include <cmath> // need this include so we don't get an error looking for std::isnan
 
 #include <QtConcurrent>
@@ -30,8 +32,6 @@
 
 #include "ModelBakingLoggingCategory.h"
 #include "TextureBaker.h"
-
-#include "FBXBaker.h"
 
 void FBXBaker::bake() {    
     qDebug() << "FBXBaker" << _modelURL << "bake starting";
@@ -65,13 +65,6 @@ void FBXBaker::bakeSourceCopy() {
     }
 
     rewriteAndBakeSceneModels();
-
-    if (shouldStop()) {
-        return;
-    }
-
-    // export the FBX with re-written texture references
-    exportScene();
 
     if (shouldStop()) {
         return;
@@ -351,28 +344,4 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
             }
         }
     }
-}
-
-void FBXBaker::exportScene() {
-    // save the relative path to this FBX inside our passed output folder
-    auto fileName = _modelURL.fileName();
-    auto baseName = fileName.left(fileName.lastIndexOf('.'));
-    auto bakedFilename = baseName + BAKED_FBX_EXTENSION;
-
-    _bakedModelFilePath = _bakedOutputDir + "/" + bakedFilename;
-
-    auto fbxData = FBXWriter::encodeFBX(_rootNode);
-
-    QFile bakedFile(_bakedModelFilePath);
-
-    if (!bakedFile.open(QIODevice::WriteOnly)) {
-        handleError("Error opening " + _bakedModelFilePath + " for writing");
-        return;
-    }
-
-    bakedFile.write(fbxData);
-
-    _outputFiles.push_back(_bakedModelFilePath);
-
-    qCDebug(model_baking) << "Exported" << _modelURL << "with re-written paths to" << _bakedModelFilePath;
 }

@@ -103,7 +103,7 @@ public:
         RadiusIgnoreRequest,
         UsernameFromIDRequest,
         UsernameFromIDReply,
-        ViewFrustum,
+        AvatarQuery,
         RequestsDomainListData,
         PerAvatarGainSet,
         EntityScriptGetStatus,
@@ -244,13 +244,16 @@ enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
     JSONFilterWithFamilyTree = 19,
     ConnectionIdentifier = 20,
-    RemovedJurisdictions = 21
+    RemovedJurisdictions = 21,
+    MultiFrustumQuery = 22,
+    ConicalFrustums = 23
 };
 
 enum class AssetServerPacketVersion: PacketVersion {
     VegasCongestionControl = 19,
     RangeRequestSupport,
-    RedirectedMappings
+    RedirectedMappings,
+    BakingTextureMeta
 };
 
 enum class AvatarMixerPacketVersion : PacketVersion {
@@ -325,6 +328,11 @@ enum class IcePingVersion : PacketVersion {
 
 enum class PingVersion : PacketVersion {
     IncludeConnectionID = 18
+};
+
+enum class AvatarQueryVersion : PacketVersion {
+    SendMultipleFrustums = 21,
+    ConicalFrustums = 22
 };
 
 #endif // hifi_PacketHeaders_h
