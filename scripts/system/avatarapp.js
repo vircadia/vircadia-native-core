@@ -110,12 +110,13 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
     switch (message.method) {
     case 'getAvatars':
         currentAvatar = getMyAvatar();
-        message.reply = {
+        message.data = {
             'bookmarks' : AvatarBookmarks.getBookmarks(),
             'currentAvatar' : currentAvatar,
             'displayName' : MyAvatar.displayName
         };
-        console.debug('avatarapp.js: currentAvatar: ', JSON.stringify(message.reply.currentAvatar, null, '\t'))
+
+        console.debug('avatarapp.js: currentAvatar: ', JSON.stringify(message.data.currentAvatar, null, '\t'))
         sendToQml(message)
         break;
     case 'selectAvatar':
@@ -284,7 +285,7 @@ function onBookmarkLoaded(bookmarkName) {
     executeLater(function() {
         currentAvatar = getMyAvatar();
         console.debug('avatarapp.js: executing onBookmarkLoaded: ', JSON.stringify(currentAvatar, 0, 4));
-        sendToQml({'method' : 'bookmarkLoaded', 'reply' : {'name' : bookmarkName, 'currentAvatar' : currentAvatar} });
+        sendToQml({'method' : 'bookmarkLoaded', 'data' : {'name' : bookmarkName, 'currentAvatar' : currentAvatar} });
     });
 }
 
@@ -393,7 +394,7 @@ function onTabletScreenChanged(type, url) {
 
         var message = {
             'method' : 'initialize',
-            'reply' : {
+            'data' : {
                 'jointNames' : MyAvatar.getJointNames()
             }
         };

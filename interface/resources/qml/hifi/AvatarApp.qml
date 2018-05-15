@@ -58,7 +58,7 @@ Rectangle {
         console.debug('AvatarApp.qml: fromScript: ', JSON.stringify(message, null, '\t'))
 
         if(message.method === 'initialize') {
-            jointNames = message.reply.jointNames;
+            jointNames = message.data.jointNames;
             emitSendToScript({'method' : getAvatarsMethod});
         } else if(message.method === 'wearableUpdated') {
             adjustWearables.refreshWearable(message.entityID, message.wearableIndex, message.properties);
@@ -82,7 +82,7 @@ Rectangle {
 
             adjustWearables.refresh(currentAvatar);
         } else if(message.method === 'bookmarkLoaded') {
-            setCurrentAvatar(message.reply.currentAvatar, message.reply.name);
+            setCurrentAvatar(message.data.currentAvatar, message.data.name);
             var avatarIndex = allAvatars.findAvatarIndex(currentAvatar.name);
             allAvatars.move(avatarIndex, 0, 1);
             view.setPage(0);
@@ -115,10 +115,10 @@ Rectangle {
             console.debug('removed ', absoluteIndex, 'newItemIndex: ', newItemIndex, 'allAvatars.count:', allAvatars.count, 'pageOfAvatars.count:', pageOfAvatars.count)
             pageOfAvatars.isUpdating = false;
         } else if(message.method === getAvatarsMethod) {
-            var getAvatarsReply = message.reply;
-            allAvatars.populate(getAvatarsReply.bookmarks);
-            setCurrentAvatar(getAvatarsReply.currentAvatar, '');
-            displayNameInput.text = getAvatarsReply.displayName;
+            var getAvatarsData = message.data;
+            allAvatars.populate(getAvatarsData.bookmarks);
+            setCurrentAvatar(getAvatarsData.currentAvatar, '');
+            displayNameInput.text = getAvatarsData.displayName;
 
             console.debug('currentAvatar: ', JSON.stringify(currentAvatar, null, '\t'));
             updateCurrentAvatarInBookmarks(currentAvatar);
