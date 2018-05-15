@@ -66,7 +66,8 @@ Rectangle {
             color: "white"
         }
         RalewayRegular {
-            textFormat: Text.RichText
+            textFormat: Text.StyledText
+            linkColor: "#00B4EF"
             color: "white"
             text: "<a href=\"https:/www.highfidelity.com\">www.highfidelity.com</a>."
             size: 20
@@ -100,7 +101,8 @@ Rectangle {
         }
         Item { height: 20; width: 1 }
         RalewayRegular {
-            textFormat: Text.RichText
+            textFormat: Text.StyledText
+            linkColor: "#00B4EF"
             color: "white"
             text: "Blockchain technology from <a href=\"https://elementsproject.org/elements/\">Elements</a>."
             size: 14
@@ -111,8 +113,9 @@ Rectangle {
             size: 14
         }
         RalewayRegular {
-            textFormat: Text.RichText
+            textFormat: Text.StyledText
             color: "white"
+            linkColor: "#00B4EF"
             text: "Distributed under the <a href=\"http://www.apache.org/licenses/LICENSE-2.0.html\">Apache License, Version 2.0.</a>."
             size: 14
         }
