@@ -39,13 +39,14 @@ namespace render {
     class DrawStatus {
     public:
         using Config = DrawStatusConfig;
-        using JobModel = Job::ModelI<DrawStatus, ItemBounds, Config>;
+        using Input = VaryingSet2<ItemBounds, glm::vec2>;
+        using JobModel = Job::ModelI<DrawStatus, Input, Config>;
 
         DrawStatus() {}
         DrawStatus(const gpu::TexturePointer statusIconMap) { setStatusIconMap(statusIconMap); }
 
         void configure(const Config& config);
-        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems);
+        void run(const RenderContextPointer& renderContext, const Input& input);
 
         const gpu::PipelinePointer getDrawItemBoundsPipeline();
         const gpu::PipelinePointer getDrawItemStatusPipeline();
