@@ -178,7 +178,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawHaze>("DrawHazeDeferred", drawHazeInputs);
 
     // Render transparent objects forward in LightingBuffer
-    const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel, lightClusters).asVarying();
+    const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel, lightClusters, jitter).asVarying();
     task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
     // Light Cluster Grid Debuging job
@@ -192,7 +192,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto selectionBaseName = "contextOverlayHighlightList";
     const auto selectedItems = addSelectItemJobs(task, selectionBaseName, metas, opaques, transparents);
 
-    const auto outlineInputs = DrawHighlightTask::Inputs(items.get0(), deferredFramebuffer, lightingFramebuffer, deferredFrameTransform).asVarying();
+    const auto outlineInputs = DrawHighlightTask::Inputs(items.get0(), deferredFramebuffer, lightingFramebuffer, deferredFrameTransform, jitter).asVarying();
     task.addJob<DrawHighlightTask>("DrawHighlight", outlineInputs);
 
     task.addJob<EndGPURangeTimer>("HighlightRangeTimer", outlineRangeTimer);
@@ -277,7 +277,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
             // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
             auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
             auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath, image::TextureUsage::STRICT_TEXTURE);
-            task.addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
+            const auto drawStatusInputs = DrawStatus::Input(opaques, jitter).asVarying();
+            task.addJob<DrawStatus>("DrawStatus", drawStatusInputs, DrawStatus(statusIconMap));
         }
 
         task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
@@ -315,6 +316,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
     const auto& inItems = inputs.get0();
     const auto& lightingModel = inputs.get1();
     const auto& lightClusters = inputs.get2();
+    const auto jitter = inputs.get3();
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 
     RenderArgs* args = renderContext->args;
@@ -332,6 +334,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         args->getViewFrustum().evalViewTransform(viewMat);
 
         batch.setProjectionTransform(projMat);
+        batch.setProjectionJitter(jitter.x, jitter.y);
         batch.setViewTransform(viewMat);
 
         // Setup lighting model for all items;
