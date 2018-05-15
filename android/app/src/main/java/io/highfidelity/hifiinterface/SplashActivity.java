@@ -27,10 +27,7 @@ public class SplashActivity extends Activity {
     }
 
     public void onAppLoadedComplete() {
-        // Give interface more time so textures don't fail(got deleted) on Adreno (joystick)
-        new Handler(getMainLooper()).postDelayed(() -> {
-            startActivity(new Intent(this, HomeActivity.class));
-            new Handler(getMainLooper()).postDelayed(() -> SplashActivity.this.finish(), 1000);
-        }, 500);
+        startActivity(new Intent(this, HomeActivity.class)); // + 2 sec
+        SplashActivity.this.finish();
     }
 }

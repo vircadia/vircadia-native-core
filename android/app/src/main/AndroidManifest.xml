@@ -42,7 +42,7 @@
             android:name=".HomeActivity"
             android:label="@string/home"
             android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:theme="@style/Theme.AppCompat.Translucent.NoActionBar">
         </activity>
         <activity
             android:name=".GotoActivity"

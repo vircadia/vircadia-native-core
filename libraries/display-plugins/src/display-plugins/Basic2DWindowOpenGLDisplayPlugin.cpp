@@ -131,44 +131,32 @@ void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
         // render stick base
         auto stickBaseTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getLeftVirtualPad()->getFirstTouch(),
                                                                                                     _virtualPadPixelSize, _virtualPadPixelSize);
-        render([&](gpu::Batch& batch) {
-            batch.enableStereo(false);
-            batch.setProjectionTransform(mat4());
-            batch.setPipeline(_cursorPipeline);
-            batch.setResourceTexture(0, _virtualPadStickBaseTexture);
-            batch.resetViewTransform();
-            batch.setModelTransform(stickBaseTransform);
-            batch.setViewportTransform(ivec4(uvec2(0), getRecommendedRenderSize()));
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
-        });
-        // render stick head
         auto stickTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getLeftVirtualPad()->getCurrentTouch(),
-                                                                                                    _virtualPadPixelSize, _virtualPadPixelSize);
+                                                                                              _virtualPadPixelSize, _virtualPadPixelSize);
+        auto jumpTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getJumpButtonPosition(),
+                                                                                             _virtualPadJumpBtnPixelSize, _virtualPadJumpBtnPixelSize);
+
         render([&](gpu::Batch& batch) {
             batch.enableStereo(false);
+            batch.setFramebuffer(_compositeFramebuffer);
+            batch.resetViewTransform();
             batch.setProjectionTransform(mat4());
             batch.setPipeline(_cursorPipeline);
-            batch.setResourceTexture(0, _virtualPadStickTexture);
-            batch.resetViewTransform();
-            batch.setModelTransform(stickTransform);
-            batch.setViewportTransform(ivec4(uvec2(0), getRecommendedRenderSize()));
+
+            batch.setResourceTexture(0, _virtualPadStickBaseTexture);
+            batch.setModelTransform(stickBaseTransform);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
-        });
-        if (!virtualPadManager.getLeftVirtualPad()->isBeingTouched()) {
-            // render stick head
-            auto jumpTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getJumpButtonPosition(),
-                                                                                                        _virtualPadJumpBtnPixelSize, _virtualPadJumpBtnPixelSize);
-            render([&](gpu::Batch& batch) {
-                batch.enableStereo(false);
-                batch.setProjectionTransform(mat4());
-                batch.setPipeline(_cursorPipeline);
+
+            batch.setResourceTexture(0, _virtualPadStickTexture);
+            batch.setModelTransform(stickTransform);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+            if (!virtualPadManager.getLeftVirtualPad()->isBeingTouched()) {
                 batch.setResourceTexture(0, _virtualPadJumpBtnTexture);
-                batch.resetViewTransform();
                 batch.setModelTransform(jumpTransform);
-                batch.setViewportTransform(ivec4(uvec2(0), getRecommendedRenderSize()));
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
-            });
-        }
+            }
+        });
     }
 #endif
     Parent::compositeExtra();
