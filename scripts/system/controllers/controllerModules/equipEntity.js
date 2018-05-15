@@ -828,7 +828,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     };
     
     var onKeyPress = function(event) {
-        if (event.text === UNEQUIP_KEY) {
+        if (event.text.toLowerCase() === UNEQUIP_KEY) {
             if (rightEquipEntity.targetEntityID) {
                 rightEquipEntity.endEquipEntity();
             }
