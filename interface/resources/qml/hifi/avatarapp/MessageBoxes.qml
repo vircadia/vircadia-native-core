@@ -3,11 +3,11 @@ import QtQuick 2.5
 MessageBox {
     id: popup
 
-    function showSpecifyAvatarUrl(callback) {
+    function showSpecifyAvatarUrl(callback, linkCallback) {
         popup.onButton2Clicked = callback;
         popup.titleText = 'Specify Avatar URL'
         popup.bodyText = 'If you want to add a custom avatar, you can specify the URL of the avatar file' +
-                '(“.fst” extension) here. <a href="#">Learn to make a custom avatar by opening this link on your desktop.</a>'
+                '(“.fst” extension) here. <a href="https://docs.highfidelity.com/create-and-explore/avatars/create-avatars">Learn to make a custom avatar by opening this link on your desktop.</a>'
         popup.inputText.visible = true;
         popup.inputText.placeholderText = 'Enter Avatar Url';
         popup.inputText.forceActiveFocus();
@@ -19,6 +19,11 @@ MessageBox {
                 callback();
 
             popup.close();
+        }
+
+        popup.onLinkClicked = function(link) {
+            if(linkCallback)
+                linkCallback(link);
         }
 
         popup.open();

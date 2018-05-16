@@ -245,9 +245,8 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break;
     case 'navigate':
         console.debug('avatarapp.js: navigate: ', message.url);
+        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system")
         if(message.url.indexOf('app://') === 0) {
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system")
-
             if(message.url === 'app://marketplace') {
                 tablet.gotoWebScreen(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
             } else if(message.url === 'app://purchases') {
@@ -256,7 +255,10 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
 
         } else if(message.url.indexOf('hifi://') === 0) {
             AddressManager.handleLookupString(message.url, false);
+        } else if(message.url.indexOf('https://') === 0 || message.url.indexOf('http://') === 0) {
+            tablet.gotoWebScreen(message.url);
         }
+
         break;
     case 'saveSettings':
         console.debug('avatarapp.js: saveSettings: ', JSON.stringify(message.settings, 0, 4));
