@@ -13,6 +13,8 @@
 #define hifi_Android_Helper_h
 
 #include <QObject>
+#include <QThread>
+#include <AccountManager.h>
 
 class AndroidHelper : public QObject {
     Q_OBJECT
@@ -21,17 +23,24 @@ public:
             static AndroidHelper instance;
             return instance;
     }
+    void init();
     void requestActivity(const QString &activityName);
+    void notifyLoadComplete();
     void goBackFromAndroidActivity();
+    QSharedPointer<AccountManager> getAccountManager() { return _accountManager; }
 
     AndroidHelper(AndroidHelper const&)  = delete;
     void operator=(AndroidHelper const&) = delete;
 signals:
     void androidActivityRequested(const QString &activityName);
     void backFromAndroidActivity();
+    void qtAppLoadComplete();
 
 private:
-    AndroidHelper() {}
+    AndroidHelper();
+    ~AndroidHelper();
+    QSharedPointer<AccountManager> _accountManager;
+    QThread workerThread;
 };
 
 #endif

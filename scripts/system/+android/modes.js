@@ -28,6 +28,7 @@ modeLabel[MODE_MY_VIEW]="MY VIEW";
 var logEnabled = false;
 var radar = Script.require('./radar.js');
 var uniqueColor = Script.require('./uniqueColor.js');
+var displayNames = Script.require('./displayNames.js');
 
 function printd(str) {
     if (logEnabled) {       
@@ -87,8 +88,10 @@ function switchToMode(newMode) {
 
     if (currentMode == MODE_RADAR) {
         radar.startRadarMode();
+        displayNames.ending();
     } else  if (currentMode == MODE_MY_VIEW) {
         // nothing to do yet
+        displayNames.init();
     } else {
         printd("Unknown view mode " + currentMode);
     }

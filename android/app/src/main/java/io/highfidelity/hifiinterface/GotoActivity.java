@@ -9,11 +9,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
-
-import java.net.URI;
-import java.net.URISyntaxException;
 
 public class GotoActivity extends AppCompatActivity {
 
@@ -61,15 +57,7 @@ public class GotoActivity extends AppCompatActivity {
     private void actionGo() {
         String urlString = mUrlEditText.getText().toString();
         if (!urlString.trim().isEmpty()) {
-            URI uri;
-            try {
-                uri = new URI(urlString);
-            } catch (URISyntaxException e) {
-                return;
-            }
-            if (uri.getScheme() == null || uri.getScheme().isEmpty()) {
-                urlString = "hifi://" + urlString;
-            }
+            urlString = HifiUtils.getInstance().sanitizeHifiUrl(urlString);
 
             Intent intent = new Intent();
             intent.putExtra(GotoActivity.PARAM_DOMAIN_URL, urlString);
