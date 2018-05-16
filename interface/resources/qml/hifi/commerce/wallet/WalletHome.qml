@@ -31,10 +31,7 @@ Item {
         if (visible) {
             transactionHistoryModel.clear();
             Commerce.balance();
-            transactionHistoryModel.initialResultReceived = false;
-            transactionHistoryModel.currentPageToRetrieve = 1;
-            transactionHistoryModel.noMoreDataToRetrieve = false;
-            transactionHistoryModel.getPage();
+            transactionHistoryModel.getFirstPage();
             Commerce.getAvailableUpdates();
         } else {
             refreshTimer.stop();

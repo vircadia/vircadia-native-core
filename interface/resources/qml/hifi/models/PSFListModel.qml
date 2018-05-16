@@ -71,6 +71,15 @@ Item {
             console.log("Fetching Page " + root.currentPageToRetrieve + " of " + root.listModelName + "...");
         }
     }
+
+    // A helper function used to get the first page from the server.
+    // It can be custom-defined by this item's Parent.
+    property var getFirstPage: function() {
+        root.initialResultReceived = false;
+        root.currentPageToRetrieve = 1;
+        root.noMoreDataToRetrieve = false;
+        root.getPage();
+    }
     
     // Resets both internal `ListModel`s and resets the page to retrieve to "1".
     function resetModel() {
@@ -82,22 +91,22 @@ Item {
 
     onEndpointChanged: {
         resetModel();
-        root.getPage();
+        root.getFirstPage();
     }
 
     onSortKeyChanged: {
         resetModel();
-        root.getPage();
+        root.getFirstPage();
     }
 
     onSearchFilterChanged: {
         resetModel();
-        root.getPage();
+        root.getFirstPage();
     }
 
     onTagsFilterChanged: {
         resetModel();
-        root.getPage();
+        root.getFirstPage();
     }
 
     property bool initialResultReceived: false;

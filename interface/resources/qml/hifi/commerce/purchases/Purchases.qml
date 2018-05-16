@@ -64,10 +64,7 @@ Rectangle {
                 } else if (!Settings.getValue("isFirstUseOfPurchases", true) && root.activeView === "initialize") {
                     root.activeView = "purchasesMain";
                     root.installedApps = Commerce.getInstalledApps();
-                    purchasesModel.initialResultReceived = false;
-                    purchasesModel.currentPageToRetrieve = 1;
-                    purchasesModel.noMoreDataToRetrieve = false;
-                    purchasesModel.getPage();
+                    purchasesModel.getFirstPage();
                     Commerce.getAvailableUpdates();
                 }
             } else {
@@ -160,10 +157,7 @@ Rectangle {
             onSendSignalToParent: {
                 if (msg.method === 'sendAssetHome_back' || msg.method === 'closeSendAsset') {
                     root.activeView = "purchasesMain";
-                    purchasesModel.initialResultReceived = false;
-                    purchasesModel.currentPageToRetrieve = 1;
-                    purchasesModel.noMoreDataToRetrieve = false;
-                    purchasesModel.getPage();
+                    purchasesModel.getFirstPage();
                     Commerce.getAvailableUpdates();
                 } else {
                     sendToScript(msg);
@@ -430,10 +424,7 @@ Rectangle {
                         Settings.setValue("isFirstUseOfPurchases", false);
                         root.activeView = "purchasesMain";
                         root.installedApps = Commerce.getInstalledApps();
-                        purchasesModel.initialResultReceived = false;
-                        purchasesModel.currentPageToRetrieve = 1;
-                        purchasesModel.noMoreDataToRetrieve = false;
-                        purchasesModel.getPage();
+                        purchasesModel.getFirstPage();
                         Commerce.getAvailableUpdates();
                     break;
                 }
@@ -596,7 +587,10 @@ Rectangle {
                     // FIXME: This ALSO *MUST* be serverside (what if we don't have
                     // all instances of the item on the client yet?)
                     //populateDisplayedItemCounts();
-                    sortByDate();
+
+                    // FIXME: Sorting by date should be done serverside (we should always get
+                    // the most recent purchases on the 1st page)
+                    //sortByDate();
                 }
             }
         }
