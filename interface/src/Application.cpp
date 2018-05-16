@@ -5107,7 +5107,7 @@ void Application::updateThreads(float deltaTime) {
 void Application::toggleOverlays() {}
 
 void Application::setOverlaysVisible(bool visible) {
-    Q_UNUSED(visible)
+    _overlaysVisible = visible;
 }
 
 void Application::centerUI() {

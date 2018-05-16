@@ -144,7 +144,7 @@ void OverlayConductor::update(float dt) {
     }
 
 
-    bool targetVisible = (0 == (_flags & SuppressMask));
+    bool targetVisible = qApp->getOverlaysVisible() && (0 == (_flags & SuppressMask));
     if (targetVisible != currentVisible) {
         offscreenUi->setPinned(!targetVisible);
     }

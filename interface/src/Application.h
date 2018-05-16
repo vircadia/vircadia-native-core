@@ -377,6 +377,7 @@ public slots:
     void cameraMenuChanged();
     void toggleOverlays();
     void setOverlaysVisible(bool visible);
+    bool getOverlaysVisible() { return _overlaysVisible; };
     Q_INVOKABLE void centerUI();
 
     void resetPhysicsReadyInformation();
@@ -692,6 +693,8 @@ private:
     bool _settingsLoaded { false };
 
     bool _fakedMouseEvent { false };
+
+    bool _overlaysVisible { true };
 
     void checkChangeCursor();
     mutable QMutex _changeCursorLock { QMutex::Recursive };

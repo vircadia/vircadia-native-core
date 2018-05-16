@@ -146,6 +146,32 @@ Menu::Menu() {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     auto avatar = avatarManager->getMyAvatar();
 
+     // Avatar > Size
+    MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");
+    // Avatar > Size > Increase
+    addActionToQMenuAndActionHash(avatarSizeMenu,
+        MenuOption::IncreaseAvatarSize,
+        0, // QML Qt::Key_Plus,
+        avatar.get(), SLOT(increaseSize()));
+
+    // Avatar > Size > Decrease
+    addActionToQMenuAndActionHash(avatarSizeMenu,
+        MenuOption::DecreaseAvatarSize,
+        0, // QML Qt::Key_Minus,
+        avatar.get(), SLOT(decreaseSize()));
+
+    // Avatar > Size > Reset
+    addActionToQMenuAndActionHash(avatarSizeMenu,
+        MenuOption::ResetAvatarSize,
+        0, // QML Qt::Key_Equal,
+        avatar.get(), SLOT(resetSize()));
+
+    // Avatar > Reset Sensors
+    addActionToQMenuAndActionHash(avatarMenu,
+        MenuOption::ResetSensors,
+        0, // QML Qt::Key_Apostrophe,
+        qApp, SLOT(resetSensors()));
+
     // Avatar > Attachments...
     action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
     connect(action, &QAction::triggered, [] {
