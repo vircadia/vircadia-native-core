@@ -7596,8 +7596,10 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
 
         // If we're not doing an animated snapshot as well...
         if (!includeAnimated) {
-            // Tell the dependency manager that the capture of the still snapshot has taken place.
-            emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
+            if (!path.isEmpty()) {
+                // Tell the dependency manager that the capture of the still snapshot has taken place.
+                emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
+            }
         } else if (!SnapshotAnimated::isAlreadyTakingSnapshotAnimated()) {
             // Get an animated GIF snapshot and save it
             SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, qApp, DependencyManager::get<WindowScriptingInterface>());
