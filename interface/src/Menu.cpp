@@ -391,10 +391,10 @@ Menu::Menu() {
             if (mainViewJitterCamConfig && mainViewAntialiasingConfig) {
                 if (action->isChecked()) {
                     mainViewJitterCamConfig->play();
-                    mainViewAntialiasingConfig->debugFXAAX = 1.0;
+                    mainViewAntialiasingConfig->setDebugFXAA(false);
                 } else {
                     mainViewJitterCamConfig->none();
-                    mainViewAntialiasingConfig->debugFXAAX = 0.0;
+                    mainViewAntialiasingConfig->setDebugFXAA(true);
                 }
             }
         }
