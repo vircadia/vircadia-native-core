@@ -371,6 +371,18 @@ public slots:
     void takeSecondaryCameraSnapshot(const QString& filename = QString());
 
     /**jsdoc
+    * Takes a 360 snapshot given a position of the secondary camera (which does not need to have been previously set up).
+    * @function Window.takeSecondaryCameraSnapshot
+    * @param {vec3} [cameraPosition] - The (x, y, z) position of the camera for the 360 snapshot
+    * @param {string} [filename=""] - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
+    *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
+    *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
+    *
+    * var filename = QString();
+    */
+    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat = false, const QString& filename = QString());
+
+    /**jsdoc
      * Emit a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that
      * indicates whether or not a user connection was successfully made using the Web API.
      * @function Window.makeConnection
@@ -577,6 +589,16 @@ signals:
      * @returns {Signal}
      */
     void stillSnapshotTaken(const QString& pathStillSnapshot, bool notify);
+
+    /**jsdoc
+    * Triggered when a still equirectangular snapshot has been taken by calling {@link Window.takeSecondaryCamera360Snapshot|takeSecondaryCamera360Snapshot}
+    * @function Window.snapshot360Taken
+    * @param {string} pathStillSnapshot - The path and name of the snapshot image file.
+    * @param {boolean} notify - The value of the <code>notify</code> parameter that {@link Window.takeSecondaryCamera360Snapshot|takeSecondaryCamera360Snapshot}
+    *     was called with.
+    * @returns {Signal}
+    */
+    void snapshot360Taken(const QString& path360Snapshot, bool notify);
 
     /**jsdoc
      * Triggered when a snapshot submitted via {@link Window.shareSnapshot|shareSnapshot} is ready for sharing. The snapshot
