@@ -101,6 +101,22 @@ Rectangle {
                     to: 30
                     anchors.verticalCenter: parent.verticalCenter
                     Layout.fillWidth: true
+
+                    TextStyle9 {
+                        anchors.left: scaleSlider.left
+                        anchors.leftMargin: 5
+                        anchors.top: scaleSlider.bottom
+                        anchors.topMargin: 2
+                        text: String(scaleSlider.from / 10) + 'x'
+                    }
+
+                    TextStyle9 {
+                        anchors.right: scaleSlider.right
+                        anchors.rightMargin: 5
+                        anchors.top: scaleSlider.bottom
+                        anchors.topMargin: 2
+                        text: String(scaleSlider.to / 10) + 'x'
+                    }
                 }
 
                 HiFiGlyphs {
@@ -113,22 +129,31 @@ Rectangle {
             }
 
             ShadowRectangle {
-                width: 28
+                width: 37
                 height: 28
-                color: 'white'
+                AvatarAppStyle {
+                    id: style
+                }
+
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: style.colors.blueHighlight }
+                    GradientStop { position: 1.0; color: style.colors.blueAccent }
+                }
 
                 radius: 3
-                border.color: 'black'
-                border.width: 1.5
-                anchors.verticalCenter: parent.verticalCenter
 
                 RalewaySemiBold {
-                    size: 13;
+                    color: 'white'
+                    anchors.centerIn: parent
                     text: "1x"
-                    verticalAlignment: Text.AlignVCenter
-                    horizontalAlignment: Text.AlignHCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    size: 18
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        scaleSlider.value = 10
+                    }
                 }
             }
         }

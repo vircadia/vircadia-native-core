@@ -8,6 +8,7 @@ HifiControlsUit.TextField {
     id: control
     font.family: "Fira Sans"
     font.pixelSize: 15;
+    implicitHeight: 40
 
     AvatarAppStyle {
         id: style

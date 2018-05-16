@@ -268,7 +268,8 @@ Rectangle {
         InputField {
             id: displayNameInput
 
-            font.pixelSize: 18
+            font.family: "Fira Sans"
+            font.pixelSize: 15
             anchors.left: displayNameLabel.right
             anchors.leftMargin: 30
             anchors.verticalCenter: displayNameLabel.verticalCenter
