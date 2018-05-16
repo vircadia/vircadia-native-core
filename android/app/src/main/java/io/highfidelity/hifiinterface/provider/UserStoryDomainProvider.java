@@ -25,6 +25,7 @@ public class UserStoryDomainProvider implements DomainProvider {
 
     private static final String INCLUDE_ACTIONS_FOR_PLACES = "concurrency";
     private static final String INCLUDE_ACTIONS_FOR_FULL_SEARCH = "concurrency,announcements,snapshot";
+    private static final String TAGS_TO_SEARCH = "mobile";
     private static final int MAX_PAGES_TO_GET = 10;
 
     private String mProtocol;
@@ -78,6 +79,7 @@ public class UserStoryDomainProvider implements DomainProvider {
                 "open",
                 true,
                 mProtocol,
+                TAGS_TO_SEARCH,
                 pageNumber);
         Log.d("API-USER-STORY-DOMAINS", "Protocol [" + mProtocol + "] include_actions [" + INCLUDE_ACTIONS_FOR_PLACES + "]");
         userStories.enqueue(new retrofit2.Callback<UserStories>() {
@@ -152,45 +154,13 @@ public class UserStoryDomainProvider implements DomainProvider {
         }
     }
 
-    public void retrieveNot(DomainCallback domainCallback) {
-        // TODO Call multiple pages
-        Call<UserStories> userStories = mUserStoryDomainProviderService.getUserStories(
-                INCLUDE_ACTIONS_FOR_PLACES,
-                "open",
-                true,
-                mProtocol,
-                1);
-
-        Log.d("API-USER-STORY-DOMAINS", "Protocol [" + mProtocol + "] include_actions [" + INCLUDE_ACTIONS_FOR_PLACES + "]");
-        userStories.enqueue(new retrofit2.Callback<UserStories>() {
-
-            @Override
-            public void onResponse(Call<UserStories> call, Response<UserStories> response) {
-                UserStories userStories = response.body();
-                if (userStories == null) {
-                    domainCallback.retrieveOk(new ArrayList<>(0));
-                }
-                List<DomainAdapter.Domain> domains = new ArrayList<>(userStories.total_entries);
-                userStories.user_stories.forEach(userStory -> {
-                    domains.add(userStory.toDomain());
-                });
-                domainCallback.retrieveOk(domains);
-            }
-
-            @Override
-            public void onFailure(Call<UserStories> call, Throwable t) {
-                domainCallback.retrieveError(new Exception(t), t.getMessage());
-            }
-
-        });
-    }
-
     public interface UserStoryDomainProviderService {
         @GET("api/v1/user_stories")
         Call<UserStories> getUserStories(@Query("include_actions") String includeActions,
                                          @Query("restriction") String restriction,
                                          @Query("require_online") boolean requireOnline,
                                          @Query("protocol") String protocol,
+                                         @Query("tags") String tagsCommaSeparated,
                                          @Query("page") int pageNumber);
     }
 
