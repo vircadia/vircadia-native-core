@@ -11,132 +11,164 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+/* jslint bitwise: true */
+
+/* global Script, Quat, MyAvatar, HMD, Controller, Messages*/
+
 (function() { // BEGIN LOCAL_SCOPE
 
-var mappingName, basicMapping, isChecked;
+    var TWO_SECONDS_INTERVAL = 2000;
+    var FLYING_MAPPING_NAME = 'Hifi-Flying-Dev-' + Math.random();
+    var DRIVING_MAPPING_NAME = 'Hifi-Driving-Dev-' + Math.random();
 
-var TURN_RATE = 1000;
-var isDisabled = false;
-var previousSetting = MyAvatar.useAdvancedMovementControls;
-if (previousSetting === false) {
-    previousSetting = false;
-    isChecked = false;
-}
+    var flyingMapping = null;
+    var drivingMapping = null;
 
-if (previousSetting === true) {
-    previousSetting = true;
-    isChecked = true;
-}
+    var TURN_RATE = 1000;
+    var isDisabled = false;
 
-function rotate180() {
-    var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.angleAxis(180, {
-        x: 0,
-        y: 1,
-        z: 0
-    }))
-    MyAvatar.orientation = newOrientation
-}
+    var previousFlyingState = MyAvatar.getFlyingEnabled();
+    var previousDrivingState = MyAvatar.useAdvancedMovementControls;
 
-var inFlipTurn = false;
+    function rotate180() {
+        var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.angleAxis(180, {
+            x: 0,
+            y: 1,
+            z: 0
+        }));
+        MyAvatar.orientation = newOrientation;
+    }
 
-function registerBasicMapping() {
-    mappingName = 'Hifi-AdvancedMovement-Dev-' + Math.random();
-    basicMapping = Controller.newMapping(mappingName);
-    basicMapping.from(Controller.Standard.LY).to(function(value) {
-        if (isDisabled) {
-            return;
-        }
-        var stick = Controller.getValue(Controller.Standard.LS);
-        if (value === 1 && Controller.Hardware.OculusTouch !== undefined) {
-            rotate180();
-        } else if (Controller.Hardware.Vive !== undefined) {
-            if (value > 0.75 && inFlipTurn === false) {
-                inFlipTurn = true;
+    var inFlipTurn = false;
+
+    function registerBasicMapping() {
+
+        drivingMapping = Controller.newMapping(DRIVING_MAPPING_NAME);
+        drivingMapping.from(Controller.Standard.LY).to(function(value) {
+            if (isDisabled) {
+                return;
+            }
+
+            if (value === 1 && Controller.Hardware.OculusTouch !== undefined) {
                 rotate180();
-                Script.setTimeout(function() {
-                    inFlipTurn = false;
-                }, TURN_RATE)
+            } else if (Controller.Hardware.Vive !== undefined) {
+                if (value > 0.75 && inFlipTurn === false) {
+                    inFlipTurn = true;
+                    rotate180();
+                    Script.setTimeout(function() {
+                        inFlipTurn = false;
+                    }, TURN_RATE);
+                }
+            }
+            return;
+        });
+
+        flyingMapping = Controller.newMapping(FLYING_MAPPING_NAME);
+        flyingMapping.from(Controller.Standard.RY).to(function(value) {
+            if (isDisabled) {
+                return;
+            }
+
+            if (value === 1 && Controller.Hardware.OculusTouch !== undefined) {
+                rotate180();
+            } else if (Controller.Hardware.Vive !== undefined) {
+                if (value > 0.75 && inFlipTurn === false) {
+                    inFlipTurn = true;
+                    rotate180();
+                    Script.setTimeout(function() {
+                        inFlipTurn = false;
+                    }, TURN_RATE);
+                }
+            }
+            return;
+        });
+    }
+
+    function scriptEnding() {
+        Controller.disableMapping(FLYING_MAPPING_NAME);
+        Controller.disableMapping(DRIVING_MAPPING_NAME);
+    }
+
+    Script.scriptEnding.connect(scriptEnding);
+
+    registerBasicMapping();
+
+    Script.setTimeout(function() {
+        if (MyAvatar.useAdvanceMovementControls) {
+            Controller.disableMapping(DRIVING_MAPPING_NAME);
+        } else {
+            Controller.enableMapping(DRIVING_MAPPING_NAME);
+        }
+
+        if (MyAvatar.getFyingEnabled()) {
+            Controller.disableMapping(FLYING_MAPPING_NAME);
+        } else {
+            Controller.enableMapping(FLYING_MAPPING_NAME);
+        }
+    }, 100);
+
+
+    HMD.displayModeChanged.connect(function(isHMDMode) {
+        if (isHMDMode) {
+            if (Controller.Hardware.Vive !== undefined || Controller.Hardware.OculusTouch !== undefined) {
+                if (MyAvatar.useAdvancedMovementControls) {
+                    Controller.disableMapping(DRIVING_MAPPING_NAME);
+                } else {
+                    Controller.enableMapping(DRIVING_MAPPING_NAME);
+                }
+
+                if (MyAvatar.getFlyingEnabled()) {
+                    Controller.disableMapping(FLYING_MAPPING_NAME);
+                } else {
+                    Controller.enableMapping(FLYING_MAPPING_NAME);
+                }
+
             }
         }
-        return;
     });
-    basicMapping.from(Controller.Standard.RY).to(function(value) {
-        if (isDisabled) {
-            return;
-        }
-        var stick = Controller.getValue(Controller.Standard.RS);
-        if (value === 1 && Controller.Hardware.OculusTouch !== undefined) {
-            rotate180();
-        } else if (Controller.Hardware.Vive !== undefined) {
-            if (value > 0.75 && inFlipTurn === false) {
-                inFlipTurn = true;
-                rotate180();
-                Script.setTimeout(function() {
-                    inFlipTurn = false;
-                }, TURN_RATE)
-            }
-        }
-        return;
-    })
-}
 
 
-function enableMappings() {
-    Controller.enableMapping(mappingName);
-}
+    function update() {
+        if ((Controller.Hardware.Vive !== undefined || Controller.Hardware.OculusTouch !== undefined) && HMD.active) {
+            var flying = MyAvatar.getFlyingEnabled();
+            var driving = MyAvatar.useAdvancedMovementControls;
 
-function disableMappings() {
-    Controller.disableMapping(mappingName);
-}
+            if (flying !== previousFlyingState) {
+                if (flying) {
+                    Controller.disableMapping(FLYING_MAPPING_NAME);
+                } else {
+                    Controller.enableMapping(FLYING_MAPPING_NAME);
+                }
 
-function scriptEnding() {
-    disableMappings();
-}
-
-Script.scriptEnding.connect(scriptEnding);
-
-registerBasicMapping();
-
-Script.setTimeout(function() {
-    if (previousSetting === true) {
-        disableMappings();
-    } else {
-        enableMappings();
-    }
-}, 100)
-
-
-HMD.displayModeChanged.connect(function(isHMDMode) {
-    if (isHMDMode) {
-        if (Controller.Hardware.Vive !== undefined || Controller.Hardware.OculusTouch !== undefined) {
-            if (isChecked === true) {
-                disableMappings();
-            } else if (isChecked === false) {
-                enableMappings();
+                previousFlyingState = flying;
             }
 
+            if (driving !== previousDrivingState) {
+                if (driving) {
+                    Controller.disableMapping(DRIVING_MAPPING_NAME);
+                } else {
+                    Controller.enableMapping(DRIVING_MAPPING_NAME);
+                }
+                previousDrivingState = driving;
+            }
+        }
+        Script.setTimeout(update, TWO_SECONDS_INTERVAL);
+    }
+
+    Script.setTimeout(update, TWO_SECONDS_INTERVAL);
+
+    var HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL = 'Hifi-Advanced-Movement-Disabler';
+    function handleMessage(channel, message, sender) {
+        if (channel === HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL) {
+            if (message === 'disable') {
+                isDisabled = true;
+            } else if (message === 'enable') {
+                isDisabled = false;
+            }
         }
     }
-});
 
-
-var HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL = 'Hifi-Advanced-Movement-Disabler';
-function handleMessage(channel, message, sender) {
-    if (channel === HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL) {
-        if (message === 'disable') {
-            isDisabled = true;
-        } else if (message === 'enable') {
-            isDisabled = false;
-        } else if (message === 'enable_mappings') {
-            print("enable mappings")
-            enableMappings();
-        } else if (message === 'disable_mappings') {
-            disableMappings();
-        }
-    }
-}
-
-Messages.subscribe(HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL);
-Messages.messageReceived.connect(handleMessage);
+    Messages.subscribe(HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL);
+    Messages.messageReceived.connect(handleMessage);
 
 }()); // END LOCAL_SCOPE
