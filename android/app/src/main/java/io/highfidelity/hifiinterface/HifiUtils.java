@@ -45,7 +45,7 @@ public class HifiUtils {
     }
 
     public String absoluteHifiAssetUrl(String urlString, String baseUrl) {
-            urlString = urlString.trim();
+        urlString = urlString.trim();
         if (!urlString.isEmpty()) {
             URI uri;
             try {

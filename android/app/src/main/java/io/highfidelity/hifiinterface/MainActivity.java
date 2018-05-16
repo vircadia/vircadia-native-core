@@ -251,7 +251,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      */
     private void updateProfilePicture(String username) {
         mProfilePicture.setImageResource(PROFILE_PICTURE_PLACEHOLDER);
-        new DownloadProfileImageTask(url ->  { if (url!=null && !url.isEmpty()) {
+        new DownloadProfileImageTask(url ->  { if (url != null && !url.isEmpty()) {
                 Picasso.get().load(url).into(mProfilePicture, new RoundProfilePictureCallback());
             } } ).execute(username);
     }

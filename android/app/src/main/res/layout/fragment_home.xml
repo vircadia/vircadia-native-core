@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    android:background="@color/colorPrimary"    
+    android:background="@color/colorPrimary"
     tools:context="io.highfidelity.hifiinterface.MainActivity"
     tools:showIn="@layout/activity_home">
 

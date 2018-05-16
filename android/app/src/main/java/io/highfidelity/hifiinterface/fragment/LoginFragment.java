@@ -72,11 +72,11 @@ public class LoginFragment extends Fragment {
             public void afterTextChanged(Editable editable) {
                 if (!ignoreNextChange) {
                     ignoreNextChange = true;
-                    boolean spaceFound=false;
-                    for (int i=0; i< editable.length(); i++) {
+                    boolean spaceFound = false;
+                    for (int i = 0; i < editable.length(); i++) {
                         if (editable.charAt(i) == ' ') {
                             spaceFound=true;
-                            editable.delete(i, i+1);
+                            editable.delete(i, i + 1);
                             i--;
                         }
                     }
