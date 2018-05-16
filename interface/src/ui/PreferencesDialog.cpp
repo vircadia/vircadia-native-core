@@ -58,18 +58,6 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
 
-    static const QString MOUSE_SENSIVITY { "Mouse Sensivity" };
-    {
-        auto getterY = []()->float { return 1.0; };
-        auto setterY = [](float value) {  };
-        preferences->addPreference(new SliderPreference(MOUSE_SENSIVITY, "Mouse Look Y", getterY, setterY));
-        auto getterX = []()->float { return 1.0; };
-        auto setterX = [](float value) { };
-        preferences->addPreference(new SliderPreference(MOUSE_SENSIVITY, "Mouse Look X", getterX, setterX));
-        auto getterSW = []()->float { return 1.0; };
-        auto setterSW = [](float value) { };
-        preferences->addPreference(new SliderPreference(MOUSE_SENSIVITY, "Mouse Look Zoom", getterSW, setterSW));
-    }
     // Graphics quality
     static const QString GRAPHICS_QUALITY { "Graphics Quality" };
     {
@@ -147,12 +135,6 @@ void setupPreferences() {
         auto getter = [=]()->bool { return myAvatar->getClearOverlayWhenMoving(); };
         auto setter = [=](bool value) { myAvatar->setClearOverlayWhenMoving(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Clear overlays when moving", getter, setter));
-    }
-
-    {
-        auto getter = [=]()->bool { return qApp->getOverlaysVisible(); };
-        auto setter = [=](bool value) { qApp->setOverlaysVisible(value); };
-        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Show Overlays", getter, setter));
     }
 
     static const QString VIEW_CATEGORY{ "View" };
