@@ -114,12 +114,12 @@ void QmlCommerce::inventory() {
     }
 }
 
-void QmlCommerce::history(const int& pageNumber) {
+void QmlCommerce::history(const int& pageNumber, const int& itemsPerPage) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList cachedPublicKeys = wallet->listPublicKeys();
     if (!cachedPublicKeys.isEmpty()) {
-        ledger->history(cachedPublicKeys, pageNumber);
+        ledger->history(cachedPublicKeys, pageNumber, itemsPerPage);
     }
 }
 

@@ -17,20 +17,109 @@
 
 import QtQuick 2.7
 
-ListModel {
+Item {
     id: root;
-    property string sortColumnName: "";
-    property bool isSortingDescending: true;
-    property bool valuesAreNumerical: false;
+
+    // Used when printing debug statements
+    property string listModelName: "";
+    
+    // Holds the value of the page that'll be retrieved the next time `getPage()` is called
+    property int currentPageToRetrieve: 1;
+
+    // If defined, the endpoint that `getPage()` will hit (as long as there isn't a custom `getPage()`
+    // that does something fancy)
+    property string endpoint;
+    // If defined, the sort key used when calling the above endpoint.
+    // (as long as there isn't a custom `getPage()` that does something fancy)
+    property string sortKey;
+    // If defined, the search filter used when calling the above endpoint.
+    // (as long as there isn't a custom `getPage()` that does something fancy)
+    property string searchFilter;
+    // If defined, the tags filter used when calling the above endpoint.
+    // (as long as there isn't a custom `getPage()` that does something fancy)
+    property string tagsFilter;
+    // The number of items that'll be retrieved per page when calling `getPage()`
+    // (as long as there isn't a custom `getPage()` that does something fancy)
+    property int itemsPerPage: 100;
+
+    // This function, by default, will retrieve data from the above-defined `endpoint` with the
+    // sort and filter data as set above. It can be custom-defined by this item's Parent.
+    property var getPage: function() {
+        // Put code here that calls the `endpoint` with the proper `sortKey`, `searchFilter`, and `tagsFilter`.
+        // Whatever code goes here should define the below `pageRetrieved()` as
+        // the callback for after the page is asynchronously retrieved.
+
+        // The parent of this Item can also define custom `getPage()` and `pageRetrieved()` functions.
+        // See `WalletHome.qml` as an example of a file that does this. `WalletHome.qml` must use that method because
+        // it hits an endpoint that must be authenticated via the Wallet.
+        console.log("default getPage()");
+    }
+    // This function, by default, will handle the data retrieved using `getPage()` above.
+    // It can be custom-defined by this item's Parent.
+    property var pageRetrieved: function() {
+        console.log("default pageRetrieved()");
+    }
+    
+    // This function, by default, will get the _next_ page of data according to `getPage()` if there
+    // isn't a pending request and if there's more data to retrieve.
+    // It can be custom-defined by this item's Parent.
+    property var getNextPage: function() {
+        if (!root.requestPending && !root.noMoreDataToRetrieve) {
+            root.requestPending = true;
+            root.currentPageToRetrieve++;
+            root.getPage();
+            console.log("Fetching Page " + root.currentPageToRetrieve + " of " + root.listModelName + "...");
+        }
+    }
+    
+    // Resets both internal `ListModel`s and resets the page to retrieve to "1".
+    function resetModel() {
+        pagesAlreadyAdded = new Array();
+        tempModel.clear();
+        finalModel.clear();
+        root.currentPageToRetrieve = 1;
+    }
+
+    onEndpointChanged: {
+        resetModel();
+        root.getPage();
+    }
+
+    onSortKeyChanged: {
+        resetModel();
+        root.getPage();
+    }
+
+    onSearchFilterChanged: {
+        resetModel();
+        root.getPage();
+    }
+
+    onTagsFilterChanged: {
+        resetModel();
+        root.getPage();
+    }
 
     property bool initialResultReceived: false;
     property bool requestPending: false;
     property bool noMoreDataToRetrieve: false;
-    property int nextPageToRetrieve: 1;
     property var pagesAlreadyAdded: new Array();
+    
+    // Redefining members and methods so that the parent of this Item
+    // can use PSFListModel as they would a regular ListModel
+    property alias model: finalModel;
+    property alias count: finalModel.count;
+    function clear() { finalModel.clear(); }
+    function get(index) { return finalModel.get(index); }
 
+    // Used while processing page data and sorting
     ListModel {
         id: tempModel;
+    }
+
+    // This is the model that the parent of this Item will actually see
+    ListModel {
+        id: finalModel;
     }
 
     function processResult(status, retrievedResult) {
@@ -38,37 +127,46 @@ ListModel {
         root.requestPending = false;
 
         if (status === 'success') {
-            var currentPage = parseInt(result.current_page);
+            var currentPage = parseInt(retrievedResult.current_page);
 
             if (retrievedResult.length === 0) {
                 root.noMoreDataToRetrieve = true;
                 console.log("No more data to retrieve from backend endpoint.")
-            } else if (root.nextPageToRetrieve === 1) {
+            }
+            /*
+            See FIXME below...
+
+            else if (root.currentPageToRetrieve === 1) {
                 var sameItemCount = 0;
 
                 tempModel.clear();
                 tempModel.append(retrievedResult);
         
                 for (var i = 0; i < tempModel.count; i++) {
-                    if (!root.get(i)) {
+                    if (!finalModel.get(i)) {
                         sameItemCount = -1;
                         break;
                     }
-                    // Gotta think of another way to determine if the data we just got is the same
+                    // Gotta think of a generic way to determine if the data we just got is the same
                     //     as the data that we already have in the model.
-                    /* else if (tempModel.get(i).transaction_type === root.get(i).transaction_type &&
-                    tempModel.get(i).text === root.get(i).text) {
+                    else if (tempModel.get(i).transaction_type === finalModel.get(i).transaction_type &&
+                    tempModel.get(i).text === finalModel.get(i).text) {
                         sameItemCount++;
-                    }*/
+                    }
                 }
 
                 if (sameItemCount !== tempModel.count) {
-                    root.clear();
+                    finalModel.clear();
                     for (var i = 0; i < tempModel.count; i++) {
-                        root.append(tempModel.get(i));
+                        finalModel.append(tempModel.get(i));
                     }
                 }
-            } else {
+            }
+            */
+            else {
+                // FIXME! Reconsider this logic, because it means that auto-refreshing the first page of results
+                // (like we do in WalletHome for Recent Activity) _won't_ catch brand new data elements!
+                // See the commented code above for how I did this for WalletHome specifically.
                 if (root.pagesAlreadyAdded.indexOf(currentPage) !== -1) {
                     console.log("Page " + currentPage + " of paginated data has already been added to the list.");
                 } else {
@@ -81,18 +179,18 @@ ListModel {
 
                     var insertionIndex = 0;
                     // If there's nothing in the model right now, we don't need to modify insertionIndex.
-                    if (root.count !== 0) {
+                    if (finalModel.count !== 0) {
                         var currentIteratorPage;
                         // Search through the whole model and look for the insertion point.
                         // The insertion point is found when the result page from the server is less than
                         //     the page that the current item came from, OR when we've reached the end of the whole model.
-                        for (var i = 0; i < root.count; i++) {
-                            currentIteratorPage = root.get(i).resultIsFromPage;
+                        for (var i = 0; i < finalModel.count; i++) {
+                            currentIteratorPage = finalModel.get(i).resultIsFromPage;
                         
                             if (currentPage < currentIteratorPage) {
                                 insertionIndex = i;
                                 break;
-                            } else if (i === root.count - 1) {
+                            } else if (i === finalModel.count - 1) {
                                 insertionIndex = i + 1;
                                 break;
                             }
@@ -101,15 +199,22 @@ ListModel {
                     
                     // Go through the results we just got back from the server, setting the "resultIsFromPage"
                     //     property of those results and adding them to the main model.
-                    // NOTE that this wouldn't be necessary if we did this step on the server.
+                    // NOTE that this wouldn't be necessary if we did this step (or a similar step) on the server.
                     for (var i = 0; i < tempModel.count; i++) {
                         tempModel.setProperty(i, "resultIsFromPage", currentPage);
-                        root.insert(i + insertionIndex, tempModel.get(i))
+                        finalModel.insert(i + insertionIndex, tempModel.get(i))
                     }
                 }
             }
         }
     }
+
+    // Used when sorting model data on the CLIENT
+    // Right now, there is no sorting done on the client for
+    // any users of PSFListModel, but that could very easily change.
+    property string sortColumnName: "";
+    property bool isSortingDescending: true;
+    property bool valuesAreNumerical: false;
 
     function swap(a, b) {
         if (a < b) {

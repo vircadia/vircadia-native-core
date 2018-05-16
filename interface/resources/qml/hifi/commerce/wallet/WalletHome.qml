@@ -18,7 +18,7 @@ import QtQuick.Controls 2.2
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
-import "../../../models" as HifiModels
+import "../../models" as HifiModels
 
 Item {
     HifiConstants { id: hifi; }
@@ -32,10 +32,10 @@ Item {
             transactionHistoryModel.clear();
             Commerce.balance();
             transactionHistoryModel.initialResultReceived = false;
-            transactionHistoryModel.nextPageToRetrieve = 1;
+            transactionHistoryModel.currentPageToRetrieve = 1;
             transactionHistoryModel.noMoreDataToRetrieve = false;
             transactionHistoryModel.requestPending = true;
-            Commerce.history(transactionHistoryModel.nextPageToRetrieve);
+            transactionHistoryModel.getPage();
             Commerce.getAvailableUpdates();
         } else {
             refreshTimer.stop();
@@ -50,18 +50,7 @@ Item {
         }
 
         onHistoryResult : {
-            
-            transactionHistoryModel.processResult(result.status, result.data.history);
-
-            if (!transactionHistoryModel.noMoreDataToRetrieve) {
-                calculatePendingAndInvalidated();
-            }
-
-            // Only auto-refresh if the user hasn't scrolled
-            // and there is more data to grab
-            if (transactionHistory.atYBeginning && !transactionHistoryModel.noMoreDataToRetrieve) {
-                refreshTimer.start();
-            }
+            transactionHistoryModel.pageRetrieved(result);
         }
 
         onAvailableUpdatesResult: {
@@ -166,7 +155,8 @@ Item {
                 console.log("Refreshing 1st Page of Recent Activity...");
                 transactionHistoryModel.requestPending = true;
                 Commerce.balance();
-                Commerce.history(1);
+                transactionHistoryModel.currentPageToRetrieve = 1;
+                transactionHistoryModel.getPage();
             }
         }
     }
@@ -228,11 +218,26 @@ Item {
             }
         }
 
-        ListModel {
-            id: tempTransactionHistoryModel;
-        }
         HifiModels.PSFListModel {
             id: transactionHistoryModel;
+
+            itemsPerPage: 100;
+            getPage: function() {
+                Commerce.history(transactionHistoryModel.currentPageToRetrieve, transactionHistoryModel.itemsPerPage);
+            }
+            pageRetrieved: function(result) {
+                transactionHistoryModel.processResult(result.status, result.data.history);
+
+                if (!transactionHistoryModel.noMoreDataToRetrieve) {
+                    calculatePendingAndInvalidated();
+                }
+
+                // Only auto-refresh if the user hasn't scrolled
+                // and there is more data to grab
+                if (transactionHistory.atYBeginning && !transactionHistoryModel.noMoreDataToRetrieve) {
+                    refreshTimer.start();
+                }
+            }
         }
         Item {
             anchors.top: recentActivityText.bottom;
@@ -311,7 +316,7 @@ Item {
                 height: parent.height;
                 visible: transactionHistoryModel.count !== 0;
                 clip: true;
-                model: transactionHistoryModel;
+                model: transactionHistoryModel.model;
                 delegate: Item {
                     width: parent.width;
                     height: (model.transaction_type === "pendingCount" && root.pendingCount !== 0) ? 40 : ((model.status === "confirmed" || model.status === "invalidated") ? transactionText.height + 30 : 0);
@@ -391,12 +396,7 @@ Item {
                 onAtYEndChanged: {
                     if (transactionHistory.atYEnd) {
                         console.log("User scrolled to the bottom of 'Recent Activity'.");
-                        if (!transactionHistoryModel.requestPending && !transactionHistoryModel.noMoreDataToRetrieve) {
-                            // Grab next page of results and append to model
-                            transactionHistoryModel.requestPending = true;
-                            Commerce.history(++transactionHistoryModel.nextPageToRetrieve);
-                            console.log("Fetching Page " + transactionHistoryModel.nextPageToRetrieve + " of Recent Activity...");
-                        }
+                        transactionHistoryModel.getNextPage();
                     }
                 }
             }
