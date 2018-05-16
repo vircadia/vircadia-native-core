@@ -593,7 +593,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
         return;
     }
 
-    removeCloneIDFromCloneParent(entityID);
+    cleanupCloneIDs(entityID);
     unhookChildAvatar(entityID);
     emit deletingEntity(entityID);
     emit deletingEntityPointer(existingEntity.get());
@@ -627,14 +627,23 @@ void EntityTree::unhookChildAvatar(const EntityItemID entityID) {
     });
 }
 
-void EntityTree::removeCloneIDFromCloneParent(const EntityItemID& entityID) {
+void EntityTree::cleanupCloneIDs(const EntityItemID& entityID) {
     EntityItemPointer entity = findEntityByEntityItemID(entityID);
     if (entity) {
-        const QUuid& cloneParentID = entity->getCloneParent();
-        if (!cloneParentID.isNull()) {
-            EntityItemPointer cloneParent = findEntityByID(cloneParentID);
-            if (cloneParent) {
-                cloneParent->removeCloneID(entityID);
+        // remove clone ID from it's clone origin's clone ID list if clone origin exists
+        const QUuid cloneOriginID = entity->getCloneOriginID();
+        if (!cloneOriginID.isNull()) {
+            EntityItemPointer cloneOrigin = findEntityByID(cloneOriginID);
+            if (cloneOrigin) {
+                cloneOrigin->removeCloneID(entityID);
+            }
+        }
+        // clear the clone origin ID on any clones that this entity had
+        const QList<QUuid>& cloneIDs = entity->getCloneIDs();
+        foreach(const QUuid& cloneChildID, cloneIDs) {
+            EntityItemPointer cloneChild = findEntityByEntityItemID(cloneChildID);
+            if (cloneChild) {
+                cloneChild->setCloneOriginID(QUuid());
             }
         }
     }
@@ -668,7 +677,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         }
 
         // tell our delete operator about this entityID
-        removeCloneIDFromCloneParent(entityID);
+        cleanupCloneIDs(entityID);
         unhookChildAvatar(entityID);
         theOperator.addEntityIDToDeleteList(entityID);
         emit deletingEntity(entityID);
@@ -1420,7 +1429,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
         case PacketType::EntityClone:
             isClone = true; // fall through to next case
         case PacketType::EntityAdd:
-            isAdd = true;  // fall through to next case 
+            isAdd = true;  // fall through to next case
             // FALLTHRU
         case PacketType::EntityPhysics:
         case PacketType::EntityEdit: {
@@ -1601,7 +1610,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     bool failedAdd = !allowed;
                     bool isCertified = !properties.getCertificateID().isEmpty();
                     bool isCloneable = properties.getCloneable();
-                    int cloneLimit = properties.getCloneableLimit();
+                    int cloneLimit = properties.getCloneLimit();
                     if (!allowed) {
                         qCDebug(entities) << "Filtered entity add. ID:" << entityItemID;
                     } else if (!isClone && !isCertified && !senderNode->getCanRez() && !senderNode->getCanRezTmp()) {
@@ -1646,14 +1655,15 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                             }
                         }
 
+                        if (newEntity && isClone) {
+                            entityToClone->addCloneID(newEntity->getEntityItemID());
+                            newEntity->setCloneOriginID(entityIDToClone);
+                        }
+
                         if (newEntity) {
                             newEntity->markAsChangedOnServer();
                             notifyNewlyCreatedEntity(*newEntity, senderNode);
-                            if (isClone) {
-                                entityToClone->addCloneID(newEntity->getEntityItemID());
-                                newEntity->setCloneParent(entityIDToClone);
-                            }
-
+                            
                             startLogging = usecTimestampNow();
                             if (wantEditLogging()) {
                                 qCDebug(entities) << "User [" << senderNode->getUUID() << "] added entity. ID:"

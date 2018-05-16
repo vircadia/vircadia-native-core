@@ -273,9 +273,11 @@ public:
     DEFINE_PROPERTY(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool, ENTITY_ITEM_DEFAULT_RELAY_PARENT_JOINTS);
 
     DEFINE_PROPERTY(PROP_CLONEABLE, Cloneable, cloneable, bool, ENTITY_ITEM_CLONEABLE);
-    DEFINE_PROPERTY(PROP_CLONEABLE_LIFETIME, CloneableLifetime, cloneableLifetime, float, ENTITY_ITEM_CLONEABLE_LIFETIME);
-    DEFINE_PROPERTY(PROP_CLONEABLE_LIMIT, CloneableLimit, cloneableLimit, float, ENTITY_ITEM_CLONEABLE_LIMIT);
-    DEFINE_PROPERTY(PROP_CLONEABLE_DYNAMIC, CloneableDynamic, cloneableDynamic, bool, ENTITY_ITEM_CLONEABLE_DYNAMIC);
+    DEFINE_PROPERTY(PROP_CLONE_LIFETIME, CloneLifetime, cloneLifetime, float, ENTITY_ITEM_CLONE_LIFETIME);
+    DEFINE_PROPERTY(PROP_CLONE_LIMIT, CloneLimit, cloneLimit, float, ENTITY_ITEM_CLONE_LIMIT);
+    DEFINE_PROPERTY(PROP_CLONE_DYNAMIC, CloneDynamic, cloneDynamic, bool, ENTITY_ITEM_CLONE_DYNAMIC);
+    DEFINE_PROPERTY(PROP_CLONE_AVATAR_ENTITY, CloneAvatarEntity, cloneAvatarEntity, bool, ENTITY_ITEM_CLONE_AVATAR_ENTITY);
+    DEFINE_PROPERTY(PROP_CLONE_ORIGIN_ID, CloneOriginID, cloneOriginID, QUuid, ENTITY_ITEM_CLONE_ORIGIN_ID);
 
     static QString getComponentModeString(uint32_t mode);
     static QString getComponentModeAsString(uint32_t mode);
