@@ -16,6 +16,7 @@ import QtQuick 2.5
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
+import "../../models" as HifiModels
 import "../wallet" as HifiWallet
 import "../common" as HifiCommerceCommon
 import "../inspectionCertificate" as HifiInspectionCertificate
@@ -34,7 +35,6 @@ Rectangle {
     property bool punctuationMode: false;
     property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
-    property int pendingItemCount: 0;
     property string installedApps;
     property bool keyboardRaised: false;
     property int numUpdatesAvailable: 0;
@@ -64,7 +64,10 @@ Rectangle {
                 } else if (!Settings.getValue("isFirstUseOfPurchases", true) && root.activeView === "initialize") {
                     root.activeView = "purchasesMain";
                     root.installedApps = Commerce.getInstalledApps();
-                    Commerce.inventory();
+                    purchasesModel.initialResultReceived = false;
+                    purchasesModel.currentPageToRetrieve = 1;
+                    purchasesModel.noMoreDataToRetrieve = false;
+                    purchasesModel.getPage();
                     Commerce.getAvailableUpdates();
                 }
             } else {
@@ -81,39 +84,7 @@ Rectangle {
         }
 
         onInventoryResult: {
-            purchasesReceived = true;
-
-            if (result.status !== 'success') {
-                console.log("Failed to get purchases", result.message);
-            } else if (!purchasesContentsList.dragging) { // Don't modify the view if the user's scrolling
-                var inventoryResult = processInventoryResult(result.data.assets);
-
-                var currentIndex = purchasesContentsList.currentIndex === -1 ? 0 : purchasesContentsList.currentIndex;
-                purchasesModel.clear();
-                purchasesModel.append(inventoryResult);
-
-                root.pendingItemCount = 0;
-                for (var i = 0; i < purchasesModel.count; i++) {
-                    if (purchasesModel.get(i).status === "pending") {
-                        root.pendingItemCount++;
-                    }
-                }
-
-                if (previousPurchasesModel.count !== 0) {
-                    checkIfAnyItemStatusChanged();
-                } else {
-                    // Fill statusChanged default value
-                    // Not doing this results in the default being true...
-                    for (var i = 0; i < purchasesModel.count; i++) {
-                        purchasesModel.setProperty(i, "statusChanged", false);
-                    }
-                }
-                previousPurchasesModel.append(inventoryResult);
-
-                buildFilteredPurchasesModel();
-
-                purchasesContentsList.positionViewAtIndex(currentIndex, ListView.Beginning);
-            }
+            purchasesModel.pageRetrieved(result);
         }
 
         onAvailableUpdatesResult: {
@@ -132,6 +103,11 @@ Rectangle {
         onAppUninstalled: {
             root.installedApps = Commerce.getInstalledApps();
         }
+    }
+
+    onIsShowingMyItemsChanged: {
+        purchasesModel.resetModel();
+
     }
 
     Timer {
@@ -184,7 +160,10 @@ Rectangle {
             onSendSignalToParent: {
                 if (msg.method === 'sendAssetHome_back' || msg.method === 'closeSendAsset') {
                     root.activeView = "purchasesMain";
-                    Commerce.inventory();
+                    purchasesModel.initialResultReceived = false;
+                    purchasesModel.currentPageToRetrieve = 1;
+                    purchasesModel.noMoreDataToRetrieve = false;
+                    purchasesModel.getPage();
                     Commerce.getAvailableUpdates();
                 } else {
                     sendToScript(msg);
@@ -451,7 +430,10 @@ Rectangle {
                         Settings.setValue("isFirstUseOfPurchases", false);
                         root.activeView = "purchasesMain";
                         root.installedApps = Commerce.getInstalledApps();
-                        Commerce.inventory();
+                        purchasesModel.initialResultReceived = false;
+                        purchasesModel.currentPageToRetrieve = 1;
+                        purchasesModel.noMoreDataToRetrieve = false;
+                        purchasesModel.getPage();
                         Commerce.getAvailableUpdates();
                     break;
                 }
@@ -548,14 +530,12 @@ Rectangle {
                 }
 
                 onPrimaryFilter_displayNameChanged: {
-                    buildFilteredPurchasesModel();
-                    purchasesContentsList.positionViewAtIndex(0, ListView.Beginning)
+                    purchasesModel.tagsFilter = filterBar.primaryFilter_filterName.toLowerCase();
                     filterBar.previousPrimaryFilter = filterBar.primaryFilter_displayName;
                 }
 
                 onTextChanged: {
-                    buildFilteredPurchasesModel();
-                    purchasesContentsList.positionViewAtIndex(0, ListView.Beginning)
+                    purchasesModel.searchFilter = filterBar.text;
                     filterBar.previousText = filterBar.text;
                 }
             }
@@ -574,24 +554,58 @@ Rectangle {
             anchors.topMargin: 16;
         }
 
-        ListModel {
+        HifiModels.PSFListModel {
             id: purchasesModel;
-        }
-        ListModel {
-            id: previousPurchasesModel;
-        }
-        HifiCommerceCommon.SortableListModel {
-            id: tempPurchasesModel;
-        }
-        HifiCommerceCommon.SortableListModel {
-            id: filteredPurchasesModel;
+
+            itemsPerPage: 3;
+            getPage: function() {
+                Commerce.inventory(
+                    root.isShowingMyItems ? "proofs" : "purchased",
+                    filterBar.primaryFilter_filterName.toLowerCase(),
+                    purchasesModel.currentPageToRetrieve,
+                    purchasesModel.itemsPerPage
+                );
+            }
+            pageRetrieved: function(result) {
+                purchasesReceived = true;
+
+                var processedInventory = processInventoryResult(result.data.assets);
+
+                if (purchasesModel.processResult(result.status, processedInventory)) {
+                    var currentId;
+                    for (var i = 0; i < purchasesModel.count; i++) {
+                        currentId = purchasesModel.get(i).id;
+                        purchasesModel.setProperty(i, 'cardBackVisible', false);
+                        purchasesModel.setProperty(i, 'isInstalled', ((root.installedApps).indexOf(currentId) > -1));
+                        purchasesModel.setProperty(i, 'wornEntityID', '');
+                    }
+
+                    // Client-side filter of "Updatable" items
+                    // FIXME - this MUST be serverside (what if we don't have the
+                    // page containing an updatable item on the client?)
+                    if (filterBar.primaryFilter_displayName === "Updatable") {
+                        for (var i = 0; i < purchasesModel.count; i++) {
+                            if (purchasesModel.get(i).upgrade_url === "") {
+                                purchasesModel.remove(i);
+                                i--;
+                            }
+                        }
+                    }
+            
+                    sendToScript({ method: 'purchases_updateWearables' });
+                    // FIXME: This ALSO *MUST* be serverside (what if we don't have
+                    // all instances of the item on the client yet?)
+                    //populateDisplayedItemCounts();
+                    sortByDate();
+                }
+            }
         }
 
         ListView {
             id: purchasesContentsList;
-            visible: (root.isShowingMyItems && filteredPurchasesModel.count !== 0) || (!root.isShowingMyItems && filteredPurchasesModel.count !== 0);
+            visible: purchasesModel.count !== 0;
             clip: true;
-            model: filteredPurchasesModel;
+            model: purchasesModel.model;
             snapMode: ListView.SnapToItem;
             // Anchors
             anchors.top: separator.bottom;
@@ -608,9 +622,9 @@ Rectangle {
                 itemEdition: model.edition_number;
                 numberSold: model.number_sold;
                 limitedRun: model.limited_run;
-                displayedItemCount: model.displayedItemCount;
-                cardBackVisible: model.cardBackVisible;
-                isInstalled: model.isInstalled;
+                displayedItemCount: model.displayedItemCount || 0;
+                cardBackVisible: model.cardBackVisible || false;
+                isInstalled: model.isInstalled || false;
                 wornEntityID: model.wornEntityID;
                 upgradeUrl: model.upgrade_url;
                 upgradeTitle: model.upgrade_title;
@@ -706,11 +720,11 @@ Rectangle {
                         } else if (msg.method === "setFilterText") {
                             filterBar.text = msg.filterText;
                         } else if (msg.method === "flipCard") {
-                            for (var i = 0; i < filteredPurchasesModel.count; i++) {
+                            for (var i = 0; i < purchasesModel.count; i++) {
                                 if (i !== index || msg.closeAll) {
-                                    filteredPurchasesModel.setProperty(i, "cardBackVisible", false);
+                                    purchasesModel.setProperty(i, "cardBackVisible", false);
                                 } else {
-                                    filteredPurchasesModel.setProperty(i, "cardBackVisible", true);
+                                    purchasesModel.setProperty(i, "cardBackVisible", true);
                                 }
                             }
                         } else if (msg.method === "updateItemClicked") {
@@ -761,7 +775,7 @@ Rectangle {
                                 lightboxPopup.button2text = "CONFIRM";
                                 lightboxPopup.button2method = function() {
                                     Entities.deleteEntity(msg.wornEntityID);
-                                    filteredPurchasesModel.setProperty(index, 'wornEntityID', '');
+                                    purchasesModel.setProperty(index, 'wornEntityID', '');
                                     root.activeView = "giftAsset";
                                     lightboxPopup.visible = false;
                                 };
@@ -771,6 +785,14 @@ Rectangle {
                             }
                         }
                     }
+                }
+            }
+
+            
+            onAtYEndChanged: {
+                if (purchasesContentsList.atYEnd) {
+                    console.log("User scrolled to the bottom of 'Purchases'.");
+                    purchasesModel.getNextPage();
                 }
             }
         }
@@ -968,8 +990,8 @@ Rectangle {
     function populateDisplayedItemCounts() {
         var itemCountDictionary = {};
         var currentItemId;
-        for (var i = 0; i < filteredPurchasesModel.count; i++) {
-            currentItemId = filteredPurchasesModel.get(i).id;
+        for (var i = 0; i < purchasesModel.count; i++) {
+            currentItemId = purchasesModel.get(i).id;
             if (itemCountDictionary[currentItemId] === undefined) {
                 itemCountDictionary[currentItemId] = 1;
             } else {
@@ -977,109 +999,25 @@ Rectangle {
             }
         }
 
-        for (var i = 0; i < filteredPurchasesModel.count; i++) {
-            filteredPurchasesModel.setProperty(i, "displayedItemCount", itemCountDictionary[filteredPurchasesModel.get(i).id]);
+        for (var i = 0; i < purchasesModel.count; i++) {
+            purchasesModel.setProperty(i, "displayedItemCount", itemCountDictionary[purchasesModel.get(i).id]);
         }
     }
 
     function sortByDate() {
-        filteredPurchasesModel.sortColumnName = "purchase_date";
-        filteredPurchasesModel.isSortingDescending = true;
-        filteredPurchasesModel.valuesAreNumerical = true;
-        filteredPurchasesModel.quickSort();
-    }
-
-    function buildFilteredPurchasesModel() {
-        var sameItemCount = 0;
-        
-        tempPurchasesModel.clear();
-
-        for (var i = 0; i < purchasesModel.count; i++) {
-            if (purchasesModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
-                if (purchasesModel.get(i).status !== "confirmed" && !root.isShowingMyItems &&
-                    purchasesModel.get(i).edition_number !== "0") {
-                    tempPurchasesModel.insert(0, purchasesModel.get(i));
-                } else if ((root.isShowingMyItems && purchasesModel.get(i).edition_number === "0") ||
-                (!root.isShowingMyItems && purchasesModel.get(i).edition_number !== "0")) {
-                    tempPurchasesModel.append(purchasesModel.get(i));
-                }
-            }
-        }
-        
-        // primaryFilter filtering and adding of itemType property to model
-        var currentItemType, currentRootFileUrl, currentCategories;
-        for (var i = 0; i < tempPurchasesModel.count; i++) {
-            currentRootFileUrl = tempPurchasesModel.get(i).root_file_url;
-            currentCategories = tempPurchasesModel.get(i).categories;
-            currentItemType = tempPurchasesModel.get(i).item_type;
-
-            if (filterBar.primaryFilter_displayName !== "" &&
-                ((filterBar.primaryFilter_displayName === "Updatable" && tempPurchasesModel.get(i).upgrade_url === "") ||
-                (filterBar.primaryFilter_displayName !== "Updatable" && filterBar.primaryFilter_filterName.toLowerCase() !== currentItemType.toLowerCase()))) {
-                tempPurchasesModel.remove(i);
-                i--;
-            }
-        }
-        
-        for (var i = 0; i < tempPurchasesModel.count; i++) {
-            if (!filteredPurchasesModel.get(i)) {
-                sameItemCount = -1;
-                break;
-            } else if (tempPurchasesModel.get(i).itemId === filteredPurchasesModel.get(i).itemId &&
-            tempPurchasesModel.get(i).edition_number === filteredPurchasesModel.get(i).edition_number &&
-            tempPurchasesModel.get(i).status === filteredPurchasesModel.get(i).status) {
-                sameItemCount++;
-            }
-        }
-
-        if (sameItemCount !== tempPurchasesModel.count ||
-            filterBar.text !== filterBar.previousText ||
-            filterBar.primaryFilter !== filterBar.previousPrimaryFilter) {
-            filteredPurchasesModel.clear();
-            var currentId;
-            for (var i = 0; i < tempPurchasesModel.count; i++) {
-                currentId = tempPurchasesModel.get(i).id;
-                filteredPurchasesModel.append(tempPurchasesModel.get(i));
-                filteredPurchasesModel.setProperty(i, 'cardBackVisible', false);
-                filteredPurchasesModel.setProperty(i, 'isInstalled', ((root.installedApps).indexOf(currentId) > -1));
-                filteredPurchasesModel.setProperty(i, 'wornEntityID', '');
-            }
-            
-            sendToScript({ method: 'purchases_updateWearables' });
-            populateDisplayedItemCounts();
-            sortByDate();
-        }
-    }
-
-    function checkIfAnyItemStatusChanged() {
-        var currentPurchasesModelId, currentPurchasesModelEdition, currentPurchasesModelStatus;
-        var previousPurchasesModelStatus;
-        for (var i = 0; i < purchasesModel.count; i++) {
-            currentPurchasesModelId = purchasesModel.get(i).id;
-            currentPurchasesModelEdition = purchasesModel.get(i).edition_number;
-            currentPurchasesModelStatus = purchasesModel.get(i).status;
-
-            for (var j = 0; j < previousPurchasesModel.count; j++) {
-                previousPurchasesModelStatus = previousPurchasesModel.get(j).status;
-                if (currentPurchasesModelId === previousPurchasesModel.get(j).id &&
-                    currentPurchasesModelEdition === previousPurchasesModel.get(j).edition_number &&
-                    currentPurchasesModelStatus !== previousPurchasesModelStatus) {
-                    
-                    purchasesModel.setProperty(i, "statusChanged", true);
-                } else {
-                    purchasesModel.setProperty(i, "statusChanged", false);
-                }
-            }
-        }
+        purchasesModel.sortColumnName = "purchase_date";
+        purchasesModel.isSortingDescending = true;
+        purchasesModel.valuesAreNumerical = true;
+        purchasesModel.quickSort();
     }
     
     function updateCurrentlyWornWearables(wearables) {
-        for (var i = 0; i < filteredPurchasesModel.count; i++) {
+        for (var i = 0; i < purchasesModel.count; i++) {
             for (var j = 0; j < wearables.length; j++) {
-                if (filteredPurchasesModel.get(i).itemType === "wearable" &&
-                    wearables[j].entityCertID === filteredPurchasesModel.get(i).certificate_id &&
-                    wearables[j].entityEdition.toString() === filteredPurchasesModel.get(i).edition_number) {
-                    filteredPurchasesModel.setProperty(i, 'wornEntityID', wearables[j].entityID);
+                if (purchasesModel.get(i).itemType === "wearable" &&
+                    wearables[j].entityCertID === purchasesModel.get(i).certificate_id &&
+                    wearables[j].entityEdition.toString() === purchasesModel.get(i).edition_number) {
+                    purchasesModel.setProperty(i, 'wornEntityID', wearables[j].entityID);
                     break;
                 }
             }
@@ -1136,7 +1074,7 @@ Rectangle {
         switch (message.method) {
             case 'updatePurchases':
                 referrerURL = message.referrerURL || "";
-                titleBarContainer.referrerURL = message.referrerURL;
+                titleBarContainer.referrerURL = message.referrerURL || "";
                 filterBar.text = message.filterText ? message.filterText : "";
             break;
             case 'inspectionCertificate_setCertificateId':

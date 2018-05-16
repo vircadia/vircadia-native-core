@@ -111,6 +111,9 @@ Item {
     property alias count: finalModel.count;
     function clear() { finalModel.clear(); }
     function get(index) { return finalModel.get(index); }
+    function remove(index) { return finalModel.remove(index); }
+    function setProperty(index, prop, value) { return finalModel.setProperty(index, prop, value); }
+    function move(from, to, n) { return finalModel.move(from, to, n); }
 
     // Used while processing page data and sorting
     ListModel {
@@ -206,7 +209,12 @@ Item {
                     }
                 }
             }
+            return true;
+        } else {
+            console.log("Failed to get page result for " + root.listModelName);
         }
+
+        return false;
     }
 
     // Used when sorting model data on the CLIENT

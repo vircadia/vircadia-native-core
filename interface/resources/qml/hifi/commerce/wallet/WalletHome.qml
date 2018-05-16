@@ -34,7 +34,6 @@ Item {
             transactionHistoryModel.initialResultReceived = false;
             transactionHistoryModel.currentPageToRetrieve = 1;
             transactionHistoryModel.noMoreDataToRetrieve = false;
-            transactionHistoryModel.requestPending = true;
             transactionHistoryModel.getPage();
             Commerce.getAvailableUpdates();
         } else {
@@ -153,7 +152,6 @@ Item {
         onTriggered: {
             if (transactionHistory.atYBeginning) {
                 console.log("Refreshing 1st Page of Recent Activity...");
-                transactionHistoryModel.requestPending = true;
                 Commerce.balance();
                 transactionHistoryModel.currentPageToRetrieve = 1;
                 transactionHistoryModel.getPage();
@@ -221,8 +219,10 @@ Item {
         HifiModels.PSFListModel {
             id: transactionHistoryModel;
 
+            listModelName: "transaction history";
             itemsPerPage: 100;
             getPage: function() {
+                transactionHistoryModel.requestPending = true;
                 Commerce.history(transactionHistoryModel.currentPageToRetrieve, transactionHistoryModel.itemsPerPage);
             }
             pageRetrieved: function(result) {
