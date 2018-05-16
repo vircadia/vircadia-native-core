@@ -1,12 +1,11 @@
 package io.highfidelity.hifiinterface;
 
-import android.app.ProgressDialog;
 import android.content.Intent;
-import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
@@ -14,30 +13,43 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.SearchView;
-import android.widget.TabHost;
-import android.widget.TabWidget;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
-import io.highfidelity.hifiinterface.QtPreloader.QtPreloader;
+import org.qtproject.qt5.android.bindings.QtActivity;
+
 import io.highfidelity.hifiinterface.view.DomainAdapter;
 
 public class HomeActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
+    public native boolean nativeIsLoggedIn();
+    public native void nativeLogout();
+    public native String nativeGetDisplayName();
+
     /**
      * Set this intent extra param to NOT start a new InterfaceActivity after a domain is selected"
      */
-    public static final String PARAM_NOT_START_INTERFACE_ACTIVITY = "not_start_interface_activity";
+    //public static final String PARAM_NOT_START_INTERFACE_ACTIVITY = "not_start_interface_activity";
 
     public static final int ENTER_DOMAIN_URL = 1;
 
-    private DomainAdapter domainAdapter;
+    private DomainAdapter mDomainAdapter;
     private DrawerLayout mDrawerLayout;
-    private ProgressDialog mDialog;
     private NavigationView mNavigationView;
+    private RecyclerView mDomainsView;
+    private TextView searchNoResultsView;
+    private ImageView mSearchIconView;
+    private ImageView mClearSearch;
+    private EditText mSearchView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,112 +68,109 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         mNavigationView = (NavigationView) findViewById(R.id.nav_view);
         mNavigationView.setNavigationItemSelectedListener(this);
 
-        TabHost tabs = (TabHost)findViewById(R.id.tabhost);
-        tabs.setup();
+        searchNoResultsView = findViewById(R.id.searchNoResultsView);
 
-        TabHost.TabSpec spec=tabs.newTabSpec("featured");
-        spec.setContent(R.id.featured);
-        spec.setIndicator(getString(R.string.featured));
-        tabs.addTab(spec);
-
-        spec = tabs.newTabSpec("popular");
-        spec.setContent(R.id.popular);
-        spec.setIndicator(getString(R.string.popular));
-        tabs.addTab(spec);
-
-        spec = tabs.newTabSpec("bookmarks");
-        spec.setContent(R.id.bookmarks);
-        spec.setIndicator(getString(R.string.bookmarks));
-        tabs.addTab(spec);
-
-        tabs.setCurrentTab(0);
-
-        TabWidget tabwidget=tabs.getTabWidget();
-        for(int i=0; i<tabwidget.getChildCount(); i++){
-            TextView tv=(TextView) tabwidget.getChildAt(i).findViewById(android.R.id.title);
-            tv.setTextAppearance(R.style.TabText);
-        }
-
-
-        RecyclerView domainsView = findViewById(R.id.rvDomains);
+        mDomainsView = findViewById(R.id.rvDomains);
         int numberOfColumns = 1;
         GridLayoutManager gridLayoutMgr = new GridLayoutManager(this, numberOfColumns);
-        domainsView.setLayoutManager(gridLayoutMgr);
-        domainAdapter = new DomainAdapter(this);
-        domainAdapter.setClickListener(new DomainAdapter.ItemClickListener() {
+        mDomainsView.setLayoutManager(gridLayoutMgr);
+        mDomainAdapter = new DomainAdapter(this, HifiUtils.getInstance().protocolVersionSignature());
+        mDomainAdapter.setClickListener(new DomainAdapter.ItemClickListener() {
 
             @Override
             public void onItemClick(View view, int position, DomainAdapter.Domain domain) {
-                gotoDomain(domain.url);
+                new Handler(getMainLooper()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        gotoDomain(domain.url);
+                    }
+                }, 400); // a delay so the ripple effect can be seen
             }
         });
-        domainsView.setAdapter(domainAdapter);
+        mDomainAdapter.setListener(new DomainAdapter.AdapterListener() {
+            @Override
+            public void onEmptyAdapter() {
+                searchNoResultsView.setText(R.string.search_no_results);
+                searchNoResultsView.setVisibility(View.VISIBLE);
+                mDomainsView.setVisibility(View.GONE);
+            }
 
-        SearchView searchView = findViewById(R.id.searchView);
-        int searchPlateId = searchView.getContext().getResources().getIdentifier("android:id/search_plate", null, null);
-        View searchPlate = searchView.findViewById(searchPlateId);
-        if (searchPlate != null) {
-            searchPlate.setBackgroundColor (Color.TRANSPARENT);
-            int searchTextId = searchPlate.getContext ().getResources ().getIdentifier ("android:id/search_src_text", null, null);
-            TextView searchTextView = searchView.findViewById(searchTextId);
-            searchTextView.setTextAppearance(R.style.SearchText);
+            @Override
+            public void onNonEmptyAdapter() {
+                searchNoResultsView.setVisibility(View.GONE);
+                mDomainsView.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onError(Exception e, String message) {
+
+            }
+        });
+        mDomainsView.setAdapter(mDomainAdapter);
+
+        mSearchView = findViewById(R.id.searchView);
+        mSearchIconView = findViewById(R.id.search_mag_icon);
+        mClearSearch = findViewById(R.id.search_clear);
+
+        mSearchView.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                mDomainAdapter.loadDomains(editable.toString());
+                if (editable.length() > 0) {
+                    mSearchIconView.setVisibility(View.GONE);
+                    mClearSearch.setVisibility(View.VISIBLE);
+                } else {
+                    mSearchIconView.setVisibility(View.VISIBLE);
+                    mClearSearch.setVisibility(View.GONE);
+                }
+            }
+        });
+        mSearchView.setOnKeyListener((view, i, keyEvent) -> {
+            if (i == KeyEvent.KEYCODE_ENTER) {
+                String urlString = mSearchView.getText().toString();
+                if (!urlString.trim().isEmpty()) {
+                    urlString = HifiUtils.getInstance().sanitizeHifiUrl(urlString);
+                }
+                gotoDomain(urlString);
+                return true;
+            }
+            return false;
+        });
+
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
+        updateLoginMenu();
+
+        Window window = getWindow();
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.setStatusBarColor(ContextCompat.getColor(this, R.color.statusbar_color));
+    }
+
+    private void updateLoginMenu() {
+        TextView loginOption = findViewById(R.id.login);
+        TextView logoutOption = findViewById(R.id.logout);
+        if (nativeIsLoggedIn()) {
+            loginOption.setVisibility(View.GONE);
+            logoutOption.setVisibility(View.VISIBLE);
+        } else {
+            loginOption.setVisibility(View.VISIBLE);
+            logoutOption.setVisibility(View.GONE);
         }
-
-        if (getIntent() == null ||
-                !getIntent().hasExtra(PARAM_NOT_START_INTERFACE_ACTIVITY) ||
-                !getIntent().getBooleanExtra(PARAM_NOT_START_INTERFACE_ACTIVITY, false)) {
-            preloadQt();
-            showActivityIndicator();
-        }
-
     }
 
     private void gotoDomain(String domainUrl) {
         Intent intent = new Intent(HomeActivity.this, InterfaceActivity.class);
         intent.putExtra(InterfaceActivity.DOMAIN_URL, domainUrl);
         HomeActivity.this.finish();
-        if (getIntent() != null &&
-                getIntent().hasExtra(PARAM_NOT_START_INTERFACE_ACTIVITY) &&
-                getIntent().getBooleanExtra(PARAM_NOT_START_INTERFACE_ACTIVITY, false)) {
-            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
-    }
-
-    private void showActivityIndicator() {
-        if (mDialog == null) {
-            mDialog = new ProgressDialog(this);
-        }
-        mDialog.setMessage("Please wait...");
-        mDialog.setCancelable(false);
-        mDialog.show();
-    }
-
-    private void cancelActivityIndicator() {
-        if (mDialog != null) {
-            mDialog.cancel();
-        }
-    }
-
-    private AsyncTask preloadTask;
-
-    private void preloadQt() {
-        if (preloadTask == null) {
-            preloadTask = new AsyncTask() {
-                @Override
-                protected Object doInBackground(Object[] objects) {
-                    new QtPreloader(HomeActivity.this).initQt();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            cancelActivityIndicator();
-                        }
-                    });
-                    return null;
-                }
-            };
-            preloadTask.execute();
-        }
     }
 
     @Override
@@ -188,7 +197,6 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     protected void onDestroy() {
-        cancelActivityIndicator();
         super.onDestroy();
     }
 
@@ -198,8 +206,6 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             case R.id.action_goto:
                 Intent i = new Intent(this, GotoActivity.class);
                 startActivityForResult(i, ENTER_DOMAIN_URL);
-                return true;
-            case R.id.action_settings:
                 return true;
         }
         return false;
@@ -214,7 +220,26 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        updateLoginMenu();
+    }
+
+    public void onLoginClicked(View view) {
+        Intent intent = new Intent(this, LoginActivity.class);
+        startActivity(intent);
+    }
+
+    public void onLogoutClicked(View view) {
+        nativeLogout();
+        updateLoginMenu();
+    }
+    @Override
     public void onBackPressed() {
         finishAffinity();
+    }
+
+    public void onSearchClear(View view) {
+        mSearchView.setText("");
     }
 }

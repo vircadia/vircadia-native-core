@@ -453,6 +453,20 @@ void AccountManager::removeAccountFromFile() {
         << "from settings file.";
 }
 
+void AccountManager::setAccountInfo(const DataServerAccountInfo &newAccountInfo) {
+    _accountInfo = newAccountInfo;
+    _pendingPrivateKey.clear();
+    if (_isAgent && !_accountInfo.getAccessToken().token.isEmpty() && !_accountInfo.hasProfile()) {
+        // we are missing profile information, request it now
+        requestProfile();
+    }
+
+    // prepare to refresh our token if it is about to expire
+    if (needsToRefreshToken()) {
+        refreshAccessToken();
+    }
+}
+
 bool AccountManager::hasValidAccessToken() {
 
     if (_accountInfo.getAccessToken().token.isEmpty() || _accountInfo.getAccessToken().isExpired()) {
