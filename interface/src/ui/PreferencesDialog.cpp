@@ -251,18 +251,6 @@ void setupPreferences() {
 
     static const QString MOVEMENT{ "VR Movement" };
     {
-        auto getter = [=]()->bool { return myAvatar->getFlyingEnabled(); };
-        auto setter = [=](bool value) { myAvatar->setFlyingEnabled(value); };
-        preferences->addPreference(new CheckPreference(MOVEMENT, "Flying & jumping", getter, setter));
-    }
-    {
-        auto getter = [=]()->bool { return myAvatar->getSnapTurn(); };
-        auto setter = [=](bool value) { myAvatar->setSnapTurn(value); };
-        preferences->addPreference(new CheckPreference(MOVEMENT, "Snap turn / Smooth turn", getter, setter));
-    }
-
-    //TODO: Update with advanced movement logic, test that it works
-    {
 
         static const QString movementsControlChannel = QStringLiteral("Hifi-Advanced-Movement-Disabler");
         auto getter = [=]()->bool { return myAvatar->useAdvancedMovementControls(); };
@@ -280,7 +268,16 @@ void setupPreferences() {
                                                        QStringLiteral("Advanced movement for hand controllers"),
                                                        getter, setter));
     }
-
+    {
+        auto getter = [=]()->bool { return myAvatar->getFlyingEnabled(); };
+        auto setter = [=](bool value) { myAvatar->setFlyingEnabled(value); };
+        preferences->addPreference(new CheckPreference(MOVEMENT, "Flying & jumping", getter, setter));
+    }
+    {
+        auto getter = [=]()->bool { return myAvatar->getSnapTurn(); };
+        auto setter = [=](bool value) { myAvatar->setSnapTurn(value); };
+        preferences->addPreference(new CheckPreference(MOVEMENT, "Snap turn / Smooth turn", getter, setter));
+    }
     {
         auto getter = [=]()->float { return myAvatar->getUserHeight(); };
         auto setter = [=](float value) { myAvatar->setUserHeight(value); };
