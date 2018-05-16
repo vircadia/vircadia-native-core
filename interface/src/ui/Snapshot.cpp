@@ -33,6 +33,7 @@
 #include <SharedUtil.h>
 
 #include "Application.h"
+#include "display-plugins/CompositorHelper.h"
 #include "SnapshotUploader.h"
 
 // filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
@@ -145,6 +146,13 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QSt
 
             QFile* imageFile = new QFile(snapshotFullPath);
             while (!imageFile->open(QIODevice::WriteOnly)) {
+                // It'd be better for the directory chooser to restore the cursor to its previous state
+                // after choosing a directory, but if the user has entered this codepath,
+                // something terrible has happened. Let's just show the user their cursor so they can get
+                // out of this awful state.
+                qApp->getApplicationCompositor().getReticleInterface()->setVisible(true);
+                qApp->getApplicationCompositor().getReticleInterface()->setAllowMouseCapture(true);
+
                 snapshotFullPath = OffscreenUi::getExistingDirectory(nullptr, "Write Error - Choose New Snapshots Directory", QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
                 if (snapshotFullPath.isEmpty()) {
                     return NULL;
