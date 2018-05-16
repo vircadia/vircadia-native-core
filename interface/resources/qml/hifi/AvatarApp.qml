@@ -419,39 +419,7 @@ Rectangle {
 
             MouseArea {
                 anchors.fill: parent
-
-                // debug only
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
-                property int debug_newAvatarIndex: 0
-
                 onClicked: {
-                    if(mouse.button == Qt.RightButton) {
-
-                        for(var i = 0; i < 3; ++i)
-                        {
-                            console.debug('adding avatar...');
-
-                            var avatar = {
-                                'url': Qt.resolvedUrl('../../images/samples/hifi-mp-e76946cc-c272-4adf-9bb6-02cde0a4b57d-2.png'),
-                                'name': 'Lexi' + (++debug_newAvatarIndex),
-                                'wearables': []
-                            };
-
-                            allAvatars.append(avatar)
-
-                            if(pageOfAvatars.hasGetAvatars())
-                                pageOfAvatars.removeGetAvatars();
-
-                            if(pageOfAvatars.count !== view.itemsPerPage)
-                                pageOfAvatars.append(avatar);
-
-                            if(pageOfAvatars.count !== view.itemsPerPage)
-                                pageOfAvatars.appendGetAvatars();
-                        }
-
-                        return;
-                    }
-
                     popup.showGetWearables(function() {
                         emitSendToScript({'method' : 'navigate', 'url' : 'hifi://AvatarIsland'})
                     }, function(link) {
