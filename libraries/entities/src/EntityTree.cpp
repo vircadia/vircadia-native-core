@@ -1429,7 +1429,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
         case PacketType::EntityClone:
             isClone = true; // fall through to next case
         case PacketType::EntityAdd:
-            isAdd = true;  // fall through to next case 
+            isAdd = true;  // fall through to next case
             // FALLTHRU
         case PacketType::EntityPhysics:
         case PacketType::EntityEdit: {

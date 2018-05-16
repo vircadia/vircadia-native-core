@@ -1042,7 +1042,7 @@ function loaded() {
 
                         elCloneable.checked = properties.cloneable;
                         elCloneableDynamic.checked = properties.cloneDynamic;
-						elCloneableAvatarEntity.checked = properties.cloneAvatarEntity;
+                        elCloneableAvatarEntity.checked = properties.cloneAvatarEntity;
                         elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
                         elCloneableLimit.value = properties.cloneLimit;
                         elCloneableLifetime.value = properties.cloneLifetime;
@@ -1443,7 +1443,7 @@ function loaded() {
         
         elCloneable.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneable'));
         elCloneableDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneDynamic'));
-		elCloneableAvatarEntity.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneAvatarEntity'));
+        elCloneableAvatarEntity.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneAvatarEntity'));
         elCloneableLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneLifetime'));
         elCloneableLimit.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneLimit'));
 

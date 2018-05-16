@@ -2823,7 +2823,6 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
 }
 
 bool EntityItemProperties::encodeCloneEntityMessage(const EntityItemID& entityIDToClone, const EntityItemID& newEntityID, QByteArray& buffer) {
-
     char* copyAt = buffer.data();
     int outputLength = 0;
 
@@ -2846,7 +2845,6 @@ bool EntityItemProperties::encodeCloneEntityMessage(const EntityItemID& entityID
 }
 
 bool EntityItemProperties::decodeCloneEntityMessage(const QByteArray& buffer, int& processedBytes, EntityItemID& entityIDToClone, EntityItemID& newEntityID) {
-
     const unsigned char* packetData = (const unsigned char*)buffer.constData();
     const unsigned char* dataAt = packetData;
     size_t packetLength = buffer.size();
@@ -3488,7 +3486,6 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (cloneOriginIDChanged()) {
         out += "cloneOriginID";
     }
-
 
     getAnimation().listChangedProperties(out);
     getKeyLight().listChangedProperties(out);
