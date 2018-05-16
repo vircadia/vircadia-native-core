@@ -18,7 +18,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimaryDark"
+            android:background="@color/colorPrimaryDark"
             android:elevation="4dp"
             />
 
@@ -36,7 +36,9 @@
         android:layout_gravity="start"
         app:headerLayout="@layout/navigation_header"
         android:fitsSystemWindows="true"
-        app:menu="@menu/menu_navigation">
+        android:background="@color/colorPrimaryDark"
+        app:menu="@menu/menu_navigation"
+        >
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

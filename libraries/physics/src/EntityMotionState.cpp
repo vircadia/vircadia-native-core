@@ -349,7 +349,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
 
     if (_numInactiveUpdates > 0) {
         const uint8_t MAX_NUM_INACTIVE_UPDATES = 20;
-        if (_numInactiveUpdates > MAX_NUM_INACTIVE_UPDATES) {
+        if (_numInactiveUpdates > MAX_NUM_INACTIVE_UPDATES || isServerlessMode()) {
             // clear local ownership (stop sending updates) and let the server clear itself
             _entity->clearSimulationOwnership();
             return false;
@@ -731,7 +731,9 @@ void EntityMotionState::measureBodyAcceleration() {
         // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
         glm::vec3 velocity = getBodyLinearVelocityGTSigma();
 
-        _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
+        const float MIN_DAMPING_FACTOR = 0.01f;
+        float invDampingAttenuationFactor = 1.0f / glm::max(powf(1.0f - _body->getLinearDamping(), dt), MIN_DAMPING_FACTOR);
+        _measuredAcceleration = (velocity * invDampingAttenuationFactor - _lastVelocity) * invDt;
         _lastVelocity = velocity;
         if (numSubsteps > PHYSICS_ENGINE_MAX_NUM_SUBSTEPS) {
             // we fall in here when _lastMeasureStep is old: the body has just become active
@@ -832,4 +834,10 @@ void EntityMotionState::clearObjectVelocities() const {
         }
     }
     _entity->setAcceleration(glm::vec3(0.0f));
+}
+
+bool EntityMotionState::isServerlessMode() {
+    EntityTreeElementPointer element = _entity->getElement();
+    EntityTreePointer tree = element ? element->getTree() : nullptr;
+    return tree ? tree->isServerlessMode() : false;
 }

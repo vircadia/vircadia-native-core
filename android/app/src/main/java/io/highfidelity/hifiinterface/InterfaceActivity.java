@@ -37,8 +37,6 @@ public class InterfaceActivity extends QtActivity {
 
     //public static native void handleHifiURL(String hifiURLString);
     private native long nativeOnCreate(InterfaceActivity instance, AssetManager assetManager);
-    //private native void nativeOnPause();
-    //private native void nativeOnResume();
     private native void nativeOnDestroy();
     private native void nativeGotoUrl(String url);
     private native void nativeEnterBackground();
@@ -113,29 +111,26 @@ public class InterfaceActivity extends QtActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        //nativeOnPause();
+        nativeEnterBackground();
         //gvrApi.pauseTracking();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        if (!isLoading) {
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-        }
-        nativeEnterForeground();
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        nativeEnterBackground();
+
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        //nativeOnResume();
+        nativeEnterForeground();
         //gvrApi.resumeTracking();
     }
 

@@ -646,6 +646,7 @@ public class QtActivity extends Activity {
         super.onStop();
         QtApplication.invokeDelegate();
     }
+
     //---------------------------------------------------------------------------
 
     @Override

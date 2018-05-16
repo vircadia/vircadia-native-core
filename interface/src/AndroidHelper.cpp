@@ -10,10 +10,9 @@
 //
 #include "AndroidHelper.h"
 #include <QDebug>
+#include <AccountManager.h>
 
-AndroidHelper::AndroidHelper() :
-_accountManager ()
-{
+AndroidHelper::AndroidHelper() {
 }
 
 AndroidHelper::~AndroidHelper() {
@@ -27,22 +26,15 @@ void AndroidHelper::init() {
     _accountManager->setIsAgent(true);
     _accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
     _accountManager->setSessionID(DependencyManager::get<AccountManager>()->getSessionID());
-
     connect(_accountManager.data(), &AccountManager::loginComplete, [](const QUrl& authURL) {
-        DependencyManager::get<AccountManager>()->setAccountInfo(AndroidHelper::instance().getAccountManager()->getAccountInfo());
-        DependencyManager::get<AccountManager>()->setAuthURL(authURL);
+            DependencyManager::get<AccountManager>()->setAccountInfo(AndroidHelper::instance().getAccountManager()->getAccountInfo());
+            DependencyManager::get<AccountManager>()->setAuthURL(authURL);
     });
 
     connect(_accountManager.data(), &AccountManager::logoutComplete, [] () {
-        DependencyManager::get<AccountManager>()->logout();
+            DependencyManager::get<AccountManager>()->logout();
     });
-
     _accountManager->moveToThread(&workerThread);
-}
-
-QSharedPointer<AccountManager> AndroidHelper::getAccountManager() {
-    Q_ASSERT(_accountManager);
-    return _accountManager;
 }
 
 void AndroidHelper::requestActivity(const QString &activityName, const bool backToScene) {
@@ -51,10 +43,6 @@ void AndroidHelper::requestActivity(const QString &activityName, const bool back
 
 void AndroidHelper::notifyLoadComplete() {
     emit qtAppLoadComplete();
-}
-
-void AndroidHelper::notifyLoginComplete(bool success) {
-    emit loginComplete(success);
 }
 
 void AndroidHelper::performHapticFeedback(const QString& feedbackConstant) {

@@ -62,7 +62,7 @@ namespace VirtualPad {
 
     private:
         Instance _leftVPadInstance;
-        bool _enabled;
+        bool _enabled {true};
         bool _hidden;
         glm::vec2 _jumpButtonPosition;
         int _extraBottomMargin {0};

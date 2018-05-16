@@ -221,28 +221,24 @@ Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeLogin(JNIEnv *en
     env->ReleaseStringUTFChars(username_, c_username);
     env->ReleaseStringUTFChars(password_, c_password);
 
-    QSharedPointer<AccountManager> accountManager = AndroidHelper::instance().getAccountManager();
+    auto accountManager = AndroidHelper::instance().getAccountManager();
 
     __loginCompletedListener = QAndroidJniObject(instance);
     __usernameChangedListener = QAndroidJniObject(usernameChangedListener);
 
     QObject::connect(accountManager.data(), &AccountManager::loginComplete, [](const QUrl& authURL) {
-        QString username = AndroidHelper::instance().getAccountManager()->getAccountInfo().getUsername();
-        AndroidHelper::instance().notifyLoginComplete(true);
+        jboolean jSuccess = (jboolean) true;
+        __loginCompletedListener.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
     });
 
     QObject::connect(accountManager.data(), &AccountManager::loginFailed, []() {
-        AndroidHelper::instance().notifyLoginComplete(false);
+        jboolean jSuccess = (jboolean) false;
+        __loginCompletedListener.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
     });
 
     QObject::connect(accountManager.data(), &AccountManager::usernameChanged, [](const QString& username) {
         QAndroidJniObject string = QAndroidJniObject::fromString(username);
         __usernameChangedListener.callMethod<void>("handleUsernameChanged", "(Ljava/lang/String;)V", string.object<jstring>());
-    });
-
-    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::loginComplete, [](bool success) {
-        jboolean jSuccess = (jboolean) success;
-        __loginCompletedListener.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
     });
 
     QMetaObject::invokeMethod(accountManager.data(), "requestAccessToken",

@@ -27,11 +27,9 @@ public:
     void requestActivity(const QString &activityName, const bool backToScene);
     void notifyLoadComplete();
 
-    void notifyLoginComplete(bool success);
     void performHapticFeedback(const QString& feedbackConstant);
 
-    QSharedPointer<AccountManager> getAccountManager();
-
+    QSharedPointer<AccountManager> getAccountManager() { return _accountManager; }
     AndroidHelper(AndroidHelper const&)  = delete;
     void operator=(AndroidHelper const&) = delete;
 
@@ -41,7 +39,7 @@ public slots:
 signals:
     void androidActivityRequested(const QString &activityName, const bool backToScene);
     void qtAppLoadComplete();
-    void loginComplete(bool success);
+
     void hapticFeedbackRequested(const QString &feedbackConstant);
 
 private:

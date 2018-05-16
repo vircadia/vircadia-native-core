@@ -74,9 +74,9 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     return data;
 }
 
-QString Snapshot::saveSnapshot(QImage image, const QString& filename) {
+QString Snapshot::saveSnapshot(QImage image, const QString& filename, const QString& pathname) {
 
-    QFile* snapshotFile = savedFileForSnapshot(image, false, filename);
+    QFile* snapshotFile = savedFileForSnapshot(image, false, filename, pathname);
 
     // we don't need the snapshot file, so close it, grab its filename and delete it
     snapshotFile->close();
@@ -93,7 +93,7 @@ QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {
     return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true));
 }
 
-QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QString& userSelectedFilename) {
+QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QString& userSelectedFilename, const QString& userSelectedPathname) {
 
     // adding URL to snapshot
     QUrl currentURL = DependencyManager::get<AddressManager>()->currentPublicAddress();
@@ -118,7 +118,13 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QSt
     const int IMAGE_QUALITY = 100;
 
     if (!isTemporary) {
-        QString snapshotFullPath = snapshotsLocation.get();
+        // If user has requested specific path then use it, else use the application value
+        QString snapshotFullPath;
+        if (!userSelectedPathname.isNull()) {
+            snapshotFullPath = userSelectedPathname;
+        } else {
+            snapshotFullPath = snapshotsLocation.get();
+        }
 
         if (snapshotFullPath.isEmpty()) {
             snapshotFullPath = OffscreenUi::getExistingDirectory(nullptr, "Choose Snapshots Directory", QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));

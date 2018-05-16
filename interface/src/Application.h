@@ -148,6 +148,7 @@ public:
     Q_INVOKABLE QString getUserAgent();
 
     void initializeGL();
+    void initializeDisplayPlugins();
     void initializeRenderEngine();
     void initializeUi();
 
@@ -667,6 +668,7 @@ private:
 
     using RenderArgsEditor = std::function <void (AppRenderArgs&)>;
     void editRenderArgs(RenderArgsEditor editor);
+    void updateRenderArgs(float deltaTime);
 
 
     Overlays _overlays;
@@ -746,5 +748,7 @@ private:
 
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
+
+    bool quitWhenFinished { false };
 };
 #endif // hifi_Application_h
