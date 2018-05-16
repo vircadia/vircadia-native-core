@@ -100,19 +100,19 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(editMenu, redoAction);
 
     editMenu->addSeparator();
-    
+
     // Edit > Cut
     addActionToQMenuAndActionHash(editMenu, "Cut", Qt::CTRL | Qt::Key_X);
-    
+
     // Edit > Copy
     addActionToQMenuAndActionHash(editMenu, "Copy", Qt::CTRL | Qt::Key_C);
-   
+
     // Edit > Paste
     addActionToQMenuAndActionHash(editMenu, "Paste", Qt::CTRL | Qt::Key_V);
-    
+
     // Edit > Delete
     addActionToQMenuAndActionHash(editMenu, "Delete", Qt::Key_Delete);
-    
+
     editMenu->addSeparator();
 
     // Edit > Running Scripts
@@ -280,7 +280,7 @@ Menu::Menu() {
     });
 
     // Settings > Notifications
-    MenuWrapper * notificationsMenu = settingsMenu->addMenu("Notifications"); //This was in notifications.js. The menu needs to be moved here. 
+    MenuWrapper * notificationsMenu = settingsMenu->addMenu("Notifications"); //This was in notifications.js. The menu needs to be moved here.
 
     //TODO: Hookup notification actions below.
     // Settings > Notifications > Play Notification Sounds
@@ -308,43 +308,9 @@ Menu::Menu() {
         settings->setValue(MenuOption::NotificationSoundsTablet, action->isChecked());
     });
 
-    //Further sound notificaions disabled until new notification system will be implemented
-    /*
-    // Settings > Notifications > Level of Detail
-    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Level of Detail", 0,
-                                                    settings->getValue("play_notification_sounds_type_1").toBool());
-    connect(action, &QAction::triggered, [action, settings] {
-        settings->setValue("play_notification_sounds_type_1", action->isChecked());
-    });
-    // Settings > Notifications > Connection
-    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Connection", 0,
-                                                    settings->getValue("play_notification_sounds_type_2").toBool());
-    connect(action, &QAction::triggered, [action, settings] {
-        settings->setValue("play_notification_sounds_type_2", action->isChecked());
-    });
-    // Settings > Notifications > Connection Refused
-    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Connection Refused", 0,
-                                                    settings->getValue("play_notification_sounds_type_3").toBool());
-    connect(action, &QAction::triggered, [action, settings] {
-        settings->setValue("play_notification_sounds_type_3", action->isChecked());
-    });
-    // Settings > Notifications > Edit Error
-    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Edit Error", 0,
-                                                    settings->getValue("play_notification_sounds_type_4").toBool());
-    connect(action, &QAction::triggered, [action, settings] {
-        settings->setValue("play_notification_sounds_type_4", action->isChecked());
-    });
-    // Settings > Notifications > Wallet
-    addActionToQMenuAndActionHash(notificationsMenu, "Wallet");
-    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Wallet", 0,
-                                                    settings->getValue("play_notification_sounds_type_6").toBool());
-    connect(action, &QAction::triggered, [action, settings] {
-        settings->setValue("play_notification_sounds_type_6", action->isChecked());
-    });
-*/
     // Settings > Developer Menu
     addCheckableActionToQMenuAndActionHash(settingsMenu, "Developer Menu", 0, false, this, SLOT(toggleDeveloperMenus()));
-    
+
     // Settings > Ask to Reset Settings
     addCheckableActionToQMenuAndActionHash(settingsMenu, MenuOption::AskToResetSettings, 0, false);
 
@@ -375,7 +341,7 @@ Menu::Menu() {
             if (mainViewShadowTaskConfig) {
                 if (action->isChecked()) {
                     mainViewShadowTaskConfig->setPreset("Enabled");
-                } else { 
+                } else {
                     mainViewShadowTaskConfig->setPreset("None");
                 }
             }
@@ -844,7 +810,7 @@ Menu::Menu() {
 
     // Help/Application menu ----------------------------------
     MenuWrapper * helpMenu = addMenu("Help");
-    
+
     // Help > About High Fidelity
     action = addActionToQMenuAndActionHash(helpMenu, "About High Fidelity");
     connect(action, &QAction::triggered, [] {
@@ -852,35 +818,35 @@ Menu::Menu() {
             QString("hifi/dialogs/TabletAboutDialog.qml"), "AboutDialog");
     });
     helpMenu->addSeparator();
-    
+
     // Help > HiFi Docs
     action = addActionToQMenuAndActionHash(helpMenu, "Online Documentation");
     connect(action, &QAction::triggered, qApp, [] {
         QDesktopServices::openUrl(QUrl("https://docs.highfidelity.com/"));
     });
-    
+
     // Help > HiFi Forum
     action = addActionToQMenuAndActionHash(helpMenu, "Online Forums");
     connect(action, &QAction::triggered, qApp, [] {
         QDesktopServices::openUrl(QUrl("https://forums.highfidelity.com/"));
     });
-    
+
     // Help > Scripting Reference
     action = addActionToQMenuAndActionHash(helpMenu, "Online Script Reference");
     connect(action, &QAction::triggered, qApp, [] {
         QDesktopServices::openUrl(QUrl("https://docs.highfidelity.com/api-reference"));
     });
-    
+
     addActionToQMenuAndActionHash(helpMenu, "Controls Reference", 0, qApp, SLOT(showHelp()));
-    
+
     helpMenu->addSeparator();
-    
+
     // Help > Release Notes
     action = addActionToQMenuAndActionHash(helpMenu, "Release Notes");
     connect(action, &QAction::triggered, qApp, [] {
         QDesktopServices::openUrl(QUrl("http://steamcommunity.com/games/390540/announcements/"));
     });
-    
+
     // Help > Report a Bug!
     action = addActionToQMenuAndActionHash(helpMenu, "Report a Bug!");
     connect(action, &QAction::triggered, qApp, [] {

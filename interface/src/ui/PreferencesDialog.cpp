@@ -266,16 +266,7 @@ void setupPreferences() {
 
         static const QString movementsControlChannel = QStringLiteral("Hifi-Advanced-Movement-Disabler");
         auto getter = [=]()->bool { return myAvatar->useAdvancedMovementControls(); };
-        auto setter = [=](bool value) {
-            auto messagesClient = DependencyManager::get<MessagesClient>().data();
-            myAvatar->setUseAdvancedMovementControls(value);
-            if (value) {
-                messagesClient->sendMessage(movementsControlChannel, QStringLiteral("enable_mappings"), true);
-            } else {
-                messagesClient->sendMessage(movementsControlChannel, QStringLiteral("disable_mappings"), true);
-            }
-
-        };
+        auto setter = [=](bool value) { myAvatar->setUseAdvancedMovementControls(value); };
         preferences->addPreference(new CheckPreference(MOVEMENT,
                                                        QStringLiteral("Advanced movement for hand controllers"),
                                                        getter, setter));
