@@ -53,6 +53,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private NavigationView mNavigationView;
     private ImageView mProfilePicture;
     private TextView mDisplayName;
+    private View mLoginPanel;
+    private View mProfilePanel;
+    private TextView mLogoutOption;
 
     private boolean backToScene;
 
@@ -63,6 +66,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         mNavigationView = findViewById(R.id.nav_view);
         mNavigationView.setNavigationItemSelectedListener(this);
+
+        mLoginPanel = mNavigationView.getHeaderView(0).findViewById(R.id.loginPanel);
+        mProfilePanel = mNavigationView.getHeaderView(0).findViewById(R.id.profilePanel);
+
+        mLogoutOption = mNavigationView.findViewById(R.id.logout);
+
         mDisplayName = mNavigationView.getHeaderView(0).findViewById(R.id.displayName);
         mProfilePicture = mNavigationView.getHeaderView(0).findViewById(R.id.profilePicture);
 
@@ -113,7 +122,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void loadHomeFragment() {
         Fragment fragment = HomeFragment.newInstance();
-
         loadFragment(fragment, getString(R.string.home), false);
     }
 
@@ -143,17 +151,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     
     private void updateLoginMenu() {
-        TextView loginOption = findViewById(R.id.login);
-        TextView logoutOption = findViewById(R.id.logout);
         if (nativeIsLoggedIn()) {
-            loginOption.setVisibility(View.GONE);
-            logoutOption.setVisibility(View.VISIBLE);
+            mLoginPanel.setVisibility(View.GONE);
+            mProfilePanel.setVisibility(View.VISIBLE);
+            mLogoutOption.setVisibility(View.VISIBLE);
             updateProfileHeader();
         } else {
-            loginOption.setVisibility(View.VISIBLE);
-            logoutOption.setVisibility(View.GONE);
+            mLoginPanel.setVisibility(View.VISIBLE);
+            mProfilePanel.setVisibility(View.GONE);
+            mLogoutOption.setVisibility(View.GONE);
             mDisplayName.setText("");
-            mNavigationView.getHeaderView(0).setVisibility(View.INVISIBLE);
         }
     }
 
@@ -163,7 +170,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void updateProfileHeader(String username) {
         if (!username.isEmpty()) {
             mDisplayName.setText(username);
-            mNavigationView.getHeaderView(0).setVisibility(View.VISIBLE);
             updateProfilePicture(username);
         }
     }
