@@ -158,7 +158,6 @@ protected:
     uint8_t _numInactiveUpdates { 1 };
     uint8_t _bidPriority { 0 };
     uint8_t _region { workload::Region::INVALID };
-    bool _serverVariablesSet { false };
 };
 
 #endif // hifi_EntityMotionState_h
