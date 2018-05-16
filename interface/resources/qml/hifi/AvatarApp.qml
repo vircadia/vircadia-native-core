@@ -632,8 +632,6 @@ Rectangle {
                                 enabled: !container.highlighted
                                 hoverEnabled: enabled
 
-                                property url getWearablesUrl: '../../images/samples/hifi-place-77312e4b-6f48-4eb4-87e2-50444d8e56d1.png'
-
                                 onClicked: {
                                     if(isInManageState) {
                                         var currentItem = delegateRoot.GridView.view.model.get(index);

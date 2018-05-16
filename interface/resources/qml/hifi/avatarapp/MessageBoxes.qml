@@ -16,7 +16,7 @@ MessageBox {
         popup.open();
     }
 
-    property url getWearablesUrl: '../../../images/samples/hifi-place-77312e4b-6f48-4eb4-87e2-50444d8e56d1.png'
+    property url getWearablesUrl: '../../../images/avatarapp/hifi-place-get-wearables.png'
 
     function showGetWearables(callback, linkCallback) {
         popup.button2text = 'AvatarIsland'
@@ -76,7 +76,7 @@ MessageBox {
         popup.open();
     }
 
-    property url getAvatarsUrl: '../../../images/samples/hifi-place-get-avatars.png'
+    property url getAvatarsUrl: '../../../images/avatarapp/hifi-place-get-avatars.png'
 
     function showBuyAvatars(callback, linkCallback) {
         popup.button2text = 'BodyMart'
