@@ -41,12 +41,12 @@ entityIsCloneable = function(props) {
 propsAreCloneDynamic = function(props) {
     var cloneable = entityIsCloneable(props);
     if (cloneable) {
-        return props.cloneableDynamic;
+        return props.cloneDynamic;
     }
     return false;
 };
 
-cloneEntity = function(props, worldEntityProps) {
+cloneEntity = function(props) {
     var entityToClone = props.id;
     var certificateID = Entities.getEntityProperties(entityToClone, ['certificateID']).certificateID;
     // ensure entity is cloneable and does not have a certificate ID, whereas cloneable limits

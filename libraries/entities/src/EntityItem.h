@@ -343,12 +343,16 @@ public:
 
     bool getCloneable() const;
     void setCloneable(bool value);
-    float getCloneableLifetime() const;
-    void setCloneableLifetime(float value);
-    float getCloneableLimit() const;
-    void setCloneableLimit(float value);
-    bool getCloneableDynamic() const;
-    void setCloneableDynamic(const bool value);
+    float getCloneLifetime() const;
+    void setCloneLifetime(float value);
+    float getCloneLimit() const;
+    void setCloneLimit(float value);
+    bool getCloneDynamic() const;
+    void setCloneDynamic(const bool value);
+    bool getCloneAvatarEntity() const;
+    void setCloneAvatarEntity(const bool value);
+    const QUuid getCloneOriginID() const;
+    void setCloneOriginID(const QUuid& value);
 
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
@@ -506,8 +510,6 @@ public:
     bool addCloneID(const QUuid& cloneID);
     bool removeCloneID(const QUuid& cloneID);
     const QList<QUuid>& getCloneIDs() const { return _cloneIDs; }
-    void setCloneParent(const QUuid& cloneParentID) { _cloneParentID = cloneParentID; }
-    const QUuid& getCloneParent() const { return _cloneParentID; }
 
 signals:
     void requestRenderUpdate();
@@ -664,12 +666,12 @@ protected:
     bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
 
     bool _cloneable;
-    float _cloneableLifetime;
-    float _cloneableLimit;
-    bool _cloneableDynamic;
-
+    float _cloneLifetime;
+    float _cloneLimit;
+    bool _cloneDynamic;
+    bool _cloneAvatarEntity;
+    QUuid _cloneOriginID;
     QList<QUuid> _cloneIDs;
-    QUuid _cloneParentID;
 
 private:
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;

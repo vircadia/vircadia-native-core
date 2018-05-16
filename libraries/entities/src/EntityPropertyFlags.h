@@ -243,9 +243,11 @@ enum EntityPropertyList {
     PROP_MATERIAL_DATA,
 
     PROP_CLONEABLE,
-    PROP_CLONEABLE_LIFETIME,
-    PROP_CLONEABLE_LIMIT,
-    PROP_CLONEABLE_DYNAMIC,
+    PROP_CLONE_LIFETIME,
+    PROP_CLONE_LIMIT,
+    PROP_CLONE_DYNAMIC,
+    PROP_CLONE_AVATAR_ENTITY,
+    PROP_CLONE_ORIGIN_ID,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

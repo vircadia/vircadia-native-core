@@ -1041,10 +1041,11 @@ function loaded() {
                         elIgnoreIK.checked = true;
 
                         elCloneable.checked = properties.cloneable;
-                        elCloneableDynamic.checked = properties.cloneableDynamic;
+                        elCloneableDynamic.checked = properties.cloneDynamic;
+						elCloneableAvatarEntity.checked = properties.cloneAvatarEntity;
                         elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
-                        elCloneableLimit.value = properties.cloneableLimit;
-                        elCloneableLifetime.value = properties.cloneableLifetime;
+                        elCloneableLimit.value = properties.cloneLimit;
+                        elCloneableLifetime.value = properties.cloneLifetime;
                         
                         var grabbablesSet = false;
                         var parsedUserData = {};
@@ -1441,9 +1442,10 @@ function loaded() {
         });
         
         elCloneable.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneable'));
-        elCloneableDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneableDynamic'));
-        elCloneableLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneableLifetime'));
-        elCloneableLimit.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneableLimit'));
+        elCloneableDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneDynamic'));
+		elCloneableAvatarEntity.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneAvatarEntity'));
+        elCloneableLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneLifetime'));
+        elCloneableLimit.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneLimit'));
 
         elWantsTrigger.addEventListener('change', function() {
             userDataChanger("grabbableKey", "wantsTrigger", elWantsTrigger, elUserData, false);

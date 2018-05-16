@@ -125,9 +125,11 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_LAST_EDITED_BY;
 
     requestedProperties += PROP_CLONEABLE;
-    requestedProperties += PROP_CLONEABLE_LIFETIME;
-    requestedProperties += PROP_CLONEABLE_LIMIT;
-    requestedProperties += PROP_CLONEABLE_DYNAMIC;
+    requestedProperties += PROP_CLONE_LIFETIME;
+    requestedProperties += PROP_CLONE_LIMIT;
+    requestedProperties += PROP_CLONE_DYNAMIC;
+    requestedProperties += PROP_CLONE_AVATAR_ENTITY;
+    requestedProperties += PROP_CLONE_ORIGIN_ID;
 
     return requestedProperties;
 }
@@ -294,9 +296,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, getLastEditedBy());
 
         APPEND_ENTITY_PROPERTY(PROP_CLONEABLE, getCloneable());
-        APPEND_ENTITY_PROPERTY(PROP_CLONEABLE_LIFETIME, getCloneableLifetime());
-        APPEND_ENTITY_PROPERTY(PROP_CLONEABLE_LIMIT, getCloneableLimit());
-        APPEND_ENTITY_PROPERTY(PROP_CLONEABLE_DYNAMIC, getCloneableDynamic());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_LIFETIME, getCloneLifetime());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_LIMIT, getCloneLimit());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, getCloneDynamic());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, getCloneAvatarEntity());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, getCloneOriginID());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -859,9 +863,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, QUuid, setLastEditedBy);
 
     READ_ENTITY_PROPERTY(PROP_CLONEABLE, bool, setCloneable);
-    READ_ENTITY_PROPERTY(PROP_CLONEABLE_LIFETIME, float, setCloneableLifetime);
-    READ_ENTITY_PROPERTY(PROP_CLONEABLE_LIMIT, float, setCloneableLimit);
-    READ_ENTITY_PROPERTY(PROP_CLONEABLE_DYNAMIC, bool, setCloneableDynamic);
+    READ_ENTITY_PROPERTY(PROP_CLONE_LIFETIME, float, setCloneLifetime);
+    READ_ENTITY_PROPERTY(PROP_CLONE_LIMIT, float, setCloneLimit);
+    READ_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, bool, setCloneDynamic);
+    READ_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, bool, setCloneAvatarEntity);
+    READ_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, QUuid, setCloneOriginID);
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData, somethingChanged);
@@ -1291,9 +1297,11 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lastEditedBy, getLastEditedBy);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneable, getCloneable);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneableLifetime, getCloneableLifetime);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneableLimit, getCloneableLimit);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneableDynamic, getCloneableDynamic);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneLifetime, getCloneLifetime);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneLimit, getCloneLimit);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneDynamic, getCloneDynamic);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneAvatarEntity, getCloneAvatarEntity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneOriginID, getCloneOriginID);
 
     properties._defaultSettings = false;
 
@@ -1403,9 +1411,11 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lastEditedBy, setLastEditedBy);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneable, setCloneable);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneableLifetime, setCloneableLifetime);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneableLimit, setCloneableLimit);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneableDynamic, setCloneableDynamic);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneLifetime, setCloneLifetime);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneLimit, setCloneLimit);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneDynamic, setCloneDynamic);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneAvatarEntity, setCloneAvatarEntity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneOriginID, setCloneOriginID);
 
     if (updateQueryAACube()) {
         somethingChanged = true;
@@ -3015,45 +3025,73 @@ void EntityItem::setCloneable(bool value) {
     });
 }
 
-float EntityItem::getCloneableLifetime() const {
+float EntityItem::getCloneLifetime() const {
     float result;
     withReadLock([&] {
-        result = _cloneableLifetime;
+        result = _cloneLifetime;
     });
     return result;
 }
 
-void EntityItem::setCloneableLifetime(float value) {
+void EntityItem::setCloneLifetime(float value) {
     withWriteLock([&] {
-        _cloneableLifetime = value;
+        _cloneLifetime = value;
     });
 }
 
-float EntityItem::getCloneableLimit() const {
+float EntityItem::getCloneLimit() const {
     float result;
     withReadLock([&] {
-        result = _cloneableLimit;
+        result = _cloneLimit;
     });
     return result;
 }
 
-void EntityItem::setCloneableLimit(float value) {
+void EntityItem::setCloneLimit(float value) {
     withWriteLock([&] {
-        _cloneableLimit = value;
+        _cloneLimit = value;
     });
 }
 
-bool EntityItem::getCloneableDynamic() const {
+bool EntityItem::getCloneDynamic() const {
     bool result;
     withReadLock([&] {
-        result = _cloneableDynamic;
+        result = _cloneDynamic;
     });
     return result;
 }
 
-void EntityItem::setCloneableDynamic(const bool value) {
+void EntityItem::setCloneDynamic(const bool value) {
     withWriteLock([&] {
-        _cloneableDynamic = value;
+        _cloneDynamic = value;
+    });
+}
+
+bool EntityItem::getCloneAvatarEntity() const {
+    bool result;
+    withReadLock([&] {
+        result = _cloneAvatarEntity;
+    });
+    return result;
+}
+
+void EntityItem::setCloneAvatarEntity(const bool value) {
+    withWriteLock([&] {
+        _cloneAvatarEntity = value;
+    });
+}
+
+const QUuid EntityItem::getCloneOriginID() const {
+    QUuid result;
+    withReadLock([&] {
+        result = _cloneOriginID;
+    });
+    return result;
+}
+
+void EntityItem::setCloneOriginID(const QUuid& value) {
+    withWriteLock([&] {
+        _cloneOriginID = value;
     });
 }
 
