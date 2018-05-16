@@ -574,7 +574,7 @@ function snapshotDirChanged(snapshotPath) {
     }
 }
 
-function processingGifStarted(pathStillSnapshot) {
+function processingGifStarted(pathStillSnapshot, stillWriteFailed) {
     Window.processingGifStarted.disconnect(processingGifStarted);
     Window.processingGifCompleted.connect(processingGifCompleted);
     isLoggedIn = Account.isLoggedIn();
@@ -608,6 +608,9 @@ function processingGifStarted(pathStillSnapshot) {
             image_data: imageData
         }));
     });
+    if (stillWriteFailed) {
+        processingGifCompleted("");
+    }
 }
 
 function processingGifCompleted(pathAnimatedSnapshot) {

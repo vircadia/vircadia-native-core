@@ -7590,8 +7590,9 @@ void Application::loadAvatarBrowser() const {
 
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
     postLambdaEvent([notify, includeAnimated, aspectRatio, filename, this] {
+        bool initialWriteFailed = false;
         // Get a screenshot and save it
-        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio), filename,
+        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio), filename, initialWriteFailed,
                                               TestScriptingInterface::getInstance()->getTestResultsLocation());
 
         // If we're not doing an animated snapshot as well...
@@ -7599,15 +7600,20 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
             // Tell the dependency manager that the capture of the still snapshot has taken place.
             emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
         } else if (!SnapshotAnimated::isAlreadyTakingSnapshotAnimated()) {
-            // Get an animated GIF snapshot and save it
-            SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, qApp, DependencyManager::get<WindowScriptingInterface>());
+            if (initialWriteFailed) {
+                emit DependencyManager::get<WindowScriptingInterface>()->processingGifStarted(path, true);
+            } else {
+                // Get an animated GIF snapshot and save it
+                SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, qApp, DependencyManager::get<WindowScriptingInterface>());
+            }
         }
     });
 }
 
 void Application::takeSecondaryCameraSnapshot(const QString& filename) {
     postLambdaEvent([filename, this] {
-        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename,
+        bool initialWriteFailed = false;
+        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename, initialWriteFailed,
                                                       TestScriptingInterface::getInstance()->getTestResultsLocation());
 
         emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);

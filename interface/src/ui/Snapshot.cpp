@@ -74,26 +74,31 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     return data;
 }
 
-QString Snapshot::saveSnapshot(QImage image, const QString& filename, const QString& pathname) {
+QString Snapshot::saveSnapshot(QImage image, const QString& filename, bool& initialWriteFailed, const QString& pathname) {
 
-    QFile* snapshotFile = savedFileForSnapshot(image, false, filename, pathname);
+    QFile* snapshotFile = savedFileForSnapshot(image, false, initialWriteFailed, filename, pathname);
 
-    // we don't need the snapshot file, so close it, grab its filename and delete it
-    snapshotFile->close();
+    if (snapshotFile) {
+        // we don't need the snapshot file, so close it, grab its filename and delete it
+        snapshotFile->close();
 
-    QString snapshotPath = QFileInfo(*snapshotFile).absoluteFilePath();
+        QString snapshotPath = QFileInfo(*snapshotFile).absoluteFilePath();
 
-    delete snapshotFile;
+        delete snapshotFile;
 
-    return snapshotPath;
+        return snapshotPath;
+    }
+
+    return "";
 }
 
 QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {
     // return whatever we get back from saved file for snapshot
-    return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true));
+    bool initialWriteFailed = false;
+    return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true, initialWriteFailed));
 }
 
-QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QString& userSelectedFilename, const QString& userSelectedPathname) {
+QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, bool& initialWriteFailed, const QString& userSelectedFilename, const QString& userSelectedPathname) {
 
     // adding URL to snapshot
     QUrl currentURL = DependencyManager::get<AddressManager>()->currentPublicAddress();
@@ -140,7 +145,21 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QSt
             snapshotFullPath.append(filename);
 
             QFile* imageFile = new QFile(snapshotFullPath);
-            imageFile->open(QIODevice::WriteOnly);
+            while (!imageFile->open(QIODevice::WriteOnly)) {
+                initialWriteFailed = true;
+                snapshotFullPath = OffscreenUi::getExistingDirectory(nullptr, "Write Error - Choose New Snapshots Directory", QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
+                if (snapshotFullPath.isEmpty()) {
+                    return NULL;
+                }
+                snapshotsLocation.set(snapshotFullPath);
+
+                if (!snapshotFullPath.endsWith(QDir::separator())) {
+                    snapshotFullPath.append(QDir::separator());
+                }
+                snapshotFullPath.append(filename);
+
+                imageFile = new QFile(snapshotFullPath);
+            }
 
             shot.save(imageFile, 0, IMAGE_QUALITY);
             imageFile->close();
