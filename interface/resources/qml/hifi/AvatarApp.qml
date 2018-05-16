@@ -46,7 +46,7 @@ Rectangle {
         console.debug('currentAvatar.wearables: ', currentAvatar.wearables);
     }
 
-    property url externalAvatarThumbnailUrl: '../../images/avatarapp/AvatarApp_Favorite_Elements_NoPicture.svg'
+    property url externalAvatarThumbnailUrl: '../../images/avatarapp/guy-in-circle.svg'
 
     function fromScript(message) {
         console.debug('AvatarApp.qml: fromScript: ', JSON.stringify(message, null, '\t'))
