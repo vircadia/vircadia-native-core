@@ -614,7 +614,7 @@ Rectangle {
                 wornEntityID: model.wornEntityID;
                 upgradeUrl: model.upgrade_url;
                 upgradeTitle: model.upgrade_title;
-                itemType: model.itemType;
+                itemType: model.item_type;
                 isShowingMyItems: root.isShowingMyItems;
                 valid: model.valid;
                 anchors.topMargin: 10;
@@ -996,7 +996,8 @@ Rectangle {
 
         for (var i = 0; i < purchasesModel.count; i++) {
             if (purchasesModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
-                if (purchasesModel.get(i).status !== "confirmed" && !root.isShowingMyItems) {
+                if (purchasesModel.get(i).status !== "confirmed" && !root.isShowingMyItems &&
+                    purchasesModel.get(i).edition_number !== "0") {
                     tempPurchasesModel.insert(0, purchasesModel.get(i));
                 } else if ((root.isShowingMyItems && purchasesModel.get(i).edition_number === "0") ||
                 (!root.isShowingMyItems && purchasesModel.get(i).edition_number !== "0")) {
@@ -1010,27 +1011,13 @@ Rectangle {
         for (var i = 0; i < tempPurchasesModel.count; i++) {
             currentRootFileUrl = tempPurchasesModel.get(i).root_file_url;
             currentCategories = tempPurchasesModel.get(i).categories;
+            currentItemType = tempPurchasesModel.get(i).item_type;
 
-            if (currentRootFileUrl.indexOf(".fst") > -1) {
-                currentItemType = "avatar";
-            } else if (currentCategories.indexOf("Wearables") > -1) {
-                currentItemType = "wearable";
-            } else if (currentRootFileUrl.endsWith('.json.gz') || currentRootFileUrl.endsWith('.content.zip')) {
-                currentItemType = "contentSet";
-            } else if (currentRootFileUrl.endsWith('.app.json')) {
-                currentItemType = "app";
-            } else if (currentRootFileUrl.endsWith('.json')) {
-                currentItemType = "entity";
-            } else {
-                currentItemType = "unknown";
-            }
             if (filterBar.primaryFilter_displayName !== "" &&
                 ((filterBar.primaryFilter_displayName === "Updatable" && tempPurchasesModel.get(i).upgrade_url === "") ||
                 (filterBar.primaryFilter_displayName !== "Updatable" && filterBar.primaryFilter_filterName.toLowerCase() !== currentItemType.toLowerCase()))) {
                 tempPurchasesModel.remove(i);
                 i--;
-            } else {
-                tempPurchasesModel.setProperty(i, 'itemType', currentItemType);
             }
         }
         
