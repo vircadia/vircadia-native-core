@@ -7,7 +7,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global alert, augmentSpinButtons, clearTimeout, console, document, Element, EventBridge, 
-    HifiEntityUI, JSONEditor, openEventBridge, setUpKeyboardControl, setTimeout, window, _ $ */
+    HifiEntityUI, JSONEditor, openEventBridge, setTimeout, window, _ $ */
 
 var PI = 3.14159265358979;
 var DEGREES_TO_RADIANS = PI / 180.0;
@@ -2103,8 +2103,6 @@ function loaded() {
     }
 
     augmentSpinButtons();
-
-    setUpKeyboardControl();
 
     // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function(event) {

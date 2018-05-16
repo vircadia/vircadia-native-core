@@ -735,9 +735,9 @@ extern InputPluginList getInputPlugins();
 extern void saveInputPluginSettings(const InputPluginList& plugins);
 
 // Parameters used for running tests from teh command line
-const QString TEST_SCRIPT_COMMAND { "--testScript" };
-const QString TEST_QUIT_WHEN_FINISHED_OPTION { "quitWhenFinished" };
-const QString TEST_SNAPSHOT_LOCATION_COMMAND { "--testSnapshotLocation" };
+const QString TEST_SCRIPT_COMMAND{ "--testScript" };
+const QString TEST_QUIT_WHEN_FINISHED_OPTION{ "quitWhenFinished" };
+const QString TEST_RESULTS_LOCATION_COMMAND{ "--testResultsLocation" };
 
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
@@ -851,7 +851,11 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Cursor::Manager>();
     DependencyManager::set<VirtualPad::Manager>();
     DependencyManager::set<DesktopPreviewProvider>();
+#if defined(Q_OS_ANDROID)
+    DependencyManager::set<AccountManager>(); // use the default user agent getter
+#else
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
+#endif
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
     DependencyManager::set<ScriptInitializerMixin, NativeScriptInitializers>();
@@ -1015,22 +1019,25 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
                 // If the URL scheme is http(s) or ftp, then use as is, else - treat it as a local file
                 // This is done so as not break previous command line scripts
-                if (testScriptPath.left(URL_SCHEME_HTTP.length()) == URL_SCHEME_HTTP || testScriptPath.left(URL_SCHEME_FTP.length()) == URL_SCHEME_FTP) {
+                if (testScriptPath.left(URL_SCHEME_HTTP.length()) == URL_SCHEME_HTTP ||
+                    testScriptPath.left(URL_SCHEME_FTP.length()) == URL_SCHEME_FTP) {
+                    
                     setProperty(hifi::properties::TEST, QUrl::fromUserInput(testScriptPath));
                 } else if (QFileInfo(testScriptPath).exists()) {
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
                 }
 
-				// quite when finished parameter must directly follow the test script
+                // quite when finished parameter must directly follow the test script
                 if ((i + 2) < args.size() && args.at(i + 2) == TEST_QUIT_WHEN_FINISHED_OPTION) {
                     quitWhenFinished = true;
                 }
-            } else if (args.at(i) == TEST_SNAPSHOT_LOCATION_COMMAND) {
+            } else if (args.at(i) == TEST_RESULTS_LOCATION_COMMAND) {
                 // Set test snapshot location only if it is a writeable directory
-                QString pathname(args.at(i + 1));
-                QFileInfo fileInfo(pathname);
+                QString path(args.at(i + 1));
+
+                QFileInfo fileInfo(path);
                 if (fileInfo.isDir() && fileInfo.isWritable()) {
-                    testSnapshotLocation = pathname;
+                    TestScriptingInterface::getInstance()->setTestResultsLocation(path);
                 }
             }
         }
@@ -2249,6 +2256,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _pendingRenderEvent = false;
 
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
+
+#if defined(Q_OS_ANDROID)
+    AndroidHelper::instance().init();
+    AndroidHelper::instance().notifyLoadComplete();
+#endif
 }
 
 void Application::updateVerboseLogging() {
@@ -7588,7 +7600,9 @@ void Application::loadAvatarBrowser() const {
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
     postLambdaEvent([notify, includeAnimated, aspectRatio, filename, this] {
         // Get a screenshot and save it
-        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio), filename, testSnapshotLocation);
+        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio), filename,
+                                              TestScriptingInterface::getInstance()->getTestResultsLocation());
+
         // If we're not doing an animated snapshot as well...
         if (!includeAnimated) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
@@ -7602,7 +7616,9 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
 
 void Application::takeSecondaryCameraSnapshot(const QString& filename) {
     postLambdaEvent([filename, this] {
-        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename, testSnapshotLocation);
+        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename,
+                                                      TestScriptingInterface::getInstance()->getTestResultsLocation());
+
         emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
     });
 }
@@ -8255,17 +8271,17 @@ void Application::openAndroidActivity(const QString& activityName) {
 void Application::enterBackground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
-    //GC: commenting it out until we fix it
-    //getActiveDisplayPlugin()->deactivate();
+    if (getActiveDisplayPlugin()->isActive()) {
+        getActiveDisplayPlugin()->deactivate();
+    }
 }
+
 void Application::enterForeground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                                   "start", Qt::BlockingQueuedConnection);
-    //GC: commenting it out until we fix it
-    /*if (!getActiveDisplayPlugin() || !getActiveDisplayPlugin()->activate()) {
+    if (!getActiveDisplayPlugin() || getActiveDisplayPlugin()->isActive() || !getActiveDisplayPlugin()->activate()) {
         qWarning() << "Could not re-activate display plugin";
-    }*/
-
+    }
 }
 #endif
 

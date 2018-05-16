@@ -193,7 +193,6 @@ namespace MenuOption {
     const QString ShowOtherLookAtVectors = "Show Other Eye Vectors";
     const QString EnableLookAtSnapping = "Enable LookAt Snapping";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
-    const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString SimulateEyeTracking = "Simulate";
     const QString SMIEyeTracking = "SMI Eye Tracking";
     const QString SparseTextureManagement = "Enable Sparse Texture Management";

@@ -419,7 +419,6 @@ public slots:
     void updateVerboseLogging();
     Q_INVOKABLE void openAndroidActivity(const QString& activityName);
 
-
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
@@ -753,7 +752,6 @@ private:
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
 
-    QString testSnapshotLocation;
     bool quitWhenFinished { false };
 };
 #endif // hifi_Application_h

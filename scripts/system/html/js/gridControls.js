@@ -129,8 +129,6 @@ function loaded() {
 
         augmentSpinButtons();
 
-        setUpKeyboardControl();
-
         EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
     });
     document.addEventListener("keydown", function (keyDown) {

@@ -11,8 +11,7 @@
    TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS,
    findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH,
    HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, findHandChildEntities, TEAR_AWAY_DISTANCE, MSECS_PER_SEC, TEAR_AWAY_CHECK_TIME,
-   TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox, print, Selection, DISPATCHER_HOVERING_LIST, Uuid,
-   highlightTargetEntity, unhighlightTargetEntity
+   TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox, print, Uuid, highlightTargetEntity, unhighlightTargetEntity
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -43,11 +42,6 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             [],
             100);
 
-
-        // XXX does handJointIndex change if the avatar changes?
-        this.handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
-        this.controllerJointIndex = getControllerJointIndex(this.hand);
-
         this.thisHandIsParent = function(props) {
             if (!props) {
                 return false;
@@ -62,8 +56,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 return true;
             }
 
-            var controllerJointIndex = this.controllerJointIndex;
-            if (props.parentJointIndex === controllerJointIndex) {
+            if (props.parentJointIndex === getControllerJointIndex(this.hand)) {
                 return true;
             }
 
@@ -102,7 +95,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             // } else {
             //     handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
             // }
-            handJointIndex = this.controllerJointIndex;
+            handJointIndex = getControllerJointIndex(this.hand);
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(targetProps.id, "startNearGrab", args);
