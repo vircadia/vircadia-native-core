@@ -340,11 +340,18 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
-        deferredLightingEffect->setupLocalLightsBatch(batch, 
-                                                      render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
-                                                      render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-                                                      render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
-                                                      lightClusters);
+        // Set the light
+        deferredLightingEffect->setupKeyLightBatch(args, batch,
+            render::ShapePipeline::Slot::KEY_LIGHT,
+            render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER,
+            render::ShapePipeline::Slot::LIGHT_AMBIENT_MAP);
+
+        deferredLightingEffect->setupLocalLightsBatch(batch,
+            render::ShapePipeline::Slot::LIGHT_ARRAY_BUFFER,
+            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
+            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
+            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
+            lightClusters);
 
         // Setup haze if current zone has haze
         auto hazeStage = args->_scene->getStage<HazeStage>();
@@ -370,9 +377,15 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         args->_globalShapeKey = 0;
 
         deferredLightingEffect->unsetLocalLightsBatch(batch,
-                                                      render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
-                                                      render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-                                                      render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT);
+            render::ShapePipeline::Slot::LIGHT_ARRAY_BUFFER,
+            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
+            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
+            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT);
+
+        deferredLightingEffect->unsetKeyLightBatch(batch,
+            render::ShapePipeline::Slot::KEY_LIGHT,
+            render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER,
+            render::ShapePipeline::Slot::LIGHT_AMBIENT_MAP);
     });
 
     config->setNumDrawn((int)inItems.size());

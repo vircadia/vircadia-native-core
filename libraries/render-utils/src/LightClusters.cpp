@@ -39,7 +39,7 @@ enum LightClusterGridShader_MapSlot {
 enum LightClusterGridShader_BufferSlot {
     DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
     CAMERA_CORRECTION_BUFFER_SLOT = 1,
-    LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
+    LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT_ARRAY_BUFFER,
     LIGHT_INDEX_GPU_SLOT = 7,
     LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT = 8,
     LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT = 9,
