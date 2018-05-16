@@ -235,6 +235,14 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             UserActivityLogger.palAction("display_name_change", message.displayName);
         }
         break;
+    case 'applyExternalAvatar':
+        console.debug('avatarapp.js: applyExternalAvatar: ', message.avatarURL);
+        var currentAvatarURL = MyAvatar.getFullAvatarURLFromPreferences();
+        if(currentAvatarURL !== message.avatarURL) {
+            MyAvatar.useFullAvatarURL(message.avatarURL);
+            sendToQml({'method' : 'externalAvatarApplied', 'avatarURL' : message.avatarURL})
+        }
+        break;
     case 'navigate':
         console.debug('avatarapp.js: navigate: ', message.url);
         if(message.url.indexOf('app://') === 0) {

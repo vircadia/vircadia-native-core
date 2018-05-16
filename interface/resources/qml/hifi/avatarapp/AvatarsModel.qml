@@ -2,6 +2,7 @@ import QtQuick 2.9
 
 ListModel {
     id: model
+    property url externalAvatarThumbnailUrl;
 
     function makeThumbnailUrl(avatarUrl) {
         var splittedUrl = avatarUrl.split('/');
@@ -16,9 +17,33 @@ ListModel {
         return avatarThumbnailUrl;
     }
 
+    function encodedName(avatarName, isExternal) {
+        if(isExternal) {
+            if(avatarName.indexOf('external:') !== 0) {
+                return 'external:' + avatarName;
+            }
+        }
+
+        return avatarName;
+    }
+
+    function decodedName(avatarName, isExternal) {
+        if(isExternal) {
+            if(avatarName.indexOf('external:') === 0) {
+                avatarName = avatarName.replace('external:', '');
+            }
+        }
+
+        return avatarName;
+    }
+
     function makeAvatarObject(avatar, avatarName) {
         console.debug('makeAvatarEntry: ', avatarName, JSON.stringify(avatar));
-        var avatarThumbnailUrl = makeThumbnailUrl(avatar.avatarUrl);
+        var isExternal = avatarName.indexOf('external:') === 0;
+        avatarName = decodedName(avatarName, isExternal);
+
+        var avatarThumbnailUrl = isExternal ? externalAvatarThumbnailUrl.toString() : makeThumbnailUrl(avatar.avatarUrl);
+        console.debug('isExternal:', isExternal, 'avatarThumbnailUrl:', avatarThumbnailUrl, 'externalAvatarThumbnailUrl:', externalAvatarThumbnailUrl);
 
         return {
             'name' : avatarName,
@@ -27,6 +52,7 @@ ListModel {
             'wearables' : avatar.avatarEntites ? avatar.avatarEntites : [],
             'attachments' : avatar.attachments ? avatar.attachments : [],
             'entry' : avatar,
+            'isExternal' : isExternal,
             'getMoreAvatars' : false
         };
 

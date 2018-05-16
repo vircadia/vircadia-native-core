@@ -10,8 +10,16 @@ MessageBox {
                 '(“.fst” extension) here. <a href="#">Learn to make a custom avatar by opening this link on your desktop.</a>'
         popup.inputText.visible = true;
         popup.inputText.placeholderText = 'Enter Avatar Url';
+        popup.inputText.forceActiveFocus();
         popup.button1text = 'CANCEL';
         popup.button2text = 'CONFIRM';
+
+        popup.onButton2Clicked = function() {
+            if(callback)
+                callback();
+
+            popup.close();
+        }
 
         popup.open();
     }

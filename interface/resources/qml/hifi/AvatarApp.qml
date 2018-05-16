@@ -46,6 +46,8 @@ Rectangle {
         console.debug('currentAvatar.wearables: ', currentAvatar.wearables);
     }
 
+    property url externalAvatarThumbnailUrl: '../../images/avatarapp/AvatarApp_Favorite_Elements_NoPicture.svg'
+
     function fromScript(message) {
         console.debug('AvatarApp.qml: fromScript: ', JSON.stringify(message, null, '\t'))
 
@@ -75,6 +77,11 @@ Rectangle {
             adjustWearables.refresh(currentAvatar);
         } else if(message.method === 'scaleChanged') {
             currentAvatar.avatarScale = message.value;
+            updateCurrentAvatarInBookmarks(currentAvatar);
+        } else if(message.method === 'externalAvatarApplied') {
+            currentAvatar.isExternal = true;
+            currentAvatar.name = allAvatars.encodedName('', true);
+            currentAvatar.thumbnailUrl = externalAvatarThumbnailUrl.toString();
             updateCurrentAvatarInBookmarks(currentAvatar);
         } else if(message.method === 'settingChanged') {
             currentAvatarSettings[message.name] = message.value;
@@ -332,8 +339,7 @@ Rectangle {
                     }
 
                     entry.avatarEntites = wearables;
-                    currentAvatar.name = createFavorite.favoriteNameText;
-
+                    currentAvatar.name = allAvatars.encodedName(createFavorite.favoriteNameText, currentAvatar.isExternal);
                     console.debug('became: ', JSON.stringify(entry, 0, 4));
 
                     emitSendToScript({'method': 'addAvatar', 'name' : currentAvatar.name});
@@ -374,6 +380,8 @@ Rectangle {
                 anchors.fill: parent
                 onClicked: {
                     popup.showSpecifyAvatarUrl(function() {
+                        var url = popup.inputText.text;
+                        emitSendToScript({'method' : 'applyExternalAvatar', 'avatarURL' : url})
                     });
                 }
             }
@@ -509,15 +517,16 @@ Rectangle {
                 property int verticalSpacing: 44
 
                 function selectAvatar(avatar) {
-                    emitSendToScript({'method' : 'selectAvatar', 'name' : avatar.name})
+                    emitSendToScript({'method' : 'selectAvatar', 'name' : allAvatars.encodedName(avatar.name, avatar.isExternal)})
                 }
 
                 function deleteAvatar(avatar) {
-                    emitSendToScript({'method' : 'deleteAvatar', 'name' : avatar.name})
+                    emitSendToScript({'method' : 'deleteAvatar', 'name' : allAvatars.encodedName(avatar.name, avatar.isExternal)})
                 }
 
                 AvatarsModel {
                     id: allAvatars
+                    externalAvatarThumbnailUrl: root.externalAvatarThumbnailUrl
                 }
 
                 property int itemsPerPage: 8
