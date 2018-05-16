@@ -60,7 +60,7 @@ public:
     bool intersects { false };
     OverlayID overlayID { UNKNOWN_OVERLAY_ID };
     float distance { 0 };
-    BoxFace face;
+    BoxFace face { UNKNOWN_FACE };
     glm::vec3 surfaceNormal;
     glm::vec3 intersection;
     QVariantMap extraInfo;

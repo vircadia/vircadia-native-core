@@ -220,7 +220,7 @@ Item {
                     source: InputConfiguration.configurationLayout(box.currentText);
                     onLoaded: {
                         if (loader.item.hasOwnProperty("pluginName")) {
-                            if (box.currentText === "Vive") {
+                    if (box.currentText === "HTC Vive") {
                                 loader.item.pluginName = "OpenVR";
                             } else {
                                 loader.item.pluginName = box.currentText;
