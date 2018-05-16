@@ -594,11 +594,9 @@ signals:
      *     starting to be processed.
      * @function Window.processingGifStarted
      * @param {string} pathStillSnapshot - The path and name of the still snapshot image file.
-     * @param {bool} stillWriteFailed - True if the still snapshot (taken before the GIF) failed to write to disk
-     *     (this means the GIF won't capture).
      * @returns {Signal}
      */
-    void processingGifStarted(const QString& pathStillSnapshot, const bool& stillWriteFailed);
+    void processingGifStarted(const QString& pathStillSnapshot);
 
     /**jsdoc
      * Triggered when a GIF has been prepared of the snapshot images captured by {@link Window.takeSnapshot|takeSnapshot}.

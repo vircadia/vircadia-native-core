@@ -89,7 +89,7 @@ void SnapshotAnimated::captureFrames() {
 
                 // Notify the user that we're processing the snapshot
                 // This also pops up the "Share" dialog. The unprocessed GIF will be visualized as a loading icon until processingGifCompleted() is called.
-                emit SnapshotAnimated::snapshotAnimatedDM->processingGifStarted(SnapshotAnimated::snapshotStillPath, false);
+                emit SnapshotAnimated::snapshotAnimatedDM->processingGifStarted(SnapshotAnimated::snapshotStillPath);
 
                 // Kick off the thread that'll pack the frames into the GIF
                 QtConcurrent::run(processFrames);
@@ -147,6 +147,8 @@ void SnapshotAnimated::processFrames() {
     }
     // Write out the end of the GIF
     GifEnd(&(SnapshotAnimated::snapshotAnimatedGifWriter));
+
+    SnapshotAnimated::clearTempVariables();
     
     // Update the "Share" dialog with the processed GIF.
     emit SnapshotAnimated::snapshotAnimatedDM->processingGifCompleted(SnapshotAnimated::snapshotAnimatedPath);

@@ -74,9 +74,9 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     return data;
 }
 
-QString Snapshot::saveSnapshot(QImage image, const QString& filename, bool& initialWriteFailed, const QString& pathname) {
+QString Snapshot::saveSnapshot(QImage image, const QString& filename, const QString& pathname) {
 
-    QFile* snapshotFile = savedFileForSnapshot(image, false, initialWriteFailed, filename, pathname);
+    QFile* snapshotFile = savedFileForSnapshot(image, false, filename, pathname);
 
     if (snapshotFile) {
         // we don't need the snapshot file, so close it, grab its filename and delete it
@@ -94,11 +94,10 @@ QString Snapshot::saveSnapshot(QImage image, const QString& filename, bool& init
 
 QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {
     // return whatever we get back from saved file for snapshot
-    bool initialWriteFailed = false;
-    return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true, initialWriteFailed));
+    return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true));
 }
 
-QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, bool& initialWriteFailed, const QString& userSelectedFilename, const QString& userSelectedPathname) {
+QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QString& userSelectedFilename, const QString& userSelectedPathname) {
 
     // adding URL to snapshot
     QUrl currentURL = DependencyManager::get<AddressManager>()->currentPublicAddress();
@@ -146,7 +145,6 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, bool& ini
 
             QFile* imageFile = new QFile(snapshotFullPath);
             while (!imageFile->open(QIODevice::WriteOnly)) {
-                initialWriteFailed = true;
                 snapshotFullPath = OffscreenUi::getExistingDirectory(nullptr, "Write Error - Choose New Snapshots Directory", QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
                 if (snapshotFullPath.isEmpty()) {
                     return NULL;

@@ -38,7 +38,7 @@ class Snapshot : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:
-    static QString saveSnapshot(QImage image, const QString& filename, bool& initialWriteFailed, const QString& pathname = QString());
+    static QString saveSnapshot(QImage image, const QString& filename, const QString& pathname = QString());
     static QTemporaryFile* saveTempSnapshot(QImage image);
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
 
@@ -54,7 +54,6 @@ public slots:
 private:
     static QFile* savedFileForSnapshot(QImage& image,
                                        bool isTemporary,
-                                       bool& initialWriteFailed,
                                        const QString& userSelectedFilename = QString(),
                                        const QString& userSelectedPathname = QString());
 };
