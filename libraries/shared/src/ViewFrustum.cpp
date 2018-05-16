@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ViewFrustum.h"
+
 #include <algorithm>
 #include <array>
 
@@ -16,15 +18,13 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/vector_angle.hpp>
-#include <QtCore/QDebug>
 
+#include <QtCore/QDebug>
 
 #include "GeometryUtil.h"
 #include "GLMHelpers.h"
 #include "NumericalConstants.h"
 #include "SharedLogging.h"
-//#include "OctreeConstants.h"
-#include "ViewFrustum.h"
 
 using namespace std;
 

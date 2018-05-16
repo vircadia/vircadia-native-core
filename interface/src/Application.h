@@ -148,6 +148,7 @@ public:
     Q_INVOKABLE QString getUserAgent();
 
     void initializeGL();
+    void initializeDisplayPlugins();
     void initializeRenderEngine();
     void initializeUi();
 
@@ -418,7 +419,6 @@ public slots:
     void updateVerboseLogging();
     Q_INVOKABLE void openAndroidActivity(const QString& activityName);
 
-
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
@@ -671,6 +671,7 @@ private:
 
     using RenderArgsEditor = std::function <void (AppRenderArgs&)>;
     void editRenderArgs(RenderArgsEditor editor);
+    void updateRenderArgs(float deltaTime);
 
 
     Overlays _overlays;
@@ -750,5 +751,7 @@ private:
 
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
+
+    bool quitWhenFinished { false };
 };
 #endif // hifi_Application_h

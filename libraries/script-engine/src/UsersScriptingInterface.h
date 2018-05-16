@@ -106,10 +106,11 @@ public slots:
     void mute(const QUuid& nodeID);
 
     /**jsdoc
-    * Get the user name and machine fingerprint associated with the given UUID. This will only do anything if you're an admin 
-    * of the domain you're in.
-    * @function Users.getUsernameFromID
-    * @param {Uuid} nodeID The node or session ID of the user whose username you want.
+    * Request the user name and machine fingerprint associated with the given UUID. The user name will be returned in a 
+    * {@link Users.usernameFromIDReply|usernameFromIDReply} signal. This will only do anything if you're an admin of the domain 
+    * you're in.
+    * @function Users.requestUsernameFromID
+    * @param {Uuid} nodeID The node or session ID of the user whose user name you want.
     */
     void requestUsernameFromID(const QUuid& nodeID);
 
@@ -170,7 +171,8 @@ signals:
     void enteredIgnoreRadius();
 
     /**jsdoc
-     * Notifies scripts of the user name and machine fingerprint associated with a UUID.
+     * Triggered in response to a {@link Users.requestUsernameFromID|requestUsernameFromID} call. Provides the user name and 
+     * machine fingerprint associated with a UUID.
      * Username and machineFingerprint will be their default constructor output if the requesting user isn't an admin.
      * @function Users.usernameFromIDReply
      * @param {Uuid} nodeID

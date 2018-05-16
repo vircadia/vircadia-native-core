@@ -9,12 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "WalletTransaction.h"
+
 #include <QtCore/QJsonObject>
 
 #include <UUID.h>
-
-#include "WalletTransaction.h"
-
 
 WalletTransaction::WalletTransaction() :
     _uuid(),

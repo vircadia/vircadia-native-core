@@ -15,6 +15,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QRunnable>
+#include <QDir>
 #include <QImageReader>
 
 #include <image/Image.h>

@@ -1164,17 +1164,11 @@ function setupModelMenus() {
         });
         modelMenuAddedDelete = true;
     }
-    Menu.addMenuItem({
-        menuName: "Edit",
-        menuItemName: "Entity List...",
-        afterItem: "Entities",
-        grouping: "Advanced"
-    });
 
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Parent Entity to Last",
-        afterItem: "Entity List...",
+        afterItem: "Entities",
         grouping: "Advanced"
     });
 
@@ -1296,7 +1290,6 @@ function cleanupModelMenus() {
 
     Menu.removeMenuItem("Edit", "Parent Entity to Last");
     Menu.removeMenuItem("Edit", "Unparent Entity");
-    Menu.removeMenuItem("Edit", "Entity List...");
     Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Lights");
@@ -1658,8 +1651,6 @@ function handeMenuEvent(menuItem) {
             Window.promptTextChanged.connect(onPromptTextChanged);
             Window.promptAsync("URL of SVO to import", "");
         }
-    } else if (menuItem === "Entity List...") {
-        entityListTool.toggleVisible();
     } else if (menuItem === "Select All Entities In Box") {
         selectAllEtitiesInCurrentSelectionBox(false);
     } else if (menuItem === "Select All Entities Touching Box") {

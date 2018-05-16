@@ -251,7 +251,7 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
         updateAmbientLightFromEntity(entity);
     }
 
-    if (skyboxChanged) {
+    if (skyboxChanged || _proceduralUserData != entity->getUserData()) {
         updateKeyBackgroundFromEntity(entity);
     }
 
@@ -292,6 +292,10 @@ bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
         return true;
     }
     if (entity->getWorldOrientation() != _lastRotation) {
+        return true;
+    }
+
+    if (entity->getUserData() != _proceduralUserData) {
         return true;
     }
 

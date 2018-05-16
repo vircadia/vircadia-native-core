@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "HTTPManager.h"
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDebug>
 #include <QtCore/QFile>
@@ -18,7 +20,6 @@
 
 #include "HTTPConnection.h"
 #include "EmbeddedWebserverLogging.h"
-#include "HTTPManager.h"
 
 const int SOCKET_ERROR_EXIT_CODE = 2;
 const int SOCKET_CHECK_INTERVAL_IN_MS = 30000;

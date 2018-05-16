@@ -54,6 +54,12 @@ public:
     void setFullscreen(const QScreen* targetScreen, bool hideMenu = false);
     void unsetFullscreen(const QScreen* avoidScreen = nullptr);
 
+    // FIXME remove access tot he menu from the plugin container
+    // Instead let display plugins expose a structure about the kinds
+    // of actions and menu items they want to have appear when they are
+    // active and allow the application to act on that when the display
+    // plugin becomes active (or when the UI is initialized, and a 
+    // display plugin is already active)
     virtual ui::Menu* getPrimaryMenu() = 0;
     virtual void showDisplayPluginsTools(bool show = true) = 0;
     virtual void requestReset() = 0;
