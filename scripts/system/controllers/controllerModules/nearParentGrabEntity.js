@@ -343,7 +343,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                             this.grabbing = true;
                             this.targetEntityID = cloneID;
                             this.startNearParentingGrabEntity(controllerData, cloneProps);
-                            this.cloneAllowed = false;
+                            this.cloneAllowed = false; // prevent another clone call until inputs released
                         }
                     } else if (targetProps) {
                         this.grabbing = true;
