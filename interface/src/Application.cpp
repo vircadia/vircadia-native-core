@@ -5105,13 +5105,13 @@ void Application::updateThreads(float deltaTime) {
 }
 
 void Application::toggleOverlays() {
-    auto meu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::Overlays, !menu->isOptionChecked(menuOption::Overlays));
+    auto menu = Menu::getInstance();
+    menu->setIsOptionChecked(MenuOption::Overlays, !menu->isOptionChecked(MenuOption::Overlays));
 }
 
 void Application::setOverlaysVisible(bool visible) {
     auto menu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::Overlays, visible)
+    menu->setIsOptionChecked(MenuOption::Overlays, visible);
 }
 
 void Application::centerUI() {

@@ -137,12 +137,6 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Clear overlays when moving", getter, setter));
     }
 
-    {
-        auto getter = [=]()->bool { return qApp->getOverlaysVisible(); };
-        auto setter = [=](bool value) { qApp->setOverlaysVisible(value); };
-        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Show Overlays", getter, setter));
-    }
-
     static const QString VIEW_CATEGORY{ "View" };
     {
         auto getter = [=]()->float { return myAvatar->getRealWorldFieldOfView(); };
