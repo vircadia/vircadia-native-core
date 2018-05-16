@@ -58,18 +58,6 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
 
-    static const QString MOUSE_SENSIVITY { "Mouse Sensivity" };
-    {
-        auto getterY = []()->float { return 1.0; };
-        auto setterY = [](float value) {  };
-        preferences->addPreference(new SliderPreference(MOUSE_SENSIVITY, "Mouse Look Y", getterY, setterY));
-        auto getterX = []()->float { return 1.0; };
-        auto setterX = [](float value) { };
-        preferences->addPreference(new SliderPreference(MOUSE_SENSIVITY, "Mouse Look X", getterX, setterX));
-        auto getterSW = []()->float { return 1.0; };
-        auto setterSW = [](float value) { };
-        preferences->addPreference(new SliderPreference(MOUSE_SENSIVITY, "Mouse Look Zoom", getterSW, setterSW));
-    }
     // Graphics quality
     static const QString GRAPHICS_QUALITY { "Graphics Quality" };
     {
