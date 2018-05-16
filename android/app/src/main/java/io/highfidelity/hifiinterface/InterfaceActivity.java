@@ -15,6 +15,7 @@ import android.content.Intent;
 import android.content.res.AssetManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.view.HapticFeedbackConstants;
 import android.view.WindowManager;
 import android.util.Log;
@@ -34,6 +35,7 @@ public class InterfaceActivity extends QtActivity {
 
     public static final String DOMAIN_URL = "url";
     private static final String TAG = "Interface";
+    private Vibrator mVibrator;
 
     //public static native void handleHifiURL(String hifiURLString);
     private native long nativeOnCreate(InterfaceActivity instance, AssetManager assetManager);
@@ -105,7 +107,7 @@ public class InterfaceActivity extends QtActivity {
             }
         });
         startActivity(new Intent(this, SplashActivity.class));
-
+        mVibrator = (Vibrator) this.getSystemService(VIBRATOR_SERVICE);
     }
 
     @Override
@@ -216,7 +218,7 @@ public class InterfaceActivity extends QtActivity {
         switch (feedbackConstant) {
             case "CONTEXT_CLICK":
             default:
-                findViewById(android.R.id.content).performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                mVibrator.vibrate(50);
                 break;
         }
     }
