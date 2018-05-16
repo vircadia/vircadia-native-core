@@ -79,9 +79,6 @@ void setupPreferences() {
         wodSlider->setMin(0);
         wodSlider->setMax(2000);
         preferences->addPreference(wodSlider);
-        auto getterSQ = []()->float { return 1.0; };
-        auto setterSQ = [](float value) { };
-        preferences->addPreference(new SliderPreference(GRAPHICS_QUALITY, "Shadow Quality", getterSQ, setterSQ));
 
         auto getterShadow = []()->bool {
                 bool ret = false;
@@ -104,7 +101,7 @@ void setupPreferences() {
                 }
             }
         };
-        preferences->addPreference(new CheckPreference(GRAPHICS_QUALITY, "Enable/disable shadows", getterShadow, setterShadow));
+        preferences->addPreference(new CheckPreference(GRAPHICS_QUALITY, "Show Shadows", getterShadow, setterShadow));
     }
 
     // UI

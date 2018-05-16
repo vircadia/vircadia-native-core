@@ -757,9 +757,6 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNewFaultThreaded);
     connect(action, &QAction::triggered, qApp, []() { std::thread(crash::newFault).join(); });
 
-    // Developer > Display Crash Options
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisplayCrashOptions, 0, true);
-
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
 
