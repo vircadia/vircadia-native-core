@@ -36,6 +36,7 @@
 #include <plugins/DisplayPlugin.h>
 
 #include "Application.h"
+#include "display-plugins/CompositorHelper.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "MainWindow.h"
 #include "Snapshot.h"
@@ -97,14 +98,18 @@ QString Snapshot::saveSnapshot(QImage image, const QString& filename, const QStr
 
     QFile* snapshotFile = savedFileForSnapshot(image, false, filename, pathname);
 
-    // we don't need the snapshot file, so close it, grab its filename and delete it
-    snapshotFile->close();
+    if (snapshotFile) {
+        // we don't need the snapshot file, so close it, grab its filename and delete it
+        snapshotFile->close();
 
-    QString snapshotPath = QFileInfo(*snapshotFile).absoluteFilePath();
+        QString snapshotPath = QFileInfo(*snapshotFile).absoluteFilePath();
 
-    delete snapshotFile;
+        delete snapshotFile;
 
-    return snapshotPath;
+        return snapshotPath;
+    }
+
+    return "";
 }
 
 static const float CUBEMAP_SIDE_PIXEL_DIMENSION = 2048.0f;
@@ -377,7 +382,27 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QSt
             snapshotFullPath.append(filename);
 
             QFile* imageFile = new QFile(snapshotFullPath);
-            imageFile->open(QIODevice::WriteOnly);
+            while (!imageFile->open(QIODevice::WriteOnly)) {
+                // It'd be better for the directory chooser to restore the cursor to its previous state
+                // after choosing a directory, but if the user has entered this codepath,
+                // something terrible has happened. Let's just show the user their cursor so they can get
+                // out of this awful state.
+                qApp->getApplicationCompositor().getReticleInterface()->setVisible(true);
+                qApp->getApplicationCompositor().getReticleInterface()->setAllowMouseCapture(true);
+
+                snapshotFullPath = OffscreenUi::getExistingDirectory(nullptr, "Write Error - Choose New Snapshots Directory", QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
+                if (snapshotFullPath.isEmpty()) {
+                    return NULL;
+                }
+                _snapshotsLocation.set(snapshotFullPath);
+
+                if (!snapshotFullPath.endsWith(QDir::separator())) {
+                    snapshotFullPath.append(QDir::separator());
+                }
+                snapshotFullPath.append(filename);
+
+                imageFile = new QFile(snapshotFullPath);
+            }
 
             shot.save(imageFile, 0, IMAGE_QUALITY);
             imageFile->close();
