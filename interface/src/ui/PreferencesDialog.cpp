@@ -274,9 +274,13 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(MOVEMENT, "Flying & jumping", getter, setter));
     }
     {
-        auto getter = [=]()->bool { return myAvatar->getSnapTurn(); };
-        auto setter = [=](bool value) { myAvatar->setSnapTurn(value); };
-        preferences->addPreference(new CheckPreference(MOVEMENT, "Snap turn / Smooth turn", getter, setter));
+        auto getter = [=]()->int { return myAvatar->getSnapTurn() ? 0 : 1; };
+        auto setter = [=](int value) { myAvatar->setSnapTurn(value == 0); };
+        auto preference = new RadioButtonsPreference(MOVEMENT, "Snap turn / Smooth turn", getter, setter);
+        QStringList items;
+        items << "Snap turn" << "Smooth turn";
+        preference->setItems(items);
+        preferences->addPreference(preference);
     }
     {
         auto getter = [=]()->float { return myAvatar->getUserHeight(); };
