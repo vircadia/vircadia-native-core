@@ -1902,6 +1902,8 @@ void MyAvatar::clearScriptableSettings() {
 }
 
 void MyAvatar::setCollisionSoundURL(const QString& url) {
+    qDebug() << "setCollisionSoundURL: " << url << _collisionSoundURL;
+
     if (url != _collisionSoundURL) {
         _collisionSoundURL = url;
 
@@ -1983,6 +1985,7 @@ QUrl MyAvatar::getAnimGraphUrl() const {
 }
 
 void MyAvatar::setAnimGraphUrl(const QUrl& url) {
+    qDebug() << "setAnimGraphUrl" << url.toString();
 
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setAnimGraphUrl", Q_ARG(QUrl, url));
@@ -1992,6 +1995,9 @@ void MyAvatar::setAnimGraphUrl(const QUrl& url) {
     if (_currentAnimGraphUrl.get() == url) {
         return;
     }
+
+    emit animGraphUrlChanged(url);
+
     destroyAnimGraph();
     _skeletonModel->reset(); // Why is this necessary? Without this, we crash in the next render.
 
@@ -2816,6 +2822,7 @@ void MyAvatar::setCollisionsEnabled(bool enabled) {
     }
 
     _characterController.setCollisionless(!enabled);
+    emit collisionsEnabledChanged(enabled);
 }
 
 bool MyAvatar::getCollisionsEnabled() {

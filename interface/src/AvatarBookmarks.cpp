@@ -160,6 +160,7 @@ void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
         QVariantMap bookmark = bookmarkEntry.value().toMap();
         if (!bookmark.empty()) {
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            myAvatar->blockSignals(true);
             myAvatar->removeAvatarEntities();
             const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();
             myAvatar->useFullAvatarURL(avatarUrl);
@@ -174,6 +175,7 @@ void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
 
             const QVariantList& avatarEntities = bookmark.value(ENTRY_AVATAR_ENTITIES, QVariantList()).toList();
             addAvatarEntities(avatarEntities);
+            myAvatar->blockSignals(false);
 
             emit bookmarkLoaded(bookmarkName);
         }

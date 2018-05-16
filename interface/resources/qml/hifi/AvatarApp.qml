@@ -30,6 +30,7 @@ Rectangle {
     }
 
     property var jointNames;
+    property var currentAvatarSettings;
 
     property string avatarName: currentAvatar ? currentAvatar.name : ''
     property string avatarUrl: currentAvatar ? currentAvatar.thumbnailUrl : null
@@ -40,6 +41,7 @@ Rectangle {
 
         var currentAvatarObject = allAvatars.makeAvatarObject(avatar, bookmarkName);
         currentAvatar = currentAvatarModel.makeAvatarEntry(currentAvatarObject);
+
         console.debug('AvatarApp.qml: currentAvatarObject: ', currentAvatarObject, 'currentAvatar: ', currentAvatar, JSON.stringify(currentAvatar.wearables, 0, 4));
         console.debug('currentAvatar.wearables: ', currentAvatar.wearables);
     }
@@ -71,6 +73,13 @@ Rectangle {
             }
 
             adjustWearables.refresh(currentAvatar);
+        } else if(message.method === 'scaleChanged') {
+            currentAvatar.avatarScale = message.value;
+            updateCurrentAvatarInBookmarks(currentAvatar);
+        } else if(message.method === 'settingChanged') {
+            currentAvatarSettings[message.name] = message.value;
+        } else if(message.method === 'changeSettings') {
+            currentAvatarSettings = message.settings;
         } else if(message.method === 'bookmarkLoaded') {
             setCurrentAvatar(message.data.currentAvatar, message.data.name);
             var avatarIndex = allAvatars.findAvatarIndex(currentAvatar.name);
@@ -109,6 +118,7 @@ Rectangle {
             allAvatars.populate(getAvatarsData.bookmarks);
             setCurrentAvatar(getAvatarsData.currentAvatar, '');
             displayNameInput.text = getAvatarsData.displayName;
+            currentAvatarSettings = getAvatarsData.currentAvatarSettings;
 
             console.debug('currentAvatar: ', JSON.stringify(currentAvatar, null, '\t'));
             updateCurrentAvatarInBookmarks(currentAvatar);
@@ -120,6 +130,8 @@ Rectangle {
     }
 
     function updateCurrentAvatarInBookmarks(avatar) {
+        console.debug('searching avatar in bookmarks... ');
+
         var bookmarkAvatarIndex = allAvatars.findAvatarIndexByValue(avatar);
 
         if(bookmarkAvatarIndex === -1) {
@@ -167,7 +179,7 @@ Rectangle {
         avatarIconVisible: mainPageVisible
         settingsButtonVisible: mainPageVisible
         onSettingsClicked: {
-            settings.open();
+            settings.open(currentAvatarSettings, currentAvatar.avatarScale);
         }
     }
 
@@ -181,6 +193,15 @@ Rectangle {
         z: 3
 
         onSaveClicked: function() {
+            var avatarSettings = {
+                dominantHand : settings.dominantHandIsLeft ? 'left' : 'right',
+                collisionsEnabled : settings.avatarCollisionsOn,
+                animGraphUrl : settings.avatarAnimationJSON,
+                collisionSoundUrl : settings.avatarCollisionSoundUrl
+            };
+
+            emitSendToScript({'method' : 'saveSettings', 'settings' : avatarSettings, 'avatarScale': settings.scaleValue})
+
             close();
         }
         onCancelClicked: function() {

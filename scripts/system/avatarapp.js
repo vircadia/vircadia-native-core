@@ -60,6 +60,15 @@ function getMyAvatar() {
     return avatar;
 }
 
+function getMyAvatarSettings() {
+    return {
+        dominantHand: MyAvatar.getDominantHand(),
+        collisionsEnabled : MyAvatar.getCollisionsEnabled(),
+        collisionSoundUrl : MyAvatar.collisionSoundURL,
+        animGraphUrl : MyAvatar.getAnimGraphUrl(),
+    }
+}
+
 function updateAvatarWearables(avatar, bookmarkAvatarName) {
     console.debug('avatarapp.js: scheduling wearablesUpdated notify for', bookmarkAvatarName);
 
@@ -97,6 +106,48 @@ var adjustWearables = {
 
 var currentAvatarWearablesBackup = null;
 var currentAvatar = null;
+var currentAvatarSettings = getMyAvatarSettings();
+
+function onTargetScaleChanged() {
+    console.debug('onTargetScaleChanged: ', MyAvatar.getAvatarScale());
+    if(currentAvatar.scale !== MyAvatar.getAvatarScale()) {
+        currentAvatar.scale = MyAvatar.getAvatarScale();
+        sendToQml({'method' : 'scaleChanged', 'value' : currentAvatar.scale})
+    }
+}
+
+function onDominantHandChanged(dominantHand) {
+    console.debug('onDominantHandChanged: ', dominantHand);
+    if(currentAvatarSettings.dominantHand !== dominantHand) {
+        currentAvatarSettings.dominantHand = dominantHand;
+        sendToQml({'method' : 'settingChanged', 'name' : 'dominantHand', 'value' : dominantHand})
+    }
+}
+
+function onCollisionsEnabledChanged(enabled) {
+    console.debug('onCollisionsEnabledChanged: ', enabled);
+    if(currentAvatarSettings.collisionsEnabled !== enabled) {
+        currentAvatarSettings.collisionsEnabled = enabled;
+        sendToQml({'method' : 'settingChanged', 'name' : 'collisionsEnabled', 'value' : enabled})
+    }
+}
+
+function onNewCollisionSoundUrl(url) {
+    console.debug('onNewCollisionSoundUrl: ', url);
+    if(currentAvatarSettings.collisionSoundUrl !== url) {
+        currentAvatarSettings.collisionSoundUrl = url;
+        sendToQml({'method' : 'settingChanged', 'name' : 'collisionSoundUrl', 'value' : url})
+    }
+}
+
+function onAnimGraphUrlChanged(url) {
+    console.debug('onAnimGraphUrlChanged: ', url);
+    if(currentAvatarSettings.animGraphUrl !== url) {
+        currentAvatarSettings.animGraphUrl = url;
+        sendToQml({'method' : 'settingChanged', 'name' : 'animGraphUrl', 'value' : url})
+    }
+}
+
 var selectedAvatarEntityGrabbable = false;
 var selectedAvatarEntity = null;
 
@@ -110,12 +161,16 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
     switch (message.method) {
     case 'getAvatars':
         currentAvatar = getMyAvatar();
+        currentAvatarSettings = getMyAvatarSettings();
+
         message.data = {
             'bookmarks' : AvatarBookmarks.getBookmarks(),
+            'displayName' : MyAvatar.displayName,
             'currentAvatar' : currentAvatar,
-            'displayName' : MyAvatar.displayName
+            'currentAvatarSettings' : currentAvatarSettings
         };
 
+        console.debug('avatarapp.js: currentAvatarSettings: ', JSON.stringify(message.data.currentAvatarSettings, null, '\t'))
         console.debug('avatarapp.js: currentAvatar: ', JSON.stringify(message.data.currentAvatar, null, '\t'))
         sendToQml(message)
         break;
@@ -194,6 +249,19 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         } else if(message.url.indexOf('hifi://') === 0) {
             AddressManager.handleLookupString(message.url, false);
         }
+        break;
+    case 'saveSettings':
+        console.debug('avatarapp.js: saveSettings: ', JSON.stringify(message.settings, 0, 4));
+        MyAvatar.setAvatarScale(message.avatarScale);
+        currentAvatar.avatarScale = message.avatarScale;
+
+        MyAvatar.setDominantHand(message.settings.dominantHand);
+        MyAvatar.setCollisionsEnabled(message.settings.collisionsEnabled);
+        MyAvatar.collisionSoundURL = message.settings.collisionSoundUrl;
+        MyAvatar.setAnimGraphUrl(message.settings.animGraphUrl);
+
+        settings = getMyAvatarSettings();
+        console.debug('saveSettings: settings: ', JSON.stringify(settings, 0, 4));
         break;
     default:
         print('Unrecognized message from AvatarApp.qml:', JSON.stringify(message));
@@ -339,12 +407,23 @@ function off() {
     AvatarBookmarks.bookmarkDeleted.disconnect(onBookmarkDeleted);
     AvatarBookmarks.bookmarkAdded.disconnect(onBookmarkAdded);
 
+    MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
+    MyAvatar.collisionsEnabledChanged.disconnect(onCollisionsEnabledChanged);
+    MyAvatar.newCollisionSoundURL.disconnect(onNewCollisionSoundUrl);
+    MyAvatar.animGraphUrlChanged.disconnect(onAnimGraphUrlChanged);
+    MyAvatar.targetScaleChanged.disconnect(onTargetScaleChanged);
 }
 
 function on() {
     AvatarBookmarks.bookmarkLoaded.connect(onBookmarkLoaded);
     AvatarBookmarks.bookmarkDeleted.connect(onBookmarkDeleted);
     AvatarBookmarks.bookmarkAdded.connect(onBookmarkAdded);
+
+    MyAvatar.dominantHandChanged.connect(onDominantHandChanged);
+    MyAvatar.collisionsEnabledChanged.connect(onCollisionsEnabledChanged);
+    MyAvatar.newCollisionSoundURL.connect(onNewCollisionSoundUrl);
+    MyAvatar.animGraphUrlChanged.connect(onAnimGraphUrlChanged);
+    MyAvatar.targetScaleChanged.connect(onTargetScaleChanged);
 }
 
 function tabletVisibilityChanged() {

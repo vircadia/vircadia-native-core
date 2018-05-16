@@ -1295,6 +1295,20 @@ signals:
     void collisionWithEntity(const Collision& collision);
 
     /**jsdoc
+     * @function MyAvatar.collisionsEnabledChanged
+     * @param {boolean} enabled
+     * @returns {Signal}
+     */
+    void collisionsEnabledChanged(bool enabled);
+
+    /**jsdoc
+     * @function MyAvatar.animGraphUrlChanged
+     * @param {url} url
+     * @returns {Signal}
+     */
+    void animGraphUrlChanged(const QUrl& url);
+
+    /**jsdoc
      * @function MyAvatar.energyChanged
      * @param {number} energy
      * @returns {Signal} 

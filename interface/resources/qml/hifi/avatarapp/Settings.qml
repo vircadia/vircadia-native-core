@@ -7,7 +7,7 @@ import "../../controls-uit" as HifiControlsUit
 import "../../controls" as HifiControls
 
 Rectangle {
-    id: settings
+    id: root
 
     color: 'white'
     visible: false;
@@ -15,7 +15,32 @@ Rectangle {
     property alias onSaveClicked: dialogButtons.onYesClicked
     property alias onCancelClicked: dialogButtons.onNoClicked
 
-    function open() {
+    property real scaleValue: scaleSlider.value / 10
+    property alias dominantHandIsLeft: leftHandRadioButton.checked
+    property alias avatarCollisionsOn: collisionsEnabledRadiobutton.checked
+    property alias avatarAnimationJSON: avatarAnimationUrlInputText.text
+    property alias avatarCollisionSoundUrl: avatarCollisionSoundUrlInputText.text
+
+    function open(settings, avatarScale) {
+        console.debug('Settings.qml: open: ', JSON.stringify(settings, 0, 4));
+
+        scaleSlider.value = Math.round(avatarScale * 10);
+
+        if(settings.dominantHand === 'left') {
+            leftHandRadioButton.checked = true;
+        } else {
+            rightHandRadioButton.checked = true;
+        }
+
+        if(settings.collisionsEnabled) {
+            collisionsEnabledRadiobutton.checked = true;
+        } else {
+            collisionsDisabledRadioButton.checked = true;
+        }
+
+        avatarAnimationJSON = settings.animGraphUrl;
+        avatarCollisionSoundUrl = settings.collisionSoundUrl;
+
         visible = true;
     }
 
@@ -71,9 +96,9 @@ Rectangle {
                 }
 
                 HifiControlsUit.Slider {
-                    id: slider
-                    from: 0
-                    to: 100
+                    id: scaleSlider
+                    from: 1
+                    to: 30
                     anchors.verticalCenter: parent.verticalCenter
                     Layout.fillWidth: true
                 }
@@ -172,7 +197,7 @@ Rectangle {
             }
 
             HifiControlsUit.RadioButton {
-                id: onRadioButton
+                id: collisionsEnabledRadiobutton
 
                 Layout.row: 1
                 Layout.column: 1
@@ -191,7 +216,7 @@ Rectangle {
             }
 
             HifiControlsUit.RadioButton {
-                id: offRadioButton
+                id: collisionsDisabledRadioButton
 
                 Layout.row: 1
                 Layout.column: 2
@@ -220,6 +245,7 @@ Rectangle {
             }
 
             InputTextStyle4 {
+                id: avatarAnimationUrlInputText
                 anchors.left: parent.left
                 anchors.right: parent.right
                 placeholderText: 'user\\ﬁle\\dir'
@@ -243,6 +269,7 @@ Rectangle {
             }
 
             InputTextStyle4 {
+                id: avatarCollisionSoundUrlInputText
                 anchors.left: parent.left
                 anchors.right: parent.right
                 placeholderText: 'https://hifi-public.s3.amazonaws.com/sounds/Collisions-'
