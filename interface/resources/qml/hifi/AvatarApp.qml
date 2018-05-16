@@ -32,23 +32,13 @@ Rectangle {
     property var jointNames;
 
     property string avatarName: currentAvatar ? currentAvatar.name : ''
-    property string avatarUrl: currentAvatar ? currentAvatar.url : null
+    property string avatarUrl: currentAvatar ? currentAvatar.thumbnailUrl : null
     property bool isAvatarInFavorites: currentAvatar ? allAvatars.findAvatar(currentAvatar.name) !== undefined : false
     property int avatarWearablesCount: currentAvatar ? currentAvatar.wearables.count : 0
     property var currentAvatar: null;
     function setCurrentAvatar(avatar, bookmarkName) {
 
-        var avatarThumbnailUrl = allAvatars.makeThumbnailUrl(avatar.avatarUrl);
-        var currentAvatarObject =  {
-            'name' : bookmarkName,
-            'scale' : avatar.avatarScale,
-            'url' : avatarThumbnailUrl,
-            'wearables' : avatar.avatarEntites ? avatar.avatarEntites : [],
-            'attachments' : avatar.attachments ? avatar.attachments : [],
-            'entry' : avatar,
-            'getMoreAvatars' : false
-        };
-
+        var currentAvatarObject = allAvatars.makeAvatarObject(avatar, bookmarkName);
         currentAvatar = currentAvatarModel.makeAvatarEntry(currentAvatarObject);
         console.debug('AvatarApp.qml: currentAvatarObject: ', currentAvatarObject, 'currentAvatar: ', currentAvatar, JSON.stringify(currentAvatar.wearables, 0, 4));
         console.debug('currentAvatar.wearables: ', currentAvatar.wearables);
@@ -555,7 +545,7 @@ Rectangle {
                     id: pageOfAvatars
 
                     property bool isUpdating: false;
-                    property var getMoreAvatarsEntry: {'url' : '', 'name' : '', 'getMoreAvatars' : true}
+                    property var getMoreAvatarsEntry: {'thumbnailUrl' : '', 'name' : '', 'getMoreAvatars' : true}
 
                     function appendGetAvatars() {
                         append(getMoreAvatarsEntry);
@@ -602,7 +592,7 @@ Rectangle {
 
                         AvatarThumbnail {
                             id: favoriteAvatarImage
-                            imageUrl: url
+                            imageUrl: thumbnailUrl
                             border.color: container.highlighted ? style.colors.blueHighlight : 'transparent'
                             border.width: container.highlighted ? 2 : 0
                             wearablesCount: {
@@ -646,13 +636,13 @@ Rectangle {
                             color: '#AFAFAF'
                             opacity: 0.4
                             radius: 5
-                            visible: isInManageState && !container.highlighted && url !== ''
+                            visible: isInManageState && !container.highlighted && thumbnailUrl !== ''
                         }
 
                         HiFiGlyphs {
                             anchors.fill: parent
                             text: "{"
-                            visible: isInManageState && !container.highlighted && url !== ''
+                            visible: isInManageState && !container.highlighted && thumbnailUrl !== ''
                             horizontalAlignment: Text.AlignHCenter
                             size: 56
                         }

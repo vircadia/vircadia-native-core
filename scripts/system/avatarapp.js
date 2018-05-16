@@ -316,16 +316,6 @@ function startup() {
     });
     button.clicked.connect(onTabletButtonClicked);
     tablet.screenChanged.connect(onTabletScreenChanged);
-    AvatarBookmarks.bookmarkLoaded.connect(onBookmarkLoaded);
-    AvatarBookmarks.bookmarkDeleted.connect(onBookmarkDeleted);
-    AvatarBookmarks.bookmarkAdded.connect(onBookmarkAdded);
-
-//    Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
-//    Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
-//    Users.avatarDisconnected.connect(avatarDisconnected);
-//    AvatarList.avatarAddedEvent.connect(avatarAdded);
-//    AvatarList.avatarRemovedEvent.connect(avatarRemoved);
-//    AvatarList.avatarSessionChangedEvent.connect(avatarSessionChanged);
 }
 
 startup();
@@ -344,6 +334,17 @@ function off() {
         ensureWearableSelected(null);
         Entities.mousePressOnEntity.disconnect(onSelectedEntity);
     }
+
+    AvatarBookmarks.bookmarkLoaded.disconnect(onBookmarkLoaded);
+    AvatarBookmarks.bookmarkDeleted.disconnect(onBookmarkDeleted);
+    AvatarBookmarks.bookmarkAdded.disconnect(onBookmarkAdded);
+
+}
+
+function on() {
+    AvatarBookmarks.bookmarkLoaded.connect(onBookmarkLoaded);
+    AvatarBookmarks.bookmarkDeleted.connect(onBookmarkDeleted);
+    AvatarBookmarks.bookmarkAdded.connect(onBookmarkAdded);
 }
 
 function tabletVisibilityChanged() {
@@ -351,8 +352,6 @@ function tabletVisibilityChanged() {
         tablet.gotoHomeScreen();
     }
 }
-
-var onAvatarAppScreen = false;
 
 function onTabletButtonClicked() {
     if (onAvatarAppScreen) {
@@ -382,16 +381,26 @@ function wireEventBridge(on) {
     }
 }
 
+var onAvatarAppScreen = false;
 function onTabletScreenChanged(type, url) {
     console.debug('avatarapp.js: onTabletScreenChanged: ', type, url);
 
-    onAvatarAppScreen = (type === "QML" && url === AVATARAPP_QML_SOURCE);
-    wireEventBridge(onAvatarAppScreen);
+    var onAvatarAppScreenNow = (type === "QML" && url === AVATARAPP_QML_SOURCE);
+    wireEventBridge(onAvatarAppScreenNow);
     // for toolbar mode: change button to active when window is first openend, false otherwise.
-    button.editProperties({isActive: onAvatarAppScreen});
+    button.editProperties({isActive: onAvatarAppScreenNow});
 
-    if (onAvatarAppScreen) {
+    if (!onAvatarAppScreen && onAvatarAppScreenNow) {
+        console.debug('entering avatarapp');
+        on();
+    } else if(onAvatarAppScreen && !onAvatarAppScreenNow) {
+        console.debug('leaving avatarapp');
+        off();
+    }
 
+    onAvatarAppScreen = onAvatarAppScreenNow;
+
+    if(onAvatarAppScreenNow) {
         var message = {
             'method' : 'initialize',
             'data' : {
@@ -402,12 +411,7 @@ function onTabletScreenChanged(type, url) {
         sendToQml(message)
     }
 
-    console.debug('onAvatarAppScreen: ', onAvatarAppScreen);
-
-    // disable sphere overlays when not on avatarapp screen.
-    if (!onAvatarAppScreen) {
-        off();
-    }
+    console.debug('onAvatarAppScreenNow: ', onAvatarAppScreenNow);
 }
 
 function shutdown() {
@@ -419,15 +423,7 @@ function shutdown() {
     button.clicked.disconnect(onTabletButtonClicked);
     tablet.removeButton(button);
     tablet.screenChanged.disconnect(onTabletScreenChanged);
-    AvatarBookmarks.bookmarkLoaded.disconnect(onBookmarkLoaded);
-    AvatarBookmarks.bookmarkDeleted.disconnect(onBookmarkDeleted);
-    AvatarBookmarks.bookmarkAdded.disconnect(onBookmarkAdded);
 
-//    Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
-//    Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
-//    AvatarList.avatarAddedEvent.disconnect(avatarAdded);
-//    AvatarList.avatarRemovedEvent.disconnect(avatarRemoved);
-//    AvatarList.avatarSessionChangedEvent.disconnect(avatarSessionChanged);
     off();
 }
 

@@ -16,14 +16,14 @@ ListModel {
         return avatarThumbnailUrl;
     }
 
-    function makeAvatarEntry(avatar, avatarName) {
+    function makeAvatarObject(avatar, avatarName) {
         console.debug('makeAvatarEntry: ', avatarName, JSON.stringify(avatar));
         var avatarThumbnailUrl = makeThumbnailUrl(avatar.avatarUrl);
 
         return {
             'name' : avatarName,
-            'scale' : avatar.avatarScale,
-            'url' : avatarThumbnailUrl,
+            'avatarScale' : avatar.avatarScale,
+            'thumbnailUrl' : avatarThumbnailUrl,
             'wearables' : avatar.avatarEntites ? avatar.avatarEntites : [],
             'attachments' : avatar.attachments ? avatar.attachments : [],
             'entry' : avatar,
@@ -35,7 +35,7 @@ ListModel {
     function addAvatarEntry(avatar, avatarName) {
         console.debug('addAvatarEntry: ', avatarName);
 
-        var avatarEntry = makeAvatarEntry(avatar, avatarName);
+        var avatarEntry = makeAvatarObject(avatar, avatarName);
         append(avatarEntry);
 
         return allAvatars.count - 1;
@@ -44,7 +44,7 @@ ListModel {
     function populate(bookmarks) {
         for(var avatarName in bookmarks) {
             var avatar = bookmarks[avatarName];
-            var avatarEntry = makeAvatarEntry(avatar, avatarName);
+            var avatarEntry = makeAvatarObject(avatar, avatarName);
 
             append(avatarEntry);
         }
@@ -175,7 +175,7 @@ ListModel {
             var thesame = true;
             var bookmarkedAvatar = allAvatars.get(i);
 
-            if(bookmarkedAvatar.avatarUrl !== avatar.avatarUrl)
+            if(bookmarkedAvatar.thumbnailUrl !== avatar.thumbnailUrl)
                 continue;
 
             if(bookmarkedAvatar.avatarScale !== avatar.avatarScale)
