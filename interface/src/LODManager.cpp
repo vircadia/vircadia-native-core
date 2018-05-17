@@ -122,7 +122,10 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     }
 
     if (oldOctreeSizeScale != _octreeSizeScale) {
-        //TODO: check Preferences dialog
+        auto lodToolsDialog = DependencyManager::get<DialogsManager>()->getLodToolsDialog();
+        if (lodToolsDialog) {
+            lodToolsDialog->reloadSliders();
+        }
     }
 }
 
