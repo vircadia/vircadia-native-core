@@ -377,6 +377,7 @@ Rectangle {
                 anchors.fill: parent;
                 onClicked: emitSendToScript({'method' : 'navigate', 'url' : allAvatars.makeMarketItemUrl(currentAvatar.avatarUrl)})
             }
+            color: style.colors.blueHighlight
         }
 
         TextStyle3 {
