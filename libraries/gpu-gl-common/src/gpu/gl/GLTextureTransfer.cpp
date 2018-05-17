@@ -108,7 +108,7 @@ private:
     // The buffering thread which drains the _activeBufferQueue and populates the _activeTransferQueue
     TextureBufferThread* _transferThread{ nullptr };
     // The amount of buffering work currently represented by the _activeBufferQueue
-    size_t _queuedBufferSize{ 0 };
+    std::atomic<size_t> _queuedBufferSize{ 0 };
     // This contains a map of all textures to queues of pending transfer jobs.  While in the transfer state, this map is used to
     // populate the _activeBufferQueue up to the limit specified in GLVariableAllocationTexture::MAX_BUFFER_SIZE
     TransferMap _pendingTransfersMap;
@@ -213,6 +213,7 @@ void GLTextureTransferEngineDefault::updateMemoryPressure() {
         }
     }
 
+    Backend::textureResourceIdealGPUMemSize.set(idealMemoryAllocation);
     size_t unallocated = idealMemoryAllocation - totalVariableMemoryAllocation;
     float pressure = (float)totalVariableMemoryAllocation / (float)allowedMemoryAllocation;
 
@@ -319,7 +320,6 @@ void GLTextureTransferEngineDefault::populateActiveBufferQueue() {
 
     // Queue up buffering jobs
     ActiveTransferQueue newBufferJobs;
-    ActiveTransferQueue newTransferJobs;
     size_t newTransferSize{ 0 };
 
     for (auto itr = _pendingTransfersMap.begin(); itr != _pendingTransfersMap.end(); ) {
@@ -346,21 +346,17 @@ void GLTextureTransferEngineDefault::populateActiveBufferQueue() {
         }
 
         const auto& transferJob = textureTransferQueue.front();
-        if (!transferJob->bufferingRequired()) {
-            newTransferJobs.emplace_back(texture, transferJob);
-        } else {
-            const auto& transferSize = transferJob->size();
-            // If there's not enough space for the buffering, then break out of the loop
-            if (transferSize > availableBufferSize) {
-                break;
-            }
-            availableBufferSize -= transferSize;
-            Q_ASSERT(availableBufferSize <= MAX_BUFFER_SIZE);
-            Q_ASSERT(newTransferSize <= MAX_BUFFER_SIZE);
-            newTransferSize += transferSize;
-            Q_ASSERT(newTransferSize <= MAX_BUFFER_SIZE);
-            newBufferJobs.emplace_back(texture, transferJob);
+        const auto& transferSize = transferJob->size();
+        // If there's not enough space for the buffering, then break out of the loop
+        if (transferSize > availableBufferSize) {
+            break;
         }
+        availableBufferSize -= transferSize;
+        Q_ASSERT(availableBufferSize <= MAX_BUFFER_SIZE);
+        Q_ASSERT(newTransferSize <= MAX_BUFFER_SIZE);
+        newTransferSize += transferSize;
+        Q_ASSERT(newTransferSize <= MAX_BUFFER_SIZE);
+        newBufferJobs.emplace_back(texture, transferJob);
         textureTransferQueue.pop();
         ++itr;
     }
@@ -371,7 +367,6 @@ void GLTextureTransferEngineDefault::populateActiveBufferQueue() {
         Q_ASSERT(_queuedBufferSize <= MAX_BUFFER_SIZE);
         _queuedBufferSize += newTransferSize;
         Q_ASSERT(_queuedBufferSize <= MAX_BUFFER_SIZE);
-        _activeTransferQueue.splice(_activeTransferQueue.end(), newTransferJobs);
     }
 }
 
@@ -389,6 +384,11 @@ bool GLTextureTransferEngineDefault::processActiveBufferQueue() {
     for (const auto& activeJob : activeBufferQueue) {
         const auto& texture = activeJob.first;
         const auto& transferJob = activeJob.second;
+        // Some jobs don't require buffering, but they pass through this queue to ensure that we don't re-order 
+        // the buffering & transfer operations.  All jobs in the queue must be processed in order.
+        if (!transferJob->bufferingRequired()) {
+            continue;
+        }
         const auto& transferSize = transferJob->size();
         transferJob->buffer(texture);
         Q_ASSERT(_queuedBufferSize >= transferSize);
