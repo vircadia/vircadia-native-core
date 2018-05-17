@@ -388,8 +388,8 @@ function startup() {
     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
         text: buttonName,
-        icon: "icons/tablet-icons/people-i.svg",
-        activeIcon: "icons/tablet-icons/people-a.svg",
+        icon: "icons/tablet-icons/avatar-i.svg",
+        activeIcon: "icons/tablet-icons/avatar-a.svg",
         sortOrder: 7
     });
     button.clicked.connect(onTabletButtonClicked);
