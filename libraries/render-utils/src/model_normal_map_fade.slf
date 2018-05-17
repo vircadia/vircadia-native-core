@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  model_normal_specular_map_fade.frag
+//  model_normal_map_fade.frag
 //  fragment shader
 //
 //  Created by Olivier Prat on 06/05/17.
@@ -22,20 +22,20 @@
 <@include Fade.slh@>
 <$declareFadeFragment()$>
 
-in vec4 _position;
+in vec4 _positionES;
 in vec2 _texCoord0;
 in vec2 _texCoord1;
-in vec3 _normal;
-in vec3 _tangent;
+in vec3 _normalWS;
+in vec3 _tangentWS;
 in vec3 _color;
-in vec4 _worldPosition;
+in vec4 _positionWS;
 
 void main(void) {
     vec3 fadeEmissive;
     FadeObjectParams fadeParams;
 
     <$fetchFadeObjectParams(fadeParams)$>
-    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
+    applyFade(fadeParams, _positionWS.xyz, fadeEmissive);
 
     Material mat = getMaterial();
     BITFIELD matKey = getMaterialKey(mat);
@@ -56,8 +56,8 @@ void main(void) {
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
-    vec3 viewNormal;
-    <$tangentToViewSpaceLOD(_position, normalTex, _normal, _tangent, viewNormal)$>
+    vec3 fragNormalWS;
+    <$evalMaterialNormalLOD(_positionES, normalTex, _normalWS, _tangentWS, fragNormalWS)$>
 
     float metallic = getMaterialMetallic(mat);
     <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
@@ -65,12 +65,12 @@ void main(void) {
     float scattering = getMaterialScattering(mat);
 
     packDeferredFragment(
-        normalize(viewNormal.xyz), 
+        normalize(fragNormalWS.xyz),
         opacity,
         albedo,
         roughness,
         metallic,
-        emissive+fadeEmissive,
+        emissive + fadeEmissive,
         occlusionTex,
         scattering);
 }

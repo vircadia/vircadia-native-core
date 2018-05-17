@@ -13,19 +13,12 @@
 
 // The material values (at least the material key) must be precisely bitwise accurate
 // to what is provided by the uniform buffer, or the material key has the wrong bits
-#ifdef GL_ES
-precision highp float;
-#define BITFIELD highp int
-#define PRECISIONQ highp
-#else
-#define BITFIELD int
-#define PRECISIONQ 
-#endif
+
 struct Material {
-    PRECISIONQ vec4 _emissiveOpacity;
-    PRECISIONQ vec4 _albedoRoughness;
-    PRECISIONQ vec4 _fresnelMetallic;
-    PRECISIONQ vec4 _scatteringSpare2Key;
+    vec4 _emissiveOpacity;
+    vec4 _albedoRoughness;
+    vec4 _fresnelMetallic;
+    vec4 _scatteringSpare2Key;
 };
 
 uniform materialBuffer {
@@ -71,7 +64,4 @@ const BITFIELD OCCLUSION_MAP_BIT             = 0x00004000;
 const BITFIELD LIGHTMAP_MAP_BIT              = 0x00008000;
 const BITFIELD SCATTERING_MAP_BIT            = 0x00010000;
 
-#ifdef GL_ES
-precision lowp float;
-#endif
 <@endif@>

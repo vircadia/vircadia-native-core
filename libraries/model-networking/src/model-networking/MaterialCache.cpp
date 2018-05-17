@@ -20,7 +20,7 @@ void NetworkMaterialResource::downloadFinished(const QByteArray& data) {
     parsedMaterials.reset();
 
     if (_url.toString().contains(".json")) {
-        parsedMaterials = parseJSONMaterials(QJsonDocument::fromJson(data));
+        parsedMaterials = parseJSONMaterials(QJsonDocument::fromJson(data), _url);
     }
 
     // TODO: parse other material types
@@ -75,7 +75,7 @@ bool NetworkMaterialResource::parseJSONColor(const QJsonValue& array, glm::vec3&
  * @property {number} materialVersion=1 - The version of the material. <em>Currently not used.</em>
  * @property {Material|Material[]} materials - The details of the material or materials.
  */
-NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMaterials(const QJsonDocument& materialJSON) {
+NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMaterials(const QJsonDocument& materialJSON, const QUrl& baseUrl) {
     ParsedMaterials toReturn;
     if (!materialJSON.isNull() && materialJSON.isObject()) {
         QJsonObject materialJSONObject = materialJSON.object();
@@ -91,13 +91,13 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
                     QJsonArray materials = materialsValue.toArray();
                     for (auto material : materials) {
                         if (!material.isNull() && material.isObject()) {
-                            auto parsedMaterial = parseJSONMaterial(material.toObject());
+                            auto parsedMaterial = parseJSONMaterial(material.toObject(), baseUrl);
                             toReturn.networkMaterials[parsedMaterial.first] = parsedMaterial.second;
                             toReturn.names.push_back(parsedMaterial.first);
                         }
                     }
                 } else if (materialsValue.isObject()) {
-                    auto parsedMaterial = parseJSONMaterial(materialsValue.toObject());
+                    auto parsedMaterial = parseJSONMaterial(materialsValue.toObject(), baseUrl);
                     toReturn.networkMaterials[parsedMaterial.first] = parsedMaterial.second;
                     toReturn.names.push_back(parsedMaterial.first);
                 }
@@ -138,7 +138,7 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  * @property {string} lightMap - URL of light map texture image. <em>Currently not used.</em>
  */
 // Note: See MaterialEntityItem.h for default values used in practice.
-std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::parseJSONMaterial(const QJsonObject& materialJSON) {
+std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::parseJSONMaterial(const QJsonObject& materialJSON, const QUrl& baseUrl) {
     std::string name = "";
     std::shared_ptr<NetworkMaterial> material = std::make_shared<NetworkMaterial>();
     for (auto& key : materialJSON.keys()) {
@@ -194,62 +194,63 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
         } else if (key == "emissiveMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setEmissiveMap(value.toString());
+                material->setEmissiveMap(baseUrl.resolved(value.toString()));
             }
         } else if (key == "albedoMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
+                QString urlString = value.toString();
                 bool useAlphaChannel = false;
                 auto opacityMap = materialJSON.find("opacityMap");
-                if (opacityMap != materialJSON.end() && opacityMap->isString() && opacityMap->toString() == value.toString()) {
+                if (opacityMap != materialJSON.end() && opacityMap->isString() && opacityMap->toString() == urlString) {
                     useAlphaChannel = true;
                 }
-                material->setAlbedoMap(value.toString(), useAlphaChannel);
+                material->setAlbedoMap(baseUrl.resolved(urlString), useAlphaChannel);
             }
         } else if (key == "roughnessMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setRoughnessMap(value.toString(), false);
+                material->setRoughnessMap(baseUrl.resolved(value.toString()), false);
             }
         } else if (key == "glossMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setRoughnessMap(value.toString(), true);
+                material->setRoughnessMap(baseUrl.resolved(value.toString()), true);
             }
         } else if (key == "metallicMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setMetallicMap(value.toString(), false);
+                material->setMetallicMap(baseUrl.resolved(value.toString()), false);
             }
         } else if (key == "specularMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setMetallicMap(value.toString(), true);
+                material->setMetallicMap(baseUrl.resolved(value.toString()), true);
             }
         } else if (key == "normalMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setNormalMap(value.toString(), false);
+                material->setNormalMap(baseUrl.resolved(value.toString()), false);
             }
         } else if (key == "bumpMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setNormalMap(value.toString(), true);
+                material->setNormalMap(baseUrl.resolved(value.toString()), true);
             }
         } else if (key == "occlusionMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setOcclusionMap(value.toString());
+                material->setOcclusionMap(baseUrl.resolved(value.toString()));
             }
         } else if (key == "scatteringMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setScatteringMap(value.toString());
+                material->setScatteringMap(baseUrl.resolved(value.toString()));
             }
         } else if (key == "lightMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setLightmapMap(value.toString());
+                material->setLightmapMap(baseUrl.resolved(value.toString()));
             }
         }
     }

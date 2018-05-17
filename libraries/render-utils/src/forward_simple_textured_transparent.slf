@@ -1,0 +1,52 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  forward_simple_textured_transparent.slf
+//  fragment shader
+//
+//  Created by Clément Brisset on 5/29/15.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+<@include DefaultMaterials.slh@>
+
+<@include ForwardGlobalLight.slh@>
+<$declareEvalGlobalLightingAlphaBlended()$>
+
+<@include gpu/Transform.slh@>
+<$declareStandardCameraTransform()$>
+
+// the albedo texture
+uniform sampler2D originalTexture;
+
+// the interpolated normal
+in vec3 _normalWS;
+in vec4 _color;
+in vec2 _texCoord0;
+in vec4 _positionES;
+
+layout(location = 0) out vec4 _fragColor0;
+
+void main(void) {
+    vec4 texel = texture(originalTexture, _texCoord0);
+    float colorAlpha = _color.a * texel.a;
+
+    TransformCamera cam = getTransformCamera();
+    vec3 fragPosition = _positionES.xyz;
+
+    _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
+        cam._viewInverse,
+        1.0,
+        DEFAULT_OCCLUSION,
+        fragPosition,
+        normalize(_normalWS),
+        _color.rgb * texel.rgb,
+        DEFAULT_FRESNEL,
+        DEFAULT_METALLIC,
+        DEFAULT_EMISSIVE,
+        DEFAULT_ROUGHNESS, colorAlpha),
+        colorAlpha);
+}

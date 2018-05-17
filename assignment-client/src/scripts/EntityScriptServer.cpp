@@ -105,8 +105,6 @@ EntityScriptServer::~EntityScriptServer() {
 static const QString ENTITY_SCRIPT_SERVER_LOGGING_NAME = "entity-script-server";
 
 void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
-    // about each other.
     if (senderNode->getCanRez() || senderNode->getCanRezTmp() || senderNode->getCanRezCertified() || senderNode->getCanRezTmpCertified()) {
         auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
 
@@ -119,8 +117,6 @@ void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<Rec
 }
 
 void EntityScriptServer::handleEntityScriptGetStatusPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
-    // about each other.
     if (senderNode->getCanRez() || senderNode->getCanRezTmp() || senderNode->getCanRezCertified() || senderNode->getCanRezTmpCertified()) {
         MessageID messageID;
         message->readPrimitive(&messageID);
@@ -190,15 +186,14 @@ void EntityScriptServer::updateEntityPPS() {
 }
 
 void EntityScriptServer::handleEntityServerScriptLogPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
-    // about each other.
+    bool canRezAny = senderNode->getCanRez() || senderNode->getCanRezTmp() || senderNode->getCanRezCertified() || senderNode->getCanRezTmpCertified();
     bool enable = false;
     message->readPrimitive(&enable);
 
     auto senderUUID = senderNode->getUUID();
     auto it = _logListeners.find(senderUUID);
 
-    if (enable && senderNode->getCanRez()) {
+    if (enable && canRezAny) {
         if (it == std::end(_logListeners)) {
             _logListeners.insert(senderUUID);
             qCInfo(entity_script_server) << "Node" << senderUUID << "subscribed to log stream";
@@ -299,7 +294,6 @@ void EntityScriptServer::run() {
     queryJSONParameters[EntityJSONQueryProperties::FLAGS_PROPERTY] = queryFlags;
     
     // setup the JSON parameters so that OctreeQuery does not use a frustum and uses our JSON filter
-    _entityViewer.getOctreeQuery().setUsesFrustum(false);
     _entityViewer.getOctreeQuery().setJSONParameters(queryJSONParameters);
 
     entityScriptingInterface->setEntityTree(_entityViewer.getTree());
@@ -476,6 +470,7 @@ void EntityScriptServer::clear() {
         // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
         _entitiesScriptEngine->unloadAllEntityScripts();
         _entitiesScriptEngine->stop();
+        _entitiesScriptEngine->waitTillDoneRunning();
     }
 
     _entityViewer.clear();
@@ -565,8 +560,15 @@ void EntityScriptServer::handleOctreePacket(QSharedPointer<ReceivedMessage> mess
 void EntityScriptServer::aboutToFinish() {
     shutdownScriptEngine();
 
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
-    DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
+    entityScriptingInterface->setEntityTree(nullptr);
+
+    // Should always be true as they are singletons.
+    if (entityScriptingInterface->getPacketSender() == &_entityEditSender) {
+        // The packet sender is about to go away.
+        entityScriptingInterface->setPacketSender(nullptr);
+    }
 
     DependencyManager::get<ResourceManager>()->cleanup();
 

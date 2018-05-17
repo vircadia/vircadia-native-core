@@ -182,9 +182,7 @@ const float SCALE_CHANGE_EPSILON = 0.0000001f;
 void Model::setScaleInternal(const glm::vec3& scale) {
     if (glm::distance(_scale, scale) > SCALE_CHANGE_EPSILON) {
         _scale = scale;
-        if (_scale.x == 0.0f || _scale.y == 0.0f || _scale.z == 0.0f) {
-            assert(false);
-        }
+        assert(_scale.x != 0.0f && scale.y != 0.0f && scale.z != 0.0f);
         simulate(0.0f, true);
     }
 }
@@ -1604,7 +1602,8 @@ void Model::createVisibleRenderItemSet() {
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
-            _modelMeshMaterialNames.push_back(getGeometry()->getShapeMaterial(shapeID)->getName());
+            auto material = getGeometry()->getShapeMaterial(shapeID);
+            _modelMeshMaterialNames.push_back(material ? material->getName() : "");
             _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
             shapeID++;
         }

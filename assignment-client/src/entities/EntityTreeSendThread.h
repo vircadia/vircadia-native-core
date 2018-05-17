@@ -17,8 +17,9 @@
 #include "../octree/OctreeSendThread.h"
 
 #include <DiffTraversal.h>
+#include <EntityPriorityQueue.h>
+#include <shared/ConicalViewFrustum.h>
 
-#include "EntityPriorityQueue.h"
 
 class EntityNodeData;
 class EntityItem;
@@ -41,21 +42,16 @@ private:
     bool addAncestorsToExtraFlaggedEntities(const QUuid& filteredEntityID, EntityItem& entityItem, EntityNodeData& nodeData);
     bool addDescendantsToExtraFlaggedEntities(const QUuid& filteredEntityID, EntityItem& entityItem, EntityNodeData& nodeData);
 
-    void startNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, 
-        bool usesViewFrustum);
+    void startNewTraversal(const DiffTraversal::View& viewFrustum, EntityTreeElementPointer root);
     bool traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params, const QJsonObject& jsonFilters) override;
 
     void preDistributionProcessing() override;
     bool hasSomethingToSend(OctreeQueryNode* nodeData) override { return !_sendQueue.empty(); }
     bool shouldStartNewTraversal(OctreeQueryNode* nodeData, bool viewFrustumChanged) override { return viewFrustumChanged || _traversal.finished(); }
-    void preStartNewScene(OctreeQueryNode* nodeData, bool isFullScene) override {};
-    bool shouldTraverseAndSend(OctreeQueryNode* nodeData) override { return true; }
 
     DiffTraversal _traversal;
     EntityPriorityQueue _sendQueue;
-    std::unordered_set<EntityItem*> _entitiesInQueue;
     std::unordered_map<EntityItem*, uint64_t> _knownState;
-    ConicalView _conicalView; // cached optimized view for fast priority calculations
 
     // packet construction stuff
     EntityTreeElementExtraEncodeDataPointer _extraEncodeData { new EntityTreeElementExtraEncodeData() };

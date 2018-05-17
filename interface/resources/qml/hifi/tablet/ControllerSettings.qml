@@ -6,8 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
-import QtQuick.Controls 1.4
+import QtQuick 2.7
+import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
 import "../../styles-uit"
 import "../../controls"
@@ -17,6 +17,7 @@ StackView {
     id: stack
     initialItem: inputConfiguration
     property alias messageVisible: imageMessageBox.visible
+    property alias selectedPlugin: box.currentText
     Rectangle {
         id: inputConfiguration
         anchors.fill: parent
@@ -171,7 +172,7 @@ StackView {
             source: InputConfiguration.configurationLayout(box.currentText);
             onLoaded: {
                 if (loader.item.hasOwnProperty("pluginName")) {
-                    if (box.currentText === "Vive") {
+                    if (box.currentText === "HTC Vive") {
                         loader.item.pluginName = "OpenVR";
                     } else {
                         loader.item.pluginName = box.currentText;

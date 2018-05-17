@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctalCode.h"
+
 #include <algorithm> // std:min
 #include <cassert>
 #include <cmath>
@@ -17,7 +19,6 @@
 #include <QtCore/QDebug>
 
 #include "NumericalConstants.h"
-#include "OctalCode.h"
 #include "SharedUtil.h"
 
 int numberOfThreeBitSectionsInCode(const unsigned char* octalCode, int maxBytes) {
@@ -46,7 +47,7 @@ void printOctalCode(const unsigned char* octalCode) {
 }
 
 char sectionValue(const unsigned char* startByte, char startIndexInByte) {
-    char rightShift = 8 - startIndexInByte - 3;
+    int8_t rightShift = 8 - startIndexInByte - 3;
 
     if (rightShift < 0) {
         return ((startByte[0] << -rightShift) & 7) + (startByte[1] >> (8 + rightShift));
@@ -73,7 +74,7 @@ int branchIndexWithDescendant(const unsigned char* ancestorOctalCode, const unsi
     return sectionValue(descendantOctalCode + 1 + (branchStartBit / 8), branchStartBit % 8);
 }
 
-unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNumber) {
+unsigned char* childOctalCode(const unsigned char* parentOctalCode, int childNumber) {
 
     // find the length (in number of three bit code sequences)
     // in the parent
@@ -111,7 +112,7 @@ unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNu
 
     // calculate the amount of left shift required
     // this will be -1 or -2 if there's wrap
-    char leftShift = 8 - (startBit % 8) - 3;
+    int8_t leftShift = 8 - (startBit % 8) - 3;
 
     if (leftShift < 0) {
         // we have a wrap-around to accomodate
@@ -213,7 +214,7 @@ void setOctalCodeSectionValue(unsigned char* octalCode, int section, char sectio
     int byteForSection = (BITS_IN_OCTAL * section / BITS_IN_BYTE);
     unsigned char* byteAt = octalCode + 1 + byteForSection;
     char bitInByte = (BITS_IN_OCTAL * section) % BITS_IN_BYTE;
-    char shiftBy = BITS_IN_BYTE - bitInByte - BITS_IN_OCTAL;
+    int8_t shiftBy = BITS_IN_BYTE - bitInByte - BITS_IN_OCTAL;
     const unsigned char UNSHIFTED_MASK = 0x07;
     unsigned char shiftedMask;
     unsigned char shiftedValue;
@@ -246,22 +247,6 @@ void setOctalCodeSectionValue(unsigned char* octalCode, int section, char sectio
         newValue = oldValue | shiftedValue;
         byteAt[1] = newValue;
     }
-}
-
-unsigned char* chopOctalCode(const unsigned char* originalOctalCode, int chopLevels) {
-    int codeLength = numberOfThreeBitSectionsInCode(originalOctalCode);
-    unsigned char* newCode = NULL;
-    if (codeLength > chopLevels) {
-        int newLength = codeLength - chopLevels;
-        newCode = new unsigned char[newLength+1];
-        *newCode = newLength; // set the length byte
-
-        for (int section = chopLevels; section < codeLength; section++) {
-            char sectionValue = getOctalCodeSectionValue(originalOctalCode, section);
-            setOctalCodeSectionValue(newCode, section - chopLevels, sectionValue);
-        }
-    }
-    return newCode;
 }
 
 bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* possibleDescendent, int descendentsChild) {

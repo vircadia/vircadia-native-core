@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Menu.h"
+
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QShortcut>
@@ -51,8 +53,6 @@
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
-
-#include "Menu.h"
 
 extern bool DEV_DECIMATE_TEXTURES;
 
@@ -229,21 +229,21 @@ Menu::Menu() {
 
     // View > First Person
     auto firstPersonAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::FirstPerson, Qt::CTRL | Qt::Key_F,
+                                   viewMenu, MenuOption::FirstPerson, Qt::Key_1,
                                    true, qApp, SLOT(cameraMenuChanged())));
 
     firstPersonAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     // View > Third Person
     auto thirdPersonAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::ThirdPerson, Qt::CTRL | Qt::Key_G,
+                                   viewMenu, MenuOption::ThirdPerson, Qt::Key_3,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
     thirdPersonAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     // View > Mirror
     auto viewMirrorAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::FullscreenMirror, Qt::CTRL | Qt::Key_H,
+                                   viewMenu, MenuOption::FullscreenMirror, Qt::Key_2,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
     viewMirrorAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
@@ -447,6 +447,9 @@ Menu::Menu() {
     textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture512MB, 0, false));
     textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture1024MB, 0, false));
     textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture2048MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture4096MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture6144MB, 0, false));
+    textureGroup->addAction(addCheckableActionToQMenuAndActionHash(textureMenu, MenuOption::RenderMaxTexture8192MB, 0, false));
     connect(textureGroup, &QActionGroup::triggered, [textureGroup] {
         auto checked = textureGroup->checkedAction();
         auto text = checked->text();
@@ -463,6 +466,12 @@ Menu::Menu() {
             newMaxTextureMemory = MB_TO_BYTES(1024);
         } else if (MenuOption::RenderMaxTexture2048MB == text) {
             newMaxTextureMemory = MB_TO_BYTES(2048);
+        } else if (MenuOption::RenderMaxTexture4096MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(4096);
+        } else if (MenuOption::RenderMaxTexture6144MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(6144);
+        } else if (MenuOption::RenderMaxTexture8192MB == text) {
+            newMaxTextureMemory = MB_TO_BYTES(8192);
         }
         gpu::Texture::setAllowedGPUMemoryUsage(newMaxTextureMemory);
     });
@@ -674,11 +683,12 @@ Menu::Menu() {
             qApp, SLOT(enablePerfStats(bool)));
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::OnlyDisplayTopTen, 0, true);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandUpdateTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandSimulationTiming, 0, false);
+    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPhysicsTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMyAvatarTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandMyAvatarSimulateTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandOtherAvatarTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPaintGLTiming, 0, false);
-    addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPhysicsSimulationTiming, 0, false);
 
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
     addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, qApp, SLOT(runTests()));
@@ -725,6 +735,12 @@ Menu::Menu() {
     }
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls, 0, false, qApp->getEntities().data(), SIGNAL(setRenderDebugHulls()));
 
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletWireframe, 0, false, qApp, SLOT(setShowBulletWireframe(bool)));
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletAABBs, 0, false, qApp, SLOT(setShowBulletAABBs(bool)));
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletContactPoints, 0, false, qApp, SLOT(setShowBulletContactPoints(bool)));
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletConstraints, 0, false, qApp, SLOT(setShowBulletConstraints(bool)));
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletConstraintLimits, 0, false, qApp, SLOT(setShowBulletConstraintLimits(bool)));
+
     // Developer > Ask to Reset Settings
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AskToResetSettings, 0, false);
 
@@ -740,32 +756,32 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashPureVirtualFunction);
     connect(action, &QAction::triggered, qApp, []() { crash::pureVirtualCall(); });
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashPureVirtualFunctionThreaded);
-    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::pureVirtualCall(); }); });
+    connect(action, &QAction::triggered, qApp, []() { std::thread(crash::pureVirtualCall).join(); });
 
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashDoubleFree);
     connect(action, &QAction::triggered, qApp, []() { crash::doubleFree(); });
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashDoubleFreeThreaded);
-    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::doubleFree(); }); });
+    connect(action, &QAction::triggered, qApp, []() { std::thread(crash::doubleFree).join(); });
 
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashAbort);
     connect(action, &QAction::triggered, qApp, []() { crash::doAbort(); });
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashAbortThreaded);
-    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::doAbort(); }); });
+    connect(action, &QAction::triggered, qApp, []() { std::thread(crash::doAbort).join(); });
 
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNullDereference);
     connect(action, &QAction::triggered, qApp, []() { crash::nullDeref(); });
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNullDereferenceThreaded);
-    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::nullDeref(); }); });
+    connect(action, &QAction::triggered, qApp, []() { std::thread(crash::nullDeref).join(); });
 
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashOutOfBoundsVectorAccess);
     connect(action, &QAction::triggered, qApp, []() { crash::outOfBoundsVectorCrash(); });
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashOutOfBoundsVectorAccessThreaded);
-    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::outOfBoundsVectorCrash(); }); });
+    connect(action, &QAction::triggered, qApp, []() { std::thread(crash::outOfBoundsVectorCrash).join(); });
 
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNewFault);
     connect(action, &QAction::triggered, qApp, []() { crash::newFault(); });
     action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNewFaultThreaded);
-    connect(action, &QAction::triggered, qApp, []() { std::thread([]() { crash::newFault(); }); });
+    connect(action, &QAction::triggered, qApp, []() { std::thread(crash::newFault).join(); });
 
     // Developer > Log...
     addActionToQMenuAndActionHash(developerMenu, MenuOption::Log, Qt::CTRL | Qt::SHIFT | Qt::Key_L,
@@ -799,6 +815,9 @@ Menu::Menu() {
         defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/utilities/tools/currentAPI.js");
         scriptEngines->loadScript(defaultScriptsLoc.toString());
     });
+
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::VerboseLogging, 0, false,
+                                           qApp, SLOT(updateVerboseLogging()));
 
 #if 0 ///  -------------- REMOVED FOR NOW --------------
     addDisabledActionAndSeparator(navigateMenu, "History");

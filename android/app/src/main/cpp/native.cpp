@@ -17,6 +17,15 @@
 #include <android/asset_manager_jni.h>
 
 #include <shared/Storage.h>
+#include <QObject>
+
+#include <AddressManager.h>
+#include "AndroidHelper.h"
+#include <udt/PacketHeaders.h>
+
+QAndroidJniObject __interfaceActivity;
+QAndroidJniObject __loginActivity;
+QAndroidJniObject __loadCompleteListener;
 
 void tempMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     if (!message.isEmpty()) {
@@ -136,25 +145,127 @@ void unpackAndroidAssets() {
 extern "C" {
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCreate(JNIEnv* env, jobject obj, jobject instance, jobject asset_mgr) {
-    qDebug() << "nativeOnCreate On thread " << QThread::currentThreadId();
     g_assetManager = AAssetManager_fromJava(env, asset_mgr);
+    qRegisterMetaType<QAndroidJniObject>("QAndroidJniObject");
+    __interfaceActivity = QAndroidJniObject(instance);
     auto oldMessageHandler = qInstallMessageHandler(tempMessageHandler);
     unpackAndroidAssets();
     qInstallMessageHandler(oldMessageHandler);
+
+    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::androidActivityRequested, [](const QString& a) {
+        QAndroidJniObject string = QAndroidJniObject::fromString(a);
+        __interfaceActivity.callMethod<void>("openAndroidActivity", "(Ljava/lang/String;)V", string.object<jstring>());
+    });
+}
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnDestroy(JNIEnv* env, jobject obj) {
+    QObject::disconnect(&AndroidHelper::instance(), &AndroidHelper::androidActivityRequested,
+                        nullptr, nullptr);
+
+}
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeGotoUrl(JNIEnv* env, jobject obj, jstring url) {
+    QAndroidJniObject jniUrl("java/lang/String", "(Ljava/lang/String;)V", url);
+    DependencyManager::get<AddressManager>()->handleLookupString(jniUrl.toString());
 }
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnPause(JNIEnv* env, jobject obj) {
-    qDebug() << "nativeOnPause";
 }
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnResume(JNIEnv* env, jobject obj) {
-    qDebug() << "nativeOnResume";
 }
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnExitVr(JNIEnv* env, jobject obj) {
-    qDebug() << "nativeOnCreate On thread " << QThread::currentThreadId();
+}
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeGoBackFromAndroidActivity(JNIEnv *env, jobject instance) {
+    AndroidHelper::instance().goBackFromAndroidActivity();
+}
+
+// HifiUtils
+JNIEXPORT jstring JNICALL Java_io_highfidelity_hifiinterface_HifiUtils_getCurrentAddress(JNIEnv *env, jobject instance) {
+    QSharedPointer<AddressManager> addressManager = DependencyManager::get<AddressManager>();
+    if (!addressManager) {
+        return env->NewString(nullptr, 0);
+    }
+
+    QString str;
+    if (!addressManager->getPlaceName().isEmpty()) {
+        str = addressManager->getPlaceName();
+    } else if (!addressManager->getHost().isEmpty()) {
+        str = addressManager->getHost();
+    }
+
+    QRegExp pathRegEx("(\\/[^\\/]+)");
+    if (!addressManager->currentPath().isEmpty() && addressManager->currentPath().contains(pathRegEx) && pathRegEx.matchedLength() > 0) {
+        str += pathRegEx.cap(0);
+    }
+
+    return env->NewStringUTF(str.toLatin1().data());
+}
+
+JNIEXPORT jstring JNICALL Java_io_highfidelity_hifiinterface_HifiUtils_protocolVersionSignature(JNIEnv *env, jobject instance) {
+    return env->NewStringUTF(protocolVersionsSignatureBase64().toLatin1().data());
+}
+
+JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_LoginActivity_nativeLogin(JNIEnv *env, jobject instance,
+                                                            jstring username_, jstring password_) {
+    const char *c_username = env->GetStringUTFChars(username_, 0);
+    const char *c_password = env->GetStringUTFChars(password_, 0);
+    QString username = QString(c_username);
+    QString password = QString(c_password);
+    env->ReleaseStringUTFChars(username_, c_username);
+    env->ReleaseStringUTFChars(password_, c_password);
+
+    auto accountManager = AndroidHelper::instance().getAccountManager();
+
+    __loginActivity = QAndroidJniObject(instance);
+
+    QObject::connect(accountManager.data(), &AccountManager::loginComplete, [](const QUrl& authURL) {
+        jboolean jSuccess = (jboolean) true;
+        __loginActivity.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
+    });
+
+    QObject::connect(accountManager.data(), &AccountManager::loginFailed, []() {
+        jboolean jSuccess = (jboolean) false;
+        __loginActivity.callMethod<void>("handleLoginCompleted", "(Z)V", jSuccess);
+    });
+
+    QMetaObject::invokeMethod(accountManager.data(), "requestAccessToken", Q_ARG(const QString&, username), Q_ARG(const QString&, password));
+}
+
+JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_SplashActivity_registerLoadCompleteListener(JNIEnv *env,
+                                                                               jobject instance) {
+
+    __loadCompleteListener = QAndroidJniObject(instance);
+
+    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::qtAppLoadComplete, []() {
+
+        __loadCompleteListener.callMethod<void>("onAppLoadedComplete", "()V");
+        __interfaceActivity.callMethod<void>("onAppLoadedComplete", "()V");
+
+        QObject::disconnect(&AndroidHelper::instance(), &AndroidHelper::qtAppLoadComplete, nullptr,
+                            nullptr);
+    });
+
+}
+JNIEXPORT jboolean JNICALL
+Java_io_highfidelity_hifiinterface_HomeActivity_nativeIsLoggedIn(JNIEnv *env, jobject instance) {
+    return AndroidHelper::instance().getAccountManager()->isLoggedIn();
+}
+
+JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_HomeActivity_nativeLogout(JNIEnv *env, jobject instance) {
+    AndroidHelper::instance().getAccountManager()->logout();
+}
+
+JNIEXPORT jstring JNICALL
+Java_io_highfidelity_hifiinterface_HomeActivity_nativeGetDisplayName(JNIEnv *env,
+                                                                     jobject instance) {
+    QString username = AndroidHelper::instance().getAccountManager()->getAccountInfo().getUsername();
+    return env->NewStringUTF(username.toLatin1().data());
 }
 
 }
-
-

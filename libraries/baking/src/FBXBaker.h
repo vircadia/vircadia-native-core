@@ -19,32 +19,22 @@
 
 #include "Baker.h"
 #include "TextureBaker.h"
-
+#include "ModelBaker.h"
 #include "ModelBakingLoggingCategory.h"
 
 #include <gpu/Texture.h> 
 
 #include <FBX.h>
 
-static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
-
 using TextureBakerThreadGetter = std::function<QThread*()>;
 
-class FBXBaker : public Baker {
+class FBXBaker : public ModelBaker {
     Q_OBJECT
 public:
-    FBXBaker(const QUrl& fbxURL, TextureBakerThreadGetter textureThreadGetter,
-             const QString& bakedOutputDir, const QString& originalOutputDir = "");
-    ~FBXBaker() override;
-
-    QUrl getFBXUrl() const { return _fbxURL; }
-    QString getBakedFBXFilePath() const { return _bakedFBXFilePath; }
-
-    virtual void setWasAborted(bool wasAborted) override;
+    using ModelBaker::ModelBaker;
 
 public slots:
     virtual void bake() override;
-    virtual void abort() override;
 
 signals:
     void sourceCopyReadyToLoad();
@@ -52,8 +42,6 @@ signals:
 private slots:
     void bakeSourceCopy();
     void handleFBXNetworkReply();
-    void handleBakedTexture();
-    void handleAbortedTexture();
 
 private:
     void setupOutputFolder();
@@ -61,40 +49,14 @@ private:
     void loadSourceFBX();
 
     void importScene();
+    void embedTextureMetaData();
     void rewriteAndBakeSceneModels();
     void rewriteAndBakeSceneTextures();
     void exportScene();
-    void removeEmbeddedMediaFolder();
 
-    void checkIfTexturesFinished();
-
-    QString createBakedTextureFileName(const QFileInfo& textureFileInfo);
-    QUrl getTextureURL(const QFileInfo& textureFileInfo, QString relativeFileName, bool isEmbedded = false);
-
-    void bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDir,
-                     const QString& bakedFilename, const QByteArray& textureContent = QByteArray());
-
-    QUrl _fbxURL;
-
-    FBXNode _rootNode;
     FBXGeometry* _geometry;
-    QHash<QByteArray, QByteArray> _textureContent;
-    
-    QString _bakedFBXFilePath;
-
-    QString _bakedOutputDir;
-
-    // If set, the original FBX and textures will also be copied here
-    QString _originalOutputDir;
-
-    QDir _tempDir;
-    QString _originalFBXFilePath;
-
-    QMultiHash<QUrl, QSharedPointer<TextureBaker>> _bakingTextures;
     QHash<QString, int> _textureNameMatchCount;
     QHash<QUrl, QString> _remappedTexturePaths;
-
-    TextureBakerThreadGetter _textureThreadGetter;
 
     bool _pendingErrorEmission { false };
 };

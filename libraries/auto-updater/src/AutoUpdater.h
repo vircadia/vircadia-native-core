@@ -36,10 +36,17 @@ class AutoUpdater : public QObject, public Dependency {
     
 public:
     AutoUpdater();
+
+    enum class InstallerType {
+        CLIENT_ONLY = 0,
+        FULL
+    };
     
     void checkForUpdate();
     const QMap<int, QMap<QString, QString>>& getBuildData() { return _builds; }
     void performAutoUpdate(int version);
+    void setInstallerType(InstallerType type) { _installerType = type;  }
+    void setInstallerCampaign(QString campaign) { _installerCampaign = campaign;  }
 
 signals:
     void latestVersionDataParsed();
@@ -49,6 +56,8 @@ signals:
 private:
     QMap<int, QMap<QString, QString>> _builds;
     QString _operatingSystem;
+    InstallerType _installerType { InstallerType::FULL };
+    QString _installerCampaign { "" };
     
     void getLatestVersionData();
     void downloadUpdateVersion(int version);

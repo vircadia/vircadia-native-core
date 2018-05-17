@@ -18,18 +18,13 @@
 #include <Octree.h>
 #include <SpatialParentFinder.h>
 
-class EntityTree;
-using EntityTreePointer = std::shared_ptr<EntityTree>;
-
 #include "AddEntityOperator.h"
 #include "EntityTreeElement.h"
 #include "DeleteEntityOperator.h"
 #include "MovingEntitiesOperator.h"
 
-class EntityEditFilters;
-class Model;
-using ModelPointer = std::shared_ptr<Model>;
-using ModelWeakPointer = std::weak_ptr<Model>;
+class EntityTree;
+using EntityTreePointer = std::shared_ptr<EntityTree>;
 
 class EntitySimulation;
 
@@ -88,7 +83,6 @@ public:
 
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
-    virtual bool getWantSVOfileVersions() const override { return true; }
     virtual PacketType expectedDataPacketType() const override { return PacketType::EntityData; }
     virtual bool handlesEditPacketType(PacketType packetType) const override;
     void fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties);
@@ -107,11 +101,7 @@ public:
 
     virtual bool rootElementHasData() const override { return true; }
 
-    // the root at least needs to store the number of entities in the packet/buffer
-    virtual int minimumRequiredRootDataBytes() const override { return sizeof(uint16_t); }
-    virtual bool suppressEmptySubtrees() const override { return false; }
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const override;
-    virtual bool mustIncludeAllChildData() const override { return false; }
 
     virtual void update() override { update(true); }
 
@@ -283,6 +273,9 @@ public:
 
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
 
+    void setIsServerlessMode(bool value) { _serverlessDomain = value; }
+    bool isServerlessMode() const { return _serverlessDomain; }
+
     static void setAddMaterialToEntityOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToEntityOperator) { _addMaterialToEntityOperator = addMaterialToEntityOperator; }
     static void setRemoveMaterialFromEntityOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromEntityOperator) { _removeMaterialFromEntityOperator = removeMaterialFromEntityOperator; }
     static bool addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName);
@@ -297,6 +290,8 @@ public:
     static void setRemoveMaterialFromOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromOverlayOperator) { _removeMaterialFromOverlayOperator = removeMaterialFromOverlayOperator; }
     static bool addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName);
     static bool removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+
+    std::map<QString, QString> getNamedPaths() const { return _namedPaths; }
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -325,7 +320,7 @@ protected:
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);
 
     bool isScriptInWhitelist(const QString& scriptURL);
-    
+
     QReadWriteLock _newlyCreatedHooksLock;
     QVector<NewlyCreatedEntityHook*> _newlyCreatedHooks;
 
@@ -397,12 +392,11 @@ protected:
     QHash<EntityItemID, EntityItemPointer> _entitiesToAdd;
 
     Q_INVOKABLE void startChallengeOwnershipTimer(const EntityItemID& entityItemID);
-    Q_INVOKABLE void startPendingTransferStatusTimer(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
 
 private:
     void sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
     void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
-    void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation);
+    void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
 
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };
 
@@ -412,6 +406,10 @@ private:
     static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromAvatarOperator;
     static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToOverlayOperator;
     static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromOverlayOperator;
+
+    bool _serverlessDomain { false };
+
+    std::map<QString, QString> _namedPaths;
 };
 
 #endif // hifi_EntityTree_h

@@ -13,8 +13,8 @@
 
 #include <gl/Config.h>
 
-#include "../gl/GLBackend.h"
-#include "../gl/GLTexture.h"
+#include <gpu/gl/GLBackend.h>
+#include <gpu/gl/GLTexture.h>
 
 #define GPU_CORE_41 410
 #define GPU_CORE_43 430
@@ -51,6 +51,8 @@ public:
 
     static const std::string GL41_VERSION;
     const std::string& getVersion() const override { return GL41_VERSION; }
+
+    bool supportedTextureFormat(const gpu::Element& format) override;
 
     class GL41Texture : public GLTexture {
         using Parent = GLTexture;

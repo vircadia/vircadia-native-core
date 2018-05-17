@@ -9,12 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OvenCLIApplication.h"
+
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QUrl>
 
 #include "BakerCLI.h"
-
-#include "OvenCLIApplication.h"
 
 static const QString CLI_INPUT_PARAMETER = "i";
 static const QString CLI_OUTPUT_PARAMETER = "o";
@@ -40,7 +40,8 @@ OvenCLIApplication::OvenCLIApplication(int argc, char* argv[]) :
         QUrl inputUrl(QDir::fromNativeSeparators(parser.value(CLI_INPUT_PARAMETER)));
         QUrl outputUrl(QDir::fromNativeSeparators(parser.value(CLI_OUTPUT_PARAMETER)));
         QString type = parser.isSet(CLI_TYPE_PARAMETER) ? parser.value(CLI_TYPE_PARAMETER) : QString::null;
-        cli->bakeFile(inputUrl, outputUrl.toString(), type);
+        QMetaObject::invokeMethod(cli, "bakeFile", Qt::QueuedConnection, Q_ARG(QUrl, inputUrl),
+                                    Q_ARG(QString, outputUrl.toString()), Q_ARG(QString, type));
     } else {
         parser.showHelp();
         QCoreApplication::quit();

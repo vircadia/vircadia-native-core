@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "BakeWidget.h"
+
 #include <QtWidgets/QStackedWidget>
 
 #include "../OvenGUIApplication.h"
-
-#include "BakeWidget.h"
 
 BakeWidget::BakeWidget(QWidget* parent, Qt::WindowFlags flags) :
     QWidget(parent, flags)
@@ -41,5 +41,5 @@ void BakeWidget::cancelButtonClicked() {
     auto stackedWidget = qobject_cast<QStackedWidget*>(parentWidget());
     stackedWidget->removeWidget(this);
 
-    this->deleteLater();
+    deleteLater();
 }

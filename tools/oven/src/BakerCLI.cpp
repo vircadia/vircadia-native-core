@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "BakerCLI.h"
+
 #include <QObject>
 #include <QImageReader>
 #include <QtCore/QDebug>
@@ -16,8 +18,8 @@
 
 #include "OvenCLIApplication.h"
 #include "ModelBakingLoggingCategory.h"
-#include "BakerCLI.h"
 #include "FBXBaker.h"
+#include "JSBaker.h"
 #include "TextureBaker.h"
 
 BakerCLI::BakerCLI(OvenCLIApplication* parent) : QObject(parent) {
@@ -34,6 +36,7 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
     qDebug() << "Baking file type: " << type;
 
     static const QString MODEL_EXTENSION { "fbx" };
+    static const QString SCRIPT_EXTENSION { "js" };
 
     QString extension = type;
 
@@ -44,6 +47,7 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
 
     // check what kind of baker we should be creating
     bool isFBX = extension == MODEL_EXTENSION;
+    bool isScript = extension == SCRIPT_EXTENSION;
 
     bool isSupportedImage = QImageReader::supportedImageFormats().contains(extension.toLatin1());
 
@@ -57,12 +61,16 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
                          outputPath)
         };
         _baker->moveToThread(Oven::instance().getNextWorkerThread());
+    } else if (isScript) {
+        _baker = std::unique_ptr<Baker> { new JSBaker(inputUrl, outputPath) };
+        _baker->moveToThread(Oven::instance().getNextWorkerThread());
     } else if (isSupportedImage) {
         _baker = std::unique_ptr<Baker> { new TextureBaker(inputUrl, image::TextureUsage::CUBE_TEXTURE, outputPath) };
         _baker->moveToThread(Oven::instance().getNextWorkerThread());
     } else {
         qCDebug(model_baking) << "Failed to determine baker type for file" << inputUrl;
         QCoreApplication::exit(OVEN_STATUS_CODE_FAIL);
+        return;
     }
 
     // invoke the bake method on the baker thread

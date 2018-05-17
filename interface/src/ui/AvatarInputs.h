@@ -19,9 +19,22 @@ public: \
 private: \
     type _##name{ initialValue };
 
-class AvatarInputs : public QQuickItem {
+class AvatarInputs : public QObject {
     Q_OBJECT
     HIFI_QML_DECL
+
+    /**jsdoc 
+     * API to help manage your Avatar's input
+     * @namespace AvatarInputs
+     *
+     * @hifi-interface
+     * @hifi-client-entity
+     *
+     * @property {boolean} cameraEnabled <em>Read-only.</em>
+     * @property {boolean} cameraMuted <em>Read-only.</em>
+     * @property {boolean} isHMD <em>Read-only.</em>
+     * @property {boolean} showAudioTools
+     */
 
     AI_PROPERTY(bool, cameraEnabled, false)
     AI_PROPERTY(bool, cameraMuted, false)
@@ -31,22 +44,64 @@ class AvatarInputs : public QQuickItem {
 
 public:
     static AvatarInputs* getInstance();
+
+    /**jsdoc
+     * @function AvatarInputs.loudnessToAudioLevel
+     * @param {number} loudness
+     * @returns {number}
+     */
     Q_INVOKABLE float loudnessToAudioLevel(float loudness);
-    AvatarInputs(QQuickItem* parent = nullptr);
+
+    AvatarInputs(QObject* parent = nullptr);
     void update();
     bool showAudioTools() const   { return _showAudioTools; }
 
 public slots:
+
+    /**jsdoc
+     * @function AvatarInputs.setShowAudioTools
+     * @param {boolean} showAudioTools
+     */
     void setShowAudioTools(bool showAudioTools);
 
 signals:
+
+    /**jsdoc
+     * @function AvatarInputs.cameraEnabledChanged
+     * @returns {Signal}
+     */
     void cameraEnabledChanged();
+
+    /**jsdoc
+     * @function AvatarInputs.cameraMutedChanged
+     * @returns {Signal}
+     */
     void cameraMutedChanged();
+
+    /**jsdoc
+     * @function AvatarInputs.isHMDChanged
+     * @returns {Signal}
+     */
+
     void isHMDChanged();
+
+    /**jsdoc
+     * @function AvatarInputs.showAudioToolsChanged
+     * @param {boolean} show
+     * @returns {Signal}
+     */
     void showAudioToolsChanged(bool show);
 
 protected:
+
+    /**jsdoc
+     * @function AvatarInputs.resetSensors
+     */
     Q_INVOKABLE void resetSensors();
+
+    /**jsdoc
+     * @function AvatarInputs.toggleCameraMute
+     */
     Q_INVOKABLE void toggleCameraMute();
 
 private: 

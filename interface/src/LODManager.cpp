@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "LODManager.h"
+
 #include <SettingHandle.h>
 #include <OctreeUtils.h>
 #include <Util.h>
@@ -16,8 +18,6 @@
 #include "Application.h"
 #include "ui/DialogsManager.h"
 #include "InterfaceLogging.h"
-
-#include "LODManager.h"
 
 
 Setting::Handle<float> desktopLODDecreaseFPS("desktopLODDecreaseFPS", DEFAULT_DESKTOP_LOD_DOWN_FPS);
@@ -70,7 +70,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     // Note: we MUST clamp the blend to 1.0 for stability
     float blend = (realTimeDelta < LOD_ADJUST_RUNNING_AVG_TIMESCALE) ? realTimeDelta / LOD_ADJUST_RUNNING_AVG_TIMESCALE : 1.0f;
     _avgRenderTime = (1.0f - blend) * _avgRenderTime + blend * maxRenderTime; // msec
-    if (!_automaticLODAdjust) {
+    if (!_automaticLODAdjust || _avgRenderTime == 0.0f) {
         // early exit
         return;
     }
@@ -86,10 +86,6 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
                 if (_octreeSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
                     _octreeSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
                 }
-                qCDebug(interfaceapp) << "adjusting LOD DOWN"
-                    << "fps =" << currentFPS
-                    << "targetFPS =" << getLODDecreaseFPS()
-                    << "octreeSizeScale =" << _octreeSizeScale;
                 emit LODDecreased();
                 // Assuming the LOD adjustment will work: we optimistically reset _avgRenderTime
                 // to provide an FPS just above the decrease threshold.  It will drift close to its
@@ -111,10 +107,6 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
                 if (_octreeSizeScale > ADJUST_LOD_MAX_SIZE_SCALE) {
                     _octreeSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
                 }
-                qCDebug(interfaceapp) << "adjusting LOD UP"
-                    << "fps =" << currentFPS
-                    << "targetFPS =" << getLODDecreaseFPS()
-                    << "octreeSizeScale =" << _octreeSizeScale;
                 emit LODIncreased();
                 // Assuming the LOD adjustment will work: we optimistically reset _avgRenderTime
                 // to provide an FPS just below the increase threshold.  It will drift close to its

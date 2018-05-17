@@ -13,5 +13,5 @@ file(TO_NATIVE_PATH ${JSDOC_WORKING_DIR} NATIVE_JSDOC_WORKING_DIR)
 add_custom_command(TARGET ${TARGET_NAME}
   COMMAND ${NPM_EXECUTABLE} --no-progress install && ${JSDOC_PATH} ${NATIVE_JSDOC_WORKING_DIR} -c ${JSDOC_CONFIG_PATH} -d ${OUTPUT_DIR}
   WORKING_DIRECTORY ${JSDOC_WORKING_DIR}
-  COMMENT "generate the JSDoc JSON for the JSConsole auto-completer"
+  COMMENT "generate the JSDoc JSON"
 )

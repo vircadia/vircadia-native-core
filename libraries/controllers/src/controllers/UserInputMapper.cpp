@@ -73,7 +73,8 @@ void UserInputMapper::registerDevice(InputDevice::Pointer device) {
 
     qCDebug(controllers) << "Registered input device <" << device->getName() << "> deviceID = " << deviceID;
 
-    for (const auto& inputMapping : device->getAvailableInputs()) {
+    auto inputs = device->getAvailableInputs();
+    for (const auto& inputMapping : inputs) {
         const auto& input = inputMapping.first;
         // Ignore aliases
         if (_endpointsByInput.count(input)) {
@@ -126,7 +127,8 @@ void UserInputMapper::removeDevice(int deviceID) {
         _mappingsByDevice.erase(mappingsEntry);
     }
 
-    for (const auto& inputMapping : device->getAvailableInputs()) {
+    auto inputs = device->getAvailableInputs();
+    for (const auto& inputMapping : inputs) {
         const auto& input = inputMapping.first;
         auto endpoint = _endpointsByInput.find(input);
         if (endpoint != _endpointsByInput.end()) {
@@ -171,7 +173,7 @@ InputDevice::Pointer UserInputMapper::getDevice(const Input& input) {
     }
 }
 
-QString UserInputMapper::getDeviceName(uint16 deviceID) { 
+QString UserInputMapper::getDeviceName(uint16 deviceID) {
     Locker locker(_lock);
     if (_registeredDevices.find(deviceID) != _registeredDevices.end()) {
         return _registeredDevices[deviceID]->_name;
@@ -181,7 +183,7 @@ QString UserInputMapper::getDeviceName(uint16 deviceID) {
 
 int UserInputMapper::findDevice(QString name) const {
     Locker locker(_lock);
-    for (auto device : _registeredDevices) {
+    for (const auto& device : _registeredDevices) {
         if (device.second->_name == name) {
             return device.first;
         }
@@ -192,7 +194,7 @@ int UserInputMapper::findDevice(QString name) const {
 QVector<QString> UserInputMapper::getDeviceNames() {
     Locker locker(_lock);
     QVector<QString> result;
-    for (auto device : _registeredDevices) {
+    for (const auto& device : _registeredDevices) {
         QString deviceName = device.second->_name.split(" (")[0];
         result << deviceName;
     }
@@ -218,7 +220,7 @@ Input UserInputMapper::findDeviceInput(const QString& inputName) const {
             const auto& device = _registeredDevices.at(deviceID);
             auto deviceInputs = device->getAvailableInputs();
 
-            for (auto input : deviceInputs) {
+            for (const auto& input : deviceInputs) {
                 if (input.second == inputName) {
                     return input.first;
                 }
@@ -321,7 +323,8 @@ QVector<Action> UserInputMapper::getAllActions() const {
 
 QString UserInputMapper::getActionName(Action action) const {
     Locker locker(_lock);
-    for (auto actionPair : getActionInputs()) {
+    auto inputs = getActionInputs();
+    for (const auto& actionPair : inputs) {
         if (actionPair.first.channel == toInt(action)) {
             return actionPair.second;
         }
@@ -331,18 +334,20 @@ QString UserInputMapper::getActionName(Action action) const {
 
 QString UserInputMapper::getStandardPoseName(uint16_t pose) {
     Locker locker(_lock);
-    for (auto posePair : getStandardInputs()) {
+    auto inputs = getStandardInputs();
+    for (const auto& posePair : inputs) {
         if (posePair.first.channel == pose && posePair.first.getType() == ChannelType::POSE) {
             return posePair.second;
         }
     }
     return QString();
-}    
+}
 
 QVector<QString> UserInputMapper::getActionNames() const {
     Locker locker(_lock);
     QVector<QString> result;
-    for (auto actionPair : getActionInputs()) {
+    auto inputs = getActionInputs();
+    for (const auto& actionPair : inputs) {
         result << actionPair.second;
     }
     return result;
@@ -357,7 +362,7 @@ Pose UserInputMapper::getPoseState(Action action) const {
 bool UserInputMapper::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
     Locker locker(_lock);
     bool toReturn = false;
-    for (auto device : _registeredDevices) {
+    for (const auto& device : _registeredDevices) {
         toReturn = toReturn || device.second->triggerHapticPulse(strength, duration, hand);
     }
     return toReturn;
@@ -469,7 +474,7 @@ void UserInputMapper::runMappings() {
     if (debugRoutes) {
         qCDebug(controllers) << "Beginning mapping frame";
     }
-    for (auto endpointEntry : this->_endpointsByInput) {
+    for (const auto& endpointEntry : _endpointsByInput) {
         endpointEntry.second->reset();
     }
 
@@ -542,9 +547,9 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
     }
 
 
-    // Most endpoints can only be read once (though a given mapping can route them to 
+    // Most endpoints can only be read once (though a given mapping can route them to
     // multiple places).  Consider... If the default is to wire the A button to JUMP
-    // and someone else wires it to CONTEXT_MENU, I don't want both to occur when 
+    // and someone else wires it to CONTEXT_MENU, I don't want both to occur when
     // I press the button.  The exception is if I'm wiring a control back to itself
     // in order to adjust my interface, like inverting the Y axis on an analog stick
     if (!route->peek && !source->readable()) {
@@ -897,7 +902,8 @@ Conditional::Pointer UserInputMapper::parseConditional(const QJsonValue& value) 
     if (value.isArray()) {
         // Support "when" : [ "GamePad.RB", "GamePad.LB" ]
         Conditional::List children;
-        for (auto arrayItem : value.toArray()) {
+        auto array = value.toArray();
+        for (const auto& arrayItem : array) {
             Conditional::Pointer childConditional = parseConditional(arrayItem);
             if (!childConditional) {
                 return Conditional::Pointer();
@@ -908,7 +914,7 @@ Conditional::Pointer UserInputMapper::parseConditional(const QJsonValue& value) 
     } else if (value.isString()) {
         // Support "when" : "GamePad.RB"
         auto conditionalToken = value.toString();
-        
+
         // Detect for modifier case (Not...)
         QString conditionalModifier;
         const QString JSON_CONDITIONAL_MODIFIER_NOT("!");
@@ -943,12 +949,12 @@ Filter::Pointer UserInputMapper::parseFilter(const QJsonValue& value) {
         result = Filter::getFactory().create(value.toString());
     } else if (value.isObject()) {
         result = Filter::parse(value.toObject());
-    } 
+    }
 
     if (!result) {
         qWarning() << "Invalid filter definition " << value;
     }
-      
+
     return result;
 }
 
@@ -960,7 +966,7 @@ Filter::List UserInputMapper::parseFilters(const QJsonValue& value) {
     if (value.isArray()) {
         Filter::List result;
         auto filtersArray = value.toArray();
-        for (auto filterValue : filtersArray) {
+        for (const auto& filterValue : filtersArray) {
             Filter::Pointer filter = parseFilter(filterValue);
             if (!filter) {
                 return Filter::List();
@@ -968,7 +974,7 @@ Filter::List UserInputMapper::parseFilters(const QJsonValue& value) {
             result.push_back(filter);
         }
         return result;
-    } 
+    }
 
     Filter::Pointer filter = parseFilter(value);
     if (!filter) {
@@ -980,7 +986,8 @@ Filter::List UserInputMapper::parseFilters(const QJsonValue& value) {
 Endpoint::Pointer UserInputMapper::parseDestination(const QJsonValue& value) {
     if (value.isArray()) {
         ArrayEndpoint::Pointer result = std::make_shared<ArrayEndpoint>();
-        for (auto arrayItem : value.toArray()) {
+        auto array = value.toArray();
+        for (const auto& arrayItem : array) {
             Endpoint::Pointer destination = parseEndpoint(arrayItem);
             if (!destination) {
                 return Endpoint::Pointer();
@@ -988,14 +995,14 @@ Endpoint::Pointer UserInputMapper::parseDestination(const QJsonValue& value) {
             result->_children.push_back(destination);
         }
         return result;
-    } 
-    
+    }
+
     return parseEndpoint(value);
 }
 
 Endpoint::Pointer UserInputMapper::parseAxis(const QJsonValue& value) {
     if (value.isObject()) {
-        auto object = value.toObject();     
+        auto object = value.toObject();
         if (object.contains("makeAxis")) {
             auto axisValue = object.value("makeAxis");
             if (axisValue.isArray()) {
@@ -1017,7 +1024,8 @@ Endpoint::Pointer UserInputMapper::parseAxis(const QJsonValue& value) {
 Endpoint::Pointer UserInputMapper::parseAny(const QJsonValue& value) {
     if (value.isArray()) {
         Endpoint::List children;
-        for (auto arrayItem : value.toArray()) {
+        auto array = value.toArray();
+        for (const auto& arrayItem : array) {
             Endpoint::Pointer destination = parseEndpoint(arrayItem);
             if (!destination) {
                 return Endpoint::Pointer();
@@ -1162,7 +1170,7 @@ Mapping::Pointer UserInputMapper::parseMapping(const QString& json) {
 
 template <typename T>
 bool hasDebuggableRoute(const T& routes) {
-    for (auto route : routes) {
+    for (const auto& route : routes) {
         if (route->debug) {
             return true;
         }
@@ -1174,7 +1182,7 @@ bool hasDebuggableRoute(const T& routes) {
 void UserInputMapper::enableMapping(const Mapping::Pointer& mapping) {
     Locker locker(_lock);
     // New routes for a device get injected IN FRONT of existing routes.  Routes
-    // are processed in order so this ensures that the standard -> action processing 
+    // are processed in order so this ensures that the standard -> action processing
     // takes place after all of the hardware -> standard or hardware -> action processing
     // because standard -> action is the first set of routes added.
     Route::List standardRoutes = mapping->routes;

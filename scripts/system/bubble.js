@@ -18,8 +18,6 @@
     var bubbleOverlayTimestamp;
     // Used for rate limiting the bubble sound
     var lastBubbleSoundTimestamp = 0;
-    // Used for flashing the HUD button upon activation
-    var bubbleButtonFlashState = false;
     // Affects bubble height
     var BUBBLE_HEIGHT_SCALE = 0.15;
     // The bubble model itself
@@ -36,18 +34,16 @@
     var bubbleActivateSound = SoundCache.getSound(Script.resolvePath("assets/sounds/bubble.wav"));
     // Is the update() function connected?
     var updateConnected = false;
-    var bubbleFlashTimer = false;
 
     var BUBBLE_VISIBLE_DURATION_MS = 3000;
     var BUBBLE_RAISE_ANIMATION_DURATION_MS = 750;
     var BUBBLE_SOUND_RATE_LIMIT_MS = 15000;
 
-    // Hides the bubble model overlay and resets the button flash state
+    // Hides the bubble model overlay
     function hideOverlays() {
         Overlays.editOverlay(bubbleOverlay, {
             visible: false
         });
-        bubbleButtonFlashState = false;
     }
 
     // Make the bubble overlay visible, set its position, and play the sound
@@ -89,14 +85,6 @@
         bubbleOverlayTimestamp = nowTimestamp;
         Script.update.connect(update);
         updateConnected = true;
-
-        // Flash button
-        if (!bubbleFlashTimer) {
-            bubbleFlashTimer = Script.setInterval(function () {
-                writeButtonProperties(bubbleButtonFlashState);
-                bubbleButtonFlashState = !bubbleButtonFlashState;
-            }, 500);
-        }
     }
 
     // Called from the C++ scripting interface to show the bubble overlay
@@ -116,7 +104,6 @@
         var delay = (timestamp - bubbleOverlayTimestamp);
         var overlayAlpha = 1.0 - (delay / BUBBLE_VISIBLE_DURATION_MS);
         if (overlayAlpha > 0) {
-
             if (delay < BUBBLE_RAISE_ANIMATION_DURATION_MS) {
                 Overlays.editOverlay(bubbleOverlay, {
                     dimensions: { 
@@ -164,11 +151,6 @@
                 Script.update.disconnect(update);
                 updateConnected = false;
             }
-            if (bubbleFlashTimer) {
-                Script.clearTimeout(bubbleFlashTimer);
-                bubbleFlashTimer = false;
-            }
-            writeButtonProperties(Users.getIgnoreRadiusEnabled());
         }
     }
 
@@ -176,10 +158,6 @@
     // NOTE: the c++ calls this with just the first param -- we added a second
     // just for not logging the initial state of the bubble when we startup.
     function onBubbleToggled(enabled, doNotLog) {
-        if (bubbleFlashTimer) {
-            Script.clearTimeout(bubbleFlashTimer);
-            bubbleFlashTimer = false;
-        }
         writeButtonProperties(enabled);
         if (doNotLog !== true) {
             UserActivityLogger.bubbleToggled(enabled);
@@ -214,17 +192,12 @@
     // Cleanup the tablet button and overlays when script is stopped
     Script.scriptEnding.connect(function () {
         button.clicked.disconnect(Users.toggleIgnoreRadius);
-        if (bubbleFlashTimer) {
-            Script.clearTimeout(bubbleFlashTimer);
-            bubbleFlashTimer = false;
-        }
         if (tablet) {
             tablet.removeButton(button);
         }
         Users.ignoreRadiusEnabledChanged.disconnect(onBubbleToggled);
         Users.enteredIgnoreRadius.disconnect(enteredIgnoreRadius);
         Overlays.deleteOverlay(bubbleOverlay);
-        bubbleButtonFlashState = false;
         if (updateConnected === true) {
             Script.update.disconnect(update);
         }

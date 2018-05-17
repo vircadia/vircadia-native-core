@@ -9,14 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QDebug>
-#include <GLMHelpers.h>
+#include "Mat4.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include <QDebug>
+#include <GLMHelpers.h>
+
 #include "ScriptEngineLogging.h"
 #include "ScriptEngine.h"
-#include "Mat4.h"
 
 glm::mat4 Mat4::multiply(const glm::mat4& m1, const glm::mat4& m2) const {
     return m1 * m2;

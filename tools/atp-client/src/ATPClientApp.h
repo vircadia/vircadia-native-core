@@ -31,7 +31,7 @@ public:
 
 private slots:
     void domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo);
-    void domainChanged(const QString& domainHostname);
+    void domainChanged(QUrl domainURL);
     void nodeAdded(SharedNodePointer node);
     void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);

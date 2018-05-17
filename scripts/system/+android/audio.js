@@ -32,8 +32,9 @@ function init() {
         activeIcon: "icons/mic-mute-a.svg",
         text: "",
         bgOpacity: 0.0,
-        activeBgOpacity: 0.0,
-        bgColor: "#FFFFFF"
+        hoverBgOpacity: 0.0,
+        activeHoverBgOpacity: 0.0,
+        activeBgOpacity: 0.0
     });
 
     onMuteToggled();
@@ -46,7 +47,6 @@ function onMuteClicked() {
     printd("On Mute Clicked");
     //Menu.setIsOptionChecked("Mute Microphone", !Menu.isOptionChecked("Mute Microphone"));
     Audio.muted = !Audio.muted;
-    onMuteToggled();
 }
 
 function onMuteToggled() {

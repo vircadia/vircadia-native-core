@@ -132,8 +132,8 @@ void setupPreferences() {
     // Snapshots
     static const QString SNAPSHOTS { "Snapshots" };
     {
-        auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
-        auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); emit DependencyManager::get<Snapshot>()->snapshotLocationSet(value); };
+        auto getter = []()->QString { return DependencyManager::get<Snapshot>()->_snapshotsLocation.get(); };
+        auto setter = [](const QString& value) { DependencyManager::get<Snapshot>()->_snapshotsLocation.set(value); emit DependencyManager::get<Snapshot>()->snapshotLocationSet(value); };
         auto preference = new BrowsePreference(SNAPSHOTS, "Put my snapshots here", getter, setter);
         preferences->addPreference(preference);
     }

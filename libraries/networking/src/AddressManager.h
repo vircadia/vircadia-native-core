@@ -22,8 +22,6 @@
 
 #include "AccountManager.h"
 
-const QString HIFI_URL_SCHEME = "hifi";
-
 extern const QString DEFAULT_HIFI_ADDRESS;
 
 const QString SANDBOX_HIFI_ADDRESS = "hifi://localhost";
@@ -35,16 +33,20 @@ const QString GET_PLACE = "/api/v1/places/%1";
  * The location API provides facilities related to your current location in the metaverse.
  *
  * @namespace location
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-assignment-client
+ *
  * @property {Uuid} domainID - A UUID uniquely identifying the domain you're visiting. Is {@link Uuid|Uuid.NULL} if you're not
- *     connected to the domain.
+ *     connected to the domain or are in a serverless domain.
  *     <em>Read-only.</em>
- * @property {Uuid} domainId - Synonym for <code>domainId</code>. <em>Read-only.</em> <strong>Deprecated:</strong> This property
- *     is deprecated and will soon be removed.
  * @property {string} hostname - The name of the domain for your current metaverse address (e.g., <code>"AvatarIsland"</code>,
- *     <code>localhost</code>, or an IP address).
+ *     <code>localhost</code>, or an IP address). Is blank if you're in a serverless domain.
  *     <em>Read-only.</em>
  * @property {string} href - Your current metaverse address (e.g., <code>"hifi://avatarisland/15,-10,26/0,0,0,1"</code>)
- *     regardless of whether or not you're connected to the domain.
+ *     regardless of whether or not you're connected to the domain. Starts with <code>"file:///"</code> if you're in a 
+ *     serverless domain.
  *     <em>Read-only.</em>
  * @property {boolean} isConnected - <code>true</code> if you're connected to the domain in your current <code>href</code>
  *     metaverse address, otherwise <code>false</code>.
@@ -69,7 +71,6 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(QString pathname READ currentPath)
     Q_PROPERTY(QString placename READ getPlaceName)
     Q_PROPERTY(QString domainID READ getDomainID)
-    Q_PROPERTY(QString domainId READ getDomainID)
 public:
     using PositionGetter = std::function<glm::vec3()>;
     using OrientationGetter = std::function<glm::quat()>;
@@ -147,20 +148,22 @@ public:
     };
 
     bool isConnected();
-    const QString& getProtocol() { return HIFI_URL_SCHEME; };
+    QString getProtocol() const;
 
     QUrl currentAddress(bool domainOnly = false) const;
     QUrl currentFacingAddress() const;
     QUrl currentShareableAddress(bool domainOnly = false) const;
+    QUrl currentPublicAddress(bool domainOnly = false) const;
     QUrl currentFacingShareableAddress() const;
+    QUrl currentFacingPublicAddress() const;
     QString currentPath(bool withOrientation = true) const;
     QString currentFacingPath() const;
 
     const QUuid& getRootPlaceID() const { return _rootPlaceID; }
-    const QString& getPlaceName() const { return _shareablePlaceName.isEmpty() ? _placeName : _shareablePlaceName; }
+    QString getPlaceName() const;
     QString getDomainID() const;
 
-    const QString& getHost() const { return _host; }
+    QString getHost() const { return _domainURL.host(); }
 
     void setPositionGetter(PositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(OrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
@@ -169,6 +172,8 @@ public:
 
     const QStack<QUrl>& getBackStack() const { return _backStack; }
     const QStack<QUrl>& getForwardStack() const { return _forwardStack; }
+
+    QUrl getDomainURL() { return _domainURL; }
 
 public slots:
     /**jsdoc
@@ -302,13 +307,12 @@ signals:
     /**jsdoc
      * Triggered when a request is made to go to an IP address.
      * @function location.possibleDomainChangeRequired
-     * @param {string} hostName - The name of the domain to go do.
-     * @param {number} port - The integer number of the network port to connect to.
+     * @param {Url} domainURL - URL for domain
      * @param {Uuid} domainID - The UUID of the domain to go to.
      * @returns {Signal}
      */
     // No example because this function isn't typically used in scripts.
-    void possibleDomainChangeRequired(const QString& newHostname, quint16 newPort, const QUuid& domainID);
+    void possibleDomainChangeRequired(QUrl domainURL, QUuid domainID);
 
     /**jsdoc
      * Triggered when a request is made to go to a named domain or user.
@@ -360,7 +364,7 @@ signals:
      * location.pathChangeRequired.connect(onPathChangeRequired);
      */
     void pathChangeRequired(const QString& newPath);
-    
+
     /**jsdoc
      * Triggered when you navigate to a new domain.
      * @function location.hostChanged
@@ -392,7 +396,7 @@ signals:
     void goBackPossible(bool isPossible);
 
     /**jsdoc
-     * Triggered when there's a change in whether or not there's a forward location that can be navigated to using 
+     * Triggered when there's a change in whether or not there's a forward location that can be navigated to using
      * {@link location.goForward|goForward}. (Reflects changes in the state of the "Goto" dialog's forward arrow.)
      * @function location.goForwardPossible
      * @param {boolean} isPossible - <code>true</code> if there's a forward location to navigate to, otherwise
@@ -407,8 +411,6 @@ signals:
      */
     void goForwardPossible(bool isPossible);
 
-protected:
-    AddressManager();
 private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
@@ -420,7 +422,7 @@ private:
 
     // Set host and port, and return `true` if it was changed.
     bool setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);
-    bool setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger);
+    bool setDomainInfo(const QUrl& domainURL, LookupTrigger trigger);
 
     const JSONCallbackParameters& apiCallbackParameters();
 
@@ -438,9 +440,8 @@ private:
 
     void addCurrentAddressToHistory(LookupTrigger trigger);
 
-    QString _host;
-    quint16 _port;
-    QString _placeName;
+    QUrl _domainURL;
+
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;
@@ -452,7 +453,7 @@ private:
     quint64 _lastBackPush = 0;
 
     QString _newHostLookupPath;
-    
+
     QUrl _previousLookup;
 };
 

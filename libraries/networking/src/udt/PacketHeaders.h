@@ -103,7 +103,7 @@ public:
         RadiusIgnoreRequest,
         UsernameFromIDRequest,
         UsernameFromIDReply,
-        ViewFrustum,
+        AvatarQuery,
         RequestsDomainListData,
         PerAvatarGainSet,
         EntityScriptGetStatus,
@@ -121,7 +121,7 @@ public:
         ReplicatedAvatarIdentity,
         ReplicatedKillAvatar,
         ReplicatedBulkAvatarData,
-        OctreeFileReplacementFromUrl,
+        DomainContentReplacementFromUrl,
         ChallengeOwnership,
         EntityScriptCallMethod,
         ChallengeOwnershipRequest,
@@ -171,7 +171,7 @@ public:
             << PacketTypeEnum::Value::DomainServerPathResponse << PacketTypeEnum::Value::DomainServerAddedNode
             << PacketTypeEnum::Value::DomainServerConnectionToken << PacketTypeEnum::Value::DomainSettingsRequest
             << PacketTypeEnum::Value::OctreeDataFileRequest << PacketTypeEnum::Value::OctreeDataFileReply
-            << PacketTypeEnum::Value::OctreeDataPersist << PacketTypeEnum::Value::OctreeFileReplacementFromUrl
+            << PacketTypeEnum::Value::OctreeDataPersist << PacketTypeEnum::Value::DomainContentReplacementFromUrl
             << PacketTypeEnum::Value::DomainSettings << PacketTypeEnum::Value::ICEServerPeerInformation
             << PacketTypeEnum::Value::ICEServerQuery << PacketTypeEnum::Value::ICEServerHeartbeat
             << PacketTypeEnum::Value::ICEServerHeartbeatACK << PacketTypeEnum::Value::ICEPing
@@ -231,7 +231,8 @@ enum class EntityVersion : PacketVersion {
     ZoneStageRemoved,
     SoftEntities,
     MaterialEntities,
-    ShadowControl
+    ShadowControl,
+    MaterialData
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -243,13 +244,16 @@ enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
     JSONFilterWithFamilyTree = 19,
     ConnectionIdentifier = 20,
-    RemovedJurisdictions = 21
+    RemovedJurisdictions = 21,
+    MultiFrustumQuery = 22,
+    ConicalFrustums = 23
 };
 
 enum class AssetServerPacketVersion: PacketVersion {
     VegasCongestionControl = 19,
     RangeRequestSupport,
-    RedirectedMappings
+    RedirectedMappings,
+    BakingTextureMeta
 };
 
 enum class AvatarMixerPacketVersion : PacketVersion {
@@ -320,6 +324,15 @@ enum class MessageDataVersion : PacketVersion {
 
 enum class IcePingVersion : PacketVersion {
     SendICEPeerID = 18
+};
+
+enum class PingVersion : PacketVersion {
+    IncludeConnectionID = 18
+};
+
+enum class AvatarQueryVersion : PacketVersion {
+    SendMultipleFrustums = 21,
+    ConicalFrustums = 22
 };
 
 #endif // hifi_PacketHeaders_h

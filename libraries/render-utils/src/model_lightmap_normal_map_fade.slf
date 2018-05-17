@@ -23,31 +23,31 @@
 <@include Fade.slh@>
 <$declareFadeFragment()$>
 
-in vec4 _position;
+in vec4 _positionES;
 in vec2 _texCoord0;
 in vec2 _texCoord1;
-in vec3 _normal;
-in vec3 _tangent;
+in vec3 _normalWS;
+in vec3 _tangentWS;
 in vec3 _color;
-in vec4 _worldPosition;
+in vec4 _positionWS;
 
 void main(void) {
     vec3 fadeEmissive;
     FadeObjectParams fadeParams;
 
     <$fetchFadeObjectParams(fadeParams)$>
-    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
+    applyFade(fadeParams, _positionWS.xyz, fadeEmissive);
 
     Material mat = getMaterial();
     BITFIELD matKey = getMaterialKey(mat);
     <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedo, roughness, normalTexel, metallicTex)$>
     <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmapVal)$>
     
-    vec3 viewNormal;
-    <$tangentToViewSpaceLOD(_position, normalTexel, _normal, _tangent, viewNormal)$>
+    vec3 fragNormal;
+    <$evalMaterialNormalLOD(_positionES, normalTexel, _normalWS, _tangentWS, fragNormal)$>
 
     packDeferredFragmentLightmap(
-        normalize(viewNormal.xyz), 
+        normalize(fragNormal.xyz),
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
         getMaterialAlbedo(mat) * albedo.rgb * _color,
         getMaterialRoughness(mat) * roughness,

@@ -36,9 +36,10 @@ QmlCommerce::QmlCommerce() {
     connect(ledger.data(), &Ledger::certificateInfoResult, this, &QmlCommerce::certificateInfoResult);
     connect(ledger.data(), &Ledger::alreadyOwnedResult, this, &QmlCommerce::alreadyOwnedResult);
     connect(ledger.data(), &Ledger::updateCertificateStatus, this, &QmlCommerce::updateCertificateStatus);
-    connect(ledger.data(), &Ledger::transferHfcToNodeResult, this, &QmlCommerce::transferHfcToNodeResult);
-    connect(ledger.data(), &Ledger::transferHfcToUsernameResult, this, &QmlCommerce::transferHfcToUsernameResult);
-    connect(ledger.data(), &Ledger::transferHfcToUsernameResult, this, &QmlCommerce::transferHfcToUsernameResult);
+    connect(ledger.data(), &Ledger::transferAssetToNodeResult, this, &QmlCommerce::transferAssetToNodeResult);
+    connect(ledger.data(), &Ledger::transferAssetToUsernameResult, this, &QmlCommerce::transferAssetToUsernameResult);
+    connect(ledger.data(), &Ledger::availableUpdatesResult, this, &QmlCommerce::availableUpdatesResult);
+    connect(ledger.data(), &Ledger::updateItemResult, this, &QmlCommerce::updateItemResult);
     
     auto accountManager = DependencyManager::get<AccountManager>();
     connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
@@ -165,31 +166,33 @@ void QmlCommerce::certificateInfo(const QString& certificateId) {
     ledger->certificateInfo(certificateId);
 }
 
-void QmlCommerce::transferHfcToNode(const QString& nodeID, const int& amount, const QString& optionalMessage) {
+void QmlCommerce::transferAssetToNode(const QString& nodeID, const QString& certificateID, const int& amount, const QString& optionalMessage) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList keys = wallet->listPublicKeys();
     if (keys.count() == 0) {
         QJsonObject result{ { "status", "fail" },{ "message", "Uninitialized Wallet." } };
-        return emit buyResult(result);
+        return emit transferAssetToNodeResult(result);
     }
     QString key = keys[0];
-    ledger->transferHfcToNode(key, nodeID, amount, optionalMessage);
+    ledger->transferAssetToNode(key, nodeID, certificateID, amount, optionalMessage);
 }
 
-void QmlCommerce::transferHfcToUsername(const QString& username, const int& amount, const QString& optionalMessage) {
+void QmlCommerce::transferAssetToUsername(const QString& username, const QString& certificateID, const int& amount, const QString& optionalMessage) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList keys = wallet->listPublicKeys();
     if (keys.count() == 0) {
         QJsonObject result{ { "status", "fail" },{ "message", "Uninitialized Wallet." } };
-        return emit buyResult(result);
+        return emit transferAssetToUsernameResult(result);
     }
     QString key = keys[0];
-    ledger->transferHfcToUsername(key, username, amount, optionalMessage);
+    ledger->transferAssetToUsername(key, username, certificateID, amount, optionalMessage);
 }
 
-void QmlCommerce::replaceContentSet(const QString& itemHref) {
+void QmlCommerce::replaceContentSet(const QString& itemHref, const QString& certificateID) {
+    auto ledger = DependencyManager::get<Ledger>();
+    ledger->updateLocation(certificateID, DependencyManager::get<AddressManager>()->getPlaceName(), true);
     qApp->replaceDomainContent(itemHref);
     QJsonObject messageProperties = {
         { "status", "SuccessfulRequestToReplaceContent" },
@@ -298,7 +301,7 @@ bool QmlCommerce::uninstallApp(const QString& itemHref) {
     // Read from the file to know what .js script to stop
     QFile appFile(_appsPath + "/" + appHref.fileName());
     if (!appFile.open(QIODevice::ReadOnly)) {
-        qCDebug(commerce) << "Couldn't open local .app.json file for deletion.";
+        qCDebug(commerce) << "Couldn't open local .app.json file for deletion. Cannot continue with app uninstallation. App filename is:" << appHref.fileName();
         return false;
     }
     QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(appFile.readAll());
@@ -306,15 +309,13 @@ bool QmlCommerce::uninstallApp(const QString& itemHref) {
     QString scriptUrl = appFileJsonObject["scriptURL"].toString();
 
     if (!DependencyManager::get<ScriptEngines>()->stopScript(scriptUrl.trimmed(), false)) {
-        qCDebug(commerce) << "Couldn't stop script.";
-        return false;
+        qCWarning(commerce) << "Couldn't stop script during app uninstall. Continuing anyway. ScriptURL is:" << scriptUrl.trimmed();
     }
 
     // Delete the .app.json from the filesystem
     // remove() closes the file first.
     if (!appFile.remove()) {
-        qCDebug(commerce) << "Couldn't delete local .app.json file.";
-        return false;
+        qCWarning(commerce) << "Couldn't delete local .app.json file during app uninstall. Continuing anyway. App filename is:" << appHref.fileName();
     }
 
     emit appUninstalled(itemHref);
@@ -348,4 +349,21 @@ bool QmlCommerce::openApp(const QString& itemHref) {
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
 
     return true;
+}
+
+void QmlCommerce::getAvailableUpdates(const QString& itemId) {
+    auto ledger = DependencyManager::get<Ledger>();
+    ledger->getAvailableUpdates(itemId);
+}
+
+void QmlCommerce::updateItem(const QString& certificateId) {
+    auto ledger = DependencyManager::get<Ledger>();
+    auto wallet = DependencyManager::get<Wallet>();
+    QStringList keys = wallet->listPublicKeys();
+    if (keys.count() == 0) {
+        QJsonObject result{ { "status", "fail" },{ "message", "Uninitialized Wallet." } };
+        return emit updateItemResult(result);
+    }
+    QString key = keys[0];
+    ledger->updateItem(key, certificateId);
 }

@@ -9,18 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <LogHandler.h>
-
 #include "DrawTask.h"
-#include "Logging.h"
 
 #include <algorithm>
 #include <assert.h>
 
+#include <LogHandler.h>
 #include <PerfStat.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
+
+#include "Logging.h"
 
 #include "drawItemBounds_vert.h"
 #include "drawItemBounds_frag.h"
@@ -41,6 +41,11 @@ void render::renderItems(const RenderContextPointer& renderContext, const ItemBo
     }
 }
 
+namespace {
+    int repeatedInvalidKeyMessageID = 0;
+    std::once_flag messageIDFlag;
+}
+
 void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, const Item& item, const ShapeKey& globalKey) {
     assert(item.getKey().isShape());
     auto key = item.getShapeKey() | globalKey;
@@ -55,9 +60,9 @@ void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, cons
     } else if (key.hasOwnPipeline()) {
         item.render(args);
     } else {
-        qCDebug(renderlogging) << "Item could not be rendered with invalid key" << key;
-        static QString repeatedCouldNotBeRendered = LogHandler::getInstance().addRepeatedMessageRegex(
-            "Item could not be rendered with invalid key.*");
+        std::call_once(messageIDFlag, [](int* id) { *id = LogHandler::getInstance().newRepeatedMessageID(); },
+                           &repeatedInvalidKeyMessageID);
+        HIFI_FCDEBUG_ID(renderlogging(), repeatedInvalidKeyMessageID, "Item could not be rendered with invalid key" << key);
     }
     args->_itemShapeKey = 0;
 }
@@ -108,9 +113,9 @@ void render::renderStateSortShapes(const RenderContextPointer& renderContext,
             } else if (key.hasOwnPipeline()) {
                 ownPipelineBucket.push_back( std::make_tuple(item, key) );
             } else {
-                static QString repeatedCouldNotBeRendered = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "Item could not be rendered with invalid key.*");
-                qCDebug(renderlogging) << "Item could not be rendered with invalid key" << key;
+                std::call_once(messageIDFlag, [](int* id) { *id = LogHandler::getInstance().newRepeatedMessageID(); },
+                    &repeatedInvalidKeyMessageID);
+                HIFI_FCDEBUG_ID(renderlogging(), repeatedInvalidKeyMessageID, "Item could not be rendered with invalid key" << key);
             }
         }
     }

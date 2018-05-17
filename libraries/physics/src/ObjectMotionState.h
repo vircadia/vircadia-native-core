@@ -111,7 +111,7 @@ public:
     virtual PhysicsMotionType getMotionType() const { return _motionType; }
 
     void setMass(float mass);
-    float getMass() const;
+    virtual float getMass() const;
 
     void setBodyLinearVelocity(const glm::vec3& velocity) const;
     void setBodyAngularVelocity(const glm::vec3& velocity) const;
@@ -148,9 +148,9 @@ public:
 
     virtual const QUuid getObjectID() const = 0;
 
-    virtual quint8 getSimulationPriority() const { return 0; }
+    virtual uint8_t getSimulationPriority() const { return 0; }
     virtual QUuid getSimulatorID() const = 0;
-    virtual void bump(quint8 priority) {}
+    virtual void bump(uint8_t priority) {}
 
     virtual QString getName() const { return ""; }
 
@@ -164,7 +164,7 @@ public:
     void clearInternalKinematicChanges() { _hasInternalKinematicChanges = false; }
 
     virtual bool isLocallyOwned() const { return false; }
-    virtual bool shouldBeLocallyOwned() const { return false; }
+    virtual bool isLocallyOwnedOrShouldBe() const { return false; } // aka shouldEmitCollisionEvents()
 
     friend class PhysicsEngine;
 

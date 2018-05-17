@@ -48,6 +48,7 @@ public:
     bool getDrawInFront() const { return _drawInFront; }
     bool getDrawHUDLayer() const { return _drawHUDLayer; }
     bool getIsGrabbable() const { return _isGrabbable; }
+    virtual bool getIsVisibleInSecondaryCamera() const override { return _isVisibleInSecondaryCamera; }
 
     void setIsSolid(bool isSolid) { _isSolid = isSolid; }
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
@@ -55,6 +56,7 @@ public:
     virtual void setDrawInFront(bool value) { _drawInFront = value; }
     virtual void setDrawHUDLayer(bool value) { _drawHUDLayer = value; }
     void setIsGrabbable(bool value) { _isGrabbable = value; }
+    virtual void setIsVisibleInSecondaryCamera(bool value) { _isVisibleInSecondaryCamera = value; }
 
     virtual AABox getBounds() const override = 0;
 
@@ -92,6 +94,7 @@ protected:
     bool _drawInFront;
     bool _drawHUDLayer;
     bool _isGrabbable { false };
+    bool _isVisibleInSecondaryCamera { false };
     mutable bool _renderVariableDirty { true };
 
     QString _name;

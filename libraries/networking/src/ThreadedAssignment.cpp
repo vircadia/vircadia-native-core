@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ThreadedAssignment.h"
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
@@ -16,8 +18,6 @@
 #include <QtCore/QTimer>
 
 #include <LogHandler.h>
-
-#include "ThreadedAssignment.h"
 
 #include "NetworkLogging.h"
 
@@ -84,7 +84,8 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     _domainServerTimer.start();
 
     // start sending stats packet once we connect to the domain
-    connect(&nodeList->getDomainHandler(), SIGNAL(connectedToDomain(const QString&)), &_statsTimer, SLOT(start()));
+    connect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain,
+            &_statsTimer, static_cast<void (QTimer::*)()>(&QTimer::start));
 
     // stop sending stats if we disconnect
     connect(&nodeList->getDomainHandler(), &DomainHandler::disconnectedFromDomain, &_statsTimer, &QTimer::stop);

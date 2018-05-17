@@ -26,6 +26,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ParticleEffectEntityItem.h"
 
 #include <glm/gtx/transform.hpp>
 #include <QtCore/QJsonDocument>
@@ -38,8 +39,6 @@
 #include "EntityTreeElement.h"
 #include "EntitiesLogging.h"
 #include "EntityScriptingInterface.h"
-#include "ParticleEffectEntityItem.h"
-
 
 using namespace particle;
 
@@ -503,8 +502,6 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     return bytesRead;
 }
 
-
-// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 

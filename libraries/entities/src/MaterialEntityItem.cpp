@@ -27,6 +27,10 @@ MaterialEntityItem::MaterialEntityItem(const EntityItemID& entityItemID) : Entit
     _type = EntityTypes::Material;
 }
 
+MaterialEntityItem::~MaterialEntityItem() {
+    removeMaterial();
+}
+
 EntityItemProperties MaterialEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialURL, getMaterialURL);
@@ -36,6 +40,7 @@ EntityItemProperties MaterialEntityItem::getProperties(EntityPropertyFlags desir
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialMappingPos, getMaterialMappingPos);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialMappingScale, getMaterialMappingScale);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialMappingRot, getMaterialMappingRot);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialData, getMaterialData);
     return properties;
 }
 
@@ -49,6 +54,7 @@ bool MaterialEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialMappingPos, setMaterialMappingPos);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialMappingScale, setMaterialMappingScale);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialMappingRot, setMaterialMappingRot);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialData, setMaterialData);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -78,12 +84,11 @@ int MaterialEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
     READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_POS, glm::vec2, setMaterialMappingPos);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, glm::vec2, setMaterialMappingScale);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
+    READ_ENTITY_PROPERTY(PROP_MATERIAL_DATA, QString, setMaterialData);
 
     return bytesRead;
 }
 
-
-// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags MaterialEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_MATERIAL_URL;
@@ -93,6 +98,7 @@ EntityPropertyFlags MaterialEntityItem::getEntityProperties(EncodeBitstreamParam
     requestedProperties += PROP_MATERIAL_MAPPING_POS;
     requestedProperties += PROP_MATERIAL_MAPPING_SCALE;
     requestedProperties += PROP_MATERIAL_MAPPING_ROT;
+    requestedProperties += PROP_MATERIAL_DATA;
     return requestedProperties;
 }
 
@@ -112,6 +118,7 @@ void MaterialEntityItem::appendSubclassData(OctreePacketData* packetData, Encode
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_POS, getMaterialMappingPos());
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, getMaterialMappingScale());
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, getMaterialMappingRot());
+    APPEND_ENTITY_PROPERTY(PROP_MATERIAL_DATA, getMaterialData());
 }
 
 void MaterialEntityItem::debugDump() const {
@@ -145,9 +152,9 @@ std::shared_ptr<NetworkMaterial> MaterialEntityItem::getMaterial() const {
     }
 }
 
-void MaterialEntityItem::setMaterialURL(const QString& materialURLString, bool userDataChanged) {
-    bool usingUserData = materialURLString.startsWith("userData");
-    if (_materialURL != materialURLString || (usingUserData && userDataChanged)) {
+void MaterialEntityItem::setMaterialURL(const QString& materialURLString, bool materialDataChanged) {
+    bool usingMaterialData = materialDataChanged || materialURLString.startsWith("materialData");
+    if (_materialURL != materialURLString || (usingMaterialData && materialDataChanged)) {
         removeMaterial();
         _materialURL = materialURLString;
 
@@ -156,8 +163,8 @@ void MaterialEntityItem::setMaterialURL(const QString& materialURLString, bool u
             _currentMaterialName = split.last().toStdString();
         }
 
-        if (usingUserData) {
-            _parsedMaterials = NetworkMaterialResource::parseJSONMaterials(QJsonDocument::fromJson(getUserData().toUtf8()));
+        if (usingMaterialData) {
+            _parsedMaterials = NetworkMaterialResource::parseJSONMaterials(QJsonDocument::fromJson(getMaterialData().toUtf8()), materialURLString);
 
             // Since our material changed, the current name might not be valid anymore, so we need to update
             setCurrentMaterialName(_currentMaterialName);
@@ -191,11 +198,11 @@ void MaterialEntityItem::setCurrentMaterialName(const std::string& currentMateri
     }
 }
 
-void MaterialEntityItem::setUserData(const QString& userData) {
-    if (_userData != userData) {
-        EntityItem::setUserData(userData);
-        if (_materialURL.startsWith("userData")) {
-            // Trigger material update when user data changes
+void MaterialEntityItem::setMaterialData(const QString& materialData) {
+    if (_materialData != materialData) {
+        _materialData = materialData;
+        if (_materialURL.startsWith("materialData")) {
+            // Trigger material update when material data changes
             setMaterialURL(_materialURL, true);
         }
     }
@@ -249,26 +256,13 @@ void MaterialEntityItem::setParentID(const QUuid& parentID) {
     }
 }
 
-void MaterialEntityItem::setClientOnly(bool clientOnly) {
-    if (getClientOnly() != clientOnly) {
-        removeMaterial();
-        EntityItem::setClientOnly(clientOnly);
-        applyMaterial();
-    }
-}
-
-void MaterialEntityItem::setOwningAvatarID(const QUuid& owningAvatarID) {
-    if (getOwningAvatarID() != owningAvatarID) {
-        removeMaterial();
-        EntityItem::setOwningAvatarID(owningAvatarID);
-        applyMaterial();
-    }
-}
-
 void MaterialEntityItem::removeMaterial() {
     graphics::MaterialPointer material = getMaterial();
-    QUuid parentID = getClientOnly() ? getOwningAvatarID() : getParentID();
-    if (!material || parentID.isNull()) {
+    if (!material) {
+        return;
+    }
+    QUuid parentID = getParentID();
+    if (parentID.isNull()) {
         return;
     }
 
@@ -291,7 +285,7 @@ void MaterialEntityItem::removeMaterial() {
 void MaterialEntityItem::applyMaterial() {
     _retryApply = false;
     graphics::MaterialPointer material = getMaterial();
-    QUuid parentID = getClientOnly() ? getOwningAvatarID() : getParentID();
+    QUuid parentID = getParentID();
     if (!material || parentID.isNull()) {
         return;
     }
@@ -323,11 +317,6 @@ void MaterialEntityItem::applyMaterial() {
 void MaterialEntityItem::postParentFixup() {
     removeMaterial();
     applyMaterial();
-}
-
-void MaterialEntityItem::preDelete() {
-    EntityItem::preDelete();
-    removeMaterial();
 }
 
 void MaterialEntityItem::update(const quint64& now) {

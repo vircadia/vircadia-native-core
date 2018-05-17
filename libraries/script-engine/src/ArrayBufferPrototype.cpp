@@ -9,13 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ArrayBufferPrototype.h"
+
 #include <glm/glm.hpp>
 
 #include <QBuffer>
 #include <QImage>
 
 #include "ArrayBufferClass.h"
-#include "ArrayBufferPrototype.h"
 
 static const int QCOMPRESS_HEADER_POSITION = 0;
 static const int QCOMPRESS_HEADER_SIZE = 4;

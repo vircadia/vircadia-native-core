@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ZoneEntityItem.h"
 
 #include <QDebug>
 
@@ -18,7 +19,6 @@
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "ZoneEntityItem.h"
 #include "EntityEditFilters.h"
 
 bool ZoneEntityItem::_zonesArePickable = false;
@@ -191,8 +191,6 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     return bytesRead;
 }
 
-
-// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 

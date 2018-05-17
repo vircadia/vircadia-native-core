@@ -9,8 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "AABox.h"
 #include "AACube.h"
+
+#include "AABox.h"
 #include "Extents.h"
 #include "GeometryUtil.h"
 #include "NumericalConstants.h"

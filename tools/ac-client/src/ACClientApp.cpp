@@ -9,18 +9,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ACClientApp.h"
+
 #include <QDataStream>
 #include <QThread>
 #include <QLoggingCategory>
 #include <QCommandLineParser>
+
 #include <NetworkLogging.h>
 #include <NetworkingConstants.h>
 #include <SharedLogging.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
 #include <SettingHandle.h>
-
-#include "ACClientApp.h"
 
 ACClientApp::ACClientApp(int argc, char* argv[]) :
     QCoreApplication(argc, argv)
@@ -119,7 +120,7 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
     nodeList->startThread();
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
-    connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&domainHandler, SIGNAL(domainURLChanged(QUrl)), SLOT(domainChanged(QUrl)));
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ACClientApp::domainConnectionRefused);
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &ACClientApp::nodeAdded);
@@ -169,7 +170,7 @@ void ACClientApp::domainConnectionRefused(const QString& reasonMessage, int reas
     qDebug() << "domainConnectionRefused";
 }
 
-void ACClientApp::domainChanged(const QString& domainHostname) {
+void ACClientApp::domainChanged(QUrl domainURL) {
     if (_verbose) {
         qDebug() << "domainChanged";
     }

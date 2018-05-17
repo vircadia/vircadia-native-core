@@ -55,6 +55,7 @@ public:
 
     virtual bool areTexturesLoaded() const;
     const QUrl& getAnimGraphOverrideUrl() const { return _animGraphOverrideUrl; }
+    const QVariantHash& getMapping() const { return _mapping; }
 
 protected:
     friend class GeometryMappingResource;
@@ -68,6 +69,7 @@ protected:
     NetworkMaterials _materials;
 
     QUrl _animGraphOverrideUrl;
+    QVariantHash _mapping;  // parsed contents of FST file.
 
 private:
     mutable bool _areTexturesLoaded { false };
@@ -137,6 +139,59 @@ class ModelCache : public ResourceCache, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
+
+    // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
+
+    /**jsdoc
+     * API to manage model cache resources.
+     * @namespace ModelCache
+     *
+     * @hifi-interface
+     * @hifi-client-entity
+     *
+     * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
+     * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
+     * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
+     * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
+     */
+
+
+    // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
+
+    /**jsdoc
+     * Get the list of all resource URLs.
+     * @function ModelCache.getResourceList
+     * @returns {string[]}
+     */
+
+    /**jsdoc
+     * @function ModelCache.dirty
+     * @returns {Signal}
+     */
+
+    /**jsdoc
+     * @function ModelCache.updateTotalSize
+     * @param {number} deltaSize
+     */
+
+    /**jsdoc
+     * Prefetches a resource.
+     * @function ModelCache.prefetch
+     * @param {string} url - URL of the resource to prefetch.
+     * @param {object} [extra=null]
+     * @returns {Resource}
+     */
+
+    /**jsdoc
+     * Asynchronously loads a resource from the specified URL and returns it.
+     * @function ModelCache.getResource
+     * @param {string} url - URL of the resource to load.
+     * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
+     * @param {} [extra=null]
+     * @returns {Resource}
+     */
+
+
     GeometryResource::Pointer getGeometryResource(const QUrl& url,
                                                   const QVariantHash& mapping = QVariantHash(),
                                                   const QUrl& textureBaseUrl = QUrl());
@@ -164,14 +219,14 @@ public:
     NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl);
     NetworkMaterial(const NetworkMaterial& material);
 
-    void setAlbedoMap(const QString& url, bool useAlphaChannel);
-    void setNormalMap(const QString& url, bool isBumpmap);
-    void setRoughnessMap(const QString& url, bool isGloss);
-    void setMetallicMap(const QString& url, bool isSpecular);
-    void setOcclusionMap(const QString& url);
-    void setEmissiveMap(const QString& url);
-    void setScatteringMap(const QString& url);
-    void setLightmapMap(const QString& url);
+    void setAlbedoMap(const QUrl& url, bool useAlphaChannel);
+    void setNormalMap(const QUrl& url, bool isBumpmap);
+    void setRoughnessMap(const QUrl& url, bool isGloss);
+    void setMetallicMap(const QUrl& url, bool isSpecular);
+    void setOcclusionMap(const QUrl& url);
+    void setEmissiveMap(const QUrl& url);
+    void setScatteringMap(const QUrl& url);
+    void setLightmapMap(const QUrl& url);
 
 protected:
     friend class Geometry;

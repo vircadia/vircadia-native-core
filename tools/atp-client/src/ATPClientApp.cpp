@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ATPClientApp.h"
+
 #include <QDataStream>
 #include <QTextStream>
 #include <QThread>
@@ -24,8 +26,6 @@
 #include <SettingHandle.h>
 #include <AssetUpload.h>
 #include <StatTracker.h>
-
-#include "ATPClientApp.h"
 
 #define HIGH_FIDELITY_ATP_CLIENT_USER_AGENT "Mozilla/5.0 (HighFidelityATPClient)"
 #define TIMEOUT_MILLISECONDS 8000
@@ -158,7 +158,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
     nodeList->startThread();
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
-    connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&domainHandler, SIGNAL(domainURLChanged(QUrl)), SLOT(domainChanged(QUrl)));
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ATPClientApp::domainConnectionRefused);
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &ATPClientApp::nodeAdded);
@@ -227,7 +227,7 @@ void ATPClientApp::domainConnectionRefused(const QString& reasonMessage, int rea
     }
 }
 
-void ATPClientApp::domainChanged(const QString& domainHostname) {
+void ATPClientApp::domainChanged(QUrl domainURL) {
     if (_verbose) {
         qDebug() << "domainChanged";
     }

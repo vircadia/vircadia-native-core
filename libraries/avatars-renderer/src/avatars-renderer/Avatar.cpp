@@ -227,8 +227,12 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
-    if (getID() == QUuid() || getID() == AVATAR_SELF_ID) {
-        return; // wait until MyAvatar gets an ID before doing this.
+    if (getID().isNull() ||
+        getID() == AVATAR_SELF_ID ||
+        DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
+        // wait until MyAvatar and this Node gets an ID before doing this.  Otherwise, various things go wrong --
+        // things get their parent fixed up from AVATAR_SELF_ID to a null uuid which means "no parent".
+        return;
     }
 
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
@@ -801,7 +805,6 @@ bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     return true;
 }
 
-// virtual
 void Avatar::simulateAttachments(float deltaTime) {
     assert(_attachmentModels.size() == _attachmentModelsTexturesLoaded.size());
     PerformanceTimer perfTimer("attachments");
@@ -1484,12 +1487,14 @@ void Avatar::updateDisplayNameAlpha(bool showDisplayName) {
     }
 }
 
-// virtual
 void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
     float uniformScale = getModelScale();
-    shapeInfo.setCapsuleY(uniformScale * _skeletonModel->getBoundingCapsuleRadius(),
-            0.5f * uniformScale *  _skeletonModel->getBoundingCapsuleHeight());
-    shapeInfo.setOffset(uniformScale * _skeletonModel->getBoundingCapsuleOffset());
+    float radius = uniformScale * _skeletonModel->getBoundingCapsuleRadius();
+    float height = uniformScale *  _skeletonModel->getBoundingCapsuleHeight();
+    shapeInfo.setCapsuleY(radius, 0.5f * height);
+
+    glm::vec3 offset = uniformScale * _skeletonModel->getBoundingCapsuleOffset();
+    shapeInfo.setOffset(offset);
 }
 
 void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
@@ -1512,9 +1517,8 @@ float Avatar::computeMass() {
     return _density * TWO_PI * radius * radius * (glm::length(end - start) + 2.0f * radius / 3.0f);
 }
 
-// virtual
 void Avatar::rebuildCollisionShape() {
-    addPhysicsFlags(Simulation::DIRTY_SHAPE);
+    addPhysicsFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
 }
 
 void Avatar::setPhysicsCallback(AvatarPhysicsCallback cb) {

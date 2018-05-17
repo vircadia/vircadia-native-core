@@ -106,7 +106,11 @@ void AccountManager::logout() {
 }
 
 QString accountFileDir() {
+#if defined(Q_OS_ANDROID)
+    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/../files";
+#else
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+#endif
 }
 
 QString accountFilePath() {
@@ -447,6 +451,20 @@ void AccountManager::removeAccountFromFile() {
 
     qCWarning(networking) << "Count not load accounts file - unable to remove account information for" << _authURL
         << "from settings file.";
+}
+
+void AccountManager::setAccountInfo(const DataServerAccountInfo &newAccountInfo) {
+    _accountInfo = newAccountInfo;
+    _pendingPrivateKey.clear();
+    if (_isAgent && !_accountInfo.getAccessToken().token.isEmpty() && !_accountInfo.hasProfile()) {
+        // we are missing profile information, request it now
+        requestProfile();
+    }
+
+    // prepare to refresh our token if it is about to expire
+    if (needsToRefreshToken()) {
+        refreshAccessToken();
+    }
 }
 
 bool AccountManager::hasValidAccessToken() {

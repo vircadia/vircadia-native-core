@@ -63,6 +63,15 @@ static const float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 const QString Web3DOverlay::TYPE = "web3d";
 const QString Web3DOverlay::QML = "Web3DOverlay.qml";
+
+static auto qmlSurfaceDeleter = [](OffscreenQmlSurface* surface) {
+    AbstractViewStateInterface::instance()->sendLambdaEvent([surface] {
+        // WebEngineView may run other threads (wasapi), so they must be deleted for a clean shutdown
+        // if the application has already stopped its event loop, delete must be explicit
+        delete surface;
+    });
+};
+
 Web3DOverlay::Web3DOverlay() {
     _touchDevice.setCapabilities(QTouchDevice::Position);
     _touchDevice.setType(QTouchDevice::TouchScreen);
@@ -75,7 +84,8 @@ Web3DOverlay::Web3DOverlay() {
     connect(this, &Web3DOverlay::resizeWebSurface, this, &Web3DOverlay::onResizeWebSurface);
 
     //need to be intialized before Tablet 1st open
-    _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(_url);
+    _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(QML);
+    _cachedWebSurface = true;
     _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
     _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
@@ -114,6 +124,7 @@ void Web3DOverlay::destroyWebSurface() {
     if (!_webSurface) {
         return;
     }
+
     QQuickItem* rootItem = _webSurface->getRootItem();
 
     if (rootItem && rootItem->objectName() == "tabletRoot") {
@@ -135,10 +146,15 @@ void Web3DOverlay::destroyWebSurface() {
 
     QObject::disconnect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
     QObject::disconnect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
-    auto offscreenCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
-    // FIXME prevents crash on shutdown, but we shoudln't have to do this check
-    if (offscreenCache) {
-        offscreenCache->release(QML, _webSurface);
+
+    // If the web surface was fetched out of the cache, release it back into the cache
+    if (_cachedWebSurface) {
+        auto offscreenCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+        // FIXME prevents crash on shutdown, but we shoudln't have to do this check
+        if (offscreenCache) {
+            offscreenCache->release(QML, _webSurface);
+        }
+        _cachedWebSurface = false;
     }
     _webSurface.reset();
 }
@@ -147,6 +163,8 @@ void Web3DOverlay::buildWebSurface() {
     if (_webSurface) {
         return;
     }
+    // FIXME the context save here is most likely unecessary since the QML surfaces now render
+    // off the main thread, and all GL context work is done off the main thread (I *think*)
     gl::withSavedContext([&] {
         // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
         // and the current rendering load)
@@ -156,10 +174,13 @@ void Web3DOverlay::buildWebSurface() {
 
         if (isWebContent()) {
             _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(QML);
+            _cachedWebSurface = true;
             _webSurface->getRootItem()->setProperty("url", _url);
             _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
         } else {
-            _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(_url);
+            _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), qmlSurfaceDeleter);
+            _webSurface->load(_url);
+            _cachedWebSurface = false;
             setupQmlSurface();
         }
         _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getWorldPosition()));
@@ -309,16 +330,20 @@ void Web3DOverlay::render(RenderArgs* args) {
     renderTransform.setScale(1.0f);
     batch.setModelTransform(renderTransform);
 
+    // Turn off jitter for these entities
+    batch.pushProjectionJitter();
+
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (color.a < OPAQUE_ALPHA_THRESHOLD) {
         geometryCache->bindWebBrowserProgram(batch, true);
     } else {
         geometryCache->bindWebBrowserProgram(batch);
     }
-
     vec2 halfSize = vec2(size.x, size.y) / 2.0f;
     geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color, _geometryId);
+    batch.popProjectionJitter(); // Restore jitter
     batch.setResourceTexture(0, nullptr); // restore default white color after me
+
 }
 
 Transform Web3DOverlay::evalRenderTransform() {

@@ -22,17 +22,25 @@ class AutoTester : public QMainWindow {
 
 public:
     AutoTester(QWidget *parent = Q_NULLPTR);
+
+    void runFromCommandLine(const QString& testFolder);
+
     void downloadImage(const QUrl& url);
     void downloadImages(const QStringList& URLs, const QString& directoryName, const QStringList& filenames);
 
 private slots:
     void on_evaluateTestsButton_clicked();
     void on_createRecursiveScriptButton_clicked();
-    void on_createRecursiveScriptsRecursivelyButton_clicked();
-    void on_createTestButton_clicked();
+    void on_createAllRecursiveScriptsButton_clicked();
+	void on_createTestButton_clicked();
+    void on_createMDFileButton_clicked();
+    void on_createAllMDFilesButton_clicked();
+    void on_createTestsOutlineButton_clicked();
     void on_closeButton_clicked();
 
     void saveImage(int index);
+
+    void about();
 
 private:
     Ui::AutoTesterClass ui;
@@ -47,9 +55,11 @@ private:
     // Used to enable passing a parameter to slots
     QSignalMapper* signalMapper;
 
-    int _numberOfImagesToDownload;
-    int _numberOfImagesDownloaded;
-    int _index;
+    int _numberOfImagesToDownload { 0 };
+    int _numberOfImagesDownloaded { 0 };
+    int _index { 0 };
+
+    bool isRunningFromCommandline { false };
 };
 
 #endif // hifi_AutoTester_h

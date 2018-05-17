@@ -11,44 +11,34 @@
 import QtQuick 2.5
 import QtQuick.Window 2.2
 
-Item {
-    readonly property alias colors: colors
-    readonly property alias colorSchemes: colorSchemes
-    readonly property alias dimensions: dimensions
-    readonly property alias fontSizes: fontSizes
-    readonly property alias glyphs: glyphs
-    readonly property alias icons: icons
-    readonly property alias buttons: buttons
-    readonly property alias effects: effects
+QtObject {
 
     function glyphForIcon(icon) {
         // Translates icon enum to glyph char.
         var glyph;
         switch (icon) {
-            case hifi.icons.information:
-                glyph = hifi.glyphs.info;
+            case icons.information:
+                glyph = glyphs.info;
                 break;
-            case hifi.icons.question:
-                glyph = hifi.glyphs.question;
+            case icons.question:
+                glyph = glyphs.question;
                 break;
-            case hifi.icons.warning:
-                glyph = hifi.glyphs.alert;
+            case icons.warning:
+                glyph = glyphs.alert;
                 break;
-            case hifi.icons.critical:
-                glyph = hifi.glyphs.error;
+            case icons.critical:
+                glyph = glyphs.error;
                 break;
-            case hifi.icons.placemark:
-                glyph = hifi.glyphs.placemark;
+            case icons.placemark:
+                glyph = glyphs.placemark;
                 break;
             default:
-                glyph = hifi.glyphs.noIcon;
+                glyph = glyphs.noIcon;
         }
         return glyph;
     }
 
-    Item {
-        id: colors
-
+    readonly property QtObject colors: QtObject {
         // Base colors
         readonly property color baseGray: "#393939"
         readonly property color darkGray: "#121212"
@@ -134,15 +124,13 @@ Item {
         readonly property color tabBackgroundLight: "#d4d4d4"
     }
 
-    Item {
-        id: colorSchemes
+    readonly property QtObject colorSchemes: QtObject {
         readonly property int light: 0
         readonly property int dark: 1
         readonly property int faintGray: 2
     }
 
-    Item {
-        id: dimensions
+    readonly property QtObject dimensions: QtObject {
         readonly property bool largeScreen: Screen.width >= 1920 && Screen.height >= 1080
         readonly property real borderRadius: largeScreen ? 7.5 : 5.0
         readonly property real borderWidth: largeScreen ? 2 : 1
@@ -168,8 +156,8 @@ Item {
         readonly property real buttonWidth: 120
     }
 
-    Item {
-        id: fontSizes  // In pixels
+    readonly property QtObject fontSizes: QtObject {
+        // In pixels
         readonly property real overlayTitle: dimensions.largeScreen ? 18 : 14
         readonly property real tabName: dimensions.largeScreen ? 12 : 10
         readonly property real sectionName: dimensions.largeScreen ? 12 : 10
@@ -194,8 +182,7 @@ Item {
         readonly property real disclosureButton: dimensions.largeScreen ? 30 : 22
     }
 
-    Item {
-        id: icons
+    readonly property QtObject icons: QtObject {
         // Values per OffscreenUi::Icon
         readonly property int none: 0
         readonly property int question: 1
@@ -205,8 +192,7 @@ Item {
         readonly property int placemark: 5
     }
 
-    Item {
-        id: buttons
+    readonly property QtObject buttons: QtObject {
         readonly property int white: 0
         readonly property int blue: 1
         readonly property int red: 2
@@ -227,12 +213,11 @@ Item {
         readonly property int radius: 5
     }
 
-    QtObject {
-        id: effects
+    readonly property QtObject effects: QtObject {
         readonly property int fadeInDuration: 300
     }
-    Item {
-        id: glyphs
+
+    readonly property QtObject glyphs: QtObject {
         readonly property string noIcon: ""
         readonly property string hmd: "b"
         readonly property string screen: "c"
@@ -359,5 +344,10 @@ Item {
         readonly property string wand: "\ue02d"
         readonly property string hat: "\ue02e"
         readonly property string install: "\ue02f"
+        readonly property string certificate: "\ue030"
+        readonly property string gift: "\ue031"
+        readonly property string update: "\ue032"
+        readonly property string uninstall: "\ue033"
+        readonly property string verticalEllipsis: "\ue034"
     }
 }

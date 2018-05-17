@@ -9,10 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ObjectActionTravelOriented.h"
+
 #include <glm/gtc/quaternion.hpp>
 
 #include "QVariantGLM.h"
-#include "ObjectActionTravelOriented.h"
 #include "PhysicsLogging.h"
 
 const uint16_t ObjectActionTravelOriented::actionVersion = 1;

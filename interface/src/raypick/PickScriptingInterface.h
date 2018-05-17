@@ -18,6 +18,10 @@
  * The Picks API lets you create and manage objects for repeatedly calculating intersections in different ways.
  *
  * @namespace Picks
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @property PICK_NOTHING {number} A filter flag.  Don't intersect with anything.
  * @property PICK_ENTITIES {number} A filter flag.  Include entities when intersecting.
  * @property PICK_OVERLAYS {number} A filter flag.  Include overlays when intersecting.
@@ -109,7 +113,7 @@ public:
      *
      * @typedef {Object} Picks.RayPickResult
      * @property {number} type The intersection type.
-     * @property {bool} intersects If there was a valid intersection (type != INTERSECTED_NONE)
+     * @property {boolean} intersects If there was a valid intersection (type != INTERSECTED_NONE)
      * @property {Uuid} objectID The ID of the intersected object.  Uuid.NULL for the HUD or invalid intersections.
      * @property {float} distance The distance to the intersection point from the origin of the ray.
      * @property {Vec3} intersection The intersection point in world-space.
@@ -123,7 +127,7 @@ public:
      *
      * @typedef {Object} Picks.StylusPickResult
      * @property {number} type The intersection type.
-     * @property {bool} intersects If there was a valid intersection (type != INTERSECTED_NONE)
+     * @property {boolean} intersects If there was a valid intersection (type != INTERSECTED_NONE)
      * @property {Uuid} objectID The ID of the intersected object.  Uuid.NULL for the HUD or invalid intersections.
      * @property {float} distance The distance to the intersection point from the origin of the ray.
      * @property {Vec3} intersection The intersection point in world-space.

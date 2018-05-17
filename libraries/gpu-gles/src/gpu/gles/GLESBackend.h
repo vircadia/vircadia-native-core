@@ -13,8 +13,8 @@
 
 #include <gl/Config.h>
 
-#include "../gl/GLBackend.h"
-#include "../gl/GLTexture.h"
+#include <gpu/gl/GLBackend.h>
+#include <gpu/gl/GLTexture.h>
 
 
 namespace gpu { namespace gles {
@@ -32,7 +32,6 @@ public:
     static const GLint RESOURCE_TRANSFER_EXTRA_TEX_UNIT { 33 };
     static const GLint RESOURCE_BUFFER_TEXBUF_TEX_UNIT { 34 };
     static const GLint RESOURCE_BUFFER_SLOT0_TEX_UNIT { 35 };
-    static bool supportedTextureFormat(const gpu::Element& format);
     explicit GLESBackend(bool syncCache) : Parent(syncCache) {}
     GLESBackend() : Parent() {}
     virtual ~GLESBackend() {
@@ -40,6 +39,8 @@ public:
         // which is pure virtual from GLBackend's dtor.
         resetStages();
     }
+
+    bool supportedTextureFormat(const gpu::Element& format) override;
     
     static const std::string GLES_VERSION;
     const std::string& getVersion() const override { return GLES_VERSION; }

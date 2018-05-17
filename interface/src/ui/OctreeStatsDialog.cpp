@@ -9,20 +9,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctreeStatsDialog.h"
+
 #include <sstream>
 
 #include <QFormLayout>
 #include <QDialogButtonBox>
-
 #include <QPalette>
 #include <QColor>
 
 #include <OctreeSceneStats.h>
 
 #include "Application.h"
-
 #include "../octree/OctreePacketProcessor.h"
-#include "ui/OctreeStatsDialog.h"
 
 OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* model) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),

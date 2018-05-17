@@ -60,7 +60,7 @@ public:
     bool intersects { false };
     OverlayID overlayID { UNKNOWN_OVERLAY_ID };
     float distance { 0 };
-    BoxFace face;
+    BoxFace face { UNKNOWN_FACE };
     glm::vec3 surfaceNormal;
     glm::vec3 intersection;
     QVariantMap extraInfo;
@@ -76,6 +76,10 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
  * The Overlays API provides facilities to create and interact with overlays. Overlays are 2D and 3D objects visible only to
  * yourself and that aren't persisted to the domain. They are used for UI.
  * @namespace Overlays
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @property {Uuid} keyboardFocusOverlay - Get or set the {@link Overlays.OverlayType|web3d} overlay that has keyboard focus.
  *     If no overlay has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
  *     clear keyboard focus.
@@ -234,6 +238,50 @@ public slots:
      * print("Type: " + type);
      */
     QString getOverlayType(OverlayID overlayId);
+
+    /**jsdoc
+     * Get the overlay script object. In particular, this is useful for accessing the event bridge for a <code>web3d</code> 
+     * overlay.
+     * @function Overlays.getOverlayObject
+     * @param {Uuid} overlayID - The ID of the overlay to get the script object of.
+     * @returns {object} The script object for the overlay if found.
+     * @example <caption>Receive "hello" messages from a <code>web3d</code> overlay.</caption>
+     * // HTML file: name "web3d.html".
+     * <!DOCTYPE html>
+     * <html>
+     * <head>
+     *     <title>HELLO</title>
+     * </head>
+     * <body>
+     *     <h1>HELLO</h1></h1>
+     *     <script>
+     *         setInterval(function () {
+     *             EventBridge.emitWebEvent("hello");
+     *         }, 2000);
+     *     </script>
+     * </body>
+     * </html>
+     *
+     * // Script file.
+     * var web3dOverlay = Overlays.addOverlay("web3d", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, {x: 0, y: 0.5, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     url: Script.resolvePath("web3d.html"),
+     *     alpha: 1.0
+     * });
+     *
+     * function onWebEventReceived(event) {
+     *     print("onWebEventReceived() : " + JSON.stringify(event));
+     * }
+     *
+     * overlayObject = Overlays.getOverlayObject(web3dOverlay);
+     * overlayObject.webEventReceived.connect(onWebEventReceived);
+     *
+     * Script.scriptEnding.connect(function () {
+     *     Overlays.deleteOverlay(web3dOverlay);
+     * });
+     */
+    QObject* getOverlayObject(OverlayID id);
 
     /**jsdoc
      * Get the ID of the 2D overlay at a particular point on the screen or HUD.
@@ -680,6 +728,7 @@ private:
     unsigned int _stackOrder { 1 };
 
     bool _enabled = true;
+    std::atomic<bool> _shuttingDown{ false };
 
     PointerEvent calculateOverlayPointerEvent(OverlayID overlayID, PickRay ray, RayToOverlayIntersectionResult rayPickResult,
         QMouseEvent* event, PointerEvent::EventType eventType);

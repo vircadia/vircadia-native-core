@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OvenMainWindow.h"
+
 #include <QtWidgets/QStackedWidget>
 
 #include "ModesWidget.h"
-
-#include "OvenMainWindow.h"
 
 OvenMainWindow::OvenMainWindow(QWidget *parent, Qt::WindowFlags flags) :
     QMainWindow(parent, flags)
@@ -46,7 +46,7 @@ ResultsWindow* OvenMainWindow::showResultsWindow(bool shouldRaise) {
         _resultsWindow->show();
 
         // place the results window initially below our window
-        _resultsWindow->move(_resultsWindow->x(), this->frameGeometry().bottom());
+        _resultsWindow->move(_resultsWindow->x(), frameGeometry().bottom());
     }
 
     // show the results window and make sure it is in front
