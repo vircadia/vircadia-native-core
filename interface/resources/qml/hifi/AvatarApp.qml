@@ -611,7 +611,7 @@ Rectangle {
                             id: favoriteAvatarImage
                             imageUrl: thumbnailUrl
                             border.color: container.highlighted ? style.colors.blueHighlight : 'transparent'
-                            border.width: container.highlighted ? 2 : 0
+                            border.width: container.highlighted ? 4 : 0
                             wearablesCount: {
                                 console.debug('getMoreAvatars: ', getMoreAvatars, 'name: ', name);
                                 return !getMoreAvatars ? wearables.count : 0
