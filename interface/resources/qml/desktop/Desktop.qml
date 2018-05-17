@@ -149,7 +149,7 @@ FocusScope {
         }
 
         function isModalWindow(window) {
-            return true;//window.modality !== (typeof Qt !== 'undefined' ? Qt.NonModal : 0);
+            return window.modality !== (typeof Qt !== 'undefined' ? Qt.NonModal : 0);
         }
 
         function getTopLevelWindows(predicate) {
