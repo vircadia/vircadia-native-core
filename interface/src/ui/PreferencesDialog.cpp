@@ -15,7 +15,6 @@
 #include <OffscreenUi.h>
 #include <Preferences.h>
 #include <QRandomGenerator>
-#include <MessagesClient.h>
 #include <RenderShadowTask.h>
 #include <display-plugins/CompositorHelper.h>
 
@@ -26,9 +25,6 @@
 #include "Snapshot.h"
 #include "SnapshotAnimated.h"
 #include "UserActivityLogger.h"
-
-#include "controllers/impl/MappingBuilderProxy.h"
-#include "controllers/impl/RouteBuilderProxy.h"
 
 void setupPreferences() {
     auto preferences = DependencyManager::get<Preferences>();
@@ -61,33 +57,50 @@ void setupPreferences() {
     // Graphics quality
     static const QString GRAPHICS_QUALITY { "Graphics Quality" };
     {
-        auto getter = []()->float { return DependencyManager::get<LODManager>()->getOctreeSizeScale()/TREE_SCALE; };
-        auto setter = [](float value) {  DependencyManager::get<LODManager>()->setOctreeSizeScale(value*TREE_SCALE); };
+        static const float MAX_DESKTOP_FPS = 60;
+        static const float MAX_HMD_FPS = 90;
+        static const float MIN_HMD_FPS = 35;
+        auto getter = []()->float {
+            auto lodManager = DependencyManager::get<LODManager>();
+            float sliderValue = 0;
+            bool inHMD = qApp->isHMDMode();
+
+            if (inHMD) {
+                float hmdMinFPS = lodManager->getHMDLODDecreaseFPS();
+                sliderValue = (MAX_HMD_FPS - hmdMinFPS) / MAX_HMD_FPS;
+            } else {
+                float desktopMinFPS = lodManager->getDesktopLODDecreaseFPS();
+                sliderValue = (MAX_DESKTOP_FPS - desktopMinFPS) / MAX_DESKTOP_FPS;
+            }
+            return sliderValue;
+        };
+
+        auto setter = [](float value) {
+            static const float THRASHING_DIFFERENCE = 10;
+            auto lodManager = DependencyManager::get<LODManager>();
+            if (qApp->isHMDMode()) {
+                float desiredHMDFPS = (MAX_HMD_FPS - (MAX_HMD_FPS * value)) - THRASHING_DIFFERENCE;
+                float actualHMDFPS = desiredHMDFPS > MIN_HMD_FPS ? desiredHMDFPS : MIN_HMD_FPS;
+                lodManager->setHMDLODDecreaseFPS(actualHMDFPS);
+            } else {
+                float desiredDesktopFPS = (MAX_DESKTOP_FPS - (MAX_DESKTOP_FPS * value)) - THRASHING_DIFFERENCE;
+                lodManager->setDesktopLODDecreaseFPS(desiredDesktopFPS);
+            }
+        };
+
         auto wodSlider = new SliderPreference(GRAPHICS_QUALITY, "World Detail", getter, setter);
         wodSlider->setMin(0);
-        wodSlider->setMax(2000);
+        wodSlider->setMax(1);
+        wodSlider->setStep(0.1);
         preferences->addPreference(wodSlider);
 
         auto getterShadow = []()->bool {
-                bool ret = false;
-                auto renderConfig = qApp->getRenderEngine()->getConfiguration();
-                if (renderConfig) {
-                    auto mainViewShadowTaskConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
-                    if (mainViewShadowTaskConfig) {
-                            ret = (mainViewShadowTaskConfig->getPreset() == QStringLiteral("Enabled"));
-                    }
-                }
-                return ret;
+            auto menu = Menu::getInstance();
+            return menu->isOptionChecked(MenuOption::Shadows);
         };
         auto setterShadow = [](bool value) {
-            auto renderConfig = qApp->getRenderEngine()->getConfiguration();
-            if (renderConfig) {
-                auto mainViewShadowTaskConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
-                if (mainViewShadowTaskConfig) {
-                    mainViewShadowTaskConfig->setPreset(value ? QStringLiteral("Enabled")
-                                                              : QStringLiteral("None"));
-                }
-            }
+            auto menu = Menu::getInstance();
+            menu->setIsOptionChecked(MenuOption::Shadows, value);
         };
         preferences->addPreference(new CheckPreference(GRAPHICS_QUALITY, "Show Shadows", getterShadow, setterShadow));
     }
