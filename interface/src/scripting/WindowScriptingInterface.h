@@ -521,6 +521,20 @@ public slots:
     int openMessageBox(QString title, QString text, int buttons, int defaultButton);
 
     /**jsdoc
+     * Open the given resource in the Interface window or in a web browser depending on the url scheme
+     * @function Window.openUrl
+     * @param {string} url - The resource to open
+     */
+    void openUrl(const QUrl& url);
+
+    /**jsdoc
+     * (Android only) Open the requested Activity and optionally back to the scene when the activity is done
+     * @function Window.openAndroidActivity
+     * @param {string} activityName - The name of the activity to open. One of "Home", "Login" or "Privacy Policy"
+     */
+    void openAndroidActivity(const QString& activityName, const bool backToScene);
+
+    /**jsdoc
      * Update the content of a message box that was opened with {@link Window.openMessageBox|openMessageBox}.
      * @function Window.updateMessageBox
      * @param {number} id - The ID of the message box.

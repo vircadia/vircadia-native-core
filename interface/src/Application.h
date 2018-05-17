@@ -415,10 +415,7 @@ public slots:
     void setIsServerlessMode(bool serverlessDomain);
     void loadServerlessDomain(QUrl domainURL);
 
-    Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
-
     void updateVerboseLogging();
-    Q_INVOKABLE void openAndroidActivity(const QString& activityName);
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);

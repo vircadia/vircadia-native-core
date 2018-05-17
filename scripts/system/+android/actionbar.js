@@ -33,18 +33,24 @@ function init() {
         hoverBgOpacity: 0.0,
         activeBgOpacity: 0.0
     });
-
-    backButton.clicked.connect(onBackPressed);
+    
+    backButton.entered.connect(onBackPressed);
+    backButton.clicked.connect(onBackClicked);
 }
 
 function onBackPressed() {
-    App.openAndroidActivity("Home");
+   Controller.triggerHapticPulseOnDevice(Controller.findDevice("TouchscreenVirtualPad"), 0.1, 40.0, 0);
+}
+
+function onBackClicked() {
+   Window.openAndroidActivity("Home", false);
 }
 
 
 Script.scriptEnding.connect(function() {
     if(backButton) {
-        backButton.clicked.disconnect(onBackPressed);
+        backButton.entered.disconnect(onBackPressed);
+        backButton.clicked.disconnect(onBackClicked);
     }
 });
 

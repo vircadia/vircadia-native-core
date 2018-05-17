@@ -15,6 +15,9 @@ import android.content.Intent;
 import android.content.res.AssetManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Vibrator;
+import android.view.HapticFeedbackConstants;
 import android.view.WindowManager;
 import android.util.Log;
 import org.qtproject.qt5.android.bindings.QtActivity;
@@ -33,16 +36,14 @@ public class InterfaceActivity extends QtActivity {
 
     public static final String DOMAIN_URL = "url";
     private static final String TAG = "Interface";
+    private Vibrator mVibrator;
 
     //public static native void handleHifiURL(String hifiURLString);
     private native long nativeOnCreate(InterfaceActivity instance, AssetManager assetManager);
     private native void nativeOnDestroy();
     private native void nativeGotoUrl(String url);
-    private native void nativeGoBackFromAndroidActivity();
     private native void nativeEnterBackground();
     private native void nativeEnterForeground();
-    //private native void saveRealScreenSize(int width, int height);
-    //private native void setAppVersion(String version);
     private native long nativeOnExitVr();
 
     private AssetManager assetManager;
@@ -89,7 +90,6 @@ public class InterfaceActivity extends QtActivity {
 
         Point size = new Point();
         getWindowManager().getDefaultDisplay().getRealSize(size);
-//        saveRealScreenSize(size.x, size.y);
 
         try {
             PackageInfo pInfo = this.getPackageManager().getPackageInfo(getPackageName(), 0);
@@ -102,17 +102,13 @@ public class InterfaceActivity extends QtActivity {
         final View rootView = getWindow().getDecorView().findViewById(android.R.id.content);
 
         // This is a workaround to hide the menu bar when the virtual keyboard is shown from Qt
-        rootView.getViewTreeObserver().addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                int heightDiff = rootView.getRootView().getHeight() - rootView.getHeight();
-                if (getActionBar().isShowing()) {
-                    getActionBar().hide();
-                }
+        rootView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            if (getActionBar() != null && getActionBar().isShowing()) {
+                getActionBar().hide();
             }
         });
         startActivity(new Intent(this, SplashActivity.class));
-
+        mVibrator = (Vibrator) this.getSystemService(VIBRATOR_SERVICE);
     }
 
     @Override
@@ -195,13 +191,16 @@ public class InterfaceActivity extends QtActivity {
         if (intent.hasExtra(DOMAIN_URL)) {
             nativeGotoUrl(intent.getStringExtra(DOMAIN_URL));
         }
-        nativeGoBackFromAndroidActivity();
     }
 
-    public void openAndroidActivity(String activityName) {
+    public void openAndroidActivity(String activityName, boolean backToScene) {
         switch (activityName) {
-            case "Home": {
-                Intent intent = new Intent(this, HomeActivity.class);
+            case "Home":
+            case "Privacy Policy":
+            case "Login": {
+                Intent intent = new Intent(this, MainActivity.class);
+                intent.putExtra(MainActivity.EXTRA_FRAGMENT, activityName);
+                intent.putExtra(MainActivity.EXTRA_BACK_TO_SCENE, backToScene);
                 startActivity(intent);
                 break;
             }
@@ -216,8 +215,14 @@ public class InterfaceActivity extends QtActivity {
         super.isLoading = false;
     }
 
+    public void performHapticFeedback(int duration) {
+        if (duration > 0) {
+            mVibrator.vibrate(duration);
+        }
+    }
+
     @Override
     public void onBackPressed() {
-        openAndroidActivity("Home");
+        openAndroidActivity("Home", false);
     }
 }
