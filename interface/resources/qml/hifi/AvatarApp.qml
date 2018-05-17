@@ -595,6 +595,12 @@ Rectangle {
                         width: 92
                         height: 92
 
+                        Behavior on y {
+                            SpringAnimation {
+                                spring: 2; damping: 0.2
+                            }
+                        }
+
                         states: [
                             State {
                                 name: "hovered"
