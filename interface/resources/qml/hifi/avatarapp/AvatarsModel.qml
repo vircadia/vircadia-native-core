@@ -49,6 +49,7 @@ ListModel {
             'name' : avatarName,
             'avatarScale' : avatar.avatarScale,
             'thumbnailUrl' : avatarThumbnailUrl,
+            'avatarUrl' : avatar.avatarUrl,
             'wearables' : avatar.avatarEntites ? avatar.avatarEntites : [],
             'attachments' : avatar.attachments ? avatar.attachments : [],
             'entry' : avatar,
@@ -201,7 +202,7 @@ ListModel {
             var thesame = true;
             var bookmarkedAvatar = allAvatars.get(i);
 
-            if(bookmarkedAvatar.thumbnailUrl !== avatar.thumbnailUrl)
+            if(bookmarkedAvatar.avatarUrl !== avatar.avatarUrl)
                 continue;
 
             if(bookmarkedAvatar.avatarScale !== avatar.avatarScale)
