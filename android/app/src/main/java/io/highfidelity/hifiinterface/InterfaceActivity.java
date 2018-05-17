@@ -114,9 +114,7 @@ public class InterfaceActivity extends QtActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (!isLoading) {
-            nativeEnterBackground();
-        }
+        nativeEnterBackground();
         //gvrApi.pauseTracking();
     }
 
@@ -215,9 +213,6 @@ public class InterfaceActivity extends QtActivity {
 
     public void onAppLoadedComplete() {
         super.isLoading = false;
-        new Handler(getMainLooper()).postDelayed(() -> {
-            nativeEnterBackground();
-        }, 2000);
     }
 
     public void performHapticFeedback(int duration) {
