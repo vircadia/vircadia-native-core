@@ -126,6 +126,7 @@ private: \
  * @property {number} gpuTextureResidentMemory - <em>Read-only.</em>
  * @property {number} gpuTextureFramebufferMemory - <em>Read-only.</em>
  * @property {number} gpuTextureResourceMemory - <em>Read-only.</em>
+ * @property {number} gpuTextureResourceIdealMemory - <em>Read-only.</em>
  * @property {number} gpuTextureResourcePopulatedMemory - <em>Read-only.</em>
  * @property {number} gpuTextureExternalMemory - <em>Read-only.</em>
  * @property {string} gpuTextureMemoryPressureState - <em>Read-only.</em>
@@ -270,6 +271,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, gpuTextureResidentMemory, 0)
     STATS_PROPERTY(int, gpuTextureFramebufferMemory, 0)
     STATS_PROPERTY(int, gpuTextureResourceMemory, 0)
+    STATS_PROPERTY(int, gpuTextureResourceIdealMemory, 0)
     STATS_PROPERTY(int, gpuTextureResourcePopulatedMemory, 0)
     STATS_PROPERTY(int, gpuTextureExternalMemory, 0)
     STATS_PROPERTY(QString, gpuTextureMemoryPressureState, QString())
@@ -917,6 +919,13 @@ signals:
      * @returns {Signal}
      */
     void gpuTextureResourceMemoryChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>gpuTextureResourceIdealMemory</code> property changes.
+     * @function Stats.gpuTextureResourceIdealMemoryChanged
+     * @returns {Signal}
+     */
+    void gpuTextureResourceIdealMemoryChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>gpuTextureResourcePopulatedMemory</code> property changes.
