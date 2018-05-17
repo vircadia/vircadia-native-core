@@ -51,8 +51,8 @@ public:
     void setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit);
     void unsetKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit);
 
-    void setupLocalLightsBatch(gpu::Batch& batch, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit, const LightClustersPointer& lightClusters);
-    void unsetLocalLightsBatch(gpu::Batch& batch, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit);
+    void setupLocalLightsBatch(gpu::Batch& batch, int lightArrayBufferUnit, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit, const LightClustersPointer& lightClusters);
+    void unsetLocalLightsBatch(gpu::Batch& batch, int lightArrayBufferUnit, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit);
 
     void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
     void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
