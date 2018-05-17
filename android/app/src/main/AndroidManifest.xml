@@ -42,18 +42,18 @@
             android:name=".HomeActivity"
             android:label="@string/home"
             android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:theme="@style/Theme.AppCompat.Translucent.NoActionBar">
         </activity>
         <activity
             android:name=".GotoActivity"
             android:label="@string/go_to"
-            android:theme="@style/AppTheme">
-        </activity>
+            android:theme="@style/AppTheme" />
+        <activity android:name=".LoginActivity"
+            android:theme="@style/AppTheme"/>
         <activity
             android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
             android:name=".InterfaceActivity"
             android:label="@string/app_name"
-            android:screenOrientation="landscape"
             android:launchMode="singleTop"
             >
 
@@ -75,6 +75,11 @@
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />
+
+        <activity
+            android:name=".SplashActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Translucent.NoActionBar" />
     </application>
 
     <uses-feature android:name="android.software.vr.mode" android:required="true"/>
