@@ -631,7 +631,7 @@ void EntityTree::cleanupCloneIDs(const EntityItemID& entityID) {
     EntityItemPointer entity = findEntityByEntityItemID(entityID);
     if (entity) {
         // remove clone ID from it's clone origin's clone ID list if clone origin exists
-        const QUuid cloneOriginID = entity->getCloneOriginID();
+        const QUuid& cloneOriginID = entity->getCloneOriginID();
         if (!cloneOriginID.isNull()) {
             EntityItemPointer cloneOrigin = findEntityByID(cloneOriginID);
             if (cloneOrigin) {
@@ -2385,6 +2385,8 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         return false;
     }
 
+    QMap<QUuid, QList<QUuid>> cloneIDs;
+
     bool success = true;
     foreach (QVariant entityVariant, entitiesQList) {
         // QVariantMap --> QScriptValue --> EntityItemProperties --> Entity
@@ -2476,6 +2478,20 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
             success = false;
+        }
+
+        const QUuid& cloneOriginID = entity->getCloneOriginID();
+        if (!cloneOriginID.isNull()) {
+            cloneIDs[cloneOriginID].push_back(entity->getEntityItemID());
+        }
+    }
+
+    for (auto iter = cloneIDs.begin(); iter != cloneIDs.end(); ++iter) {
+        const QUuid& entityID = iter.key();
+        const QList<QUuid>& cloneIDs = iter.value();
+        EntityItemPointer entity = findEntityByID(entityID);
+        if (entity) {
+            entity->setCloneIDs(cloneIDs);
         }
     }
 
