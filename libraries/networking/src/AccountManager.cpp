@@ -729,6 +729,9 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
         return;
     }
 
+    // Ensure openssl/Qt config is set up.
+    QSslConfiguration::defaultConfiguration();
+
     // make sure we don't already have an outbound keypair generation request
     if (!_isWaitingForKeypairResponse) {
         _isWaitingForKeypairResponse = true;
