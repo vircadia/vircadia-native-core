@@ -175,7 +175,7 @@ void PrepareForward::run(const RenderContextPointer& renderContext, const Inputs
             batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER, keyAmbiLight->getAmbientSchemaBuffer());
 
             if (keyAmbiLight->getAmbientMap()) {
-                batch.setResourceTexture(render::ShapePipeline::Slot::LIGHT_AMBIENT, keyAmbiLight->getAmbientMap());
+                batch.setResourceTexture(render::ShapePipeline::Slot::LIGHT_AMBIENT_MAP, keyAmbiLight->getAmbientMap());
             }
         }
     });

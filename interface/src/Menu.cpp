@@ -47,6 +47,7 @@
 
 #include "AmbientOcclusionEffect.h"
 #include "RenderShadowTask.h"
+#include "AntialiasingEffect.h"
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
@@ -380,6 +381,25 @@ Menu::Menu() {
 
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
+
+    action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AntiAliasing, 0, true);
+    connect(action, &QAction::triggered, [action] {
+        auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+        if (renderConfig) {
+            auto mainViewJitterCamConfig = renderConfig->getConfig<JitterSample>("RenderMainView.JitterCam");
+            auto mainViewAntialiasingConfig = renderConfig->getConfig<Antialiasing>("RenderMainView.Antialiasing");
+            if (mainViewJitterCamConfig && mainViewAntialiasingConfig) {
+                if (action->isChecked()) {
+                    mainViewJitterCamConfig->play();
+                    mainViewAntialiasingConfig->setDebugFXAA(false);
+                } else {
+                    mainViewJitterCamConfig->none();
+                    mainViewAntialiasingConfig->setDebugFXAA(true);
+                }
+            }
+        }
+    });
+
     action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, true);
     connect(action, &QAction::triggered, [action] {
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
