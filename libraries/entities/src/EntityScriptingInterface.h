@@ -224,6 +224,14 @@ public slots:
     Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const QString& textures, const QString& shapeType, bool dynamic,
                                      bool collisionless, const glm::vec3& position, const glm::vec3& gravity);
 
+    /**jsdoc
+     * Request a clone of an entity. Only entities that have been marked as 'cloneable' will be able to be cloned using this method.
+     * A cloned entity has most of the properties of the orignal entity, and can be requested from clients that do not have rez permissions.
+     * The client requests a clone from the entity server, which returns back the entityID of a valid clone if the operation was allowed.
+     * @function Entities.cloneEntity
+     * @param {Uuid} entityIDToClone - the ID of the entity to clone
+     * @returns {Entities.EntityID} The ID of the newly created clone
+     */
     Q_INVOKABLE QUuid cloneEntity(QUuid entityIDToClone);
 
     /**jsdoc
