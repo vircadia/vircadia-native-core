@@ -49,6 +49,14 @@ void AndroidHelper::notifyEnterForeground() {
     emit enterForeground();
 }
 
+void AndroidHelper::notifyEnterBackground() {
+    emit enterBackground();
+}
+
+void AndroidHelper::performHapticFeedback(int duration) {
+    emit hapticFeedbackRequested(duration);
+}
+
 void AndroidHelper::showLoginDialog() {
     emit androidActivityRequested("Login", true);
 }

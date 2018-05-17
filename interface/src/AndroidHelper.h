@@ -26,6 +26,8 @@ public:
     void init();
     void requestActivity(const QString &activityName, const bool backToScene);
     void notifyLoadComplete();
+    void notifyEnterForeground();
+    void notifyEnterBackground();
 
     void performHapticFeedback(int duration);
 
@@ -39,6 +41,8 @@ public slots:
 signals:
     void androidActivityRequested(const QString &activityName, const bool backToScene);
     void qtAppLoadComplete();
+    void enterForeground();
+    void enterBackground();
 
     void hapticFeedbackRequested(int duration);
 

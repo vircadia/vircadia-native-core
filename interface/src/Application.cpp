@@ -2265,6 +2265,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
 #if defined(Q_OS_ANDROID)
     AndroidHelper::instance().init();
+    connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
+    connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
 #endif
 }
@@ -8290,5 +8292,4 @@ void Application::enterForeground() {
 }
 #endif
 
-#include "Application_jni.cpp"
 #include "Application.moc"

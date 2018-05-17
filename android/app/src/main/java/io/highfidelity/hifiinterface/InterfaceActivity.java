@@ -15,6 +15,7 @@ import android.content.Intent;
 import android.content.res.AssetManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Vibrator;
 import android.view.HapticFeedbackConstants;
 import android.view.WindowManager;
@@ -113,7 +114,9 @@ public class InterfaceActivity extends QtActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        nativeEnterBackground();
+        if (!isLoading) {
+            nativeEnterBackground();
+        }
         //gvrApi.pauseTracking();
     }
 
@@ -212,6 +215,9 @@ public class InterfaceActivity extends QtActivity {
 
     public void onAppLoadedComplete() {
         super.isLoading = false;
+        new Handler(getMainLooper()).postDelayed(() -> {
+            nativeEnterBackground();
+        }, 2000);
     }
 
     public void performHapticFeedback(int duration) {

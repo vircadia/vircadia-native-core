@@ -278,4 +278,14 @@ Java_io_highfidelity_hifiinterface_MainActivity_nativeGetDisplayName(JNIEnv *env
     return env->NewStringUTF(username.toLatin1().data());
 }
 
+JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeEnterBackground(JNIEnv *env, jobject obj) {
+    AndroidHelper::instance().notifyEnterBackground();
+}
+
+JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeEnterForeground(JNIEnv *env, jobject obj) {
+    AndroidHelper::instance().notifyEnterForeground();
+}
+
 }
