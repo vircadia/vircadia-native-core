@@ -599,6 +599,7 @@ Rectangle {
                             State {
                                 name: "hovered"
                                 when: favoriteAvatarMouseArea.containsMouse;
+                                PropertyChanges { target: favoriteAvatarMouseArea; anchors.bottomMargin: -5 }
                                 PropertyChanges { target: container; y: -5 }
                                 PropertyChanges { target: favoriteAvatarImage; dropShadowRadius: 10 }
                                 PropertyChanges { target: favoriteAvatarImage; dropShadowVerticalOffset: 6 }
@@ -625,6 +626,7 @@ Rectangle {
                             MouseArea {
                                 id: favoriteAvatarMouseArea
                                 anchors.fill: parent
+                                anchors.margins: 0
                                 enabled: !container.highlighted
                                 hoverEnabled: enabled
 
