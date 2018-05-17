@@ -214,12 +214,9 @@ public class InterfaceActivity extends QtActivity {
         super.isLoading = false;
     }
 
-    public void performHapticFeedback(String feedbackConstant) {
-        switch (feedbackConstant) {
-            case "CONTEXT_CLICK":
-            default:
-                mVibrator.vibrate(50);
-                break;
+    public void performHapticFeedback(int duration) {
+        if (duration > 0) {
+            mVibrator.vibrate(duration);
         }
     }
 

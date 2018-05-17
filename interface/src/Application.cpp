@@ -2867,8 +2867,8 @@ void Application::initializeUi() {
 #if defined(Q_OS_ANDROID)
             auto& virtualPadManager = VirtualPad::Manager::instance();
             connect(&virtualPadManager, &VirtualPad::Manager::hapticFeedbackRequested,
-                    this, []() {
-                        AndroidHelper::instance().performHapticFeedback("CONTEXT_CLICK");
+                    this, [](int duration) {
+                        AndroidHelper::instance().performHapticFeedback(duration);
                     });
 #endif
         }

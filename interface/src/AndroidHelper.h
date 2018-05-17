@@ -27,7 +27,7 @@ public:
     void requestActivity(const QString &activityName, const bool backToScene);
     void notifyLoadComplete();
 
-    void performHapticFeedback(const QString& feedbackConstant);
+    void performHapticFeedback(int duration);
 
     QSharedPointer<AccountManager> getAccountManager() { return _accountManager; }
     AndroidHelper(AndroidHelper const&)  = delete;
@@ -40,7 +40,7 @@ signals:
     void androidActivityRequested(const QString &activityName, const bool backToScene);
     void qtAppLoadComplete();
 
-    void hapticFeedbackRequested(const QString &feedbackConstant);
+    void hapticFeedbackRequested(int duration);
 
 private:
     AndroidHelper();

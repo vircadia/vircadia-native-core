@@ -45,8 +45,8 @@ void AndroidHelper::notifyLoadComplete() {
     emit qtAppLoadComplete();
 }
 
-void AndroidHelper::performHapticFeedback(const QString& feedbackConstant) {
-    emit hapticFeedbackRequested(feedbackConstant);
+void AndroidHelper::notifyEnterForeground() {
+    emit enterForeground();
 }
 
 void AndroidHelper::showLoginDialog() {

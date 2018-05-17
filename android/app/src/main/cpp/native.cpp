@@ -158,9 +158,9 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCrea
         __interfaceActivity.callMethod<void>("openAndroidActivity", "(Ljava/lang/String;Z)V", string.object<jstring>(), jBackToScene);
     });
 
-    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::hapticFeedbackRequested, [](const QString &c) {
-        QAndroidJniObject string = QAndroidJniObject::fromString(c);
-        __interfaceActivity.callMethod<void>("performHapticFeedback", "(Ljava/lang/String;)V", string.object<jstring>());
+    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::hapticFeedbackRequested, [](int duration) {
+        jint iDuration = (jint) duration;
+        __interfaceActivity.callMethod<void>("performHapticFeedback", "(I)V", iDuration);
     });
 }
 

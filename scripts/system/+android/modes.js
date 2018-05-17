@@ -69,7 +69,7 @@ function shutdown() {
 }
 
 function modeButtonPressed() {
-   Controller.triggerHapticPulse(Controller.findDevice("TouchscreenVirtualPad"), 0.1, 1.0, 0);
+   Controller.triggerHapticPulseOnDevice(Controller.findDevice("TouchscreenVirtualPad"), 0.1, 40.0, 0);
 }
 
 function modeButtonClicked() {
