@@ -200,6 +200,8 @@ SelectionManager = (function() {
             that.worldPosition = properties.boundingBox.center;
             that.worldRotation = properties.boundingBox.rotation;
 
+            that.entityType = properties.type;
+
             SelectionDisplay.setSpaceMode(SPACE_LOCAL);
         } else {
             that.localRotation = null;
@@ -207,6 +209,8 @@ SelectionManager = (function() {
             that.localPosition = null;
 
             properties = Entities.getEntityProperties(that.selections[0]);
+
+            that.entityType = properties.type;
 
             var brn = properties.boundingBox.brn;
             var tfl = properties.boundingBox.tfl;
@@ -537,6 +541,17 @@ SelectionDisplay = (function() {
         dashed: false
     });
 
+    // Handle for x-z translation of particle effect and light entities while inside the bounding box.
+    // Limitation: If multiple entities are selected, only the first entity's icon translates the selection.
+    var iconSelectionBox = Overlays.addOverlay("cube", {
+        size: 0.3, // Match entity icon size.
+        color: COLOR_RED,
+        alpha: 0,
+        solid: false,
+        visible: false,
+        dashed: false
+    });
+
     var allOverlays = [
         handleTranslateXCone,
         handleTranslateXCylinder,
@@ -576,7 +591,8 @@ SelectionDisplay = (function() {
         handleScaleFREdge,
         handleScaleFLEdge,
         handleCloner,
-        selectionBox
+        selectionBox,
+        iconSelectionBox
     ];
 
     overlayNames[handleTranslateXCone] = "handleTranslateXCone";
@@ -623,6 +639,7 @@ SelectionDisplay = (function() {
 
     overlayNames[handleCloner] = "handleCloner";
     overlayNames[selectionBox] = "selectionBox";
+    overlayNames[iconSelectionBox] = "iconSelectionBox";
 
     var activeTool = null;
     var handleTools = {};
@@ -1321,8 +1338,21 @@ SelectionDisplay = (function() {
                 rotation: rotation,
                 dimensions: dimensions
             };
-            selectionBoxGeometry.visible = !inModeRotate && !isPointInsideBox(Camera.position, selectionBoxGeometry);
+            var isCameraInsideBox = isPointInsideBox(Camera.position, selectionBoxGeometry);
+            selectionBoxGeometry.visible = !inModeRotate && !isCameraInsideBox;
             Overlays.editOverlay(selectionBox, selectionBoxGeometry);
+
+            // UPDATE ICON TRANSLATE HANDLE
+            if (SelectionManager.entityType === "ParticleEffect" || SelectionManager.entityType === "Light") {
+                var iconSelectionBoxGeometry = {
+                    position: position,
+                    rotation: rotation
+                };
+                iconSelectionBoxGeometry.visible = !inModeRotate && isCameraInsideBox;
+                Overlays.editOverlay(iconSelectionBox, iconSelectionBoxGeometry);
+            } else {
+                Overlays.editOverlay(iconSelectionBox, { visible: false });
+            }
 
             // UPDATE CLONER (CURRENTLY HIDDEN FOR NOW)
             var handleClonerOffset =  { 
@@ -2402,6 +2432,22 @@ SelectionDisplay = (function() {
             translateXZTool.onEnd(event);
         },
     
+        onMove: function (event) {
+            translateXZTool.onMove(event);
+        }
+    });
+
+    addHandleTool(iconSelectionBox, {
+        mode: "TRANSLATE_XZ",
+        onBegin: function (event, pickRay, pickResult) {
+            translateXZTool.onBegin(event, pickRay, pickResult, false);
+        },
+        elevation: function (event) {
+            translateXZTool.elevation(event);
+        },
+        onEnd: function (event) {
+            translateXZTool.onEnd(event);
+        },
         onMove: function (event) {
             translateXZTool.onMove(event);
         }
