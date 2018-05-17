@@ -373,6 +373,10 @@ Rectangle {
             anchors.leftMargin: 30
             anchors.top: star.bottom
             anchors.topMargin: 11
+            MouseArea {
+                anchors.fill: parent;
+                onClicked: emitSendToScript({'method' : 'navigate', 'url' : allAvatars.makeMarketItemUrl(currentAvatar.avatarUrl)})
+            }
         }
 
         TextStyle3 {

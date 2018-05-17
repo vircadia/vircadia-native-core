@@ -4,15 +4,27 @@ ListModel {
     id: model
     property url externalAvatarThumbnailUrl;
 
-    function makeThumbnailUrl(avatarUrl) {
+    function extractMarketId(avatarUrl) {
         var splittedUrl = avatarUrl.split('/');
         var marketId = splittedUrl[splittedUrl.length - 2];
         var indexOfVSuffix = marketId.indexOf('-v');
         if(indexOfVSuffix !== -1) {
             marketId = marketId.substring(0, indexOfVSuffix);
         }
+
+        return marketId;
+    }
+
+    function makeMarketItemUrl(avatarUrl) {
+        var marketItemUrl = "https://highfidelity.com/marketplace/items/%marketId%"
+            .split('%marketId%').join(extractMarketId(avatarUrl));
+
+        return marketItemUrl;
+    }
+
+    function makeThumbnailUrl(avatarUrl) {
         var avatarThumbnailUrl = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/%marketId%/large/hifi-mp-%marketId%.jpg"
-            .split('%marketId%').join(marketId);
+            .split('%marketId%').join(extractMarketId(avatarUrl));
 
         return avatarThumbnailUrl;
     }
