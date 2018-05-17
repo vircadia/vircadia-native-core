@@ -14,7 +14,7 @@ macro(TARGET_ETC2COMP)
         select_library_configurations(ETC2COMP)
     else()
         add_dependency_external_projects(etc2comp)
-        find_package(ETC2COMP REQUIRED)
+        find_package(Etc2Comp REQUIRED)
     endif()
 
     target_include_directories(${TARGET_NAME} PRIVATE ${ETC2COMP_INCLUDE_DIRS})

@@ -14,7 +14,7 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.0'
+        classpath 'com.android.tools.build:gradle:3.0.1'
     }
 }
 
@@ -126,8 +126,8 @@ def packages = [
     ],
     polyvox: [
         file: 'polyvox_armv8-libcpp.tgz',
-        versionId: 'UmHp.EOFiepdXnv2YxwNXNO3J6nVsBkE',
-        checksum: '5c918288741ee754c16aeb12bb46b9e1',
+        versionId: 'A2kbKiNhpIenGq23bKRRzg7IMAI5BI92',
+        checksum: 'dba88b3a098747af4bb169e9eb9af57e',
         sharedLibFolder: 'lib',
         includeLibs: ['Release/libPolyVoxCore.so', 'libPolyVoxUtil.so'],
     ],

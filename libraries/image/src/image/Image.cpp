@@ -84,7 +84,13 @@ const QStringList getSupportedFormats() {
     return stringFormats;
 }
 
+
+// On GLES, we don't use HDR skyboxes
+#ifndef USE_GLES
 QImage::Format QIMAGE_HDR_FORMAT = QImage::Format_RGB30;
+#else
+QImage::Format QIMAGE_HDR_FORMAT = QImage::Format_RGB32;
+#endif
 
 TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, const QVariantMap& options) {
     switch (type) {
@@ -557,7 +563,7 @@ void generateLDRMips(gpu::Texture* texture, QImage&& image, const std::atomic<bo
     // https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#f18-for-consume-parameters-pass-by-x-and-stdmove-the-parameter
     QImage localCopy = std::move(image);
 
-    if (localCopy.format() != QImage::Format_ARGB32) {
+    if (localCopy.format() != QImage::Format_ARGB32 && localCopy.format() != QIMAGE_HDR_FORMAT) {
         localCopy = localCopy.convertToFormat(QImage::Format_ARGB32);
     }
 
@@ -757,11 +763,15 @@ void generateMips(gpu::Texture* texture, QImage&& image, const std::atomic<bool>
 #if CPU_MIPMAPS
     PROFILE_RANGE(resource_parse, "generateMips");
 
+#ifndef USE_GLES
     if (image.format() == QIMAGE_HDR_FORMAT) {
         generateHDRMips(texture, std::move(image), abortProcessing, face);
     } else  {
         generateLDRMips(texture, std::move(image), abortProcessing, face);
     }
+#else
+    generateLDRMips(texture, std::move(image), abortProcessing, face);
+#endif
 #else
     texture->setAutoGenerateMips(true);
 #endif
@@ -1354,18 +1364,25 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
     QImage image = processSourceImage(std::move(localCopy), true);
 
     if (image.format() != QIMAGE_HDR_FORMAT) {
+#ifndef USE_GLES
         image = convertToHDRFormat(std::move(image), HDR_FORMAT);
+#else
+        image = image.convertToFormat(QImage::Format_RGB32);
+#endif
     }
 
     gpu::Element formatMip;
     gpu::Element formatGPU;
     if (isCubeTexturesCompressionEnabled()) {
-        formatMip = gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB;
         formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB;
     } else {
-        formatMip = HDR_FORMAT;
+#ifdef USE_GLES
+        formatGPU = gpu::Element::COLOR_COMPRESSED_ETC2_SRGB;
+#else
         formatGPU = HDR_FORMAT;
+#endif
     }
+    formatMip = formatGPU;
 
     // Find the layout of the cubemap in the 2D image
     // Use the original image size since processSourceImage may have altered the size / aspect ratio
@@ -1412,9 +1429,16 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
         // Generate irradiance while we are at it
         if (generateIrradiance) {
             PROFILE_RANGE(resource_parse, "generateIrradiance");
-            auto irradianceTexture = gpu::Texture::createCube(HDR_FORMAT, faces[0].width(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
+            gpu::Element irradianceFormat;
+            // TODO: we could locally compress the irradiance texture on Android, but we don't need to
+#ifndef USE_GLES
+            irradianceFormat = HDR_FORMAT;
+#else
+            irradianceFormat = gpu::Element::COLOR_SRGBA_32;
+#endif
+            auto irradianceTexture = gpu::Texture::createCube(irradianceFormat, faces[0].width(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
             irradianceTexture->setSource(srcImageName);
-            irradianceTexture->setStoredMipFormat(HDR_FORMAT);
+            irradianceTexture->setStoredMipFormat(irradianceFormat);
             for (uint8 face = 0; face < faces.size(); ++face) {
                 irradianceTexture->assignStoredMipFace(0, face, faces[face].byteCount(), faces[face].constBits());
             }
