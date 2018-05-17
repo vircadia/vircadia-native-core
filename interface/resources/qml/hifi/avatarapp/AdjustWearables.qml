@@ -173,11 +173,13 @@ Rectangle {
                 spacing: 20
 
                 TextStyle5 {
+                    id: positionLabel
                     text: "Position"
                 }
 
                 TextStyle7 {
                     text: "m"
+                    anchors.verticalCenter: positionLabel.verticalCenter
                 }
             }
 
@@ -215,11 +217,13 @@ Rectangle {
                 spacing: 20
 
                 TextStyle5 {
+                    id: rotationLabel
                     text: "Rotation"
                 }
 
                 TextStyle7 {
                     text: "deg"
+                    anchors.verticalCenter: rotationLabel.verticalCenter
                 }
             }
 
@@ -242,10 +246,10 @@ Rectangle {
                 onYvalueChanged: if(notify) notifyRotationChanged();
                 onZvalueChanged: if(notify) notifyRotationChanged();
 
-                decimals: 2
-                realFrom: -10
-                realTo: 10
-                realStepSize: 0.01
+                decimals: 0
+                realFrom: -180
+                realTo: 180
+                realStepSize: 1
             }
         }
 
@@ -294,12 +298,14 @@ Rectangle {
 
                 HifiControlsUit.Button {
                     fontSize: 18
+                    height: 40
                     anchors.right: parent.right
                     color: hifi.buttons.red;
                     colorScheme: hifi.colorSchemes.dark;
                     text: "TAKE IT OFF"
                     onClicked: wearableDeleted(root.avatarName, getCurrentWearable().id);
                     enabled: wearablesCombobox.model.count !== 0
+                    anchors.verticalCenter: scalespinner.verticalCenter
                 }
             }
 
