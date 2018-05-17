@@ -374,6 +374,8 @@ public slots:
     * Takes a 360 snapshot given a position of the secondary camera (which does not need to have been previously set up).
     * @function Window.takeSecondaryCameraSnapshot
     * @param {vec3} [cameraPosition] - The (x, y, z) position of the camera for the 360 snapshot
+    * @param {boolean} [cubemapOutputFormat=false] - If <code>true</code> then the snapshot is saved as a cube map image, 
+    *     otherwise is saved as an equirectangular image.
     * @param {string} [filename=""] - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
     *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
     *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
