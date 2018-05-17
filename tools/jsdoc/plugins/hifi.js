@@ -21,6 +21,7 @@ exports.handlers = {
         // directories to scan for jsdoc comments
         var dirList = [
             '../../assignment-client/src',
+            '../../assignment-client/src/avatars',
             '../../assignment-client/src/entities',
             '../../assignment-client/src/octree',
             '../../interface/src',
@@ -31,10 +32,10 @@ exports.handlers = {
             '../../interface/src/devices',
             '../../interface/src/java',
             '../../interface/src/networking',
-            '../../interface/src/ui/',
-            '../../interface/src/scripting',
-            '../../interface/src/ui/overlays',
             '../../interface/src/raypick',
+            '../../interface/src/scripting',
+            '../../interface/src/ui/',
+            '../../interface/src/ui/overlays',
             '../../libraries/animation/src',
             '../../libraries/audio-client/src',
             '../../libraries/audio/src',
@@ -114,8 +115,8 @@ exports.handlers = {
 
             // Append an Available In: table at the end of the namespace description.
             if (rows.length > 0) {
-                var table = "<br><br><table><tr><th>Available in:</th><td>" + rows.join("</td><td>") + "</td></tr></table>";
-                e.doclet.description = (e.doclet.description ? e.doclet.description : "") + table;
+                var table = "<table><tr><th>Available in:</th><td>" + rows.join("</td><td>") + "</td></tr></table><br>";
+                e.doclet.description = table + (e.doclet.description ? e.doclet.description : "");
             }
         }
     }
