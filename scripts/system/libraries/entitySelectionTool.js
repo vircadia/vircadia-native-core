@@ -56,6 +56,8 @@ SelectionManager = (function() {
                 print("setting selection to " + messageParsed.entityID);
             }
             that.setSelections([messageParsed.entityID]);
+        } else if (messageParsed.method === "clearSelection") {
+            that.clearSelections();
         }
     }
 
@@ -574,7 +576,7 @@ SelectionDisplay = (function() {
         handleScaleFREdge,
         handleScaleFLEdge,
         handleCloner,
-        selectionBox  // Must be last overlay.
+        selectionBox
     ];
 
     overlayNames[handleTranslateXCone] = "handleTranslateXCone";
@@ -1391,9 +1393,8 @@ SelectionDisplay = (function() {
     };
 
     // FUNCTION: SET OVERLAYS VISIBLE
-    that.setOverlaysVisible = function (isVisible) {
-        // Don't set selectionBox (last) overlay's visibility.
-        for (var i = 0, length = allOverlays.length - 1; i < length; i++) {
+    that.setOverlaysVisible = function(isVisible) {
+        for (var i = 0, length = allOverlays.length; i < length; i++) {
             Overlays.editOverlay(allOverlays[i], { visible: isVisible });
         }
     };
