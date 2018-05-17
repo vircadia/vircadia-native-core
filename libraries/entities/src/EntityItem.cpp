@@ -3095,25 +3095,21 @@ void EntityItem::setCloneOriginID(const QUuid& value) {
     });
 }
 
-bool EntityItem::addCloneID(const QUuid& cloneID) {
+void EntityItem::addCloneID(const QUuid& cloneID) {
     withWriteLock([&] {
         if (!_cloneIDs.contains(cloneID)) {
             _cloneIDs.append(cloneID);
-            return true;
         }
     });
-    return false;
 }
 
-bool EntityItem::removeCloneID(const QUuid& cloneID) {
+void EntityItem::removeCloneID(const QUuid& cloneID) {
     withWriteLock([&] {
         int index = _cloneIDs.indexOf(cloneID);
         if (index >= 0) {
             _cloneIDs.removeAt(index);
-            return true;
         }
     });
-    return false;
 }
 
 const QList<QUuid> EntityItem::getCloneIDs() const {

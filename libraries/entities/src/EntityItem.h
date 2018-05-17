@@ -507,8 +507,8 @@ public:
     void setSimulationOwnershipExpiry(uint64_t expiry) { _simulationOwnershipExpiry = expiry; }
     uint64_t getSimulationOwnershipExpiry() const { return _simulationOwnershipExpiry; }
 
-    bool addCloneID(const QUuid& cloneID);
-    bool removeCloneID(const QUuid& cloneID);
+    void addCloneID(const QUuid& cloneID);
+    void removeCloneID(const QUuid& cloneID);
     const QList<QUuid> getCloneIDs() const;
     void setCloneIDs(const QList<QUuid>& cloneIDs);
 
@@ -666,11 +666,11 @@ protected:
 
     bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
 
-    bool _cloneable;
-    float _cloneLifetime;
-    float _cloneLimit;
-    bool _cloneDynamic;
-    bool _cloneAvatarEntity;
+    bool _cloneable { ENTITY_ITEM_CLONEABLE };
+    float _cloneLifetime { ENTITY_ITEM_CLONE_LIFETIME };
+    float _cloneLimit { ENTITY_ITEM_CLONE_LIMIT };
+    bool _cloneDynamic { ENTITY_ITEM_CLONE_DYNAMIC };
+    bool _cloneAvatarEntity { ENTITY_ITEM_CLONE_AVATAR_ENTITY };
     QUuid _cloneOriginID;
     QList<QUuid> _cloneIDs;
 
