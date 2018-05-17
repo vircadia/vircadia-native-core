@@ -22,6 +22,7 @@
 class AnimationsDialog;
 class AttachmentsDialog;
 class CachesSizeDialog;
+class LodToolsDialog;
 class OctreeStatsDialog;
 class ScriptEditorWindow;
 class TestingDialog;
@@ -34,6 +35,7 @@ class DialogsManager : public QObject, public Dependency {
 
 public:
     QPointer<HMDToolsDialog> getHMDToolsDialog() const { return _hmdToolsDialog; }
+    QPointer<LodToolsDialog> getLodToolsDialog() const { return _lodToolsDialog; }
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
     QPointer<TestingDialog> getTestingDialog() const { return _testingDialog; }
     void emitAddressBarShown(bool visible) { emit addressBarShown(visible); }
@@ -47,6 +49,7 @@ public slots:
     void toggleLoginDialog();
     void showLoginDialog();
     void octreeStatsDetails();
+    void lodTools();
     void hmdTools(bool showTools);
     void showDomainConnectionDialog();
     void showTestingResults();
@@ -73,6 +76,7 @@ private:
     QPointer<CachesSizeDialog> _cachesSizeDialog;
     QPointer<QMessageBox> _ircInfoBox;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
+    QPointer<LodToolsDialog> _lodToolsDialog;
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<TestingDialog> _testingDialog;
     QPointer<DomainConnectionDialog> _domainConnectionDialog;
