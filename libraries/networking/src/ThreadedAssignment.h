@@ -35,16 +35,19 @@ public slots:
 
     /**jsdoc
      * @function Agent.stop
+     * @deprecated This function is being removed from the API.
      */
     Q_INVOKABLE virtual void stop() { setFinished(true); }
 
     /**jsdoc
      * @function Agent.sendStatsPacket
+     * @deprecated This function is being removed from the API.
      */
     virtual void sendStatsPacket();
 
     /**jsdoc
      * @function Agent.clearQueuedCheckIns
+     * @deprecated This function is being removed from the API.
      */
     void clearQueuedCheckIns() { _numQueuedCheckIns = 0; }
 
@@ -52,6 +55,7 @@ signals:
     /**jsdoc
      * @function Agent.finished
      * @returns {Signal}
+     * @deprecated This function is being removed from the API.
      */
     void finished();
 
@@ -66,6 +70,7 @@ protected:
 protected slots:
     /**jsdoc
      * @function Agent.domainSettingsRequestFailed
+     * @deprecated This function is being removed from the API.
      */
     void domainSettingsRequestFailed();
 

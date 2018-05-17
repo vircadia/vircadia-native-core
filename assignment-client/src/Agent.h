@@ -75,6 +75,7 @@ public:
 public slots:
     /**jsdoc
      * @function Agent.run
+     * @deprecated This function is being removed from the API.
      */
     void run() override;
 
