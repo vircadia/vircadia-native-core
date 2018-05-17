@@ -17,7 +17,7 @@
  * @param {OverlayWindow.Properties} [properties=null]
  *
  * @hifi-interface
- * @hifi-client-en
+ * @hifi-client-entity
  *
  * @property {string} url - <em>Read-only.</em>
  */
@@ -44,14 +44,14 @@ public slots:
     void setURL(const QString& url);
 
     /**jsdoc
-     * @function OverlayWebWindow.getURL
+     * @function OverlayWebWindow.setScriptURL
      * @param {string} script
      */
     void setScriptURL(const QString& script);
 
 signals:
     /**jsdoc
-     * @function OverlayWebWindow.getURL
+     * @function OverlayWebWindow.urlChanged
      * @returns {Signal}
      */
     void urlChanged();
