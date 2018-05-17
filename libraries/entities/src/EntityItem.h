@@ -509,7 +509,8 @@ public:
 
     bool addCloneID(const QUuid& cloneID);
     bool removeCloneID(const QUuid& cloneID);
-    const QList<QUuid>& getCloneIDs() const { return _cloneIDs; }
+    const QList<QUuid> getCloneIDs() const;
+    void setCloneIDs(const QList<QUuid>& cloneIDs);
 
 signals:
     void requestRenderUpdate();
