@@ -15,6 +15,7 @@
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
+#include <QSslConfiguration>
 #include <qdebug.h>
 
 #include "NetworkLogging.h"
@@ -25,7 +26,8 @@
 RSAKeypairGenerator::RSAKeypairGenerator(QObject* parent) :
     QObject(parent)
 {
-    
+    // Ensure openssl/Qt config is set up.
+    QSslConfiguration::defaultConfiguration();
 }
 
 void RSAKeypairGenerator::generateKeypair() {
