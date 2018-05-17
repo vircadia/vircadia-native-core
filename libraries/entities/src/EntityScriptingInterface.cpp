@@ -333,6 +333,7 @@ QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
     EntityItemID newEntityID;
     EntityItemProperties properties = getEntityProperties(entityIDToClone);
     properties.convertToCloneProperties(entityIDToClone);
+    properties.setLastEdited(0); // to ensure we take the properties from the server-created entity
     bool success = addLocalEntityCopy(properties, newEntityID);
     if (success) {
         getEntityPacketSender()->queueCloneEntityMessage(entityIDToClone, newEntityID);
