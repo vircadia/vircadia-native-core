@@ -5,14 +5,18 @@ ListModel {
     property url externalAvatarThumbnailUrl;
 
     function extractMarketId(avatarUrl) {
-        var splittedUrl = avatarUrl.split('/');
-        var marketId = splittedUrl[splittedUrl.length - 2];
-        var indexOfVSuffix = marketId.indexOf('-v');
-        if(indexOfVSuffix !== -1) {
-            marketId = marketId.substring(0, indexOfVSuffix);
+
+        var guidRegexp = '([A-Z0-9]{8}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{12})';
+
+        var regexp = new RegExp(guidRegexp,["i"]);
+        var match = regexp.exec(avatarUrl);
+        if (match !== null)
+        {
+            console.debug('marketplaceId guid', match[1]);
+            return match[1];
         }
 
-        return marketId;
+        return '';
     }
 
     function makeMarketItemUrl(avatarUrl) {
