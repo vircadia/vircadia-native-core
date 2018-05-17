@@ -91,7 +91,7 @@ void setupPreferences() {
         auto wodSlider = new SliderPreference(GRAPHICS_QUALITY, "World Detail", getter, setter);
         wodSlider->setMin(0);
         wodSlider->setMax(1);
-        wodSlider->setStep(0.1);
+        wodSlider->setStep(0.1f);
         preferences->addPreference(wodSlider);
 
         auto getterShadow = []()->bool {
