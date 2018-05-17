@@ -32,6 +32,21 @@ Rectangle {
     property var jointNames;
     property var currentAvatarSettings;
 
+    function getAvatarName() {
+        if(avatarName !== '') {
+            return avatarName;
+        }
+
+        if(currentAvatar === null) {
+            return '';
+        }
+
+        var avatarUrl = currentAvatar.entry.avatarUrl;
+        var splitted = avatarUrl.split('/');
+
+        return splitted[splitted.length - 1];
+    }
+
     property string avatarName: currentAvatar ? currentAvatar.name : ''
     property string avatarUrl: currentAvatar ? currentAvatar.thumbnailUrl : null
     property bool isAvatarInFavorites: currentAvatar ? allAvatars.findAvatar(currentAvatar.name) !== undefined : false
@@ -353,7 +368,7 @@ Rectangle {
 
         TextStyle3 {
             id: avatarNameLabel
-            text: avatarName
+            text: getAvatarName()
             anchors.left: avatarImage.right
             anchors.leftMargin: 30
             anchors.top: star.bottom
