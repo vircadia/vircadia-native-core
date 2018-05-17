@@ -123,7 +123,7 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
 }
 
 void GL45Backend::initTextureManagementStage() {
-	GLBackend::initTextureManagementStage();
+    GLBackend::initTextureManagementStage();
     // enable the Sparse Texture on gl45
     _textureManagement._sparseCapable = true;
 

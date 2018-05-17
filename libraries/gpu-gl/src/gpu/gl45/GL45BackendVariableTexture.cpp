@@ -54,7 +54,6 @@ const GL45Texture::Bindless& GL45VariableAllocationTexture::getBindless() const 
 Size GL45VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
     Size amountCopied = 0;
     amountCopied = Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
-    incrementPopulatedSize(amountCopied);
     return amountCopied;
 }
 
@@ -80,7 +79,6 @@ void GL45VariableAllocationTexture::copyTextureMipsInGPUMem(GLuint srcId, GLuint
     uint16_t numMips = _gpuObject.getNumMips();
     copyTexGPUMem(_gpuObject, _target, srcId, destId, numMips, srcMipOffset, destMipOffset, populatedMips);
 }
-
 
 // Managed size resource textures
 using GL45ResourceTexture = GL45Backend::GL45ResourceTexture;
@@ -132,6 +130,7 @@ Size GL45ResourceTexture::copyMipsFromTexture() {
             amount += copyMipFaceFromTexture(sourceMip, targetMip, face);
         }
     }
+    incrementPopulatedSize(amount);
     return amount;
 }
 
@@ -139,7 +138,7 @@ void GL45ResourceTexture::syncSampler() const {
     Parent::syncSampler();
 #if GPU_BINDLESS_TEXTURES
     if (!isBindless()) {
-    	glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, _populatedMip - _allocatedMip);
+        glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, _populatedMip - _allocatedMip);
     }
 #else
     glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, _populatedMip - _allocatedMip);
@@ -169,7 +168,7 @@ size_t GL45ResourceTexture::promote() {
 
     // allocate storage for new level
     allocateStorage(targetAllocatedMip);
-    
+
     // copy pre-existing mips
     copyTextureMipsInGPUMem(oldId, _id, oldAllocatedMip, _allocatedMip, _populatedMip);
 
@@ -230,14 +229,14 @@ size_t GL45ResourceTexture::demote() {
 
     // update the memory usage
     Backend::textureResourceGPUMemSize.update(oldSize, 0);
-     // Demoting unpopulate the memory delta
+    // Demoting unpopulate the memory delta
     if (oldPopulatedMip != _populatedMip) {
         auto numPopulatedDemoted = _populatedMip - oldPopulatedMip;
         Size amountUnpopulated = 0;
         for (int i = 0; i < numPopulatedDemoted; i++) {
-             amountUnpopulated += _gpuObject.evalMipSize(oldPopulatedMip + i);
+            amountUnpopulated += _gpuObject.evalMipSize(oldPopulatedMip + i);
         }
-       decrementPopulatedSize(amountUnpopulated);
+        decrementPopulatedSize(amountUnpopulated);
     }
     return (oldSize - _size);
 }
@@ -268,12 +267,12 @@ void GL45ResourceTexture::populateTransferQueue(TransferQueue& pendingTransfers)
                 continue;
             }
 
-            // break down the transfers into chunks so that no single transfer is 
+            // break down the transfers into chunks so that no single transfer is
             // consuming more than X bandwidth
             // For compressed format, regions must be a multiple of the 4x4 tiles, so enforce 4 lines as the minimum block
             auto mipSize = _gpuObject.getStoredMipFaceSize(sourceMip, face);
             const auto lines = mipDimensions.y;
-            const uint32_t BLOCK_NUM_LINES { 4 };
+            const uint32_t BLOCK_NUM_LINES{ 4 };
             const auto numBlocks = (lines + (BLOCK_NUM_LINES - 1)) / BLOCK_NUM_LINES;
             auto bytesPerBlock = mipSize / numBlocks;
             Q_ASSERT(0 == (mipSize % lines));
@@ -289,6 +288,7 @@ void GL45ResourceTexture::populateTransferQueue(TransferQueue& pendingTransfers)
         // queue up the sampler and populated mip change for after the transfer has completed
         pendingTransfers.emplace(new TransferJob([=] {
             _populatedMip = sourceMip;
+            incrementPopulatedSize(_gpuObject.evalMipSize(sourceMip));
             sanityCheck();
             syncSampler();
         }));

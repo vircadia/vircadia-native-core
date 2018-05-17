@@ -401,8 +401,7 @@ Size GLESVariableAllocationTexture::copyMipsFromTexture() {
             amount += copyMipFaceFromTexture(sourceMip, targetMip, face);
         }
     }
-
-
+    incrementPopulatedSize(amount);
     return amount;
 }
 
@@ -411,7 +410,6 @@ Size GLESVariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, ui
     withPreservedTexture([&] {
         amountCopied = Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
     });
-    incrementPopulatedSize(amountCopied);
     return amountCopied;
 }
 
@@ -673,6 +671,8 @@ void GLESVariableAllocationTexture::populateTransferQueue(TransferJob::Queue& qu
         // queue up the sampler and populated mip change for after the transfer has completed
         queue.emplace(new TransferJob([=] {
             _populatedMip = sourceMip;
+            incrementPopulatedSize(_gpuObject.evalMipSize(sourceMip));
+            sanityCheck();
             syncSampler();
         }));
     } while (sourceMip != _allocatedMip);
