@@ -29,7 +29,10 @@ Item {
     TabBar {
         id: bar
         spacing: 0
+        anchors.top: controllerSettings.top
         width: parent.width
+        height: 40
+        z: 10
 
         TabButton {
             height: parent.height
@@ -284,7 +287,7 @@ Item {
             anchors.fill: stackView
             id: controllerPrefereneces
             objectName: "TabletControllerPreferences"
-            showCategories: ["VR Movement"]
+            showCategories: ["VR Movement", "Game Controller", "Sixense Controllers", "Perception Neuron", "Leap Motion"]
         }
     }
 }

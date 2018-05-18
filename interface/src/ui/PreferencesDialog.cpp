@@ -58,39 +58,55 @@ void setupPreferences() {
     {
         static const float MAX_DESKTOP_FPS = 60;
         static const float MAX_HMD_FPS = 90;
-        static const float MIN_HMD_FPS = 35;
+        static const float LOW = 0.25f;
+        static const float MEDIUM = 0.5f;
+        static const float HIGH = 0.75f;
         auto getter = []()->float {
             auto lodManager = DependencyManager::get<LODManager>();
-            float sliderValue = 0;
             bool inHMD = qApp->isHMDMode();
 
+            float increaseFPS = 0;
             if (inHMD) {
-                float hmdMinFPS = lodManager->getHMDLODDecreaseFPS();
-                sliderValue = (MAX_HMD_FPS - hmdMinFPS) / MAX_HMD_FPS;
+                increaseFPS = lodManager->getHMDLODDecreaseFPS();
             } else {
-                float desktopMinFPS = lodManager->getDesktopLODDecreaseFPS();
-                sliderValue = (MAX_DESKTOP_FPS - desktopMinFPS) / MAX_DESKTOP_FPS;
+                increaseFPS = lodManager->getDesktopLODDecreaseFPS();
             }
-            return sliderValue;
+            float maxFPS = inHMD ? MAX_HMD_FPS : MAX_DESKTOP_FPS;
+            float percentage = increaseFPS / maxFPS;
+
+            if (percentage >= HIGH) {
+                return HIGH;
+            } else if (percentage >= LOW) {
+                return MEDIUM;
+            }
+            return LOW;
         };
 
         auto setter = [](float value) {
             static const float THRASHING_DIFFERENCE = 10;
             auto lodManager = DependencyManager::get<LODManager>();
-            if (qApp->isHMDMode()) {
-                float desiredHMDFPS = (MAX_HMD_FPS - (MAX_HMD_FPS * value)) - THRASHING_DIFFERENCE;
-                float actualHMDFPS = desiredHMDFPS > MIN_HMD_FPS ? desiredHMDFPS : MIN_HMD_FPS;
-                lodManager->setHMDLODDecreaseFPS(actualHMDFPS);
+
+            bool isMaxValue = value == HIGH;
+            bool isHMDMode = qApp->isHMDMode();
+
+            float maxFPS = isHMDMode ? MAX_HMD_FPS : MAX_DESKTOP_FPS;
+            float desiredFPS = maxFPS - THRASHING_DIFFERENCE;
+
+            if (!isMaxValue) {
+                desiredFPS = (maxFPS * value)  - THRASHING_DIFFERENCE;
+            }
+
+            if (isHMDMode) {
+                lodManager->setHMDLODDecreaseFPS(desiredFPS);
             } else {
-                float desiredDesktopFPS = (MAX_DESKTOP_FPS - (MAX_DESKTOP_FPS * value)) - THRASHING_DIFFERENCE;
-                lodManager->setDesktopLODDecreaseFPS(desiredDesktopFPS);
+                lodManager->setDesktopLODDecreaseFPS(desiredFPS);
             }
         };
 
         auto wodSlider = new SliderPreference(GRAPHICS_QUALITY, "World Detail", getter, setter);
-        wodSlider->setMin(0);
-        wodSlider->setMax(1);
-        wodSlider->setStep(0.1f);
+        wodSlider->setMin(0.25f);
+        wodSlider->setMax(0.75f);
+        wodSlider->setStep(0.25f);
         preferences->addPreference(wodSlider);
 
         auto getterShadow = []()->bool {
