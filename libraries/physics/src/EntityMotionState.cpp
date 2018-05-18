@@ -590,19 +590,23 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         properties.clearSimulationOwner();
         _entity->setPendingOwnershipPriority(0);
     } else {
-        uint8_t finalBidPriority = computeFinalBidPriority();
+        uint8_t newPriority = computeFinalBidPriority();
         _entity->clearScriptSimulationPriority();
-        if (finalBidPriority != _entity->getSimulationPriority() &&
-                !(finalBidPriority == VOLUNTEER_SIMULATION_PRIORITY && _entity->getSimulationPriority() == RECRUIT_SIMULATION_PRIORITY)) {
+        // if we get here then we own the simulation and the object is NOT going inactive
+        // if newPriority is zero, then it must be outside of R1, which means we should really set it to YIELD
+        // which we achive by just setting it to the max of the two
+        newPriority = glm::max(newPriority, YIELD_SIMULATION_PRIORITY);
+        if (newPriority != _entity->getSimulationPriority() &&
+                !(newPriority == VOLUNTEER_SIMULATION_PRIORITY && _entity->getSimulationPriority() == RECRUIT_SIMULATION_PRIORITY)) {
             // our desired priority has changed
-            if (finalBidPriority == 0) {
+            if (newPriority == 0) {
                 // we should release ownership
                 properties.clearSimulationOwner();
             } else {
-                // we just need to change the priority
-                properties.setSimulationOwner(Physics::getSessionUUID(), finalBidPriority);
+                // we just need to inform the entity-server
+                properties.setSimulationOwner(Physics::getSessionUUID(), newPriority);
             }
-            _entity->setPendingOwnershipPriority(finalBidPriority);
+            _entity->setPendingOwnershipPriority(newPriority);
         }
     }
 
