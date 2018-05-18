@@ -54,7 +54,7 @@ Preload = (function () {
                     findURLsInObject(items[i]);
                     break;
                 default:
-                    App.log("ERROR: Cannot find URL in item type " + (typeof items[i]));
+                    console.log("ERROR: Cannot find URL in item type " + (typeof items[i]));
             }
         }
 
@@ -120,7 +120,7 @@ Preload = (function () {
                     deleteTimer = Script.setTimeout(deleteOverlay, DELETE_INTERVAL);
                 }
             } else {
-                App.log("ERROR: Cannot preload asset " + url);
+                console.log("ERROR: Cannot preload asset " + url);
             }
         }
 

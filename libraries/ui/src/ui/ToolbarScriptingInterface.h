@@ -19,14 +19,56 @@
 
 class QQuickItem;
 
+/**jsdoc
+ * @class ToolbarButtonProxy
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ */
 class ToolbarButtonProxy : public QmlWrapper {
     Q_OBJECT
 
 public:
     ToolbarButtonProxy(QObject* qmlObject, QObject* parent = nullptr);
+
+    /**jsdoc
+     * @function ToolbarButtonProxy#editProperties
+     * @param {object} properties
+     */
     Q_INVOKABLE void editProperties(const QVariantMap& properties);
 
+
+    // QmlWrapper methods.
+
+    /**jsdoc
+     * @function ToolbarButtonProxy#writeProperty
+     * @parm {string} propertyName
+     * @param {object} propertyValue
+     */
+
+    /**jsdoc
+     * @function ToolbarButtonProxy#writeProperties
+     * @param {object} properties
+     */
+
+    /**jsdoc
+     * @function ToolbarButtonProxy#readProperty
+     * @param {string} propertyName
+     * @returns {object}
+     */
+
+    /**jsdoc
+     * @function ToolbarButtonProxy#readProperties
+     * @param {string[]} propertyList
+     * @returns {object}
+     */
+
 signals:
+
+    /**jsdoc
+     * @function ToolbarButtonProxy#clicked
+     * @returns {Signal}
+     */
     void clicked();
 
 protected:
@@ -36,19 +78,74 @@ protected:
 
 Q_DECLARE_METATYPE(ToolbarButtonProxy*);
 
+/**jsdoc
+ * @class ToolbarProxy
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ */
 class ToolbarProxy : public QmlWrapper {
     Q_OBJECT
 public:
     ToolbarProxy(QObject* qmlObject, QObject* parent = nullptr);
+
+    /**jsdoc
+     * @function ToolbarProxy#addButton
+     * @param {object} properties
+     * @returns {ToolbarButtonProxy}
+     */
     Q_INVOKABLE ToolbarButtonProxy* addButton(const QVariant& properties);
+
+    /**jsdoc
+     * @function ToolbarProxy#removeButton
+     * @param {string} name
+     */
     Q_INVOKABLE void removeButton(const QVariant& name);
+
+
+    // QmlWrapper methods.
+
+    /**jsdoc
+     * @function ToolbarProxy#writeProperty
+     * @parm {string} propertyName
+     * @param {object} propertyValue
+     */
+
+    /**jsdoc
+     * @function ToolbarProxy#writeProperties
+     * @param {object} properties
+     */
+
+    /**jsdoc
+     * @function ToolbarProxy#readProperty
+     * @param {string} propertyName
+     * @returns {object}
+     */
+
+    /**jsdoc
+     * @function ToolbarProxy#readProperties
+     * @param {string[]} propertyList
+     * @returns {object}
+     */
 };
 
 Q_DECLARE_METATYPE(ToolbarProxy*);
 
+/**jsdoc
+ * @namespace Toolbars
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ */
 class ToolbarScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
+
+    /**jsdoc
+     * @function Toolbars.getToolbar
+     * @param {string} toolbarID
+     * @returns {ToolbarProxy}
+     */
     Q_INVOKABLE ToolbarProxy* getToolbar(const QString& toolbarId);
 };
 

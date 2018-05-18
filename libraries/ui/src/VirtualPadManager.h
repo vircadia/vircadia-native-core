@@ -31,8 +31,8 @@ namespace VirtualPad {
     };
 
     class Manager : public QObject, public Dependency {
+        Q_OBJECT
         SINGLETON_DEPENDENCY
-
         Manager();
         Manager(const Manager& other) = delete;
     public:
@@ -46,6 +46,7 @@ namespace VirtualPad {
         void setExtraBottomMargin(int margin);
         glm::vec2 getJumpButtonPosition();
         void setJumpButtonPosition(glm::vec2 point);
+        void requestHapticFeedback(int duration);
 
         static const float DPI;
         static const float BASE_DIAMETER_PIXELS;
@@ -55,6 +56,9 @@ namespace VirtualPad {
         static const float JUMP_BTN_FULL_PIXELS;
         static const float JUMP_BTN_BOTTOM_MARGIN_PIXELS;
         static const float JUMP_BTN_RIGHT_MARGIN_PIXELS;
+
+    signals:
+        void hapticFeedbackRequested(int duration);
 
     private:
         Instance _leftVPadInstance;

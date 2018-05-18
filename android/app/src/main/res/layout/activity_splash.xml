@@ -5,8 +5,11 @@
     android:id="@+id/root_activity_splash"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/backgroundLight">
-
-<!-- TODO -->
-
+    android:background="@android:color/black">
+<ImageView
+    android:layout_width="242dp"
+    android:layout_height="242dp"
+    android:src="@drawable/hifi_logo_splash"
+    android:layout_centerHorizontal="true"
+    android:layout_marginTop="225dp"/>
 </RelativeLayout>

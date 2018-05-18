@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     android:background="@color/colorPrimary"
-    tools:context="io.highfidelity.hifiinterface.HomeActivity"
+    tools:context="io.highfidelity.hifiinterface.MainActivity"
     tools:showIn="@layout/activity_home">
 
     <EditText
@@ -48,7 +48,6 @@
         android:layout_marginEnd="@dimen/searchEditClearMarginEnd"
         android:visibility="gone"
         android:src="@drawable/ic_clear"
-        android:onClick="onSearchClear"
         />
 
     <TextView

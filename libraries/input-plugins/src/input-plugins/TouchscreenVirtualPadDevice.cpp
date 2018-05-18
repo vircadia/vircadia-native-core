@@ -187,6 +187,13 @@ void TouchscreenVirtualPadDevice::InputDevice::update(float deltaTime, const con
     _axisStateMap.clear();
 }
 
+bool TouchscreenVirtualPadDevice::InputDevice::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
+    auto& virtualPadManager = VirtualPad::Manager::instance();
+    virtualPadManager.requestHapticFeedback((int) duration);
+    return true;
+}
+
+
 void TouchscreenVirtualPadDevice::InputDevice::focusOutEvent() {
 }
 
