@@ -14,7 +14,6 @@
 #include <ScriptEngines.h>
 #include <OffscreenUi.h>
 #include <Preferences.h>
-#include <QRandomGenerator>
 #include <RenderShadowTask.h>
 #include <display-plugins/CompositorHelper.h>
 
