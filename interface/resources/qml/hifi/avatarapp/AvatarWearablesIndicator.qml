@@ -2,7 +2,7 @@ import QtQuick 2.9
 import "../../controls-uit"
 import "../../styles-uit"
 
-Rectangle {
+ShadowRectangle {
     property int wearablesCount: 0
 
     width: 46.5
