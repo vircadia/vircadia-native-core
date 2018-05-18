@@ -58,14 +58,22 @@ function init() {
     });
     
     switchToMode(getCurrentModeSetting());
-
-    modeButton.clicked.connect(function() {    
-        switchToMode(nextMode[currentMode]);
-    });
+    
+    modeButton.entered.connect(modeButtonPressed);
+    modeButton.clicked.connect(modeButtonClicked);
 }
 
 function shutdown() {
+    modeButton.entered.disconnect(modeButtonPressed);
+    modeButton.clicked.disconnect(modeButtonClicked);
+}
 
+function modeButtonPressed() {
+   Controller.triggerHapticPulseOnDevice(Controller.findDevice("TouchscreenVirtualPad"), 0.1, 40.0, 0);
+}
+
+function modeButtonClicked() {
+    switchToMode(nextMode[currentMode]);
 }
 
 function saveCurrentModeSetting(mode) {

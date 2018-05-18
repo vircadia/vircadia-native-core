@@ -36,6 +36,10 @@ namespace scriptable {
      * @property {number} numIndices - Total number of vertex indices in the mesh.
      * @property {number} numVertices - Total number of vertices in the Mesh.
      * @property {number} numAttributes - Number of currently defined vertex attributes.
+     * @property {boolean} valid
+     * @property {boolean} strong
+     * @property {object} extents
+     * @property {object} bufferFormats
      */
     class ScriptableMesh : public ScriptableMeshBase, QScriptable {
         Q_OBJECT

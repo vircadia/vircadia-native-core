@@ -1932,7 +1932,7 @@
 
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (!tablet) {
-            App.log("ERROR: Tablet not found! App not started.");
+            console.log("ERROR: Tablet not found! App not started.");
             return;
         }
 

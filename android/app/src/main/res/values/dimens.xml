@@ -33,4 +33,8 @@
     <dimen name="domainMarginBottom">6dp</dimen>
     <dimen name="domainNameHeight">64dp</dimen>
 
+    <dimen name="header_hifi_margin_top">56dp</dimen>
+    <dimen name="header_hifi_height">101dp</dimen>
+    <dimen name="header_hifi_width">425dp</dimen>
+
 </resources>
