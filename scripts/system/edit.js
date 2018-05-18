@@ -470,6 +470,25 @@ var toolBar = (function () {
         }
     }
 
+    var entitiesToDelete = [];
+    var deletedEntityTimer = null;
+    var DELETE_ENTITY_TIMER_TIMEOUT = 100;
+
+    function checkDeletedEntityAndUpdate(entityID) {
+        // Allow for multiple entity deletes before updating the entity list.
+        entitiesToDelete.push(entityID);
+        if (deletedEntityTimer !== null) {
+            Script.clearTimeout(deletedEntityTimer);
+        }
+        deletedEntityTimer = Script.setTimeout(function () {
+            selectionManager.removeEntities(entitiesToDelete);
+            entityListTool.clearEntityList();
+            entityListTool.sendUpdate();
+            entitiesToDelete = [];
+            deletedEntityTimer = null;
+        }, DELETE_ENTITY_TIMER_TIMEOUT);
+    }
+
     function initialize() {
         Script.scriptEnding.connect(cleanup);
         Window.domainChanged.connect(function () {
@@ -492,8 +511,10 @@ var toolBar = (function () {
         Entities.canRezTmpChanged.connect(checkEditPermissionsAndUpdate);
         Entities.canRezCertifiedChanged.connect(checkEditPermissionsAndUpdate);
         Entities.canRezTmpCertifiedChanged.connect(checkEditPermissionsAndUpdate);
-
         var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
+
+        Entities.deletingEntity.connect(checkDeletedEntityAndUpdate);
+
         var createButtonIconRsrc = (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON);
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
@@ -1143,17 +1164,11 @@ function setupModelMenus() {
         });
         modelMenuAddedDelete = true;
     }
-    Menu.addMenuItem({
-        menuName: "Edit",
-        menuItemName: "Entity List...",
-        afterItem: "Entities",
-        grouping: "Advanced"
-    });
 
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Parent Entity to Last",
-        afterItem: "Entity List...",
+        afterItem: "Entities",
         grouping: "Advanced"
     });
 
@@ -1275,7 +1290,6 @@ function cleanupModelMenus() {
 
     Menu.removeMenuItem("Edit", "Parent Entity to Last");
     Menu.removeMenuItem("Edit", "Unparent Entity");
-    Menu.removeMenuItem("Edit", "Entity List...");
     Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Lights");
@@ -1637,8 +1651,6 @@ function handeMenuEvent(menuItem) {
             Window.promptTextChanged.connect(onPromptTextChanged);
             Window.promptAsync("URL of SVO to import", "");
         }
-    } else if (menuItem === "Entity List...") {
-        entityListTool.toggleVisible();
     } else if (menuItem === "Select All Entities In Box") {
         selectAllEtitiesInCurrentSelectionBox(false);
     } else if (menuItem === "Select All Entities Touching Box") {

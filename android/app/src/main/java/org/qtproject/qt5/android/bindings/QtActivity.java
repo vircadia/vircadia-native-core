@@ -68,6 +68,8 @@ public class QtActivity extends Activity {
     public final String QT_ANDROID_DEFAULT_THEME = QT_ANDROID_THEMES[0]; // sets the default theme.
     private QtActivityLoader m_loader = new QtActivityLoader(this);
 
+    public boolean isLoading;
+
     public QtActivity() {
     }
 
@@ -499,7 +501,11 @@ public class QtActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
-        QtApplication.invokeDelegate();
+        // GC: this trick allow us to show a splash activity until Qt app finishes
+        // loading
+        if (!isLoading) {
+            QtApplication.invokeDelegate();
+        }
     }
     //---------------------------------------------------------------------------
 
@@ -640,6 +646,7 @@ public class QtActivity extends Activity {
         super.onStop();
         QtApplication.invokeDelegate();
     }
+
     //---------------------------------------------------------------------------
 
     @Override

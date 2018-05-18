@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ScriptEngine.h"
+
 #include <chrono>
 #include <thread>
 
@@ -67,7 +69,6 @@
 #include "ScriptAvatarData.h"
 #include "ScriptCache.h"
 #include "ScriptEngineLogging.h"
-#include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
 #include "WebSocketClass.h"
@@ -100,8 +101,6 @@ int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature
 
 int scriptEnginePointerMetaID = qRegisterMetaType<ScriptEnginePointer>();
 
-Q_LOGGING_CATEGORY(scriptengineScript, "hifi.scriptengine.script")
-
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
     QString message = "";
     for (int i = 0; i < context->argumentCount(); i++) {
@@ -114,9 +113,9 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
     if (ScriptEngine *scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
         scriptEngine->print(message);
         // prefix the script engine name to help disambiguate messages in the main debug log
-        qCDebug(scriptengineScript, "[%s] %s", qUtf8Printable(scriptEngine->getFilename()), qUtf8Printable(message));
+        qCDebug(scriptengine_script, "[%s] %s", qUtf8Printable(scriptEngine->getFilename()), qUtf8Printable(message));
     } else {
-        qCDebug(scriptengineScript, "%s", qUtf8Printable(message));
+        qCDebug(scriptengine_script, "%s", qUtf8Printable(message));
     }
 
     return QScriptValue();

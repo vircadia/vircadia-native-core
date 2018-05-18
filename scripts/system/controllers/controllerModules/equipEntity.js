@@ -6,11 +6,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
-   getControllerJointIndex, enableDispatcherModule, disableDispatcherModule,
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, Camera,
+   getControllerJointIndex, enableDispatcherModule, disableDispatcherModule, entityIsFarGrabbedByOther,
    Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
    Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic, entityIsCloneable,
-   cloneEntity, DISPATCHER_PROPERTIES, TEAR_AWAY_DISTANCE, Uuid, unhighlightTargetEntity
+   cloneEntity, DISPATCHER_PROPERTIES, Uuid, unhighlightTargetEntity, isInEditMode
 */
 
 Script.include("/~/system/libraries/Xform.js");
@@ -781,7 +781,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             }
         }
     };
-    
+
     var clearGrabActions = function(entityID) {
         var actionIDs = Entities.getActionIDs(entityID);
         var myGrabTag = "grab-" + MyAvatar.sessionUUID;
@@ -794,7 +794,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             }
         }
     };
-    
+
     var onMousePress = function(event) {
         if (isInEditMode() || !event.isLeftButton) { // don't consider any left clicks on the entity while in edit
             return;
@@ -808,7 +808,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             if (hasEquipData && entityProperties.parentID === EMPTY_PARENT_ID && !entityIsFarGrabbedByOther(entityID)) {
                 entityProperties.id = entityID;
                 var rightHandPosition = MyAvatar.getJointPosition("RightHand");
-                var leftHandPosition = MyAvatar.getJointPosition("LeftHand");   
+                var leftHandPosition = MyAvatar.getJointPosition("LeftHand");
                 var distanceToRightHand = Vec3.distance(entityProperties.position, rightHandPosition);
                 var distanceToLeftHand = Vec3.distance(entityProperties.position, leftHandPosition);
                 var leftHandAvailable = leftEquipEntity.targetEntityID === null;
@@ -828,7 +828,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     };
     
     var onKeyPress = function(event) {
-        if (event.text === UNEQUIP_KEY) {
+        if (event.text.toLowerCase() === UNEQUIP_KEY) {
             if (rightEquipEntity.targetEntityID) {
                 rightEquipEntity.endEquipEntity();
             }

@@ -14,14 +14,14 @@
 
 #include <iostream>
 
-#include <NodeData.h>
+#include <qqueue.h>
+
 #include "OctreeConstants.h"
 #include "OctreeElementBag.h"
 #include "OctreePacketData.h"
 #include "OctreeQuery.h"
 #include "OctreeSceneStats.h"
 #include "SentPacketHistory.h"
-#include <qqueue.h>
 
 class OctreeSendThread;
 class OctreeServer;
@@ -49,7 +49,7 @@ public:
 
     OctreeElementExtraEncodeData extraEncodeData;
 
-    void copyCurrentViewFrustum(ViewFrustum& viewOut) const;
+    const ConicalViewFrustums& getCurrentViews() const { return _currentConicalViews; }
 
     // These are not classic setters because they are calculating and maintaining state
     // which is set asynchronously through the network receive
@@ -87,9 +87,6 @@ public:
     void setShouldForceFullScene(bool shouldForceFullScene) { _shouldForceFullScene = shouldForceFullScene; }
 
 private:
-    OctreeQueryNode(const OctreeQueryNode &);
-    OctreeQueryNode& operator= (const OctreeQueryNode&);
-
     bool _viewSent { false };
     std::unique_ptr<NLPacket> _octreePacket;
     bool _octreePacketWaiting;
@@ -99,7 +96,7 @@ private:
     quint64 _firstSuppressedPacket { usecTimestampNow() };
 
     mutable QMutex _viewMutex { QMutex::Recursive };
-    ViewFrustum _currentViewFrustum;
+    ConicalViewFrustums _currentConicalViews;
     bool _viewFrustumChanging { false };
     bool _viewFrustumJustStoppedChanging { true };
 

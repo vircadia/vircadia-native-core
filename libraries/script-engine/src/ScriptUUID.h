@@ -15,6 +15,7 @@
 #define hifi_ScriptUUID_h
 
 #include <QUuid>
+#include <QObject>
 #include <QtScript/QScriptable>
 
 /**jsdoc

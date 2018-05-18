@@ -108,7 +108,7 @@ ToolIcon = function (side) {
         if (handJointIndex === -1) {
             // Don't display if joint isn't available (yet) to attach to.
             // User can clear this condition by toggling the app off and back on once avatar finishes loading.
-            App.log(side, "ERROR: ToolIcon: Hand joint index isn't available!");
+            console.log(side, "ERROR: ToolIcon: Hand joint index isn't available!");
             return;
         }
 

@@ -27,6 +27,9 @@ Original.CheckBox {
     property bool wrap: true;
     readonly property int checkSize: Math.max(boxSize - 8, 10)
     readonly property int checkRadius: 2
+    property string labelFontFamily: "Raleway"
+    property int labelFontSize: 14;
+    property int labelFontWeight: Font.DemiBold;
     focusPolicy: Qt.ClickFocus
     hoverEnabled: true
 
@@ -105,6 +108,9 @@ Original.CheckBox {
     contentItem: Label {
         text: checkBox.text
         color: checkBox.color
+        font.family: checkBox.labelFontFamily;
+        font.pixelSize: checkBox.labelFontSize;
+        font.weight: checkBox.labelFontWeight;
         x: 2
         verticalAlignment: Text.AlignVCenter
         wrapMode: checkBox.wrap ? Text.Wrap : Text.NoWrap

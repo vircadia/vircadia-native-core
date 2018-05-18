@@ -15,6 +15,7 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QHash>
 #include <QtCore/QUuid>
+#include <QtCore/QJsonObject>
 
 #include <HifiSockAddr.h>
 #include <NLPacket.h>
