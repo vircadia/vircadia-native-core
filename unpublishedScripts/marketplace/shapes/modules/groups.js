@@ -180,11 +180,11 @@ Groups = function () {
         }
 
         if (entitiesSelectedCount === 0) {
-            App.log("ERROR: Groups: Nothing to ungroup!");
+            console.log("ERROR: Groups: Nothing to ungroup!");
             return;
         }
         if (entitiesSelectedCount === 1) {
-            App.log("ERROR: Groups: Cannot ungroup sole entity!");
+            console.log("ERROR: Groups: Cannot ungroup sole entity!");
             return;
         }
 

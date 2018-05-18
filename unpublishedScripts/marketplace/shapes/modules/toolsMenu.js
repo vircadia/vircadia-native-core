@@ -2929,7 +2929,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 break;
 
             default:
-                App.log(side, "ERROR: ToolsMenu: Unexpected command! " + command);
+                console.log(side, "ERROR: ToolsMenu: Unexpected command! " + command);
         }
     };
 
@@ -2946,7 +2946,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Settings.setValue(optionsSettings[parameter].key, null); // Delete settings value.
                 break;
             default:
-                App.log(side, "ERROR: ToolsMenu: Unexpected command! " + command);
+                console.log(side, "ERROR: ToolsMenu: Unexpected command! " + command);
         }
     }
 
@@ -3199,7 +3199,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         // Nothing to do.
                         break;
                     default:
-                        App.log(side, "ERROR: ToolsMenu: Unexpected hover item! " + hoveredElementType);
+                        console.log(side, "ERROR: ToolsMenu: Unexpected hover item! " + hoveredElementType);
                 }
 
                 // Update status variables.
@@ -3317,7 +3317,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         // Nothing to do.
                         break;
                     default:
-                        App.log(side, "ERROR: ToolsMenu: Unexpected hover item! " + hoveredElementType);
+                        console.log(side, "ERROR: ToolsMenu: Unexpected hover item! " + hoveredElementType);
                 }
             }
 
@@ -3566,7 +3566,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         if (handJointIndex === NONE) {
             // Don't display if joint isn't available (yet) to attach to.
             // User can clear this condition by toggling the app off and back on once avatar finishes loading.
-            App.log(side, "ERROR: ToolsMenu: Hand joint index isn't available!");
+            console.log(side, "ERROR: ToolsMenu: Hand joint index isn't available!");
             return;
         }
 
