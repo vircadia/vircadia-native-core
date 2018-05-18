@@ -707,7 +707,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                     somethingChanged = true;
                 }
             }
-            if (bidIsSatisfied || _pendingOwnershipTimestamp < now - maxPingRoundTrip) {
+            if (bidIsSatisfied || (somethingChanged && _pendingOwnershipTimestamp < now - maxPingRoundTrip)) {
                 // the bid has been satisfied, or it has been invalidated by data sent AFTER the bid should have been received
                 // in either case: accept our fate and clear pending state
                 _pendingOwnershipState = PENDING_STATE_NOTHING;
