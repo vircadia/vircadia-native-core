@@ -428,7 +428,7 @@ void HmdDisplayPlugin::HUDRenderer::updatePipeline() {
 std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDisplayPlugin::HUDRenderer::render(HmdDisplayPlugin& plugin) {
     updatePipeline();
     return [this](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
-        if (pipeline) {
+        if (pipeline && hudTexture) {
             batch.setPipeline(pipeline);
 
             batch.setInputFormat(format);
