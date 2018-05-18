@@ -33,7 +33,6 @@ HTTPConnection::HTTPConnection (QTcpSocket* socket, HTTPManager* parentManager) 
     QObject(parentManager),
     _parentManager(parentManager),
     _socket(socket),
-    _stream(socket),
     _address(socket->peerAddress())
 {
     // take over ownership of the socket

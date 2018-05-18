@@ -112,9 +112,6 @@ protected:
 
     /// The underlying socket.
     QTcpSocket* _socket;
-    
-    /// The data stream for writing to the socket.
-    QDataStream _stream;
 
     /// The stored address.
     QHostAddress _address;

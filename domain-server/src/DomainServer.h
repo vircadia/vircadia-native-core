@@ -220,7 +220,7 @@ private:
     DomainGatekeeper _gatekeeper;
 
     HTTPManager _httpManager;
-    HTTPSManager* _httpsManager;
+    std::unique_ptr<HTTPSManager> _httpsManager;
 
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;
     QQueue<SharedAssignmentPointer> _unfulfilledAssignments;

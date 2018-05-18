@@ -183,7 +183,7 @@ protected:
 
     bool _isShuttingDown = false;
 
-    HTTPManager* _httpManager;
+    std::unique_ptr<HTTPManager> _httpManager;
     int _statusPort;
     QString _statusHost;
 
