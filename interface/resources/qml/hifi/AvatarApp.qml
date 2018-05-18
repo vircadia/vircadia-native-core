@@ -764,6 +764,7 @@ Rectangle {
     }
 
     CreateFavoriteDialog {
+        avatars: allAvatars
         id: createFavorite
     }
 }

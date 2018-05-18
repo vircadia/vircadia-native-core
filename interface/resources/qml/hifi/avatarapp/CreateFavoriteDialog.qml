@@ -21,11 +21,14 @@ Rectangle {
     property string button2color: hifi.buttons.blue;
     property string button2text: 'CONFIRM'
 
+    property var avatars;
     property var onSaveClicked;
     property var onCancelClicked;
 
     function open(avatar) {
         favoriteName.text = '';
+        console.debug('CreateFavoriteDialog: ', avatar.thumbnailUrl);
+
         avatarImageUrl = avatar.thumbnailUrl;
         wearablesCount = avatar.wearables.count;
 
@@ -88,20 +91,50 @@ Rectangle {
             anchors.right: parent.right;
             anchors.rightMargin: 30;
 
-            Row {
+            Item {
                 id: bodyRow
+                height: childrenRect.height
 
-                spacing: 44
+                anchors.left: parent.left
+                anchors.right: parent.right
 
                 AvatarThumbnail {
                     imageUrl: avatarImageUrl
+                    onImageUrlChanged: {
+                        console.debug('CreateFavoritesDialog: imageUrlChanged: ', imageUrl);
+                    }
+
                     wearablesCount: avatarWearablesCount
                 }
 
                 InputTextStyle4 {
                     id: favoriteName
+                    anchors.right: parent.right
+                    width: 184
+                    height: 40
                     anchors.verticalCenter: parent.verticalCenter
                     placeholderText: "Enter Favorite Name"
+
+                    RalewayRegular {
+                        id: wrongName
+                        anchors.top: parent.bottom;
+                        anchors.topMargin: 2
+
+                        anchors.right: parent.right;
+                        text: 'Favorite name exists'
+                        size: 15
+                        color: 'red'
+                        visible: {
+                            for(var i = 0; i < avatars.count; ++i) {
+                                var avatarName = avatars.get(i).name;
+                                if(avatarName === favoriteName.text) {
+                                    return true;
+                                }
+                            }
+
+                            return false;
+                        }
+                    }
                 }
             }
 
@@ -111,7 +144,7 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
 
-                yesButton.enabled: favoriteNameText !== ''
+                yesButton.enabled: favoriteNameText !== '' && !wrongName.visible
                 yesText: root.button2text
                 noText: root.button1text
 
