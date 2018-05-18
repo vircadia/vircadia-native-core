@@ -307,35 +307,6 @@ Menu::Menu() {
             QString("hifi/tablet/TabletAvatarPreferences.qml"), "AvatarPreferencesDialog");
     });
 
-    // Settings > Notifications
-    MenuWrapper * notificationsMenu = settingsMenu->addMenu("Notifications"); //This was in notifications.js. The menu needs to be moved here.
-
-    //TODO: Hookup notification actions below.
-    // Settings > Notifications > Play Notification Sounds
-    SettingsScriptingInterface* settings = SettingsScriptingInterface::getInstance();
-    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Play Notification Sounds", 0,
-                                                    settings->getValue(MenuOption::NotificationSounds).toBool());
-    connect(action, &QAction::triggered, [action, settings] {
-        settings->setValue(MenuOption::NotificationSounds, action->isChecked());
-    });
-    notificationsMenu->addSeparator();
-
-    // Settings > Notifications > Play Sounds for:
-    addDisabledActionAndSeparator(notificationsMenu, "Show notifications for:");
-
-    // Settings > Notifications > Snapshot
-    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Snapshot", 0,
-                                                    settings->getValue(MenuOption::NotificationSoundsSnapshot).toBool());
-    connect(action, &QAction::triggered, [action, settings] {
-        settings->setValue(MenuOption::NotificationSoundsSnapshot, action->isChecked());
-    });
-    // Settings > Notifications > Tablet
-    action = addCheckableActionToQMenuAndActionHash(notificationsMenu, "Tablet", 0,
-                                                    settings->getValue(MenuOption::NotificationSoundsTablet).toBool());
-    connect(action, &QAction::triggered, [action, settings] {
-        settings->setValue(MenuOption::NotificationSoundsTablet, action->isChecked());
-    });
-
     // Settings > Developer Menu
     addCheckableActionToQMenuAndActionHash(settingsMenu, "Developer Menu", 0, false, this, SLOT(toggleDeveloperMenus()));
 
@@ -721,9 +692,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletContactPoints, 0, false, qApp, SLOT(setShowBulletContactPoints(bool)));
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletConstraints, 0, false, qApp, SLOT(setShowBulletConstraints(bool)));
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletConstraintLimits, 0, false, qApp, SLOT(setShowBulletConstraintLimits(bool)));
-
- // Developer > Ask to Reset Settings
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AskToResetSettings, 0, false);
 
     // Developer > Display Crash Options
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisplayCrashOptions, 0, true);

@@ -137,7 +137,7 @@ namespace MenuOption {
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
     const QString OpenVrThreadedSubmit = "OpenVR Threaded Submit"; 
     const QString OutputMenu = "Display";
-    const QString Overlays = "Overlays";
+    const QString Overlays = "Show Overlays";
     const QString PackageModel = "Package Model as .fst...";
     const QString Pair = "Pair";
     const QString PhysicsShowHulls = "Draw Collision Shapes";
