@@ -88,6 +88,8 @@ public:
     virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
 
     bool shouldSendBid();
+    uint8_t computeFinalBidPriority() const;
+
     bool isLocallyOwned() const override;
     bool isLocallyOwnedOrShouldBe() const override; // aka shouldEmitCollisionEvents()
 
@@ -104,9 +106,6 @@ protected:
     void clearOwnershipState() { _ownershipState = OwnershipState::NotLocallyOwned; }
     void updateServerPhysicsVariables();
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
-
-    // computes _bidPriority using newPriority and special case rules
-    void computeNewBidPriority(uint8_t newPriority);
 
     void slaveBidPriority(); // computeNewBidPriority() with value stored in _entity
 
@@ -156,7 +155,7 @@ protected:
     uint8_t _loopsWithoutOwner;
     mutable uint8_t _accelerationNearlyGravityCount;
     uint8_t _numInactiveUpdates { 1 };
-    uint8_t _bidPriority { 0 };
+    uint8_t _bumpedPriority { 0 }; // the target simulation priority according to collision history
     uint8_t _region { workload::Region::INVALID };
 };
 
