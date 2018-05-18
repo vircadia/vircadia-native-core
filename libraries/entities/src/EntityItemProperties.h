@@ -328,7 +328,7 @@ public:
     void clearSimulationOwner();
     void setSimulationOwner(const QUuid& id, uint8_t priority);
     void setSimulationOwner(const QByteArray& data);
-    void promoteSimulationPriority(uint8_t priority) { _simulationOwner.promotePriority(priority); }
+    void setSimulationPriority(uint8_t priority) { _simulationOwner.setPriority(priority); }
 
     void setActionDataDirty() { _actionDataChanged = true; }
 

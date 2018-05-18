@@ -360,26 +360,34 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                     // the sender is trying to take or continue ownership
                     if (entity->getSimulatorID().isNull()) {
                         // the sender is taking ownership
-                        SimulationOwner owner = properties.getSimulationOwner();
-                        if (owner.getPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
+                        if (properties.getSimulationOwner().getPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
                             // the entity-server always promotes VOLUNTEER to RECRUIT to avoid ownership thrash
                             // when dynamic objects first activate and multiple participants bid simultaneously
-                            properties.promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                            properties.setSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
                         }
                         simulationBlocked = false;
                     } else if (entity->getSimulatorID() == senderID) {
                         // the sender is asserting ownership, maybe changing priority
                         simulationBlocked = false;
+                        // the entity-server always promotes VOLUNTEER to RECRUIT to avoid ownership thrash
+                        // when dynamic objects first activate and multiple participants bid simultaneously
+                        if (properties.getSimulationOwner().getPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
+                            properties.setSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        }
                     } else {
                         // the sender is trying to steal ownership from another simulator
                         // so we apply the rules for ownership change:
                         // (1) higher priority wins
-                        // (2) equal priority wins if ownership filter has expired except...
+                        // (2) equal priority wins if ownership filter has expired
+                        // (3) VOLUNTEER priority is promoted to RECRUIT
                         uint8_t oldPriority = entity->getSimulationPriority();
                         uint8_t newPriority = properties.getSimulationOwner().getPriority();
                         if (newPriority > oldPriority ||
                              (newPriority == oldPriority && properties.getSimulationOwner().hasExpired())) {
                             simulationBlocked = false;
+                            if (properties.getSimulationOwner().getPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
+                                properties.setSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                            }
                         }
                     }
                     if (!simulationBlocked) {
