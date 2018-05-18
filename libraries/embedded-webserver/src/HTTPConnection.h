@@ -58,51 +58,51 @@ public:
     enum ReasonCode { NoReason = 0, NormalClosure = 1000, GoingAway = 1001 };
 
     /// Initializes the connection.
-    HTTPConnection (QTcpSocket* socket, HTTPManager* parentManager);
+    HTTPConnection(QTcpSocket* socket, HTTPManager* parentManager);
 
     /// Destroys the connection.
-    virtual ~HTTPConnection ();
+    virtual ~HTTPConnection();
 
     /// Returns a pointer to the underlying socket, to which WebSocket message bodies should be written.
-    QTcpSocket* socket () const { return _socket; }
+    QTcpSocket* socket() const { return _socket; }
 
     /// Returns the request operation.
-    QNetworkAccessManager::Operation requestOperation () const { return _requestOperation; }
+    QNetworkAccessManager::Operation requestOperation() const { return _requestOperation; }
 
     /// Returns a reference to the request URL.
-    const QUrl& requestUrl () const { return _requestUrl; }
+    const QUrl& requestUrl() const { return _requestUrl; }
 
     /// Returns a copy of the request header value. If it does not exist, it will return a default constructed QByteArray.
     QByteArray requestHeader(const QString& key) const { return _requestHeaders.value(key.toLower().toLocal8Bit()); }
 
     /// Returns a reference to the request content.
-    const QByteArray& requestContent () const { return _requestContent; }
+    const QByteArray& requestContent() const { return _requestContent; }
 
     /// Parses the request content as form data, returning a list of header/content pairs.
-    QList<FormData> parseFormData () const;
+    QList<FormData> parseFormData() const;
 
     /// Parses the request content as a url encoded form, returning a hash of key/value pairs.
     /// Duplicate keys are not supported.
     QHash<QString, QString> parseUrlEncodedForm();
 
     /// Sends a response and closes the connection.
-    void respond (const char* code, const QByteArray& content = QByteArray(),
+    void respond(const char* code, const QByteArray& content = QByteArray(),
         const char* contentType = DefaultContentType,
         const Headers& headers = Headers());
-    void respond (const char* code, std::unique_ptr<QIODevice> device,
+    void respond(const char* code, std::unique_ptr<QIODevice> device,
         const char* contentType = DefaultContentType,
         const Headers& headers = Headers());
 
 protected slots:
 
     /// Reads the request line.
-    void readRequest ();
+    void readRequest();
 
     /// Reads the headers.
-    void readHeaders ();
+    void readHeaders();
 
     /// Reads the content.
-    void readContent ();
+    void readContent();
 
 protected:
     void respondWithStatusAndHeaders(const char* code, const char* contentType, const Headers& headers, qint64 size);

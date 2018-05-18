@@ -29,7 +29,7 @@ const char* HTTPConnection::StatusCode404 = "404 Not Found";
 const char* HTTPConnection::StatusCode500 = "500 Internal server error";
 const char* HTTPConnection::DefaultContentType = "text/plain; charset=ISO-8859-1";
 
-HTTPConnection::HTTPConnection (QTcpSocket* socket, HTTPManager* parentManager) :
+HTTPConnection::HTTPConnection(QTcpSocket* socket, HTTPManager* parentManager) :
     QObject(parentManager),
     _parentManager(parentManager),
     _socket(socket),
