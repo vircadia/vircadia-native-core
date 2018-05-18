@@ -135,14 +135,28 @@ public:
     PickQuery(const PickFilter& filter, const float maxDistance, const bool enabled);
 
     /**jsdoc
-     * @namespace
-     * @augments Picks
-     *
      * Enum for different types of Picks and Pointers.
      *
-     * @typedef {enum} Picks.PickType
+     * @namespace PickType
+     * @variation 0
+     *
+     * @hifi-interface
+     * @hifi-client-entity
+     *
      * @property {number} Ray Ray Picks intersect a ray with the nearest object in front of them, along a given direction.
      * @property {number} Stylus Stylus Picks provide "tapping" functionality on/into flat surfaces.
+     */
+    /**jsdoc
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>{@link PickType(0)|PickType.Ray}</code></td><td></td></tr>
+     *     <tr><td><code>{@link PickType(0)|PickType.Stylus}</code></td><td></td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {number} PickType
      */
     enum PickType {
         Ray = 0,

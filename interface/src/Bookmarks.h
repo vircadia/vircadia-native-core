@@ -51,6 +51,9 @@ protected slots:
     /**jsdoc
      * @function AvatarBookmarks.deleteBookmark
      */
+    /**jsdoc
+     * @function LocationBookmarks.deleteBookmark
+     */
     void deleteBookmark();
 
 private:
