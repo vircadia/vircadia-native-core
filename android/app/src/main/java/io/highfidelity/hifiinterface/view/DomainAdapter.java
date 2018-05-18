@@ -12,13 +12,6 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 
 import io.highfidelity.hifiinterface.R;
@@ -31,6 +24,7 @@ import io.highfidelity.hifiinterface.provider.UserStoryDomainProvider;
 public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder> {
 
     private static final String TAG = "HiFi Interface";
+    private static final String DEFAULT_THUMBNAIL_PLACE = "android.resource://io.highfidelity.hifiinterface/" + R.drawable.thumbnail_default_place;
     private Context mContext;
     private LayoutInflater mInflater;
     private ItemClickListener mClickListener;
@@ -57,6 +51,9 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
         domainProvider.retrieve(filterText, new DomainProvider.DomainCallback() {
             @Override
             public void retrieveOk(List<Domain> domain) {
+                if (filterText.length() == 0) {
+                    domain.add(0, new Domain(mContext.getString(R.string.your_last_location), "", DEFAULT_THUMBNAIL_PLACE));
+                }
                 mDomains = new Domain[domain.size()];
                 mDomains = domain.toArray(mDomains);
                 notifyDataSetChanged();

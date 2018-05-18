@@ -172,7 +172,7 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnDest
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeGotoUrl(JNIEnv* env, jobject obj, jstring url) {
     QAndroidJniObject jniUrl("java/lang/String", "(Ljava/lang/String;)V", url);
-    DependencyManager::get<AddressManager>()->handleLookupString(jniUrl.toString());
+    DependencyManager::get<AddressManager>()->loadSettings(jniUrl.toString());
 }
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnPause(JNIEnv* env, jobject obj) {
