@@ -486,16 +486,14 @@ JitterSample::SampleSequence::SampleSequence(){
 }
 
 void JitterSample::configure(const Config& config) {
-    _freeze = config.freeze;
-    if (config.stop || _freeze) {
+    _freeze = config.stop || config.freeze;
+    if (config.freeze) {
         auto pausedIndex = config.getIndex();
         if (_sampleSequence.currentIndex != pausedIndex) {
             _sampleSequence.currentIndex = pausedIndex;
         }
-    } else {
-        if (_sampleSequence.currentIndex < 0) {
-            _sampleSequence.currentIndex = config.getIndex();
-        }
+    } else if (config.stop) {
+        _sampleSequence.currentIndex = -1;
     }
     _scale = config.scale;
 }
@@ -509,7 +507,12 @@ void JitterSample::run(const render::RenderContextPointer& renderContext, Output
             current = -1;
         }
     }
-    jitter = _sampleSequence.offsets[(current < 0 ? SEQUENCE_LENGTH : current)];
+
+    jitter.x = 0.0f;
+    jitter.y = 0.0f;
+    if (current >= 0) {
+        jitter = _sampleSequence.offsets[current];
+    }
 }
 
 

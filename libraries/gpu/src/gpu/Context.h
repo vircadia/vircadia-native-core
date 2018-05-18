@@ -113,6 +113,7 @@ public:
     static ContextMetricCount texturePendingGPUTransferCount;
     static ContextMetricSize  texturePendingGPUTransferMemSize;
     static ContextMetricSize  textureResourcePopulatedGPUMemSize;
+    static ContextMetricSize  textureResourceIdealGPUMemSize;
 
 
 protected:
@@ -243,6 +244,7 @@ public:
     static Size getTexturePendingGPUTransferMemSize();
 
     static Size getTextureResourcePopulatedGPUMemSize();
+    static Size getTextureResourceIdealGPUMemSize();
 
 protected:
     Context(const Context& context);

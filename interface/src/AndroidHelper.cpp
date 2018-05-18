@@ -37,15 +37,26 @@ void AndroidHelper::init() {
     _accountManager->moveToThread(&workerThread);
 }
 
-void AndroidHelper::requestActivity(const QString &activityName) {
-    emit androidActivityRequested(activityName);
+void AndroidHelper::requestActivity(const QString &activityName, const bool backToScene) {
+    emit androidActivityRequested(activityName, backToScene);
 }
 
 void AndroidHelper::notifyLoadComplete() {
     emit qtAppLoadComplete();
 }
 
-void AndroidHelper::goBackFromAndroidActivity() {
-    emit backFromAndroidActivity();
+void AndroidHelper::notifyEnterForeground() {
+    emit enterForeground();
 }
 
+void AndroidHelper::notifyEnterBackground() {
+    emit enterBackground();
+}
+
+void AndroidHelper::performHapticFeedback(int duration) {
+    emit hapticFeedbackRequested(duration);
+}
+
+void AndroidHelper::showLoginDialog() {
+    emit androidActivityRequested("Login", true);
+}
