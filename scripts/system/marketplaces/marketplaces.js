@@ -19,6 +19,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
 
     Script.include("/~/system/libraries/WebTablet.js");
     Script.include("/~/system/libraries/gridTool.js");
+    Script.include("/~/system/libraries/connectionUtils.js");
 
     var METAVERSE_SERVER_URL = Account.metaverseServerURL;
     var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
@@ -789,10 +790,14 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var savedDisablePreviewOptionLocked = false;
     var savedDisablePreviewOption = Menu.isOptionChecked("Disable Preview");;
     function maybeEnableHMDPreview() {
-        setTabletVisibleInSecondaryCamera(true);
-        DesktopPreviewProvider.setPreviewDisabledReason("USER");
-        Menu.setIsOptionChecked("Disable Preview", savedDisablePreviewOption);
-        savedDisablePreviewOptionLocked = false;
+        // Set a small timeout to prevent sensitive data from being shown during
+        // UI fade
+        Script.setTimeout(function () {
+            setTabletVisibleInSecondaryCamera(true);
+            DesktopPreviewProvider.setPreviewDisabledReason("USER");
+            Menu.setIsOptionChecked("Disable Preview", savedDisablePreviewOption);
+            savedDisablePreviewOptionLocked = false;
+        }, 150);
     }
 
     // Function Name: fromQml()

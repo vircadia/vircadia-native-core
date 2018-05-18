@@ -88,6 +88,7 @@ public:
     void requestProfile();
 
     DataServerAccountInfo& getAccountInfo() { return _accountInfo; }
+    void setAccountInfo(const DataServerAccountInfo &newAccountInfo);
 
     static QJsonObject dataObjectFromResponse(QNetworkReply& requestReply);
 

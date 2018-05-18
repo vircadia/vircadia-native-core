@@ -9,12 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ShapeManagerTests.h"
+
 #include <iostream>
+
 #include <ShapeManager.h>
 #include <StreamUtils.h>
 #include <Extents.h>
-
-#include "ShapeManagerTests.h"
 
 QTEST_MAIN(ShapeManagerTests)
 

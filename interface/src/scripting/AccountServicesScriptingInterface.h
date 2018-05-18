@@ -18,6 +18,8 @@
 #include <QScriptValue>
 #include <QString>
 #include <QStringList>
+
+#include <AccountManager.h>
 #include <DiscoverabilityManager.h>
 
 class DownloadInfoResult {
@@ -38,6 +40,9 @@ class AccountServicesScriptingInterface : public QObject {
     /**jsdoc
      * The AccountServices API contains helper functions related to user connectivity
      * 
+     * @hifi-interface
+     * @hifi-client-entity
+     *
      * @namespace AccountServices
      * @property {string} username <em>Read-only.</em>
      * @property {boolean} loggedIn <em>Read-only.</em>

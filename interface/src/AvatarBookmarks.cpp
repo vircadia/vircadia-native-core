@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AvatarBookmarks.h"
+
 #include <QAction>
 #include <QInputDialog>
 #include <QMessageBox>
@@ -27,7 +29,6 @@
 
 #include "MainWindow.h"
 #include "Menu.h"
-#include "AvatarBookmarks.h"
 #include "InterfaceLogging.h"
 
 #include "QVariantGLM.h"

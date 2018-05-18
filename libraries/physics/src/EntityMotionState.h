@@ -157,6 +157,8 @@ protected:
     uint8_t _numInactiveUpdates { 1 };
     uint8_t _bumpedPriority { 0 }; // the target simulation priority according to collision history
     uint8_t _region { workload::Region::INVALID };
+
+    bool isServerlessMode();
 };
 
 #endif // hifi_EntityMotionState_h

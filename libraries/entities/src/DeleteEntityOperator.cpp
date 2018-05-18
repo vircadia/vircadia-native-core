@@ -9,12 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DeleteEntityOperator.h"
+
 #include "EntityItem.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-
 #include "EntitiesLogging.h"
-#include "DeleteEntityOperator.h"
 
 DeleteEntityOperator::DeleteEntityOperator(EntityTreePointer tree, const EntityItemID& searchEntityID) :
     _tree(tree),

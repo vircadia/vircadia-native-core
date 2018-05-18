@@ -17,10 +17,9 @@ std::string GLESBackend::getBackendShaderHeader() const {
     static const std::string header(
         R"SHADER(#version 310 es
         #extension GL_EXT_texture_buffer : enable
-        precision lowp float; // check precision 2
-        precision lowp samplerBuffer;
-        precision lowp sampler2DShadow;
-        #define PRECISIONQ highp
+        precision highp float;
+        precision highp samplerBuffer;
+        precision highp sampler2DShadow;
         #define BITFIELD highp int
         )SHADER");
     return header;

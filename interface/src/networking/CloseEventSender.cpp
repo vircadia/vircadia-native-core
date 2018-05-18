@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "CloseEventSender.h"
+
 #include <QtCore/QDateTime>
 #include <QtCore/QEventLoop>
 #include <QtCore/QJsonDocument>
@@ -21,8 +23,6 @@
 #include <NetworkLogging.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
-
-#include "CloseEventSender.h"
 
 QNetworkRequest createNetworkRequest() {
 

@@ -11,6 +11,8 @@
 
 #include "ConnectionStats.h"
 
+#include <QtCore/QDebug>
+
 using namespace udt;
 using namespace std::chrono;
 
@@ -111,4 +113,32 @@ void ConnectionStats::recordCongestionWindowSize(int sample) {
 void ConnectionStats::recordPacketSendPeriod(int sample) {
     _currentSample.packetSendPeriod = sample;
     _total.packetSendPeriod = (int)((_total.packetSendPeriod * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT));
+}
+
+QDebug& operator<<(QDebug&& debug, const udt::ConnectionStats::Stats& stats) {
+    debug << "Connection stats:\n";
+#define HIFI_LOG_EVENT(x) << "    " #x " events: " << stats.events[ConnectionStats::Stats::Event::x] << "\n"
+    debug
+    HIFI_LOG_EVENT(SentACK)
+    HIFI_LOG_EVENT(ReceivedACK)
+    HIFI_LOG_EVENT(ProcessedACK)
+    HIFI_LOG_EVENT(SentLightACK)
+    HIFI_LOG_EVENT(ReceivedLightACK)
+    HIFI_LOG_EVENT(SentACK2)
+    HIFI_LOG_EVENT(ReceivedACK2)
+    HIFI_LOG_EVENT(SentNAK)
+    HIFI_LOG_EVENT(ReceivedNAK)
+    HIFI_LOG_EVENT(SentTimeoutNAK)
+    HIFI_LOG_EVENT(ReceivedTimeoutNAK)
+    HIFI_LOG_EVENT(Retransmission)
+    HIFI_LOG_EVENT(Duplicate)
+    ;
+#undef HIFI_LOG_EVENT
+
+    debug << "    Sent packets: " << stats.sentPackets;
+    debug << "\n     Received packets: " << stats.receivedPackets;
+    debug << "\n     Sent util bytes: " << stats.sentUtilBytes;
+    debug << "\n     Sent bytes: " << stats.sentBytes;
+    debug << "\n     Received bytes: " << stats.receivedBytes << "\n";
+    return debug;
 }

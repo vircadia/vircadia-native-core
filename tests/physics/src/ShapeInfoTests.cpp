@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ShapeInfoTests.h"
+
 #include <iostream>
 
 #include <btBulletDynamicsCommon.h>
@@ -18,8 +20,6 @@
 #include <ShapeInfo.h>
 #include <ShapeFactory.h>
 #include <StreamUtils.h>
-
-#include "ShapeInfoTests.h"
 
 QTEST_MAIN(ShapeInfoTests)
 

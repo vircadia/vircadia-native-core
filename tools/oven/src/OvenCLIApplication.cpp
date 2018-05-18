@@ -9,12 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OvenCLIApplication.h"
+
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QUrl>
 
 #include "BakerCLI.h"
-
-#include "OvenCLIApplication.h"
 
 static const QString CLI_INPUT_PARAMETER = "i";
 static const QString CLI_OUTPUT_PARAMETER = "o";

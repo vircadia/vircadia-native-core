@@ -9,7 +9,7 @@
 /* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, getControllerJointIndex,
    enableDispatcherModule, disableDispatcherModule, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    makeDispatcherModuleParameters, Overlays, makeRunningValues, Vec3, resizeTablet, getTabletWidthFromSettings,
-   NEAR_GRAB_RADIUS
+   NEAR_GRAB_RADIUS, HMD, Uuid
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -37,7 +37,6 @@ Script.include("/~/system/libraries/utils.js");
 
         // XXX does handJointIndex change if the avatar changes?
         this.handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
-        this.controllerJointIndex = getControllerJointIndex(this.hand);
 
         this.getOtherModule = function() {
             return (this.hand === RIGHT_HAND) ? leftNearParentingGrabOverlay : rightNearParentingGrabOverlay;

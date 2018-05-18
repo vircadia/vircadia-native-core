@@ -54,6 +54,8 @@ public:
     static const std::string GL45_VERSION;
     const std::string& getVersion() const override { return GL45_VERSION; }
 
+    bool supportedTextureFormat(const gpu::Element& format) override;
+
     class GL45Texture : public GLTexture {
         using Parent = GLTexture;
         friend class GL45Backend;

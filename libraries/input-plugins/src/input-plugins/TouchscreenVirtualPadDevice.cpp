@@ -57,7 +57,7 @@ void TouchscreenVirtualPadDevice::init() {
 void TouchscreenVirtualPadDevice::resize() {
     QScreen* eventScreen = qApp->primaryScreen();
     if (_screenDPIProvided != eventScreen->physicalDotsPerInch()) {
-        _screenWidthCenter = eventScreen->size().width() / 2;
+        _screenWidthCenter = eventScreen->availableSize().width() / 2;
         _screenDPIScale.x = (float)eventScreen->physicalDotsPerInchX();
         _screenDPIScale.y = (float)eventScreen->physicalDotsPerInchY();
         _screenDPIProvided = eventScreen->physicalDotsPerInch();
@@ -81,7 +81,7 @@ void TouchscreenVirtualPadDevice::setupControlsPositions(VirtualPad::Manager& vi
 
     // Movement stick
     float margin = _screenDPI * VirtualPad::Manager::BASE_MARGIN_PIXELS / VirtualPad::Manager::DPI;
-    _fixedCenterPosition = glm::vec2( _fixedRadius + margin, eventScreen->size().height() - margin - _fixedRadius - _extraBottomMargin);
+    _fixedCenterPosition = glm::vec2( _fixedRadius + margin, eventScreen->availableSize().height() - margin - _fixedRadius - _extraBottomMargin);
     _moveRefTouchPoint = _fixedCenterPosition;
     virtualPadManager.getLeftVirtualPad()->setFirstTouch(_moveRefTouchPoint);
 
@@ -89,7 +89,7 @@ void TouchscreenVirtualPadDevice::setupControlsPositions(VirtualPad::Manager& vi
     float jumpBtnPixelSize = _screenDPI * VirtualPad::Manager::JUMP_BTN_FULL_PIXELS / VirtualPad::Manager::DPI;
     float rightMargin = _screenDPI * VirtualPad::Manager::JUMP_BTN_RIGHT_MARGIN_PIXELS / VirtualPad::Manager::DPI;
     float bottomMargin = _screenDPI * VirtualPad::Manager::JUMP_BTN_BOTTOM_MARGIN_PIXELS/ VirtualPad::Manager::DPI;
-    _jumpButtonPosition = glm::vec2( eventScreen->size().width() - rightMargin - jumpBtnPixelSize, eventScreen->size().height() - bottomMargin - _jumpButtonRadius - _extraBottomMargin);
+    _jumpButtonPosition = glm::vec2( eventScreen->availableSize().width() - rightMargin - jumpBtnPixelSize, eventScreen->availableSize().height() - bottomMargin - _jumpButtonRadius - _extraBottomMargin);
     virtualPadManager.setJumpButtonPosition(_jumpButtonPosition);
 }
 
@@ -187,6 +187,13 @@ void TouchscreenVirtualPadDevice::InputDevice::update(float deltaTime, const con
     _axisStateMap.clear();
 }
 
+bool TouchscreenVirtualPadDevice::InputDevice::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
+    auto& virtualPadManager = VirtualPad::Manager::instance();
+    virtualPadManager.requestHapticFeedback((int) duration);
+    return true;
+}
+
+
 void TouchscreenVirtualPadDevice::InputDevice::focusOutEvent() {
 }
 
@@ -200,7 +207,7 @@ void TouchscreenVirtualPadDevice::debugPoints(const QTouchEvent* event, QString 
         points << thisPoint;
     }
     QScreen* eventScreen = event->window()->screen();
-    int midScreenX = eventScreen->size().width()/2;
+    int midScreenX = eventScreen->availableSize().width()/2;
     int lefties = 0;
     int righties = 0;
     vec2 currentPoint;

@@ -272,7 +272,7 @@ public:
 
     void update(float deltaTime);
     virtual void postUpdate(float deltaTime, const render::ScenePointer& scene) override;
-    void preDisplaySide(RenderArgs* renderArgs);
+    void preDisplaySide(const RenderArgs* renderArgs);
 
     const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }

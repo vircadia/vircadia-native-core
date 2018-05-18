@@ -37,51 +37,49 @@ public:
      * API to manage animation cache resources.
      * @namespace AnimationCache
      *
+     * @hifi-interface
+     * @hifi-client-entity
+     * @hifi-assignment-client
+     *
      * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
      * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
      * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
      * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
      */
 
-     // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
+    // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
 
-     /**jsdoc
+    /**jsdoc
      * Get the list of all resource URLs.
      * @function AnimationCache.getResourceList
-     * @return {string[]}
+     * @returns {string[]}
      */
 
-     /**jsdoc
+    /**jsdoc
      * @function AnimationCache.dirty
      * @returns {Signal}
      */
 
-     /**jsdoc
+    /**jsdoc
      * @function AnimationCache.updateTotalSize
      * @param {number} deltaSize
      */
 
-     /**jsdoc
+    /**jsdoc
+     * Prefetches a resource.
      * @function AnimationCache.prefetch
-     * @param {string} url
-     * @param {object} extra
-     * @returns {object}
+     * @param {string} url - URL of the resource to prefetch.
+     * @param {object} [extra=null]
+     * @returns {Resource}
      */
 
-     /**jsdoc
+    /**jsdoc
      * Asynchronously loads a resource from the specified URL and returns it.
      * @function AnimationCache.getResource
      * @param {string} url - URL of the resource to load.
      * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
      * @param {} [extra=null]
-     * @return {Resource}
-     */
-
-     /**jsdoc
-     * Prefetches a resource.
-     * @function AnimationCache.prefetch
-     * @param {string} url - URL of the resource to prefetch.
-     * @return {Resource}
+     * @returns {Resource}
      */
 
 

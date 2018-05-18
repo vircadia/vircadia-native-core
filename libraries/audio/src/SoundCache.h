@@ -29,6 +29,11 @@ public:
      * API to manage sound cache resources.
      * @namespace SoundCache
      *
+     * @hifi-interface
+     * @hifi-client-entity
+     * @hifi-server-entity
+     * @hifi-assignment-client
+     *
      * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
      * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
      * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
@@ -36,12 +41,12 @@ public:
      */
 
 
-     // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
+    // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
 
     /**jsdoc
      * Get the list of all resource URLs.
      * @function SoundCache.getResourceList
-     * @return {string[]}
+     * @returns {string[]}
      */
 
     /**jsdoc
@@ -55,10 +60,11 @@ public:
      */
 
     /**jsdoc
+     * Prefetches a resource.
      * @function SoundCache.prefetch
-     * @param {string} url
-     * @param {object} extra
-     * @returns {object}
+     * @param {string} url - URL of the resource to prefetch.
+     * @param {object} [extra=null]
+     * @returns {Resource}
      */
 
     /**jsdoc
@@ -67,14 +73,7 @@ public:
      * @param {string} url - URL of the resource to load.
      * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
      * @param {} [extra=null]
-     * @return {Resource}
-     */
-
-    /**jsdoc
-     * Prefetches a resource.
-     * @function SoundCache.prefetch
-     * @param {string} url - URL of the resource to prefetch.
-     * @return {Resource}
+     * @returns {Resource}
      */
 
 
