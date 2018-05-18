@@ -11,6 +11,8 @@
 #ifndef hifi_OverlayConductor_h
 #define hifi_OverlayConductor_h
 
+#include <cstdint>
+
 class OverlayConductor {
 public:
     OverlayConductor();
@@ -34,12 +36,12 @@ private:
     bool _hmdMode { false };
 
     // used by updateAvatarHasDriveInput
-    quint64 _desiredDrivingTimer { 0 };
+    uint64_t _desiredDrivingTimer { 0 };
     bool _desiredDriving { false };
     bool _currentDriving { false };
 
     // used by updateAvatarIsAtRest
-    quint64 _desiredAtRestTimer { 0 };
+    uint64_t _desiredAtRestTimer { 0 };
     bool _desiredAtRest { true };
     bool _currentAtRest { true };
 };

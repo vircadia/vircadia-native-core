@@ -30,6 +30,9 @@
 /**jsdoc 
  * The AvatarManager API has properties and methods which manage Avatars within the same domain.
  * @namespace AvatarManager
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 
 class AvatarManager : public AvatarHashMap {

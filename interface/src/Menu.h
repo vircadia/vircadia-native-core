@@ -193,7 +193,6 @@ namespace MenuOption {
     const QString ShowOtherLookAtVectors = "Show Other Eye Vectors";
     const QString EnableLookAtSnapping = "Enable LookAt Snapping";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
-    const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString SimulateEyeTracking = "Simulate";
     const QString SMIEyeTracking = "SMI Eye Tracking";
     const QString SparseTextureManagement = "Enable Sparse Texture Management";
@@ -216,6 +215,7 @@ namespace MenuOption {
     const QString DesktopTabletToToolbar = "Desktop Tablet Becomes Toolbar";
     const QString HMDTabletToToolbar = "HMD Tablet Becomes Toolbar";
     const QString Shadows = "Shadows";
+    const QString AntiAliasing = "Temporal Antialiasing (FXAA if disabled)";
     const QString AmbientOcclusion = "Ambient Occlusion";
 }
 

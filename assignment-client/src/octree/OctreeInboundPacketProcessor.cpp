@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctreeInboundPacketProcessor.h"
+
 #include <limits>
 
 #include <NumericalConstants.h>
@@ -17,7 +19,6 @@
 
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
-#include "OctreeInboundPacketProcessor.h"
 
 static QUuid DEFAULT_NODE_ID_REF;
 const quint64 TOO_LONG_SINCE_LAST_NACK = 1 * USECS_PER_SECOND;

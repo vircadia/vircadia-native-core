@@ -13,10 +13,23 @@
 AutoTester* autoTester;
 
 int main(int argc, char *argv[]) {
+    // Only parameter is "--testFolder"
+    QString testFolder;
+    if (argc == 3) {
+        if (QString(argv[1]) == "--testFolder") {
+            testFolder = QString(argv[2]);
+        }
+    }
+
     QApplication application(argc, argv);
 
     autoTester = new AutoTester();
-    autoTester->show();
+
+    if (!testFolder.isNull()) {
+        autoTester->runFromCommandLine(testFolder);
+    } else {
+        autoTester->show();
+    }
 
     return application.exec();
 }

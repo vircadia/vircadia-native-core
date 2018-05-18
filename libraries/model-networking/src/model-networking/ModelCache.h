@@ -55,6 +55,7 @@ public:
 
     virtual bool areTexturesLoaded() const;
     const QUrl& getAnimGraphOverrideUrl() const { return _animGraphOverrideUrl; }
+    const QVariantHash& getMapping() const { return _mapping; }
 
 protected:
     friend class GeometryMappingResource;
@@ -68,6 +69,7 @@ protected:
     NetworkMaterials _materials;
 
     QUrl _animGraphOverrideUrl;
+    QVariantHash _mapping;  // parsed contents of FST file.
 
 private:
     mutable bool _areTexturesLoaded { false };
@@ -144,6 +146,9 @@ public:
      * API to manage model cache resources.
      * @namespace ModelCache
      *
+     * @hifi-interface
+     * @hifi-client-entity
+     *
      * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
      * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
      * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
@@ -156,7 +161,7 @@ public:
     /**jsdoc
      * Get the list of all resource URLs.
      * @function ModelCache.getResourceList
-     * @return {string[]}
+     * @returns {string[]}
      */
 
     /**jsdoc
@@ -170,10 +175,11 @@ public:
      */
 
     /**jsdoc
+     * Prefetches a resource.
      * @function ModelCache.prefetch
-     * @param {string} url
-     * @param {object} extra
-     * @returns {object}
+     * @param {string} url - URL of the resource to prefetch.
+     * @param {object} [extra=null]
+     * @returns {Resource}
      */
 
     /**jsdoc
@@ -182,14 +188,7 @@ public:
      * @param {string} url - URL of the resource to load.
      * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
      * @param {} [extra=null]
-     * @return {Resource}
-     */
-
-    /**jsdoc
-     * Prefetches a resource.
-     * @function ModelCache.prefetch
-     * @param {string} url - URL of the resource to prefetch.
-     * @return {Resource}
+     * @returns {Resource}
      */
 
 

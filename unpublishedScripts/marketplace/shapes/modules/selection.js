@@ -654,7 +654,7 @@ SelectionManager = function (side) {
             try {
                 userData = JSON.parse(userDataString);
             } catch (e) {
-                App.log(side, "ERROR: Invalid userData in entity being updated! " + userDataString);
+                console.log(side, "ERROR: Invalid userData in entity being updated! " + userDataString);
             }
         }
 

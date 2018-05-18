@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctreeSceneStats.h"
+
 #include <limits>
 #include <QString>
 #include <QStringList>
@@ -20,8 +22,6 @@
 #include "OctreePacketData.h"
 #include "OctreeElement.h"
 #include "OctreeLogging.h"
-#include "OctreeSceneStats.h"
-
 
 const int samples = 100;
 OctreeSceneStats::OctreeSceneStats() :

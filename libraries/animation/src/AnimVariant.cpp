@@ -1,5 +1,5 @@
 //
-//  AnimVariantMap.cpp
+//  AnimVariant.cpp
 //  library/animation
 //
 //  Created by Howard Stearns on 10/15/15.
@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AnimVariant.h" // which has AnimVariant/AnimVariantMap
+
 #include <QScriptEngine>
 #include <QScriptValueIterator>
 #include <QThread>
 #include <RegisteredMetaTypes.h>
-#include "AnimVariant.h" // which has AnimVariant/AnimVariantMap
 
 const AnimVariant AnimVariant::False = AnimVariant();
 

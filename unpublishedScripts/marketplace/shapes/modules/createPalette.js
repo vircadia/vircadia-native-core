@@ -466,7 +466,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         if (handJointIndex === NONE) {
             // Don't display if joint isn't available (yet) to attach to.
             // User can clear this condition by toggling the app off and back on once avatar finishes loading.
-            App.log(side, "ERROR: CreatePalette: Hand joint index isn't available!");
+            console.log(side, "ERROR: CreatePalette: Hand joint index isn't available!");
             return;
         }
 

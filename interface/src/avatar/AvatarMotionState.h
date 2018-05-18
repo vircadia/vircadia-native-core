@@ -23,6 +23,9 @@ class AvatarMotionState : public ObjectMotionState {
 public:
     AvatarMotionState(AvatarSharedPointer avatar, const btCollisionShape* shape);
 
+    virtual void handleEasyChanges(uint32_t& flags) override;
+    virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) override;
+
     virtual PhysicsMotionType getMotionType() const override { return _motionType; }
 
     virtual uint32_t getIncomingDirtyFlags() override;
@@ -64,6 +67,8 @@ public:
 
     virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
 
+    virtual float getMass() const override;
+
     friend class AvatarManager;
     friend class Avatar;
 
@@ -76,6 +81,7 @@ protected:
     virtual const btCollisionShape* computeNewShape() override;
 
     AvatarSharedPointer _avatar;
+    float _diameter { 0.0f };
 
     uint32_t _dirtyFlags;
 };

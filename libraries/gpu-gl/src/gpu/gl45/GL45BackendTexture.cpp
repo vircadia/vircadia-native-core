@@ -32,6 +32,24 @@ using namespace gpu::gl45;
 #define FORCE_STRICT_TEXTURE 0
 #define ENABLE_SPARSE_TEXTURE 0
 
+bool GL45Backend::supportedTextureFormat(const gpu::Element& format) {
+    switch (format.getSemantic()) {
+        case gpu::Semantic::COMPRESSED_ETC2_RGB:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGB:
+        case gpu::Semantic::COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA:
+        case gpu::Semantic::COMPRESSED_ETC2_RGBA:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGBA:
+        case gpu::Semantic::COMPRESSED_EAC_RED:
+        case gpu::Semantic::COMPRESSED_EAC_RED_SIGNED:
+        case gpu::Semantic::COMPRESSED_EAC_XY:
+        case gpu::Semantic::COMPRESSED_EAC_XY_SIGNED:
+            return false;
+        default:
+            return true;
+    }
+}
+
 GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
     if (!texturePointer) {
         return nullptr;

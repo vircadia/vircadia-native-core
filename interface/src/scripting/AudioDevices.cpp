@@ -9,18 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioDevices.h"
+
 #include <map>
 #include <algorithm>
 
 #include <shared/QtHelpers.h>
 #include <plugins/DisplayPlugin.h>
 
-#include "AudioDevices.h"
-
 #include "Application.h"
 #include "AudioClient.h"
 #include "Audio.h"
-
 #include "UserActivityLogger.h"
 
 using namespace scripting;

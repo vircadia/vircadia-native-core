@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/contentHomeRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    android:background="@color/colorPrimary"
+    tools:context="io.highfidelity.hifiinterface.MainActivity"
+    tools:showIn="@layout/activity_home">
+
+    <EditText
+        android:id="@+id/searchView"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/searchEditHeight"
+        app:layout_constraintTop_toTopOf="@id/contentHomeRoot"
+        android:background="@drawable/search_bg"
+        android:layout_marginTop="@dimen/searchEditAdditionalMarginTop"
+        android:gravity="center_vertical|end"
+        android:paddingStart="@dimen/searchEditPaddingStart"
+        android:paddingEnd="@dimen/searchEditPaddingEnd"
+        android:fontFamily="@font/raleway"
+        android:hint="@string/search_hint"
+        android:textSize="@dimen/searchEditTextSize"
+        android:inputType="textUri"
+        android:imeOptions="actionGo"
+        />
+
+    <ImageView
+        android:id="@+id/search_mag_icon"
+        android:layout_width="@dimen/searchEditMagIconWidth"
+        android:layout_height="@dimen/searchEditMagIconHeight"
+        app:layout_constraintEnd_toEndOf="@id/searchView"
+        app:layout_constraintTop_toTopOf="@id/searchView"
+        app:layout_constraintBottom_toBottomOf="@id/searchView"
+        android:layout_marginEnd="@dimen/searchEditMagMarginEnd"
+        android:src="@drawable/ic_search"
+        />
+
+    <ImageView
+        android:id="@+id/search_clear"
+        android:layout_width="@dimen/searchEditClearIconWidth"
+        android:layout_height="@dimen/searchEditClearIconHeight"
+        app:layout_constraintEnd_toEndOf="@id/searchView"
+        app:layout_constraintTop_toTopOf="@id/searchView"
+        app:layout_constraintBottom_toBottomOf="@id/searchView"
+        android:layout_marginEnd="@dimen/searchEditClearMarginEnd"
+        android:visibility="gone"
+        android:src="@drawable/ic_clear"
+        />
+
+    <TextView
+        android:id="@+id/searchNoResultsView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        style="@style/SearchText"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/searchView"
+        android:layout_marginTop="32dp"
+        android:text="@string/search_no_results"
+        android:visibility="gone"
+        />
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/rvDomains"
+        app:layout_constraintTop_toBottomOf="@id/searchView"
+        app:layout_constraintBottom_toBottomOf="@id/contentHomeRoot"
+        app:layout_constraintStart_toStartOf="@id/contentHomeRoot"
+        app:layout_constraintEnd_toEndOf="@id/contentHomeRoot"
+        android:layout_width="0dp"
+        android:layout_height="0dp" />
+
+</android.support.constraint.ConstraintLayout>

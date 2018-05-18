@@ -76,7 +76,9 @@ void KtxTests::testKtxEvalFunctions() {
 void KtxTests::testKtxSerialization() {
     const QString TEST_IMAGE = getRootPath() + "/scripts/developer/tests/cube_texture.png";
     QImage image(TEST_IMAGE);
-    gpu::TexturePointer testTexture = image::TextureUsage::process2DTextureColorFromImage(image, TEST_IMAGE.toStdString(), true);
+    std::atomic<bool> abortSignal;
+    gpu::TexturePointer testTexture =
+        image::TextureUsage::process2DTextureColorFromImage(std::move(image), TEST_IMAGE.toStdString(), true, abortSignal);
     auto ktxMemory = gpu::Texture::serialize(*testTexture);
     QVERIFY(ktxMemory.get());
 
