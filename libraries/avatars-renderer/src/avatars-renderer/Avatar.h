@@ -356,6 +356,10 @@ public:
 
     virtual void setAvatarEntityDataChanged(bool value) override;
 
+    // Show hide the model representation of the avatar
+    virtual void setEnableMeshVisible(bool isEnabled);
+    virtual bool getEnableMeshVisible() const;
+
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
 

@@ -765,6 +765,20 @@ void Avatar::render(RenderArgs* renderArgs) {
     }
 }
 
+
+void Avatar::setEnableMeshVisible(bool isEnabled) {
+    render::Transaction transaction;
+    if (render::Item::isValidID(_renderItemID)) {
+        transaction.updateItem<render::Payload<AvatarData>>(_renderItemID, [](render::Payload<AvatarData>& p) {
+        });
+    }
+    qApp->getMain3DScene()->enqueueTransaction(transaction);
+}
+
+bool Avatar::getEnableMeshVisible() const {
+    return true;
+}
+
 void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     bool canTryFade{ false };
 
