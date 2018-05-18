@@ -1330,20 +1330,6 @@ void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) c
     properties._accelerationChanged = true;
 }
 
-/*
-void EntityItem::flagForOwnershipBid(uint8_t priority) {
-    markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY);
-    auto nodeList = DependencyManager::get<NodeList>();
-    if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
-        // we already own it
-        _simulationOwner.promotePriority(priority);
-    } else {
-        // we don't own it yet
-        _simulationOwner.setPendingPriority(priority, usecTimestampNow());
-    }
-}
-*/
-
 void EntityItem::setScriptSimulationPriority(uint8_t priority) {
     uint8_t newPriority = stillHasGrabActions() ? glm::max(priority, SCRIPT_GRAB_SIMULATION_PRIORITY) : priority;
     if (newPriority != _scriptSimulationPriority) {
