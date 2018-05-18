@@ -761,6 +761,7 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
                 this, &AccountManager::handleKeypairGenerationError);
 
         connect(keypairGenerator, &QObject::destroyed, generateThread, &QThread::quit);
+        connect(this, &QObject::destroyed, generateThread, &QThread::quit);
         connect(generateThread, &QThread::finished, generateThread, &QThread::deleteLater);
 
         keypairGenerator->moveToThread(generateThread);
