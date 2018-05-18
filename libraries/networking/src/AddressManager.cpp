@@ -767,8 +767,8 @@ bool AddressManager::handleUsername(const QString& lookupString) {
 }
 
 bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16 port) {
-    int hostComparisonResult = QString::compare(host, _domainURL.host(), Qt::CaseInsensitive);
-    if (hostComparisonResult != 0 || port != _domainURL.port()) {
+    bool hostHasChanged = QString::compare(host, _domainURL.host(), Qt::CaseInsensitive);
+    if (hostHasChanged || port != _domainURL.port()) {
         addCurrentAddressToHistory(trigger);
 
         _domainURL = QUrl();
@@ -781,7 +781,7 @@ bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16
         // any host change should clear the shareable place name
         _shareablePlaceName.clear();
 
-        if (hostComparisonResult != 0) {
+        if (hostHasChanged) {
             emit hostChanged(host);
         }
 
