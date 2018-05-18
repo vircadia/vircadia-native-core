@@ -74,8 +74,7 @@ Rectangle {
 
             spacing: 17
 
-            RalewaySemiBold {
-                size: 14;
+            TextStyle9 {
                 text: "Avatar Scale"
                 verticalAlignment: Text.AlignVCenter
                 anchors.verticalCenter: parent.verticalCenter
@@ -170,11 +169,10 @@ Rectangle {
 
             columns: 3
 
-            RalewaySemiBold {
+            TextStyle9 {
                 Layout.row: 0
                 Layout.column: 0
 
-                size: 14;
                 text: "Dominant Hand"
             }
 
@@ -187,13 +185,15 @@ Rectangle {
 
                 Layout.row: 0
                 Layout.column: 1
-                Layout.leftMargin: -18
+                Layout.leftMargin: -40
 
                 ButtonGroup.group: leftRight
                 checked: true
 
                 colorScheme: hifi.colorSchemes.light
-                text: "Left hand"
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Left"
                 boxSize: 20
             }
 
@@ -202,18 +202,21 @@ Rectangle {
 
                 Layout.row: 0
                 Layout.column: 2
+                Layout.rightMargin: 20
+
                 ButtonGroup.group: leftRight
 
                 colorScheme: hifi.colorSchemes.light
-                text: "Right hand"
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Right"
                 boxSize: 20
             }
 
-            RalewaySemiBold {
+            TextStyle9 {
                 Layout.row: 1
                 Layout.column: 0
 
-                size: 14;
                 text: "Avatar Collisions"
             }
 
@@ -226,10 +229,12 @@ Rectangle {
 
                 Layout.row: 1
                 Layout.column: 1
-                Layout.leftMargin: -18
+                Layout.leftMargin: -40
                 ButtonGroup.group: onOff
 
                 colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
                 checked: true
 
                 text: "ON"
@@ -245,8 +250,12 @@ Rectangle {
 
                 Layout.row: 1
                 Layout.column: 2
+                Layout.rightMargin: 20
+
                 ButtonGroup.group: onOff
                 colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
 
                 text: "OFF"
                 boxSize: 20
@@ -262,8 +271,7 @@ Rectangle {
 
             spacing: 4
 
-            RalewaySemiBold {
-                size: 14;
+            TextStyle9 {
                 text: "Avatar Animation JSON"
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignLeft
@@ -271,6 +279,7 @@ Rectangle {
 
             InputTextStyle4 {
                 id: avatarAnimationUrlInputText
+                font.pixelSize: 17
                 anchors.left: parent.left
                 anchors.right: parent.right
                 placeholderText: 'user\\ﬁle\\dir'
@@ -286,8 +295,7 @@ Rectangle {
 
             spacing: 4
 
-            RalewaySemiBold {
-                size: 14;
+            TextStyle9 {
                 text: "Avatar collision sound URL (optional)"
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignLeft
@@ -295,6 +303,7 @@ Rectangle {
 
             InputTextStyle4 {
                 id: avatarCollisionSoundUrlInputText
+                font.pixelSize: 17
                 anchors.left: parent.left
                 anchors.right: parent.right
                 placeholderText: 'https://hifi-public.s3.amazonaws.com/sounds/Collisions-'
