@@ -16,14 +16,14 @@
 #ifndef hifi_HTTPConnection_h
 #define hifi_HTTPConnection_h
 
-#include <QDataStream>
 #include <QHash>
-#include <QtNetwork/QHostAddress>
 #include <QIODevice>
 #include <QList>
+#include <QtNetwork/QHostAddress>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QObject>
 #include <QPair>
+#include <QTemporaryFile>
 #include <QUrl>
 
 #include <memory>
@@ -57,6 +57,17 @@ public:
     /// WebSocket close status codes.
     enum ReasonCode { NoReason = 0, NormalClosure = 1000, GoingAway = 1001 };
 
+    class Storage {
+    public:
+        Storage() = default;
+        virtual ~Storage() = default;
+
+        virtual const QByteArray& content() const = 0;
+
+        virtual qint64 bytesLeftToWrite() const = 0;
+        virtual void write(const QByteArray& data) = 0;
+    };
+
     /// Initializes the connection.
     HTTPConnection(QTcpSocket* socket, HTTPManager* parentManager);
 
@@ -76,7 +87,7 @@ public:
     QByteArray requestHeader(const QString& key) const { return _requestHeaders.value(key.toLower().toLocal8Bit()); }
 
     /// Returns a reference to the request content.
-    const QByteArray& requestContent() const { return _requestContent; }
+    const QByteArray& requestContent() const { return _requestContent->content(); }
 
     /// Parses the request content as form data, returning a list of header/content pairs.
     QList<FormData> parseFormData() const;
@@ -129,7 +140,7 @@ protected:
     QByteArray _lastRequestHeader;
 
     /// The content of the request.
-    QByteArray _requestContent;
+    std::unique_ptr<Storage> _requestContent;
 
     /// Response content
     std::unique_ptr<QIODevice> _responseDevice;

@@ -384,6 +384,8 @@ DomainServer::~DomainServer() {
         _contentManager->terminate();
     }
 
+    DependencyManager::destroy<AccountManager>();
+
     // cleanup the AssetClient thread
     DependencyManager::destroy<AssetClient>();
     _assetClientThread.quit();
