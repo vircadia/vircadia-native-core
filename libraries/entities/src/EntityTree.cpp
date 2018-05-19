@@ -1990,6 +1990,7 @@ int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePo
 
                 if (shouldEraseEntity(entityID, sourceNode)) {
                     entityItemIDsToDelete << entityItemID;
+                    cleanupCloneIDs(entityItemID);
                 }
             }
             deleteEntities(entityItemIDsToDelete, true, true);
