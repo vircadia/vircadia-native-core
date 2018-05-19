@@ -58,6 +58,7 @@ void setupPreferences() {
     {
         static const float MAX_DESKTOP_FPS = 60;
         static const float MAX_HMD_FPS = 90;
+        static const float MIN_FPS = 10;
         static const float LOW = 0.25f;
         static const float MEDIUM = 0.5f;
         static const float HIGH = 0.75f;
@@ -75,25 +76,26 @@ void setupPreferences() {
             float percentage = increaseFPS / maxFPS;
 
             if (percentage >= HIGH) {
-                return HIGH;
+                return LOW;
             } else if (percentage >= LOW) {
                 return MEDIUM;
             }
-            return LOW;
+            return HIGH;
         };
 
         auto setter = [](float value) {
             static const float THRASHING_DIFFERENCE = 10;
             auto lodManager = DependencyManager::get<LODManager>();
 
-            bool isMaxValue = value == HIGH;
+            bool isLowestValue = value == LOW;
             bool isHMDMode = qApp->isHMDMode();
 
             float maxFPS = isHMDMode ? MAX_HMD_FPS : MAX_DESKTOP_FPS;
             float desiredFPS = maxFPS - THRASHING_DIFFERENCE;
 
-            if (!isMaxValue) {
-                desiredFPS = (maxFPS * value)  - THRASHING_DIFFERENCE;
+            if (!isLowestValue) {
+                float calculatedFPS = (maxFPS - (maxFPS * value)) - THRASHING_DIFFERENCE;
+                desiredFPS = calculatedFPS < MIN_FPS ? MIN_FPS : calculatedFPS;
             }
 
             if (isHMDMode) {
