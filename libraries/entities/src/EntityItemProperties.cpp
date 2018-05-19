@@ -3657,9 +3657,9 @@ void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityID
     setLifetime(getCloneLifetime());
     setDynamic(getCloneDynamic());
     setClientOnly(getCloneAvatarEntity());
-    setCloneable(ENTITY_ITEM_CLONEABLE);
-    setCloneLifetime(ENTITY_ITEM_CLONE_LIFETIME);
-    setCloneLimit(ENTITY_ITEM_CLONE_LIMIT);
-    setCloneDynamic(ENTITY_ITEM_CLONE_DYNAMIC);
-    setCloneAvatarEntity(ENTITY_ITEM_CLONE_AVATAR_ENTITY);
+    setCloneable(ENTITY_ITEM_DEFAULT_CLONEABLE);
+    setCloneLifetime(ENTITY_ITEM_DEFAULT_CLONE_LIFETIME);
+    setCloneLimit(ENTITY_ITEM_DEFAULT_CLONE_LIMIT);
+    setCloneDynamic(ENTITY_ITEM_DEFAULT_CLONE_DYNAMIC);
+    setCloneAvatarEntity(ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY);
 }

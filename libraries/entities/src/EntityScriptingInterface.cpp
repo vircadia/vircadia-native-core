@@ -332,13 +332,20 @@ QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QStrin
 QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
     EntityItemID newEntityID;
     EntityItemProperties properties = getEntityProperties(entityIDToClone);
+    bool cloneAvatarEntity = properties.getCloneAvatarEntity();
     properties.convertToCloneProperties(entityIDToClone);
-    bool success = addLocalEntityCopy(properties, newEntityID);
-    if (success) {
-        getEntityPacketSender()->queueCloneEntityMessage(entityIDToClone, newEntityID);
-        return newEntityID;
+
+    if (cloneAvatarEntity) {
+        return addEntity(properties, true);
     } else {
-        return QUuid();
+        bool success = addLocalEntityCopy(properties, newEntityID);
+        if (success) {
+            getEntityPacketSender()->queueCloneEntityMessage(entityIDToClone, newEntityID);
+            return newEntityID;
+        }
+        else {
+            return QUuid();
+        }
     }
 }
 

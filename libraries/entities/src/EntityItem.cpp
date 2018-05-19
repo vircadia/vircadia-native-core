@@ -3112,15 +3112,15 @@ void EntityItem::removeCloneID(const QUuid& cloneID) {
     });
 }
 
-const QList<QUuid> EntityItem::getCloneIDs() const {
-    QList<QUuid> result;
+const QVector<QUuid> EntityItem::getCloneIDs() const {
+    QVector<QUuid> result;
     withReadLock([&] {
         result = _cloneIDs;
     });
     return result;
 }
 
-void EntityItem::setCloneIDs(const QList<QUuid>& cloneIDs) {
+void EntityItem::setCloneIDs(const QVector<QUuid>& cloneIDs) {
     withWriteLock([&] {
         _cloneIDs = cloneIDs;
     });

@@ -509,8 +509,8 @@ public:
 
     void addCloneID(const QUuid& cloneID);
     void removeCloneID(const QUuid& cloneID);
-    const QList<QUuid> getCloneIDs() const;
-    void setCloneIDs(const QList<QUuid>& cloneIDs);
+    const QVector<QUuid> getCloneIDs() const;
+    void setCloneIDs(const QVector<QUuid>& cloneIDs);
 
 signals:
     void requestRenderUpdate();
@@ -666,13 +666,13 @@ protected:
 
     bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
 
-    bool _cloneable { ENTITY_ITEM_CLONEABLE };
-    float _cloneLifetime { ENTITY_ITEM_CLONE_LIFETIME };
-    float _cloneLimit { ENTITY_ITEM_CLONE_LIMIT };
-    bool _cloneDynamic { ENTITY_ITEM_CLONE_DYNAMIC };
-    bool _cloneAvatarEntity { ENTITY_ITEM_CLONE_AVATAR_ENTITY };
+    bool _cloneable { ENTITY_ITEM_DEFAULT_CLONEABLE };
+    float _cloneLifetime { ENTITY_ITEM_DEFAULT_CLONE_LIFETIME };
+    float _cloneLimit { ENTITY_ITEM_DEFAULT_CLONE_LIMIT };
+    bool _cloneDynamic { ENTITY_ITEM_DEFAULT_CLONE_DYNAMIC };
+    bool _cloneAvatarEntity { ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY };
     QUuid _cloneOriginID;
-    QList<QUuid> _cloneIDs;
+    QVector<QUuid> _cloneIDs;
 
 private:
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;

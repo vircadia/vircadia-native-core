@@ -639,7 +639,7 @@ void EntityTree::cleanupCloneIDs(const EntityItemID& entityID) {
             }
         }
         // clear the clone origin ID on any clones that this entity had
-        const QList<QUuid>& cloneIDs = entity->getCloneIDs();
+        const QVector<QUuid>& cloneIDs = entity->getCloneIDs();
         foreach(const QUuid& cloneChildID, cloneIDs) {
             EntityItemPointer cloneChild = findEntityByEntityItemID(cloneChildID);
             if (cloneChild) {
@@ -1627,7 +1627,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     } else if (isClone && !isCloneable) {
                         failedAdd = true;
                         qCDebug(entities) << "User attempted to clone non-cloneable entity from entity ID:" << entityIDToClone;
-                    } else if (isClone && entityToClone && entityToClone->getCloneIDs().size() >= cloneLimit) {
+                    } else if (isClone && entityToClone && entityToClone->getCloneIDs().size() >= cloneLimit && cloneLimit != 0) {
                         failedAdd = true;
                         qCDebug(entities) << "User attempted to clone entity ID:" << entityIDToClone << " which reached it's cloneable limit.";
                     } else {
@@ -2039,6 +2039,7 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
 
             if (shouldEraseEntity(entityID, sourceNode)) {
                 entityItemIDsToDelete << entityItemID;
+                cleanupCloneIDs(entityItemID);
             }
 
         }
@@ -2385,7 +2386,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         return false;
     }
 
-    QMap<QUuid, QList<QUuid>> cloneIDs;
+    QMap<QUuid, QVector<QUuid>> cloneIDs;
 
     bool success = true;
     foreach (QVariant entityVariant, entitiesQList) {
@@ -2488,7 +2489,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
 
     for (auto iter = cloneIDs.begin(); iter != cloneIDs.end(); ++iter) {
         const QUuid& entityID = iter.key();
-        const QList<QUuid>& cloneIDs = iter.value();
+        const QVector<QUuid>& cloneIDs = iter.value();
         EntityItemPointer entity = findEntityByID(entityID);
         if (entity) {
             entity->setCloneIDs(cloneIDs);
