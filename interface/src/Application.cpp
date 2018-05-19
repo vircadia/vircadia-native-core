@@ -1238,7 +1238,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             nodeList.data(), SLOT(reset()));
 
     auto dialogsManager = DependencyManager::get<DialogsManager>();
+#if defined(Q_OS_ANDROID)
+    connect(accountManager.data(), &AccountManager::authRequired, this, []() {
+        AndroidHelper::instance().showLoginDialog();
+    });
+#else
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
+#endif
     connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
     connect(accountManager.data(), &AccountManager::usernameChanged, [](QString username){
         setCrashAnnotation("username", username.toStdString());
@@ -2259,6 +2265,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
 #if defined(Q_OS_ANDROID)
     AndroidHelper::instance().init();
+    connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
+    connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
 #endif
 }
@@ -2858,6 +2866,13 @@ void Application::initializeUi() {
         }
         if (TouchscreenVirtualPadDevice::NAME == inputPlugin->getName()) {
             _touchscreenVirtualPadDevice = std::dynamic_pointer_cast<TouchscreenVirtualPadDevice>(inputPlugin);
+#if defined(Q_OS_ANDROID)
+            auto& virtualPadManager = VirtualPad::Manager::instance();
+            connect(&virtualPadManager, &VirtualPad::Manager::hapticFeedbackRequested,
+                    this, [](int duration) {
+                        AndroidHelper::instance().performHapticFeedback(duration);
+                    });
+#endif
         }
     }
 
@@ -3221,7 +3236,8 @@ void Application::resizeGL() {
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
     uvec2 framebufferSize = displayPlugin->getRecommendedRenderSize();
-    uvec2 renderSize = uvec2(vec2(framebufferSize) * getRenderResolutionScale());
+    float renderResolutionScale = getRenderResolutionScale();
+    uvec2 renderSize = uvec2(vec2(framebufferSize) * renderResolutionScale);
     if (_renderResolution != renderSize) {
         _renderResolution = renderSize;
         DependencyManager::get<FramebufferCache>()->setFrameBufferSize(fromGlm(renderSize));
@@ -3238,6 +3254,7 @@ void Application::resizeGL() {
     }
 
     DependencyManager::get<OffscreenUi>()->resize(fromGlm(displayPlugin->getRecommendedUiSize()));
+    displayPlugin->setRenderResolutionScale(renderResolutionScale);
 }
 
 void Application::handleSandboxStatus(QNetworkReply* reply) {
@@ -3874,7 +3891,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 #if defined(Q_OS_ANDROID)
     if (event->key() == Qt::Key_Back) {
         event->accept();
-        openAndroidActivity("Home");
+        AndroidHelper::instance().requestActivity("Home", false);
     }
 #endif
     _controllerScriptingInterface->emitKeyReleaseEvent(event); // send events to any registered scripts
@@ -6591,8 +6608,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
 
-    scriptEngine->registerGlobalObject("App", this);
-
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
     DependencyManager::get<PickScriptingInterface>()->registerMetaTypes(scriptEngine.data());
@@ -8269,12 +8284,6 @@ void Application::saveNextPhysicsStats(QString filename) {
     _physicsEngine->saveNextPhysicsStats(filename);
 }
 
-void Application::openAndroidActivity(const QString& activityName) {
-#if defined(Q_OS_ANDROID)
-    AndroidHelper::instance().requestActivity(activityName);
-#endif
-}
-
 #if defined(Q_OS_ANDROID)
 void Application::enterBackground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
@@ -8293,5 +8302,4 @@ void Application::enterForeground() {
 }
 #endif
 
-#include "Application_jni.cpp"
 #include "Application.moc"

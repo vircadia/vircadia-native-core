@@ -24,17 +24,27 @@ public:
             return instance;
     }
     void init();
-    void requestActivity(const QString &activityName);
+    void requestActivity(const QString &activityName, const bool backToScene);
     void notifyLoadComplete();
-    void goBackFromAndroidActivity();
-    QSharedPointer<AccountManager> getAccountManager() { return _accountManager; }
+    void notifyEnterForeground();
+    void notifyEnterBackground();
 
+    void performHapticFeedback(int duration);
+
+    QSharedPointer<AccountManager> getAccountManager() { return _accountManager; }
     AndroidHelper(AndroidHelper const&)  = delete;
     void operator=(AndroidHelper const&) = delete;
+
+public slots:
+    void showLoginDialog();
+
 signals:
-    void androidActivityRequested(const QString &activityName);
-    void backFromAndroidActivity();
+    void androidActivityRequested(const QString &activityName, const bool backToScene);
     void qtAppLoadComplete();
+    void enterForeground();
+    void enterBackground();
+
+    void hapticFeedbackRequested(int duration);
 
 private:
     AndroidHelper();

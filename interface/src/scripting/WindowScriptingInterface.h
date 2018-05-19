@@ -374,6 +374,8 @@ public slots:
     * Takes a 360 snapshot given a position of the secondary camera (which does not need to have been previously set up).
     * @function Window.takeSecondaryCameraSnapshot
     * @param {vec3} [cameraPosition] - The (x, y, z) position of the camera for the 360 snapshot
+    * @param {boolean} [cubemapOutputFormat=false] - If <code>true</code> then the snapshot is saved as a cube map image, 
+    *     otherwise is saved as an equirectangular image.
     * @param {string} [filename=""] - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
     *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
     *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
@@ -519,6 +521,20 @@ public slots:
      *     resetButton + cancelButton, cancelButton);
      */
     int openMessageBox(QString title, QString text, int buttons, int defaultButton);
+
+    /**jsdoc
+     * Open the given resource in the Interface window or in a web browser depending on the url scheme
+     * @function Window.openUrl
+     * @param {string} url - The resource to open
+     */
+    void openUrl(const QUrl& url);
+
+    /**jsdoc
+     * (Android only) Open the requested Activity and optionally back to the scene when the activity is done
+     * @function Window.openAndroidActivity
+     * @param {string} activityName - The name of the activity to open. One of "Home", "Login" or "Privacy Policy"
+     */
+    void openAndroidActivity(const QString& activityName, const bool backToScene);
 
     /**jsdoc
      * Update the content of a message box that was opened with {@link Window.openMessageBox|openMessageBox}.

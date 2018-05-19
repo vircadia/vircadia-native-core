@@ -20,6 +20,13 @@
 #include <vector>
 #include <string>
 
+/**jsdoc
+ * @namespace Midi
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ */
+
 class Midi : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -46,57 +53,135 @@ signals:
     void midiReset();
 
     public slots:
-    // Send Raw Midi Packet to all connected devices
+
+    /**jsdoc
+     * Send Raw MIDI packet to a particular device.
+     * @function Midi.sendRawDword
+     * @param {number} device - Integer device number.
+     * @param {number} raw - Integer (DWORD) raw MIDI message.
+     */
     Q_INVOKABLE void sendRawDword(int device, int raw);
-    /// Send Raw Midi message to selected device
-    /// @param {int} device: device number
-    /// @param {int} raw: raw midi message (DWORD)
 
-    // Send Midi Message to all connected devices 
+    /**jsdoc
+     * Send MIDI message to a particular device.
+     * @function Midi.sendMidiMessage
+     * @param {number} device - Integer device number.
+     * @param {number} channel - Integer channel number.
+     * @param {number} type - 0x8 is note off, 0x9 is note on (if velocity=0, note off), etc.
+     * @param {number} note - MIDI note number.
+     * @param {number} velocity - Note velocity (0 means note off).
+     */
     Q_INVOKABLE void sendMidiMessage(int device, int channel, int type, int note, int velocity);
-    /// Send midi message to selected device/devices
-    /// @param {int} device: device number
-    /// @param {int} channel: channel number
-    /// @param {int} type: 0x8 is noteoff, 0x9 is noteon (if velocity=0, noteoff), etc
-    /// @param {int} note: midi note number
-    /// @param {int} velocity: note velocity (0 means noteoff)
 
-    // Send Midi Message to all connected devices 
+    /**jsdoc
+     * Play a note on all connected devices.
+     * @function Midi.playMidiNote
+     * @param {number} status - 0x80 is note off, 0x90 is note on (if velocity=0, note off), etc.
+     * @param {number} note - MIDI note number.
+     * @param {number} velocity - Note velocity (0 means note off).
+     */
     Q_INVOKABLE void playMidiNote(int status, int note, int velocity);
-    /// play a note on all connected devices
-    /// @param {int} status: 0x80 is noteoff, 0x90 is noteon (if velocity=0, noteoff), etc
-    /// @param {int} note: midi note number
-    /// @param {int} velocity: note velocity (0 means noteoff)
 
-    /// turn off all notes on all connected devices
+    /**jsdoc
+     * Turn off all notes on all connected devices.
+     * @function Midi.allNotesOff
+     */
     Q_INVOKABLE void allNotesOff();
 
-    /// clean up and re-discover attached devices
+    /**jsdoc
+     * Clean up and re-discover attached devices.
+     * @function Midi.resetDevices
+     */
     Q_INVOKABLE void resetDevices();
 
-    /// ask for a list of inputs/outputs
+    /**jsdoc
+     * Get a list of inputs/outputs.
+     * @function Midi.listMidiDevices
+     * @param {boolean} output
+     * @returns {string[]}
+     */
     Q_INVOKABLE QStringList listMidiDevices(bool output);
 
-    /// block an input/output by name
+    /**jsdoc
+     * Block an input/output by name.
+     * @function Midi.blockMidiDevice
+     * @param {string} name
+     * @param {boolean} output
+     */
     Q_INVOKABLE void blockMidiDevice(QString name, bool output);
 
-    /// unblock an input/output by name
+    /**jsdoc
+     * Unblock an input/output by name.
+     * @function Midi.unblockMidiDevice
+     * @param {string} name
+     * @param {boolean} output
+     */
     Q_INVOKABLE void unblockMidiDevice(QString name, bool output);
 
-    /// repeat all incoming notes to all outputs (default disabled)
+    /**jsdoc
+     * Repeat all incoming notes to all outputs (default disabled).
+     * @function Midi.thruModeEnable
+     * @param {boolean} enable
+     */
     Q_INVOKABLE void thruModeEnable(bool enable);
 
-    /// broadcast on all unblocked devices
+
+    /**jsdoc
+     * Broadcast on all unblocked devices.
+     * @function Midi.broadcastEnable
+     * @param {boolean} enable
+     */
     Q_INVOKABLE void broadcastEnable(bool enable);
     
+
     /// filter by event types
+
+    /**jsdoc
+     * @function Midi.typeNoteOffEnable
+     * @param {boolean} enable
+     */
     Q_INVOKABLE void typeNoteOffEnable(bool enable);
+
+    /**jsdoc
+     * @function Midi.typeNoteOnEnable
+     * @param {boolean} enable
+     */
     Q_INVOKABLE void typeNoteOnEnable(bool enable);
+
+    /**jsdoc
+     * @function Midi.typePolyKeyPressureEnable
+     * @param {boolean} enable
+     */
     Q_INVOKABLE void typePolyKeyPressureEnable(bool enable);
+
+    /**jsdoc
+     * @function Midi.typeControlChangeEnable
+     * @param {boolean} enable
+     */
     Q_INVOKABLE void typeControlChangeEnable(bool enable);
+
+    /**jsdoc
+     * @function Midi.typeProgramChangeEnable
+     * @param {boolean} enable
+     */
     Q_INVOKABLE void typeProgramChangeEnable(bool enable);
+
+    /**jsdoc
+     * @function Midi.typeChanPressureEnable
+     * @param {boolean} enable
+     */
     Q_INVOKABLE void typeChanPressureEnable(bool enable);
+
+    /**jsdoc
+     * @function Midi.typePitchBendEnable
+     * @param {boolean} enable
+     */
     Q_INVOKABLE void typePitchBendEnable(bool enable);
+
+    /**jsdoc
+     * @function Midi.typeSystemMessageEnable
+     * @param {boolean} enable
+     */
     Q_INVOKABLE void typeSystemMessageEnable(bool enable);
 
 

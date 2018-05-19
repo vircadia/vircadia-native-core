@@ -187,9 +187,9 @@ public:
         GL45ResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
 
         void syncSampler() const override;
-        void promote() override;
-        void demote() override;
-        void populateTransferQueue() override;
+        size_t promote() override;
+        size_t demote() override;
+        void populateTransferQueue(TransferQueue& pendingTransfers) override;
         
 
         void allocateStorage(uint16 mip);
