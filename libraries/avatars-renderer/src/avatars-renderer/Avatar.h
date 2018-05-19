@@ -536,6 +536,9 @@ protected:
     std::mutex _materialsLock;
 
     void processMaterials();
+
+    bool _isMeshEnableVisible{ true };
+    bool _needMeshVisibleSwitch{ true };
 };
 
 #endif // hifi_Avatar_h

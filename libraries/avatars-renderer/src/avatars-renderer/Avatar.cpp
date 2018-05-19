@@ -55,7 +55,9 @@ namespace render {
         ItemKey::Builder keyBuilder = ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(ItemKey::TAG_BITS_0 | ItemKey::TAG_BITS_1).withMetaCullGroup();
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         auto model = avatarPtr->getSkeletonModel();
-        if (model && !model->isVisible()) {
+        //if (model && !model->isVisible()) {
+
+        if (!avatarPtr->getEnableMeshVisible() && model) {
             keyBuilder.withInvisible();
         }
         return keyBuilder.build();
@@ -767,16 +769,14 @@ void Avatar::render(RenderArgs* renderArgs) {
 
 
 void Avatar::setEnableMeshVisible(bool isEnabled) {
-    render::Transaction transaction;
-    if (render::Item::isValidID(_renderItemID)) {
-        transaction.updateItem<render::Payload<AvatarData>>(_renderItemID, [](render::Payload<AvatarData>& p) {
-        });
+    if (_isMeshEnableVisible != isEnabled) {
+        _isMeshEnableVisible = isEnabled;
+        _needMeshVisibleSwitch = true;
     }
-    qApp->getMain3DScene()->enqueueTransaction(transaction);
 }
 
 bool Avatar::getEnableMeshVisible() const {
-    return true;
+    return _isMeshEnableVisible;
 }
 
 void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
@@ -799,6 +799,12 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
             attachmentModel->removeFromScene(scene, transaction);
             attachmentModel->addToScene(scene, transaction);
         }
+    }
+
+    if (_needMeshVisibleSwitch) {
+    //    _skeletonModel->setVisibleInScene(_isMeshEnableVisible, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, true);
+        updateRenderItem(transaction);
+        _needMeshVisibleSwitch = false;
     }
 
     if (_mustFadeIn && canTryFade) {

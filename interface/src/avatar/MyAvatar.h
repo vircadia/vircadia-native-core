@@ -1159,7 +1159,7 @@ public slots:
      * @function MyAvatar.getEnableMeshVisible
      * @returns {boolean} <code>true</code> if your avatar's mesh is visible, otherwise <code>false</code>.
      */
-    bool getEnableMeshVisible() const override { return _skeletonModel->isVisible(); }
+    bool getEnableMeshVisible() const override;
 
     /**jsdoc
      * Set whether or not your avatar mesh is visible.
