@@ -89,7 +89,7 @@ public:
     
     /**jsdoc
      * @function Audio.setReverbOptions
-     * @param {} options
+     * @param {AudioEffectOptions} options
      */
     Q_INVOKABLE void setReverbOptions(const AudioEffectOptions* options);
    

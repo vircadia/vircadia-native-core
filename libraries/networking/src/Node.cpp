@@ -86,7 +86,7 @@ NodeType_t NodeType::fromString(QString type) {
 
 
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-           const HifiSockAddr& localSocket, QObject* parent) :
+    const HifiSockAddr& localSocket, QObject* parent) :
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
     _pingMs(-1),  // "Uninitialized"
@@ -107,6 +107,7 @@ void Node::setType(char type) {
     _localSocket.setObjectName(typeString);
     _symmetricSocket.setObjectName(typeString);
 }
+
 
 void Node::updateClockSkewUsec(qint64 clockSkewSample) {
     _clockSkewMovingPercentile.updatePercentile(clockSkewSample);
@@ -193,4 +194,17 @@ QDebug operator<<(QDebug debug, const Node& node) {
     debug << " " << node.getUUID().toString().toLocal8Bit().constData() << "(" << node.getLocalID() << ") ";
     debug.nospace() << node.getPublicSocket() << "/" << node.getLocalSocket();
     return debug.nospace();
+}
+
+void Node::setConnectionSecret(const QUuid& connectionSecret) {
+    if (_connectionSecret == connectionSecret) {
+        return;
+    }
+
+    if (!_authenticateHash) {
+        _authenticateHash.reset(new HMACAuth());
+    }
+
+    _connectionSecret = connectionSecret;
+    _authenticateHash->setKey(_connectionSecret);
 }

@@ -328,10 +328,18 @@ void PhysicalEntitySimulation::handleChangedMotionStates(const VectorOfMotionSta
 }
 
 void PhysicalEntitySimulation::addOwnershipBid(EntityMotionState* motionState) {
-    motionState->initForBid();
-    motionState->sendBid(_entityPacketSender, _physicsEngine->getNumSubsteps());
-    _bids.push_back(motionState);
-    _nextBidExpiry = glm::min(_nextBidExpiry, motionState->getNextBidExpiry());
+    if (getEntityTree()->isServerlessMode()) {
+        EntityItemPointer entity = motionState->getEntity();
+        auto nodeList = DependencyManager::get<NodeList>();
+        auto sessionID = nodeList->getSessionUUID();
+        entity->setSimulationOwner(SimulationOwner(sessionID, SCRIPT_GRAB_SIMULATION_PRIORITY));
+        _owned.push_back(motionState);
+    } else {
+        motionState->initForBid();
+        motionState->sendBid(_entityPacketSender, _physicsEngine->getNumSubsteps());
+        _bids.push_back(motionState);
+        _nextBidExpiry = glm::min(_nextBidExpiry, motionState->getNextBidExpiry());
+    }
 }
 
 void PhysicalEntitySimulation::addOwnership(EntityMotionState* motionState) {

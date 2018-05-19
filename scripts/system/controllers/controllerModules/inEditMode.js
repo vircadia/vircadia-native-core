@@ -52,6 +52,11 @@ Script.include("/~/system/libraries/utils.js");
             if (controllerData.triggerClicks[this.hand]) {
                 if (!this.triggerClicked) {
                     this.selectedTarget = controllerData.rayPicks[this.hand];
+                    if (!this.selectedTarget.intersects) {
+                        Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                            method: "clearSelection"
+                        }));
+                    }
                 }
                 if (this.selectedTarget.type === Picks.INTERSECTED_ENTITY) {
                     Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({

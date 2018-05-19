@@ -137,9 +137,9 @@ class MyAvatar : public Avatar {
      * @property {number} scale 
      * @property {number} density <em>Read-only.</em>
      * @property {Vec3} handPosition 
-     * @property {number} bodyYaw - The rotation left or right about an axis running from the head to the feet of MyAvatar. Yaw 
-     *     is sometimes called "heading".
-     * @property {number} bodyPitch - The rotation about an axis running from shoulder to shoulder of MyAvatar. Pitch is 
+     * @property {number} bodyYaw - The rotation left or right about an axis running from the head to the feet of the avatar. 
+     *     Yaw is sometimes called "heading".
+     * @property {number} bodyPitch - The rotation about an axis running from shoulder to shoulder of the avatar. Pitch is 
      *     sometimes called "elevation".
      * @property {number} bodyRoll - The rotation about an axis running from the chest to the back of the avatar. Roll is 
      *     sometimes called "bank".
@@ -272,7 +272,7 @@ public:
 
     void update(float deltaTime);
     virtual void postUpdate(float deltaTime, const render::ScenePointer& scene) override;
-    void preDisplaySide(RenderArgs* renderArgs);
+    void preDisplaySide(const RenderArgs* renderArgs);
 
     const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }

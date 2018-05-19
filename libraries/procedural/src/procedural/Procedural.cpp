@@ -19,7 +19,7 @@
 #include <SharedUtil.h>
 #include <NumericalConstants.h>
 #include <GLMHelpers.h>
-
+#include <NetworkingConstants.h>
 #include "ProceduralCommon_frag.h"
 
 #include "Logging.h"
@@ -178,6 +178,8 @@ void Procedural::setProceduralData(const ProceduralData& proceduralData) {
                 return;
             }
             _shaderPath = shaderUrl.toLocalFile();
+        } else if (shaderUrl.scheme() == URL_SCHEME_QRC) {
+            _shaderPath = ":" + shaderUrl.path();
         } else {
             _networkShader = ShaderCache::instance().getShader(shaderUrl);
         }
@@ -270,18 +272,29 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         // Leave this here for debugging
         // qCDebug(procedural) << "FragmentShader:\n" << fragmentShaderSource.c_str();
 
-        _opaqueFragmentShader = gpu::Shader::createPixel(opaqueShaderSource);
-        _opaqueShader = gpu::Shader::createProgram(_vertexShader, _opaqueFragmentShader);
-        _transparentFragmentShader = gpu::Shader::createPixel(transparentShaderSource);
-        _transparentShader = gpu::Shader::createProgram(_vertexShader, _transparentFragmentShader);
-
         gpu::Shader::BindingSet slotBindings;
+
         slotBindings.insert(gpu::Shader::Binding(std::string("iChannel0"), 0));
         slotBindings.insert(gpu::Shader::Binding(std::string("iChannel1"), 1));
         slotBindings.insert(gpu::Shader::Binding(std::string("iChannel2"), 2));
         slotBindings.insert(gpu::Shader::Binding(std::string("iChannel3"), 3));
+
+        // TODO: THis is a simple fix, we need a cleaner way to provide the "hosting" program for procedural custom shaders to be defined together with the required bindings.
+        const int PROCEDURAL_PROGRAM_LIGHTING_MODEL_SLOT = 3;
+        slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), PROCEDURAL_PROGRAM_LIGHTING_MODEL_SLOT));
+
+        _opaqueFragmentShader = gpu::Shader::createPixel(opaqueShaderSource);
+        _opaqueShader = gpu::Shader::createProgram(_vertexShader, _opaqueFragmentShader);
         gpu::Shader::makeProgram(*_opaqueShader, slotBindings);
-        gpu::Shader::makeProgram(*_transparentShader, slotBindings);
+
+        if (!transparentShaderSource.empty() && transparentShaderSource != opaqueShaderSource) {
+            _transparentFragmentShader = gpu::Shader::createPixel(transparentShaderSource);
+            _transparentShader = gpu::Shader::createProgram(_vertexShader, _transparentFragmentShader);
+            gpu::Shader::makeProgram(*_transparentShader, slotBindings);
+        } else {
+            _transparentFragmentShader = _opaqueFragmentShader;
+            _transparentShader = _opaqueShader;
+        }
 
         _opaquePipeline = gpu::Pipeline::create(_opaqueShader, _opaqueState);
         _transparentPipeline = gpu::Pipeline::create(_transparentShader, _transparentState);

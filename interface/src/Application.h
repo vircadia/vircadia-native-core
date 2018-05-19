@@ -148,6 +148,7 @@ public:
     Q_INVOKABLE QString getUserAgent();
 
     void initializeGL();
+    void initializeDisplayPlugins();
     void initializeRenderEngine();
     void initializeUi();
 
@@ -281,6 +282,7 @@ public:
 
     void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
     void takeSecondaryCameraSnapshot(const QString& filename = QString());
+    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const QString& filename = QString());
 
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
@@ -413,11 +415,7 @@ public slots:
     void setIsServerlessMode(bool serverlessDomain);
     void loadServerlessDomain(QUrl domainURL);
 
-    Q_INVOKABLE bool askBeforeSetAvatarUrl(const QString& avatarUrl) { return askToSetAvatarUrl(avatarUrl); }
-
     void updateVerboseLogging();
-    Q_INVOKABLE void openAndroidActivity(const QString& activityName);
-
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
@@ -671,6 +669,7 @@ private:
 
     using RenderArgsEditor = std::function <void (AppRenderArgs&)>;
     void editRenderArgs(RenderArgsEditor editor);
+    void updateRenderArgs(float deltaTime);
 
 
     Overlays _overlays;
@@ -750,5 +749,7 @@ private:
 
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
+
+    bool quitWhenFinished { false };
 };
 #endif // hifi_Application_h

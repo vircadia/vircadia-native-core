@@ -32,6 +32,11 @@ const QString GET_PLACE = "/api/v1/places/%1";
 /**jsdoc
  * The location API provides facilities related to your current location in the metaverse.
  *
+ * <h5>Getter/Setter</h5>
+ * <p>You can get and set your current metaverse address by directly reading a string value from and writing a string value to 
+ * the <code>location</code> object. This is an alternative to using the <code>location.href</code> property or this object's
+ * functions.</p>
+ *
  * @namespace location
  *
  * @hifi-interface

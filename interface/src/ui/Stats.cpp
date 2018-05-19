@@ -354,6 +354,7 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(gpuTextureResidentMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResidentGPUMemSize()));
     STAT_UPDATE(gpuTextureFramebufferMemory, (int)BYTES_TO_MB(gpu::Context::getTextureFramebufferGPUMemSize()));
     STAT_UPDATE(gpuTextureResourceMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourceGPUMemSize()));
+    STAT_UPDATE(gpuTextureResourceIdealMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourceIdealGPUMemSize()));
     STAT_UPDATE(gpuTextureResourcePopulatedMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourcePopulatedGPUMemSize()));
     STAT_UPDATE(gpuTextureExternalMemory, (int)BYTES_TO_MB(gpu::Context::getTextureExternalGPUMemSize()));
 #if !defined(Q_OS_ANDROID)

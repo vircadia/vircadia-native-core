@@ -336,9 +336,8 @@ void OpenGLDisplayPlugin::deactivate() {
 
     _container->showDisplayPluginsTools(false);
     if (!_container->currentDisplayActions().isEmpty()) {
-        auto menu = _container->getPrimaryMenu();
         foreach(auto itemInfo, _container->currentDisplayActions()) {
-            menu->removeMenuItem(itemInfo.first, itemInfo.second);
+            _container->removeMenuItem(itemInfo.first, itemInfo.second);
         }
         _container->currentDisplayActions().clear();
     }
@@ -886,7 +885,7 @@ OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 }
 
 void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
-    auto renderSize = getRecommendedRenderSize();
+    auto renderSize = glm::uvec2(glm::vec2(getRecommendedRenderSize()) * getRenderResolutionScale());
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
         _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
     }

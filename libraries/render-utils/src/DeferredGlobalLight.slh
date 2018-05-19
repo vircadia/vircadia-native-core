@@ -140,7 +140,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
     color += directionalSpecular;
 
     // Attenuate the light if haze effect selected
-    if ((hazeParams.hazeMode & HAZE_MODE_IS_KEYLIGHT_ATTENUATED) == HAZE_MODE_IS_KEYLIGHT_ATTENUATED) {
+    if ((isHazeEnabled() > 0.0) && (hazeParams.hazeMode & HAZE_MODE_IS_KEYLIGHT_ATTENUATED) == HAZE_MODE_IS_KEYLIGHT_ATTENUATED) {
         color = computeHazeColorKeyLightAttenuation(color, lightDirection, fragPositionWS);    
     }
 
@@ -234,7 +234,7 @@ vec3 evalGlobalLightingAlphaBlendedWithHaze(
     color += (ambientSpecular + directionalSpecular) / opacity;
 
     // Haze
-    if ((hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
+    if ((isHazeEnabled() > 0.0) && (hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
         vec4 colorV4 = computeHazeColor(
             vec4(color, 1.0),               // fragment original color
             positionES,                     // fragment position in eye   coordinates
@@ -272,7 +272,7 @@ vec3 evalGlobalLightingAlphaBlendedWithHaze(
     color += (ambientSpecular + directionalSpecular) / opacity;
 
     // Haze
-    if ((hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
+    if ((isHazeEnabled() > 0.0) && (hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
         vec4 colorV4 = computeHazeColor(
             vec4(color, 1.0),               // fragment original color
             positionES,                     // fragment position in eye   coordinates
