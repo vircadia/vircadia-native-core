@@ -138,7 +138,7 @@ public:
      *     </tr>
      *   </tbody>
      * </table>
-     * @typedef location.LookupTrigger
+     * @typedef {number} location.LookupTrigger
      */
     enum LookupTrigger {
         UserInput,

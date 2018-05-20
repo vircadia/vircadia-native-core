@@ -1391,7 +1391,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     /**jsdoc
      * The axis-aligned bounding box of an entity.
-     * @typedef Entities.BoundingBox
+     * @typedef {object} Entities.BoundingBox
      * @property {Vec3} brn - The bottom right near (minimum axes values) corner of the AA box.
      * @property {Vec3} tfl - The top far left (maximum axes values) corner of the AA box.
      * @property {Vec3} center - The center of the AA box.

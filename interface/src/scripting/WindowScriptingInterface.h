@@ -470,7 +470,7 @@ public slots:
      *     </tr>
      *   </tbody>
      * </table>
-     * @typedef Window.DisplayTexture
+     * @typedef {string} Window.DisplayTexture
      */
     bool setDisplayTexture(const QString& name);
 
