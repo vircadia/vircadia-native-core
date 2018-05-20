@@ -757,7 +757,7 @@ Menu::Menu() {
     // Settings > Enable Speech Control API
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::get<SpeechRecognizer>();
-    QAction* speechRecognizerAction = addCheckableActionToQMenuAndActionHash(settingsMenu, MenuOption::ControlWithSpeech,
+    QAction* speechRecognizerAction = addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::ControlWithSpeech,
         Qt::CTRL | Qt::SHIFT | Qt::Key_C,
         speechRecognizer->getEnabled(),
         speechRecognizer.data(),
