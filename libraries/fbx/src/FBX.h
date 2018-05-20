@@ -256,6 +256,11 @@ public:
     QHash<QString, size_t> texcoordSetMap;
 };
 
+/**jsdoc
+ * @typedef {object} FBXAnimationFrame
+ * @property {Quat[]} rotations
+ * @property {Vec3[]} translations
+ */
 /// A single animation frame extracted from an FBX document.
 class FBXAnimationFrame {
 public:
