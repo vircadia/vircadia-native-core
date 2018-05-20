@@ -3721,7 +3721,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted && isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Log);
                 } else if (isMeta) {
-                    Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                    auto dialogsManager = DependencyManager::get<DialogsManager>();
+                    dialogsManager->toggleAddressBar();
                 } else if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::LodTools);
                 }
