@@ -1,0 +1,1 @@
+cmd /k node gravPrep true "D:/ROLC/Organize/O_Projects/Hifi/Docs/hifi-docs-grav/user/themes/learn2/" "D:/ROLC/Organize/O_Projects/Hifi/Docs/hifi-docs-grav-content/"
