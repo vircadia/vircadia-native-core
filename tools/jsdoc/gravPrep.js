@@ -147,12 +147,17 @@
 
     function fixLinkGrouping(match, p1, p2, p3){
         if (p2.indexOf("#") > -1){
-            split = p2.split("#");
+            let split = p2.split("#");
             if (split[0] === "global"){
                 return [p1,"/api-reference/", "globals", "#", split[1], p3].join("");
             }
             return [p1,"/api-reference/", returnRightGroup(split[0]), "/", p2, p3].join("");
         } else {
+            if (p2.indexOf(".") > -1){
+                let split = p2.split(".");
+                return [p1,"/api-reference/", returnRightGroup(split[1]), "/", split[1], p3].join("");
+            }
+            console.log("p2:", p2);            
             return [p1,"/api-reference/", returnRightGroup(p2), "/", p2, p3].join("");
         }
         
@@ -583,7 +588,7 @@
             currentContent = contentSplitArray[0];
 
             // Create references to the split methods and signals
-            // let processedMethodsSignalsAndTypeDefs = splitMethodsSignalsAndTypeDefs(contentSplitArray[1]);
+            let processedMethodsSignalsAndTypeDefs = splitMethodsSignalsAndTypeDefs(contentSplitArray[1]);
             // let splitMethods = processedMethodsSignalsAndTypeDefs[0];
             // let splitSignals = processedMethodsSignalsAndTypeDefs[1];
             // let splitTypeDefintions = processedMethodsSignalsAndTypeDefs[2];
