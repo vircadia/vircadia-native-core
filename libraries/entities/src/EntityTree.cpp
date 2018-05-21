@@ -1428,8 +1428,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
 
         case PacketType::EntityClone:
             isClone = true; // fall through to next case
-        case PacketType::EntityAdd:
             // FALLTHRU
+        case PacketType::EntityAdd:
             isAdd = true;  // fall through to next case
             // FALLTHRU
         case PacketType::EntityPhysics:
@@ -2490,12 +2490,10 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         }
     }
 
-    for (auto iter = cloneIDs.begin(); iter != cloneIDs.end(); ++iter) {
-        const QUuid& entityID = iter.key();
-        const QVector<QUuid>& cloneIDs = iter.value();
-        EntityItemPointer entity = findEntityByID(entityID);
+    for (const auto& entityID : cloneIDs.keys()) {
+        auto entity = findEntityByID(entityID);
         if (entity) {
-            entity->setCloneIDs(cloneIDs);
+            entity->setCloneIDs(cloneIDs.value(entityID));
         }
     }
 

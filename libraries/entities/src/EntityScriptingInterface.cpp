@@ -293,8 +293,7 @@ bool EntityScriptingInterface::addLocalEntityCopy(EntityItemProperties& properti
                 // since we're creating this object we will immediately volunteer to own its simulation
                 entity->flagForOwnershipBid(VOLUNTEER_SIMULATION_PRIORITY);
                 properties.setLastEdited(entity->getLastEdited());
-            }
-            else {
+            } else {
                 qCDebug(entities) << "script failed to add new Entity to local Octree";
                 success = false;
             }
