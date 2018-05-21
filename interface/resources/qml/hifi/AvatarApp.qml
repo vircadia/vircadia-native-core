@@ -385,7 +385,10 @@ Rectangle {
 
         TextStyle3 {
             id: avatarNameLabel
-            text: getAvatarName()
+            text: {
+                var avatarName = getAvatarName();
+                return avatarName.length <= 14 ? avatarName : avatarName.substring(0, 14) + '...'
+            }
             anchors.left: avatarImage.right
             anchors.leftMargin: 30
             anchors.top: star.bottom
