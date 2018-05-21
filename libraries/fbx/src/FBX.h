@@ -30,7 +30,8 @@
 
 // See comment in FBXReader::parseFBX().
 static const int FBX_HEADER_BYTES_BEFORE_VERSION = 23;
-static const QByteArray FBX_BINARY_PROLOG("Kaydara FBX Binary  \0\x1a\0", FBX_HEADER_BYTES_BEFORE_VERSION);
+static const QByteArray FBX_BINARY_PROLOG("Kaydara FBX Binary  ");
+static const QByteArray FBX_BINARY_PROLOG2("\0\x1a\0", 3);
 static const quint32 FBX_VERSION_2015 = 7400;
 static const quint32 FBX_VERSION_2016 = 7500;
 

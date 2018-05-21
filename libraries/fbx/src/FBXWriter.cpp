@@ -62,6 +62,7 @@ QByteArray FBXWriter::encodeFBX(const FBXNode& root) {
     out.setVersion(QDataStream::Qt_4_5);
 
     out.writeRawData(FBX_BINARY_PROLOG, FBX_BINARY_PROLOG.size());
+    out.writeRawData(FBX_BINARY_PROLOG2, FBX_BINARY_PROLOG2.size());
 
 #ifdef USE_FBX_2016_FORMAT
     out << FBX_VERSION_2016;
