@@ -308,6 +308,24 @@ Rectangle {
             anchors.top: displayNameLabel.bottom
             anchors.topMargin: 31
             source: avatarUrl
+            visible: avatarImage.status !== Image.Loading
+        }
+
+        ShadowRectangle {
+            anchors.fill: avatarImage;
+            color: 'white'
+            visible: avatarImage.status === Image.Loading
+            radius: avatarImage.radius
+
+            dropShadowRadius: avatarImage.dropShadowRadius;
+            dropShadowHorizontalOffset: avatarImage.dropShadowHorizontalOffset
+            dropShadowVerticalOffset: avatarImage.dropShadowVerticalOffset
+
+            Spinner {
+                id: spinner
+                visible: parent.visible
+                anchors.fill: parent;
+            }
         }
 
         AvatarWearablesIndicator {

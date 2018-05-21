@@ -7,6 +7,9 @@ Item {
     property alias gradient: rectangle.gradient
     property alias border: rectangle.border
     property alias radius: rectangle.radius
+    property alias dropShadowRadius: shadow.radius
+    property alias dropShadowHorizontalOffset: shadow.horizontalOffset
+    property alias dropShadowVerticalOffset: shadow.verticalOffset
 
     Rectangle {
         id: rectangle
@@ -15,6 +18,7 @@ Item {
     }
 
     DropShadow {
+        id: shadow
         anchors.fill: rectangle
         radius: 6
         horizontalOffset: 0

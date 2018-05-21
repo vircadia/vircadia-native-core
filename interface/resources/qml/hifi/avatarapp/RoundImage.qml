@@ -6,6 +6,8 @@ Item {
     property alias source: image.source
     property alias fillMode: image.fillMode
     property alias radius: mask.radius
+    property alias status: image.status
+    property alias progress: image.progress
 
     Image {
         id: image

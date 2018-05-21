@@ -9,6 +9,8 @@ Item {
     property alias dropShadowVerticalOffset: shadow.verticalOffset
     property alias radius: image.radius
     property alias border: image.border
+    property alias status: image.status
+    property alias progress: image.progress
 
     RoundImage {
         id: image

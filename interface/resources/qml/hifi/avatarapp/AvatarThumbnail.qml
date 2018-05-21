@@ -1,4 +1,5 @@
 import QtQuick 2.9
+import QtGraphicalEffects 1.0
 
 Item {
     width: 92
@@ -20,7 +21,27 @@ Item {
     ShadowImage {
         id: avatarImage
         anchors.fill: parent
+        visible: status !== Image.Loading
         radius: 5
+    }
+
+    ShadowRectangle {
+        anchors.fill: parent;
+        color: 'white'
+        visible: avatarImage.status === Image.Loading
+        radius: avatarImage.radius
+        border.width: avatarImage.border.width
+        border.color: avatarImage.border.color
+
+        dropShadowRadius: avatarImage.dropShadowRadius;
+        dropShadowHorizontalOffset: avatarImage.dropShadowHorizontalOffset
+        dropShadowVerticalOffset: avatarImage.dropShadowVerticalOffset
+
+        Spinner {
+            id: spinner
+            visible: parent.visible
+            anchors.fill: parent;
+        }
     }
 
     AvatarWearablesIndicator {
