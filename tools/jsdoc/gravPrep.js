@@ -83,8 +83,8 @@
     const html_reg_returnSize = /<h5>Returns:<\/h5>/g;
     const html_reg_returnSize_replace = '<h6>Returns:<\/h6>';
     const html_reg_findByName = '<h5 class="name"';
-    const html_reg_findByTitle = '<h1>';   
-    const html_reg_findByMethod = /<h4 class="subsection-title"[\s\S]*?>Methods<\/h4>/g;
+    const html_reg_findByTitle = '<h1>';
+    const html_reg_findByMethod = '<h3 class="subsection-title">Methods</h3>'
     const html_reg_containerOverview = `<div class="container-overview">`   
     const html_reg_findByArticleOpen = `<article>`
     const html_reg_findByArticleClose = `</article>`
@@ -96,30 +96,30 @@
     const html_reg_findLinks = /(<a href="[\s\S]+?<\/a>)/g;
     const html_reg_allNonHTML = /(<a href=")(?!http)([\s\S]+?)(">)/g;
     const html_reg_findLinksNoHashes = /(<a href=")([^#]+?)(">[\s\S]+?<\/a>)/g;  
-    // const html_reg_findGlobalLinks = /(<a href=")(global)(#[\s\S]+?<\/a>)/g;
-    // const html_reg_findGlobalLinks_replace = "$1\/api-reference\/globals$3";
     const html_reg_findGeneralLinks = /(<a href=")([A-Z])([\s\S]*?)("[\s\S]*?<\/a>)/g;
     const html_reg_findClassLinks = /(<a href=")([\.|\w]+?)(#[\.|\w]+?)(">[\s\S]+?<\/a>)/g;
     const html_reg_pretty = /(<pre class="prettyprint">)([\s\S]*?)(<\/pre>)/g;
     const html_reg_pretty_replace = "<pre>$2<\/pre>";
+    const html_reg_dlClassDetails = /<dl class="details"><\/dl>/g
+    // const html_reg_findGlobalLinks = /(<a href=")(global)(#[\s\S]+?<\/a>)/g;
+    // const html_reg_findGlobalLinks_replace = "$1\/api-reference\/globals$3";
     // const html_reg_code = /(<code>)([\s\S]*?)(<\/code>)/g;
     // const html_reg_code_replace = "$1$2$3";
-    const html_reg_dlClassDetails = /<dl class="details"><\/dl>/g
 
 // Procedural functions
 
 // Helper Functions
-    function isMultipleDots(content){
-        let count = 0;
-        let regEx = /\./g
-        let tempArray;
-        while ((tempArray = regEx.exec(content)) !== null){
-            count++;
-        }
-        if (count > 1){
-            return true;
-        }
-    }
+    // function isMultipleDots(content){
+    //     let count = 0;
+    //     let regEx = /\./g
+    //     let tempArray;
+    //     while ((tempArray = regEx.exec(content)) !== null){
+    //         count++;
+    //     }
+    //     if (count > 1){
+    //         return true;
+    //     }
+    // }
 
     // function modifyClassLinks(match, p1, p2, p3, p4){
     //     let matchedp = [p2,p3].join("");
@@ -157,7 +157,7 @@
                 let split = p2.split(".");
                 return [p1,"/api-reference/", returnRightGroup(split[1]), "/", split[1], p3].join("");
             }
-            console.log("p2:", p2);            
+            // console.log("p2:", p2);            
             return [p1,"/api-reference/", returnRightGroup(p2), "/", p2, p3].join("");
         }
         
@@ -418,27 +418,52 @@
     // Takes: Content to split, SearchTerm to Split by, and term to End Splitting By
     // Returns: [newContent after Split, Array of extracted ]
     function splitBy(content, searchTerm, endSplitTerm){
+        console.log("content1", content);
+        console.log("endSplitTerm", endSplitTerm);
         let foundArray = [];
         let curIndex = -1;
         let afterCurSearchIndex = -1
-        let negateTermIndex = -1;
         let nextIndex = 0;
         let findbyNameLength = searchTerm.length;
         let curfoundArrayIndex = 0;
         let curEndSplitTermIndex = -1;
         do {
+            // Find the index of where to stop searching
             curEndSplitTermIndex = content.indexOf(endSplitTerm);
+            console.log("curEndSplitTermIndex", curEndSplitTermIndex)
+            // Find the index of the the next Search term
             curIndex = content.indexOf(searchTerm);
+            // The index of where the next search will start 
             afterCurSearchIndex = curIndex+findbyNameLength;
+            // Find the content of the next Index
             nextIndex = content.indexOf(searchTerm,afterCurSearchIndex);
+            console.log("nextIndex", nextIndex)
+            // If the next index isn't found, then next index === index of the end term
             if (nextIndex === -1){
                 nextIndex = curEndSplitTermIndex;
             }
+            // push from the cur index to the next found || the end term
             foundArray.push(content.slice(curIndex, nextIndex))
             // remove that content
             content = content.replace(foundArray[curfoundArrayIndex], "");
             curfoundArrayIndex++;
+            curEndSplitTermIndex = content.indexOf(endSplitTerm);
+            console.log("curEndSplitTermIndex2", curEndSplitTermIndex)
+            nextIndex = content.indexOf(searchTerm,afterCurSearchIndex);
+            // console.log("nextIndex2", nextIndex)
+
+            if (nextIndex > curEndSplitTermIndex) {
+                curIndex = content.indexOf(searchTerm);
+                console.log("curIndex", curIndex)
+                console.log("curEndSplitTermIndex", curEndSplitTermIndex)
+                foundArray.push(content.slice(curIndex, curEndSplitTermIndex))                
+                console.log("foundArray[curfoundArrayIndex],", foundArray[curfoundArrayIndex],)
+                content = content.replace(foundArray[curfoundArrayIndex], "");
+                break;
+            }
         } while (curIndex > -1)
+        // console.log("content2", content);
+        
         return [content, foundArray];
     }
 
@@ -449,19 +474,29 @@
         let typeDefArray = [];
         let description;
         
-        allItemToSplit.forEach( content => {
-            firstLine = content.split("\n")[0];            
-            if (firstLine.indexOf("Signal") > -1){
+        allItemToSplit.forEach( (content, index) => {
+            // console.log("content", content);
+            firstLine = content.split("\n")[0]; 
+            // console.log("@@@ firstLine", firstLine)           
+            if (firstLine.indexOf("{Signal}") > -1){
+                // console.log("### FOUND SIGNAL", content);
                 signalArray.push(content);
             } else if (firstLine.indexOf("span") > -1) {
+                // console.log("### FOUND SPAN", content);
                 if (content.indexOf("Available in:") > -1){
+                    // console.log("### DESCRIPTION", content);
                     description = content;
                 } else {
+                    // console.log("### METHOD", content);
                     methodArray.push(content);
                 }
             } else {
+                // console.log("### TYPEDEF", content);                
                 if(firstLine.trim() !== ""){
+                    // console.log("### TYPEDEF", content);
                     typeDefArray.push(content);
+                } else {
+                    // console.log("not handled", content);
                 }
             }
         })
@@ -536,7 +571,8 @@
             }
         }
     })
-    files.forEach(function (file){
+    files.forEach(function (file, index){
+        // if (index !== 3) return;       
         let curSource = path.join(dir_out, file);
         if (path.extname(curSource) == ".html" && path.basename(curSource, '.html') !== "index") {
             // Clean up the html source
@@ -554,16 +590,16 @@
             let typeDefIDs = [];
         // Basic Regex HTML edits
             let currentContent = mainDiv.html()
+                                    .replace(html_reg_findByMethod, "") //Remove Method title to be remade later  
                                     .replace(html_reg_static,"") // Remove static from the file names
                                     .replace(html_reg_title,"") // Remove title 
                                     .replace(html_reg_objectHeader,"") // Remove extra Object Header 
                                     .replace(html_reg_htmlExt,"") // Remove the .html extension from all links
-                                    // .replace(html_reg_typeDefinitonsTitle, "") // Remove Type Definitions Title to be remade later
-                                    // .replace(html_reg_findByMethod, "") //Remove Method title to be remade later  
+                                    
                                     .replace(html_reg_dlClassDetails, "") // Remove unneccsary dlClassDetails Tag 
                                     .replace(html_reg_allNonHTML, allLinksToLowerCase) // Turn all links into lowercase before ID tags
                                     .replace(html_reg_allNonHTML, fixLinkGrouping) // Make sure links refer to correct grouping                                  
-                                    .replace(html_reg_subsectionEdit, html_reg_subsectionEdit_replace) // Make all subsection titles the same size
+                                    // .replace(html_reg_subsectionEdit, html_reg_subsectionEdit_replace) // Make all subsection titles the same size
                                     .replace(html_reg_propertiesHeaderEdit, html_reg_propertiesHeaderEdit_Replace) // Remove : from Properties
                                     .replace(html_reg_typeEdit, html_reg_typeEdit_replace) // Put type on the same line
                                     .replace(html_reg_returnSize, html_reg_returnSize_replace) // make return size h6 instead of h5
@@ -581,12 +617,20 @@
             // currentContent = contentReplace(currentContent, htmlTitle);
 
         // Further HTML Manipulation
+            // Make end term either Type Definitions or by the article
+            let endTerm = html_reg_findByArticleClose;
+            if (currentContent.indexOf("Type Definitions") > -1){
+                console.log("Found Type Definitions")
+                endTerm = `<h3 class="subsection-title">Type Definitions</h3>`
+            }
+            
             // Split HTML by Each named entry
-            let contentSplitArray = splitBy(currentContent, html_reg_findByName, html_reg_findByArticleClose);
+            let contentSplitArray = splitBy(currentContent, html_reg_findByName, endTerm);
             
             // Create a reference to the current content after split and the split functions
-            currentContent = contentSplitArray[0];
-
+            currentContent = contentSplitArray[0]
+                                .replace(html_reg_typeDefinitonsTitle, "") // Remove Type Definitions Title to be remade later;
+            
             // Create references to the split methods and signals
             let processedMethodsSignalsAndTypeDefs = splitMethodsSignalsAndTypeDefs(contentSplitArray[1]);
             // let splitMethods = processedMethodsSignalsAndTypeDefs[0];
