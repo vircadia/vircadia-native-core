@@ -762,7 +762,7 @@ Menu::Menu() {
         speechRecognizer->getEnabled(),
         speechRecognizer.data(),
         SLOT(setEnabled(bool)),
-        UNSPECIFIED_POSITION, "Advanced");
+        UNSPECIFIED_POSITION);
     connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
 #endif
 
