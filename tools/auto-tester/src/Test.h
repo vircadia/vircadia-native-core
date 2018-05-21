@@ -89,16 +89,28 @@ private:
     const int NUM_DIGITS { 5 };
     const QString EXPECTED_IMAGE_PREFIX { "ExpectedImage_" };
 
+    // We have two directories to work with.
+    // The first is the directory containing the test we are working with
+    // The second contains the snapshots taken for test runs that need to be evaluated
+    QString testDirectory;
+    QString snapshotDirectory;
+
     QStringList expectedImagesFilenames;
     QStringList expectedImagesFullFilenames;
     QStringList resultImagesFullFilenames;
 
     // Used for accessing GitHub
-    const QString githubUser{ "highfidelity" };
-    const QString gitHubBranch { "master" };
+    const QString GIT_HUB_USER{ "highfidelity" };
+    const QString GIT_HUB_BRANCH { "master" };
 	const QString DATETIME_FORMAT { "yyyy-MM-dd_hh-mm-ss" };
 
 	ExtractedText getTestScriptLines(QString testFileName);
+
+    // NOTE: these need to match the appropriate var's in autoTester.js
+    //    var advanceKey = "n";
+    //    var pathSeparator = ".";
+    const QString ADVANCE_KEY{ "n" };
+    const QString PATH_SEPARATOR{ "." };
 };
 
 #endif // hifi_test_h

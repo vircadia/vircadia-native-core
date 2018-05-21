@@ -15,12 +15,13 @@
 #include <QtCore/QDir>
 #include <QMessageBox>
 #include <QScriptValue>
-
+#include <QtGui/QDesktopServices>
 #include <shared/QtHelpers.h>
 #include <SettingHandle.h>
 
 #include <display-plugins/CompositorHelper.h>
-
+#include <AddressManager.h>
+#include "AndroidHelper.h"
 #include "Application.h"
 #include "DomainHandler.h"
 #include "MainWindow.h"
@@ -130,6 +131,24 @@ void WindowScriptingInterface::promptAsync(const QString& message, const QString
 void WindowScriptingInterface::disconnectedFromDomain() {
     emit domainChanged(QUrl());
 }
+
+void WindowScriptingInterface::openUrl(const QUrl& url) {
+    if (!url.isEmpty()) {
+        if (url.scheme() == URL_SCHEME_HIFI) {
+            DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
+        } else {
+            // address manager did not handle - ask QDesktopServices to handle
+            QDesktopServices::openUrl(url);
+        }
+    }
+}
+
+void WindowScriptingInterface::openAndroidActivity(const QString& activityName, const bool backToScene) {
+#if defined(Q_OS_ANDROID)
+    AndroidHelper::instance().requestActivity(activityName, backToScene);
+#endif
+}
+
 
 QString fixupPathForMac(const QString& directory) {
     // On OS X `directory` does not work as expected unless a file is included in the path, so we append a bogus
@@ -429,6 +448,10 @@ void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, f
 
 void WindowScriptingInterface::takeSecondaryCameraSnapshot(const QString& filename) {
     qApp->takeSecondaryCameraSnapshot(filename);
+}
+
+void WindowScriptingInterface::takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const QString& filename) {
+    qApp->takeSecondaryCamera360Snapshot(cameraPosition, cubemapOutputFormat, filename);
 }
 
 void WindowScriptingInterface::shareSnapshot(const QString& path, const QUrl& href) {

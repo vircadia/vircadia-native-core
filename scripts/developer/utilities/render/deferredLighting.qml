@@ -45,7 +45,8 @@ Rectangle {
                          "Unlit:LightingModel:enableUnlit", 
                          "Emissive:LightingModel:enableEmissive", 
                          "Lightmap:LightingModel:enableLightmap",
-                         "Background:LightingModel:enableBackground",                      
+                         "Background:LightingModel:enableBackground",      
+                         "Haze:LightingModel:enableHaze",                
                          "ssao:AmbientOcclusion:enabled",                      
                          "Textures:LightingModel:enableMaterialTexturing"                     
                     ]

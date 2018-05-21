@@ -106,8 +106,17 @@ public:
 
     virtual void setPresetList(const QJsonObject& object);
 
+    /**jsdoc
+     * @function Render.toJSON
+     * @returns {string}
+     */
     // This must be named toJSON to integrate with the global scripting JSON object
     Q_INVOKABLE QString toJSON() { return QJsonDocument(toJsonValue(*this).toObject()).toJson(QJsonDocument::Compact); }
+
+    /**jsdoc
+     * @function Render.load
+     * @param {object} map
+     */
     Q_INVOKABLE void load(const QVariantMap& map) { qObjectFromJsonValue(QJsonObject::fromVariantMap(map), *this); emit loaded(); }
 
     Q_INVOKABLE QObject* getConfig(const QString& name) { return nullptr; }
@@ -124,11 +133,31 @@ public:
     Q_INVOKABLE virtual QObject* getSubConfig(int i) const { return nullptr; }
 
 public slots:
+
+    /**jsdoc
+     * @function Render.load
+     * @param {object} map
+     */
     void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); emit loaded(); }
 
 signals:
+
+    /**jsdoc
+     * @function Render.loaded
+     * @returns {Signal}
+     */
     void loaded();
+
+    /**jsdoc
+     * @function Render.newStats
+     * @returns {Signal}
+     */
     void newStats();
+
+    /**jsdoc
+     * @function Render.dirtyEnabled
+     * @returns {Signal}
+     */
     void dirtyEnabled();
 };
 
@@ -139,6 +168,16 @@ public:
     using Config = JobConfig;
 };
 
+
+/**jsdoc
+ * @namespace Render
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
+ * @property {number} cpuRunTime - <em>Read-only.</em>
+ * @property {boolean} enabled
+ */
 class TaskConfig : public JobConfig {
     Q_OBJECT
 public:
@@ -149,6 +188,12 @@ public:
     TaskConfig() = default;
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
+
+    /**jsdoc
+     * @function Render.getConfig
+     * @param {string} name
+     * @returns {object}
+     */
     // Get a sub job config through task.getConfig(path)
     // where path can be:
     // - <job_name> search for the first job named job_name traversing the the sub graph of task and jobs (from this task as root)
@@ -201,6 +246,10 @@ public:
     JobConcept* _task;
 
 public slots:
+
+    /**jsdoc
+     * @function Render.refresh
+     */
     void refresh();
 };
 

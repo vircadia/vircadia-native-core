@@ -30,6 +30,15 @@
 
 #include "AvatarData.h"
 
+/**jsdoc
+ * <strong>Note:</strong> An <code>AvatarList</code> API is also provided for Interface and client entity scripts: it is a 
+ * synonym for the {@link AvatarManager} API.
+ *
+ * @namespace AvatarList
+ *
+ * @hifi-assignment-client
+ */
+
 class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -42,20 +51,24 @@ public:
     // Currently, your own avatar will be included as the null avatar id.
     
     /**jsdoc
-     * @function AvatarManager.getAvatarIdentifiers
+     * @function AvatarList.getAvatarIdentifiers
      * @returns {Uuid[]}
      */
     Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
 
     /**jsdoc
-     * @function AvatarManager.getAvatarsInRange
+     * @function AvatarList.getAvatarsInRange
      * @param {Vec3} position
      * @param {number} range
      * @returns {Uuid[]} 
      */
     Q_INVOKABLE QVector<QUuid> getAvatarsInRange(const glm::vec3& position, float rangeMeters) const;
 
-    // No JSDod because it's documwented in AvatarManager.
+    /**jsdoc
+     * @function AvatarList.getAvatar
+     * @param {Uuid} avatarID
+     * @returns {AvatarData}
+     */
     // Null/Default-constructed QUuids will return MyAvatar
     Q_INVOKABLE virtual ScriptAvatarData* getAvatar(QUuid avatarID) { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }
 
@@ -65,21 +78,21 @@ public:
 signals:
 
     /**jsdoc
-     * @function AvatarManager.avatarAddedEvent
+     * @function AvatarList.avatarAddedEvent
      * @param {Uuid} sessionUUID
      * @returns {Signal}
      */
     void avatarAddedEvent(const QUuid& sessionUUID);
 
     /**jsdoc
-     * @function AvatarManager.avatarRemovedEvent
+     * @function AvatarList.avatarRemovedEvent
      * @param {Uuid} sessionUUID
      * @returns {Signal}
      */
     void avatarRemovedEvent(const QUuid& sessionUUID);
 
     /**jsdoc
-     * @function AvatarManager.avatarSessionChangedEvent
+     * @function AvatarList.avatarSessionChangedEvent
      * @param {Uuid} sessionUUID
      * @param {Uuid} oldSessionUUID
      * @returns {Signal}
@@ -89,7 +102,7 @@ signals:
 public slots:
 
     /**jsdoc
-     * @function AvatarManager.isAvatarInRange
+     * @function AvatarList.isAvatarInRange
      * @param {string} position
      * @param {string} range
      * @returns {boolean}
@@ -99,28 +112,28 @@ public slots:
 protected slots:
 
     /**jsdoc
-     * @function AvatarManager.sessionUUIDChanged
+     * @function AvatarList.sessionUUIDChanged
      * @param {Uuid} sessionUUID
      * @param {Uuid} oldSessionUUID
      */
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
 
     /**jsdoc
-     * @function AvatarManager.processAvatarDataPacket
+     * @function AvatarList.processAvatarDataPacket
      * @param {} message
      * @param {} sendingNode
      */
     void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
    
     /**jsdoc
-     * @function AvatarManager.processAvatarIdentityPacket
+     * @function AvatarList.processAvatarIdentityPacket
      * @param {} message
      * @param {} sendingNode
      */
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
     /**jsdoc
-     * @function AvatarManager.processKillAvatar
+     * @function AvatarList.processKillAvatar
      * @param {} message
      * @param {} sendingNode
      */
