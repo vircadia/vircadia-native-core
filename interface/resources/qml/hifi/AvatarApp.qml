@@ -96,7 +96,18 @@ Rectangle {
             allAvatars.move(avatarIndex, 0, 1);
             view.setPage(0);
         } else if(message.method === 'bookmarkAdded') {
-            var avatarIndex = allAvatars.addAvatarEntry(message.bookmark, message.bookmarkName);
+            var avatar = allAvatars.findAvatar(message.bookmarkName);
+            if(avatar !== undefined) {
+                var avatarObject = allAvatars.makeAvatarObject(message.bookmark, message.bookmarkName);
+                for(var prop in avatarObject) {
+                    avatar[prop] = avatarObject[prop];
+                }
+                if(currentAvatar.name === message.bookmarkName) {
+                    currentAvatar = currentAvatarModel.makeAvatarEntry(avatarObject);
+                }
+            } else {
+                allAvatars.addAvatarEntry(message.bookmark, message.bookmarkName);
+            }
             updateCurrentAvatarInBookmarks(currentAvatar);
         } else if(message.method === 'bookmarkDeleted') {
             pageOfAvatars.isUpdating = true;

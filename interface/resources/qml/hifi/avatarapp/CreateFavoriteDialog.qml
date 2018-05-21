@@ -27,6 +27,8 @@ Rectangle {
 
     function open(avatar) {
         favoriteName.text = '';
+        favoriteName.forceActiveFocus();
+
         console.debug('CreateFavoriteDialog: ', avatar.thumbnailUrl);
 
         avatarImageUrl = avatar.thumbnailUrl;
@@ -144,7 +146,7 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
 
-                yesButton.enabled: favoriteNameText !== '' && !wrongName.visible
+                yesButton.enabled: favoriteNameText !== ''
                 yesText: root.button2text
                 noText: root.button1text
 
