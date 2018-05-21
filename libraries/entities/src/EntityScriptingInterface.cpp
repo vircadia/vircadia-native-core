@@ -338,6 +338,9 @@ QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
     if (cloneAvatarEntity) {
         return addEntity(properties, true);
     } else {
+        // setLastEdited timestamp to 0 to ensure this entity gets updated with the properties 
+        // from the server-created entity, don't change this unless you know what you are doing
+        properties.setLastEdited(0);
         bool success = addLocalEntityCopy(properties, newEntityID);
         if (success) {
             getEntityPacketSender()->queueCloneEntityMessage(entityIDToClone, newEntityID);
