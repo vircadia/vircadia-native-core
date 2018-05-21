@@ -74,11 +74,7 @@
     const html_reg_propertiesHeaderEdit_Replace = '<h4 class="subsection-title">Properties</h4>';
     const html_reg_typeEdit = /(<h5>Returns[\s\S]*?Type)(<\/dt[\s\S]*?type">)(.*?)(<\/span><\/dd>[\s\S]*?<\/dl>)/g;
     const html_reg_typeEdit_replace = '$1: $3</dt></dl>'
-<<<<<<< HEAD
-    const html_reg_methodSize = /(<h4)( class="name"[\s\S]*?<\/span>)(<\/h4>\n)/gm;
-=======
     const html_reg_methodSize = /(<h4)( class="name"[\s\S]*?)(<\/h4>)/g;
->>>>>>> 1e4d4dac444d53e5a8073183506558a55296a753
     const html_reg_methodSize_replace = '<h5$2</h5>';
     const html_reg_typeDefSize = /(<h4)( class="name"[\s\S]*?)(<\/h4>\n)/g;
     const html_reg_typeDefSize_replace = '<h5$2</h5>';
@@ -96,6 +92,8 @@
     const html_reg_signalTitle = `<h4 class="subsection-title">Signals</h4>`;
     const html_reg_typeDefinitonsTitle = /<h3 class="subsection-title">Type Definitions<\/h3>/;
     const html_reg_typeDefinitonsTitle_replace = `<h4 class="subsection-title">Type Definitions</h4>`    
+    const html_reg_classDefinitonsTitle = /<h3 class="subsection-title">Classes<\/h3>/;
+    const html_reg_classDefinitonsTitle_replace = `<h4 class="subsection-title">Classes</h4>`    
     const html_reg_firstDivClose = `</div>`;
     const html_reg_fixLinkHashIssue = /(<a href=")(.*?)(\.)(.*?">)/g;
     const html_reg_fixLinkHashIssue_replace = "$1$2#$4"
@@ -106,25 +104,16 @@
     const html_reg_findClassLinks = /(<a href=")([\.|\w]+?)(#[\.|\w]+?)(">[\s\S]+?<\/a>)/g;
     const html_reg_pretty = /(<pre class="prettyprint">)([\s\S]*?)(<\/pre>)/g;
     const html_reg_pretty_replace = "<pre>$2<\/pre>";
-<<<<<<< HEAD
-    const html_reg_code = /(<code>)([\s\S]*?)(<\/code>)/g;
-    const html_reg_code_replace = "$1$2$3";
     const html_reg_availableIn = /(<table>[\s\S]+?Available in:[\s\S]+?<\/table>)/g;
     const html_reg_findControllerPropertiesHeader = "<h5>Properties</h5>";
     const html_reg_findControllerCuratedList = /<h5>Functions<\/h5>[\s\S]*?<p>Input Recordings[\s\S]*?<\/ul>/g
     const html_reg_findEntityMethods = /<h5>Entity Methods:[\s\S]+?<\/ul>/g;
     const html_reg_EntityMethodsHeader = '<h5>Entity Methods:</h5>';
     const html_reg_EntityMethodsHeader_replace = '<h5>Entity Methods</h5>';
-    
-// Mapping for GroupNames and Members
-    let groupNameMemberMap = {
-        "Objects": [],
-        "Namespaces": [],
-        "Globals": []
-    }
-=======
     const html_reg_dlClassDetails = /<dl class="details"><\/dl>/g
->>>>>>> 1e4d4dac444d53e5a8073183506558a55296a753
+    const html_reg_typeDefType = /(<h5>)(Type:)(<\/h5>[\s\S]*?)(<span[\s\S]*?)(<\/li>[\s\S]*?<\/ul>)/g;
+    const html_reg_typeDefType_replace = `<dl><dt>$2 $4</dl></dt>`;
+    
 
 // Procedural functions
 
@@ -423,13 +412,8 @@
         let methodArray = [];
         let signalArray = [];
         
-<<<<<<< HEAD
-        allItemToSplit.forEach( content => {
-            firstLine = content.split("\n")[0];            
-=======
         allItemToSplit.forEach( (content, index) => {
             firstLine = content.split("\n")[0]; 
->>>>>>> 1e4d4dac444d53e5a8073183506558a55296a753
             if (firstLine.indexOf("{Signal}") > -1){
                 signalArray.push(content);
             } else if (firstLine.indexOf("span") > -1) {
@@ -525,26 +509,6 @@
             let signalIDs = [];
             let typeDefIDs = [];
         // Basic Regex HTML edits
-<<<<<<< HEAD
-            let mainDivRegexed = mainDiv.html()
-                                    .replace(html_reg_static,"")
-                                    .replace(html_reg_title,"")
-                                    .replace(html_reg_objectHeader,"")
-                                    .replace(html_reg_htmlExt,"")
-                                    .replace(html_reg_brRemove, "")
-                                    .replace(html_reg_subsectionEdit, html_reg_subsectionEdit_replace)
-                                    .replace(html_reg_propertiesHeaderEdit, html_reg_propertiesHeaderEdit_Replace)
-                                    .replace(html_reg_typeEdit, html_reg_typeEdit_replace)
-                                    .replace(html_reg_typeDefSize, html_reg_typeDefSize_replace)                                   
-                                    .replace(html_reg_returnSize, html_reg_returnSize_replace)
-                                    .replace(html_reg_methodSize, html_reg_methodSize_replace)
-                                    .replace(html_reg_typeDefinitonsTitle, "")
-                                    .replace(html_reg_findGlobalLinks, html_reg_findGlobalLinks_replace)
-                                    .replace(html_reg_findGeneralLinks, lowerCaseGeneralLinks)
-                                    .replace(html_reg_findClassLinks, modifyClassLinks)
-                                    .replace(html_reg_typeReturnSize, html_reg_typeReturnSize_replace)
-                                    .replace(html_reg_code, html_reg_code_replace)
-=======
             let currentContent = mainDiv.html()
                                     .replace(html_reg_findByMethod, "") //Remove Method title to be remade later  
                                     .replace(html_reg_static,"") // Remove static from the file names
@@ -558,14 +522,11 @@
                                     .replace(html_reg_typeEdit, html_reg_typeEdit_replace) // Put type on the same line
                                     .replace(html_reg_returnSize, html_reg_returnSize_replace) // make return size h6 instead of h5
                                     .replace(html_reg_methodSize, html_reg_methodSize_replace) // make method size into h5
->>>>>>> 1e4d4dac444d53e5a8073183506558a55296a753
                                     .replace(html_reg_pretty, html_reg_pretty_replace)
+                                    .replace(html_reg_classDefinitonsTitle, html_reg_classDefinitonsTitle_replace)
                                     // .replace(html_reg_brRemove, "") // Remove extra Brs                                                                                                                                          
                                     // .replace(html_reg_code, html_reg_code_replace)
             
-            // Fix for namespace and object links
-            // currentContent = contentReplace(currentContent, htmlTitle);
-
         // Further HTML Manipulation
             // Make end term either Type Definitions or by the article
             let endTerm;
@@ -579,6 +540,7 @@
                 foundSignalsAndMethods = contentSplitArray[1];
                  // Create a reference to the current content after split and the split functions
                 currentContent = contentSplitArray[0]
+                                    .replace(html_reg_typeDefType, html_reg_typeDefType_replace) // Edit how the typedef type looks
                                     .replace(html_reg_typeDefinitonsTitle, ""); // Remove Type Definitions Title to be remade later;
                 endTerm = html_reg_findByArticleClose;
                 // Grab split Type Definitions
@@ -593,7 +555,6 @@
             }
             
             // Create references to the split methods and signals
-
             let processedMethodsSignalsAndTypeDefs = splitMethodsSignals(foundSignalsAndMethods);
             let splitMethods = processedMethodsSignalsAndTypeDefs[0];
             let splitSignals = processedMethodsSignalsAndTypeDefs[1];
@@ -640,7 +601,7 @@
                 currentContent = currentContent.replace(html_reg_findControllerCuratedList, "");
                 let entityMethods = currentContent.match(html_reg_findEntityMethods);
                 currentContent = currentContent.replace(html_reg_findEntityMethods, "");
-                currentContent = append(currentContent, html_reg_firstTableClose, [classTOC, curatedList, entityMethods].join("\n"));
+                currentContent = append(currentContent, html_reg_firstDivClose, [classTOC, curatedList, entityMethods].join("\n"));
                 currentContent = currentContent.replace(html_reg_EntityMethodsHeader, html_reg_EntityMethodsHeader_replace);
             } else {
                 currentContent = append(currentContent, html_reg_firstDivClose, classTOC);    
