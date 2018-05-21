@@ -1457,12 +1457,13 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             if (isClone) {
                 QByteArray buffer = QByteArray::fromRawData(reinterpret_cast<const char*>(editData), maxLength);
                 validEditPacket = EntityItemProperties::decodeCloneEntityMessage(buffer, processedBytes, entityIDToClone, entityItemID);
-                entityToClone = findEntityByEntityItemID(entityIDToClone);
-                if (entityToClone) {
-                    properties = entityToClone->getProperties();
+                if (validEditPacket) {
+                    entityToClone = findEntityByEntityItemID(entityIDToClone);
+                    if (entityToClone) {
+                        properties = entityToClone->getProperties();
+                    }
                 }
-            }
-            else {
+            } else {
                 validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength, processedBytes, entityItemID, properties);
             }
 
