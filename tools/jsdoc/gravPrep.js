@@ -103,48 +103,20 @@
     const html_reg_pretty = /(<pre class="prettyprint">)([\s\S]*?)(<\/pre>)/g;
     const html_reg_pretty_replace = "<pre>$2<\/pre>";
     const html_reg_dlClassDetails = /<dl class="details"><\/dl>/g
-    // const html_reg_findGlobalLinks = /(<a href=")(global)(#[\s\S]+?<\/a>)/g;
-    // const html_reg_findGlobalLinks_replace = "$1\/api-reference\/globals$3";
-    // const html_reg_code = /(<code>)([\s\S]*?)(<\/code>)/g;
-    // const html_reg_code_replace = "$1$2$3";
 
 // Procedural functions
 
 // Helper Functions
-    // function isMultipleDots(content){
-    //     let count = 0;
-    //     let regEx = /\./g
-    //     let tempArray;
-    //     while ((tempArray = regEx.exec(content)) !== null){
-    //         count++;
-    //     }
-    //     if (count > 1){
-    //         return true;
-    //     }
-    // }
-
-    // function modifyClassLinks(match, p1, p2, p3, p4){
-    //     let matchedp = [p2,p3].join("");
-    //     if(!isMultipleDots(matchedp)){
-    //         console.log("not multiple");
-    //         console.log("matchedp:", matchedp)
-    //         return match;
-    //     }
-    //     p2 = p2.split('.')[1].toLowerCase();
-    //     let newString =  [p1,p2,p3,p4].join("");
-    //     // console.log("new String:", newString);
-    //     return newString;
-    // }
 
     function allLinksToLowerCase(match, p1, p2, p3){
-        // split on id # and make sure only the preceding is lower case
-        if (p2.indexOf("#") > -1){
-            p2 = p2.split("#");
-            p2 = [p2[0].toLowerCase(), "#", p2[1]].join("");
-        } else {
-            p2 = p2.toLowerCase();
-        }
-        return [p1,p2,p3].join("");
+            // split on id # and make sure only the preceding is lower case
+            if (p2.indexOf("#") > -1){
+                p2 = p2.split("#");
+                p2 = [p2[0].toLowerCase(), "#", p2[1]].join("");
+            } else {
+                p2 = p2.toLowerCase();
+            }
+            return [p1,p2,p3].join("");
     }
 
     function fixLinkGrouping(match, p1, p2, p3){
@@ -164,42 +136,6 @@
         }
         
     }
-
-    // function lowerCaseGeneralLinks(match, p1, p2, p3, p4){
-    //     let modifiedString = [p1,p2.toLowerCase(),p3,p4].join("");
-    //     return modifiedString;
-    // }
-
-    // function contentReplace(content, title){
-    //     var linksNoHashes = [];
-    //     var tempArray;
-    //     while(( tempArray = html_reg_findLinksNoHashes.exec(content)) !== null ){
-    //         let tempArrayToPush = tempArray.slice(0,4)
-    //         tempArrayToPush.push(tempArray.index);
-    //         linksNoHashes.push(tempArrayToPush);
-    //     }        
-    //     if (!linksNoHashes){
-    //         return content;
-    //     }   
-    //     for(var i = linksNoHashes.length-1; i > -1; i--){
-    //         if (linksNoHashes[i][0].indexOf("http") > -1){
-    //             continue;
-    //         }          
-    //         let linkLength = linksNoHashes[i][0].length;  
-    //         let group1 = linksNoHashes[i][1];
-    //         let group2 = linksNoHashes[i][2];
-    //         if (group2.indexOf(".") > -1){
-    //             group2 = group2.split(".")[1].toLowerCase();
-    //         }
-    //         let group3 = linksNoHashes[i][3];
-    //         let index = linksNoHashes[i][4];
-    //         let newString = `${group1}/api-reference/${returnRightGroup(group2)}/${group2.toLowerCase()}${group3}`;  
-    //         // console.log("newString", newString);       
-    //         content = [content.slice(0,index), newString, content.slice(index+linkLength)].join("");
-    //     }
-    //     return content;
-    // }
-
 
     function returnRightGroup(methodToCheck){
         // console.log("methodToCheck", methodToCheck)
@@ -456,7 +392,6 @@
                 break;
             }
         } while (curIndex > -1)
-        // console.log("content2", content);
         
         return [content, foundArray];
     }
@@ -467,17 +402,12 @@
         let signalArray = [];
         
         allItemToSplit.forEach( (content, index) => {
-            // console.log("content", content);
             firstLine = content.split("\n")[0]; 
-            // console.log("@@@ firstLine", firstLine)           
             if (firstLine.indexOf("{Signal}") > -1){
-                // console.log("### FOUND SIGNAL", content);
                 signalArray.push(content);
             } else if (firstLine.indexOf("span") > -1) {
-                // console.log("### METHOD", content);
                 methodArray.push(content);
             } else {
-                // console.log("not handled", content);
             }
         })
         return [methodArray, signalArray];
@@ -488,9 +418,7 @@
     // and bool if the append is before the found area
     function append(content, searchTermToAppendto, contentToAppend, appendBefore){
         let contentArray = content.split("\n");
-        console.log("contentArray", contentArray);
         let foundIndex = findArrayTrim(contentArray, searchTermToAppendto)
-        console.log("foundIndex", foundIndex)
         foundIndex = appendBefore ? foundIndex : foundIndex +1
         
         contentArray.splice(foundIndex,0,contentToAppend)
@@ -508,7 +436,6 @@
         }
         return index;
     }
-
 
 // Remove grav directory if exists to make sure old files aren't kept
     if (fs.existsSync(dir_grav)){
@@ -577,22 +504,15 @@
                                     .replace(html_reg_title,"") // Remove title 
                                     .replace(html_reg_objectHeader,"") // Remove extra Object Header 
                                     .replace(html_reg_htmlExt,"") // Remove the .html extension from all links
-                                    
                                     .replace(html_reg_dlClassDetails, "") // Remove unneccsary dlClassDetails Tag 
                                     .replace(html_reg_allNonHTML, allLinksToLowerCase) // Turn all links into lowercase before ID tags
                                     .replace(html_reg_allNonHTML, fixLinkGrouping) // Make sure links refer to correct grouping                                  
-                                    // .replace(html_reg_subsectionEdit, html_reg_subsectionEdit_replace) // Make all subsection titles the same size
                                     .replace(html_reg_propertiesHeaderEdit, html_reg_propertiesHeaderEdit_Replace) // Remove : from Properties
                                     .replace(html_reg_typeEdit, html_reg_typeEdit_replace) // Put type on the same line
                                     .replace(html_reg_returnSize, html_reg_returnSize_replace) // make return size h6 instead of h5
                                     .replace(html_reg_methodSize, html_reg_methodSize_replace) // make method size into h5
                                     .replace(html_reg_pretty, html_reg_pretty_replace)
                                     // .replace(html_reg_brRemove, "") // Remove extra Brs                                                                                                                                          
-                                    // .replace(html_reg_typeDefSize, html_reg_typeDefSize_replace) // make type def header into h5
-                                    // .replace(html_reg_findGlobalLinks, html_reg_findGlobalLinks_replace)
-                                    // .replace(html_reg_findGeneralLinks, lowerCaseGeneralLinks)
-                                    // .replace(html_reg_findClassLinks, modifyClassLinks)
-                                    // .replace(html_reg_typeReturnSize, html_reg_typeReturnSize_replace)
                                     // .replace(html_reg_code, html_reg_code_replace)
             
             // Fix for namespace and object links
@@ -648,30 +568,25 @@
                 arrayToPassToClassToc.push({type: "Methods", array: splitMethodIDS});            
                 // Add the Signals header to the Signals HTML
                 splitMethods.unshift(html_reg_findByMethod_replace)
-                console.log("appending methods")
                 currentContent = append(currentContent, html_reg_findByArticleClose, splitMethods.join('\n'), true);
             }
             if (splitSignals.length > 0) {
                 arrayToPassToClassToc.push({type: "Signals", array: splitSignalIDS});
                 // Add the Signals header to the Signals HTML
                 splitSignals.unshift(html_reg_signalTitle)
-                console.log("appending signals")                
                 currentContent = append(currentContent, html_reg_findByArticleClose, splitSignals.join('\n'),true);        
             }
             if (foundTypeDefinitions && foundTypeDefinitions.length > 0) {
                 arrayToPassToClassToc.push({type: "Type Definitions", array: splitTypeDefinitionIDS});                
                 // Add the Signals header to the Signals HTML
                 foundTypeDefinitions.unshift(html_reg_typeDefinitonsTitle_replace)
-                console.log("appending typedefs")                                
                 currentContent = append(currentContent, html_reg_findByArticleClose, foundTypeDefinitions.join('\n'), true);        
             }
 
             let classTOC = makeClassTOC(arrayToPassToClassToc);
             if (groupName === "Global"){
-                console.log("appending global toc")                                                
                 currentContent = append(currentContent, html_reg_findByTitle, classTOC);         
             } else {
-                console.log("appending normal toc")                                                                
                 currentContent = append(currentContent, html_reg_firstDivClose, classTOC);    
             }
             
@@ -726,26 +641,3 @@
         }
         copyFolderRecursiveSync(dir_md, targetMDDirectory);
     }
-
-
-    // function splitTypeDefs(allItemToSplit){
-    //     let typeDefArray = [];
-    //     allItemToSplit.forEach( (content, index) => {
-    //         firstLine = content.split("\n")[0]; 
-    //         if (firstLine.indexOf("{Signal}") > -1){
-    //             signalArray.push(content);
-    //         } else if (firstLine.indexOf("span") > -1) {
-    //             if (content.indexOf("Available in:") > -1){
-    //                 description = content;
-    //             } else {
-    //                 methodArray.push(content);
-    //             }
-    //         } else {
-    //             if(firstLine.trim() !== ""){
-    //                 typeDefArray.push(content);
-    //             } else {
-    //             }
-    //         }
-    //     })
-    //     return [methodArray, signalArray, typeDefArray, description];
-    // }
