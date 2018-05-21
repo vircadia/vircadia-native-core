@@ -31,13 +31,9 @@ using GL45Texture = GL45Backend::GL45Texture;
 using GL45VariableAllocationTexture = GL45Backend::GL45VariableAllocationTexture;
 
 GL45VariableAllocationTexture::GL45VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45Texture(backend, texture) {
-    Backend::textureResourceCount.increment();
 }
 
 GL45VariableAllocationTexture::~GL45VariableAllocationTexture() {
-    Backend::textureResourceCount.decrement();
-    Backend::textureResourceGPUMemSize.update(_size, 0);
-    Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
 }
 
 #if GPU_BINDLESS_TEXTURES
@@ -286,7 +282,7 @@ void GL45ResourceTexture::populateTransferQueue(TransferQueue& pendingTransfers)
         }
 
         // queue up the sampler and populated mip change for after the transfer has completed
-        pendingTransfers.emplace(new TransferJob([=] {
+        pendingTransfers.emplace(new TransferJob(sourceMip, [=] {
             _populatedMip = sourceMip;
             incrementPopulatedSize(_gpuObject.evalMipSize(sourceMip));
             sanityCheck();
