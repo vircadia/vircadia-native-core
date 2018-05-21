@@ -10,6 +10,7 @@ Item {
     property alias dropShadowRadius: shadow.radius
     property alias dropShadowHorizontalOffset: shadow.horizontalOffset
     property alias dropShadowVerticalOffset: shadow.verticalOffset
+    property alias dropShadowOpacity: shadow.opacity
 
     Rectangle {
         id: rectangle
