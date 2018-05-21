@@ -73,22 +73,10 @@ Rectangle {
             adjustWearables.refreshWearable(message.entityID, message.wearableIndex, message.properties);
         } else if(message.method === 'wearablesUpdated') {
             var wearablesModel = currentAvatar.wearables;
-
-            console.debug('handling wearablesUpdated, new wearables count:', message.wearables.length, ': old wearables: ');
-            for(var i = 0; i < wearablesModel.count; ++i) {
-                console.debug('wearable: ', wearablesModel.get(i).properties.id);
-            }
-
             wearablesModel.clear();
             message.wearables.forEach(function(wearable) {
                 wearablesModel.append(wearable);
             });
-
-            console.debug('handling wearablesUpdated: new wearables: ');
-            for(var i = 0; i < wearablesModel.count; ++i) {
-                console.debug('wearable: ', wearablesModel.get(i).properties.id);
-            }
-
             adjustWearables.refresh(currentAvatar);
         } else if(message.method === 'scaleChanged') {
             currentAvatar.avatarScale = message.value;

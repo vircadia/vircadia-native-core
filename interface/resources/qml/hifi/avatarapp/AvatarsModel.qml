@@ -173,14 +173,17 @@ ListModel {
 
             if(comparer) {
                 if(comparer(o1Value, o2Value) === false) {
+                    console.debug('comparer: not equal');
+                    return false;
+                } else {
+                    console.debug('comparer: equal');
+                }
+            } else {
+                if(JSON.stringify(o1Value) !== JSON.stringify(o2Value)) {
                     console.debug('not equal');
                     return false;
                 } else {
                     console.debug('equal');
-                }
-            } else {
-                if(JSON.stringify(o1Value) !== JSON.stringify(o2Value)) {
-                    return false;
                 }
             }
         }
@@ -210,7 +213,7 @@ ListModel {
     function findAvatarIndexByValue(avatar) {
 
         var index = -1;
-        console.debug('findAvatarIndexByValue: ', JSON.stringify(avatar));
+        console.debug('findAvatarIndexByValue: ', 'name = ', avatar.name);
 
         // 2DO: find better way of determining selected avatar in bookmarks
         console.debug('allAvatars.count: ', allAvatars.count);
