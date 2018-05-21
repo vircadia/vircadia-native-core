@@ -33,6 +33,8 @@ public class HomeFragment extends Fragment {
 
     private OnHomeInteractionListener mListener;
 
+    public native String nativeGetLastLocation();
+
     public HomeFragment() {
         // Required empty public constructor
     }
@@ -60,7 +62,7 @@ public class HomeFragment extends Fragment {
         int numberOfColumns = 1;
         GridLayoutManager gridLayoutMgr = new GridLayoutManager(getContext(), numberOfColumns);
         mDomainsView.setLayoutManager(gridLayoutMgr);
-        mDomainAdapter = new DomainAdapter(getContext(), HifiUtils.getInstance().protocolVersionSignature());
+        mDomainAdapter = new DomainAdapter(getContext(), HifiUtils.getInstance().protocolVersionSignature(), nativeGetLastLocation());
         mDomainAdapter.setClickListener((view, position, domain) -> {
             new Handler(getActivity().getMainLooper()).postDelayed(() -> mListener.onSelectedDomain(domain.url), 400); // a delay so the ripple effect can be seen
         });
