@@ -344,8 +344,7 @@ QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
         if (success) {
             getEntityPacketSender()->queueCloneEntityMessage(entityIDToClone, newEntityID);
             return newEntityID;
-        }
-        else {
+        } else {
             return QUuid();
         }
     }
