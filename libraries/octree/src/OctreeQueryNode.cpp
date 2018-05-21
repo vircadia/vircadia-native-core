@@ -153,7 +153,7 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
     bool currentViewFrustumChanged = false;
 
     { // if there has been a change, then recalculate
-        QMutexLocker viewLocker(&_viewMutex);
+        QMutexLocker lock(&_conicalViewsLock);
 
         if (_conicalViews.size() == _currentConicalViews.size()) {
             for (size_t i = 0; i < _conicalViews.size(); ++i) {

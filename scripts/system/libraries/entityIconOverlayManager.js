@@ -70,29 +70,6 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
         }
     };
 
-
-    this.setIconsSelectable = function(arrayOfSelectedEntityIDs, isIconsSelectable) {
-        if (arrayOfSelectedEntityIDs === null) {
-            for (var id in entityOverlays) {
-                Overlays.editOverlay(entityOverlays[id], {
-                    ignoreRayIntersection: isIconsSelectable
-                });
-            }
-        } else {
-            for (var id in entityOverlays) {
-                if (arrayOfSelectedEntityIDs.indexOf(id) !== -1) { // in the entityOverlays array and selectable
-                    Overlays.editOverlay(entityOverlays[id], {
-                        ignoreRayIntersection: isIconsSelectable
-                    });
-                } else {
-                    Overlays.editOverlay(entityOverlays[id], {
-                        ignoreRayIntersection: !isIconsSelectable
-                    });
-                }
-            }
-        }
-    };
-
     // Allocate or get an unused overlay
     function getOverlay() {
         var overlay;
@@ -137,9 +114,6 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
                 for (var key in customProperties) {
                     overlayProperties[key] = customProperties[key];
                 }
-            }
-            if(properties.type === 'ParticleEffect' || properties.type === 'Light'){
-                overlayProperties.ignoreRayIntersection = true;
             }
             Overlays.editOverlay(overlay, overlayProperties);
         }

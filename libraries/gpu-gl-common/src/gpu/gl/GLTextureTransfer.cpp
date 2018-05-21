@@ -339,7 +339,7 @@ void GLTextureTransferEngineDefault::populateActiveBufferQueue() {
         // Can't find any pending transfers, so move on
         if (textureTransferQueue.empty()) {
             if (vargltexture->hasPendingTransfers()) {
-                qWarning(gpugllogging) << "Texture has no transfer jobs, but has pending transfers";
+                // qWarning(gpugllogging) << "Texture " << gltexture->_id << "(" << texture->source().c_str() << ") has no transfer jobs, but has pending transfers" ;
             }
             itr = _pendingTransfersMap.erase(itr);
             continue;
