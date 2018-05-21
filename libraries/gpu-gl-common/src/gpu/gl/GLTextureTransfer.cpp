@@ -43,7 +43,6 @@ using QueuePair = std::pair<TextureWeakPointer, float>;
 // Uses a weak pointer to the texture to avoid keeping it in scope if the client stops using it
 using WorkQueue = std::priority_queue<QueuePair, std::vector<QueuePair>, LessPairSecond<QueuePair>>;
 
-
 using ImmediateQueuePair = std::pair<TexturePointer, float>;
 // Contains a priority sorted list of textures on which work is to be done in the current frame
 using ImmediateWorkQueue = std::priority_queue<ImmediateQueuePair, std::vector<ImmediateQueuePair>, LessPairSecond<ImmediateQueuePair>>;
@@ -53,9 +52,10 @@ using TransferMap = std::map<TextureWeakPointer, TransferQueue, std::owner_less<
 
 class GLTextureTransferEngineDefault : public GLTextureTransferEngine {
     using Parent = GLTextureTransferEngine;
+
 public:
     // Called once per frame by the GLBackend to manage texture memory
-    // Will deallocate textures if oversubscribed, 
+    // Will deallocate textures if oversubscribed,
     void manageMemory() override;
     void shutdown() override;
 
@@ -92,11 +92,11 @@ protected:
 private:
     std::atomic<bool> _shutdown{ false };
     // Contains a priority sorted list of weak texture pointers that have been determined to be eligible for additional allocation
-    // While the memory state is 'undersubscribed', items will be removed from this list and processed, allocating additional memory 
+    // While the memory state is 'undersubscribed', items will be removed from this list and processed, allocating additional memory
     // per frame
     WorkQueue _promoteQueue;
     // This queue contains jobs that will buffer data from the texture backing store (ideally a memory mapped KTX file)
-    // to a CPU memory buffer.  This queue is populated on the main GPU thread, and drained on a dedicated thread.  
+    // to a CPU memory buffer.  This queue is populated on the main GPU thread, and drained on a dedicated thread.
     // When an item on the _activeBufferQueue is completed it is put into the _activeTransferQueue
     ActiveTransferQueue _activeBufferQueue;
     // This queue contains jobs that will upload data from a CPU buffer into a GPU.  This queue is populated on the background
@@ -129,16 +129,19 @@ void GLBackend::killTextureManagementStage() {
 }
 
 std::vector<TexturePointer> GLTextureTransferEngine::getAllTextures() {
+    std::remove_if(_registeredTextures.begin(), _registeredTextures.end(), [&](const std::weak_ptr<Texture>& weak) -> bool {
+        return weak.expired(); 
+    });
+
     std::vector<TexturePointer> result;
     result.reserve(_registeredTextures.size());
-    std::remove_if(_registeredTextures.begin(), _registeredTextures.end(), [&](const std::weak_ptr<Texture>& weak)->bool {
+    for (const auto& weak : _registeredTextures) {
         auto strong = weak.lock();
-        bool strongResult = strong.operator bool();
-        if (strongResult) {
-            result.push_back(strong);
+        if (!strong) {
+            continue;
         }
-        return strongResult;
-    });
+        result.push_back(strong);
+    }
     return result;
 }
 
@@ -158,13 +161,12 @@ void GLTextureTransferEngineDefault::shutdown() {
 #endif
 }
 
-
 void GLTextureTransferEngineDefault::manageMemory() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     // reset the count used to limit the number of textures created per frame
     resetFrameTextureCreated();
     // Determine the current memory management state.  It will be either idle (no work to do),
-    // undersubscribed (need to do more allocation) or transfer (need to upload content from the 
+    // undersubscribed (need to do more allocation) or transfer (need to upload content from the
     // backing store to the GPU
     updateMemoryPressure();
     if (MemoryPressureState::Undersubscribed == _memoryPressureState) {
@@ -176,7 +178,7 @@ void GLTextureTransferEngineDefault::manageMemory() {
     }
 }
 
-// Each frame we will check if our memory pressure state has changed.  
+// Each frame we will check if our memory pressure state has changed.
 void GLTextureTransferEngineDefault::updateMemoryPressure() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
 
@@ -225,7 +227,6 @@ void GLTextureTransferEngineDefault::updateMemoryPressure() {
         return;
     }
 
-    
     auto newState = MemoryPressureState::Idle;
     if (pressure < UNDERSUBSCRIBED_PRESSURE_VALUE && (unallocated != 0 && canPromote)) {
         newState = MemoryPressureState::Undersubscribed;
@@ -270,11 +271,10 @@ void GLTextureTransferEngineDefault::processTransferQueues() {
     }
 #endif
 
-    
     // From the pendingTransferMap, queue jobs into the _activeBufferQueue
-    // Doing so will lock the weak texture pointer so that it can't be destroyed 
+    // Doing so will lock the weak texture pointer so that it can't be destroyed
     // while the background thread is working.
-    // 
+    //
     // This will queue jobs until _queuedBufferSize can't be increased without exceeding
     // GLVariableAllocationTexture::MAX_BUFFER_SIZE or there is no more work to be done
     populateActiveBufferQueue();
@@ -294,15 +294,19 @@ void GLTextureTransferEngineDefault::processTransferQueues() {
         while (!activeTransferQueue.empty()) {
             const auto& activeTransferJob = activeTransferQueue.front();
             const auto& texturePointer = activeTransferJob.first;
+            GLTexture* gltexture = Backend::getGPUObject<GLTexture>(*texturePointer);
+            GLVariableAllocationSupport* vargltexture = dynamic_cast<GLVariableAllocationSupport*>(gltexture);
             const auto& tranferJob = activeTransferJob.second;
-            tranferJob->transfer(texturePointer);
+            if (tranferJob->sourceMip() < vargltexture->populatedMip()) {
+                tranferJob->transfer(texturePointer);
+            }
             // The pop_front MUST be the last call since all of these varaibles in scope are
             // references that will be invalid after the pop
             activeTransferQueue.pop_front();
         }
     }
 
-    // If we have no more work in any of the structures, reset the memory state to idle to 
+    // If we have no more work in any of the structures, reset the memory state to idle to
     // force reconstruction of the _pendingTransfersMap if necessary
     {
         Lock lock(_bufferMutex);
@@ -322,7 +326,7 @@ void GLTextureTransferEngineDefault::populateActiveBufferQueue() {
     ActiveTransferQueue newBufferJobs;
     size_t newTransferSize{ 0 };
 
-    for (auto itr = _pendingTransfersMap.begin(); itr != _pendingTransfersMap.end(); ) {
+    for (auto itr = _pendingTransfersMap.begin(); itr != _pendingTransfersMap.end();) {
         const auto& weakTexture = itr->first;
         const auto texture = weakTexture.lock();
 
@@ -384,7 +388,7 @@ bool GLTextureTransferEngineDefault::processActiveBufferQueue() {
     for (const auto& activeJob : activeBufferQueue) {
         const auto& texture = activeJob.first;
         const auto& transferJob = activeJob.second;
-        // Some jobs don't require buffering, but they pass through this queue to ensure that we don't re-order 
+        // Some jobs don't require buffering, but they pass through this queue to ensure that we don't re-order
         // the buffering & transfer operations.  All jobs in the queue must be processed in order.
         if (!transferJob->bufferingRequired()) {
             continue;
@@ -488,14 +492,14 @@ void GLTextureTransferEngineDefault::processDemotes(size_t reliefRequired, const
 // FIXME hack for stats display
 QString getTextureMemoryPressureModeString() {
     switch (_memoryPressureState) {
-    case MemoryPressureState::Undersubscribed:
-        return "Undersubscribed";
+        case MemoryPressureState::Undersubscribed:
+            return "Undersubscribed";
 
-    case MemoryPressureState::Transfer:
-        return "Transfer";
+        case MemoryPressureState::Transfer:
+            return "Transfer";
 
-    case MemoryPressureState::Idle:
-        return "Idle";
+        case MemoryPressureState::Idle:
+            return "Idle";
     }
     Q_UNREACHABLE();
     return "Unknown";
