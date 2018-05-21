@@ -34,13 +34,16 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     memcpy(destinationBuffer, &_connectionID, sizeof(_connectionID));
     destinationBuffer += sizeof(_connectionID);
 
-    // Number of frustums
-    uint8_t numFrustums = (uint8_t)_conicalViews.size();
-    memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
-    destinationBuffer += sizeof(numFrustums);
+    {
+        QMutexLocker lock(&_conicalViewsLock);
+        // Number of frustums
+        uint8_t numFrustums = (uint8_t)_conicalViews.size();
+        memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
+        destinationBuffer += sizeof(numFrustums);
 
-    for (const auto& view : _conicalViews) {
-        destinationBuffer += view.serialize(destinationBuffer);
+        for (const auto& view : _conicalViews) {
+            destinationBuffer += view.serialize(destinationBuffer);
+        }
     }
     
     // desired Max Octree PPS
@@ -108,11 +111,14 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
     memcpy(&numFrustums, sourceBuffer, sizeof(numFrustums));
     sourceBuffer += sizeof(numFrustums);
 
-    _conicalViews.clear();
-    for (int i = 0; i < numFrustums; ++i) {
-        ConicalViewFrustum view;
-        sourceBuffer += view.deserialize(sourceBuffer);
-        _conicalViews.push_back(view);
+    {
+        QMutexLocker lock(&_conicalViewsLock);
+        _conicalViews.clear();
+        for (int i = 0; i < numFrustums; ++i) {
+            ConicalViewFrustum view;
+            sourceBuffer += view.deserialize(sourceBuffer);
+            _conicalViews.push_back(view);
+        }
     }
 
     // desired Max Octree PPS

@@ -95,7 +95,6 @@ private:
     int _duplicatePacketCount { 0 };
     quint64 _firstSuppressedPacket { usecTimestampNow() };
 
-    mutable QMutex _viewMutex { QMutex::Recursive };
     ConicalViewFrustums _currentConicalViews;
     bool _viewFrustumChanging { false };
     bool _viewFrustumJustStoppedChanging { true };
