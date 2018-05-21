@@ -100,11 +100,17 @@ private:
     QStringList resultImagesFullFilenames;
 
     // Used for accessing GitHub
-    const QString githubUser{ "highfidelity" };
-    const QString gitHubBranch { "master" };
+    const QString GIT_HUB_USER{ "highfidelity" };
+    const QString GIT_HUB_BRANCH { "master" };
 	const QString DATETIME_FORMAT { "yyyy-MM-dd_hh-mm-ss" };
 
 	ExtractedText getTestScriptLines(QString testFileName);
+
+    // NOTE: these need to match the appropriate var's in autoTester.js
+    //    var advanceKey = "n";
+    //    var pathSeparator = ".";
+    const QString ADVANCE_KEY{ "n" };
+    const QString PATH_SEPARATOR{ "." };
 };
 
 #endif // hifi_test_h

@@ -270,6 +270,7 @@ ContextMetricCount Backend::texturePendingGPUTransferCount;
 ContextMetricSize  Backend::texturePendingGPUTransferMemSize;
 
 ContextMetricSize  Backend::textureResourcePopulatedGPUMemSize;
+ContextMetricSize  Backend::textureResourceIdealGPUMemSize;
 
 Size Context::getFreeGPUMemSize() {
     return Backend::freeGPUMemSize.getValue();
@@ -328,4 +329,8 @@ Size Context::getTexturePendingGPUTransferMemSize() {
 
 Size Context::getTextureResourcePopulatedGPUMemSize() {
     return Backend::textureResourcePopulatedGPUMemSize.getValue();
+}
+
+Size Context::getTextureResourceIdealGPUMemSize() {
+    return Backend::textureResourceIdealGPUMemSize.getValue();
 }

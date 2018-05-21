@@ -21,11 +21,14 @@ private:
     void beginFrame();
     void endFrame();
     void renderFrame(const std::function<void(gpu::Batch&)>& = [](gpu::Batch&) {});
+    std::vector<gpu::TexturePointer> loadTestTextures() const;
+
 
 private slots:
     void initTestCase();
     void cleanupTestCase();
     void testTextureLoading();
+
 
 private:
     QString _resourcesPath;
@@ -36,5 +39,5 @@ private:
     gpu::TexturePointer _colorBuffer, _depthBuffer;
     const glm::uvec2 _size{ 640, 480 };
     std::vector<std::string> _textureFiles;
-    std::vector<gpu::TexturePointer> _textures;
+    size_t _frameCount { 0 };
 };
