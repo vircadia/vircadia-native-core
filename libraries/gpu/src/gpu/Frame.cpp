@@ -28,8 +28,8 @@ Frame::~Frame() {
 }
 
 void Frame::finish() {
-    for (Batch& batch : batches) {
-        batch.finishFrame(bufferUpdates);
+    for (const auto& batch : batches) {
+        batch->finishFrame(bufferUpdates);
     }
 }
 

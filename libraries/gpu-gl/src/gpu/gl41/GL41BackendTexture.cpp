@@ -279,8 +279,6 @@ using GL41VariableAllocationTexture = GL41Backend::GL41VariableAllocationTexture
 GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) :
      GL41Texture(backend, texture)
 {
-    Backend::textureResourceCount.increment();
-
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
     _maxAllocatedMip = _populatedMip = mipLevels;
@@ -303,9 +301,6 @@ GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr
 }
 
 GL41VariableAllocationTexture::~GL41VariableAllocationTexture() {
-    Backend::textureResourceCount.decrement();
-    Backend::textureResourceGPUMemSize.update(_size, 0);
-    Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
 }
 
 void GL41VariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
@@ -605,7 +600,7 @@ void GL41VariableAllocationTexture::populateTransferQueue(TransferQueue& pending
         }
 
         // queue up the sampler and populated mip change for after the transfer has completed
-        pendingTransfers.emplace(new TransferJob([=] {
+        pendingTransfers.emplace(new TransferJob(sourceMip, [=] {
             _populatedMip = sourceMip;
             incrementPopulatedSize(_gpuObject.evalMipSize(sourceMip));
             sanityCheck();
