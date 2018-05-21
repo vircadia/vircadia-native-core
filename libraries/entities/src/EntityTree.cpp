@@ -2478,6 +2478,26 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             }
         }
 
+        // Convert old cloneable entities so they use cloneableData instead of userData
+        if (contentVersion < (int)EntityVersion::CloneableData) {
+            QJsonObject userData = QJsonDocument::fromJson(properties.getUserData().toUtf8()).object();
+            QJsonObject grabbableKey = userData["grabbableKey"].toObject();
+            QJsonValue cloneable = grabbableKey["cloneable"];
+            if (cloneable.isBool() && cloneable.toBool()) {
+                QJsonValue cloneLifetime = grabbableKey["cloneLifetime"];
+                QJsonValue cloneLimit = grabbableKey["cloneLimit"];
+                QJsonValue cloneDynamic = grabbableKey["cloneDynamic"];
+                QJsonValue cloneAvatarEntity = grabbableKey["cloneAvatarEntity"];
+
+                // This is cloneable, we need to convert the properties
+                properties.setCloneable(true);
+                properties.setCloneLifetime(cloneLifetime.toInt());
+                properties.setCloneLimit(cloneLimit.toInt());
+                properties.setCloneDynamic(cloneDynamic.toBool());
+                properties.setCloneAvatarEntity(cloneAvatarEntity.toBool());
+            }
+        }
+
         EntityItemPointer entity = addEntity(entityItemID, properties);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();

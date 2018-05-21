@@ -339,11 +339,13 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                     if (targetCloneable) {
                         if (this.cloneAllowed) {
                             var cloneID = cloneEntity(targetProps);
-                            var cloneProps = Entities.getEntityProperties(cloneID);
-                            this.grabbing = true;
-                            this.targetEntityID = cloneID;
-                            this.startNearParentingGrabEntity(controllerData, cloneProps);
-                            this.cloneAllowed = false; // prevent another clone call until inputs released
+                            if (cloneID !== null) {
+                                var cloneProps = Entities.getEntityProperties(cloneID);
+                                this.grabbing = true;
+                                this.targetEntityID = cloneID;
+                                this.startNearParentingGrabEntity(controllerData, cloneProps);
+                                this.cloneAllowed = false; // prevent another clone call until inputs released
+                            }
                         }
                     } else if (targetProps) {
                         this.grabbing = true;
