@@ -74,7 +74,7 @@
     const html_reg_propertiesHeaderEdit_Replace = '<h4 class="subsection-title">Properties</h4>';
     const html_reg_typeEdit = /(<h5>Returns[\s\S]*?Type)(<\/dt[\s\S]*?type">)(.*?)(<\/span><\/dd>[\s\S]*?<\/dl>)/g;
     const html_reg_typeEdit_replace = '$1: $3</dt></dl>'
-    const html_reg_methodSize = /(<h4)( class="name"[\s\S]*?<\/span>)(<\/h4>)/g;
+    const html_reg_methodSize = /(<h4)( class="name"[\s\S]*?)(<\/h4>)/g;
     const html_reg_methodSize_replace = '<h5$2</h5>';
     const html_reg_typeDefSize = /(<h4)( class="name"[\s\S].*?)(<\/h4>)/g;
     const html_reg_typeDefSize_replace = '<h5$2</h5>';
@@ -85,12 +85,14 @@
     const html_reg_findByName = '<h5 class="name"';
     const html_reg_findByTitle = '<h1>';
     const html_reg_findByMethod = '<h3 class="subsection-title">Methods</h3>'
+    const html_reg_findByMethod_replace = '<h4 class="subsection-title">Methods</h4>'    
     const html_reg_containerOverview = `<div class="container-overview">`   
     const html_reg_findByArticleOpen = `<article>`
     const html_reg_findByArticleClose = `</article>`
     const html_reg_signalTitle = `<h4 class="subsection-title">Signals</h4>`;
-    const html_reg_typeDefinitonsTitle = `<h4 class="subsection-title">Type Definitions</h4>`;
-    const html_reg_firstTableClose = `</table>`;
+    const html_reg_typeDefinitonsTitle = /<h3 class="subsection-title">Type Definitions<\/h3>/;
+    const html_reg_typeDefinitonsTitle_replace = `<h4 class="subsection-title">Type Definitions</h4>`    
+    const html_reg_firstDivClose = `</div>`;
     const html_reg_fixLinkHashIssue = /(<a href=")(.*?)(\.)(.*?">)/g;
     const html_reg_fixLinkHashIssue_replace = "$1$2#$4"
     const html_reg_findLinks = /(<a href="[\s\S]+?<\/a>)/g;
@@ -411,6 +413,7 @@
             }
             extractedIDs.push(id)
         })
+        // console.log("extractedIDs", extractedIDs)
         return extractedIDs;
     }
 
@@ -418,8 +421,6 @@
     // Takes: Content to split, SearchTerm to Split by, and term to End Splitting By
     // Returns: [newContent after Split, Array of extracted ]
     function splitBy(content, searchTerm, endSplitTerm){
-        console.log("content1", content);
-        console.log("endSplitTerm", endSplitTerm);
         let foundArray = [];
         let curIndex = -1;
         let afterCurSearchIndex = -1
@@ -430,14 +431,12 @@
         do {
             // Find the index of where to stop searching
             curEndSplitTermIndex = content.indexOf(endSplitTerm);
-            console.log("curEndSplitTermIndex", curEndSplitTermIndex)
             // Find the index of the the next Search term
             curIndex = content.indexOf(searchTerm);
             // The index of where the next search will start 
             afterCurSearchIndex = curIndex+findbyNameLength;
             // Find the content of the next Index
             nextIndex = content.indexOf(searchTerm,afterCurSearchIndex);
-            console.log("nextIndex", nextIndex)
             // If the next index isn't found, then next index === index of the end term
             if (nextIndex === -1){
                 nextIndex = curEndSplitTermIndex;
@@ -448,16 +447,11 @@
             content = content.replace(foundArray[curfoundArrayIndex], "");
             curfoundArrayIndex++;
             curEndSplitTermIndex = content.indexOf(endSplitTerm);
-            console.log("curEndSplitTermIndex2", curEndSplitTermIndex)
             nextIndex = content.indexOf(searchTerm,afterCurSearchIndex);
-            // console.log("nextIndex2", nextIndex)
-
+            // handle if nextIndex goes beyond endSplitTerm
             if (nextIndex > curEndSplitTermIndex) {
                 curIndex = content.indexOf(searchTerm);
-                console.log("curIndex", curIndex)
-                console.log("curEndSplitTermIndex", curEndSplitTermIndex)
                 foundArray.push(content.slice(curIndex, curEndSplitTermIndex))                
-                console.log("foundArray[curfoundArrayIndex],", foundArray[curfoundArrayIndex],)
                 content = content.replace(foundArray[curfoundArrayIndex], "");
                 break;
             }
@@ -468,11 +462,9 @@
     }
 
     // Split the signals and methods [Might make this more generic]
-    function splitMethodsSignalsAndTypeDefs(allItemToSplit){
+    function splitMethodsSignals(allItemToSplit){
         let methodArray = [];
         let signalArray = [];
-        let typeDefArray = [];
-        let description;
         
         allItemToSplit.forEach( (content, index) => {
             // console.log("content", content);
@@ -482,25 +474,13 @@
                 // console.log("### FOUND SIGNAL", content);
                 signalArray.push(content);
             } else if (firstLine.indexOf("span") > -1) {
-                // console.log("### FOUND SPAN", content);
-                if (content.indexOf("Available in:") > -1){
-                    // console.log("### DESCRIPTION", content);
-                    description = content;
-                } else {
-                    // console.log("### METHOD", content);
-                    methodArray.push(content);
-                }
+                // console.log("### METHOD", content);
+                methodArray.push(content);
             } else {
-                // console.log("### TYPEDEF", content);                
-                if(firstLine.trim() !== ""){
-                    // console.log("### TYPEDEF", content);
-                    typeDefArray.push(content);
-                } else {
-                    // console.log("not handled", content);
-                }
+                // console.log("not handled", content);
             }
         })
-        return [methodArray, signalArray, typeDefArray, description];
+        return [methodArray, signalArray];
     }
 
     // Helper to append
@@ -508,7 +488,9 @@
     // and bool if the append is before the found area
     function append(content, searchTermToAppendto, contentToAppend, appendBefore){
         let contentArray = content.split("\n");
+        console.log("contentArray", contentArray);
         let foundIndex = findArrayTrim(contentArray, searchTermToAppendto)
+        console.log("foundIndex", foundIndex)
         foundIndex = appendBefore ? foundIndex : foundIndex +1
         
         contentArray.splice(foundIndex,0,contentToAppend)
@@ -618,58 +600,80 @@
 
         // Further HTML Manipulation
             // Make end term either Type Definitions or by the article
-            let endTerm = html_reg_findByArticleClose;
+            let endTerm;
+            let foundTypeDefinitions;
+            let foundSignalsAndMethods;
             if (currentContent.indexOf("Type Definitions") > -1){
-                console.log("Found Type Definitions")
-                endTerm = `<h3 class="subsection-title">Type Definitions</h3>`
+                console.log("Found Type Definitions");
+                endTerm = `<h3 class="subsection-title">Type Definitions</h3>`;
+                // Split HTML by Each named entry
+                let contentSplitArray = splitBy(currentContent, html_reg_findByName, endTerm);
+                foundSignalsAndMethods = contentSplitArray[1];
+                 // Create a reference to the current content after split and the split functions
+                currentContent = contentSplitArray[0]
+                                    .replace(html_reg_typeDefinitonsTitle, ""); // Remove Type Definitions Title to be remade later;
+                endTerm = html_reg_findByArticleClose;
+                // Grab split Type Definitions
+                let contentSplitArrayForTypeDefs = splitBy(currentContent, html_reg_findByName, endTerm);
+                currentContent = contentSplitArrayForTypeDefs[0];
+                foundTypeDefinitions = contentSplitArrayForTypeDefs[1];
+            } else {
+                endTerm = html_reg_findByArticleClose;
+                let contentSplitArray = splitBy(currentContent, html_reg_findByName, endTerm);
+                foundSignalsAndMethods = contentSplitArray[1];
+                currentContent = contentSplitArray[0];
             }
             
-            // Split HTML by Each named entry
-            let contentSplitArray = splitBy(currentContent, html_reg_findByName, endTerm);
-            
-            // Create a reference to the current content after split and the split functions
-            currentContent = contentSplitArray[0]
-                                .replace(html_reg_typeDefinitonsTitle, "") // Remove Type Definitions Title to be remade later;
-            
             // Create references to the split methods and signals
-            let processedMethodsSignalsAndTypeDefs = splitMethodsSignalsAndTypeDefs(contentSplitArray[1]);
-            // let splitMethods = processedMethodsSignalsAndTypeDefs[0];
-            // let splitSignals = processedMethodsSignalsAndTypeDefs[1];
-            // let splitTypeDefintions = processedMethodsSignalsAndTypeDefs[2];
+
+            let processedMethodsSignalsAndTypeDefs = splitMethodsSignals(foundSignalsAndMethods);
+            let splitMethods = processedMethodsSignalsAndTypeDefs[0];
+            let splitSignals = processedMethodsSignalsAndTypeDefs[1];
+            let splitTypeDefinitionIDS;
             // let splitDescription = processedMethodsSignalsAndTypeDefs[3];
-            // let splitMethodIDS = extractIDs(splitMethods);
-            // let splitSignalIDS = extractIDs(splitSignals);
-            // let splitTypeDefinitionIDS = extractIDs(splitTypeDefintions);
+            // console.log("getting split Methods")
+            let splitMethodIDS = extractIDs(splitMethods);
+            // console.log("getting split Signals")            
+            let splitSignalIDS = extractIDs(splitSignals);
+            if (foundTypeDefinitions){
+                // console.log("getting split typeDefs")            
+                splitTypeDefinitionIDS = extractIDs(foundTypeDefinitions);
+            }
             let arrayToPassToClassToc = [];
 
             // if (splitDescription) {
             //     currentContent = append(currentContent, html_reg_containerOverview, splitDescription);
             // }
-            // if (splitMethods.length > 0) {
-            //     arrayToPassToClassToc.push({type: "Methods", array: splitMethodIDS});            
-            //     // Add the Signals header to the Signals HTML
-            //     splitMethods.unshift(html_reg_findByMethod)
-            //     currentContent = append(currentContent, html_reg_findByArticleClose, splitMethods.join('\n'), true);
-            // }
-            // if (splitSignals.length > 0) {
-            //     arrayToPassToClassToc.push({type: "Signals", array: splitSignalIDS});
-            //     // Add the Signals header to the Signals HTML
-            //     splitSignals.unshift(html_reg_signalTitle)
-            //     currentContent = append(currentContent, html_reg_findByArticleClose, splitSignals.join('\n'),true);        
-            // }
-            // if (splitTypeDefintions.length > 0) {
-            //     arrayToPassToClassToc.push({type: "Type Definitions", array: splitTypeDefinitionIDS});                
-            //     // Add the Signals header to the Signals HTML
-            //     splitTypeDefintions.unshift(html_reg_typeDefinitonsTitle)
-            //     currentContent = append(currentContent, html_reg_findByArticleClose, splitTypeDefintions.join('\n'), true);        
-            // }
+            if (splitMethods.length > 0) {
+                arrayToPassToClassToc.push({type: "Methods", array: splitMethodIDS});            
+                // Add the Signals header to the Signals HTML
+                splitMethods.unshift(html_reg_findByMethod_replace)
+                console.log("appending methods")
+                currentContent = append(currentContent, html_reg_findByArticleClose, splitMethods.join('\n'), true);
+            }
+            if (splitSignals.length > 0) {
+                arrayToPassToClassToc.push({type: "Signals", array: splitSignalIDS});
+                // Add the Signals header to the Signals HTML
+                splitSignals.unshift(html_reg_signalTitle)
+                console.log("appending signals")                
+                currentContent = append(currentContent, html_reg_findByArticleClose, splitSignals.join('\n'),true);        
+            }
+            if (foundTypeDefinitions && foundTypeDefinitions.length > 0) {
+                arrayToPassToClassToc.push({type: "Type Definitions", array: splitTypeDefinitionIDS});                
+                // Add the Signals header to the Signals HTML
+                foundTypeDefinitions.unshift(html_reg_typeDefinitonsTitle_replace)
+                console.log("appending typedefs")                                
+                currentContent = append(currentContent, html_reg_findByArticleClose, foundTypeDefinitions.join('\n'), true);        
+            }
 
-            // let classTOC = makeClassTOC(arrayToPassToClassToc);
-            // if (groupName === "Global"){
-            //     currentContent = append(currentContent, html_reg_findByTitle, classTOC);         
-            // } else {
-            //     currentContent = append(currentContent, html_reg_firstTableClose, classTOC);    
-            // }
+            let classTOC = makeClassTOC(arrayToPassToClassToc);
+            if (groupName === "Global"){
+                console.log("appending global toc")                                                
+                currentContent = append(currentContent, html_reg_findByTitle, classTOC);         
+            } else {
+                console.log("appending normal toc")                                                                
+                currentContent = append(currentContent, html_reg_firstDivClose, classTOC);    
+            }
             
             // Final Pretty Content
             currentContent = htmlclean(currentContent);
@@ -722,3 +726,26 @@
         }
         copyFolderRecursiveSync(dir_md, targetMDDirectory);
     }
+
+
+    // function splitTypeDefs(allItemToSplit){
+    //     let typeDefArray = [];
+    //     allItemToSplit.forEach( (content, index) => {
+    //         firstLine = content.split("\n")[0]; 
+    //         if (firstLine.indexOf("{Signal}") > -1){
+    //             signalArray.push(content);
+    //         } else if (firstLine.indexOf("span") > -1) {
+    //             if (content.indexOf("Available in:") > -1){
+    //                 description = content;
+    //             } else {
+    //                 methodArray.push(content);
+    //             }
+    //         } else {
+    //             if(firstLine.trim() !== ""){
+    //                 typeDefArray.push(content);
+    //             } else {
+    //             }
+    //         }
+    //     })
+    //     return [methodArray, signalArray, typeDefArray, description];
+    // }
