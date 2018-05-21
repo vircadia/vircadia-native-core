@@ -22,6 +22,7 @@
 #include <AddressManager.h>
 #include "AndroidHelper.h"
 #include <udt/PacketHeaders.h>
+#include <SettingHandle.h>
 
 QAndroidJniObject __interfaceActivity;
 QAndroidJniObject __loginCompletedListener;
@@ -172,7 +173,7 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnDest
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeGotoUrl(JNIEnv* env, jobject obj, jstring url) {
     QAndroidJniObject jniUrl("java/lang/String", "(Ljava/lang/String;)V", url);
-    DependencyManager::get<AddressManager>()->handleLookupString(jniUrl.toString());
+    DependencyManager::get<AddressManager>()->loadSettings(jniUrl.toString());
 }
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnPause(JNIEnv* env, jobject obj) {
@@ -208,6 +209,12 @@ JNIEXPORT jstring JNICALL Java_io_highfidelity_hifiinterface_HifiUtils_getCurren
 
 JNIEXPORT jstring JNICALL Java_io_highfidelity_hifiinterface_HifiUtils_protocolVersionSignature(JNIEnv *env, jobject instance) {
     return env->NewStringUTF(protocolVersionsSignatureBase64().toLatin1().data());
+}
+
+JNIEXPORT jstring JNICALL Java_io_highfidelity_hifiinterface_fragment_HomeFragment_nativeGetLastLocation(JNIEnv *env, jobject instance) {
+    Setting::Handle<QUrl> currentAddressHandle(QStringList() << "AddressManager" << "address", QString());
+    QUrl lastLocation = currentAddressHandle.get();
+    return env->NewStringUTF(lastLocation.toString().toLatin1().data());
 }
 
 JNIEXPORT void JNICALL

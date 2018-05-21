@@ -33,9 +33,10 @@ public:
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(ReceivedMessage& message) override;
 
-    bool hasConicalViews() const { return !_conicalViews.empty(); }
-    void setConicalViews(ConicalViewFrustums views) { _conicalViews = views; }
-    void clearConicalViews() { _conicalViews.clear(); }
+    bool hasConicalViews() const { QMutexLocker lock(&_conicalViewsLock); return !_conicalViews.empty(); }
+    void setConicalViews(ConicalViewFrustums views)
+        { QMutexLocker lock(&_conicalViewsLock); _conicalViews = views; }
+    void clearConicalViews() { QMutexLocker lock(&_conicalViewsLock); _conicalViews.clear(); }
 
     // getters/setters for JSON filter
     QJsonObject getJSONParameters() { QReadLocker locker { &_jsonParametersLock }; return _jsonParameters; }
@@ -60,6 +61,7 @@ public slots:
     void setBoundaryLevelAdjust(int boundaryLevelAdjust) { _boundaryLevelAdjust = boundaryLevelAdjust; }
 
 protected:
+    mutable QMutex _conicalViewsLock;
     ConicalViewFrustums _conicalViews;
 
     // octree server sending items
