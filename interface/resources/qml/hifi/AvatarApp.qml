@@ -619,8 +619,8 @@ Rectangle {
                         height: 92
 
                         Behavior on y {
-                            SpringAnimation {
-                                spring: 2; damping: 0.2
+                            NumberAnimation {
+                                duration: 100
                             }
                         }
 

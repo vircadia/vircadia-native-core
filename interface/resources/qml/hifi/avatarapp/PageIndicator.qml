@@ -18,6 +18,12 @@ ShadowGlyph {
         }
     ]
 
+    Behavior on y {
+        NumberAnimation {
+            duration: 100
+        }
+    }
+
     text: isPrevious ? "E" : "D";
     width: 40
     height: 40
