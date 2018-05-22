@@ -30,7 +30,7 @@
  * @hifi-server-entity
  * @hifi-assignment-client
  *
- * @property NULL {Uuid} The null UUID, <code>{00000000-0000-0000-0000-000000000000}</code>.
+ * @property {Uuid} NULL - The null UUID, <code>{00000000-0000-0000-0000-000000000000}</code>.
  */
 
 /// Scriptable interface for a UUID helper class object. Used exclusively in the JavaScript API

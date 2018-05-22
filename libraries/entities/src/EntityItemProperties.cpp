@@ -479,7 +479,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} locked=false - Whether or not the entity can be edited or deleted. If <code>true</code> then the 
  *     entity's properties other than <code>locked</code> cannot be changed, and the entity cannot be deleted.
  * @property {boolean} visible=true - Whether or not the entity is rendered. If <code>true</code> then the entity is rendered.
- * @property {boolean} canCastShadows=true - Whether or not the entity casts shadows. Currently applicable only to 
+ * @property {boolean} canCastShadow=true - Whether or not the entity can cast a shadow. Currently applicable only to 
  *     {@link Entities.EntityType|Model} and {@link Entities.EntityType|Shape} entities. Shadows are cast if inside a 
  *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its 
  *     {@link Entities.EntityProperties-Zone|keyLight} property.
@@ -1391,7 +1391,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     /**jsdoc
      * The axis-aligned bounding box of an entity.
-     * @typedef Entities.BoundingBox
+     * @typedef {object} Entities.BoundingBox
      * @property {Vec3} brn - The bottom right near (minimum axes values) corner of the AA box.
      * @property {Vec3} tfl - The top far left (maximum axes values) corner of the AA box.
      * @property {Vec3} center - The center of the AA box.

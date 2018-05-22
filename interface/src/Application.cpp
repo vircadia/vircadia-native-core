@@ -715,7 +715,7 @@ private:
  *     <tr><td><code>NavigationFocused</code></td><td>number</td><td>number</td><td><em>Not used.</em></td></tr>
  *   </tbody>
  * </table>
- * @typedef Controller.Hardware-Application
+ * @typedef {object} Controller.Hardware-Application
  */
 
 static const QString STATE_IN_HMD = "InHMD";
