@@ -60,34 +60,23 @@
         "Namespaces": [],
         "Globals": []
     }   
-
+    
 // Html variables to be handle regex replacements
     const html_reg_static = /<span class="type-signature">\(static\)<\/span>/g
     const html_reg_title = /\<h1.+?\>.+?\<\/h1\>/g;
     const html_reg_htmlExt = /\.html/g;
     const html_reg_objectHeader = /<header>[\s\S]+?<\/header>/;
     const html_reg_objectSpanNew = /<h5 class="name"[\s\S]+?<\/span><\/h5>/;
-    const html_reg_brRemove = /<br>[\s\S]+?<br>/;
-    const html_reg_subsectionEdit = /(<h. class="subsection-title">)([\s\S]*?)(<\/h.>)/g;
-    const html_reg_subsectionEdit_replace = '<h4 class="subsection-title">$2</h4>';
     const html_reg_propertiesHeaderEdit = '<h4 class="subsection-title">Properties:</h4>';
     const html_reg_propertiesHeaderEdit_Replace = '<h4 class="subsection-title">Properties</h4>';
     const html_reg_typeEdit = /(<h5>Returns[\s\S]*?Type)(<\/dt[\s\S]*?type">)(.*?)(<\/span><\/dd>[\s\S]*?<\/dl>)/g;
     const html_reg_typeEdit_replace = '$1: $3</dt></dl>'
     const html_reg_methodSize = /(<h4)( class="name"[\s\S]*?)(<\/h4>)/g;
     const html_reg_methodSize_replace = '<h5$2</h5>';
-    const html_reg_typeDefSize = /(<h4)( class="name"[\s\S]*?)(<\/h4>\n)/g;
-    const html_reg_typeDefSize_replace = '<h5$2</h5>';
-    const html_reg_typeReturnSize = /<h5>Type:\<\/h5>/g;
-    const html_reg_typeReturnSize_replace = '<h6>Type:<h6>';
-    const html_reg_returnSize = /<h5>Returns:<\/h5>/g;
-    const html_reg_returnSize_replace = '<h6>Returns:<\/h6>';
     const html_reg_findByName = '<h5 class="name"';
     const html_reg_findByTitle = '<h1>';
     const html_reg_findByMethod = '<h3 class="subsection-title">Methods</h3>'
     const html_reg_findByMethod_replace = '<h4 class="subsection-title">Methods</h4>'    
-    const html_reg_containerOverview = `<div class="container-overview">`   
-    const html_reg_findByArticleOpen = `<article>`
     const html_reg_findByArticleClose = `</article>`
     const html_reg_signalTitle = `<h4 class="subsection-title">Signals</h4>`;
     const html_reg_typeDefinitonsTitle = /<h3 class="subsection-title">Type Definitions<\/h3>/;
@@ -95,17 +84,10 @@
     const html_reg_classDefinitonsTitle = /<h3 class="subsection-title">Classes<\/h3>/;
     const html_reg_classDefinitonsTitle_replace = `<h4 class="subsection-title">Classes</h4>`    
     const html_reg_firstDivClose = `</div>`;
-    const html_reg_fixLinkHashIssue = /(<a href=")(.*?)(\.)(.*?">)/g;
-    const html_reg_fixLinkHashIssue_replace = "$1$2#$4"
-    const html_reg_findLinks = /(<a href="[\s\S]+?<\/a>)/g;
     const html_reg_allNonHTML = /(<a href=")(?!http)([\s\S]+?)(">)/g;
-    const html_reg_findLinksNoHashes = /(<a href=")([^#]+?)(">[\s\S]+?<\/a>)/g;  
-    const html_reg_findGeneralLinks = /(<a href=")([A-Z])([\s\S]*?)("[\s\S]*?<\/a>)/g;
-    const html_reg_findClassLinks = /(<a href=")([\.|\w]+?)(#[\.|\w]+?)(">[\s\S]+?<\/a>)/g;
     const html_reg_pretty = /(<pre class="prettyprint">)([\s\S]*?)(<\/pre>)/g;
     const html_reg_pretty_replace = "<pre>$2<\/pre>";
     const html_reg_availableIn = /(<table>[\s\S]+?Available in:[\s\S]+?<\/table>)/g;
-    const html_reg_findControllerPropertiesHeader = "<h5>Properties</h5>";
     const html_reg_findControllerCuratedList = /<h5>Functions<\/h5>[\s\S]*?<p>Input Recordings[\s\S]*?<\/ul>/g
     const html_reg_findEntityMethods = /<h5>Entity Methods:[\s\S]+?<\/ul>/g;
     const html_reg_EntityMethodsHeader = '<h5>Entity Methods:</h5>';
@@ -113,12 +95,10 @@
     const html_reg_dlClassDetails = /<dl class="details"><\/dl>/g
     const html_reg_typeDefType = /(<h5>)(Type:)(<\/h5>[\s\S]*?)(<span[\s\S]*?)(<\/li>[\s\S]*?<\/ul>)/g;
     const html_reg_typeDefType_replace = `<dl><dt>$2 $4</dl></dt>`;
-    
 
 // Procedural functions
 
-// Helper Functions
-
+    // Turn links to lower case that aren't part of IDs
     function allLinksToLowerCase(match, p1, p2, p3){
             // split on id # and make sure only the preceding is lower case
             if (p2.indexOf("#") > -1){
@@ -130,6 +110,7 @@
             return [p1,p2,p3].join("");
     }
 
+    // Return the right group for where the method or type came from
     function fixLinkGrouping(match, p1, p2, p3){
         if (p2.indexOf("#") > -1){
             let split = p2.split("#");
@@ -142,20 +123,18 @@
                 let split = p2.split(".");
                 return [p1,"/api-reference/", returnRightGroup(split[1]), "/", split[1], p3].join("");
             }
-            // console.log("p2:", p2);            
             return [p1,"/api-reference/", returnRightGroup(p2), "/", p2, p3].join("");
         }
         
     }
 
     function returnRightGroup(methodToCheck){
-        // console.log("methodToCheck", methodToCheck)
         for ( var key in groupNameMemberMap ){
             for (i = 0; i < groupNameMemberMap[key].length; i++ ){
                 if (methodToCheck.toLowerCase() === groupNameMemberMap[key][i].toLowerCase()){
                     return key.toLowerCase();
                 } else {
-                    // console.log("Couldn't find group: ", methodToCheck);
+                    console.log("Couldn't find group: ", methodToCheck);
                 }
             }
         }
@@ -360,7 +339,6 @@
             }
             extractedIDs.push(id)
         })
-        // console.log("extractedIDs", extractedIDs)
         return extractedIDs;
     }
 
@@ -523,9 +501,7 @@
                                     .replace(html_reg_returnSize, html_reg_returnSize_replace) // make return size h6 instead of h5
                                     .replace(html_reg_methodSize, html_reg_methodSize_replace) // make method size into h5
                                     .replace(html_reg_pretty, html_reg_pretty_replace)
-                                    .replace(html_reg_classDefinitonsTitle, html_reg_classDefinitonsTitle_replace)
-                                    // .replace(html_reg_brRemove, "") // Remove extra Brs                                                                                                                                          
-                                    // .replace(html_reg_code, html_reg_code_replace)
+                                    .replace(html_reg_classDefinitonsTitle, html_reg_classDefinitonsTitle_replace);
             
         // Further HTML Manipulation
             // Make end term either Type Definitions or by the article
@@ -658,3 +634,29 @@
         }
         copyFolderRecursiveSync(dir_md, targetMDDirectory);
     }
+
+
+
+/*
+    const html_reg_subsectionEdit_replace = '<h4 class="subsection-title">$2</h4>';
+    const html_reg_subsectionEdit = /(<h. class="subsection-title">)([\s\S]*?)(<\/h.>)/g;
+    const html_reg_brRemove = /<br>[\s\S]+?<br>/;
+    const html_reg_typeDefSize = /(<h4)( class="name"[\s\S]*?)(<\/h4>\n)/g;
+    const html_reg_typeDefSize_replace = '<h5$2</h5>';
+    const html_reg_typeReturnSize = /<h5>Type:\<\/h5>/g;
+    const html_reg_typeReturnSize_replace = '<h6>Type:<h6>';
+    const html_reg_containerOverview = `<div class="container-overview">`   
+    const html_reg_returnSize = /<h5>Returns:<\/h5>/g;
+    const html_reg_returnSize_replace = '<h6>Returns:<\/h6>';
+    const html_reg_findByArticleOpen = `<article>`
+    const html_reg_fixLinkHashIssue = /(<a href=")(.*?)(\.)(.*?">)/g;
+    const html_reg_fixLinkHashIssue_replace = "$1$2#$4"
+    const html_reg_findLinks = /(<a href="[\s\S]+?<\/a>)/g;
+    const html_reg_findLinksNoHashes = /(<a href=")([^#]+?)(">[\s\S]+?<\/a>)/g;  
+    const html_reg_findGeneralLinks = /(<a href=")([A-Z])([\s\S]*?)("[\s\S]*?<\/a>)/g;
+    const html_reg_findClassLinks = /(<a href=")([\.|\w]+?)(#[\.|\w]+?)(">[\s\S]+?<\/a>)/g;
+    const html_reg_findControllerPropertiesHeader = "<h5>Properties</h5>";
+    
+    // .replace(html_reg_brRemove, "") // Remove extra Brs                                                                                                                                          
+    // .replace(html_reg_code, html_reg_code_replace)
+*/
