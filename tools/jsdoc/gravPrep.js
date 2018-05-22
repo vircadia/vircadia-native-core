@@ -1,216 +1,218 @@
 // Dependencies
-    const htmlclean = require('htmlclean');
-    const fs = require('fs');
-    const path = require('path');
-    const pretty = require('pretty');
-    const cheerio = require('cheerio');
-    const rimraf = require('rimraf');
-    const dedent = require('dedent-js');
+const htmlclean = require('htmlclean');
+const fs = require('fs');
+const path = require('path');
+const pretty = require('pretty');
+const cheerio = require('cheerio');
+const rimraf = require('rimraf');
+const dedent = require('dedent-js');
 
 // Arg Vars
-    const copyLocal = process.argv[2];
-    console.log("copyLocal:", copyLocal);
-    let targetTemplateDirectory = '';
-    let targetMDDirectory = '';
-    if (copyLocal){
-        targetTemplateDirectory = process.argv[3];
-        targetMDDirectory = process.argv[4];;
-    }
+const copyLocal = process.argv[2];
+console.log("copyLocal:", copyLocal);
+let targetTemplateDirectory = '';
+let targetMDDirectory = '';
+if (copyLocal) {
+    targetTemplateDirectory = process.argv[3];
+    targetMDDirectory = process.argv[4];;
+}
 
 // Required directories
-    let dir_out = path.join(__dirname, 'out');
+let dir_out = path.join(__dirname, 'out');
 
-    let dir_grav = path.join(dir_out, 'grav');
-    let dir_css = path.join(dir_grav, 'css');
-    let dir_js = path.join(dir_grav, 'js');
-    let dir_template = path.join(dir_grav, 'templates');
+let dir_grav = path.join(dir_out, 'grav');
+let dir_css = path.join(dir_grav, 'css');
+let dir_js = path.join(dir_grav, 'js');
+let dir_template = path.join(dir_grav, 'templates');
 
-    let dir_md = path.join(dir_grav, '06.api-reference');
-    let dir_md_objects = path.join(dir_md, '02.Objects');
-    let dir_md_namespaces = path.join(dir_md, '01.Namespaces');
-    let dir_md_globals = path.join(dir_md, '03.Globals');
-    
+let dir_md = path.join(dir_grav, '06.api-reference');
+let dir_md_objects = path.join(dir_md, '02.Objects');
+let dir_md_namespaces = path.join(dir_md, '01.Namespaces');
+let dir_md_globals = path.join(dir_md, '03.Globals');
+
 // Array to itterate over and create if doesn't exist
-    let dirArray = [dir_grav, dir_css, dir_js, dir_template, dir_md, dir_md_objects, dir_md_namespaces, dir_md_globals];
+let dirArray = [dir_grav, dir_css, dir_js, dir_template, dir_md, dir_md_objects, dir_md_namespaces, dir_md_globals];
 
 // Base Grouping Directories for MD files
-    let baseMDDirectories = ["API-Reference", "Globals", "Namespaces", "Objects"];
+let baseMDDirectories = ["API-Reference", "Globals", "Namespaces", "Objects"];
 
 // Maps for directory names
-    let map_dir_md = {
-        "API-Reference": dir_md,
-        "Globals": dir_md_globals,  
-        "Objects": dir_md_objects,
-        "Namespaces": dir_md_namespaces,
-        "Class": dir_md_objects,
-        "Namespace": dir_md_namespaces,
-        "Global": dir_md_globals
-    }
+let map_dir_md = {
+    "API-Reference": dir_md,
+    "Globals": dir_md_globals,
+    "Objects": dir_md_objects,
+    "Namespaces": dir_md_namespaces,
+    "Class": dir_md_objects,
+    "Namespace": dir_md_namespaces,
+    "Global": dir_md_globals
+}
 
 // Map for Links
-    let map_links = {
-        "Global": "globals",
-        "Namespace": "namespaces",
-        "Class": "objects"
-    }
+let map_links = {
+    "Global": "globals",
+    "Namespace": "namespaces",
+    "Class": "objects"
+}
 
 // Mapping for GroupNames and Members
-    let groupNameMemberMap = {
-        "Objects": [],
-        "Namespaces": [],
-        "Globals": []
-    }   
-    
+let groupNameMemberMap = {
+    "Objects": [],
+    "Namespaces": [],
+    "Globals": []
+}
+
 // Html variables to be handle regex replacements
-    const html_reg_static = /<span class="type-signature">\(static\)<\/span>/g
-    const html_reg_title = /\<h1.+?\>.+?\<\/h1\>/g;
-    const html_reg_htmlExt = /\.html/g;
-    const html_reg_objectHeader = /<header>[\s\S]+?<\/header>/;
-    const html_reg_objectSpanNew = /<h5 class="name"[\s\S]+?<\/span><\/h5>/;
-    const html_reg_propertiesHeaderEdit = '<h4 class="subsection-title">Properties:</h4>';
-    const html_reg_propertiesHeaderEdit_Replace = '<h4 class="subsection-title">Properties</h4>';
-    const html_reg_typeEdit = /(<h5>Returns[\s\S]*?Type)(<\/dt[\s\S]*?type">)(.*?)(<\/span><\/dd>[\s\S]*?<\/dl>)/g;
-    const html_reg_typeEdit_replace = '$1: $3</dt></dl>'
-    const html_reg_methodSize = /(<h4)( class="name"[\s\S]*?)(<\/h4>)/g;
-    const html_reg_methodSize_replace = '<h5$2</h5>';
-    const html_reg_findByName = '<h5 class="name"';
-    const html_reg_findByTitle = '<h1>';
-    const html_reg_findByMethod = '<h3 class="subsection-title">Methods</h3>'
-    const html_reg_findByMethod_replace = '<h4 class="subsection-title">Methods</h4>'    
-    const html_reg_findByArticleClose = `</article>`
-    const html_reg_signalTitle = `<h4 class="subsection-title">Signals</h4>`;
-    const html_reg_typeDefinitonsTitle = /<h3 class="subsection-title">Type Definitions<\/h3>/;
-    const html_reg_typeDefinitonsTitle_replace = `<h4 class="subsection-title">Type Definitions</h4>`    
-    const html_reg_classDefinitonsTitle = /<h3 class="subsection-title">Classes<\/h3>/;
-    const html_reg_classDefinitonsTitle_replace = `<h4 class="subsection-title">Classes</h4>`    
-    const html_reg_firstDivClose = `</div>`;
-    const html_reg_allNonHTML = /(<a href=")(?!http)([\s\S]+?)(">)/g;
-    const html_reg_pretty = /(<pre class="prettyprint">)([\s\S]*?)(<\/pre>)/g;
-    const html_reg_pretty_replace = "<pre>$2<\/pre>";
-    const html_reg_availableIn = /(<table>[\s\S]+?Available in:[\s\S]+?<\/table>)/g;
-    const html_reg_findControllerCuratedList = /<h5>Functions<\/h5>[\s\S]*?<p>Input Recordings[\s\S]*?<\/ul>/g
-    const html_reg_findEntityMethods = /<h5>Entity Methods:[\s\S]+?<\/ul>/g;
-    const html_reg_EntityMethodsHeader = '<h5>Entity Methods:</h5>';
-    const html_reg_EntityMethodsHeader_replace = '<h5>Entity Methods</h5>';
-    const html_reg_dlClassDetails = /<dl class="details"><\/dl>/g
-    const html_reg_typeDefType = /(<h5>)(Type:)(<\/h5>[\s\S]*?)(<span[\s\S]*?)(<\/li>[\s\S]*?<\/ul>)/g;
-    const html_reg_typeDefType_replace = `<dl><dt>$2 $4</dl></dt>`;
+const html_reg_static = /<span class="type-signature">\(static\)<\/span>/g
+const html_reg_title = /\<h1.+?\>.+?\<\/h1\>/g;
+const html_reg_htmlExt = /\.html/g;
+const html_reg_objectHeader = /<header>[\s\S]+?<\/header>/;
+const html_reg_objectSpanNew = /<h5 class="name"[\s\S]+?<\/span><\/h5>/;
+const html_reg_propertiesHeaderEdit = '<h4 class="subsection-title">Properties:</h4>';
+const html_reg_propertiesHeaderEdit_Replace = '<h4 class="subsection-title">Properties</h4>';
+const html_reg_typeEdit = /(<h5>Returns[\s\S]*?Type)(<\/dt[\s\S]*?type">)(.*?)(<\/span><\/dd>[\s\S]*?<\/dl>)/g;
+const html_reg_typeEdit_replace = '$1: $3</dt></dl>'
+const html_reg_methodSize = /(<h4)( class="name"[\s\S]*?)(<\/h4>)/g;
+const html_reg_methodSize_replace = '<h5$2</h5>';
+const html_reg_findByName = '<h5 class="name"';
+const html_reg_findByTitle = '<h1>';
+const html_reg_findByMethod = '<h3 class="subsection-title">Methods</h3>'
+const html_reg_findByMethod_replace = '<h4 class="subsection-title">Methods</h4>'
+const html_reg_findByArticleClose = `</article>`
+const html_reg_signalTitle = `<h4 class="subsection-title">Signals</h4>`;
+const html_reg_typeDefinitonsTitle = /<h3 class="subsection-title">Type Definitions<\/h3>/;
+const html_reg_typeDefinitonsTitle_replace = `<h4 class="subsection-title">Type Definitions</h4>`
+const html_reg_classDefinitonsTitle = /<h3 class="subsection-title">Classes<\/h3>/;
+const html_reg_classDefinitonsTitle_replace = `<h4 class="subsection-title">Classes</h4>`
+const html_reg_firstDivClose = `</div>`;
+const html_reg_allNonHTML = /(<a href=")(?!http)([\s\S]+?)(">)/g;
+const html_reg_pretty = /(<pre class="prettyprint">)([\s\S]*?)(<\/pre>)/g;
+const html_reg_pretty_replace = "<pre>$2<\/pre>";
+const html_reg_availableIn = /(<table>[\s\S]+?Available in:[\s\S]+?<\/table>)/g;
+const html_reg_findControllerCuratedList = /<h5>Functions<\/h5>[\s\S]*?<p>Input Recordings[\s\S]*?<\/ul>/g
+const html_reg_findEntityMethods = /<h5>Entity Methods:[\s\S]+?<\/ul>/g;
+const html_reg_EntityMethodsHeader = '<h5>Entity Methods:</h5>';
+const html_reg_EntityMethodsHeader_replace = '<h5>Entity Methods</h5>';
+const html_reg_dlClassDetails = /<dl class="details"><\/dl>/g
+const html_reg_typeDefType = /(<h5>)(Type:)(<\/h5>[\s\S]*?)(<span[\s\S]*?)(<\/li>[\s\S]*?<\/ul>)/g;
+const html_reg_typeDefType_replace = `<dl><dt>$2 $4</dl></dt>`;
+const html_reg_returnSize = /<h5>Returns:<\/h5>/g;
+const html_reg_returnSize_replace = '<h6>Returns:<\/h6>';
 
 // Procedural functions
 
-    // Turn links to lower case that aren't part of IDs
-    function allLinksToLowerCase(match, p1, p2, p3){
-            // split on id # and make sure only the preceding is lower case
-            if (p2.indexOf("#") > -1){
-                p2 = p2.split("#");
-                p2 = [p2[0].toLowerCase(), "#", p2[1]].join("");
+// Turn links to lower case that aren't part of IDs
+function allLinksToLowerCase(match, p1, p2, p3) {
+    // split on id # and make sure only the preceding is lower case
+    if (p2.indexOf("#") > -1) {
+        p2 = p2.split("#");
+        p2 = [p2[0].toLowerCase(), "#", p2[1]].join("");
+    } else {
+        p2 = p2.toLowerCase();
+    }
+    return [p1, p2, p3].join("");
+}
+
+// Return the right group for where the method or type came from
+function fixLinkGrouping(match, p1, p2, p3) {
+    if (p2.indexOf("#") > -1) {
+        let split = p2.split("#");
+        if (split[0] === "global") {
+            return [p1, "/api-reference/", "globals", "#", split[1], p3].join("");
+        }
+        return [p1, "/api-reference/", returnRightGroup(split[0]), "/", p2, p3].join("");
+    } else {
+        if (p2.indexOf(".") > -1) {
+            let split = p2.split(".");
+            return [p1, "/api-reference/", returnRightGroup(split[1]), "/", split[1], p3].join("");
+        }
+        return [p1, "/api-reference/", returnRightGroup(p2), "/", p2, p3].join("");
+    }
+
+}
+
+function returnRightGroup(methodToCheck) {
+    for (var key in groupNameMemberMap) {
+        for (i = 0; i < groupNameMemberMap[key].length; i++) {
+            if (methodToCheck.toLowerCase() === groupNameMemberMap[key][i].toLowerCase()) {
+                return key.toLowerCase();
             } else {
-                p2 = p2.toLowerCase();
-            }
-            return [p1,p2,p3].join("");
-    }
-
-    // Return the right group for where the method or type came from
-    function fixLinkGrouping(match, p1, p2, p3){
-        if (p2.indexOf("#") > -1){
-            let split = p2.split("#");
-            if (split[0] === "global"){
-                return [p1,"/api-reference/", "globals", "#", split[1], p3].join("");
-            }
-            return [p1,"/api-reference/", returnRightGroup(split[0]), "/", p2, p3].join("");
-        } else {
-            if (p2.indexOf(".") > -1){
-                let split = p2.split(".");
-                return [p1,"/api-reference/", returnRightGroup(split[1]), "/", split[1], p3].join("");
-            }
-            return [p1,"/api-reference/", returnRightGroup(p2), "/", p2, p3].join("");
-        }
-        
-    }
-
-    function returnRightGroup(methodToCheck){
-        for ( var key in groupNameMemberMap ){
-            for (i = 0; i < groupNameMemberMap[key].length; i++ ){
-                if (methodToCheck.toLowerCase() === groupNameMemberMap[key][i].toLowerCase()){
-                    return key.toLowerCase();
-                } else {
-                    console.log("Couldn't find group: ", methodToCheck);
-                }
+                // console.log("Couldn't find group: ", methodToCheck);
             }
         }
     }
+}
 
-    // Create the actual MD file
-    function createMD(title, directory, needsDir, isGlobal){
-        let mdSource = makeMdSource(title);
-        
-        if (needsDir){
-            if (!fs.existsSync(directory)) {
-                fs.mkdirSync(directory);
+// Create the actual MD file
+function createMD(title, directory, needsDir, isGlobal) {
+    let mdSource = makeMdSource(title);
+
+    if (needsDir) {
+        if (!fs.existsSync(directory)) {
+            fs.mkdirSync(directory);
+        }
+    }
+
+    let destinationMDFile = path.join(directory, `API_${title}.md`);
+    fs.writeFileSync(destinationMDFile, mdSource);
+}
+
+// Create the actual Template file
+function createTemplate(title, content) {
+    let twigBasePartial = makeTwigFile(content);
+    let destinationFile = path.join(dir_template, `API_${title}.html.twig`);
+    fs.writeFileSync(destinationFile, twigBasePartial);
+}
+
+// Copy file from source to target - used for recurssive call
+function copyFileSync(source, target) {
+    let targetFile = target;
+
+    // If target is a directory a new file with the same name will be created
+    if (fs.existsSync(target)) {
+        if (fs.lstatSync(target).isDirectory()) {
+            targetFile = path.join(target, path.basename(source));
+        }
+    }
+
+    fs.writeFileSync(targetFile, fs.readFileSync(source));
+}
+
+// Copy file from source to target
+function copyFolderRecursiveSync(source, target) {
+    var files = [];
+
+    // Check if folder needs to be created or integrated
+    var targetFolder = path.join(target, path.basename(source));
+    if (!fs.existsSync(targetFolder)) {
+        fs.mkdirSync(targetFolder);
+    }
+
+    // Copy
+    if (fs.lstatSync(source).isDirectory()) {
+        files = fs.readdirSync(source);
+        files.forEach(function(file) {
+            var curSource = path.join(source, file);
+            if (fs.lstatSync(curSource).isDirectory()) {
+                copyFolderRecursiveSync(curSource, targetFolder);
+            } else {
+                copyFileSync(curSource, targetFolder);
             }
-        }
-
-        let destinationMDFile = path.join(directory, `API_${title}.md`);        
-        fs.writeFileSync(destinationMDFile, mdSource);
+        });
     }
+}
 
-    // Create the actual Template file
-    function createTemplate(title,content){
-        let twigBasePartial = makeTwigFile(content);
-        let destinationFile = path.join(dir_template, `API_${title}.html.twig`);
-        fs.writeFileSync(destinationFile, twigBasePartial);
-    }
+// Clean up the Html
+function prepareHtml(source) {
+    let htmlBefore = fs.readFileSync(source, { encoding: 'utf8' });
+    let htmlAfter = htmlclean(htmlBefore);
+    let htmlAfterPretty = pretty(htmlAfter);
+    return cheerio.load(htmlAfterPretty);
+}
 
-    // Copy file from source to target - used for recurssive call
-    function copyFileSync( source, target ) {
-        let targetFile = target;
-
-        // If target is a directory a new file with the same name will be created
-        if ( fs.existsSync( target ) ) {
-            if ( fs.lstatSync( target ).isDirectory() ) {
-                targetFile = path.join( target, path.basename( source ) );
-            }
-        }
-
-        fs.writeFileSync(targetFile, fs.readFileSync(source));
-    }
-
-    // Copy file from source to target
-    function copyFolderRecursiveSync( source, target ) {
-        var files = [];
-
-        // Check if folder needs to be created or integrated
-        var targetFolder = path.join( target, path.basename( source ) );
-        if ( !fs.existsSync( targetFolder ) ) {
-            fs.mkdirSync( targetFolder );
-        }
-
-        // Copy
-        if ( fs.lstatSync( source ).isDirectory() ) {
-            files = fs.readdirSync( source );
-            files.forEach( function ( file ) {
-                var curSource = path.join( source, file );
-                if ( fs.lstatSync( curSource ).isDirectory() ) {
-                    copyFolderRecursiveSync( curSource, targetFolder );
-                } else {
-                    copyFileSync( curSource, targetFolder );
-                }
-            });
-        }
-    }
-
-    // Clean up the Html
-    function prepareHtml(source){
-        let htmlBefore = fs.readFileSync(source, {encoding: 'utf8'});
-        let htmlAfter = htmlclean(htmlBefore);
-        let htmlAfterPretty = pretty(htmlAfter);
-        return cheerio.load(htmlAfterPretty);
-    }
-
-    // Base file for MD's
-    function makeMdSource(title){
-        return dedent(
-            `
+// Base file for MD's
+function makeMdSource(title) {
+    return dedent(
+        `
             ---
             title: ${title}
             taxonomy:
@@ -221,13 +223,13 @@
                 enabled: false
             ---
             `
-        )
-    }
+    )
+}
 
-    // Base file for Templates
-    function makeTwigFile(contentHtml){
-        return dedent(
-            `
+// Base file for Templates
+function makeTwigFile(contentHtml) {
+    return dedent(
+        `
             {% extends 'partials/base_noGit.html.twig' %}
             {% set tags = page.taxonomy.tag %}
             {% if tags %}
@@ -257,43 +259,43 @@
                 </div>
             {% endblock %}
             `
-        )
+    )
+}
+
+// Handle NameSpace Group   
+function handleNamespace(title, content) {
+    let destinationDirectory = path.join(map_dir_md["Namespace"], title);
+    createMD(title, destinationDirectory, true);
+    createTemplate(title, content);
+}
+
+// Handle Class Group       
+function handleClass(title, content) {
+    let destinationDirectory = path.join(map_dir_md["Class"], title);
+    createMD(title, destinationDirectory, true)
+
+    let formatedHtml = content
+        .replace(html_reg_objectSpanNew, "")
+    createTemplate(title, formatedHtml);
+}
+
+// Handle Global Group           
+function handleGlobal(title, content) {
+    createMD("Globals", map_dir_md["Global"], false, true);
+    createTemplate("Globals", content);
+}
+
+// Handle Group TOCs               
+function makeGroupTOC(group) {
+    let mappedGroup;
+    if (!Array.isArray(group)) {
+        mappedGroup = groupNameMemberMap[group];
+    } else {
+        mappedGroup = group;
     }
-
-    // Handle NameSpace Group   
-    function handleNamespace(title, content){
-        let destinationDirectory = path.join(map_dir_md["Namespace"], title);
-        createMD(title, destinationDirectory, true);
-        createTemplate(title, content);
-    }
-
-    // Handle Class Group       
-    function handleClass(title, content){
-        let destinationDirectory = path.join(map_dir_md["Class"], title);
-        createMD(title, destinationDirectory, true)
-
-        let formatedHtml = content
-                            .replace(html_reg_objectSpanNew,"")
-        createTemplate(title, formatedHtml);
-    }
-
-    // Handle Global Group           
-    function handleGlobal(title, content){
-        createMD("Globals", map_dir_md["Global"], false, true);
-        createTemplate("Globals", content); 
-    }
-
-    // Handle Group TOCs               
-    function makeGroupTOC(group){
-            let mappedGroup;
-        if (!Array.isArray(group)){
-            mappedGroup = groupNameMemberMap[group];
-        } else {
-            mappedGroup = group;
-        }
-        let htmlGroup = mappedGroup.map( item => {
-            return dedent(
-                `
+    let htmlGroup = mappedGroup.map(item => {
+                return dedent(
+                        `
                 <div>
                     <a href="/api-reference/${
                         !Array.isArray(group)
@@ -335,9 +337,11 @@
             try {
                 id = firstLine.split('id="')[1].split(`"`)[0];
             } catch (e){
-
+                id = "";
             }
-            extractedIDs.push(id)
+            if (id){
+                extractedIDs.push(id)
+            }
         })
         return extractedIDs;
     }
@@ -345,19 +349,21 @@
     // Helper for splitting up html 
     // Takes: Content to split, SearchTerm to Split by, and term to End Splitting By
     // Returns: [newContent after Split, Array of extracted ]
-    function splitBy(content, searchTerm, endSplitTerm){
+    function splitBy(content, searchTerm, endSplitTerm, title){     
         let foundArray = [];
         let curIndex = -1;
         let afterCurSearchIndex = -1
         let nextIndex = 0;
         let findbyNameLength = searchTerm.length;
-        let curfoundArrayIndex = 0;
         let curEndSplitTermIndex = -1;
         do {
             // Find the index of where to stop searching
             curEndSplitTermIndex = content.indexOf(endSplitTerm);
+            console.log("curEndSplitTermIndex", curEndSplitTermIndex)
             // Find the index of the the next Search term
             curIndex = content.indexOf(searchTerm);
+            console.log("curIndex", curIndex)
+            
             // The index of where the next search will start 
             afterCurSearchIndex = curIndex+findbyNameLength;
             // Find the content of the next Index
@@ -366,18 +372,27 @@
             if (nextIndex === -1){
                 nextIndex = curEndSplitTermIndex;
             }
+            if (curIndex > curEndSplitTermIndex){
+                break;
+            }
             // push from the cur index to the next found || the end term
-            foundArray.push(content.slice(curIndex, nextIndex))
+            let contentSlice = content.slice(curIndex, nextIndex);
+            if (contentSlice.indexOf(`id="${title}"`) === -1){
+                foundArray.push(contentSlice);
+            }
+            
             // remove that content
-            content = content.replace(foundArray[curfoundArrayIndex], "");
-            curfoundArrayIndex++;
+            content = content.replace(contentSlice, "");
             curEndSplitTermIndex = content.indexOf(endSplitTerm);
             nextIndex = content.indexOf(searchTerm,afterCurSearchIndex);
             // handle if nextIndex goes beyond endSplitTerm
             if (nextIndex > curEndSplitTermIndex) {
                 curIndex = content.indexOf(searchTerm);
-                foundArray.push(content.slice(curIndex, curEndSplitTermIndex))                
-                content = content.replace(foundArray[curfoundArrayIndex], "");
+                contentSlice = content.slice(curIndex, curEndSplitTermIndex);
+                if (contentSlice.indexOf(`id="${title}"`) === -1){
+                    foundArray.push(contentSlice);
+                }
+                content = content.replace(contentSlice, "");
                 break;
             }
         } while (curIndex > -1)
@@ -470,7 +485,8 @@
         }
     })
     files.forEach(function (file, index){
-        // if (index !== 3) return;       
+        // For testing individual files
+        if (index !== 6) return;       
         let curSource = path.join(dir_out, file);
         if (path.extname(curSource) == ".html" && path.basename(curSource, '.html') !== "index") {
             // Clean up the html source
@@ -512,20 +528,23 @@
                 console.log("Found Type Definitions");
                 endTerm = `<h3 class="subsection-title">Type Definitions</h3>`;
                 // Split HTML by Each named entry
-                let contentSplitArray = splitBy(currentContent, html_reg_findByName, endTerm);
+                let contentSplitArray = splitBy(currentContent, html_reg_findByName, endTerm, htmlTitle);
                 foundSignalsAndMethods = contentSplitArray[1];
+                console.log("foundSignalsAndMethods", foundSignalsAndMethods)
                  // Create a reference to the current content after split and the split functions
                 currentContent = contentSplitArray[0]
                                     .replace(html_reg_typeDefType, html_reg_typeDefType_replace) // Edit how the typedef type looks
                                     .replace(html_reg_typeDefinitonsTitle, ""); // Remove Type Definitions Title to be remade later;
                 endTerm = html_reg_findByArticleClose;
                 // Grab split Type Definitions
-                let contentSplitArrayForTypeDefs = splitBy(currentContent, html_reg_findByName, endTerm);
+                let contentSplitArrayForTypeDefs = splitBy(currentContent, html_reg_findByName, endTerm, htmlTitle);
                 currentContent = contentSplitArrayForTypeDefs[0];
                 foundTypeDefinitions = contentSplitArrayForTypeDefs[1];
+                console.log("foundTypeDefinitions", foundTypeDefinitions)
+                
             } else {
                 endTerm = html_reg_findByArticleClose;
-                let contentSplitArray = splitBy(currentContent, html_reg_findByName, endTerm);
+                let contentSplitArray = splitBy(currentContent, html_reg_findByName, endTerm, htmlTitle);
                 foundSignalsAndMethods = contentSplitArray[1];
                 currentContent = contentSplitArray[0];
             }
@@ -536,12 +555,9 @@
             let splitSignals = processedMethodsSignalsAndTypeDefs[1];
             let splitTypeDefinitionIDS;
             // let splitDescription = processedMethodsSignalsAndTypeDefs[3];
-            // console.log("getting split Methods")
             let splitMethodIDS = extractIDs(splitMethods);
-            // console.log("getting split Signals")            
             let splitSignalIDS = extractIDs(splitSignals);
             if (foundTypeDefinitions){
-                // console.log("getting split typeDefs")            
                 splitTypeDefinitionIDS = extractIDs(foundTypeDefinitions);
             }
             let arrayToPassToClassToc = [];
@@ -644,8 +660,7 @@
     const html_reg_typeReturnSize = /<h5>Type:\<\/h5>/g;
     const html_reg_typeReturnSize_replace = '<h6>Type:<h6>';
     const html_reg_containerOverview = `<div class="container-overview">`   
-    const html_reg_returnSize = /<h5>Returns:<\/h5>/g;
-    const html_reg_returnSize_replace = '<h6>Returns:<\/h6>';
+
     const html_reg_findByArticleOpen = `<article>`
     const html_reg_fixLinkHashIssue = /(<a href=")(.*?)(\.)(.*?">)/g;
     const html_reg_fixLinkHashIssue_replace = "$1$2#$4"
