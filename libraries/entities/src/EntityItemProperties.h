@@ -526,6 +526,13 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AmbientLightMode, ambientLightMode, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, SkyboxMode, skyboxMode, "");
 
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Cloneable, cloneable, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneLifetime, cloneLifetime, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneLimit, cloneLimit, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneDynamic, cloneDynamic, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneAvatarEntity, cloneAvatarEntity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneOriginID, cloneOriginID, "");
+
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelVolumeSize, voxelVolumeSize, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelData, voxelData, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelSurfaceStyle, voxelSurfaceStyle, "");
