@@ -1017,8 +1017,14 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
     sendingNode->setPublicSocket(nodeRequestData.publicSockAddr);
     sendingNode->setLocalSocket(nodeRequestData.localSockAddr);
 
-    // update the NodeInterestSet in case there have been any changes
     DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
+
+    if (!nodeData->hasCheckedIn()) {
+        nodeData->setHasCheckedIn(true);
+
+        // on first check in, make sure we've cleaned up any ICE peer for this node
+        _gatekeeper.cleanupICEPeerForNode(sendingNode->getUUID());
+    }
 
     // guard against patched agents asking to hear about other agents
     auto safeInterestSet = nodeRequestData.interestList.toSet();
@@ -1026,6 +1032,7 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
         safeInterestSet.remove(NodeType::Agent);
     }
 
+    // update the NodeInterestSet in case there have been any changes
     nodeData->setNodeInterestSet(safeInterestSet);
 
     // update the connecting hostname in case it has changed
@@ -2945,7 +2952,7 @@ void DomainServer::nodeAdded(SharedNodePointer node) {
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
     // if this peer connected via ICE then remove them from our ICE peers hash
-    _gatekeeper.removeICEPeer(node->getUUID());
+    _gatekeeper.cleanupICEPeerForNode(node->getUUID());
 
     DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 

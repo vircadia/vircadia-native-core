@@ -520,6 +520,10 @@ SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const Node
     // create a new node ID for the verified connecting node
     auto nodeID = QUuid::createUuid();
 
+    // add a mapping from connection node ID to ICE peer ID
+    // so that we can remove the ICE peer once we see this node connect
+    _nodeToICEPeerIDs.insert(nodeID, nodeConnection.connectUUID);
+
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
     Node::LocalID newLocalID = findOrCreateLocalID(nodeID);
@@ -531,6 +535,15 @@ SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const Node
     newNode->activateMatchingOrNewSymmetricSocket(discoveredSocket);
 
     return newNode;
+}
+
+void DomainGatekeeper::cleanupICEPeerForNode(const QUuid& nodeID) {
+    // remove this node ID from our node to ICE peer ID map
+    // and the associated ICE peer (if it still exists)
+    auto icePeerID = _nodeToICEPeerIDs.take(nodeID);
+    if (!icePeerID.isNull()) {
+        _icePeers.remove(icePeerID);
+    }
 }
 
 bool DomainGatekeeper::verifyUserSignature(const QString& username,
