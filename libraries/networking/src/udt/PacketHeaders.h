@@ -75,7 +75,6 @@ public:
         EntityData,
         EntityQuery,
         EntityAdd,
-        EntityClone,
         EntityErase,
         EntityEdit,
         DomainServerConnectionToken,
@@ -131,6 +130,9 @@ public:
         OctreeDataFileRequest,
         OctreeDataFileReply,
         OctreeDataPersist,
+
+        EntityClone,
+
 
         NUM_PACKET_TYPE
     };
