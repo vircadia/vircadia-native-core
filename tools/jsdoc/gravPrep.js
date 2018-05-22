@@ -609,8 +609,6 @@
     createTemplate("Namespaces", makeGroupTOC("Namespaces"));
     createTemplate("Objects", makeGroupTOC("Objects"));
 
-    fs.writeFileSync('Links-Untouched', unTouchedLinks.join('\n'));
-
 // Copy the files to the target Directories if Local
     if (copyLocal){
         // Copy files to the Twig Directory
