@@ -108,11 +108,14 @@ var currentAvatarWearablesBackup = null;
 var currentAvatar = null;
 var currentAvatarSettings = getMyAvatarSettings();
 
+var notifyScaleChanged = true;
 function onTargetScaleChanged() {
     console.debug('onTargetScaleChanged: ', MyAvatar.getAvatarScale());
     if(currentAvatar.scale !== MyAvatar.getAvatarScale()) {
         currentAvatar.scale = MyAvatar.getAvatarScale();
-        sendToQml({'method' : 'scaleChanged', 'value' : currentAvatar.scale})
+        if(notifyScaleChanged) {
+            sendToQml({'method' : 'scaleChanged', 'value' : currentAvatar.scale})
+        }
     }
 }
 
@@ -259,6 +262,18 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             tablet.gotoWebScreen(message.url);
         }
 
+        break;
+    case 'setScale':
+        console.debug('avatarapp.js: setScale: ', message.avatarScale);
+        notifyScaleChanged = false;
+        MyAvatar.setAvatarScale(message.avatarScale);
+        currentAvatar.avatarScale = message.avatarScale;
+        notifyScaleChanged = true;
+        break;
+    case 'revertScale':
+        console.debug('avatarapp.js: revertScale: ', message.avatarScale);
+        MyAvatar.setAvatarScale(message.avatarScale);
+        currentAvatar.avatarScale = message.avatarScale;
         break;
     case 'saveSettings':
         console.debug('avatarapp.js: saveSettings: ', JSON.stringify(message.settings, 0, 4));

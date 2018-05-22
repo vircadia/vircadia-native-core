@@ -253,7 +253,14 @@ Rectangle {
             close();
         }
         onCancelClicked: function() {
+            emitSendToScript({'method' : 'revertScale', 'avatarScale' : avatarScaleBackup});
+
             close();
+        }
+
+        onScaleChanged: {
+            console.debug('AvatarApp.qml: onScaleChanged: ', scale);
+            emitSendToScript({'method' : 'setScale', 'avatarScale' : scale})
         }
     }
 

@@ -12,6 +12,8 @@ Rectangle {
     color: 'white'
     visible: false;
 
+    signal scaleChanged(real scale);
+
     property alias onSaveClicked: dialogButtons.onYesClicked
     property alias onCancelClicked: dialogButtons.onNoClicked
 
@@ -21,10 +23,14 @@ Rectangle {
     property alias avatarAnimationJSON: avatarAnimationUrlInputText.text
     property alias avatarCollisionSoundUrl: avatarCollisionSoundUrlInputText.text
 
+    property real avatarScaleBackup;
     function open(settings, avatarScale) {
         console.debug('Settings.qml: open: ', JSON.stringify(settings, 0, 4));
+        avatarScaleBackup = avatarScale;
 
+        scaleSlider.notify = false;
         scaleSlider.value = Math.round(avatarScale * 10);
+        scaleSlider.notify = true;;
 
         if(settings.dominantHand === 'left') {
             leftHandRadioButton.checked = true;
@@ -96,8 +102,19 @@ Rectangle {
 
                 HifiControlsUit.Slider {
                     id: scaleSlider
+                    property bool notify: false;
+
                     from: 1
-                    to: 30
+                    to: 40
+
+                    onValueChanged: {
+                        console.debug('value changed: ', value);
+                        if(notify) {
+                            console.debug('notifying.. ');
+                            root.scaleChanged(value / 10);
+                        }
+                    }
+
                     anchors.verticalCenter: parent.verticalCenter
                     Layout.fillWidth: true
 
