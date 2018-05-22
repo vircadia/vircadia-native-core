@@ -335,7 +335,7 @@ static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains
 #if !defined(Q_OS_ANDROID)
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 #else
-static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS_LOWEND = 4;
+static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 4;
 #endif
 
 // For processing on QThreadPool, we target a number of threads after reserving some
@@ -1318,11 +1318,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     bool success;
     int concurrentDownloads = concurrentDownloadsStr.toInt(&success);
     if (!success) {
-#if !defined(Q_OS_ANDROID)
         concurrentDownloads = MAX_CONCURRENT_RESOURCE_DOWNLOADS;
-#else
-        concurrentDownloads = MAX_CONCURRENT_RESOURCE_DOWNLOADS_LOWEND;
-#endif
     }
     ResourceCache::setRequestLimit(concurrentDownloads);
 
