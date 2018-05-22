@@ -23,6 +23,7 @@ Item {
         anchors.fill: parent
         visible: status !== Image.Loading
         radius: 5
+        fillMode: Image.PreserveAspectCrop
     }
 
     ShadowRectangle {

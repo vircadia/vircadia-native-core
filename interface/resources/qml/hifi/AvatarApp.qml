@@ -308,6 +308,7 @@ Rectangle {
             anchors.topMargin: 31
             source: avatarUrl
             visible: avatarImage.status !== Image.Loading
+            fillMode: Image.PreserveAspectCrop
         }
 
         ShadowRectangle {

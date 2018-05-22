@@ -11,6 +11,7 @@ Item {
     property alias border: image.border
     property alias status: image.status
     property alias progress: image.progress
+    property alias fillMode: image.fillMode
 
     RoundImage {
         id: image
