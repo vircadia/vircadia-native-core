@@ -776,6 +776,7 @@ void PhysicsEngine::removeDynamic(const QUuid dynamicID) {
         _objectDynamics.remove(dynamicID);
         foreach(btRigidBody* rigidBody, rigidBodies) {
             _objectDynamicsByBody[rigidBody].remove(dynamic->getID());
+            rigidBody->activate();
         }
         dynamic->invalidate();
     }
