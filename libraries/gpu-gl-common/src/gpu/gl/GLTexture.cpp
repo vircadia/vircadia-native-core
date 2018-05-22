@@ -159,9 +159,13 @@ GLExternalTexture::~GLExternalTexture() {
 }
 
 GLVariableAllocationSupport::GLVariableAllocationSupport() {
+    Backend::textureResourceCount.increment();
 }
 
 GLVariableAllocationSupport::~GLVariableAllocationSupport() {
+    Backend::textureResourceCount.decrement();
+    Backend::textureResourceGPUMemSize.update(_size, 0);
+    Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
 }
 
 void GLVariableAllocationSupport::incrementPopulatedSize(Size delta) const {
@@ -235,7 +239,6 @@ TransferJob::TransferJob(const Texture& texture,
     _transferLambda = [=](const TexturePointer& texture) {
         if (_mipData) {
             auto gltexture = Backend::getGPUObject<GLTexture>(*texture);
-            ;
             gltexture->copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, internalFormat, format,
                 type, _mipData->size(), _mipData->readData());
             _mipData.reset();
@@ -246,8 +249,8 @@ TransferJob::TransferJob(const Texture& texture,
     };
 }
 
-TransferJob::TransferJob(const std::function<void()>& transferLambda) :
-    _bufferingRequired(false), _transferLambda([=](const TexturePointer&) { transferLambda(); }) {}
+TransferJob::TransferJob(uint16_t sourceMip, const std::function<void()>& transferLambda) :
+    _sourceMip(sourceMip), _bufferingRequired(false), _transferLambda([=](const TexturePointer&) { transferLambda(); }) {}
 
 TransferJob::~TransferJob() {
     Backend::texturePendingGPUTransferMemSize.update(_transferSize, 0);

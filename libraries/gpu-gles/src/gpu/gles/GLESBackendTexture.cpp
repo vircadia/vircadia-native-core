@@ -341,8 +341,6 @@ using GLESVariableAllocationTexture = GLESBackend::GLESVariableAllocationTexture
 GLESVariableAllocationTexture::GLESVariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) :
      GLESTexture(backend, texture)
 {
-    Backend::textureResourceCount.increment();
-
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
     _maxAllocatedMip = _populatedMip = mipLevels;
@@ -366,9 +364,6 @@ GLESVariableAllocationTexture::GLESVariableAllocationTexture(const std::weak_ptr
 }
 
 GLESVariableAllocationTexture::~GLESVariableAllocationTexture() {
-    Backend::textureResourceCount.decrement();
-    Backend::textureResourceGPUMemSize.update(_size, 0);
-    Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
 }
 
 void GLESVariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
@@ -669,7 +664,7 @@ void GLESVariableAllocationTexture::populateTransferQueue(TransferJob::Queue& qu
         }
 
         // queue up the sampler and populated mip change for after the transfer has completed
-        queue.emplace(new TransferJob([=] {
+        queue.emplace(new TransferJob(sourceMip, [=] {
             _populatedMip = sourceMip;
             incrementPopulatedSize(_gpuObject.evalMipSize(sourceMip));
             sanityCheck();

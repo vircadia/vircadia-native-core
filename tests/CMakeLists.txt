@@ -1,7 +1,3 @@
-
-# Turn on testing (so that add_test works)
-enable_testing()
-
 # add the test directories
 file(GLOB TEST_SUBDIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/*")
 list(REMOVE_ITEM TEST_SUBDIRS "CMakeFiles" "mocha")
