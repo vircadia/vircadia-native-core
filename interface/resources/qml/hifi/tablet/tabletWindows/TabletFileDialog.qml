@@ -52,7 +52,7 @@ Rectangle {
     property int iconSize: 40
 
     property bool selectDirectory: false;
-    property bool showHidden: false;
+    property bool showHidden: folderListModel.showHidden
     // FIXME implement
     property bool multiSelect: false;
     property bool saveDialog: false;
