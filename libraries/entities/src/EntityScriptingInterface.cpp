@@ -271,14 +271,13 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     }
 }
 
-bool EntityScriptingInterface::addLocalEntityCopy(EntityItemProperties& properties, EntityItemID& id) {
+bool EntityScriptingInterface::addLocalEntityCopy(EntityItemProperties& properties, EntityItemID& id, bool isClone) {
     bool success = true;
-
     id = EntityItemID(QUuid::createUuid());
 
     if (_entityTree) {
         _entityTree->withWriteLock([&] {
-            EntityItemPointer entity = _entityTree->addEntity(id, properties);
+            EntityItemPointer entity = _entityTree->addEntity(id, properties, isClone);
             if (entity) {
                 if (properties.queryAACubeRelatedPropertyChanged()) {
                     // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
@@ -340,7 +339,7 @@ QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
         // setLastEdited timestamp to 0 to ensure this entity gets updated with the properties 
         // from the server-created entity, don't change this unless you know what you are doing
         properties.setLastEdited(0);
-        bool success = addLocalEntityCopy(properties, newEntityID);
+        bool success = addLocalEntityCopy(properties, newEntityID, true);
         if (success) {
             getEntityPacketSender()->queueCloneEntityMessage(entityIDToClone, newEntityID);
             return newEntityID;

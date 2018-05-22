@@ -133,7 +133,6 @@ public:
 
         EntityClone,
 
-
         NUM_PACKET_TYPE
     };
 
