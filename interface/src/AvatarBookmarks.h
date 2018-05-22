@@ -38,7 +38,6 @@ public slots:
      * Add the current Avatar to your avatar bookmarks.
      * @function AvatarBookmarks.addBookMark
      */
-    void addBookmark();
     void addBookmark(const QString& bookmarkName);
     void saveBookmark(const QString& bookmarkName);
     void loadBookmark(const QString& bookmarkName);
@@ -65,9 +64,6 @@ private:
     const QString ENTRY_VERSION = "version";
 
     const int AVATAR_BOOKMARK_VERSION = 3;
-
-private slots:
-    void changeToBookmarkedAvatar();
 };
 
 #endif // hifi_AvatarBookmarks_h
