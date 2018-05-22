@@ -32,13 +32,40 @@ Rectangle {
     property var jointNames;
     property var currentAvatarSettings;
 
-    function getAvatarName() {
-        if(avatarName !== '') {
-            return avatarName;
-        }
+    function fetchAvatarModelName(marketId, avatar) {
+        var xmlhttp = new XMLHttpRequest();
+        var url = "https://highfidelity.com/api/v1/marketplace/items/" + marketId;
+        xmlhttp.onreadystatechange = function() {
+            if (xmlhttp.readyState === XMLHttpRequest.DONE && xmlhttp.status === 200) {
+                try {
+                    console.debug('xmlhttp: ', xmlhttp.status, 'got responseText: ', xmlhttp.responseText);
+                    var marketResponse = JSON.parse(xmlhttp.responseText.trim())
+                    console.debug('got market response: ', JSON.stringify(marketResponse));
 
+                    if(marketResponse.status === 'success') {
+                        avatar.modelName = marketResponse.data.title;
+                    }
+                }
+                catch(err) {
+                    console.error(err);
+                }
+            }
+        }
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send();
+    }
+
+    function getAvatarModelName() {
         if(currentAvatar === null) {
             return '';
+        }
+        if(currentAvatar.modelName !== undefined) {
+            return currentAvatar.modelName;
+        } else {
+            var marketId = allAvatars.extractMarketId(currentAvatar.avatarUrl);
+            if(marketId !== '') {
+                fetchAvatarModelName(marketId, currentAvatar);
+            }
         }
 
         var avatarUrl = currentAvatar.entry.avatarUrl;
@@ -387,7 +414,7 @@ Rectangle {
         TextStyle3 {
             id: avatarNameLabel
             text: {
-                var avatarName = getAvatarName();
+                var avatarName = getAvatarModelName();
                 return avatarName.length <= 14 ? avatarName : avatarName.substring(0, 14) + '...'
             }
             anchors.left: avatarImage.right
