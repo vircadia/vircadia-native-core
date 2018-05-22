@@ -395,9 +395,13 @@ void CullShapeBounds::run(const RenderContextPointer& renderContext, const Input
             if (antiFrustum == nullptr) {
                 for (auto& item : inItems.second) {
                     if (test.solidAngleTest(item.bound) && test.frustumTest(item.bound)) {
-                        const auto shapeKey = scene->getItem(item.id).getKey();
+                        const auto& theItem = scene->getItem(item.id);
+                        const auto shapeKey = theItem.getKey();
                         if (cullFilter.test(shapeKey)) {
                             outItems->second.emplace_back(item);
+                            if (theItem.getKey().isMetaCullGroup()) {
+                                theItem.fetchMetaSubItemBounds(outItems->second, (*scene));
+                            }
                         }
                         if (boundsFilter.test(shapeKey)) {
                             outBounds += item.bound;
@@ -407,9 +411,13 @@ void CullShapeBounds::run(const RenderContextPointer& renderContext, const Input
             } else {
                 for (auto& item : inItems.second) {
                     if (test.solidAngleTest(item.bound) && test.frustumTest(item.bound) && test.antiFrustumTest(item.bound)) {
-                        const auto shapeKey = scene->getItem(item.id).getKey();
+                        const auto& theItem = scene->getItem(item.id);
+                        const auto shapeKey = theItem.getKey();
                         if (cullFilter.test(shapeKey)) {
                             outItems->second.emplace_back(item);
+                            if (theItem.getKey().isMetaCullGroup()) {
+                                theItem.fetchMetaSubItemBounds(outItems->second, (*scene));
+                            }
                         }
                         if (boundsFilter.test(shapeKey)) {
                             outBounds += item.bound;
