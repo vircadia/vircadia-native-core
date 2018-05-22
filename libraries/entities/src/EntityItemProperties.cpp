@@ -1814,6 +1814,13 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
 
     COPY_PROPERTY_IF_CHANGED(dpi);
 
+    COPY_PROPERTY_IF_CHANGED(cloneable);
+    COPY_PROPERTY_IF_CHANGED(cloneLifetime);
+    COPY_PROPERTY_IF_CHANGED(cloneLimit);
+    COPY_PROPERTY_IF_CHANGED(cloneDynamic);
+    COPY_PROPERTY_IF_CHANGED(cloneAvatarEntity);
+    COPY_PROPERTY_IF_CHANGED(cloneOriginID);
+
     _lastEdited = usecTimestampNow();
 }
 
