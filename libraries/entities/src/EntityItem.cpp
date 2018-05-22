@@ -300,7 +300,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_CLONE_LIMIT, getCloneLimit());
         APPEND_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, getCloneDynamic());
         APPEND_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, getCloneAvatarEntity());
-        APPEND_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, getCloneOriginID());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, getCloneOriginID()); 
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -867,7 +867,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_CLONE_LIMIT, float, setCloneLimit);
     READ_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, bool, setCloneDynamic);
     READ_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, bool, setCloneAvatarEntity);
-    READ_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, QUuid, setCloneOriginID);
+    READ_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, QUuid, setCloneOriginID); 
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData, somethingChanged);
@@ -3061,7 +3061,7 @@ bool EntityItem::getCloneDynamic() const {
     return result;
 }
 
-void EntityItem::setCloneDynamic(const bool value) {
+void EntityItem::setCloneDynamic(bool value) {
     withWriteLock([&] {
         _cloneDynamic = value;
     });
@@ -3075,7 +3075,7 @@ bool EntityItem::getCloneAvatarEntity() const {
     return result;
 }
 
-void EntityItem::setCloneAvatarEntity(const bool value) {
+void EntityItem::setCloneAvatarEntity(bool value) {
     withWriteLock([&] {
         _cloneAvatarEntity = value;
     });

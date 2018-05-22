@@ -348,9 +348,9 @@ public:
     float getCloneLimit() const;
     void setCloneLimit(float value);
     bool getCloneDynamic() const;
-    void setCloneDynamic(const bool value);
+    void setCloneDynamic(bool value);
     bool getCloneAvatarEntity() const;
-    void setCloneAvatarEntity(const bool value);
+    void setCloneAvatarEntity(bool value);
     const QUuid getCloneOriginID() const;
     void setCloneOriginID(const QUuid& value);
 
