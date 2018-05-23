@@ -61,7 +61,6 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
 
     auto& procedural = skybox._procedural;
     procedural.prepare(batch, glm::vec3(0), glm::vec3(1), glm::quat());
-
     auto textureSlot = procedural.getOpaqueShader()->getTextures().findLocation("cubeMap");
     auto bufferSlot = procedural.getOpaqueShader()->getUniformBuffers().findLocation("skyboxBuffer");
     skybox.prepare(batch, textureSlot, bufferSlot);
