@@ -8,17 +8,44 @@
 
 #pragma once
 
+#include <unordered_map>
+#include <unordered_set>
+
 #include <QtTest/QtTest>
 #include <QtCore/QTemporaryDir>
 
 #include <gpu/Forward.h>
 #include <gl/OffscreenGLCanvas.h>
 
+#define USE_LOCAL_SHADERS 0
+
+namespace std {
+    template <>
+    struct hash<std::pair<std::string, std::string>> {
+        size_t operator()(const std::pair<std::string, std::string>& a) const {
+            std::hash<std::string> hasher;
+            return hasher(a.first) + hasher(a.second);
+        }
+    };
+
+}
+
+using ShadersByName = std::unordered_map<std::string, std::string>;
+using Program = std::pair<std::string, std::string>;
+using Programs = std::unordered_set<Program>;
+
 class ShaderLoadTest : public QObject {
     Q_OBJECT
 
 private:
-    void loadProgramSources();
+
+    void parseCacheFile();
+#if USE_LOCAL_SHADERS
+    void parseCacheDirectory();
+    void persistCacheDirectory();
+#endif
+    bool buildProgram(const Program& program);
+    void randomizeShaderSources();
 
 private slots:
     void initTestCase();
@@ -27,12 +54,10 @@ private slots:
 
 
 private:
-    using ProgramSource = std::pair<std::string, std::string>;
-    using ProgramSources = std::vector<ProgramSource>;
 
-    ProgramSources _programSources;
+    ShadersByName _shaderSources;
+    Programs _programs;
     QString _resourcesPath;
     OffscreenGLCanvas _canvas;
-    gpu::ContextPointer _gpuContext;
     const glm::uvec2 _size{ 640, 480 };
 };

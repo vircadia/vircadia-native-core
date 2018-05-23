@@ -154,6 +154,8 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, const Shader::Co
     return object;
 }
 
+std::atomic<size_t> gpuBinaryShadersLoaded;
+
 GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::CompilationHandler& handler) {
     if (!program.isProgram()) {
         return nullptr;
@@ -182,6 +184,9 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::
         // If we have a cached binary program, try to load it instead of compiling the individual shaders
         if (cachedBinary) {
             glprogram = ::gl::compileProgram({}, compilationLogs[version].message, cachedBinary);
+            if (0 != glprogram) {
+                ++gpuBinaryShadersLoaded;
+            }
         }
 
         // If we have no program, then either no cached binary, or the binary failed to load (perhaps a GPU driver update invalidated the cache)

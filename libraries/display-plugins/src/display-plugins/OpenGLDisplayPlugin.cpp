@@ -46,6 +46,8 @@
 
 const char* SRGB_TO_LINEAR_FRAG = R"SCRIBE(
 
+// OpenGLDisplayPlugin_present.frag
+
 uniform sampler2D colorMap;
 
 in vec2 varTexCoord0;

@@ -275,7 +275,7 @@ GLuint gl::compileProgram(const std::vector<GLuint>& glshaders, std::string& mes
     return glprogram;
 }
 
-static const QString& getShaderCacheFile() {
+const QString& getShaderCacheFile() {
     static const QString SHADER_CACHE_FOLDER{ "shaders" };
     static const QString SHADER_CACHE_FILE_NAME{ "cache.json" };
     static const QString SHADER_CACHE_FILE = FileUtils::standardPath(SHADER_CACHE_FOLDER) + SHADER_CACHE_FILE_NAME;
