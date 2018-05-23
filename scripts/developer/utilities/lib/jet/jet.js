@@ -69,8 +69,7 @@ function job_print_functor(printout, showProps, maxDepth) {
                 printout(depthTab + tab + tab + typeof prop + " " + keys[p] + " " + prop);
             }
         }
-        return true
-     //   return depth < maxDepth;
+        return depth < maxDepth;
     }
 } 
 
