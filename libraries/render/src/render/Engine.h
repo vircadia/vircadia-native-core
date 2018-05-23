@@ -59,10 +59,10 @@ namespace render {
 
     class GPUTaskConfig : public TaskConfig {
         Q_OBJECT
-            Q_PROPERTY(double gpuRunTime READ getGPURunTime)
-            Q_PROPERTY(double batchRunTime READ getBatchRunTime)
+        Q_PROPERTY(double gpuRunTime READ getGPURunTime)
+        Q_PROPERTY(double batchRunTime READ getBatchRunTime)
 
-            double _msGPURunTime { 0.0 };
+        double _msGPURunTime { 0.0 };
         double _msBatchRunTime { 0.0 };
     public:
 
@@ -83,8 +83,6 @@ namespace render {
     // State flows through tasks to jobs via the render and scene contexts -
     // the engine should not be known from its jobs.
     class Engine : public _Engine {
-
-    //class Engine : public Task {
     public:
 
         Engine();
@@ -100,14 +98,7 @@ namespace render {
         // acces the RenderContext
         RenderContextPointer getRenderContext() const { return _context; }
 
-        // Render a frame
-        // Must have a scene registered and a context set
-   //     void run() { assert(_renderContext);  Task::run(_renderContext); }
-
     protected:
-  //      RenderContextPointer _renderContext;
-
-   //     void run(const RenderContextPointer& context) override { assert(_renderContext);  Task::run(_renderContext); }
     };
     using EnginePointer = std::shared_ptr<Engine>;
 
