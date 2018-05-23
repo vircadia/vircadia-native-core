@@ -852,7 +852,21 @@ AnimationDetails::AnimationDetails(QString role, QUrl url, float fps, float prio
     running(running), currentFrame(currentFrame), allowTranslation(allowTranslation) {
 }
 
-
+/**jsdoc
+ * @typedef {object} Avatar.AnimationDetails
+ * @property {string} role
+ * @property {string} url
+ * @property {number} fps
+ * @property {number} priority
+ * @property {boolean} loop
+ * @property {boolean} hold
+ * @property {boolean} startAutomatically
+ * @property {number} firstFrame
+ * @property {number} lastFrame
+ * @property {boolean} running
+ * @property {number} currentFrame
+ * @property {boolean} allowTranslation
+ */
 QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const AnimationDetails& details) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("role", details.role);

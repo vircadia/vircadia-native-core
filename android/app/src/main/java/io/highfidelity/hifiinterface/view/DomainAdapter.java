@@ -12,13 +12,6 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 
 import io.highfidelity.hifiinterface.R;
@@ -31,20 +24,23 @@ import io.highfidelity.hifiinterface.provider.UserStoryDomainProvider;
 public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder> {
 
     private static final String TAG = "HiFi Interface";
+    private static final String DEFAULT_THUMBNAIL_PLACE = "android.resource://io.highfidelity.hifiinterface/" + R.drawable.domain_placeholder;
     private Context mContext;
     private LayoutInflater mInflater;
     private ItemClickListener mClickListener;
     private String mProtocol;
+    private String mLastLocation;
     private UserStoryDomainProvider domainProvider;
     private AdapterListener mAdapterListener;
 
     // references to our domains
     private Domain[] mDomains = {};
 
-    public DomainAdapter(Context c, String protocol) {
+    public DomainAdapter(Context c, String protocol, String lastLocation) {
         mContext = c;
         this.mInflater = LayoutInflater.from(mContext);
         mProtocol = protocol;
+        mLastLocation = lastLocation;
         domainProvider = new UserStoryDomainProvider(mProtocol);
         loadDomains("");
     }
@@ -57,6 +53,29 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
         domainProvider.retrieve(filterText, new DomainProvider.DomainCallback() {
             @Override
             public void retrieveOk(List<Domain> domain) {
+                if (filterText.length() == 0) {
+                    Domain lastVisitedDomain = new Domain(mContext.getString(R.string.your_last_location), mLastLocation, DEFAULT_THUMBNAIL_PLACE);
+                    if (!mLastLocation.isEmpty() && mLastLocation.contains("://")) {
+                        int startIndex = mLastLocation.indexOf("://");
+                        int endIndex = mLastLocation.indexOf("/", startIndex + 3);
+                        String toSearch = mLastLocation.substring(0, endIndex + 1).toLowerCase();
+                        for (Domain d : domain) {
+                            if (d.url.toLowerCase().startsWith(toSearch)) {
+                                lastVisitedDomain.thumbnail = d.thumbnail;
+                            }
+                        }
+                    }
+                    domain.add(0, lastVisitedDomain);
+                }
+
+                for (Domain d : domain) {
+                    // we override the default picture added in the server by an android specific version
+                    if (d.thumbnail != null &&
+                            d.thumbnail.endsWith("assets/places/thumbnail-default-place-e5a3f33e773ab699495774990a562f9f7693dc48ef90d8be6985c645a0280f75.png")) {
+                        d.thumbnail = DEFAULT_THUMBNAIL_PLACE;
+                    }
+                }
+
                 mDomains = new Domain[domain.size()];
                 mDomains = domain.toArray(mDomains);
                 notifyDataSetChanged();

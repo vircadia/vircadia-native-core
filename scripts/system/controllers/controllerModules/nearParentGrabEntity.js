@@ -35,6 +35,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.lastUnexpectedChildrenCheckTime = 0;
         this.robbed = false;
         this.highlightedEntity = null;
+        this.cloneAllowed = true;
 
         this.parameters = makeDispatcherModuleParameters(
             500,
@@ -272,6 +273,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
                 this.checkForUnexpectedChildren(controllerData);
                 this.robbed = false;
+                this.cloneAllowed = true;
                 return makeRunningValues(false, [], []);
             }
 
@@ -335,13 +337,16 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                     var targetCloneable = entityIsCloneable(targetProps);
 
                     if (targetCloneable) {
-                        var worldEntityProps = controllerData.nearbyEntityProperties[this.hand];
-                        var cloneID = cloneEntity(targetProps, worldEntityProps);
-                        var cloneProps = Entities.getEntityProperties(cloneID);
-                        this.grabbing = true;
-                        this.targetEntityID = cloneID;
-                        this.startNearParentingGrabEntity(controllerData, cloneProps);
-
+                        if (this.cloneAllowed) {
+                            var cloneID = cloneEntity(targetProps);
+                            if (cloneID !== null) {
+                                var cloneProps = Entities.getEntityProperties(cloneID);
+                                this.grabbing = true;
+                                this.targetEntityID = cloneID;
+                                this.startNearParentingGrabEntity(controllerData, cloneProps);
+                                this.cloneAllowed = false; // prevent another clone call until inputs released
+                            }
+                        }
                     } else if (targetProps) {
                         this.grabbing = true;
                         this.startNearParentingGrabEntity(controllerData, targetProps);

@@ -35,6 +35,8 @@ bool CrashHandler::checkForResetSettings(bool wasLikelyCrash, bool suppressPromp
     QSettings settings;
     settings.beginGroup("Developer");
     QVariant displayCrashOptions = settings.value(MenuOption::DisplayCrashOptions);
+    settings.endGroup();
+    settings.beginGroup("Settings");
     QVariant askToResetSettingsOption = settings.value(MenuOption::AskToResetSettings);
     settings.endGroup();
     bool askToResetSettings = askToResetSettingsOption.isValid() && askToResetSettingsOption.toBool();

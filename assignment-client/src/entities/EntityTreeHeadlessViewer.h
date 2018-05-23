@@ -23,6 +23,13 @@
 
 class EntitySimulation;
 
+/**jsdoc
+ * @namespace EntityViewer
+ *
+ * @hifi-assignment-client
+ */
+// API functions are defined in OctreeHeadlessViewer.
+
 // Generic client side Octree renderer class.
 class EntityTreeHeadlessViewer : public OctreeHeadlessViewer {
     Q_OBJECT

@@ -24,6 +24,10 @@
 #include <draco/mesh/triangle_soup_mesh_builder.h>
 #include <draco/compression/encode.h>
 
+#ifdef HIFI_DUMP_FBX
+#include "FBXToJSON.h"
+#endif
+
 #ifdef _WIN32
 #pragma warning( pop )
 #endif
@@ -604,6 +608,20 @@ void ModelBaker::exportScene() {
     bakedFile.write(fbxData);
 
     _outputFiles.push_back(_bakedModelFilePath);
+
+#ifdef HIFI_DUMP_FBX
+    {
+        FBXToJSON fbxToJSON;
+        fbxToJSON << _rootNode;
+        QFileInfo modelFile(_bakedModelFilePath);
+        QString outFilename(modelFile.dir().absolutePath() + "/" + modelFile.completeBaseName() + "_FBX.json");
+        QFile jsonFile(outFilename);
+        if (jsonFile.open(QIODevice::WriteOnly)) {
+            jsonFile.write(fbxToJSON.str().c_str(), fbxToJSON.str().length());
+            jsonFile.close();
+        }
+    }
+#endif
 
     qCDebug(model_baking) << "Exported" << _modelURL << "with re-written paths to" << _bakedModelFilePath;
 }

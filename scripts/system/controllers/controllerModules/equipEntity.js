@@ -413,8 +413,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
         this.cloneHotspot = function(props, controllerData) {
             if (entityIsCloneable(props)) {
-                var worldEntityProps = controllerData.nearbyEntityProperties[this.hand];
-                var cloneID = cloneEntity(props, worldEntityProps);
+                var cloneID = cloneEntity(props);
                 return cloneID;
             }
 

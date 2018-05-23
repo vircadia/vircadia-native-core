@@ -131,6 +131,8 @@ public:
         OctreeDataFileReply,
         OctreeDataPersist,
 
+        EntityClone,
+
         NUM_PACKET_TYPE
     };
 
@@ -232,7 +234,8 @@ enum class EntityVersion : PacketVersion {
     SoftEntities,
     MaterialEntities,
     ShadowControl,
-    MaterialData
+    MaterialData,
+    CloneableData
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
