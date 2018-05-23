@@ -110,13 +110,14 @@ public:
     // The newer API...
     void postAddEntity(EntityItemPointer entityItem);
 
-    EntityItemPointer addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
+    EntityItemPointer addEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool isClone = false);
 
     // use this method if you only know the entityID
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
     // check if the avatar is a child of this entity, If so set the avatar parentID to null
     void unhookChildAvatar(const EntityItemID entityID);
+    void cleanupCloneIDs(const EntityItemID& entityID);
     void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = true);
     void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = true);
 

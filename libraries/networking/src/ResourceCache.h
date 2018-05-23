@@ -86,7 +86,6 @@ private:
 /// Wrapper to expose resources to JS/QML
 class ScriptableResource : public QObject {
 
-
     /**jsdoc
      * @constructor Resource
      *
@@ -98,11 +97,14 @@ class ScriptableResource : public QObject {
      * @property {string} url - URL of this resource.
      * @property {Resource.State} state - Current loading state.
      */
-
+    /**jsdoc
+     * @namespace Resource
+     * @variation 0
+     * @property {Resource.State} State
+     */
     Q_OBJECT
     Q_PROPERTY(QUrl url READ getURL)
     Q_PROPERTY(int state READ getState NOTIFY stateChanged)
-
 
 public:
 
@@ -115,7 +117,6 @@ public:
      * @property {number} FINISHED - The resource has completely finished loading and is ready.
      * @property {number} FAILED - Downloading the resource has failed.
      */
-
     enum State {
         QUEUED,
         LOADING,

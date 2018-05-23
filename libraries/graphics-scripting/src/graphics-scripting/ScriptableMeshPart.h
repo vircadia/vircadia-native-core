@@ -12,7 +12,11 @@
 namespace scriptable {
     /**jsdoc
      * @typedef {object} Graphics.MeshPart
+     * @property {boolean} valid
      * @property {number} partIndex - The part index (within the containing Mesh).
+     * @property {number} firstVertexIndex
+     * @property {number} baseVertexIndex
+     * @property {number} lastVertexIndex
      * @property {Graphics.Topology} topology - element interpretation (currently only 'triangles' is supported).
      * @property {string[]} attributeNames - Vertex attribute names (color, normal, etc.)
      * @property {number} numIndices - Number of vertex indices that this mesh part refers to.
@@ -20,6 +24,8 @@ namespace scriptable {
      * @property {number} numFaces - Number of faces represented by the mesh part (numIndices / numVerticesPerFace).
      * @property {number} numVertices - Total number of vertices in the containing Mesh.
      * @property {number} numAttributes - Number of currently defined vertex attributes.
+     * @property {object} extents
+     * @property {object} bufferFormats
      */
 
     class ScriptableMeshPart : public QObject, QScriptable {
