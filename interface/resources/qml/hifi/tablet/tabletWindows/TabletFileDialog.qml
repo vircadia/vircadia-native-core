@@ -52,7 +52,7 @@ Rectangle {
     property int iconSize: 40
 
     property bool selectDirectory: false;
-    property alias showHidden: folderListModel.showHidden
+    property bool showHidden: true;
     // FIXME implement
     property bool multiSelect: false;
     property bool saveDialog: false;
@@ -280,8 +280,10 @@ Rectangle {
             showDirsFirst: true
             showDotAndDotDot: false
             showFiles: !root.selectDirectory
+            showHidden: root.showHidden
             Component.onCompleted: {
                 showFiles = !root.selectDirectory
+                showHidden = root.showHidden
             }
 
             onFolderChanged: {
