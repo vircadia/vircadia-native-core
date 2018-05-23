@@ -406,7 +406,7 @@ protected:
     template <class T> using PersistentConfig = task::PersistentConfig<T>; \
     using Job = task::Job<ContextType, TimeProfiler>; \
     using Task = task::Task<ContextType, TimeProfiler>; \
-    using _Engine = task::Engine<ContextType, TimeProfiler>; \
+    using Engine = task::Engine<ContextType, TimeProfiler>; \
     using Varying = task::Varying; \
     template < typename T0, typename T1 > using VaryingSet2 = task::VaryingSet2<T0, T1>; \
     template < typename T0, typename T1, typename T2 > using VaryingSet3 = task::VaryingSet3<T0, T1, T2>; \

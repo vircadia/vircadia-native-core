@@ -36,11 +36,11 @@ public:
     }
 };
 
-Engine::Engine() : _Engine(EngineTask::JobModel::create("Engine"), std::make_shared<RenderContext>())
+RenderEngine::RenderEngine() : Engine(EngineTask::JobModel::create("Engine"), std::make_shared<RenderContext>())
 {
 }
 
-void Engine::load() {
+void RenderEngine::load() {
     auto config = getConfiguration();
     const QString configFile= "config/render.json";
 

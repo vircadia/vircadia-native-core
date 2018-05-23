@@ -82,11 +82,11 @@ namespace render {
     // The render engine holds all render tasks, and is itself a render task.
     // State flows through tasks to jobs via the render and scene contexts -
     // the engine should not be known from its jobs.
-    class Engine : public _Engine {
+    class RenderEngine : public Engine {
     public:
 
-        Engine();
-        ~Engine() = default;
+        RenderEngine();
+        ~RenderEngine() = default;
 
         // Load any persisted settings, and set up the presets
         // This should be run after adding all jobs, and before building ui
@@ -100,7 +100,7 @@ namespace render {
 
     protected:
     };
-    using EnginePointer = std::shared_ptr<Engine>;
+    using EnginePointer = std::shared_ptr<RenderEngine>;
 
 }
 
