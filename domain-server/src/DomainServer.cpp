@@ -2985,6 +2985,8 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
             }
         }
     }
+
+    broadcastNodeDisconnect(node);
 }
 
 SharedAssignmentPointer DomainServer::dequeueMatchingAssignment(const QUuid& assignmentUUID, NodeType_t nodeType) {
@@ -3170,18 +3172,23 @@ void DomainServer::handleKillNode(SharedNodePointer nodeToKill) {
     const QUuid& nodeUUID = nodeToKill->getUUID();
 
     limitedNodeList->killNodeWithUUID(nodeUUID);
+}
 
-    static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID);
+void DomainServer::broadcastNodeDisconnect(const SharedNodePointer& disconnectedNode) {
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
+    static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID, true);
 
     removedNodePacket->reset();
-    removedNodePacket->write(nodeUUID.toRfc4122());
+    removedNodePacket->write(disconnectedNode->getUUID().toRfc4122());
 
     // broadcast out the DomainServerRemovedNode message
-    limitedNodeList->eachMatchingNode([this, &nodeToKill](const SharedNodePointer& otherNode) -> bool {
+    limitedNodeList->eachMatchingNode([this, &disconnectedNode](const SharedNodePointer& otherNode) -> bool {
         // only send the removed node packet to nodes that care about the type of node this was
-        return isInInterestSet(otherNode, nodeToKill);
+        return isInInterestSet(otherNode, disconnectedNode);
     }, [&limitedNodeList](const SharedNodePointer& otherNode){
-        limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
+        auto removedNodePacketCopy = NLPacket::createCopy(*removedNodePacket);
+        limitedNodeList->sendPacket(std::move(removedNodePacketCopy), *otherNode);
     });
 }
 
