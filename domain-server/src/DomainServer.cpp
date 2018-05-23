@@ -308,7 +308,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     connect(_contentManager.get(), &DomainContentBackupManager::started, _contentManager.get(), [this](){
         _contentManager->addBackupHandler(BackupHandlerPointer(new EntitiesBackupHandler(getEntitiesFilePath(), getEntitiesReplacementFilePath())));
-        _contentManager->addBackupHandler(BackupHandlerPointer(new AssetsBackupHandler(getContentBackupDir())));
+        _contentManager->addBackupHandler(BackupHandlerPointer(new AssetsBackupHandler(getContentBackupDir(), isAssetServerEnabled())));
         _contentManager->addBackupHandler(BackupHandlerPointer(new ContentSettingsBackupHandler(_settingsManager)));
     });
 
@@ -990,15 +990,11 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
          defaultedType =  static_cast<Assignment::Type>(static_cast<int>(defaultedType) + 1)) {
         if (!excludedTypes.contains(defaultedType) && defaultedType != Assignment::AgentType) {
 
-            if (defaultedType == Assignment::AssetServerType) {
-                // Make sure the asset-server is enabled before adding it here.
-                // Initially we do not assign it by default so we can test it in HF domains first
-                static const QString ASSET_SERVER_ENABLED_KEYPATH = "asset_server.enabled";
-
-                if (!_settingsManager.valueOrDefaultValueForKeyPath(ASSET_SERVER_ENABLED_KEYPATH).toBool()) {
-                    // skip to the next iteration if asset-server isn't enabled
-                    continue;
-                }
+            // Make sure the asset-server is enabled before adding it here.
+            // Initially we do not assign it by default so we can test it in HF domains first
+            if (defaultedType == Assignment::AssetServerType && !isAssetServerEnabled()) {
+                // skip to the next iteraion if asset-server isn't enabled
+                continue;
             }
 
             // type has not been set from a command line or config file config, use the default
@@ -2944,6 +2940,12 @@ bool DomainServer::shouldReplicateNode(const Node& node) {
         return false;
     }
 };
+
+
+bool DomainServer::isAssetServerEnabled() {
+    static const QString ASSET_SERVER_ENABLED_KEYPATH = "asset_server.enabled";
+    return _settingsManager.valueOrDefaultValueForKeyPath(ASSET_SERVER_ENABLED_KEYPATH).toBool();
+}
 
 void DomainServer::nodeAdded(SharedNodePointer node) {
     // we don't use updateNodeWithData, so add the DomainServerNodeData to the node here
