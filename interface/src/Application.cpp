@@ -3668,9 +3668,21 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_1:
-            case Qt::Key_2:
-            case Qt::Key_3:
+            case Qt::Key_1: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::FirstPerson);
+                break;
+            }
+            case Qt::Key_2: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::FullscreenMirror);
+                break;
+            }
+            case Qt::Key_3: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::ThirdPerson);
+                break;
+            }
             case Qt::Key_4:
             case Qt::Key_5:
             case Qt::Key_6:
