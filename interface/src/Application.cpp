@@ -4632,12 +4632,6 @@ void Application::idle() {
 
     _overlayConductor.update(secondsSinceLastUpdate);
 
-    auto myAvatar = getMyAvatar();
-    if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
-        cameraMenuChanged();
-    }
     _gameLoopCounter.increment();
 }
 
@@ -5184,6 +5178,21 @@ void Application::cameraModeChanged() {
     cameraMenuChanged();
 }
 
+void Application::changeViewAsNeeded(float boomLength) {
+    // Switch between first and third person views as needed
+    // This is called when the boom length has changed
+    bool boomLengthGreaterThanMinimum = (boomLength > MyAvatar::ZOOM_MIN);
+
+    if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON && boomLengthGreaterThanMinimum) {
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
+        cameraMenuChanged();
+    } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON && !boomLengthGreaterThanMinimum) {
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, false);
+        cameraMenuChanged();
+    }
+}
 
 void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
