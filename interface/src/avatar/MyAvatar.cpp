@@ -2250,7 +2250,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
 
     // May need to change view if boom length has changed
-    if (fabs(boomChange) > 0.0) {
+    if (fabs(boomChange) > 0.0f) {
         qApp->changeViewAsNeeded(_boomLength);
     }
 }
