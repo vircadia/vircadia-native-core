@@ -109,7 +109,7 @@ public:
     float r3RangeFront() const { return dataExport.ranges[workload::Region::R3].y; }
 
     struct Data {
-        bool regulateViewRanges{ true };
+        bool regulateViewRanges{ false };
     } data;
 
     struct DataExport {

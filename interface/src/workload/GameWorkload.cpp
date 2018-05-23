@@ -56,6 +56,13 @@ void ControlViews::run(const workload::WorkloadContextPointer& runContext, const
         auto config = std::static_pointer_cast<Config>(runContext->jobConfig);
         config->dataExport = _dataExport;
         config->emitDirty();
+    } else {
+        for (auto& outView : outViews) {
+            outView.regionBackFronts[workload::Region::R1] = regionBackFronts[workload::Region::R1];
+            outView.regionBackFronts[workload::Region::R2] = regionBackFronts[workload::Region::R2];
+            outView.regionBackFronts[workload::Region::R3] = regionBackFronts[workload::Region::R3];
+            workload::View::updateRegionsFromBackFronts(outView);
+        }
     }
 }
 
