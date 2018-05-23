@@ -16,6 +16,7 @@
 #include <QtCore/QFileInfo>
 #include <functional>
 #include <NumericalConstants.h>
+#include <SharedUtil.h>
 #include "GLMTestUtils.h"
 
 // Implements several extensions to QtTest.
@@ -36,7 +37,6 @@
 // - A simple framework to write additional custom test macros as needed (QCOMPARE is reimplemented
 // from scratch using QTest::qFail, for example).
 //
-
 
 float getErrorDifference(const float& a, const float& b) {
     return fabsf(a - b);
@@ -69,7 +69,7 @@ QString QTest_generateCompareFailureMessage (
     QString pad2 = QString(")").rightJustified(pad2_, ' ');
 
     QString msg;
-    QTextStream stream (&msg);
+    QTextStream stream(&msg);
     stream << failMessage << "\n\t"
         "Actual:   (" << actual_expr   << pad1 << ": " << actual   << "\n\t"
         "Expected: (" << expected_expr << pad2 << ": " << expected << "\n\t";
@@ -100,7 +100,7 @@ QString QTest_generateCompareFailureMessage (
     QString pad2 = QString("): ").rightJustified(pad2_, ' ');
 
     QString msg;
-    QTextStream stream (&msg);
+    QTextStream stream(&msg);
     stream << failMessage << "\n\t"
         "Actual:   (" << actual_expr   << pad1 << actual   << "\n\t"
         "Expected: (" << expected_expr << pad2 << expected;
@@ -134,10 +134,10 @@ void QTest_failWithCustomMessage (
 //      QFAIL_WITH_MESSAGE("Message " << thing << ";");
 //  }
 //
-#define QFAIL_WITH_MESSAGE(...) \
-do { \
-    QTest_failWithCustomMessage([&](QTextStream& stream) { stream << __VA_ARGS__; }, __LINE__, __FILE__); \
-    return; \
+#define QFAIL_WITH_MESSAGE(...)                                                                               \
+do {                                                                                                          \
+        QTest_failWithCustomMessage([&](QTextStream& stream) { stream << __VA_ARGS__; }, __LINE__, __FILE__); \
+        return;                                                                                               \
 } while(0)
 
 // Calls qFail using QTest_generateCompareFailureMessage.
@@ -181,7 +181,7 @@ bool QTest_compareWithAbsError(
             actual, expected, actual_expr, expected_expr, line, file,
             [&] (QTextStream& stream) -> QTextStream& {
                 return stream << "Err tolerance: " << getErrorDifference((actual), (expected)) << " > " << epsilon;
-            });
+                              });
         return false;
     }
     return true;
@@ -200,10 +200,10 @@ bool QTest_compareWithAbsError(
 //      return stream << "glm::vec3 { " << v.x << ", " << v.y << ", " << v.z << " }"
 //  }
 //
-#define QCOMPARE_WITH_ABS_ERROR(actual, expected, epsilon) \
-do { \
-    if (!QTest_compareWithAbsError((actual), (expected), #actual, #expected, __LINE__, __FILE__, epsilon)) \
-        return; \
+#define QCOMPARE_WITH_ABS_ERROR(actual, expected, epsilon)                                                     \
+do {                                                                                                           \
+        if (!QTest_compareWithAbsError((actual), (expected), #actual, #expected, __LINE__, __FILE__, epsilon)) \
+            return;                                                                                            \
 } while(0)
 
 // Implements QCOMPARE using an explicit, externally defined test function.
@@ -212,12 +212,12 @@ do { \
 //
 //  testFunc(const T & actual, const T & expected) -> bool: true (test succeeds) | false (test fails)
 //
-#define QCOMPARE_WITH_FUNCTION(actual, expected, testFunc) \
-do { \
-    if (!(testFunc((actual), (expected)))) { \
+#define QCOMPARE_WITH_FUNCTION(actual, expected, testFunc)                                                                \
+do {                                                                                                                      \
+        if (!(testFunc((actual), (expected)))) {                                                                          \
         QTest_failWithMessage("Compared values are not the same", (actual), (expected), #actual, #expected, __LINE__, __FILE__); \
-        return; \
-    } \
+            return;                                                                                                       \
+        }                                                                                                                 \
 } while (0)
 
 // Implements QCOMPARE using an explicit, externally defined test function.
@@ -230,41 +230,40 @@ do { \
 //   });
 // (fails if foo is not as fooish as expectedFoo)
 //
-#define QCOMPARE_WITH_LAMBDA(actual, expected, testClosure) \
-do { \
-    if (!(testClosure())) { \
+#define QCOMPARE_WITH_LAMBDA(actual, expected, testClosure)                                                               \
+do {                                                                                                                      \
+        if (!(testClosure())) {                                                                                           \
         QTest_failWithMessage("Compared values are not the same", (actual), (expected), #actual, #expected, __LINE__, __FILE__); \
-        return; \
-    } \
+            return;                                                                                                       \
+        }                                                                                                                 \
 } while (0)
 
 // Same as QCOMPARE_WITH_FUNCTION, but with a custom fail message
-#define QCOMPARE_WITH_FUNCTION_AND_MESSAGE(actual, expected, testfunc, failMessage) \
-do { \
-    if (!(testFunc((actual), (expected)))) { \
-        QTest_failWithMessage((failMessage), (actual), (expected), #actual, #expected, __LINE__, __FILE__); \
-        return; \
-    } \
+#define QCOMPARE_WITH_FUNCTION_AND_MESSAGE(actual, expected, testfunc, failMessage)                             \
+do {                                                                                                            \
+        if (!(testFunc((actual), (expected)))) {                                                                \
+            QTest_failWithMessage((failMessage), (actual), (expected), #actual, #expected, __LINE__, __FILE__); \
+            return;                                                                                             \
+        }                                                                                                       \
 } while (0)
 
 // Same as QCOMPARE_WITH_FUNCTION, but with a custom fail message
-#define QCOMPARE_WITH_LAMBDA_AND_MESSAGE(actual, expected, testClosure, failMessage) \
-do { \
-    if (!(testClosure())) { \
-        QTest_failWithMessage((failMessage), (actual), (expected), #actual, #expected, __LINE__, __FILE__); \
-        return; \
-    } \
+#define QCOMPARE_WITH_LAMBDA_AND_MESSAGE(actual, expected, testClosure, failMessage)                            \
+do {                                                                                                            \
+        if (!(testClosure())) {                                                                                 \
+            QTest_failWithMessage((failMessage), (actual), (expected), #actual, #expected, __LINE__, __FILE__); \
+            return;                                                                                             \
+        }                                                                                                       \
 } while (0)
 
 #endif
 
-#define QCOMPARE_WITH_EXPR(actual, expected, testExpr) \
-    do { \
-        if (!(testExpr)) { \
+#define QCOMPARE_WITH_EXPR(actual, expected, testExpr)                                                                    \
+    do {                                                                                                                  \
+        if (!(testExpr)) {                                                                                                \
             QTest_failWithMessage("Compared values are not the same", (actual), (expected), #actual, #expected, __LINE__, __FILE__); \
-        } \
-    } while(0)
-
+        }                                                                                                                 \
+    } while (0)
 
 struct ByteData {
     ByteData (const char* data, size_t length)
@@ -273,25 +272,24 @@ struct ByteData {
     size_t length;
 };
 
-QTextStream & operator << (QTextStream& stream, const ByteData & wrapper) {
+QTextStream& operator<<(QTextStream& stream, const ByteData& wrapper) {
     // Print bytes as hex
     stream << QByteArray::fromRawData(wrapper.data, (int)wrapper.length).toHex();
 
     return stream;
 }
 
-bool compareData (const char* data, const char* expectedData, size_t length) {
+bool compareData(const char* data, const char* expectedData, size_t length) {
     return memcmp(data, expectedData, length) == 0;
 }
 
 #define COMPARE_DATA(actual, expected, length) \
-    QCOMPARE_WITH_EXPR((ByteData ( actual, length )), (ByteData ( expected, length )), compareData(actual, expected, length))
-
+    QCOMPARE_WITH_EXPR((ByteData(actual, length)), (ByteData(expected, length)), compareData(actual, expected, length))
 
 // Produces a relative error test for float usable QCOMPARE_WITH_LAMBDA.
 inline auto errorTest (float actual, float expected, float acceptableRelativeError)
 -> std::function<bool ()> {
-    return [actual, expected, acceptableRelativeError] () {
+    return [actual, expected, acceptableRelativeError]() {
         if (fabsf(expected) <= acceptableRelativeError) {
             return fabsf(actual - expected) < fabsf(acceptableRelativeError);
         }
@@ -302,18 +300,16 @@ inline auto errorTest (float actual, float expected, float acceptableRelativeErr
 #define QCOMPARE_WITH_RELATIVE_ERROR(actual, expected, relativeError) \
     QCOMPARE_WITH_LAMBDA(actual, expected, errorTest(actual, expected, relativeError))
 
-
-
 inline QString getTestResource(const QString& relativePath) {
     static QDir dir;
     static std::once_flag once;
-    std::call_once(once, []{
+    std::call_once(once, [] {
         QFileInfo fileInfo(__FILE__);
         auto parentDir = fileInfo.absoluteDir();
         auto rootDir = parentDir.absoluteFilePath("..");
-        dir = QDir::cleanPath(rootDir); 
+        dir = QDir::cleanPath(rootDir);
     });
-        
+
     return QDir::cleanPath(dir.absoluteFilePath(relativePath));
 }
 

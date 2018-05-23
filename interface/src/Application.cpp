@@ -220,6 +220,8 @@
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #include <DesktopPreviewProvider.h>
 
+#include "AboutUtil.h"
+
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
 
@@ -2741,7 +2743,7 @@ void Application::initializeRenderEngine() {
 }
 
 extern void setupPreferences();
-static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, bool active);
+static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, int index, bool active = false);
 
 void Application::initializeUi() {
     // Build a shared canvas / context for the Chromium processes
@@ -2899,9 +2901,11 @@ void Application::initializeUi() {
         std::stable_sort(displayPlugins.begin(), displayPlugins.end(),
             [](const DisplayPluginPointer& a, const DisplayPluginPointer& b)->bool { return a->getGrouping() < b->getGrouping(); });
 
+        int dpIndex = 1;
         // concatenate the groupings into a single list in the order: standard, advanced, developer
         for(const auto& displayPlugin : displayPlugins) {
-            addDisplayPluginToMenu(displayPlugin, _displayPlugin == displayPlugin);
+            addDisplayPluginToMenu(displayPlugin, dpIndex, _displayPlugin == displayPlugin);
+            dpIndex++;
         }
 
         // after all plugins have been added to the menu, add a separator to the menu
@@ -2993,6 +2997,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     surfaceContext->setContextProperty("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
+    surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -3715,7 +3720,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted && isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Log);
                 } else if (isMeta) {
-                    Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                    auto dialogsManager = DependencyManager::get<DialogsManager>();
+                    dialogsManager->toggleAddressBar();
                 } else if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::LodTools);
                 }
@@ -3748,13 +3754,16 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 AudioInjectorOptions options;
                 options.localOnly = true;
                 options.stereo = true;
-
-                if (_snapshotSoundInjector) {
-                    _snapshotSoundInjector->setOptions(options);
-                    _snapshotSoundInjector->restart();
-                } else {
-                    QByteArray samples = _snapshotSound->getByteArray();
-                    _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+                Setting::Handle<bool> notificationSounds{ MenuOption::NotificationSounds, true};
+                Setting::Handle<bool> notificationSoundSnapshot{ MenuOption::NotificationSoundsSnapshot, true};
+                if (notificationSounds.get() && notificationSoundSnapshot.get()) {
+                    if (_snapshotSoundInjector) {
+                        _snapshotSoundInjector->setOptions(options);
+                        _snapshotSoundInjector->restart();
+                    } else {
+                        QByteArray samples = _snapshotSound->getByteArray();
+                        _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+                    }
                 }
                 takeSnapshot(true);
                 break;
@@ -5121,7 +5130,7 @@ void Application::toggleOverlays() {
 
 void Application::setOverlaysVisible(bool visible) {
     auto menu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::Overlays, true);
+    menu->setIsOptionChecked(MenuOption::Overlays, visible);
 }
 
 void Application::centerUI() {
@@ -6606,6 +6615,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("AddressManager", DependencyManager::get<AddressManager>().data());
+    scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
@@ -6923,12 +6933,7 @@ void Application::showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const
         if (onTablet) {
             toggleTabletUI(true);
         }
-    }
-
-    if (!onTablet) {
-        DependencyManager::get<OffscreenUi>()->show(widgetUrl, name);
-    }
-    if (tablet->getToolbarMode()) {
+    } else {
         DependencyManager::get<OffscreenUi>()->show(widgetUrl, name);
     }
 }
@@ -7550,7 +7555,6 @@ void Application::loadLODToolsDialog() {
     }
 }
 
-
 void Application::loadEntityStatisticsDialog() {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
@@ -7889,7 +7893,7 @@ DisplayPluginPointer Application::getActiveDisplayPlugin() const {
 
 static const char* EXCLUSION_GROUP_KEY = "exclusionGroup";
 
-static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, bool active) {
+static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, int index, bool active) {
     auto menu = Menu::getInstance();
     QString name = displayPlugin->getName();
     auto grouping = displayPlugin->getGrouping();
@@ -7916,7 +7920,7 @@ static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, bo
     }
     auto parent = menu->getMenu(MenuOption::OutputMenu);
     auto action = menu->addActionToQMenuAndActionHash(parent,
-        name, 0, qApp,
+        name, QKeySequence(Qt::CTRL + (Qt::Key_0 + index)), qApp,
         SLOT(updateDisplayMode()),
         QAction::NoRole, Menu::UNSPECIFIED_POSITION, groupingMenu);
 
@@ -8194,7 +8198,6 @@ void Application::readArgumentsFromLocalSocket() const {
 }
 
 void Application::showDesktop() {
-    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, true);
 }
 
 CompositorHelper& Application::getApplicationCompositor() const {
