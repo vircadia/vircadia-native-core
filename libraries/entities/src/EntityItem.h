@@ -341,6 +341,19 @@ public:
     quint32 getStaticCertificateVersion() const;
     void setStaticCertificateVersion(const quint32&);
 
+    bool getCloneable() const;
+    void setCloneable(bool value);
+    float getCloneLifetime() const;
+    void setCloneLifetime(float value);
+    float getCloneLimit() const;
+    void setCloneLimit(float value);
+    bool getCloneDynamic() const;
+    void setCloneDynamic(bool value);
+    bool getCloneAvatarEntity() const;
+    void setCloneAvatarEntity(bool value);
+    const QUuid getCloneOriginID() const;
+    void setCloneOriginID(const QUuid& value);
+
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
 
@@ -493,6 +506,11 @@ public:
 
     void setSimulationOwnershipExpiry(uint64_t expiry) { _simulationOwnershipExpiry = expiry; }
     uint64_t getSimulationOwnershipExpiry() const { return _simulationOwnershipExpiry; }
+
+    void addCloneID(const QUuid& cloneID);
+    void removeCloneID(const QUuid& cloneID);
+    const QVector<QUuid> getCloneIDs() const;
+    void setCloneIDs(const QVector<QUuid>& cloneIDs);
 
 signals:
     void requestRenderUpdate();
@@ -647,6 +665,14 @@ protected:
     uint64_t _simulationOwnershipExpiry { 0 };
 
     bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
+
+    bool _cloneable { ENTITY_ITEM_DEFAULT_CLONEABLE };
+    float _cloneLifetime { ENTITY_ITEM_DEFAULT_CLONE_LIFETIME };
+    float _cloneLimit { ENTITY_ITEM_DEFAULT_CLONE_LIMIT };
+    bool _cloneDynamic { ENTITY_ITEM_DEFAULT_CLONE_DYNAMIC };
+    bool _cloneAvatarEntity { ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY };
+    QUuid _cloneOriginID;
+    QVector<QUuid> _cloneIDs;
 
 private:
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;
