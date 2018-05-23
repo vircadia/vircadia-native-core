@@ -1060,14 +1060,21 @@ ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Pare
 
 void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed) {
     if (didVisualGeometryRequestSucceed) {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+        _itemKey = ItemKey::Builder().withTypeMeta().withTagBits(getViewTagBits());
     } else {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape().withTagBits(getViewTagBits());
     }
 }
 
 ItemKey ModelEntityRenderer::getKey() {
     return _itemKey;
+}
+
+uint32_t ModelEntityRenderer::getViewTagBits() const {
+    // Default behavior for model is to not be visible in main view if cauterized (aka parented to the avatar's neck joint)
+    return _cauterized ?
+        (_isVisibleInSecondaryCamera ? render::ItemKey::TAG_BITS_1 : render::ItemKey::TAG_BITS_NONE) : // draw in every view except the main one (view zero) (unless not visible in other views)
+        Parent::getViewTagBits(); // calculate which views to be shown in
 }
 
 uint32_t ModelEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) { 
@@ -1329,6 +1336,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
                 emit DependencyManager::get<scriptable::ModelProviderFactory>()->
                     modelAddedToScene(entity->getEntityItemID(), NestableType::Entity, _model);
             }
+            _didLastVisualGeometryRequestSucceed = didVisualGeometryRequestSucceed;
         });
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         connect(entity.get(), &RenderableModelEntityItem::requestCollisionGeometryUpdate, this, &ModelEntityRenderer::flagForCollisionGeometryUpdate);
@@ -1386,17 +1394,14 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     entity->updateModelBounds();
     entity->stopModelOverrideIfNoParent();
 
-    // Default behavior for model is to not be visible in main view if cauterized (aka parented to the avatar's neck joint)
-    uint32_t viewTaskBits = _cauterized ?
-        render::ItemKey::TAG_BITS_1 : // draw in every view except the main one (view zero)
-        render::ItemKey::TAG_BITS_ALL; // draw in all views
-
+    uint32_t viewTaskBits = getViewTagBits();
     if (model->isVisible() != _visible || model->getViewTagBits() != viewTaskBits) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
         //        the renderable item. As it stands now the model checks it's visible/invisible state
         //        so most of the time we don't do anything in this function.
         model->setVisibleInScene(_visible, scene, viewTaskBits, false);
     }
+
     // TODO? early exit here when not visible?
 
     if (model->canCastShadow() != _canCastShadow) {
@@ -1471,6 +1476,11 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
         emit requestRenderUpdate();
     }
+}
+
+void ModelEntityRenderer::setIsVisibleInSecondaryCamera(bool value) {
+    Parent::setIsVisibleInSecondaryCamera(value);
+    setKey(_didLastVisualGeometryRequestSucceed);
 }
 
 void ModelEntityRenderer::flagForCollisionGeometryUpdate() {

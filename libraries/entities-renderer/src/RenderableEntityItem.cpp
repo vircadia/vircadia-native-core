@@ -157,16 +157,20 @@ Item::Bound EntityRenderer::getBound() {
     return _bound;
 }
 
+uint32_t EntityRenderer::getViewTagBits() const {
+    return render::ItemKey::TAG_BITS_0 | (_isVisibleInSecondaryCamera ? render::ItemKey::TAG_BITS_1 : render::ItemKey::TAG_BITS_NONE);
+}
+
 ItemKey EntityRenderer::getKey() {
     if (isTransparent()) {
-        return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+        return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getViewTagBits());
     }
 
     // This allows shapes to cast shadows
     if (_canCastShadow) {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1).withShadowCaster();
+        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getViewTagBits()).withShadowCaster();
     } else {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getViewTagBits());
     }
 }
 
@@ -380,6 +384,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
 
         _moving = entity->isMovingRelativeToParent();
         _visible = entity->getVisible();
+        setIsVisibleInSecondaryCamera(entity->isVisibleInSecondaryCamera());
         _canCastShadow = entity->getCanCastShadow();
         _cauterized = entity->getCauterized();
         _needsRenderUpdate = false;

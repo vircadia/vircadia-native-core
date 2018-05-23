@@ -139,7 +139,7 @@ bool ShapeEntityRenderer::isTransparent() const {
 
 ItemKey ShapeEntityRenderer::getKey() {
     ItemKey::Builder builder;
-    builder.withTypeShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+    builder.withTypeShape().withTypeMeta().withTagBits(getViewTagBits());
 
     withReadLock([&] {
         if (isTransparent()) {

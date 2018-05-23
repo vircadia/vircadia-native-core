@@ -147,9 +147,9 @@ void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEn
 
 ItemKey ParticleEffectEntityRenderer::getKey() {
     if (_visible) {
-        return ItemKey::Builder::transparentShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+        return ItemKey::Builder::transparentShape().withTagBits(getViewTagBits());
     } else {
-        return ItemKey::Builder().withInvisible().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1).build();
+        return ItemKey::Builder().withInvisible().withTagBits(getViewTagBits()).build();
     }
 }
 
