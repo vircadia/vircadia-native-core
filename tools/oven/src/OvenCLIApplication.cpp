@@ -14,11 +14,14 @@
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QUrl>
 
+#include <image/Image.h>
+
 #include "BakerCLI.h"
 
 static const QString CLI_INPUT_PARAMETER = "i";
 static const QString CLI_OUTPUT_PARAMETER = "o";
 static const QString CLI_TYPE_PARAMETER = "t";
+static const QString CLI_DISABLE_TEXTURE_COMPRESSION_PARAMETER = "disable-texture-compression";
 
 OvenCLIApplication::OvenCLIApplication(int argc, char* argv[]) :
     QCoreApplication(argc, argv)
@@ -29,7 +32,8 @@ OvenCLIApplication::OvenCLIApplication(int argc, char* argv[]) :
     parser.addOptions({
         { CLI_INPUT_PARAMETER, "Path to file that you would like to bake.", "input" },
         { CLI_OUTPUT_PARAMETER, "Path to folder that will be used as output.", "output" },
-        { CLI_TYPE_PARAMETER, "Type of asset.", "type" }
+        { CLI_TYPE_PARAMETER, "Type of asset.", "type" },
+        { CLI_DISABLE_TEXTURE_COMPRESSION_PARAMETER, "Disable texture compression." }
     });
 
     parser.addHelpOption();
@@ -40,6 +44,15 @@ OvenCLIApplication::OvenCLIApplication(int argc, char* argv[]) :
         QUrl inputUrl(QDir::fromNativeSeparators(parser.value(CLI_INPUT_PARAMETER)));
         QUrl outputUrl(QDir::fromNativeSeparators(parser.value(CLI_OUTPUT_PARAMETER)));
         QString type = parser.isSet(CLI_TYPE_PARAMETER) ? parser.value(CLI_TYPE_PARAMETER) : QString::null;
+
+        if (parser.isSet(CLI_DISABLE_TEXTURE_COMPRESSION_PARAMETER)) {
+            qDebug() << "Disabling texture compression";
+            image::setColorTexturesCompressionEnabled(false);
+            image::setGrayscaleTexturesCompressionEnabled(false);
+            image::setNormalTexturesCompressionEnabled(false);
+            image::setCubeTexturesCompressionEnabled(false);
+        }
+
         QMetaObject::invokeMethod(cli, "bakeFile", Qt::QueuedConnection, Q_ARG(QUrl, inputUrl),
                                     Q_ARG(QString, outputUrl.toString()), Q_ARG(QString, type));
     } else {
