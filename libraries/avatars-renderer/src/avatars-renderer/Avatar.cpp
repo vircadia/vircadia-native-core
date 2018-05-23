@@ -63,7 +63,7 @@ namespace render {
         return keyBuilder.build();
     }
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
-        return static_pointer_cast<Avatar>(avatar)->getBounds();
+        return static_pointer_cast<Avatar>(avatar)->getRenderBounds();
     }
     template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args) {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
@@ -170,6 +170,11 @@ AABox Avatar::getBounds() const {
         return AABox(getWorldPosition() - glm::vec3(getModelScale()), getModelScale() * 2.0f);
     }
     return _skeletonModel->getRenderableMeshBound();
+}
+
+
+AABox Avatar::getRenderBounds() const {
+    return _renderBound;
 }
 
 void Avatar::animateScaleChanges(float deltaTime) {
@@ -577,11 +582,12 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
 
 void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
     auto avatarPayload = new render::Payload<AvatarData>(self);
-    auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
-
+    auto avatarPayloadPointer = std::shared_ptr<render::Payload<AvatarData>>(avatarPayload);
     if (_renderItemID == render::Item::INVALID_ITEM_ID) {
         _renderItemID = scene->allocateID();
     }
+    // INitialize the _render bound as we are creating the avatar render item
+    _renderBound = getBounds();
     transaction.resetItem(_renderItemID, avatarPayloadPointer);
     _skeletonModel->addToScene(scene, transaction);
     processMaterials();
@@ -642,13 +648,21 @@ void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointe
     }
     emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(getSessionUUID(), NestableType::Avatar, _skeletonModel);
 }
-
+#pragma optimize("", off)
 void Avatar::updateRenderItem(render::Transaction& transaction) {
     if (render::Item::isValidID(_renderItemID)) {
-        transaction.updateItem<render::Payload<AvatarData>>(_renderItemID, [](render::Payload<AvatarData>& p) {});
+        auto renderBound = getBounds();
+        transaction.updateItem<AvatarData>(_renderItemID,
+            [renderBound](AvatarData& avatar) {
+                auto avatarPtr = dynamic_cast<Avatar*>(&avatar);
+                if (avatarPtr) {
+                    avatarPtr->_renderBound = renderBound;
+                }
+            }
+      );
     }
 }
-
+#pragma optimize("", on)
 void Avatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
     if (isMyAvatar() ? showMyLookAtVectors : showOtherLookAtVectors) {

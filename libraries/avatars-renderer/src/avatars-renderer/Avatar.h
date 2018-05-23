@@ -74,7 +74,7 @@ public:
     virtual void instantiableAvatar() = 0;
 
     typedef render::Payload<AvatarData> Payload;
-    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
+ //   typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
 
     void init();
     void updateAvatarEntities();
@@ -322,6 +322,7 @@ public:
     bool hasNewJointData() const { return _hasNewJointData; }
 
     float getBoundingRadius() const;
+    AABox getRenderBounds() const; // THis call is accessible from rendering thread only to report the bounding box of the avatar during the frame.
 
     void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     void ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene);
@@ -537,6 +538,7 @@ protected:
 
     void processMaterials();
 
+    AABox _renderBound;
     bool _isMeshEnableVisible{ true };
     bool _needMeshVisibleSwitch{ true };
 };
