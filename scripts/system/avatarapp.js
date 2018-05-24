@@ -396,7 +396,7 @@ function onBookmarkAdded(bookmarkName) {
 // Manage the connection between the button and the window.
 //
 var button;
-var buttonName = "AvatarApp";
+var buttonName = "Avatar";
 var tablet = null;
 
 function startup() {
