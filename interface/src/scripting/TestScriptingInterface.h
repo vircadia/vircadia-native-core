@@ -91,6 +91,11 @@ public slots:
     */
     void saveObject(QVariant v, const QString& filename);
 
+    /**jsdoc
+    * Maximizes the window
+    */
+    void showMaximized();
+
 private:
     bool waitForCondition(qint64 maxWaitMs, std::function<bool()> condition);
     QString _testResultsLocation;

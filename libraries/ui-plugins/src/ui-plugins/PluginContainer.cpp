@@ -204,6 +204,7 @@ void PluginContainer::setFullscreen(const QScreen* target, bool hideMenu) {
 #endif
 }
 
+#pragma optimize("", off)
 void PluginContainer::unsetFullscreen(const QScreen* avoid) {
     auto _window = getPrimaryWindow();
     _window->showNormal();
