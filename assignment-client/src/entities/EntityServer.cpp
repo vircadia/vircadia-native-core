@@ -44,6 +44,7 @@ EntityServer::EntityServer(ReceivedMessage& message) :
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListenerForTypes({ PacketType::EntityAdd,
+        PacketType::EntityClone,
         PacketType::EntityEdit,
         PacketType::EntityErase,
         PacketType::EntityPhysics,
