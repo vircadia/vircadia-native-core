@@ -66,7 +66,6 @@ ext {
 def baseFolder = new File(HIFI_ANDROID_PRECOMPILED)
 def appDir = new File(projectDir, 'app')
 def jniFolder = new File(appDir, 'src/main/jniLibs/arm64-v8a')
-//def baseUrl = 'https://hifi-public.s3.amazonaws.com/austin/android/'
 def baseUrl = ''
 
 def qtFile='https://hifi-public.s3.amazonaws.com/austin/android/qt-5.9.3_linux_armv8-libcpp_openssl.tgz'
@@ -89,9 +88,9 @@ def packages = [
         checksum: qtChecksum,
     ],
     bullet: [
-        file: 'https://hifi-public.s3.amazonaws.com/austin/android/bullet-2.83_armv8-libcpp.tgz',
-        versionId: 'ljb7v.1IjVRqyopUKVDbVnLA4z88J8Eo',
-        checksum: '2c558d604fce337f5eba3eb7ec1252fd',
+        file: 'https://hifi-public.s3.amazonaws.com/dependencies/android/bullet-2.88_armv8-libcpp.tgz',
+        versionId: 'S8YaoED0Cl8sSb8fSV7Q2G1lQJSNDxqg',
+        checksum: '81642779ccb110f8c7338e8739ac38a0',
     ],
     draco: [
         file: 'https://hifi-public.s3.amazonaws.com/austin/android/draco_armv8-libcpp.tgz',
