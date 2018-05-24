@@ -6,7 +6,7 @@ import "../../controls-uit" as HifiControlsUit
 TextField {
     id: textField
 
-    property bool error: text === '';
+    property bool error: false;
     text: 'ThisIsDisplayName'
 
     states: [
