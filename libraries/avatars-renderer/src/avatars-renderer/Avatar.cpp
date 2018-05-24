@@ -52,7 +52,7 @@ const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar) {
-        ItemKey::Builder keyBuilder = ItemKey::Builder::opaqueShape().withShadowCaster().withTypeMeta().withTagBits(ItemKey::TAG_BITS_0 | ItemKey::TAG_BITS_1).withMetaCullGroup();
+        ItemKey::Builder keyBuilder = ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(ItemKey::TAG_BITS_0 | ItemKey::TAG_BITS_1).withMetaCullGroup();
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         auto model = avatarPtr->getSkeletonModel();
         if (!avatarPtr->getEnableMeshVisible()) {
@@ -588,9 +588,12 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     _renderBound = getBounds();
     transaction.resetItem(_renderItemID, avatarPayloadPointer);
     _skeletonModel->addToScene(scene, transaction);
+    _skeletonModel->setVisibleInScene(_isMeshEnableVisible, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, true);
+    _skeletonModel->setCanCastShadow(true, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, true);
     processMaterials();
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
+        attachmentModel->setVisibleInScene(_isMeshEnableVisible, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, true);
     }
 
     _mustFadeIn = true;
@@ -646,7 +649,7 @@ void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointe
     }
     emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(getSessionUUID(), NestableType::Avatar, _skeletonModel);
 }
-#pragma optimize("", off)
+
 void Avatar::updateRenderItem(render::Transaction& transaction) {
     if (render::Item::isValidID(_renderItemID)) {
         auto renderBound = getBounds();
@@ -660,7 +663,7 @@ void Avatar::updateRenderItem(render::Transaction& transaction) {
       );
     }
 }
-#pragma optimize("", on)
+
 void Avatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
     if (isMyAvatar() ? showMyLookAtVectors : showOtherLookAtVectors) {
@@ -802,6 +805,7 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
         _skeletonModel->removeFromScene(scene, transaction);
         _skeletonModel->addToScene(scene, transaction);
+        _skeletonModel->setVisibleInScene(_isMeshEnableVisible, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, true);
         processMaterials();
         canTryFade = true;
         _isAnimatingScale = true;
@@ -810,6 +814,7 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, transaction);
             attachmentModel->addToScene(scene, transaction);
+            attachmentModel->setVisibleInScene(_isMeshEnableVisible, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, true);
         }
     }
 
