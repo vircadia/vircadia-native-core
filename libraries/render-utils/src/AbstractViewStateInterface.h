@@ -24,12 +24,16 @@ class Transform;
 class QThread;
 class ViewFrustum;
 class PickRay;
+class ConicalViewFrustum;
+using ConicalViewFrustums = std::vector<ConicalViewFrustum>;
 
 /// Interface provided by Application to other objects that need access to the current view state details
 class AbstractViewStateInterface {
 public:
     /// copies the current view frustum for rendering the view state
     virtual void copyCurrentViewFrustum(ViewFrustum& viewOut) const = 0;
+
+    virtual const ConicalViewFrustums& getConicalViews() const = 0;
 
     virtual QThread* getMainThread() = 0;
 

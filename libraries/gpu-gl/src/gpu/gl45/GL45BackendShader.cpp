@@ -18,7 +18,6 @@ std::string GL45Backend::getBackendShaderHeader() const {
     static const std::string header(
         R"SHADER(#version 450 core
         #define GPU_GL450
-        #define PRECISIONQ
         #define BITFIELD int
         )SHADER"
 #ifdef GPU_SSBO_TRANSFORM_OBJECT

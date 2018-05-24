@@ -9,10 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "MouseEvent.h"
+
 #include <qscriptengine.h>
 #include <qscriptvalue.h>
-
-#include "MouseEvent.h"
 
 MouseEvent::MouseEvent() :
     x(0.0f),

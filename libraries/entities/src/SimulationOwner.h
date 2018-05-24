@@ -120,24 +120,18 @@ public:
     void clear();
 
     void setPriority(uint8_t priority);
-    void promotePriority(uint8_t priority);
 
     // return true if id is changed
     bool setID(const QUuid& id);
     bool set(const QUuid& id, uint8_t priority);
     bool set(const SimulationOwner& owner);
-    void setPendingPriority(uint8_t priority, uint64_t timestamp);
 
     bool isNull() const { return _id.isNull(); }
     bool matchesValidID(const QUuid& id) const { return _id == id && !_id.isNull(); }
 
     void updateExpiry();
-
     bool hasExpired() const { return usecTimestampNow() > _expiry; }
 
-    uint8_t getPendingPriority() const { return _pendingBidPriority; }
-    bool pendingRelease(uint64_t timestamp); // return true if valid pending RELEASE
-    bool pendingTake(uint64_t timestamp); // return true if valid pending TAKE
     void clearCurrentOwner();
 
     bool operator>=(uint8_t priority) const { return _priority >= priority; }
@@ -154,10 +148,7 @@ public:
 private:
     QUuid _id; // owner
     uint64_t _expiry; // time when ownership can transition at equal priority
-    uint64_t _pendingBidTimestamp; // time when pending bid was set
     uint8_t _priority; // priority of current owner
-    uint8_t _pendingBidPriority; // priority at which we'd like to own it
-    uint8_t _pendingState; // NOTHING, TAKE, or RELEASE
 };
 
 

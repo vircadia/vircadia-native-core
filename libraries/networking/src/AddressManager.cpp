@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AddressManager.h"
+
 #include <QGuiApplication>
 #include <QClipboard>
 #include <QDebug>
@@ -23,7 +25,6 @@
 #include <SettingHandle.h>
 #include <UUID.h>
 
-#include "AddressManager.h"
 #include "NodeList.h"
 #include "NetworkLogging.h"
 #include "UserActivityLogger.h"
@@ -766,10 +767,10 @@ bool AddressManager::handleUsername(const QString& lookupString) {
 }
 
 bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16 port) {
-    if (host != _domainURL.host() || port != _domainURL.port()) {
+    bool hostHasChanged = QString::compare(host, _domainURL.host(), Qt::CaseInsensitive);
+    if (hostHasChanged || port != _domainURL.port()) {
         addCurrentAddressToHistory(trigger);
 
-        bool emitHostChanged = host != _domainURL.host();
         _domainURL = QUrl();
         _domainURL.setScheme(URL_SCHEME_HIFI);
         _domainURL.setHost(host);
@@ -780,7 +781,7 @@ bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16
         // any host change should clear the shareable place name
         _shareablePlaceName.clear();
 
-        if (emitHostChanged) {
+        if (hostHasChanged) {
             emit hostChanged(host);
         }
 

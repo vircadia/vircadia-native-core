@@ -9,16 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityEditPacketSender.h"
+
 #include <assert.h>
+
 #include <QJsonDocument>
+
+#include <AddressManager.h>
 #include <PerfStat.h>
 #include <OctalCode.h>
 #include <udt/PacketHeaders.h>
-#include "EntityEditPacketSender.h"
+
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
-#include <AddressManager.h>
 
 EntityEditPacketSender::EntityEditPacketSender() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
@@ -73,7 +77,6 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
     _myAvatar->updateAvatarEntity(entityItemID, binaryProperties);
 
     entity->setLastBroadcast(usecTimestampNow());
-    return;
 }
 
 
@@ -81,10 +84,6 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
                                                     EntityTreePointer entityTree,
                                                     EntityItemID entityItemID,
                                                     const EntityItemProperties& properties) {
-    if (!_shouldSend) {
-        return; // bail early
-    }
-
     if (properties.getClientOnly() && properties.getOwningAvatarID() == _myAvatar->getID()) {
         // this is an avatar-based entity --> update our avatar-data rather than sending to the entity-server
         queueEditAvatarEntityMessage(type, entityTree, entityItemID, properties);
@@ -143,9 +142,6 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
 }
 
 void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityItemID) {
-    if (!_shouldSend) {
-        return; // bail early
-    }
 
     // in case this was a clientOnly entity:
     if(_myAvatar) {
@@ -156,5 +152,13 @@ void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityI
 
     if (EntityItemProperties::encodeEraseEntityMessage(entityItemID, bufferOut)) {
         queueOctreeEditMessage(PacketType::EntityErase, bufferOut);
+    }
+}
+
+void EntityEditPacketSender::queueCloneEntityMessage(const EntityItemID& entityIDToClone, const EntityItemID& newEntityID) {
+    QByteArray bufferOut(NLPacket::maxPayloadSize(PacketType::EntityClone), 0);
+
+    if (EntityItemProperties::encodeCloneEntityMessage(entityIDToClone, newEntityID, bufferOut)) {
+        queueOctreeEditMessage(PacketType::EntityClone, bufferOut);
     }
 }

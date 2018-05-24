@@ -28,6 +28,10 @@ class AudioScope : public QObject, public Dependency {
     /**jsdoc
      * The AudioScope API helps control the Audio Scope features in Interface
      * @namespace AudioScope
+     *
+     * @hifi-interface
+     * @hifi-client-entity
+     *
      * @property {number} scopeInput <em>Read-only.</em>
      * @property {number} scopeOutputLeft <em>Read-only.</em>
      * @property {number} scopeOutputRight <em>Read-only.</em>

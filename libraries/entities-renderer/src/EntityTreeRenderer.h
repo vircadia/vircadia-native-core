@@ -154,7 +154,7 @@ protected:
 
 private:
     void addPendingEntities(const render::ScenePointer& scene, render::Transaction& transaction);
-    void updateChangedEntities(const render::ScenePointer& scene, const ViewFrustum& view, render::Transaction& transaction);
+    void updateChangedEntities(const render::ScenePointer& scene, render::Transaction& transaction);
     EntityRendererPointer renderableForEntity(const EntityItemPointer& entity) const { return renderableForEntityId(entity->getID()); }
     render::ItemID renderableIdForEntity(const EntityItemPointer& entity) const { return renderableIdForEntityId(entity->getID()); }
 

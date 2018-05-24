@@ -40,6 +40,15 @@ public:
     virtual int getSteamVRBuildID() = 0;
 };
 
+/**jsdoc
+ * @namespace Steam
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
+ * @property {boolean} running - <em>Read-only.</em>
+ */
+
 class SteamScriptingInterface : public QObject {
     Q_OBJECT
 
@@ -49,7 +58,16 @@ public:
     SteamScriptingInterface(QObject* parent, SteamClientPlugin* plugin) : QObject(parent), _plugin(plugin) {}
 
 public slots:
+
+    /**jsdoc
+     * @function Steam.isRunning
+     * @returns {boolean}
+     */
     bool isRunning() const { return _plugin && _plugin->isRunning(); }
+
+    /**jsdoc
+     * @function Steam.openInviteOverlay
+     */
     void openInviteOverlay() const { if (_plugin) { _plugin->openInviteOverlay(); } }
 
 private:

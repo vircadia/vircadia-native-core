@@ -258,33 +258,9 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     propertiesWithSimID = convertPropertiesFromScriptSemantics(propertiesWithSimID, scalesWithParent);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
-    EntityItemID id = EntityItemID(QUuid::createUuid());
-
+    EntityItemID id;
     // If we have a local entity tree set, then also update it.
-    bool success = true;
-    if (_entityTree) {
-        _entityTree->withWriteLock([&] {
-            EntityItemPointer entity = _entityTree->addEntity(id, propertiesWithSimID);
-            if (entity) {
-                if (propertiesWithSimID.queryAACubeRelatedPropertyChanged()) {
-                    // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
-                    bool success;
-                    AACube queryAACube = entity->getQueryAACube(success);
-                    if (success) {
-                        propertiesWithSimID.setQueryAACube(queryAACube);
-                    }
-                }
-
-                entity->setLastBroadcast(usecTimestampNow());
-                // since we're creating this object we will immediately volunteer to own its simulation
-                entity->flagForOwnershipBid(VOLUNTEER_SIMULATION_PRIORITY);
-                propertiesWithSimID.setLastEdited(entity->getLastEdited());
-            } else {
-                qCDebug(entities) << "script failed to add new Entity to local Octree";
-                success = false;
-            }
-        });
-    }
+    bool success = addLocalEntityCopy(propertiesWithSimID, id);
 
     // queue the packet
     if (success) {
@@ -293,6 +269,37 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     } else {
         return QUuid();
     }
+}
+
+bool EntityScriptingInterface::addLocalEntityCopy(EntityItemProperties& properties, EntityItemID& id, bool isClone) {
+    bool success = true;
+    id = EntityItemID(QUuid::createUuid());
+
+    if (_entityTree) {
+        _entityTree->withWriteLock([&] {
+            EntityItemPointer entity = _entityTree->addEntity(id, properties, isClone);
+            if (entity) {
+                if (properties.queryAACubeRelatedPropertyChanged()) {
+                    // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
+                    bool success;
+                    AACube queryAACube = entity->getQueryAACube(success);
+                    if (success) {
+                        properties.setQueryAACube(queryAACube);
+                    }
+                }
+
+                entity->setLastBroadcast(usecTimestampNow());
+                // since we're creating this object we will immediately volunteer to own its simulation
+                entity->setScriptSimulationPriority(VOLUNTEER_SIMULATION_PRIORITY);
+                properties.setLastEdited(entity->getLastEdited());
+            } else {
+                qCDebug(entities) << "script failed to add new Entity to local Octree";
+                success = false;
+            }
+        });
+    }
+
+    return success;
 }
 
 QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& textures,
@@ -318,6 +325,28 @@ QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QStrin
     properties.setLastEditedBy(sessionID);
 
     return addEntity(properties);
+}
+
+QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
+    EntityItemID newEntityID;
+    EntityItemProperties properties = getEntityProperties(entityIDToClone);
+    bool cloneAvatarEntity = properties.getCloneAvatarEntity();
+    properties.convertToCloneProperties(entityIDToClone);
+
+    if (cloneAvatarEntity) {
+        return addEntity(properties, true);
+    } else {
+        // setLastEdited timestamp to 0 to ensure this entity gets updated with the properties 
+        // from the server-created entity, don't change this unless you know what you are doing
+        properties.setLastEdited(0);
+        bool success = addLocalEntityCopy(properties, newEntityID, true);
+        if (success) {
+            getEntityPacketSender()->queueCloneEntityMessage(entityIDToClone, newEntityID);
+            return newEntityID;
+        } else {
+            return QUuid();
+        }
+    }
 }
 
 EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity) {
@@ -465,7 +494,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 } else {
                     // we make a bid for simulation ownership
                     properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
-                    entity->flagForOwnershipBid(SCRIPT_POKE_SIMULATION_PRIORITY);
+                    entity->setScriptSimulationPriority(SCRIPT_POKE_SIMULATION_PRIORITY);
                 }
             }
             if (properties.queryAACubeRelatedPropertyChanged()) {
@@ -1334,7 +1363,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
         }
         action->setIsMine(true);
         success = entity->addAction(simulation, action);
-        entity->flagForOwnershipBid(SCRIPT_GRAB_SIMULATION_PRIORITY);
+        entity->setScriptSimulationPriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
         return false; // Physics will cause a packet to be sent, so don't send from here.
     });
     if (success) {
@@ -1350,7 +1379,7 @@ bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& 
     return actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
         bool success = entity->updateAction(simulation, actionID, arguments);
         if (success) {
-            entity->flagForOwnershipBid(SCRIPT_GRAB_SIMULATION_PRIORITY);
+            entity->setScriptSimulationPriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
         }
         return success;
     });
@@ -1364,7 +1393,7 @@ bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& 
         success = entity->removeAction(simulation, actionID);
         if (success) {
             // reduce from grab to poke
-            entity->flagForOwnershipBid(SCRIPT_POKE_SIMULATION_PRIORITY);
+            entity->setScriptSimulationPriority(SCRIPT_POKE_SIMULATION_PRIORITY);
         }
         return false; // Physics will cause a packet to be sent, so don't send from here.
     });

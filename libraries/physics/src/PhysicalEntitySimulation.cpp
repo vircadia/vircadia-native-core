@@ -130,7 +130,21 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     bool canBeKinematic = region <= workload::Region::R3;
     if (motionState) {
         if (!shouldBePhysical) {
-            // the entity should be removed from the physical simulation
+            if (motionState->isLocallyOwned()) {
+                // zero velocities by first deactivating the RigidBody
+                btRigidBody* body = motionState->getRigidBody();
+                if (body) {
+                    body->forceActivationState(ISLAND_SLEEPING);
+                    motionState->updateSendVelocities(); // has side-effect of zeroing entity velocities for inactive body
+                }
+
+                // send packet to remove ownership
+                // NOTE: this packet will NOT be resent if lost, but the good news is:
+                // the entity-server will eventually clear velocity and ownership for timeout
+                motionState->sendUpdate(_entityPacketSender, _physicsEngine->getNumSubsteps());
+            }
+
+            // remove from the physical simulation
             _incomingChanges.remove(motionState);
             _physicalObjects.remove(motionState);
             removeOwnershipData(motionState);
@@ -340,10 +354,18 @@ void PhysicalEntitySimulation::handleChangedMotionStates(const VectorOfMotionSta
 }
 
 void PhysicalEntitySimulation::addOwnershipBid(EntityMotionState* motionState) {
-    motionState->initForBid();
-    motionState->sendBid(_entityPacketSender, _physicsEngine->getNumSubsteps());
-    _bids.push_back(motionState);
-    _nextBidExpiry = glm::min(_nextBidExpiry, motionState->getNextBidExpiry());
+    if (getEntityTree()->isServerlessMode()) {
+        EntityItemPointer entity = motionState->getEntity();
+        auto nodeList = DependencyManager::get<NodeList>();
+        auto sessionID = nodeList->getSessionUUID();
+        entity->setSimulationOwner(SimulationOwner(sessionID, SCRIPT_GRAB_SIMULATION_PRIORITY));
+        _owned.push_back(motionState);
+    } else {
+        motionState->initForBid();
+        motionState->sendBid(_entityPacketSender, _physicsEngine->getNumSubsteps());
+        _bids.push_back(motionState);
+        _nextBidExpiry = glm::min(_nextBidExpiry, motionState->getNextBidExpiry());
+    }
 }
 
 void PhysicalEntitySimulation::addOwnership(EntityMotionState* motionState) {

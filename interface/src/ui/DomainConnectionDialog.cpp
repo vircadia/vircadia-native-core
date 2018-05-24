@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DomainConnectionDialog.h"
+
 #include <QtCore/QMetaEnum>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QHeaderView>
@@ -16,8 +18,6 @@
 
 #include <NodeList.h>
 #include <NumericalConstants.h>
-
-#include "DomainConnectionDialog.h"
 
 DomainConnectionDialog::DomainConnectionDialog(QWidget* parent) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint)

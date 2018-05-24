@@ -9,13 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "LimitlessVoiceRecognitionScriptingInterface.h"
+
 #include <QtConcurrent/QtConcurrentRun>
 
 #include <ThreadHelpers.h>
-#include <src/InterfaceLogging.h>
-#include <src/ui/AvatarInputs.h>
 
-#include "LimitlessVoiceRecognitionScriptingInterface.h"
+#include "InterfaceLogging.h"
+#include "ui/AvatarInputs.h"
 
 const float LimitlessVoiceRecognitionScriptingInterface::_audioLevelThreshold = 0.33f;
 const int LimitlessVoiceRecognitionScriptingInterface::_voiceTimeoutDuration = 2000;

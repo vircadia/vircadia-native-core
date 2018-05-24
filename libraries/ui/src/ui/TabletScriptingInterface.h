@@ -40,6 +40,17 @@ class OffscreenQmlSurface;
 
 /**jsdoc
  * @namespace Tablet
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ */
+/**jsdoc
+ * @namespace tabletInterface
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
+ * @deprecated This API is deprecated and will be removed. Use {@link Tablet} instead.
  */
 class TabletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -80,6 +91,13 @@ public:
      * @param {string} name - Tablet name.
      * @returns {TabletProxy} Tablet instance.
      */
+    /**jsdoc
+     * Creates or returns a new TabletProxy and returns it.
+     * @function tabletInterface.getTablet
+     * @param {string} name - Tablet name.
+     * @returns {TabletProxy} Tablet instance.
+     * @deprecated This function is deprecated and will be removed. Use {@link Tablet.getTablet} instead.
+     */
     Q_INVOKABLE TabletProxy* getTablet(const QString& tabletId);
 
     void preloadSounds();
@@ -87,6 +105,11 @@ public:
     /**jsdoc
      * @function Tablet.playSound
      * @param {Tablet.AudioEvents} sound
+     */
+    /**jsdoc
+     * @function tabletInterface.playSound
+     * @param {Tablet.AudioEvents} sound
+     * @deprecated This function is deprecated and will be removed. Use {@link Tablet.playSound} instead.
      */
     Q_INVOKABLE void playSound(TabletAudioEvents aEvent);
 
@@ -104,6 +127,12 @@ signals:
      * Triggered when a tablet message or dialog is created.
      * @function Tablet.tabletNotification
      * @returns {Signal}
+     */
+    /**jsdoc
+     * Triggered when a tablet message or dialog is created.
+     * @function tabletInterface.tabletNotification
+     * @returns {Signal}
+     * @deprecated This function is deprecated and will be removed. Use {@link Tablet.tabletNotification} instead.
      */
     void tabletNotification();
 
@@ -176,6 +205,10 @@ Q_DECLARE_METATYPE(TabletButtonsProxyModel*);
 
 /**jsdoc
  * @class TabletProxy
+  *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @property {string} name - Name of this tablet. <em>Read-only.</em>
  * @property {boolean} toolbarMode - Used to transition this tablet into and out of toolbar mode.
  *     When tablet is in toolbar mode, all its buttons will appear in a floating toolbar.
@@ -410,6 +443,10 @@ Q_DECLARE_METATYPE(TabletProxy*);
 
 /**jsdoc
  * @class TabletButtonProxy
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @property {Uuid} uuid - Uniquely identifies this button. <em>Read-only.</em>
  * @property {TabletButtonProxy.ButtonProperties} properties
  */

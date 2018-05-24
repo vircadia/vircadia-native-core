@@ -48,6 +48,14 @@ const GLFilterMode GLTexture::FILTER_MODES[Sampler::NUM_FILTERS] = {
     { GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR }  //FILTER_ANISOTROPIC,
 };
 
+static constexpr size_t MAX_PIXEL_BYTE_SIZE{ 4 };
+static constexpr size_t MAX_TRANSFER_DIMENSION{ 1024 };
+
+const uvec3 GLVariableAllocationSupport::MAX_TRANSFER_DIMENSIONS{ MAX_TRANSFER_DIMENSION, MAX_TRANSFER_DIMENSION, 1 };
+const uvec3 GLVariableAllocationSupport::INITIAL_MIP_TRANSFER_DIMENSIONS{ 64, 64, 1 };
+const size_t GLVariableAllocationSupport::MAX_TRANSFER_SIZE = MAX_TRANSFER_DIMENSION * MAX_TRANSFER_DIMENSION * MAX_PIXEL_BYTE_SIZE;
+const size_t GLVariableAllocationSupport::MAX_BUFFER_SIZE = MAX_TRANSFER_SIZE;
+
 GLenum GLTexture::getGLTextureType(const Texture& texture) {
     switch (texture.getType()) {
     case Texture::TEX_2D:
@@ -131,7 +139,6 @@ Size GLTexture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, u
     return 0;
 }
 
-
 GLExternalTexture::GLExternalTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id) 
     : Parent(backend, texture, id) {
     Backend::textureExternalCount.increment();
@@ -151,65 +158,62 @@ GLExternalTexture::~GLExternalTexture() {
     Backend::textureExternalCount.decrement();
 }
 
-
-// Variable sized textures
-using MemoryPressureState = GLVariableAllocationSupport::MemoryPressureState;
-using WorkQueue = GLVariableAllocationSupport::WorkQueue;
-using TransferJobPointer = GLVariableAllocationSupport::TransferJobPointer;
-
-std::list<TextureWeakPointer> GLVariableAllocationSupport::_memoryManagedTextures;
-MemoryPressureState GLVariableAllocationSupport::_memoryPressureState { MemoryPressureState::Idle };
-std::atomic<bool> GLVariableAllocationSupport::_memoryPressureStateStale { false };
-const uvec3 GLVariableAllocationSupport::INITIAL_MIP_TRANSFER_DIMENSIONS { 64, 64, 1 };
-WorkQueue GLVariableAllocationSupport::_transferQueue;
-WorkQueue GLVariableAllocationSupport::_promoteQueue;
-WorkQueue GLVariableAllocationSupport::_demoteQueue;
-size_t GLVariableAllocationSupport::_frameTexturesCreated { 0 };
-
-#define OVERSUBSCRIBED_PRESSURE_VALUE 0.95f
-#define UNDERSUBSCRIBED_PRESSURE_VALUE 0.85f
-#define DEFAULT_ALLOWED_TEXTURE_MEMORY_MB ((size_t)1024)
-
-static const size_t DEFAULT_ALLOWED_TEXTURE_MEMORY = MB_TO_BYTES(DEFAULT_ALLOWED_TEXTURE_MEMORY_MB);
-
-using TransferJob = GLVariableAllocationSupport::TransferJob;
-
-const uvec3 GLVariableAllocationSupport::MAX_TRANSFER_DIMENSIONS { 1024, 1024, 1 };
-const size_t GLVariableAllocationSupport::MAX_TRANSFER_SIZE = GLVariableAllocationSupport::MAX_TRANSFER_DIMENSIONS.x * GLVariableAllocationSupport::MAX_TRANSFER_DIMENSIONS.y * 4;
-
-#if THREADED_TEXTURE_BUFFERING
-
-TexturePointer GLVariableAllocationSupport::_currentTransferTexture;
-TransferJobPointer GLVariableAllocationSupport::_currentTransferJob;
-QThreadPool* TransferJob::_bufferThreadPool { nullptr };
-
-void TransferJob::startBufferingThread() {
-    static std::once_flag once;
-    std::call_once(once, [&] {
-        _bufferThreadPool = new QThreadPool(qApp);
-        _bufferThreadPool->setMaxThreadCount(1);
-    });
+GLVariableAllocationSupport::GLVariableAllocationSupport() {
+    Backend::textureResourceCount.increment();
 }
 
-#endif
+GLVariableAllocationSupport::~GLVariableAllocationSupport() {
+    Backend::textureResourceCount.decrement();
+    Backend::textureResourceGPUMemSize.update(_size, 0);
+    Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
+}
 
-TransferJob::TransferJob(const GLTexture& parent, uint16_t sourceMip, uint16_t targetMip, uint8_t face, uint32_t lines, uint32_t lineOffset)
-    : _parent(parent) {
+void GLVariableAllocationSupport::incrementPopulatedSize(Size delta) const {
+    _populatedSize += delta;
+    // Keep the 2 code paths to be able to debug
+    if (_size < _populatedSize) {
+        Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
+    } else  {
+        Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
+    }
+}
 
-    auto transferDimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
+void GLVariableAllocationSupport::decrementPopulatedSize(Size delta) const {
+    _populatedSize -= delta;
+    // Keep the 2 code paths to be able to debug
+    if (_size < _populatedSize) {
+        Backend::textureResourcePopulatedGPUMemSize.update(delta, 0);
+    } else  {
+        Backend::textureResourcePopulatedGPUMemSize.update(delta, 0);
+    }
+}
+
+void GLVariableAllocationSupport::sanityCheck() const {
+    if (_populatedMip < _allocatedMip) {
+        qCWarning(gpugllogging) << "Invalid mip levels";
+    }
+}
+
+TransferJob::TransferJob(const Texture& texture,
+    uint16_t sourceMip,
+    uint16_t targetMip,
+    uint8_t face,
+    uint32_t lines,
+    uint32_t lineOffset) {
+    auto transferDimensions = texture.evalMipDimensions(sourceMip);
     GLenum format;
     GLenum internalFormat;
     GLenum type;
-    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_parent._gpuObject.getTexelFormat(), _parent._gpuObject.getStoredMipFormat());
+    GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), texture.getStoredMipFormat());
     format = texelFormat.format;
     internalFormat = texelFormat.internalFormat;
     type = texelFormat.type;
-    _transferSize = _parent._gpuObject.getStoredMipFaceSize(sourceMip, face);
+    _transferSize = texture.getStoredMipFaceSize(sourceMip, face);
 
     // If we're copying a subsection of the mip, do additional calculations to find the size and offset of the segment
     if (0 != lines) {
         transferDimensions.y = lines;
-        auto dimensions = _parent._gpuObject.evalMipDimensions(sourceMip);
+        auto dimensions = texture.evalMipDimensions(sourceMip);
         auto bytesPerLine = (uint32_t)_transferSize / dimensions.y;
         _transferOffset = bytesPerLine * lineOffset;
         _transferSize = bytesPerLine * lines;
@@ -222,481 +226,33 @@ TransferJob::TransferJob(const GLTexture& parent, uint16_t sourceMip, uint16_t t
     }
 
     // Buffering can invoke disk IO, so it should be off of the main and render threads
-    _bufferingLambda = [=] {
-        auto mipStorage = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
+    _bufferingLambda = [=](const TexturePointer& texture) {
+        auto mipStorage = texture->accessStoredMipFace(sourceMip, face);
         if (mipStorage) {
             _mipData = mipStorage->createView(_transferSize, _transferOffset);
         } else {
-            qCWarning(gpugllogging) << "Buffering failed because mip could not be retrieved from texture " << _parent._source.c_str() ;
+            qCWarning(gpugllogging) << "Buffering failed because mip could not be retrieved from texture "
+                << texture->source().c_str();
         }
     };
 
-    _transferLambda = [=] {
+    _transferLambda = [=](const TexturePointer& texture) {
         if (_mipData) {
-            _parent.copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, internalFormat, format, type, _mipData->size(), _mipData->readData());
+            auto gltexture = Backend::getGPUObject<GLTexture>(*texture);
+            gltexture->copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, internalFormat, format,
+                type, _mipData->size(), _mipData->readData());
             _mipData.reset();
         } else {
-            qCWarning(gpugllogging) << "Transfer failed because mip could not be retrieved from texture " << _parent._source.c_str();
+            qCWarning(gpugllogging) << "Transfer failed because mip could not be retrieved from texture "
+                << texture->source().c_str();
         }
     };
 }
 
-TransferJob::TransferJob(const GLTexture& parent, std::function<void()> transferLambda)
-    : _parent(parent), _bufferingRequired(false), _transferLambda(transferLambda) {
-}
+TransferJob::TransferJob(uint16_t sourceMip, const std::function<void()>& transferLambda) :
+    _sourceMip(sourceMip), _bufferingRequired(false), _transferLambda([=](const TexturePointer&) { transferLambda(); }) {}
 
 TransferJob::~TransferJob() {
     Backend::texturePendingGPUTransferMemSize.update(_transferSize, 0);
 }
-
-bool TransferJob::tryTransfer() {
-#if THREADED_TEXTURE_BUFFERING
-    // Are we ready to transfer
-    if (!bufferingCompleted()) {
-        startBuffering();
-        return false;
-    }
-#else
-    if (_bufferingRequired) {
-        _bufferingLambda();
-    }
-#endif
-    _transferLambda();
-    return true;
-}
-
-#if THREADED_TEXTURE_BUFFERING
-bool TransferJob::bufferingRequired() const {
-    if (!_bufferingRequired) {
-        return false;
-    }
-
-    // The default state of a QFuture is with status Canceled | Started  | Finished, 
-    // so we have to check isCancelled before we check the actual state
-    if (_bufferingStatus.isCanceled()) {
-        return true;
-    }
-
-    return !_bufferingStatus.isStarted();
-}
-
-bool TransferJob::bufferingCompleted() const {
-    if (!_bufferingRequired) {
-        return true;
-    }
-
-    // The default state of a QFuture is with status Canceled | Started  | Finished, 
-    // so we have to check isCancelled before we check the actual state
-    if (_bufferingStatus.isCanceled()) {
-        return false;
-    }
-
-    return _bufferingStatus.isFinished();
-}
-
-void TransferJob::startBuffering() {
-    if (bufferingRequired()) {
-        assert(_bufferingStatus.isCanceled());
-        _bufferingStatus = QtConcurrent::run(_bufferThreadPool, [=] {
-            _bufferingLambda();
-        });
-        assert(!_bufferingStatus.isCanceled());
-        assert(_bufferingStatus.isStarted());
-    }
-}
-#endif
-
-GLVariableAllocationSupport::GLVariableAllocationSupport() {
-    _memoryPressureStateStale = true;
-}
-
-GLVariableAllocationSupport::~GLVariableAllocationSupport() {
-    _memoryPressureStateStale = true;
-}
-
-void GLVariableAllocationSupport::addMemoryManagedTexture(const TexturePointer& texturePointer) {
-    _memoryManagedTextures.push_back(texturePointer);
-    if (MemoryPressureState::Idle != _memoryPressureState) {
-        addToWorkQueue(texturePointer);
-    }
-}
-
-void GLVariableAllocationSupport::addToWorkQueue(const TexturePointer& texturePointer) {
-    GLTexture* gltexture = Backend::getGPUObject<GLTexture>(*texturePointer);
-    GLVariableAllocationSupport* vargltexture = dynamic_cast<GLVariableAllocationSupport*>(gltexture);
-    switch (_memoryPressureState) {
-        case MemoryPressureState::Oversubscribed:
-            if (vargltexture->canDemote()) {
-                // Demote largest first
-                _demoteQueue.push({ texturePointer, (float)gltexture->size() });
-            }
-            break;
-
-        case MemoryPressureState::Undersubscribed:
-            if (vargltexture->canPromote()) {
-                // Promote smallest first
-                _promoteQueue.push({ texturePointer, 1.0f / (float)gltexture->size() });
-            }
-            break;
-
-        case MemoryPressureState::Transfer:
-            if (vargltexture->hasPendingTransfers()) {
-                // Transfer priority given to smaller mips first
-                _transferQueue.push({ texturePointer, 1.0f / (float)gltexture->_gpuObject.evalMipSize(vargltexture->_populatedMip) });
-            }
-            break;
-
-        case MemoryPressureState::Idle:
-            Q_UNREACHABLE();
-            break;
-    }
-}
-
-WorkQueue& GLVariableAllocationSupport::getActiveWorkQueue() {
-    static WorkQueue empty;
-    switch (_memoryPressureState) {
-        case MemoryPressureState::Oversubscribed:
-            return _demoteQueue;
-
-        case MemoryPressureState::Undersubscribed:
-            return _promoteQueue;
-
-        case MemoryPressureState::Transfer:
-            return _transferQueue;
-
-        case MemoryPressureState::Idle:
-            Q_UNREACHABLE();
-            break;
-    }
-    return empty;
-}
-
-// FIXME hack for stats display
-QString getTextureMemoryPressureModeString() {
-    switch (GLVariableAllocationSupport::_memoryPressureState) {
-        case MemoryPressureState::Oversubscribed:
-            return "Oversubscribed";
-
-        case MemoryPressureState::Undersubscribed:
-            return "Undersubscribed";
-
-        case MemoryPressureState::Transfer:
-            return "Transfer";
-
-        case MemoryPressureState::Idle:
-            return "Idle";
-    }
-    Q_UNREACHABLE();
-    return "Unknown";
-}
-
-void GLVariableAllocationSupport::updateMemoryPressure() {
-    static size_t lastAllowedMemoryAllocation = gpu::Texture::getAllowedGPUMemoryUsage();
-
-    size_t allowedMemoryAllocation = gpu::Texture::getAllowedGPUMemoryUsage();
-    if (0 == allowedMemoryAllocation) {
-        allowedMemoryAllocation = DEFAULT_ALLOWED_TEXTURE_MEMORY;
-    }
-
-    // If the user explicitly changed the allowed memory usage, we need to mark ourselves stale 
-    // so that we react
-    if (allowedMemoryAllocation != lastAllowedMemoryAllocation) {
-        _memoryPressureStateStale = true;
-        lastAllowedMemoryAllocation = allowedMemoryAllocation;
-    }
-
-    if (!_memoryPressureStateStale.exchange(false)) {
-        return;
-    }
-
-    PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
-
-    // Clear any defunct textures (weak pointers that no longer have a valid texture)
-    _memoryManagedTextures.remove_if([&](const TextureWeakPointer& weakPointer) {
-        return weakPointer.expired();
-    });
-
-    // Convert weak pointers to strong.  This new list may still contain nulls if a texture was 
-    // deleted on another thread between the previous line and this one
-    std::vector<TexturePointer> strongTextures; {
-        strongTextures.reserve(_memoryManagedTextures.size());
-        std::transform(
-            _memoryManagedTextures.begin(), _memoryManagedTextures.end(),
-            std::back_inserter(strongTextures),
-            [](const TextureWeakPointer& p) { return p.lock(); });
-    }
-
-    size_t totalVariableMemoryAllocation = 0;
-    size_t idealMemoryAllocation = 0;
-    bool canDemote = false;
-    bool canPromote = false;
-    bool hasTransfers = false;
-    for (const auto& texture : strongTextures) {
-        // Race conditions can still leave nulls in the list, so we need to check
-        if (!texture) {
-            continue;
-        }
-        GLTexture* gltexture = Backend::getGPUObject<GLTexture>(*texture);
-        GLVariableAllocationSupport* vartexture = dynamic_cast<GLVariableAllocationSupport*>(gltexture);
-        // Track how much the texture thinks it should be using
-        idealMemoryAllocation += texture->evalTotalSize();
-        // Track how much we're actually using
-        totalVariableMemoryAllocation += gltexture->size();
-        canDemote |= vartexture->canDemote();
-        canPromote |= vartexture->canPromote();
-        hasTransfers |= vartexture->hasPendingTransfers();
-    }
-
-    size_t unallocated = idealMemoryAllocation - totalVariableMemoryAllocation;
-    float pressure = (float)totalVariableMemoryAllocation / (float)allowedMemoryAllocation;
-
-    auto newState = MemoryPressureState::Idle;
-    if (pressure < UNDERSUBSCRIBED_PRESSURE_VALUE && (unallocated != 0 && canPromote)) {
-        newState = MemoryPressureState::Undersubscribed;
-    } else if (pressure > OVERSUBSCRIBED_PRESSURE_VALUE && canDemote) {
-        newState = MemoryPressureState::Oversubscribed;
-    } else if (hasTransfers) {
-        newState = MemoryPressureState::Transfer;
-    }
-
-    if (newState != _memoryPressureState) {
-        _memoryPressureState = newState;
-        // Clear the existing queue
-        _transferQueue = WorkQueue();
-        _promoteQueue = WorkQueue();
-        _demoteQueue = WorkQueue();
-
-        // Populate the existing textures into the queue
-        if (_memoryPressureState != MemoryPressureState::Idle) {
-            for (const auto& texture : strongTextures) {
-                // Race conditions can still leave nulls in the list, so we need to check
-                if (!texture) {
-                    continue;
-                }
-                addToWorkQueue(texture);
-            }
-        }
-    }
-}
-
-TexturePointer GLVariableAllocationSupport::getNextWorkQueueItem(WorkQueue& workQueue) {
-    while (!workQueue.empty()) {
-        auto workTarget = workQueue.top();
-
-        auto texture = workTarget.first.lock();
-        if (!texture) {
-            workQueue.pop();
-            continue;
-        }
-
-        // Check whether the resulting texture can actually have work performed
-        GLTexture* gltexture = Backend::getGPUObject<GLTexture>(*texture);
-        GLVariableAllocationSupport* vartexture = dynamic_cast<GLVariableAllocationSupport*>(gltexture);
-        switch (_memoryPressureState) {
-            case MemoryPressureState::Oversubscribed:
-                if (vartexture->canDemote()) {
-                    return texture;
-                }
-                break;
-
-            case MemoryPressureState::Undersubscribed:
-                if (vartexture->canPromote()) {
-                    return texture;
-                }
-                break;
-
-            case MemoryPressureState::Transfer:
-                if (vartexture->hasPendingTransfers()) {
-                    return texture;
-                }
-                break;
-
-            case MemoryPressureState::Idle:
-                Q_UNREACHABLE();
-                break;
-        }
-
-        // If we got here, then the texture has no work to do in the current state, 
-        // so pop it off the queue and continue
-        workQueue.pop();
-    }
-
-    return TexturePointer();
-}
-
-void GLVariableAllocationSupport::processWorkQueue(WorkQueue& workQueue) {
-    if (workQueue.empty()) {
-        return;
-    }
-
-    // Get the front of the work queue to perform work
-    auto texture = getNextWorkQueueItem(workQueue);
-    if (!texture) {
-        return;
-    }
-
-    // Grab the first item off the demote queue
-    PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
-
-    GLTexture* gltexture = Backend::getGPUObject<GLTexture>(*texture);
-    GLVariableAllocationSupport* vartexture = dynamic_cast<GLVariableAllocationSupport*>(gltexture);
-    switch (_memoryPressureState) {
-        case MemoryPressureState::Oversubscribed:
-            vartexture->demote();
-            workQueue.pop();
-            addToWorkQueue(texture);
-            _memoryPressureStateStale = true;
-            break;
-
-        case MemoryPressureState::Undersubscribed:
-            vartexture->promote();
-            workQueue.pop();
-            addToWorkQueue(texture);
-            _memoryPressureStateStale = true;
-            break;
-
-        case MemoryPressureState::Transfer:
-            if (vartexture->executeNextTransfer(texture)) {
-                workQueue.pop();
-                addToWorkQueue(texture);
-
-#if THREADED_TEXTURE_BUFFERING
-                // Eagerly start the next buffering job if possible
-                texture = getNextWorkQueueItem(workQueue);
-                if (texture) {
-                    gltexture = Backend::getGPUObject<GLTexture>(*texture);
-                    vartexture = dynamic_cast<GLVariableAllocationSupport*>(gltexture);
-                    vartexture->executeNextBuffer(texture);
-                }
-#endif
-            }
-            break;
-
-        case MemoryPressureState::Idle:
-            Q_UNREACHABLE();
-            break;
-    }
-}
-
-void GLVariableAllocationSupport::processWorkQueues() {
-    if (MemoryPressureState::Idle == _memoryPressureState) {
-        return;
-    }
-
-    auto& workQueue = getActiveWorkQueue();
-    // Do work on the front of the queue
-    processWorkQueue(workQueue);
-
-    if (workQueue.empty()) {
-        _memoryPressureState = MemoryPressureState::Idle;
-        _memoryPressureStateStale = true;
-    }
-}
-
-void GLVariableAllocationSupport::manageMemory() {
-    PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
-    updateMemoryPressure();
-    processWorkQueues();
-}
-
-bool GLVariableAllocationSupport::executeNextTransfer(const TexturePointer& currentTexture) {
-#if THREADED_TEXTURE_BUFFERING
-    // If a transfer job is active on the buffering thread, but has not completed it's buffering lambda,
-    // then we need to exit early, since we don't want to have the transfer job leave scope while it's 
-    // being used in another thread -- See https://highfidelity.fogbugz.com/f/cases/4626
-    if (_currentTransferJob && !_currentTransferJob->bufferingCompleted()) {
-        return false;
-    }
-#endif
-
-    if (_populatedMip <= _allocatedMip) {
-#if THREADED_TEXTURE_BUFFERING
-        _currentTransferJob.reset();
-        _currentTransferTexture.reset();
-#endif
-        return true;
-    }
-
-    // If the transfer queue is empty, rebuild it
-    if (_pendingTransfers.empty()) {
-        populateTransferQueue();
-    }
-
-    bool result = false;
-    if (!_pendingTransfers.empty()) {
-#if THREADED_TEXTURE_BUFFERING
-        // If there is a current transfer, but it's not the top of the pending transfer queue, then it's an orphan, so we want to abandon it.
-        if (_currentTransferJob && _currentTransferJob != _pendingTransfers.front()) {
-            _currentTransferJob.reset();
-        }
-
-        if (!_currentTransferJob) {
-            // Keeping hold of a strong pointer to the transfer job ensures that if the pending transfer queue is rebuilt, the transfer job
-            // doesn't leave scope, causing a crash in the buffering thread
-            _currentTransferJob = _pendingTransfers.front();
-
-            // Keeping hold of a strong pointer during the transfer ensures that the transfer thread cannot try to access a destroyed texture
-            _currentTransferTexture = currentTexture;
-        }
-
-        // transfer jobs use asynchronous buffering of the texture data because it may involve disk IO, so we execute a try here to determine if the buffering 
-        // is complete
-        if (_currentTransferJob->tryTransfer()) {
-            _pendingTransfers.pop();
-            // Once a given job is finished, release the shared pointers keeping them alive
-            _currentTransferTexture.reset();
-            _currentTransferJob.reset();
-            result = true;
-        }
-#else
-        if (_pendingTransfers.front()->tryTransfer()) {
-            _pendingTransfers.pop();
-            result = true;
-        }
-#endif
-    }
-    return result;
-}
-
-#if THREADED_TEXTURE_BUFFERING
-void GLVariableAllocationSupport::executeNextBuffer(const TexturePointer& currentTexture) {
-    if (_currentTransferJob && !_currentTransferJob->bufferingCompleted()) {
-        return;
-    }
-
-    // If the transfer queue is empty, rebuild it
-    if (_pendingTransfers.empty()) {
-        populateTransferQueue();
-    }
-
-    if (!_pendingTransfers.empty()) {
-        if (!_currentTransferJob) {
-            _currentTransferJob = _pendingTransfers.front();
-            _currentTransferTexture = currentTexture;
-        }
-
-        _currentTransferJob->startBuffering();
-    }
-}
-#endif
-
-void GLVariableAllocationSupport::incrementPopulatedSize(Size delta) const {
-    _populatedSize += delta;
-    // Keep the 2 code paths to be able to debug
-    if (_size < _populatedSize) {
-        Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
-    } else  {
-        Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
-    }
-}
-void GLVariableAllocationSupport::decrementPopulatedSize(Size delta) const {
-    _populatedSize -= delta;
-    // Keep the 2 code paths to be able to debug
-    if (_size < _populatedSize) {
-        Backend::textureResourcePopulatedGPUMemSize.update(delta, 0);
-    } else  {
-        Backend::textureResourcePopulatedGPUMemSize.update(delta, 0);
-    }
-}
-
 

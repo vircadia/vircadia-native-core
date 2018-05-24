@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityEditFilters.h"
 
 #include <QUrl>
 
 #include <ResourceManager.h>
-#include "EntityEditFilters.h"
 
 QList<EntityItemID> EntityEditFilters::getZonesByPosition(glm::vec3& position) {
     QList<EntityItemID> zones;

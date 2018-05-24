@@ -91,7 +91,7 @@ public:
 
     // this is the maximum per shader stage on the low end apple
     // TODO make it platform dependant at init time
-    static const int MAX_NUM_UNIFORM_BUFFERS = 12;
+    static const int MAX_NUM_UNIFORM_BUFFERS = 14;
     size_t getMaxNumUniformBuffers() const { return MAX_NUM_UNIFORM_BUFFERS; }
 
     // this is the maximum per shader stage on the low end apple
@@ -491,8 +491,10 @@ protected:
 
     struct TextureManagementStageState {
         bool _sparseCapable { false };
+        GLTextureTransferEnginePointer _transferEngine;
     } _textureManagement;
-    virtual void initTextureManagementStage() {}
+    virtual void initTextureManagementStage();
+    virtual void killTextureManagementStage();
 
     typedef void (GLBackend::*CommandCall)(const Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

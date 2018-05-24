@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "FBXReader.h"
+
 #include <iostream>
 #include <QBuffer>
 #include <QDataStream>
@@ -31,7 +33,6 @@
 #include <gpu/Format.h>
 #include <LogHandler.h>
 
-#include "FBXReader.h"
 #include "ModelFormatLogging.h"
 
 // TOOL: Uncomment the following line to enable the filtering of all the unkwnon fields of a node so we can break point easily while loading a model with problems...
@@ -1602,7 +1603,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
     // NOTE: shapeVertices are in joint-frame
     std::vector<ShapeVertices> shapeVertices;
-    shapeVertices.resize(geometry.joints.size());
+    shapeVertices.resize(std::max(1, geometry.joints.size()) );
 
     // find our special joints
     geometry.leftEyeJointIndex = modelIDs.indexOf(jointEyeLeftID);

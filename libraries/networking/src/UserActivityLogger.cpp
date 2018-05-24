@@ -9,16 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "UserActivityLogger.h"
+
 #include <QEventLoop>
 #include <QJsonDocument>
 #include <QHttpMultiPart>
 #include <QTimer>
 
-#include "NetworkLogging.h"
-
-#include "UserActivityLogger.h"
 #include <DependencyManager.h>
+
 #include "AddressManager.h"
+#include "NetworkLogging.h"
 
 UserActivityLogger::UserActivityLogger() {
     _timer.start();

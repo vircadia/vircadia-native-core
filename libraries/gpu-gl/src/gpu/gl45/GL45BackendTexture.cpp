@@ -28,9 +28,26 @@ using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl45;
 
-#define MAX_RESOURCE_TEXTURES_PER_FRAME 2
 #define FORCE_STRICT_TEXTURE 0
 #define ENABLE_SPARSE_TEXTURE 0
+
+bool GL45Backend::supportedTextureFormat(const gpu::Element& format) {
+    switch (format.getSemantic()) {
+        case gpu::Semantic::COMPRESSED_ETC2_RGB:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGB:
+        case gpu::Semantic::COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA:
+        case gpu::Semantic::COMPRESSED_ETC2_RGBA:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGBA:
+        case gpu::Semantic::COMPRESSED_EAC_RED:
+        case gpu::Semantic::COMPRESSED_EAC_RED_SIGNED:
+        case gpu::Semantic::COMPRESSED_EAC_XY:
+        case gpu::Semantic::COMPRESSED_EAC_XY_SIGNED:
+            return false;
+        default:
+            return true;
+    }
+}
 
 GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
     if (!texturePointer) {
@@ -64,7 +81,8 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
 
 #if !FORCE_STRICT_TEXTURE
             case TextureUsageType::RESOURCE: {
-                if (GL45VariableAllocationTexture::_frameTexturesCreated < MAX_RESOURCE_TEXTURES_PER_FRAME) {
+                auto& transferEngine  = _textureManagement._transferEngine;
+                if (transferEngine->allowCreate()) {
 #if ENABLE_SPARSE_TEXTURE
                     if (isTextureManagementSparseEnabled() && GL45Texture::isSparseEligible(texture)) {
                         object = new GL45SparseResourceTexture(shared_from_this(), texture);
@@ -74,7 +92,7 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
 #else 
                     object = new GL45ResourceTexture(shared_from_this(), texture);
 #endif
-                    GLVariableAllocationSupport::addMemoryManagedTexture(texturePointer);
+                    transferEngine->addMemoryManagedTexture(texturePointer);
                 } else {
                     auto fallback = texturePointer->getFallbackTexture();
                     if (fallback) {
@@ -96,7 +114,6 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
                 auto minAvailableMip = texture.minAvailableMipLevel();
                 if (minAvailableMip < varTex->_minAllocatedMip) {
                     varTex->_minAllocatedMip = minAvailableMip;
-                    GL45VariableAllocationTexture::_memoryPressureStateStale = true;
                 }
             }
         }
@@ -106,6 +123,7 @@ GLTexture* GL45Backend::syncGPUObject(const TexturePointer& texturePointer) {
 }
 
 void GL45Backend::initTextureManagementStage() {
+    GLBackend::initTextureManagementStage();
     // enable the Sparse Texture on gl45
     _textureManagement._sparseCapable = true;
 

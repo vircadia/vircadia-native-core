@@ -37,6 +37,10 @@ class AABox;
 /**jsdoc
  * The LOD class manages your Level of Detail functions within Interface.
  * @namespace LODManager
+  *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @property {number} presentTime <em>Read-only.</em>
  * @property {number} engineRunTime <em>Read-only.</em>
  * @property {number} gpuTime <em>Read-only.</em>

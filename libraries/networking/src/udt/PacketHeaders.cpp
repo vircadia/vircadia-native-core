@@ -29,12 +29,13 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::DomainList:
             return static_cast<PacketVersion>(DomainListVersion::GetMachineFingerprintFromUUIDSupport);
         case PacketType::EntityAdd:
+        case PacketType::EntityClone:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return static_cast<PacketVersion>(EntityVersion::MaterialData);
+            return static_cast<PacketVersion>(EntityVersion::CloneableData);
         case PacketType::EntityQuery:
-            return static_cast<PacketVersion>(EntityQueryPacketVersion::RemovedJurisdictions);
+            return static_cast<PacketVersion>(EntityQueryPacketVersion::ConicalFrustums);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
@@ -59,11 +60,10 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return 17;
         case PacketType::AssetMappingOperation:
         case PacketType::AssetMappingOperationReply:
-            return static_cast<PacketVersion>(AssetServerPacketVersion::RedirectedMappings);
         case PacketType::AssetGetInfo:
         case PacketType::AssetGet:
         case PacketType::AssetUpload:
-            return static_cast<PacketVersion>(AssetServerPacketVersion::RangeRequestSupport);
+            return static_cast<PacketVersion>(AssetServerPacketVersion::BakingTextureMeta);
         case PacketType::NodeIgnoreRequest:
             return 18; // Introduction of node ignore request (which replaced an unused packet tpye)
 
@@ -90,8 +90,10 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return 18;  // replace min_avatar_scale and max_avatar_scale with min_avatar_height and max_avatar_height
         case PacketType::Ping:
             return static_cast<PacketVersion>(PingVersion::IncludeConnectionID);
+        case PacketType::AvatarQuery:
+            return static_cast<PacketVersion>(AvatarQueryVersion::ConicalFrustums);
         default:
-            return 20;
+            return 21;
     }
 }
 

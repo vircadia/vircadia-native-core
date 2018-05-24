@@ -67,8 +67,8 @@ using namespace std;
 
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
-const float YAW_SPEED_DEFAULT = 75.0f;   // degrees/sec
-const float PITCH_SPEED_DEFAULT = 50.0f; // degrees/sec
+const float YAW_SPEED_DEFAULT = 100.0f;   // degrees/sec
+const float PITCH_SPEED_DEFAULT = 75.0f; // degrees/sec
 
 const float MAX_BOOST_SPEED = 0.5f * DEFAULT_AVATAR_MAX_WALKING_SPEED; // action motor gets additive boost below this speed
 const float MIN_AVATAR_SPEED = 0.05f;
@@ -1486,6 +1486,15 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     std::shared_ptr<QMetaObject::Connection> skeletonConnection = std::make_shared<QMetaObject::Connection>();
     *skeletonConnection = QObject::connect(_skeletonModel.get(), &SkeletonModel::skeletonLoaded, [this, skeletonModelChangeCount, skeletonConnection]() {
        if (skeletonModelChangeCount == _skeletonModelChangeCount) {
+
+           if (_fullAvatarModelName.isEmpty()) {
+               // Store the FST file name into preferences
+               const auto& mapping = _skeletonModel->getGeometry()->getMapping();
+               if (mapping.value("name").isValid()) {
+                   _fullAvatarModelName = mapping.value("name").toString();
+               }
+           }
+
            initHeadBones();
            _skeletonModel->setCauterizeBoneSet(_headBoneSet);
            _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
@@ -1548,12 +1557,7 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
 
     if (_fullAvatarURLFromPreferences != fullAvatarURL) {
         _fullAvatarURLFromPreferences = fullAvatarURL;
-        if (modelName.isEmpty()) {
-            QVariantHash fullAvatarFST = FSTReader::downloadMapping(_fullAvatarURLFromPreferences.toString());
-            _fullAvatarModelName = fullAvatarFST["name"].toString();
-        } else {
-            _fullAvatarModelName = modelName;
-        }
+        _fullAvatarModelName = modelName;
     }
 
     const QString& urlString = fullAvatarURL.toString();
@@ -1561,8 +1565,8 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
         setSkeletonModelURL(fullAvatarURL);
         UserActivityLogger::getInstance().changedModel("skeleton", urlString);
     }
+
     markIdentityDataChanged();
-    
 }
 
 void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
@@ -2035,7 +2039,7 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
     }
 }
 
-void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
+void MyAvatar::preDisplaySide(const RenderArgs* renderArgs) {
 
     // toggle using the cauterizedBones depending on where the camera is and the rendering pass type.
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
@@ -2050,12 +2054,14 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
                 _attachmentData[i].jointName.compare("RightEye", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("HeadTop_End", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("Face", Qt::CaseInsensitive) == 0) {
+                uint8_t modelRenderTagBits = shouldDrawHead ? render::ItemKey::TAG_BITS_0 : render::ItemKey::TAG_BITS_NONE;
+                modelRenderTagBits |= render::ItemKey::TAG_BITS_1;
+                _attachmentModels[i]->setVisibleInScene(true, qApp->getMain3DScene(),
+                                                        modelRenderTagBits, false);
 
-                _attachmentModels[i]->setVisibleInScene(shouldDrawHead, qApp->getMain3DScene(),
-                                                        render::ItemKey::TAG_BITS_NONE, true);
-
-                _attachmentModels[i]->setCanCastShadow(shouldDrawHead, qApp->getMain3DScene(), 
-                                                       render::ItemKey::TAG_BITS_NONE, true);
+                uint8_t castShadowRenderTagBits = render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1;
+                _attachmentModels[i]->setCanCastShadow(true, qApp->getMain3DScene(),
+                                                       castShadowRenderTagBits, false);
             }
         }
     }
@@ -2240,7 +2246,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     }
 
     float boomChange = getDriveKey(ZOOM);
-    _boomLength += 4.0f * _boomLength * boomChange + boomChange * boomChange;
+    _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
 }
 
@@ -2648,7 +2654,6 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
-    setCollisionsEnabled(menu->isOptionChecked(MenuOption::EnableAvatarCollisions));
     setProperty("lookAtSnappingEnabled", menu->isOptionChecked(MenuOption::EnableLookAtSnapping));
 }
 

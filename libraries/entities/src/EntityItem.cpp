@@ -124,6 +124,13 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
 
     requestedProperties += PROP_LAST_EDITED_BY;
 
+    requestedProperties += PROP_CLONEABLE;
+    requestedProperties += PROP_CLONE_LIFETIME;
+    requestedProperties += PROP_CLONE_LIMIT;
+    requestedProperties += PROP_CLONE_DYNAMIC;
+    requestedProperties += PROP_CLONE_AVATAR_ENTITY;
+    requestedProperties += PROP_CLONE_ORIGIN_ID;
+
     return requestedProperties;
 }
 
@@ -288,6 +295,13 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, getQueryAACube());
         APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, getLastEditedBy());
 
+        APPEND_ENTITY_PROPERTY(PROP_CLONEABLE, getCloneable());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_LIFETIME, getCloneLifetime());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_LIMIT, getCloneLimit());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, getCloneDynamic());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, getCloneAvatarEntity());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, getCloneOriginID()); 
+
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
                                 propertyFlags,
@@ -352,6 +366,10 @@ int EntityItem::expectedBytes() {
     const int MINIMUM_HEADER_BYTES = 27;
     return MINIMUM_HEADER_BYTES;
 }
+
+const uint8_t PENDING_STATE_NOTHING = 0;
+const uint8_t PENDING_STATE_TAKE = 1;
+const uint8_t PENDING_STATE_RELEASE = 2;
 
 // clients use this method to unpack FULL updates from entity-server
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
@@ -664,7 +682,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // setters to ignore what the server says.
         filterRejection = newSimOwner.getID().isNull();
         if (weOwnSimulation) {
-            if (newSimOwner.getID().isNull() && !_simulationOwner.pendingRelease(lastEditedFromBufferAdjusted)) {
+            if (newSimOwner.getID().isNull() && !pendingRelease(lastEditedFromBufferAdjusted)) {
                 // entity-server is trying to clear our ownership (probably at our own request)
                 // but we actually want to own it, therefore we ignore this clear event
                 // and pretend that we own it (e.g. we assume we'll receive ownership soon)
@@ -679,32 +697,53 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 // recompute weOwnSimulation for later
                 weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
             }
-        } else if (_simulationOwner.pendingTake(now - maxPingRoundTrip)) {
-            // we sent a bid already but maybe before this packet was sent from the server
-            weOwnSimulation = true;
+        } else if (_pendingOwnershipState == PENDING_STATE_TAKE) {
+            // we're waiting to receive acceptance of a bid
+            // this ownership data either satisifies our bid or does not
+            bool bidIsSatisfied = newSimOwner.getID() == myNodeID &&
+                (newSimOwner.getPriority() == _pendingOwnershipPriority ||
+                 (_pendingOwnershipPriority == VOLUNTEER_SIMULATION_PRIORITY &&
+                  newSimOwner.getPriority() == RECRUIT_SIMULATION_PRIORITY));
+
             if (newSimOwner.getID().isNull()) {
-                // the entity-server is trying to clear someone else's ownership
+                // the entity-server is clearing someone else's ownership
                 if (!_simulationOwner.isNull()) {
                     markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
                     somethingChanged = true;
                     _simulationOwner.clearCurrentOwner();
                 }
-            } else if (newSimOwner.getID() == myNodeID) {
-                // the entity-server is awarding us ownership which is what we want
-                _simulationOwner.set(newSimOwner);
+            } else {
+                if (newSimOwner.getID() != _simulationOwner.getID()) {
+                    markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
+                }
+                if (_simulationOwner.set(newSimOwner)) {
+                    // the entity-server changed ownership
+                    somethingChanged = true;
+                }
             }
-        } else if (newSimOwner.matchesValidID(myNodeID) && !_simulationOwner.pendingTake(now)) {
-            // entity-server tells us that we have simulation ownership while we never requested this for this EntityItem,
-            // this could happen when the user reloads the cache and entity tree.
-            markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
-            somethingChanged = true;
-            _simulationOwner.clearCurrentOwner();
-            weOwnSimulation = false;
-        } else if (_simulationOwner.set(newSimOwner)) {
-            markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
-            somethingChanged = true;
-            // recompute weOwnSimulation for later
-            weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
+            if (bidIsSatisfied || (somethingChanged && _pendingOwnershipTimestamp < now - maxPingRoundTrip)) {
+                // the bid has been satisfied, or it has been invalidated by data sent AFTER the bid should have been received
+                // in either case: accept our fate and clear pending state
+                _pendingOwnershipState = PENDING_STATE_NOTHING;
+                _pendingOwnershipPriority = 0;
+            }
+            weOwnSimulation = bidIsSatisfied || (_simulationOwner.getID() == myNodeID);
+        } else {
+            // we are not waiting to take ownership
+            if (newSimOwner.getID() != _simulationOwner.getID()) {
+                markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
+            }
+            if (_simulationOwner.set(newSimOwner)) {
+                // the entity-server changed ownership...
+                somethingChanged = true;
+                if (newSimOwner.getID() == myNodeID) {
+                    // we have recieved ownership
+                    weOwnSimulation = true;
+                    // accept our fate and clear pendingState (just in case)
+                    _pendingOwnershipState = PENDING_STATE_NOTHING;
+                    _pendingOwnershipPriority = 0;
+                }
+            }
         }
     }
 
@@ -847,6 +886,13 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     }
 
     READ_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, QUuid, setLastEditedBy);
+
+    READ_ENTITY_PROPERTY(PROP_CLONEABLE, bool, setCloneable);
+    READ_ENTITY_PROPERTY(PROP_CLONE_LIFETIME, float, setCloneLifetime);
+    READ_ENTITY_PROPERTY(PROP_CLONE_LIMIT, float, setCloneLimit);
+    READ_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, bool, setCloneDynamic);
+    READ_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, bool, setCloneAvatarEntity);
+    READ_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, QUuid, setCloneOriginID); 
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData, somethingChanged);
@@ -1069,9 +1115,9 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
     }
 
     const float MAX_TIME_ELAPSED = 1.0f; // seconds
-//    if (timeElapsed > MAX_TIME_ELAPSED) {
-//        qCWarning(entities) << "kinematic timestep = " << timeElapsed << " truncated to " << MAX_TIME_ELAPSED;
-//    }
+    if (timeElapsed > MAX_TIME_ELAPSED) {
+        qCDebug(entities) << "kinematic timestep = " << timeElapsed << " truncated to " << MAX_TIME_ELAPSED;
+    }
     timeElapsed = glm::min(timeElapsed, MAX_TIME_ELAPSED);
 
     if (isSpinning) {
@@ -1275,6 +1321,13 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lastEditedBy, getLastEditedBy);
 
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneable, getCloneable);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneLifetime, getCloneLifetime);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneLimit, getCloneLimit);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneDynamic, getCloneDynamic);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneAvatarEntity, getCloneAvatarEntity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneOriginID, getCloneOriginID);
+
     properties._defaultSettings = false;
 
     return properties;
@@ -1305,16 +1358,37 @@ void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) c
     properties._accelerationChanged = true;
 }
 
-void EntityItem::flagForOwnershipBid(uint8_t priority) {
-    markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY);
-    auto nodeList = DependencyManager::get<NodeList>();
-    if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
-        // we already own it
-        _simulationOwner.promotePriority(priority);
-    } else {
-        // we don't own it yet
-        _simulationOwner.setPendingPriority(priority, usecTimestampNow());
+void EntityItem::setScriptSimulationPriority(uint8_t priority) {
+    uint8_t newPriority = stillHasGrabActions() ? glm::max(priority, SCRIPT_GRAB_SIMULATION_PRIORITY) : priority;
+    if (newPriority != _scriptSimulationPriority) {
+        // set the dirty flag to trigger a bid or ownership update
+        markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY);
+        _scriptSimulationPriority = newPriority;
     }
+}
+
+void EntityItem::clearScriptSimulationPriority() {
+    // DO NOT markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY) here, because this
+    // is only ever called from the code that actually handles the dirty flags, and it knows best.
+    _scriptSimulationPriority = stillHasGrabActions() ? SCRIPT_GRAB_SIMULATION_PRIORITY : 0;
+}
+
+void EntityItem::setPendingOwnershipPriority(uint8_t priority) {
+    _pendingOwnershipTimestamp = usecTimestampNow();
+    _pendingOwnershipPriority = priority;
+    _pendingOwnershipState = (_pendingOwnershipPriority == 0) ? PENDING_STATE_RELEASE : PENDING_STATE_TAKE;
+}
+
+bool EntityItem::pendingRelease(uint64_t timestamp) const {
+    return _pendingOwnershipPriority == 0 &&
+        _pendingOwnershipState == PENDING_STATE_RELEASE &&
+        _pendingOwnershipTimestamp >= timestamp;
+}
+
+bool EntityItem::stillWaitingToTakeOwnership(uint64_t timestamp) const {
+    return _pendingOwnershipPriority > 0 &&
+        _pendingOwnershipState == PENDING_STATE_TAKE &&
+        _pendingOwnershipTimestamp >= timestamp;
 }
 
 bool EntityItem::setProperties(const EntityItemProperties& properties) {
@@ -1381,6 +1455,13 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(owningAvatarID, setOwningAvatarID);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lastEditedBy, setLastEditedBy);
+
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneable, setCloneable);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneLifetime, setCloneLifetime);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneLimit, setCloneLimit);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneDynamic, setCloneDynamic);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneAvatarEntity, setCloneAvatarEntity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneOriginID, setCloneOriginID);
 
     if (updateQueryAACube()) {
         somethingChanged = true;
@@ -1941,10 +2022,6 @@ void EntityItem::clearSimulationOwnership() {
 
 }
 
-void EntityItem::setPendingOwnershipPriority(uint8_t priority, const quint64& timestamp) {
-    _simulationOwner.setPendingPriority(priority, timestamp);
-}
-
 QString EntityItem::actionsToDebugString() {
     QString result;
     QVector<QByteArray> serializedActions;
@@ -2040,6 +2117,7 @@ bool EntityItem::updateAction(EntitySimulationPointer simulation, const QUuid& a
 }
 
 bool EntityItem::removeAction(EntitySimulationPointer simulation, const QUuid& actionID) {
+    // TODO: some action
     bool success = false;
     withWriteLock([&] {
         checkWaitingToRemove(simulation);
@@ -2979,4 +3057,119 @@ std::unordered_map<std::string, graphics::MultiMaterial> EntityItem::getMaterial
         toReturn = _materials;
     }
     return toReturn;
+}
+
+bool EntityItem::getCloneable() const {
+    bool result;
+    withReadLock([&] {
+        result = _cloneable;
+    });
+    return result;
+}
+
+void EntityItem::setCloneable(bool value) {
+    withWriteLock([&] {
+        _cloneable = value;
+    });
+}
+
+float EntityItem::getCloneLifetime() const {
+    float result;
+    withReadLock([&] {
+        result = _cloneLifetime;
+    });
+    return result;
+}
+
+void EntityItem::setCloneLifetime(float value) {
+    withWriteLock([&] {
+        _cloneLifetime = value;
+    });
+}
+
+float EntityItem::getCloneLimit() const {
+    float result;
+    withReadLock([&] {
+        result = _cloneLimit;
+    });
+    return result;
+}
+
+void EntityItem::setCloneLimit(float value) {
+    withWriteLock([&] {
+        _cloneLimit = value;
+    });
+}
+
+bool EntityItem::getCloneDynamic() const {
+    bool result;
+    withReadLock([&] {
+        result = _cloneDynamic;
+    });
+    return result;
+}
+
+void EntityItem::setCloneDynamic(bool value) {
+    withWriteLock([&] {
+        _cloneDynamic = value;
+    });
+}
+
+bool EntityItem::getCloneAvatarEntity() const {
+    bool result;
+    withReadLock([&] {
+        result = _cloneAvatarEntity;
+    });
+    return result;
+}
+
+void EntityItem::setCloneAvatarEntity(bool value) {
+    withWriteLock([&] {
+        _cloneAvatarEntity = value;
+    });
+}
+
+const QUuid EntityItem::getCloneOriginID() const {
+    QUuid result;
+    withReadLock([&] {
+        result = _cloneOriginID;
+    });
+    return result;
+}
+
+void EntityItem::setCloneOriginID(const QUuid& value) {
+    withWriteLock([&] {
+        _cloneOriginID = value;
+    });
+}
+
+void EntityItem::addCloneID(const QUuid& cloneID) {
+    withWriteLock([&] {
+        if (!_cloneIDs.contains(cloneID)) {
+            _cloneIDs.append(cloneID);
+        }
+    });
+}
+
+void EntityItem::removeCloneID(const QUuid& cloneID) {
+    withWriteLock([&] {
+        int index = _cloneIDs.indexOf(cloneID);
+        if (index >= 0) {
+            _cloneIDs.removeAt(index);
+        }
+    });
+}
+
+const QVector<QUuid> EntityItem::getCloneIDs() const {
+    QVector<QUuid> result;
+    withReadLock([&] {
+        result = _cloneIDs;
+    });
+    return result;
+}
+
+void EntityItem::setCloneIDs(const QVector<QUuid>& cloneIDs) {
+    withWriteLock([&] {
+        _cloneIDs = cloneIDs;
+    });
 }

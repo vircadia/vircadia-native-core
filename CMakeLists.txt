@@ -179,7 +179,12 @@ endif()
 add_subdirectory(tools)
 
 if (BUILD_TESTS)
+  # Turn on testing so that add_test works
+  # MUST be in the root cmake file for ctest to work 
+  include(CTest)
+  enable_testing()
   add_subdirectory(tests)
+  add_subdirectory(tests-manual)
 endif()
 
 if (BUILD_INSTALLER)

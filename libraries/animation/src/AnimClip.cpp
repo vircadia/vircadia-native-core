@@ -8,8 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "GLMHelpers.h"
 #include "AnimClip.h"
+
+#include "GLMHelpers.h"
 #include "AnimationLogging.h"
 #include "AnimUtil.h"
 

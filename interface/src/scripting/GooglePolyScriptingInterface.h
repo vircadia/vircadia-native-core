@@ -18,6 +18,9 @@
 /**jsdoc 
  * The GooglePoly API allows you to interact with Google Poly models direct from inside High Fidelity.
  * @namespace GooglePoly
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 
 class GooglePolyScriptingInterface : public QObject, public Dependency {

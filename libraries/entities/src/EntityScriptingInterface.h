@@ -94,6 +94,12 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
  * Interface has displayed and so knows about.
  *
  * @namespace Entities
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
  * @property {Uuid} keyboardFocusEntity - Get or set the {@link Entities.EntityType|Web} entity that has keyboard focus.
  *     If no entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
  *     clear keyboard focus.
@@ -217,6 +223,16 @@ public slots:
     /// Deliberately not adding jsdoc, only used internally.
     Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const QString& textures, const QString& shapeType, bool dynamic,
                                      bool collisionless, const glm::vec3& position, const glm::vec3& gravity);
+
+    /**jsdoc
+     * Request a clone of an entity. Only entities that have been marked as 'cloneable' will be able to be cloned using this method.
+     * A cloned entity has most of the properties of the orignal entity, and can be requested from clients that do not have rez permissions.
+     * The client requests a clone from the entity server, which returns back the entityID of a valid clone if the operation was allowed.
+     * @function Entities.cloneEntity
+     * @param {Uuid} entityIDToClone - the ID of the entity to clone
+     * @returns {Entities.EntityID} The ID of the newly created clone
+     */
+    Q_INVOKABLE QUuid cloneEntity(QUuid entityIDToClone);
 
     /**jsdoc
      * Get the properties of an entity.
@@ -475,8 +491,8 @@ public slots:
     /**jsdoc
      * Gets the status of server entity script attached to an entity
      * @function Entities.getServerScriptStatus
-     * @property {Uuid} entityID - The ID of the entity to get the server entity script status for.
-     * @property {Entities~getServerScriptStatusCallback} callback - The function to call upon completion.
+     * @param {Uuid} entityID - The ID of the entity to get the server entity script status for.
+     * @param {Entities~getServerScriptStatusCallback} callback - The function to call upon completion.
      * @returns {boolean} <code>true</code> always.
      */
     /**jsdoc
@@ -1869,6 +1885,7 @@ private:
     bool polyVoxWorker(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);
     bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
+    bool addLocalEntityCopy(EntityItemProperties& propertiesWithSimID, EntityItemID& id, bool isClone = false);
 
     EntityItemPointer checkForTreeEntityAndTypeMatch(const QUuid& entityID,
                                                      EntityTypes::EntityType entityType = EntityTypes::Unknown);

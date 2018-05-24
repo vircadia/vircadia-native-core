@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AvatarBookmarks.h"
+
 #include <QAction>
 #include <QInputDialog>
 #include <QMessageBox>
@@ -27,7 +29,6 @@
 
 #include "MainWindow.h"
 #include "Menu.h"
-#include "AvatarBookmarks.h"
 #include "InterfaceLogging.h"
 
 #include "QVariantGLM.h"
@@ -76,7 +77,7 @@ void addAvatarEntities(const QVariantList& avatarEntities) {
 
                 entity->setLastBroadcast(usecTimestampNow());
                 // since we're creating this object we will immediately volunteer to own its simulation
-                entity->flagForOwnershipBid(VOLUNTEER_SIMULATION_PRIORITY);
+                entity->setScriptSimulationPriority(VOLUNTEER_SIMULATION_PRIORITY);
                 entityProperties.setLastEdited(entity->getLastEdited());
             } else {
                 qCDebug(entities) << "AvatarEntitiesBookmark failed to add new Entity to local Octree";
