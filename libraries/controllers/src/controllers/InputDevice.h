@@ -79,7 +79,7 @@ enum Hand {
  *       {@link Controller.Hardware-Vive}.</td></tr>
  *   </tbody>
  * </table>
- * @typedef Controller.Hardware
+ * @typedef {object} Controller.Hardware
  * @example <caption>List all the currently available <code>Controller.Hardware</code> properties.</caption>
  * function printProperties(string, item) {
  *     print(string);
