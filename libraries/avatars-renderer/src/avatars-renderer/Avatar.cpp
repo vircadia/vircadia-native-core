@@ -52,12 +52,10 @@ const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar) {
-        ItemKey::Builder keyBuilder = ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(ItemKey::TAG_BITS_0 | ItemKey::TAG_BITS_1).withMetaCullGroup();
+        ItemKey::Builder keyBuilder = ItemKey::Builder::opaqueShape().withShadowCaster().withTypeMeta().withTagBits(ItemKey::TAG_BITS_0 | ItemKey::TAG_BITS_1).withMetaCullGroup();
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         auto model = avatarPtr->getSkeletonModel();
-        //if (model && !model->isVisible()) {
-
-        if (!avatarPtr->getEnableMeshVisible() && model) {
+        if (!avatarPtr->getEnableMeshVisible()) {
             keyBuilder.withInvisible();
         }
         return keyBuilder.build();
@@ -816,7 +814,7 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     }
 
     if (_needMeshVisibleSwitch) {
-    //    _skeletonModel->setVisibleInScene(_isMeshEnableVisible, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, true);
+        _skeletonModel->setVisibleInScene(_isMeshEnableVisible, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, true);
         updateRenderItem(transaction);
         _needMeshVisibleSwitch = false;
     }

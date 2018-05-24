@@ -395,13 +395,9 @@ void CullShapeBounds::run(const RenderContextPointer& renderContext, const Input
             if (antiFrustum == nullptr) {
                 for (auto& item : inItems.second) {
                     if (test.solidAngleTest(item.bound) && test.frustumTest(item.bound)) {
-                        const auto& theItem = scene->getItem(item.id);
-                        const auto shapeKey = theItem.getKey();
+                        const auto shapeKey = scene->getItem(item.id).getKey();
                         if (cullFilter.test(shapeKey)) {
                             outItems->second.emplace_back(item);
-                            if (theItem.getKey().isMetaCullGroup()) {
-                                theItem.fetchMetaSubItemBounds(outItems->second, (*scene));
-                            }
                         }
                         if (boundsFilter.test(shapeKey)) {
                             outBounds += item.bound;
@@ -411,13 +407,9 @@ void CullShapeBounds::run(const RenderContextPointer& renderContext, const Input
             } else {
                 for (auto& item : inItems.second) {
                     if (test.solidAngleTest(item.bound) && test.frustumTest(item.bound) && test.antiFrustumTest(item.bound)) {
-                        const auto& theItem = scene->getItem(item.id);
-                        const auto shapeKey = theItem.getKey();
+                        const auto shapeKey = scene->getItem(item.id).getKey();
                         if (cullFilter.test(shapeKey)) {
                             outItems->second.emplace_back(item);
-                            if (theItem.getKey().isMetaCullGroup()) {
-                                theItem.fetchMetaSubItemBounds(outItems->second, (*scene));
-                            }
                         }
                         if (boundsFilter.test(shapeKey)) {
                             outBounds += item.bound;
@@ -495,6 +487,7 @@ void FetchSpatialSelection::run(const RenderContextPointer& renderContext,
                 if (filter.test(item.getKey())) {
                     ItemBound itemBound(id, item.getBound());
                     outItems.emplace_back(itemBound);
+
                 }
             }
         }
