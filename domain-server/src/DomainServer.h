@@ -165,6 +165,7 @@ private:
     unsigned int countConnectedUsers();
 
     void handleKillNode(SharedNodePointer nodeToKill);
+    void broadcastNodeDisconnect(const SharedNodePointer& disconnnectedNode);
 
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr);
 
