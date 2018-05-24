@@ -24,12 +24,9 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    property bool initialResultReceived: false;
-    property int pendingCount: 0;
 
     onVisibleChanged: {
         if (visible) {
-            transactionHistoryModel.clear();
             Commerce.balance();
             transactionHistoryModel.getFirstPage();
             Commerce.getAvailableUpdates();
@@ -46,7 +43,7 @@ Item {
         }
 
         onHistoryResult : {
-            transactionHistoryModel.pageRetrieved(result);
+            transactionHistoryModel.handlePage(null, result);
         }
 
         onAvailableUpdatesResult: {
@@ -61,7 +58,7 @@ Item {
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
-            transactionHistoryModel.clear();
+            transactionHistoryModel.resetModel();
             usernameText.text = Account.username;
         }
     }
@@ -150,8 +147,7 @@ Item {
             if (transactionHistory.atYBeginning) {
                 console.log("Refreshing 1st Page of Recent Activity...");
                 Commerce.balance();
-                transactionHistoryModel.currentPageToRetrieve = 1;
-                transactionHistoryModel.getPage();
+                transactionHistoryModel.getFirstPage();
             }
         }
     }
@@ -218,22 +214,34 @@ Item {
 
             listModelName: "transaction history";
             itemsPerPage: 100;
-            getPage: function() {
-                transactionHistoryModel.requestPending = true;
+            getPage: function () {
+                console.log('HRS FIXME WalletHome getPage', transactionHistoryModel.currentPageToRetrieve, transactionHistoryModel.itemsPerPage);
                 Commerce.history(transactionHistoryModel.currentPageToRetrieve, transactionHistoryModel.itemsPerPage);
             }
-            pageRetrieved: function(result) {
-                transactionHistoryModel.processResult(result.status, result.data.history);
-
-                if (!transactionHistoryModel.noMoreDataToRetrieve) {
-                    calculatePendingAndInvalidated();
+            processPage: function (data) {
+                console.log('HRS FIXME WalletHome processPage', JSON.stringify(data));
+                var result, pending;
+                if (transactionHistoryModel.currentPageToRetrieve == 1) {
+                    pending = {transaction_type: "pendingCount", count: 0};
+                    result = [pending];
+                } else {
+                    pending = transactionHistoryModel.get(0);
+                    result = [];
                 }
+                data.history.forEach(function (item) {
+                    if (item.status === 'pending') {
+                        pending.count++;
+                    } else {
+                        result = result.concat(item);
+                    }
+                });
 
                 // Only auto-refresh if the user hasn't scrolled
                 // and there is more data to grab
-                if (transactionHistory.atYBeginning && !transactionHistoryModel.noMoreDataToRetrieve) {
+                if (transactionHistory.atYBeginning && data.history.length && transactionHistoryModel.currentPageToRetrieve >= 0) {
                     refreshTimer.start();
                 }
+                return result;
             }
         }
         Item {
@@ -243,8 +251,8 @@ Item {
             anchors.left: parent.left;
             anchors.right: parent.right;
 
-            Item {
-                visible: transactionHistoryModel.count === 0 && transactionHistoryModel.initialResultReceived;
+            Item {  // On empty history. We don't want to flash and then replace, so don't show until we know we're zero.
+                visible: transactionHistoryModel.count === 0 && transactionHistoryModel.currentPageToRetrieve < 0;
                 anchors.centerIn: parent;
                 width: parent.width - 12;
                 height: parent.height;
@@ -316,10 +324,10 @@ Item {
                 model: transactionHistoryModel.model;
                 delegate: Item {
                     width: parent.width;
-                    height: (model.transaction_type === "pendingCount" && root.pendingCount !== 0) ? 40 : ((model.status === "confirmed" || model.status === "invalidated") ? transactionText.height + 30 : 0);
+                    height: (model.transaction_type === "pendingCount" && model.count !== 0) ? 40 : ((model.status === "confirmed" || model.status === "invalidated") ? transactionText.height + 30 : 0);
 
                     Item {
-                        visible: model.transaction_type === "pendingCount" && root.pendingCount !== 0;
+                        visible: model.transaction_type === "pendingCount" && model.count !== 0;
                         anchors.top: parent.top;
                         anchors.left: parent.left;
                         width: parent.width;
@@ -328,7 +336,7 @@ Item {
                         AnonymousProRegular {
                             id: pendingCountText;
                             anchors.fill: parent;
-                            text: root.pendingCount + ' Transaction' + (root.pendingCount > 1 ? 's' : '') + ' Pending';
+                            text: model.count + ' Transaction' + (model.count > 1 ? 's' : '') + ' Pending';
                             size: 18;
                             color: hifi.colors.blueAccent;
                             verticalAlignment: Text.AlignVCenter;
@@ -430,21 +438,6 @@ Item {
         var min = addLeadingZero(a.getMinutes());
         var sec = addLeadingZero(a.getSeconds());
         return year + '-' + month + '-' + day + '<br>' + drawnHour + ':' + min + amOrPm;
-    }
-
-    
-    function calculatePendingAndInvalidated(startingPendingCount) {
-        var pendingCount = startingPendingCount ? startingPendingCount : 0;
-        for (var i = 0; i < transactionHistoryModel.count; i++) {
-            if (transactionHistoryModel.get(i).status === "pending") {
-                pendingCount++;
-            }
-        }
-
-        root.pendingCount = pendingCount;
-        if (pendingCount > 0) {
-            transactionHistoryModel.insert(0, {"transaction_type": "pendingCount"});
-        }
     }
 
     //

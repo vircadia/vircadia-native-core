@@ -768,11 +768,32 @@ Rectangle {
             case 'updateSelectedRecipientUsername':
                 sendMoney.fromScript(message);
             break;
+            case 'http.response':
+                handleHttpResponse(message);
+            break;
             default:
                 console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
         }
     }
     signal sendToScript(var message);
+    property var httpCalls: ({});
+    property var httpCounter: 0;
+    function request(options, callback) {
+        console.debug('HRS FIXME Wallet request', JSON.stringify(options));
+        httpCalls[httpCounter] = callback;
+        var message = {method: 'http.request', params: options, id: httpCounter++, jsonrpc: "2.0"};
+        sendToScript(message);
+    }
+    function handleHttpResponse(message) {
+        var callback = httpCalls[message.id]; // FIXME: as different top level tablet apps gets loaded, the id repeats. We should drop old app callbacks without warning.
+        if (!callback) {
+            console.warn('No callback for', JSON.stringify(message));
+            return;
+        }
+        delete httpCalls[message.id];
+        console.log('HRS FIXME QML handling of', JSON.stringify(message));
+        callback(message.error, message.response);
+    }
 
     // generateUUID() taken from:
     // https://stackoverflow.com/a/8809472

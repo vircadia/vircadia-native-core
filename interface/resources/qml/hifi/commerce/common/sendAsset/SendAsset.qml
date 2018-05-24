@@ -19,6 +19,7 @@ import "../../../../styles-uit"
 import "../../../../controls-uit" as HifiControlsUit
 import "../../../../controls" as HifiControls
 import "../" as HifiCommerceCommon
+import "../../../models" as HifiModels
 
 Item {
     HifiConstants { id: hifi; }
@@ -118,9 +119,7 @@ Item {
 
         if (root.currentActiveView === 'chooseRecipientConnection') {
             // Refresh connections model
-            connectionsLoading.visible = false;
-            connectionsLoading.visible = true;
-            sendSignalToParent({method: 'refreshConnections'});
+            connectionsModel.getFirstPage();
         } else if (root.currentActiveView === 'sendAssetHome') {
             Commerce.balance();
         } else if (root.currentActiveView === 'chooseRecipientNearby') {
@@ -392,11 +391,15 @@ Item {
             hoverEnabled: true;
         }
         
-        ListModel {
+        HifiModels.PSFListModel {
             id: connectionsModel;
-        }
-        ListModel {
-            id: filteredConnectionsModel;
+            http: root.parent; // Misuse of "root" in this file!
+            endpoint: "/api/v1/users?per_page=400&filter=connections"; // FIXME per_page
+            processPage: function (data) {
+                console.log("HRS FIXME processPage", JSON.stringify(data));
+                return data.users;
+                //buildFilteredConnectionsModel();
+            };
         }
 
         Rectangle {
@@ -495,6 +498,7 @@ Item {
                 
                 AnimatedImage {
                     id: connectionsLoading;
+                    visible: !connectionsModel.retrievedAtLeastOnePage;
                     source: "../../../../../icons/profilePicLoading.gif"
                     width: 120;
                     height: width;
@@ -515,14 +519,14 @@ Item {
                     }
                     visible: !connectionsLoading.visible;
                     clip: true;
-                    model: filteredConnectionsModel;
+                    model: connectionsModel.model;
                     snapMode: ListView.SnapToItem;
                     // Anchors
                     anchors.fill: parent;
                     delegate: ConnectionItem {
                         isSelected: connectionsList.currentIndex === index;
-                        userName: model.userName;
-                        profilePicUrl: model.profileUrl;
+                        userName: model.username;
+                        profilePicUrl: model.images.thumbnail;
                         anchors.topMargin: 6;
                         anchors.bottomMargin: 6;
 
@@ -1805,13 +1809,6 @@ Item {
     //
     // FUNCTION DEFINITIONS START
     //
-
-    function updateConnections(connections) {
-        connectionsModel.clear();
-        connectionsModel.append(connections);
-        buildFilteredConnectionsModel();
-        connectionsLoading.visible = false;
-    }
 
     function buildFilteredConnectionsModel() {
         filteredConnectionsModel.clear();
