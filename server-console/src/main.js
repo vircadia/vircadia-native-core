@@ -878,6 +878,7 @@ function onContentLoaded() {
                         title: 'An update is available!',
                         message: 'High Fidelity version ' + latestVersion + ' is available',
                         wait: true,
+                        appID: 'com.highfidelity.interface',
                         url: url
                     });
                     hasShownUpdateNotification = true;

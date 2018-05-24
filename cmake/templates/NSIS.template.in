@@ -1173,6 +1173,8 @@ Section "-Core installation"
 
   !insertmacro MUI_STARTMENU_WRITE_END
 
+  ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" "com.highfidelity.interface"
+
   @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
 
   ; see if we have a campaign that we might need to grab special content for
