@@ -24,6 +24,10 @@ QVariantList toVariantList(const QList<T> &list)
 }
 
 namespace workload {
+    const glm::vec2 DEFAULT_R1_BACK_FRONT = { 50.0f, 100.0f };
+    const glm::vec2 DEFAULT_R2_BACK_FRONT = { 75.0f, 150.0f };
+    const glm::vec2 DEFAULT_R3_BACK_FRONT = { 100.0f, 250.0f };
+
     class SetupViewsConfig : public Job::Config{
         Q_OBJECT
         Q_PROPERTY(float r1Front READ getR1Front WRITE setR1Front NOTIFY dirty)
@@ -66,14 +70,14 @@ namespace workload {
         void setSimulateSecondaryCamera(bool use) { data.simulateSecondaryCamera = use; emit dirty(); }
 
         struct Data {
-            float r1Back { 2.0f };
-            float r1Front { 10.0f };
+            float r1Back { DEFAULT_R1_BACK_FRONT.x };
+            float r1Front { DEFAULT_R1_BACK_FRONT.y };
 
-            float r2Back{ 5.0f };
-            float r2Front{ 30.0f };
+            float r2Back{ DEFAULT_R2_BACK_FRONT.x };
+            float r2Front{ DEFAULT_R2_BACK_FRONT.y };
 
-            float r3Back{ 10.0f };
-            float r3Front{ 100.0f };
+            float r3Back{ DEFAULT_R3_BACK_FRONT.x };
+            float r3Front{ DEFAULT_R3_BACK_FRONT.y };
 
             bool freezeViews{ false };
             bool useAvatarView{ false };
@@ -211,6 +215,7 @@ namespace workload {
             _budget(budget_ns), _minRange(minRange), _maxRange(maxRange), _speedDown(speedDown), _speedUp(speedUp) {}
 
         glm::vec2 run(const Timing_ns& regulationDuration, const Timing_ns& measured, const glm::vec2& current);
+        glm::vec2 clamp(const glm::vec2& backFront) const;
     };
 
     class ControlViews {
