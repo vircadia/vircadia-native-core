@@ -53,7 +53,7 @@ GameWorkloadContext::~GameWorkloadContext() {
 
 
 GameWorkload::GameWorkload() :
-    _engine(std::make_shared<workload::Engine>(WorkloadEngineBuilder::JobModel::create("Engine")))
+    _engine(std::make_shared<workload::Engine>(WorkloadEngineBuilder::JobModel::create("Workload"), std::shared_ptr<GameWorkloadContext>()))
 {
 }
 

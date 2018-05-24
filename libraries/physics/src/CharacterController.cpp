@@ -109,7 +109,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             }
             _dynamicsWorld = nullptr;
         }
-        int16_t collisionGroup = computeCollisionGroup();
+        int32_t collisionGroup = computeCollisionGroup();
         if (_rigidBody) {
             updateMassProperties();
         }
@@ -325,7 +325,7 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
     _ghost.setWorldTransform(_rigidBody->getWorldTransform());
 }
 
-void CharacterController::jump() {
+void CharacterController::jump(const btVector3& dir) {
     _pendingFlags |= PENDING_FLAG_JUMP;
 }
 
@@ -352,7 +352,7 @@ static const char* stateToStr(CharacterController::State state) {
 #endif // #ifdef DEBUG_STATE_CHANGE
 
 void CharacterController::updateCurrentGravity() {
-    int16_t collisionGroup = computeCollisionGroup();
+    int32_t collisionGroup = computeCollisionGroup();
     if (_state == State::Hover || collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
         _currentGravity = 0.0f;
     } else {
@@ -433,7 +433,7 @@ void CharacterController::setCollisionless(bool collisionless) {
     }
 }
 
-int16_t CharacterController::computeCollisionGroup() const {
+int32_t CharacterController::computeCollisionGroup() const {
     if (_collisionless) {
         return _collisionlessAllowed ? BULLET_COLLISION_GROUP_COLLISIONLESS : BULLET_COLLISION_GROUP_MY_AVATAR;
     } else {
@@ -446,7 +446,7 @@ void CharacterController::handleChangedCollisionGroup() {
         // ATM the easiest way to update collision groups is to remove/re-add the RigidBody
         if (_dynamicsWorld) {
             _dynamicsWorld->removeRigidBody(_rigidBody);
-            int16_t collisionGroup = computeCollisionGroup();
+            int32_t collisionGroup = computeCollisionGroup();
             _dynamicsWorld->addRigidBody(_rigidBody, collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR);
         }
         _pendingFlags &= ~PENDING_FLAG_UPDATE_COLLISION_GROUP;
@@ -538,7 +538,7 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
     btScalar angle = motor.rotation.getAngle();
     btVector3 velocity = worldVelocity.rotate(axis, -angle);
 
-    int16_t collisionGroup = computeCollisionGroup();
+    int32_t collisionGroup = computeCollisionGroup();
     if (collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS ||
             _state == State::Hover || motor.hTimescale == motor.vTimescale) {
         // modify velocity
@@ -679,7 +679,7 @@ void CharacterController::updateState() {
     btVector3 rayStart = _position;
 
     btScalar rayLength = _radius;
-    int16_t collisionGroup = computeCollisionGroup();
+    int32_t collisionGroup = computeCollisionGroup();
     if (collisionGroup == BULLET_COLLISION_GROUP_MY_AVATAR) {
         rayLength += _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT;
     } else {

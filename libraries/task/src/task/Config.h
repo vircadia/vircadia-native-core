@@ -123,9 +123,10 @@ public:
 
     // Running Time measurement
     // The new stats signal is emitted once per run time of a job when stats  (cpu runtime) are updated
-    void setCPURunTime(const std::chrono::nanoseconds& runtime) { _msCPURunTime = runtime.count() / 1000000.0; emit newStats(); }
+    void setCPURunTime(const std::chrono::nanoseconds& runtime) { _msCPURunTime = std::chrono::duration<double, std::milli>(runtime).count(); emit newStats(); }
     double getCPURunTime() const { return _msCPURunTime; }
 
+    // Describe the node graph data connections of the associated Job/Task
     Q_INVOKABLE virtual bool isTask() const { return false; }
     Q_INVOKABLE virtual QObjectList getSubConfigs() const { return QObjectList(); }
     Q_INVOKABLE virtual int getNumSubs() const { return 0; }
@@ -185,6 +186,7 @@ public:
     TaskConfig() = default;
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
+
     /**jsdoc
      * @function Render.getConfig
      * @param {string} name
@@ -231,11 +233,10 @@ public:
         }
         return returned;
     }
-
     Q_INVOKABLE int getNumSubs() const override { return getSubConfigs().size(); }
     Q_INVOKABLE QObject* getSubConfig(int i) const override {
         auto subs = getSubConfigs();
-        return ((i < 0 || i >= subs.size()) ? nullptr : subs[i] );
+        return ((i < 0 || i >= subs.size()) ? nullptr : subs[i]);
     }
 
     void connectChildConfig(QConfigPointer childConfig, const std::string& name);

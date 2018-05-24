@@ -32,8 +32,11 @@ namespace workload {
     };
 
     using WorkloadContextPointer = std::shared_ptr<WorkloadContext>;
-    Task_DeclareTypeAliases(WorkloadContext)
-    using Engine = _Engine;
+
+    Task_DeclareCategoryTimeProfilerClass(WorkloadTimeProfiler, trace_workload);
+
+    // Instanciate the specialized types of Job Engine and Task for the Workload context
+    Task_DeclareTypeAliases(WorkloadContext, WorkloadTimeProfiler)
     using EnginePointer = std::shared_ptr<Engine>;
 } // namespace workload
 
