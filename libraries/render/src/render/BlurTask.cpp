@@ -204,12 +204,6 @@ BlurGaussian::BlurGaussian(bool generateOutputFramebuffer, unsigned int downsamp
 gpu::PipelinePointer BlurGaussian::getBlurVPipeline() {
     if (!_blurVPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::blurGaussianV);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("blurParamsBuffer"), BlurTask_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), BlurTask_SourceSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         // Stencil test the curvature pass for objects pixels only, not the background
@@ -224,12 +218,6 @@ gpu::PipelinePointer BlurGaussian::getBlurVPipeline() {
 gpu::PipelinePointer BlurGaussian::getBlurHPipeline() {
     if (!_blurHPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::blurGaussianH);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("blurParamsBuffer"), BlurTask_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), BlurTask_SourceSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         // Stencil test the curvature pass for objects pixels only, not the background
@@ -314,13 +302,6 @@ BlurGaussianDepthAware::BlurGaussianDepthAware(bool generateOutputFramebuffer, c
 gpu::PipelinePointer BlurGaussianDepthAware::getBlurVPipeline() {
     if (!_blurVPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::blurGaussianDepthAwareV);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("blurParamsBuffer"), BlurTask_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), BlurTask_SourceSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), BlurTask_DepthSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         // Stencil test the curvature pass for objects pixels only, not the background
@@ -335,13 +316,6 @@ gpu::PipelinePointer BlurGaussianDepthAware::getBlurVPipeline() {
 gpu::PipelinePointer BlurGaussianDepthAware::getBlurHPipeline() {
     if (!_blurHPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::blurGaussianDepthAwareH);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("blurParamsBuffer"), BlurTask_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), BlurTask_SourceSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), BlurTask_DepthSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         // Stencil test the curvature pass for objects pixels only, not the background

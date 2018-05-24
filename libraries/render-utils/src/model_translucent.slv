@@ -1,7 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  model_translucent.slv
+//  model_translucent.vert
 //  vertex shader
 //
 //  Created by Olivier Prat on 15/01/18.
@@ -16,16 +16,18 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-<@include MaterialTextures.slh@>
+<@include graphics/MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>
 
-out float _alpha;
-out vec2 _texCoord0;
-out vec2 _texCoord1;
-out vec4 _positionES;
-out vec4 _positionWS;
-out vec3 _normalWS;
-out vec3 _color;
+<@include render-utils/ShaderConstants.h@>
+
+layout(location=RENDER_UTILS_ATTR_ALPHA) out float _alpha;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD0) out vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD1) out vec2 _texCoord1;
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_COLOR) out vec3 _color;
 
 void main(void) {
     _color = color_sRGBToLinear(inColor.xyz);

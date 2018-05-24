@@ -29,12 +29,6 @@ using namespace render;
 const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
     if (!_drawCellBoundsPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawCellBounds);
-
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
-
-        _drawCellLocationLoc = program->getUniforms().findLocation("inCellLocation");
-
         auto state = std::make_shared<gpu::State>();
 
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
@@ -51,10 +45,6 @@ const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
 const gpu::PipelinePointer DrawSceneOctree::getDrawLODReticlePipeline() {
     if (!_drawLODReticlePipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawLODReticle);
-        gpu::Shader::makeProgram(*program);
-
-       // _drawCellLocationLoc = program->getUniforms().findLocation("inCellLocation");
-
         auto state = std::make_shared<gpu::State>();
 
         // Blend on transparent
@@ -111,7 +101,7 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
                     cellLocation.w *= -1;
                 }
                 if (doDraw) {
-                    batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
+                    batch._glUniform4iv(gpu::slot::uniform::Extra0, 1, ((const int*)(&cellLocation)));
                     batch.draw(gpu::LINES, 24, 0);
                 }
             }
@@ -129,7 +119,7 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
                     cellLocation.w *= -1;
                 }
                 if (doDraw) {
-                    batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
+                    batch._glUniform4iv(gpu::slot::uniform::Extra0, 1, ((const int*)(&cellLocation)));
                     batch.draw(gpu::LINES, 24, 0);
                 }
             }
@@ -152,13 +142,9 @@ const gpu::PipelinePointer DrawItemSelection::getDrawItemBoundPipeline() {
     if (!_drawItemBoundPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawItemBounds);
 
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
-
-        _drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
-        _drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
-
-        _drawCellLocationLoc = program->getUniforms().findLocation("inCellLocation");
+        //_drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
+        //_drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
+        //_drawCellLocationLoc = program->getUniforms().findLocation("inCellLocation");
 
         auto state = std::make_shared<gpu::State>();
 
@@ -208,9 +194,9 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
                 auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
                 glm::ivec4 cellLocation(0, 0, 0, itemCell.depth);
 
-                batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
-                batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
-                batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
+                //batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
+                //batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
+                //batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
 
                 batch.draw(gpu::LINES, 24, 0);
             }
@@ -223,9 +209,9 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
                 auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
                 glm::ivec4 cellLocation(0, 0, 1, itemCell.depth);
 
-                batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
-                batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
-                batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
+                //batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
+                //batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
+                //batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
 
                 batch.draw(gpu::LINES, 24, 0);
             }
@@ -238,9 +224,9 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
                 auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
                 glm::ivec4 cellLocation(0, 0, 0, itemCell.depth);
 
-                batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
-                batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
-                batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
+                //batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
+                //batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
+                //batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
 
                 batch.draw(gpu::LINES, 24, 0);
             }
@@ -252,9 +238,9 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
                 auto itemBound = item.getBound();
                 auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
                 glm::ivec4 cellLocation(0, 0, 1, itemCell.depth);
-                batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
-                batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
-                batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
+                //batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
+                //batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
+                //batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
 
                 batch.draw(gpu::LINES, 24, 0);
             }

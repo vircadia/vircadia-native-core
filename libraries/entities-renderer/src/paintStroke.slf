@@ -16,18 +16,18 @@
 
 
 // the albedo texture
-uniform sampler2D originalTexture;
+layout(binding=0) uniform sampler2D originalTexture;
 
 // the interpolated normal
-in vec3 interpolatedNormal;
-in vec2 varTexcoord;
-in vec4 varColor;
+layout(location=0) in vec3 interpolatedNormal;
+layout(location=1) in vec2 varTexcoord;
+layout(location=2) in vec4 varColor;
 
 struct PolyLineUniforms {
     vec3 color;
 };
 
-uniform polyLineBuffer {
+layout(binding=0) uniform polyLineBuffer {
     PolyLineUniforms polyline;
 };
 

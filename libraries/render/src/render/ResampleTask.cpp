@@ -52,10 +52,6 @@ void HalfDownsample::run(const RenderContextPointer& renderContext, const gpu::F
 
     if (!_pipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTransformUnitQuadTextureOpaque);
-
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(gpu::State::DepthTest(false, false));
         _pipeline = gpu::Pipeline::create(program, state);
@@ -111,13 +107,7 @@ void Upsample::run(const RenderContextPointer& renderContext, const gpu::Framebu
     resampledFrameBuffer = getResampledFrameBuffer(sourceFramebuffer);
     if (resampledFrameBuffer != sourceFramebuffer) {
         if (!_pipeline) {
-            auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-            auto ps = gpu::StandardShaderLib::getDrawTextureOpaquePS();
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-            gpu::Shader::BindingSet slotBindings;
-            gpu::Shader::makeProgram(*program, slotBindings);
-
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTransformUnitQuadTextureOpaque);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             state->setDepthTest(gpu::State::DepthTest(false, false));
             _pipeline = gpu::Pipeline::create(program, state);

@@ -408,9 +408,6 @@ void HmdDisplayPlugin::HUDRenderer::build() {
 void HmdDisplayPlugin::HUDRenderer::updatePipeline() {
     if (!pipeline) {
         auto program = gpu::Shader::createProgram(shader::render_utils::program::hmd_ui);
-        gpu::Shader::makeProgram(*program, gpu::Shader::BindingSet());
-        uniformsLocation = program->getUniformBuffers().findLocation("hudBuffer");
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(gpu::State::DepthTest(true, true, gpu::LESS_EQUAL));
         state->setBlendFunction(true,
@@ -433,9 +430,8 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDis
             batch.setInputBuffer(gpu::Stream::POSITION, posView);
             batch.setInputBuffer(gpu::Stream::TEXCOORD, uvView);
             batch.setIndexBuffer(gpu::UINT16, indices, 0);
-
             uniformsBuffer->setSubData(0, uniforms);
-            batch.setUniformBuffer(uniformsLocation, uniformsBuffer);
+            batch.setUniformBuffer(0, uniformsBuffer);
 
             auto compositorHelper = DependencyManager::get<CompositorHelper>();
             glm::mat4 modelTransform = compositorHelper->getUiTransform();

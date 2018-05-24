@@ -16,18 +16,20 @@
 
 <@include graphics/Material.slh@>
 
-<@include MaterialTextures.slh@>
+<@include graphics/MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC)$>
 <$declareMaterialLightmap()$>
 
 <@include Fade.slh@>
 <$declareFadeFragment()$>
 
-in vec2 _texCoord0;
-in vec2 _texCoord1;
-in vec3 _normalWS;
-in vec3 _color;
-in vec4 _positionWS;
+<@include render-utils/ShaderConstants.h@>
+
+layout(location=RENDER_UTILS_ATTR_TEXCOORD0) in vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD1) in vec2 _texCoord1;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec3 _color;
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _positionWS;
 
 void main(void) {
     vec3 fadeEmissive;

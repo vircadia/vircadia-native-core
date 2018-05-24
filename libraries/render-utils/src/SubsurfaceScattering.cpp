@@ -12,29 +12,26 @@
 
 #include <gpu/Context.h>
 #include <shaders/Shaders.h>
+#include <render/ShapePipeline.h>
+#include <graphics/ShaderConstants.h>
+
+#include "render-utils/ShaderConstants.h"
 
 #include "FramebufferCache.h"
 
 #include "DeferredLightingEffect.h"
 
 
-enum ScatteringShaderBufferSlots {
-    ScatteringTask_FrameTransformSlot = 0,
-    ScatteringTask_ParamSlot,
-    ScatteringTask_LightSlot,
-};
-enum ScatteringShaderMapSlots {
-    ScatteringTask_ScatteringTableSlot = 0,
-    ScatteringTask_CurvatureMapSlot,
-    ScatteringTask_DiffusedCurvatureMapSlot,
-    ScatteringTask_NormalMapSlot,
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
 
-    ScatteringTask_AlbedoMapSlot,
-    ScatteringTask_LinearMapSlot,
-    
-    ScatteringTask_IBLMapSlot,
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
 
-};
 
 SubsurfaceScatteringResource::SubsurfaceScatteringResource() {
     Parameters parameters;
@@ -342,15 +339,7 @@ void diffuseScatterGPU(const gpu::TexturePointer& profileMap, gpu::TexturePointe
 
     gpu::doInBatch("SubsurfaceScattering::diffuseScatterGPU", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
-
-        batch.runLambda([program] (){ 
-            gpu::Shader::BindingSet slotBindings;
-            slotBindings.insert(gpu::Shader::Binding(std::string("scatteringProfile"), 0));
-            gpu::Shader::makeProgram(*program, slotBindings);
-        });
-
         batch.setViewportTransform(glm::ivec4(0, 0, width, height));
-
         batch.setFramebuffer(makeFramebuffer);
         batch.setPipeline(makePipeline);
         batch.setResourceTexture(0, profileMap);
@@ -439,24 +428,6 @@ void DebugSubsurfaceScattering::configure(const Config& config) {
 gpu::PipelinePointer DebugSubsurfaceScattering::getScatteringPipeline() {
     if (!_scatteringPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::subsurfaceScattering_drawScattering);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ScatteringTask_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("scatteringParamsBuffer"), ScatteringTask_ParamSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), ScatteringTask_LightSlot));
-
-        slotBindings.insert(gpu::Shader::Binding(std::string("scatteringLUT"), ScatteringTask_ScatteringTableSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("curvatureMap"), ScatteringTask_CurvatureMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("diffusedCurvatureMap"), ScatteringTask_DiffusedCurvatureMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), ScatteringTask_NormalMapSlot));
-
-        slotBindings.insert(gpu::Shader::Binding(std::string("albedoMap"), ScatteringTask_AlbedoMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("linearDepthMap"), ScatteringTask_LinearMapSlot));
-
-        slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), ScatteringTask_IBLMapSlot));
-
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         _scatteringPipeline = gpu::Pipeline::create(program, state);
@@ -539,20 +510,20 @@ void DebugSubsurfaceScattering::run(const render::RenderContextPointer& renderCo
                 model.setScale(glm::vec3(viewportSize / (float)args->_viewport.z, viewportSize / (float)args->_viewport.w, 1.0));
                 batch.setModelTransform(model);
 
-                batch.setUniformBuffer(ScatteringTask_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
-                batch.setUniformBuffer(ScatteringTask_ParamSlot, scatteringResource->getParametersBuffer());
+                batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
+                batch.setUniformBuffer(ru::Buffer::SsscParams, scatteringResource->getParametersBuffer());
                 if (light) {
-                    batch.setUniformBuffer(ScatteringTask_LightSlot, light->getLightSchemaBuffer());
+                    batch.setUniformBuffer(gr::Buffer::Light, light->getLightSchemaBuffer());
                 }
-                batch.setResourceTexture(ScatteringTask_ScatteringTableSlot, scatteringTable);
-                batch.setResourceTexture(ScatteringTask_CurvatureMapSlot, curvatureFramebuffer->getRenderBuffer(0));
-                batch.setResourceTexture(ScatteringTask_DiffusedCurvatureMapSlot, diffusedFramebuffer->getRenderBuffer(0));
-                batch.setResourceTexture(ScatteringTask_NormalMapSlot, deferredFramebuffer->getDeferredNormalTexture());
-                batch.setResourceTexture(ScatteringTask_AlbedoMapSlot, deferredFramebuffer->getDeferredColorTexture());
-                batch.setResourceTexture(ScatteringTask_LinearMapSlot, linearDepthTexture);
+                batch.setResourceTexture(ru::Texture::SsscLut, scatteringTable);
+                batch.setResourceTexture(ru::Texture::DeferredCurvature, curvatureFramebuffer->getRenderBuffer(0));
+                batch.setResourceTexture(ru::Texture::DeferredDiffusedCurvature, diffusedFramebuffer->getRenderBuffer(0));
+                batch.setResourceTexture(ru::Texture::DeferredNormal, deferredFramebuffer->getDeferredNormalTexture());
+                batch.setResourceTexture(ru::Texture::DeferredColor, deferredFramebuffer->getDeferredColorTexture());
+               	batch.setResourceTexture(ru::Texture::DeferredDepth, linearDepthTexture);
 
 
-                batch._glUniform2f(debugScatteringPipeline->getProgram()->getUniforms().findLocation("uniformCursorTexcoord"), _debugCursorTexcoord.x, _debugCursorTexcoord.y);
+                batch._glUniform2f(gpu::slot::uniform::Extra0, _debugCursorTexcoord.x, _debugCursorTexcoord.y);
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             }
         }

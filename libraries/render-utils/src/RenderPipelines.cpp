@@ -18,13 +18,25 @@
 #include <model-networking/TextureCache.h>
 #include <render/DrawTask.h>
 #include <shaders/Shaders.h>
+#include <graphics/ShaderConstants.h>
 
+#include "render-utils/ShaderConstants.h"
 #include "StencilMaskPass.h"
 #include "DeferredLightingEffect.h"
 #include "TextureCache.h"
 
 using namespace render;
 using namespace std::placeholders;
+
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
 
 void initDeferredPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 void initForwardPipelines(ShapePlumber& plumber);
@@ -319,11 +331,11 @@ void addPlumberPipeline(ShapePlumber& plumber,
 
 void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args) {
     // Set a default albedo map
-    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
+    batch.setResourceTexture(gr::Texture::MaterialAlbedo,
         DependencyManager::get<TextureCache>()->getWhiteTexture());
 
     // Set a default material
-    if (pipeline.locations->materialBufferUnit >= 0) {
+    if (pipeline.locations->materialBufferUnit) {
         // Create a default schema
         static bool isMaterialSet = false;
         static graphics::Material material;
@@ -336,7 +348,7 @@ void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* a
         }
 
         // Set a default schema
-        batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::MATERIAL, material.getSchemaBuffer());
+        batch.setUniformBuffer(gr::Buffer::Material, material.getSchemaBuffer());
     }
 }
 
@@ -345,11 +357,8 @@ void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderAr
     batchSetter(pipeline, batch, args);
 
     // Set the light
-    if (pipeline.locations->keyLightBufferUnit >= 0) {
-        DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(args, batch,
-            pipeline.locations->keyLightBufferUnit,
-            pipeline.locations->lightAmbientBufferUnit,
-            pipeline.locations->lightAmbientMapUnit);
+    if (pipeline.locations->keyLightBufferUnit) {
+        DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(args, batch);
     }
 }
 
@@ -394,8 +403,8 @@ void RenderPipelines::bindMaterial(const graphics::MaterialPointer& material, gp
 
     auto textureCache = DependencyManager::get<TextureCache>();
 
-    batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::MATERIAL, material->getSchemaBuffer());
-    batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::TEXMAPARRAY, material->getTexMapArrayBuffer());
+    batch.setUniformBuffer(gr::Buffer::Material, material->getSchemaBuffer());
+    batch.setUniformBuffer(gr::Buffer::TexMapArray, material->getTexMapArrayBuffer());
 
     const auto& materialKey = material->getKey();
     const auto& textureMaps = material->getTextureMaps();
@@ -411,9 +420,9 @@ void RenderPipelines::bindMaterial(const graphics::MaterialPointer& material, gp
     if (materialKey.isAlbedoMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::ALBEDO_MAP);
         if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::ALBEDO, itr->second->getTextureView());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialAlbedo, itr->second->getTextureView());
         } else {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::ALBEDO, textureCache->getWhiteTexture());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialAlbedo, textureCache->getWhiteTexture());
         }
     }
 
@@ -421,9 +430,9 @@ void RenderPipelines::bindMaterial(const graphics::MaterialPointer& material, gp
     if (materialKey.isRoughnessMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::ROUGHNESS_MAP);
         if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::ROUGHNESS, itr->second->getTextureView());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialRoughness, itr->second->getTextureView());
         } else {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::ROUGHNESS, textureCache->getWhiteTexture());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialRoughness, textureCache->getWhiteTexture());
         }
     }
 
@@ -431,9 +440,9 @@ void RenderPipelines::bindMaterial(const graphics::MaterialPointer& material, gp
     if (materialKey.isNormalMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::NORMAL_MAP);
         if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::NORMAL, itr->second->getTextureView());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialNormal, itr->second->getTextureView());
         } else {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::NORMAL, textureCache->getBlueTexture());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialNormal, textureCache->getBlueTexture());
         }
     }
 
@@ -441,9 +450,9 @@ void RenderPipelines::bindMaterial(const graphics::MaterialPointer& material, gp
     if (materialKey.isMetallicMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::METALLIC_MAP);
         if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::METALLIC, itr->second->getTextureView());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialMetallic, itr->second->getTextureView());
         } else {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::METALLIC, textureCache->getBlackTexture());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialMetallic, textureCache->getBlackTexture());
         }
     }
 
@@ -451,9 +460,9 @@ void RenderPipelines::bindMaterial(const graphics::MaterialPointer& material, gp
     if (materialKey.isOcclusionMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::OCCLUSION_MAP);
         if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::OCCLUSION, itr->second->getTextureView());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialOcclusion, itr->second->getTextureView());
         } else {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::OCCLUSION, textureCache->getWhiteTexture());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialOcclusion, textureCache->getWhiteTexture());
         }
     }
 
@@ -461,9 +470,9 @@ void RenderPipelines::bindMaterial(const graphics::MaterialPointer& material, gp
     if (materialKey.isScatteringMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::SCATTERING_MAP);
         if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::SCATTERING, itr->second->getTextureView());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialScattering, itr->second->getTextureView());
         } else {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::SCATTERING, textureCache->getWhiteTexture());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialScattering, textureCache->getWhiteTexture());
         }
     }
 
@@ -472,16 +481,16 @@ void RenderPipelines::bindMaterial(const graphics::MaterialPointer& material, gp
         auto itr = textureMaps.find(graphics::MaterialKey::LIGHTMAP_MAP);
 
         if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, itr->second->getTextureView());
         } else {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP, textureCache->getGrayTexture());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getGrayTexture());
         }
     } else if (materialKey.isEmissiveMap()) {
         auto itr = textureMaps.find(graphics::MaterialKey::EMISSIVE_MAP);
         if (enableTextures && itr != textureMaps.end() && itr->second->isDefined()) {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, itr->second->getTextureView());
         } else {
-            drawMaterialTextures->setTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP, textureCache->getBlackTexture());
+            drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getBlackTexture());
         }
     }
 

@@ -10,9 +10,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-in vec4 _color;
+<@include render-utils/ShaderConstants.h@>
 
-out vec4 _fragColor;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+
+layout(location=0) out vec4 _fragColor;
 
 void main(void) {
     _fragColor = _color;

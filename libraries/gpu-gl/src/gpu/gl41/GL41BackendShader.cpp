@@ -22,90 +22,98 @@ std::string GL41Backend::getBackendShaderHeader() const {
     return header;
 }
 
-int GL41Backend::makeResourceBufferSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) {
-    GLint ssboCount = 0;
-    const auto& glprogram = shaderProgram.glprogram;
-    for (const auto& uniform : shaderProgram.uniforms) {
-        const auto& name = uniform.name;
-        const auto& type = uniform.type;
-        const auto& location = uniform.location;
-        const GLint INVALID_UNIFORM_LOCATION = -1;
+template <typename C, typename F>
+std::vector<const char*> toCNames(const C& container, F lambda) {
+    std::vector<const char*> result;
+    result.reserve(container.size());
+    std::transform(container.begin(), container.end(), std::back_inserter(result), lambda);
+    return result;
+}
 
-        // Try to make sense of the gltype
-        auto elementResource = getFormatFromGLUniform(type);
-    
-        // The uniform as a standard var type
-        if (location != INVALID_UNIFORM_LOCATION) {
-        
-            if (elementResource._resource == Resource::BUFFER) {
-                 if (elementResource._element.getSemantic() == gpu::RESOURCE_BUFFER) {
-                    // Let's make sure the name doesn't contains an array element
-                    std::string sname(name);
-                    auto foundBracket = sname.find_first_of('[');
-                    if (foundBracket != std::string::npos) {
-                        //  std::string arrayname = sname.substr(0, foundBracket);
+#if defined(Q_OS_MAC)
+ShaderObject::LocationMap buildRemap(GLuint glprogram, const gpu::Shader::SlotSet& slotSet) {
+    static const GLint INVALID_INDEX = -1;
+    ShaderObject::LocationMap result;
+    const auto expectedNames = slotSet.getNames();
+    const auto count = expectedNames.size();
+    std::vector<GLint> indices;
+    indices.resize(count);
+    glGetUniformIndices(glprogram, (GLsizei)count,
+                        toCNames(expectedNames, [](const std::string& name) { return name.c_str(); }).data(),
+                        (GLuint*)indices.data());
 
-                        if (sname[foundBracket + 1] == '0') {
-                            sname = sname.substr(0, foundBracket);
-                        } else {
-                            // skip this uniform since it's not the first element of an array
-                            continue;
-                        }
-                    }
+    const auto expectedLocationsByName = slotSet.getLocationsByName();
+    for (size_t i = 0; i < count; ++i) {
+        const auto& index = indices[i];
+        const auto& name = expectedNames[i];
+        const auto& expectedLocation = expectedLocationsByName.at(name);
+        if (INVALID_INDEX == index) {
+            result[expectedLocation] = gpu::Shader::INVALID_LOCATION;
+            continue;
+        }
 
-                    // For texture/Sampler, the location is the actual binding value
-                    GLint binding = -1;
-                    glGetUniformiv(glprogram, location, &binding);
+        ::gl::Uniform uniformInfo(glprogram, index);
+        if (expectedLocation != uniformInfo.binding) {
+            result[expectedLocation] = uniformInfo.binding;
+        }
+    }
+    return result;
+}
+#endif
 
-                    if (binding == GL41Backend::TRANSFORM_OBJECT_SLOT) {
-                        continue;
-                    }
-
-                    auto requestedBinding = slotBindings.find(std::string(sname));
-                    if (requestedBinding != slotBindings.end()) {
-                        GLint requestedLoc = (*requestedBinding)._location + GL41Backend::RESOURCE_BUFFER_SLOT0_TEX_UNIT;
-                        if (binding != requestedLoc) {
-                            binding = requestedLoc;
-                        }
-                    } else {
-                        binding += GL41Backend::RESOURCE_BUFFER_SLOT0_TEX_UNIT;
-                    }
-                    glProgramUniform1i(glprogram, location, binding);
-
-                    ssboCount++;
-                    resourceBuffers.insert(Shader::Slot(name, binding, elementResource._element, elementResource._resource));
-                }
+void GL41Backend::postLinkProgram(ShaderObject& programObject, const Shader& program) const {
+    const auto& glprogram = programObject.glprogram;
+    // For the UBOs, use glUniformBlockBinding to fixup the locations based on the reflection
+    {
+        const auto expectedUbos = program.getUniformBuffers().getLocationsByName();
+        auto ubos = ::gl::UniformBlock::load(glprogram);
+        for (const auto& ubo : ubos) {
+            const auto& name = ubo.name;
+            if (0 == expectedUbos.count(name)) {
+                continue;
+            }
+            const auto& targetLocation = expectedUbos.at(name);
+            if (ubo.binding != targetLocation) {
+                glUniformBlockBinding(glprogram, ubo.index, targetLocation);
             }
         }
     }
 
-    return ssboCount;
+    // For the Textures, us glUniform1i to fixup the active texture slots based on the reflection
+    {
+        const auto expectedTextures = program.getTextures().getLocationsByName();
+        const auto textureUniforms = ::gl::Uniform::loadByName(glprogram, program.getTextures().getNames());
+        for (const auto& texture : textureUniforms) {
+            const auto& targetBinding = expectedTextures.at(texture.name);
+            glProgramUniform1i(glprogram, texture.binding, targetBinding);
+        }
+    }
+
+    // For the resource buffers
+    {
+        const auto expectedTextures = program.getTextures().getLocationsByName();
+        const auto textureUniforms = ::gl::Uniform::loadByName(glprogram, program.getTextures().getNames());
+        for (const auto& texture : textureUniforms) {
+            const auto& targetBinding = expectedTextures.at(texture.name);
+            glProgramUniform1i(glprogram, texture.binding, targetBinding);
+        }
+    }
+
+#if defined(Q_OS_MAC)
+    // For the uniforms, we need to create a remapping layer
+    programObject.uniformRemap = buildRemap(glprogram, program.getUniforms());
+#endif
 }
 
-void GL41Backend::makeProgramBindings(ShaderObject& shaderObject) {
-    if (!shaderObject.glprogram) {
-        return;
+
+GLint GL41Backend::getRealUniformLocation(GLint location) const {
+    GLint result = location;
+#if defined(Q_OS_MAC)
+    auto& shader = _pipeline._programShader->_shaderObjects[(GLShader::Version)isStereo()];
+    auto itr = shader.uniformRemap.find(location);
+    if (itr != shader.uniformRemap.end()) {
+        result = itr->second;
     }
-    GLuint glprogram = shaderObject.glprogram;
-    GLint loc = -1;
-
-    GLBackend::makeProgramBindings(shaderObject);
-
-    // now assign the ubo binding, then DON't relink!
-
-    //Check for gpu specific uniform slotBindings
-    loc = glGetUniformLocation(glprogram, "transformObjectBuffer");
-    if (loc >= 0) {
-        glProgramUniform1i(glprogram, loc, GL41Backend::TRANSFORM_OBJECT_SLOT);
-        shaderObject.transformObjectSlot = GL41Backend::TRANSFORM_OBJECT_SLOT;
-    }
-
-    loc = glGetUniformBlockIndex(glprogram, "transformCameraBuffer");
-    if (loc >= 0) {
-        glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
-        shaderObject.transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
-    }
-
-    (void)CHECK_GL_ERROR();
+#endif
+    return result;
 }
-

@@ -20,16 +20,18 @@
 <@include Skinning.slh@>
 <$declareUseDualQuaternionSkinning(1)$>
 
-<@include MaterialTextures.slh@>
+<@include graphics/MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>
 
-out vec4 _positionES;
-out vec2 _texCoord0;
-out vec2 _texCoord1;
-out vec3 _normalWS;
-out vec3 _color;
-out float _alpha;
-out vec4 _positionWS;
+<@include render-utils/ShaderConstants.h@>
+
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD0) out vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD1) out vec2 _texCoord1;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_COLOR) out vec3 _color;
+layout(location=RENDER_UTILS_ATTR_ALPHA) out float _alpha;
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
 
 void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);

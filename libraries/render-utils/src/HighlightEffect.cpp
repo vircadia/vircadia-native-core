@@ -12,6 +12,7 @@
 
 #include <sstream>
 
+#include <graphics/ShaderConstants.h>
 #include <render/FilterTask.h>
 #include <render/SortTask.h>
 
@@ -21,10 +22,19 @@
 #include "GeometryCache.h"
 #include "CubeProjectedPolygon.h"
 
-
-
+#include "render-utils/ShaderConstants.h"
 
 using namespace render;
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+    using render_utils::slot::uniform::Uniform;
+}
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
 
 #define OUTLINE_STENCIL_MASK    1
 
@@ -112,7 +122,7 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
     auto& inShapes = inputs.get0();
 
     const int BOUNDS_SLOT = 0;
-    const int PARAMETERS_SLOT = 1;
+    const int PARAMETERS_SLOT = 0;
 
     if (!_stencilMaskPipeline || !_stencilMaskFillPipeline) {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -128,12 +138,6 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
         fillState->setCullMode(gpu::State::CULL_FRONT);
 
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::highlight_aabox);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("ssbo0Buffer"), BOUNDS_SLOT));
-        slotBindings.insert(gpu::Shader::Binding(std::string("parametersBuffer"), PARAMETERS_SLOT));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         _stencilMaskPipeline = gpu::Pipeline::create(program, state);
         _stencilMaskFillPipeline = gpu::Pipeline::create(program, fillState);
     }
@@ -298,10 +302,10 @@ void DrawHighlight::run(const render::RenderContextPointer& renderContext, const
                     batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
                     batch.setPipeline(pipeline);
 
-                    batch.setUniformBuffer(HIGHLIGHT_PARAMS_SLOT, _configuration);
-                    batch.setUniformBuffer(FRAME_TRANSFORM_SLOT, frameTransform->getFrameTransformBuffer());
-                    batch.setResourceTexture(SCENE_DEPTH_MAP_SLOT, sceneDepthBuffer->getPrimaryDepthTexture());
-                    batch.setResourceTexture(HIGHLIGHTED_DEPTH_MAP_SLOT, highlightedDepthTexture);
+                    batch.setUniformBuffer(ru::Buffer::HighlightParams, _configuration);
+                    batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
+                    batch.setResourceTexture(ru::Texture::HighlightSceneDepth, sceneDepthBuffer->getPrimaryDepthTexture());
+                    batch.setResourceTexture(ru::Texture::HighlightDepth, highlightedDepthTexture);
                     batch.draw(gpu::TRIANGLE_STRIP, 4);
 
                     // Reset the framebuffer for overlay drawing
@@ -319,19 +323,10 @@ const gpu::PipelinePointer& DrawHighlight::getPipeline(const render::HighlightSt
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
         state->setStencilTest(true, 0, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::EQUAL));
 
-        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::highlight);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding("highlightParamsBuffer", HIGHLIGHT_PARAMS_SLOT));
-        slotBindings.insert(gpu::Shader::Binding("deferredFrameTransformBuffer", FRAME_TRANSFORM_SLOT));
-        slotBindings.insert(gpu::Shader::Binding("sceneDepthMap", SCENE_DEPTH_MAP_SLOT));
-        slotBindings.insert(gpu::Shader::Binding("highlightedDepthMap", HIGHLIGHTED_DEPTH_MAP_SLOT));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
+        auto program = gpu::Shader::createProgram(shader::render_utils::program::highlight);
         _pipeline = gpu::Pipeline::create(program, state);
 
         program = gpu::Shader::createProgram(shader::render_utils::program::highlight_filled);
-        gpu::Shader::makeProgram(*program, slotBindings);
         _pipelineFilled = gpu::Pipeline::create(program, state);
     }
     return style.isFilled() ? _pipelineFilled : _pipeline;
@@ -395,9 +390,9 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
 }
 
 void DebugHighlight::initializePipelines() {
-    static const std::string FRAGMENT_SHADER{ gpu::Shader::getFragmentShaderSource(shader::render_utils::fragment::debug_deferred_buffer).getCode() };
+    static const auto FRAGMENT_SHADER_SOURCE = gpu::Shader::createPixel(shader::render_utils::fragment::debug_deferred_buffer)->getSource();
     static const std::string SOURCE_PLACEHOLDER{ "//SOURCE_PLACEHOLDER" };
-    static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER.find(SOURCE_PLACEHOLDER);
+    static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER_SOURCE.getCode().find(SOURCE_PLACEHOLDER);
     Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO,
                "Could not find source placeholder");
 
@@ -417,16 +412,11 @@ void DebugHighlight::initializePipelines() {
             }
         )SHADER" };
 
-        auto fragmentShader = FRAGMENT_SHADER;
+        auto fragmentShader = FRAGMENT_SHADER_SOURCE.getCode();
         fragmentShader.replace(SOURCE_PLACEHOLDER_INDEX, SOURCE_PLACEHOLDER.size(), DEPTH_SHADER);
 
-        const auto ps = gpu::Shader::createPixel(fragmentShader);
+        const auto ps = gpu::Shader::createPixel({ fragmentShader, FRAGMENT_SHADER_SOURCE.getReflection() });
         const auto program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding("depthMap", 0));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         _depthPipeline = gpu::Pipeline::create(program, state);
     }
 }

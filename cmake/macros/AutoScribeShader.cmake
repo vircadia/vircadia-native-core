@@ -86,23 +86,26 @@ macro(AUTOSCRIBE_APPEND_SHADER_SOURCES)
 endmacro()
 
 macro(AUTOSCRIBE_SHADER_LIB)
-  set(GLOBAL_SHADER_SOURCES "")
-  set(HIFI_LIBRARIES_SHADER_INCLUDE_FILES "")
+  unset(HIFI_LIBRARIES_SHADER_INCLUDE_FILES)
   set(SRC_FOLDER "${CMAKE_SOURCE_DIR}/libraries/${TARGET_NAME}/src")
+ 
   file(GLOB_RECURSE SHADER_INCLUDE_FILES ${SRC_FOLDER}/*.slh)
   file(GLOB_RECURSE SHADER_VERTEX_FILES ${SRC_FOLDER}/*.slv)
   file(GLOB_RECURSE SHADER_FRAGMENT_FILES ${SRC_FOLDER}/*.slf)
   file(GLOB_RECURSE SHADER_GEOMETRY_FILES ${SRC_FOLDER}/*.slg)
   file(GLOB_RECURSE SHADER_COMPUTE_FILES ${SRC_FOLDER}/*.slc)
   
+  unset(SHADER_SOURCE_FILES)
   list(APPEND SHADER_SOURCE_FILES ${SHADER_VERTEX_FILES})
   list(APPEND SHADER_SOURCE_FILES ${SHADER_FRAGMENT_FILES})
   list(APPEND SHADER_SOURCE_FILES ${SHADER_GEOMETRY_FILES})
   list(APPEND SHADER_SOURCE_FILES ${SHADER_COMPUTE_FILES})
   
-  list(APPEND GLOBAL_SHADER_SOURCES ${SHADER_SOURCE_FILES})
-  list(APPEND GLOBAL_SHADER_SOURCES ${SHADER_INCLUDE_FILES})
-  AUTOSCRIBE_APPEND_SHADER_SOURCES(${GLOBAL_SHADER_SOURCES})
+  unset(LOCAL_SHADER_SOURCES)
+  list(APPEND LOCAL_SHADER_SOURCES ${SHADER_SOURCE_FILES})
+  list(APPEND LOCAL_SHADER_SOURCES ${SHADER_INCLUDE_FILES})
+
+  AUTOSCRIBE_APPEND_SHADER_SOURCES(${LOCAL_SHADER_SOURCES})
   
   file(RELATIVE_PATH RELATIVE_LIBRARY_DIR_PATH ${CMAKE_CURRENT_SOURCE_DIR} "${HIFI_LIBRARY_DIR}")
   foreach(HIFI_LIBRARY ${ARGN})
@@ -157,6 +160,8 @@ macro(PROCESS_SHADER_FILE)
     file(TO_CMAKE_PATH "${AUTOSCRIBE_SHADER_RETURN}" AUTOSCRIBE_GENERATED_FILE)
     set_property(SOURCE ${AUTOSCRIBE_GENERATED_FILE} PROPERTY SKIP_AUTOMOC ON)
     source_group("Compiled/${SHADER_LIB}" FILES ${AUTOSCRIBE_GENERATED_FILE})
+    set(REFLECTED_SHADER "${AUTOSCRIBE_GENERATED_FILE}.json")
+    source_group("Reflected/${SHADER_LIB}" FILES ${REFLECTED_SHADER})
     list(APPEND COMPILED_SHADERS ${AUTOSCRIBE_GENERATED_FILE})
     get_filename_component(ENUM_NAME ${SHADER} NAME_WE)
     string(CONCAT SHADER_ENUMS "${SHADER_ENUMS}" "${ENUM_NAME} = ${SHADER_COUNT},\n")
@@ -239,27 +244,48 @@ macro(AUTOSCRIBE_SHADER_FINISH)
         string(CONCAT SHADER_PROGRAMS_ARRAY "${SHADER_PROGRAMS_ARRAY}" "    ${SHADER_PROGRAM},\n")
     endforeach()
 
+    set(SHREFLECT_COMMAND shreflect)
+    set(SHREFLECT_DEPENDENCY shreflect)
+    if (ANDROID)
+        set(SHREFLECT_COMMAND ${NATIVE_SHREFLECT})
+        unset(SHREFLECT_DEPENDENCY)
+    endif()
+
     set(SHADER_COUNT 0)
     foreach(COMPILED_SHADER ${COMPILED_SHADERS})
+        set(REFLECTED_SHADER "${COMPILED_SHADER}.json")
+        list(APPEND COMPILED_SHADER_REFLECTIONS ${REFLECTED_SHADER})
         string(CONCAT SHADER_QRC "${SHADER_QRC}" "<file alias=\"${SHADER_COUNT}\">${COMPILED_SHADER}</file>\n")
+        string(CONCAT SHADER_QRC "${SHADER_QRC}" "<file alias=\"${SHADER_COUNT}_reflection\">${REFLECTED_SHADER}</file>\n")
         MATH(EXPR SHADER_COUNT "${SHADER_COUNT}+1")
+        add_custom_command(
+           OUTPUT ${REFLECTED_SHADER}
+           COMMAND ${SHREFLECT_COMMAND} ${COMPILED_SHADER}
+           DEPENDS ${SHREFLECT_DEPENDENCY} ${COMPILED_SHADER}
+       )
     endforeach()
+    
+    # Custom targets required to force generation of the shaders via scribe
+    add_custom_target(compiled_shaders SOURCES ${COMPILED_SHADERS})
+    add_custom_target(reflected_shaders SOURCES ${COMPILED_SHADER_REFLECTIONS})
+    set_target_properties(compiled_shaders PROPERTIES FOLDER "Shaders")
+    set_target_properties(reflected_shaders PROPERTIES FOLDER "Shaders")
 
     configure_file(
-        Shaders.cpp.in 
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/Shaders.cpp
+        ShaderEnums.cpp.in 
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders/ShaderEnums.cpp
     )
     configure_file(
-        Shaders.h.in 
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/Shaders.h
+        ShaderEnums.h.in 
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders/ShaderEnums.h
     )
     configure_file(
         shaders.qrc.in 
         ${CMAKE_CURRENT_BINARY_DIR}/shaders.qrc
     )
-    set(AUTOSCRIBE_SHADER_LIB_SRC "${CMAKE_CURRENT_BINARY_DIR}/shaders/Shaders.h;${CMAKE_CURRENT_BINARY_DIR}/shaders/Shaders.cpp") 
+    set(AUTOSCRIBE_SHADER_LIB_SRC "${CMAKE_CURRENT_BINARY_DIR}/shaders/ShaderEnums.h;${CMAKE_CURRENT_BINARY_DIR}/shaders/ShaderEnums.cpp")
+    list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${COMPILED_SHADERS}) 
     set(QT_RESOURCES_FILE ${CMAKE_CURRENT_BINARY_DIR}/shaders.qrc)
     get_property(GLOBAL_SHADER_SOURCES GLOBAL PROPERTY GLOBAL_SHADER_SOURCES)
     list(REMOVE_DUPLICATES GLOBAL_SHADER_SOURCES)
-    #add_custom_target(shader-sources SOURCES ${GLOBAL_SHADER_SOURCES} ${COMPILED_SHADERS} "${CMAKE_BINARY_DIR}/shaders/Shaders.h")
 endmacro()

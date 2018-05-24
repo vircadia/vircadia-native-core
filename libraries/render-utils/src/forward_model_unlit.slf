@@ -14,14 +14,15 @@
 
 <@include LightingModel.slh@>
 <@include graphics/Material.slh@>
+<@include graphics/MaterialTextures.slh@>
+<@include render-utils/ShaderConstants.h@>
 
-<@include MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO)$>
 
-in vec2 _texCoord0;
-in vec3 _color;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD0) in vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec3 _color;
 
-layout(location = 0) out vec4 _fragColor0;
+layout(location=0) out vec4 _fragColor0;
 
 void main(void) {
 

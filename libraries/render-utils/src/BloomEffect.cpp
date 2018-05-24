@@ -16,6 +16,7 @@
 
 #include <render/BlurTask.h>
 #include <render/ResampleTask.h>
+#include "render-utils/ShaderConstants.h"
 
 #define BLOOM_BLUR_LEVEL_COUNT  3
 
@@ -59,17 +60,8 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
         _parameters.edit()._deltaUV = { 1.0f / bufferSize.x, 1.0f / bufferSize.y };
     }
 
-    static const int COLOR_MAP_SLOT = 0;
-    static const int PARAMETERS_SLOT = 1;
-
     if (!_pipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::bloomThreshold);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding("colorMap", COLOR_MAP_SLOT));
-        slotBindings.insert(gpu::Shader::Binding("parametersBuffer", PARAMETERS_SLOT));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         _pipeline = gpu::Pipeline::create(program, state);
     }
@@ -86,8 +78,8 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
         batch.setPipeline(_pipeline);
 
         batch.setFramebuffer(_outputBuffer);
-        batch.setResourceTexture(COLOR_MAP_SLOT, inputBuffer);
-        batch.setUniformBuffer(PARAMETERS_SLOT, _parameters);
+        batch.setResourceTexture(render_utils::slot::texture::BloomColor, inputBuffer);
+        batch.setUniformBuffer(render_utils::slot::buffer::BloomParams, _parameters);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
 
@@ -121,14 +113,6 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
 
     if (!_pipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::bloomApply);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding("blurMap0", BLUR0_SLOT));
-        slotBindings.insert(gpu::Shader::Binding("blurMap1", BLUR1_SLOT));
-        slotBindings.insert(gpu::Shader::Binding("blurMap2", BLUR2_SLOT));
-        slotBindings.insert(gpu::Shader::Binding("parametersBuffer", PARAMETERS_SLOT));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(gpu::State::DepthTest(false, false));
         _pipeline = gpu::Pipeline::create(program, state);
@@ -155,7 +139,7 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
         batch.setResourceTexture(BLUR0_SLOT, blur0FB->getRenderBuffer(0));
         batch.setResourceTexture(BLUR1_SLOT, blur1FB->getRenderBuffer(0));
         batch.setResourceTexture(BLUR2_SLOT, blur2FB->getRenderBuffer(0));
-		batch.setUniformBuffer(PARAMETERS_SLOT, _parameters);
+        batch.setUniformBuffer(PARAMETERS_SLOT, _parameters);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
 }
@@ -173,9 +157,6 @@ void BloomDraw::run(const render::RenderContextPointer& renderContext, const Inp
 
         if (!_pipeline) {
             gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTransformUnitQuadTextureOpaque);
-            gpu::Shader::BindingSet slotBindings;
-            gpu::Shader::makeProgram(*program, slotBindings);
-
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             state->setDepthTest(gpu::State::DepthTest(false, false));
             state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
@@ -229,11 +210,6 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
 
     if (!_pipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTextureOpaqueTexcoordRect);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("texcoordRect"), TEXCOORD_RECT_SLOT));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(gpu::State::DepthTest(false));
         _pipeline = gpu::Pipeline::create(program, state);
@@ -307,7 +283,7 @@ float BloomConfig::getIntensity() const {
 void BloomConfig::setSize(float value) {
     std::string blurName{ "BloomBlurN" };
     auto sigma = 0.5f+value*3.5f;
-	auto task = static_cast<render::Task::TaskConcept*>(_task);
+    auto task = static_cast<render::Task::TaskConcept*>(_task);
 
     for (auto i = 0; i < BLOOM_BLUR_LEVEL_COUNT; i++) {
         blurName.back() = '0' + i;
@@ -317,9 +293,9 @@ void BloomConfig::setSize(float value) {
         auto gaussianBlurParams = gaussianBlur.getParameters();
         gaussianBlurParams->setFilterGaussianTaps(9, sigma);
     }
-	auto blurJobIt = task->getJob("BloomApply");
-	assert(blurJobIt != task->_jobs.end());
-	blurJobIt->getConfiguration()->setProperty("sigma", sigma);
+    auto blurJobIt = task->getJob("BloomApply");
+    assert(blurJobIt != task->_jobs.end());
+    blurJobIt->getConfiguration()->setProperty("sigma", sigma);
 }
 
 Bloom::Bloom() {

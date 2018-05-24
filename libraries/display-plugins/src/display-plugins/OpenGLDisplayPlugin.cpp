@@ -44,33 +44,6 @@
 #include "CompositorHelper.h"
 #include "Logging.h"
 
-const char* SRGB_TO_LINEAR_FRAG = R"SCRIBE(
-
-// OpenGLDisplayPlugin_present.frag
-
-uniform sampler2D colorMap;
-
-in vec2 varTexCoord0;
-
-out vec4 outFragColor;
-
-float sRGBFloatToLinear(float value) {
-    const float SRGB_ELBOW = 0.04045;
-
-    return (value <= SRGB_ELBOW) ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4);
-}
-
-vec3 colorToLinearRGB(vec3 srgb) {
-    return vec3(sRGBFloatToLinear(srgb.r), sRGBFloatToLinear(srgb.g), sRGBFloatToLinear(srgb.b));
-}
-
-void main(void) {
-    outFragColor.a = 1.0;
-    outFragColor.rgb = colorToLinearRGB(texture(colorMap, varTexCoord0).rgb);
-}
-
-)SCRIBE";
-
 extern QThread* RENDER_THREAD;
 
 class PresentThread : public QThread, public Dependency {
@@ -391,10 +364,7 @@ void OpenGLDisplayPlugin::customizeContext() {
 
     if (!_presentPipeline) {
         {
-            auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawUnitQuadTexcoord);
-            auto ps = gpu::Shader::createPixel(shader::gpu::fragment::DrawTexture);
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::makeProgram(*program);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTexture);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             state->setDepthTest(gpu::State::DepthTest(false));
             state->setScissorEnable(true);
@@ -402,10 +372,7 @@ void OpenGLDisplayPlugin::customizeContext() {
         }
 
         {
-            auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawUnitQuadTexcoord);
-            auto ps = gpu::Shader::createPixel(std::string(SRGB_TO_LINEAR_FRAG));
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::makeProgram(*program);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::display_plugins::program::SrgbToLinear);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             state->setDepthTest(gpu::State::DepthTest(false));
             state->setScissorEnable(true);
@@ -416,7 +383,6 @@ void OpenGLDisplayPlugin::customizeContext() {
             auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawUnitQuadTexcoord);
             auto ps = gpu::Shader::createPixel(shader::gpu::fragment::DrawTexture);
             gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::makeProgram(*program);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             state->setDepthTest(gpu::State::DepthTest(false));
             state->setBlendFunction(true,
@@ -429,7 +395,6 @@ void OpenGLDisplayPlugin::customizeContext() {
             auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawUnitQuadTexcoord);
             auto ps = gpu::Shader::createPixel(shader::gpu::fragment::DrawTextureMirroredX);
             gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::makeProgram(*program);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             state->setDepthTest(gpu::State::DepthTest(false));
             state->setBlendFunction(true,
@@ -442,7 +407,6 @@ void OpenGLDisplayPlugin::customizeContext() {
             auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawTransformUnitQuad);
             auto ps = gpu::Shader::createPixel(shader::gpu::fragment::DrawTexture);
             gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::makeProgram(*program);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             state->setDepthTest(gpu::State::DepthTest(false));
             state->setBlendFunction(true,

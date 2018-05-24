@@ -32,9 +32,9 @@ static const float SPHERE_ENTITY_SCALE = 0.5f;
 
 
 ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
-    _procedural._vertexSource = gpu::Shader::getVertexShaderSource(shader::render_utils::vertex::simple).getCode();
+    _procedural._vertexSource = gpu::Shader::getVertexShaderSource(shader::render_utils::vertex::simple);
     // FIXME: Setup proper uniform slots and use correct pipelines for forward rendering
-    _procedural._opaquefragmentSource = gpu::Shader::getFragmentShaderSource(shader::render_utils::fragment::simple).getCode();
+    _procedural._opaquefragmentSource = gpu::Shader::getFragmentShaderSource(shader::render_utils::fragment::simple);
     // FIXME: Transparent procedural entities only seem to work if they use the opaque pipelines
     //_procedural._transparentfragmentSource = simple_transparent_frag::getSource();
     _procedural._transparentfragmentSource = _procedural._opaquefragmentSource;

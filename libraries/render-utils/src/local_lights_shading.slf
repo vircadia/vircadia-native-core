@@ -19,8 +19,10 @@
 
 <@include LightLocal.slh@>
 
-in vec2 _texCoord0;
-out vec4 _fragColor;
+<@include render-utils/ShaderConstants.h@>
+
+layout(location=RENDER_UTILS_ATTR_TEXCOORD0) in vec2 _texCoord0;
+layout(location=0) out vec4 _fragColor;
 
 void main(void) {
     _fragColor = vec4(0.0);

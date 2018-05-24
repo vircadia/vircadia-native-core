@@ -40,8 +40,6 @@ graphics::MeshPointer PrepareStencil::getMesh() {
 gpu::PipelinePointer PrepareStencil::getMeshStencilPipeline() {
     if (!_meshStencilPipeline) {
         auto program = gpu::Shader::createProgram(shader::gpu::program::drawNothing);
-        gpu::Shader::makeProgram((*program));
-
         auto state = std::make_shared<gpu::State>();
         drawMask(*state);
         state->setColorWriteMask(0);
@@ -54,8 +52,6 @@ gpu::PipelinePointer PrepareStencil::getMeshStencilPipeline() {
 gpu::PipelinePointer PrepareStencil::getPaintStencilPipeline() {
     if (!_paintStencilPipeline) {
         auto program = gpu::Shader::createProgram(shader::render_utils::program::stencil_drawMask);
-        gpu::Shader::makeProgram((*program));
-
         auto state = std::make_shared<gpu::State>();
         drawMask(*state);
         state->setColorWriteMask(0);

@@ -14,7 +14,7 @@
 #include "render/TransitionStage.h"
 
 #include "FadeObjectParams.shared.slh"
-
+#include "render-utils/ShaderConstants.h"
 #include <PathUtils.h>
 
 FadeEffect::FadeEffect() {
@@ -33,16 +33,16 @@ void FadeEffect::build(render::Task::TaskConcept& task, const task::Varying& edi
 
 render::ShapePipeline::BatchSetter FadeEffect::getBatchSetter() const {
     return [this](const render::ShapePipeline& shapePipeline, gpu::Batch& batch, render::Args*) {
-        batch.setResourceTexture(render::ShapePipeline::Slot::FADE_MASK, _maskMap);
-        batch.setUniformBuffer(render::ShapePipeline::Slot::FADE_PARAMETERS, _configurations);
+        batch.setResourceTexture(render_utils::slot::texture::FadeMask, _maskMap);
+        batch.setUniformBuffer(render_utils::slot::buffer::FadeParameters, _configurations);
     };
 }
 
 render::ShapePipeline::ItemSetter FadeEffect::getItemUniformSetter() const {
     return [](const render::ShapePipeline& shapePipeline, render::Args* args, const render::Item& item) {
         if (!render::TransitionStage::isIndexInvalid(item.getTransitionId())) {
-            auto scene = args->_scene;
-            auto batch = args->_batch;
+            const auto& scene = args->_scene;
+            const auto& batch = args->_batch;
             auto transitionStage = scene->getStage<render::TransitionStage>(render::TransitionStage::getName());
             auto& transitionState = transitionStage->getTransition(item.getTransitionId());
 
@@ -67,7 +67,7 @@ render::ShapePipeline::ItemSetter FadeEffect::getItemUniformSetter() const {
                 params.noiseOffset = glm::vec4(transitionState.noiseOffset, 0.0f);
                 params.baseOffset = glm::vec4(transitionState.baseOffset, 0.0f);
             }
-            batch->setUniformBuffer(render::ShapePipeline::Slot::FADE_OBJECT_PARAMETERS, transitionState.paramsBuffer);
+            batch->setUniformBuffer(render_utils::slot::buffer::FadeObjectParameters, transitionState.paramsBuffer);
         }
     };
 }

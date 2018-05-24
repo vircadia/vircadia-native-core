@@ -19,9 +19,11 @@
 #include <SharedUtil.h>
 #include <gpu/Context.h>
 #include <shaders/Shaders.h>
+#include <render/ShapePipeline.h>
 
 #include "RenderUtilsLogging.h"
 
+#include "render-utils/ShaderConstants.h"
 #include "DeferredLightingEffect.h"
 #include "TextureCache.h"
 #include "FramebufferCache.h"
@@ -162,12 +164,6 @@ public:
     }
 };
 
-const int AmbientOcclusionEffect_FrameTransformSlot = 0;
-const int AmbientOcclusionEffect_ParamsSlot = 1;
-const int AmbientOcclusionEffect_CameraCorrectionSlot = 2;
-const int AmbientOcclusionEffect_LinearDepthMapSlot = 0;
-const int AmbientOcclusionEffect_OcclusionMapSlot = 0;
-
 AmbientOcclusionEffect::AmbientOcclusionEffect() {
 }
 
@@ -258,15 +254,6 @@ void AmbientOcclusionEffect::configure(const Config& config) {
 const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
     if (!_occlusionPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_makeOcclusion);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), AmbientOcclusionEffect_CameraCorrectionSlot));
-        
-        slotBindings.insert(gpu::Shader::Binding(std::string("pyramidMap"), AmbientOcclusionEffect_LinearDepthMapSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         state->setColorWriteMask(true, true, true, false);
@@ -281,14 +268,6 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
 const gpu::PipelinePointer& AmbientOcclusionEffect::getHBlurPipeline() {
     if (!_hBlurPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_makeHorizontalBlur);
-        
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), AmbientOcclusionEffect_CameraCorrectionSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), AmbientOcclusionEffect_OcclusionMapSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-        
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         state->setColorWriteMask(true, true, true, false);
@@ -302,15 +281,6 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getHBlurPipeline() {
 const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
     if (!_vBlurPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_makeVerticalBlur);
-        
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), AmbientOcclusionEffect_CameraCorrectionSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), AmbientOcclusionEffect_OcclusionMapSlot));
-        
-        gpu::Shader::makeProgram(*program, slotBindings);
-        
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         
         // Vertical blur write just the final result Occlusion value in the alpha channel
@@ -388,8 +358,8 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         model.setScale(glm::vec3(sWidth, tHeight, 1.0f));
         batch.setModelTransform(model);
 
-        batch.setUniformBuffer(AmbientOcclusionEffect_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
-        batch.setUniformBuffer(AmbientOcclusionEffect_ParamsSlot, _parametersBuffer);
+        batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
+        batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _parametersBuffer);
 
       
         // We need this with the mips levels  
@@ -399,7 +369,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         batch.setFramebuffer(occlusionFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(1.0f));
         batch.setPipeline(occlusionPipeline);
-        batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, _framebuffer->getLinearDepthTexture());
+        batch.setResourceTexture(render_utils::slot::texture::SsaoPyramid, _framebuffer->getLinearDepthTexture());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         
@@ -407,19 +377,19 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
             // Blur 1st pass
             batch.setFramebuffer(occlusionBlurredFBO);
             batch.setPipeline(firstHBlurPipeline);
-            batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, occlusionFBO->getRenderBuffer(0));
+            batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionFBO->getRenderBuffer(0));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
             // Blur 2nd pass
             batch.setFramebuffer(occlusionFBO);
             batch.setPipeline(lastVBlurPipeline);
-            batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, occlusionBlurredFBO->getRenderBuffer(0));
+            batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionBlurredFBO->getRenderBuffer(0));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
         
         
-        batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, nullptr);
-        batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, nullptr);
+        batch.setResourceTexture(render_utils::slot::texture::SsaoPyramid, nullptr);
+        batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, nullptr);
         
         _gpuTimer->end(batch);
     });
@@ -447,14 +417,6 @@ void DebugAmbientOcclusion::configure(const Config& config) {
 const gpu::PipelinePointer& DebugAmbientOcclusion::getDebugPipeline() {
     if (!_debugPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_debugOcclusion);
-        
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("debugAmbientOcclusionBuffer"), 2));
-        slotBindings.insert(gpu::Shader::Binding(std::string("pyramidMap"), AmbientOcclusionEffect_LinearDepthMapSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         state->setColorWriteMask(true, true, true, false);
@@ -517,16 +479,16 @@ void DebugAmbientOcclusion::run(const render::RenderContextPointer& renderContex
         model.setScale(glm::vec3(sWidth, tHeight, 1.0f));
         batch.setModelTransform(model);
 
-        batch.setUniformBuffer(AmbientOcclusionEffect_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
-        batch.setUniformBuffer(AmbientOcclusionEffect_ParamsSlot, ambientOcclusionUniforms);
+        batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
+        batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, ambientOcclusionUniforms);
         batch.setUniformBuffer(2, _parametersBuffer);
         
         batch.setPipeline(debugPipeline);
-        batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, linearDepthTexture);
+        batch.setResourceTexture(render_utils::slot::texture::SsaoPyramid, linearDepthTexture);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         
-        batch.setResourceTexture(AmbientOcclusionEffect_LinearDepthMapSlot, nullptr);    
+        batch.setResourceTexture(render_utils::slot::texture::SsaoPyramid, nullptr);
     });
 
 }

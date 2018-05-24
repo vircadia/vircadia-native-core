@@ -14,8 +14,8 @@
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <ViewFrustum.h>
-
 #include <shaders/Shaders.h>
+#include "ShaderConstants.h"
 
 using namespace graphics;
 
@@ -64,17 +64,12 @@ void Skybox::clear() {
     _empty = true;
 }
 
-void Skybox::prepare(gpu::Batch& batch, int textureSlot, int bufferSlot) const {
-    if (bufferSlot > -1) {
-        batch.setUniformBuffer(bufferSlot, _schemaBuffer);
-    }
-
-    if (textureSlot > -1) {
-        gpu::TexturePointer skymap = getCubemap();
-        // FIXME: skymap->isDefined may not be threadsafe
-        if (skymap && skymap->isDefined()) {
-            batch.setResourceTexture(textureSlot, skymap);
-        }
+void Skybox::prepare(gpu::Batch& batch) const {
+    batch.setUniformBuffer(graphics::slot::buffer::SkyboxParams, _schemaBuffer);
+    gpu::TexturePointer skymap = getCubemap();
+    // FIXME: skymap->isDefined may not be threadsafe
+    if (skymap && skymap->isDefined()) {
+        batch.setResourceTexture(graphics::slot::texture::Skybox, skymap);
     }
 }
 
@@ -91,16 +86,6 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     std::call_once(once, [&] {
         {
             auto skyShader = gpu::Shader::createProgram(shader::graphics::program::skybox);
-
-            batch.runLambda([skyShader] {
-                gpu::Shader::BindingSet bindings;
-                bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), SKYBOX_SKYMAP_SLOT));
-                bindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), SKYBOX_CONSTANTS_SLOT));
-                if (!gpu::Shader::makeProgram(*skyShader, bindings)) {
-
-                }
-            });
-
             auto skyState = std::make_shared<gpu::State>();
             // Must match PrepareStencil::STENCIL_BACKGROUND
             const int8_t STENCIL_BACKGROUND = 0;
@@ -130,5 +115,5 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     skybox.prepare(batch);
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-    batch.setResourceTexture(SKYBOX_SKYMAP_SLOT, nullptr);
+    batch.setResourceTexture(graphics::slot::texture::Skybox, nullptr);
 }

@@ -10,15 +10,18 @@
 !>
 <@if not GPU_INPUTS_SLH@>
 <@def GPU_INPUTS_SLH@>
-layout(location = 0) in vec4 inPosition;
-layout(location = 1) in vec4 inNormal;
-layout(location = 2) in vec4 inColor;
-layout(location = 3) in vec4 inTexCoord0;
-layout(location = 4) in vec4 inTangent;
-layout(location = 5) in ivec4 inSkinClusterIndex;
-layout(location = 6) in vec4 inSkinClusterWeight;
-layout(location = 7) in vec4 inTexCoord1;
-layout(location = 8) in vec4 inTexCoord2;
-layout(location = 9) in vec4 inTexCoord3;
-layout(location = 10) in vec4 inTexCoord4;
+
+<@include gpu/ShaderConstants.h@>
+
+layout(location=GPU_ATTR_POSITION) in vec4 inPosition;
+layout(location=GPU_ATTR_NORMAL) in vec4 inNormal;
+layout(location=GPU_ATTR_COLOR) in vec4 inColor;
+layout(location=GPU_ATTR_TEXCOORD0) in vec4 inTexCoord0;
+layout(location=GPU_ATTR_TANGENT) in vec4 inTangent;
+layout(location=GPU_ATTR_SKIN_CLUSTER_INDEX) in ivec4 inSkinClusterIndex;
+layout(location=GPU_ATTR_SKIN_CLUSTER_WEIGHT) in vec4 inSkinClusterWeight;
+layout(location=GPU_ATTR_TEXCOORD1) in vec4 inTexCoord1;
+layout(location=GPU_ATTR_TEXCOORD2) in vec4 inTexCoord2;
+layout(location=GPU_ATTR_TEXCOORD3) in vec4 inTexCoord3;
+layout(location=GPU_ATTR_TEXCOORD4) in vec4 inTexCoord4;
 <@endif@>

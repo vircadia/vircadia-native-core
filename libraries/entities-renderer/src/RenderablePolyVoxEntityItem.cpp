@@ -25,6 +25,10 @@
 #include <EntityEditPacketSender.h>
 #include <PhysicalEntitySimulation.h>
 #include <StencilMaskPass.h>
+#include <graphics/ShaderConstants.h>
+#include <render/ShapePipeline.h>
+
+#include "entities-renderer/ShaderConstants.h"
 
 #include <shaders/Shaders.h>
 
@@ -1556,7 +1560,6 @@ scriptable::ScriptableModelBase RenderablePolyVoxEntityItem::getScriptableModel(
 using namespace render;
 using namespace render::entities;
 
-static const int MATERIAL_GPU_SLOT { 3 };
 static uint8_t CUSTOM_PIPELINE_NUMBER;
 static gpu::PipelinePointer _pipelines[2];
 static gpu::PipelinePointer _wireframePipelines[2];
@@ -1566,15 +1569,6 @@ ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const Sha
     if (!_pipelines[0]) {
         using namespace shader::entities_renderer::program;
         int programsIds[2] = { polyvox, polyvox_fade };
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
-        slotBindings.insert(gpu::Shader::Binding(std::string("xMap"), 0));
-        slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
-        slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
-#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
-        slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), 3));
-#endif
 
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
@@ -1590,11 +1584,6 @@ ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const Sha
         // Two sets of pipelines: normal and fading
         for (auto i = 0; i < 2; i++) {
             gpu::ShaderPointer program = gpu::Shader::createProgram(programsIds[i]);
-         
-            batch.runLambda([program, slotBindings] {
-                gpu::Shader::makeProgram(*program, slotBindings);
-            });
-
             _pipelines[i] = gpu::Pipeline::create(program, state);
             _wireframePipelines[i] = gpu::Pipeline::create(program, wireframeState);
         }
@@ -1729,8 +1718,7 @@ void PolyVoxEntityRenderer::doRender(RenderArgs* args) {
         }
     }
 
-    int voxelVolumeSizeLocation = args->_shapePipeline->pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
-    batch._glUniform3f(voxelVolumeSizeLocation, _lastVoxelVolumeSize.x, _lastVoxelVolumeSize.y, _lastVoxelVolumeSize.z);
+    batch._glUniform3f(entities_renderer::slot::uniform::PolyvoxVoxelSize, _lastVoxelVolumeSize.x, _lastVoxelVolumeSize.y, _lastVoxelVolumeSize.z);
     batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)_mesh->getNumIndices(), 0);
 }
 

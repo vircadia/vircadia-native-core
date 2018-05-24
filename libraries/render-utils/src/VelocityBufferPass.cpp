@@ -16,9 +16,12 @@
 #include <shaders/Shaders.h>
 
 #include "StencilMaskPass.h"
+#include "render-utils/ShaderConstants.h"
 
-const int VelocityBufferPass_FrameTransformSlot = 0;
-const int VelocityBufferPass_DepthMapSlot = 0;
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
 
 VelocityFramebuffer::VelocityFramebuffer() {
 }
@@ -124,13 +127,13 @@ void VelocityBufferPass::run(const render::RenderContextPointer& renderContext, 
         batch.resetViewTransform();
         batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_velocityFramebuffer->getDepthFrameSize(), fullViewport));
 
-        batch.setUniformBuffer(VelocityBufferPass_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
+        batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
 
         // Velocity buffer camera motion
         batch.setFramebuffer(velocityFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
         batch.setPipeline(cameraMotionPipeline);
-        batch.setResourceTexture(VelocityBufferPass_DepthMapSlot, depthBuffer);
+        batch.setResourceTexture(ru::Texture::TaaDepth, depthBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         _gpuTimer->end(batch);
@@ -153,16 +156,6 @@ const gpu::PipelinePointer& VelocityBufferPass::getCameraMotionPipeline(const re
         
         // Good to go add the brand new pipeline
         _cameraMotionPipeline = gpu::Pipeline::create(program, state);
-
-        gpu::doInBatch("VelocityBufferPass::CameraMotionPipeline", renderContext->args->_context,
-            [program](gpu::Batch& batch) {
-            batch.runLambda([program]() {
-                gpu::Shader::BindingSet slotBindings;
-                slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), VelocityBufferPass_FrameTransformSlot));
-                slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), VelocityBufferPass_DepthMapSlot));
-                gpu::Shader::makeProgram(*program, slotBindings);
-            });
-        });
     }
 
     return _cameraMotionPipeline;

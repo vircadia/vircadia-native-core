@@ -14,15 +14,17 @@
 
 <@include graphics/Material.slh@>
 
-<@include MaterialTextures.slh@>
+<@include graphics/MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
 <@include LightingModel.slh@>
 
-in vec2 _texCoord0;
-in vec3 _color;
-in float _alpha;
+<@include render-utils/ShaderConstants.h@>
 
-out vec4 _fragColor;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD0) in vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec3 _color;
+layout(location=RENDER_UTILS_ATTR_ALPHA) in float _alpha;
+
+layout(location=0) out vec4 _fragColor;
 
 void main(void) {
     Material mat = getMaterial();

@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  directional_light_shadow.frag
+//  directional_ambient_light_shadow.frag
 //  fragment shader
 //
 //  Created by Zach Pomerantz on 1/18/2016.
@@ -15,12 +15,13 @@
 <@include Shadow.slh@>
 <@include DeferredBufferRead.slh@>
 <@include DeferredGlobalLight.slh@>
+<@include render-utils/ShaderConstants.h@>
 
 <$declareEvalLightmappedColor()$>
 <$declareEvalAmbientSphereGlobalColor(isScattering)$>
 
-in vec2 _texCoord0;
-out vec4 _fragColor;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD0) in vec2 _texCoord0;
+layout(location=0) out vec4 _fragColor;
 
 void main(void) {
     DeferredFrameTransform deferredTransform = getDeferredFrameTransform();

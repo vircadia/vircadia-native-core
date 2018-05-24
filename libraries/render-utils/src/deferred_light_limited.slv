@@ -13,14 +13,14 @@
 //
 
 <@include gpu/Transform.slh@>
-
 <@include gpu/Inputs.slh@>
+<@include render-utils/ShaderConstants.h@>
 
 <$declareStandardTransform()$>
 
 uniform vec4 sphereParam;
 
-out vec4 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD0) out vec4 _texCoord0;
 
 void main(void) {
     if (sphereParam.w != 0.0) {

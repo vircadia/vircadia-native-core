@@ -2703,8 +2703,6 @@ void Application::initializeGL() {
     // contexts
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
-    qApp->setProperty(hifi::properties::gl::MAKE_PROGRAM_CALLBACK,
-        QVariant::fromValue((void*)(&gpu::gl::GLBackend::makeProgram)));
     _glWidget->makeCurrent();
     _gpuContext = std::make_shared<gpu::Context>();
 

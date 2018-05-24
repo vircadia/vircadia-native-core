@@ -49,21 +49,6 @@ static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlum
         auto fadePS = gpu::Shader::createPixel(std::string(paintStroke_fade_frag));
         gpu::ShaderPointer fadeProgram = gpu::Shader::createProgram(fadeVS, fadePS);
 #endif
-        batch.runLambda([program
-#ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
-            , fadeProgram
-#endif
-        ] {
-            gpu::Shader::BindingSet slotBindings;
-            slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), PAINTSTROKE_TEXTURE_SLOT));
-            slotBindings.insert(gpu::Shader::Binding(std::string("polyLineBuffer"), PAINTSTROKE_UNIFORM_SLOT));
-            gpu::Shader::makeProgram(*program, slotBindings);
-#ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
-            slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), PAINTSTROKE_TEXTURE_SLOT + 1));
-            slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), PAINTSTROKE_UNIFORM_SLOT + 1));
-            gpu::Shader::makeProgram(*fadeProgram, slotBindings);
-#endif
-        });
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
         PrepareStencil::testMask(*state);

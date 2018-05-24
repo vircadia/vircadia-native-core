@@ -12,26 +12,25 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Transform.slh@>
 <@include graphics/Material.slh@>
-
+<@include graphics/MaterialTextures.slh@>
+<@include render-utils/ShaderConstants.h@>
 <@include ForwardGlobalLight.slh@>
 
 <$declareEvalGlobalLightingAlphaBlended()$>
-
-<@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
 
-<@include MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC, EMISSIVE, OCCLUSION)$>
 
-in vec2 _texCoord0;
-in vec2 _texCoord1;
-in vec4 _positionES;
-in vec3 _normalWS;
-in vec3 _color;
-in float _alpha;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD0) in vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD1) in vec2 _texCoord1;
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec3 _color;
+layout(location=RENDER_UTILS_ATTR_ALPHA) in float _alpha;
 
-layout(location = 0) out vec4 _fragColor0;
+layout(location=0) out vec4 _fragColor0;
 
 void main(void) {
     Material mat = getMaterial();

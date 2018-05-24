@@ -19,6 +19,7 @@
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
 #include <shaders/Shaders.h>
+#include <gpu/ShaderConstants.h>
 
 #include "Logging.h"
 
@@ -158,12 +159,6 @@ void DrawLight::run(const RenderContextPointer& renderContext, const ItemBounds&
 const gpu::PipelinePointer DrawBounds::getPipeline() {
     if (!_boundsPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawItemBounds);
-
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
-
-        _colorLocation = program->getUniforms().findLocation("inColor");
-
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
         state->setBlendFunction(true,
@@ -207,7 +202,7 @@ void DrawBounds::run(const RenderContextPointer& renderContext,
         batch.setPipeline(getPipeline());
 
         glm::vec4 color(glm::vec3(0.0f), -(float) numItems);
-        batch._glUniform4fv(_colorLocation, 1, (const float*)(&color));
+        batch._glUniform4fv(gpu::slot::uniform::Color, 1, (const float*)(&color));
         batch.setResourceBuffer(0, _drawBuffer);
 
         static const int NUM_VERTICES_PER_CUBE = 24;
@@ -263,11 +258,6 @@ gpu::PipelinePointer DrawQuadVolume::getPipeline() {
 
     if (!pipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawColor);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding("color", 0));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(gpu::State::DepthTest(true, false));
         pipeline = gpu::Pipeline::create(program, state);

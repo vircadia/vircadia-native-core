@@ -27,7 +27,9 @@
 #include <graphics/BufferViewHelpers.h>
 #include <render/Args.h>
 #include <shaders/Shaders.h>
+#include <graphics/ShaderConstants.h>
 
+#include "render-utils/ShaderConstants.h"
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
 #include "StencilMaskPass.h"
@@ -36,6 +38,16 @@
 
 
 #include "DeferredLightingEffect.h"
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
+
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
 
 #if defined(USE_GLES)
 static bool DISABLE_DEFERRED = true;
@@ -804,12 +816,9 @@ render::ShapePipelinePointer GeometryCache::getShapePipeline(bool textured, bool
 
     return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, false, true), nullptr,
         [](const render::ShapePipeline& pipeline, gpu::Batch& batch, render::Args* args) {
-        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO, DependencyManager::get<TextureCache>()->getWhiteTexture());
-        DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(args, batch,
-                                                                             pipeline.pipeline->getProgram()->getUniformBuffers().findLocation("keyLightBuffer"),
-                                                                             pipeline.pipeline->getProgram()->getUniformBuffers().findLocation("lightAmbientBuffer"),
-                                                                             pipeline.pipeline->getProgram()->getUniformBuffers().findLocation("skyboxMap"));
-    }
+            batch.setResourceTexture(gr::Texture::MaterialAlbedo, DependencyManager::get<TextureCache>()->getWhiteTexture());
+            DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(args, batch);
+        }
     );
 }
 
@@ -820,7 +829,7 @@ render::ShapePipelinePointer GeometryCache::getFadingShapePipeline(bool textured
     auto fadeItemSetter = fadeEffect->getItemStoredSetter();
     return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, true), nullptr,
         [fadeBatchSetter, fadeItemSetter](const render::ShapePipeline& shapePipeline, gpu::Batch& batch, render::Args* args) {
-            batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO, DependencyManager::get<TextureCache>()->getWhiteTexture());
+            batch.setResourceTexture(gr::Texture::MaterialAlbedo, DependencyManager::get<TextureCache>()->getWhiteTexture());
             fadeBatchSetter(shapePipeline, batch, args);
         },
         fadeItemSetter
@@ -2027,7 +2036,6 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
     }
 
     // Compile the shaders
-    static const uint32_t LINE_DATA_SLOT = 1;
     static std::once_flag once;
     std::call_once(once, [&] {
         auto state = std::make_shared<gpu::State>();
@@ -2039,10 +2047,6 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
         PrepareStencil::testMask(*state);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("lineData"), LINE_DATA_SLOT));
-        gpu::Shader::makeProgram(*program, slotBindings);
         _glowLinePipeline = gpu::Pipeline::create(program, state);
     });
 
@@ -2079,7 +2083,7 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
     }
 
     // The shader requires no vertices, only uniforms.
-    batch.setUniformBuffer(LINE_DATA_SLOT, details.uniformBuffer);
+    batch.setUniformBuffer(0, details.uniformBuffer);
     batch.draw(gpu::TRIANGLE_STRIP, NUM_VERTICES, 0);
 }
 
@@ -2104,11 +2108,6 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
         auto programNoBlend = gpu::Shader::createProgram(shader::render_utils::program::standardDrawTextureNoBlend);
 
         _standardDrawPipelineNoBlend = gpu::Pipeline::create(programNoBlend, stateNoBlend);
-
-        batch.runLambda([program, programNoBlend] {
-            gpu::Shader::makeProgram((*program));
-            gpu::Shader::makeProgram((*programNoBlend));
-        });
     });
 
     if (noBlend) {
@@ -2121,9 +2120,7 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
 void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bool isLayered) {
     if (!_gridPipeline) {
         auto program = gpu::Shader::createProgram(shader::render_utils::program::grid);
-        gpu::Shader::makeProgram((*program));
-        _gridSlot = program->getUniformBuffers().findLocation("gridBuffer");
-
+        _gridSlot = 0;
         auto stateLayered = std::make_shared<gpu::State>();
         stateLayered->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
         PrepareStencil::testMask(*stateLayered);
@@ -2205,9 +2202,6 @@ inline bool operator==(const SimpleProgramKey& a, const SimpleProgramKey& b) {
 static void buildWebShader(int programId, bool blendEnable,
                            gpu::ShaderPointer& shaderPointerOut, gpu::PipelinePointer& pipelinePointerOut) {
     shaderPointerOut = gpu::Shader::createProgram(programId);
-
-    gpu::Shader::BindingSet slotBindings;
-    gpu::Shader::makeProgram(*shaderPointerOut, slotBindings);
     auto state = std::make_shared<gpu::State>();
     state->setCullMode(gpu::State::CULL_NONE);
     state->setDepthTest(true, true, gpu::LESS_EQUAL);
@@ -2239,7 +2233,7 @@ void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool tra
 
     // If not textured, set a default albedo map
     if (!textured) {
-        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
+        batch.setResourceTexture(gr::Texture::MaterialAlbedo,
             DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
 }
@@ -2262,20 +2256,9 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
             // Use the forward pipeline for both here, otherwise transparents will be unlit
             auto PSTransparent = DISABLE_DEFERRED ? forward_simple_textured_transparent : forward_simple_textured_transparent;
             auto PSUnlit = DISABLE_DEFERRED ? forward_simple_textured_unlit : simple_textured_unlit;
-
             _simpleShader = gpu::Shader::createProgram(PS);
             _transparentShader = gpu::Shader::createProgram(PSTransparent);
             _unlitShader = gpu::Shader::createProgram(PSUnlit);
-
-            gpu::Shader::BindingSet slotBindings;
-            slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), render::ShapePipeline::Slot::MAP::ALBEDO));
-            slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), render::ShapePipeline::Slot::LIGHTING_MODEL));
-            slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), render::ShapePipeline::Slot::KEY_LIGHT));
-            slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER));
-            slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), render::ShapePipeline::Slot::MAP::LIGHT_AMBIENT_MAP));
-            gpu::Shader::makeProgram(*_simpleShader, slotBindings);
-            gpu::Shader::makeProgram(*_transparentShader, slotBindings);
-            gpu::Shader::makeProgram(*_unlitShader, slotBindings);
         });
     } else {
         static std::once_flag once;
@@ -2283,16 +2266,6 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
             using namespace shader::render_utils::program;
             _simpleFadeShader = gpu::Shader::createProgram(DISABLE_DEFERRED ? forward_simple_textured : simple_textured_fade);
             _unlitFadeShader = gpu::Shader::createProgram(DISABLE_DEFERRED ? forward_simple_textured_unlit : simple_textured_unlit_fade);
-
-            gpu::Shader::BindingSet slotBindings;
-            slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), render::ShapePipeline::Slot::MAP::ALBEDO));
-            slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), render::ShapePipeline::Slot::LIGHTING_MODEL));
-            slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), render::ShapePipeline::Slot::KEY_LIGHT));
-            slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER));
-            slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), render::ShapePipeline::Slot::MAP::LIGHT_AMBIENT_MAP));
-            slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), render::ShapePipeline::Slot::MAP::FADE_MASK));
-            gpu::Shader::makeProgram(*_simpleFadeShader, slotBindings);
-            gpu::Shader::makeProgram(*_unlitFadeShader, slotBindings);
         });
     }
 

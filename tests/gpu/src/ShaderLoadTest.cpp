@@ -23,22 +23,13 @@
 
 #include <test-utils/QTestExtensions.h>
 
+#include <test-utils/Utils.h>
+
 QTEST_MAIN(ShaderLoadTest)
 
 extern std::atomic<size_t> gpuBinaryShadersLoaded;
 
 extern const QString& getShaderCacheFile();
-
-
-QtMessageHandler originalHandler;
-
-void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-#if defined(Q_OS_WIN)
-    OutputDebugStringA(message.toStdString().c_str());
-    OutputDebugStringA("\n");
-#endif
-    originalHandler(type, context, message);
-}
 
 std::pair<int, std::vector<std::pair<QString, QString>>> parseCachedShaderString(const QString& cachedShaderString) {
 
@@ -194,7 +185,7 @@ bool ShaderLoadTest::buildProgram(const Program& programFiles) {
 }
 
 void ShaderLoadTest::initTestCase() {
-    originalHandler = qInstallMessageHandler(messageHandler);
+    installTestMessageHandler();
     DependencyManager::set<Setting::Manager>();
     {
         const auto& shaderCacheFile = getShaderCacheFile();
@@ -237,8 +228,14 @@ void ShaderLoadTest::cleanupTestCase() {
 }
 
 void ShaderLoadTest::testShaderLoad() {
-    auto gpuContext = std::make_shared<gpu::Context>();
+    _gpuContext = std::make_shared<gpu::Context>();
     QVERIFY(gpuBinaryShadersLoaded == 0);
+
+    auto backend = std::static_pointer_cast<gpu::gl::GLBackend>(_gpuContext->getBackend());
+    std::unordered_set<std::string> shaderNames;
+    for (const auto& entry : _shaderSources) {
+        shaderNames.insert(entry.first);
+    }
 
     QElapsedTimer timer;
 
@@ -252,7 +249,7 @@ void ShaderLoadTest::testShaderLoad() {
         qDebug() << "Uncached shader load took" << timer.elapsed() << "ms";
         QVERIFY(gpuBinaryShadersLoaded == 0);
     }
-    gpuContext->recycle();
+    _gpuContext->recycle();
     glFinish();
 
     // Reload the shaders within the same GPU context lifetime.
@@ -270,10 +267,10 @@ void ShaderLoadTest::testShaderLoad() {
     // Shaders will use the cached binaries from disk
     {
         gpuBinaryShadersLoaded = 0;
-        gpuContext->recycle();
-        gpuContext->shutdown();
-        gpuContext.reset();
-        gpuContext = std::make_shared<gpu::Context>();
+        _gpuContext->recycle();
+        _gpuContext->shutdown();
+        _gpuContext.reset();
+        _gpuContext = std::make_shared<gpu::Context>();
         _canvas.makeCurrent();
         timer.start();
         for (const auto& program : _programs) {
