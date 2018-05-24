@@ -71,7 +71,7 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
         QImage resultImage(resultImagesFullFilenames[i]);
         QImage expectedImage(expectedImagesFullFilenames[i]);
 
-        if (resultImage.width() != expectedImage.width() || resultImage.height() != expectedImage.height()) {
+        if (isInteractiveMode && (resultImage.width() != expectedImage.width() || resultImage.height() != expectedImage.height())) {
             QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Images are not the same size");
             exit(-1);
         }
@@ -131,7 +131,7 @@ void Test::appendTestResultsToFile(const QString& testResultsFolderPath, TestFai
         exit(-1);
     }
 
-    QString failureFolderPath { testResultsFolderPath + "/" + "Failure_" + QString::number(index) };
+    QString failureFolderPath { testResultsFolderPath + "/" + "Failure_" + QString::number(index) + "--" + testFailure._actualImageFilename.left(testFailure._actualImageFilename.length() - 4) };
     if (!QDir().mkdir(failureFolderPath)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create folder " + failureFolderPath);
         exit(-1);
@@ -248,7 +248,7 @@ void Test::startTestsEvaluation(const QString& testFolder) {
 void Test::finishTestsEvaluation(bool isRunningFromCommandline, bool interactiveMode, QProgressBar* progressBar) {
     bool success = compareImageLists((!isRunningFromCommandline && interactiveMode), progressBar);
     
-    if (!isRunningFromCommandline) {
+    if (interactiveMode && !isRunningFromCommandline) {
         if (success) {
             QMessageBox::information(0, "Success", "All images are as expected");
         } else {
