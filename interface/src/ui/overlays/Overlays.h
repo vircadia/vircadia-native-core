@@ -482,7 +482,7 @@ public slots:
 
     /**jsdoc
      * Check if there is an overlay of a given ID.
-     * @function Overlays.isAddedOverly
+     * @function Overlays.isAddedOverlay
      * @param {Uuid} overlayID - The ID to check.
      * @returns {boolean} <code>true</code> if an overlay with the given ID exists, <code>false</code> otherwise.
      */
