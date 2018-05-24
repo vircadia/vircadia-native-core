@@ -66,7 +66,6 @@ ext {
 def baseFolder = new File(HIFI_ANDROID_PRECOMPILED)
 def appDir = new File(projectDir, 'app')
 def jniFolder = new File(appDir, 'src/main/jniLibs/arm64-v8a')
-//def baseUrl = 'https://hifi-public.s3.amazonaws.com/austin/android/'
 def baseUrl = ''
 
 def qtFile='https://hifi-public.s3.amazonaws.com/austin/android/qt-5.9.3_linux_armv8-libcpp_openssl.tgz'
