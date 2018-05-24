@@ -163,6 +163,28 @@ Preference {
 
             if (builder) {
                 preferences.push(builder.createObject(contentContainer, { preference: preference, isFirstCheckBox: (checkBoxCount === 1) , z: zpos}));
+
+                var preferenceObject = preferences[preferences.length - 1];
+                var props = preference.properties;
+
+                for(var prop in props) {
+                    var value = props[prop];
+                    if(value.indexOf('.') !== -1) {
+                        var splittedValues = value.split('.');
+                        if(splittedValues[0] === 'parent') {
+                            value = preferenceObject.parent[splittedValues[1]];
+                        }
+                    } else if(value === 'undefined') {
+                        value = undefined;
+                    }
+
+                    if(prop.indexOf('.') !== -1) {
+                        var splittedProps = prop.split('.');
+                        preferenceObject[splittedProps[0]][splittedProps[1]] = value;
+                    } else {
+                        preferenceObject[prop] = value;
+                    }
+                }
             }
         }
     }
