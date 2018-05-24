@@ -141,9 +141,6 @@ public:
         const Varying getOutput() const override { return _output; }
         Varying& editInput() override { return _input; }
 
-        template <class In> void feedInput(const In& in) { _concept->editInput().template edit<In>() = in; }
-        template <class S> void feedInput(int index, const S& inS) { (_concept->editInput().template editN<I>(index)).template edit<S>() = inS; }
-
         template <class... A>
         Model(const std::string& name, const Varying& input, QConfigPointer config, A&&... args) :
             Concept(name, config),
@@ -184,6 +181,9 @@ public:
     const Varying getOutput() const { return _concept->getOutput(); }
     QConfigPointer& getConfiguration() const { return _concept->getConfiguration(); }
     void applyConfiguration() { return _concept->applyConfiguration(); }
+
+    template <class I> void feedInput(const I& in) { _concept->editInput().template edit<I>() = in; }
+    template <class I, class S> void feedInput(int index, const S& inS) { (_concept->editInput().template editN<I>(index)).template edit<S>() = inS; }
 
     template <class T> T& edit() {
         auto concept = std::static_pointer_cast<typename T::JobModel>(_concept);
