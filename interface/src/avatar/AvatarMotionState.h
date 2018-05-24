@@ -65,7 +65,7 @@ public:
 
     void addDirtyFlags(uint32_t flags) { _dirtyFlags |= flags; }
 
-    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
+    virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const override;
 
     virtual float getMass() const override;
 
