@@ -1173,7 +1173,11 @@ Section "-Core installation"
 
   !insertmacro MUI_STARTMENU_WRITE_END
 
-  ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" "com.highfidelity.interface"
+  !if @PRODUCTION_BUILD@ == 1
+    ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" "com.highfidelity.interface"
+  !else
+    ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" "com.highfidelity.interface-dev"
+  !endif
 
   @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
 

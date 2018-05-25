@@ -867,6 +867,7 @@ function onContentLoaded() {
         } catch (e) {
         }
 
+        var appUserModelId = 'com.highfidelity.interface';  // For Windows jump list, etc.
         if (currentVersion !== null) {
             const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
             var hasShownUpdateNotification = false;
@@ -878,7 +879,7 @@ function onContentLoaded() {
                         title: 'An update is available!',
                         message: 'High Fidelity version ' + latestVersion + ' is available',
                         wait: true,
-                        appID: 'com.highfidelity.interface',
+                        appID: appUserModelId,
                         url: url
                     });
                     hasShownUpdateNotification = true;
