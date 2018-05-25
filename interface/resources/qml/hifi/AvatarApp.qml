@@ -73,6 +73,8 @@ Rectangle {
     }
 
     function getAvatarModelName() {
+        console.debug('executing getAvatarModelName()');
+
         if(currentAvatar === null) {
             return '';
         }
@@ -85,7 +87,7 @@ Rectangle {
             }
         }
 
-        var avatarUrl = currentAvatar.entry.avatarUrl;
+        var avatarUrl = currentAvatar.avatarUrl;
         var splitted = avatarUrl.split('/');
 
         return splitted[splitted.length - 1];
@@ -129,6 +131,8 @@ Rectangle {
             console.debug('externalAvatarApplied...');
             currentAvatar.avatarUrl = message.avatarURL;
             currentAvatar.thumbnailUrl = allAvatars.makeThumbnailUrl(message.avatarURL);
+            currentAvatar.entry.avatarUrl = currentAvatar.avatarUrl;
+            currentAvatar.modelName = undefined;
             console.debug('externalAvatarApplied: ', currentAvatar.avatarUrl, currentAvatar.thumbnailUrl);
             updateCurrentAvatarInBookmarks(currentAvatar);
         } else if(message.method === 'settingChanged') {
@@ -457,13 +461,20 @@ Rectangle {
             id: avatarNameLabel
             text: {
                 var avatarName = getAvatarModelName();
+                console.debug('getAvatarModelName() returned: ', avatarName)
                 return avatarName.length <= 14 ? avatarName : avatarName.substring(0, 14) + '...'
             }
             anchors.left: avatarImage.right
             anchors.leftMargin: 30
             anchors.top: star.bottom
             anchors.topMargin: 11
+            property bool hasMarketId: currentAvatar && allAvatars.extractMarketId(currentAvatar.avatarUrl) !== '';
+            onHasMarketIdChanged: {
+                console.debug('hasMarketId: ', hasMarketId, currentAvatar.avatarUrl);
+            }
+
             MouseArea {
+                enabled: avatarNameLabel.hasMarketId
                 anchors.fill: parent;
                 onClicked: emitSendToScript({'method' : 'navigate', 'url' : allAvatars.makeMarketItemUrl(currentAvatar.avatarUrl)})
             }
