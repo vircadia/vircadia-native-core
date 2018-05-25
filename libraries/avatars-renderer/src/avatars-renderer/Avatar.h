@@ -292,7 +292,7 @@ public:
      */
     /**jsdoc
      * Information about a single joint in an Avatar's skeleton hierarchy.
-     * @typedef MyAvatar.SkeletonJoint
+     * @typedef {object} MyAvatar.SkeletonJoint
      * @property {string} name - Joint name.
      * @property {number} index - Joint index.
      * @property {number} parentIndex - Index of this joint's parent (-1 if no parent).

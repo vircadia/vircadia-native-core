@@ -121,7 +121,7 @@ class MyAvatar : public Avatar {
      *     while flying.
      * @property {number} hmdRollControlDeadZone=8 - The amount of HMD roll, in degrees, required before your avatar turns if 
      *    <code>hmdRollControlEnabled</code> is enabled.
-     * @property hmdRollControlRate {number} If hmdRollControlEnabled is true, this value determines the maximum turn rate of
+     * @property {number} hmdRollControlRate If hmdRollControlEnabled is true, this value determines the maximum turn rate of
      *     your avatar when rolling your HMD in degrees per second.
      * @property {number} userHeight=1.75 - The height of the user in sensor space.
      * @property {number} userEyeHeight=1.65 - The estimated height of the user's eyes in sensor space. <em>Read-only.</em>

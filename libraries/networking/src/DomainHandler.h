@@ -137,7 +137,7 @@ public:
      *     </tr>
      *   </tbody>
      * </table>
-     * @typedef Window.ConnectionRefusedReason
+     * @typedef {number} Window.ConnectionRefusedReason
      */
     enum class ConnectionRefusedReason : uint8_t {
         Unknown,

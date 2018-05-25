@@ -470,7 +470,7 @@ public slots:
      *     </tr>
      *   </tbody>
      * </table>
-     * @typedef Window.DisplayTexture
+     * @typedef {string} Window.DisplayTexture
      */
     bool setDisplayTexture(const QString& name);
 
@@ -523,16 +523,21 @@ public slots:
     int openMessageBox(QString title, QString text, int buttons, int defaultButton);
 
     /**jsdoc
-     * Open the given resource in the Interface window or in a web browser depending on the url scheme
+     * Open a URL in the Interface window or other application, depending on the URL's scheme. If the URL starts with 
+     * <code>hifi://</code> then that URL is navigated to in Interface, otherwise the URL is opened in the application the OS 
+     * associates with the URL's scheme (e.g., a Web browser for <code>http://</code>).
      * @function Window.openUrl
-     * @param {string} url - The resource to open
+     * @param {string} url - The URL to open.
      */
     void openUrl(const QUrl& url);
 
     /**jsdoc
-     * (Android only) Open the requested Activity and optionally back to the scene when the activity is done
+     * Open an Android activity and optionally return back to the scene when the activity is completed. <em>Android only.</em>
      * @function Window.openAndroidActivity
-     * @param {string} activityName - The name of the activity to open. One of "Home", "Login" or "Privacy Policy"
+     * @param {string} activityName - The name of the activity to open: one of <code>"Home"</code>, <code>"Login"</code>, or 
+     *     <code>"Privacy Policy"</code>.
+     * @param {boolean} backToScene - If <code>true</code>, the user is automatically returned back to the scene when the 
+     *     activity is completed.
      */
     void openAndroidActivity(const QString& activityName, const bool backToScene);
 

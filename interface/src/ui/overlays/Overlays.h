@@ -53,7 +53,7 @@ const OverlayID UNKNOWN_OVERLAY_ID = OverlayID();
  * @property {number} distance - The distance from the {@link PickRay} origin to the intersection point.
  * @property {Vec3} surfaceNormal - The normal of the overlay surface at the intersection point.
  * @property {Vec3} intersection - The position of the intersection point.
- * @property {Object} extraInfo Additional intersection details, if available.
+ * @property {object} extraInfo Additional intersection details, if available.
  */
 class RayToOverlayIntersectionResult {
 public:
@@ -482,7 +482,7 @@ public slots:
 
     /**jsdoc
      * Check if there is an overlay of a given ID.
-     * @function Overlays.isAddedOverly
+     * @function Overlays.isAddedOverlay
      * @param {Uuid} overlayID - The ID to check.
      * @returns {boolean} <code>true</code> if an overlay with the given ID exists, <code>false</code> otherwise.
      */
