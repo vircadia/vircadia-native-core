@@ -2245,9 +2245,15 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = getSensorToWorldScale() * (_walkSpeed.get() * _walkSpeedScalar)  * direction;
     }
 
+    float previousBoomLength = _boomLength;
     float boomChange = getDriveKey(ZOOM);
     _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
+
+    // May need to change view if boom length has changed
+    if (previousBoomLength != _boomLength) {
+        qApp->changeViewAsNeeded(_boomLength);
+    }
 }
 
 void MyAvatar::updatePosition(float deltaTime) {
