@@ -27,6 +27,14 @@ android {
                     '-DDISABLE_KTX_CACHE=OFF'
             }
         }
+        signingConfigs {
+            release {
+                storeFile file(HIFI_ANDROID_KEYSTORE)
+                storePassword HIFI_ANDROID_KEYSTORE_PASSWORD
+                keyAlias HIFI_ANDROID_KEY_ALIAS
+                keyPassword HIFI_ANDROID_KEY_PASSWORD
+            }
+        }
     }
 
     compileOptions {
@@ -38,6 +46,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 
