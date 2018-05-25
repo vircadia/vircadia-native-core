@@ -66,22 +66,26 @@ void AutoTester::on_createTestsOutlineButton_clicked() {
     test->createTestsOutline();
 }
 
-void AutoTester::on_showTaskbarButton_clicked() {
-#ifdef Q_OS_WIN
-    APPBARDATA abd = { sizeof abd };
-    UINT uState = (UINT)SHAppBarMessage(ABM_GETSTATE, &abd);
-    LPARAM param = uState & ABS_ALWAYSONTOP;
-    abd.lParam = param;
-    SHAppBarMessage(ABM_SETSTATE, &abd);
-#endif
-}
-
+// To toggle between show and hide
+//   if (uState & ABS_AUTOHIDE) on_showTaskbarButton_clicked();
+//   else on_hideTaskbarButton_clicked();
+//
 void AutoTester::on_hideTaskbarButton_clicked() {
 #ifdef Q_OS_WIN
     APPBARDATA abd = { sizeof abd };
     UINT uState = (UINT)SHAppBarMessage(ABM_GETSTATE, &abd);
     LPARAM param = uState & ABS_ALWAYSONTOP;
     abd.lParam = ABS_AUTOHIDE | param;
+    SHAppBarMessage(ABM_SETSTATE, &abd);
+#endif
+}
+
+void AutoTester::on_showTaskbarButton_clicked() {
+#ifdef Q_OS_WIN
+    APPBARDATA abd = { sizeof abd };
+    UINT uState = (UINT)SHAppBarMessage(ABM_GETSTATE, &abd);
+    LPARAM param = uState & ABS_ALWAYSONTOP;
+    abd.lParam = param;
     SHAppBarMessage(ABM_SETSTATE, &abd);
 #endif
 }
