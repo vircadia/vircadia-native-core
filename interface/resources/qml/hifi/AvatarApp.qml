@@ -114,7 +114,7 @@ Rectangle {
             jointNames = message.data.jointNames;
             emitSendToScript({'method' : getAvatarsMethod});
         } else if(message.method === 'wearableUpdated') {
-            adjustWearables.refreshWearable(message.entityID, message.wearableIndex, message.properties);
+            adjustWearables.refreshWearable(message.entityID, message.wearableIndex, message.properties, message.updateUI);
         } else if(message.method === 'wearablesUpdated') {
             var wearablesModel = currentAvatar.wearables;
             wearablesModel.clear();

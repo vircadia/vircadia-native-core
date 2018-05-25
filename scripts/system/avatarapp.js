@@ -152,7 +152,8 @@ function onAnimGraphUrlChanged(url) {
 }
 
 var selectedAvatarEntityGrabbable = false;
-var selectedAvatarEntity = null;
+var selectedAvatarEntityID = null;
+var grabbedAvatarEntityChangeNotifier = null;
 
 var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
 var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
@@ -195,14 +196,17 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         }
         console.debug('Entities.editEntity(message.entityID, message.properties)'.replace('message.entityID', message.entityID).replace('message.properties', JSON.stringify(message.properties)));
         Entities.editEntity(message.entityID, message.properties);
-        sendToQml({'method' : 'wearableUpdated', 'wearable' : message.entityID, wearableIndex : message.wearableIndex, properties : message.properties})
+        sendToQml({'method' : 'wearableUpdated', 'entityID' : message.entityID, wearableIndex : message.wearableIndex, properties : message.properties, updateUI : false})
         break;
     case 'adjustWearablesOpened':
         console.debug('avatarapp.js: adjustWearablesOpened');
 
         currentAvatarWearablesBackup = getMyAvatarWearables();
         adjustWearables.setOpened(true);
+
         Entities.mousePressOnEntity.connect(onSelectedEntity);
+        Messages.subscribe('Hifi-Object-Manipulation');
+        Messages.messageReceived.connect(handleWearableMessages);
         break;
     case 'adjustWearablesClosed':
         console.debug('avatarapp.js: adjustWearablesClosed');
@@ -222,6 +226,8 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         adjustWearables.setOpened(false);
         ensureWearableSelected(null);
         Entities.mousePressOnEntity.disconnect(onSelectedEntity);
+        Messages.messageReceived.disconnect(handleWearableMessages);
+        Messages.unsubscribe('Hifi-Object-Manipulation');
         break;
     case 'selectWearable':
         ensureWearableSelected(message.entityID);
@@ -334,17 +340,23 @@ function setGrabbable(entityID, grabbable) {
 }
 
 function ensureWearableSelected(entityID) {
-    if(selectedAvatarEntity !== entityID) {
-
-        if(selectedAvatarEntity !== null) {
-            setGrabbable(selectedAvatarEntity, selectedAvatarEntityGrabbable);
+    if(selectedAvatarEntityID !== entityID) {
+        if(grabbedAvatarEntityChangeNotifier !== null) {
+            Script.clearInterval(grabbedAvatarEntityChangeNotifier);
+            grabbedAvatarEntityChangeNotifier = null;
         }
 
-        selectedAvatarEntity = entityID;
+        if(selectedAvatarEntityID !== null) {
+            setGrabbable(selectedAvatarEntityID, selectedAvatarEntityGrabbable);
+        }
+
+        selectedAvatarEntityID = entityID;
+        console.debug('ensureWearableSelected: selectedAvatarEntity = ', selectedAvatarEntityID);
+
         selectedAvatarEntityGrabbable = isGrabbable(entityID);
 
-        if(selectedAvatarEntity !== null) {
-            setGrabbable(selectedAvatarEntity, true);
+        if(selectedAvatarEntityID !== null) {
+            setGrabbable(selectedAvatarEntityID, true);
         }
 
         return true;
@@ -358,11 +370,69 @@ function isEntityBeingWorn(entityID) {
 };
 
 function onSelectedEntity(entityID, pointerEvent) {
-    if (isEntityBeingWorn(entityID)) {
-        console.debug('onSelectedEntity: clicked on wearable', entityID);
+    console.debug('onSelectedEntity: clicked on wearable', entityID);
+
+    if(selectedAvatarEntityID !== entityID && isEntityBeingWorn(entityID))
+    {
+        console.debug('onSelectedEntity: clicked on worn wearable', entityID);
 
         if(ensureWearableSelected(entityID)) {
-            sendToQml({'method' : 'selectAvatarEntity', 'entityID' : selectedAvatarEntity});
+            sendToQml({'method' : 'selectAvatarEntity', 'entityID' : selectedAvatarEntityID});
+        }
+    }
+}
+
+function handleWearableMessages(channel, message, sender) {
+    if (channel !== 'Hifi-Object-Manipulation') {
+        return;
+    }
+
+    var parsedMessage = null;
+
+    try {
+        parsedMessage = JSON.parse(message);
+        console.debug('handleWearableMessages: ', JSON.stringify(parsedMessage, null, 4));
+    } catch (e) {
+        print('error parsing wearable message');
+        return;
+    }
+
+    var entityID = parsedMessage.grabbedEntity;
+    console.debug('item worn: ', isEntityBeingWorn(entityID))
+
+    if(parsedMessage.action === 'grab') {
+        console.debug('handleWearableMessages: grab: ', JSON.stringify(parsedMessage, null, 4));
+
+        if(selectedAvatarEntityID !== entityID) {
+            ensureWearableSelected(entityID);
+            sendToQml({'method' : 'selectAvatarEntity', 'entityID' : selectedAvatarEntityID});
+        }
+
+        console.debug('creating grabbedAvatarEntityChangeNotifier: ', grabbedAvatarEntityChangeNotifier);
+
+        grabbedAvatarEntityChangeNotifier = Script.setInterval(function() {
+            console.debug('grabbedAvatarEntityChangeNotifier callback')
+
+            // for some reasons Entities.getEntityProperties returns more than was asked..
+            var propertyNames = ['localPosition', 'localRotation', 'dimensions', 'naturalDimensions'];
+            var entityProperties = Entities.getEntityProperties(selectedAvatarEntityID, propertyNames);
+            var properties = {}
+
+            propertyNames.forEach(function(propertyName) {
+                properties[propertyName] = entityProperties[propertyName];
+            })
+
+            properties.localRotationAngles = Quat.safeEulerAngles(properties.localRotation);
+            sendToQml({'method' : 'wearableUpdated', 'entityID' : selectedAvatarEntityID, 'wearableIndex' : -1, 'properties' : properties, updateUI : true})
+
+        }, 1000);
+    } else if(parsedMessage.action === 'release') {
+        console.debug('handleWearableMessages: release: ', JSON.stringify(parsedMessage, null, 4));
+
+        if(grabbedAvatarEntityChangeNotifier !== null) {
+            console.debug('clearing grabbedAvatarEntityChangeNotifier: ', grabbedAvatarEntityChangeNotifier);
+            Script.clearInterval(grabbedAvatarEntityChangeNotifier);
+            grabbedAvatarEntityChangeNotifier = null;
         }
     }
 }
@@ -415,9 +485,9 @@ startup();
 
 var isWired = false;
 function off() {
+    console.debug('entering avatarapp.js: off');
+
     if (isWired) { // It is not ok to disconnect these twice, hence guard.
-        //Controller.mousePressEvent.disconnect(handleMouseEvent);
-        //Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
         tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
         isWired = false;
     }
@@ -426,6 +496,9 @@ function off() {
         adjustWearables.setOpened(false);
         ensureWearableSelected(null);
         Entities.mousePressOnEntity.disconnect(onSelectedEntity);
+
+        Messages.messageReceived.disconnect(handleWearableMessages);
+        Messages.unsubscribe('Hifi-Object-Manipulation');
     }
 
     AvatarBookmarks.bookmarkLoaded.disconnect(onBookmarkLoaded);
@@ -437,9 +510,13 @@ function off() {
     MyAvatar.newCollisionSoundURL.disconnect(onNewCollisionSoundUrl);
     MyAvatar.animGraphUrlChanged.disconnect(onAnimGraphUrlChanged);
     MyAvatar.targetScaleChanged.disconnect(onTargetScaleChanged);
+
+    console.debug('exiting avatarapp.js: off');
 }
 
 function on() {
+    console.debug('entering avatarapp.js: on');
+
     AvatarBookmarks.bookmarkLoaded.connect(onBookmarkLoaded);
     AvatarBookmarks.bookmarkDeleted.connect(onBookmarkDeleted);
     AvatarBookmarks.bookmarkAdded.connect(onBookmarkAdded);
@@ -449,6 +526,8 @@ function on() {
     MyAvatar.newCollisionSoundURL.connect(onNewCollisionSoundUrl);
     MyAvatar.animGraphUrlChanged.connect(onAnimGraphUrlChanged);
     MyAvatar.targetScaleChanged.connect(onTargetScaleChanged);
+
+    console.debug('exiting avatarapp.js: on');
 }
 
 function tabletVisibilityChanged() {

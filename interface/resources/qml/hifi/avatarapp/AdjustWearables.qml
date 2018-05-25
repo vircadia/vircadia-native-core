@@ -67,24 +67,40 @@ Rectangle {
         wearablesCombobox.currentIndex = 0;
     }
 
-    function refreshWearable(wearableID, wearableIndex, properties) {
-        var wearable = wearablesCombobox.model.get(wearableIndex);
-        for(var prop in properties) {
-            wearable[prop] = properties[prop];
-
-            // 2do: consider removing 'properties' and manipulating localPosition/localRotation directly
-            var wearablesModelProps = wearablesModel.get(wearableIndex).properties;
-            wearablesModelProps[prop] = properties[prop];
-            wearablesModel.setProperty(wearableIndex, 'properties', wearablesModelProps);
-
-            console.debug('updated wearable', prop,
-                          'old = ', JSON.stringify(wearable[prop], 0, 4),
-                          'new = ', JSON.stringify(properties[prop], 0, 4),
-                          'model = ', JSON.stringify(wearablesCombobox.model.get(wearableIndex)[prop]),
-                          'wearablesModel = ', JSON.stringify(wearablesModel.get(wearableIndex).properties[prop], 0, 4)
-                          );
+    function refreshWearable(wearableID, wearableIndex, properties, updateUI) {
+        if(wearableIndex === -1) {
+            wearableIndex = wearablesCombobox.model.findIndexById(wearableID);
         }
 
+        var wearable = wearablesCombobox.model.get(wearableIndex);
+        console.debug('refreshWearable: ', wearableID, JSON.stringify(wearable, 0, 4));
+
+        if(!wearable) {
+            return;
+        }
+
+        var wearableModelItem = wearablesModel.get(wearableIndex);
+
+        for(var prop in properties) {
+            console.debug('updated wearable', prop,
+                          'old = ', JSON.stringify(wearable[prop], 0, 4),
+                          'new = ', JSON.stringify(properties[prop], 0, 4));
+
+            wearable[prop] = properties[prop];
+            wearableModelItem.properties[prop] = wearable[prop];
+
+            if(updateUI) {
+                if(prop === 'localPosition') {
+                    position.set(wearable[prop]);
+                } else if(prop === 'localRotationAngles') {
+                    rotation.set(wearable[prop]);
+                } else if(prop === 'dimensions') {
+                    scalespinner.set(wearable[prop].x / wearable.naturalDimensions.x);
+                }
+            }
+        }
+
+        wearablesModel.setProperty(wearableIndex, 'properties', wearableModelItem.properties);
         console.debug('wearablesModel.get(wearableIndex).properties: ', JSON.stringify(wearablesModel.get(wearableIndex).properties, 0, 4))
     }
 
@@ -133,6 +149,17 @@ Rectangle {
             comboBox.textRole: "text"
 
             model: ListModel {
+                function findIndexById(id) {
+
+                    for(var i = 0; i < count; ++i) {
+                        var wearable = get(i);
+                        if(wearable.id === id) {
+                            return i;
+                        }
+                    }
+
+                    return -1;
+                }
             }
 
             comboBox.onCurrentIndexChanged: {
@@ -141,24 +168,9 @@ Rectangle {
                 var currentWearable = getCurrentWearable();
 
                 if(currentWearable) {
-                    position.notify = false;
-                    position.xvalue = currentWearable.localPosition.x
-                    position.yvalue = currentWearable.localPosition.y
-                    position.zvalue = currentWearable.localPosition.z
-                    console.debug('currentWearable.localPosition = ', JSON.stringify(currentWearable.localPosition, 0, 4))
-                    position.notify = true;
-
-                    rotation.notify = false;
-                    rotation.xvalue = currentWearable.localRotationAngles.x
-                    rotation.yvalue = currentWearable.localRotationAngles.y
-                    rotation.zvalue = currentWearable.localRotationAngles.z
-                    console.debug('currentWearable.localRotationAngles = ', JSON.stringify(currentWearable.localRotationAngles, 0, 4))
-                    rotation.notify = true;
-
-                    scalespinner.notify = false;
-                    scalespinner.realValue = currentWearable.dimensions.x / currentWearable.naturalDimensions.x
-                    console.debug('currentWearable.scale = ', scalespinner.realValue)
-                    scalespinner.notify = true;
+                    position.set(currentWearable.localPosition);
+                    rotation.set(currentWearable.localRotationAngles);
+                    scalespinner.set(currentWearable.dimensions.x / currentWearable.naturalDimensions.x)
 
                     wearableSelected(currentWearable.id);
                 }
@@ -186,6 +198,16 @@ Rectangle {
             Vector3 {
                 id: position
                 backgroundColor: "lightgray"
+
+                function set(localPosition) {
+                    notify = false;
+                    xvalue = localPosition.x
+                    yvalue = localPosition.y
+                    zvalue = localPosition.z
+                    notify = true;
+
+                    console.debug('position.set: localPosition = ', JSON.stringify(localPosition, 0, 4))
+                }
 
                 function notifyPositionChanged() {
                     modified = true;
@@ -230,6 +252,16 @@ Rectangle {
             Vector3 {
                 id: rotation
                 backgroundColor: "lightgray"
+
+                function set(localRotationAngles) {
+                    notify = false;
+                    xvalue = localRotationAngles.x
+                    yvalue = localRotationAngles.y
+                    zvalue = localRotationAngles.z
+                    notify = true;
+
+                    console.debug('localRotationAngles = ', JSON.stringify(localRotationAngles, 0, 4))
+                }
 
                 function notifyRotationChanged() {
                     modified = true;
@@ -278,6 +310,14 @@ Rectangle {
 
                     property bool notify: false;
                     onValueChanged: if(notify) notifyScaleChanged();
+
+                    function set(value) {
+                        notify = false;
+                        realValue = value
+                        notify = true;
+
+                        console.debug('scale = ', realValue)
+                    }
 
                     function notifyScaleChanged() {
                         modified = true;
