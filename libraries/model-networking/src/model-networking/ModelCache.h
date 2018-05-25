@@ -179,7 +179,7 @@ public:
      * @function ModelCache.prefetch
      * @param {string} url - URL of the resource to prefetch.
      * @param {object} [extra=null]
-     * @returns {Resource}
+     * @returns {ResourceObject}
      */
 
     /**jsdoc
@@ -188,7 +188,7 @@ public:
      * @param {string} url - URL of the resource to load.
      * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
      * @param {} [extra=null]
-     * @returns {Resource}
+     * @returns {object}
      */
 
 

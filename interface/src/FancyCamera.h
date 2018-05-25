@@ -25,7 +25,7 @@ class FancyCamera : public Camera {
 
      // FIXME: JSDoc 3.5.5 doesn't augment @property definitions. The following definition is repeated in Camera.h.
      /**jsdoc
-     * @property cameraEntity {Uuid} The ID of the entity that the camera position and orientation follow when the camera is in
+     * @property {Uuid} cameraEntity The ID of the entity that the camera position and orientation follow when the camera is in
      *     entity mode.
      */
     Q_PROPERTY(QUuid cameraEntity READ getCameraEntity WRITE setCameraEntity)
