@@ -394,12 +394,16 @@ Item {
         HifiModels.PSFListModel {
             id: connectionsModel;
             http: root.parent; // Misuse of "root" in this file!
-            endpoint: "/api/v1/users?per_page=400&filter=connections"; // FIXME per_page
+            endpoint: "/api/v1/users?filter=connections";
+            itemsPerPage: 8;
             processPage: function (data) {
                 console.log("HRS FIXME processPage", JSON.stringify(data));
                 return data.users;
-                //buildFilteredConnectionsModel();
             };
+            searchFilter: filterBar.text;
+            searchItemTest: function (text, item) {
+                return item.username.toLowerCase().indexOf(text.toLowerCase()) !== -1;
+            }; //HRS FIXME remove when endpoint works.
         }
 
         Rectangle {
@@ -475,10 +479,6 @@ Item {
                     anchors.fill: parent;
                     centerPlaceholderGlyph: hifi.glyphs.search;
 
-                    onTextChanged: {
-                        buildFilteredConnectionsModel();
-                    }
-
                     onAccepted: {
                         focus = false;
                     }
@@ -520,6 +520,7 @@ Item {
                     visible: !connectionsLoading.visible;
                     clip: true;
                     model: connectionsModel.model;
+                    onAtYEndChanged: if (connectionsList.atYEnd) { connectionsModel.getNextPage(); }
                     snapMode: ListView.SnapToItem;
                     // Anchors
                     anchors.fill: parent;
@@ -1809,15 +1810,6 @@ Item {
     //
     // FUNCTION DEFINITIONS START
     //
-
-    function buildFilteredConnectionsModel() {
-        filteredConnectionsModel.clear();
-        for (var i = 0; i < connectionsModel.count; i++) {
-            if (connectionsModel.get(i).userName.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
-                filteredConnectionsModel.append(connectionsModel.get(i));
-            }
-        }
-    }
 
     function resetSendAssetData() {
         amountTextField.focus = false;

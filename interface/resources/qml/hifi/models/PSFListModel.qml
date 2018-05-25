@@ -26,23 +26,43 @@ Item {
     // E.g., your getPage function could refer to this sortKey, etc.
     property string endpoint;
     property string sortKey;
-    property string searchFilter;
+    property string searchFilter: "";
     property string tagsFilter;
     onEndpointChanged: getFirstPage();
     onSortKeyChanged: getFirstPage();
-    onSearchFilterChanged: getFirstPage();
+    onSearchFilterChanged: {
+        if (searchItemTest) {
+            var filteredCopy = copyOfItems.filter(function (item) {
+                return searchItemTest(searchFilter, item);
+            });
+            finalModel.clear();
+            finalModel.append(filteredCopy);
+            /*for (var index = 0; index < finalModel.count; index++) {
+                if (!searchItemTest(searchFilter, finalModel.get(index))) {
+                    finalModel.remove(index);
+                    index--;   // Don't skip over anything now that the indices have shifted.
+                }
+            }*/
+        } else { // TODO: fancy timer against fast typing.
+            getFirstPage();
+        }
+    }
     onTagsFilterChanged: getFirstPage();
     property int itemsPerPage: 100;
+
+    // If the endpoint doesn't do search, tags, sort, these functions can be supplied to do it here.
+    property var searchItemTest: nil;
+    property var copyOfItems: [];
 
     // State.
     property int currentPageToRetrieve: 0;  // 0 = before first page. -1 = we have them all. Otherwise 1-based page number.
     property bool retrievedAtLeastOnePage: false;
     // Resets both internal `ListModel`s and resets the page to retrieve to "1".
     function resetModel() {
-        tempModel.clear();
         finalModel.clear();
         currentPageToRetrieve = 1;
-        retrievedAtLeastOnePage = false
+        retrievedAtLeastOnePage = false;
+        copyOfItems = [];
     }
 
     // Processing one page.
@@ -52,6 +72,7 @@ Item {
 
     // Check consistency and call processPage.
     function handlePage(error, response) {
+        var processed;
         console.log("HRS FIXME got", endpoint, error, JSON.stringify(response));
         function fail(message) {
             console.warn("Warning", listModelName, JSON.stringify(message));
@@ -68,7 +89,16 @@ Item {
         if (response.current_page && response.current_page !== currentPageToRetrieve) { // Not all endpoints specify this property.
             return fail("Mismatched page, expected:" + currentPageToRetrieve);
         }
-        finalModel.append(processPage(response.data || response)); // FIXME keep index steady, and apply any post sort/filter
+        processed = processPage(response.data || response);
+        if (searchItemTest) {
+            copyOfItems = copyOfItems.concat(processed);
+            if (searchFilter) {
+                processed = processed.filter(function (item) {
+                    return searchItemTest(searchFilter, item);
+                });
+            }
+        }
+        finalModel.append(processed); // FIXME keep index steady, and apply any post sort/filter
         retrievedAtLeastOnePage = true;
     }
 
@@ -77,7 +107,13 @@ Item {
     property var getPage: function () {  // Any override MUST call handlePage(), above, even if results empty.
         if (!http) { return console.warn("Neither http nor getPage was set in", listModelName); }
         var url = /^\//.test(endpoint) ? (Account.metaverseServerURL + endpoint) : endpoint;
-        // FIXME: handle sort and search parameters, and per_page and page parameters
+        var parameters = [
+            // FIXME: handle sort, search, tag parameters
+            'per_page=' + itemsPerPage,
+            'page=' + currentPageToRetrieve
+        ];
+        var parametersSeparator = /\?/.test(url) ? '&' : '?';
+        url = url + parametersSeparator + parameters.join('&');
         console.log("HRS FIXME requesting", url);
         http.request({uri: url}, handlePage);
     }
@@ -120,16 +156,9 @@ Item {
     function insert(index, newElement) { finalModel.insert(index, newElement); }
     function append(newElements) { finalModel.append(newElements); }
 
-    // Used while processing page data and sorting
-    ListModel {
-        id: tempModel;
-    }
-
-    // This is the model that the parent of this Item will actually see
     ListModel {
         id: finalModel;
     }
-
 
     // Used when sorting model data on the CLIENT
     // Right now, there is no sorting done on the client for
