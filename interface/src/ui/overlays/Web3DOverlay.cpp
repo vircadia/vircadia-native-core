@@ -259,7 +259,6 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("Web3DOverlay", this);
         _webSurface->getSurfaceContext()->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Reticle", qApp->getApplicationCompositor().getReticleInterface());
-        _webSurface->getSurfaceContext()->setContextProperty("desktop", DependencyManager::get<OffscreenUi>()->getDesktop());
         _webSurface->getSurfaceContext()->setContextProperty("HiFiAbout", AboutUtil::getInstance());
 
         // Override min fps for tablet UI, for silky smooth scrolling
