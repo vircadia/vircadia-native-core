@@ -4574,11 +4574,14 @@ void Application::idle() {
     _lastTimeUpdated.start();
 
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
-    if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
-        _keyboardMouseDevice->pluginFocusOutEvent();
-        _keyboardDeviceHasFocus = false;
-    } else if (offscreenUi && offscreenUi->getWindow()->activeFocusItem() == offscreenUi->getRootItem()) {
-        _keyboardDeviceHasFocus = true;
+    if (offscreenUi && offscreenUi->getWindow()) {
+        auto activeFocusItem = offscreenUi->getWindow()->activeFocusItem();
+        if (_keyboardDeviceHasFocus && activeFocusItem != offscreenUi->getRootItem()) {
+            _keyboardMouseDevice->pluginFocusOutEvent();
+            _keyboardDeviceHasFocus = false;
+        } else if (activeFocusItem == offscreenUi->getRootItem()) {
+            _keyboardDeviceHasFocus = true;
+        }
     }
 
     checkChangeCursor();
