@@ -19,7 +19,7 @@
 var EMOTE_ANIMATIONS = ['Cry', 'Surprised', 'Dance', 'Cheer', 'Wave', 'Fall', 'Point', 'Clap', 'Sit1', 'Sit2', 'Sit3', 'Love'];
 var ANIMATIONS = Array();
 
-var eventMappingName = "io.highfidelity.away"; // restoreAnimation on hand controller button events, too.
+var eventMappingName = "io.highfidelity.away"; // restoreAnimation on hand controller button events, too
 var eventMapping = Controller.newMapping(eventMappingName);
 
 EMOTE_ANIMATIONS.forEach(function (name) {
@@ -40,8 +40,8 @@ var MSEC_PER_SEC = 1000;
 var onEmoteScreen = false;
 var button;
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-var activeTimer = false; // used to cancel active timer if a user plays an amimation while another animation is playing
-var activeEmote = false; // to keep track of the currently playing emote
+var activeTimer = false; // Used to cancel active timer if a user plays an animation while another animation is playing
+var activeEmote = false; // To keep track of the currently playing emote
 
 button = tablet.addButton({
     icon: "icons/tablet-icons/EmoteAppIcon.svg",
@@ -79,8 +79,8 @@ function onWebEventReceived(event) {
             Script.clearTimeout(activeTimer);
         }
         
-        // if the activeEmote is different from the chosen emote, then play the new emote. Other wise, 
-        // this is a second click on the same emote as the activeEmote, and we will just stop it.
+        // If the activeEmote is different from the chosen emote, then play the new emote. Other wise, 
+        // This is a second click on the same emote as the activeEmote, and we will just stop it.
         if (activeEmote !== emoteName) {
             activeEmote = emoteName;
             
@@ -97,7 +97,7 @@ function onWebEventReceived(event) {
             
                 MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, false, 0, frameCount);
             
-            // non-looping return
+            // Non-looping return
             } else if (emoteName === "Love" || emoteName === "Surprised" || emoteName === "Cry" || emoteName === "Point"){ 
             
                 MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, false, 0, frameCount);
@@ -108,7 +108,7 @@ function onWebEventReceived(event) {
                     activeEmote = false;
                 }, timeOut);
                 
-            } else { // looping
+            } else { // Looping
             
                 MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, true, 0, frameCount);
                 
@@ -123,11 +123,13 @@ function onWebEventReceived(event) {
     }
 }
 
+// If a user provides input, end the emote animation and restore the navigation animation states (idle, walk, run)
 function restoreAnimation() {
     MyAvatar.restoreAnimation();
 }
 
 Controller.keyPressEvent.connect(restoreAnimation);
+
 // Note peek() so as to not interfere with other mappings.
 eventMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(restoreAnimation);
