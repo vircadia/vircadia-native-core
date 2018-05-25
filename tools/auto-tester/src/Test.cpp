@@ -395,9 +395,9 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
     const QString DATE_TIME_FORMAT("MMM d yyyy, h:mm");
     textStream << "// This is an automatically generated file, created by auto-tester on " << QDateTime::currentDateTime().toString(DATE_TIME_FORMAT) << endl << endl;
 
-    textStream << "user = \"" + GIT_HUB_USER + "/\"" << endl;
-    textStream << "repository = \"" + GIT_HUB_REPOSITORY + "/\"" << endl;
-    textStream << "branch = \"" + GIT_HUB_BRANCH + "/\"" << endl << endl;
+    textStream << "user = \"" + GIT_HUB_USER + "/;\"" << endl;
+    textStream << "repository = \"" + GIT_HUB_REPOSITORY + "/;\"" << endl;
+    textStream << "branch = \"" + GIT_HUB_BRANCH + "/;\"" << endl << endl;
 
     textStream << "var autoTester = Script.require(\"https://github.com/" + GIT_HUB_USER + "/hifi_tests/blob/" 
         + GIT_HUB_BRANCH + "/tests/utils/autoTester.js?raw=true\");" << endl << endl;
