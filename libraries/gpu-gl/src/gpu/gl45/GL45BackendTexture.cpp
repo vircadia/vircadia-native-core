@@ -33,6 +33,8 @@ using namespace gpu::gl45;
 
 bool GL45Backend::supportedTextureFormat(const gpu::Element& format) {
     switch (format.getSemantic()) {
+        // ETC textures are actually required by the OpenGL spec as of 4.3, but aren't always supported by hardware
+        // They'll be recompressed by OpenGL, which will be slow or have poor quality, so disable them for now
         case gpu::Semantic::COMPRESSED_ETC2_RGB:
         case gpu::Semantic::COMPRESSED_ETC2_SRGB:
         case gpu::Semantic::COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA:

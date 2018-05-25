@@ -779,7 +779,7 @@ QString EntityMotionState::getName() const {
 }
 
 // virtual
-void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
+void EntityMotionState::computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const {
     _entity->computeCollisionGroupAndFinalMask(group, mask);
 }
 

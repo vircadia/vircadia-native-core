@@ -21,7 +21,7 @@
 namespace SceneScripting {
     
     /**jsdoc
-     * @typedef Scene.Stage.Location
+     * @typedef {object} Scene.Stage.Location
      * @property {number} longitude
      * @property {number} latitude
      * @property {number} altitude
@@ -49,7 +49,7 @@ namespace SceneScripting {
     using LocationPointer = std::unique_ptr<Location>;
     
     /**jsdoc
-     * @typedef Scene.Stage.Time
+     * @typedef {object} Scene.Stage.Time
      * @property {number} hour
      * @property {number} day
      */
@@ -73,7 +73,7 @@ namespace SceneScripting {
     using TimePointer = std::unique_ptr<Time>;
 
     /**jsdoc
-     * @typedef Scene.Stage.KeyLight
+     * @typedef {object} Scene.Stage.KeyLight
      * @property {Vec3} color
      * @property {number} intensity
      * @property {number} ambientIntensity

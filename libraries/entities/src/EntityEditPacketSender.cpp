@@ -154,3 +154,11 @@ void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityI
         queueOctreeEditMessage(PacketType::EntityErase, bufferOut);
     }
 }
+
+void EntityEditPacketSender::queueCloneEntityMessage(const EntityItemID& entityIDToClone, const EntityItemID& newEntityID) {
+    QByteArray bufferOut(NLPacket::maxPayloadSize(PacketType::EntityClone), 0);
+
+    if (EntityItemProperties::encodeCloneEntityMessage(entityIDToClone, newEntityID, bufferOut)) {
+        queueOctreeEditMessage(PacketType::EntityClone, bufferOut);
+    }
+}
