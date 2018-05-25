@@ -109,9 +109,10 @@ Rectangle {
             currentAvatar.avatarScale = message.value;
             updateCurrentAvatarInBookmarks(currentAvatar);
         } else if(message.method === 'externalAvatarApplied') {
-            currentAvatar.isExternal = true;
-            currentAvatar.name = allAvatars.encodedName('', true);
-            currentAvatar.thumbnailUrl = externalAvatarThumbnailUrl.toString();
+            console.debug('externalAvatarApplied...');
+            currentAvatar.avatarUrl = message.avatarURL;
+            currentAvatar.thumbnailUrl = allAvatars.makeThumbnailUrl(message.avatarURL);
+            console.debug('externalAvatarApplied: ', currentAvatar.avatarUrl, currentAvatar.thumbnailUrl);
             updateCurrentAvatarInBookmarks(currentAvatar);
         } else if(message.method === 'settingChanged') {
             currentAvatarSettings[message.name] = message.value;
@@ -340,9 +341,23 @@ Rectangle {
             anchors.left: displayNameLabel.left
             anchors.top: displayNameLabel.bottom
             anchors.topMargin: 31
-            source: avatarUrl
-            visible: avatarImage.status !== Image.Loading
+            Binding on source {
+                when: avatarUrl !== ''
+                value: avatarUrl
+            }
+            onSourceChanged: {
+                console.debug('avatarImage: source = ', source);
+            }
+
+            visible: avatarImage.status !== Image.Loading && avatarImage.status !== Image.Error
             fillMode: Image.PreserveAspectCrop
+        }
+
+        ShadowImage {
+            id: customAvatarImage
+            anchors.fill: avatarImage;
+            visible: avatarUrl === '' || avatarImage.status === Image.Error
+            source: externalAvatarThumbnailUrl
         }
 
         ShadowRectangle {
@@ -407,14 +422,17 @@ Rectangle {
                     }
 
                     entry.avatarEntites = wearables;
-                    currentAvatar.name = allAvatars.encodedName(createFavorite.favoriteNameText, currentAvatar.isExternal);
+                    currentAvatar.name = createFavorite.favoriteNameText;
                     console.debug('became: ', JSON.stringify(entry, 0, 4));
 
                     emitSendToScript({'method': 'addAvatar', 'name' : currentAvatar.name});
                     createFavorite.close();
                 }
 
-                createFavorite.open(root.currentAvatar);
+                var avatarThumbnail = (avatarUrl === '' || avatarImage.status === Image.Error) ?
+                            externalAvatarThumbnailUrl : avatarUrl;
+
+                createFavorite.open(root.currentAvatar.wearables.count, avatarThumbnail);
             }
         }
 
@@ -564,16 +582,15 @@ Rectangle {
                 property int verticalSpacing: 44
 
                 function selectAvatar(avatar) {
-                    emitSendToScript({'method' : 'selectAvatar', 'name' : allAvatars.encodedName(avatar.name, avatar.isExternal)})
+                    emitSendToScript({'method' : 'selectAvatar', 'name' : avatar.name})
                 }
 
                 function deleteAvatar(avatar) {
-                    emitSendToScript({'method' : 'deleteAvatar', 'name' : allAvatars.encodedName(avatar.name, avatar.isExternal)})
+                    emitSendToScript({'method' : 'deleteAvatar', 'name' : avatar.name})
                 }
 
                 AvatarsModel {
                     id: allAvatars
-                    externalAvatarThumbnailUrl: root.externalAvatarThumbnailUrl
                 }
 
                 property int itemsPerPage: 8
@@ -676,7 +693,8 @@ Rectangle {
 
                         AvatarThumbnail {
                             id: favoriteAvatarImage
-                            imageUrl: thumbnailUrl
+                            externalAvatarThumbnailUrl: root.externalAvatarThumbnailUrl
+                            avatarUrl: thumbnailUrl
                             border.color: container.highlighted ? style.colors.blueHighlight : 'transparent'
                             border.width: container.highlighted ? 4 : 0
                             wearablesCount: {

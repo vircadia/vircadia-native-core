@@ -25,14 +25,12 @@ Rectangle {
     property var onSaveClicked;
     property var onCancelClicked;
 
-    function open(avatar) {
+    function open(wearables, thumbnail) {
         favoriteName.text = '';
         favoriteName.forceActiveFocus();
 
-        console.debug('CreateFavoriteDialog: ', avatar.thumbnailUrl);
-
-        avatarImageUrl = avatar.thumbnailUrl;
-        wearablesCount = avatar.wearables.count;
+        avatarImageUrl = thumbnail;
+        wearablesCount = wearables;
 
         visible = true;
     }
@@ -101,9 +99,9 @@ Rectangle {
                 anchors.right: parent.right
 
                 AvatarThumbnail {
-                    imageUrl: avatarImageUrl
-                    onImageUrlChanged: {
-                        console.debug('CreateFavoritesDialog: imageUrlChanged: ', imageUrl);
+                    avatarUrl: avatarImageUrl
+                    onAvatarUrlChanged: {
+                        console.debug('CreateFavoritesDialog: onAvatarUrlChanged: ', avatarUrl);
                     }
 
                     wearablesCount: avatarWearablesCount

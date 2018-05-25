@@ -2,8 +2,6 @@ import QtQuick 2.9
 
 ListModel {
     id: model
-    property url externalAvatarThumbnailUrl;
-
     function extractMarketId(avatarUrl) {
 
         var guidRegexp = '([A-Z0-9]{8}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{12})';
@@ -27,39 +25,21 @@ ListModel {
     }
 
     function makeThumbnailUrl(avatarUrl) {
+        var marketId = extractMarketId(avatarUrl);
+        if(marketId === '')
+            return '';
+
         var avatarThumbnailUrl = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/%marketId%/large/hifi-mp-%marketId%.jpg"
-            .split('%marketId%').join(extractMarketId(avatarUrl));
+            .split('%marketId%').join(marketId);
 
         return avatarThumbnailUrl;
     }
 
-    function encodedName(avatarName, isExternal) {
-        if(isExternal) {
-            if(avatarName.indexOf('external:') !== 0) {
-                return 'external:' + avatarName;
-            }
-        }
-
-        return avatarName;
-    }
-
-    function decodedName(avatarName, isExternal) {
-        if(isExternal) {
-            if(avatarName.indexOf('external:') === 0) {
-                avatarName = avatarName.replace('external:', '');
-            }
-        }
-
-        return avatarName;
-    }
-
     function makeAvatarObject(avatar, avatarName) {
         console.debug('makeAvatarEntry: ', avatarName, JSON.stringify(avatar));
-        var isExternal = avatarName.indexOf('external:') === 0;
-        avatarName = decodedName(avatarName, isExternal);
 
-        var avatarThumbnailUrl = isExternal ? externalAvatarThumbnailUrl.toString() : makeThumbnailUrl(avatar.avatarUrl);
-        console.debug('isExternal:', isExternal, 'avatarThumbnailUrl:', avatarThumbnailUrl, 'externalAvatarThumbnailUrl:', externalAvatarThumbnailUrl);
+        var avatarThumbnailUrl = makeThumbnailUrl(avatar.avatarUrl);
+        console.debug('avatarThumbnailUrl:', avatarThumbnailUrl);
 
         return {
             'name' : avatarName,
@@ -69,7 +49,6 @@ ListModel {
             'wearables' : avatar.avatarEntites ? avatar.avatarEntites : [],
             'attachments' : avatar.attachments ? avatar.attachments : [],
             'entry' : avatar,
-            'isExternal' : isExternal,
             'getMoreAvatars' : false
         };
 

@@ -15,15 +15,32 @@ Item {
     property alias dropShadowHorizontalOffset: avatarImage.dropShadowHorizontalOffset
     property alias dropShadowVerticalOffset: avatarImage.dropShadowVerticalOffset
 
-    property alias imageUrl: avatarImage.source
+    property url externalAvatarThumbnailUrl;
+    property var avatarUrl;
     property alias border: avatarImage.border
 
     ShadowImage {
         id: avatarImage
         anchors.fill: parent
-        visible: status !== Image.Loading
         radius: 5
         fillMode: Image.PreserveAspectCrop
+
+        Binding on source {
+            when: avatarUrl !== ''
+            value: avatarUrl
+        }
+        onSourceChanged: {
+            console.debug('avatarImage: source = ', source);
+        }
+
+        visible: avatarImage.status !== Image.Loading && avatarImage.status !== Image.Error
+    }
+
+    ShadowImage {
+        id: customAvatarImage
+        anchors.fill: avatarImage;
+        visible: avatarUrl === '' || avatarImage.status === Image.Error
+        source: externalAvatarThumbnailUrl
     }
 
     ShadowRectangle {
