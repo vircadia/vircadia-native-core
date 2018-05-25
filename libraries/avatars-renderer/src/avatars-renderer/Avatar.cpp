@@ -593,7 +593,8 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     processMaterials();
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
-        attachmentModel->setVisibleInScene(_isMeshEnableVisible, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, true);
+        attachmentModel->setVisibleInScene(_isMeshEnableVisible, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, false);
+        attachmentModel->setCanCastShadow(true, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, false);
     }
 
     _mustFadeIn = true;
@@ -806,6 +807,7 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
         _skeletonModel->removeFromScene(scene, transaction);
         _skeletonModel->addToScene(scene, transaction);
         _skeletonModel->setVisibleInScene(_isMeshEnableVisible, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, true);
+        _skeletonModel->setCanCastShadow(true, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, true);
         processMaterials();
         canTryFade = true;
         _isAnimatingScale = true;
@@ -814,12 +816,18 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, transaction);
             attachmentModel->addToScene(scene, transaction);
-            attachmentModel->setVisibleInScene(_isMeshEnableVisible, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, true);
+            attachmentModel->setVisibleInScene(_isMeshEnableVisible, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, false);
+            attachmentModel->setCanCastShadow(true, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, false);
         }
     }
 
     if (_needMeshVisibleSwitch) {
         _skeletonModel->setVisibleInScene(_isMeshEnableVisible, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, true);
+        for (auto attachmentModel : _attachmentModels) {
+            if (attachmentModel->isRenderable()) {
+                attachmentModel->setVisibleInScene(_isMeshEnableVisible, scene, render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1, false);
+            }
+        }
         updateRenderItem(transaction);
         _needMeshVisibleSwitch = false;
     }

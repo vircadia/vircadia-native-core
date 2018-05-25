@@ -87,13 +87,29 @@ public:
     const QUrl& getURL() const { return _url; }
 
     // new Scene/Engine rendering support
-    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
+    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene);
+    bool isVisible() const;
 
-    bool canCastShadow() const { return _canCastShadow; }
-    void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
+    enum ViewVisibilityMask : uint8_t {
+        MainView = 0x01, //render::ItemKey::TAG_BITS_0,
+        SecondaryView = 0x02, //render::ItemKey::TAG_BITS_1,
+        AllViews = 0xFF, //render::ItemKey::TAG_BITS_ALL,
+    };
+    ViewVisibilityMask getViewVisibilityMask() const;
+    void setViewVisibilityMask(uint8_t mask, const render::ScenePointer& scene);
+
+    bool isGroupCulled() const;
+    void setGroupCulled(bool isGroupCulled);
+
+    bool canCastShadow() const;
+    void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene);
 
     void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
     void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);
+
+    bool isLayeredInFront() const;
+    bool isLayeredInHUD() const;
+
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }
@@ -108,13 +124,7 @@ public:
     void removeFromScene(const render::ScenePointer& scene, render::Transaction& transaction);
     bool isRenderable() const;
 
-    bool isVisible() const { return _isVisible; }
-    uint8_t getViewTagBits() const { return _viewTagBits; }
-
-    bool isLayeredInFront() const { return _isLayeredInFront; }
-    bool isLayeredInHUD() const { return _isLayeredInHUD; }
-
-    bool isGroupCulled() const { return _isGroupCulled; }
+    void updateRenderItemsKey(const render::ScenePointer& scene);
 
     virtual void updateRenderItems();
     void setRenderItemsNeedUpdate();
@@ -404,10 +414,10 @@ protected:
     QVector<float> _blendshapeCoefficients;
 
     QUrl _url;
-    bool _isVisible;
-    uint8_t _viewTagBits{ render::ItemKey::TAG_BITS_ALL };
+ //   bool _isVisible;
+  //  uint8_t _viewTagBits{ render::ItemKey::TAG_BITS_ALL };
 
-    bool _canCastShadow;
+ //   bool _canCastShadow;
 
     gpu::Buffers _blendedVertexBuffers;
 
@@ -471,11 +481,12 @@ protected:
     int _renderInfoDrawCalls { 0 };
     int _renderInfoHasTransparent { false };
 
-    bool _isLayeredInFront { false };
+    render::ItemKey _renderItemsKey;
+ /*   bool _isLayeredInFront { false };
     bool _isLayeredInHUD { false };
 
     bool _isGroupCulled{ false };
-
+    */
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
 private:

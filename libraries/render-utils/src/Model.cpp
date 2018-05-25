@@ -103,11 +103,12 @@ Model::Model(QObject* parent, SpatiallyNestable* spatiallyNestableOverride) :
     _snapModelToRegistrationPoint(false),
     _snappedToRegistrationPoint(false),
     _url(HTTP_INVALID_COM),
-    _isVisible(true),
-    _canCastShadow(false),
+  //  _isVisible(true),
+   // _canCastShadow(false),
     _blendNumber(0),
     _appliedBlendNumber(0),
-    _isWireframe(false)
+    _isWireframe(false),
+    _renderItemsKey(render::ItemKey::Builder().withVisible().withTagBits(AllViews).build())
 {
     // we may have been created in the network thread, but we live in the main thread
     if (_viewState) {
@@ -270,7 +271,7 @@ void Model::updateRenderItems() {
         bool isWireframe = self->isWireframe();
         bool isVisible = self->isVisible();
         bool canCastShadow = self->canCastShadow();
-        uint8_t viewTagBits = self->getViewTagBits();
+        uint8_t viewTagBits = self->getViewVisibilityMask();
         bool isLayeredInFront = self->isLayeredInFront();
         bool isLayeredInHUD = self->isLayeredInHUD();
         bool isGroupCulled = self->isGroupCulled();
@@ -772,7 +773,7 @@ void Model::calculateTriangleSets(const FBXGeometry& geometry) {
         }
     }
 }
-
+/*
 void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled) {
     if (_isVisible != isVisible || _viewTagBits != viewTagBits || _isGroupCulled != isGroupCulled) {
         _isVisible = isVisible;
@@ -798,24 +799,41 @@ void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene,
         scene->enqueueTransaction(transaction);
     }
 }
+*/
 
-void Model::setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled) {
-    if (_canCastShadow != canCastShadow) {
-        _canCastShadow = canCastShadow;
+void Model::updateRenderItemsKey(const render::ScenePointer& scene) {
+    auto renderItemsKey = _renderItemsKey;
+    render::Transaction transaction;
+    foreach(auto item, _modelMeshRenderItemsMap.keys()) {
+        transaction.updateItem<ModelMeshPartPayload>(item, [renderItemsKey](ModelMeshPartPayload& data) {
+            data.updateKey(renderItemsKey);
+        });
+    }
+    foreach(auto item, _collisionRenderItemsMap.keys()) {
+        transaction.updateItem<ModelMeshPartPayload>(item, [renderItemsKey](ModelMeshPartPayload& data) {
+            data.updateKey(renderItemsKey);
+        });
+    }
+    scene->enqueueTransaction(transaction);
+}
 
-        bool isVisible = _isVisible;
-        bool isLayeredInFront = _isLayeredInFront;
-        bool isLayeredInHUD = _isLayeredInHUD;
+void Model::setVisibleInScene(bool pisVisible, const render::ScenePointer& scene) {
+    if (isVisible() != pisVisible) {
+        auto keyBuilder = render::ItemKey::Builder(_renderItemsKey);
+        _renderItemsKey = (pisVisible ? keyBuilder.withVisible() : keyBuilder.withInvisible());
+        updateRenderItemsKey(scene);
+    }
+}
 
-        render::Transaction transaction;
-        foreach (auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, 
-                [isVisible, viewTagBits, canCastShadow, isLayeredInFront, isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
-                    data.updateKey(isVisible, viewTagBits, canCastShadow, isLayeredInFront || isLayeredInHUD, isGroupCulled);
-                });
-        }
+bool Model::isVisible() const {
+    
+}
 
-        scene->enqueueTransaction(transaction);
+void Model::setCanCastShadow(bool pcanCastShadow, const render::ScenePointer& scene) {
+    if (canCastShadow() != pcanCastShadow) {
+        auto keyBuilder = render::ItemKey::Builder(_renderItemsKey);
+        _renderItemsKey = (pcanCastShadow ? keyBuilder.withShadowCaster() : keyBuilder.withoutShadowCaster());
+        updateRenderItemsKey(scene);
     }
 }
 
