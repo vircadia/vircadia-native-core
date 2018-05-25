@@ -9,15 +9,17 @@ Note: The prerequisites will require about 10 GB of space on your drive. You wil
 
 If you don’t have Community or Professional edition of Visual Studio 2017, download [Visual Studio Community 2017](https://www.visualstudio.com/downloads/).
 
-When selecting components, check "Desktop development with C++." Also check "Windows 8.1 SDK and UCRT SDK" and "VC++ 2015.3 v140 toolset (x86,x64)" on the Summary toolbar on the right.
+When selecting components, check "Desktop development with C++." Also on the right on the Summary toolbar, check "Windows 8.1 SDK and UCRT SDK" and "VC++ 2015.3 v140 toolset (x86,x64)".
 
 ### Step 2. Installing CMake
 
-Download and install the latest version of CMake 3.9. Download the file named  win64-x64 Installer from the [CMake Website](https://cmake.org/download/). Make sure to check "Add CMake to system PATH for all users" when prompted during installation.
+Download and install the latest version of CMake 3.9. 
+
+Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.9 Version page](https://cmake.org/files/v3.9/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
 
 ### Step 3. Installing Qt
 
-Download and install the [Qt Online Installer](https://www.qt.io/download-open-source/?hsCtaTracking=f977210e-de67-475f-a32b-65cec207fd03%7Cd62710cd-e1db-46aa-8d4d-2f1c1ffdacea). While installing, you only need to have the following components checked under Qt 5.10.1: "msvc2017 64-bit", "Qt WebEngine", and "Qt Script (Deprecated)".
+Download and install the [Qt Open Source Online Installer](https://www.qt.io/download-open-source/?hsCtaTracking=f977210e-de67-475f-a32b-65cec207fd03%7Cd62710cd-e1db-46aa-8d4d-2f1c1ffdacea). While installing, you only need to have the following components checked under Qt 5.10.1: "msvc2017 64-bit", "Qt WebEngine", and "Qt Script (Deprecated)".
 
 Note: Installing the Sources is optional but recommended if you have room for them (~2GB).
 
@@ -56,9 +58,9 @@ Where `%HIFI_DIR%` is the directory for the highfidelity repository.
 
 Open `%HIFI_DIR%\build\hifi.sln` using Visual Studio.
 
-Change the Solution Configuration (next to the green play button) from "Debug" to "Release" for best performance.
+Change the Solution Configuration (menu ribbon under the menu bar, next to the green play button) from "Debug" to "Release" for best performance.
 
-Run `Build > Build Solution`.
+Run from the menu bar `Build > Build Solution`.
 
 ### Step 9. Testing Interface
 
@@ -66,7 +68,7 @@ Create another environment variable (see Step #4)
 * Set "Variable name": `_NO_DEBUG_HEAP`
 * Set "Variable value": `1`
 
-In Visual Studio, right+click "interface" under the Apps folder in Solution Explorer and select "Set as Startup Project". Run `Debug > Start Debugging`.
+In Visual Studio, right+click "interface" under the Apps folder in Solution Explorer and select "Set as Startup Project". Run from the menu bar `Debug > Start Debugging`.
 
 Now, you should have a full build of High Fidelity and be able to run the Interface using Visual Studio. Please check our [Docs](https://wiki.highfidelity.com/wiki/Main_Page) for more information regarding the programming workflow.
 
