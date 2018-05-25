@@ -36,7 +36,6 @@ var EMOTE_LABEL = "EMOTE";
 var EMOTE_APP_SORT_ORDER = 12;
 var FPS = 60;
 var MSEC_PER_SEC = 1000;
-var FINISHED = 3; // see ScriptableResource::State
 
 var onEmoteScreen = false;
 var button;
@@ -60,7 +59,7 @@ function onClicked() {
 }
 
 function onScreenChanged(type, url) {
-    onEmoteScreen = type === "Web" && (url.indexOf(EMOTE_APP_BASE) == url.length - EMOTE_APP_BASE.length);
+    onEmoteScreen = type === "Web" && (url.indexOf(EMOTE_APP_BASE) === url.length - EMOTE_APP_BASE.length);
     button.editProperties({ isActive: onEmoteScreen });
 }
 
@@ -87,18 +86,19 @@ function onWebEventReceived(event) {
             
             // Allow for a random sitting animation when a user selects sit
             var randSit = Math.floor(Math.random() * 3) + 1;
-            if(emoteName == "Sit"){
+            if (emoteName === "Sit"){
                 emoteName = event.data + randSit; // "Sit1, Sit2, Sit3"
             }
             
             var frameCount = ANIMATIONS[emoteName].animation.frames.length;
             
             // Three types of emotes (non-looping end, non-looping return, looping)
-            if(emoteName.match(/^Sit.*$/) || emoteName == "Fall") { // non-looping end
+            if (emoteName.match(/^Sit.*$/) || emoteName === "Fall") { // non-looping end
             
                 MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, false, 0, frameCount);
-                
-            } else if (emoteName == "Love" || emoteName == "Surprised" || emoteName == "Cry"  || emoteName == "Point"){ // non-looping return
+            
+            // non-looping return
+            } else if (emoteName === "Love" || emoteName === "Surprised" || emoteName === "Cry" || emoteName === "Point"){ 
             
                 MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, false, 0, frameCount);
                 var timeOut = MSEC_PER_SEC * frameCount / FPS;
@@ -118,27 +118,24 @@ function onWebEventReceived(event) {
             activeEmote = false;
             MyAvatar.restoreAnimation();
         }
-        
 
         
     }
 }
 
 function restoreAnimation() {
-        MyAvatar.restoreAnimation();
+    MyAvatar.restoreAnimation();
 }
 
-Controller.keyPressEvent.connect(restoreAnimation)
+Controller.keyPressEvent.connect(restoreAnimation);
 // Note peek() so as to not interfere with other mappings.
 eventMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(restoreAnimation);
-eventMapping.from(Controller.Standard.LT).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.LB).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.LS).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.LeftGrip).peek().to(restoreAnimation);
-eventMapping.from(Controller.Standard.RT).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.RB).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.RS).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.RightGrip).peek().to(restoreAnimation);
