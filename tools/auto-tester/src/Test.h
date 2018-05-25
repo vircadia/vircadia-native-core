@@ -102,9 +102,9 @@ private:
     QStringList resultImagesFullFilenames;
 
     // Used for accessing GitHub
-    const QString GIT_HUB_USER{ "highfidelity" };
+    const QString GIT_HUB_USER{ "NissimHadar" };
     const QString GIT_HUB_REPOSITORY{ "hifi_tests" };
-    const QString GIT_HUB_BRANCH{ "master" };
+    const QString GIT_HUB_BRANCH{ "DailyTests" };
 
     const QString DATETIME_FORMAT{ "yyyy-MM-dd_hh-mm-ss" };
 
