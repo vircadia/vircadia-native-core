@@ -11,6 +11,10 @@ Rectangle {
     color: Qt.rgba(0, 0, 0, 0.5);
     z: 999;
 
+    property bool keyboardEnabled: true
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
+
     property string titleText: 'Create Favorite'
     property string favoriteNameText: favoriteName.text
     property string avatarImageUrl: null
@@ -85,83 +89,90 @@ Rectangle {
             height: childrenRect.height
 
             anchors.top: title.bottom
-            anchors.topMargin: 10
+            anchors.topMargin: 20
             anchors.left: parent.left;
             anchors.leftMargin: 30;
             anchors.right: parent.right;
             anchors.rightMargin: 30;
 
-            Item {
-                id: bodyRow
-                height: childrenRect.height
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-
-                AvatarThumbnail {
-                    avatarUrl: avatarImageUrl
-                    onAvatarUrlChanged: {
-                        console.debug('CreateFavoritesDialog: onAvatarUrlChanged: ', avatarUrl);
-                    }
-
-                    wearablesCount: avatarWearablesCount
+            AvatarThumbnail {
+                id: avatarThumbnail
+                avatarUrl: avatarImageUrl
+                onAvatarUrlChanged: {
+                    console.debug('CreateFavoritesDialog: onAvatarUrlChanged: ', avatarUrl);
                 }
 
-                InputTextStyle4 {
-                    id: favoriteName
-                    anchors.right: parent.right
-                    width: 184
-                    height: 40
-                    anchors.verticalCenter: parent.verticalCenter
-                    placeholderText: "Enter Favorite Name"
+                wearablesCount: avatarWearablesCount
+            }
 
-                    RalewayRegular {
-                        id: wrongName
-                        anchors.top: parent.bottom;
-                        anchors.topMargin: 2
+            InputTextStyle4 {
+                id: favoriteName
+                anchors.right: parent.right
+                height: 40
+                anchors.left: avatarThumbnail.right
+                anchors.leftMargin: 44
+                anchors.verticalCenter: avatarThumbnail.verticalCenter
+                placeholderText: "Enter Favorite Name"
 
-                        anchors.right: parent.right;
-                        text: 'Favorite name exists'
-                        size: 15
-                        color: 'red'
-                        visible: {
-                            for(var i = 0; i < avatars.count; ++i) {
-                                var avatarName = avatars.get(i).name;
-                                if(avatarName === favoriteName.text) {
-                                    return true;
-                                }
+                RalewayRegular {
+                    id: wrongName
+                    anchors.top: parent.bottom;
+                    anchors.topMargin: 2
+
+                    anchors.right: parent.right;
+                    text: 'Favorite name exists'
+                    size: 15
+                    color: 'red'
+                    visible: {
+                        for(var i = 0; i < avatars.count; ++i) {
+                            var avatarName = avatars.get(i).name;
+                            if(avatarName === favoriteName.text) {
+                                return true;
                             }
-
-                            return false;
                         }
+
+                        return false;
                     }
                 }
             }
 
-            DialogButtons {
-                anchors.top: bodyRow.bottom
-                anchors.topMargin: 20
-                anchors.left: parent.left
-                anchors.right: parent.right
-
-                yesButton.enabled: favoriteNameText !== ''
-                yesText: root.button2text
-                noText: root.button1text
-
-                onYesClicked: function() {
-                    if(onSaveClicked) {
-                        onSaveClicked();
-                    } else {
-                        root.close();
-                    }
+            HifiControlsUit.Keyboard {
+                id: keyboard
+                raised: root.keyboardEnabled && root.keyboardRaised
+                numeric: root.punctuationMode
+                anchors {
+                    top: avatarThumbnail.bottom
+                    topMargin: 20
+                    left: parent.left
+                    right: parent.right
                 }
+            }
+        }
 
-                onNoClicked: function() {
-                    if(onCancelClicked) {
-                        onCancelClicked();
-                    } else {
-                        root.close();
-                    }
+        DialogButtons {
+            anchors.top: contentContainer.bottom
+            anchors.topMargin: 20
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.rightMargin: 30
+
+            yesButton.enabled: favoriteNameText !== ''
+            yesText: root.button2text
+            noText: root.button1text
+
+            onYesClicked: function() {
+                if(onSaveClicked) {
+                    onSaveClicked();
+                } else {
+                    root.close();
+                }
+            }
+
+            onNoClicked: function() {
+                if(onCancelClicked) {
+                    onCancelClicked();
+                } else {
+                    root.close();
                 }
             }
         }

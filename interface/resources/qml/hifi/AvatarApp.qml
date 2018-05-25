@@ -10,6 +10,23 @@ Rectangle {
     id: root
     width: 480
 	height: 706
+
+    property bool keyboardEnabled: true
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
+
+    HifiControls.Keyboard {
+        id: keyboard
+        z: 100
+        raised: parent.keyboardEnabled && parent.keyboardRaised
+        numeric: parent.punctuationMode
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+    }
+
     color: style.colors.white
     property string getAvatarsMethod: 'getAvatars'
 
