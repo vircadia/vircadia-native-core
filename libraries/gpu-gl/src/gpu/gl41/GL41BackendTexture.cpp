@@ -31,6 +31,10 @@ bool GL41Backend::supportedTextureFormat(const gpu::Element& format) {
         case gpu::Semantic::COMPRESSED_EAC_RED_SIGNED:
         case gpu::Semantic::COMPRESSED_EAC_XY:
         case gpu::Semantic::COMPRESSED_EAC_XY_SIGNED:
+        // The ARB_texture_compression_bptc extension is not supported on 4.1
+        // See https://www.g-truc.net/doc/OpenGL%204%20Hardware%20Matrix.pdf
+        case gpu::Semantic::COMPRESSED_BC6_RGB:
+        case gpu::Semantic::COMPRESSED_BC7_SRGBA:
             return false;
         default:
             return true;

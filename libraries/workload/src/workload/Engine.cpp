@@ -14,6 +14,6 @@
 #include <iostream>
 
 namespace workload {
-    WorkloadContext::WorkloadContext(const SpacePointer& space) : task::JobContext(trace_workload()), _space(space) {}
+    WorkloadContext::WorkloadContext(const SpacePointer& space) : task::JobContext(), _space(space) {}
 } // namespace workload
 

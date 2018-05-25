@@ -85,7 +85,7 @@ public:
 
     virtual QString getName() const override;
 
-    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
+    virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const override;
 
     bool shouldSendBid();
     uint8_t computeFinalBidPriority() const;

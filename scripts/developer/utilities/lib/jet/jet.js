@@ -12,15 +12,15 @@
 
  // traverse task tree
 function task_traverse(root, functor, depth) {
-   // if (root.isTask()) { 
-        depth++;
+    if (root.isTask()) { 
+       depth++;
         for (var i = 0; i <root.getNumSubs(); i++) {
             var sub = root.getSubConfig(i);
             if (functor(sub, depth, i)) {
-                task_traverse(sub, functor, depth)
+                task_traverse(sub, functor, depth, 0)
             }
         }
-   // }    
+    }    
 }
 function task_traverseTree(root, functor) {
     if (functor(root, 0, 0)) {
@@ -45,22 +45,31 @@ function job_propKeys(job) {
     return propKeys; 
 }
 
+// Use this function to create a functor that will fill the specifed array with one entry name per task and job and it s rank
+function job_list_functor(jobList, maxDepth) {
+    if (maxDepth === undefined) maxDepth = 100
+    return function (job, depth, index) {
+        jobList.push(job.objectName);
+        return depth < maxDepth;
+    }
+} 
+
 // Use this function to create a functor that will print the content of the Job visited calling the  specified 'printout' function
-function job_print_functor(printout, maxDepth) {
+function job_print_functor(printout, showProps, maxDepth) {
     if (maxDepth === undefined) maxDepth = 100
     return function (job, depth, index) {
         var tab = "    "
         var depthTab = "";
         for (var d = 0; d < depth; d++) { depthTab += tab }
-        printout(depthTab + index + " " + job.objectName + " " + (job.enabled ? "on" : "off")) 
-        var keys = job_propKeys(job);
-        for (var p=0; p < keys.length;p++) {
-            var prop = job[keys[p]]
-            printout(depthTab + tab + tab + typeof prop + " " + keys[p] + " " + prop);
+        printout(depthTab + index + " " + job.objectName + " " + (job.enabled ? "on " : "off ") + job.cpuRunTime + "ms") 
+        if (showProps) {
+            var keys = job_propKeys(job);
+            for (var p=0; p < keys.length;p++) {
+                var prop = job[keys[p]]
+                printout(depthTab + tab + tab + typeof prop + " " + keys[p] + " " + prop);
+            }
         }
-
-        return true
-     //   return depth < maxDepth;
+        return depth < maxDepth;
     }
 } 
 

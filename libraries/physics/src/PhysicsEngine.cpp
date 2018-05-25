@@ -149,7 +149,7 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     body->setFlags(BT_DISABLE_WORLD_GRAVITY);
     motionState->updateBodyMaterialProperties();
 
-    int16_t group, mask;
+    int32_t group, mask;
     motionState->computeCollisionGroupAndMask(group, mask);
     _dynamicsWorld->addRigidBody(body, group, mask);
 

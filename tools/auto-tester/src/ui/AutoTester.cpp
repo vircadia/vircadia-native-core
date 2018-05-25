@@ -40,8 +40,8 @@ void AutoTester::on_createAllRecursiveScriptsButton_clicked() {
     test->createAllRecursiveScripts();
 }
 
-void AutoTester::on_createTestButton_clicked() {
-	test->createTest();
+void AutoTester::on_createTestsButton_clicked() {
+	test->createTests();
 }
 
 void AutoTester::on_createMDFileButton_clicked() {
@@ -95,7 +95,7 @@ void AutoTester::saveImage(int index) {
     pixmap.loadFromData(downloaders[index]->downloadedData());
 
     QImage image = pixmap.toImage();
-    image = image.convertToFormat(QImage::Format_ARGB32);
+    image = image.convertToFormat(QImage::Format_RGB32);
 
     QString fullPathname = _directoryName + "/" + _filenames[index];
     if (!image.save(fullPathname, 0, 100)) {

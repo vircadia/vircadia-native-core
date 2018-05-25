@@ -17,10 +17,10 @@ import "qrc:///qml/controls-uit" as HifiControls
 
 import "../jet.js" as Jet
 
-Rectangle {
+Rectangle {   
+    HifiConstants { id: hifi;}
+    color: hifi.colors.baseGray;
     id: root
- //   width: parent ? parent.width : 200
- //   height: parent ? parent.height : 400
     property var rootConfig : Workload
 
     Original.TextArea {
@@ -32,13 +32,8 @@ Rectangle {
 
     Component.onCompleted: {
         var message = ""
-        var functor = Jet.job_print_functor(function (line) { message += line + "\n"; });
+        var functor = Jet.job_print_functor(function (line) { message += line + "\n"; }, false);
         Jet.task_traverseTree(rootConfig, functor);
-        textArea.append(message);
-     }
-    function fromScript(mope) {
-        var message ='Received \n';
-        message += mope;
         textArea.append(message);
     }
 
