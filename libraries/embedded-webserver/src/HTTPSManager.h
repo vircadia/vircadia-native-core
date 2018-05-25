@@ -31,7 +31,7 @@ public:
                  const QSslCertificate& certificate,
                  const QSslKey& privateKey,
                  const QString& documentRoot,
-                 HTTPSRequestHandler* requestHandler = NULL);
+                 HTTPSRequestHandler* requestHandler = nullptr);
     
     void setCertificate(const QSslCertificate& certificate) { _certificate = certificate; }
     void setPrivateKey(const QSslKey& privateKey) { _privateKey = privateKey; }
