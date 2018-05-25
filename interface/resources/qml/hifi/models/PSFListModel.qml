@@ -32,17 +32,9 @@ Item {
     onSortKeyChanged: getFirstPage();
     onSearchFilterChanged: {
         if (searchItemTest) {
-            var filteredCopy = copyOfItems.filter(function (item) {
-                return searchItemTest(searchFilter, item);
-            });
+            var filteredCopy = applySearchItemTest(copyOfItems);
             finalModel.clear();
             finalModel.append(filteredCopy);
-            /*for (var index = 0; index < finalModel.count; index++) {
-                if (!searchItemTest(searchFilter, finalModel.get(index))) {
-                    finalModel.remove(index);
-                    index--;   // Don't skip over anything now that the indices have shifted.
-                }
-            }*/
         } else { // TODO: fancy timer against fast typing.
             getFirstPage();
         }
@@ -57,9 +49,11 @@ Item {
     // State.
     property int currentPageToRetrieve: 0;  // 0 = before first page. -1 = we have them all. Otherwise 1-based page number.
     property bool retrievedAtLeastOnePage: false;
-    // Resets both internal `ListModel`s and resets the page to retrieve to "1".
+    // We normally clear on reset. But if we want to "refresh", we can delay clearing the model until we get a result.
+    // Not normally set directly, but rather by giving a truthy argument to getFirstPage(true);
+    property bool delayedClear: false;
     function resetModel() {
-        finalModel.clear();
+        if (!delayedClear) { finalModel.clear(); }
         currentPageToRetrieve = 1;
         retrievedAtLeastOnePage = false;
         copyOfItems = [];
@@ -78,6 +72,7 @@ Item {
             console.warn("Warning", listModelName, JSON.stringify(message));
             current_page_to_retrieve = -1;
             requestPending = false;
+            delayedClear = false;
         }
         if (error || (response.status !== 'success')) {
             return fail(error || response.status);
@@ -93,13 +88,20 @@ Item {
         if (searchItemTest) {
             copyOfItems = copyOfItems.concat(processed);
             if (searchFilter) {
-                processed = processed.filter(function (item) {
-                    return searchItemTest(searchFilter, item);
-                });
+                processed = applySearchItemTest(processed);
             }
+        }
+        if (delayedClear) {
+            finalModel.clear();
+            delayedClear = false;
         }
         finalModel.append(processed); // FIXME keep index steady, and apply any post sort/filter
         retrievedAtLeastOnePage = true;
+    }
+    function applySearchItemTest(items) {
+        return items.filter(function (item) {
+                return searchItemTest(searchFilter, item);
+        });
     }
 
     // Override either http or getPage.
@@ -120,7 +122,8 @@ Item {
 
     // Start the show by retrieving data according to `getPage()`.
     // It can be custom-defined by this item's Parent.
-    property var getFirstPage: function () {
+    property var getFirstPage: function (delayClear) {
+        delayedClear = !!delayClear;
         resetModel();
         requestPending = true;
         getPage();

@@ -147,7 +147,7 @@ Item {
             if (transactionHistory.atYBeginning) {
                 console.log("Refreshing 1st Page of Recent Activity...");
                 Commerce.balance();
-                transactionHistoryModel.getFirstPage();
+                transactionHistoryModel.getFirstPage("delayedClear");
             }
         }
     }

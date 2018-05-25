@@ -558,7 +558,7 @@ Item {
                 // "Make a Connection" instructions
                 Rectangle {
                     id: connectionInstructions;
-                    visible: connectionsModel.count === 0 && !connectionsLoading.visible;
+                    visible: connectionsModel.count === 0 && !connectionsModel.searchFilter && !connectionsLoading.visible;
                     anchors.fill: parent;
                     color: "white";
 
