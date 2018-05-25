@@ -71,9 +71,9 @@ void SetupViews::run(const WorkloadContextPointer& renderContext, const Input& i
 
 
 ControlViews::ControlViews() {
-    regionBackFronts[0] = DEFAULT_R1_BACK_FRONT;
-    regionBackFronts[1] = DEFAULT_R2_BACK_FRONT;
-    regionBackFronts[2] = DEFAULT_R3_BACK_FRONT;
+    regionBackFronts[0] = glm::vec2(1.0f, 3.0f);
+    regionBackFronts[1] = glm::vec2(1.0f, 5.0f);
+    regionBackFronts[2] = glm::vec2(1.0f, 10.0f);
     regionRegulators[0] = Regulator(std::chrono::milliseconds(2), regionBackFronts[0], 5.0f * regionBackFronts[0], glm::vec2(0.4f, 0.2f), 0.5f * glm::vec2(0.3f, 0.2f));
     regionRegulators[1] = Regulator(std::chrono::milliseconds(2), regionBackFronts[1], 8.0f * regionBackFronts[1], glm::vec2(0.4f, 0.2f), 0.5f * glm::vec2(0.3f, 0.2f));
     regionRegulators[2] = Regulator(std::chrono::milliseconds(2), regionBackFronts[2], 10.0f * regionBackFronts[2], glm::vec2(0.4f, 0.2f), 0.5f * glm::vec2(0.3f, 0.2f));
