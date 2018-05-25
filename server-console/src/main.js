@@ -75,10 +75,14 @@ function getBuildInfo() {
 }
 const buildInfo = getBuildInfo();
 
-function getRootHifiDataDirectory() {
+function getRootHifiDataDirectory(local) {
     var organization = buildInfo.organization;
     if (osType == 'Windows_NT') {
-        return path.resolve(osHomeDir(), 'AppData/Roaming', organization);
+        if (local) {
+            return path.resolve(osHomeDir(), 'AppData/Local', organization);
+        } else {
+            return path.resolve(osHomeDir(), 'AppData/Roaming', organization);
+        }
     } else if (osType == 'Darwin') {
         return path.resolve(osHomeDir(), 'Library/Application Support', organization);
     } else {
@@ -94,8 +98,8 @@ function getAssignmentClientResourcesDirectory() {
     return path.join(getRootHifiDataDirectory(), '/assignment-client');
 }
 
-function getApplicationDataDirectory() {
-    return path.join(getRootHifiDataDirectory(), '/Server Console');
+function getApplicationDataDirectory(local) {
+    return path.join(getRootHifiDataDirectory(local), '/Server Console');
 }
 
 // Update lock filepath
@@ -104,7 +108,7 @@ const UPDATER_LOCK_FULL_PATH = getRootHifiDataDirectory() + "/" + UPDATER_LOCK_F
 
 // Configure log
 global.log = require('electron-log');
-const logFile = getApplicationDataDirectory() + '/log.txt';
+const logFile = getApplicationDataDirectory(true) + '/log.txt';
 fs.ensureFileSync(logFile); // Ensure file exists
 log.transports.file.maxSize = 5 * 1024 * 1024;
 log.transports.file.file = logFile;
@@ -221,7 +225,8 @@ function deleteOldFiles(directoryPath, maxAgeInSeconds, filenameRegex) {
     }
 }
 
-var logPath = path.join(getApplicationDataDirectory(), '/logs');
+var oldLogPath = path.join(getApplicationDataDirectory(), '/logs');
+var logPath = path.join(getApplicationDataDirectory(true), '/logs');
 
 log.debug("Log directory:", logPath);
 log.debug("Data directory:", getRootHifiDataDirectory());
