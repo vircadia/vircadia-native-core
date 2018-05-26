@@ -2220,8 +2220,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &QCoreApplication::aboutToQuit, this, &Application::addAssetToWorldMessageClose);
     connect(&domainHandler, &DomainHandler::domainURLChanged, this, &Application::addAssetToWorldMessageClose);
 
-    updateSystemTabletMode();
-
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
 
     DependencyManager::get<PickManager>()->setShouldPickHUDOperator([&]() { return DependencyManager::get<HMDScriptingInterface>()->isHMDMode(); });
@@ -2271,8 +2269,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     if (property(hifi::properties::TEST).isValid()) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::DesktopTabletToToolbar, false);
         _desktopTabletBecomesToolbarSetting.set(false);
-        updateSystemTabletMode();
     }
+    updateSystemTabletMode();
 
 #if defined(Q_OS_ANDROID)
     AndroidHelper::instance().init();
