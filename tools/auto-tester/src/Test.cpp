@@ -63,7 +63,7 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
 
     // Loop over both lists and compare each pair of images
     // Quit loop if user has aborted due to a failed test.
-    const double THRESHOLD { 0.99 };
+    const double THRESHOLD { 0.9995 };
     bool success{ true };
     bool keepOn{ true };
     for (int i = 0; keepOn && i < expectedImagesFullFilenames.length(); ++i) {

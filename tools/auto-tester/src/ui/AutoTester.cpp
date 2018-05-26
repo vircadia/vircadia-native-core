@@ -129,7 +129,7 @@ void AutoTester::saveImage(int index) {
     pixmap.loadFromData(downloaders[index]->downloadedData());
 
     QImage image = pixmap.toImage();
-    image = image.convertToFormat(QImage::Format_RGB32);
+    image = image.convertToFormat(QImage::Format_ARGB32);
 
     QString fullPathname = _directoryName + "/" + _filenames[index];
     if (!image.save(fullPathname, 0, 100)) {
