@@ -32,7 +32,7 @@ public:
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    virtual void updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled = false);
+    virtual void updateKey(bool isVisible, uint8_t layer, bool canCastShadow, uint8_t tagBits, bool isGroupCulled = false);
     virtual void updateKey(const render::ItemKey& key);
 
     virtual void updateMeshPart(const std::shared_ptr<const graphics::Mesh>& drawMesh, int partIndex);
@@ -96,7 +96,7 @@ public:
 
     void notifyLocationChanged() override;
 
-    void updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled = false) override;
+    void updateKey(bool isVisible, uint8_t layer, bool canCastShadow, uint8_t tagBits, bool isGroupCulled = false) override;
     void updateKey(const render::ItemKey& key) override;
 
     // matrix palette skinning

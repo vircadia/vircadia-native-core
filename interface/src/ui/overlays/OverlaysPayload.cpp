@@ -35,14 +35,18 @@ namespace render {
         auto builder = ItemKey::Builder().withTypeShape();
         if (overlay->is3D()) {
             auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
-            if (overlay3D->getDrawInFront() || overlay3D->getDrawHUDLayer()) {
-                builder.withLayered();
+            if (overlay3D->getDrawInFront()) {
+                builder.withLayer(render::Item::LAYER_3D_FRONT);
+            } else if (overlay3D->getDrawHUDLayer()) {
+                builder.withLayer(render::Item::LAYER_3D_HUD);
             }
+
             if (overlay->isTransparent()) {
                 builder.withTransparent();
             }
         } else {
             builder.withViewSpace();
+            builder.withLayer(render::Item::LAYER_2D);
         }
 
         if (!overlay->getVisible()) {

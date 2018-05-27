@@ -29,10 +29,11 @@ const float Item::Status::Value::CYAN = 180.0f;
 const float Item::Status::Value::BLUE = 240.0f;
 const float Item::Status::Value::MAGENTA = 300.0f;
 
-const int Item::LAYER_2D = 0;
+/*const int Item::LAYER_2D = 0;
 const int Item::LAYER_3D = 1;
 const int Item::LAYER_3D_FRONT = 2;
 const int Item::LAYER_3D_HUD = 3;
+*/
 
 const uint8_t ItemKey::TAG_BITS_ALL { 0xFF };
 const uint8_t ItemKey::TAG_BITS_NONE { 0x00 };
@@ -47,6 +48,11 @@ const uint8_t ItemKey::TAG_BITS_7 { 0x80 };
 
 const uint32_t ItemKey::KEY_TAG_BITS_MASK = ((uint32_t) ItemKey::TAG_BITS_ALL) << FIRST_TAG_BIT;
 
+// Layer bits are derived from the Layer enum, the number of bits needed to represent integer 0 to NUM_LAYERS
+//const uint8_t ItemKey::NUM_LAYER_BITS { 3 };
+const uint8_t ItemKey::LAYER_BITS_ALL { 0x07 };
+
+const uint32_t ItemKey::KEY_LAYER_BITS_MASK = ((uint32_t)ItemKey::LAYER_BITS_ALL) << FIRST_LAYER_BIT;
 
 
 void Item::Status::Value::setScale(float scale) {

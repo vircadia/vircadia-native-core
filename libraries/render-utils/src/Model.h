@@ -87,25 +87,25 @@ public:
     const QUrl& getURL() const { return _url; }
 
     // new Scene/Engine rendering support
-    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene);
+    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene = nullptr);
     bool isVisible() const;
 
-    enum ViewVisibilityMask : uint8_t {
+    enum ViewMask : uint8_t {
         MainView = 0x01, //render::ItemKey::TAG_BITS_0,
         SecondaryView = 0x02, //render::ItemKey::TAG_BITS_1,
         AllViews = 0xFF, //render::ItemKey::TAG_BITS_ALL,
     };
-    ViewVisibilityMask getViewVisibilityMask() const;
-    void setViewVisibilityMask(uint8_t mask, const render::ScenePointer& scene);
+    ViewMask getViewMask() const;
+    void setViewMask(uint8_t mask, const render::ScenePointer& scene = nullptr);
 
     bool isGroupCulled() const;
-    void setGroupCulled(bool isGroupCulled);
+    void setGroupCulled(bool isGroupCulled, const render::ScenePointer& scene = nullptr);
 
     bool canCastShadow() const;
-    void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene);
+    void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene = nullptr);
 
-    void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
-    void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);
+    void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene = nullptr);
+    void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene = nullptr);
 
     bool isLayeredInFront() const;
     bool isLayeredInHUD() const;
