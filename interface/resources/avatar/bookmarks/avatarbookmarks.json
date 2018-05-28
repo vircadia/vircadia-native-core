@@ -1,0 +1,563 @@
+{
+    "Pronoma": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://highfidelity.com/api/v1/commerce/entity_edition/1de50887-048a-4a67-a4a2-72bd5e450afa.fst?certificate_id=MEQCIETe0j2OW0YgcosQPH9aofBBMpn25NpdhQwhw9ea4Ux%2BAiBCaPbVvezSyCudHtv0ZcgJuC0LF0Rh4Qa6c%2BylS%2FGsUQ%3D%3D",
+        "version": 3
+    },
+    "art": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://highfidelity.com/api/v1/commerce/entity_edition/e76946cc-c272-4adf-9bb6-02cde0a4b57d.fst?certificate_id=MEUCICtmsfaUbDuvJE6gaiJSAJAq30PgLkz%2B40QmzajjykdOAiEAk12%2FNypKsKsZ7BxSQHKeZFUclZi5L%2BVfg8lxRgG%2Fuqc%3D",
+        "version": 3
+    },
+    "black robimo": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://highfidelity.com/api/v1/commerce/entity_edition/6c5d04a5-7637-4c01-9424-03db55e9cb97.fst?certificate_id=MEYCIQCSVXNFPiqWs%2BSNM%2B1foo%2FaP44iwOO5nvqzqSS%2Bg6u1xAIhAOKbgunAjKvum7e9rcfxy%2FJhxFPxYDkUaiocOmnHvXNJ",
+        "version": 3
+    },
+    "mat": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://highfidelity.com/api/v1/commerce/entity_edition/b652081b-a199-425e-ae5c-7815721bdc09.fst?certificate_id=MEUCIDmLsCb2GmA0S%2FXv0UNb5GGZFa8q8p6y8EV8q9vm7gWqAiEAnzKzXqg7kmNQYYCMHzohI9wtSS6uS3SHIVDfILp9kbg%3D",
+        "version": 3
+    },
+    "robo": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+            {
+                "properties": {
+                    "acceleration": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "actionData": "",
+                    "age": 56.48865509033203,
+                    "ageAsText": "0 hours 0 minutes 56 seconds",
+                    "angularDamping": 0.39346998929977417,
+                    "angularVelocity": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "animation": {
+                        "allowTranslation": true,
+                        "currentFrame": 0,
+                        "firstFrame": 0,
+                        "fps": 30,
+                        "hold": false,
+                        "lastFrame": 100000,
+                        "loop": true,
+                        "running": false,
+                        "url": ""
+                    },
+                    "boundingBox": {
+                        "brn": {
+                            "x": -0.029693495482206345,
+                            "y": -0.00620680209249258,
+                            "z": -0.029693543910980225
+                        },
+                        "center": {
+                            "x": 0,
+                            "y": 0,
+                            "z": 0
+                        },
+                        "dimensions": {
+                            "x": 0.05938699096441269,
+                            "y": 0.01241360418498516,
+                            "z": 0.05938708782196045
+                        },
+                        "tfl": {
+                            "x": 0.029693495482206345,
+                            "y": 0.00620680209249258,
+                            "z": 0.029693543910980225
+                        }
+                    },
+                    "canCastShadow": true,
+                    "certificateID": "MEYCIQCfDU8OL0H7BjwdNJYpaPJ+iCiix5kXFvvH3FwhjsgcmAIhAJZN6RKB3fBWzRKIG6Q5RzihqQyN2wd3KIQswIz+36NI",
+                    "clientOnly": true,
+                    "cloneAvatarEntity": false,
+                    "cloneDynamic": false,
+                    "cloneLifetime": 300,
+                    "cloneLimit": 0,
+                    "cloneOriginID": "{00000000-0000-0000-0000-000000000000}",
+                    "cloneable": false,
+                    "collidesWith": "",
+                    "collisionMask": 0,
+                    "collisionSoundURL": "",
+                    "collisionless": false,
+                    "collisionsWillMove": false,
+                    "compoundShapeURL": "",
+                    "created": "2018-05-25T18:14:06Z",
+                    "damping": 0.39346998929977417,
+                    "density": 1000,
+                    "description": "",
+                    "dimensions": {
+                        "x": 0.05938699096441269,
+                        "y": 0.01241360418498516,
+                        "z": 0.05938708782196045
+                    },
+                    "dynamic": false,
+                    "editionNumber": 11,
+                    "entityInstanceNumber": 0,
+                    "friction": 0.5,
+                    "gravity": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "href": "",
+                    "id": "{129c1c93-4955-4c8d-98cd-0843025a4e21}",
+                    "ignoreForCollisions": false,
+                    "itemArtist": "XaosPrincess",
+                    "itemCategories": "Wearables",
+                    "itemDescription": "Everglowing **Glow Bands** for everybody!",
+                    "itemLicense": "",
+                    "itemName": "Xaos' Glow Bands",
+                    "jointRotations": [
+                    ],
+                    "jointRotationsSet": [
+                    ],
+                    "jointTranslations": [
+                    ],
+                    "jointTranslationsSet": [
+                    ],
+                    "lastEdited": 1527271955973148,
+                    "lastEditedBy": "{c97cd2a4-aaa7-4dd7-91a4-2cf637ced974}",
+                    "lifetime": -1,
+                    "limitedRun": 4294967295,
+                    "localPosition": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "localRotation": {
+                        "w": 1,
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "locked": false,
+                    "marketplaceID": "ce90c695-a98e-4248-876d-651f66c9e6f8",
+                    "modelURL": "http://mpassets.highfidelity.com/ce90c695-a98e-4248-876d-651f66c9e6f8-v1/Diverse/XaosGlowBands-90.fbx",
+                    "name": "",
+                    "naturalDimensions": {
+                        "x": 0.06959658861160278,
+                        "y": 0.01454770565032959,
+                        "z": 0.06959670037031174
+                    },
+                    "naturalPosition": {
+                        "x": -0.6312615871429443,
+                        "y": 1.3392267227172852,
+                        "z": -0.11579050123691559
+                    },
+                    "originalTextures": "{\n    \"Texture\": \"http://mpassets.highfidelity.com/ce90c695-a98e-4248-876d-651f66c9e6f8-v1/Diverse/XaosGlowBands-90.fbx/XaosGlowBands-90.fbm/XaosDuctDress_Bracelet_Diffuse.png\"\n}\n",
+                    "owningAvatarID": "{c97cd2a4-aaa7-4dd7-91a4-2cf637ced974}",
+                    "parentID": "{c97cd2a4-aaa7-4dd7-91a4-2cf637ced974}",
+                    "parentJointIndex": 65535,
+                    "position": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "queryAACube": {
+                        "scale": 0.25469517707824707,
+                        "x": -0.12721198797225952,
+                        "y": -10.74824047088623,
+                        "z": -0.1281493455171585
+                    },
+                    "registrationPoint": {
+                        "x": 0.5,
+                        "y": 0.5,
+                        "z": 0.5
+                    },
+                    "relayParentJoints": false,
+                    "renderInfo": {
+                        "drawCalls": 1,
+                        "hasTransparent": false,
+                        "texturesCount": 2,
+                        "texturesSize": 8388608,
+                        "verticesCount": 1248
+                    },
+                    "restitution": 0.5,
+                    "rotation": {
+                        "w": 1,
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "script": "",
+                    "scriptTimestamp": 0,
+                    "serverScripts": "",
+                    "shapeType": "box",
+                    "staticCertificateVersion": 1,
+                    "textures": "",
+                    "type": "Model",
+                    "userData": "{\"Attachment\":{\"action\":\"attach\",\"joint\":\"[LR]ForeArm\",\"attached\":false,\"options\":{\"translation\":{\"x\":0,\"y\":0,\"z\":0},\"scale\":1}},\"grabbableKey\":{\"cloneable\":false,\"grabbable\":true}}",
+                    "velocity": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "visible": true
+                }
+            }
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://highfidelity.com/api/v1/commerce/entity_edition/fbf14051-1631-4a12-b071-bcefbeec36c0.fst?certificate_id=MEYCIQCuE0ku%2FmAUw0MOlgh2wnWRxRbrEiU2XXr7y2usLESr1gIhAIEOPC1ox%2FOXXfWOwBd%2FVA1JscGATqg2DQM6tz6mWBgS",
+        "version": 3
+    },
+    "woody": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 0.9988048672676086,
+        "avatarUrl": "https://highfidelity.com/api/v1/commerce/entity_edition/ad348528-de38-420c-82bb-054cb22163f5.fst?certificate_id=MEUCIAbGWo31YI7ZaSHq%2B60qkBEmGXWNnouDFjPAWLrcBJDVAiEAgEH2MKWKrqFcvs%2FbCgjkcssswkv19srfIBcXmyhcx6c%3D",
+        "version": 3
+    },
+    "woodywithhat": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+            {
+                "properties": {
+                    "acceleration": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "actionData": "",
+                    "age": 21.667388916015625,
+                    "ageAsText": "0 hours 0 minutes 21 seconds",
+                    "angularDamping": 0.39346998929977417,
+                    "angularVelocity": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "animation": {
+                        "allowTranslation": 1,
+                        "currentFrame": 0,
+                        "firstFrame": 0,
+                        "fps": 30,
+                        "hold": 0,
+                        "lastFrame": 100000,
+                        "loop": 1,
+                        "running": 0,
+                        "url": ""
+                    },
+                    "boundingBox": {
+                        "brn": {
+                            "x": -0.15316654741764069,
+                            "y": -0.0777205303311348,
+                            "z": -0.17775395512580872
+                        },
+                        "center": {
+                            "x": 0,
+                            "y": 0,
+                            "z": 0
+                        },
+                        "dimensions": {
+                            "x": 0.30633309483528137,
+                            "y": 0.1554410606622696,
+                            "z": 0.35550791025161743
+                        },
+                        "tfl": {
+                            "x": 0.15316654741764069,
+                            "y": 0.0777205303311348,
+                            "z": 0.17775395512580872
+                        }
+                    },
+                    "certificateID": "MEQCIGhWUHDoc4B6/1M4iKs06KJY2Pk7LJYN0hYU4o4ksb4jAiAN9iC9xfOnIiDwQXfGyxH54YsiMnyobOYXrK+Ne71JRg==",
+                    "clientOnly": 1,
+                    "collidesWith": "",
+                    "collisionMask": 0,
+                    "collisionSoundURL": "",
+                    "collisionless": 0,
+                    "collisionsWillMove": 0,
+                    "compoundShapeURL": "",
+                    "created": "2018-02-23T18:41:05Z",
+                    "damping": 0.39346998929977417,
+                    "density": 1000,
+                    "description": "",
+                    "dimensions": {
+                        "x": 0.30633309483528137,
+                        "y": 0.1554410606622696,
+                        "z": 0.35550791025161743
+                    },
+                    "dynamic": 0,
+                    "editionNumber": 8,
+                    "entityInstanceNumber": 0,
+                    "friction": 0.5,
+                    "gravity": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "href": "",
+                    "id": "{cb91e4aa-7b86-499a-8d74-be6808f8f812}",
+                    "ignoreForCollisions": 0,
+                    "itemArtist": "jyoum",
+                    "itemCategories": "Wearables",
+                    "itemDescription": "A stylish and classic piece of headwear for your avatar.",
+                    "itemLicense": "",
+                    "itemName": "Fedora",
+                    "jointRotations": [
+                    ],
+                    "jointRotationsSet": [
+                    ],
+                    "jointTranslations": [
+                    ],
+                    "jointTranslationsSet": [
+                    ],
+                    "lastEdited": 1519411253583152,
+                    "lastEditedBy": "{00000000-0000-0000-0000-000000000000}",
+                    "lifetime": -1,
+                    "limitedRun": 4294967295,
+                    "locked": 0,
+                    "marketplaceID": "11c4208d-15d7-4449-9758-a08da6dbd3dc",
+                    "modelURL": "http://mpassets.highfidelity.com/11c4208d-15d7-4449-9758-a08da6dbd3dc-v1/Fedora.fbx",
+                    "name": "",
+                    "naturalDimensions": {
+                        "x": 0.2765824794769287,
+                        "y": 0.14034485816955566,
+                        "z": 0.320981502532959
+                    },
+                    "naturalPosition": {
+                        "x": 0.000143393874168396,
+                        "y": 1.7460365295410156,
+                        "z": 0.022502630949020386
+                    },
+                    "originalTextures": "{\n    \"file5\": \"http://mpassets.highfidelity.com/11c4208d-15d7-4449-9758-a08da6dbd3dc-v1/Fedora.fbx/Texture/Fedora_Hat1_Base_Color.png\",\n    \"file7\": \"http://mpassets.highfidelity.com/11c4208d-15d7-4449-9758-a08da6dbd3dc-v1/Fedora.fbx/Texture/Fedora_Hat1_Roughness.png\"\n}\n",
+                    "owningAvatarID": "{3fb7b996-88f9-4d2d-8c0e-187c85904e42}",
+                    "parentID": "{3fb7b996-88f9-4d2d-8c0e-187c85904e42}",
+                    "parentJointIndex": 66,
+                    "position": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "queryAACube": {
+                        "scale": 1.4812952280044556,
+                        "x": 84.72838592529297,
+                        "y": 1.600111722946167,
+                        "z": 81.53734588623047
+                    },
+                    "registrationPoint": {
+                        "x": 0.5,
+                        "y": 0.5,
+                        "z": 0.5
+                    },
+                    "relayParentJoints": 0,
+                    "renderInfo": {
+                        "drawCalls": 1,
+                        "hasTransparent": false,
+                        "texturesCount": 2,
+                        "texturesSize": 4194304,
+                        "verticesCount": 719
+                    },
+                    "restitution": 0.5,
+                    "rotation": {
+                        "w": 1,
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "script": "",
+                    "scriptTimestamp": 0,
+                    "serverScripts": "",
+                    "shapeType": "box",
+                    "staticCertificateVersion": 0,
+                    "textures": "",
+                    "type": "Model",
+                    "userData": "{\"Attachment\":{\"action\":\"attach\",\"joint\":\"HeadTop_End\",\"attached\":false,\"options\":{\"translation\":{\"x\":0,\"y\":0,\"z\":0},\"scale\":1}},\"grabbableKey\":{\"cloneable\":false,\"grabbable\":false}}",
+                    "velocity": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "visible": 1
+                }
+            },
+            {
+                "properties": {
+                    "acceleration": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "actionData": "",
+                    "age": 19.973339080810547,
+                    "ageAsText": "0 hours 0 minutes 19 seconds",
+                    "angularDamping": 0.39346998929977417,
+                    "angularVelocity": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "animation": {
+                        "allowTranslation": 1,
+                        "currentFrame": 0,
+                        "firstFrame": 0,
+                        "fps": 30,
+                        "hold": 0,
+                        "lastFrame": 100000,
+                        "loop": 1,
+                        "running": 0,
+                        "url": ""
+                    },
+                    "boundingBox": {
+                        "brn": {
+                            "x": -0.02587062120437622,
+                            "y": -0.03580707311630249,
+                            "z": -0.027786705642938614
+                        },
+                        "center": {
+                            "x": 0,
+                            "y": 0,
+                            "z": 0
+                        },
+                        "dimensions": {
+                            "x": 0.05174124240875244,
+                            "y": 0.07161414623260498,
+                            "z": 0.05557341128587723
+                        },
+                        "tfl": {
+                            "x": 0.02587062120437622,
+                            "y": 0.03580707311630249,
+                            "z": 0.027786705642938614
+                        }
+                    },
+                    "certificateID": "MEYCIQCa8J30Pymwtf7Wm9C9TUoVyCeof2OuBAL4bbeho6sI3QIhANV1aMohELj+ScthywWI3EWX23iDSQTqDZStXJfPSnIx",
+                    "clientOnly": 1,
+                    "collidesWith": "",
+                    "collisionMask": 0,
+                    "collisionSoundURL": "",
+                    "collisionless": 0,
+                    "collisionsWillMove": 0,
+                    "compoundShapeURL": "",
+                    "created": "2018-02-23T18:41:05Z",
+                    "damping": 0.39346998929977417,
+                    "density": 1000,
+                    "description": "",
+                    "dimensions": {
+                        "x": 0.05174124240875244,
+                        "y": 0.07161414623260498,
+                        "z": 0.05557341128587723
+                    },
+                    "dynamic": 0,
+                    "editionNumber": 9,
+                    "entityInstanceNumber": 0,
+                    "friction": 0.5,
+                    "gravity": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "href": "",
+                    "id": "{c06c5928-9257-494e-a1c2-974747e59ddd}",
+                    "ignoreForCollisions": 0,
+                    "itemArtist": "jyoum",
+                    "itemCategories": "Wearables",
+                    "itemDescription": "Who needs a watch that ticks or loudly beeps, when you can rely on the power of the sun?",
+                    "itemLicense": "",
+                    "itemName": "Sundial Watch",
+                    "jointRotations": [
+                    ],
+                    "jointRotationsSet": [
+                    ],
+                    "jointTranslations": [
+                    ],
+                    "jointTranslationsSet": [
+                    ],
+                    "lastEdited": 1519411255277348,
+                    "lastEditedBy": "{00000000-0000-0000-0000-000000000000}",
+                    "lifetime": -1,
+                    "limitedRun": 4294967295,
+                    "locked": 0,
+                    "marketplaceID": "53d4adc3-ab57-448a-b4e1-8133a8e9e94b",
+                    "modelURL": "http://mpassets.highfidelity.com/53d4adc3-ab57-448a-b4e1-8133a8e9e94b-v1/SundialWatch.fbx",
+                    "name": "",
+                    "naturalDimensions": {
+                        "x": 0.05174124240875244,
+                        "y": 0.07161414623260498,
+                        "z": 0.05557341128587723
+                    },
+                    "naturalPosition": {
+                        "x": 0.6499762535095215,
+                        "y": 1.4603190422058105,
+                        "z": -0.06031448021531105
+                    },
+                    "originalTextures": "{\n    \"file1\": \"http://mpassets.highfidelity.com/53d4adc3-ab57-448a-b4e1-8133a8e9e94b-v1/SundialWatch.fbx/SundialWatch/Texture/lambert1_Base_Color.png\",\n    \"file2\": \"http://mpassets.highfidelity.com/53d4adc3-ab57-448a-b4e1-8133a8e9e94b-v1/SundialWatch.fbx/SundialWatch/Texture/lambert1_Normal_OpenGL.png\",\n    \"file3\": \"http://mpassets.highfidelity.com/53d4adc3-ab57-448a-b4e1-8133a8e9e94b-v1/SundialWatch.fbx/SundialWatch/Texture/lambert1_Metallic.png\",\n    \"file4\": \"http://mpassets.highfidelity.com/53d4adc3-ab57-448a-b4e1-8133a8e9e94b-v1/SundialWatch.fbx/SundialWatch/Texture/lambert1_Roughness.png\"\n}\n",
+                    "owningAvatarID": "{3fb7b996-88f9-4d2d-8c0e-187c85904e42}",
+                    "parentID": "{3fb7b996-88f9-4d2d-8c0e-187c85904e42}",
+                    "parentJointIndex": 40,
+                    "position": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "queryAACube": {
+                        "scale": 0.3127508759498596,
+                        "x": 85.09485626220703,
+                        "y": 1.4700738191604614,
+                        "z": 82.11990356445312
+                    },
+                    "registrationPoint": {
+                        "x": 0.5,
+                        "y": 0.5,
+                        "z": 0.5
+                    },
+                    "relayParentJoints": 0,
+                    "renderInfo": {
+                        "drawCalls": 1,
+                        "hasTransparent": false,
+                        "texturesCount": 4,
+                        "texturesSize": 41943040,
+                        "verticesCount": 557
+                    },
+                    "restitution": 0.5,
+                    "rotation": {
+                        "w": 1,
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "script": "",
+                    "scriptTimestamp": 0,
+                    "serverScripts": "",
+                    "shapeType": "box",
+                    "staticCertificateVersion": 0,
+                    "textures": "",
+                    "type": "Model",
+                    "userData": "{\"Attachment\":{\"action\":\"attach\",\"joint\":\"[LR]ForeArm\",\"attached\":false,\"options\":{\"translation\":{\"x\":0,\"y\":0,\"z\":0},\"scale\":1}},\"grabbableKey\":{\"cloneable\":false,\"grabbable\":false}}",
+                    "velocity": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "visible": 1
+                }
+            }
+        ],
+        "avatarScale": 0.9988048672676086,
+        "avatarUrl": "http://mpassets.highfidelity.com/7fe80a1e-f445-4800-9e89-40e677b03bee-v3/mannequin.fst",
+        "version": 3
+    }
+}
