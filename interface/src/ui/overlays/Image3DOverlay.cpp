@@ -51,11 +51,6 @@ void Image3DOverlay::update(float deltatime) {
         _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
         _textureIsLoaded = false;
     }
-    if (usecTimestampNow() > _transformExpiry) {
-        Transform transform = getTransform();
-        applyTransformTo(transform);
-        setTransform(transform);
-    }
     Parent::update(deltatime);
 }
 

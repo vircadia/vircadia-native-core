@@ -522,7 +522,7 @@ int WindowScriptingInterface::openMessageBox(QString title, QString text, int bu
  *     <tr> <td><strong>RestoreDefaults</strong></td> <td><code>0x8000000</code></td> <td>"Restore Defaults"</td> </tr>
  *   </tbody>
  * </table>
- * @typedef Window.MessageBoxButton
+ * @typedef {number} Window.MessageBoxButton
  */
 int WindowScriptingInterface::createMessageBox(QString title, QString text, int buttons, int defaultButton) {
     auto messageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION, title, text,

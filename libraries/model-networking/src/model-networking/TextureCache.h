@@ -195,7 +195,7 @@ public:
      * @function TextureCache.prefetch
      * @param {string} url - URL of the resource to prefetch.
      * @param {object} [extra=null]
-     * @returns {Resource}
+     * @returns {ResourceObject}
      */
 
     /**jsdoc
@@ -204,7 +204,7 @@ public:
      * @param {string} url - URL of the resource to load.
      * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
      * @param {} [extra=null]
-     * @returns {Resource}
+     * @returns {object}
      */
 
 
@@ -261,7 +261,7 @@ protected:
      * @param {string} url
      * @param {number} type
      * @param {number} [maxNumPixels=67108864]
-     * @returns {Resource}
+     * @returns {ResourceObject}
      */
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);

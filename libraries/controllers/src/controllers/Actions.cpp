@@ -307,7 +307,7 @@ namespace controller {
      *       action.</td></tr>
      *   </tbody>
      * </table>
-     * @typedef Controller.Actions
+     * @typedef {object} Controller.Actions
      */
     // Device functions
     Input::NamedVector ActionsDevice::getAvailableInputs() const {

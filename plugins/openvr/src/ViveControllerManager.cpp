@@ -1297,7 +1297,7 @@ void ViveControllerManager::InputDevice::setConfigFromString(const QString& valu
  *     <tr><td><code>TrackedObject15</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 15 pose.</td></tr>
  *   </tbody>
  * </table>
- * @typedef Controller.Hardware-Vive
+ * @typedef {object} Controller.Hardware-Vive
  */
 controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableInputs() const {
     using namespace controller;

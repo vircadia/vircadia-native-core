@@ -417,6 +417,8 @@ public slots:
 
     void updateVerboseLogging();
 
+    void changeViewAsNeeded(float boomLength);
+
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
@@ -649,7 +651,7 @@ private:
     quint64 _lastFaceTrackerUpdate;
 
     render::ScenePointer _main3DScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
-    render::EnginePointer _renderEngine{ new render::Engine() };
+    render::EnginePointer _renderEngine{ new render::RenderEngine() };
     gpu::ContextPointer _gpuContext; // initialized during window creation
 
     mutable QMutex _renderArgsMutex{ QMutex::Recursive };

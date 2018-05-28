@@ -83,15 +83,6 @@ xColor Text3DOverlay::getBackgroundColor() {
     return result;
 }
 
-void Text3DOverlay::update(float deltatime) {
-    if (usecTimestampNow() > _transformExpiry) {
-        Transform transform = getTransform();
-        applyTransformTo(transform);
-        setTransform(transform);
-    }
-    Parent::update(deltatime);
-}
-
 void Text3DOverlay::render(RenderArgs* args) {
     if (!_renderVisible || !getParentVisible()) {
         return; // do nothing if we're not visible
@@ -307,12 +298,3 @@ QSizeF Text3DOverlay::textSize(const QString& text) const {
 
     return QSizeF(extents.x, extents.y) * pointToWorldScale;
 }
-
-bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3 &direction, float &distance,
-                                            BoxFace &face, glm::vec3& surfaceNormal) {
-    Transform transform = getTransform();
-    applyTransformTo(transform, true);
-    setTransform(transform);
-    return Billboard3DOverlay::findRayIntersection(origin, direction, distance, face, surfaceNormal);
-}
-
