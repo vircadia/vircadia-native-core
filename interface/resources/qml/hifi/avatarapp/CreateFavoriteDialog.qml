@@ -119,8 +119,11 @@ Rectangle {
                     anchors.top: parent.bottom;
                     anchors.topMargin: 2
 
+                    anchors.left: parent.left
                     anchors.right: parent.right;
-                    text: 'Favorite name exists'
+                    anchors.rightMargin: -contentContainer.anchors.rightMargin // allow text to render beyond favorite input text
+                    wrapMode: Text.WordWrap
+                    text: 'Favorite name exists. Overwrite existing favorite?'
                     size: 15
                     color: 'red'
                     visible: {
@@ -159,6 +162,21 @@ Rectangle {
             yesButton.enabled: favoriteNameText !== ''
             yesText: root.button2text
             noText: root.button1text
+
+            Binding on yesButton.text {
+                when: wrongName.visible
+                value: "OVERWRITE";
+            }
+
+            Binding on yesButton.color {
+                when: wrongName.visible
+                value: hifi.buttons.red;
+            }
+
+            Binding on yesButton.colorScheme {
+                when: wrongName.visible
+                value: hifi.colorSchemes.dark;
+            }
 
             onYesClicked: function() {
                 if(onSaveClicked) {
