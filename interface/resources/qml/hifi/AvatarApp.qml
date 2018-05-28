@@ -506,7 +506,7 @@ Rectangle {
                         emitSendToScript({'method' : 'applyExternalAvatar', 'avatarURL' : url})
                     }, function(link) {
                         console.debug('link clicked', link);
-                        emitSendToScript({'method' : 'navigate', 'url' : link})
+                        Qt.openUrlExternally(link);
                     });
                 }
             }
