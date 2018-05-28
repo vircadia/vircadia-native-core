@@ -127,9 +127,29 @@ public:
     double getCPURunTime() const { return _msCPURunTime; }
 
     // Describe the node graph data connections of the associated Job/Task
+    /**jsdoc
+     * @function Render.isTask
+     * @returns {boolean}
+     */
     Q_INVOKABLE virtual bool isTask() const { return false; }
+
+    /**jsdoc
+     * @function Render.getSubConfigs
+     * @returns {object[]}
+     */
     Q_INVOKABLE virtual QObjectList getSubConfigs() const { return QObjectList(); }
+
+    /**jsdoc
+     * @function Render.getNumSubs
+     * @returns {number}
+     */
     Q_INVOKABLE virtual int getNumSubs() const { return 0; }
+
+    /**jsdoc
+     * @function Render.getSubConfig
+     * @param {number} index
+     * @returns {object}
+     */
     Q_INVOKABLE virtual QObject* getSubConfig(int i) const { return nullptr; }
 
 public slots:
