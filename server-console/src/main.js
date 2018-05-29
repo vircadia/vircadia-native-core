@@ -436,13 +436,6 @@ var labels = {
             logWindow.open();
         }
     },
-    restoreBackup: {
-        label: 'Restore Backup Instructions',
-        click: function() {
-            var folder = getRootHifiDataDirectory() + "/Server Backup";
-            openBackupInstructions(folder);
-        }
-    },
     share: {
         label: 'Share',
         click: function() {
@@ -478,7 +471,6 @@ function buildMenuArray(serverState) {
         menuArray.push(labels.stopServer);
         menuArray.push(labels.settings);
         menuArray.push(labels.viewLogs);
-        menuArray.push(labels.restoreBackup);
         menuArray.push(separator);
         menuArray.push(labels.share);
         menuArray.push(separator);
@@ -545,103 +537,6 @@ function backupResourceDirectories(folder) {
     }
 }
 
-function openBackupInstructions(folder) {
-    // Explain user how to restore server
-    var window = new BrowserWindow({
-        icon: appIcon,
-        width: 800,
-        height: 520,
-    });
-    window.loadURL('file://' + __dirname + '/content-update.html');
-    if (!debug) {
-        window.setMenu(null);
-    }
-    window.show();
-
-    electron.ipcMain.on('setSize', function(event, obj) {
-        window.setSize(obj.width, obj.height);
-    });
-    electron.ipcMain.on('ready', function() {
-        log.debug("got ready");
-        window.webContents.send('update', folder);
-    });
-}
-function backupResourceDirectoriesAndRestart() {
-    homeServer.stop();
-
-    var folder = getRootHifiDataDirectory() + "/Server Backup - " + Date.now();
-    if (backupResourceDirectories(folder)) {
-        maybeInstallDefaultContentSet(onContentLoaded);
-        openBackupInstructions(folder);
-    } else {
-        dialog.showMessageBox({
-            type: 'warning',
-            buttons: ['Ok'],
-            title: 'Update Error',
-            message: 'There was an error updating the content, aborting.'
-        }, function() {});
-    }
-}
-
-function checkNewContent() {
-    if (argv.noUpdater) {
-      return;
-    }
-
-    // Start downloading content set
-    var req = request.head({
-        url: HOME_CONTENT_URL
-    }, function (error, response, body) {
-        if (error === null) {
-            var localContent = Date.parse(userConfig.get('homeContentLastModified'));
-            var remoteContent = Date.parse(response.headers['last-modified']);
-
-            var shouldUpdate = isNaN(localContent) || (!isNaN(remoteContent) && (remoteContent > localContent));
-
-            var wantDebug = false;
-            if (wantDebug) {
-                log.debug('Last Modified: ' + response.headers['last-modified']);
-                log.debug(localContent + " " + remoteContent + " " + shouldUpdate + " " + new Date());
-                log.debug("Remote content is " + (shouldUpdate ? "newer" : "older") + " that local content.");
-            }
-
-            if (shouldUpdate) {
-              dialog.showMessageBox({
-                  type: 'question',
-                  buttons: ['Yes', 'No'],
-                  defaultId: 1,
-                  cancelId: 1,
-                  title: 'High Fidelity Sandbox',
-                  message: 'A newer version of the home content set is available.\nDo you wish to update?',
-                  noLink: true,
-              }, function(idx) {
-                  if (idx === 0) {
-                      dialog.showMessageBox({
-                          type: 'warning',
-                          buttons: ['Yes', 'No'],
-                          defaultId: 1,
-                          cancelId: 1,
-                          title: 'Are you sure?',
-                          message: 'Updating with the new content will remove all your current content and settings and place them in a backup folder.\nAre you sure?',
-                          noLink: true,
-                      }, function(idx) {
-                          if (idx === 0) {
-                              backupResourceDirectoriesAndRestart();
-                          }
-                      });
-                  } else {
-                      // They don't want to update, mark content set as current
-                      userConfig.set('homeContentLastModified', new Date());
-                      userConfig.save(configPath);
-                  }
-              });
-            } else if (fs.existsSync(UPDATER_LOCK_FULL_PATH)) {
-                backupResourceDirectoriesAndRestart();
-            }
-        }
-    });
-}
-
 function removeIncompleteUpdate(acResourceDirectory, dsResourceDirectory) {
     if (fs.existsSync(UPDATER_LOCK_FULL_PATH)) {
         log.debug('Removing incomplete content update files before copying new update');
@@ -684,7 +579,6 @@ function maybeInstallDefaultContentSet(onComplete) {
         log.debug("User has existing data, suppressing downloader");
         onComplete();
 
-        checkNewContent();
         return;
     }
 
