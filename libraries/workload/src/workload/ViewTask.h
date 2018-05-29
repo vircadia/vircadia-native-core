@@ -24,9 +24,21 @@ QVariantList toVariantList(const QList<T> &list)
 }
 
 namespace workload {
-    const glm::vec2 DEFAULT_R1_BACK_FRONT = { 50.0f, 100.0f };
-    const glm::vec2 DEFAULT_R2_BACK_FRONT = { 75.0f, 150.0f };
-    const glm::vec2 DEFAULT_R3_BACK_FRONT = { 100.0f, 250.0f };
+
+    const std::vector<glm::vec2> MIN_VIEW_BACK_FRONTS = {
+        { 3.0f, 4.0f },
+        { 6.0f, 8.0f },
+        { 9.0f, 12.0f }
+    };
+
+    const std::vector<glm::vec2> MAX_VIEW_BACK_FRONTS = {
+        { 100.0f, 200.0f },
+        { 150.0f, 300.0f },
+        { 250.0f, 500.0f }
+    };
+
+    const float RELATIVE_STEP_DOWN = 0.05f;
+    const float RELATIVE_STEP_UP = 0.04f;
 
     class SetupViewsConfig : public Job::Config{
         Q_OBJECT
@@ -43,7 +55,6 @@ namespace workload {
         Q_PROPERTY(bool simulateSecondaryCamera READ simulateSecondaryCamera WRITE setSimulateSecondaryCamera NOTIFY dirty)
 
     public:
-
 
         float getR1Front() const { return data.r1Front; }
         float getR1Back() const { return data.r1Back; }
@@ -70,14 +81,14 @@ namespace workload {
         void setSimulateSecondaryCamera(bool use) { data.simulateSecondaryCamera = use; emit dirty(); }
 
         struct Data {
-            float r1Back { DEFAULT_R1_BACK_FRONT.x };
-            float r1Front { DEFAULT_R1_BACK_FRONT.y };
+            float r1Back { MAX_VIEW_BACK_FRONTS[0].x };
+            float r1Front { MAX_VIEW_BACK_FRONTS[0].y };
 
-            float r2Back{ DEFAULT_R2_BACK_FRONT.x };
-            float r2Front{ DEFAULT_R2_BACK_FRONT.y };
+            float r2Back{ MAX_VIEW_BACK_FRONTS[1].x };
+            float r2Front{ MAX_VIEW_BACK_FRONTS[1].y };
 
-            float r3Back{ DEFAULT_R3_BACK_FRONT.x };
-            float r3Front{ DEFAULT_R3_BACK_FRONT.y };
+            float r3Back{ MAX_VIEW_BACK_FRONTS[2].x };
+            float r3Front{ MAX_VIEW_BACK_FRONTS[2].y };
 
             bool freezeViews{ false };
             bool useAvatarView{ false };
@@ -181,7 +192,7 @@ namespace workload {
 
 
         struct Data {
-            bool regulateViewRanges{ true };
+            bool regulateViewRanges{ false };
         } data;
 
         struct DataExport {
@@ -203,16 +214,16 @@ namespace workload {
     struct Regulator {
         using Timing_ns = std::chrono::nanoseconds;
         Timing_ns _budget{ std::chrono::milliseconds(2) };
-        glm::vec2 _minRange{ 2.0f, 5.0f };
-        glm::vec2 _maxRange{ 50.0f, 100.0f };
+        glm::vec2 _minRange{ MIN_VIEW_BACK_FRONTS[0] };
+        glm::vec2 _maxRange{ MAX_VIEW_BACK_FRONTS[0] };
 
-        glm::vec2 _speedDown{ 0.2f };
-        glm::vec2 _speedUp{ 0.1f };
+        glm::vec2 _relativeStepDown{ RELATIVE_STEP_DOWN };
+        glm::vec2 _relativeStepUp{ RELATIVE_STEP_UP };
 
 
         Regulator() {}
-        Regulator(const Timing_ns& budget_ns, const glm::vec2& minRange, const glm::vec2& maxRange, const glm::vec2& speedDown, const glm::vec2& speedUp) :
-            _budget(budget_ns), _minRange(minRange), _maxRange(maxRange), _speedDown(speedDown), _speedUp(speedUp) {}
+        Regulator(const Timing_ns& budget_ns, const glm::vec2& minRange, const glm::vec2& maxRange, const glm::vec2& relativeStepDown, const glm::vec2& relativeStepUp) :
+            _budget(budget_ns), _minRange(minRange), _maxRange(maxRange), _relativeStepDown(relativeStepDown), _relativeStepUp(relativeStepUp) {}
 
         glm::vec2 run(const Timing_ns& regulationDuration, const Timing_ns& measured, const glm::vec2& current);
         glm::vec2 clamp(const glm::vec2& backFront) const;
@@ -234,6 +245,7 @@ namespace workload {
         std::array<Regulator, workload::Region::NUM_VIEW_REGIONS> regionRegulators;
 
         void regulateViews(workload::Views& views, const workload::Timings& timings);
+        void enforceRegionContainment();
 
     protected:
         Config::Data _data;

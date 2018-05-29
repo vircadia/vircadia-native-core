@@ -69,14 +69,11 @@ void SetupViews::run(const WorkloadContextPointer& renderContext, const Input& i
 }
 
 
-
 ControlViews::ControlViews() {
-    regionBackFronts[0] = glm::vec2(1.0f, 3.0f);
-    regionBackFronts[1] = glm::vec2(1.0f, 5.0f);
-    regionBackFronts[2] = glm::vec2(1.0f, 10.0f);
-    regionRegulators[0] = Regulator(std::chrono::milliseconds(2), regionBackFronts[0], 5.0f * regionBackFronts[0], glm::vec2(0.4f, 0.2f), 0.5f * glm::vec2(0.3f, 0.2f));
-    regionRegulators[1] = Regulator(std::chrono::milliseconds(2), regionBackFronts[1], 8.0f * regionBackFronts[1], glm::vec2(0.4f, 0.2f), 0.5f * glm::vec2(0.3f, 0.2f));
-    regionRegulators[2] = Regulator(std::chrono::milliseconds(2), regionBackFronts[2], 10.0f * regionBackFronts[2], glm::vec2(0.4f, 0.2f), 0.5f * glm::vec2(0.3f, 0.2f));
+    for (int32_t i = 0; i < workload::Region::NUM_VIEW_REGIONS; i++) {
+        regionBackFronts[i] = MIN_VIEW_BACK_FRONTS[i];
+        regionRegulators[i] = Regulator(std::chrono::milliseconds(2), MIN_VIEW_BACK_FRONTS[i], MAX_VIEW_BACK_FRONTS[i], glm::vec2(RELATIVE_STEP_DOWN), glm::vec2(RELATIVE_STEP_UP));
+    }
 }
 
 void ControlViews::configure(const Config& config) {
@@ -107,14 +104,10 @@ void ControlViews::run(const workload::WorkloadContextPointer& runContext, const
 }
 
 glm::vec2 Regulator::run(const Timing_ns& regulationDuration, const Timing_ns& measured, const glm::vec2& current) {
-    glm::vec2 next = current;
-
     // Regulate next value based on current moving toward the goal budget
     float error_ms = std::chrono::duration<float, std::milli>(_budget - measured).count();
-    float coef = error_ms / std::chrono::duration<float, std::milli>(regulationDuration).count();
-    next += coef * (error_ms < 0.0f ? _speedDown : _speedUp);
-
-    return next;
+    float coef = glm::clamp(error_ms / std::chrono::duration<float, std::milli>(regulationDuration).count(), -1.0f, 1.0f);
+    return current * (1.0f + coef * (error_ms < 0.0f ? _relativeStepDown : _relativeStepUp));
 }
 
 glm::vec2 Regulator::clamp(const glm::vec2& backFront) const {
@@ -122,21 +115,21 @@ glm::vec2 Regulator::clamp(const glm::vec2& backFront) const {
     return glm::clamp(backFront, _minRange, _maxRange);
 }
 
-
 void ControlViews::regulateViews(workload::Views& outViews, const workload::Timings& timings) {
 
     for (auto& outView : outViews) {
-        for (int r = 0; r < workload::Region::NUM_VIEW_REGIONS; r++) {
+        for (int32_t r = 0; r < workload::Region::NUM_VIEW_REGIONS; r++) {
             outView.regionBackFronts[r] = regionBackFronts[r];
         }
     }
 
     auto loopDuration = std::chrono::nanoseconds{ std::chrono::milliseconds(16) };
-    regionBackFronts[workload::Region::R1] = regionRegulators[workload::Region::R1].clamp(regionRegulators[workload::Region::R1].run(loopDuration, timings[0], regionBackFronts[workload::Region::R1]));
-    regionBackFronts[workload::Region::R2] = regionRegulators[workload::Region::R2].clamp(regionRegulators[workload::Region::R2].run(loopDuration, timings[0], regionBackFronts[workload::Region::R2]));
-    regionBackFronts[workload::Region::R3] = regionRegulators[workload::Region::R3].clamp(regionRegulators[workload::Region::R3].run(loopDuration, timings[1], regionBackFronts[workload::Region::R3]));
+    regionBackFronts[workload::Region::R1] = regionRegulators[workload::Region::R1].run(loopDuration, timings[0], regionBackFronts[workload::Region::R1]);
+    regionBackFronts[workload::Region::R2] = regionRegulators[workload::Region::R2].run(loopDuration, timings[0], regionBackFronts[workload::Region::R2]);
+    regionBackFronts[workload::Region::R3] = regionRegulators[workload::Region::R3].run(loopDuration, timings[1], regionBackFronts[workload::Region::R3]);
 
-    // Export data config
+    enforceRegionContainment();
+
     _dataExport.ranges[workload::Region::R1] = regionBackFronts[workload::Region::R1];
     _dataExport.ranges[workload::Region::R2] = regionBackFronts[workload::Region::R2];
     _dataExport.ranges[workload::Region::R3] = regionBackFronts[workload::Region::R3];
@@ -147,5 +140,21 @@ void ControlViews::regulateViews(workload::Views& outViews, const workload::Timi
         outView.regionBackFronts[workload::Region::R3] = regionBackFronts[workload::Region::R3];
 
         workload::View::updateRegionsFromBackFronts(outView);
+    }
+}
+
+void ControlViews::enforceRegionContainment() {
+    // inner regions should never overreach outer
+    // and each region should never exceed its min/max limits
+    const glm::vec2 MIN_REGION_GAP = { 1.0f, 2.0f };
+    // enforce outside --> in
+    for (int32_t i = workload::Region::NUM_VIEW_REGIONS - 2; i >= 0; --i) {
+        int32_t j = i + 1;
+        regionBackFronts[i] = regionRegulators[i].clamp(glm::min(regionBackFronts[i], regionBackFronts[j] - MIN_REGION_GAP));
+    }
+    // enforce inside --> out
+    for (int32_t i = 1; i < workload::Region::NUM_VIEW_REGIONS; ++i) {
+        int32_t j = i - 1;
+        regionBackFronts[i] = regionRegulators[i].clamp(glm::max(regionBackFronts[i], regionBackFronts[j] + MIN_REGION_GAP));
     }
 }
