@@ -2264,8 +2264,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 
-    // Don't show tablet in test mode, so that it won't appear in snapshots
-    // (its location is not fixed - this will cause image comparisons to fail)
+    // Don't show toolbar in test mode, so that it won't appear in snapshots
+    // (its screen location is not fixed - this will cause image comparisons to fail)
     if (property(hifi::properties::TEST).isValid()) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::DesktopTabletToToolbar, false);
         _desktopTabletBecomesToolbarSetting.set(false);
