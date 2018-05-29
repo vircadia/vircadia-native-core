@@ -22,21 +22,22 @@
  * @hifi-interface
  * @hifi-client-entity
  *
- * @property PICK_NOTHING {number} A filter flag. Don't intersect with anything. <em>Read-only.</em>
- * @property PICK_ENTITIES {number} A filter flag. Include entities when intersecting. <em>Read-only.</em>
- * @property PICK_OVERLAYS {number} A filter flag. Include overlays when intersecting. <em>Read-only.</em>
- * @property PICK_AVATARS {number} A filter flag. Include avatars when intersecting. <em>Read-only.</em>
- * @property PICK_HUD {number} A filter flag. Include the HUD sphere when intersecting in HMD mode. <em>Read-only.</em>
- * @property PICK_COARSE {number} A filter flag. Pick against coarse meshes, instead of exact meshes. <em>Read-only.</em>
- * @property PICK_INCLUDE_INVISIBLE {number} A filter flag. Include invisible objects when intersecting. <em>Read-only.</em>
- * @property PICK_INCLUDE_NONCOLLIDABLE {number} A filter flag. Include non-collidable objects when intersecting. 
+ * @property {number} PICK_NOTHING A filter flag. Don't intersect with anything. <em>Read-only.</em>
+ * @property {number} PICK_ENTITIES A filter flag. Include entities when intersecting. <em>Read-only.</em>
+ * @property {number} PICK_OVERLAYS A filter flag. Include overlays when intersecting. <em>Read-only.</em>
+ * @property {number} PICK_AVATARS A filter flag. Include avatars when intersecting. <em>Read-only.</em>
+ * @property {number} PICK_HUD A filter flag. Include the HUD sphere when intersecting in HMD mode. <em>Read-only.</em>
+ * @property {number} PICK_COARSE A filter flag. Pick against coarse meshes, instead of exact meshes. <em>Read-only.</em>
+ * @property {number} PICK_INCLUDE_INVISIBLE A filter flag. Include invisible objects when intersecting. <em>Read-only.</em>
+ * @property {number} PICK_INCLUDE_NONCOLLIDABLE A filter flag. Include non-collidable objects when intersecting. 
  *     <em>Read-only.</em>
- * @property PICK_ALL_INTERSECTIONS {number}  <em>Read-only.</em>
- * @property INTERSECTED_NONE {number} An intersection type. Intersected nothing with the given filter flags. <em>Read-only.</em>
- * @property INTERSECTED_ENTITY {number} An intersection type. Intersected an entity. <em>Read-only.</em>
- * @property INTERSECTED_OVERLAY {number} An intersection type. Intersected an overlay. <em>Read-only.</em>
- * @property INTERSECTED_AVATAR {number} An intersection type. Intersected an avatar. <em>Read-only.</em>
- * @property INTERSECTED_HUD {number} An intersection type. Intersected the HUD sphere. <em>Read-only.</em>
+ * @property {number} PICK_ALL_INTERSECTIONS <em>Read-only.</em>
+ * @property {number} INTERSECTED_NONE An intersection type. Intersected nothing with the given filter flags. 
+ *     <em>Read-only.</em>
+ * @property {number} INTERSECTED_ENTITY An intersection type. Intersected an entity. <em>Read-only.</em>
+ * @property {number} INTERSECTED_OVERLAY An intersection type. Intersected an overlay. <em>Read-only.</em>
+ * @property {number} INTERSECTED_AVATAR An intersection type. Intersected an avatar. <em>Read-only.</em>
+ * @property {number} INTERSECTED_HUD An intersection type. Intersected the HUD sphere. <em>Read-only.</em>
  * @property {number} perFrameTimeBudget - The max number of usec to spend per frame updating Pick results. <em>Read-only.</em>
  */
 
@@ -99,7 +100,7 @@ public:
     /**jsdoc
      * An intersection result for a Ray Pick.
      *
-     * @typedef {Object} RayPickResult
+     * @typedef {object} RayPickResult
      * @property {number} type The intersection type.
      * @property {boolean} intersects If there was a valid intersection (type != INTERSECTED_NONE)
      * @property {Uuid} objectID The ID of the intersected object.  Uuid.NULL for the HUD or invalid intersections.
@@ -113,7 +114,7 @@ public:
     /**jsdoc
      * An intersection result for a Stylus Pick.
      *
-     * @typedef {Object} StylusPickResult
+     * @typedef {object} StylusPickResult
      * @property {number} type The intersection type.
      * @property {boolean} intersects If there was a valid intersection (type != INTERSECTED_NONE)
      * @property {Uuid} objectID The ID of the intersected object.  Uuid.NULL for the HUD or invalid intersections.

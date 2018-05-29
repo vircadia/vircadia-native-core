@@ -479,7 +479,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         limitedNodeList->killNodeWithUUID(existingNodeID);
     }
 
-    // add the connecting node (or re-use the matched one from eachNodeBreakable above)
+    // add the connecting node
     SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection);
 
     // set the edit rights for this user
@@ -508,25 +508,21 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     return newNode;
 }
 
-SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection,
-                                                                      QUuid nodeID) {
+SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection) {
     HifiSockAddr discoveredSocket = nodeConnection.senderSockAddr;
     SharedNetworkPeer connectedPeer = _icePeers.value(nodeConnection.connectUUID);
 
-    if (connectedPeer) {
-        //  this user negotiated a connection with us via ICE, so re-use their ICE client ID
-        nodeID = nodeConnection.connectUUID;
-
-        if (connectedPeer->getActiveSocket()) {
-            // set their discovered socket to whatever the activated socket on the network peer object was
-            discoveredSocket = *connectedPeer->getActiveSocket();
-        }
-    } else {
-        // we got a connectUUID we didn't recognize, either use the hinted node ID or randomly generate a new one
-        if (nodeID.isNull()) {
-            nodeID = QUuid::createUuid();
-        }
+    if (connectedPeer && connectedPeer->getActiveSocket()) {
+        // set their discovered socket to whatever the activated socket on the network peer object was
+        discoveredSocket = *connectedPeer->getActiveSocket();
     }
+
+    // create a new node ID for the verified connecting node
+    auto nodeID = QUuid::createUuid();
+
+    // add a mapping from connection node ID to ICE peer ID
+    // so that we can remove the ICE peer once we see this node connect
+    _nodeToICEPeerIDs.insert(nodeID, nodeConnection.connectUUID);
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
@@ -539,6 +535,15 @@ SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const Node
     newNode->activateMatchingOrNewSymmetricSocket(discoveredSocket);
 
     return newNode;
+}
+
+void DomainGatekeeper::cleanupICEPeerForNode(const QUuid& nodeID) {
+    // remove this node ID from our node to ICE peer ID map
+    // and the associated ICE peer (if it still exists)
+    auto icePeerID = _nodeToICEPeerIDs.take(nodeID);
+    if (!icePeerID.isNull()) {
+        _icePeers.remove(icePeerID);
+    }
 }
 
 bool DomainGatekeeper::verifyUserSignature(const QString& username,

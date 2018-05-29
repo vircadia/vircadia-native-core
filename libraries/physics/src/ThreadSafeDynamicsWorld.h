@@ -37,6 +37,7 @@ public:
             btConstraintSolver* constraintSolver,
             btCollisionConfiguration* collisionConfiguration);
 
+    int getNumSubsteps() const { return _numSubsteps; }
     int stepSimulationWithSubstepCallback(btScalar timeStep, int maxSubSteps = 1,
                                           btScalar fixedTimeStep = btScalar(1.)/btScalar(60.),
                                           SubStepCallback onSubStep = []() { });
@@ -61,6 +62,7 @@ private:
     VectorOfMotionStates _deactivatedStates;
     SetOfMotionStates _activeStates;
     SetOfMotionStates _lastActiveStates;
+    int _numSubsteps { 0 };
 };
 
 #endif // hifi_ThreadSafeDynamicsWorld_h

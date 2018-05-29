@@ -87,7 +87,7 @@ private:
 class ScriptableResource : public QObject {
 
     /**jsdoc
-     * @constructor Resource
+     * @class ResourceObject
      *
      * @hifi-interface
      * @hifi-client-entity
@@ -97,11 +97,6 @@ class ScriptableResource : public QObject {
      * @property {string} url - URL of this resource.
      * @property {Resource.State} state - Current loading state.
      */
-    /**jsdoc
-     * @namespace Resource
-     * @variation 0
-     * @property {Resource.State} State
-     */
     Q_OBJECT
     Q_PROPERTY(QUrl url READ getURL)
     Q_PROPERTY(int state READ getState NOTIFY stateChanged)
@@ -109,8 +104,7 @@ class ScriptableResource : public QObject {
 public:
 
     /**jsdoc
-     * @name Resource.State
-     * @static
+     * @typedef {object} Resource.State
      * @property {number} QUEUED - The resource is queued up, waiting to be loaded.
      * @property {number} LOADING - The resource is downloading.
      * @property {number} LOADED - The resource has finished downloaded by is not complete.
@@ -131,7 +125,7 @@ public:
 
     /**jsdoc
      * Release this resource.
-     * @function Resource#release
+     * @function ResourceObject#release
      */
     Q_INVOKABLE void release();
 
@@ -146,7 +140,7 @@ signals:
 
     /**jsdoc
      * Triggered when download progress for this resource has changed.
-     * @function Resource#progressChanged
+     * @function ResourceObject#progressChanged
      * @param {number} bytesReceived - Byytes downloaded so far.
      * @param {number} bytesTotal - Total number of bytes in the resource.
      * @returns {Signal}
@@ -155,7 +149,7 @@ signals:
 
     /**jsdoc
      * Triggered when resource loading state has changed.
-     * @function Resource#stateChanged
+     * @function ResourceObject#stateChanged
      * @param {Resource.State} state - New state.
      * @returns {Signal}
      */
@@ -262,7 +256,7 @@ protected slots:
      * @function ResourceCache.prefetch
      * @param {string} url - URL of the resource to prefetch.
      * @param {object} [extra=null]
-     * @returns {Resource}
+     * @returns {ResourceObject}
      */
     // Prefetches a resource to be held by the QScriptEngine.
     // Left as a protected member so subclasses can overload prefetch
@@ -275,8 +269,9 @@ protected slots:
      * @param {string} url - URL of the resource to load.
      * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
      * @param {} [extra=null]
-     * @returns {Resource}
+     * @returns {object}
      */
+    // FIXME: The return type is not recognized by JavaScript.
     /// Loads a resource from the specified URL and returns it.
     /// If the caller is on a different thread than the ResourceCache,
     /// returns an empty smart pointer and loads its asynchronously.

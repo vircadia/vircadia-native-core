@@ -29,10 +29,11 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::DomainList:
             return static_cast<PacketVersion>(DomainListVersion::GetMachineFingerprintFromUUIDSupport);
         case PacketType::EntityAdd:
+        case PacketType::EntityClone:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return static_cast<PacketVersion>(EntityVersion::MaterialData);
+            return static_cast<PacketVersion>(EntityVersion::CollisionMask16Bytes);
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::ConicalFrustums);
         case PacketType::AvatarIdentity:

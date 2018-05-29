@@ -442,7 +442,7 @@ void OculusControllerManager::TouchDevice::stopHapticPulse(bool leftHand) {
  *     <tr><td><code>RightHand</code></td><td>number</td><td>{@link Pose}</td><td>right hand pose.</td></tr>
  *   </tbody>
  * </table>
- * @typedef Controller.Hardware-OculusTouch
+ * @typedef {object} Controller.Hardware-OculusTouch
  */
 controller::Input::NamedVector OculusControllerManager::TouchDevice::getAvailableInputs() const {
     using namespace controller;

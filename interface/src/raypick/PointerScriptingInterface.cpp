@@ -68,14 +68,14 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  * A set of properties used to define the visual aspect of a Ray Pointer in the case that the Pointer is not intersecting something.  Same as a {@link Pointers.RayPointerRenderState},
  * but with an additional distance field.
  *
- * @typedef {Object} Pointers.DefaultRayPointerRenderState
+ * @typedef {object} Pointers.DefaultRayPointerRenderState
  * @augments Pointers.RayPointerRenderState
  * @property {number} distance The distance at which to render the end of this Ray Pointer, if one is defined.
  */
 /**jsdoc
  * A set of properties used to define the visual aspect of a Ray Pointer in the case that the Pointer is intersecting something.
  *
- * @typedef {Object} Pointers.RayPointerRenderState
+ * @typedef {object} Pointers.RayPointerRenderState
  * @property {string} name The name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
  * @property {Overlays.OverlayProperties} [start] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
  * An overlay to represent the beginning of the Ray Pointer, if desired.
@@ -87,7 +87,7 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
 /**jsdoc
  * A trigger mechanism for Ray Pointers.
  *
- * @typedef {Object} Pointers.Trigger
+ * @typedef {object} Pointers.Trigger
  * @property {Controller.Standard|Controller.Actions|function} action This can be a built-in Controller action, like Controller.Standard.LTClick, or a function that evaluates to >= 1.0 when you want to trigger <code>button</code>.
  * @property {string} button Which button to trigger.  "Primary", "Secondary", "Tertiary", and "Focus" are currently supported.  Only "Primary" will trigger clicks on web surfaces.  If "Focus" is triggered,
  * it will try to set the entity or overlay focus to the object at which the Pointer is aimed.  Buttons besides the first three will still trigger events, but event.button will be "None".
