@@ -595,6 +595,15 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.RenderInfo} renderInfo - Information on the cost of rendering the entity. Currently information is only 
  *     provided for <code>Model</code> entities. <em>Read-only.</em>
  *
+ * @property {boolean} cloneable=false - If <code>true</code> then the entity can be cloned via {@link Entities.cloneEntity}.
+ * @property {number} cloneLifetime=300 - The entity lifetime for clones created from this entity.
+ * @property {number} cloneLimit=0 - The total number of clones of this entity that can exist in the domain at any given time.
+ * @property {boolean} cloneDynamic=false - If <code>true</code> then clones created from this entity will have their 
+ *     <code>dynamic</code> property set to <code>true</code>.
+ * @property {boolean} cloneAvatarEntity=false - If <code>true</code> then clones created from this entity will be created as 
+ *     avatar entities: their <code>clientOnly</code> property will be set to <code>true</code>.
+ * @property {Uuid} cloneOriginID - The ID of the entity that this entity was cloned from.
+ *
  * @property {string} itemName="" - Certifiable name of the Marketplace item.
  * @property {string} itemDescription="" - Certifiable description of the Marketplace item.
  * @property {string} itemCategories="" - Certifiable category of the Marketplace item.

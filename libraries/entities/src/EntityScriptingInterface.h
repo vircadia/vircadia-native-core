@@ -225,12 +225,12 @@ public slots:
                                      bool collisionless, const glm::vec3& position, const glm::vec3& gravity);
 
     /**jsdoc
-     * Request a clone of an entity. Only entities that have been marked as 'cloneable' will be able to be cloned using this method.
-     * A cloned entity has most of the properties of the orignal entity, and can be requested from clients that do not have rez permissions.
-     * The client requests a clone from the entity server, which returns back the entityID of a valid clone if the operation was allowed.
+     * Create a clone of an entity. A clone can be created by a client that doesn't have rez permissions in the current domain.
+     * The entity must have its <code>cloneable</code> property set to <code>true</code>. The clone has a modified name, other 
+     * properties set per its clone related-properties, and its clone-related properties are set to defaults. 
      * @function Entities.cloneEntity
-     * @param {Uuid} entityIDToClone - the ID of the entity to clone
-     * @returns {Entities.EntityID} The ID of the newly created clone
+     * @param {Uuid} entityID - The ID of the entity to clone.
+     * @returns {Uuid} The ID of the new entity if successfully cloned, otherwise {@link Uuid|Uuid.NULL}.
      */
     Q_INVOKABLE QUuid cloneEntity(QUuid entityIDToClone);
 
