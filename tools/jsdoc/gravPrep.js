@@ -84,7 +84,8 @@ const html_reg_typeDefinitonsTitle_replace = `<h4 class="subsection-title">Type 
 const html_reg_classDefinitonsTitle = /<h3 class="subsection-title">Classes<\/h3>/;
 const html_reg_classDefinitonsTitle_replace = `<h4 class="subsection-title">Classes</h4>`
 const html_reg_firstDivClose = `</div>`;
-const html_reg_allNonHTML = /(<a href=")(?!http)([\s\S]+?)(">)/g;
+const html_reg_allNonHTTPLinks = /(<a href=")(?!http)([\s\S]+?)(">)/g;
+const html_reg_allHTTPLinks = /(<a href=")(http)([\s\S]+?)(">)/g;
 const html_reg_pretty = /(<pre class="prettyprint">)([\s\S]*?)(<\/pre>)/g;
 const html_reg_pretty_replace = "<pre>$2<\/pre>";
 const html_reg_availableIn = /(<table>[\s\S]+?Available in:[\s\S]+?<\/table>)/g;
@@ -97,8 +98,15 @@ const html_reg_typeDefType = /(<h5>)(Type:)(<\/h5>[\s\S]*?)(<span[\s\S]*?)(<\/li
 const html_reg_typeDefType_replace = `<dl><dt>$2 $4</dl></dt>`;
 const html_reg_returnSize = /<h5>Returns:<\/h5>/g;
 const html_reg_returnSize_replace = '<h6>Returns:<\/h6>';
+const html_reg_depreciated = /(<dt class="important tag-deprecated"[\s\S]+?<\/dt>[\s\S]+?)(<dd>)([\s\S]+?<ul[\s\S]+?<li>)([\s\S]+?)(<\/ul>[\s\S]+?)(<\/dd>)/g;
+const html_reg_depreciated_replace = '<em><strong>$1</strong><div>$4</div></em>'
+    // Procedural functions
 
-// Procedural functions
+//remove .html from non http links
+function removeHTML(match, p1, p2, p3) {
+    p2 = p2.replace(".html", "");
+    return [p1, p2, p3].join("");
+}
 
 // Turn links to lower case that aren't part of IDs
 function allLinksToLowerCase(match, p1, p2, p3) {
@@ -114,20 +122,31 @@ function allLinksToLowerCase(match, p1, p2, p3) {
 
 // Return the right group for where the method or type came from
 function fixLinkGrouping(match, p1, p2, p3) {
+    // Handle if referencing ID
+    let count = (p2.match(/\./g) || []).length;
     if (p2.indexOf("#") > -1) {
         let split = p2.split("#");
+        if (count >= 2) {
+            // console.log("MULTI DOTS!");
+            split = p2.split(".");
+            // This is a case where we are in an object page and there are multiple levels referenced (only doing 2 levels at the moment)
+            // console.log("split", split)
+            return [p1, "/api-reference/", returnRightGroup(split[1].slice(0, -1)), "/", split[1], ".", split[2], p3].join("");
+        }
         if (split[0] === "global") {
             return [p1, "/api-reference/", "globals", "#", split[1], p3].join("");
         }
         return [p1, "/api-reference/", returnRightGroup(split[0]), "/", p2, p3].join("");
     } else {
-        if (p2.indexOf(".") > -1) {
-            let split = p2.split(".");
+        // Handle if there are member references
+        // console.log("count", count)
+        let split;
+        if (count === 1) {
+            split = p2.split(".");
             return [p1, "/api-reference/", returnRightGroup(split[1]), "/", split[1], p3].join("");
         }
         return [p1, "/api-reference/", returnRightGroup(p2), "/", p2, p3].join("");
     }
-
 }
 
 function returnRightGroup(methodToCheck) {
@@ -356,13 +375,14 @@ function makeGroupTOC(group) {
         let nextIndex = 0;
         let findbyNameLength = searchTerm.length;
         let curEndSplitTermIndex = -1;
+        let classHeader;
         do {
             // Find the index of where to stop searching
             curEndSplitTermIndex = content.indexOf(endSplitTerm);
-            console.log("curEndSplitTermIndex", curEndSplitTermIndex)
+            // console.log("curEndSplitTermIndex", curEndSplitTermIndex)
             // Find the index of the the next Search term
             curIndex = content.indexOf(searchTerm);
-            console.log("curIndex", curIndex)
+            // console.log("curIndex", curIndex)
             
             // The index of where the next search will start 
             afterCurSearchIndex = curIndex+findbyNameLength;
@@ -375,17 +395,20 @@ function makeGroupTOC(group) {
             if (curIndex > curEndSplitTermIndex){
                 break;
             }
-            // push from the cur index to the next found || the end term
+            // Push from the cur index to the next found || the end term
             let contentSlice = content.slice(curIndex, nextIndex);
             if (contentSlice.indexOf(`id="${title}"`) === -1){
                 foundArray.push(contentSlice);
+            } else {
+                classHeader = contentSlice;
             }
             
-            // remove that content
+            // Remove that content
             content = content.replace(contentSlice, "");
+            
             curEndSplitTermIndex = content.indexOf(endSplitTerm);
             nextIndex = content.indexOf(searchTerm,afterCurSearchIndex);
-            // handle if nextIndex goes beyond endSplitTerm
+            // Handle if nextIndex goes beyond endSplitTerm
             if (nextIndex > curEndSplitTermIndex) {
                 curIndex = content.indexOf(searchTerm);
                 contentSlice = content.slice(curIndex, curEndSplitTermIndex);
@@ -396,7 +419,9 @@ function makeGroupTOC(group) {
                 break;
             }
         } while (curIndex > -1)
-        
+        if (classHeader){
+            content = append(content, html_reg_findByArticleClose, classHeader, true);
+        }
         return [content, foundArray];
     }
 
@@ -486,7 +511,7 @@ function makeGroupTOC(group) {
     })
     files.forEach(function (file, index){
         // For testing individual files
-        if (index !== 6) return;       
+        // if (index !== 59) return;       
         let curSource = path.join(dir_out, file);
         if (path.extname(curSource) == ".html" && path.basename(curSource, '.html') !== "index") {
             // Clean up the html source
@@ -508,16 +533,18 @@ function makeGroupTOC(group) {
                                     .replace(html_reg_static,"") // Remove static from the file names
                                     .replace(html_reg_title,"") // Remove title 
                                     .replace(html_reg_objectHeader,"") // Remove extra Object Header 
-                                    .replace(html_reg_htmlExt,"") // Remove the .html extension from all links
-                                    .replace(html_reg_dlClassDetails, "") // Remove unneccsary dlClassDetails Tag 
-                                    .replace(html_reg_allNonHTML, allLinksToLowerCase) // Turn all links into lowercase before ID tags
-                                    .replace(html_reg_allNonHTML, fixLinkGrouping) // Make sure links refer to correct grouping                                  
+                                    // .replace(html_reg_htmlExt,"") 
+                                    .replace(html_reg_dlClassDetails, "") // Remove unneccsary dlClassDetails Tag
+                                    .replace(html_reg_allNonHTTPLinks, removeHTML) // Remove the .html extension from all links
+                                    .replace(html_reg_allNonHTTPLinks, allLinksToLowerCase) // Turn all links into lowercase before ID tags
+                                    .replace(html_reg_allNonHTTPLinks, fixLinkGrouping) // Make sure links refer to correct grouping                                  
                                     .replace(html_reg_propertiesHeaderEdit, html_reg_propertiesHeaderEdit_Replace) // Remove : from Properties
                                     .replace(html_reg_typeEdit, html_reg_typeEdit_replace) // Put type on the same line
                                     .replace(html_reg_returnSize, html_reg_returnSize_replace) // make return size h6 instead of h5
                                     .replace(html_reg_methodSize, html_reg_methodSize_replace) // make method size into h5
                                     .replace(html_reg_pretty, html_reg_pretty_replace)
-                                    .replace(html_reg_classDefinitonsTitle, html_reg_classDefinitonsTitle_replace);
+                                    .replace(html_reg_classDefinitonsTitle, html_reg_classDefinitonsTitle_replace)
+                                    .replace(html_reg_depreciated, html_reg_depreciated_replace); // format depreciated better
             
         // Further HTML Manipulation
             // Make end term either Type Definitions or by the article
@@ -525,12 +552,12 @@ function makeGroupTOC(group) {
             let foundTypeDefinitions;
             let foundSignalsAndMethods;
             if (currentContent.indexOf("Type Definitions") > -1){
-                console.log("Found Type Definitions");
+                // console.log("Found Type Definitions");
                 endTerm = `<h3 class="subsection-title">Type Definitions</h3>`;
                 // Split HTML by Each named entry
                 let contentSplitArray = splitBy(currentContent, html_reg_findByName, endTerm, htmlTitle);
                 foundSignalsAndMethods = contentSplitArray[1];
-                console.log("foundSignalsAndMethods", foundSignalsAndMethods)
+                // console.log("foundSignalsAndMethods", foundSignalsAndMethods)
                  // Create a reference to the current content after split and the split functions
                 currentContent = contentSplitArray[0]
                                     .replace(html_reg_typeDefType, html_reg_typeDefType_replace) // Edit how the typedef type looks
@@ -540,7 +567,7 @@ function makeGroupTOC(group) {
                 let contentSplitArrayForTypeDefs = splitBy(currentContent, html_reg_findByName, endTerm, htmlTitle);
                 currentContent = contentSplitArrayForTypeDefs[0];
                 foundTypeDefinitions = contentSplitArrayForTypeDefs[1];
-                console.log("foundTypeDefinitions", foundTypeDefinitions)
+                // console.log("foundTypeDefinitions", foundTypeDefinitions)
                 
             } else {
                 endTerm = html_reg_findByArticleClose;
