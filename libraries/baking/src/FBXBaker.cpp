@@ -33,6 +33,10 @@
 #include "ModelBakingLoggingCategory.h"
 #include "TextureBaker.h"
 
+#ifdef HIFI_DUMP_FBX
+#include "FBXToJSON.h"
+#endif
+
 void FBXBaker::bake() {    
     qDebug() << "FBXBaker" << _modelURL << "bake starting";
 
@@ -187,6 +191,21 @@ void FBXBaker::importScene() {
 
     qCDebug(model_baking) << "Parsing" << _modelURL;
     _rootNode = reader._rootNode = reader.parseFBX(&fbxFile);
+
+#ifdef HIFI_DUMP_FBX
+    {
+        FBXToJSON fbxToJSON;
+        fbxToJSON << _rootNode;
+        QFileInfo modelFile(_originalModelFilePath);
+        QString outFilename(_bakedOutputDir + "/" + modelFile.completeBaseName() + "_FBX.json");
+        QFile jsonFile(outFilename);
+        if (jsonFile.open(QIODevice::WriteOnly)) {
+            jsonFile.write(fbxToJSON.str().c_str(), fbxToJSON.str().length());
+            jsonFile.close();
+        }
+    }
+#endif
+
     _geometry = reader.extractFBXGeometry({}, _modelURL.toString());
     _textureContentMap = reader._textureContent;
 }
@@ -231,39 +250,40 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                         } else if (hasWarnings()) {
                             continue;
                         }
-                    }
-                    
-                    objectChild.children.push_back(dracoMeshNode);
+                    } else {
+                        objectChild.children.push_back(dracoMeshNode);
 
-                    static const std::vector<QString> nodeNamesToDelete {
-                        // Node data that is packed into the draco mesh
-                        "Vertices",
-                        "PolygonVertexIndex",
-                        "LayerElementNormal",
-                        "LayerElementColor",
-                        "LayerElementUV",
-                        "LayerElementMaterial",
-                        "LayerElementTexture",
+                        static const std::vector<QString> nodeNamesToDelete {
+                            // Node data that is packed into the draco mesh
+                            "Vertices",
+                            "PolygonVertexIndex",
+                            "LayerElementNormal",
+                            "LayerElementColor",
+                            "LayerElementUV",
+                            "LayerElementMaterial",
+                            "LayerElementTexture",
 
-                        // Node data that we don't support
-                        "Edges",
-                        "LayerElementTangent",
-                        "LayerElementBinormal",
-                        "LayerElementSmoothing"
-                    };
-                    auto& children = objectChild.children;
-                    auto it = children.begin();
-                    while (it != children.end()) {
-                        auto begin = nodeNamesToDelete.begin();
-                        auto end = nodeNamesToDelete.end();
-                        if (find(begin, end, it->name) != end) {
-                            it = children.erase(it);
-                        } else {
-                            ++it;
+                            // Node data that we don't support
+                            "Edges",
+                            "LayerElementTangent",
+                            "LayerElementBinormal",
+                            "LayerElementSmoothing"
+                        };
+                        auto& children = objectChild.children;
+                        auto it = children.begin();
+                        while (it != children.end()) {
+                            auto begin = nodeNamesToDelete.begin();
+                            auto end = nodeNamesToDelete.end();
+                            if (find(begin, end, it->name) != end) {
+                                it = children.erase(it);
+                            } else {
+                                ++it;
+                            }
                         }
                     }
-                }
-            }
+                }  // Geometry Object
+
+            } // foreach root child
         }
     }
 }

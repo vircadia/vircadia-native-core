@@ -1603,7 +1603,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
     // NOTE: shapeVertices are in joint-frame
     std::vector<ShapeVertices> shapeVertices;
-    shapeVertices.resize(geometry.joints.size());
+    shapeVertices.resize(std::max(1, geometry.joints.size()) );
 
     // find our special joints
     geometry.leftEyeJointIndex = modelIDs.indexOf(jointEyeLeftID);

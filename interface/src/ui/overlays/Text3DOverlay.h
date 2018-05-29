@@ -30,8 +30,6 @@ public:
     ~Text3DOverlay();
     virtual void render(RenderArgs* args) override;
 
-    virtual void update(float deltatime) override;
-
     virtual const render::ShapeKey getShapeKey() override;
 
     // getters
@@ -59,9 +57,6 @@ public:
     QVariant getProperty(const QString& property) override;
 
     QSizeF textSize(const QString& test) const;  // Meters
-
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                        BoxFace& face, glm::vec3& surfaceNormal) override;
 
     virtual Text3DOverlay* createClone() const override;
 

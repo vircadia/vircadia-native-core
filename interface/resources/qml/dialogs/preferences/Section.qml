@@ -74,6 +74,7 @@ Preference {
         property var comboBoxBuilder: Component { ComboBoxPreference { } }
         property var spinnerSliderBuilder: Component { SpinnerSliderPreference { } }
         property var primaryHandBuilder: Component { PrimaryHandPreference { } }
+        property var radioButtonsBuilder: Component { RadioButtonsPreference { } }
         property var preferences: []
         property int checkBoxCount: 0
 
@@ -139,6 +140,10 @@ Preference {
                 case Preference.PrimaryHand:
                     checkBoxCount++;
                     builder = primaryHandBuilder;
+                    break;
+                case Preference.RadioButtons:
+                    checkBoxCount++;
+                    builder = radioButtonsBuilder;
                     break;
             };
 

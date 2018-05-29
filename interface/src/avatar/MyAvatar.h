@@ -1402,7 +1402,7 @@ private:
     SharedSoundPointer _collisionSound;
 
     MyCharacterController _characterController;
-    int16_t _previousCollisionGroup { BULLET_COLLISION_GROUP_MY_AVATAR };
+    int32_t _previousCollisionGroup { BULLET_COLLISION_GROUP_MY_AVATAR };
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;

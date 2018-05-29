@@ -148,7 +148,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3, ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
     DEFINE_PROPERTY(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float, ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING);
     DEFINE_PROPERTY(PROP_COLLISIONLESS, Collisionless, collisionless, bool, ENTITY_ITEM_DEFAULT_COLLISIONLESS);
-    DEFINE_PROPERTY(PROP_COLLISION_MASK, CollisionMask, collisionMask, uint8_t, ENTITY_COLLISION_MASK_DEFAULT);
+    DEFINE_PROPERTY(PROP_COLLISION_MASK, CollisionMask, collisionMask, uint16_t, ENTITY_COLLISION_MASK_DEFAULT);
     DEFINE_PROPERTY(PROP_DYNAMIC, Dynamic, dynamic, bool, ENTITY_ITEM_DEFAULT_DYNAMIC);
     DEFINE_PROPERTY(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool, LightEntityItem::DEFAULT_IS_SPOTLIGHT);
     DEFINE_PROPERTY(PROP_INTENSITY, Intensity, intensity, float, LightEntityItem::DEFAULT_INTENSITY);
@@ -272,6 +272,13 @@ public:
     DEFINE_PROPERTY_REF(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString, ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS);
     DEFINE_PROPERTY(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool, ENTITY_ITEM_DEFAULT_RELAY_PARENT_JOINTS);
 
+    DEFINE_PROPERTY(PROP_CLONEABLE, Cloneable, cloneable, bool, ENTITY_ITEM_DEFAULT_CLONEABLE);
+    DEFINE_PROPERTY(PROP_CLONE_LIFETIME, CloneLifetime, cloneLifetime, float, ENTITY_ITEM_DEFAULT_CLONE_LIFETIME);
+    DEFINE_PROPERTY(PROP_CLONE_LIMIT, CloneLimit, cloneLimit, float, ENTITY_ITEM_DEFAULT_CLONE_LIMIT);
+    DEFINE_PROPERTY(PROP_CLONE_DYNAMIC, CloneDynamic, cloneDynamic, bool, ENTITY_ITEM_DEFAULT_CLONE_DYNAMIC);
+    DEFINE_PROPERTY(PROP_CLONE_AVATAR_ENTITY, CloneAvatarEntity, cloneAvatarEntity, bool, ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY);
+    DEFINE_PROPERTY_REF(PROP_CLONE_ORIGIN_ID, CloneOriginID, cloneOriginID, QUuid, ENTITY_ITEM_DEFAULT_CLONE_ORIGIN_ID);
+
     static QString getComponentModeString(uint32_t mode);
     static QString getComponentModeAsString(uint32_t mode);
 
@@ -294,6 +301,8 @@ public:
                                        QByteArray& buffer, EntityPropertyFlags requestedProperties, EntityPropertyFlags& didntFitProperties);
 
     static bool encodeEraseEntityMessage(const EntityItemID& entityItemID, QByteArray& buffer);
+    static bool encodeCloneEntityMessage(const EntityItemID& entityIDToClone, const EntityItemID& newEntityID, QByteArray& buffer);
+    static bool decodeCloneEntityMessage(const QByteArray& buffer, int& processedBytes, EntityItemID& entityIDToClone, EntityItemID& newEntityID);
 
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
                                        EntityItemID& entityID, EntityItemProperties& properties);
@@ -368,6 +377,8 @@ public:
     QByteArray getStaticCertificateHash() const;
     bool verifyStaticCertificateProperties();
     static bool verifySignature(const QString& key, const QByteArray& text, const QByteArray& signature);
+
+    void convertToCloneProperties(const EntityItemID& entityIDToClone);
 
 protected:
     QString getCollisionMaskAsString() const;
@@ -514,6 +525,13 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, KeyLightMode, keyLightMode, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AmbientLightMode, ambientLightMode, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, SkyboxMode, skyboxMode, "");
+
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Cloneable, cloneable, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneLifetime, cloneLifetime, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneLimit, cloneLimit, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneDynamic, cloneDynamic, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneAvatarEntity, cloneAvatarEntity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneOriginID, cloneOriginID, "");
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelVolumeSize, voxelVolumeSize, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelData, voxelData, "");

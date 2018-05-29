@@ -32,7 +32,7 @@ private slots:
     void on_evaluateTestsButton_clicked();
     void on_createRecursiveScriptButton_clicked();
     void on_createAllRecursiveScriptsButton_clicked();
-	void on_createTestButton_clicked();
+	void on_createTestsButton_clicked();
     void on_createMDFileButton_clicked();
     void on_createAllMDFilesButton_clicked();
     void on_createTestsOutlineButton_clicked();

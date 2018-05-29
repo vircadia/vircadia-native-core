@@ -1,4 +1,4 @@
-//
+git rm //
 //  Vec3.h
 //  libraries/script-engine/src
 //
@@ -42,8 +42,7 @@
 /**jsdoc
  * The Vec3 API facilities for generating and manipulating 3-dimensional vectors. High Fidelity uses a right-handed 
  * Cartesian coordinate system where the y-axis is the "up" and the negative z-axis is the "front" direction.
- * <img alt="High Fidelity coordinate system" 
- * src="/images/opengl-coord-system.jpg" />
+ * <img alt="High Fidelity coordinate system" src="https://docs.highfidelity.com/images/opengl-coord-system.jpg" />
  *
  * @namespace Vec3
  * @variation 0

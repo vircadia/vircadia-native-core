@@ -52,7 +52,7 @@ public:
     ~PhysicsEngine();
     void init();
 
-    uint32_t getNumSubsteps();
+    uint32_t getNumSubsteps() const;
 
     void removeObjects(const VectorOfMotionStates& objects);
     void removeSetOfObjects(const SetOfMotionStates& objects); // only called during teardown
@@ -135,7 +135,6 @@ private:
     CharacterController* _myAvatarController;
 
     uint32_t _numContactFrames = 0;
-    uint32_t _numSubsteps;
 
     bool _dumpNextStats { false };
     bool _saveNextStats { false };

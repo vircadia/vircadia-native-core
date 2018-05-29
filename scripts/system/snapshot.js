@@ -450,7 +450,7 @@ function takeSnapshot() {
     maybeDeleteSnapshotStories();
 
     // update button states
-    resetOverlays = Menu.isOptionChecked("Overlays"); // For completeness. Certainly true if the button is visible to be clicked.
+    resetOverlays = Menu.isOptionChecked("Show Overlays"); // For completeness. Certainly true if the button is visible to be clicked.
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
     if (!HMD.active) {
@@ -470,7 +470,7 @@ function takeSnapshot() {
 
     // hide overlays if they are on
     if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", false);
+        Menu.setIsOptionChecked("Show Overlays", false);
     }
 
     var snapActivateSound = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/snap.wav");
@@ -527,7 +527,7 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     Reticle.allowMouseCapture = true;
     // show overlays if they were on
     if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", true);
+        Menu.setIsOptionChecked("Show Overlays", true);
     }
     Window.stillSnapshotTaken.disconnect(stillSnapshotTaken);
     if (!buttonConnected) {
@@ -583,7 +583,7 @@ function processingGifStarted(pathStillSnapshot) {
     Reticle.allowMouseCapture = true;
     // show overlays if they were on
     if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", true);
+        Menu.setIsOptionChecked("Show Overlays", true);
     }
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
 

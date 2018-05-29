@@ -92,9 +92,12 @@ public:
     void captureNamedDrawCallInfo(std::string name);
 
     Batch(const char* name = nullptr);
-    Batch(const Batch& batch);
+    // Disallow copy construction and assignement of batches
+    Batch(const Batch& batch) = delete;
+    Batch& operator=(const Batch& batch) = delete;
     ~Batch();
 
+    void setName(const char* name);
     void clear();
 
     // Batches may need to override the context level stereo settings
@@ -506,10 +509,7 @@ public:
     bool _enableSkybox { false };
 
 protected:
-
-#ifdef DEBUG
-    std::string _name;
-#endif
+    const char* _name;
 
     friend class Context;
     friend class Frame;

@@ -70,14 +70,16 @@ private:
     Texture::PixelsPointer _mipData;
     size_t _transferOffset{ 0 };
     size_t _transferSize{ 0 };
+    uint16_t _sourceMip{ 0 };
     bool _bufferingRequired{ true };
     Lambda _transferLambda{ [](const TexturePointer&) {} };
     Lambda _bufferingLambda{ [](const TexturePointer&) {} };
 public:
     TransferJob(const TransferJob& other) = delete;
-    TransferJob(const std::function<void()>& transferLambda);
+    TransferJob(uint16_t sourceMip, const std::function<void()>& transferLambda);
     TransferJob(const Texture& texture, uint16_t sourceMip, uint16_t targetMip, uint8_t face, uint32_t lines = 0, uint32_t lineOffset = 0);
     ~TransferJob();
+    const uint16_t& sourceMip() const { return _sourceMip; }
     const size_t& size() const { return _transferSize; }
     bool bufferingRequired() const { return _bufferingRequired; }
     void buffer(const TexturePointer& texture) { _bufferingLambda(texture); }
@@ -96,6 +98,7 @@ public:
     virtual void populateTransferQueue(TransferQueue& pendingTransfers) = 0;
 
     void sanityCheck() const;
+    uint16 populatedMip() const { return _populatedMip; }
     bool canPromote() const { return _allocatedMip > _minAllocatedMip; }
     bool canDemote() const { return _allocatedMip < _maxAllocatedMip; }
     bool hasPendingTransfers() const { return _populatedMip > _allocatedMip; }
@@ -109,7 +112,6 @@ public:
     static const size_t MAX_BUFFER_SIZE;
 
 protected:
-
     // THe amount of memory currently allocated
     Size _size { 0 };
 

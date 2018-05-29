@@ -31,6 +31,10 @@ bool GL41Backend::supportedTextureFormat(const gpu::Element& format) {
         case gpu::Semantic::COMPRESSED_EAC_RED_SIGNED:
         case gpu::Semantic::COMPRESSED_EAC_XY:
         case gpu::Semantic::COMPRESSED_EAC_XY_SIGNED:
+        // The ARB_texture_compression_bptc extension is not supported on 4.1
+        // See https://www.g-truc.net/doc/OpenGL%204%20Hardware%20Matrix.pdf
+        case gpu::Semantic::COMPRESSED_BC6_RGB:
+        case gpu::Semantic::COMPRESSED_BC7_SRGBA:
             return false;
         default:
             return true;
@@ -279,8 +283,6 @@ using GL41VariableAllocationTexture = GL41Backend::GL41VariableAllocationTexture
 GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) :
      GL41Texture(backend, texture)
 {
-    Backend::textureResourceCount.increment();
-
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
     _maxAllocatedMip = _populatedMip = mipLevels;
@@ -303,9 +305,6 @@ GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr
 }
 
 GL41VariableAllocationTexture::~GL41VariableAllocationTexture() {
-    Backend::textureResourceCount.decrement();
-    Backend::textureResourceGPUMemSize.update(_size, 0);
-    Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
 }
 
 void GL41VariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
@@ -605,7 +604,7 @@ void GL41VariableAllocationTexture::populateTransferQueue(TransferQueue& pending
         }
 
         // queue up the sampler and populated mip change for after the transfer has completed
-        pendingTransfers.emplace(new TransferJob([=] {
+        pendingTransfers.emplace(new TransferJob(sourceMip, [=] {
             _populatedMip = sourceMip;
             incrementPopulatedSize(_gpuObject.evalMipSize(sourceMip));
             sanityCheck();
