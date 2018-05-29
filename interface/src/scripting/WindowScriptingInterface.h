@@ -351,7 +351,7 @@ public slots:
      *
      * var notify = true;
      * var animated = true;
-     * var aspect = 1920 / 1080f;
+     * var aspect = 1920 / 1080;
      * var filename = "";
      * Window.takeSnapshot(notify, animated, aspect, filename);
      */
