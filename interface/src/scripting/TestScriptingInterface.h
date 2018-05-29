@@ -120,6 +120,12 @@ public slots:
      */
     void savePhysicsSimulationStats(QString filename);
 
+    /**jsdoc
+    * Profiles a specific function
+    * @function Test.savePhysicsSimulationStats
+    * @param {string} name - Name used to reference the function
+    * @param {function} function - Function to profile
+    */
     Q_INVOKABLE void profileRange(const QString& name, QScriptValue function);
 
     /**jsdoc
@@ -131,6 +137,8 @@ public slots:
     /**jsdoc
     * Save a JSON object to a file in the test results location
     * @function Test.saveObject
+    * @param {string} name - Name of the object
+    * @param {string} filename - Name of file to save to
     */
     void saveObject(QVariant v, const QString& filename);
 
