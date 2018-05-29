@@ -584,3 +584,16 @@ void WindowScriptingInterface::onMessageBoxSelected(int button) {
         _messageBoxes.remove(id);
     }
 }
+
+
+int WindowScriptingInterface::getPhysicsNearbyEntitiesReadyCount() {
+    return qApp->getNearbyEntitiesReadyCount();
+}
+
+int WindowScriptingInterface::getPhysicsNearbyEntitiesStabilityCount() {
+    return qApp->getEntitiesStabilityCount();
+}
+
+int WindowScriptingInterface::getPhysicsNearbyEntitiesCount() {
+    return qApp->getNearbyEntitiesCount();
+}

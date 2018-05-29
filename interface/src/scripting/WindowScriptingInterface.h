@@ -561,6 +561,10 @@ public slots:
      */
     void closeMessageBox(int id);
 
+    int getPhysicsNearbyEntitiesReadyCount();
+    int getPhysicsNearbyEntitiesStabilityCount();
+    int getPhysicsNearbyEntitiesCount();
+
 private slots:
     void onWindowGeometryChanged(const QRect& geometry);
     void onMessageBoxSelected(int button);
