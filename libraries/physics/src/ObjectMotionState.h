@@ -184,7 +184,7 @@ protected:
     btRigidBody* _body { nullptr };
     float _density { 1.0f };
 
-    uint32_t _lastKinematicStep;
+    mutable uint32_t _lastKinematicStep;
     bool _hasInternalKinematicChanges { false };
 };
 
