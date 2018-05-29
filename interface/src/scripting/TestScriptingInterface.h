@@ -58,6 +58,7 @@ public slots:
     /**jsdoc
     * Waits for establishment of connection to server
     * @function Test.waitForConnection
+    * @param {int} maxWaitMs [default=10000] - Number of milliseconds to wait
     */
     bool waitForConnection(qint64 maxWaitMs = 10000);
 
