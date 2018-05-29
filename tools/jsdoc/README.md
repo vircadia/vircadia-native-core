@@ -5,7 +5,8 @@
 * Install node.js.
 * Install jsdoc via npm.  `npm install jsdoc -g`
 
-Run npm install if you would like th extra functionality for gravPrep.
+If you would like the extra functionality for gravPrep:
+* Run npm install
 
 To generate html documentation for the High Fidelity JavaScript API:
 
