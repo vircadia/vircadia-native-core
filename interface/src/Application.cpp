@@ -1033,7 +1033,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 if ((i + 2) < args.size() && args.at(i + 2) == TEST_QUIT_WHEN_FINISHED_OPTION) {
                     quitWhenFinished = true;
                 }
-
             } else if (args.at(i) == TEST_RESULTS_LOCATION_COMMAND) {
                 // Set test snapshot location only if it is a writeable directory
                 QString path(args.at(i + 1));
@@ -2220,6 +2219,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &QCoreApplication::aboutToQuit, this, &Application::addAssetToWorldMessageClose);
     connect(&domainHandler, &DomainHandler::domainURLChanged, this, &Application::addAssetToWorldMessageClose);
 
+    updateSystemTabletMode();
+
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
 
     DependencyManager::get<PickManager>()->setShouldPickHUDOperator([&]() { return DependencyManager::get<HMDScriptingInterface>()->isHMDMode(); });
@@ -2263,14 +2264,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _pendingRenderEvent = false;
 
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
-
-    // Don't show toolbar in test mode, so that it won't appear in snapshots
-    // (its screen location is not fixed - this will cause image comparisons to fail)
-    if (property(hifi::properties::TEST).isValid()) {
-        Menu::getInstance()->setIsOptionChecked(MenuOption::DesktopTabletToToolbar, false);
-        _desktopTabletBecomesToolbarSetting.set(false);
-    }
-    updateSystemTabletMode();
 
 #if defined(Q_OS_ANDROID)
     AndroidHelper::instance().init();
