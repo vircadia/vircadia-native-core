@@ -215,12 +215,13 @@ template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointe
     }
     return Item::Bound();
 }
+/*
 template <> int payloadGetLayer(const ModelMeshPartPayload::Pointer& payload) {
     if (payload) {
         return payload->getLayer();
     }
     return 0;
-}
+}*/
 
 template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload) {
     if (payload) {
@@ -401,7 +402,7 @@ void ModelMeshPartPayload::updateKey(const render::ItemKey& key) {
     _itemKey = builder.build();
 }
 
-
+/*
 void ModelMeshPartPayload::setLayer(bool isLayeredInFront, bool isLayeredInHUD) {
     if (isLayeredInFront) {
         _layer = Item::LAYER_3D_FRONT;
@@ -411,10 +412,11 @@ void ModelMeshPartPayload::setLayer(bool isLayeredInFront, bool isLayeredInHUD) 
         _layer = Item::LAYER_3D;
     }
 }
-
+*/
+/*
 int ModelMeshPartPayload::getLayer() const {
     return _layer;
-}
+}*/
 
 void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe, bool useDualQuaternionSkinning) {
     if (invalidateShapeKey) {

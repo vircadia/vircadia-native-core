@@ -315,7 +315,7 @@ void Model::updateRenderItems() {
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
                 data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, canCastShadow, viewTagBits, isGroupCulled);
-                data.setLayer(isLayeredInFront, isLayeredInHUD);
+             //   data.setLayer(isLayeredInFront, isLayeredInHUD);
                 data.setShapeKey(invalidatePayloadShapeKey, isWireframe, useDualQuaternionSkinning);
             });
         }

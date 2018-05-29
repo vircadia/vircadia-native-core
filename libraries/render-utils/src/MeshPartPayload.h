@@ -107,11 +107,11 @@ public:
     void updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform);
 
     // Render Item interface
-    int getLayer() const;
+//    int getLayer() const;
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) override;
 
-    void setLayer(bool isLayeredInFront, bool isLayeredInHUD);
+//    void setLayer(bool isLayeredInFront, bool isLayeredInHUD);
     void setShapeKey(bool invalidateShapeKey, bool isWireframe, bool useDualQuaternionSkinning);
 
     // ModelMeshPartPayload functions to perform render
@@ -141,13 +141,13 @@ private:
 
     gpu::BufferPointer _blendedVertexBuffer;
     render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
-    int _layer { render::Item::LAYER_3D };
+  //  int _layer { render::Item::LAYER_3D };
 };
 
 namespace render {
     template <> const ItemKey payloadGetKey(const ModelMeshPartPayload::Pointer& payload);
     template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload);
-    template <> int payloadGetLayer(const ModelMeshPartPayload::Pointer& payload);
+ //   template <> int payloadGetLayer(const ModelMeshPartPayload::Pointer& payload);
     template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload);
     template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
 }
