@@ -157,7 +157,7 @@ var grabbedAvatarEntityChangeNotifier = null;
 
 var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
 var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
-var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
+var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("html/js/marketplacesInject.js");
 
 function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
     console.debug('fromQml: message = ', JSON.stringify(message, null, '\t'))
@@ -265,7 +265,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         } else if(message.url.indexOf('hifi://') === 0) {
             AddressManager.handleLookupString(message.url, false);
         } else if(message.url.indexOf('https://') === 0 || message.url.indexOf('http://') === 0) {
-            tablet.gotoWebScreen(message.url);
+            tablet.gotoWebScreen(message.url, MARKETPLACES_INJECT_SCRIPT_URL);
         }
 
         break;
