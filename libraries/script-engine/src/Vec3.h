@@ -1,4 +1,4 @@
-git rm //
+//
 //  Vec3.h
 //  libraries/script-engine/src
 //
