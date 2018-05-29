@@ -100,7 +100,8 @@ const html_reg_returnSize = /<h5>Returns:<\/h5>/g;
 const html_reg_returnSize_replace = '<h6>Returns:<\/h6>';
 const html_reg_depreciated = /(<dt class="important tag-deprecated"[\s\S]+?<\/dt>[\s\S]+?)(<dd>)([\s\S]+?<ul[\s\S]+?<li>)([\s\S]+?)(<\/ul>[\s\S]+?)(<\/dd>)/g;
 const html_reg_depreciated_replace = '<em><strong>$1</strong><div>$4</div></em>'
-    // Procedural functions
+
+// Procedural functions
 
 //remove .html from non http links
 function removeHTML(match, p1, p2, p3) {
@@ -233,16 +234,16 @@ function prepareHtml(source) {
 function makeMdSource(title) {
     return dedent(
         `
-                ---
-                title: ${title}
-                taxonomy:
-                    category:
-                        - docs
-                visible: true
-                highlight:
-                    enabled: false
-                ---
-                `
+        ---
+        title: ${title}
+        taxonomy:
+            category:
+                - docs
+        visible: true
+        highlight:
+            enabled: false
+        ---
+        `
     )
 }
 
@@ -250,35 +251,35 @@ function makeMdSource(title) {
 function makeTwigFile(contentHtml) {
     return dedent(
         `
-                {% extends 'partials/base_noGit.html.twig' %}
-                {% set tags = page.taxonomy.tag %}
-                {% if tags %}
-                    {% set progress = page.collection({'items':{'@taxonomy':{'category': 'docs', 'tag': tags}},'order': {'by': 'default', 'dir': 'asc'}}) %}
-                {% else %}
-                    {% set progress = page.collection({'items':{'@taxonomy':{'category': 'docs'}},'order': {'by': 'default', 'dir': 'asc'}}) %}
-                {% endif %}
-                
-                {% block navigation %}
-                    <div id="navigation">
-                    {% if not progress.isFirst(page.path) %}
-                        <a class="nav nav-prev" href="{{ progress.nextSibling(page.path).url }}"> <img src="{{ url('theme://images/left-arrow.png') }}"></a>
-                    {% endif %}
-                
-                    {% if not progress.isLast(page.path) %}
-                        <a class="nav nav-next" href="{{ progress.prevSibling(page.path).url }}"><img src="{{ url('theme://images/right-arrow.png') }}"></a>
-                    {% endif %}
-                    </div>
-                {% endblock %}
-                
-                {% block content %}
-                    <div id="api-specific">
-                        <div id="body-inner">
-                            <h1>{{ page.title }}</h1>
-                            ${contentHtml}
-                        </div>
-                    </div>
-                {% endblock %}
-                `
+        {% extends 'partials/base_noGit.html.twig' %}
+        {% set tags = page.taxonomy.tag %}
+        {% if tags %}
+            {% set progress = page.collection({'items':{'@taxonomy':{'category': 'docs', 'tag': tags}},'order': {'by': 'default', 'dir': 'asc'}}) %}
+        {% else %}
+            {% set progress = page.collection({'items':{'@taxonomy':{'category': 'docs'}},'order': {'by': 'default', 'dir': 'asc'}}) %}
+        {% endif %}
+        
+        {% block navigation %}
+            <div id="navigation">
+            {% if not progress.isFirst(page.path) %}
+                <a class="nav nav-prev" href="{{ progress.nextSibling(page.path).url }}"> <img src="{{ url('theme://images/left-arrow.png') }}"></a>
+            {% endif %}
+        
+            {% if not progress.isLast(page.path) %}
+                <a class="nav nav-next" href="{{ progress.prevSibling(page.path).url }}"><img src="{{ url('theme://images/right-arrow.png') }}"></a>
+            {% endif %}
+            </div>
+        {% endblock %}
+        
+        {% block content %}
+            <div id="api-specific">
+                <div id="body-inner">
+                    <h1>{{ page.title }}</h1>
+                    ${contentHtml}
+                </div>
+            </div>
+        {% endblock %}
+        `
     )
 }
 
@@ -329,143 +330,143 @@ function makeGroupTOC(group) {
             return htmlGroup.join("\n");
         }
 
-        // Handle Class TOCS
-        function makeClassTOC(group){
-            let linkArray = []
-            group.forEach( item => {
-                linkArray.push(`<div><h5>${item.type}</h5></div>`)            
-                item.array.forEach( link => {
-                if ( link.indexOf('.') > -1 ){
-                        linkArray.push(`<div><a href="#${link}">${link.slice(1)}</a></div>`);
-                    } else {
-                        linkArray.push(`<div><a href="#${link}">${link}</a></div>`);
-                                    
-                    }
-                })
-                linkArray.push("<br>");
-            })
-            return linkArray.join("\n");
-        }
-
-        // Extract IDS for TOC
-        function extractIDs(groupToExtract){
-            let firstLine = "";
-            let id = "";
-            let extractedIDs = [];
-            groupToExtract.forEach((item)=>{
-                firstLine = item.split("\n")[0];
-                try {
-                    id = firstLine.split('id="')[1].split(`"`)[0];
-                } catch (e){
-                    id = "";
-                }
-                if (id){
-                    extractedIDs.push(id)
-                }
-            })
-            return extractedIDs;
-        }
-
-        // Helper for splitting up html 
-        // Takes: Content to split, SearchTerm to Split by, and term to End Splitting By
-        // Returns: [newContent after Split, Array of extracted ]
-        function splitBy(content, searchTerm, endSplitTerm, title){     
-            let foundArray = [];
-            let curIndex = -1;
-            let afterCurSearchIndex = -1
-            let nextIndex = 0;
-            let findbyNameLength = searchTerm.length;
-            let curEndSplitTermIndex = -1;
-            let classHeader;
-            do {
-                // Find the index of where to stop searching
-                curEndSplitTermIndex = content.indexOf(endSplitTerm);
-                // console.log("curEndSplitTermIndex", curEndSplitTermIndex)
-                // Find the index of the the next Search term
-                curIndex = content.indexOf(searchTerm);
-                // console.log("curIndex", curIndex)
-                
-                // The index of where the next search will start 
-                afterCurSearchIndex = curIndex+findbyNameLength;
-                // Find the content of the next Index
-                nextIndex = content.indexOf(searchTerm,afterCurSearchIndex);
-                // If the next index isn't found, then next index === index of the end term
-                if (nextIndex === -1){
-                    nextIndex = curEndSplitTermIndex;
-                }
-                if (curIndex > curEndSplitTermIndex){
-                    break;
-                }
-                // Push from the cur index to the next found || the end term
-                let contentSlice = content.slice(curIndex, nextIndex);
-                if (contentSlice.indexOf(`id="${title}"`) === -1){
-                    foundArray.push(contentSlice);
-                } else {
-                    classHeader = contentSlice;
-                }
-                
-                // Remove that content
-                content = content.replace(contentSlice, "");
-                
-                curEndSplitTermIndex = content.indexOf(endSplitTerm);
-                nextIndex = content.indexOf(searchTerm,afterCurSearchIndex);
-                // Handle if nextIndex goes beyond endSplitTerm
-                if (nextIndex > curEndSplitTermIndex) {
-                    curIndex = content.indexOf(searchTerm);
-                    contentSlice = content.slice(curIndex, curEndSplitTermIndex);
-                    if (contentSlice.indexOf(`id="${title}"`) === -1){
-                        foundArray.push(contentSlice);
-                    }
-                    content = content.replace(contentSlice, "");
-                    break;
-                }
-            } while (curIndex > -1)
-            if (classHeader){
-                content = append(content, html_reg_findByArticleClose, classHeader, true);
+// Handle Class TOCS
+function makeClassTOC(group){
+    let linkArray = []
+    group.forEach( item => {
+        linkArray.push(`<div><h5>${item.type}</h5></div>`)            
+        item.array.forEach( link => {
+        if ( link.indexOf('.') > -1 ){
+                linkArray.push(`<div><a href="#${link}">${link.slice(1)}</a></div>`);
+            } else {
+                linkArray.push(`<div><a href="#${link}">${link}</a></div>`);
+                            
             }
-            return [content, foundArray];
-        }
+        })
+        linkArray.push("<br>");
+    })
+    return linkArray.join("\n");
+}
 
-        // Split the signals and methods [Might make this more generic]
-        function splitMethodsSignals(allItemToSplit){
-            let methodArray = [];
-            let signalArray = [];
-            
-            allItemToSplit.forEach( (content, index) => {
-                firstLine = content.split("\n")[0]; 
-                if (firstLine.indexOf("{Signal}") > -1){
-                    signalArray.push(content);
-                } else if (firstLine.indexOf("span") > -1) {
-                    methodArray.push(content);
-                } else {
-                }
-            })
-            return [methodArray, signalArray];
+// Extract IDS for TOC
+function extractIDs(groupToExtract){
+    let firstLine = "";
+    let id = "";
+    let extractedIDs = [];
+    groupToExtract.forEach((item)=>{
+        firstLine = item.split("\n")[0];
+        try {
+            id = firstLine.split('id="')[1].split(`"`)[0];
+        } catch (e){
+            id = "";
         }
-
-        // Helper to append
-        // Takes content, the search term to appendTo, the content to append, 
-        // and bool if the append is before the found area
-        function append(content, searchTermToAppendto, contentToAppend, appendBefore){
-            let contentArray = content.split("\n");
-            let foundIndex = findArrayTrim(contentArray, searchTermToAppendto)
-            foundIndex = appendBefore ? foundIndex : foundIndex +1
-            
-            contentArray.splice(foundIndex,0,contentToAppend)
-            return contentArray.join("\n")
+        if (id){
+            extractedIDs.push(id)
         }
+    })
+    return extractedIDs;
+}
 
-        // Helper function for append
-        function findArrayTrim(array, searchTerm){
-            var index = -1;
-            for (var i = 0; i < array.length; i++){
-                index = array[i].trim().indexOf(searchTerm.trim());
-                if (index > -1){
-                    return i
-                }
+// Helper for splitting up html 
+// Takes: Content to split, SearchTerm to Split by, and term to End Splitting By
+// Returns: [newContent after Split, Array of extracted ]
+function splitBy(content, searchTerm, endSplitTerm, title){     
+    let foundArray = [];
+    let curIndex = -1;
+    let afterCurSearchIndex = -1
+    let nextIndex = 0;
+    let findbyNameLength = searchTerm.length;
+    let curEndSplitTermIndex = -1;
+    let classHeader;
+    do {
+        // Find the index of where to stop searching
+        curEndSplitTermIndex = content.indexOf(endSplitTerm);
+        // console.log("curEndSplitTermIndex", curEndSplitTermIndex)
+        // Find the index of the the next Search term
+        curIndex = content.indexOf(searchTerm);
+        // console.log("curIndex", curIndex)
+        
+        // The index of where the next search will start 
+        afterCurSearchIndex = curIndex+findbyNameLength;
+        // Find the content of the next Index
+        nextIndex = content.indexOf(searchTerm,afterCurSearchIndex);
+        // If the next index isn't found, then next index === index of the end term
+        if (nextIndex === -1){
+            nextIndex = curEndSplitTermIndex;
+        }
+        if (curIndex > curEndSplitTermIndex){
+            break;
+        }
+        // Push from the cur index to the next found || the end term
+        let contentSlice = content.slice(curIndex, nextIndex);
+        if (contentSlice.indexOf(`id="${title}"`) === -1){
+            foundArray.push(contentSlice);
+        } else {
+            classHeader = contentSlice;
+        }
+        
+        // Remove that content
+        content = content.replace(contentSlice, "");
+        
+        curEndSplitTermIndex = content.indexOf(endSplitTerm);
+        nextIndex = content.indexOf(searchTerm,afterCurSearchIndex);
+        // Handle if nextIndex goes beyond endSplitTerm
+        if (nextIndex > curEndSplitTermIndex) {
+            curIndex = content.indexOf(searchTerm);
+            contentSlice = content.slice(curIndex, curEndSplitTermIndex);
+            if (contentSlice.indexOf(`id="${title}"`) === -1){
+                foundArray.push(contentSlice);
             }
-            return index;
+            content = content.replace(contentSlice, "");
+            break;
         }
+    } while (curIndex > -1)
+    if (classHeader){
+        content = append(content, html_reg_findByArticleClose, classHeader, true);
+    }
+    return [content, foundArray];
+}
+
+// Split the signals and methods [Might make this more generic]
+function splitMethodsSignals(allItemToSplit){
+    let methodArray = [];
+    let signalArray = [];
+    
+    allItemToSplit.forEach( (content, index) => {
+        firstLine = content.split("\n")[0]; 
+        if (firstLine.indexOf("{Signal}") > -1){
+            signalArray.push(content);
+        } else if (firstLine.indexOf("span") > -1) {
+            methodArray.push(content);
+        } else {
+        }
+    })
+    return [methodArray, signalArray];
+}
+
+// Helper to append
+// Takes content, the search term to appendTo, the content to append, 
+// and bool if the append is before the found area
+function append(content, searchTermToAppendto, contentToAppend, appendBefore){
+    let contentArray = content.split("\n");
+    let foundIndex = findArrayTrim(contentArray, searchTermToAppendto)
+    foundIndex = appendBefore ? foundIndex : foundIndex +1
+    
+    contentArray.splice(foundIndex,0,contentToAppend)
+    return contentArray.join("\n")
+}
+
+// Helper function for append
+function findArrayTrim(array, searchTerm){
+    var index = -1;
+    for (var i = 0; i < array.length; i++){
+        index = array[i].trim().indexOf(searchTerm.trim());
+        if (index > -1){
+            return i
+        }
+    }
+    return index;
+}
 
 // Remove grav directory if exists to make sure old files aren't kept
 if (fs.existsSync(dir_grav)){
@@ -486,10 +487,8 @@ baseMDDirectories.forEach( md => {
 })
 
 // Read jsdoc output folder and process html files
-let links = [];
-let unTouchedLinks = [];
-
 let files = fs.readdirSync(dir_out);
+
 // Create initial Group name member map to handle individual link
 files.forEach(function (file){
     let curSource = path.join(dir_out, file);
@@ -528,13 +527,12 @@ files.forEach(function (file, index){
         let methodIDs = [];
         let signalIDs = [];
         let typeDefIDs = [];
-    // Basic Regex HTML edits
+        // Basic Regex HTML edits
         let currentContent = mainDiv.html()
                                 .replace(html_reg_findByMethod, "") //Remove Method title to be remade later  
                                 .replace(html_reg_static,"") // Remove static from the file names
                                 .replace(html_reg_title,"") // Remove title 
                                 .replace(html_reg_objectHeader,"") // Remove extra Object Header 
-                                // .replace(html_reg_htmlExt,"") 
                                 .replace(html_reg_dlClassDetails, "") // Remove unneccsary dlClassDetails Tag
                                 .replace(html_reg_allNonHTTPLinks, removeHTML) // Remove the .html extension from all links
                                 .replace(html_reg_allNonHTTPLinks, allLinksToLowerCase) // Turn all links into lowercase before ID tags
@@ -547,7 +545,7 @@ files.forEach(function (file, index){
                                 .replace(html_reg_classDefinitonsTitle, html_reg_classDefinitonsTitle_replace) // Change the class def titles
                                 .replace(html_reg_depreciated, html_reg_depreciated_replace); // format depreciated better
         
-    // Further HTML Manipulation
+        // Further HTML Manipulation
         // Make end term either Type Definitions or by the article
         let endTerm;
         let foundTypeDefinitions;
@@ -582,7 +580,6 @@ files.forEach(function (file, index){
         let splitMethods = processedMethodsSignalsAndTypeDefs[0];
         let splitSignals = processedMethodsSignalsAndTypeDefs[1];
         let splitTypeDefinitionIDS;
-        // let splitDescription = processedMethodsSignalsAndTypeDefs[3];
         let splitMethodIDS = extractIDs(splitMethods);
         let splitSignalIDS = extractIDs(splitSignals);
         if (foundTypeDefinitions){
@@ -590,12 +587,9 @@ files.forEach(function (file, index){
         }
         let arrayToPassToClassToc = [];
 
-        // if (splitDescription) {
-        //     currentContent = append(currentContent, html_reg_containerOverview, splitDescription);
-        // }
         if (splitMethods.length > 0) {
             arrayToPassToClassToc.push({type: "Methods", array: splitMethodIDS});            
-            // Add the Signals header to the Signals HTML
+            // Add the Methods header to the Methods HTML
             splitMethods.unshift(html_reg_findByMethod_replace)
             currentContent = append(currentContent, html_reg_findByArticleClose, splitMethods.join('\n'), true);
         }
@@ -607,7 +601,7 @@ files.forEach(function (file, index){
         }
         if (foundTypeDefinitions && foundTypeDefinitions.length > 0) {
             arrayToPassToClassToc.push({type: "Type Definitions", array: splitTypeDefinitionIDS});                
-            // Add the Signals header to the Signals HTML
+            // Add the Type Defs header to the Type Defs HTML
             foundTypeDefinitions.unshift(html_reg_typeDefinitonsTitle_replace)
             currentContent = append(currentContent, html_reg_findByArticleClose, foundTypeDefinitions.join('\n'), true);        
         }
@@ -616,7 +610,6 @@ files.forEach(function (file, index){
         if (groupName === "Global"){
             currentContent = append(currentContent, html_reg_findByTitle, classTOC);         
         } else if (htmlTitle === "Controller") {
-            // currentContent = currentContent.replace(html_reg_availableIn, "");
             let curatedList = currentContent.match(html_reg_findControllerCuratedList);
             currentContent = currentContent.replace(html_reg_findControllerCuratedList, "");
             let entityMethods = currentContent.match(html_reg_findEntityMethods);
