@@ -115,13 +115,28 @@ const UPDATER_LOCK_FULL_PATH = getRootHifiDataDirectory() + "/" + UPDATER_LOCK_F
 
 // Configure log
 global.log = require('electron-log');
-const logFile = getApplicationDataDirectory(true) + '/log.txt';
+const oldLogPath = path.join(getApplicationDataDirectory(), '/logs');
+const logPath = path.join(getApplicationDataDirectory(true), '/logs');
+const oldLogFile = path.join(getApplicationDataDirectory(), '/log.txt');
+const logFile = path.join(getApplicationDataDirectory(true), '/log.txt');
+
+if (oldLogFile != logFile && fs.pathExistsSync(oldLogFile)) {
+    fs.moveSync(oldLogFile, logFile);
+    fs.removeSync(oldLogFile);
+}
 fs.ensureFileSync(logFile); // Ensure file exists
 log.transports.file.maxSize = 5 * 1024 * 1024;
 log.transports.file.file = logFile;
 
+if (oldLogPath != logPath && fs.pathExistsSync(oldLogPath)) {
+    fs.ensureDirSync(logPath);
+    fs.moveSync(oldLogPath, logPath);
+    fs.removeSync(oldLogPath);
+}
+log.debug("Log directory:", logPath);
+
 log.debug("build info", buildInfo);
-log.debug("Root hifi directory is: ", getRootHifiDataDirectory());
+log.debug("Root hifi data directory is: ", getRootHifiDataDirectory());
 
 const ipcMain = electron.ipcMain;
 
