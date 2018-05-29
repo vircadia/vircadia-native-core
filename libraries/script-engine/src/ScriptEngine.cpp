@@ -237,6 +237,14 @@ QString ScriptEngine::getContext() const {
     return "unknown";
 }
 
+bool ScriptEngine::isDebugMode() const { 
+#if defined(DEBUG)
+    return true;
+#else
+    return false;
+#endif
+}
+
 ScriptEngine::~ScriptEngine() {
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     if (scriptEngines) {
