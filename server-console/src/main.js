@@ -228,6 +228,17 @@ function deleteOldFiles(directoryPath, maxAgeInSeconds, filenameRegex) {
 var oldLogPath = path.join(getApplicationDataDirectory(), '/logs');
 var logPath = path.join(getApplicationDataDirectory(true), '/logs');
 
+if (oldLogPath != logPath) {
+    console.log("Migrating old logs from " + oldLogPath + " to " + logPath);
+    fs.copy(oldLogPath, logPath, err => {
+        if (err) {
+            console.error(err);
+        } else {
+            console.log('success!');
+        }
+    })
+}
+
 log.debug("Log directory:", logPath);
 log.debug("Data directory:", getRootHifiDataDirectory());
 
