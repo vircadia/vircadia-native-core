@@ -103,12 +103,9 @@ void ModelOverlay::update(float deltatime) {
     if (_visibleDirty) {
         _visibleDirty = false;
         // don't show overlays in mirrors or spectator-cam unless _isVisibleInSecondaryCamera is true
-        _model->setViewMask((_isVisibleInSecondaryCamera ? render::ItemKey::TAG_BITS_1 : render::ItemKey::TAG_BITS_NONE), scene);
+        uint8_t modelRenderTagBits = Model::MainView  | (_isVisibleInSecondaryCamera ? Model::SecondaryView : Model::NoView);
+        _model->setViewMask(modelRenderTagBits, scene);
         _model->setVisibleInScene(getVisible(), scene);
-        /*,
-                                  render::ItemKey::TAG_BITS_0 |
-                                  (_isVisibleInSecondaryCamera ? render::ItemKey::TAG_BITS_1 : render::ItemKey::TAG_BITS_NONE),
-                                  false);*/
     }
     if (_drawInFrontDirty) {
         _drawInFrontDirty = false;

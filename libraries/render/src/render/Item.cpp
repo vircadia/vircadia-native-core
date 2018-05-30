@@ -49,7 +49,6 @@ const uint8_t ItemKey::TAG_BITS_7 { 0x80 };
 const uint32_t ItemKey::KEY_TAG_BITS_MASK = ((uint32_t) ItemKey::TAG_BITS_ALL) << FIRST_TAG_BIT;
 
 // Layer bits are derived from the Layer enum, the number of bits needed to represent integer 0 to NUM_LAYERS
-//const uint8_t ItemKey::NUM_LAYER_BITS { 3 };
 const uint8_t ItemKey::LAYER_BITS_ALL { 0x07 };
 
 const uint32_t ItemKey::KEY_LAYER_BITS_MASK = ((uint32_t)ItemKey::LAYER_BITS_ALL) << FIRST_LAYER_BIT;

@@ -91,6 +91,7 @@ public:
     bool isVisible() const;
 
     enum ViewMask : uint8_t {
+        NoView = 0x00, // Not drawn at all
         MainView = 0x01, //render::ItemKey::TAG_BITS_0,
         SecondaryView = 0x02, //render::ItemKey::TAG_BITS_1,
         AllViews = 0xFF, //render::ItemKey::TAG_BITS_ALL,
@@ -109,6 +110,9 @@ public:
 
     bool isLayeredInFront() const;
     bool isLayeredInHUD() const;
+
+    // Access the current RenderItemKey Global Flags used by the model and applied to the render items  representing the parts of the model.
+    const render::ItemKey getRenderItemKeyGlobalFlags() const;
 
     bool needsFixupInScene() const;
 
@@ -414,10 +418,6 @@ protected:
     QVector<float> _blendshapeCoefficients;
 
     QUrl _url;
- //   bool _isVisible;
-  //  uint8_t _viewTagBits{ render::ItemKey::TAG_BITS_ALL };
-
- //   bool _canCastShadow;
 
     gpu::Buffers _blendedVertexBuffers;
 
@@ -481,12 +481,17 @@ protected:
     int _renderInfoDrawCalls { 0 };
     int _renderInfoHasTransparent { false };
 
-    render::ItemKey _renderItemsKey;
- /*   bool _isLayeredInFront { false };
-    bool _isLayeredInHUD { false };
+    // This Render ItemKey Global Flags capture the Model wide global set of flags that should be communicated to all the render items representing the Model.
+    // The flags concerned are:
+    //  - isVisible: if true the Model is visible globally in the scene, regardless of the other flags in the item keys (tags or layer or shadow caster).
+    //  - TagBits: the view mask defined through the TagBits telling in which view the Model is rendered if visible.
+    //  - Layer: In which Layer this Model lives.
+    //  - CastShadow: if true and visible and rendered in the view, the Model cast shadows if in a Light volume casting shadows.
+    //  - CullGroup: if true, the render items representing the parts of the Model are culled by a single Meta render item that knows about them, they are not culled individually.
+    //               For this to work, a Meta RI must exists and knows about the RIs of this Model.
+    //  
+    render::ItemKey _renderItemKeyGlobalFlags;
 
-    bool _isGroupCulled{ false };
-    */
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
 private:

@@ -2061,8 +2061,8 @@ void MyAvatar::preDisplaySide(const RenderArgs* renderArgs) {
                 _attachmentData[i].jointName.compare("RightEye", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("HeadTop_End", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("Face", Qt::CaseInsensitive) == 0) {
-                uint8_t modelRenderTagBits = shouldDrawHead ? render::ItemKey::TAG_BITS_0 : render::ItemKey::TAG_BITS_NONE;
-                modelRenderTagBits |= render::ItemKey::TAG_BITS_1;
+                uint8_t modelRenderTagBits = shouldDrawHead ? Model::MainView : Model::NoView;
+                modelRenderTagBits |= Model::SecondaryView;
 
                 _attachmentModels[i]->setViewMask(modelRenderTagBits);
                 _attachmentModels[i]->setGroupCulled(false);

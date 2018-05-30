@@ -597,7 +597,7 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
         attachmentModel->setViewMask(Model::AllViews);
-        attachmentModel->setGroupCulled(true);
+        attachmentModel->setGroupCulled(false);
         attachmentModel->setCanCastShadow(true);
         attachmentModel->setVisibleInScene(_isMeshEnableVisible, scene);
     }
@@ -827,7 +827,7 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
             attachmentModel->addToScene(scene, transaction);
 
             attachmentModel->setViewMask(Model::AllViews);
-            attachmentModel->setGroupCulled(true);
+            attachmentModel->setGroupCulled(false);
             attachmentModel->setCanCastShadow(true);
             attachmentModel->setVisibleInScene(_isMeshEnableVisible, scene);
         }

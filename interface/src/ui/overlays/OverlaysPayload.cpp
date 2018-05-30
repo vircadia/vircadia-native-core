@@ -64,20 +64,6 @@ namespace render {
     template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay) {
         return overlay->getBounds();
     }
-    template <> int payloadGetLayer(const Overlay::Pointer& overlay) {
-        if (overlay->is3D()) {
-            auto overlay3D = std::dynamic_pointer_cast<Base3DOverlay>(overlay);
-            if (overlay3D->getDrawInFront()) {
-                return Item::LAYER_3D_FRONT;
-            } else if (overlay3D->getDrawHUDLayer()) {
-                return Item::LAYER_3D_HUD;
-            } else {
-                return Item::LAYER_3D;
-            }
-        } else {
-            return Item::LAYER_2D;
-        }
-    }
     template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args) {
         if (args) {
             overlay->render(args);
@@ -86,7 +72,6 @@ namespace render {
     template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay) {
         return overlay->getShapeKey();
     }
-
 
     template <> uint32_t metaFetchMetaSubItems(const Overlay::Pointer& overlay, ItemIDs& subItems) {
         return overlay->fetchMetaSubItems(subItems);

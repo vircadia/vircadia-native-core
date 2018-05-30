@@ -67,11 +67,10 @@ public:
     const static uint8_t TAG_BITS_7;
 
     // Items are organized in layers, an item belongs to one of the 8 Layers available.
-    // By default an item is in the 'LAYER_NONE' meaning that it is NOT layered.
-    // Which is equivalent to say that LAYER_NONE, is the default Layer.
+    // By default an item is in the 'LAYER_DEFAULT' meaning that it is NOT layered.
     // THere is NO ordering relationship between layers.
     enum Layer : uint8_t {
-        LAYER_NONE = 0, // layer 0 is a 'NOT' layer, items are not considered layered, this is the default value
+        LAYER_DEFAULT = 0, // layer 0 aka Default is a 'NOT' layer, items are not considered layered, this is the default value
         LAYER_1,
         LAYER_2,
         LAYER_3,
@@ -164,7 +163,7 @@ public:
         Builder& withTagBits(uint8_t tagBits) { _flags = evalTagBitsWithKeyBits(tagBits, _flags.to_ulong()); return (*this); }
 
         Builder& withLayer(uint8_t layer) { _flags = evalLayerBitsWithKeyBits(layer, _flags.to_ulong()); return (*this); }
-        Builder& withoutLayer() { return withLayer(LAYER_NONE); }
+        Builder& withoutLayer() { return withLayer(LAYER_DEFAULT); }
 
         // Convenient standard keys that we will keep on using all over the place
         static Builder opaqueShape() { return Builder().withTypeShape(); }
@@ -206,7 +205,7 @@ public:
 
     uint8_t getLayer() const { return ((_flags.to_ulong() & KEY_LAYER_BITS_MASK) >> FIRST_LAYER_BIT); }
     bool isLayer(uint8_t layer) const { return getLayer() == layer; }
-    bool isLayered() const { return getLayer() != LAYER_NONE; }
+    bool isLayered() const { return getLayer() != LAYER_DEFAULT; }
     bool isSpatial() const { return !isLayered(); }
 
     // Probably not public, flags used by the scene
@@ -277,7 +276,7 @@ public:
         // Set ALL the tags in one call using the Tag bits and the Tag bits touched
         Builder& withTagBits(uint8_t tagBits, uint8_t tagMask) { _value = ItemKey::evalTagBitsWithKeyBits(tagBits, _value.to_ulong()); _mask = ItemKey::evalTagBitsWithKeyBits(tagMask, _mask.to_ulong()); return (*this); }
 
-        Builder& withoutLayered() { _value = ItemKey::evalLayerBitsWithKeyBits(ItemKey::LAYER_NONE, _value.to_ulong()); _mask |= ItemKey::KEY_LAYER_BITS_MASK; return (*this); }
+        Builder& withoutLayered() { _value = ItemKey::evalLayerBitsWithKeyBits(ItemKey::LAYER_DEFAULT, _value.to_ulong()); _mask |= ItemKey::KEY_LAYER_BITS_MASK; return (*this); }
         Builder& withLayer(uint8_t layer) { _value = ItemKey::evalLayerBitsWithKeyBits(layer, _value.to_ulong()); _mask |= ItemKey::KEY_LAYER_BITS_MASK; return (*this); }
 
         Builder& withNothing()          { _value.reset(); _mask.reset(); return (*this); }
@@ -458,12 +457,11 @@ public:
     // Get the bound of the item expressed in world space (or eye space depending on the key.isWorldSpace())
     const Bound getBound() const { return _payload->getBound(); }
 
-    // Get the layer where the item belongs.
- //   int getLayer() const { return _payload->getLayer(); }
+    // Get the layer where the item belongs, simply reflecting the key.
     int getLayer() const { return _key.getLayer(); }
 
     static const uint8_t LAYER_2D{ ItemKey::LAYER_1 };
-    static const uint8_t LAYER_3D{ ItemKey::LAYER_NONE };
+    static const uint8_t LAYER_3D{ ItemKey::LAYER_DEFAULT };
     static const uint8_t LAYER_3D_FRONT{ ItemKey::LAYER_2 };
     static const uint8_t LAYER_3D_HUD{ ItemKey::LAYER_3 };
 
@@ -515,7 +513,6 @@ inline QDebug operator<<(QDebug debug, const Item& item) {
 // Item shared interface supported by the payload
 template <class T> const ItemKey payloadGetKey(const std::shared_ptr<T>& payloadData) { return ItemKey(); }
 template <class T> const Item::Bound payloadGetBound(const std::shared_ptr<T>& payloadData) { return Item::Bound(); }
-template <class T> int payloadGetLayer(const std::shared_ptr<T>& payloadData) { return 0; }
 template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, RenderArgs* args) { }
 
 // Shape type interface
@@ -542,7 +539,6 @@ public:
     // Payload general interface
     virtual const ItemKey getKey() const override { return payloadGetKey<T>(_data); }
     virtual const Item::Bound getBound() const override { return payloadGetBound<T>(_data); }
- //   virtual int getLayer() const override { return payloadGetLayer<T>(_data); }
 
     virtual void render(RenderArgs* args) override { payloadRender<T>(_data, args); }
 
