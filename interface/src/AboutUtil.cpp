@@ -20,9 +20,9 @@
 #include <OffscreenQmlDialog.h>
 
 AboutUtil::AboutUtil(QObject *parent) : QObject(parent) {
-    QLocale locale_;
-    m_DateConverted = QDate::fromString(BuildInfo::BUILD_TIME, "dd/MM/yyyy").
-            toString(locale_.dateFormat(QLocale::ShortFormat));
+    QLocale locale;
+    _dateConverted = QDate::fromString(BuildInfo::BUILD_TIME, "dd/MM/yyyy").
+            toString(locale.dateFormat(QLocale::ShortFormat));
 }
 
 AboutUtil *AboutUtil::getInstance()
@@ -31,17 +31,17 @@ AboutUtil *AboutUtil::getInstance()
     return &instance;
 }
 
-QString AboutUtil::buildDate() const
+QString AboutUtil::getBuildDate() const
 {
-    return m_DateConverted;
+    return _dateConverted;
 }
 
-QString AboutUtil::buildVersion() const
+QString AboutUtil::getBuildVersion() const
 {
     return BuildInfo::VERSION;
 }
 
-QString AboutUtil::qtVersion() const
+QString AboutUtil::getQtVersion() const
 {
     return qVersion();
 }
@@ -49,7 +49,7 @@ QString AboutUtil::qtVersion() const
 void AboutUtil::openUrl(const QString& url) const {
 
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
