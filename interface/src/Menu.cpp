@@ -240,7 +240,10 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
         0, true, qApp, SLOT(rotationModeChanged()));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Overlays, 0, true);
+    action = addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Overlays, 0, true);
+    connect(action, &QAction::triggered, [action] {
+        qApp->setDesktopTabletBecomesToolbarSetting(action->isChecked());
+    });
 
     // View > Enter First Person Mode in HMD
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPersonHMD, 0, true);

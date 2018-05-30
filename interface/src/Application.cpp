@@ -3177,6 +3177,12 @@ void Application::setHmdTabletBecomesToolbarSetting(bool value) {
     updateSystemTabletMode();
 }
 
+#pragma optimize("", off)
+void Application::setShowOverlays(bool value) {
+    _hmdTabletBecomesToolbarSetting.set(value);
+    updateSystemTabletMode();
+}
+
 void Application::setPreferStylusOverLaser(bool value) {
     _preferStylusOverLaserSetting.set(value);
 }
@@ -8260,13 +8266,15 @@ void Application::updateThreadPoolCount() const {
     QThreadPool::globalInstance()->setMaxThreadCount(threadPoolSize);
 }
 
+#pragma optimize("", off)
 void Application::updateSystemTabletMode() {
     if (_settingsLoaded) {
         qApp->setProperty(hifi::properties::HMD, isHMDMode());
         if (isHMDMode()) {
             DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getHmdTabletBecomesToolbarSetting());
         } else {
-            DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getDesktopTabletBecomesToolbarSetting());
+            // Show toolbar if toolbar is enabled AND the Show Overlays menu option is checked
+            DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getDesktopTabletBecomesToolbarSetting() && (Menu::getInstance()->isOptionChecked(MenuOption::Overlays)));
         }
     }
 }
