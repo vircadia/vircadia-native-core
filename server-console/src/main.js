@@ -44,6 +44,8 @@ const LOG_FILE_REGEX = /(domain-server|ac-monitor|ac)-.*-std(out|err).txt/;
 
 const HOME_CONTENT_URL = "http://cdn.highfidelity.com/content-sets/home-tutorial-RC40.tar.gz";
 
+const APP_USER_MODEL_ID = 'com.highfidelity.sandbox';  // For Windows jump list, etc.
+
 function getBuildInfo() {
     var buildInfoPath = null;
 
@@ -867,7 +869,6 @@ function onContentLoaded() {
         } catch (e) {
         }
 
-        var appUserModelId = 'com.highfidelity.interface';  // For Windows jump list, etc.
         if (currentVersion !== null) {
             const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
             var hasShownUpdateNotification = false;
@@ -879,7 +880,7 @@ function onContentLoaded() {
                         title: 'An update is available!',
                         message: 'High Fidelity version ' + latestVersion + ' is available',
                         wait: true,
-                        appID: appUserModelId,
+                        appID: APP_USER_MODEL_ID,
                         url: url
                     });
                     hasShownUpdateNotification = true;

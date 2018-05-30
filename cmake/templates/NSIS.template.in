@@ -1174,8 +1174,14 @@ Section "-Core installation"
   !insertmacro MUI_STARTMENU_WRITE_END
 
   !if @PRODUCTION_BUILD@ == 1
+    ${If} @SERVER_COMPONENT_CONDITIONAL@
+      ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" "com.highfidelity.sandbox"
+    ${EndIf}
     ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" "com.highfidelity.interface"
   !else
+    ${If} @SERVER_COMPONENT_CONDITIONAL@
+      ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" "com.highfidelity.sandbox-dev"
+    ${EndIf}
     ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" "com.highfidelity.interface-dev"
   !endif
 
