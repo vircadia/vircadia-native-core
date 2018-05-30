@@ -134,12 +134,12 @@ const std::string PIXEL_SHADER_DEFINES{ R"GLSL(
 
 void testShaderBuild(const std::string& vs_src, const std::string& fs_src) {
     std::string error;
-    std::vector<char> binary;
     GLuint vs, fs;
-    if (!gl::compileShader(GL_VERTEX_SHADER, vs_src, VERTEX_SHADER_DEFINES, vs, error) || 
-        !gl::compileShader(GL_FRAGMENT_SHADER, fs_src, PIXEL_SHADER_DEFINES, fs, error)) {
+    if (!gl::compileShader(GL_VERTEX_SHADER, VERTEX_SHADER_DEFINES + vs_src, vs, error) ||
+        !gl::compileShader(GL_FRAGMENT_SHADER, PIXEL_SHADER_DEFINES + fs_src, fs, error)) {
         throw std::runtime_error("Failed to compile shader");
     }
+    gl::CachedShader binary;
     auto pr = gl::compileProgram({ vs, fs }, error, binary);
     if (!pr) {
         throw std::runtime_error("Failed to link shader");

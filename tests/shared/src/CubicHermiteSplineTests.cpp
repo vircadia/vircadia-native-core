@@ -9,7 +9,7 @@
 //
 
 #include "CubicHermiteSplineTests.h"
-#include "../QTestExtensions.h"
+#include <test-utils/QTestExtensions.h>
 #include <QtCore/QDebug>
 #include "CubicHermiteSpline.h"
 

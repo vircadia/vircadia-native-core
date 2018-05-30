@@ -2,15 +2,64 @@
 
 #include "GLLogging.h"
 
-namespace gl {
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonValue>
+#include <QtCore/QJsonObject>
+#include <QtCore/QFileInfo>
+#include <QtCore/QCryptographicHash>
 
+#include <shared/FileUtils.h>
+
+using namespace gl;
+
+void Uniform::load(GLuint glprogram, int index) {
+    const GLint NAME_LENGTH = 256;
+    GLchar glname[NAME_LENGTH];
+    GLint length = 0;
+    glGetActiveUniform(glprogram, index, NAME_LENGTH, &length, &size, &type, glname);
+    name = std::string(glname, length);
+    location = glGetUniformLocation(glprogram, glname);
+}
+
+Uniforms gl::loadUniforms(GLuint glprogram) {
+    GLint uniformsCount = 0;
+    glGetProgramiv(glprogram, GL_ACTIVE_UNIFORMS, &uniformsCount);
+
+    Uniforms result;
+    result.resize(uniformsCount);
+    for (int i = 0; i < uniformsCount; i++) {
+        result[i].load(glprogram, i);
+    }
+    return result;
+}
 
 #ifdef SEPARATE_PROGRAM
-    bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, GLuint &programObject, std::string& message) {
+bool gl::compileShader(GLenum shaderDomain,
+                   const std::string& shaderSource,
+                   GLuint& shaderObject,
+                   GLuint& programObject,
+                   std::string& message) {
+    return compileShader(shaderDomain, std::vector<std::string>{ shaderSource }, shaderObject, programObject, message);
+}
 #else
-    bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, std::string& message) {
+bool gl::compileShader(GLenum shaderDomain, const std::string& shaderSource, GLuint& shaderObject, std::string& message) {
+    return compileShader(shaderDomain, std::vector<std::string>{ shaderSource }, shaderObject, message);
+}
 #endif
-    if (shaderSource.empty()) {
+
+#ifdef SEPARATE_PROGRAM
+bool gl::compileShader(GLenum shaderDomain,
+                   const std::string& shaderSource,
+                   GLuint& shaderObject,
+                   GLuint& programObject,
+                   std::string& message) {
+#else
+bool gl::compileShader(GLenum shaderDomain,
+                   const std::vector<std::string>& shaderSources,
+                   GLuint& shaderObject,
+                   std::string& message) {
+#endif
+    if (shaderSources.empty()) {
         qCDebug(glLogging) << "GLShader::compileShader - no GLSL shader source code ? so failed to create";
         return false;
     }
@@ -23,9 +72,11 @@ namespace gl {
     }
 
     // Assign the source
-    const int NUM_SOURCE_STRINGS = 2;
-    const GLchar* srcstr[] = { defines.c_str(), shaderSource.c_str() };
-    glShaderSource(glshader, NUM_SOURCE_STRINGS, srcstr, NULL);
+    std::vector<const GLchar*> cstrs;
+    for (const auto& str : shaderSources) {
+        cstrs.push_back(str.c_str());
+    }
+    glShaderSource(glshader, static_cast<GLint>(cstrs.size()), cstrs.data(), NULL);
 
     // Compile !
     glCompileShader(glshader);
@@ -66,7 +117,7 @@ namespace gl {
 
             qCCritical(glLogging) << "GLShader::compileShader - failed to compile the gl shader object:";
             int lineNumber = 0;
-            for (auto s : srcstr) {
+            for (const auto& s : cstrs) {
                 QString str(s);
                 QStringList lines = str.split("\n");
                 for (auto& line : lines) {
@@ -142,7 +193,7 @@ namespace gl {
     return true;
 }
 
-GLuint compileProgram(const std::vector<GLuint>& glshaders, std::string& message, std::vector<GLchar>& binary) {
+GLuint gl::compileProgram(const std::vector<GLuint>& glshaders, std::string& message, CachedShader& cachedShader) {
     // A brand new program:
     GLuint glprogram = glCreateProgram();
     if (!glprogram) {
@@ -150,14 +201,21 @@ GLuint compileProgram(const std::vector<GLuint>& glshaders, std::string& message
         return 0;
     }
 
-    // glProgramParameteri(glprogram, GL_PROGRAM_, GL_TRUE);
-    // Create the program from the sub shaders
-    for (auto so : glshaders) {
-        glAttachShader(glprogram, so);
-    }
+    bool binaryLoaded = false;
 
-    // Link!
-    glLinkProgram(glprogram);
+    if (glshaders.empty() && cachedShader) {
+        glProgramBinary(glprogram, cachedShader.format, cachedShader.binary.data(), (GLsizei)cachedShader.binary.size());
+        binaryLoaded = true;
+    } else {
+        // glProgramParameteri(glprogram, GL_PROGRAM_, GL_TRUE);
+        // Create the program from the sub shaders
+        for (auto so : glshaders) {
+            glAttachShader(glprogram, so);
+        }
+
+        // Link!
+        glLinkProgram(glprogram);
+    }
 
     GLint linked = 0;
     glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
@@ -205,25 +263,73 @@ GLuint compileProgram(const std::vector<GLuint>& glshaders, std::string& message
     }
 
     // If linked get the binaries
-    if (linked) {
+    if (linked && !binaryLoaded) {
         GLint binaryLength = 0;
         glGetProgramiv(glprogram, GL_PROGRAM_BINARY_LENGTH, &binaryLength);
-
         if (binaryLength > 0) {
-            GLint numBinFormats = 0;
-            glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numBinFormats);
-            if (numBinFormats > 0) {
-                binary.resize(binaryLength);
-                std::vector<GLint> binFormats(numBinFormats);
-                glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, binFormats.data());
-
-                GLenum programBinFormat;
-                glGetProgramBinary(glprogram, binaryLength, NULL, &programBinFormat, binary.data());
-            }
+            cachedShader.binary.resize(binaryLength);
+            glGetProgramBinary(glprogram, binaryLength, NULL, &cachedShader.format, cachedShader.binary.data());
         }
     }
 
     return glprogram;
 }
 
+const QString& getShaderCacheFile() {
+    static const QString SHADER_CACHE_FOLDER{ "shaders" };
+    static const QString SHADER_CACHE_FILE_NAME{ "cache.json" };
+    static const QString SHADER_CACHE_FILE = FileUtils::standardPath(SHADER_CACHE_FOLDER) + SHADER_CACHE_FILE_NAME;
+    return SHADER_CACHE_FILE;
+}
+
+static const char* SHADER_JSON_TYPE_KEY = "type";
+static const char* SHADER_JSON_SOURCE_KEY = "source";
+static const char* SHADER_JSON_DATA_KEY = "data";
+
+void gl::loadShaderCache(ShaderCache& cache) {
+    QString shaderCacheFile = getShaderCacheFile();
+    if (QFileInfo(shaderCacheFile).exists()) {
+        QString json = FileUtils::readFile(shaderCacheFile);
+        auto root = QJsonDocument::fromJson(json.toUtf8()).object();
+        for (const auto& qhash : root.keys()) {
+            auto programObject = root[qhash].toObject();
+            QByteArray qbinary = QByteArray::fromBase64(programObject[SHADER_JSON_DATA_KEY].toString().toUtf8());
+            std::string hash = qhash.toStdString();
+            auto& cachedShader = cache[hash];
+            cachedShader.binary.resize(qbinary.size());
+            memcpy(cachedShader.binary.data(), qbinary.data(), qbinary.size());
+            cachedShader.format = (GLenum)programObject[SHADER_JSON_TYPE_KEY].toInt();
+            cachedShader.source = programObject[SHADER_JSON_SOURCE_KEY].toString().toStdString();
+        }
+    }
+}
+
+void gl::saveShaderCache(const ShaderCache& cache) {
+    QByteArray json;
+    {
+        QVariantMap variantMap;
+        for (const auto& entry : cache) {
+            const auto& key = entry.first;
+            const auto& type = entry.second.format;
+            const auto& binary = entry.second.binary;
+            QVariantMap qentry;
+            qentry[SHADER_JSON_TYPE_KEY] = QVariant(type);
+            qentry[SHADER_JSON_SOURCE_KEY] = QString(entry.second.source.c_str());
+            qentry[SHADER_JSON_DATA_KEY] = QByteArray{ binary.data(), (int)binary.size() }.toBase64();
+            variantMap[key.c_str()] = qentry;
+        }
+        json = QJsonDocument::fromVariant(variantMap).toJson(QJsonDocument::Indented);
+    }
+
+    if (!json.isEmpty()) {
+        QString shaderCacheFile = getShaderCacheFile();
+        QFile saveFile(shaderCacheFile);
+        saveFile.open(QFile::WriteOnly | QFile::Text | QFile::Truncate);
+        saveFile.write(json);
+        saveFile.close();
+    }
+}
+
+std::string gl::getShaderHash(const std::string& shaderSource) {
+    return QCryptographicHash::hash(QByteArray(shaderSource.c_str()), QCryptographicHash::Md5).toBase64().toStdString();
 }
