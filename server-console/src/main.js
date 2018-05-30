@@ -235,6 +235,8 @@ const configPath = path.join(getApplicationDataDirectory(), 'config.json');
 var userConfig = new Config();
 userConfig.load(configPath);
 
+app.setAppUserModelId(APP_USER_MODEL_ID);
+
 // print out uncaught exceptions in the console
 process.on('uncaughtException', function(err) {
     log.error(err);
