@@ -125,8 +125,7 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
             // 2. The requested properties don't exist in this entity type (e.g., 'modelUrl' in a Zone Entity).
             // Since case #1 is more likely (and more critical), that's the one we warn about.
             qCWarning(entities).nospace() << "queueEditEntityMessage: some of the properties don't fit and can't be sent. entityID=" << uuidStringWithoutCurlyBraces(entityItemID);
-        }
-        else {
+        } else {
             #ifdef WANT_DEBUG
                 qCDebug(entities) << "calling queueOctreeEditMessage()...";
                 qCDebug(entities) << "    id:" << entityItemID;
