@@ -42,5 +42,4 @@ public:
 
     workload::EnginePointer _engine;
 };
-
 #endif // hifi_GameWorkload_h
