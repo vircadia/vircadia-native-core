@@ -14,7 +14,7 @@
 #include <Profile.h>
 
 #include <NumericalConstants.h>
-#include <../QTestExtensions.h>
+#include <test-utils/QTestExtensions.h>
 
 QTEST_MAIN(TraceTests)
 Q_LOGGING_CATEGORY(trace_test, "trace.test")
