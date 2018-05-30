@@ -185,10 +185,9 @@
                 } else {
                     Controller.enableMapping(FLYING_MAPPING_NAME);
                 }
-			});
+            }
+        }
+    }
 
-		}
-	}
-
-	initializeControls();
+    initializeControls();
 }()); // END LOCAL_SCOPE
