@@ -12,7 +12,7 @@
 
 #include <SharedLogging.h>
 
-#include "../QTestExtensions.h"
+#include <test-utils/QTestExtensions.h>
 #include <QtCore/QDebug>
 #include <StreamUtils.h>
 #include <glm/glm.hpp>
