@@ -421,6 +421,8 @@ public slots:
 
     void updateVerboseLogging();
 
+    void changeViewAsNeeded(float boomLength);
+
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);

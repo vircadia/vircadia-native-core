@@ -77,6 +77,17 @@ private:
 
 typedef QSharedPointer<Sound> SharedSoundPointer;
 
+/**jsdoc
+ * @class SoundObject
+ * 
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
+ * @property {boolean} downloaded
+ * @property {number} duration
+ */
 class SoundScriptingInterface : public QObject {
     Q_OBJECT
 
@@ -90,6 +101,10 @@ public:
     bool isReady() const { return _sound->isReady(); }
     float getDuration() { return _sound->getDuration(); }
 
+/**jsdoc
+ * @function SoundObject.ready
+ * @returns {Signal}
+ */
 signals:
     void ready();
 

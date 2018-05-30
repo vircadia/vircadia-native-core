@@ -17,8 +17,8 @@
 #include <NumericalConstants.h>
 #include <StreamUtils.h>
 
-#include <../GLMTestUtils.h>
-#include <../QTestExtensions.h>
+#include <test-utils/GLMTestUtils.h>
+#include <test-utils/QTestExtensions.h>
 
 QTEST_MAIN(DualQuaternionTests)
 

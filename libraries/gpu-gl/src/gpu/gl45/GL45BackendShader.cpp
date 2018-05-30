@@ -27,7 +27,8 @@ std::string GL45Backend::getBackendShaderHeader() const {
     return header;
 }
 
-int GL45Backend::makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) {
+int GL45Backend::makeResourceBufferSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) {
+    const auto& glprogram = shaderProgram.glprogram;
     GLint buffersCount = 0;
     glGetProgramInterfaceiv(glprogram, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &buffersCount);
 

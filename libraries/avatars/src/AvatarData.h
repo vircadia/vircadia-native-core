@@ -578,8 +578,7 @@ public:
      * @param {Quat} rotation - The rotation of the joint relative to its parent.
      * @param {Vec3} translation - The translation of the joint relative to its parent.
      * @example <caption>Set your avatar to it's default T-pose for a while.<br />
-     * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/user/pages/06.api-reference/25.myavatar/t-pose.png" />
-     * </caption>
+     * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/images/t-pose.png" /></caption>
      * // Set all joint translations and rotations to defaults.
      * var i, length, rotation, translation;
      * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
@@ -680,8 +679,7 @@ public:
      * @param {string} name - The name of the joint.
      * @param {Quat} rotation - The rotation of the joint relative to its parent.
      * @example <caption>Set your avatar to its default T-pose then rotate its right arm.<br />
-     * <img alt="Avatar in T-pose with arm rotated" 
-     * src="https://docs.highfidelity.com/user/pages/06.api-reference/25.myavatar/armpose.png" /></caption>
+     * <img alt="Avatar in T-pose with arm rotated" src="https://docs.highfidelity.com/images/armpose.png" /></caption>
      * // Set all joint translations and rotations to defaults.
      * var i, length, rotation, translation;
      * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
@@ -713,8 +711,7 @@ public:
      * @param {Vec3} translation - The translation of the joint relative to its parent.
      * @example <caption>Stretch your avatar's neck. Depending on the avatar you are using, you will either see a gap between 
      * the head and body or you will see the neck stretched.<br />
-     * <img alt="Avatar with neck stretched" 
-     * src="https://docs.highfidelity.com/user/pages/06.api-reference/25.myavatar/stretched-neck.png" /></caption>
+     * <img alt="Avatar with neck stretched" src="https://docs.highfidelity.com/images/stretched-neck.png" /></caption>
      * // Stretch your avatar's neck.
      * MyAvatar.setJointTranslation("Neck", { x: 0, y: 25, z: 0 });
      * 
@@ -798,8 +795,7 @@ public:
      * @param {Quat[]} jointRotations - The rotations for all joints in the avatar. The values are in the same order as the 
      * array returned by {@link MyAvatar.getJointNames} or {@link Avatar.getJointNames}.
      * @example <caption>Set your avatar to its default T-pose then rotate its right arm.<br />
-     * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/user/pages/06.api-reference/25.myavatar/armpose.png" />
-     * </caption>
+     * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/images/armpose.png" /></caption>
      * // Set all joint translations and rotations to defaults.
      * var i, length, rotation, translation;
      * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
