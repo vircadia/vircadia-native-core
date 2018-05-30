@@ -54,6 +54,7 @@ class Backend {
 public:
     virtual ~Backend(){};
 
+    virtual void shutdown() {}
     virtual const std::string& getVersion() const = 0;
 
     void setStereoState(const StereoState& stereo) { _stereo = stereo; }
@@ -154,6 +155,7 @@ public:
     Context();
     ~Context();
 
+    void shutdown();
     const std::string& getBackendVersion() const;
 
     void beginFrame(const glm::mat4& renderView = glm::mat4(), const glm::mat4& renderPose = glm::mat4());

@@ -17,7 +17,8 @@
 #include <NumericalConstants.h>
 #include <SharedUtil.h>
 
-#include "../QTestExtensions.h"
+#include <test-utils/GLMTestUtils.h>
+#include <test-utils/QTestExtensions.h>
 
 
 QTEST_MAIN(MovingMinMaxAvgTests)

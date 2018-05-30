@@ -68,22 +68,23 @@ bool GLShader::makeProgram(GLBackend& backend, Shader& shader, const Shader::Bin
     for (int version = 0; version < GLShader::NumVersions; version++) {
         auto& shaderObject = object->_shaderObjects[version];
         if (shaderObject.glprogram) {
+            shaderObject.uniforms = ::gl::loadUniforms(shaderObject.glprogram);
             Shader::SlotSet buffers;
-            backend.makeUniformBlockSlots(shaderObject.glprogram, slotBindings, buffers);
+            backend.makeUniformBlockSlots(shaderObject, slotBindings, buffers);
 
             Shader::SlotSet uniforms;
             Shader::SlotSet textures;
             Shader::SlotSet samplers;
-            backend.makeUniformSlots(shaderObject.glprogram, slotBindings, uniforms, textures, samplers);
+            backend.makeUniformSlots(shaderObject, slotBindings, uniforms, textures, samplers);
 
             Shader::SlotSet resourceBuffers;
-            backend.makeResourceBufferSlots(shaderObject.glprogram, slotBindings, resourceBuffers);
+            backend.makeResourceBufferSlots(shaderObject, slotBindings, resourceBuffers);
 
             Shader::SlotSet inputs;
-            backend.makeInputSlots(shaderObject.glprogram, slotBindings, inputs);
+            backend.makeInputSlots(shaderObject, slotBindings, inputs);
 
             Shader::SlotSet outputs;
-            backend.makeOutputSlots(shaderObject.glprogram, slotBindings, outputs);
+            backend.makeOutputSlots(shaderObject, slotBindings, outputs);
 
             // Define the public slots only from the default version
             if (version == 0) {
