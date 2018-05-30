@@ -2366,22 +2366,19 @@ var selectedParticleEntity = 0;
 var selectedParticleEntityID = null;
 
 function selectParticleEntity(entityID) {
-    var properties = Entities.getEntityProperties(entityID);
     selectedParticleEntityID = entityID;
+
+    var properties = Entities.getEntityProperties(entityID);
     if (properties.emitOrientation) {
         properties.emitOrientation = Quat.safeEulerAngles(properties.emitOrientation);
     }
-    var particleData = {
-        messageType: "particle_settings",
-        currentProperties: properties
-    };
+
     particleExplorerTool.destroyWebView();
     particleExplorerTool.createWebView();
 
     selectedParticleEntity = entityID;
     particleExplorerTool.setActiveParticleEntity(entityID);
-
-    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
+    particleExplorerTool.setActiveParticleProperties(properties);
 
     // Switch to particle explorer
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
