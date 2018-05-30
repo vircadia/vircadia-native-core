@@ -63,7 +63,6 @@ class AccountManager : public QObject, public Dependency {
     Q_OBJECT
 public:
     AccountManager(UserAgentGetter userAgentGetter = DEFAULT_USER_AGENT_GETTER);
-    ~AccountManager();
 
     Q_INVOKABLE void sendRequest(const QString& path,
                                  AccountManagerAuth::Type authType,
