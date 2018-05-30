@@ -131,7 +131,9 @@ void Test::appendTestResultsToFile(const QString& testResultsFolderPath, TestFai
         exit(-1);
     }
 
-    QString failureFolderPath { testResultsFolderPath + "/" + "Failure_" + QString::number(index) + "--" + testFailure._actualImageFilename.left(testFailure._actualImageFilename.length() - 4) };
+    QString err = QString::number(testFailure._error).left(6);
+
+    QString failureFolderPath { testResultsFolderPath + "/" + err +  "-Failure_" + QString::number(index) + "--" + testFailure._actualImageFilename.left(testFailure._actualImageFilename.length() - 4) };
     if (!QDir().mkdir(failureFolderPath)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create folder " + failureFolderPath);
         exit(-1);
