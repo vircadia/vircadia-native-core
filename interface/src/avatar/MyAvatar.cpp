@@ -1483,7 +1483,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelChangeCount++;
     int skeletonModelChangeCount = _skeletonModelChangeCount;
     Avatar::setSkeletonModelURL(skeletonModelURL);
-    _skeletonModel->setViewMask(render::ItemKey::TAG_BITS_NONE);
+    _skeletonModel->setViewMask(Model::NoView);
     _skeletonModel->setGroupCulled(true);
     _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene());
 

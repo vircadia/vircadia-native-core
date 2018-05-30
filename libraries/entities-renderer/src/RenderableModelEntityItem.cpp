@@ -1387,20 +1387,19 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     entity->stopModelOverrideIfNoParent();
 
     // Default behavior for model is to not be visible in main view if cauterized (aka parented to the avatar's neck joint)
-    uint32_t viewTaskBits = _cauterized ?
-        render::ItemKey::TAG_BITS_1 : // draw in every view except the main one (view zero)
-        render::ItemKey::TAG_BITS_ALL; // draw in all views
+    auto viewMask = _cauterized ?
+        Model::SecondaryView : // draw in every view except the main one (view zero)
+        Model::AllViews; // draw in all views
 
     if (model->isVisible() != _visible) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
         //        the renderable item. As it stands now the model checks it's visible/invisible state
         //        so most of the time we don't do anything in this function.
-    //    model->setVisibleInScene(_visible, scene, viewTaskBits, false);
         model->setVisibleInScene(_visible, scene);
     }
 
-    if (model->getViewMask() != viewTaskBits) {
-        model->setViewMask(viewTaskBits, scene);
+    if (model->getViewMask() != viewMask) {
+        model->setViewMask(viewMask, scene);
     }
 
     // TODO? early exit here when not visible?

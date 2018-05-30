@@ -79,39 +79,6 @@ void MeshPartPayload::removeMaterial(graphics::MaterialPointer material) {
     _drawMaterials.remove(material);
 }
 
-void MeshPartPayload::updateKey(bool isVisible, uint8_t layer, bool canCastShadow, uint8_t tagBits, bool isGroupCulled) {
-    ItemKey::Builder builder;
-    builder.withTypeShape();
-
-    if (!isVisible) {
-        builder.withInvisible();
-    }
-
-    builder.withTagBits(tagBits);
-
-   // if (layer) {
-     //   builder.withLayered();
-        builder.withLayer((ItemKey::Layer) layer);
- //   }
-
-    if (canCastShadow) {
-        builder.withShadowCaster();
-    }
-
-    if (isGroupCulled) {
-        builder.withSubMetaCulled();
-    }
-
-    if (topMaterialExists()) {
-        auto matKey = _drawMaterials.top().material->getKey();
-        if (matKey.isTranslucent()) {
-            builder.withTransparent();
-        }
-    }
-
-    _itemKey = builder.build();
-}
-
 void MeshPartPayload::updateKey(const render::ItemKey& key) {
     ItemKey::Builder builder(key);
     builder.withTypeShape();
@@ -215,13 +182,6 @@ template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointe
     }
     return Item::Bound();
 }
-/*
-template <> int payloadGetLayer(const ModelMeshPartPayload::Pointer& payload) {
-    if (payload) {
-        return payload->getLayer();
-    }
-    return 0;
-}*/
 
 template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload) {
     if (payload) {
@@ -348,42 +308,6 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& render
 }
 
 // Note that this method is called for models but not for shapes
-void ModelMeshPartPayload::updateKey(bool isVisible, uint8_t layer, bool canCastShadow, uint8_t tagBits, bool isGroupCulled) {
-    ItemKey::Builder builder;
-    builder.withTypeShape();
-
-    if (!isVisible) {
-        builder.withInvisible();
-    }
-
-    builder.withTagBits(tagBits);
-
-   // if (isLayered) {
-        builder.withLayer((ItemKey::Layer) layer);
-  //  }
-
-    if (canCastShadow) {
-        builder.withShadowCaster();
-    }
-
-    if (isGroupCulled) {
-        builder.withSubMetaCulled();
-    }
-
-    if (_isBlendShaped || _isSkinned) {
-        builder.withDeformed();
-    }
-
-    if (topMaterialExists()) {
-        auto matKey = _drawMaterials.top().material->getKey();
-        if (matKey.isTranslucent()) {
-            builder.withTransparent();
-        }
-    }
-
-    _itemKey = builder.build();
-}
-
 void ModelMeshPartPayload::updateKey(const render::ItemKey& key) {
     ItemKey::Builder builder(key);
     builder.withTypeShape();
@@ -401,22 +325,6 @@ void ModelMeshPartPayload::updateKey(const render::ItemKey& key) {
 
     _itemKey = builder.build();
 }
-
-/*
-void ModelMeshPartPayload::setLayer(bool isLayeredInFront, bool isLayeredInHUD) {
-    if (isLayeredInFront) {
-        _layer = Item::LAYER_3D_FRONT;
-    } else if (isLayeredInHUD) {
-        _layer = Item::LAYER_3D_HUD;
-    } else {
-        _layer = Item::LAYER_3D;
-    }
-}
-*/
-/*
-int ModelMeshPartPayload::getLayer() const {
-    return _layer;
-}*/
 
 void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe, bool useDualQuaternionSkinning) {
     if (invalidateShapeKey) {

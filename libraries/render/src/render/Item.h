@@ -288,8 +288,6 @@ public:
         static Builder light() { return Builder().withTypeLight(); }
         static Builder meta() { return Builder().withTypeMeta(); }
         static Builder background() { return Builder().withViewSpace().withLayer(ItemKey::LAYER_BACKGROUND); }
-      //  static Builder opaqueShapeLayered() { return Builder().withTypeShape().withOpaque().withWorldSpace().withLayered(); }
-      //  static Builder transparentShapeLayered() { return Builder().withTypeShape().withTransparent().withWorldSpace().withLayered(); }
         static Builder nothing() { return Builder().withNothing(); }
     };
 
@@ -412,7 +410,6 @@ public:
     public:
         virtual const ItemKey getKey() const = 0;
         virtual const Bound getBound() const = 0;
-      //  virtual int getLayer() const = 0;
         virtual void render(RenderArgs* args) = 0;
 
         virtual const ShapeKey getShapeKey() const = 0;
@@ -460,10 +457,10 @@ public:
     // Get the layer where the item belongs, simply reflecting the key.
     int getLayer() const { return _key.getLayer(); }
 
-    static const uint8_t LAYER_2D{ ItemKey::LAYER_1 };
     static const uint8_t LAYER_3D{ ItemKey::LAYER_DEFAULT };
-    static const uint8_t LAYER_3D_FRONT{ ItemKey::LAYER_2 };
-    static const uint8_t LAYER_3D_HUD{ ItemKey::LAYER_3 };
+    static const uint8_t LAYER_3D_FRONT{ ItemKey::LAYER_1 };
+    static const uint8_t LAYER_3D_HUD{ ItemKey::LAYER_2 };
+    static const uint8_t LAYER_2D{ ItemKey::LAYER_3 };
 
     // Render call for the item
     void render(RenderArgs* args) const { _payload->render(args); }

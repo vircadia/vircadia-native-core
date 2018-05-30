@@ -74,7 +74,6 @@ public:
     virtual void instantiableAvatar() = 0;
 
     typedef render::Payload<AvatarData> Payload;
- //   typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
 
     void init();
     void updateAvatarEntities();
