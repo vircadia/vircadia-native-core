@@ -218,12 +218,8 @@ public:
 
     bool getDesktopTabletBecomesToolbarSetting() { return _desktopTabletBecomesToolbarSetting.get(); }
     void setDesktopTabletBecomesToolbarSetting(bool value);
-
     bool getHmdTabletBecomesToolbarSetting() { return _hmdTabletBecomesToolbarSetting.get(); }
     void setHmdTabletBecomesToolbarSetting(bool value);
-
-    void setShowOverlays(bool value);
-
     bool getPreferStylusOverLaser() { return _preferStylusOverLaserSetting.get(); }
     void setPreferStylusOverLaser(bool value);
     // FIXME: Remove setting completely or make available through JavaScript API?

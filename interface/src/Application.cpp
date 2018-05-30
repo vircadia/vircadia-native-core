@@ -3180,11 +3180,6 @@ void Application::setHmdTabletBecomesToolbarSetting(bool value) {
     updateSystemTabletMode();
 }
 
-void Application::setShowOverlays(bool value) {
-    _hmdTabletBecomesToolbarSetting.set(value);
-    updateSystemTabletMode();
-}
-
 void Application::setPreferStylusOverLaser(bool value) {
     _preferStylusOverLaserSetting.set(value);
 }
@@ -5128,11 +5123,6 @@ void Application::updateThreads(float deltaTime) {
 void Application::toggleOverlays() {
     auto menu = Menu::getInstance();
     menu->setIsOptionChecked(MenuOption::Overlays, !menu->isOptionChecked(MenuOption::Overlays));
-}
-
-void Application::setOverlaysVisible(bool visible) {
-    auto menu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::Overlays, visible);
 }
 
 void Application::centerUI() {
@@ -8274,8 +8264,7 @@ void Application::updateSystemTabletMode() {
         if (isHMDMode()) {
             DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getHmdTabletBecomesToolbarSetting());
         } else {
-            // Show toolbar if toolbar is enabled AND the Show Overlays menu option is checked
-            DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getDesktopTabletBecomesToolbarSetting() && (Menu::getInstance()->isOptionChecked(MenuOption::Overlays)));
+            DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getDesktopTabletBecomesToolbarSetting());
         }
     }
 }
