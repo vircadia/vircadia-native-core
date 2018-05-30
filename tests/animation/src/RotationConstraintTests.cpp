@@ -17,7 +17,7 @@
 #include <NumericalConstants.h>
 #include <SwingTwistConstraint.h>
 
-#include "../QTestExtensions.h"
+#include <test-utils/QTestExtensions.h>
 
 
 QTEST_MAIN(RotationConstraintTests)

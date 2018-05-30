@@ -493,7 +493,7 @@ protected:
     int _stableOrder;
 
     /**jsdoc
-     * @typedef TabletButtonProxy.ButtonProperties
+     * @typedef {object} TabletButtonProxy.ButtonProperties
      * @property {string} icon - URL to button icon. (50 x 50)
      * @property {string} hoverIcon - URL to button icon, displayed during mouse hover. (50 x 50)
      * @property {string} activeHoverIcon - URL to button icon used when button is active, and during mouse hover. (50 x 50)
