@@ -11,10 +11,6 @@ Rectangle {
     color: Qt.rgba(0, 0, 0, 0.5);
     z: 999;
 
-    property bool keyboardEnabled: true
-    property bool keyboardRaised: false
-    property bool punctuationMode: false
-
     property string titleText: 'Create Favorite'
     property string favoriteNameText: favoriteName.text
     property string avatarImageUrl: null
@@ -136,18 +132,6 @@ Rectangle {
 
                         return false;
                     }
-                }
-            }
-
-            HifiControlsUit.Keyboard {
-                id: keyboard
-                raised: root.keyboardEnabled && root.keyboardRaised
-                numeric: root.punctuationMode
-                anchors {
-                    top: avatarThumbnail.bottom
-                    topMargin: 20
-                    left: parent.left
-                    right: parent.right
                 }
             }
         }

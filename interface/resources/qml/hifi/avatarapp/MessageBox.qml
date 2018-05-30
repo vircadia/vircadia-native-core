@@ -11,10 +11,6 @@ Rectangle {
     color: Qt.rgba(0, 0, 0, 0.5);
     z: 999;
 
-    property bool keyboardEnabled: true
-    property bool keyboardRaised: false
-    property bool punctuationMode: false
-
     property string titleText: ''
     property string bodyText: ''
     property alias inputText: input;
@@ -150,19 +146,6 @@ Rectangle {
                 anchors.top: imageSource !== null ? image.bottom : body.bottom
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-            }
-
-            HifiControlsUit.Keyboard {
-                id: keyboard
-                z: 100
-                raised: root.keyboardEnabled && root.keyboardRaised
-                numeric: root.punctuationMode
-                anchors {
-                    top: input.bottom
-                    topMargin: 20
-                    left: parent.left
-                    right: parent.right
-                }
             }
         }
 

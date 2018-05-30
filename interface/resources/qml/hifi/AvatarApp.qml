@@ -17,7 +17,7 @@ Rectangle {
 
     HifiControls.Keyboard {
         id: keyboard
-        z: 100
+        z: 1000
         raised: parent.keyboardEnabled && parent.keyboardRaised
         numeric: parent.punctuationMode
         anchors {
