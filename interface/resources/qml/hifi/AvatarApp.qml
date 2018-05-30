@@ -478,7 +478,7 @@ Rectangle {
                 anchors.fill: parent;
                 onClicked: emitSendToScript({'method' : 'navigate', 'url' : allAvatars.makeMarketItemUrl(currentAvatar.avatarUrl)})
             }
-            color: style.colors.blueHighlight
+            color: hasMarketId ? style.colors.blueHighlight : 'black'
         }
 
         TextStyle3 {
