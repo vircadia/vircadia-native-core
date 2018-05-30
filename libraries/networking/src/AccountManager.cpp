@@ -93,6 +93,13 @@ AccountManager::AccountManager(UserAgentGetter userAgentGetter) :
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
 const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
 
+AccountManager::~AccountManager() {
+    QMutexLocker lock(&_rsaKeygenLock);
+    while (_rsaKeygenThread) {
+        _rsaKeygenWait.wait(&_rsaKeygenLock);
+    }
+}
+
 void AccountManager::logout() {
     // a logout means we want to delete the DataServerAccountInfo we currently have for this URL, in-memory and in file
     _accountInfo = DataServerAccountInfo();
@@ -761,8 +768,9 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
                 this, &AccountManager::handleKeypairGenerationError);
 
         connect(keypairGenerator, &QObject::destroyed, generateThread, &QThread::quit);
-        connect(this, &QObject::destroyed, generateThread, &QThread::quit);
+        connect(generateThread, &QThread::finished, this, &AccountManager::rsaKeygenThreadFinished);
         connect(generateThread, &QThread::finished, generateThread, &QThread::deleteLater);
+        _rsaKeygenThread = generateThread;
 
         keypairGenerator->moveToThread(generateThread);
 
@@ -869,4 +877,10 @@ void AccountManager::handleKeypairGenerationError() {
     _isWaitingForKeypairResponse = false;
 
     sender()->deleteLater();
+}
+
+void AccountManager::rsaKeygenThreadFinished() {
+    QMutexLocker lock(&_rsaKeygenLock);
+    _rsaKeygenThread = nullptr;
+    _rsaKeygenWait.wakeAll();
 }
