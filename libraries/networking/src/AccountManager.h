@@ -15,8 +15,6 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
-#include <QtCore/QMutex>
-#include <QtCore/QWaitCondition>
 #include <QtNetwork/QNetworkReply>
 #include <QUrlQuery>
 
@@ -130,11 +128,10 @@ signals:
 private slots:
     void processReply();
     void handleKeypairGenerationError();
-    void processGeneratedKeypair();
+    void processGeneratedKeypair(QByteArray publicKey, QByteArray privateKey);
     void publicKeyUploadSucceeded(QNetworkReply& reply);
     void publicKeyUploadFailed(QNetworkReply& reply);
     void generateNewKeypair(bool isUserKeypair = true, const QUuid& domainID = QUuid());
-    void rsaKeygenThreadFinished();
 
 private:
     AccountManager(AccountManager const& other) = delete;
@@ -160,9 +157,6 @@ private:
     QByteArray _pendingPrivateKey;
 
     QUuid _sessionID { QUuid::createUuid() };
-    QMutex _rsaKeygenLock;
-    QWaitCondition _rsaKeygenWait;
-    QThread* _rsaKeygenThread { nullptr };
 };
 
 #endif // hifi_AccountManager_h

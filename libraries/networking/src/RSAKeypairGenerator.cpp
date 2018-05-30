@@ -25,7 +25,10 @@
 RSAKeypairGenerator::RSAKeypairGenerator(QObject* parent) :
     QObject(parent)
 {
+}
 
+void RSAKeypairGenerator::run() {
+    generateKeypair();
 }
 
 void RSAKeypairGenerator::generateKeypair() {
@@ -92,5 +95,5 @@ void RSAKeypairGenerator::generateKeypair() {
     OPENSSL_free(publicKeyDER);
     OPENSSL_free(privateKeyDER);
     
-    emit generatedKeypair();
+    emit generatedKeypair(_publicKey, _privateKey);
 }
