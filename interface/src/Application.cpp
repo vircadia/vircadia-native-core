@@ -3180,7 +3180,6 @@ void Application::setHmdTabletBecomesToolbarSetting(bool value) {
     updateSystemTabletMode();
 }
 
-#pragma optimize("", off)
 void Application::setShowOverlays(bool value) {
     _hmdTabletBecomesToolbarSetting.set(value);
     updateSystemTabletMode();
@@ -8269,7 +8268,6 @@ void Application::updateThreadPoolCount() const {
     QThreadPool::globalInstance()->setMaxThreadCount(threadPoolSize);
 }
 
-#pragma optimize("", off)
 void Application::updateSystemTabletMode() {
     if (_settingsLoaded) {
         qApp->setProperty(hifi::properties::HMD, isHMDMode());
