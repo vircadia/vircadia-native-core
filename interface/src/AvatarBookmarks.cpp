@@ -95,8 +95,14 @@ void addAvatarEntities(const QVariantList& avatarEntities) {
 AvatarBookmarks::AvatarBookmarks() {
     _bookmarksFilename = PathUtils::getAppDataPath() + "/" + AVATARBOOKMARKS_FILENAME;
     if(!QFile::exists(_bookmarksFilename)) {
-        auto defaultBookmarksFilename = PathUtils::resourcesUrl(QString("avatar/bookmarks") + "/" + AVATARBOOKMARKS_FILENAME).toLocalFile();
-        QFile::copy(defaultBookmarksFilename, _bookmarksFilename);
+        auto defaultBookmarksFilename = PathUtils::resourcesPath() + QString("avatar/bookmarks") + "/" + AVATARBOOKMARKS_FILENAME;
+        if (!QFile::exists(defaultBookmarksFilename)) {
+            qDebug() << defaultBookmarksFilename << "doesn't exist!";
+        }
+
+        if (!QFile::copy(defaultBookmarksFilename, _bookmarksFilename)) {
+            qDebug() << "failed to copy" << defaultBookmarksFilename << "to" << _bookmarksFilename;
+        }
     }
     readFromFile();
 }
