@@ -29,6 +29,11 @@ const float Item::Status::Value::CYAN = 180.0f;
 const float Item::Status::Value::BLUE = 240.0f;
 const float Item::Status::Value::MAGENTA = 300.0f;
 
+const uint8_t Item::LAYER_3D = ItemKey::LAYER_DEFAULT;
+const uint8_t Item::LAYER_3D_FRONT = ItemKey::LAYER_1;
+const uint8_t Item::LAYER_3D_HUD = ItemKey::LAYER_2;
+const uint8_t Item::LAYER_2D = ItemKey::LAYER_3;
+
 const uint8_t ItemKey::TAG_BITS_ALL { 0xFF };
 const uint8_t ItemKey::TAG_BITS_NONE { 0x00 };
 const uint8_t ItemKey::TAG_BITS_0 { 0x01 };

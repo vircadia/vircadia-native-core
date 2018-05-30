@@ -457,10 +457,10 @@ public:
     // Get the layer where the item belongs, simply reflecting the key.
     int getLayer() const { return _key.getLayer(); }
 
-    static const uint8_t LAYER_3D{ ItemKey::LAYER_DEFAULT };
-    static const uint8_t LAYER_3D_FRONT{ ItemKey::LAYER_1 };
-    static const uint8_t LAYER_3D_HUD{ ItemKey::LAYER_2 };
-    static const uint8_t LAYER_2D{ ItemKey::LAYER_3 };
+    static const uint8_t LAYER_3D;
+    static const uint8_t LAYER_3D_FRONT;
+    static const uint8_t LAYER_3D_HUD;
+    static const uint8_t LAYER_2D;
 
     // Render call for the item
     void render(RenderArgs* args) const { _payload->render(args); }
