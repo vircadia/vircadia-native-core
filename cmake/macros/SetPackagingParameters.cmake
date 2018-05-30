@@ -113,6 +113,7 @@ macro(SET_PACKAGING_PARAMETERS)
       message(FATAL_ERROR "Could not retreive abbreviated SHA for PR or production master build")
     endif ()
 
+    set(BUILD_VERSION_NO_SHA ${BUILD_VERSION})
     set(BUILD_VERSION "${BUILD_VERSION}-${GIT_COMMIT_HASH}")
 
     # pass along a release number without the SHA in case somebody
@@ -172,8 +173,8 @@ macro(SET_PACKAGING_PARAMETERS)
       set(INTERFACE_SHORTCUT_NAME "High Fidelity Interface")
       set(CONSOLE_SHORTCUT_NAME "Sandbox")
     else ()
-      set(INTERFACE_SHORTCUT_NAME "High Fidelity Interface - ${BUILD_VERSION}")
-      set(CONSOLE_SHORTCUT_NAME "Sandbox - ${BUILD_VERSION}")
+      set(INTERFACE_SHORTCUT_NAME "High Fidelity Interface - ${BUILD_VERSION_NO_SHA}")
+      set(CONSOLE_SHORTCUT_NAME "Sandbox - ${BUILD_VERSION_NO_SHA}")
     endif ()
 
     set(INTERFACE_HF_SHORTCUT_NAME "${INTERFACE_SHORTCUT_NAME}")
