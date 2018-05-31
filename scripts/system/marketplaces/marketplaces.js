@@ -19,6 +19,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
 
     Script.include("/~/system/libraries/WebTablet.js");
     Script.include("/~/system/libraries/gridTool.js");
+    Script.include("/~/system/libraries/connectionUtils.js");
 
     var METAVERSE_SERVER_URL = Account.metaverseServerURL;
     var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";

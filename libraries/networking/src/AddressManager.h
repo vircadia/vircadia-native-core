@@ -32,6 +32,11 @@ const QString GET_PLACE = "/api/v1/places/%1";
 /**jsdoc
  * The location API provides facilities related to your current location in the metaverse.
  *
+ * <h5>Getter/Setter</h5>
+ * <p>You can get and set your current metaverse address by directly reading a string value from and writing a string value to 
+ * the <code>location</code> object. This is an alternative to using the <code>location.href</code> property or this object's
+ * functions.</p>
+ *
  * @namespace location
  *
  * @hifi-interface
@@ -133,7 +138,7 @@ public:
      *     </tr>
      *   </tbody>
      * </table>
-     * @typedef location.LookupTrigger
+     * @typedef {number} location.LookupTrigger
      */
     enum LookupTrigger {
         UserInput,
@@ -179,7 +184,7 @@ public slots:
     /**jsdoc
      * Go to a specified metaverse address.
      * @function location.handleLookupString
-     * @param {string} address - The address to go to: a <code>"hifi:/"<code> address, an IP address (e.g., 
+     * @param {string} address - The address to go to: a <code>"hifi://"<code> address, an IP address (e.g., 
      * <code>"127.0.0.1"</code> or <code>"localhost"</code>), a domain name, a named path on a domain (starts with 
      * <code>"/"</code>), a position or position and orientation, or a user (starts with <code>"@"</code>).
      * @param {boolean} fromSuggestions=false - Set to <code>true</code> if the address is obtained from the "Goto" dialog.

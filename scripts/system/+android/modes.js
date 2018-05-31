@@ -28,6 +28,7 @@ modeLabel[MODE_MY_VIEW]="MY VIEW";
 var logEnabled = false;
 var radar = Script.require('./radar.js');
 var uniqueColor = Script.require('./uniqueColor.js');
+var displayNames = Script.require('./displayNames.js');
 
 function printd(str) {
     if (logEnabled) {       
@@ -57,14 +58,22 @@ function init() {
     });
     
     switchToMode(getCurrentModeSetting());
-
-    modeButton.clicked.connect(function() {    
-        switchToMode(nextMode[currentMode]);
-    });
+    
+    modeButton.entered.connect(modeButtonPressed);
+    modeButton.clicked.connect(modeButtonClicked);
 }
 
 function shutdown() {
+    modeButton.entered.disconnect(modeButtonPressed);
+    modeButton.clicked.disconnect(modeButtonClicked);
+}
 
+function modeButtonPressed() {
+   Controller.triggerHapticPulseOnDevice(Controller.findDevice("TouchscreenVirtualPad"), 0.1, 40.0, 0);
+}
+
+function modeButtonClicked() {
+    switchToMode(nextMode[currentMode]);
 }
 
 function saveCurrentModeSetting(mode) {
@@ -87,8 +96,10 @@ function switchToMode(newMode) {
 
     if (currentMode == MODE_RADAR) {
         radar.startRadarMode();
+        displayNames.ending();
     } else  if (currentMode == MODE_MY_VIEW) {
         // nothing to do yet
+        displayNames.init();
     } else {
         printd("Unknown view mode " + currentMode);
     }

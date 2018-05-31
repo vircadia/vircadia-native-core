@@ -90,7 +90,6 @@ GLTexture* GLESBackend::syncGPUObject(const TexturePointer& texturePointer) {
                 auto minAvailableMip = texture.minAvailableMipLevel();
                 if (minAvailableMip < varTex->_minAllocatedMip) {
                     varTex->_minAllocatedMip = minAvailableMip;
-                    GLESVariableAllocationTexture::_memoryPressureStateStale = true;
                 }
             }
         }
@@ -342,8 +341,6 @@ using GLESVariableAllocationTexture = GLESBackend::GLESVariableAllocationTexture
 GLESVariableAllocationTexture::GLESVariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) :
      GLESTexture(backend, texture)
 {
-    Backend::textureResourceCount.increment();
-
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
     _maxAllocatedMip = _populatedMip = mipLevels;
@@ -361,16 +358,12 @@ GLESVariableAllocationTexture::GLESVariableAllocationTexture(const std::weak_ptr
     uint16_t allocatedMip = std::max<uint16_t>(_minAllocatedMip, targetMip);
 
     allocateStorage(allocatedMip);
-    _memoryPressureStateStale = true;
     copyMipsFromTexture();
 
     syncSampler();
 }
 
 GLESVariableAllocationTexture::~GLESVariableAllocationTexture() {
-    Backend::textureResourceCount.decrement();
-    Backend::textureResourceGPUMemSize.update(_size, 0);
-    Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
 }
 
 void GLESVariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
@@ -403,8 +396,7 @@ Size GLESVariableAllocationTexture::copyMipsFromTexture() {
             amount += copyMipFaceFromTexture(sourceMip, targetMip, face);
         }
     }
-
-
+    incrementPopulatedSize(amount);
     return amount;
 }
 
@@ -413,7 +405,6 @@ Size GLESVariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, ui
     withPreservedTexture([&] {
         amountCopied = Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
     });
-    incrementPopulatedSize(amountCopied);
     return amountCopied;
 }
 
@@ -559,7 +550,7 @@ void GLESVariableAllocationTexture::copyTextureMipsInGPUMem(GLuint srcId, GLuint
     });
 }
 
-void GLESVariableAllocationTexture::promote() {
+size_t GLESVariableAllocationTexture::promote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip > 0);
 
@@ -587,12 +578,11 @@ void GLESVariableAllocationTexture::promote() {
 
     // update the memory usage
     Backend::textureResourceGPUMemSize.update(oldSize, 0);
-    // no change to Backend::textureResourcePopulatedGPUMemSize
 
-    populateTransferQueue();
+    return _size - oldSize;
 }
 
-void GLESVariableAllocationTexture::demote() {
+size_t GLESVariableAllocationTexture::demote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip < _maxAllocatedMip);
     auto oldId = _id;
@@ -626,16 +616,16 @@ void GLESVariableAllocationTexture::demote() {
         }
         decrementPopulatedSize(amountUnpopulated);
     }
-    populateTransferQueue();
+
+    return oldSize - _size;
 }
 
 
-void GLESVariableAllocationTexture::populateTransferQueue() {
+void GLESVariableAllocationTexture::populateTransferQueue(TransferJob::Queue& queue) {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     if (_populatedMip <= _allocatedMip) {
         return;
     }
-    _pendingTransfers = TransferQueue();
 
     const uint8_t maxFace = GLTexture::getFaceCount(_target);
     uint16_t sourceMip = _populatedMip;
@@ -651,7 +641,7 @@ void GLESVariableAllocationTexture::populateTransferQueue() {
             // If the mip is less than the max transfer size, then just do it in one transfer
             if (glm::all(glm::lessThanEqual(mipDimensions, MAX_TRANSFER_DIMENSIONS))) {
                 // Can the mip be transferred in one go
-                _pendingTransfers.emplace(new TransferJob(*this, sourceMip, targetMip, face));
+                queue.emplace(new TransferJob(_gpuObject, sourceMip, targetMip, face));
                 continue;
             }
 
@@ -668,14 +658,16 @@ void GLESVariableAllocationTexture::populateTransferQueue() {
             uint32_t lineOffset = 0;
             while (lineOffset < lines) {
                 uint32_t linesToCopy = std::min<uint32_t>(lines - lineOffset, linesPerTransfer);
-                _pendingTransfers.emplace(new TransferJob(*this, sourceMip, targetMip, face, linesToCopy, lineOffset));
+                queue.emplace(new TransferJob(_gpuObject, sourceMip, targetMip, face, linesToCopy, lineOffset));
                 lineOffset += linesToCopy;
             }
         }
 
         // queue up the sampler and populated mip change for after the transfer has completed
-        _pendingTransfers.emplace(new TransferJob(*this, [=] {
+        queue.emplace(new TransferJob(sourceMip, [=] {
             _populatedMip = sourceMip;
+            incrementPopulatedSize(_gpuObject.evalMipSize(sourceMip));
+            sanityCheck();
             syncSampler();
         }));
     } while (sourceMip != _allocatedMip);

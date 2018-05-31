@@ -21,7 +21,7 @@ namespace scriptable {
      * @property {Uuid} objectID - UUID of corresponding inworld object (if model is associated)
      * @property {number} numMeshes - The number of submeshes contained in the model.
      * @property {Graphics.Mesh[]} meshes - Array of submesh references.
-     * @property {Object.<string, Graphics.MaterialLayer[]>} materialLayers - Map of materials layer lists.  You can look up a material layer list by mesh part number or by material name.
+     * @property {Object.<string,Graphics.MaterialLayer[]>} materialLayers - Map of materials layer lists.  You can look up a material layer list by mesh part number or by material name.
      * @property {string[]} materialNames - Array of all the material names used by the mesh parts of this model, in order (e.g. materialNames[0] is the name of the first mesh part's material).
      */
 

@@ -114,9 +114,9 @@ public:
 
         void allocateStorage(uint16 allocatedMip);
         void syncSampler() const override;
-        void promote() override;
-        void demote() override;
-        void populateTransferQueue() override;
+        size_t promote() override;
+        size_t demote() override;
+        void populateTransferQueue(TransferQueue& pendingTransfers) override;
 
         Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
         Size copyMipsFromTexture();
@@ -173,7 +173,7 @@ protected:
 
     std::string getBackendShaderHeader() const override;
     void makeProgramBindings(ShaderObject& shaderObject) override;
-    int makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
+    int makeResourceBufferSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
 
 };
 

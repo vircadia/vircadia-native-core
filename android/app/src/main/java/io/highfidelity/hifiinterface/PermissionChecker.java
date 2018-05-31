@@ -63,8 +63,7 @@ public class PermissionChecker extends Activity {
     }
 
     private void launchActivityWithPermissions(){
-        finish();
-        Intent i = new Intent(this, HomeActivity.class);
+        Intent i = new Intent(this, InterfaceActivity.class);
         startActivity(i);
         finish();
     }

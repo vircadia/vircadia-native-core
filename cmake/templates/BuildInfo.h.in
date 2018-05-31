@@ -26,4 +26,6 @@ namespace BuildInfo {
     const QString VERSION = "@BUILD_VERSION@";
     const QString BUILD_BRANCH = "@BUILD_BRANCH@";
     const QString BUILD_GLOBAL_SERVICES = "@BUILD_GLOBAL_SERVICES@";
+    const QString BUILD_TIME = "@BUILD_TIME@";
 }
+

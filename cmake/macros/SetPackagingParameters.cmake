@@ -73,6 +73,8 @@ macro(SET_PACKAGING_PARAMETERS)
     add_definitions(-DDEV_BUILD)
   endif ()
 
+  string(TIMESTAMP BUILD_TIME "%d/%m/%Y")
+
   if (DEPLOY_PACKAGE)
     # for deployed packages always grab the serverless content
     set(DOWNLOAD_SERVERLESS_CONTENT ON)

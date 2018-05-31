@@ -27,7 +27,7 @@
      <string>Close</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="createTestButton">
+   <widget class="QPushButton" name="createTestsButton">
     <property name="geometry">
      <rect>
       <x>20</x>
@@ -37,7 +37,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Create Test</string>
+     <string>Create Tests</string>
     </property>
    </widget>
    <widget class="QPushButton" name="evaluateTestsButton">

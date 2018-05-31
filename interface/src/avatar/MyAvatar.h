@@ -121,7 +121,7 @@ class MyAvatar : public Avatar {
      *     while flying.
      * @property {number} hmdRollControlDeadZone=8 - The amount of HMD roll, in degrees, required before your avatar turns if 
      *    <code>hmdRollControlEnabled</code> is enabled.
-     * @property hmdRollControlRate {number} If hmdRollControlEnabled is true, this value determines the maximum turn rate of
+     * @property {number} hmdRollControlRate If hmdRollControlEnabled is true, this value determines the maximum turn rate of
      *     your avatar when rolling your HMD in degrees per second.
      * @property {number} userHeight=1.75 - The height of the user in sensor space.
      * @property {number} userEyeHeight=1.65 - The estimated height of the user's eyes in sensor space. <em>Read-only.</em>
@@ -137,9 +137,9 @@ class MyAvatar : public Avatar {
      * @property {number} scale 
      * @property {number} density <em>Read-only.</em>
      * @property {Vec3} handPosition 
-     * @property {number} bodyYaw - The rotation left or right about an axis running from the head to the feet of MyAvatar. Yaw 
-     *     is sometimes called "heading".
-     * @property {number} bodyPitch - The rotation about an axis running from shoulder to shoulder of MyAvatar. Pitch is 
+     * @property {number} bodyYaw - The rotation left or right about an axis running from the head to the feet of the avatar. 
+     *     Yaw is sometimes called "heading".
+     * @property {number} bodyPitch - The rotation about an axis running from shoulder to shoulder of the avatar. Pitch is 
      *     sometimes called "elevation".
      * @property {number} bodyRoll - The rotation about an axis running from the chest to the back of the avatar. Roll is 
      *     sometimes called "bank".
@@ -1402,7 +1402,7 @@ private:
     SharedSoundPointer _collisionSound;
 
     MyCharacterController _characterController;
-    int16_t _previousCollisionGroup { BULLET_COLLISION_GROUP_MY_AVATAR };
+    int32_t _previousCollisionGroup { BULLET_COLLISION_GROUP_MY_AVATAR };
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;

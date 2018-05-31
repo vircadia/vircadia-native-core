@@ -61,7 +61,7 @@ glm::quat computeBulletRotationStep(const glm::vec3& angularVelocity, float time
 }
 /* end Bullet code derivation*/
 
-int16_t Physics::getDefaultCollisionMask(int16_t group) {
+int32_t Physics::getDefaultCollisionMask(int32_t group) {
     switch(group) {
         case  BULLET_COLLISION_GROUP_STATIC:
             return BULLET_COLLISION_MASK_STATIC;

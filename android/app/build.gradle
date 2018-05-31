@@ -27,6 +27,14 @@ android {
                     '-DDISABLE_KTX_CACHE=OFF'
             }
         }
+        signingConfigs {
+            release {
+                storeFile project.hasProperty("HIFI_ANDROID_KEYSTORE") ? file(HIFI_ANDROID_KEYSTORE) : null
+                storePassword project.hasProperty("HIFI_ANDROID_KEYSTORE_PASSWORD") ? HIFI_ANDROID_KEYSTORE_PASSWORD : ''
+                keyAlias project.hasProperty("HIFI_ANDROID_KEY_ALIAS") ? HIFI_ANDROID_KEY_ALIAS : ''
+                keyPassword project.hasProperty("HIFI_ANDROID_KEY_PASSWORD") ? HIFI_ANDROID_KEY_PASSWORD : ''
+            }
+        }
     }
 
     compileOptions {
@@ -38,6 +46,10 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig project.hasProperty("HIFI_ANDROID_KEYSTORE") &&
+                    project.hasProperty("HIFI_ANDROID_KEYSTORE_PASSWORD") &&
+                    project.hasProperty("HIFI_ANDROID_KEY_ALIAS") &&
+                    project.hasProperty("HIFI_ANDROID_KEY_PASSWORD")? signingConfigs.release : null
         }
     }
 
@@ -104,6 +116,15 @@ dependencies {
     implementation 'com.android.support:design:26.1.0'
     implementation 'com.android.support:appcompat-v7:26.1.0'
     compile 'com.android.support:recyclerview-v7:26.1.0'
+    compile 'com.android.support:cardview-v7:26.1.0'
+
+    compile 'com.squareup.retrofit2:retrofit:2.4.0'
+    compile 'com.squareup.retrofit2:converter-gson:2.4.0'
+    implementation 'com.squareup.picasso:picasso:2.71828'
+
+    compile 'com.squareup.retrofit2:retrofit:2.4.0'
+    compile 'com.squareup.retrofit2:converter-gson:2.4.0'
+    implementation 'com.squareup.picasso:picasso:2.71828'
 
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 }

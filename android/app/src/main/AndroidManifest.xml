@@ -39,29 +39,16 @@
          </activity>
         -->
         <activity
-            android:name=".HomeActivity"
-            android:label="@string/home"
+            android:name=".MainActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.NoActionBar">
-        </activity>
-        <activity
-            android:name=".GotoActivity"
-            android:label="@string/go_to"
-            android:theme="@style/AppTheme">
+            android:theme="@style/Theme.AppCompat.Translucent.NoActionBar">
         </activity>
         <activity
             android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
             android:name=".InterfaceActivity"
             android:label="@string/app_name"
-            android:screenOrientation="landscape"
             android:launchMode="singleTop"
             >
-
-            <intent-filter>
-                <category android:name="com.google.intent.category.DAYDREAM"/>
-                <action android:name="android.intent.action.MAIN" />
-            </intent-filter>
-
             <meta-data android:name="android.app.lib_name" android:value="native-lib"/>
             <meta-data android:name="android.app.qt_libs_resource_id" android:resource="@array/qt_libs"/>
             <meta-data android:name="android.app.bundled_in_lib_resource_id" android:resource="@array/bundled_in_lib"/>
@@ -75,6 +62,11 @@
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />
+
+        <activity
+            android:name=".SplashActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Translucent.NoActionBar" />
     </application>
 
     <uses-feature android:name="android.software.vr.mode" android:required="true"/>

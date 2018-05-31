@@ -88,9 +88,9 @@ def packages = [
         checksum: qtChecksum,
     ],
     bullet: [
-        file: 'bullet-2.83_armv8-libcpp.tgz',
-        versionId: 'L6MqTwt24yZAx0cHgLyN.GPky1kVGsq3',
-        checksum: '2c558d604fce337f5eba3eb7ec1252fd',
+        file: 'bullet-2.88_armv8-libcpp.tgz',
+        versionId: 'S8YaoED0Cl8sSb8fSV7Q2G1lQJSNDxqg',
+        checksum: '81642779ccb110f8c7338e8739ac38a0',
     ],
     draco: [
         file: 'draco_armv8-libcpp.tgz',
@@ -103,9 +103,9 @@ def packages = [
         checksum: 'a8ee8584cf1ccd34766c7ddd9d5e5449',
     ],
     glm: [
-        file: 'glm-0.9.8.tgz',
-        versionId: 'CHPAk.Un_8MC4v8cIqkEJ468Y4_RQDmd',
-        checksum: 'd2b42cee31d2bc17bab6ce69e6b3f30a',
+        file: 'glm-0.9.8.5-patched.tgz',
+        versionId: 'cskfMoJrFlAeqI3WPxemyO_Cxt7rT9EJ',
+        checksum: '067b5fe16b220b5b1a1039ba51b062ae',
     ],
     gvr: [
         file: 'gvrsdk_v1.101.0.tgz',
