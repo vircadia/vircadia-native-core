@@ -52,10 +52,21 @@ public:
         TAG_6,
         TAG_7,
 
-        NUM_TAGS
+        NUM_TAGS,
+
+        TAG_BITS_ALL = 0xFF,
+        TAG_BITS_NONE = 0x00,
+        TAG_BITS_0 = 0x01,
+        TAG_BITS_1 = 0x02,
+        TAG_BITS_2 = 0x04,
+        TAG_BITS_3 = 0x08,
+        TAG_BITS_4 = 0x10,
+        TAG_BITS_5 = 0x20,
+        TAG_BITS_6 = 0x40,
+        TAG_BITS_7 = 0x80,
     };
-    // Tag bits are derived from the Tag enum
-    const static uint8_t TAG_BITS_ALL;
+ /*   // Tag bits are derived from the Tag enum
+    constexpr static uint8_t TAG_BITS_ALL;
     const static uint8_t TAG_BITS_NONE;
     const static uint8_t TAG_BITS_0;
     const static uint8_t TAG_BITS_1;
@@ -65,7 +76,7 @@ public:
     const static uint8_t TAG_BITS_5;
     const static uint8_t TAG_BITS_6;
     const static uint8_t TAG_BITS_7;
-
+*/
     // Items are organized in layers, an item belongs to one of the 8 Layers available.
     // By default an item is in the 'LAYER_DEFAULT' meaning that it is NOT layered.
     // THere is NO ordering relationship between layers.
@@ -80,10 +91,12 @@ public:
         LAYER_BACKGROUND, // Last Layer is the background by convention
 
         NUM_LAYERS,
-        NUM_LAYER_BITS = 3
+
+        NUM_LAYER_BITS = 3,
+        LAYER_BITS_ALL = 0x07,
     };
     // Layer bits are derived from the Layer enum, the number of bits needed to represent integer 0 to NUM_LAYERS
-    const static uint8_t LAYER_BITS_ALL;
+ //   const static uint8_t LAYER_BITS_ALL;
 
     enum FlagBit : uint32_t {
         TYPE_SHAPE = 0,   // Item is a Shape: Implements the Shape Interface that draw a Geometry rendered with a Material
@@ -456,11 +469,6 @@ public:
 
     // Get the layer where the item belongs, simply reflecting the key.
     int getLayer() const { return _key.getLayer(); }
-
-    static const uint8_t LAYER_3D;
-    static const uint8_t LAYER_3D_FRONT;
-    static const uint8_t LAYER_3D_HUD;
-    static const uint8_t LAYER_2D;
 
     // Render call for the item
     void render(RenderArgs* args) const { _payload->render(args); }

@@ -36,9 +36,9 @@ namespace render {
         if (overlay->is3D()) {
             auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
             if (overlay3D->getDrawInFront()) {
-                builder.withLayer(render::Item::LAYER_3D_FRONT);
+                builder.withLayer(Render::LAYER_3D_FRONT);
             } else if (overlay3D->getDrawHUDLayer()) {
-                builder.withLayer(render::Item::LAYER_3D_HUD);
+                builder.withLayer(Render::LAYER_3D_HUD);
             }
 
             if (overlay->isTransparent()) {
@@ -46,7 +46,7 @@ namespace render {
             }
         } else {
             builder.withViewSpace();
-            builder.withLayer(render::Item::LAYER_2D);
+            builder.withLayer(Render::LAYER_2D);
         }
 
         if (!overlay->getVisible()) {
@@ -54,8 +54,8 @@ namespace render {
         }
 
         // always visible in primary view.  if isVisibleInSecondaryCamera, also draw in secondary view
-        uint32_t viewTaskBits = render::ItemKey::TAG_BITS_0 |
-            (overlay->getIsVisibleInSecondaryCamera() ? render::ItemKey::TAG_BITS_1 : render::ItemKey::TAG_BITS_NONE);
+        uint32_t viewTaskBits = Render::TAG_MAIN_VIEW |
+            (overlay->getIsVisibleInSecondaryCamera() ? Render::TAG_SECONDARY_VIEW : Render::TAG_NONE);
 
         builder.withTagBits(viewTaskBits);
 

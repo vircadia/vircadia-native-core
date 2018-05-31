@@ -52,9 +52,8 @@ const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar) {
-        ItemKey::Builder keyBuilder = ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(Model::AllViews).withMetaCullGroup();
+        ItemKey::Builder keyBuilder = ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(Render::TAG_ALL_VIEWS).withMetaCullGroup();
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
-        auto model = avatarPtr->getSkeletonModel();
         if (!avatarPtr->getEnableMeshVisible()) {
             keyBuilder.withInvisible();
         }
@@ -588,18 +587,18 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     _renderBound = getBounds();
     transaction.resetItem(_renderItemID, avatarPayloadPointer);
     _skeletonModel->addToScene(scene, transaction);
-    _skeletonModel->setViewMask(Model::AllViews);
+    _skeletonModel->setTagMask(Render::TAG_ALL_VIEWS);
     _skeletonModel->setGroupCulled(true);
     _skeletonModel->setCanCastShadow(true);
-    _skeletonModel->setVisibleInScene(_isMeshEnableVisible, scene);
+    _skeletonModel->setVisibleInScene(_isMeshVisible, scene);
 
     processMaterials();
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
-        attachmentModel->setViewMask(Model::AllViews);
+        attachmentModel->setTagMask(Render::TAG_ALL_VIEWS);
         attachmentModel->setGroupCulled(false);
         attachmentModel->setCanCastShadow(true);
-        attachmentModel->setVisibleInScene(_isMeshEnableVisible, scene);
+        attachmentModel->setVisibleInScene(_isMeshVisible, scene);
     }
 
     _mustFadeIn = true;
@@ -790,14 +789,14 @@ void Avatar::render(RenderArgs* renderArgs) {
 
 
 void Avatar::setEnableMeshVisible(bool isEnabled) {
-    if (_isMeshEnableVisible != isEnabled) {
-        _isMeshEnableVisible = isEnabled;
+    if (_isMeshVisible != isEnabled) {
+        _isMeshVisible = isEnabled;
         _needMeshVisibleSwitch = true;
     }
 }
 
 bool Avatar::getEnableMeshVisible() const {
-    return _isMeshEnableVisible;
+    return _isMeshVisible;
 }
 
 void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
@@ -812,10 +811,10 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
         _skeletonModel->removeFromScene(scene, transaction);
         _skeletonModel->addToScene(scene, transaction);
 
-        _skeletonModel->setViewMask(Model::AllViews);
+        _skeletonModel->setTagMask(Render::TAG_ALL_VIEWS);
         _skeletonModel->setGroupCulled(true);
         _skeletonModel->setCanCastShadow(true);
-        _skeletonModel->setVisibleInScene(_isMeshEnableVisible, scene);
+        _skeletonModel->setVisibleInScene(_isMeshVisible, scene);
 
         processMaterials();
         canTryFade = true;
@@ -826,18 +825,18 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
             attachmentModel->removeFromScene(scene, transaction);
             attachmentModel->addToScene(scene, transaction);
 
-            attachmentModel->setViewMask(Model::AllViews);
+            attachmentModel->setTagMask(Render::TAG_ALL_VIEWS);
             attachmentModel->setGroupCulled(false);
             attachmentModel->setCanCastShadow(true);
-            attachmentModel->setVisibleInScene(_isMeshEnableVisible, scene);
+            attachmentModel->setVisibleInScene(_isMeshVisible, scene);
         }
     }
 
     if (_needMeshVisibleSwitch) {
-        _skeletonModel->setVisibleInScene(_isMeshEnableVisible, scene);
+        _skeletonModel->setVisibleInScene(_isMeshVisible, scene);
         for (auto attachmentModel : _attachmentModels) {
             if (attachmentModel->isRenderable()) {
-                attachmentModel->setVisibleInScene(_isMeshEnableVisible, scene);
+                attachmentModel->setVisibleInScene(_isMeshVisible, scene);
             }
         }
         updateRenderItem(transaction);

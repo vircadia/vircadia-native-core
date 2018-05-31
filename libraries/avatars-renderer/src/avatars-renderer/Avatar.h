@@ -538,7 +538,7 @@ protected:
     void processMaterials();
 
     AABox _renderBound;
-    bool _isMeshEnableVisible{ true };
+    bool _isMeshVisible{ true };
     bool _needMeshVisibleSwitch{ true };
 };
 

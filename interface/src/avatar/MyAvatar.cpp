@@ -1126,14 +1126,6 @@ void MyAvatar::setEnableDebugDrawIKChains(bool isEnabled) {
     _enableDebugDrawIKChains = isEnabled;
 }
 
-bool MyAvatar::getEnableMeshVisible() const {
-    return Avatar::getEnableMeshVisible();
-}
-
-void MyAvatar::setEnableMeshVisible(bool isEnabled) {
-    Avatar::setEnableMeshVisible(isEnabled);
-}
-
 void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
     _skeletonModel->getRig().setEnableInverseKinematics(isEnabled);
 }
@@ -1483,7 +1475,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelChangeCount++;
     int skeletonModelChangeCount = _skeletonModelChangeCount;
     Avatar::setSkeletonModelURL(skeletonModelURL);
-    _skeletonModel->setViewMask(Model::NoView);
+    _skeletonModel->setTagMask(Render::TAG_NONE);
     _skeletonModel->setGroupCulled(true);
     _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene());
 
@@ -2061,10 +2053,9 @@ void MyAvatar::preDisplaySide(const RenderArgs* renderArgs) {
                 _attachmentData[i].jointName.compare("RightEye", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("HeadTop_End", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("Face", Qt::CaseInsensitive) == 0) {
-                uint8_t modelRenderTagBits = shouldDrawHead ? Model::MainView : Model::NoView;
-                modelRenderTagBits |= Model::SecondaryView;
+                uint8_t modelRenderTagBits = shouldDrawHead ? Render::TAG_ALL_VIEWS : Render::TAG_SECONDARY_VIEW;
 
-                _attachmentModels[i]->setViewMask(modelRenderTagBits);
+                _attachmentModels[i]->setTagMask(modelRenderTagBits);
                 _attachmentModels[i]->setGroupCulled(false);
                 _attachmentModels[i]->setCanCastShadow(true);
                 _attachmentModels[i]->setVisibleInScene(true, qApp->getMain3DScene());

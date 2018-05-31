@@ -33,6 +33,7 @@
 #include <TriangleSet.h>
 #include <DualQuaternion.h>
 
+#include "RenderConstants.h"
 #include "GeometryCache.h"
 #include "TextureCache.h"
 #include "Rig.h"
@@ -90,14 +91,8 @@ public:
     void setVisibleInScene(bool isVisible, const render::ScenePointer& scene = nullptr);
     bool isVisible() const;
 
-    enum ViewMask : uint8_t {
-        NoView = 0x00, // Not drawn at all
-        MainView = 0x01, //render::ItemKey::TAG_BITS_0,
-        SecondaryView = 0x02, //render::ItemKey::TAG_BITS_1,
-        AllViews = 0xFF, //render::ItemKey::TAG_BITS_ALL,
-    };
-    ViewMask getViewMask() const;
-    void setViewMask(uint8_t mask, const render::ScenePointer& scene = nullptr);
+    Render::Tag getTagMask() const;
+    void setTagMask(uint8_t mask, const render::ScenePointer& scene = nullptr);
 
     bool isGroupCulled() const;
     void setGroupCulled(bool isGroupCulled, const render::ScenePointer& scene = nullptr);

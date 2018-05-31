@@ -106,7 +106,7 @@ Model::Model(QObject* parent, SpatiallyNestable* spatiallyNestableOverride) :
     _blendNumber(0),
     _appliedBlendNumber(0),
     _isWireframe(false),
-    _renderItemKeyGlobalFlags(render::ItemKey::Builder().withVisible().withTagBits(AllViews).build())
+    _renderItemKeyGlobalFlags(render::ItemKey::Builder().withVisible().withTagBits(Render::TAG_ALL_VIEWS).build())
 {
     // we may have been created in the network thread, but we live in the main thread
     if (_viewState) {
@@ -785,10 +785,10 @@ void Model::updateRenderItemsKey(const render::ScenePointer& scene) {
     scene->enqueueTransaction(transaction);
 }
 
-void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene) {
-    if (Model::isVisible() != isVisible) {
+void Model::setVisibleInScene(bool visible, const render::ScenePointer& scene) {
+    if (Model::isVisible() != visible) {
         auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
-        _renderItemKeyGlobalFlags = (isVisible ? keyBuilder.withVisible() : keyBuilder.withInvisible());
+        _renderItemKeyGlobalFlags = (visible ? keyBuilder.withVisible() : keyBuilder.withInvisible());
         updateRenderItemsKey(scene);
     }
 }
@@ -797,10 +797,10 @@ bool Model::isVisible() const {
     return _renderItemKeyGlobalFlags.isVisible();
 }
 
-void Model::setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene) {
-    if (Model::canCastShadow() != canCastShadow) {
+void Model::setCanCastShadow(bool castShadow, const render::ScenePointer& scene) {
+    if (Model::canCastShadow() != castShadow) {
         auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
-        _renderItemKeyGlobalFlags = (canCastShadow ? keyBuilder.withShadowCaster() : keyBuilder.withoutShadowCaster());
+        _renderItemKeyGlobalFlags = (castShadow ? keyBuilder.withShadowCaster() : keyBuilder.withoutShadowCaster());
         updateRenderItemsKey(scene);
     }
 }
@@ -809,45 +809,45 @@ bool Model::canCastShadow() const {
     return _renderItemKeyGlobalFlags.isShadowCaster();
 }
 
-void Model::setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene) {
-    if (Model::isLayeredInFront() != isLayeredInFront) {
+void Model::setLayeredInFront(bool layeredInFront, const render::ScenePointer& scene) {
+    if (Model::isLayeredInFront() != layeredInFront) {
         auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
-        _renderItemKeyGlobalFlags = (isLayeredInFront ? keyBuilder.withLayer(render::Item::LAYER_3D_FRONT) : keyBuilder.withoutLayer());
+        _renderItemKeyGlobalFlags = (layeredInFront ? keyBuilder.withLayer(Render::LAYER_3D_FRONT) : keyBuilder.withoutLayer());
         updateRenderItemsKey(scene);
     }
 }
 
 bool Model::isLayeredInFront() const {
-    return _renderItemKeyGlobalFlags.isLayer(render::Item::LAYER_3D_FRONT);
+    return _renderItemKeyGlobalFlags.isLayer(Render::LAYER_3D_FRONT);
 }
 
-void Model::setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene) {
-    if (Model::isLayeredInHUD() != isLayeredInHUD) {
+void Model::setLayeredInHUD(bool layeredInHUD, const render::ScenePointer& scene) {
+    if (Model::isLayeredInHUD() != layeredInHUD) {
         auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
-        _renderItemKeyGlobalFlags = (isLayeredInHUD ? keyBuilder.withLayer(render::Item::LAYER_3D_HUD) : keyBuilder.withoutLayer());
+        _renderItemKeyGlobalFlags = (layeredInHUD ? keyBuilder.withLayer(Render::LAYER_3D_HUD) : keyBuilder.withoutLayer());
         updateRenderItemsKey(scene);
     }
 }
 
 bool Model::isLayeredInHUD() const {
-    return _renderItemKeyGlobalFlags.isLayer(render::Item::LAYER_3D_HUD);
+    return _renderItemKeyGlobalFlags.isLayer(Render::LAYER_3D_HUD);
 }
 
-void Model::setViewMask(uint8_t mask, const render::ScenePointer& scene) {
-    if (Model::getViewMask() != mask) {
+void Model::setTagMask(uint8_t mask, const render::ScenePointer& scene) {
+    if (Model::getTagMask() != mask) {
         auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
         _renderItemKeyGlobalFlags = keyBuilder.withTagBits(mask);
         updateRenderItemsKey(scene);
     }
 }
-Model::ViewMask Model::getViewMask() const {
-    return (Model::ViewMask) _renderItemKeyGlobalFlags.getTagBits();
+Render::Tag Model::getTagMask() const {
+    return (Render::Tag) _renderItemKeyGlobalFlags.getTagBits();
 }
 
-void Model::setGroupCulled(bool isGroupCulled, const render::ScenePointer& scene) {
-    if (Model::isGroupCulled() != isGroupCulled) {
+void Model::setGroupCulled(bool groupCulled, const render::ScenePointer& scene) {
+    if (Model::isGroupCulled() != groupCulled) {
         auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
-        _renderItemKeyGlobalFlags = (isGroupCulled ? keyBuilder.withSubMetaCulled() : keyBuilder.withoutSubMetaCulled());
+        _renderItemKeyGlobalFlags = (groupCulled ? keyBuilder.withSubMetaCulled() : keyBuilder.withoutSubMetaCulled());
         updateRenderItemsKey(scene);
     }
 }
