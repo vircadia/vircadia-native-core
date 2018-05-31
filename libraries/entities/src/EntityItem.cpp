@@ -3037,6 +3037,11 @@ void EntityItem::retrieveMarketplacePublicKey() {
     });
 }
 
+void EntityItem::setSpaceIndex(int32_t index) {
+    assert(_spaceIndex == -1);
+    _spaceIndex = index;
+}
+
 void EntityItem::preDelete() {
 }
 
