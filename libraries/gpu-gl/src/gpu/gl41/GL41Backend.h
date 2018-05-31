@@ -173,7 +173,7 @@ protected:
 
     std::string getBackendShaderHeader() const override;
     void makeProgramBindings(ShaderObject& shaderObject) override;
-    int makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
+    int makeResourceBufferSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
 
 };
 

@@ -30,7 +30,7 @@ function init() {
         text: "STATS"
     });
     statsButton.clicked.connect(function() {
-        Menu.triggerOption("Stats");
+        Menu.triggerOption("Show Statistics");
     });
 }
 
