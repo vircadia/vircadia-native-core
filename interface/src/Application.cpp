@@ -3180,11 +3180,6 @@ void Application::setHmdTabletBecomesToolbarSetting(bool value) {
     updateSystemTabletMode();
 }
 
-void Application::setShowOverlays(bool value) {
-    _hmdTabletBecomesToolbarSetting.set(value);
-    updateSystemTabletMode();
-}
-
 void Application::setPreferStylusOverLaser(bool value) {
     _preferStylusOverLaserSetting.set(value);
 }
