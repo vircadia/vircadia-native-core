@@ -399,8 +399,9 @@ Item {
             listModelName: root.listModelName;
             endpoint: "/api/v1/users?filter=connections";
             itemsPerPage: 8;
+            listView: connectionsList;
             processPage: function (data) {
-                console.log("HRS FIXME processPage", JSON.stringify(data));
+                console.log("processPage", connectionsModel.listModelName, JSON.stringify(data));
                 return data.users;
             };
             searchFilter: filterBar.text;
@@ -523,7 +524,7 @@ Item {
                     visible: !connectionsLoading.visible;
                     clip: true;
                     model: connectionsModel.model;
-                    onAtYEndChanged: if (connectionsList.atYEnd) { connectionsModel.getNextPage(); }
+                    onAtYEndChanged: if (connectionsList.atYEnd /*&& !connectionsList.atYBeginning*/) { connectionsModel.getNextPage(); }
                     snapMode: ListView.SnapToItem;
                     // Anchors
                     anchors.fill: parent;

@@ -991,6 +991,8 @@ var selectionDisplay = null; // for gridTool.js to ignore
             case 'http.request':
                 // Handled elsewhere, don't log.
                 break;
+            case 'goToPurchases_fromWalletHome': // HRS FIXME What's this about?
+                break;
             default:
                 print('Unrecognized message from Checkout.qml or Purchases.qml: ' + JSON.stringify(message));
         }

@@ -40,6 +40,7 @@ Item {
             var filteredCopy = applySearchItemTest(copyOfItems);
             finalModel.clear();
             finalModel.append(filteredCopy);
+            debugView('after searchFilterChanged');
         } else { // TODO: fancy timer against fast typing.
             getFirstPage();
         }
@@ -69,6 +70,7 @@ Item {
     // Override to return one property of data, and/or to transform the elements. Must return an array of model elements.
     property var processPage: function (data) { return data; }
 
+    property var listView; // Optional. For debugging.
     // Check consistency and call processPage.
     function handlePage(error, response) {
         var processed;
@@ -100,13 +102,27 @@ Item {
             finalModel.clear();
             delayedClear = false;
         }
-        finalModel.append(processed); // FIXME keep index steady, and apply any post sort/filter
+        finalModel.append(processed); // FIXME keep index steady, and apply any post sort
         retrievedAtLeastOnePage = true;
+        if (response.total_pages && (response.total_pages === currentPageToRetrieve)) {
+            currentPageToRetrieve = -1;
+        }
+        debugView('after handlePage');
+        if (searchItemTest && searchFilter && listView && listView.atYEnd && (currentPageToRetrieve >= 0)) {
+            getNextPage(); // too fancy??
+        }
     }
     function applySearchItemTest(items) {
         return items.filter(function (item) {
                 return searchItemTest(searchFilter, item);
         });
+    }
+    function debugView(label) {
+        if (!listView) { return; }
+        console.debug(label, listModelName, 'perPage:', itemsPerPage, 'count:', listView.count,
+            'index:', listView.currentIndex, 'section:', listView.currentSection,
+            'atYBeginning:', listView.atYBeginning, 'atYEnd:', listView.atYEnd,
+            'y:', listView.y, 'contentY:', listView.contentY);
     }
 
     // Override either http or getPage.
@@ -121,7 +137,7 @@ Item {
         ];
         var parametersSeparator = /\?/.test(url) ? '&' : '?';
         url = url + parametersSeparator + parameters.join('&');
-        console.debug('getPage', listModelName);
+        console.debug('getPage', listModelName, currentPageToRetrieve);
         http.request({uri: url}, handlePage);
     }
 
@@ -131,6 +147,7 @@ Item {
         delayedClear = !!delayClear;
         resetModel();
         requestPending = true;
+        console.debug("getFirstPage", listModelName, currentPageToRetrieve);
         getPage();
     }
     

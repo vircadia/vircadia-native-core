@@ -214,11 +214,11 @@ Item {
             listModelName: "transaction history"; // For debugging. Alternatively, we could specify endpoint for that purpose, even though it's not used directly.
             itemsPerPage: 6;
             getPage: function () {
-                console.debug('WalletHome getPage', transactionHistoryModel.currentPageToRetrieve);
+                console.debug('getPage', transactionHistoryModel.listModelName, transactionHistoryModel.currentPageToRetrieve);
                 Commerce.history(transactionHistoryModel.currentPageToRetrieve, transactionHistoryModel.itemsPerPage);
             }
             processPage: function (data) {
-                console.debug('WalletHome processPage', JSON.stringify(data));
+                console.debug('processPage', transactionHistoryModel.listModelName, JSON.stringify(data));
                 var result, pending; // Set up or get the accumulator for pending.
                 if (transactionHistoryModel.currentPageToRetrieve == 1) {
                     pending = {transaction_type: "pendingCount", count: 0};
@@ -441,25 +441,6 @@ Item {
         return year + '-' + month + '-' + day + '<br>' + drawnHour + ':' + min + amOrPm;
     }
 
-    //
-    // Function Name: fromScript()
-    //
-    // Relevant Variables:
-    // None
-    //
-    // Arguments:
-    // message: The message sent from the JavaScript.
-    //     Messages are in format "{method, params}", like json-rpc.
-    //
-    // Description:
-    // Called when a message is received from a script.
-    //
-    function fromScript(message) {
-        switch (message.method) {
-            default:
-                console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
-        }
-    }
     signal sendSignalToWallet(var msg);
 
     //

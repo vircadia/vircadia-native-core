@@ -780,6 +780,9 @@ Rectangle {
             case 'http.response':
                 http.handleHttpResponse(message);
             break;
+            case 'palIsStale':
+            case 'avatarDisconnected': // HRS FIXME. What are these about?
+            break;
             default:
                 console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
         }
