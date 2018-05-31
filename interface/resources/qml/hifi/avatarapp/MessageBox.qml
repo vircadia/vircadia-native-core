@@ -83,6 +83,7 @@ Rectangle {
             anchors.rightMargin: 30
 
             text: root.titleText
+            elide: Qt.ElideRight
         }
 
         Column {

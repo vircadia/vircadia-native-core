@@ -1,5 +1,6 @@
 import QtQuick 2.6
 import QtQuick.Controls 2.2
+import QtQuick.Layouts 1.3
 import QtQml.Models 2.1
 import QtGraphicalEffects 1.0
 import "../controls-uit" as HifiControls
@@ -315,13 +316,14 @@ Rectangle {
     Rectangle {
         id: mainBlock
         anchors.left: parent.left
+        anchors.leftMargin: 30
         anchors.right: parent.right
+        anchors.rightMargin: 30
         anchors.top: header.bottom
         anchors.bottom: favoritesBlock.top
 
         TextStyle1 {
             anchors.left: parent.left
-            anchors.leftMargin: 30
             anchors.top: parent.top
             anchors.topMargin: 34
         }
@@ -329,7 +331,6 @@ Rectangle {
         TextStyle1 {
             id: displayNameLabel
             anchors.left: parent.left
-            anchors.leftMargin: 30
             anchors.top: parent.top
             anchors.topMargin: 25
             text: 'Display Name'
@@ -344,7 +345,6 @@ Rectangle {
             anchors.leftMargin: 30
             anchors.verticalCenter: displayNameLabel.verticalCenter
             anchors.right: parent.right
-            anchors.rightMargin: 30
             width: 232
 
             text: 'ThisIsDisplayName'
@@ -359,15 +359,11 @@ Rectangle {
             id: avatarImage
             width: 134
             height: 134
-            anchors.left: displayNameLabel.left
             anchors.top: displayNameLabel.bottom
             anchors.topMargin: 31
             Binding on source {
                 when: avatarUrl !== ''
                 value: avatarUrl
-            }
-            onSourceChanged: {
-                console.debug('avatarImage: source = ', source);
             }
 
             visible: avatarImage.status !== Image.Loading && avatarImage.status !== Image.Error
@@ -407,12 +403,13 @@ Rectangle {
             visible: avatarWearablesCount !== 0
         }
 
-        Row {
+        RowLayout {
             id: star
             anchors.top: avatarImage.top
             anchors.topMargin: 11
             anchors.left: avatarImage.right
             anchors.leftMargin: 30.5
+            anchors.right: parent.right
 
             spacing: 12.3
 
@@ -424,7 +421,9 @@ Rectangle {
             }
 
             TextStyle5 {
+                Layout.fillWidth: true
                 text: isAvatarInFavorites ? avatarName : "Add to Favorites"
+                elide: Qt.ElideRight
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
@@ -459,19 +458,15 @@ Rectangle {
 
         TextStyle3 {
             id: avatarNameLabel
-            text: {
-                var avatarName = getAvatarModelName();
-                console.debug('getAvatarModelName() returned: ', avatarName)
-                return avatarName.length <= 14 ? avatarName : avatarName.substring(0, 14) + '...'
-            }
+            text: getAvatarModelName();
+            elide: Qt.ElideRight
+
+            anchors.right: linkLabel.left
             anchors.left: avatarImage.right
             anchors.leftMargin: 30
             anchors.top: star.bottom
             anchors.topMargin: 11
             property bool hasMarketId: currentAvatar && allAvatars.extractMarketId(currentAvatar.avatarUrl) !== '';
-            onHasMarketIdChanged: {
-                console.debug('hasMarketId: ', hasMarketId, currentAvatar.avatarUrl);
-            }
 
             MouseArea {
                 enabled: avatarNameLabel.hasMarketId
@@ -492,8 +487,8 @@ Rectangle {
         }
 
         SquareLabel {
+            id: linkLabel
             anchors.right: parent.right
-            anchors.rightMargin: 30
             anchors.verticalCenter: avatarNameLabel.verticalCenter
             glyphText: "."
             glyphSize: 22
@@ -514,7 +509,6 @@ Rectangle {
 
         SquareLabel {
             anchors.right: parent.right
-            anchors.rightMargin: 30
             anchors.verticalCenter: wearablesLabel.verticalCenter
             glyphText: "\ue02e"
 
@@ -531,7 +525,6 @@ Rectangle {
 
         TextStyle3 {
             anchors.right: parent.right
-            anchors.rightMargin: 30
             anchors.verticalCenter: wearablesLabel.verticalCenter
             font.underline: true
             text: "Add"
@@ -608,6 +601,8 @@ Rectangle {
 
                 property int horizontalSpacing: 18
                 property int verticalSpacing: 44
+                property int thumbnailWidth: 92
+                property int thumbnailHeight: 92
 
                 function selectAvatar(avatar) {
                     emitSendToScript({'method' : 'selectAvatar', 'name' : avatar.name})
@@ -687,8 +682,8 @@ Rectangle {
 
                 flow: GridView.FlowLeftToRight
 
-                cellHeight: 92 + verticalSpacing
-                cellWidth: 92 + horizontalSpacing
+                cellHeight: thumbnailHeight + verticalSpacing
+                cellWidth: thumbnailWidth + horizontalSpacing
 
                 delegate: Item {
                     id: delegateRoot
@@ -808,7 +803,9 @@ Rectangle {
 
                     TextStyle7 {
                         id: text
-                        width: 92
+                        width: view.thumbnailWidth
+                        height: view.verticalSpacing
+                        elide: Qt.ElideRight
                         anchors.top: container.bottom
                         anchors.topMargin: 8
                         anchors.horizontalCenter: container.horizontalCenter
