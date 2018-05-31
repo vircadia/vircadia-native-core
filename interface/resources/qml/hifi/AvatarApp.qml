@@ -760,13 +760,13 @@ Rectangle {
                             color: '#AFAFAF'
                             opacity: 0.4
                             radius: 5
-                            visible: isInManageState && !container.highlighted && thumbnailUrl !== ''
+                            visible: isInManageState && !container.highlighted && !getMoreAvatars
                         }
 
                         HiFiGlyphs {
                             anchors.fill: parent
                             text: "{"
-                            visible: isInManageState && !container.highlighted && thumbnailUrl !== ''
+                            visible: isInManageState && !container.highlighted && !getMoreAvatars
                             horizontalAlignment: Text.AlignHCenter
                             size: 56
                         }
