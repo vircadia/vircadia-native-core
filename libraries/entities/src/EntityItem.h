@@ -505,7 +505,7 @@ public:
     bool getCauterized() const { return _cauterized; }
 
     float getBoundingRadius() const { return _boundingRadius; }
-    void setSpaceIndex(int32_t index) { assert(_spaceIndex == -1); _spaceIndex = index; }
+    void setSpaceIndex(int32_t index);
     int32_t getSpaceIndex() const { return _spaceIndex; }
 
     virtual void preDelete();

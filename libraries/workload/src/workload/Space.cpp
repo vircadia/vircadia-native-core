@@ -43,14 +43,14 @@ void Space::processTransactionFrame(const Transaction& transaction) {
 void Space::processResets(const Transaction::Resets& transactions) {
     for (auto& reset : transactions) {
         // Access the true item
-        auto ProxyID = std::get<0>(reset);
-        auto& item = _proxies[ProxyID];
+        auto proxyID = std::get<0>(reset);
+        auto& item = _proxies[proxyID];
 
         // Reset the item with a new payload
         item.sphere = (std::get<1>(reset));
         item.prevRegion = item.region = Region::UNKNOWN;
 
-        _owners[ProxyID] = (std::get<2>(reset));
+        _owners[proxyID] = (std::get<2>(reset));
     }
 }
 

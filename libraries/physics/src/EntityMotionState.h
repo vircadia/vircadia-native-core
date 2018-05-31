@@ -87,7 +87,7 @@ public:
 
     virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const override;
 
-    bool shouldSendBid();
+    bool shouldSendBid() const;
     uint8_t computeFinalBidPriority() const;
 
     bool isLocallyOwned() const override;
