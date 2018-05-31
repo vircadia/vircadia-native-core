@@ -132,7 +132,6 @@ private:
 namespace render {
    template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay);
    template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay);
-   template <> int payloadGetLayer(const Overlay::Pointer& overlay);
    template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args);
    template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay);
    template <> uint32_t metaFetchMetaSubItems(const Overlay::Pointer& overlay, ItemIDs& subItems);
