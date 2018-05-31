@@ -275,6 +275,9 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
                 _physicalObjects.insert(motionState);
                 result.push_back(motionState);
                 entityItr = _entitiesToAddToPhysics.erase(entityItr);
+
+                // make sure the motionState's region is up-to-date before it is actually added to physics
+                motionState->setRegion(_space->getRegion(entity->getSpaceIndex()));
             } else {
                 //qWarning() << "Failed to generate new shape for entity." << entity->getName();
                 ++entityItr;
