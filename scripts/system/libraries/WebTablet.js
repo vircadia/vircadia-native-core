@@ -160,7 +160,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
     var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
     this.homeButtonID = Overlays.addOverlay("circle3d", {
         name: "homeButton",
-        localPosition: { x: HOME_BUTTON_X_OFFSET, y: -HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        localPosition: { x: HOME_BUTTON_X_OFFSET, y: -HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
         localRotation: { x: 0, y: 1, z: 0, w: 0},
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim },
         solid: true,
@@ -173,7 +173,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
 
     this.homeButtonHighlightID = Overlays.addOverlay("circle3d", {
         name: "homeButtonHighlight",
-        localPosition: { x: HOME_BUTTON_X_OFFSET, y: -HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        localPosition: { x: HOME_BUTTON_X_OFFSET, y: -HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
         localRotation: { x: 0, y: 1, z: 0, w: 0 },
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim },
         color: { red: 255, green: 255, blue: 255 },
@@ -182,7 +182,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         ignoreIntersection: true,
         alpha: 1.0,
         visible: visible,
-        drawInFront: true,
+        drawInFront: false,
         parentID: this.tabletEntityID,
         parentJointIndex: -1
      });
