@@ -10,11 +10,53 @@
 //
 #include "AndroidHelper.h"
 #include <QDebug>
+#include <AccountManager.h>
 
-void AndroidHelper::requestActivity(const QString &activityName) {
-    emit androidActivityRequested(activityName);
+AndroidHelper::AndroidHelper() {
 }
 
-void AndroidHelper::goBackFromAndroidActivity() {
-    emit backFromAndroidActivity();
+AndroidHelper::~AndroidHelper() {
+    workerThread.quit();
+    workerThread.wait();
+}
+
+void AndroidHelper::init() {
+    workerThread.start();
+    _accountManager = QSharedPointer<AccountManager>(new AccountManager, &QObject::deleteLater);
+    _accountManager->setIsAgent(true);
+    _accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
+    _accountManager->setSessionID(DependencyManager::get<AccountManager>()->getSessionID());
+    connect(_accountManager.data(), &AccountManager::loginComplete, [](const QUrl& authURL) {
+            DependencyManager::get<AccountManager>()->setAccountInfo(AndroidHelper::instance().getAccountManager()->getAccountInfo());
+            DependencyManager::get<AccountManager>()->setAuthURL(authURL);
+    });
+
+    connect(_accountManager.data(), &AccountManager::logoutComplete, [] () {
+            DependencyManager::get<AccountManager>()->logout();
+    });
+    _accountManager->moveToThread(&workerThread);
+}
+
+void AndroidHelper::requestActivity(const QString &activityName, const bool backToScene) {
+    emit androidActivityRequested(activityName, backToScene);
+}
+
+void AndroidHelper::notifyLoadComplete() {
+    emit qtAppLoadComplete();
+}
+
+void AndroidHelper::notifyEnterForeground() {
+    emit enterForeground();
+}
+
+void AndroidHelper::notifyEnterBackground() {
+    emit enterBackground();
+}
+
+void AndroidHelper::performHapticFeedback(int duration) {
+    emit hapticFeedbackRequested(duration);
+}
+
+void AndroidHelper::showLoginDialog() {
+    emit androidActivityRequested("Login", true);
 }

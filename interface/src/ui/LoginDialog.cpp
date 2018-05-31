@@ -31,10 +31,13 @@ HIFI_QML_DEF(LoginDialog)
 
 LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     auto accountManager = DependencyManager::get<AccountManager>();
+#if !defined(Q_OS_ANDROID)
     connect(accountManager.data(), &AccountManager::loginComplete,
         this, &LoginDialog::handleLoginCompleted);
     connect(accountManager.data(), &AccountManager::loginFailed,
             this, &LoginDialog::handleLoginFailed);
+#endif
+
 }
 
 void LoginDialog::showWithSelection()

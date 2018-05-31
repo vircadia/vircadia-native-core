@@ -61,20 +61,22 @@ enum DeferredShader_MapSlot {
     DEFERRED_BUFFER_EMISSIVE_UNIT = 2,
     DEFERRED_BUFFER_DEPTH_UNIT = 3,
     DEFERRED_BUFFER_OBSCURANCE_UNIT = 4,
-    SHADOW_MAP_UNIT = 5,
-    SKYBOX_MAP_UNIT = SHADOW_MAP_UNIT + SHADOW_CASCADE_MAX_COUNT,
-    DEFERRED_BUFFER_LINEAR_DEPTH_UNIT,
-    DEFERRED_BUFFER_CURVATURE_UNIT,
-    DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT,
-    SCATTERING_LUT_UNIT,
-    SCATTERING_SPECULAR_UNIT,
+    DEFERRED_BUFFER_LINEAR_DEPTH_UNIT = 5,
+    DEFERRED_BUFFER_CURVATURE_UNIT = 6,
+    DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT = 7,
+    SCATTERING_LUT_UNIT = 8,
+    SCATTERING_SPECULAR_UNIT = 9,
+    SKYBOX_MAP_UNIT = render::ShapePipeline::Slot::LIGHT_AMBIENT_MAP, // unit = 10
+    SHADOW_MAP_UNIT = 11,
+    nextAvailableUnit = SHADOW_MAP_UNIT + SHADOW_CASCADE_MAX_COUNT
 };
 enum DeferredShader_BufferSlot {
     DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
     CAMERA_CORRECTION_BUFFER_SLOT,
     SCATTERING_PARAMETERS_BUFFER_SLOT,
     LIGHTING_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::LIGHTING_MODEL,
-    LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
+    KEY_LIGHT_SLOT = render::ShapePipeline::Slot::KEY_LIGHT,
+    LIGHT_ARRAY_SLOT = render::ShapePipeline::Slot::LIGHT_ARRAY_BUFFER,
     LIGHT_AMBIENT_SLOT = render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER,
     HAZE_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::HAZE_MODEL,
     LIGHT_INDEX_GPU_SLOT,
@@ -149,17 +151,20 @@ void DeferredLightingEffect::unsetKeyLightBatch(gpu::Batch& batch, int lightBuff
 }
 
 void DeferredLightingEffect::setupLocalLightsBatch(gpu::Batch& batch,
-                                                   int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit,
+                                                   int lightArrayBufferUnit, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit,
                                                    const LightClustersPointer& lightClusters) {
     // Bind the global list of lights and the visible lights this frame
-    batch.setUniformBuffer(_localLightLocations->lightBufferUnit, lightClusters->_lightStage->getLightArrayBuffer());
+    batch.setUniformBuffer(lightArrayBufferUnit, lightClusters->_lightStage->getLightArrayBuffer());
 
     batch.setUniformBuffer(frustumGridBufferUnit, lightClusters->_frustumGridBuffer);
     batch.setUniformBuffer(clusterGridBufferUnit, lightClusters->_clusterGridBuffer);
     batch.setUniformBuffer(clusterContentBufferUnit, lightClusters->_clusterContentBuffer);
 }
 
-void DeferredLightingEffect::unsetLocalLightsBatch(gpu::Batch& batch, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit) {
+void DeferredLightingEffect::unsetLocalLightsBatch(gpu::Batch& batch, int lightArrayBufferUnit, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit) {
+    if (lightArrayBufferUnit >= 0) {
+        batch.setUniformBuffer(lightArrayBufferUnit, nullptr);
+    }
     if (clusterGridBufferUnit >= 0) {
         batch.setUniformBuffer(clusterGridBufferUnit, nullptr);
     }
@@ -194,7 +199,8 @@ static gpu::ShaderPointer makeLightProgram(const gpu::ShaderPointer& vertShader,
     slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), LIGHTING_MODEL_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), HAZE_MODEL_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("subsurfaceScatteringParametersBuffer"), SCATTERING_PARAMETERS_BUFFER_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), KEY_LIGHT_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_ARRAY_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), LIGHT_AMBIENT_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightIndexBuffer"), LIGHT_INDEX_GPU_SLOT));
 
@@ -592,7 +598,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         batch._glUniform4fv(locations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
 
         // Setup the global lighting
-        deferredLightingEffect->setupKeyLightBatch(args, batch, locations->keyLightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
+        deferredLightingEffect->setupKeyLightBatch(args, batch, KEY_LIGHT_SLOT, LIGHT_AMBIENT_SLOT, SKYBOX_MAP_UNIT);
 
         // Haze
         if (haze) {
@@ -601,7 +607,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        deferredLightingEffect->unsetKeyLightBatch(batch, locations->keyLightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
+        deferredLightingEffect->unsetKeyLightBatch(batch, KEY_LIGHT_SLOT, LIGHT_AMBIENT_SLOT, SKYBOX_MAP_UNIT);
 
         for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
             batch.setResourceTexture(SHADOW_MAP_UNIT+i, nullptr);
@@ -656,8 +662,9 @@ void RenderDeferredLocals::run(const render::RenderContextPointer& renderContext
 
         auto& lightIndices = lightClusters->_visibleLightIndices;
         if (!lightIndices.empty() && lightIndices[0] > 0) {
-            deferredLightingEffect->setupLocalLightsBatch(batch, LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
-                                                          lightClusters);
+            deferredLightingEffect->setupLocalLightsBatch(batch,
+                LIGHT_ARRAY_SLOT, LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
+                lightClusters);
 
             // Local light pipeline
             batch.setPipeline(deferredLightingEffect->_localLight);
@@ -731,20 +738,19 @@ void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs
     }
 
     auto previousBatch = args->_batch;
-    gpu::Batch batch;
-    args->_batch = &batch;
-     _gpuTimer->begin(batch);
+    gpu::doInBatch(nullptr, args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+         _gpuTimer->begin(batch);
 
-    setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, haze, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
+        setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, haze, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
     
-    lightsJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lightClusters);
+        lightsJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lightClusters);
 
-    cleanupJob.run(renderContext);
+        cleanupJob.run(renderContext);
 
-    _gpuTimer->end(batch);
-     args->_context->appendFrameBatch(batch);
+        _gpuTimer->end(batch);
+    });
      args->_batch = previousBatch;
-
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
     config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());

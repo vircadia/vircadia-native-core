@@ -252,10 +252,8 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
 
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
         float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
+        _lastKinematicStep = thisStep;
         _entity->stepKinematicMotion(dt);
-
-        // bypass const-ness so we can remember the step
-        const_cast<EntityMotionState*>(this)->_lastKinematicStep = thisStep;
 
         // and set the acceleration-matches-gravity count high so that if we send an update
         // it will use the correct acceleration for remote simulations
@@ -779,7 +777,7 @@ QString EntityMotionState::getName() const {
 }
 
 // virtual
-void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
+void EntityMotionState::computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const {
     _entity->computeCollisionGroupAndFinalMask(group, mask);
 }
 

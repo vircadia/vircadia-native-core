@@ -231,7 +231,7 @@ void StandardController::focusOutEvent() {
  *
  *   </tbody>
  * </table>
- * @typedef Controller.Standard
+ * @typedef {object} Controller.Standard
  */
 Input::NamedVector StandardController::getAvailableInputs() const {
     static Input::NamedVector availableInputs {

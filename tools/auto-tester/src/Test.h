@@ -44,7 +44,7 @@ public:
     void createAllRecursiveScripts();
     void createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode);
 
-    void createTest();
+    void createTests();
     void createMDFile();
     void createAllMDFiles();
     void createMDFile(const QString& topLevelDirectory);
@@ -57,7 +57,7 @@ public:
 
     bool isInSnapshotFilenameFormat(const QString& imageFormat, const QString& filename);
 
-    void importTest(QTextStream& textStream, const QString& testPathname);
+    void includeTest(QTextStream& textStream, const QString& testPathname);
 
     void appendTestResultsToFile(const QString& testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage);
 
@@ -91,8 +91,10 @@ private:
 
     // We have two directories to work with.
     // The first is the directory containing the test we are working with
-    // The second contains the snapshots taken for test runs that need to be evaluated
+    // The second is the root directory of all tests
+    // The third contains the snapshots taken for test runs that need to be evaluated
     QString testDirectory;
+    QString testsRootDirectory;
     QString snapshotDirectory;
 
     QStringList expectedImagesFilenames;
@@ -100,11 +102,19 @@ private:
     QStringList resultImagesFullFilenames;
 
     // Used for accessing GitHub
-    const QString githubUser{ "highfidelity" };
-    const QString gitHubBranch { "master" };
-	const QString DATETIME_FORMAT { "yyyy-MM-dd_hh-mm-ss" };
+    const QString GIT_HUB_USER{ "highfidelity" };
+    const QString GIT_HUB_REPOSITORY{ "hifi_tests" };
+    const QString GIT_HUB_BRANCH{ "master" };
+
+    const QString DATETIME_FORMAT{ "yyyy-MM-dd_hh-mm-ss" };
 
 	ExtractedText getTestScriptLines(QString testFileName);
+
+    // NOTE: these need to match the appropriate var's in autoTester.js
+    //    var advanceKey = "n";
+    //    var pathSeparator = ".";
+    const QString ADVANCE_KEY{ "n" };
+    const QString PATH_SEPARATOR{ "." };
 };
 
 #endif // hifi_test_h

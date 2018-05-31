@@ -1107,7 +1107,7 @@ private:
         }
     } };
 
-    render::EnginePointer _renderEngine { new render::Engine() };
+    render::EnginePointer _renderEngine { new render::RenderEngine() };
     render::ScenePointer _main3DScene { new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
     QSize _size;
     QSettings _settings;

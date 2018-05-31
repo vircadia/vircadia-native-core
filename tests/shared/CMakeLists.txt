@@ -3,7 +3,7 @@
 macro (setup_testcase_dependencies)
 
   # link in the shared libraries
-  link_hifi_libraries(shared)
+  link_hifi_libraries(shared test-utils)
 
   package_libraries_for_deployment()
 endmacro ()

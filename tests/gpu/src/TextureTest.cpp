@@ -21,17 +21,18 @@
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
 
-#include "../../QTestExtensions.h"
+#include <test-utils/QTestExtensions.h>
 
 QTEST_MAIN(TextureTest)
 
-#define LOAD_TEXTURE_COUNT 40
+#define LOAD_TEXTURE_COUNT 100
+#define FAIL_AFTER_SECONDS 30
 
 static const QString TEST_DATA("https://hifi-public.s3.amazonaws.com/austin/test_data/test_ktx.zip");
 static const QString TEST_DIR_NAME("{630b8f02-52af-4cdf-a896-24e472b94b28}");
+static const QString KTX_TEST_DIR_ENV("HIFI_KTX_TEST_DIR");
 
 std::string vertexShaderSource = R"SHADER(
-#line 14
 layout(location = 0) out vec2 outTexCoord0;
 
 const vec4 VERTICES[] = vec4[](
@@ -50,8 +51,6 @@ void main() {
 )SHADER";
 
 std::string fragmentShaderSource = R"SHADER(
-#line 28
-
 uniform sampler2D tex;
 
 layout(location = 0) in vec2 inTexCoord0;
@@ -87,20 +86,28 @@ void TextureTest::initTestCase() {
     gpu::Context::init<gpu::gl::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
 
-    _resourcesPath = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/" + TEST_DIR_NAME;
-    if (!QFileInfo(_resourcesPath).exists()) {
-        QDir(_resourcesPath).mkpath(".");
-        FileDownloader(TEST_DATA,
-                       [&](const QByteArray& data) {
-                           QTemporaryFile zipFile;
-                           if (zipFile.open()) {
-                               zipFile.write(data);
-                               zipFile.close();
-                           }
-                           JlCompress::extractDir(zipFile.fileName(), _resourcesPath);
-                       })
-            .waitForDownload();
+
+    if (QProcessEnvironment::systemEnvironment().contains(KTX_TEST_DIR_ENV)) {
+        // For local testing with larger data sets
+        _resourcesPath = QProcessEnvironment::systemEnvironment().value(KTX_TEST_DIR_ENV);
+    } else {
+        _resourcesPath = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/" + TEST_DIR_NAME;
+        if (!QFileInfo(_resourcesPath).exists()) {
+            QDir(_resourcesPath).mkpath(".");
+            FileDownloader(TEST_DATA,
+                           [&](const QByteArray& data) {
+                               QTemporaryFile zipFile;
+                               if (zipFile.open()) {
+                                   zipFile.write(data);
+                                   zipFile.close();
+                               }
+                               JlCompress::extractDir(zipFile.fileName(), _resourcesPath);
+                           })
+                .waitForDownload();
+        }
     }
+
+    QVERIFY(!_resourcesPath.isEmpty());
 
     _canvas.makeCurrent();
     {
@@ -130,15 +137,7 @@ void TextureTest::initTestCase() {
         }
     }
 
-    // Load the test textures
-    {
-        size_t newTextureCount = std::min<size_t>(_textureFiles.size(), LOAD_TEXTURE_COUNT);
-        for (size_t i = 0; i < newTextureCount; ++i) {
-            const auto& textureFile = _textureFiles[i];
-            auto texture = gpu::Texture::unserialize(textureFile);
-            _textures.push_back(texture);
-        }
-    }
+    QVERIFY(!_textureFiles.empty());
 }
 
 void TextureTest::cleanupTestCase() {
@@ -146,6 +145,18 @@ void TextureTest::cleanupTestCase() {
     _pipeline.reset();
     _gpuContext->recycle();
     _gpuContext.reset();
+}
+
+std::vector<gpu::TexturePointer> TextureTest::loadTestTextures() const {
+    // Load the test textures
+    std::vector<gpu::TexturePointer> result;
+    size_t newTextureCount = std::min<size_t>(_textureFiles.size(), LOAD_TEXTURE_COUNT);
+    for (size_t i = 0; i < newTextureCount; ++i) {
+        const auto& textureFile = _textureFiles[i];
+        auto texture = gpu::Texture::unserialize(textureFile);
+        result.push_back(texture);
+    }
+    return result;
 }
 
 void TextureTest::beginFrame() {
@@ -169,116 +180,130 @@ void TextureTest::endFrame() {
     QThread::msleep(10);
 }
 
+
 void TextureTest::renderFrame(const std::function<void(gpu::Batch&)>& renderLambda) {
     beginFrame();
     gpu::doInBatch("Test::body", _gpuContext, renderLambda);
     endFrame();
+    ++_frameCount;
 }
+extern QString getTextureMemoryPressureModeString();
 
 void TextureTest::testTextureLoading() {
-    QVERIFY(_textures.size() > 0);
-    auto renderTexturesLamdba = [this](gpu::Batch& batch) {
-        batch.setPipeline(_pipeline);
-        for (const auto& texture : _textures) {
-            batch.setResourceTexture(0, texture);
-            batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
+    QBENCHMARK{
+        _frameCount = 0;
+        auto textures = loadTestTextures();
+        QVERIFY(textures.size() > 0);
+        auto renderTexturesLamdba = [&](gpu::Batch& batch) {
+            batch.setPipeline(_pipeline);
+            for (const auto& texture : textures) {
+                batch.setResourceTexture(0, texture);
+                batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
+            }
+        };
+
+        size_t expectedAllocation = 0;
+        for (const auto& texture : textures) {
+            expectedAllocation += texture->evalTotalSize();
         }
-    };
+        QVERIFY(textures.size() > 0);
 
-    size_t expectedAllocation = 0;
-    for (const auto& texture : _textures) {
-        expectedAllocation += texture->evalTotalSize();
+        auto reportLambda = [=] {
+            qDebug() << "Allowed   " << gpu::Texture::getAllowedGPUMemoryUsage();
+            qDebug() << "Allocated " << gpu::Context::getTextureResourceGPUMemSize();
+            qDebug() << "Populated " << gpu::Context::getTextureResourcePopulatedGPUMemSize();
+            qDebug() << "Pending   " << gpu::Context::getTexturePendingGPUTransferMemSize();
+            qDebug() << "State     " << getTextureMemoryPressureModeString();
+        };
+
+        auto allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
+        auto populatedMemory = gpu::Context::getTextureResourcePopulatedGPUMemSize();
+
+        // Cycle frames we're fully allocated
+        // We need to use the texture rendering lambda
+        auto lastReport = usecTimestampNow();
+        auto start = usecTimestampNow();
+        qDebug() << "Awaiting texture allocation";
+        while (expectedAllocation != allocatedMemory) {
+            doEvery(lastReport, 4, reportLambda);
+            failAfter(start, FAIL_AFTER_SECONDS, "Failed to allocate texture memory");
+            renderFrame(renderTexturesLamdba);
+            allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
+            populatedMemory = gpu::Context::getTextureResourcePopulatedGPUMemSize();
+        }
+        reportLambda();
+        QCOMPARE(allocatedMemory, expectedAllocation);
+
+        // Restart the timer
+        start = usecTimestampNow();
+        // Cycle frames we're fully populated
+        qDebug() << "Awaiting texture population";
+        while (allocatedMemory != populatedMemory || 0 != gpu::Context::getTexturePendingGPUTransferMemSize()) {
+            doEvery(lastReport, 4, reportLambda);
+            failAfter(start, FAIL_AFTER_SECONDS, "Failed to populate texture memory");
+            renderFrame();
+            allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
+            populatedMemory = gpu::Context::getTextureResourcePopulatedGPUMemSize();
+        }
+        reportLambda();
+        QCOMPARE(populatedMemory, allocatedMemory);
+        // FIXME workaround a race condition in the difference between populated size and the actual _populatedMip value in the texture
+        for (size_t i = 0; i < textures.size(); ++i) {
+            renderFrame();
+        }
+
+        // Test on-demand deallocation of memory
+        auto maxMemory = allocatedMemory / 2;
+        gpu::Texture::setAllowedGPUMemoryUsage(maxMemory);
+
+        // Restart the timer
+        start = usecTimestampNow();
+        // Cycle frames until the allocated memory is below the max memory
+        qDebug() << "Awaiting texture deallocation";
+        while (allocatedMemory > maxMemory || allocatedMemory != populatedMemory) {
+            doEvery(lastReport, 4, reportLambda);
+            failAfter(start, FAIL_AFTER_SECONDS, "Failed to deallocate texture memory");
+            renderFrame(renderTexturesLamdba);
+            allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
+            populatedMemory = gpu::Context::getTextureResourcePopulatedGPUMemSize();
+        }
+        reportLambda();
+
+        // Verify that the allocation is now below the target
+        QVERIFY(allocatedMemory <= maxMemory);
+        // Verify that populated memory is the same as allocated memory
+        QCOMPARE(populatedMemory, allocatedMemory);
+
+        // Restart the timer
+        start = usecTimestampNow();
+        // Reset the max memory to automatic
+        gpu::Texture::setAllowedGPUMemoryUsage(0);
+        // Cycle frames we're fully populated
+        qDebug() << "Awaiting texture reallocation and repopulation";
+        while (allocatedMemory != expectedAllocation || allocatedMemory != populatedMemory) {
+            doEvery(lastReport, 4, reportLambda);
+            failAfter(start, FAIL_AFTER_SECONDS, "Failed to populate texture memory");
+            renderFrame();
+            allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
+            populatedMemory = gpu::Context::getTextureResourcePopulatedGPUMemSize();
+        }
+        reportLambda();
+        QCOMPARE(allocatedMemory, expectedAllocation);
+        QCOMPARE(populatedMemory, allocatedMemory);
+
+        textures.clear();
+        // Cycle frames we're fully populated
+        qDebug() << "Awaiting texture deallocation";
+        while (allocatedMemory != 0) {
+            failAfter(start, FAIL_AFTER_SECONDS, "Failed to clear texture memory");
+            renderFrame();
+            allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
+            populatedMemory = gpu::Context::getTextureResourcePopulatedGPUMemSize();
+        }
+        reportLambda();
+        QCOMPARE(allocatedMemory, 0);
+        QCOMPARE(populatedMemory, 0);
+        qDebug() << "Test took " << _frameCount << "frame";
     }
-    QVERIFY(_textures.size() > 0);
-
-    auto reportLambda = [=] {
-        qDebug() << "Allowed   " << gpu::Texture::getAllowedGPUMemoryUsage();
-        qDebug() << "Allocated " << gpu::Context::getTextureResourceGPUMemSize();
-        qDebug() << "Populated " << gpu::Context::getTextureResourcePopulatedGPUMemSize();
-        qDebug() << "Pending   " << gpu::Context::getTexturePendingGPUTransferMemSize();
-    };
-
-    auto allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
-    auto populatedMemory = gpu::Context::getTextureResourcePopulatedGPUMemSize();
-
-    // Cycle frames we're fully allocated
-    // We need to use the texture rendering lambda
-    auto lastReport = usecTimestampNow();
-    auto start = usecTimestampNow();
-    while (expectedAllocation != allocatedMemory) {
-        doEvery(lastReport, 4, reportLambda);
-        failAfter(start, 10, "Failed to allocate texture memory after 10 seconds");
-        renderFrame(renderTexturesLamdba);
-        allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
-        populatedMemory = gpu::Context::getTextureResourcePopulatedGPUMemSize();
-    }
-    QCOMPARE(allocatedMemory, expectedAllocation);
-
-    // Restart the timer
-    start = usecTimestampNow();
-    // Cycle frames we're fully populated
-    while (allocatedMemory != populatedMemory || 0 != gpu::Context::getTexturePendingGPUTransferMemSize()) {
-        doEvery(lastReport, 4, reportLambda);
-        failAfter(start, 10, "Failed to populate texture memory after 10 seconds");
-        renderFrame();
-        allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
-        populatedMemory = gpu::Context::getTextureResourcePopulatedGPUMemSize();
-    }
-    reportLambda();
-    QCOMPARE(populatedMemory, allocatedMemory);
-
-    // FIXME workaround a race condition in the difference between populated size and the actual _populatedMip value in the texture
-    for (size_t i = 0; i < _textures.size(); ++i) {
-        renderFrame();
-    }
-
-    // Test on-demand deallocation of memory
-    auto maxMemory = allocatedMemory / 2;
-    gpu::Texture::setAllowedGPUMemoryUsage(maxMemory);
-
-    // Restart the timer
-    start = usecTimestampNow();
-    // Cycle frames until the allocated memory is below the max memory
-    while (allocatedMemory > maxMemory || allocatedMemory != populatedMemory) {
-        doEvery(lastReport, 4, reportLambda);
-        failAfter(start, 10, "Failed to deallocate texture memory after 10 seconds");
-        renderFrame(renderTexturesLamdba);
-        allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
-        populatedMemory = gpu::Context::getTextureResourcePopulatedGPUMemSize();
-    }
-    reportLambda();
-
-    // Verify that the allocation is now below the target
-    QVERIFY(allocatedMemory <= maxMemory);
-    // Verify that populated memory is the same as allocated memory
-    QCOMPARE(populatedMemory, allocatedMemory);
-
-    // Restart the timer
-    start = usecTimestampNow();
-    // Reset the max memory to automatic
-    gpu::Texture::setAllowedGPUMemoryUsage(0);
-    // Cycle frames we're fully populated
-    while (allocatedMemory != expectedAllocation || allocatedMemory != populatedMemory) {
-        doEvery(lastReport, 4, reportLambda);
-        failAfter(start, 10, "Failed to populate texture memory after 10 seconds");
-        renderFrame();
-        allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
-        populatedMemory = gpu::Context::getTextureResourcePopulatedGPUMemSize();
-    }
-    reportLambda();
-    QCOMPARE(allocatedMemory, expectedAllocation);
-    QCOMPARE(populatedMemory, allocatedMemory);
-
-    _textures.clear();
-    // Cycle frames we're fully populated
-    while (allocatedMemory != 0) {
-        failAfter(start, 10, "Failed to clear texture memory after 10 seconds");
-        renderFrame();
-        allocatedMemory = gpu::Context::getTextureResourceGPUMemSize();
-        populatedMemory = gpu::Context::getTextureResourcePopulatedGPUMemSize();
-    }
-    QCOMPARE(allocatedMemory, 0);
-    QCOMPARE(populatedMemory, 0);
     qDebug() << "Done";
-
 }

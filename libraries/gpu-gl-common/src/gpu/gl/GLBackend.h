@@ -23,6 +23,7 @@
 #include <QtCore/QLoggingCategory>
 
 #include <gl/Config.h>
+#include <gl/GLShaders.h>
 
 #include <gpu/Forward.h>
 #include <gpu/Context.h>
@@ -70,6 +71,9 @@ public:
     static bool makeProgram(Shader& shader, const Shader::BindingSet& slotBindings, const Shader::CompilationHandler& handler);
 
     virtual ~GLBackend();
+
+    // Shutdown rendering and persist any required resources
+    void shutdown() override;
 
     void setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView, bool reset = false);
     void render(const Batch& batch) final override;
@@ -455,6 +459,13 @@ protected:
     virtual GLShader* compileBackendProgram(const Shader& program, const Shader::CompilationHandler& handler);
     virtual GLShader* compileBackendShader(const Shader& shader, const Shader::CompilationHandler& handler);
     virtual std::string getBackendShaderHeader() const = 0;
+    // For a program, this will return a string containing all the source files (without any 
+    // backend headers or defines).  For a vertex, fragment or geometry shader, this will 
+    // return the fully customized shader with all the version and backend specific 
+    // preprocessor directives
+    // The program string returned can be used as a key for a cache of shader binaries
+    // The shader strings can be reliably sent to the low level `compileShader` functions
+    virtual std::string getShaderSource(const Shader& shader, int version) final;
     virtual void makeProgramBindings(ShaderObject& shaderObject);
     class ElementResource {
     public:
@@ -465,12 +476,12 @@ protected:
     ElementResource getFormatFromGLUniform(GLenum gltype);
     static const GLint UNUSED_SLOT {-1};
     static bool isUnusedSlot(GLint binding) { return (binding == UNUSED_SLOT); }
-    virtual int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
+    virtual int makeUniformSlots(const ShaderObject& program, const Shader::BindingSet& slotBindings,
         Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers);
-    virtual int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers);
-    virtual int makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& resourceBuffers) = 0;
-    virtual int makeInputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& inputs);
-    virtual int makeOutputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& outputs);
+    virtual int makeUniformBlockSlots(const ShaderObject& program, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers);
+    virtual int makeResourceBufferSlots(const ShaderObject& program, const Shader::BindingSet& slotBindings, Shader::SlotSet& resourceBuffers) = 0;
+    virtual int makeInputSlots(const ShaderObject& program, const Shader::BindingSet& slotBindings, Shader::SlotSet& inputs);
+    virtual int makeOutputSlots(const ShaderObject& program, const Shader::BindingSet& slotBindings, Shader::SlotSet& outputs);
 
 
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
@@ -489,10 +500,25 @@ protected:
 
     void resetStages();
 
+    // Stores cached binary versions of the shaders for quicker startup on subsequent runs
+    // Note that shaders in the cache can still fail to load due to hardware or driver 
+    // changes that invalidate the cached binary, in which case we fall back on compiling 
+    // the source again
+    struct ShaderBinaryCache {
+        std::mutex _mutex;
+        std::vector<GLint> _formats;
+        std::unordered_map<std::string, ::gl::CachedShader> _binaries;
+    } _shaderBinaryCache;
+
+    virtual void initShaderBinaryCache();
+    virtual void killShaderBinaryCache();
+
     struct TextureManagementStageState {
         bool _sparseCapable { false };
+        GLTextureTransferEnginePointer _transferEngine;
     } _textureManagement;
-    virtual void initTextureManagementStage() {}
+    virtual void initTextureManagementStage();
+    virtual void killTextureManagementStage();
 
     typedef void (GLBackend::*CommandCall)(const Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

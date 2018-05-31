@@ -160,3 +160,29 @@ void TestScriptingInterface::clearCaches() {
 	qApp->reloadResourceCaches();
 }
 
+// Writes a JSON object from javascript to a file
+void TestScriptingInterface::saveObject(QVariant variant, const QString& filename) {
+    if (_testResultsLocation.isNull()) {
+        return;
+    }
+
+    QJsonDocument jsonDocument;
+    jsonDocument = QJsonDocument::fromVariant(variant);
+    if (jsonDocument.isNull()) {
+        return;
+    }
+
+    QByteArray jsonData = jsonDocument.toJson();
+
+    // Append trailing slash if needed
+    if (_testResultsLocation.right(1) != "/") {
+        _testResultsLocation += "/";
+    }
+
+    QString filepath = QDir::cleanPath(_testResultsLocation + filename);
+    QFile file(filepath);
+
+    file.open(QFile::WriteOnly);
+    file.write(jsonData);
+    file.close();
+}

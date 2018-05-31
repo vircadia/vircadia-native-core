@@ -52,7 +52,6 @@ private:
     void embedTextureMetaData();
     void rewriteAndBakeSceneModels();
     void rewriteAndBakeSceneTextures();
-    void exportScene();
 
     FBXGeometry* _geometry;
     QHash<QString, int> _textureNameMatchCount;

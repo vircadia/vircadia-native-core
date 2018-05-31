@@ -67,8 +67,8 @@ using namespace std;
 
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
-const float YAW_SPEED_DEFAULT = 75.0f;   // degrees/sec
-const float PITCH_SPEED_DEFAULT = 50.0f; // degrees/sec
+const float YAW_SPEED_DEFAULT = 100.0f;   // degrees/sec
+const float PITCH_SPEED_DEFAULT = 75.0f; // degrees/sec
 
 const float MAX_BOOST_SPEED = 0.5f * DEFAULT_AVATAR_MAX_WALKING_SPEED; // action motor gets additive boost below this speed
 const float MIN_AVATAR_SPEED = 0.05f;
@@ -2258,9 +2258,15 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = getSensorToWorldScale() * (_walkSpeed.get() * _walkSpeedScalar)  * direction;
     }
 
+    float previousBoomLength = _boomLength;
     float boomChange = getDriveKey(ZOOM);
-    _boomLength += 4.0f * _boomLength * boomChange + boomChange * boomChange;
+    _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
+
+    // May need to change view if boom length has changed
+    if (previousBoomLength != _boomLength) {
+        qApp->changeViewAsNeeded(_boomLength);
+    }
 }
 
 void MyAvatar::updatePosition(float deltaTime) {
@@ -2667,7 +2673,6 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
-    setCollisionsEnabled(menu->isOptionChecked(MenuOption::EnableAvatarCollisions));
     setProperty("lookAtSnappingEnabled", menu->isOptionChecked(MenuOption::EnableLookAtSnapping));
 }
 

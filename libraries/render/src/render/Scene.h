@@ -21,7 +21,7 @@
 
 namespace render {
 
-class Engine;
+class RenderEngine;
 class Scene;
 
 // Transaction is the mechanism to make any change to the scene.
@@ -236,7 +236,7 @@ protected:
     StageMap _stages;
 
 
-    friend class Engine;
+    friend class RenderEngine;
 };
 
 typedef std::shared_ptr<Scene> ScenePointer;

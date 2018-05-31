@@ -371,6 +371,20 @@ public slots:
     void takeSecondaryCameraSnapshot(const QString& filename = QString());
 
     /**jsdoc
+    * Takes a 360 snapshot given a position of the secondary camera (which does not need to have been previously set up).
+    * @function Window.takeSecondaryCameraSnapshot
+    * @param {vec3} [cameraPosition] - The (x, y, z) position of the camera for the 360 snapshot
+    * @param {boolean} [cubemapOutputFormat=false] - If <code>true</code> then the snapshot is saved as a cube map image, 
+    *     otherwise is saved as an equirectangular image.
+    * @param {string} [filename=""] - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
+    *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
+    *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
+    *
+    * var filename = QString();
+    */
+    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat = false, const QString& filename = QString());
+
+    /**jsdoc
      * Emit a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that
      * indicates whether or not a user connection was successfully made using the Web API.
      * @function Window.makeConnection
@@ -456,7 +470,7 @@ public slots:
      *     </tr>
      *   </tbody>
      * </table>
-     * @typedef Window.DisplayTexture
+     * @typedef {string} Window.DisplayTexture
      */
     bool setDisplayTexture(const QString& name);
 
@@ -507,6 +521,25 @@ public slots:
      *     resetButton + cancelButton, cancelButton);
      */
     int openMessageBox(QString title, QString text, int buttons, int defaultButton);
+
+    /**jsdoc
+     * Open a URL in the Interface window or other application, depending on the URL's scheme. If the URL starts with 
+     * <code>hifi://</code> then that URL is navigated to in Interface, otherwise the URL is opened in the application the OS 
+     * associates with the URL's scheme (e.g., a Web browser for <code>http://</code>).
+     * @function Window.openUrl
+     * @param {string} url - The URL to open.
+     */
+    void openUrl(const QUrl& url);
+
+    /**jsdoc
+     * Open an Android activity and optionally return back to the scene when the activity is completed. <em>Android only.</em>
+     * @function Window.openAndroidActivity
+     * @param {string} activityName - The name of the activity to open: one of <code>"Home"</code>, <code>"Login"</code>, or 
+     *     <code>"Privacy Policy"</code>.
+     * @param {boolean} backToScene - If <code>true</code>, the user is automatically returned back to the scene when the 
+     *     activity is completed.
+     */
+    void openAndroidActivity(const QString& activityName, const bool backToScene);
 
     /**jsdoc
      * Update the content of a message box that was opened with {@link Window.openMessageBox|openMessageBox}.
@@ -577,6 +610,16 @@ signals:
      * @returns {Signal}
      */
     void stillSnapshotTaken(const QString& pathStillSnapshot, bool notify);
+
+    /**jsdoc
+    * Triggered when a still equirectangular snapshot has been taken by calling {@link Window.takeSecondaryCamera360Snapshot|takeSecondaryCamera360Snapshot}
+    * @function Window.snapshot360Taken
+    * @param {string} pathStillSnapshot - The path and name of the snapshot image file.
+    * @param {boolean} notify - The value of the <code>notify</code> parameter that {@link Window.takeSecondaryCamera360Snapshot|takeSecondaryCamera360Snapshot}
+    *     was called with.
+    * @returns {Signal}
+    */
+    void snapshot360Taken(const QString& path360Snapshot, bool notify);
 
     /**jsdoc
      * Triggered when a snapshot submitted via {@link Window.shareSnapshot|shareSnapshot} is ready for sharing. The snapshot

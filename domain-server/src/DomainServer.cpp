@@ -1017,8 +1017,14 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
     sendingNode->setPublicSocket(nodeRequestData.publicSockAddr);
     sendingNode->setLocalSocket(nodeRequestData.localSockAddr);
 
-    // update the NodeInterestSet in case there have been any changes
     DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
+
+    if (!nodeData->hasCheckedIn()) {
+        nodeData->setHasCheckedIn(true);
+
+        // on first check in, make sure we've cleaned up any ICE peer for this node
+        _gatekeeper.cleanupICEPeerForNode(sendingNode->getUUID());
+    }
 
     // guard against patched agents asking to hear about other agents
     auto safeInterestSet = nodeRequestData.interestList.toSet();
@@ -1026,6 +1032,7 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
         safeInterestSet.remove(NodeType::Agent);
     }
 
+    // update the NodeInterestSet in case there have been any changes
     nodeData->setNodeInterestSet(safeInterestSet);
 
     // update the connecting hostname in case it has changed
@@ -2945,7 +2952,7 @@ void DomainServer::nodeAdded(SharedNodePointer node) {
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
     // if this peer connected via ICE then remove them from our ICE peers hash
-    _gatekeeper.removeICEPeer(node->getUUID());
+    _gatekeeper.cleanupICEPeerForNode(node->getUUID());
 
     DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
 
@@ -2978,6 +2985,8 @@ void DomainServer::nodeKilled(SharedNodePointer node) {
             }
         }
     }
+
+    broadcastNodeDisconnect(node);
 }
 
 SharedAssignmentPointer DomainServer::dequeueMatchingAssignment(const QUuid& assignmentUUID, NodeType_t nodeType) {
@@ -3163,18 +3172,23 @@ void DomainServer::handleKillNode(SharedNodePointer nodeToKill) {
     const QUuid& nodeUUID = nodeToKill->getUUID();
 
     limitedNodeList->killNodeWithUUID(nodeUUID);
+}
 
-    static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID);
+void DomainServer::broadcastNodeDisconnect(const SharedNodePointer& disconnectedNode) {
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
+    static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID, true);
 
     removedNodePacket->reset();
-    removedNodePacket->write(nodeUUID.toRfc4122());
+    removedNodePacket->write(disconnectedNode->getUUID().toRfc4122());
 
     // broadcast out the DomainServerRemovedNode message
-    limitedNodeList->eachMatchingNode([this, &nodeToKill](const SharedNodePointer& otherNode) -> bool {
+    limitedNodeList->eachMatchingNode([this, &disconnectedNode](const SharedNodePointer& otherNode) -> bool {
         // only send the removed node packet to nodes that care about the type of node this was
-        return isInInterestSet(otherNode, nodeToKill);
+        return isInInterestSet(otherNode, disconnectedNode);
     }, [&limitedNodeList](const SharedNodePointer& otherNode){
-        limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
+        auto removedNodePacketCopy = NLPacket::createCopy(*removedNodePacket);
+        limitedNodeList->sendPacket(std::move(removedNodePacketCopy), *otherNode);
     });
 }
 
