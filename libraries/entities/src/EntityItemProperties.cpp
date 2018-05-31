@@ -130,7 +130,7 @@ void buildStringToMaterialMappingModeLookup() {
     addMaterialMappingMode(PROJECTED);
 }
 
-QString getCollisionGroupAsString(uint8_t group) {
+QString getCollisionGroupAsString(uint16_t group) {
     switch (group) {
         case USER_COLLISION_GROUP_DYNAMIC:
             return "dynamic";
@@ -146,7 +146,7 @@ QString getCollisionGroupAsString(uint8_t group) {
     return "";
 }
 
-uint8_t getCollisionGroupAsBitMask(const QStringRef& name) {
+uint16_t getCollisionGroupAsBitMask(const QStringRef& name) {
     if (0 == name.compare(QString("dynamic"))) {
         return USER_COLLISION_GROUP_DYNAMIC;
     } else if (0 == name.compare(QString("static"))) {
@@ -164,7 +164,7 @@ uint8_t getCollisionGroupAsBitMask(const QStringRef& name) {
 QString EntityItemProperties::getCollisionMaskAsString() const {
     QString maskString("");
     for (int i = 0; i < NUM_USER_COLLISION_GROUPS; ++i) {
-        uint8_t group = 0x01 << i;
+        uint16_t group = 0x0001 << i;
         if (group & _collisionMask) {
             maskString.append(getCollisionGroupAsString(group));
             maskString.append(',');
@@ -175,7 +175,7 @@ QString EntityItemProperties::getCollisionMaskAsString() const {
 
 void EntityItemProperties::setCollisionMaskFromString(const QString& maskString) {
     QVector<QStringRef> groups = maskString.splitRef(',');
-    uint8_t mask = 0x00;
+    uint16_t mask = 0x0000;
     for (auto groupName : groups) {
         mask |= getCollisionGroupAsBitMask(groupName);
     }
@@ -487,10 +487,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} locked=false - Whether or not the entity can be edited or deleted. If <code>true</code> then the 
  *     entity's properties other than <code>locked</code> cannot be changed, and the entity cannot be deleted.
  * @property {boolean} visible=true - Whether or not the entity is rendered. If <code>true</code> then the entity is rendered.
- * @property {boolean} canCastShadows=true - Whether or not the entity casts shadows. Currently applicable only to 
+ * @property {boolean} canCastShadow=true - Whether or not the entity can cast a shadow. Currently applicable only to 
  *     {@link Entities.EntityType|Model} and {@link Entities.EntityType|Shape} entities. Shadows are cast if inside a 
  *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its 
  *     {@link Entities.EntityProperties-Zone|keyLight} property.
+ * @property {boolean} isVisibleInSecondaryCamera=true - Whether or not the entity is rendered in the secondary camera. If <code>true</code> then the entity is rendered.
  *
  * @property {Vec3} position=0,0,0 - The position of the entity.
  * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
@@ -1400,7 +1401,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     /**jsdoc
      * The axis-aligned bounding box of an entity.
-     * @typedef Entities.BoundingBox
+     * @typedef {object} Entities.BoundingBox
      * @property {Vec3} brn - The bottom right near (minimum axes values) corner of the AA box.
      * @property {Vec3} tfl - The top far left (maximum axes values) corner of the AA box.
      * @property {Vec3} center - The center of the AA box.
@@ -1522,7 +1523,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRenderAlpha, float, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionless, bool, setCollisionless);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(ignoreForCollisions, bool, setCollisionless, getCollisionless); // legacy support
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionMask, uint8_t, setCollisionMask);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionMask, uint16_t, setCollisionMask);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(collidesWith, CollisionMask);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(collisionsWillMove, bool, setDynamic, getDynamic); // legacy support
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dynamic, bool, setDynamic);
@@ -2581,7 +2582,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONLESS, bool, setCollisionless);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_MASK, uint8_t, setCollisionMask);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_MASK, uint16_t, setCollisionMask);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DYNAMIC, bool, setDynamic);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_DATA, QString, setUserData);

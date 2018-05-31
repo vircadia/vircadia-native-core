@@ -215,10 +215,7 @@ void CauterizedModel::updateRenderItems() {
             modelTransform.setRotation(self->getRotation());
 
             bool isWireframe = self->isWireframe();
-            bool isVisible = self->isVisible();
-            bool canCastShadow = self->canCastShadow();
-            bool isLayeredInFront = self->isLayeredInFront();
-            bool isLayeredInHUD = self->isLayeredInHUD();
+            auto renderItemKeyGlobalFlags = self->getRenderItemKeyGlobalFlags();
             bool enableCauterization = self->getEnableCauterization();
 
             render::Transaction transaction;
@@ -234,7 +231,7 @@ void CauterizedModel::updateRenderItems() {
                 bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
                 transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,
-                        isWireframe, isVisible, isLayeredInFront, isLayeredInHUD, canCastShadow, enableCauterization](CauterizedMeshPartPayload& data) {
+                        isWireframe, renderItemKeyGlobalFlags, enableCauterization](CauterizedMeshPartPayload& data) {
                     if (useDualQuaternionSkinning) {
                         data.updateClusterBuffer(meshState.clusterDualQuaternions,
                                                  cauterizedMeshState.clusterDualQuaternions);
@@ -276,8 +273,7 @@ void CauterizedModel::updateRenderItems() {
                     data.updateTransformForCauterizedMesh(renderTransform);
 
                     data.setEnableCauterization(enableCauterization);
-                    data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, canCastShadow, render::ItemKey::TAG_BITS_ALL);
-                    data.setLayer(isLayeredInFront, isLayeredInHUD);
+                    data.updateKey(renderItemKeyGlobalFlags);
                     data.setShapeKey(invalidatePayloadShapeKey, isWireframe, useDualQuaternionSkinning);
                 });
             }

@@ -717,7 +717,7 @@ private:
  *     <tr><td><code>NavigationFocused</code></td><td>number</td><td>number</td><td><em>Not used.</em></td></tr>
  *   </tbody>
  * </table>
- * @typedef Controller.Hardware-Application
+ * @typedef {object} Controller.Hardware-Application
  */
 
 static const QString STATE_IN_HMD = "InHMD";
@@ -2492,6 +2492,7 @@ void Application::cleanupBeforeQuit() {
     }
 
     _window->saveGeometry();
+    _gpuContext->shutdown();
 
     // Destroy third party processes after scripts have finished using them.
 #ifdef HAVE_DDE
@@ -3011,9 +3012,11 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     auto surfaceContext = DependencyManager::get<OffscreenUi>()->getSurfaceContext();
     surfaceContext->setContextProperty("Stats", Stats::getInstance());
 
+#if !defined(Q_OS_ANDROID)
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
     offscreenUi->show(qml, "AvatarInputsBar");
+#endif
 }
 
 void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
@@ -4632,12 +4635,6 @@ void Application::idle() {
 
     _overlayConductor.update(secondsSinceLastUpdate);
 
-    auto myAvatar = getMyAvatar();
-    if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
-        cameraMenuChanged();
-    }
     _gameLoopCounter.increment();
 }
 
@@ -5184,6 +5181,21 @@ void Application::cameraModeChanged() {
     cameraMenuChanged();
 }
 
+void Application::changeViewAsNeeded(float boomLength) {
+    // Switch between first and third person views as needed
+    // This is called when the boom length has changed
+    bool boomLengthGreaterThanMinimum = (boomLength > MyAvatar::ZOOM_MIN);
+
+    if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON && boomLengthGreaterThanMinimum) {
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
+        cameraMenuChanged();
+    } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON && !boomLengthGreaterThanMinimum) {
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, false);
+        cameraMenuChanged();
+    }
+}
 
 void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();

@@ -279,7 +279,7 @@ controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevic
  *       moved down. The data value is how far the average position of all touch points moved.</td></tr>
   *   </tbody>
  * </table>
- * @typedef Controller.Hardware-Keyboard
+ * @typedef {object} Controller.Hardware-Keyboard
  * @todo <em>Currently, the mouse wheel in an ordinary mouse generates left/right wheel events instead of up/down.</em>
  */
 controller::Input::NamedVector KeyboardMouseDevice::InputDevice::getAvailableInputs() const {

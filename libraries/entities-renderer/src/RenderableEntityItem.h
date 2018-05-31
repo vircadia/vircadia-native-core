@@ -18,6 +18,7 @@
 #include "AbstractViewStateInterface.h"
 #include "EntitiesRendererLogging.h"
 #include <graphics-scripting/Forward.h>
+#include <RenderHifi.h>
 
 class EntityTreeRenderer;
 
@@ -74,7 +75,7 @@ protected:
     virtual Item::Bound getBound() override;
     virtual void render(RenderArgs* args) override final;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) override;
-    virtual uint32_t getViewTagBits() const;
+    virtual render::hifi::Tag getTagMask() const;
 
     // Returns true if the item in question needs to have updateInScene called because of internal rendering state changes
     virtual bool needsRenderUpdate() const;

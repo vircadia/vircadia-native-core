@@ -121,7 +121,7 @@ public:
 
     /**jsdoc
      * A set of properties that can be passed to {@link Assets.getAsset}.
-     * @typedef {Object} Assets.GetOptions
+     * @typedef {object} Assets.GetOptions
      * @property {string} [url] an "atp:" style URL, hash, or relative mapped path to fetch
      * @property {string} [responseType=text] the desired reponse type (text | arraybuffer | json)
      * @property {boolean} [decompress=false] whether to attempt gunzip decompression on the fetched data
@@ -137,7 +137,7 @@ public:
 
     /**jsdoc
      * Result value returned by {@link Assets.getAsset}.
-     * @typedef {Object} Assets~getAssetResult
+     * @typedef {object} Assets~getAssetResult
      * @property {string} [url] the resolved "atp:" style URL for the fetched asset
      * @property {string} [hash] the resolved hash for the fetched asset
      * @property {string|ArrayBuffer|Object} [response] response data (possibly converted per .responseType value)
@@ -159,7 +159,7 @@ public:
 
     /**jsdoc
      * A set of properties that can be passed to {@link Assets.putAsset}.
-     * @typedef {Object} Assets.PutOptions
+     * @typedef {object} Assets.PutOptions
      * @property {ArrayBuffer|string} [data] byte buffer or string value representing the new asset's content
      * @property {string} [path=null] ATP path mapping to automatically create (upon successful upload to hash)
      * @property {boolean} [compress=false] whether to gzip compress data before uploading
@@ -174,7 +174,7 @@ public:
 
     /**jsdoc
      * Result value returned by {@link Assets.putAsset}.
-     * @typedef {Object} Assets~putAssetResult
+     * @typedef {object} Assets~putAssetResult
      * @property {string} [url] the resolved "atp:" style URL for the uploaded asset (based on .path if specified, otherwise on the resulting ATP hash)
      * @property {string} [path] the uploaded asset's resulting ATP path (or undefined if no path mapping was assigned)
      * @property {string} [hash] the uploaded asset's resulting ATP hash

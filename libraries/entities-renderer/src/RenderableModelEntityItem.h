@@ -164,7 +164,7 @@ protected:
     void flagForCollisionGeometryUpdate();
     void setCollisionMeshKey(const void* key);
 
-    uint32_t getViewTagBits() const override;
+    render::hifi::Tag getTagMask() const override;
 
     void setIsVisibleInSecondaryCamera(bool value) override;
 

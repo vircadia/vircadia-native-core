@@ -157,20 +157,20 @@ Item::Bound EntityRenderer::getBound() {
     return _bound;
 }
 
-uint32_t EntityRenderer::getViewTagBits() const {
-    return render::ItemKey::TAG_BITS_0 | (_isVisibleInSecondaryCamera ? render::ItemKey::TAG_BITS_1 : render::ItemKey::TAG_BITS_NONE);
+render::hifi::Tag EntityRenderer::getTagMask() const {
+    return _isVisibleInSecondaryCamera ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW;
 }
 
 ItemKey EntityRenderer::getKey() {
     if (isTransparent()) {
-        return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getViewTagBits());
+        return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask());
     }
 
     // This allows shapes to cast shadows
     if (_canCastShadow) {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getViewTagBits()).withShadowCaster();
+        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withShadowCaster();
     } else {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getViewTagBits());
+        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask());
     }
 }
 

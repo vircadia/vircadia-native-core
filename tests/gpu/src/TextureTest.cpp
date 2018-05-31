@@ -21,7 +21,7 @@
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
 
-#include "../../QTestExtensions.h"
+#include <test-utils/QTestExtensions.h>
 
 QTEST_MAIN(TextureTest)
 

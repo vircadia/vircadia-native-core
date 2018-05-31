@@ -817,7 +817,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     READ_ENTITY_PROPERTY(PROP_COLLISIONLESS, bool, setCollisionless);
-    READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint8_t, setCollisionMask);
+    READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint16_t, setCollisionMask);
     READ_ENTITY_PROPERTY(PROP_DYNAMIC, bool, setDynamic);
     READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
@@ -1850,7 +1850,7 @@ void EntityItem::setCollisionless(bool value) {
     });
 }
 
-void EntityItem::setCollisionMask(uint8_t value) {
+void EntityItem::setCollisionMask(uint16_t value) {
     withWriteLock([&] {
         if ((_collisionMask & ENTITY_COLLISION_MASK_DEFAULT) != (value & ENTITY_COLLISION_MASK_DEFAULT)) {
             _collisionMask = (value & ENTITY_COLLISION_MASK_DEFAULT);
@@ -1915,7 +1915,7 @@ void EntityItem::setCreated(quint64 value) {
     });
 }
 
-void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const {
+void EntityItem::computeCollisionGroupAndFinalMask(int32_t& group, int32_t& mask) const {
     if (_collisionless) {
         group = BULLET_COLLISION_GROUP_COLLISIONLESS;
         mask = 0;
@@ -1928,7 +1928,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
             group = BULLET_COLLISION_GROUP_STATIC;
         }
 
-        uint8_t userMask = getCollisionMask();
+        uint16_t userMask = getCollisionMask();
 
         if ((bool)(userMask & USER_COLLISION_GROUP_MY_AVATAR) !=
                 (bool)(userMask & USER_COLLISION_GROUP_OTHER_AVATAR)) {
@@ -1942,7 +1942,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
         if ((bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
             userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
         }
-        mask = Physics::getDefaultCollisionMask(group) & (int16_t)(userMask);
+        mask = Physics::getDefaultCollisionMask(group) & (int32_t)(userMask);
     }
 }
 
@@ -2818,8 +2818,8 @@ bool EntityItem::getCollisionless() const {
     return result;
 }
 
-uint8_t EntityItem::getCollisionMask() const {
-    uint8_t result;
+uint16_t EntityItem::getCollisionMask() const {
+    uint16_t result;
     withReadLock([&] {
         result = _collisionMask;
     });

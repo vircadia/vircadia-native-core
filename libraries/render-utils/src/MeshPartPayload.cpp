@@ -79,27 +79,9 @@ void MeshPartPayload::removeMaterial(graphics::MaterialPointer material) {
     _drawMaterials.remove(material);
 }
 
-void MeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled) {
-    ItemKey::Builder builder;
+void MeshPartPayload::updateKey(const render::ItemKey& key) {
+    ItemKey::Builder builder(key);
     builder.withTypeShape();
-
-    if (!isVisible) {
-        builder.withInvisible();
-    }
-
-    builder.withTagBits(tagBits);
-
-    if (isLayered) {
-        builder.withLayered();
-    }
-
-    if (canCastShadow) {
-        builder.withShadowCaster();
-    }
-
-    if (isGroupCulled) {
-        builder.withSubMetaCulled();
-    }
 
     if (topMaterialExists()) {
         auto matKey = _drawMaterials.top().material->getKey();
@@ -199,12 +181,6 @@ template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointe
         return payload->getBound();
     }
     return Item::Bound();
-}
-template <> int payloadGetLayer(const ModelMeshPartPayload::Pointer& payload) {
-    if (payload) {
-        return payload->getLayer();
-    }
-    return 0;
 }
 
 template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload) {
@@ -332,27 +308,9 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& render
 }
 
 // Note that this method is called for models but not for shapes
-void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled) {
-    ItemKey::Builder builder;
+void ModelMeshPartPayload::updateKey(const render::ItemKey& key) {
+    ItemKey::Builder builder(key);
     builder.withTypeShape();
-
-    if (!isVisible) {
-        builder.withInvisible();
-    }
-
-    builder.withTagBits(tagBits);
-
-    if (isLayered) {
-        builder.withLayered();
-    }
-
-    if (canCastShadow) {
-        builder.withShadowCaster();
-    }
-
-    if (isGroupCulled) {
-        builder.withSubMetaCulled();
-    }
 
     if (_isBlendShaped || _isSkinned) {
         builder.withDeformed();
@@ -366,20 +324,6 @@ void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCas
     }
 
     _itemKey = builder.build();
-}
-
-void ModelMeshPartPayload::setLayer(bool isLayeredInFront, bool isLayeredInHUD) {
-    if (isLayeredInFront) {
-        _layer = Item::LAYER_3D_FRONT;
-    } else if (isLayeredInHUD) {
-        _layer = Item::LAYER_3D_HUD;
-    } else {
-        _layer = Item::LAYER_3D;
-    }
-}
-
-int ModelMeshPartPayload::getLayer() const {
-    return _layer;
 }
 
 void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe, bool useDualQuaternionSkinning) {

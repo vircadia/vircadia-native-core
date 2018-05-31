@@ -1127,7 +1127,11 @@ void MyAvatar::setEnableDebugDrawIKChains(bool isEnabled) {
 }
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
-    _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE, true);
+    return Avatar::setEnableMeshVisible(isEnabled);
+}
+
+bool MyAvatar::getEnableMeshVisible() const {
+    return Avatar::getEnableMeshVisible();
 }
 
 void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
@@ -1479,7 +1483,10 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelChangeCount++;
     int skeletonModelChangeCount = _skeletonModelChangeCount;
     Avatar::setSkeletonModelURL(skeletonModelURL);
-    _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE, true);
+    _skeletonModel->setTagMask(render::hifi::TAG_NONE);
+    _skeletonModel->setGroupCulled(true);
+    _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene());
+
     _headBoneSet.clear();
     _cauterizationNeedsUpdate = true;
 
@@ -2054,14 +2061,12 @@ void MyAvatar::preDisplaySide(const RenderArgs* renderArgs) {
                 _attachmentData[i].jointName.compare("RightEye", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("HeadTop_End", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("Face", Qt::CaseInsensitive) == 0) {
-                uint8_t modelRenderTagBits = shouldDrawHead ? render::ItemKey::TAG_BITS_0 : render::ItemKey::TAG_BITS_NONE;
-                modelRenderTagBits |= render::ItemKey::TAG_BITS_1;
-                _attachmentModels[i]->setVisibleInScene(true, qApp->getMain3DScene(),
-                                                        modelRenderTagBits, false);
+                uint8_t modelRenderTagBits = shouldDrawHead ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_SECONDARY_VIEW;
 
-                uint8_t castShadowRenderTagBits = render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1;
-                _attachmentModels[i]->setCanCastShadow(true, qApp->getMain3DScene(),
-                                                       castShadowRenderTagBits, false);
+                _attachmentModels[i]->setTagMask(modelRenderTagBits);
+                _attachmentModels[i]->setGroupCulled(false);
+                _attachmentModels[i]->setCanCastShadow(true);
+                _attachmentModels[i]->setVisibleInScene(true, qApp->getMain3DScene());
             }
         }
     }
@@ -2245,9 +2250,15 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = getSensorToWorldScale() * (_walkSpeed.get() * _walkSpeedScalar)  * direction;
     }
 
+    float previousBoomLength = _boomLength;
     float boomChange = getDriveKey(ZOOM);
     _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
+
+    // May need to change view if boom length has changed
+    if (previousBoomLength != _boomLength) {
+        qApp->changeViewAsNeeded(_boomLength);
+    }
 }
 
 void MyAvatar::updatePosition(float deltaTime) {

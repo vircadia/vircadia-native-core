@@ -1060,9 +1060,9 @@ ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Pare
 
 void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed) {
     if (didVisualGeometryRequestSucceed) {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTagBits(getViewTagBits());
+        _itemKey = ItemKey::Builder().withTypeMeta().withTagBits(getTagMask());
     } else {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape().withTagBits(getViewTagBits());
+        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape().withTagBits(getTagMask());
     }
 }
 
@@ -1070,11 +1070,11 @@ ItemKey ModelEntityRenderer::getKey() {
     return _itemKey;
 }
 
-uint32_t ModelEntityRenderer::getViewTagBits() const {
+render::hifi::Tag ModelEntityRenderer::getTagMask() const {
     // Default behavior for model is to not be visible in main view if cauterized (aka parented to the avatar's neck joint)
     return _cauterized ?
-        (_isVisibleInSecondaryCamera ? render::ItemKey::TAG_BITS_1 : render::ItemKey::TAG_BITS_NONE) : // draw in every view except the main one (view zero) (unless not visible in other views)
-        Parent::getViewTagBits(); // calculate which views to be shown in
+        (_isVisibleInSecondaryCamera ? render::hifi::TAG_SECONDARY_VIEW : render::hifi::TAG_NONE) :
+        Parent::getTagMask(); // calculate which views to be shown in
 }
 
 uint32_t ModelEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) { 
@@ -1394,18 +1394,22 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     entity->updateModelBounds();
     entity->stopModelOverrideIfNoParent();
 
-    uint32_t viewTaskBits = getViewTagBits();
-    if (model->isVisible() != _visible || model->getViewTagBits() != viewTaskBits) {
+    render::hifi::Tag tagMask = getTagMask();
+    if (model->isVisible() != _visible) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
         //        the renderable item. As it stands now the model checks it's visible/invisible state
         //        so most of the time we don't do anything in this function.
-        model->setVisibleInScene(_visible, scene, viewTaskBits, false);
+        model->setVisibleInScene(_visible, scene);
+    }
+
+    if (model->getTagMask() != tagMask) {
+        model->setTagMask(tagMask, scene);
     }
 
     // TODO? early exit here when not visible?
 
     if (model->canCastShadow() != _canCastShadow) {
-        model->setCanCastShadow(_canCastShadow, scene, viewTaskBits, false);
+        model->setCanCastShadow(_canCastShadow, scene);
     }
 
     if (_needsCollisionGeometryUpdate) {
