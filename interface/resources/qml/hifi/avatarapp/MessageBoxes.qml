@@ -29,7 +29,7 @@ MessageBox {
         popup.open();
     }
 
-    property url getWearablesUrl: '../../../images/avatarapp/hifi-place-get-wearables.png'
+    property url getWearablesUrl: '../../../images/avatarapp/AvatarIsland.jpg'
 
     function showGetWearables(callback, linkCallback) {
         popup.button2text = 'AvatarIsland'
@@ -89,7 +89,7 @@ MessageBox {
         popup.open();
     }
 
-    property url getAvatarsUrl: '../../../images/avatarapp/hifi-place-get-avatars.png'
+    property url getAvatarsUrl: '../../../images/avatarapp/BodyMart.PNG'
 
     function showBuyAvatars(callback, linkCallback) {
         popup.button2text = 'BodyMart'
