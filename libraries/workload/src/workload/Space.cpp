@@ -84,9 +84,9 @@ void Space::processUpdates(const Transaction::Updates& transactions) {
 
 void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
     std::unique_lock<std::mutex> lock(_proxiesMutex);
-    uint32_t maxID = (uint32_t)(_IDAllocator.getNumAllocatedIndices());
+    uint32_t numProxies = (uint32_t)_proxies.size();
     uint32_t numViews = (uint32_t)_views.size();
-    for (uint32_t i = 0; i < maxID; ++i) {
+    for (uint32_t i = 0; i < numProxies; ++i) {
         Proxy& proxy = _proxies[i];
         if (proxy.region < Region::INVALID) {
             glm::vec3 proxyCenter = glm::vec3(proxy.sphere);
