@@ -32,7 +32,7 @@ if (!Function.prototype.bind) {
 
         if (this.prototype) {
             // Function.prototype doesn't have a prototype property
-            fNOP.prototype = this.prototype; 
+            fNOP.prototype = this.prototype;
         }
         fBound.prototype = new fNOP();
 
@@ -381,6 +381,7 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
         sensorScaleOffsetOverride = 1 / sensorScaleFactor;
     }
 
+
     // will need to be recaclulated if dimensions of fbx model change.
     var TABLET_NATURAL_DIMENSIONS = {x: 32.083, y: 48.553, z: 2.269};
     var DEFAULT_DPI = 31;
@@ -401,8 +402,7 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     // update webOverlay
     var RAYPICK_OFFSET = 0.0007; // Sufficient for raypick to reliably intersect tablet screen before tablet model.
     var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.0) * sensorScaleOffsetOverride + RAYPICK_OFFSET;
-    var WEB_ENTITY_Y_OFFSET = 1 * tabletScaleFactor;
-    print(WEB_ENTITY_Y_OFFSET);
+    var WEB_ENTITY_Y_OFFSET = 1 * tabletScaleFactor * sensorScaleOffsetOverride;
     var screenWidth = 0.9275 * tabletWidth;
     var screenHeight = 0.8983 * tabletHeight;
     var landscape = Tablet.getTablet("com.highfidelity.interface.tablet.system").landscape;
