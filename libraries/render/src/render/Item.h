@@ -54,6 +54,7 @@ public:
 
         NUM_TAGS,
 
+        // Tag bits are derived from the Tag enum
         TAG_BITS_ALL = 0xFF,
         TAG_BITS_NONE = 0x00,
         TAG_BITS_0 = 0x01,
@@ -65,18 +66,7 @@ public:
         TAG_BITS_6 = 0x40,
         TAG_BITS_7 = 0x80,
     };
- /*   // Tag bits are derived from the Tag enum
-    constexpr static uint8_t TAG_BITS_ALL;
-    const static uint8_t TAG_BITS_NONE;
-    const static uint8_t TAG_BITS_0;
-    const static uint8_t TAG_BITS_1;
-    const static uint8_t TAG_BITS_2;
-    const static uint8_t TAG_BITS_3;
-    const static uint8_t TAG_BITS_4;
-    const static uint8_t TAG_BITS_5;
-    const static uint8_t TAG_BITS_6;
-    const static uint8_t TAG_BITS_7;
-*/
+
     // Items are organized in layers, an item belongs to one of the 8 Layers available.
     // By default an item is in the 'LAYER_DEFAULT' meaning that it is NOT layered.
     // THere is NO ordering relationship between layers.
@@ -92,11 +82,10 @@ public:
 
         NUM_LAYERS,
 
-        NUM_LAYER_BITS = 3,
+        // Layer bits are derived from the Layer enum, the number of bits needed to represent integer 0 to NUM_LAYERS
+        NUM_LAYER_BITS = 3, 
         LAYER_BITS_ALL = 0x07,
     };
-    // Layer bits are derived from the Layer enum, the number of bits needed to represent integer 0 to NUM_LAYERS
- //   const static uint8_t LAYER_BITS_ALL;
 
     enum FlagBit : uint32_t {
         TYPE_SHAPE = 0,   // Item is a Shape: Implements the Shape Interface that draw a Geometry rendered with a Material

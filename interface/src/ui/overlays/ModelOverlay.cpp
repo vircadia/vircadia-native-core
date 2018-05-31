@@ -103,8 +103,8 @@ void ModelOverlay::update(float deltatime) {
     if (_visibleDirty) {
         _visibleDirty = false;
         // don't show overlays in mirrors or spectator-cam unless _isVisibleInSecondaryCamera is true
-        uint8_t modelRenderTagMak = (_isVisibleInSecondaryCamera ? Render::TAG_ALL_VIEWS : Render::TAG_MAIN_VIEW);
-        _model->setTagMask(modelRenderTagMak, scene);
+        uint8_t modelRenderTagMask = (_isVisibleInSecondaryCamera ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW);
+        _model->setTagMask(modelRenderTagMask, scene);
         _model->setVisibleInScene(getVisible(), scene);
     }
     if (_drawInFrontDirty) {

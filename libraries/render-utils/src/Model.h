@@ -33,7 +33,7 @@
 #include <TriangleSet.h>
 #include <DualQuaternion.h>
 
-#include "RenderConstants.h"
+#include "RenderHifi.h"
 #include "GeometryCache.h"
 #include "TextureCache.h"
 #include "Rig.h"
@@ -91,7 +91,7 @@ public:
     void setVisibleInScene(bool isVisible, const render::ScenePointer& scene = nullptr);
     bool isVisible() const;
 
-    Render::Tag getTagMask() const;
+    render::hifi::Tag getTagMask() const;
     void setTagMask(uint8_t mask, const render::ScenePointer& scene = nullptr);
 
     bool isGroupCulled() const;

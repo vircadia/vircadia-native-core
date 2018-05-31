@@ -1388,8 +1388,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
     // Default behavior for model is to not be visible in main view if cauterized (aka parented to the avatar's neck joint)
     auto tagMask = _cauterized ?
-        Render::TAG_SECONDARY_VIEW : // draw in every view except the main one (view zero)
-        Render::TAG_ALL_VIEWS; // draw in all views
+        render::hifi::TAG_SECONDARY_VIEW : // draw in every view except the main one (view zero)
+        render::hifi::TAG_ALL_VIEWS; // draw in all views
 
     if (model->isVisible() != _visible) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in

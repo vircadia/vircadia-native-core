@@ -1159,6 +1159,7 @@ public slots:
      * @function MyAvatar.getEnableMeshVisible
      * @returns {boolean} <code>true</code> if your avatar's mesh is visible, otherwise <code>false</code>.
      */
+    bool getEnableMeshVisible() const override;
 
     /**jsdoc
      * Set whether or not your avatar mesh is visible.
@@ -1170,6 +1171,7 @@ public slots:
      *     MyAvatar.setEnableMeshVisible(true);
      * }, 10000);
      */
+    virtual void setEnableMeshVisible(bool isEnabled) override;
 
     /**jsdoc
      * @function MyAvatar.setEnableInverseKinematics

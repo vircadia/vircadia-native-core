@@ -106,7 +106,7 @@ Model::Model(QObject* parent, SpatiallyNestable* spatiallyNestableOverride) :
     _blendNumber(0),
     _appliedBlendNumber(0),
     _isWireframe(false),
-    _renderItemKeyGlobalFlags(render::ItemKey::Builder().withVisible().withTagBits(Render::TAG_ALL_VIEWS).build())
+    _renderItemKeyGlobalFlags(render::ItemKey::Builder().withVisible().withTagBits(render::hifi::TAG_ALL_VIEWS).build())
 {
     // we may have been created in the network thread, but we live in the main thread
     if (_viewState) {
@@ -812,25 +812,25 @@ bool Model::canCastShadow() const {
 void Model::setLayeredInFront(bool layeredInFront, const render::ScenePointer& scene) {
     if (Model::isLayeredInFront() != layeredInFront) {
         auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
-        _renderItemKeyGlobalFlags = (layeredInFront ? keyBuilder.withLayer(Render::LAYER_3D_FRONT) : keyBuilder.withoutLayer());
+        _renderItemKeyGlobalFlags = (layeredInFront ? keyBuilder.withLayer(render::hifi::LAYER_3D_FRONT) : keyBuilder.withoutLayer());
         updateRenderItemsKey(scene);
     }
 }
 
 bool Model::isLayeredInFront() const {
-    return _renderItemKeyGlobalFlags.isLayer(Render::LAYER_3D_FRONT);
+    return _renderItemKeyGlobalFlags.isLayer(render::hifi::LAYER_3D_FRONT);
 }
 
 void Model::setLayeredInHUD(bool layeredInHUD, const render::ScenePointer& scene) {
     if (Model::isLayeredInHUD() != layeredInHUD) {
         auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
-        _renderItemKeyGlobalFlags = (layeredInHUD ? keyBuilder.withLayer(Render::LAYER_3D_HUD) : keyBuilder.withoutLayer());
+        _renderItemKeyGlobalFlags = (layeredInHUD ? keyBuilder.withLayer(render::hifi::LAYER_3D_HUD) : keyBuilder.withoutLayer());
         updateRenderItemsKey(scene);
     }
 }
 
 bool Model::isLayeredInHUD() const {
-    return _renderItemKeyGlobalFlags.isLayer(Render::LAYER_3D_HUD);
+    return _renderItemKeyGlobalFlags.isLayer(render::hifi::LAYER_3D_HUD);
 }
 
 void Model::setTagMask(uint8_t mask, const render::ScenePointer& scene) {
@@ -840,8 +840,8 @@ void Model::setTagMask(uint8_t mask, const render::ScenePointer& scene) {
         updateRenderItemsKey(scene);
     }
 }
-Render::Tag Model::getTagMask() const {
-    return (Render::Tag) _renderItemKeyGlobalFlags.getTagBits();
+render::hifi::Tag Model::getTagMask() const {
+    return (render::hifi::Tag) _renderItemKeyGlobalFlags.getTagBits();
 }
 
 void Model::setGroupCulled(bool groupCulled, const render::ScenePointer& scene) {
