@@ -27,6 +27,7 @@
 #include <render/DrawSceneOctree.h>
 #include <render/BlurTask.h>
 
+#include "RenderHifi.h"
 #include "RenderCommonTask.h"
 #include "LightingModel.h"
 #include "StencilMaskPass.h"
@@ -200,8 +201,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto overlaysInFrontRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOverlaysInFrontRangeTimer", "BeginOverlaysInFrontRangeTimer");
 
     // Layered Overlays
-    const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, Item::LAYER_3D_FRONT);
-    const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, Item::LAYER_3D_FRONT);
+    const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, render::hifi::LAYER_3D_FRONT);
+    const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, render::hifi::LAYER_3D_FRONT);
     const auto overlaysInFrontOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
     const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
 
