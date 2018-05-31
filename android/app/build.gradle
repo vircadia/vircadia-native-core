@@ -27,6 +27,14 @@ android {
                     '-DDISABLE_KTX_CACHE=OFF'
             }
         }
+        signingConfigs {
+            release {
+                storeFile project.hasProperty("HIFI_ANDROID_KEYSTORE") ? file(HIFI_ANDROID_KEYSTORE) : null
+                storePassword project.hasProperty("HIFI_ANDROID_KEYSTORE_PASSWORD") ? HIFI_ANDROID_KEYSTORE_PASSWORD : ''
+                keyAlias project.hasProperty("HIFI_ANDROID_KEY_ALIAS") ? HIFI_ANDROID_KEY_ALIAS : ''
+                keyPassword project.hasProperty("HIFI_ANDROID_KEY_PASSWORD") ? HIFI_ANDROID_KEY_PASSWORD : ''
+            }
+        }
     }
 
     compileOptions {
@@ -38,6 +46,10 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig project.hasProperty("HIFI_ANDROID_KEYSTORE") &&
+                    project.hasProperty("HIFI_ANDROID_KEYSTORE_PASSWORD") &&
+                    project.hasProperty("HIFI_ANDROID_KEY_ALIAS") &&
+                    project.hasProperty("HIFI_ANDROID_KEY_PASSWORD")? signingConfigs.release : null
         }
     }
 

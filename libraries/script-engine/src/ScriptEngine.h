@@ -233,6 +233,12 @@ public:
     Q_INVOKABLE bool isClientScript() const { return _context == CLIENT_SCRIPT; }
 
     /**jsdoc
+     * @function Script.isDebugMode
+     * @returns {boolean}
+     */
+    Q_INVOKABLE bool isDebugMode() const;
+
+    /**jsdoc
      * @function Script.isEntityClientScript
      * @returns {boolean}
      */
