@@ -140,16 +140,16 @@ public:
     // This call is thread safe, can be called from anywhere to allocate a new ID
     ProxyID allocateID();
 
-    // Check that the ID is valid and allocated for this space, this a threadsafe call
+    // Check that the ID is valid and allocated for this collection, this a threadsafe call
     bool isAllocatedID(const ProxyID& id) const;
 
     // THis is the total number of allocated proxies, this a threadsafe call
     Index getNumAllocatedProxies() const { return _IDAllocator.getNumAllocatedIndices(); }
 
-    // Enqueue transaction to the space
+    // Enqueue transaction to the collection
     void enqueueTransaction(const Transaction& transaction);
 
-    // Enqueue transaction to the space
+    // Enqueue transaction to the collection
     void enqueueTransaction(Transaction&& transaction);
 
     // Enqueue end of frame transactions boundary
