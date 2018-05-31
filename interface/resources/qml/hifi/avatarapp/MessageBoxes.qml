@@ -6,11 +6,12 @@ MessageBox {
     function showSpecifyAvatarUrl(callback, linkCallback) {
         popup.onButton2Clicked = callback;
         popup.titleText = 'Specify Avatar URL'
-        popup.bodyText = 'If you want to add a custom avatar, you can specify the URL of the avatar file' +
-                '(“.fst” extension) here. <a href="https://docs.highfidelity.com/create-and-explore/avatars/create-avatars">Learn to make a custom avatar by opening this link on your desktop.</a>'
+        popup.bodyText = 'This will not overwrite your existing favorite if you are wearing one.<br>' +
+                '<a href="https://docs.highfidelity.com/create-and-explore/avatars/create-avatars">' +
+                'Learn to make a custom avatar by opening this link on your desktop.' +
+                '</a>'
         popup.inputText.visible = true;
         popup.inputText.placeholderText = 'Enter Avatar Url';
-        popup.inputText.forceActiveFocus();
         popup.button1text = 'CANCEL';
         popup.button2text = 'CONFIRM';
 
@@ -27,6 +28,7 @@ MessageBox {
         }
 
         popup.open();
+        popup.inputText.forceActiveFocus();
     }
 
     property url getWearablesUrl: '../../../images/avatarapp/AvatarIsland.jpg'

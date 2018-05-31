@@ -85,16 +85,9 @@ Rectangle {
             text: root.titleText
         }
 
-        Item {
+        Column {
             id: contentContainer
-            width: parent.width - 60
-            height: childrenRect.height
-            onHeightChanged: {
-                console.debug('contentContainer: height = ', height,
-                              'image.height = ', image.height,
-                              'body.height = ', body.height
-                              )
-            }
+            spacing: 15
 
             anchors.top: title.bottom
             anchors.topMargin: 10
@@ -103,9 +96,25 @@ Rectangle {
             anchors.right: parent.right;
             anchors.rightMargin: 30;
 
+            InputTextStyle4 {
+                id: input
+                visible: false
+                height: visible ? implicitHeight : 0
+
+                anchors.left: parent.left;
+                anchors.right: parent.right;
+            }
+
             TextStyle3 {
-                id: body;
+                id: body
+
+                AvatarAppStyle {
+                    id: style
+                }
+
+                size: 18
                 text: root.bodyText;
+                linkColor: style.colors.blueHighlight
                 anchors.left: parent.left;
                 anchors.right: parent.right;
                 height: paintedHeight;
@@ -125,8 +134,6 @@ Rectangle {
                     value: 0
                 }
 
-                anchors.top: body.bottom
-                anchors.topMargin: imageSource === null ? 0 : 30
                 anchors.left: parent.left;
                 anchors.right: parent.right;
 
@@ -136,16 +143,6 @@ Rectangle {
                 }
 
                 visible: imageSource !== null ? true : false
-            }
-
-            InputTextStyle4 {
-                id: input
-                visible: false
-                height: visible ? implicitHeight : 0
-
-                anchors.top: imageSource !== null ? image.bottom : body.bottom
-                anchors.left: parent.left;
-                anchors.right: parent.right;
             }
         }
 
