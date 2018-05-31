@@ -50,6 +50,8 @@
 
 #include <TextureMeta.h>
 
+#include <OwningBuffer.h>
+
 Q_LOGGING_CATEGORY(trace_resource_parse_image, "trace.resource.parse.image")
 Q_LOGGING_CATEGORY(trace_resource_parse_image_raw, "trace.resource.parse.image.raw")
 Q_LOGGING_CATEGORY(trace_resource_parse_image_ktx, "trace.resource.parse.image.ktx")
@@ -277,7 +279,7 @@ gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::Te
         return nullptr;
     }
     auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
-    return gpu::TexturePointer(loader(std::move(image), path.toStdString(), false));
+    return gpu::TexturePointer(loader(std::move(image), path.toStdString(), false, false));
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
@@ -964,7 +966,6 @@ void NetworkTexture::loadMetaContent(const QByteArray& content) {
         return;
     }
 
-
     auto& backend = DependencyManager::get<TextureCache>()->getGPUContext()->getBackend();
     for (auto pair : meta.availableTextureTypes) {
         gpu::Element elFormat;
@@ -989,6 +990,21 @@ void NetworkTexture::loadMetaContent(const QByteArray& content) {
             }
         }
     }
+
+#ifndef Q_OS_ANDROID
+    if (!meta.uncompressed.isEmpty()) {
+        _currentlyLoadingResourceType = ResourceType::KTX;
+        _activeUrl = _activeUrl.resolved(meta.uncompressed);
+
+        auto textureCache = DependencyManager::get<TextureCache>();
+        auto self = _self.lock();
+        if (!self) {
+            return;
+        }
+        QMetaObject::invokeMethod(this, "attemptRequest", Qt::QueuedConnection);
+        return;
+    }
+#endif
 
     if (!meta.original.isEmpty()) {
         _currentlyLoadingResourceType = ResourceType::ORIGINAL;
@@ -1143,7 +1159,8 @@ void ImageReader::read() {
         PROFILE_RANGE_EX(resource_parse_image_raw, __FUNCTION__, 0xffff0000, 0);
 
         // IMPORTANT: _content is empty past this point
-        texture = image::processImage(std::move(_content), _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType());
+        auto buffer = std::shared_ptr<QIODevice>((QIODevice*)new OwningBuffer(std::move(_content)));
+        texture = image::processImage(std::move(buffer), _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType());
 
         if (!texture) {
             qCWarning(modelnetworking) << "Could not process:" << _url;
