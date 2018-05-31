@@ -781,7 +781,7 @@ void EntityMotionState::computeCollisionGroupAndMask(int32_t& group, int32_t& ma
     _entity->computeCollisionGroupAndFinalMask(group, mask);
 }
 
-bool EntityMotionState::shouldSendBid() {
+bool EntityMotionState::shouldSendBid() const {
     // NOTE: this method is only ever called when the entity's simulation is NOT locally owned
     return _body->isActive() && (_region == workload::Region::R1) &&
         glm::max(glm::max(VOLUNTEER_SIMULATION_PRIORITY, _bumpedPriority), _entity->getScriptSimulationPriority()) >= _entity->getSimulationPriority();
