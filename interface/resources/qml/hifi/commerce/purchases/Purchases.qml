@@ -21,6 +21,7 @@ import "../wallet" as HifiWallet
 import "../common" as HifiCommerceCommon
 import "../inspectionCertificate" as HifiInspectionCertificate
 import "../common/sendAsset" as HifiSendAsset
+import "../.." as HifiCommon
 
 // references XXX from root context
 
@@ -81,7 +82,7 @@ Rectangle {
         }
 
         onInventoryResult: {
-            purchasesModel.pageRetrieved(result);
+            purchasesModel.handlePage(result.status !== "success" && result.message, result);
         }
 
         onAvailableUpdatesResult: {
@@ -145,8 +146,14 @@ Rectangle {
         }
     }
 
+    HifiCommon.RootHttpRequest {
+        id: http;
+    }
+
     HifiSendAsset.SendAsset {
         id: sendAsset;
+        http: http;
+        listModelName: "Gift Connections";
         z: 998;
         visible: root.activeView === "giftAsset";
         anchors.fill: parent;
@@ -547,9 +554,10 @@ Rectangle {
 
         HifiModels.PSFListModel {
             id: purchasesModel;
+            itemsPerPage: 6;
 
-            itemsPerPage: 3;
-            getPage: function() {
+            getPage: function () {
+                console.log('HRS FIXME Purchases getPage', root.isShowingMyItems, filterBar.primaryFilter_filterName, purchasesModel.currentPageToRetrieve, purchasesModel.itemsPerPage);
                 Commerce.inventory(
                     root.isShowingMyItems ? "proofs" : "purchased",
                     filterBar.primaryFilter_filterName.toLowerCase(),
@@ -557,10 +565,24 @@ Rectangle {
                     purchasesModel.itemsPerPage
                 );
             }
-            pageRetrieved: function(result) {
-                purchasesReceived = true;
+            processPage: function(data) {
+                purchasesReceived = true; // HRS FIXME?
+                data.assets.forEach(function (item) {
+                    if (item.status.length > 1) { console.warn("Unrecognized inventory status", item); }
+                    item.status = item.status[0];
+                    item.categories = item.categories.join(';');
+                    item.cardBackVisible = false;
+                    item.isInstalled = root.installedApps.indexOf(item.id) > -1;
+                    item.wornEntityID = '';
+                    // HRS FIXME updateable
+                });
+                // HRS FIXME purchaess_updateWearables
+                // HRS FIXME populateDisplayedItemCounts
+                // HRS FIXME sortByDate
+                return data.assets;
 
-                var processedInventory = processInventoryResult(result.data.assets);
+                /*
+                var processedInventory = processInventoryResult(data.assets);
 
                 if (purchasesModel.processResult(result.status, processedInventory)) {
                     var currentId;
@@ -592,6 +614,7 @@ Rectangle {
                     // the most recent purchases on the 1st page)
                     //sortByDate();
                 }
+                */
             }
         }
 
@@ -970,7 +993,7 @@ Rectangle {
     // FUNCTION DEFINITIONS START
     //
 
-    function processInventoryResult(inventory) {
+    function processInventoryResult(inventory) {  // HRS FIXME remove
         for (var i = 0; i < inventory.length; i++) {
             if (inventory[i].status.length > 1) {
                 console.log("WARNING: Inventory result index " + i + " has a status of length >1!")
@@ -1086,6 +1109,9 @@ Rectangle {
             break;
             case 'updateWearables':
                 updateCurrentlyWornWearables(message.wornWearables);
+            break;
+            case 'http.response':
+                http.handleHttpResponse(message);
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));

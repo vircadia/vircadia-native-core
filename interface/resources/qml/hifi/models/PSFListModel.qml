@@ -18,7 +18,7 @@
 import QtQuick 2.7
 
 Item {
-
+    id: root;
     // Used when printing debug statements
     property string listModelName: endpoint;
     
@@ -28,9 +28,14 @@ Item {
     property string sortKey;
     property string searchFilter: "";
     property string tagsFilter;
-    onEndpointChanged: getFirstPage();
-    onSortKeyChanged: getFirstPage();
+
+    // QML fires the following changed handlers even when first instantiating the Item. So we need a guard against firing them too early.
+    property bool initialized: false;
+    Component.onCompleted: initialized = true;
+    onEndpointChanged: if (initialized) { getFirstPage(); }
+    onSortKeyChanged: if (initialized) { getFirstPage(); }
     onSearchFilterChanged: {
+        if (!initialized) { return; }
         if (searchItemTest) {
             var filteredCopy = applySearchItemTest(copyOfItems);
             finalModel.clear();
@@ -39,11 +44,11 @@ Item {
             getFirstPage();
         }
     }
-    onTagsFilterChanged: getFirstPage();
+    onTagsFilterChanged: if (initialized) { getFirstPage(); }
     property int itemsPerPage: 100;
 
     // If the endpoint doesn't do search, tags, sort, these functions can be supplied to do it here.
-    property var searchItemTest: nil;
+    property var searchItemTest: null;
     property var copyOfItems: [];
 
     // State.
@@ -67,10 +72,10 @@ Item {
     // Check consistency and call processPage.
     function handlePage(error, response) {
         var processed;
-        console.log("HRS FIXME got", endpoint, error, JSON.stringify(response));
+        console.debug('handlePage', listModelName, error, JSON.stringify(response));
         function fail(message) {
             console.warn("Warning", listModelName, JSON.stringify(message));
-            current_page_to_retrieve = -1;
+            currentPageToRetrieve = -1;
             requestPending = false;
             delayedClear = false;
         }
@@ -105,9 +110,9 @@ Item {
     }
 
     // Override either http or getPage.
-    property var http: null; // An Item that has a request function.
+    property var http; // An Item that has a request function.
     property var getPage: function () {  // Any override MUST call handlePage(), above, even if results empty.
-        if (!http) { return console.warn("Neither http nor getPage was set in", listModelName); }
+        if (!http) { return console.warn("Neither http nor getPage was set for", listModelName); }
         var url = /^\//.test(endpoint) ? (Account.metaverseServerURL + endpoint) : endpoint;
         var parameters = [
             // FIXME: handle sort, search, tag parameters
@@ -116,7 +121,7 @@ Item {
         ];
         var parametersSeparator = /\?/.test(url) ? '&' : '?';
         url = url + parametersSeparator + parameters.join('&');
-        console.log("HRS FIXME requesting", url);
+        console.debug('getPage', listModelName);
         http.request({uri: url}, handlePage);
     }
 
@@ -141,8 +146,8 @@ Item {
         if (requestPending || currentPageToRetrieve < 0) {
             return;
         }
-        console.log("HRS FIXME Fetching Page " + currentPageToRetrieve + " of " + listModelName + "...");
         currentPageToRetrieve++;
+        console.debug("getNextPage", listModelName, currentPageToRetrieve);
         requestPending = true;
         getPage();
     }

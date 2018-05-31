@@ -22,7 +22,8 @@
     // So, this script does two things:
     // 1. Allows any root .qml to signal sendToScript({id: aString, method: 'http.request', params: byNameOptions})
     //    We will then asynchonously call fromScript({id: theSameString, method: 'http.response', error: errorOrFalsey, response: body})
-    //    on that root object.
+    //    on that root object.  
+    //    RootHttpRequest.qml does this.
     // 2. If the uri used (computed from byNameOptions, see request.js) begins with '/', we will:
     //    a. Prepend Account.metaverseServerUR.
     //    b. Use the appropriate auth.
@@ -30,20 +31,19 @@
     var request = Script.require('request').request;
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     function fromQml(message) { // messages are {id, method, params}, like json-rpc. See also sendToQml.
-	switch (message.method) {
-	case 'http.request':
-	    request(message.params, function (error, response) {
-		console.log('HRS FIXME request-service got', JSON.stringify(error), JSON.stringify(response));
-		tablet.sendToQml({
-		    id: message.id,
-		    method: 'http.response',
-		    error: error, // Alas, this isn't always a JSON-RPC conforming error object.
-		    response: response,
-		    jsonrpc: '2.0'
-		});
-	    });
-	    break;
-	}
+        switch (message.method) {
+        case 'http.request':
+            request(message.params, function (error, response) {
+                tablet.sendToQml({
+                    id: message.id,
+                    method: 'http.response',
+                    error: error, // Alas, this isn't always a JSON-RPC conforming error object.
+                    response: response,
+                   jsonrpc: '2.0'
+                });
+            });
+            break;
+        }
     }
     tablet.fromQml.connect(fromQml);
     Script.scriptEnding.connect(function () { tablet.fromQml.disconnect(fromQml); });

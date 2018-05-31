@@ -37,6 +37,8 @@ Item {
     property string assetName: "";
     property string assetCertID: "";
     property string sendingPubliclyEffectImage;
+    property var http;
+    property var listModelName;
         
     // This object is always used in a popup or full-screen Wallet section.
     // This MouseArea is used to prevent a user from being
@@ -393,7 +395,8 @@ Item {
         
         HifiModels.PSFListModel {
             id: connectionsModel;
-            http: root.parent; // Misuse of "root" in this file!
+            http: root.http;
+            listModelName: root.listModelName;
             endpoint: "/api/v1/users?filter=connections";
             itemsPerPage: 8;
             processPage: function (data) {

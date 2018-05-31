@@ -211,16 +211,15 @@ Item {
 
         HifiModels.PSFListModel {
             id: transactionHistoryModel;
-
-            listModelName: "transaction history";
-            itemsPerPage: 100;
+            listModelName: "transaction history"; // For debugging. Alternatively, we could specify endpoint for that purpose, even though it's not used directly.
+            itemsPerPage: 6;
             getPage: function () {
-                console.log('HRS FIXME WalletHome getPage', transactionHistoryModel.currentPageToRetrieve, transactionHistoryModel.itemsPerPage);
+                console.debug('WalletHome getPage', transactionHistoryModel.currentPageToRetrieve);
                 Commerce.history(transactionHistoryModel.currentPageToRetrieve, transactionHistoryModel.itemsPerPage);
             }
             processPage: function (data) {
-                console.log('HRS FIXME WalletHome processPage', JSON.stringify(data));
-                var result, pending;
+                console.debug('WalletHome processPage', JSON.stringify(data));
+                var result, pending; // Set up or get the accumulator for pending.
                 if (transactionHistoryModel.currentPageToRetrieve == 1) {
                     pending = {transaction_type: "pendingCount", count: 0};
                     result = [pending];
@@ -228,6 +227,8 @@ Item {
                     pending = transactionHistoryModel.get(0);
                     result = [];
                 }
+
+                // Either add to pending, or to result.
                 data.history.forEach(function (item) {
                     if (item.status === 'pending') {
                         pending.count++;
