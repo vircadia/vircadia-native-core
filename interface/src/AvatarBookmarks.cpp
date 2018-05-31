@@ -93,6 +93,11 @@ void addAvatarEntities(const QVariantList& avatarEntities) {
 }
 
 AvatarBookmarks::AvatarBookmarks() {
+    QDir directory(PathUtils::getAppDataPath());
+    if (!directory.exists()) {
+        directory.mkpath(".");
+    }
+
     _bookmarksFilename = PathUtils::getAppDataPath() + "/" + AVATARBOOKMARKS_FILENAME;
     if(!QFile::exists(_bookmarksFilename)) {
         auto defaultBookmarksFilename = PathUtils::resourcesPath() + QString("avatar/bookmarks") + "/" + AVATARBOOKMARKS_FILENAME;
