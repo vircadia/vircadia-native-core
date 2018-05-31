@@ -124,13 +124,16 @@ void GLBackend::init() {
 GLBackend::GLBackend() {
     _pipeline._cameraCorrectionBuffer._buffer->flush();
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
+    initShaderBinaryCache();
 }
 
+GLBackend::~GLBackend() {}
 
-GLBackend::~GLBackend() {
+void GLBackend::shutdown() {
     killInput();
     killTransform();
     killTextureManagementStage();
+    killShaderBinaryCache();
 }
 
 void GLBackend::renderPassTransfer(const Batch& batch) {

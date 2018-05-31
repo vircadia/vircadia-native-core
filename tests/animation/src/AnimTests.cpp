@@ -20,7 +20,7 @@
 #include <AccountManager.h>
 #include <ResourceManager.h>
 #include <StatTracker.h>
-#include <../QTestExtensions.h>
+#include <test-utils/QTestExtensions.h>
 
 QTEST_MAIN(AnimTests)
 
