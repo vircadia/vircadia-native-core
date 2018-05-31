@@ -5125,6 +5125,11 @@ void Application::toggleOverlays() {
     menu->setIsOptionChecked(MenuOption::Overlays, !menu->isOptionChecked(MenuOption::Overlays));
 }
 
+void Application::setShowOverlays(bool value) {
+    _hmdTabletBecomesToolbarSetting.set(value);
+    updateSystemTabletMode();
+}
+
 void Application::centerUI() {
     _overlayConductor.centerUI();
 }
