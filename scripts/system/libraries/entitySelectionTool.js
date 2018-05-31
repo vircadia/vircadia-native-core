@@ -313,8 +313,6 @@ SelectionDisplay = (function() {
     
     var CTRL_KEY_CODE = 16777249;
 
-    var AVATAR_COLLISIONS_OPTION = "Enable Avatar Collisions";
-
     var TRANSLATE_DIRECTION = {
         X : 0,
         Y : 1,
@@ -1811,7 +1809,7 @@ SelectionDisplay = (function() {
 
     that.restoreAvatarCollisionsFromStretch = function() {
         if (handleStretchCollisionOverride) {
-            Menu.setIsOptionChecked(AVATAR_COLLISIONS_OPTION, true);
+            MyAvatar.setCollisionsEnabled(true);
             handleStretchCollisionOverride = false;
         }
     }
@@ -2018,8 +2016,8 @@ SelectionDisplay = (function() {
             if (scaleHandle != null) {
                 Overlays.editOverlay(scaleHandle, { color: COLOR_SCALE_CUBE_SELECTED });
             }
-            if (Menu.isOptionChecked(AVATAR_COLLISIONS_OPTION)) {
-                Menu.setIsOptionChecked(AVATAR_COLLISIONS_OPTION, false);
+            if (MyAvatar.getCollisionsEnabled()) {
+                MyAvatar.setCollisionsEnabled(false);
                 handleStretchCollisionOverride = true;
             }
         };
