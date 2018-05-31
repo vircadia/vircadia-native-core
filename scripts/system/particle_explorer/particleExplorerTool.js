@@ -45,8 +45,8 @@ ParticleExplorerTool = function() {
         }));
     }
 
-    that.webEventReceived = function(data) {
-        data = JSON.parse(data);
+    that.webEventReceived = function(message) {
+        var data = JSON.parse(message);
         if (data.messageType === "settings_update") {
             if (data.updatedSettings.emitOrientation) {
                 data.updatedSettings.emitOrientation = Quat.fromVec3Degrees(data.updatedSettings.emitOrientation);
