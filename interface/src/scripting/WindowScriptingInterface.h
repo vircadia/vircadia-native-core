@@ -362,6 +362,8 @@ public slots:
      * Takes a still snapshot of the current view from the secondary camera that can be set up through the {@link Render} API.
      * NOTE:  to provide a non-default value - all previous parameters must be provided.
      * @function Window.takeSecondaryCameraSnapshot
+     * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
+     *     signal.
      * @param {string} [filename=""] - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
      *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
      *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
@@ -372,10 +374,12 @@ public slots:
 
     /**jsdoc
     * Takes a 360 snapshot given a position of the secondary camera (which does not need to have been previously set up).
-    * @function Window.takeSecondaryCameraSnapshot
+    * @function Window.takeSecondaryCamera360Snapshot
     * @param {vec3} [cameraPosition] - The (x, y, z) position of the camera for the 360 snapshot
     * @param {boolean} [cubemapOutputFormat=false] - If <code>true</code> then the snapshot is saved as a cube map image, 
     *     otherwise is saved as an equirectangular image.
+     * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
+     *     signal.
     * @param {string} [filename=""] - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
     *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
     *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
