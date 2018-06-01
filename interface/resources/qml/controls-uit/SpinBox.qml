@@ -115,7 +115,7 @@ SpinBox {
             anchors.centerIn: parent
             text: hifi.glyphs.caratUp
             size: hifi.dimensions.spinnerSize
-            color: spinBox.down.pressed || spinBox.up.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
+            color: spinBox.up.pressed || spinBox.up.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
         }
     }
 
