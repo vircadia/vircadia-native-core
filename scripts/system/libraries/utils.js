@@ -413,20 +413,20 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     });
 
     // update homeButton
-    var HOME_BUTTON_X_OFFSET = 0.0005;
-    var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20) + (HMD.active ? 0.005 : 0.0055) * sensorScaleFactor) * sensorScaleOffsetOverride;
-    var HOME_BUTTON_Z_OFFSET = -WEB_ENTITY_Z_OFFSET + 0.0040 - (HMD.active ? 0.005 : 0.0018);
     // FIXME: Circle3D overlays currently at the wrong dimensions, so we need to account for that here
     var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
+    var HOME_BUTTON_X_OFFSET = 0.00079 * sensorScaleOffsetOverride * sensorScaleFactor;
+    var HOME_BUTTON_Y_OFFSET = -1 * ((tabletHeight / 2) - (4.0 * tabletScaleFactor / 2)) * sensorScaleOffsetOverride;
+    var HOME_BUTTON_Z_OFFSET = (-WEB_ENTITY_Z_OFFSET + 0.00284 * sensorScaleOffsetOverride);
     Overlays.editOverlay(HMD.homeButtonID, {
-        localPosition: { x: HOME_BUTTON_X_OFFSET, y: -HOME_BUTTON_Y_OFFSET, z: HOME_BUTTON_Z_OFFSET },
-        localRotation: Quat.angleAxis(180, Vec3.UNIT_Y),
+        localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        localRotation: { x: 0, y: 1, z: 0, w: 0 },
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });
 
     Overlays.editOverlay(HMD.homeButtonHighlightID, {
-        localPosition: { x: HOME_BUTTON_X_OFFSET, y: -HOME_BUTTON_Y_OFFSET, z: HOME_BUTTON_Z_OFFSET },
-        localRotation: Quat.angleAxis(180, Vec3.UNIT_Y),
+        localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: HOME_BUTTON_Z_OFFSET },
+        localRotation: { x: 0, y: 1, z: 0, w: 0 },
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });
 };

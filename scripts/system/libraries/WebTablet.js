@@ -153,14 +153,14 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         visible: visible
     });
 
-    var HOME_BUTTON_X_OFFSET = 0.0005;
-    var HOME_BUTTON_Y_OFFSET = (tabletHeight / 2) - (tabletHeight / 20) + (HMD.active ? 0.005 : 0.0055) * sensorScaleFactor;
-    var HOME_BUTTON_Z_OFFSET = -WEB_ENTITY_Z_OFFSET + 0.0040 - (HMD.active ? 0.005 : 0.0018);
     // FIXME: Circle3D overlays currently at the wrong dimensions, so we need to account for that here
     var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
+    var HOME_BUTTON_X_OFFSET = 0.00079 * sensorScaleFactor;
+    var HOME_BUTTON_Y_OFFSET = -1 * ((tabletHeight / 2) - (4.0 * tabletScaleFactor / 2));
+    var HOME_BUTTON_Z_OFFSET = -WEB_ENTITY_Z_OFFSET + 0.00284;
     this.homeButtonID = Overlays.addOverlay("circle3d", {
         name: "homeButton",
-        localPosition: { x: HOME_BUTTON_X_OFFSET, y: -HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
+        localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
         localRotation: { x: 0, y: 1, z: 0, w: 0},
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim },
         solid: true,
@@ -173,7 +173,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
 
     this.homeButtonHighlightID = Overlays.addOverlay("circle3d", {
         name: "homeButtonHighlight",
-        localPosition: { x: HOME_BUTTON_X_OFFSET, y: -HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
+        localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: HOME_BUTTON_Z_OFFSET },
         localRotation: { x: 0, y: 1, z: 0, w: 0 },
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim },
         color: { red: 255, green: 255, blue: 255 },
