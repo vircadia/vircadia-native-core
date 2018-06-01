@@ -44,8 +44,6 @@ const LOG_FILE_REGEX = /(domain-server|ac-monitor|ac)-.*-std(out|err).txt/;
 
 const HOME_CONTENT_URL = "http://cdn.highfidelity.com/content-sets/home-tutorial-RC40.tar.gz";
 
-const APP_USER_MODEL_ID = 'com.highfidelity.sandbox';  // For Windows jump list, etc.
-
 function getBuildInfo() {
     var buildInfoPath = null;
 
@@ -62,7 +60,7 @@ function getBuildInfo() {
         }
     }
 
-    const DEFAULT_BUILD_INFO = { releaseType: "", buildIdentifier: "dev" };
+    const DEFAULT_BUILD_INFO = { releaseType: "", buildIdentifier: "dev",  appUserModelId: "com.highfidelity.sandbox-dev"};
     var buildInfo = DEFAULT_BUILD_INFO;
 
     if (buildInfoPath) {
@@ -235,7 +233,7 @@ const configPath = path.join(getApplicationDataDirectory(), 'config.json');
 var userConfig = new Config();
 userConfig.load(configPath);
 
-app.setAppUserModelId(APP_USER_MODEL_ID);
+app.setAppUserModelId(buildInfo.appUserModelId);
 
 // print out uncaught exceptions in the console
 process.on('uncaughtException', function(err) {
@@ -882,7 +880,7 @@ function onContentLoaded() {
                         title: 'An update is available!',
                         message: 'High Fidelity version ' + latestVersion + ' is available',
                         wait: true,
-                        appID: APP_USER_MODEL_ID,
+                        appID: buildInfo.appUserModelId,
                         url: url
                     });
                     hasShownUpdateNotification = true;

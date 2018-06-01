@@ -1162,6 +1162,8 @@ Section "-Core installation"
   ${If} @SERVER_COMPONENT_CONDITIONAL@
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
       "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
+    ; Set appUserModelId
+    ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" "@APP_USER_MODEL_ID@"
   ${EndIf}
 
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\@UNINSTALLER_NAME@"
@@ -1172,18 +1174,6 @@ Section "-Core installation"
   Call ConditionalAddToRegisty
 
   !insertmacro MUI_STARTMENU_WRITE_END
-
-  !if @PRODUCTION_BUILD@ == 1
-    ${If} @SERVER_COMPONENT_CONDITIONAL@
-      ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" "com.highfidelity.sandbox"
-    ${EndIf}
-    ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" "com.highfidelity.interface"
-  !else
-    ${If} @SERVER_COMPONENT_CONDITIONAL@
-      ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" "com.highfidelity.sandbox-dev"
-    ${EndIf}
-    ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" "com.highfidelity.interface-dev"
-  !endif
 
   @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
 
