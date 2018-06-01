@@ -2362,26 +2362,21 @@ var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 var propertiesTool = new PropertiesTool();
 var particleExplorerTool = new ParticleExplorerTool();
-var selectedParticleEntity = 0;
 var selectedParticleEntityID = null;
 
 function selectParticleEntity(entityID) {
-    var properties = Entities.getEntityProperties(entityID);
     selectedParticleEntityID = entityID;
+
+    var properties = Entities.getEntityProperties(entityID);
     if (properties.emitOrientation) {
         properties.emitOrientation = Quat.safeEulerAngles(properties.emitOrientation);
     }
-    var particleData = {
-        messageType: "particle_settings",
-        currentProperties: properties
-    };
+
     particleExplorerTool.destroyWebView();
     particleExplorerTool.createWebView();
 
-    selectedParticleEntity = entityID;
     particleExplorerTool.setActiveParticleEntity(entityID);
-
-    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
+    particleExplorerTool.setActiveParticleProperties(properties);
 
     // Switch to particle explorer
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -2404,13 +2399,13 @@ entityListTool.webView.webEventReceived.connect(function (data) {
         var ids = data.entityIds;
         if (ids.length === 1) {
             if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {
-                if (JSON.stringify(selectedParticleEntity) === JSON.stringify(ids[0])) {
+                if (JSON.stringify(selectedParticleEntityID) === JSON.stringify(ids[0])) {
                     // This particle entity is already selected, so return
                     return;
                 }
                 // Destroy the old particles web view first
             } else {
-                selectedParticleEntity = 0;
+                selectedParticleEntityID = 0;
                 particleExplorerTool.destroyWebView();
             }
         }
