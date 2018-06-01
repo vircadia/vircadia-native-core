@@ -368,7 +368,7 @@ public slots:
      *
      * var filename = QString();
      */
-    void takeSecondaryCameraSnapshot(const QString& filename = QString());
+    void takeSecondaryCameraSnapshot(const bool& notify = true, const QString& filename = QString());
 
     /**jsdoc
     * Takes a 360 snapshot given a position of the secondary camera (which does not need to have been previously set up).
@@ -382,7 +382,7 @@ public slots:
     *
     * var filename = QString();
     */
-    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat = false, const QString& filename = QString());
+    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat = false, const bool& notify = true, const QString& filename = QString());
 
     /**jsdoc
      * Emit a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that
