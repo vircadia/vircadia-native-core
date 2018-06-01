@@ -25,15 +25,17 @@ Item {
     // Parameters. Even if you override getPage, below, please set these for clarity and consistency, when applicable.
     // E.g., your getPage function could refer to this sortKey, etc.
     property string endpoint;
-    property string sortKey;
+    property string sortProperty;  // Currently only handles sorting on one column, which fits with current needs and tables.
+    property bool sortAscending;
+    property string sortKey: !sortProperty ? '' : (sortProperty + "," + (sortAscending ? "asc" : "desc"));
     property string searchFilter: "";
     property string tagsFilter;
 
     // QML fires the following changed handlers even when first instantiating the Item. So we need a guard against firing them too early.
     property bool initialized: false;
     Component.onCompleted: initialized = true;
-    onEndpointChanged: if (initialized) { getFirstPage(); }
-    onSortKeyChanged: if (initialized) { getFirstPage(); }
+    onEndpointChanged: if (initialized) { getFirstPage('delayClear'); }
+    onSortKeyChanged:  if (initialized) { getFirstPage('delayClear'); }
     onSearchFilterChanged: {
         if (!initialized) { return; }
         if (searchItemTest) {
@@ -42,14 +44,15 @@ Item {
             finalModel.append(filteredCopy);
             debugView('after searchFilterChanged');
         } else { // TODO: fancy timer against fast typing.
-            getFirstPage();
+            getFirstPage('delayClear');
         }
     }
-    onTagsFilterChanged: if (initialized) { getFirstPage(); }
+    onTagsFilterChanged: if (initialized) { getFirstPage('delayClear'); }
     property int itemsPerPage: 100;
 
     // If the endpoint doesn't do search, tags, sort, these functions can be supplied to do it here.
     property var searchItemTest: null;
+    property bool localSort: false;
     property var copyOfItems: [];
 
     // State.
@@ -92,10 +95,21 @@ Item {
             return fail("Mismatched page, expected:" + currentPageToRetrieve);
         }
         processed = processPage(response.data || response);
+        if (response.total_pages && (response.total_pages === currentPageToRetrieve)) {
+            currentPageToRetrieve = -1;
+        }
         if (searchItemTest) {
             copyOfItems = copyOfItems.concat(processed);
             if (searchFilter) {
                 processed = applySearchItemTest(processed);
+            }
+        }
+        if (localSort) {
+            copyOfItems = copyOfItems.concat(processed);
+            if (sortProperty) {
+                sortCopy(sortProperty, sortAscending);
+                processed = copyOfItems;
+                delayedClear = true; // see next conditional
             }
         }
         if (delayedClear) {
@@ -104,9 +118,6 @@ Item {
         }
         finalModel.append(processed); // FIXME keep index steady, and apply any post sort
         retrievedAtLeastOnePage = true;
-        if (response.total_pages && (response.total_pages === currentPageToRetrieve)) {
-            currentPageToRetrieve = -1;
-        }
         debugView('after handlePage');
         if (searchItemTest && searchFilter && listView && listView.atYEnd && (currentPageToRetrieve >= 0)) {
             getNextPage(); // too fancy??
@@ -185,85 +196,26 @@ Item {
         id: finalModel;
     }
 
-    // Used when sorting model data on the CLIENT
-    // Right now, there is no sorting done on the client for
-    // any users of PSFListModel, but that could very easily change.
-    property string sortColumnName: "";
-    property bool isSortingDescending: true;
-    property bool valuesAreNumerical: false;
+    function sortCopy(sortProperty, isAscending) {
+        console.debug('client sort', listModelName, sortProperty, isAscending, copyOfItems.length, 'items');
+        var before = isAscending ? -1 : 1;
+        var after = -1 * before;
 
-    function swap(a, b) {
-        if (a < b) {
-            move(a, b, 1);
-            move(b - 1, a, 1);
-        } else if (a > b) {
-            move(b, a, 1);
-            move(a - 1, b, 1);
-        }
-    }
-
-    function partition(begin, end, pivot) {
-        if (valuesAreNumerical) {
-            var piv = get(pivot)[sortColumnName];
-            swap(pivot, end - 1);
-            var store = begin;
-            var i;
-
-            for (i = begin; i < end - 1; ++i) {
-                var currentElement = get(i)[sortColumnName];
-                if (isSortingDescending) {
-                    if (currentElement > piv) {
-                        swap(store, i);
-                        ++store;
-                    }
-                } else {
-                    if (currentElement < piv) {
-                        swap(store, i);
-                        ++store;
-                    }
-                }
+        copyOfItems.sort(function (a, b) {
+            var aValue = a[sortProperty].toString().toLowerCase(), 
+                bValue = b[sortProperty].toString().toLowerCase();
+            if (!aValue && !bValue) {
+                return 0;
+            } else if (!aValue) {
+                return after;
+            } else if (!bValue) {
+                return before;
             }
-            swap(end - 1, store);
-
-            return store;
-        } else {
-            var piv = get(pivot)[sortColumnName].toLowerCase();
-            swap(pivot, end - 1);
-            var store = begin;
-            var i;
-
-            for (i = begin; i < end - 1; ++i) {
-                var currentElement = get(i)[sortColumnName].toLowerCase();
-                if (isSortingDescending) {
-                    if (currentElement > piv) {
-                        swap(store, i);
-                        ++store;
-                    }
-                } else {
-                    if (currentElement < piv) {
-                        swap(store, i);
-                        ++store;
-                    }
-                }
+            switch (true) {
+            case (aValue < bValue): return before;
+            case (aValue > bValue): return after;
+            default: return 0;
             }
-            swap(end - 1, store);
-
-            return store;
-        }
-    }
-
-    function qsort(begin, end) {
-        if (end - 1 > begin) {
-            var pivot = begin + Math.floor(Math.random() * (end - begin));
-
-            pivot = partition(begin, end, pivot);
-
-            qsort(begin, pivot);
-            qsort(pivot + 1, end);
-        }
-    }
-
-    function quickSort() {
-        qsort(0, count)
+        });
     }
 }

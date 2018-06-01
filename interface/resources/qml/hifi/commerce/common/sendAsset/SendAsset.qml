@@ -401,7 +401,6 @@ Item {
             itemsPerPage: 8;
             listView: connectionsList;
             processPage: function (data) {
-                console.log("processPage", connectionsModel.listModelName, JSON.stringify(data));
                 return data.users;
             };
             searchFilter: filterBar.text;

@@ -18,6 +18,7 @@ import Qt.labs.settings 1.0
 import "../styles-uit"
 import "../controls-uit" as HifiControlsUit
 import "../controls" as HifiControls
+import "models" as HifiModels
 
 // references HMD, Users, UserActivityLogger from root context
 
@@ -44,6 +45,28 @@ Rectangle {
     property bool punctuationMode: false;
 
     HifiConstants { id: hifi; }
+    RootHttpRequest { id: http; }
+    HifiModels.PSFListModel {
+        id: connectionsUserModel;
+        http: http;
+        endpoint: "/api/v1/users?filter=connections";
+        localSort: true;
+        property var sortColumn: connectionsTable.getColumn(connectionsTable.sortIndicatorColumn);
+        sortProperty: sortColumn ? sortColumn.role : "userName";
+        sortAscending: connectionsTable.sortIndicatorOrder === Qt.AscendingOrder;
+        itemsPerPage: 9;
+        listView: connectionsTable;
+        processPage: function (data) {
+            return data.users.map(function (user) {
+                return {
+                    userName: user.username,
+                    connection: user.connection,
+                    profileUrl: user.images.thumbnail,
+                    placeName: (user.location.root || user.location.domain || {}).name || ''
+                };
+            });
+        };
+    }
 
     // The letterbox used for popup messages
     LetterboxMessage {
@@ -105,16 +128,6 @@ Rectangle {
             }
         });
         return sessionIDs;
-    }
-    function getSelectedConnectionsUserNames() {
-        var userNames = [];
-        connectionsTable.selection.forEach(function (userIndex) {
-            var datum = connectionsUserModelData[userIndex];
-            if (datum) {
-                userNames.push(datum.userName);
-            }
-        });
-        return userNames;
     }
     function refreshNearbyWithFilter() {
         // We should just be able to set settings.filtered to inViewCheckbox.checked, but see #3249, so send to .js for saving.
@@ -232,9 +245,7 @@ Rectangle {
                     anchors.fill: parent;
                     onClicked: {
                         if (activeTab != "connectionsTab") {
-                            connectionsLoading.visible = false;
-                            connectionsLoading.visible = true;
-                            pal.sendToScript({method: 'refreshConnections'});
+                            connectionsUserModel.getFirstPage();
                         }
                         activeTab = "connectionsTab";
                         connectionsHelpText.color = hifi.colors.blueAccent;
@@ -258,11 +269,7 @@ Rectangle {
                             id: reloadConnections;
                             width: reloadConnections.height;
                             glyph: hifi.glyphs.reload;
-                            onClicked: {
-                                connectionsLoading.visible = false;
-                                connectionsLoading.visible = true;
-                                pal.sendToScript({method: 'refreshConnections'});
-                            }
+                            onClicked: connectionsUserModel.getFirstPage('delayRefresh');
                         }
                     }
                     // "CONNECTIONS" text
@@ -702,7 +709,7 @@ Rectangle {
             anchors.top: parent.top;
             anchors.topMargin: 185;
             anchors.horizontalCenter: parent.horizontalCenter;
-            visible: true;
+            visible: !connectionsUserModel.retrievedAtLeastOnePage;
             onVisibleChanged: {
                 if (visible) {
                     connectionsTimeoutTimer.start();
@@ -747,14 +754,6 @@ Rectangle {
             headerVisible: true;
             sortIndicatorColumn: settings.connectionsSortIndicatorColumn;
             sortIndicatorOrder: settings.connectionsSortIndicatorOrder;
-            onSortIndicatorColumnChanged: {
-                settings.connectionsSortIndicatorColumn = sortIndicatorColumn;
-                sortConnectionsModel();
-            }
-            onSortIndicatorOrderChanged: {
-                settings.connectionsSortIndicatorOrder = sortIndicatorOrder;
-                sortConnectionsModel();
-            }
 
             TableViewColumn {
                 id: connectionsUserNameHeader;
@@ -779,8 +778,10 @@ Rectangle {
                 resizable: false;
             }
 
-            model: ListModel {
-                id: connectionsUserModel;
+            model: connectionsUserModel.model;
+            Connections {
+                target: connectionsTable.flickableItem;
+                onAtYEndChanged: if (connectionsTable.flickableItem.atYEnd) { connectionsUserModel.getNextPage(); }
             }
 
             // This Rectangle refers to each Row in the connectionsTable.
@@ -1130,16 +1131,6 @@ Rectangle {
             sortModel();
             reloadNearby.color = 0;
             break;
-        case 'connections':
-            var data = message.params;
-            if (pal.debug) {
-                console.log('Got connection data: ', JSON.stringify(data));
-            }
-            connectionsUserModelData = data;
-            sortConnectionsModel();
-            connectionsLoading.visible = false;
-            connectionsRefreshProblemText.visible = false;
-            break;
         case 'select':
             var sessionIds = message.params[0];
             var selected = message.params[1];
@@ -1239,6 +1230,11 @@ Rectangle {
                 reloadNearby.color = 2;
             }
             break;
+        case 'inspectionCertificate_resetCert': // HRS FIXME what's this about?
+            break;
+        case 'http.response':
+            http.handleHttpResponse(message);
+            break;
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
         }
@@ -1285,45 +1281,6 @@ Rectangle {
         if (newSelectedIndexes.length > 0) {
             nearbyTable.selection.select(newSelectedIndexes);
             nearbyTable.positionViewAtRow(newSelectedIndexes[0], ListView.Beginning);
-        }
-    }
-    function sortConnectionsModel() {
-        var column = connectionsTable.getColumn(connectionsTable.sortIndicatorColumn);
-        var sortProperty = column ? column.role : "userName";
-        var before = (connectionsTable.sortIndicatorOrder === Qt.AscendingOrder) ? -1 : 1;
-        var after = -1 * before;
-        // get selection(s) before sorting
-        var selectedIDs = getSelectedConnectionsUserNames();
-        connectionsUserModelData.sort(function (a, b) {
-            var aValue = a[sortProperty].toString().toLowerCase(), bValue = b[sortProperty].toString().toLowerCase();
-            if (!aValue && !bValue) {
-                return 0;
-            } else if (!aValue) {
-                return after;
-            } else if (!bValue) {
-                return before;
-            }
-            switch (true) {
-            case (aValue < bValue): return before;
-            case (aValue > bValue): return after;
-            default: return 0;
-            }
-        });
-        connectionsTable.selection.clear();
-
-        connectionsUserModel.clear();
-        var userIndex = 0;
-        var newSelectedIndexes = [];
-        connectionsUserModelData.forEach(function (datum) {
-            datum.userIndex = userIndex++;
-            connectionsUserModel.append(datum);
-            if (selectedIDs.indexOf(datum.sessionId) != -1) {
-                 newSelectedIndexes.push(datum.userIndex);
-            }
-        });
-        if (newSelectedIndexes.length > 0) {
-            connectionsTable.selection.select(newSelectedIndexes);
-            connectionsTable.positionViewAtRow(newSelectedIndexes[0], ListView.Beginning);
         }
     }
     signal sendToScript(var message);
