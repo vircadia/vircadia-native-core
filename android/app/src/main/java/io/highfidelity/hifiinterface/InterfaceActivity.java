@@ -14,6 +14,7 @@ package io.highfidelity.hifiinterface;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Vibrator;
@@ -178,7 +179,13 @@ public class InterfaceActivity extends QtActivity {
                 Integer subLayer1 = 0;
                 Integer subLayer2 = 0;
                 try {
-                    Field f = s1.getClass().getSuperclass().getDeclaredField("mSubLayer");
+                    String field;
+                    if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        field = "mSubLayer";
+                    } else {
+                        field = "mWindowType";
+                    }
+                    Field f = s1.getClass().getSuperclass().getDeclaredField(field);
                     f.setAccessible(true);
                     subLayer1 = (Integer) f.get(s1);
                     subLayer2 = (Integer) f.get(s2);
