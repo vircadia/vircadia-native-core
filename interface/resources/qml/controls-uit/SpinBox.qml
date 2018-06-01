@@ -57,7 +57,8 @@ SpinBox {
     onValueChanged: realValue = value/factor
 
     stepSize: realStepSize*factor
-    value: realValue*factor
+    value: Math.round(realValue*factor)
+
     to : realTo*factor
     from : realFrom*factor
 
