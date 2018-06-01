@@ -148,18 +148,28 @@ void Head::simulate(float deltaTime) {
         }
 
         // use data to update fake Faceshift blendshape coefficients
-        calculateMouthShapes(deltaTime);
+        if (getHasAudioEnabledFaceMovement()) {
+            calculateMouthShapes(deltaTime);
+        } else {
+            _audioJawOpen = 0.0f;
+            _browAudioLift = 0.0f;
+            _mouth2 = 0.0f;
+            _mouth3 = 0.0f;
+            _mouth4 = 0.0f;
+            _mouthTime = 0.0f;
+        }
         FaceTracker::updateFakeCoefficients(_leftEyeBlink,
-                                            _rightEyeBlink,
-                                            _browAudioLift,
-                                            _audioJawOpen,
-                                            _mouth2,
-                                            _mouth3,
-                                            _mouth4,
-                                            _transientBlendshapeCoefficients);
+            _rightEyeBlink,
+            _browAudioLift,
+            _audioJawOpen,
+            _mouth2,
+            _mouth3,
+            _mouth4,
+            _transientBlendshapeCoefficients);
 
-        applyEyelidOffset(getOrientation());
-
+        if (getHasProceduralEyeFaceMovement()) {
+            applyEyelidOffset(getOrientation());
+        }
     } else {
         _saccade = glm::vec3();
     }

@@ -51,7 +51,7 @@ void MyHead::simulate(float deltaTime) {
         _isFaceTrackerConnected = hasActualFaceTrackerConnected || _owningAvatar->getHasScriptedBlendshapes();
         if (_isFaceTrackerConnected) {
             if (hasActualFaceTrackerConnected) {
-                _transientBlendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
+                _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
             } else {
                 _transientBlendshapeCoefficients.fill(0, _blendshapeCoefficients.size());
             }
