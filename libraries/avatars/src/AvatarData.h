@@ -502,6 +502,8 @@ public:
     float getDomainLimitedScale() const;
 
     virtual bool getHasScriptedBlendshapes() const { return false; }
+    virtual bool getHasProceduralBlinkFaceMovement() const { return true; }
+    virtual bool getHasProceduralEyeFaceMovement() const { return true; }
     virtual bool getHasAudioEnabledFaceMovement() const { return false; }
 
     /**jsdoc

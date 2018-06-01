@@ -2094,6 +2094,18 @@ void MyAvatar::setHasScriptedBlendshapes(bool hasScriptedBlendshapes) {
     _hasScriptedBlendShapes = hasScriptedBlendshapes;
 }
 
+void MyAvatar::setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement) {
+    _headData->setHasProceduralBlinkFaceMovement(hasProceduralBlinkFaceMovement);
+}
+
+void MyAvatar::setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement) {
+    _headData->setHasProceduralEyeFaceMovement(hasProceduralEyeFaceMovement);
+}
+
+void MyAvatar::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) {
+    _headData->setHasAudioEnabledFaceMovement(hasAudioEnabledFaceMovement);
+}
+
 void MyAvatar::updateOrientation(float deltaTime) {
 
     //  Smoothly rotate body with arrow keys
