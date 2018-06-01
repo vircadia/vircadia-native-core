@@ -433,7 +433,6 @@ bool TabletProxy::isMessageDialogOpen() {
 
 void TabletProxy::closeDialog() {
     if (QThread::currentThread() != thread()) {
-        bool result = false;
         QMetaObject::invokeMethod(this, "closeDialog");
         return;
     }
