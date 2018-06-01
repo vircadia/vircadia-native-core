@@ -97,7 +97,8 @@ void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
             if (!hmd->getShouldShowTablet()) {
                 hmd->openTablet();
             }
-        } else {
+        } else if (tablet->isPathLoaded(url)) {
+            tablet->closeDialog();
             tablet->gotoHomeScreen();
             hmd->closeTablet();
         }
