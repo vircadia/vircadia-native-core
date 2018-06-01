@@ -170,25 +170,29 @@ public class InterfaceActivity extends QtActivity {
 
     private void surfacesWorkaround() {
         FrameLayout fl = findViewById(android.R.id.content);
-        QtLayout qtLayout = (QtLayout) fl.getChildAt(0);
-        QtSurface s1 = (QtSurface) qtLayout.getChildAt(0);
-        QtSurface s2 = (QtSurface) qtLayout.getChildAt(1);
-        Integer subLayer1 = 0;
-        Integer subLayer2 = 0;
-        try {
-            Field f = s1.getClass().getSuperclass().getDeclaredField("mSubLayer");
-            f.setAccessible(true);
-            subLayer1 = (Integer) f.get(s1);
-            subLayer2 = (Integer) f.get(s2);
-            if (subLayer1 < subLayer2) {
-                s1.setVisibility(View.VISIBLE);
-                s2.setVisibility(View.INVISIBLE);
-            } else {
-                s1.setVisibility(View.INVISIBLE);
-                s2.setVisibility(View.VISIBLE);
+        if (fl.getChildCount() > 0) {
+            QtLayout qtLayout = (QtLayout) fl.getChildAt(0);
+            if (qtLayout.getChildCount() > 1) {
+                QtSurface s1 = (QtSurface) qtLayout.getChildAt(0);
+                QtSurface s2 = (QtSurface) qtLayout.getChildAt(1);
+                Integer subLayer1 = 0;
+                Integer subLayer2 = 0;
+                try {
+                    Field f = s1.getClass().getSuperclass().getDeclaredField("mSubLayer");
+                    f.setAccessible(true);
+                    subLayer1 = (Integer) f.get(s1);
+                    subLayer2 = (Integer) f.get(s2);
+                    if (subLayer1 < subLayer2) {
+                        s1.setVisibility(View.VISIBLE);
+                        s2.setVisibility(View.INVISIBLE);
+                    } else {
+                        s1.setVisibility(View.INVISIBLE);
+                        s2.setVisibility(View.VISIBLE);
+                    }
+                } catch (ReflectiveOperationException e) {
+                    Log.e(TAG, "Workaround failed");
+                }
             }
-        } catch (ReflectiveOperationException e) {
-            Log.e(TAG, "Workaround failed");
         }
     }
 
