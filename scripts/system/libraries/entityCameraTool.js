@@ -316,18 +316,18 @@ CameraManager = function() {
             var newY = y;
             var updatePosition = false;
 
-            if (x < 0) {
+            if (x <= 0) {
                 newX = Window.innerWidth;
                 updatePosition = true;
-            } else if (x > Window.innerWidth) {
+            } else if (x >= Window.innerWidth) {
                 newX = 0;
                 updatePosition = true;
             }
 
-            if (y < 0) {
+            if (y <= 0) {
                 newY = Window.innerHeight;
                 updatePosition = true;
-            } else if (y > Window.innerHeight) {
+            } else if (y >= Window.innerHeight) {
                 newY = 0;
                 updatePosition = true;
             }
