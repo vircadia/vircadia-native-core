@@ -28,7 +28,7 @@
     var isDisabled = false;
 
     var previousFlyingState = MyAvatar.getFlyingEnabled();
-    var previousDrivingState = MyAvatar.useAdvancedMovementControls;
+    var previousDrivingState = false;
 
     function rotate180() {
         var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.angleAxis(180, {
@@ -100,7 +100,7 @@
             Controller.enableMapping(DRIVING_MAPPING_NAME);
         }
 
-        if (MyAvatar.getFyingEnabled()) {
+        if (MyAvatar.getFlyingEnabled()) {
             Controller.disableMapping(FLYING_MAPPING_NAME);
         } else {
             Controller.enableMapping(FLYING_MAPPING_NAME);
@@ -171,24 +171,4 @@
     Messages.subscribe(HIFI_ADVANCED_MOVEMENT_DISABLER_CHANNEL);
     Messages.messageReceived.connect(handleMessage);
 
-    function initializeControls() {
-        if(HMD.active) {
-            if (Controller.Hardware.Vive !== undefined || Controller.Hardware.OculusTouch !== undefined) {
-                if (MyAvatar.useAdvancedMovementControls) {
-                    Controller.disableMapping(DRIVING_MAPPING_NAME);
-                } else {
-                    Controller.enableMapping(DRIVING_MAPPING_NAME);
-                }
-
-                if (MyAvatar.getFlyingEnabled()) {
-                    Controller.disableMapping(FLYING_MAPPING_NAME);
-                } else {
-                    Controller.enableMapping(FLYING_MAPPING_NAME);
-                }
-			});
-
-		}
-	}
-
-	initializeControls();
 }()); // END LOCAL_SCOPE
