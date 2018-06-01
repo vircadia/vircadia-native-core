@@ -20,6 +20,9 @@ import android.os.Vibrator;
 import android.view.HapticFeedbackConstants;
 import android.view.WindowManager;
 import android.util.Log;
+
+import org.qtproject.qt5.android.QtLayout;
+import org.qtproject.qt5.android.QtSurface;
 import org.qtproject.qt5.android.bindings.QtActivity;
 
 /*import com.google.vr.cardboard.DisplaySynchronizer;
@@ -31,6 +34,9 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.view.View;
+import android.widget.FrameLayout;
+
+import java.lang.reflect.Field;
 
 public class InterfaceActivity extends QtActivity {
 
@@ -134,6 +140,7 @@ public class InterfaceActivity extends QtActivity {
     protected void onResume() {
         super.onResume();
         nativeEnterForeground();
+        surfacesWorkaround();
         //gvrApi.resumeTracking();
     }
 
@@ -157,6 +164,31 @@ public class InterfaceActivity extends QtActivity {
             } else {
                 Log.w("[VR]", "Portrait detected but not in VR mode. Should not happen");
             }
+        }
+        surfacesWorkaround();
+    }
+
+    private void surfacesWorkaround() {
+        FrameLayout fl = findViewById(android.R.id.content);
+        QtLayout qtLayout = (QtLayout) fl.getChildAt(0);
+        QtSurface s1 = (QtSurface) qtLayout.getChildAt(0);
+        QtSurface s2 = (QtSurface) qtLayout.getChildAt(1);
+        Integer subLayer1 = 0;
+        Integer subLayer2 = 0;
+        try {
+            Field f = s1.getClass().getSuperclass().getDeclaredField("mSubLayer");
+            f.setAccessible(true);
+            subLayer1 = (Integer) f.get(s1);
+            subLayer2 = (Integer) f.get(s2);
+            if (subLayer1 < subLayer2) {
+                s1.setVisibility(View.VISIBLE);
+                s2.setVisibility(View.INVISIBLE);
+            } else {
+                s1.setVisibility(View.INVISIBLE);
+                s2.setVisibility(View.VISIBLE);
+            }
+        } catch (ReflectiveOperationException e) {
+            Log.e(TAG, "Workaround failed");
         }
     }
 
