@@ -15,8 +15,7 @@
 #include <gpu/Context.h>
 #include <ViewFrustum.h>
 
-#include "skybox_vert.h"
-#include "skybox_frag.h"
+#include <shaders/Shaders.h>
 
 using namespace graphics;
 
@@ -91,9 +90,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     static std::once_flag once;
     std::call_once(once, [&] {
         {
-            auto skyVS = skybox_vert::getShader();
-            auto skyFS = skybox_frag::getShader();
-            auto skyShader = gpu::Shader::createProgram(skyVS, skyFS);
+            auto skyShader = gpu::Shader::createProgram(shader::graphics::program::skybox);
 
             batch.runLambda([skyShader] {
                 gpu::Shader::BindingSet bindings;

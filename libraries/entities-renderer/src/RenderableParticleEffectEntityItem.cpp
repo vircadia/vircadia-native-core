@@ -13,9 +13,8 @@
 #include <StencilMaskPass.h>
 
 #include <GeometryCache.h>
+#include <shaders/Shaders.h>
 
-#include "textured_particle_vert.h"
-#include "textured_particle_frag.h"
 
 using namespace render;
 using namespace render::entities;
@@ -36,10 +35,7 @@ static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, co
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         PrepareStencil::testMask(*state);
 
-        auto vertShader = textured_particle_vert::getShader();
-        auto fragShader = textured_particle_frag::getShader();
-
-        auto program = gpu::Shader::createProgram(vertShader, fragShader);
+        auto program = gpu::Shader::createProgram(shader::entities_renderer::program::textured_particle);
         _texturedPipeline = texturedPipeline = gpu::Pipeline::create(program, state);
 
         batch.runLambda([program] {

@@ -11,17 +11,12 @@
 #include "SubsurfaceScattering.h"
 
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
 
 #include "FramebufferCache.h"
 
 #include "DeferredLightingEffect.h"
 
-#include "subsurfaceScattering_makeProfile_frag.h"
-#include "subsurfaceScattering_makeLUT_frag.h"
-#include "subsurfaceScattering_makeSpecularBeckmann_frag.h"
-
-#include "subsurfaceScattering_drawScattering_frag.h"
 
 enum ScatteringShaderBufferSlots {
     ScatteringTask_FrameTransformSlot = 0,
@@ -307,9 +302,7 @@ void diffuseProfileGPU(gpu::TexturePointer& profileMap, RenderArgs* args) {
 
     gpu::PipelinePointer makePipeline;
     {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = subsurfaceScattering_makeProfile_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::subsurfaceScattering_makeProfile);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -338,15 +331,11 @@ void diffuseScatterGPU(const gpu::TexturePointer& profileMap, gpu::TexturePointe
     int width = lut->getWidth();
     int height = lut->getHeight();
 
-    gpu::PipelinePointer makePipeline;
-    
-    auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-    auto ps = subsurfaceScattering_makeLUT_frag::getShader();
-    gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+    gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::subsurfaceScattering_makeLUT);
 
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
-    makePipeline = gpu::Pipeline::create(program, state);
+    gpu::PipelinePointer makePipeline = gpu::Pipeline::create(program, state);
     
     auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("diffuseScatter"));
     makeFramebuffer->setRenderBuffer(0, lut);
@@ -379,9 +368,7 @@ void computeSpecularBeckmannGPU(gpu::TexturePointer& beckmannMap, RenderArgs* ar
 
     gpu::PipelinePointer makePipeline;
     {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = subsurfaceScattering_makeSpecularBeckmann_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::subsurfaceScattering_makeSpecularBeckmann);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -451,9 +438,7 @@ void DebugSubsurfaceScattering::configure(const Config& config) {
 
 gpu::PipelinePointer DebugSubsurfaceScattering::getScatteringPipeline() {
     if (!_scatteringPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = subsurfaceScattering_drawScattering_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::subsurfaceScattering_drawScattering);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ScatteringTask_FrameTransformSlot));
@@ -480,19 +465,12 @@ gpu::PipelinePointer DebugSubsurfaceScattering::getScatteringPipeline() {
     return _scatteringPipeline;
 }
 
-
 gpu::PipelinePointer _showLUTPipeline;
-gpu::PipelinePointer getShowLUTPipeline();
+
 gpu::PipelinePointer DebugSubsurfaceScattering::getShowLUTPipeline() {
     if (!_showLUTPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::StandardShaderLib::getDrawTextureOpaquePS();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawUnitQuatTextureOpaque);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-
         _showLUTPipeline = gpu::Pipeline::create(program, state);
     }
 

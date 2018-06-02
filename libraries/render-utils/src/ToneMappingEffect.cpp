@@ -12,12 +12,11 @@
 #include "ToneMappingEffect.h"
 
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
 
 #include "StencilMaskPass.h"
 #include "FramebufferCache.h"
 
-#include "toneMapping_frag.h"
 
 const int ToneMappingEffect_ParamsSlot = 0;
 const int ToneMappingEffect_LightingMapSlot = 0;
@@ -28,10 +27,7 @@ ToneMappingEffect::ToneMappingEffect() {
 }
 
 void ToneMappingEffect::init(RenderArgs* args) {
-    auto blitPS = toneMapping_frag::getShader();
-
-    auto blitVS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-    auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(blitVS, blitPS));
+    auto blitProgram = gpu::Shader::createProgram(shader::render_utils::program::toneMapping);
 
     auto blitState = std::make_shared<gpu::State>();
     blitState->setColorWriteMask(true, true, true, true);

@@ -10,25 +10,19 @@
 //
 #include "HighlightEffect.h"
 
-#include "GeometryCache.h"
-
-#include "CubeProjectedPolygon.h"
+#include <sstream>
 
 #include <render/FilterTask.h>
 #include <render/SortTask.h>
 
-#include "gpu/Context.h"
-#include "gpu/StandardShaderLib.h"
+#include <gpu/Context.h>
+#include <shaders/Shaders.h>
 
-#include <sstream>
+#include "GeometryCache.h"
+#include "CubeProjectedPolygon.h"
 
-#include "surfaceGeometry_copyDepth_frag.h"
-#include "debug_deferred_buffer_vert.h"
-#include "debug_deferred_buffer_frag.h"
-#include "Highlight_frag.h"
-#include "Highlight_filled_frag.h"
-#include "Highlight_aabox_vert.h"
-#include "nop_frag.h"
+
+
 
 using namespace render;
 
@@ -133,9 +127,7 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
         fillState->setColorWriteMask(false, false, false, false);
         fillState->setCullMode(gpu::State::CULL_FRONT);
 
-        auto vs = Highlight_aabox_vert::getShader();
-        auto ps = nop_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::highlight_aabox);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("ssbo0Buffer"), BOUNDS_SLOT));
@@ -327,9 +319,7 @@ const gpu::PipelinePointer& DrawHighlight::getPipeline(const render::HighlightSt
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
         state->setStencilTest(true, 0, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::EQUAL));
 
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = Highlight_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::highlight);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding("highlightParamsBuffer", HIGHLIGHT_PARAMS_SLOT));
@@ -340,8 +330,7 @@ const gpu::PipelinePointer& DrawHighlight::getPipeline(const render::HighlightSt
 
         _pipeline = gpu::Pipeline::create(program, state);
 
-        ps = Highlight_filled_frag::getShader();
-        program = gpu::Shader::createProgram(vs, ps);
+        program = gpu::Shader::createProgram(shader::render_utils::program::highlight_filled);
         gpu::Shader::makeProgram(*program, slotBindings);
         _pipelineFilled = gpu::Pipeline::create(program, state);
     }
@@ -406,7 +395,7 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
 }
 
 void DebugHighlight::initializePipelines() {
-    static const std::string FRAGMENT_SHADER{ debug_deferred_buffer_frag::getSource() };
+    static const std::string FRAGMENT_SHADER{ gpu::Shader::getFragmentShaderSource(shader::render_utils::fragment::debug_deferred_buffer).getCode() };
     static const std::string SOURCE_PLACEHOLDER{ "//SOURCE_PLACEHOLDER" };
     static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER.find(SOURCE_PLACEHOLDER);
     Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO,
@@ -416,17 +405,17 @@ void DebugHighlight::initializePipelines() {
     state->setDepthTest(gpu::State::DepthTest(false, false));
     state->setStencilTest(true, 0, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::EQUAL));
 
-    const auto vs = debug_deferred_buffer_vert::getShader();
+    const auto vs = gpu::Shader::createVertex(shader::render_utils::vertex::debug_deferred_buffer);
 
     // Depth shader
     {
-        static const std::string DEPTH_SHADER{
-            "vec4 getFragmentColor() {"
-            "   float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;"
-            "   Zdb = 1.0-(1.0-Zdb)*100;"
-            "   return vec4(Zdb, Zdb, Zdb, 1.0); "
-            "}"
-        };
+        static const std::string DEPTH_SHADER{ R"SHADER(
+            vec4 getFragmentColor() {
+               float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;
+               Zdb = 1.0-(1.0-Zdb)*100;
+               return vec4(Zdb, Zdb, Zdb, 1.0); 
+            }
+        )SHADER" };
 
         auto fragmentShader = FRAGMENT_SHADER;
         fragmentShader.replace(SOURCE_PLACEHOLDER_INDEX, SOURCE_PLACEHOLDER.size(), DEPTH_SHADER);
@@ -572,21 +561,13 @@ const render::Varying DrawHighlightTask::addSelectItemJobs(JobModel& task, const
     return task.addJob<SelectItems>("TransparentSelection", selectItemInput);
 }
 
-#include "model_shadow_vert.h"
-#include "skin_model_shadow_vert.h"
-
-#include "model_shadow_frag.h"
-
 void DrawHighlightTask::initMaskPipelines(render::ShapePlumber& shapePlumber, gpu::StatePointer state) {
-    auto modelVertex = model_shadow_vert::getShader();
-    auto modelPixel = model_shadow_frag::getShader();
-    gpu::ShaderPointer modelProgram = gpu::Shader::createProgram(modelVertex, modelPixel);
+    gpu::ShaderPointer modelProgram = gpu::Shader::createProgram(shader::render_utils::program::model_shadow);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withoutSkinned(),
         modelProgram, state);
 
-    auto skinVertex = skin_model_shadow_vert::getShader();
-    gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(skinVertex, modelPixel);
+    gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(shader::render_utils::program::skin_model_shadow);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withSkinned(),
         skinProgram, state);

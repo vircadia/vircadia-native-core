@@ -26,8 +26,20 @@ public:
     // unique identifier of a shader
     using ID = uint32_t;
 
+    enum Type {
+        VERTEX = 0,
+        PIXEL,
+        FRAGMENT = PIXEL,
+        GEOMETRY,
+        NUM_DOMAINS,
+
+        PROGRAM,
+    };
+
     typedef std::shared_ptr< Shader > Pointer;
     typedef std::vector< Pointer > Shaders;
+
+
 
     class Source {
     public:
@@ -51,6 +63,10 @@ public:
         std::string _code;
         Language _lang = GLSL;
     };
+
+    static Source getShaderSource(Type type, int shaderId);
+    static Source getVertexShaderSource(int shaderId) { return getShaderSource(VERTEX, shaderId); }
+    static Source getFragmentShaderSource(int shaderId) { return getShaderSource(FRAGMENT, shaderId); }
 
     struct CompilationLog {
         std::string message;
@@ -121,21 +137,17 @@ public:
     typedef std::set<Binding, Less<Binding>> BindingSet;
 
 
-    enum Type {
-        VERTEX = 0,
-        PIXEL,
-        GEOMETRY,
-        NUM_DOMAINS,
-
-        PROGRAM,
-    };
-
     static Pointer createVertex(const Source& source);
     static Pointer createPixel(const Source& source);
-    static Pointer createGeometry(const Source& source);
+    //static Pointer createGeometry(const Source& source);
+    static Pointer createVertex(int shaderId);
+    static Pointer createPixel(int shaderId);
+    static Pointer createGeometry(int shaderId);
 
+    static Pointer createProgram(int programId);
     static Pointer createProgram(const Pointer& vertexShader, const Pointer& pixelShader);
-    static Pointer createProgram(const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader);
+    //static Pointer createProgram(int vertexId, int fragmentId);
+    //static Pointer createProgram(const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader);
 
 
     ~Shader();

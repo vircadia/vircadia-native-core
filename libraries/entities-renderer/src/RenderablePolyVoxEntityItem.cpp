@@ -26,12 +26,9 @@
 #include <PhysicalEntitySimulation.h>
 #include <StencilMaskPass.h>
 
-#include "EntityTreeRenderer.h"
+#include <shaders/Shaders.h>
 
-#include "polyvox_vert.h"
-#include "polyvox_frag.h"
-#include "polyvox_fade_vert.h"
-#include "polyvox_fade_frag.h"
+#include "EntityTreeRenderer.h"
 
 #ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
 #   include <FadeEffect.h>
@@ -71,11 +68,6 @@
 #include "StencilMaskPass.h"
 
 #include "EntityTreeRenderer.h"
-
-#include "polyvox_vert.h"
-#include "polyvox_frag.h"
-#include "polyvox_fade_vert.h"
-#include "polyvox_fade_frag.h"
 
 #include "RenderablePolyVoxEntityItem.h"
 #include "EntityEditPacketSender.h"
@@ -1572,8 +1564,8 @@ static gpu::Stream::FormatPointer _vertexFormat;
 
 ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, gpu::Batch& batch) {
     if (!_pipelines[0]) {
-        gpu::ShaderPointer vertexShaders[2] = { polyvox_vert::getShader(), polyvox_fade_vert::getShader() };
-        gpu::ShaderPointer pixelShaders[2] = { polyvox_frag::getShader(), polyvox_fade_frag::getShader() };
+        using namespace shader::entities_renderer::program;
+        int programsIds[2] = { polyvox, polyvox_fade };
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
@@ -1597,7 +1589,7 @@ ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const Sha
 
         // Two sets of pipelines: normal and fading
         for (auto i = 0; i < 2; i++) {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShaders[i], pixelShaders[i]);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(programsIds[i]);
          
             batch.runLambda([program, slotBindings] {
                 gpu::Shader::makeProgram(*program, slotBindings);

@@ -1,0 +1,14 @@
+#include <cstdint>
+#include <string>
+
+namespace shader {
+
+@SHADER_ENUMS@
+
+extern uint32_t all_programs[];
+
+static const uint32_t INVALID_SHADER = (uint32_t)-1;
+
+std::string loadShaderSource(uint32_t shaderId);
+}
+

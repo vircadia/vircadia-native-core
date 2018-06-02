@@ -13,6 +13,8 @@
 #include <math.h>
 #include <QDebug>
 
+#include <shaders/Shaders.h>
+
 #include "Context.h"
 
 using namespace gpu;
@@ -62,17 +64,6 @@ Shader::Pointer Shader::createOrReuseDomainShader(Type type, const Source& sourc
     return shader;
 }
 
-Shader::Pointer Shader::createVertex(const Source& source) {
-    return createOrReuseDomainShader(VERTEX, source);
-}
-
-Shader::Pointer Shader::createPixel(const Source& source) {
-    return createOrReuseDomainShader(PIXEL, source);
-}
-
-Shader::Pointer Shader::createGeometry(const Source& source) {
-    return createOrReuseDomainShader(GEOMETRY, source);
-}
 
 ShaderPointer Shader::createOrReuseProgramShader(Type type, const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader) {
     PROFILE_RANGE(app, "createOrReuseProgramShader");
@@ -116,15 +107,6 @@ ShaderPointer Shader::createOrReuseProgramShader(Type type, const Pointer& verte
     return program;
 }
 
-
-Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& pixelShader) {
-    return createOrReuseProgramShader(PROGRAM, vertexShader, nullptr, pixelShader);
-}
-
-Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader) {
-    return createOrReuseProgramShader(PROGRAM, vertexShader, geometryShader, pixelShader);
-}
-
 void Shader::defineSlots(const SlotSet& uniforms, const SlotSet& uniformBuffers, const SlotSet& resourceBuffers, const SlotSet& textures, const SlotSet& samplers, const SlotSet& inputs, const SlotSet& outputs) {
     _uniforms = uniforms;
     _uniformBuffers = uniformBuffers;
@@ -153,3 +135,39 @@ void Shader::incrementCompilationAttempt() const {
     _numCompilationAttempts++;
 }
 
+
+Shader::Source Shader::getShaderSource(Type type, int shaderId) {
+    return shader::loadShaderSource(shaderId);
+}
+
+Shader::Pointer Shader::createVertex(const Source& source) {
+    return createOrReuseDomainShader(VERTEX, source);
+}
+
+Shader::Pointer Shader::createPixel(const Source& source) {
+    return createOrReuseDomainShader(FRAGMENT, source);
+}
+
+Shader::Pointer Shader::createVertex(int id) {
+    return createVertex(getShaderSource(VERTEX, id));
+}
+
+Shader::Pointer Shader::createPixel(int id) {
+    return createPixel(getShaderSource(FRAGMENT, id));
+}
+
+Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& pixelShader) {
+    return createOrReuseProgramShader(PROGRAM, vertexShader, nullptr, pixelShader);
+}
+
+Shader::Pointer Shader::createProgram(int programId) {
+    int vertexId = (programId >> 16) & 0xFFFF;
+    int fragmentId = programId & 0xFFFF;
+    auto vertexShader = createVertex(vertexId);
+    auto fragmentShader = createPixel(fragmentId);
+    return createOrReuseProgramShader(PROGRAM, vertexShader, nullptr, fragmentShader);
+}
+
+//Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader) {
+//    return createOrReuseProgramShader(PROGRAM, vertexShader, geometryShader, pixelShader);
+//}

@@ -30,7 +30,7 @@
 #include <gl/OffscreenGLCanvas.h>
 
 #include <gpu/Texture.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
 #include <gpu/gl/GLShared.h>
 #include <gpu/gl/GLBackend.h>
 #include <GeometryCache.h>
@@ -391,8 +391,8 @@ void OpenGLDisplayPlugin::customizeContext() {
 
     if (!_presentPipeline) {
         {
-            auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-            auto ps = gpu::StandardShaderLib::getDrawTexturePS();
+            auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawUnitQuadTexcoord);
+            auto ps = gpu::Shader::createPixel(shader::gpu::fragment::DrawTexture);
             gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
             gpu::Shader::makeProgram(*program);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -402,7 +402,7 @@ void OpenGLDisplayPlugin::customizeContext() {
         }
 
         {
-            auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+            auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawUnitQuadTexcoord);
             auto ps = gpu::Shader::createPixel(std::string(SRGB_TO_LINEAR_FRAG));
             gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
             gpu::Shader::makeProgram(*program);
@@ -413,8 +413,8 @@ void OpenGLDisplayPlugin::customizeContext() {
         }
 
         {
-            auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-            auto ps = gpu::StandardShaderLib::getDrawTexturePS();
+            auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawUnitQuadTexcoord);
+            auto ps = gpu::Shader::createPixel(shader::gpu::fragment::DrawTexture);
             gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
             gpu::Shader::makeProgram(*program);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -426,8 +426,8 @@ void OpenGLDisplayPlugin::customizeContext() {
         }
 
         {
-            auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-            auto ps = gpu::StandardShaderLib::getDrawTextureMirroredXPS();
+            auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawUnitQuadTexcoord);
+            auto ps = gpu::Shader::createPixel(shader::gpu::fragment::DrawTextureMirroredX);
             gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
             gpu::Shader::makeProgram(*program);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -439,8 +439,8 @@ void OpenGLDisplayPlugin::customizeContext() {
         }
 
         {
-            auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-            auto ps = gpu::StandardShaderLib::getDrawTexturePS();
+            auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawTransformUnitQuad);
+            auto ps = gpu::Shader::createPixel(shader::gpu::fragment::DrawTexture);
             gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
             gpu::Shader::makeProgram(*program);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());

@@ -18,25 +18,17 @@
 #include <PerfStat.h>
 
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
 
 #include "Args.h"
 
-#include "drawCellBounds_vert.h"
-#include "drawCellBounds_frag.h"
-#include "drawLODReticle_frag.h"
-
-#include "drawItemBounds_vert.h"
-#include "drawItemBounds_frag.h"
 
 using namespace render;
 
 
 const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
     if (!_drawCellBoundsPipeline) {
-        auto vs = drawCellBounds_vert::getShader();
-        auto ps = drawCellBounds_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawCellBounds);
 
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -58,12 +50,8 @@ const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
 
 const gpu::PipelinePointer DrawSceneOctree::getDrawLODReticlePipeline() {
     if (!_drawLODReticlePipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = drawLODReticle_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawLODReticle);
+        gpu::Shader::makeProgram(*program);
 
        // _drawCellLocationLoc = program->getUniforms().findLocation("inCellLocation");
 
@@ -162,9 +150,7 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
 
 const gpu::PipelinePointer DrawItemSelection::getDrawItemBoundPipeline() {
     if (!_drawItemBoundPipeline) {
-        auto vs = drawItemBounds_vert::getShader();
-        auto ps = drawItemBounds_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawItemBounds);
 
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);

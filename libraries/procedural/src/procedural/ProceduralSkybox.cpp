@@ -13,14 +13,13 @@
 
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
+#include <gpu/Shader.h>
 #include <ViewFrustum.h>
-
-#include <graphics/skybox_vert.h>
-#include <graphics/skybox_frag.h>
+#include <shaders/Shaders.h>
 
 ProceduralSkybox::ProceduralSkybox() : graphics::Skybox() {
-    _procedural._vertexSource = skybox_vert::getSource();
-    _procedural._opaquefragmentSource = skybox_frag::getSource();
+    _procedural._vertexSource = gpu::Shader::getVertexShaderSource(shader::graphics::vertex::skybox).getCode();
+    _procedural._opaquefragmentSource = gpu::Shader::getFragmentShaderSource(shader::graphics::fragment::skybox).getCode();
     // Adjust the pipeline state for background using the stencil test
     _procedural.setDoesFade(false);
     // Must match PrepareStencil::STENCIL_BACKGROUND

@@ -19,12 +19,9 @@
 
 #include <gpu/Context.h>
 
-#include "Args.h"
+#include <shaders/Shaders.h>
 
-#include "drawItemBounds_vert.h"
-#include "drawItemBounds_frag.h"
-#include "drawItemStatus_vert.h"
-#include "drawItemStatus_frag.h"
+#include "Args.h"
 
 using namespace render;
 
@@ -35,9 +32,7 @@ void DrawStatusConfig::dirtyHelper() {
 
 const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
     if (!_drawItemBoundsPipeline) {
-        auto vs = drawItemBounds_vert::getShader();
-        auto ps = drawItemBounds_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawItemBounds);
 
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -63,9 +58,7 @@ const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
 
 const gpu::PipelinePointer DrawStatus::getDrawItemStatusPipeline() {
     if (!_drawItemStatusPipeline) {
-        auto vs = drawItemStatus_vert::getShader();
-        auto ps = drawItemStatus_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawItemStatus);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("iconStatusMap"), 0));

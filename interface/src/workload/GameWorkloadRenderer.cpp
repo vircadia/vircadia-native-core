@@ -14,11 +14,7 @@
 
 #include <StencilMaskPass.h>
 #include <GeometryCache.h>
-
-#include "render-utils/drawWorkloadProxy_vert.h"
-#include "render-utils/drawWorkloadView_vert.h"
-#include "render-utils/drawWorkloadProxy_frag.h"
-#include "render-utils/drawWorkloadView_frag.h"
+#include <shaders/Shaders.h>
 
 
 void GameSpaceToRender::configure(const Config& config) {
@@ -149,9 +145,7 @@ void GameWorkloadRenderItem::setAllViews(const workload::Views& views) {
 
 const gpu::PipelinePointer GameWorkloadRenderItem::getProxiesPipeline() {
     if (!_drawAllProxiesPipeline) {
-        auto vs = drawWorkloadProxy_vert::getShader();
-        auto ps = drawWorkloadProxy_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::drawWorkloadProxy);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding("workloadProxiesBuffer", 0));
@@ -173,9 +167,7 @@ const gpu::PipelinePointer GameWorkloadRenderItem::getProxiesPipeline() {
 
 const gpu::PipelinePointer GameWorkloadRenderItem::getViewsPipeline() {
     if (!_drawAllViewsPipeline) {
-        auto vs = drawWorkloadView_vert::getShader();
-        auto ps = drawWorkloadView_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::drawWorkloadView);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding("workloadViewsBuffer", 1));

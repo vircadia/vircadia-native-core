@@ -12,14 +12,12 @@
 #include "DrawHaze.h"
 
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
 
 #include "StencilMaskPass.h"
 #include "FramebufferCache.h"
 #include "HazeStage.h"
 #include "LightStage.h"
-
-#include "Haze_frag.h"
 
 void HazeConfig::setHazeColor(const glm::vec3 value) { 
     hazeColor = value; 
@@ -132,10 +130,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
     RenderArgs* args = renderContext->args;
 
     if (!_hazePipeline) {
-        gpu::ShaderPointer ps = Haze_frag::getShader();
-        gpu::ShaderPointer vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::haze);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         state->setBlendFunction(true,

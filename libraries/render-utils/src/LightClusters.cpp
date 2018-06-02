@@ -9,24 +9,13 @@
 //
 
 #include "LightClusters.h"
-#include "RenderUtilsLogging.h"
-
 
 #include <gpu/Context.h>
+#include <shaders/Shaders.h>
 
-#include <gpu/StandardShaderLib.h>
-
+#include "RenderUtilsLogging.h"
 #include "StencilMaskPass.h"
 
-#include "lightClusters_drawGrid_vert.h"
-#include "lightClusters_drawGrid_frag.h"
-
-//#include "lightClusters_drawClusterFromDepth_vert.h"
-#include "lightClusters_drawClusterFromDepth_frag.h"
-
-
-#include "lightClusters_drawClusterContent_vert.h"
-#include "lightClusters_drawClusterContent_frag.h"
 
 enum LightClusterGridShader_MapSlot {
     DEFERRED_BUFFER_LINEAR_DEPTH_UNIT = 0,
@@ -605,9 +594,7 @@ void DebugLightClusters::configure(const Config& config) {
 
 const gpu::PipelinePointer DebugLightClusters::getDrawClusterGridPipeline() {
     if (!_drawClusterGrid) {
-        auto vs = lightClusters_drawGrid_vert::getShader();
-        auto ps = lightClusters_drawGrid_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::lightClusters_drawGrid);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("frustumGridBuffer"), LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT));
@@ -633,10 +620,7 @@ const gpu::PipelinePointer DebugLightClusters::getDrawClusterGridPipeline() {
 
 const gpu::PipelinePointer DebugLightClusters::getDrawClusterFromDepthPipeline() {
     if (!_drawClusterFromDepth) {
-       // auto vs = gpu::Shader::createVertex(std::string(lightClusters_drawGrid_vert));
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = lightClusters_drawClusterFromDepth_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::lightClusters_drawClusterFromDepth);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("frustumGridBuffer"), LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT));
@@ -663,11 +647,7 @@ const gpu::PipelinePointer DebugLightClusters::getDrawClusterFromDepthPipeline()
 
 const gpu::PipelinePointer DebugLightClusters::getDrawClusterContentPipeline() {
     if (!_drawClusterContent) {
-      //  auto vs = gpu::Shader::createVertex(std::string(lightClusters_drawClusterContent_vert));
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = lightClusters_drawClusterContent_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::lightClusters_drawClusterContent);
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
 

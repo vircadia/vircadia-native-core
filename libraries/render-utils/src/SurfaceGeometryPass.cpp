@@ -13,7 +13,8 @@
 #include <limits>
 
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
+
 #include "StencilMaskPass.h"
 
 const int DepthLinearPass_FrameTransformSlot = 0;
@@ -24,13 +25,6 @@ const int SurfaceGeometryPass_FrameTransformSlot = 0;
 const int SurfaceGeometryPass_ParamsSlot = 1;
 const int SurfaceGeometryPass_DepthMapSlot = 0;
 const int SurfaceGeometryPass_NormalMapSlot = 1;
-
-#include "surfaceGeometry_makeLinearDepth_frag.h"
-#include "surfaceGeometry_downsampleDepthNormal_frag.h"
-
-#include "surfaceGeometry_makeCurvature_frag.h"
-
-
 
 LinearDepthFramebuffer::LinearDepthFramebuffer() {
 }
@@ -212,9 +206,7 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
 const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline(const render::RenderContextPointer& renderContext) {
     gpu::ShaderPointer program;
     if (!_linearDepthPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = surfaceGeometry_makeLinearDepth_frag::getShader();
-        program = gpu::Shader::createProgram(vs, ps);
+        program = gpu::Shader::createProgram(shader::render_utils::program::surfaceGeometry_makeLinearDepth);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -243,9 +235,7 @@ const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline(const render
 
 const gpu::PipelinePointer& LinearDepthPass::getDownsamplePipeline(const render::RenderContextPointer& renderContext) {
     if (!_downsamplePipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = surfaceGeometry_downsampleDepthNormal_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::surfaceGeometry_downsampleDepthNormal);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         PrepareStencil::testShape(*state);
@@ -546,9 +536,7 @@ void SurfaceGeometryPass::run(const render::RenderContextPointer& renderContext,
 
 const gpu::PipelinePointer& SurfaceGeometryPass::getCurvaturePipeline(const render::RenderContextPointer& renderContext) {
     if (!_curvaturePipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = surfaceGeometry_makeCurvature_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::surfaceGeometry_makeCurvature);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 

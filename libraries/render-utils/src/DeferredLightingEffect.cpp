@@ -17,29 +17,15 @@
 #include <PathUtils.h>
 #include <ViewFrustum.h>
 #include <shared/FileUtils.h>
-
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
+#include <shaders/Shaders.h>
 
 #include "StencilMaskPass.h"
 #include "AbstractViewStateInterface.h"
 #include "GeometryCache.h"
 #include "TextureCache.h"
 #include "FramebufferCache.h"
-
-#include "deferred_light_vert.h"
-#include "deferred_light_point_vert.h"
-#include "deferred_light_spot_vert.h"
-
-#include "directional_ambient_light_frag.h"
-#include "directional_skybox_light_frag.h"
-
-#include "directional_ambient_light_shadow_frag.h"
-#include "directional_skybox_light_shadow_frag.h"
-
-#include "local_lights_shading_frag.h"
-#include "local_lights_drawOutline_frag.h"
-
 
 using namespace render;
 
@@ -85,7 +71,7 @@ enum DeferredShader_BufferSlot {
     LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
 };
 
-static void loadLightProgram(const gpu::ShaderPointer& vertShader, const gpu::ShaderPointer& fragShader, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
+static void loadLightProgram(int programId, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
 
 void DeferredLightingEffect::init() {
     _directionalAmbientSphereLightLocations = std::make_shared<LightLocations>();
@@ -97,14 +83,14 @@ void DeferredLightingEffect::init() {
     _localLightLocations = std::make_shared<LightLocations>();
     _localLightOutlineLocations = std::make_shared<LightLocations>();
 
-    loadLightProgram(deferred_light_vert::getShader(), directional_ambient_light_frag::getShader(), false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
-    loadLightProgram(deferred_light_vert::getShader(), directional_skybox_light_frag::getShader(), false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
+    loadLightProgram(shader::render_utils::program::directional_ambient_light, false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
+    loadLightProgram(shader::render_utils::program::directional_skybox_light, false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
 
-    loadLightProgram(deferred_light_vert::getShader(), directional_ambient_light_shadow_frag::getShader(), false, _directionalAmbientSphereLightShadow, _directionalAmbientSphereLightShadowLocations);
-    loadLightProgram(deferred_light_vert::getShader(), directional_skybox_light_shadow_frag::getShader(), false, _directionalSkyboxLightShadow, _directionalSkyboxLightShadowLocations);
+    loadLightProgram(shader::render_utils::program::directional_ambient_light_shadow, false, _directionalAmbientSphereLightShadow, _directionalAmbientSphereLightShadowLocations);
+    loadLightProgram(shader::render_utils::program::directional_skybox_light_shadow, false, _directionalSkyboxLightShadow, _directionalSkyboxLightShadowLocations);
 
-    loadLightProgram(deferred_light_vert::getShader(), local_lights_shading_frag::getShader(), true, _localLight, _localLightLocations);
-    loadLightProgram(deferred_light_vert::getShader(), local_lights_drawOutline_frag::getShader(), true, _localLightOutline, _localLightOutlineLocations);
+    loadLightProgram(shader::render_utils::program::local_lights_shading, true, _localLight, _localLightLocations);
+    loadLightProgram(shader::render_utils::program::local_lights_drawOutline, true, _localLightOutline, _localLightOutlineLocations);
 }
 
 void DeferredLightingEffect::setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
@@ -176,8 +162,8 @@ void DeferredLightingEffect::unsetLocalLightsBatch(gpu::Batch& batch, int lightA
     }
 }
 
-static gpu::ShaderPointer makeLightProgram(const gpu::ShaderPointer& vertShader, const gpu::ShaderPointer& fragShader, LightLocationsPtr& locations) {
-    gpu::ShaderPointer program = gpu::Shader::createProgram(vertShader, fragShader);
+static gpu::ShaderPointer makeLightProgram(int programId, LightLocationsPtr& locations) {
+    gpu::ShaderPointer program = gpu::Shader::createProgram(programId);
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), DEFERRED_BUFFER_COLOR_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), DEFERRED_BUFFER_NORMAL_UNIT));
@@ -226,9 +212,9 @@ static gpu::ShaderPointer makeLightProgram(const gpu::ShaderPointer& vertShader,
     return program;
 }
 
-static void loadLightProgram(const gpu::ShaderPointer& vertShader, const gpu::ShaderPointer& fragShader, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
+static void loadLightProgram(int programId, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
 
-    gpu::ShaderPointer program = makeLightProgram(vertShader, fragShader, locations);
+    gpu::ShaderPointer program = makeLightProgram(programId, locations);
 
     auto state = std::make_shared<gpu::State>();
     state->setColorWriteMask(true, true, true, false);

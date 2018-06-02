@@ -17,17 +17,12 @@
 #include <TextureCache.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
+#include <shaders/Shaders.h>
 
 //#define POLYLINE_ENTITY_USE_FADE_EFFECT
 #ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
 #   include <FadeEffect.h>
 #endif
-
-#include "paintStroke_vert.h"
-#include "paintStroke_frag.h"
-
-#include "paintStroke_fade_vert.h"
-#include "paintStroke_fade_frag.h"
 
 using namespace render;
 using namespace render::entities;
@@ -48,9 +43,7 @@ struct PolyLineUniforms {
 
 static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key, gpu::Batch& batch) {
     if (!polylinePipeline) {
-        auto VS = paintStroke_vert::getShader();
-        auto PS = paintStroke_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke);
 #ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
         auto fadeVS = gpu::Shader::createVertex(std::string(paintStroke_fade_vert));
         auto fadePS = gpu::Shader::createPixel(std::string(paintStroke_fade_frag));

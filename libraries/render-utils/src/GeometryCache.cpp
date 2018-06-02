@@ -23,36 +23,17 @@
 
 #include <FSTReader.h>
 #include <NumericalConstants.h>
+#include <graphics/TextureMap.h>
+#include <graphics/BufferViewHelpers.h>
+#include <render/Args.h>
+#include <shaders/Shaders.h>
 
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
 #include "StencilMaskPass.h"
 #include "FadeEffect.h"
 
-#include "gpu/StandardShaderLib.h"
 
-#include "graphics/TextureMap.h"
-#include "graphics/BufferViewHelpers.h"
-#include "render/Args.h"
-
-#include "standardTransformPNTC_vert.h"
-#include "standardDrawTexture_frag.h"
-
-#include "simple_vert.h"
-#include "simple_textured_frag.h"
-#include "simple_transparent_textured_frag.h"
-#include "simple_textured_unlit_frag.h"
-#include "simple_fade_vert.h"
-#include "simple_textured_fade_frag.h"
-#include "simple_textured_unlit_fade_frag.h"
-#include "simple_opaque_web_browser_frag.h"
-#include "simple_transparent_web_browser_frag.h"
-#include "glowLine_vert.h"
-#include "glowLine_frag.h"
-
-#include "forward_simple_textured_frag.h"
-#include "forward_simple_textured_transparent_frag.h"
-#include "forward_simple_textured_unlit_frag.h"
 
 #include "DeferredLightingEffect.h"
 
@@ -62,8 +43,6 @@ static bool DISABLE_DEFERRED = true;
 static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
 static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
 #endif
-
-#include "grid_frag.h"
 
 //#define WANT_DEBUG
 
@@ -2052,9 +2031,7 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
     static std::once_flag once;
     std::call_once(once, [&] {
         auto state = std::make_shared<gpu::State>();
-        auto VS = glowLine_vert::getShader();
-        auto PS = glowLine_frag::getShader();
-        auto program = gpu::Shader::createProgram(VS, PS);
+        auto program = gpu::Shader::createProgram(shader::render_utils::program::glowLine);
         state->setCullMode(gpu::State::CULL_NONE);
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
         state->setBlendFunction(true,
@@ -2109,9 +2086,7 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
 void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
     static std::once_flag once;
     std::call_once(once, [&]() {
-        auto vs = standardTransformPNTC_vert::getShader();
-        auto ps = standardDrawTexture_frag::getShader();
-        auto program = gpu::Shader::createProgram(vs, ps);
+        auto program = gpu::Shader::createProgram(shader::render_utils::program::standardDrawTexture);
 
         auto state = std::make_shared<gpu::State>();
 
@@ -2125,8 +2100,8 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
         auto stateNoBlend = std::make_shared<gpu::State>();
         PrepareStencil::testMaskDrawShape(*stateNoBlend);
 
-        auto noBlendPS = gpu::StandardShaderLib::getDrawTextureOpaquePS();
-        auto programNoBlend = gpu::Shader::createProgram(vs, noBlendPS);
+        auto noBlendPS = gpu::Shader::createVertex(shader::gpu::fragment::DrawTextureOpaque);
+        auto programNoBlend = gpu::Shader::createProgram(shader::render_utils::program::standardDrawTextureNoBlend);
 
         _standardDrawPipelineNoBlend = gpu::Pipeline::create(programNoBlend, stateNoBlend);
 
@@ -2145,9 +2120,7 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
 
 void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bool isLayered) {
     if (!_gridPipeline) {
-        auto vs = standardTransformPNTC_vert::getShader();
-        auto ps = grid_frag::getShader();
-        auto program = gpu::Shader::createProgram(vs, ps);
+        auto program = gpu::Shader::createProgram(shader::render_utils::program::grid);
         gpu::Shader::makeProgram((*program));
         _gridSlot = program->getUniformBuffers().findLocation("gridBuffer");
 
@@ -2229,9 +2202,9 @@ inline bool operator==(const SimpleProgramKey& a, const SimpleProgramKey& b) {
     return a.getRaw() == b.getRaw();
 }
 
-static void buildWebShader(const gpu::ShaderPointer& vertShader, const gpu::ShaderPointer& fragShader, bool blendEnable,
+static void buildWebShader(int programId, bool blendEnable,
                            gpu::ShaderPointer& shaderPointerOut, gpu::PipelinePointer& pipelinePointerOut) {
-    shaderPointerOut = gpu::Shader::createProgram(vertShader, fragShader);
+    shaderPointerOut = gpu::Shader::createProgram(programId);
 
     gpu::Shader::BindingSet slotBindings;
     gpu::Shader::makeProgram(*shaderPointerOut, slotBindings);
@@ -2254,8 +2227,8 @@ void GeometryCache::bindWebBrowserProgram(gpu::Batch& batch, bool transparent) {
 gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent) {
     static std::once_flag once;
     std::call_once(once, [&]() {
-        buildWebShader(simple_vert::getShader(), simple_opaque_web_browser_frag::getShader(), false, _simpleOpaqueWebBrowserShader, _simpleOpaqueWebBrowserPipeline);
-        buildWebShader(simple_vert::getShader(), simple_transparent_web_browser_frag::getShader(), true, _simpleTransparentWebBrowserShader, _simpleTransparentWebBrowserPipeline);
+        buildWebShader(shader::render_utils::program::simple_opaque_web_browser, false, _simpleOpaqueWebBrowserShader, _simpleOpaqueWebBrowserPipeline);
+        buildWebShader(shader::render_utils::program::simple_transparent_web_browser, true, _simpleTransparentWebBrowserShader, _simpleTransparentWebBrowserPipeline);
     });
 
     return transparent ? _simpleTransparentWebBrowserPipeline : _simpleOpaqueWebBrowserPipeline;
@@ -2284,15 +2257,15 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
     if (!fading) {
         static std::once_flag once;
         std::call_once(once, [&]() {
-            auto VS = simple_vert::getShader();
-            auto PS = DISABLE_DEFERRED ? forward_simple_textured_frag::getShader() : simple_textured_frag::getShader();
+            using namespace shader::render_utils::program;
+            auto PS = DISABLE_DEFERRED ? forward_simple_textured : simple_textured;
             // Use the forward pipeline for both here, otherwise transparents will be unlit
-            auto PSTransparent = DISABLE_DEFERRED ? forward_simple_textured_transparent_frag::getShader() : forward_simple_textured_transparent_frag::getShader();
-            auto PSUnlit = DISABLE_DEFERRED ? forward_simple_textured_unlit_frag::getShader() : simple_textured_unlit_frag::getShader();
+            auto PSTransparent = DISABLE_DEFERRED ? forward_simple_textured_transparent : forward_simple_textured_transparent;
+            auto PSUnlit = DISABLE_DEFERRED ? forward_simple_textured_unlit : simple_textured_unlit;
 
-            _simpleShader = gpu::Shader::createProgram(VS, PS);
-            _transparentShader = gpu::Shader::createProgram(VS, PSTransparent);
-            _unlitShader = gpu::Shader::createProgram(VS, PSUnlit);
+            _simpleShader = gpu::Shader::createProgram(PS);
+            _transparentShader = gpu::Shader::createProgram(PSTransparent);
+            _unlitShader = gpu::Shader::createProgram(PSUnlit);
 
             gpu::Shader::BindingSet slotBindings;
             slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), render::ShapePipeline::Slot::MAP::ALBEDO));
@@ -2307,12 +2280,9 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
     } else {
         static std::once_flag once;
         std::call_once(once, [&]() {
-            auto VS = simple_fade_vert::getShader();
-            auto PS = DISABLE_DEFERRED ? forward_simple_textured_frag::getShader() : simple_textured_fade_frag::getShader();
-            auto PSUnlit = DISABLE_DEFERRED ? forward_simple_textured_unlit_frag::getShader() : simple_textured_unlit_fade_frag::getShader();
-
-            _simpleFadeShader = gpu::Shader::createProgram(VS, PS);
-            _unlitFadeShader = gpu::Shader::createProgram(VS, PSUnlit);
+            using namespace shader::render_utils::program;
+            _simpleFadeShader = gpu::Shader::createProgram(DISABLE_DEFERRED ? forward_simple_textured : simple_textured_fade);
+            _unlitFadeShader = gpu::Shader::createProgram(DISABLE_DEFERRED ? forward_simple_textured_unlit : simple_textured_unlit_fade);
 
             gpu::Shader::BindingSet slotBindings;
             slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), render::ShapePipeline::Slot::MAP::ALBEDO));

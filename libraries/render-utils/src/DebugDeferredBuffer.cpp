@@ -18,13 +18,11 @@
 #include <gpu/Context.h>
 #include <render/Scene.h>
 #include <ViewFrustum.h>
+#include <shaders/Shaders.h>
 
 #include "GeometryCache.h"
 #include "TextureCache.h"
 #include "DeferredLightingEffect.h"
-
-#include "debug_deferred_buffer_vert.h"
-#include "debug_deferred_buffer_frag.h"
 
 using namespace render;
 
@@ -378,7 +376,7 @@ bool DebugDeferredBuffer::pipelineNeedsUpdate(Mode mode, std::string customFile)
 
 const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::string customFile) {
     if (pipelineNeedsUpdate(mode, customFile)) {
-        static const std::string FRAGMENT_SHADER { debug_deferred_buffer_frag::getSource() };
+        static const std::string FRAGMENT_SHADER { gpu::Shader::getFragmentShaderSource(shader::render_utils::fragment::debug_deferred_buffer).getCode() };
         static const std::string SOURCE_PLACEHOLDER { "//SOURCE_PLACEHOLDER" };
         static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER.find(SOURCE_PLACEHOLDER);
         Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO,
@@ -388,7 +386,7 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
         bakedFragmentShader.replace(SOURCE_PLACEHOLDER_INDEX, SOURCE_PLACEHOLDER.size(),
                                     getShaderSourceCode(mode, customFile));
         
-        const auto vs = debug_deferred_buffer_vert::getShader();
+        const auto vs = gpu::Shader::createVertex(shader::render_utils::vertex::debug_deferred_buffer);
         const auto ps = gpu::Shader::createPixel(bakedFragmentShader);
         const auto program = gpu::Shader::createProgram(vs, ps);
         

@@ -18,12 +18,9 @@
 #include <PerfStat.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
 
 #include "Logging.h"
-
-#include "drawItemBounds_vert.h"
-#include "drawItemBounds_frag.h"
 
 using namespace render;
 
@@ -160,9 +157,7 @@ void DrawLight::run(const RenderContextPointer& renderContext, const ItemBounds&
 
 const gpu::PipelinePointer DrawBounds::getPipeline() {
     if (!_boundsPipeline) {
-        auto vs = drawItemBounds_vert::getShader();
-        auto ps = drawItemBounds_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawItemBounds);
 
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -267,9 +262,7 @@ gpu::PipelinePointer DrawQuadVolume::getPipeline() {
     static gpu::PipelinePointer pipeline;
 
     if (!pipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTransformVertexPositionVS();
-        auto ps = gpu::StandardShaderLib::getDrawColorPS();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawColor);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding("color", 0));

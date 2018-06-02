@@ -10,20 +10,14 @@
 //
 #include "ZoneRenderer.h"
 
-
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
 
 #include <render/FilterTask.h>
 #include <render/DrawTask.h>
+#include <shaders/Shaders.h>
 
 #include "StencilMaskPass.h"
 #include "DeferredLightingEffect.h"
-
-#include "zone_drawKeyLight_frag.h"
-#include "zone_drawAmbient_frag.h"
-#include "zone_drawSkybox_frag.h"
-
 
 using namespace render;
 
@@ -77,9 +71,7 @@ void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) 
 
 const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
     if (!_keyLightPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = zone_drawKeyLight_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::zone_drawKeyLight);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ZONE_DEFERRED_TRANSFORM_BUFFER));
@@ -98,9 +90,7 @@ const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
 
 const gpu::PipelinePointer& DebugZoneLighting::getAmbientPipeline() {
     if (!_ambientPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = zone_drawAmbient_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::zone_drawAmbient);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ZONE_DEFERRED_TRANSFORM_BUFFER));
@@ -119,9 +109,7 @@ const gpu::PipelinePointer& DebugZoneLighting::getAmbientPipeline() {
 }
 const gpu::PipelinePointer& DebugZoneLighting::getBackgroundPipeline() {
     if (!_backgroundPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = zone_drawSkybox_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::zone_drawSkybox);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ZONE_DEFERRED_TRANSFORM_BUFFER));

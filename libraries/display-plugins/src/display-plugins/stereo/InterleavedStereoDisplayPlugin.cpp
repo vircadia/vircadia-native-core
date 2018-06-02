@@ -8,10 +8,10 @@
 
 #include "InterleavedStereoDisplayPlugin.h"
 
-#include <gpu/StandardShaderLib.h>
 #include <gpu/Pipeline.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
+#include <shaders/Shaders.h>
 
 static const char* INTERLEAVED_SRGB_TO_LINEAR_FRAG = R"SCRIBE(
 
@@ -46,7 +46,7 @@ const QString InterleavedStereoDisplayPlugin::NAME("3D TV - Interleaved");
 void InterleavedStereoDisplayPlugin::customizeContext() {
     StereoDisplayPlugin::customizeContext();
     if (!_interleavedPresentPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+        auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawUnitQuadTexcoord);
         auto ps = gpu::Shader::createPixel(std::string(INTERLEAVED_SRGB_TO_LINEAR_FRAG));
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram(*program);

@@ -13,11 +13,7 @@
 
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
-
-
-#include <gpu/StandardShaderLib.h>
-
-#include "stencil_drawMask_frag.h"
+#include <shaders/Shaders.h>
 
 using namespace render;
 
@@ -43,9 +39,7 @@ graphics::MeshPointer PrepareStencil::getMesh() {
 
 gpu::PipelinePointer PrepareStencil::getMeshStencilPipeline() {
     if (!_meshStencilPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawVertexPositionVS();
-        auto ps = gpu::StandardShaderLib::getDrawNadaPS();
-        auto program = gpu::Shader::createProgram(vs, ps);
+        auto program = gpu::Shader::createProgram(shader::gpu::program::drawNothing);
         gpu::Shader::makeProgram((*program));
 
         auto state = std::make_shared<gpu::State>();
@@ -59,9 +53,7 @@ gpu::PipelinePointer PrepareStencil::getMeshStencilPipeline() {
 
 gpu::PipelinePointer PrepareStencil::getPaintStencilPipeline() {
     if (!_paintStencilPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = stencil_drawMask_frag::getShader();
-        auto program = gpu::Shader::createProgram(vs, ps);
+        auto program = gpu::Shader::createProgram(shader::render_utils::program::stencil_drawMask);
         gpu::Shader::makeProgram((*program));
 
         auto state = std::make_shared<gpu::State>();

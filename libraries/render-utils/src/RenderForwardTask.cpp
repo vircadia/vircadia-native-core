@@ -17,7 +17,6 @@
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
 #include <gpu/Texture.h>
-#include <gpu/StandardShaderLib.h>
 
 #include <render/ShapePipeline.h>
 
@@ -33,8 +32,6 @@
 #include "TextureCache.h"
 #include "RenderCommonTask.h"
 #include "LightStage.h"
-
-#include "nop_frag.h"
 
 using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber);

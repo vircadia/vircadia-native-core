@@ -24,8 +24,8 @@
 #include <gl/GLWidget.h>
 #include <shared/NsightHelpers.h>
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
 #include <gpu/gl/GLBackend.h>
+#include <shaders/Shaders.h>
 
 #include <TextureCache.h>
 #include <PathUtils.h>
@@ -34,8 +34,6 @@
 #include "../CompositorHelper.h"
 
 #include "DesktopPreviewProvider.h"
-#include "render-utils/hmd_ui_vert.h"
-#include "render-utils/hmd_ui_frag.h"
 
 static const QString MONO_PREVIEW = "Mono Preview";
 static const QString DISABLE_PREVIEW = "Disable Preview";
@@ -409,9 +407,7 @@ void HmdDisplayPlugin::HUDRenderer::build() {
 
 void HmdDisplayPlugin::HUDRenderer::updatePipeline() {
     if (!pipeline) {
-        auto vs = hmd_ui_vert::getShader();
-        auto ps = hmd_ui_frag::getShader();
-        auto program = gpu::Shader::createProgram(vs, ps);
+        auto program = gpu::Shader::createProgram(shader::render_utils::program::hmd_ui);
         gpu::Shader::makeProgram(*program, gpu::Shader::BindingSet());
         uniformsLocation = program->getUniformBuffers().findLocation("hudBuffer");
 

@@ -20,7 +20,7 @@
 #include <NumericalConstants.h>
 #include <GLMHelpers.h>
 #include <NetworkingConstants.h>
-#include "ProceduralCommon_frag.h"
+#include <shaders/Shaders.h>
 
 #include "Logging.h"
 
@@ -223,9 +223,10 @@ bool Procedural::isReady() const {
 
 std::string Procedural::replaceProceduralBlock(const std::string& fragmentSource) {
     std::string fragmentShaderSource = fragmentSource;
+    static const auto proceduralCommonSource = gpu::Shader::getFragmentShaderSource(shader::procedural::fragment::ProceduralCommon);
     size_t replaceIndex = fragmentShaderSource.find(PROCEDURAL_COMMON_BLOCK);
     if (replaceIndex != std::string::npos) {
-        fragmentShaderSource.replace(replaceIndex, PROCEDURAL_COMMON_BLOCK.size(), ProceduralCommon_frag::getSource());
+        fragmentShaderSource.replace(replaceIndex, PROCEDURAL_COMMON_BLOCK.size(), proceduralCommonSource.getCode());
     }
 
     replaceIndex = fragmentShaderSource.find(PROCEDURAL_VERSION);

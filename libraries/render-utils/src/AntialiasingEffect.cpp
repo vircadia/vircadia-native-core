@@ -16,7 +16,7 @@
 #include <PathUtils.h>
 #include <SharedUtil.h>
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
 
 #include "StencilMaskPass.h"
 #include "TextureCache.h"
@@ -172,10 +172,6 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 }
 #else
 
-#include "taa_frag.h"
-#include "fxaa_blend_frag.h"
-#include "taa_blend_frag.h"
-
 const int AntialiasingPass_ParamsSlot = 0;
 const int AntialiasingPass_FrameTransformSlot = 1;
 
@@ -200,10 +196,7 @@ Antialiasing::~Antialiasing() {
 const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(const render::RenderContextPointer& renderContext) {
    
     if (!_antialiasingPipeline) {
-        
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = taa_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::taa);
         
         gpu::Shader::BindingSet slotBindings;
         
@@ -235,9 +228,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(const render::
 
 const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
     if (!_blendPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = fxaa_blend_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::fxaa_blend);
         
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), AntialiasingPass_NextMapSlot));
@@ -258,9 +249,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
 
 const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
     if (!_debugBlendPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = taa_blend_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::taa_blend);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("taaParamsBuffer"), AntialiasingPass_ParamsSlot));

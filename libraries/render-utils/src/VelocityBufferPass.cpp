@@ -13,14 +13,12 @@
 #include <limits>
 
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
+
 #include "StencilMaskPass.h"
 
 const int VelocityBufferPass_FrameTransformSlot = 0;
 const int VelocityBufferPass_DepthMapSlot = 0;
-
-
-#include "velocityBuffer_cameraMotion_frag.h"
 
 VelocityFramebuffer::VelocityFramebuffer() {
 }
@@ -145,10 +143,7 @@ void VelocityBufferPass::run(const render::RenderContextPointer& renderContext, 
 
 const gpu::PipelinePointer& VelocityBufferPass::getCameraMotionPipeline(const render::RenderContextPointer& renderContext) {
     if (!_cameraMotionPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = velocityBuffer_cameraMotion_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::velocityBuffer_cameraMotion);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         // Stencil test the curvature pass for objects pixels only, not the background

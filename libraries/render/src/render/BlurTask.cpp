@@ -11,13 +11,7 @@
 #include "BlurTask.h"
 
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
-
-#include "blurGaussianV_frag.h"
-#include "blurGaussianH_frag.h"
-
-#include "blurGaussianDepthAwareV_frag.h"
-#include "blurGaussianDepthAwareH_frag.h"
+#include <shaders/Shaders.h>
 
 using namespace render;
 
@@ -209,9 +203,7 @@ BlurGaussian::BlurGaussian(bool generateOutputFramebuffer, unsigned int downsamp
 
 gpu::PipelinePointer BlurGaussian::getBlurVPipeline() {
     if (!_blurVPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = blurGaussianV_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::blurGaussianV);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("blurParamsBuffer"), BlurTask_ParamsSlot));
@@ -231,9 +223,7 @@ gpu::PipelinePointer BlurGaussian::getBlurVPipeline() {
 
 gpu::PipelinePointer BlurGaussian::getBlurHPipeline() {
     if (!_blurHPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = blurGaussianH_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::blurGaussianH);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("blurParamsBuffer"), BlurTask_ParamsSlot));
@@ -323,9 +313,7 @@ BlurGaussianDepthAware::BlurGaussianDepthAware(bool generateOutputFramebuffer, c
 
 gpu::PipelinePointer BlurGaussianDepthAware::getBlurVPipeline() {
     if (!_blurVPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = blurGaussianDepthAwareV_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::blurGaussianDepthAwareV);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("blurParamsBuffer"), BlurTask_ParamsSlot));
@@ -346,9 +334,7 @@ gpu::PipelinePointer BlurGaussianDepthAware::getBlurVPipeline() {
 
 gpu::PipelinePointer BlurGaussianDepthAware::getBlurHPipeline() {
     if (!_blurHPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = blurGaussianDepthAwareH_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::blurGaussianDepthAwareH);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("blurParamsBuffer"), BlurTask_ParamsSlot));

@@ -10,14 +10,12 @@
 //
 #include "BloomEffect.h"
 
-#include "gpu/Context.h"
-#include "gpu/StandardShaderLib.h"
+#include <gpu/Context.h>
+
+#include <shaders/Shaders.h>
 
 #include <render/BlurTask.h>
 #include <render/ResampleTask.h>
-
-#include "BloomThreshold_frag.h"
-#include "BloomApply_frag.h"
 
 #define BLOOM_BLUR_LEVEL_COUNT  3
 
@@ -65,9 +63,7 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
     static const int PARAMETERS_SLOT = 1;
 
     if (!_pipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = BloomThreshold_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::bloomThreshold);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding("colorMap", COLOR_MAP_SLOT));
@@ -124,9 +120,7 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
     static const auto PARAMETERS_SLOT = 0;
 
     if (!_pipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = BloomApply_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::bloomApply);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding("blurMap0", BLUR0_SLOT));
@@ -178,10 +172,7 @@ void BloomDraw::run(const render::RenderContextPointer& renderContext, const Inp
         const auto framebufferSize = frameBuffer->getSize();
 
         if (!_pipeline) {
-            auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-            auto ps = gpu::StandardShaderLib::getDrawTextureOpaquePS();
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTransformUnitQuadTextureOpaque);
             gpu::Shader::BindingSet slotBindings;
             gpu::Shader::makeProgram(*program, slotBindings);
 
@@ -237,9 +228,7 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
     static auto TEXCOORD_RECT_SLOT = 1;
 
     if (!_pipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTexcoordRectTransformUnitQuadVS();
-        auto ps = gpu::StandardShaderLib::getDrawTextureOpaquePS();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTextureOpaqueTexcoordRect);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("texcoordRect"), TEXCOORD_RECT_SLOT));

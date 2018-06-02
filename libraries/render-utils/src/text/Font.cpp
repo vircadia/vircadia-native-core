@@ -6,10 +6,7 @@
 #include <ColorUtils.h>
 
 #include <StreamHelpers.h>
-
-#include "sdf_text3D_vert.h"
-#include "sdf_text3D_frag.h"
-#include "sdf_text3D_transparent_frag.h"
+#include <shaders/Shaders.h>
 
 #include "../RenderUtilsLogging.h"
 #include "FontFamilies.h"
@@ -223,11 +220,8 @@ void Font::setupGPU() {
 
         // Setup render pipeline
         {
-            auto vertexShader = sdf_text3D_vert::getShader();
-            auto pixelShader = sdf_text3D_frag::getShader();
-            auto pixelShaderTransparent = sdf_text3D_transparent_frag::getShader();
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
-            gpu::ShaderPointer programTransparent = gpu::Shader::createProgram(vertexShader, pixelShaderTransparent);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D);
+            gpu::ShaderPointer programTransparent = gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D_transparent);
 
             gpu::Shader::BindingSet slotBindings;
             gpu::Shader::makeProgram(*program, slotBindings);

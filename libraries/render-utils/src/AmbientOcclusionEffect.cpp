@@ -18,7 +18,8 @@
 #include <PathUtils.h>
 #include <SharedUtil.h>
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
+
 #include "RenderUtilsLogging.h"
 
 #include "DeferredLightingEffect.h"
@@ -27,11 +28,6 @@
 #include "DependencyManager.h"
 #include "ViewFrustum.h"
 
-#include "ssao_makePyramid_frag.h"
-#include "ssao_makeOcclusion_frag.h"
-#include "ssao_debugOcclusion_frag.h"
-#include "ssao_makeHorizontalBlur_frag.h"
-#include "ssao_makeVerticalBlur_frag.h"
 
 
 AmbientOcclusionFramebuffer::AmbientOcclusionFramebuffer() {
@@ -261,9 +257,7 @@ void AmbientOcclusionEffect::configure(const Config& config) {
 
 const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
     if (!_occlusionPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = ssao_makeOcclusion_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_makeOcclusion);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
@@ -286,9 +280,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
 
 const gpu::PipelinePointer& AmbientOcclusionEffect::getHBlurPipeline() {
     if (!_hBlurPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = ssao_makeHorizontalBlur_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_makeHorizontalBlur);
         
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
@@ -309,9 +301,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getHBlurPipeline() {
 
 const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
     if (!_vBlurPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = ssao_makeVerticalBlur_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_makeVerticalBlur);
         
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
@@ -456,10 +446,8 @@ void DebugAmbientOcclusion::configure(const Config& config) {
 
 const gpu::PipelinePointer& DebugAmbientOcclusion::getDebugPipeline() {
     if (!_debugPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = ssao_debugOcclusion_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_debugOcclusion);
+        
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
