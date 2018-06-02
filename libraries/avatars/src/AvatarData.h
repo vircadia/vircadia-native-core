@@ -93,6 +93,9 @@ const int IS_FACE_TRACKER_CONNECTED = 4; // 5th bit
 const int IS_EYE_TRACKER_CONNECTED = 5; // 6th bit (was CHAT_CIRCLING)
 const int HAS_REFERENTIAL = 6; // 7th bit
 const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
+const int AUDIO_ENABLED_FACE_MOVEMENT = 8; // 9th bit
+const int PROCEDURAL_EYE_FACE_MOVEMENT = 9; // 10th bit
+const int PROCEDURAL_BLINK_FACE_MOVEMENT = 10; // 11th bit
 
 
 const char HAND_STATE_NULL = 0;
@@ -200,9 +203,9 @@ namespace AvatarDataPacket {
     static_assert(sizeof(SensorToWorldMatrix) == SENSOR_TO_WORLD_SIZE, "AvatarDataPacket::SensorToWorldMatrix size doesn't match.");
 
     PACKED_BEGIN struct AdditionalFlags {
-        uint8_t flags;                    // additional flags: hand state, key state, eye tracking
+        uint16_t flags;                    // additional flags: hand state, key state, eye tracking
     } PACKED_END;
-    const size_t ADDITIONAL_FLAGS_SIZE = 1;
+    const size_t ADDITIONAL_FLAGS_SIZE = 2;
     static_assert(sizeof(AdditionalFlags) == ADDITIONAL_FLAGS_SIZE, "AvatarDataPacket::AdditionalFlags size doesn't match.");
 
     // only present if HAS_REFERENTIAL flag is set in AvatarInfo.flags
