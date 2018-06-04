@@ -174,7 +174,7 @@ Item {
                         text: "show all input devices"
 
                         onClicked: {
-                            inputPlugins();
+                            box.model = inputPlugins();
                             changeSource();
                         }
                     }
@@ -262,11 +262,12 @@ Item {
 
             function changeSource() {
                 loader.source = "";
+                var selectedDevice = box.textAt(box.currentIndex);
                 var source = "";
-                if (box.currentText == "Vive") {
+                if (selectedDevice == "HTC Vive") {
                     source = InputConfiguration.configurationLayout("OpenVR");
                 } else {
-                    source = InputConfiguration.configurationLayout(box.currentText);
+                    source = InputConfiguration.configurationLayout(selectedDevice);
                 }
 
                 loader.source = source;

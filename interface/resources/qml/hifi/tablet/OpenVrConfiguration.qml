@@ -20,7 +20,6 @@ Flickable {
     width: parent.width
     height: parent.height
     anchors.fill: parent
-    contentWidth: openVrConfiguration.width
     contentHeight: 550
     flickableDirection: Flickable.VerticalFlick
 
