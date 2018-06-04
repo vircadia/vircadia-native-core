@@ -86,7 +86,7 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     if (dialogsManager->getLodToolsDialog()) {
         watchWindow(dialogsManager->getLodToolsDialog()->windowHandle());
     }
-    
+
     connect(_switchModeButton, &QPushButton::clicked, [this]{
         toggleHMDMode();
     });

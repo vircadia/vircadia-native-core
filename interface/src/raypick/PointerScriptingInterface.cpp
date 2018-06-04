@@ -42,6 +42,12 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
     }
 }
 
+/**jsdoc
+ * A set of properties that can be passed to {@link Pointers.createPointer} to create a new Pointer.  Contains the relevant {@link Picks.PickProperties} to define the underlying Pick.
+ * @typedef {object} Pointers.StylusPointerProperties
+ * @property {boolean} [hover=false] If this pointer should generate hover events.
+ * @property {boolean} [enabled=false]
+ */
 unsigned int PointerScriptingInterface::createStylus(const QVariant& properties) const {
     QVariantMap propertyMap = properties.toMap();
 
@@ -58,6 +64,48 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
     return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<StylusPointer>(properties, StylusPointer::buildStylusOverlay(propertyMap), hover, enabled));
 }
 
+/**jsdoc
+ * A set of properties used to define the visual aspect of a Ray Pointer in the case that the Pointer is not intersecting something.  Same as a {@link Pointers.RayPointerRenderState},
+ * but with an additional distance field.
+ *
+ * @typedef {object} Pointers.DefaultRayPointerRenderState
+ * @augments Pointers.RayPointerRenderState
+ * @property {number} distance The distance at which to render the end of this Ray Pointer, if one is defined.
+ */
+/**jsdoc
+ * A set of properties used to define the visual aspect of a Ray Pointer in the case that the Pointer is intersecting something.
+ *
+ * @typedef {object} Pointers.RayPointerRenderState
+ * @property {string} name The name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
+ * @property {Overlays.OverlayProperties} [start] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
+ * An overlay to represent the beginning of the Ray Pointer, if desired.
+ * @property {Overlays.OverlayProperties} [path] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field), which <b>must</b> be <code>"line3d"</code>.
+ * An overlay to represent the path of the Ray Pointer, if desired.
+ * @property {Overlays.OverlayProperties} [end] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
+ * An overlay to represent the end of the Ray Pointer, if desired.
+ */
+/**jsdoc
+ * A trigger mechanism for Ray Pointers.
+ *
+ * @typedef {object} Pointers.Trigger
+ * @property {Controller.Standard|Controller.Actions|function} action This can be a built-in Controller action, like Controller.Standard.LTClick, or a function that evaluates to >= 1.0 when you want to trigger <code>button</code>.
+ * @property {string} button Which button to trigger.  "Primary", "Secondary", "Tertiary", and "Focus" are currently supported.  Only "Primary" will trigger clicks on web surfaces.  If "Focus" is triggered,
+ * it will try to set the entity or overlay focus to the object at which the Pointer is aimed.  Buttons besides the first three will still trigger events, but event.button will be "None".
+ */
+/**jsdoc
+ * A set of properties that can be passed to {@link Pointers.createPointer} to create a new Pointer. Contains the relevant {@link Picks.PickProperties} to define the underlying Pick.
+ * @typedef {object} Pointers.LaserPointerProperties
+ * @property {boolean} [faceAvatar=false] Ray Pointers only.  If true, the end of the Pointer will always rotate to face the avatar.
+ * @property {boolean} [centerEndY=true] Ray Pointers only.  If false, the end of the Pointer will be moved up by half of its height.
+ * @property {boolean} [lockEnd=false] Ray Pointers only.  If true, the end of the Pointer will lock on to the center of the object at which the laser is pointing.
+ * @property {boolean} [distanceScaleEnd=false] Ray Pointers only.  If true, the dimensions of the end of the Pointer will scale linearly with distance.
+ * @property {boolean} [scaleWithAvatar=false] Ray Pointers only.  If true, the width of the Pointer's path will scale linearly with your avatar's scale.
+ * @property {boolean} [enabled=false]
+ * @property {Pointers.RayPointerRenderState[]} [renderStates] Ray Pointers only.  A list of different visual states to switch between.
+ * @property {Pointers.DefaultRayPointerRenderState[]} [defaultRenderStates] Ray Pointers only.  A list of different visual states to use if there is no intersection.
+ * @property {boolean} [hover=false] If this Pointer should generate hover events.
+ * @property {Pointers.Trigger[]} [triggers] Ray Pointers only.  A list of different triggers mechanisms that control this Pointer's click event generation.
+ */
 unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
     QVariantMap propertyMap = properties.toMap();
 

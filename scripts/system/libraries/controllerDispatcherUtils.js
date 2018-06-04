@@ -7,7 +7,7 @@
 
 
 /* global module, Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform,
-   Selection,
+   Selection, Uuid,
    MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, FORBIDDEN_GRAB_TYPES:true,
    HAPTIC_PULSE_STRENGTH:true, HAPTIC_PULSE_DURATION:true, ZERO_VEC:true, ONE_VEC:true,
    DEFAULT_REGISTRATION_POINT:true, INCHES_TO_METERS:true,
@@ -34,11 +34,12 @@
    getGrabbableData:true,
    entityIsGrabbable:true,
    entityIsDistanceGrabbable:true,
+   getControllerJointIndexCacheTime:true,
+   getControllerJointIndexCache:true,
    getControllerJointIndex:true,
    propsArePhysical:true,
    controllerDispatcherPluginsNeedSort:true,
    projectOntoXYPlane:true,
-   getChildrenProps:true,
    projectOntoEntityXYPlane:true,
    projectOntoOverlayXYPlane:true,
    makeLaserLockInfo:true,
@@ -53,6 +54,8 @@
    TEAR_AWAY_COUNT:true,
    TEAR_AWAY_CHECK_TIME:true,
    distanceBetweenPointAndEntityBoundingBox:true,
+   entityIsEquipped:true,
+   entityIsFarGrabbedByOther:true,
    highlightTargetEntity:true,
    clearHighlightedEntities:true,
    unhighlightTargetEntity:true
@@ -125,7 +128,8 @@ DISPATCHER_PROPERTIES = [
     "dimensions",
     "userData",
     "type",
-    "href"
+    "href",
+    "cloneable"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
@@ -265,20 +269,32 @@ entityIsDistanceGrabbable = function(props) {
     return true;
 };
 
-getControllerJointIndex = function (hand) {
-    if (HMD.isHandControllerAvailable()) {
-        var controllerJointIndex = -1;
-        if (Camera.mode === "first person") {
-            controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
-                "_CONTROLLER_RIGHTHAND" :
-                "_CONTROLLER_LEFTHAND");
-        } else if (Camera.mode === "third person") {
-            controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
-                "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
-                "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
-        }
+getControllerJointIndexCacheTime = [0, 0];
+getControllerJointIndexCache = [-1, -1];
 
-        return controllerJointIndex;
+getControllerJointIndex = function (hand) {
+    var GET_CONTROLLERJOINTINDEX_CACHE_REFRESH_TIME = 3000; // msecs
+
+    var now = Date.now();
+    if (now - getControllerJointIndexCacheTime[hand] > GET_CONTROLLERJOINTINDEX_CACHE_REFRESH_TIME) {
+        if (HMD.isHandControllerAvailable()) {
+            var controllerJointIndex = -1;
+            if (Camera.mode === "first person") {
+                controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
+                                                              "_CONTROLLER_RIGHTHAND" :
+                                                              "_CONTROLLER_LEFTHAND");
+            } else if (Camera.mode === "third person") {
+                controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
+                                                              "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
+                                                              "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
+            }
+
+            getControllerJointIndexCacheTime[hand] = now;
+            getControllerJointIndexCache[hand] = controllerJointIndex;
+            return controllerJointIndex;
+        }
+    } else {
+        return getControllerJointIndexCache[hand];
     }
 
     return -1;

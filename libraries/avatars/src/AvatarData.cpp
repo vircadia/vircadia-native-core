@@ -2363,7 +2363,7 @@ glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const 
 }
 
 /**jsdoc
- * @typedef MyAvatar.AttachmentData
+ * @typedef {object} AttachmentData
  * @property {string} modelUrl
  * @property {string} jointName
  * @property {Vec3} translation

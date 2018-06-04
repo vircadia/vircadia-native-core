@@ -235,6 +235,24 @@ function adjustPositionPerBoundingBox(position, direction, registration, dimensi
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
 
+// Handles any edit mode updates required when domains have switched
+function checkEditPermissionsAndUpdate() {
+    if ((createButton === null) || (createButton === undefined)) {
+        //--EARLY EXIT--( nothing to safely update )
+        return;
+    }
+
+    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
+    createButton.editProperties({
+        icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
+        captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
+    });
+
+    if (!hasRezPermissions && isActive) {
+        that.setActive(false);
+        tablet.gotoHomeScreen();
+    }
+}
 
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditing"; // for communication with other scripts
@@ -449,25 +467,6 @@ var toolBar = (function () {
         case "newMaterialDialogAdd":
             handleNewMaterialDialogResult(message.params);
             break;
-        }
-    }
-
-    // Handles any edit mode updates required when domains have switched
-    function checkEditPermissionsAndUpdate() {
-        if ((createButton === null) || (createButton === undefined)) {
-            //--EARLY EXIT--( nothing to safely update )
-            return;
-        }
-
-        var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
-        createButton.editProperties({
-            icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
-            captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
-        });
-
-        if (!hasRezPermissions && isActive) {
-            that.setActive(false);
-            tablet.gotoHomeScreen();
         }
     }
 
@@ -778,7 +777,6 @@ var toolBar = (function () {
             selectionDisplay.triggerMapping.enable();
             print("starting tablet in landscape mode");
             tablet.landscape = true;
-            entityIconOverlayManager.setIconsSelectable(null,false);
             // Not sure what the following was meant to accomplish, but it currently causes
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
@@ -1150,8 +1148,7 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Entities",
-        isSeparator: true,
-        grouping: "Advanced"
+        isSeparator: true
     });
     if (!Menu.menuItemExists("Edit", "Delete")) {
         Menu.addMenuItem({
@@ -1161,7 +1158,6 @@ function setupModelMenus() {
                 text: "delete"
             },
             afterItem: "Entities",
-            grouping: "Advanced"
         });
         modelMenuAddedDelete = true;
     }
@@ -1169,15 +1165,13 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Parent Entity to Last",
-        afterItem: "Entities",
-        grouping: "Advanced"
+        afterItem: "Entities"
     });
 
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Unparent Entity",
-        afterItem: "Parent Entity to Last",
-        grouping: "Advanced"
+        afterItem: "Parent Entity to Last"
     });
 
     Menu.addMenuItem({
@@ -1185,8 +1179,7 @@ function setupModelMenus() {
         menuItemName: MENU_CREATE_ENTITIES_GRABBABLE,
         afterItem: "Unparent Entity",
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, true),
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, true)
     });
 
     Menu.addMenuItem({
@@ -1194,87 +1187,75 @@ function setupModelMenus() {
         menuItemName: MENU_ALLOW_SELECTION_LARGE,
         afterItem: MENU_CREATE_ENTITIES_GRABBABLE,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE, true),
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE, true)
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: MENU_ALLOW_SELECTION_SMALL,
         afterItem: MENU_ALLOW_SELECTION_LARGE,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_SMALL, true),
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_SMALL, true)
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: MENU_ALLOW_SELECTION_LIGHTS,
         afterItem: MENU_ALLOW_SELECTION_SMALL,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LIGHTS, false),
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LIGHTS, false)
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Select All Entities In Box",
-        afterItem: "Allow Selecting of Lights",
-        grouping: "Advanced"
+        afterItem: "Allow Selecting of Lights"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Select All Entities Touching Box",
-        afterItem: "Select All Entities In Box",
-        grouping: "Advanced"
+        afterItem: "Select All Entities In Box"
     });
 
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Export Entities",
-        afterItem: "Entities",
-        grouping: "Advanced"
+        afterItem: "Entities"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Import Entities",
-        afterItem: "Export Entities",
-        grouping: "Advanced"
+        afterItem: "Export Entities"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Import Entities from URL",
-        afterItem: "Import Entities",
-        grouping: "Advanced"
+        afterItem: "Import Entities"
     });
 
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: MENU_AUTO_FOCUS_ON_SELECT,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) === "true",
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) === "true"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: MENU_EASE_ON_FOCUS,
         afterItem: MENU_AUTO_FOCUS_ON_SELECT,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) === "true",
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) === "true"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE,
         afterItem: MENU_EASE_ON_FOCUS,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) !== "false",
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) !== "false"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: MENU_SHOW_ZONES_IN_EDIT_MODE,
         afterItem: MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) !== "false",
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) !== "false"
     });
 
     Entities.setLightsArePickable(false);

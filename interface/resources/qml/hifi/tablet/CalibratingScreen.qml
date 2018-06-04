@@ -18,7 +18,7 @@ import "../../controls-uit" as HifiControls
 Rectangle {
     id: info
 
-
+    anchors.fill: parent
     signal canceled()
     signal restart()
 

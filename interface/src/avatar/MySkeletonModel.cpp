@@ -70,7 +70,7 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
         // rotate the hips back to match the flying animation.
 
         const float TILT_ANGLE = 0.523f;
-        const glm::quat tiltRot = glm::angleAxis(TILT_ANGLE, transformVectorFast(avatarToSensorMat, -Vectors::UNIT_X));
+        const glm::quat tiltRot = glm::angleAxis(TILT_ANGLE, glm::normalize(transformVectorFast(avatarToSensorMat, -Vectors::UNIT_X)));
 
         glm::vec3 headPos;
         int headIndex = myAvatar->getJointIndex("Head");

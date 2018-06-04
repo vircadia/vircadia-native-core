@@ -87,6 +87,14 @@ QmlWindowClass::QmlWindowClass() {
 
 }
 
+/**jsdoc
+ * @typedef {object} OverlayWindow.Properties
+ * @property {string} title
+ * @property {string} source
+ * @property {number} width
+ * @property {number} height
+ * @property {boolean} visible
+ */
 void QmlWindowClass::initQml(QVariantMap properties) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     _source = properties[SOURCE_PROPERTY].toString();

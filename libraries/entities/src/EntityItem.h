@@ -288,10 +288,10 @@ public:
     bool getCollisionless() const;
     void setCollisionless(bool value);
 
-    uint8_t getCollisionMask() const;
-    void setCollisionMask(uint8_t value);
+    uint16_t getCollisionMask() const;
+    void setCollisionMask(uint16_t value);
 
-    void computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const;
+    void computeCollisionGroupAndFinalMask(int32_t& group, int32_t& mask) const;
 
     bool getDynamic() const;
     void setDynamic(bool value);
@@ -340,6 +340,19 @@ public:
     void setCertificateID(const QString& value);
     quint32 getStaticCertificateVersion() const;
     void setStaticCertificateVersion(const quint32&);
+
+    bool getCloneable() const;
+    void setCloneable(bool value);
+    float getCloneLifetime() const;
+    void setCloneLifetime(float value);
+    float getCloneLimit() const;
+    void setCloneLimit(float value);
+    bool getCloneDynamic() const;
+    void setCloneDynamic(bool value);
+    bool getCloneAvatarEntity() const;
+    void setCloneAvatarEntity(bool value);
+    const QUuid getCloneOriginID() const;
+    void setCloneOriginID(const QUuid& value);
 
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
@@ -494,6 +507,11 @@ public:
     void setSimulationOwnershipExpiry(uint64_t expiry) { _simulationOwnershipExpiry = expiry; }
     uint64_t getSimulationOwnershipExpiry() const { return _simulationOwnershipExpiry; }
 
+    void addCloneID(const QUuid& cloneID);
+    void removeCloneID(const QUuid& cloneID);
+    const QVector<QUuid> getCloneIDs() const;
+    void setCloneIDs(const QVector<QUuid>& cloneIDs);
+
 signals:
     void requestRenderUpdate();
 
@@ -562,7 +580,7 @@ protected:
     bool _visible { ENTITY_ITEM_DEFAULT_VISIBLE };
     bool _canCastShadow{ ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
     bool _collisionless { ENTITY_ITEM_DEFAULT_COLLISIONLESS };
-    uint8_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
+    uint16_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
     bool _dynamic { ENTITY_ITEM_DEFAULT_DYNAMIC };
     bool _locked { ENTITY_ITEM_DEFAULT_LOCKED };
     QString _userData { ENTITY_ITEM_DEFAULT_USER_DATA };
@@ -647,6 +665,14 @@ protected:
     uint64_t _simulationOwnershipExpiry { 0 };
 
     bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
+
+    bool _cloneable { ENTITY_ITEM_DEFAULT_CLONEABLE };
+    float _cloneLifetime { ENTITY_ITEM_DEFAULT_CLONE_LIFETIME };
+    float _cloneLimit { ENTITY_ITEM_DEFAULT_CLONE_LIMIT };
+    bool _cloneDynamic { ENTITY_ITEM_DEFAULT_CLONE_DYNAMIC };
+    bool _cloneAvatarEntity { ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY };
+    QUuid _cloneOriginID;
+    QVector<QUuid> _cloneIDs;
 
 private:
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;

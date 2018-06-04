@@ -7,12 +7,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
-   getControllerJointIndex, getGrabbableData, enableDispatcherModule, disableDispatcherModule,
-   propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, entityIsGrabbable,
-   Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation, makeDispatcherModuleParameters, makeRunningValues,
-   TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS, findGroupParent, entityIsCloneable, propsAreCloneDynamic, cloneEntity,
-   HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, AddressManager
+/* global Script, MyAvatar, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule,
+   makeDispatcherModuleParameters, makeRunningValues, TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS, BUMPER_ON_VALUE, AddressManager
 */
 
 (function() {

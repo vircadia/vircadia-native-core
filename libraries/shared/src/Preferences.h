@@ -58,7 +58,8 @@ public:
         ComboBox,
         PrimaryHand,
         // Special casing for an unusual preference
-        Avatar
+        Avatar,
+        RadioButtons
     };
 
     explicit Preference(QObject* parent = nullptr) : QObject(parent) {}
@@ -353,6 +354,20 @@ public:
     Type getType() override { return PrimaryHand; }
 };
 
+class RadioButtonsPreference : public IntPreference {
+    Q_OBJECT
+    Q_PROPERTY(QStringList items READ getItems CONSTANT)
+public:
+    RadioButtonsPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : IntPreference(category, name, getter, setter) { }
+    Type getType() override { return RadioButtons; }
+
+    const QStringList& getItems() { return _items; }
+    void setItems(const QStringList& items) { _items = items; }
+
+protected:
+    QStringList _items;
+};
 #endif
 
 

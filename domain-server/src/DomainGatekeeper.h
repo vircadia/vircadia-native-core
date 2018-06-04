@@ -39,8 +39,8 @@ public:
     void addPendingAssignedNode(const QUuid& nodeUUID, const QUuid& assignmentUUID,
                                 const QUuid& walletUUID, const QString& nodeVersion);
     QUuid assignmentUUIDForPendingAssignment(const QUuid& tempUUID);
-    
-    void removeICEPeer(const QUuid& peerUUID) { _icePeers.remove(peerUUID); }
+
+    void cleanupICEPeerForNode(const QUuid& nodeID);
 
     Node::LocalID findOrCreateLocalID(const QUuid& uuid);
 
@@ -77,8 +77,7 @@ private:
     SharedNodePointer processAgentConnectRequest(const NodeConnectionData& nodeConnection,
                                                  const QString& username,
                                                  const QByteArray& usernameSignature);
-    SharedNodePointer addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection,
-                                                        QUuid nodeID = QUuid());
+    SharedNodePointer addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection);
     
     bool verifyUserSignature(const QString& username, const QByteArray& usernameSignature,
                              const HifiSockAddr& senderSockAddr);
@@ -101,6 +100,10 @@ private:
     std::unordered_map<QUuid, PendingAssignedNodeData> _pendingAssignedNodes;
     
     QHash<QUuid, SharedNetworkPeer> _icePeers;
+
+    using ConnectingNodeID = QUuid;
+    using ICEPeerID = QUuid;
+    QHash<ConnectingNodeID, ICEPeerID> _nodeToICEPeerIDs;
     
     QHash<QString, QUuid> _connectionTokenHash;
 

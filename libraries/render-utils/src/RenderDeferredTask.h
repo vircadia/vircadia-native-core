@@ -41,7 +41,7 @@ protected:
 
 class DrawDeferred {
 public:
-    using Inputs = render::VaryingSet3 <render::ItemBounds, LightingModelPointer, LightClustersPointer>;
+    using Inputs = render::VaryingSet4<render::ItemBounds, LightingModelPointer, LightClustersPointer, glm::vec2>;
     using Config = DrawDeferredConfig;
     using JobModel = render::Job::ModelI<DrawDeferred, Inputs, Config>;
 

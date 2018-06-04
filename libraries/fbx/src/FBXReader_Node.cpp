@@ -214,10 +214,7 @@ FBXNode parseBinaryFBXNode(QDataStream& in, int& position, bool has64BitPosition
 
     while (endOffset > position) {
         FBXNode child = parseBinaryFBXNode(in, position, has64BitPositions);
-        if (child.name.isNull()) {
-            return node;
-
-        } else {
+        if (!child.name.isNull()) {
             node.children.append(child);
         }
     }

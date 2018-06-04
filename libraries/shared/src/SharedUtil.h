@@ -25,6 +25,7 @@
 #include <QtCore/QCoreApplication>
 #include <QUuid>
 
+#include "NumericalConstants.h"
 // When writing out avatarEntities to a QByteArray, if the parentID is the ID of MyAvatar, use this ID instead.  This allows
 // the value to be reset when the sessionID changes.
 const QUuid AVATAR_SELF_ID = QUuid("{00000000-0000-0000-0000-000000000001}");
@@ -121,6 +122,27 @@ const QByteArray HIGH_FIDELITY_USER_AGENT = "Mozilla/5.0 (HighFidelityInterface)
 // Equivalent to time_t but in usecs instead of secs
 quint64 usecTimestampNow(bool wantDebug = false);
 void usecTimestampNowForceClockSkew(qint64 clockSkew);
+
+inline bool afterUsecs(quint64& startUsecs, quint64 maxIntervalUecs) {
+    auto now = usecTimestampNow();
+    auto interval = now - startUsecs;
+    if (interval > maxIntervalUecs) {
+        startUsecs = now;
+        return true;
+    }
+    return false;
+}
+
+inline bool afterSecs(quint64& startUsecs, quint64 maxIntervalSecs) {
+    return afterUsecs(startUsecs, maxIntervalSecs * USECS_PER_SECOND);
+}
+
+template <typename F>
+void doEvery(quint64& lastReportUsecs, quint64 secs, F lamdba) {
+    if (afterSecs(lastReportUsecs, secs)) {
+        lamdba();
+    }
+}
 
 // Number of seconds expressed since the first call to this function, expressed as a float
 // Maximum accuracy in msecs

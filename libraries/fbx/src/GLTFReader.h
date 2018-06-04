@@ -190,7 +190,7 @@ namespace GLTFBufferViewTarget {
 struct GLTFBufferView {
     int buffer; //required
     int byteLength; //required
-    int byteOffset;
+    int byteOffset { 0 };
     int target;
     QMap<QString, bool> defined;
     void dump() {
@@ -470,7 +470,7 @@ namespace GLTFAccessorComponentType {
 }
 struct GLTFAccessor {
     int bufferView;
-    int byteOffset;
+    int byteOffset { 0 };
     int componentType; //required
     int count; //required
     int type; //required

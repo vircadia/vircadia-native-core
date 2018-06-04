@@ -46,6 +46,8 @@
 
 const char* SRGB_TO_LINEAR_FRAG = R"SCRIBE(
 
+// OpenGLDisplayPlugin_present.frag
+
 uniform sampler2D colorMap;
 
 in vec2 varTexCoord0;
@@ -586,7 +588,7 @@ void OpenGLDisplayPlugin::updateFrameData() {
 
 std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> OpenGLDisplayPlugin::getHUDOperator() {
     return [this](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
-        if (_hudPipeline) {
+        if (_hudPipeline && hudTexture) {
             batch.enableStereo(false);
             batch.setPipeline(mirror ? _mirrorHUDPipeline : _hudPipeline);
             batch.setResourceTexture(0, hudTexture);
@@ -885,7 +887,7 @@ OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 }
 
 void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
-    auto renderSize = getRecommendedRenderSize();
+    auto renderSize = glm::uvec2(glm::vec2(getRecommendedRenderSize()) * getRenderResolutionScale());
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
         _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
     }

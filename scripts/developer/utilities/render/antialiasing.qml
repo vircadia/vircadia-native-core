@@ -38,21 +38,22 @@ Rectangle {
                 id: fxaaOnOff
                 property bool debugFXAA: false
                 HifiControls.Button {
-                    text: {
-                        if (fxaaOnOff.debugFXAA) {
-                            return "FXAA"
-                        } else {
-                            return "TAA"
+                    function getTheText() {
+                            if (Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff) {
+                                return "FXAA"
+                            } else {
+                                return "TAA"
+                            }
                         }
-                        }
+                    text: getTheText()
                     onClicked: {
-                        fxaaOnOff.debugFXAA = !fxaaOnOff.debugFXAA
-                         if (fxaaOnOff.debugFXAA) {
+                        var onOff = !Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff;
+                         if (onOff) {
                             Render.getConfig("RenderMainView.JitterCam").none();
-                            Render.getConfig("RenderMainView.Antialiasing").debugFXAAX = 0;
+                            Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff = true;
                          } else {
                             Render.getConfig("RenderMainView.JitterCam").play();
-                            Render.getConfig("RenderMainView.Antialiasing").debugFXAAX = 1.0;
+                            Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff = false;
                          }
                          
                     }

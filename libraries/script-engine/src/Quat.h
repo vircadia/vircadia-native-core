@@ -43,7 +43,7 @@
  * @hifi-server-entity
  * @hifi-assignment-client
  *
- * @property IDENTITY {Quat} <code>{ x: 0, y: 0, z: 0, w: 1 }</code> : The identity rotation, i.e., no rotation.
+ * @property {Quat} IDENTITY - <code>{ x: 0, y: 0, z: 0, w: 1 }</code> : The identity rotation, i.e., no rotation.
  *     <em>Read-only.</em>
  * @example <caption>Print the <code>IDENTITY</code> value.</caption>
  * print(JSON.stringify(Quat.IDENTITY)); // { x: 0, y: 0, z: 0, w: 1 }

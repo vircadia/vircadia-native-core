@@ -122,6 +122,9 @@ static const gpu::Element TEXCOORD4_ELEMENT { gpu::VEC4, gpu::FLOAT, gpu::XYZW }
 static gpu::Stream::FormatPointer SOLID_STREAM_FORMAT;
 static gpu::Stream::FormatPointer INSTANCED_SOLID_STREAM_FORMAT;
 static gpu::Stream::FormatPointer INSTANCED_SOLID_FADE_STREAM_FORMAT;
+static gpu::Stream::FormatPointer WIRE_STREAM_FORMAT;
+static gpu::Stream::FormatPointer INSTANCED_WIRE_STREAM_FORMAT;
+static gpu::Stream::FormatPointer INSTANCED_WIRE_FADE_STREAM_FORMAT;
 
 static const uint SHAPE_VERTEX_STRIDE = sizeof(GeometryCache::ShapeVertex); // position, normal, texcoords, tangent
 static const uint SHAPE_NORMALS_OFFSET = offsetof(GeometryCache::ShapeVertex, normal);
@@ -690,6 +693,38 @@ gpu::Stream::FormatPointer& getInstancedSolidFadeStreamFormat() {
     return INSTANCED_SOLID_FADE_STREAM_FORMAT;
 }
 
+gpu::Stream::FormatPointer& getWireStreamFormat() {
+    if (!WIRE_STREAM_FORMAT) {
+        WIRE_STREAM_FORMAT = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
+        WIRE_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
+        WIRE_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
+    }
+    return WIRE_STREAM_FORMAT;
+}
+
+gpu::Stream::FormatPointer& getInstancedWireStreamFormat() {
+    if (!INSTANCED_WIRE_STREAM_FORMAT) {
+        INSTANCED_WIRE_STREAM_FORMAT = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
+        INSTANCED_WIRE_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
+        INSTANCED_WIRE_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
+        INSTANCED_WIRE_STREAM_FORMAT->setAttribute(gpu::Stream::COLOR, gpu::Stream::COLOR, COLOR_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+    }
+    return INSTANCED_WIRE_STREAM_FORMAT;
+}
+
+gpu::Stream::FormatPointer& getInstancedWireFadeStreamFormat() {
+    if (!INSTANCED_WIRE_FADE_STREAM_FORMAT) {
+        INSTANCED_WIRE_FADE_STREAM_FORMAT = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
+        INSTANCED_WIRE_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
+        INSTANCED_WIRE_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
+        INSTANCED_WIRE_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::COLOR, gpu::Stream::COLOR, COLOR_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+        INSTANCED_WIRE_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::TEXCOORD2, gpu::Stream::TEXCOORD2, TEXCOORD4_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+        INSTANCED_WIRE_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::TEXCOORD3, gpu::Stream::TEXCOORD3, TEXCOORD4_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+        INSTANCED_WIRE_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::TEXCOORD4, gpu::Stream::TEXCOORD4, TEXCOORD4_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+    }
+    return INSTANCED_WIRE_FADE_STREAM_FORMAT;
+}
+
 QHash<SimpleProgramKey, gpu::PipelinePointer> GeometryCache::_simplePrograms;
 
 gpu::ShaderPointer GeometryCache::_simpleShader;
@@ -827,7 +862,7 @@ void GeometryCache::renderShape(gpu::Batch& batch, Shape shape) {
 }
 
 void GeometryCache::renderWireShape(gpu::Batch& batch, Shape shape) {
-    batch.setInputFormat(getSolidStreamFormat());
+    batch.setInputFormat(getWireStreamFormat());
     _shapes[shape].drawWire(batch);
 }
 
@@ -839,7 +874,7 @@ void GeometryCache::renderShape(gpu::Batch& batch, Shape shape, const glm::vec4&
 }
 
 void GeometryCache::renderWireShape(gpu::Batch& batch, Shape shape, const glm::vec4& color) {
-    batch.setInputFormat(getSolidStreamFormat());
+    batch.setInputFormat(getWireStreamFormat());
     // Color must be set after input format
     batch._glColor4f(color.r, color.g, color.b, color.a);
     _shapes[shape].drawWire(batch);
@@ -857,7 +892,7 @@ void GeometryCache::renderShapeInstances(gpu::Batch& batch, Shape shape, size_t 
 }
 
 void GeometryCache::renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer) {
-    batch.setInputFormat(getInstancedSolidStreamFormat());
+    batch.setInputFormat(getInstancedWireStreamFormat());
     setupBatchInstance(batch, colorBuffer);
     _shapes[shape].drawWireInstances(batch, count);
 }
@@ -883,7 +918,7 @@ void GeometryCache::renderFadeShapeInstances(gpu::Batch& batch, Shape shape, siz
 
 void GeometryCache::renderWireFadeShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer,
     gpu::BufferPointer& fadeBuffer1, gpu::BufferPointer& fadeBuffer2, gpu::BufferPointer& fadeBuffer3) {
-    batch.setInputFormat(getInstancedSolidFadeStreamFormat());
+    batch.setInputFormat(getInstancedWireFadeStreamFormat());
     setupBatchFadeInstance(batch, colorBuffer, fadeBuffer1, fadeBuffer2, fadeBuffer3);
     _shapes[shape].drawWireInstances(batch, count);
 }
@@ -2264,7 +2299,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
             slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), render::ShapePipeline::Slot::LIGHTING_MODEL));
             slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), render::ShapePipeline::Slot::KEY_LIGHT));
             slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER));
-            slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), render::ShapePipeline::Slot::MAP::LIGHT_AMBIENT));
+            slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), render::ShapePipeline::Slot::MAP::LIGHT_AMBIENT_MAP));
             gpu::Shader::makeProgram(*_simpleShader, slotBindings);
             gpu::Shader::makeProgram(*_transparentShader, slotBindings);
             gpu::Shader::makeProgram(*_unlitShader, slotBindings);
@@ -2284,7 +2319,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
             slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), render::ShapePipeline::Slot::LIGHTING_MODEL));
             slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), render::ShapePipeline::Slot::KEY_LIGHT));
             slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER));
-            slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), render::ShapePipeline::Slot::MAP::LIGHT_AMBIENT));
+            slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), render::ShapePipeline::Slot::MAP::LIGHT_AMBIENT_MAP));
             slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), render::ShapePipeline::Slot::MAP::FADE_MASK));
             gpu::Shader::makeProgram(*_simpleFadeShader, slotBindings);
             gpu::Shader::makeProgram(*_unlitFadeShader, slotBindings);
