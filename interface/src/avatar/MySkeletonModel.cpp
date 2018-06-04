@@ -192,14 +192,20 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         AnimPose hips = computeHipsInSensorFrame(myAvatar, isFlying);
 
+        // timescale in seconds
+        const float TRANS_HORIZ_TIMESCALE = 0.25f;
+        const float TRANS_VERT_TIMESCALE = 0.01f; // We want the vertical component of the hips to follow quickly to prevent spine squash/stretch.
+        const float ROT_TIMESCALE = 0.15f;
+
+        float transHorizAlpha = glm::min(deltaTime / TRANS_HORIZ_TIMESCALE, 1.0f);
+        float transVertAlpha = glm::min(deltaTime / TRANS_VERT_TIMESCALE, 1.0f);
+        float rotAlpha = glm::min(deltaTime / ROT_TIMESCALE, 1.0f);
+
         // smootly lerp hips, in sensorframe, with different coeff for horiz and vertical translation.
-        const float ROT_ALPHA = 0.9f;
-        const float TRANS_HORIZ_ALPHA = 0.9f;
-        const float TRANS_VERT_ALPHA = 0.1f;
         float hipsY = hips.trans().y;
-        hips.trans() = lerp(hips.trans(), _prevHips.trans(), TRANS_HORIZ_ALPHA);
-        hips.trans().y = lerp(hipsY, _prevHips.trans().y, TRANS_VERT_ALPHA);
-        hips.rot() = safeLerp(hips.rot(), _prevHips.rot(), ROT_ALPHA);
+        hips.trans() = lerp(_prevHips.trans(), hips.trans(), transHorizAlpha);
+        hips.trans().y = lerp(_prevHips.trans().y, hipsY, transVertAlpha);
+        hips.rot() = safeLerp(_prevHips.rot(), hips.rot(), rotAlpha);
 
         _prevHips = hips;
         _prevHipsValid = true;
