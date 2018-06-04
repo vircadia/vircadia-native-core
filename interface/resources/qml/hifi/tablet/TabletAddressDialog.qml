@@ -34,7 +34,6 @@ StackView {
     height: parent !== null ? parent.height : undefined
     property int cardWidth: 212;
     property int cardHeight: 152;
-    property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
     property var tablet: null;
 
     RootHttpRequest { id: http; }
@@ -322,7 +321,6 @@ StackView {
                         width: parent.width;
                         cardWidth: 312 + (2 * 4);
                         cardHeight: 163 + (2 * 4);
-                        metaverseServerUrl: addressBarDialog.metaverseServerUrl;
                         labelText: 'HAPPENING NOW';
                         actions: 'announcement';
                         filter: addressLine.text;
@@ -335,7 +333,6 @@ StackView {
                         cardWidth: 210;
                         cardHeight: 110 + messageHeight;
                         messageHeight: 44;
-                        metaverseServerUrl: addressBarDialog.metaverseServerUrl;
                         labelText: 'PLACES';
                         actions: 'concurrency';
                         filter: addressLine.text;
@@ -349,7 +346,6 @@ StackView {
                         cardHeight: 75 + messageHeight + 4;
                         messageHeight: 32;
                         textPadding: 6;
-                        metaverseServerUrl: addressBarDialog.metaverseServerUrl;
                         labelText: 'RECENT SNAPS';
                         actions: 'snapshot';
                         filter: addressLine.text;

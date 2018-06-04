@@ -101,10 +101,10 @@ Item {
             currentPageToRetrieve = -1;
         }
         if (searchItemTest) {
-            copyOfItems = copyOfItems.concat(processed);
             if (searchFilter) {
                 processed = applySearchItemTest(processed);
             }
+            copyOfItems = copyOfItems.concat(processed);
         }
         if (localSort) {
             copyOfItems = copyOfItems.concat(processed);

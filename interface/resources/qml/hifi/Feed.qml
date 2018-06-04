@@ -33,7 +33,6 @@ Column {
     property int stackedCardShadowHeight: 4;
     property int labelSize: 20;
 
-    property string metaverseServerUrl: '';  // FIXME loose this?
     property string protocol: '';
     property string actions: 'snapshot';
     // sendToScript doesn't get wired until after everything gets created. So we have to queue fillDestinations on nextTick.
@@ -63,10 +62,16 @@ Column {
         };
         listModelName: actions;
         listView: scroll;
+        searchFilter: filter.toUpperCase().split(/\s+/).filter(identity).join(' ');
+        searchItemTest: function (text, item) {
+            return searchFilter.split().every(function (word) {
+                return item.searchText.indexOf(word) >= 0;
+            });
+        }; //HRS FIXME remove when endpoint works.
     }
 
     function resolveUrl(url) {
-        return (url.indexOf('/') === 0) ? (metaverseServerUrl + url) : url;
+        return (url.indexOf('/') === 0) ? (Account.metaverseServerURL + url) : url;
     }
     function makeModelData(data) { // create a new obj from data
         // ListModel elements will only ever have those properties that are defined by the first obj that is added.
@@ -100,6 +105,9 @@ Column {
         };
         console.log('fixme makeModelData', JSON.stringify(fixme));
         return fixme;
+    }
+    function identity(x) {
+        return x;
     }
     /* FIXME
     property var allStories: [];
@@ -171,9 +179,6 @@ Column {
             });
             report('user stories');
         });
-    }
-    function identity(x) {
-        return x;
     }
     function makeFilteredStoryProcessor() { // answer a function(storyData) that adds it to suggestions if it matches
         var words = filter.toUpperCase().split(/\s+/).filter(identity);
