@@ -54,9 +54,7 @@ namespace render {
         }
 
         // always visible in primary view.  if isVisibleInSecondaryCamera, also draw in secondary view
-        uint32_t viewTagBits = render::hifi::TAG_MAIN_VIEW |
-            (overlay->getIsVisibleInSecondaryCamera() ? render::hifi::TAG_SECONDARY_VIEW : render::hifi::TAG_NONE);
-
+        render::hifi::Tag viewTagBits = overlay->getIsVisibleInSecondaryCamera() ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW;
         builder.withTagBits(viewTagBits);
 
         return builder.build();

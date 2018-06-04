@@ -334,7 +334,11 @@ static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
 static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
 #endif
 
+#if !defined(Q_OS_ANDROID)
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
+#else
+static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 4;
+#endif
 
 // For processing on QThreadPool, we target a number of threads after reserving some
 // based on how many are being consumed by the application and the display plugin.  However,
