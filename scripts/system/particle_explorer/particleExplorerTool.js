@@ -38,7 +38,7 @@ ParticleExplorerTool = function() {
         that.webView.emitScriptEvent(JSON.stringify(messageData));
     };
 
-    function sendActiveParticleProperies() {
+    function sendActiveParticleProperties() {
         that.webView.emitScriptEvent(JSON.stringify({
             messageType: "particle_settings",
             currentProperties: that.activeParticleProperties
@@ -53,7 +53,7 @@ ParticleExplorerTool = function() {
             }
             Entities.editEntity(that.activeParticleEntity, data.updatedSettings);
         } else if (data.messageType === "page_loaded") {
-            sendActiveParticleProperies();
+            sendActiveParticleProperties();
         }
     };
 
@@ -63,7 +63,7 @@ ParticleExplorerTool = function() {
 
     that.setActiveParticleProperties = function(properties) {
         that.activeParticleProperties = properties;
-        sendActiveParticleProperies();
+        sendActiveParticleProperties();
     };
 
     return that;
