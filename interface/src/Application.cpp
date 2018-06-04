@@ -7652,18 +7652,18 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
     });
 }
 
-void Application::takeSecondaryCameraSnapshot(const QString& filename) {
-    postLambdaEvent([filename, this] {
+void Application::takeSecondaryCameraSnapshot(const bool& notify, const QString& filename) {
+    postLambdaEvent([notify, filename, this] {
         QString snapshotPath = DependencyManager::get<Snapshot>()->saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename,
                                                       TestScriptingInterface::getInstance()->getTestResultsLocation());
 
-        emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
+        emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, notify);
     });
 }
 
-void Application::takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const QString& filename) {
-    postLambdaEvent([filename, cubemapOutputFormat, cameraPosition] {
-        DependencyManager::get<Snapshot>()->save360Snapshot(cameraPosition, cubemapOutputFormat, filename);
+void Application::takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const bool& notify, const QString& filename) {
+    postLambdaEvent([notify, filename, cubemapOutputFormat, cameraPosition] {
+        DependencyManager::get<Snapshot>()->save360Snapshot(cameraPosition, cubemapOutputFormat, notify, filename);
     });
 }
 
