@@ -72,7 +72,13 @@ Item {
             property alias selectedPlugin: box.currentText
             Rectangle {
                 id: inputConfiguration
-                anchors.fill: parent
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                    right: parent.right
+                }
+
+                height: 230
 
                 HifiConstants { id: hifi }
 
@@ -208,22 +214,26 @@ Item {
                     anchors.leftMargin: 10
                     anchors.topMargin: 30
                 }
+            }
 
+            Rectangle {
+                id: loaderRectangle
+                z: -1
+                color: hifi.colors.baseGray
+                width: parent.width
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: inputConfiguration.bottom
+                anchors.topMargin: 10
+                anchors.bottom: parent.bottom
                 Loader {
                     id: loader
                     asynchronous: false
-
-                    width: inputConfiguration.width
-                    anchors.left: inputConfiguration.left
-                    anchors.right: inputConfiguration.right
-                    anchors.top: configurationHeader.bottom
-                    anchors.topMargin: 10
-                    anchors.bottom: inputConfiguration.bottom
-
+                    anchors.fill: parent
                     source: InputConfiguration.configurationLayout(box.currentText);
                     onLoaded: {
                         if (loader.item.hasOwnProperty("pluginName")) {
-                    if (box.currentText === "HTC Vive") {
+                            if (box.currentText === "HTC Vive") {
                                 loader.item.pluginName = "OpenVR";
                             } else {
                                 loader.item.pluginName = box.currentText;
