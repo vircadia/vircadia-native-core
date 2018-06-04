@@ -318,7 +318,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         );
         break;
     case 'http.request':
-	break; // Handled elsewhere.
+	break; // Handled by request-service.
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
     }
