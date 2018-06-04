@@ -63,7 +63,7 @@ Item {
     property bool delayedClear: false;
     function resetModel() {
         if (!delayedClear) { finalModel.clear(); }
-        currentPageToRetrieve = 1;
+        currentPageToRetrieve = 1;  console.log('fixme resetModel set currentPageToRetrieve to 1', listModelName);
         retrievedAtLeastOnePage = false;
         copyOfItems = [];
     }
@@ -80,6 +80,7 @@ Item {
         console.debug('handlePage', listModelName, error, JSON.stringify(response));
         function fail(message) {
             console.warn("Warning", listModelName, JSON.stringify(message));
+            console.log('FIXME fail setting currentPageToRetrieve to -1', listModelName);
             currentPageToRetrieve = -1;
             requestPending = false;
             delayedClear = false;
@@ -96,6 +97,7 @@ Item {
         }
         processed = processPage(response.data || response);
         if (response.total_pages && (response.total_pages === currentPageToRetrieve)) {
+            console.log('fixme hanglePage set currentPageToRetrieve to -1', listModelName, 'response.total_pages:', response.total_pages, 'old currentPageToRetrieve:', currentPageToRetrieve);
             currentPageToRetrieve = -1;
         }
         if (searchItemTest) {
@@ -122,6 +124,7 @@ Item {
         if (searchItemTest && searchFilter && listView && listView.atYEnd && (currentPageToRetrieve >= 0)) {
             getNextPage(); // too fancy??
         }
+        if (listView) { console.debug('handlePage completed', listModelName, 'model:', model.count, 'view:', listView.count); }
     }
     function applySearchItemTest(items) {
         return items.filter(function (item) {
@@ -140,6 +143,7 @@ Item {
     property var http; // An Item that has a request function.
     property var getPage: function () {  // Any override MUST call handlePage(), above, even if results empty.
         if (!http) { return console.warn("Neither http nor getPage was set for", listModelName); }
+        // If it is a path starting with slash, add the metaverseServer domain.
         var url = /^\//.test(endpoint) ? (Account.metaverseServerURL + endpoint) : endpoint;
         var parameters = [
             // FIXME: handle sort, search, tag parameters
@@ -171,6 +175,7 @@ Item {
     //    onAtYEndChanged: if (theList.atYEnd) { thisPSFListModelId.getNextPage(); }
     //    ...}
     property var getNextPage: function () {
+        console.log('fixme getNextPage', listModelName, requestPending, currentPageToRetrieve);
         if (requestPending || currentPageToRetrieve < 0) {
             return;
         }

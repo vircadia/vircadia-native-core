@@ -16,10 +16,11 @@ import QtQuick 2.5
 import QtGraphicalEffects 1.0
 import "toolbars"
 import "../styles-uit"
+import "models" as HifiModels
 
 Column {
     id: root;
-    visible: false;
+    visible: !!suggestions.count;
 
     property int cardWidth: 212;
     property int cardHeight: 152;
@@ -32,18 +33,37 @@ Column {
     property int stackedCardShadowHeight: 4;
     property int labelSize: 20;
 
-    property string metaverseServerUrl: '';
+    property string metaverseServerUrl: '';  // FIXME loose this?
     property string protocol: '';
     property string actions: 'snapshot';
     // sendToScript doesn't get wired until after everything gets created. So we have to queue fillDestinations on nextTick.
     property string labelText: actions;
     property string filter: '';
-    onFilterChanged: filterChoicesByText();
+    // FIXME onFilterChanged: filterChoicesByText();
     property var goFunction: null;
-    property var rpc: null;
+    property var http: null;
 
     HifiConstants { id: hifi }
-    ListModel { id: suggestions; }
+    //FIXME ListModel { id: suggestions; }
+    Component.onCompleted: suggestions.getFirstPage();
+    HifiModels.PSFListModel {
+        id: suggestions;
+        http: root.http;
+        property var options: [
+            'include_actions=' + actions,
+            'restriction=' + (Account.isLoggedIn() ? 'open,hifi' : 'open'),
+            'require_online=true',
+            'protocol=' + Window.protocolSignature()
+        ];
+        endpoint: '/api/v1/user_stories?' + options.join('&');
+        itemsPerPage: 3;
+        processPage: function (data) {
+            console.log('FIXME processPage', suggestions.listModelName, JSON.stringify(data));
+            return data.user_stories.map(makeModelData);
+        };
+        listModelName: actions;
+        listView: scroll;
+    }
 
     function resolveUrl(url) {
         return (url.indexOf('/') === 0) ? (metaverseServerUrl + url) : url;
@@ -60,11 +80,11 @@ Column {
             data.details.connections = 4;
             data.action = 'announcement';
         }
-        return {
+        var fixme = {
             place_name: name,
             username: data.username || "",
             path: data.path || "",
-            created_at: data.created_at || "",
+            created_at: data.created_at || data.updated_at || "",  // FIXME why aren't we getting created_at?
             action: data.action || "",
             thumbnail_url: resolveUrl(thumbnail_url),
             image_url: resolveUrl(data.details && data.details.image_url),
@@ -77,8 +97,11 @@ Column {
             drillDownToPlace: false,
 
             searchText: [name].concat(tags, description || []).join(' ').toUpperCase()
-        }
+        };
+        console.log('fixme makeModelData', JSON.stringify(fixme));
+        return fixme;
     }
+    /* FIXME
     property var allStories: [];
     property var placeMap: ({}); // Used for making stacks.
     property int requestId: 0;
@@ -108,7 +131,7 @@ Column {
         ];
         var url = metaverseBase + 'user_stories?' + options.join('&');
         var thisRequestId = ++requestId;
-        rpc('request', url, function (error, data) {
+        http.request(url, function (error, data) {
             if (thisRequestId !== requestId) {
                 error = 'stale';
             }
@@ -126,8 +149,9 @@ Column {
         });
     }
     function fillDestinations() { // Public
-        console.debug('Feed::fillDestinations()')
-
+        console.debug('Feed::fillDestinations()');
+        //suggestions.getFirstPage();
+    }
         function report(label, error) {
             console.log(label, actions, error || 'ok', allStories.length, 'filtered to', suggestions.count);
         }
@@ -193,6 +217,7 @@ Column {
         allStories.forEach(makeFilteredStoryProcessor());
         root.visible = !!suggestions.count;
     }
+    */
 
     RalewayBold {
         id: label;
@@ -202,12 +227,13 @@ Column {
     }
     ListView {
         id: scroll;
-        model: suggestions;
+        model: suggestions.model;
         orientation: ListView.Horizontal;
         highlightFollowsCurrentItem: false
         highlightMoveDuration: -1;
         highlightMoveVelocity: -1;
         currentIndex: -1;
+        onAtXEndChanged: { console.log('FIXME onAtXEndChanged', actions, scroll.atXEnd, scroll.atXBeginning); if (scroll.atXEnd && !scroll.atXBeginning) { suggestions.getNextPage(); } }
 
         spacing: 12;
         width: parent.width;
@@ -239,6 +265,7 @@ Column {
             unhoverThunk: function () { hovered = false }
         }
     }
+    /* WTF is this? 
     NumberAnimation {
         id: anim;
         target: scroll;
@@ -256,4 +283,5 @@ Column {
         scroll.currentIndex = index;
         anim.running = true;
     }
+    */
 }

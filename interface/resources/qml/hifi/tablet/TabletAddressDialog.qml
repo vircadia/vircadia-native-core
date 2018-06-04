@@ -37,38 +37,14 @@ StackView {
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
     property var tablet: null;
 
-    // This version only implements rpc(method, parameters, callback(error, result)) calls initiated from here, not initiated from .js, nor "notifications".
-    property var rpcCalls: ({});
-    property var rpcCounter: 0;
+    RootHttpRequest { id: http; }
     signal sendToScript(var message);
-    function rpc(method, parameters, callback) {
-        console.debug('TabletAddressDialog: rpc: method = ', method, 'parameters = ', parameters, 'callback = ', callback)
-
-        rpcCalls[rpcCounter] = callback;
-        var message = {method: method, params: parameters, id: rpcCounter++, jsonrpc: "2.0"};
-        sendToScript(message);
-    }
     function fromScript(message) {
-        if (message.method === 'refreshFeeds') {
-            var feeds = [happeningNow, places, snapshots];
-            console.debug('TabletAddressDialog::fromScript: refreshFeeds', 'feeds = ', feeds);
-
-            feeds.forEach(function(feed) {
-                feed.protocol = encodeURIComponent(message.protocolSignature);
-                Qt.callLater(feed.fillDestinations);
-            });
-
-            return;
+        switch (message.method) {
+        case 'http.response':
+            http.handleHttpResponse(message);
+            break;
         }
-
-        var callback = rpcCalls[message.id];
-        if (!callback) {
-            // FIXME: We often recieve very long messages here, the logging of which is drastically slowing down the main thread
-            //console.log('No callback for message fromScript', JSON.stringify(message));
-            return;
-        }
-        delete rpcCalls[message.id];
-        callback(message.error, message.result);
     }
 
     Component { id: tabletWebView; TabletWebView {} }
@@ -351,7 +327,7 @@ StackView {
                         actions: 'announcement';
                         filter: addressLine.text;
                         goFunction: goCard;
-                        rpc: root.rpc;
+                        http: http;
                     }
                     Feed {
                         id: places;
@@ -364,7 +340,7 @@ StackView {
                         actions: 'concurrency';
                         filter: addressLine.text;
                         goFunction: goCard;
-                        rpc: root.rpc;
+                        http: http;
                     }
                     Feed {
                         id: snapshots;
@@ -378,7 +354,7 @@ StackView {
                         actions: 'snapshot';
                         filter: addressLine.text;
                         goFunction: goCard;
-                        rpc: root.rpc;
+                        http: http;
                     }
                 }
             }
