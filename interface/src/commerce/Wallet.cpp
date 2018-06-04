@@ -360,12 +360,15 @@ void Wallet::clear() {
     // tell the provider we got nothing
     updateImageProvider();
     _passphrase->clear();
-    delete _passphrase;
 }
 
 Wallet::~Wallet() {
     if (_securityImage) {
         delete _securityImage;
+    }
+
+    if (_passphrase) {
+        delete _passphrase;
     }
 }
 
