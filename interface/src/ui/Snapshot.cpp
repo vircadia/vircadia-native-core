@@ -122,8 +122,9 @@ static const glm::quat CAMERA_ORIENTATION_LEFT(glm::quat(glm::radians(glm::vec3(
 static const glm::quat CAMERA_ORIENTATION_BACK(glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f))));
 static const glm::quat CAMERA_ORIENTATION_RIGHT(glm::quat(glm::radians(glm::vec3(0.0f, 270.0f, 0.0f))));
 static const glm::quat CAMERA_ORIENTATION_UP(glm::quat(glm::radians(glm::vec3(90.0f, 0.0f, 0.0f))));
-void Snapshot::save360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const QString& filename) {
+void Snapshot::save360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const bool& notify, const QString& filename) {
     _snapshotFilename = filename;
+    _notify360 = notify;
     _cubemapOutputFormat = cubemapOutputFormat;
     SecondaryCameraJobConfig* secondaryCameraRenderConfig = static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
 
@@ -247,7 +248,8 @@ void Snapshot::convertToCubemap() {
 
     painter.end();
 
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshot360Taken(saveSnapshot(outputImage, _snapshotFilename), true);
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshot360Taken(saveSnapshot(outputImage, _snapshotFilename),
+                                                                              _notify360);
 }
 
 void Snapshot::convertToEquirectangular() {
@@ -327,7 +329,8 @@ void Snapshot::convertToEquirectangular() {
         }
     }
 
-    emit DependencyManager::get<WindowScriptingInterface>()->snapshot360Taken(saveSnapshot(outputImage, _snapshotFilename), true);
+    emit DependencyManager::get<WindowScriptingInterface>()->snapshot360Taken(saveSnapshot(outputImage, _snapshotFilename),
+                                                                              _notify360);
 }
 
 QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {

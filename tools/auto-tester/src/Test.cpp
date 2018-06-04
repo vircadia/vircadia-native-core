@@ -63,7 +63,7 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
 
     // Loop over both lists and compare each pair of images
     // Quit loop if user has aborted due to a failed test.
-    const double THRESHOLD { 0.99 };
+    const double THRESHOLD { 0.9995 };
     bool success{ true };
     bool keepOn{ true };
     for (int i = 0; keepOn && i < expectedImagesFullFilenames.length(); ++i) {
@@ -131,7 +131,9 @@ void Test::appendTestResultsToFile(const QString& testResultsFolderPath, TestFai
         exit(-1);
     }
 
-    QString failureFolderPath { testResultsFolderPath + "/" + "Failure_" + QString::number(index) + "--" + testFailure._actualImageFilename.left(testFailure._actualImageFilename.length() - 4) };
+    QString err = QString::number(testFailure._error).left(6);
+
+    QString failureFolderPath { testResultsFolderPath + "/" + err +  "-Failure_" + QString::number(index) + "--" + testFailure._actualImageFilename.left(testFailure._actualImageFilename.length() - 4) };
     if (!QDir().mkdir(failureFolderPath)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create folder " + failureFolderPath);
         exit(-1);
@@ -395,9 +397,9 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
     const QString DATE_TIME_FORMAT("MMM d yyyy, h:mm");
     textStream << "// This is an automatically generated file, created by auto-tester on " << QDateTime::currentDateTime().toString(DATE_TIME_FORMAT) << endl << endl;
 
-    textStream << "user = \"" + GIT_HUB_USER + "/\"" << endl;
-    textStream << "repository = \"" + GIT_HUB_REPOSITORY + "/\"" << endl;
-    textStream << "branch = \"" + GIT_HUB_BRANCH + "/\"" << endl << endl;
+    textStream << "user = \"" + GIT_HUB_USER + "/\";" << endl;
+    textStream << "repository = \"" + GIT_HUB_REPOSITORY + "/\";" << endl;
+    textStream << "branch = \"" + GIT_HUB_BRANCH + "/\";" << endl << endl;
 
     textStream << "var autoTester = Script.require(\"https://github.com/" + GIT_HUB_USER + "/hifi_tests/blob/" 
         + GIT_HUB_BRANCH + "/tests/utils/autoTester.js?raw=true\");" << endl << endl;
