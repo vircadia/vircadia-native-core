@@ -361,6 +361,8 @@ vectorType ModelOverlay::mapJoints(mapFunction<itemType> function) const {
  *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
+ * @property {boolean} isGroupCulled=false - If <code>true</code>, the mesh parts of the model are LOD culled as a group.
+ *     If <code>false</code>, separate mesh parts will be LOD culled individually.
  * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
