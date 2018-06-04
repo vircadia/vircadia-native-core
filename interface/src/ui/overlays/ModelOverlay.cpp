@@ -115,6 +115,10 @@ void ModelOverlay::update(float deltatime) {
         _drawInHUDDirty = false;
         _model->setLayeredInHUD(getDrawHUDLayer(), scene);
     }
+    if (_groupCulledDirty) {
+        _groupCulledDirty = false;
+        _model->setGroupCulled(_isGroupCulled);
+    }
     scene->enqueueTransaction(transaction);
 
     if (!_texturesLoaded && _model->getGeometry() && _model->getGeometry()->areTexturesLoaded()) {
@@ -156,6 +160,11 @@ void ModelOverlay::setDrawInFront(bool drawInFront) {
 void ModelOverlay::setDrawHUDLayer(bool drawHUDLayer) {
     Base3DOverlay::setDrawHUDLayer(drawHUDLayer);
     _drawInHUDDirty = true;
+}
+
+void ModelOverlay::setGroupCulled(bool groupCulled) {
+    _isGroupCulled = groupCulled;
+    _groupCulledDirty = true;
 }
 
 void ModelOverlay::setProperties(const QVariantMap& properties) {
@@ -208,6 +217,11 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         QVariantMap textureMap = texturesValue.toMap();
         QMetaObject::invokeMethod(_model.get(), "setTextures", Qt::AutoConnection,
                                   Q_ARG(const QVariantMap&, textureMap));
+    }
+
+    auto groupCulledValue = properties["isGroupCulled"];
+    if (groupCulledValue.isValid() && groupCulledValue.canConvert(QVariant::Bool)) {
+        setGroupCulled(groupCulledValue.toBool());
     }
 
     // jointNames is read-only.
@@ -710,4 +724,12 @@ scriptable::ScriptableModelBase ModelOverlay::getScriptableModel() {
         result.appendMaterials(_materials);
     }
     return result;
+}
+
+render::ItemKey ModelOverlay::getKey() {
+    auto builder = render::ItemKey::Builder(Base3DOverlay::getKey());
+    if (_isGroupCulled) {
+        builder.withMetaCullGroup();
+    }
+    return builder.build();
 }
