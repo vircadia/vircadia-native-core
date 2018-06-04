@@ -12,6 +12,7 @@
 //
 
 var DEFAULT_SCRIPTS_COMBINED = [
+    "system/request-service.js",
     "system/progress.js",
     "system/away.js",
     "system/audio.js",

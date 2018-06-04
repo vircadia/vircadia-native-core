@@ -24,9 +24,7 @@
     //    We will then asynchonously call fromScript({id: theSameString, method: 'http.response', error: errorOrFalsey, response: body})
     //    on that root object.  
     //    RootHttpRequest.qml does this.
-    // 2. If the uri used (computed from byNameOptions, see request.js) begins with '/', we will:
-    //    a. Prepend Account.metaverseServerUR.
-    //    b. Use the appropriate auth.
+    // 2. If the uri used (computed from byNameOptions, see request.js) is to our metaverse, we will use the appropriate auth.
 
     var request = Script.require('request').request;
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
