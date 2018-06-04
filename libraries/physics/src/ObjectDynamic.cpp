@@ -159,6 +159,13 @@ void ObjectDynamic::removeFromSimulation(EntitySimulationPointer simulation) con
     simulation->removeDynamic(myID);
 }
 
+void ObjectDynamic::setOwnerEntity(const EntityItemPointer ownerEntity) {
+    if (!ownerEntity) {
+        activateBody();
+    }
+    _ownerEntity = ownerEntity;
+}
+
 EntityItemPointer ObjectDynamic::getEntityByID(EntityItemID entityID) const {
     EntityItemPointer ownerEntity;
     withReadLock([&]{

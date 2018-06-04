@@ -54,13 +54,11 @@ public:
 
     struct CompilationLog {
         std::string message;
-        std::vector<char> binary;
         bool compiled{ false };
 
         CompilationLog() {}
         CompilationLog(const CompilationLog& src) :
             message(src.message),
-            binary(src.binary),
             compiled(src.compiled) {}
     };
     using CompilationLogs = std::vector<CompilationLog>;

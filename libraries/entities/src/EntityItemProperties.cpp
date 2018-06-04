@@ -368,6 +368,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_DATA, materialData);
+    CHECK_PROPERTY_CHANGE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
 
     // Certifiable Properties
     CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
@@ -490,6 +491,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     {@link Entities.EntityType|Model} and {@link Entities.EntityType|Shape} entities. Shadows are cast if inside a 
  *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its 
  *     {@link Entities.EntityProperties-Zone|keyLight} property.
+ * @property {boolean} isVisibleInSecondaryCamera=true - Whether or not the entity is rendered in the secondary camera. If <code>true</code> then the entity is rendered.
  *
  * @property {Vec3} position=0,0,0 - The position of the entity.
  * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
@@ -1235,6 +1237,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCKED, locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USER_DATA, userData);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
 
     // Certifiable Properties
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ITEM_NAME, itemName);
@@ -1574,6 +1577,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingScale, glmVec2, setMaterialMappingScale);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingRot, float, setMaterialMappingRot);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialData, QString, setMaterialData);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(isVisibleInSecondaryCamera, bool, setIsVisibleInSecondaryCamera);
 
     // Certifiable Properties
     COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
@@ -1905,7 +1909,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);
         ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, Collisionless, collisionless, bool);
-        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, ignoreForCollisions, unused); // legacy support
+        ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, unused, ignoreForCollisions, unused); // legacy support
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collisionMask, unused);
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collidesWith, unused);
         ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, collisionsWillMove, unused); // legacy support
@@ -1952,6 +1956,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, glmVec2);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_DATA, MaterialData, materialData, QString);
+
+        ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool);
 
         // Certifiable Properties
         ADD_PROPERTY_TO_MAP(PROP_ITEM_NAME, ItemName, itemName, QString);
@@ -3050,6 +3056,8 @@ void EntityItemProperties::markAllChanged() {
     _cloneDynamicChanged = true;
     _cloneAvatarEntityChanged = true;
     _cloneOriginIDChanged = true;
+
+    _isVisibleInSecondaryCameraChanged = true;
 }
 
 // The minimum bounding box for the entity.
@@ -3327,6 +3335,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (materialDataChanged()) {
         out += "materialData";
+    }
+    if (isVisibleInSecondaryCameraChanged()) {
+        out += "isVisibleInSecondaryCamera";
     }
 
     // Certifiable Properties

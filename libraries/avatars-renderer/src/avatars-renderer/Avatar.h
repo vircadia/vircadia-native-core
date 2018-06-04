@@ -74,7 +74,6 @@ public:
     virtual void instantiableAvatar() = 0;
 
     typedef render::Payload<AvatarData> Payload;
-    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
 
     void init();
     void updateAvatarEntities();
@@ -322,6 +321,7 @@ public:
     bool hasNewJointData() const { return _hasNewJointData; }
 
     float getBoundingRadius() const;
+    AABox getRenderBounds() const; // THis call is accessible from rendering thread only to report the bounding box of the avatar during the frame.
 
     void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     void ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene);
@@ -355,6 +355,10 @@ public:
     virtual glm::vec3 scaleForChildren() const override { return glm::vec3(getModelScale()); }
 
     virtual void setAvatarEntityDataChanged(bool value) override;
+
+    // Show hide the model representation of the avatar
+    virtual void setEnableMeshVisible(bool isEnabled);
+    virtual bool getEnableMeshVisible() const;
 
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
@@ -532,6 +536,10 @@ protected:
     std::mutex _materialsLock;
 
     void processMaterials();
+
+    AABox _renderBound;
+    bool _isMeshVisible{ true };
+    bool _needMeshVisibleSwitch{ true };
 };
 
 #endif // hifi_Avatar_h

@@ -249,6 +249,8 @@ enum EntityPropertyList {
     PROP_MATERIAL_MAPPING_ROT,
     PROP_MATERIAL_DATA,
 
+    PROP_VISIBLE_IN_SECONDARY_CAMERA, // not sent over the wire, only used locally
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,

@@ -360,24 +360,28 @@ public slots:
     /**jsdoc
      * Takes a still snapshot of the current view from the secondary camera that can be set up through the {@link Render} API.
      * @function Window.takeSecondaryCameraSnapshot
-     * @param {string} [filename=""] - If this parameter is not given, the image will be saved as "hifi-snap-by-&lt;user name&gt-YYYY-MM-DD_HH-MM-SS".
+     * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
+     *     signal.
+     * @param {string} [filename=""] - If this parameter is not given, the image will be saved as "hifi-snap-by-&lt;user name&gt;-YYYY-MM-DD_HH-MM-SS".
      *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
      *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
      */
-    void takeSecondaryCameraSnapshot(const QString& filename = QString());
+    void takeSecondaryCameraSnapshot(const bool& notify = true, const QString& filename = QString());
 
     /**jsdoc
-    * Takes a 360&deg; snapshot at a given position for the secondary camera. The secondary camera does not need to have been 
-    *     set up.
-    * @function Window.takeSecondaryCamera360Snapshot
-    * @param {Vec3} cameraPosition - The position of the camera for the snapshot.
-    * @param {boolean} [cubemapOutputFormat=false] - If <code>true</code> then the snapshot is saved as a cube map image, 
-    *     otherwise is saved as an equirectangular image.
-    * @param {string} [filename=""] - If this parameter is not supplied, the image will be saved as "hifi-snap-by-&lt;user name&gt-YYYY-MM-DD_HH-MM-SS".
-    *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
-    *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
-    */
-    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat = false, const QString& filename = QString());
+     * Takes a 360&deg; snapshot at a given position for the secondary camera. The secondary camera does not need to have been 
+     *     set up.
+     * @function Window.takeSecondaryCamera360Snapshot
+     * @param {Vec3} cameraPosition - The position of the camera for the snapshot.
+     * @param {boolean} [cubemapOutputFormat=false] - If <code>true</code> then the snapshot is saved as a cube map image, 
+     *     otherwise is saved as an equirectangular image.
+     * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
+     *     signal.
+     * @param {string} [filename=""] - If this parameter is not supplied, the image will be saved as "hifi-snap-by-&lt;user name&gt;-YYYY-MM-DD_HH-MM-SS".
+     *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
+     *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
+     */
+    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat = false, const bool& notify = true, const QString& filename = QString());
 
     /**jsdoc
      * Emit a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that

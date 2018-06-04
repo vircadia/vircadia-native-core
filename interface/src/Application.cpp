@@ -2492,6 +2492,7 @@ void Application::cleanupBeforeQuit() {
     }
 
     _window->saveGeometry();
+    _gpuContext->shutdown();
 
     // Destroy third party processes after scripts have finished using them.
 #ifdef HAVE_DDE
@@ -3011,9 +3012,11 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     auto surfaceContext = DependencyManager::get<OffscreenUi>()->getSurfaceContext();
     surfaceContext->setContextProperty("Stats", Stats::getInstance());
 
+#if !defined(Q_OS_ANDROID)
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
     offscreenUi->show(qml, "AvatarInputsBar");
+#endif
 }
 
 void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
@@ -3642,7 +3645,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
     _keysPressed.insert(event->key());
 
     _controllerScriptingInterface->emitKeyPressEvent(event); // send events to any registered scripts
-
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isKeyCaptured(event)) {
         return;
@@ -3724,6 +3726,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     dialogsManager->toggleAddressBar();
                 } else if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::LodTools);
+                }
+                break;
+
+            case Qt::Key_R:
+                if (isMeta && !event->isAutoRepeat()) {
+                    DependencyManager::get<ScriptEngines>()->reloadAllScripts();
+                    DependencyManager::get<OffscreenUi>()->clearCache();
                 }
                 break;
 
@@ -7643,18 +7652,18 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
     });
 }
 
-void Application::takeSecondaryCameraSnapshot(const QString& filename) {
-    postLambdaEvent([filename, this] {
+void Application::takeSecondaryCameraSnapshot(const bool& notify, const QString& filename) {
+    postLambdaEvent([notify, filename, this] {
         QString snapshotPath = DependencyManager::get<Snapshot>()->saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename,
                                                       TestScriptingInterface::getInstance()->getTestResultsLocation());
 
-        emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
+        emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, notify);
     });
 }
 
-void Application::takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const QString& filename) {
-    postLambdaEvent([filename, cubemapOutputFormat, cameraPosition] {
-        DependencyManager::get<Snapshot>()->save360Snapshot(cameraPosition, cubemapOutputFormat, filename);
+void Application::takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const bool& notify, const QString& filename) {
+    postLambdaEvent([notify, filename, cubemapOutputFormat, cameraPosition] {
+        DependencyManager::get<Snapshot>()->save360Snapshot(cameraPosition, cubemapOutputFormat, notify, filename);
     });
 }
 

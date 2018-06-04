@@ -83,7 +83,8 @@
             "position": cameraPosition,
             "shapeType": "simple-compound",
             "type": "Model",
-            "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
+            "userData": "{\"grabbableKey\":{\"grabbable\":true}}",
+            "isVisibleInSecondaryCamera": false
         }, true);
         spectatorCameraConfig.attachedEntityId = camera;
         updateOverlay();

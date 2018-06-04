@@ -1226,12 +1226,11 @@ public slots:
 
 
     /**jsdoc
-     * Get the IDs of entities, overlays, and avatars that are directly parented to an entity. To get all descendants of an 
-     * entity, recurse on the IDs returned by the function.
+     * Get the IDs of entities, overlays, and avatars that are directly parented to an entity, overlay, or avatar model. Recurse on the IDs returned by the function to get all descendants of an entity, overlay, or avatar. 
      * @function Entities.getChildrenIDs
-     * @param {Uuid} parentID - The ID of the entity to get the children IDs of.
+     * @param {Uuid} parentID - The ID of the entity, overlay, or avatar to get the children IDs of.
      * @returns {Uuid[]} An array of entity, overlay, and avatar IDs that are parented directly to the <code>parentID</code> 
-     *     entity. Does not include children's children, etc. The array is empty if no children can be found or 
+     *     entity, overlay, or avatar. Does not include children's children, etc. The array is empty if no children can be found or 
      *     <code>parentID</code> cannot be found.
      * @example <caption>Report the children of an entity.</caption>
      * function createEntity(description, position, parent) {

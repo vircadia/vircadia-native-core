@@ -368,9 +368,9 @@ void CullShapeBounds::run(const RenderContextPointer& renderContext, const Input
     RenderArgs* args = renderContext->args;
 
     const auto& inShapes = inputs.get0();
-	const auto& cullFilter = inputs.get1();
-	const auto& boundsFilter = inputs.get2();
-	const auto& antiFrustum = inputs.get3();
+    const auto& cullFilter = inputs.get1();
+    const auto& boundsFilter = inputs.get2();
+    const auto& antiFrustum = inputs.get3();
     auto& outShapes = outputs.edit0();
     auto& outBounds = outputs.edit1();
 
@@ -380,7 +380,7 @@ void CullShapeBounds::run(const RenderContextPointer& renderContext, const Input
     if (!cullFilter.selectsNothing() || !boundsFilter.selectsNothing()) {
         auto& details = args->_details.edit(_detailType);
         Test test(_cullFunctor, args, details, antiFrustum);
-		auto scene = args->_scene;
+        auto scene = args->_scene;
 
         for (auto& inItems : inShapes) {
             auto key = inItems.first;
@@ -395,26 +395,26 @@ void CullShapeBounds::run(const RenderContextPointer& renderContext, const Input
             if (antiFrustum == nullptr) {
                 for (auto& item : inItems.second) {
                     if (test.solidAngleTest(item.bound) && test.frustumTest(item.bound)) {
-						const auto shapeKey = scene->getItem(item.id).getKey();
-						if (cullFilter.test(shapeKey)) {
-							outItems->second.emplace_back(item);
-						}
-						if (boundsFilter.test(shapeKey)) {
-							outBounds += item.bound;
-						}
+                        const auto shapeKey = scene->getItem(item.id).getKey();
+                        if (cullFilter.test(shapeKey)) {
+                            outItems->second.emplace_back(item);
+                        }
+                        if (boundsFilter.test(shapeKey)) {
+                            outBounds += item.bound;
+                        }
                     }
                 }
             } else {
                 for (auto& item : inItems.second) {
                     if (test.solidAngleTest(item.bound) && test.frustumTest(item.bound) && test.antiFrustumTest(item.bound)) {
-						const auto shapeKey = scene->getItem(item.id).getKey();
-						if (cullFilter.test(shapeKey)) {
-							outItems->second.emplace_back(item);
-						}
-						if (boundsFilter.test(shapeKey)) {
-							outBounds += item.bound;
-						}
-					}
+                        const auto shapeKey = scene->getItem(item.id).getKey();
+                        if (cullFilter.test(shapeKey)) {
+                            outItems->second.emplace_back(item);
+                        }
+                        if (boundsFilter.test(shapeKey)) {
+                            outBounds += item.bound;
+                        }
+                    }
                 }
             }
             details._rendered += (int)outItems->second.size();
@@ -487,6 +487,7 @@ void FetchSpatialSelection::run(const RenderContextPointer& renderContext,
                 if (filter.test(item.getKey())) {
                     ItemBound itemBound(id, item.getBound());
                     outItems.emplace_back(itemBound);
+
                 }
             }
         }
