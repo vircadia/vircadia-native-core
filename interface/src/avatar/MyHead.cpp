@@ -72,7 +72,9 @@ void MyHead::simulate(float deltaTime) {
                 _transientBlendshapeCoefficients[MMMM_BLENDSHAPE] += _mouth2;
                 _transientBlendshapeCoefficients[FUNNEL_BLENDSHAPE] += _mouth3;
             }
-            applyEyelidOffset(getFinalOrientationInWorldFrame());
+            if (_owningAvatar->getHasProceduralEyeFaceMovement()) {
+                applyEyelidOffset(getFinalOrientationInWorldFrame());
+            }
         }
         auto eyeTracker = DependencyManager::get<EyeTracker>();
         _isEyeTrackerConnected = eyeTracker->isTracking();

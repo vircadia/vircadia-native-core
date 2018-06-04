@@ -1102,6 +1102,8 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         int numBytesRead = sourceBuffer - startSection;
         _faceTrackerRate.increment(numBytesRead);
         _faceTrackerUpdateRate.increment();
+    } else {
+        _headData->_blendshapeCoefficients.fill(0, _headData->_blendshapeCoefficients.size());
     }
 
     if (hasJointData) {
