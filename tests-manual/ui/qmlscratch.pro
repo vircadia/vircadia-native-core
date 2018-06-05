@@ -34,7 +34,4 @@ DISTFILES += \
     ../../interface/resources/qml/hifi/toolbars/*.qml \
     ../../interface/resources/qml/hifi/dialogs/*.qml \
     ../../interface/resources/qml/hifi/dialogs/preferences/*.qml \
-    ../../interface/resources/qml/hifi/overlays/*.qml \
-    ../../scripts/developer/tests/Introspector.qml \
-    ../../scripts/developer/tests/ControlsGallery.qml \
-    qml/ControlsGalleryWindow.qml
+    ../../interface/resources/qml/hifi/overlays/*.qml
