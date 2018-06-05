@@ -319,10 +319,10 @@ Item {
         visible: thisNameCard.userName !== "";
         // Size
         width: parent.width
-        height: usernameTextPixelSize + 4
+        height: paintedHeight
         // Anchors
-        anchors.top: isMyCard ? myDisplayName.bottom : pal.activeTab == "nearbyTab" ? displayNameContainer.bottom : undefined //(parent.height - displayNameTextPixelSize/2));
-        anchors.verticalCenter: pal.activeTab == "connectionsTab" && !isMyCard ? avatarImage.verticalCenter : undefined
+        anchors.top: isMyCard ? myDisplayName.bottom : pal.activeTab == "nearbyTab" ? displayNameContainer.bottom : avatarImage.top //(parent.height - displayNameTextPixelSize/2));
+        anchors.bottom: pal.activeTab === "connectionsTab" && !isMyCard ? avatarImage.bottom : undefined
         anchors.left: avatarImage.right;
         anchors.leftMargin: avatarImage.visible ? 5 : 0;
         anchors.rightMargin: 5;
