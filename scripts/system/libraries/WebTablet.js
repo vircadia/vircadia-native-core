@@ -15,6 +15,7 @@ Script.include(Script.resolvePath("../libraries/controllers.js"));
 Script.include(Script.resolvePath("../libraries/Xform.js"));
 
 var Y_AXIS = {x: 0, y: 1, z: 0};
+var X_AXIS = {x: 1, y: 0, z: 0};
 var DEFAULT_DPI = 31;
 var DEFAULT_WIDTH = 0.4375;
 var DEFAULT_VERTICAL_FIELD_OF_VIEW = 45; // degrees
@@ -142,7 +143,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         name: "WebTablet Web",
         url: url,
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
-        localRotation: Quat.angleAxis(180, Y_AXIS),
+        localRotation: Quat.multiply(Quat.angleAxis(-0.25, X_AXIS), Quat.angleAxis(180, Y_AXIS)),
         dimensions: {x: screenWidth, y: screenHeight, z: 0.1},
         dpi: tabletDpi,
         color: { red: 255, green: 255, blue: 255 },
@@ -185,7 +186,21 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         drawInFront: false,
         parentID: this.tabletEntityID,
         parentJointIndex: -1
-     });
+    });
+
+
+    this.homeButtonMaterial = Entities.addEntity({
+        type: "Material",
+        materialURL: "",
+        priority: 1,
+        parentID: this.homeButtonHighlightID
+    }, true);
+
+    this.homeButtonHighlight = Entities.addEntity({
+        type: "Material",
+        materialURL: "",
+        priority: 1
+    }, true);
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
         if (_this.homeButtonID == senderID) {
