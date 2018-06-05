@@ -120,22 +120,27 @@ glm::quat computeBodyFacingFromHead(const glm::quat& headRot, const glm::vec3& u
     // initially take the body facing from the head.
     glm::vec3 headUp = headRot * Vectors::UNIT_Y;
     glm::vec3 headForward = headRot * Vectors::UNIT_Z;
-    const float THRESHOLD = cosf(glm::radians(30.0f));
+    glm::vec3 headLeft = headRot * Vectors::UNIT_X;
+    const float NOD_THRESHOLD = cosf(glm::radians(45.0f));
+    const float TILT_THRESHOLD = cosf(glm::radians(30.0f));
 
     glm::vec3 bodyForward = headForward;
 
-    float dot = glm::dot(headForward, bodyUp);
+    float nodDot = glm::dot(headForward, bodyUp);
+    float tiltDot = glm::dot(headLeft, bodyUp);
 
-    if (dot < -THRESHOLD) { // head is looking down
-        // the body should face in the same direction as the top the head.
-        bodyForward = headUp;
-    } else if (dot > THRESHOLD) {  // head is looking upward
-        // the body should face away from the top of the head.
-        bodyForward = -headUp;
+    if (fabsf(tiltDot) < TILT_THRESHOLD) { // if we are not tilting too much
+        if (nodDot < -NOD_THRESHOLD) { // head is looking downward
+            // the body should face in the same direction as the top the head.
+            bodyForward = headUp;
+        } else if (nodDot > NOD_THRESHOLD) {  // head is looking upward
+            // the body should face away from the top of the head.
+            bodyForward = -headUp;
+        }
     }
 
     // cancel out upward component
-    bodyForward = glm::normalize(bodyForward - dot * bodyUp);
+    bodyForward = glm::normalize(bodyForward - nodDot * bodyUp);
 
     glm::vec3 u, v, w;
     generateBasisVectors(bodyForward, bodyUp, u, v, w);
