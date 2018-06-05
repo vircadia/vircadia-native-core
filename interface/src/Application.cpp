@@ -3805,68 +3805,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
 
-#if 0
-            case Qt::Key_I:
-                if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0.001, 0));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_K:
-                if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(-0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, -0.001, 0));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_J:
-                if (isShifted) {
-                    QMutexLocker viewLocker(&_viewMutex);
-                    _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_M:
-                if (isShifted) {
-                    QMutexLocker viewLocker(&_viewMutex);
-                    _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_U:
-                if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(0, 0, -0.002f)) * _myCamera.getEyeOffsetOrientation()));
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, -0.001));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_Y:
-                if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(0, 0, 0.002f)) * _myCamera.getEyeOffsetOrientation()));
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, 0.001));
-                }
-                updateProjectionMatrix();
-                break;
-#endif
-
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
                 break;
