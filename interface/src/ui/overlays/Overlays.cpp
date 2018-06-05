@@ -41,8 +41,6 @@
 
 Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
 
-extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
-
 Overlays::Overlays() {
     auto pointerManager = DependencyManager::get<PointerManager>();
     connect(pointerManager.data(), &PointerManager::hoverBeginOverlay, this, &Overlays::hoverEnterPointerEvent);

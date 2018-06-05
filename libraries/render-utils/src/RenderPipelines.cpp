@@ -80,16 +80,6 @@
 #include "model_translucent_unlit_fade_frag.h"
 #include "model_translucent_normal_map_fade_frag.h"
 
-#include "overlay3D_vert.h"
-#include "overlay3D_frag.h"
-#include "overlay3D_model_frag.h"
-#include "overlay3D_model_translucent_frag.h"
-#include "overlay3D_translucent_frag.h"
-#include "overlay3D_unlit_frag.h"
-#include "overlay3D_translucent_unlit_frag.h"
-#include "overlay3D_model_unlit_frag.h"
-#include "overlay3D_model_translucent_unlit_frag.h"
-
 #include "model_shadow_vert.h"
 #include "skin_model_shadow_vert.h"
 #include "skin_model_shadow_dq_vert.h"
@@ -104,12 +94,16 @@
 #include "model_shadow_fade_frag.h"
 #include "skin_model_shadow_fade_frag.h"
 
+#include "simple_vert.h"
+#include "forward_simple_textured_frag.h"
+#include "forward_simple_textured_transparent_frag.h"
+#include "forward_simple_textured_unlit_frag.h"
+
 using namespace render;
 using namespace std::placeholders;
 
-void initOverlay3DPipelines(ShapePlumber& plumber, bool depthTest = false);
 void initDeferredPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
-void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
+void initForwardPipelines(ShapePlumber& plumber);
 void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
 
 void addPlumberPipeline(ShapePlumber& plumber,
@@ -119,71 +113,6 @@ void addPlumberPipeline(ShapePlumber& plumber,
 void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args);
 void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args);
 static bool forceLightBatchSetter{ false };
-
-void initOverlay3DPipelines(ShapePlumber& plumber, bool depthTest) {
-    auto vertex = overlay3D_vert::getShader();
-    auto vertexModel = model_vert::getShader();
-    auto pixel = overlay3D_frag::getShader();
-    auto pixelTranslucent = overlay3D_translucent_frag::getShader();
-    auto pixelUnlit = overlay3D_unlit_frag::getShader();
-    auto pixelTranslucentUnlit = overlay3D_translucent_unlit_frag::getShader();
-    auto pixelModel = overlay3D_model_frag::getShader();
-    auto pixelModelTranslucent = overlay3D_model_translucent_frag::getShader();
-    auto pixelModelUnlit = overlay3D_model_unlit_frag::getShader();
-    auto pixelModelTranslucentUnlit = overlay3D_model_translucent_unlit_frag::getShader();
-
-    auto opaqueProgram = gpu::Shader::createProgram(vertex, pixel);
-    auto translucentProgram = gpu::Shader::createProgram(vertex, pixelTranslucent);
-    auto unlitOpaqueProgram = gpu::Shader::createProgram(vertex, pixelUnlit);
-    auto unlitTranslucentProgram = gpu::Shader::createProgram(vertex, pixelTranslucentUnlit);
-    auto materialOpaqueProgram = gpu::Shader::createProgram(vertexModel, pixelModel);
-    auto materialTranslucentProgram = gpu::Shader::createProgram(vertexModel, pixelModelTranslucent);
-    auto materialUnlitOpaqueProgram = gpu::Shader::createProgram(vertexModel, pixelModel);
-    auto materialUnlitTranslucentProgram = gpu::Shader::createProgram(vertexModel, pixelModelTranslucent);
-
-    for (int i = 0; i < 8; i++) {
-        bool isCulled = (i & 1);
-        bool isBiased = (i & 2);
-        bool isOpaque = (i & 4);
-
-        auto state = std::make_shared<gpu::State>();
-        if (depthTest) {
-            state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        } else {
-            state->setDepthTest(false);
-        }
-        state->setCullMode(isCulled ? gpu::State::CULL_BACK : gpu::State::CULL_NONE);
-        if (isBiased) {
-            state->setDepthBias(1.0f);
-            state->setDepthBiasSlopeScale(1.0f);
-        }
-        if (isOpaque) {
-            // Soft edges
-            state->setBlendFunction(true,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-        } else {
-            state->setBlendFunction(true,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        }
-
-        ShapeKey::Filter::Builder builder;
-
-        isCulled ? builder.withCullFace() : builder.withoutCullFace();
-        isBiased ? builder.withDepthBias() : builder.withoutDepthBias();
-        isOpaque ? builder.withOpaque() : builder.withTranslucent();
-
-        auto simpleProgram = isOpaque ? opaqueProgram : translucentProgram;
-        auto unlitProgram = isOpaque ? unlitOpaqueProgram : unlitTranslucentProgram;
-        auto materialProgram = isOpaque ? materialOpaqueProgram : materialTranslucentProgram;
-        auto materialUnlitProgram = isOpaque ? materialUnlitOpaqueProgram : materialUnlitTranslucentProgram;
-
-        plumber.addPipeline(builder.withMaterial().build().key(), materialProgram, state, &lightBatchSetter);
-        plumber.addPipeline(builder.withMaterial().withUnlit().build().key(), materialUnlitProgram, state, &batchSetter);
-        plumber.addPipeline(builder.withoutUnlit().withoutMaterial().build().key(), simpleProgram, state, &lightBatchSetter);
-        plumber.addPipeline(builder.withUnlit().withoutMaterial().build().key(), unlitProgram, state, &batchSetter);
-    }
-}
 
 void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter) {
     // Vertex shaders
@@ -432,8 +361,9 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         skinModelShadowFadeDualQuatVertex, modelShadowFadePixel, batchSetter, itemSetter);
 }
 
-void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter) {
+void initForwardPipelines(ShapePlumber& plumber) {
     // Vertex shaders
+    auto simpleVertex = simple_vert::getShader();
     auto modelVertex = model_vert::getShader();
     auto modelNormalMapVertex = model_normal_map_vert::getShader();
     auto skinModelVertex = skin_model_vert::getShader();
@@ -443,6 +373,10 @@ void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::Ba
     auto skinModelNormalMapDualQuatVertex = skin_model_normal_map_dq_vert::getShader();
 
     // Pixel shaders
+    auto simplePixel = forward_simple_textured_frag::getShader();
+    auto simpleTranslucentPixel = forward_simple_textured_transparent_frag::getShader();
+    auto simpleUnlitPixel = forward_simple_textured_unlit_frag::getShader();
+    auto simpleTranslucentUnlitPixel = simple_transparent_textured_unlit_frag::getShader();
     auto modelPixel = forward_model_frag::getShader();
     auto modelUnlitPixel = forward_model_unlit_frag::getShader();
     auto modelNormalMapPixel = forward_model_normal_map_frag::getShader();
@@ -458,8 +392,15 @@ void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::Ba
     };
 
     // Forward pipelines need the lightBatchSetter for opaques and transparents
-  //  forceLightBatchSetter = true;
-    forceLightBatchSetter = false;
+    forceLightBatchSetter = true;
+
+    // Simple Opaques
+    addPipeline(Key::Builder(), simpleVertex, simplePixel);
+    addPipeline(Key::Builder().withUnlit(), simpleVertex, simpleUnlitPixel);
+
+    // Simple Translucents
+    addPipeline(Key::Builder().withTranslucent(), simpleVertex, simpleTranslucentPixel);
+    addPipeline(Key::Builder().withTranslucent().withUnlit(), simpleVertex, simpleTranslucentUnlitPixel);
 
     // Opaques
     addPipeline(Key::Builder().withMaterial(), modelVertex, modelPixel);
