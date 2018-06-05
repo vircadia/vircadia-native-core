@@ -50,9 +50,9 @@ void MyHead::simulate(float deltaTime) {
         const bool hasActualFaceTrackerConnected = faceTracker && !faceTracker->isMuted();
         _isFaceTrackerConnected = hasActualFaceTrackerConnected || _owningAvatar->getHasScriptedBlendshapes();
         if (_isFaceTrackerConnected) {
-            _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
-        } else {
-            _blendshapeCoefficients.fill(0, _blendshapeCoefficients.size());
+            if (hasActualFaceTrackerConnected) {
+                _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
+            }
         }
         
         auto eyeTracker = DependencyManager::get<EyeTracker>();
