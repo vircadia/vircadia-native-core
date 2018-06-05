@@ -43,7 +43,7 @@ void MaterialEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
 
 ItemKey MaterialEntityRenderer::getKey() {
     ItemKey::Builder builder;
-    builder.withTypeShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+    builder.withTypeShape().withTagBits(getTagMask());
 
     if (!_visible) {
         builder.withInvisible();

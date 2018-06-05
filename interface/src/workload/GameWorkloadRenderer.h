@@ -99,9 +99,6 @@ namespace render {
     template <> const Item::Bound payloadGetBound(const GameWorkloadRenderItem::Pointer& payload);
     template <> void payloadRender(const GameWorkloadRenderItem::Pointer& payload, RenderArgs* args);
     template <> const ShapeKey shapeGetShapeKey(const GameWorkloadRenderItem::Pointer& payload);
-    template <> int payloadGetLayer(const GameWorkloadRenderItem::Pointer& payloadData);
-
-
 }
 
 #endif

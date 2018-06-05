@@ -8,48 +8,46 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+#include "AboutUtil.h"
 #include <QDate>
 #include <QLocale>
 
-#include "AboutUtil.h"
-#include "BuildInfo.h"
 #include <ui/TabletScriptingInterface.h>
+#include <OffscreenQmlDialog.h>
+
+#include "BuildInfo.h"
 #include "DependencyManager.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "Application.h"
-#include <OffscreenQmlDialog.h>
 
 AboutUtil::AboutUtil(QObject *parent) : QObject(parent) {
-    QLocale locale_;
-    m_DateConverted = QDate::fromString(BuildInfo::BUILD_TIME, "dd/MM/yyyy").
-            toString(locale_.dateFormat(QLocale::ShortFormat));
+    QLocale locale;
+    _dateConverted = QDate::fromString(BuildInfo::BUILD_TIME, "dd/MM/yyyy").
+            toString(locale.dateFormat(QLocale::ShortFormat));
 }
 
-AboutUtil *AboutUtil::getInstance()
-{
+AboutUtil *AboutUtil::getInstance() {
     static AboutUtil instance;
     return &instance;
 }
 
-QString AboutUtil::buildDate() const
-{
-    return m_DateConverted;
+QString AboutUtil::getBuildDate() const {
+    return _dateConverted;
 }
 
-QString AboutUtil::buildVersion() const
-{
+QString AboutUtil::getBuildVersion() const {
     return BuildInfo::VERSION;
 }
 
-QString AboutUtil::qtVersion() const
-{
+QString AboutUtil::getQtVersion() const {
     return qVersion();
 }
 
 void AboutUtil::openUrl(const QString& url) const {
 
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 

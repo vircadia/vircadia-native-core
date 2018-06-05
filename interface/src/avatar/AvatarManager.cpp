@@ -104,6 +104,9 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
     _myAvatar->update(deltaTime);
+    render::Transaction transaction;
+    _myAvatar->updateRenderItem(transaction);
+    qApp->getMain3DScene()->enqueueTransaction(transaction);
 
     quint64 now = usecTimestampNow();
     quint64 dt = now - _lastSendAvatarDataTime;

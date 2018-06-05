@@ -100,10 +100,6 @@ namespace render {
     template <> const ShapeKey shapeGetShapeKey(const GameWorkloadRenderItem::Pointer& payload) {
         return ShapeKey::Builder::ownPipeline();
     }
-    template <> int payloadGetLayer(const GameWorkloadRenderItem::Pointer& payloadData) {
-        return render::Item::LAYER_3D_FRONT;
-    }
-
 }
 
 GameWorkloadRenderItem::GameWorkloadRenderItem() : _key(render::ItemKey::Builder::opaqueShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1)) {
