@@ -202,10 +202,10 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         AnimPose hips = computeHipsInSensorFrame(myAvatar, isFlying);
 
         // timescale in seconds
-        const float TRANS_HORIZ_TIMESCALE = 0.25f;
+        const float TRANS_HORIZ_TIMESCALE = 0.15f;
         const float TRANS_VERT_TIMESCALE = 0.01f; // We want the vertical component of the hips to follow quickly to prevent spine squash/stretch.
         const float ROT_TIMESCALE = 0.15f;
-        const float FLY_IDLE_TRANSITION_TIMESCALE = 0.3f;
+        const float FLY_IDLE_TRANSITION_TIMESCALE = 0.25f;
 
         float transHorizAlpha, transVertAlpha, rotAlpha;
         if (_flyIdleTimer < 0.0f) {
