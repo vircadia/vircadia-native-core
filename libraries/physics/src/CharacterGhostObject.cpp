@@ -69,7 +69,7 @@ bool CharacterGhostObject::rayTest(const btVector3& start,
         const btVector3& end,
         CharacterRayResult& result) const {
     if (_world && _inWorld) {
-        _world->rayTest(start, end, result);
+        this->btGhostObject::rayTest(start, end, result);
     }
     return result.hasHit();
 }
