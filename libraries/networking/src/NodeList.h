@@ -180,7 +180,7 @@ private:
 #if defined(Q_OS_ANDROID)
     Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", false };
 #else
-    Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", true };
+    Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", false }; // False, until such time as it is made to work better.
 #endif
 
 #if (PR_BUILD || DEV_BUILD)
