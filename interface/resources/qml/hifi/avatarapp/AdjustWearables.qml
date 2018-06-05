@@ -32,7 +32,7 @@ Rectangle {
     property var wearablesModel;
 
     function open(avatar) {
-        console.debug('AdjustWearables.qml: open: ', JSON.stringify(avatar, null, '\t'));
+        console.debug('AdjustWearables.qml: open: *', JSON.stringify(avatar, null, '\t'));
 
         adjustWearablesOpened(avatar.name);
 
@@ -79,7 +79,7 @@ Rectangle {
             return;
         }
 
-        var wearableModelItem = wearablesModel.get(wearableIndex);
+        var wearableModelItemProperties = wearablesModel.get(wearableIndex).properties;
 
         for(var prop in properties) {
             console.debug('updated wearable', prop,
@@ -87,7 +87,7 @@ Rectangle {
                           'new = ', JSON.stringify(properties[prop], 0, 4));
 
             wearable[prop] = properties[prop];
-            wearableModelItem.properties[prop] = wearable[prop];
+            wearableModelItemProperties[prop] = wearable[prop];
 
             if(updateUI) {
                 if(prop === 'localPosition') {
@@ -100,7 +100,9 @@ Rectangle {
             }
         }
 
-        wearablesModel.setProperty(wearableIndex, 'properties', wearableModelItem.properties);
+        console.debug('wearableModelItemProperties: ', JSON.stringify(wearableModelItemProperties, 0, 4))
+
+        wearablesModel.setProperty(wearableIndex, 'properties', wearableModelItemProperties);
         console.debug('wearablesModel.get(wearableIndex).properties: ', JSON.stringify(wearablesModel.get(wearableIndex).properties, 0, 4))
     }
 
