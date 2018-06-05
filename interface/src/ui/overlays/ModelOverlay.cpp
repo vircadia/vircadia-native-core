@@ -153,18 +153,24 @@ void ModelOverlay::setVisible(bool visible) {
 }
 
 void ModelOverlay::setDrawInFront(bool drawInFront) {
-    Base3DOverlay::setDrawInFront(drawInFront);
-    _drawInFrontDirty = true;
+    if (drawInFront != getDrawInFront()) {
+        Base3DOverlay::setDrawInFront(drawInFront);
+        _drawInFrontDirty = true;
+    }
 }
 
 void ModelOverlay::setDrawHUDLayer(bool drawHUDLayer) {
-    Base3DOverlay::setDrawHUDLayer(drawHUDLayer);
-    _drawInHUDDirty = true;
+    if (drawHUDLayer != getDrawHUDLayer()) {
+        Base3DOverlay::setDrawHUDLayer(drawHUDLayer);
+        _drawInHUDDirty = true;
+    }
 }
 
 void ModelOverlay::setGroupCulled(bool groupCulled) {
-    _isGroupCulled = groupCulled;
-    _groupCulledDirty = true;
+    if (groupCulled != _isGroupCulled) {
+        _isGroupCulled = groupCulled;
+        _groupCulledDirty = true;
+    }
 }
 
 void ModelOverlay::setProperties(const QVariantMap& properties) {
