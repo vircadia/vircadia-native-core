@@ -181,6 +181,15 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         }
     }
 
+    bool isFlying = (myAvatar->getCharacterController()->getState() == CharacterController::State::Hover || myAvatar->getCharacterController()->computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS);
+    if (isFlying != _prevIsFlying) {
+        const float FLY_TO_IDLE_HIPS_TRANSITION_TIME = 0.5f;
+        _flyIdleTimer = FLY_TO_IDLE_HIPS_TRANSITION_TIME;
+    } else {
+        _flyIdleTimer -= deltaTime;
+    }
+    _prevIsFlying = isFlying;
+
     // if hips are not under direct control, estimate the hips position.
     if (avatarHeadPose.isValid() && !(params.primaryControllerFlags[Rig::PrimaryControllerType_Hips] & (uint8_t)Rig::ControllerFlags::Enabled)) {
         bool isFlying = (myAvatar->getCharacterController()->getState() == CharacterController::State::Hover || myAvatar->getCharacterController()->computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS);
@@ -196,10 +205,18 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         const float TRANS_HORIZ_TIMESCALE = 0.25f;
         const float TRANS_VERT_TIMESCALE = 0.01f; // We want the vertical component of the hips to follow quickly to prevent spine squash/stretch.
         const float ROT_TIMESCALE = 0.15f;
+        const float FLY_IDLE_TRANSITION_TIMESCALE = 0.3f;
 
-        float transHorizAlpha = glm::min(deltaTime / TRANS_HORIZ_TIMESCALE, 1.0f);
-        float transVertAlpha = glm::min(deltaTime / TRANS_VERT_TIMESCALE, 1.0f);
-        float rotAlpha = glm::min(deltaTime / ROT_TIMESCALE, 1.0f);
+        float transHorizAlpha, transVertAlpha, rotAlpha;
+        if (_flyIdleTimer < 0.0f) {
+            transHorizAlpha = glm::min(deltaTime / TRANS_HORIZ_TIMESCALE, 1.0f);
+            transVertAlpha = glm::min(deltaTime / TRANS_VERT_TIMESCALE, 1.0f);
+            rotAlpha = glm::min(deltaTime / ROT_TIMESCALE, 1.0f);
+        } else {
+            transHorizAlpha = glm::min(deltaTime / FLY_IDLE_TRANSITION_TIMESCALE, 1.0f);
+            transVertAlpha = glm::min(deltaTime / FLY_IDLE_TRANSITION_TIMESCALE, 1.0f);
+            rotAlpha = glm::min(deltaTime / FLY_IDLE_TRANSITION_TIMESCALE, 1.0f);
+        }
 
         // smootly lerp hips, in sensorframe, with different coeff for horiz and vertical translation.
         float hipsY = hips.trans().y;
