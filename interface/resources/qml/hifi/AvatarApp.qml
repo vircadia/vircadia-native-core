@@ -535,7 +535,7 @@ Rectangle {
                 anchors.fill: parent
                 onClicked: {
                     popup.showGetWearables(function() {
-                        emitSendToScript({'method' : 'navigate', 'url' : 'hifi://AvatarIsland'})
+                        emitSendToScript({'method' : 'navigate', 'url' : 'hifi://AvatarIsland/11.5848,-8.10862,-2.80195'})
                     }, function(link) {
                         console.debug('link clicked', link);
                         emitSendToScript({'method' : 'navigate', 'url' : link})
