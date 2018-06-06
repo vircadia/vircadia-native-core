@@ -205,10 +205,12 @@ bool ViveControllerManager::activate() {
         return false;
     }
 
+    /* temporarily temove per request from Mukul
     _container->addMenu(MENU_PATH);
     _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, RENDER_CONTROLLERS,
         [this](bool clicked) { this->setRenderControllers(clicked); },
         true, true);
+        */
 
     enableOpenVrKeyboard(_container);
 
@@ -224,8 +226,10 @@ void ViveControllerManager::deactivate() {
 
     disableOpenVrKeyboard();
 
+    /* temporarily removed per request from Mukul 
     _container->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
     _container->removeMenu(MENU_PATH);
+    */
 
     if (_system) {
         _container->makeRenderingContextCurrent();
