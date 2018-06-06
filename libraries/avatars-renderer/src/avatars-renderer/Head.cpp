@@ -45,6 +45,13 @@ void Head::reset() {
 void Head::simulate(float deltaTime) {
     const float NORMAL_HZ = 60.0f; // the update rate the constant values were tuned for
 
+    qCDebug(avatars_renderer) << "name " << _owningAvatar->getName();
+    if (_owningAvatar->isMyAvatar()) {
+        qCDebug(avatars_renderer) << "my avatar";
+    } else {
+        qCDebug(avatars_renderer) << "not my avatar " << _owningAvatar->getAudioLoudness();
+    }
+
     // grab the audio loudness from the owning avatar, if we have one
     float audioLoudness = _owningAvatar ? _owningAvatar->getAudioLoudness() : 0.0f;
 
@@ -78,6 +85,7 @@ void Head::simulate(float deltaTime) {
         _saccade = glm::vec3();
     }
 
+    
         
     const float BLINK_SPEED = 10.0f;
     const float BLINK_SPEED_VARIABILITY = 1.0f;
@@ -85,7 +93,7 @@ void Head::simulate(float deltaTime) {
     const float FULLY_OPEN = 0.0f;
     const float FULLY_CLOSED = 1.0f;
     if (getHasProceduralBlinkFaceMovement()) {
-        qCDebug(avatars_renderer) << "in the blink code";
+        qCDebug(avatars_renderer) << "in the blink code "  << _owningAvatar->getName();
         // Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
         const float TALKING_LOUDNESS = 100.0f;
@@ -135,7 +143,7 @@ void Head::simulate(float deltaTime) {
 
         // use data to update fake Faceshift blendshape coefficients
     if (getHasAudioEnabledFaceMovement()) {
-        qCDebug(avatars_renderer) << "in the audio face code";
+        //qCDebug(avatars_renderer) << "in the audio face code";
         // Update audio attack data for facial animation (eyebrows and mouth)
         float audioAttackAveragingRate = (10.0f - deltaTime * NORMAL_HZ) / 10.0f; // --> 0.9 at 60 Hz
         _audioAttack = audioAttackAveragingRate * _audioAttack +
@@ -167,7 +175,7 @@ void Head::simulate(float deltaTime) {
         _transientBlendshapeCoefficients);
         
     if (getHasProceduralEyeFaceMovement()) {
-        qCDebug(avatars_renderer) << "in the eye face code";
+        //qCDebug(avatars_renderer) << "in the eye face code";
         applyEyelidOffset(getOrientation());
     }
     

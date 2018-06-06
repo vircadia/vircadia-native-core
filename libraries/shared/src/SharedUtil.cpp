@@ -298,11 +298,11 @@ void setAtBit(unsigned char& byte, int bitIndex) {
 }
 
 bool oneAtBit16(unsigned short word, int bitIndex) {
-    return (word >> (7 - bitIndex) & 1);
+    return (word >> (16 - bitIndex) & 1);
 }
 
 void setAtBit16(unsigned short& word, int bitIndex) {
-    word |= (1 << (7 - bitIndex));
+    word |= (1 << (16 - bitIndex));
 }
 
 
