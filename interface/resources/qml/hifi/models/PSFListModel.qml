@@ -79,8 +79,7 @@ Item {
         var processed;
         console.debug('handlePage', listModelName, error, JSON.stringify(response));
         function fail(message) {
-            console.warn("Warning", listModelName, JSON.stringify(message));
-            console.log('FIXME fail setting currentPageToRetrieve to -1', listModelName);
+            console.warn("Warning page fail", listModelName, JSON.stringify(message));
             currentPageToRetrieve = -1;
             requestPending = false;
             delayedClear = false;
@@ -97,7 +96,6 @@ Item {
         }
         processed = processPage(response.data || response);
         if (response.total_pages && (response.total_pages === currentPageToRetrieve)) {
-            console.log('fixme hanglePage set currentPageToRetrieve to -1', listModelName, 'response.total_pages:', response.total_pages, 'old currentPageToRetrieve:', currentPageToRetrieve);
             currentPageToRetrieve = -1;
         }
         if (searchItemTest) {
@@ -172,7 +170,7 @@ Item {
     // ListView {
     //    id: theList
     //    model: thisPSFListModelId
-    //    onAtYEndChanged: if (theList.atYEnd) { thisPSFListModelId.getNextPage(); }
+    //    onAtYEndChanged: if (theList.atYEnd && !theList.atYBeginning) { thisPSFListModelId.getNextPage(); }
     //    ...}
     property var getNextPage: function () {
         console.log('fixme getNextPage', listModelName, requestPending, currentPageToRetrieve);

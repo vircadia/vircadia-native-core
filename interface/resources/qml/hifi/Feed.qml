@@ -43,7 +43,6 @@ Column {
     property var http: null;
 
     HifiConstants { id: hifi }
-    //FIXME ListModel { id: suggestions; }
     Component.onCompleted: suggestions.getFirstPage();
     HifiModels.PSFListModel {
         id: suggestions;
@@ -57,7 +56,6 @@ Column {
         endpoint: '/api/v1/user_stories?' + options.join('&');
         itemsPerPage: 3;
         processPage: function (data) {
-            console.log('FIXME processPage', suggestions.listModelName, JSON.stringify(data));
             return data.user_stories.map(makeModelData);
         };
         listModelName: actions;
@@ -85,7 +83,7 @@ Column {
             data.details.connections = 4;
             data.action = 'announcement';
         }
-        var fixme = {
+        return {
             place_name: name,
             username: data.username || "",
             path: data.path || "",
@@ -103,8 +101,6 @@ Column {
 
             searchText: [name].concat(tags, description || []).join(' ').toUpperCase()
         };
-        console.log('fixme makeModelData', JSON.stringify(fixme));
-        return fixme;
     }
     function identity(x) {
         return x;
@@ -238,7 +234,7 @@ Column {
         highlightMoveDuration: -1;
         highlightMoveVelocity: -1;
         currentIndex: -1;
-        onAtXEndChanged: { console.log('FIXME onAtXEndChanged', actions, scroll.atXEnd, scroll.atXBeginning); if (scroll.atXEnd && !scroll.atXBeginning) { suggestions.getNextPage(); } }
+        onAtXEndChanged: { if (scroll.atXEnd && !scroll.atXBeginning) { suggestions.getNextPage(); } }
 
         spacing: 12;
         width: parent.width;

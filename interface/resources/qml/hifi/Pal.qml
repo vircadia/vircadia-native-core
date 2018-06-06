@@ -780,7 +780,11 @@ Rectangle {
             model: connectionsUserModel.model;
             Connections {
                 target: connectionsTable.flickableItem;
-                onAtYEndChanged: if (connectionsTable.flickableItem.atYEnd) { connectionsUserModel.getNextPage(); }
+                onAtYEndChanged: {
+                    if (connectionsTable.flickableItem.atYEnd && !connectionsTable.flickableItem.atYBeginning) {
+                        connectionsUserModel.getNextPage();
+                    }
+                }
             }
 
             // This Rectangle refers to each Row in the connectionsTable.

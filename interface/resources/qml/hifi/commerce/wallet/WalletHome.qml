@@ -400,7 +400,7 @@ Item {
                     }
                 }
                 onAtYEndChanged: {
-                    if (transactionHistory.atYEnd) {
+                    if (transactionHistory.atYEnd && !transactionHistory.atYBeginning) {
                         console.log("User scrolled to the bottom of 'Recent Activity'.");
                         transactionHistoryModel.getNextPage();
                     }
