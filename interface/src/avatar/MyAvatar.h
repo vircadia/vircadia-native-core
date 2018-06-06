@@ -464,7 +464,7 @@ public:
     Q_INVOKABLE bool getClearOverlayWhenMoving() const { return _clearOverlayWhenMoving; }
     /**jsdoc
      * @function MyAvatar.setClearOverlayWhenMoving
-     * @returns {boolean} 
+     * @param {boolean} on
      */
     Q_INVOKABLE void setClearOverlayWhenMoving(bool on) { _clearOverlayWhenMoving = on; }
 
@@ -1159,7 +1159,7 @@ public slots:
      * @function MyAvatar.getEnableMeshVisible
      * @returns {boolean} <code>true</code> if your avatar's mesh is visible, otherwise <code>false</code>.
      */
-    bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
+    bool getEnableMeshVisible() const override;
 
     /**jsdoc
      * Set whether or not your avatar mesh is visible.
@@ -1171,7 +1171,7 @@ public slots:
      *     MyAvatar.setEnableMeshVisible(true);
      * }, 10000);
      */
-    void setEnableMeshVisible(bool isEnabled);
+    virtual void setEnableMeshVisible(bool isEnabled) override;
 
     /**jsdoc
      * @function MyAvatar.setEnableInverseKinematics

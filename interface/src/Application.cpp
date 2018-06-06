@@ -334,7 +334,11 @@ static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
 static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
 #endif
 
+#if !defined(Q_OS_ANDROID)
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
+#else
+static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 4;
+#endif
 
 // For processing on QThreadPool, we target a number of threads after reserving some
 // based on how many are being consumed by the application and the display plugin.  However,
@@ -2492,6 +2496,7 @@ void Application::cleanupBeforeQuit() {
     }
 
     _window->saveGeometry();
+    _gpuContext->shutdown();
 
     // Destroy third party processes after scripts have finished using them.
 #ifdef HAVE_DDE
@@ -3011,9 +3016,11 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     auto surfaceContext = DependencyManager::get<OffscreenUi>()->getSurfaceContext();
     surfaceContext->setContextProperty("Stats", Stats::getInstance());
 
+#if !defined(Q_OS_ANDROID)
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
     offscreenUi->show(qml, "AvatarInputsBar");
+#endif
 }
 
 void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
@@ -3642,7 +3649,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
     _keysPressed.insert(event->key());
 
     _controllerScriptingInterface->emitKeyPressEvent(event); // send events to any registered scripts
-
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isKeyCaptured(event)) {
         return;
@@ -3668,9 +3674,21 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_1:
-            case Qt::Key_2:
-            case Qt::Key_3:
+            case Qt::Key_1: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::FirstPerson);
+                break;
+            }
+            case Qt::Key_2: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::FullscreenMirror);
+                break;
+            }
+            case Qt::Key_3: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::ThirdPerson);
+                break;
+            }
             case Qt::Key_4:
             case Qt::Key_5:
             case Qt::Key_6:
@@ -3724,6 +3742,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     dialogsManager->toggleAddressBar();
                 } else if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::LodTools);
+                }
+                break;
+
+            case Qt::Key_R:
+                if (isMeta && !event->isAutoRepeat()) {
+                    DependencyManager::get<ScriptEngines>()->reloadAllScripts();
+                    DependencyManager::get<OffscreenUi>()->clearCache();
                 }
                 break;
 
@@ -3791,68 +3816,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Backslash:
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
-
-#if 0
-            case Qt::Key_I:
-                if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0.001, 0));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_K:
-                if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(-0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, -0.001, 0));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_J:
-                if (isShifted) {
-                    QMutexLocker viewLocker(&_viewMutex);
-                    _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_M:
-                if (isShifted) {
-                    QMutexLocker viewLocker(&_viewMutex);
-                    _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_U:
-                if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(0, 0, -0.002f)) * _myCamera.getEyeOffsetOrientation()));
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, -0.001));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_Y:
-                if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(0, 0, 0.002f)) * _myCamera.getEyeOffsetOrientation()));
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, 0.001));
-                }
-                updateProjectionMatrix();
-                break;
-#endif
 
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
@@ -7643,18 +7606,18 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
     });
 }
 
-void Application::takeSecondaryCameraSnapshot(const QString& filename) {
-    postLambdaEvent([filename, this] {
+void Application::takeSecondaryCameraSnapshot(const bool& notify, const QString& filename) {
+    postLambdaEvent([notify, filename, this] {
         QString snapshotPath = DependencyManager::get<Snapshot>()->saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename,
                                                       TestScriptingInterface::getInstance()->getTestResultsLocation());
 
-        emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
+        emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, notify);
     });
 }
 
-void Application::takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const QString& filename) {
-    postLambdaEvent([filename, cubemapOutputFormat, cameraPosition] {
-        DependencyManager::get<Snapshot>()->save360Snapshot(cameraPosition, cubemapOutputFormat, filename);
+void Application::takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const bool& notify, const QString& filename) {
+    postLambdaEvent([notify, filename, cubemapOutputFormat, cameraPosition] {
+        DependencyManager::get<Snapshot>()->save360Snapshot(cameraPosition, cubemapOutputFormat, notify, filename);
     });
 }
 

@@ -61,16 +61,21 @@ macro(SETUP_HIFI_TESTCASE)
       endif()
     endforeach()
 
+
     # Find test classes to build into test executables.
     # Warn about any .cpp files that are *not* test classes (*Test[s].cpp), since those files will not be used.
     foreach (SRC_FILE ${TEST_PROJ_SRC_FILES})   
       string(REGEX MATCH ".+Tests?\\.cpp$"   TEST_CPP_FILE ${SRC_FILE})
       string(REGEX MATCH ".+\\.cpp$"     NON_TEST_CPP_FILE ${SRC_FILE}) 
+      string(REGEX MATCH ".+\\.qrc$"     QRC_FILE ${SRC_FILE}) 
       if (TEST_CPP_FILE)
         list(APPEND TEST_CASE_FILES ${TEST_CPP_FILE})
       elseif (NON_TEST_CPP_FILE)
         message(WARNING "ignoring .cpp file (not a test class -- this will not be linked or compiled!): " ${NON_TEST_CPP_FILE})
       endif ()
+      if (QRC_FILE)
+        list(APPEND EXTRA_FILES ${QRC_FILE}) 
+      endif()
     endforeach ()
 
     if (TEST_CASE_FILES)
@@ -88,7 +93,7 @@ macro(SETUP_HIFI_TESTCASE)
         # grab the implemenation and header files
         set(TARGET_SRCS ${TEST_FILE})  # only one source / .cpp file (the test class)
       
-        add_executable(${TARGET_NAME} ${TEST_FILE})
+        add_executable(${TARGET_NAME} ${TEST_FILE} ${EXTRA_FILES})
         add_test(${TARGET_NAME}-test  ${TARGET_NAME})
         set_target_properties(${TARGET_NAME} PROPERTIES 
           EXCLUDE_FROM_DEFAULT_BUILD TRUE

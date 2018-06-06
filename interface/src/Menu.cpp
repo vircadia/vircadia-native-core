@@ -103,16 +103,32 @@ Menu::Menu() {
     editMenu->addSeparator();
 
     // Edit > Cut
-    addActionToQMenuAndActionHash(editMenu, "Cut", Qt::CTRL | Qt::Key_X);
+    auto cutAction = addActionToQMenuAndActionHash(editMenu, "Cut", QKeySequence::Cut);
+    connect(cutAction, &QAction::triggered, [] {
+            QKeyEvent* keyEvent = new QKeyEvent(QEvent::KeyPress, Qt::Key_X, Qt::ControlModifier);
+            QCoreApplication::postEvent(QCoreApplication::instance(), keyEvent);
+    });
 
     // Edit > Copy
-    addActionToQMenuAndActionHash(editMenu, "Copy", Qt::CTRL | Qt::Key_C);
+    auto copyAction = addActionToQMenuAndActionHash(editMenu, "Copy", QKeySequence::Copy);
+    connect(copyAction, &QAction::triggered, [] {
+            QKeyEvent* keyEvent = new QKeyEvent(QEvent::KeyPress, Qt::Key_C, Qt::ControlModifier);
+            QCoreApplication::postEvent(QCoreApplication::instance(), keyEvent);
+    });
 
     // Edit > Paste
-    addActionToQMenuAndActionHash(editMenu, "Paste", Qt::CTRL | Qt::Key_V);
+    auto pasteAction = addActionToQMenuAndActionHash(editMenu, "Paste", QKeySequence::Paste);
+    connect(pasteAction, &QAction::triggered, [] {
+            QKeyEvent* keyEvent = new QKeyEvent(QEvent::KeyPress, Qt::Key_V, Qt::ControlModifier);
+            QCoreApplication::postEvent(QCoreApplication::instance(), keyEvent);
+    });
 
     // Edit > Delete
-    addActionToQMenuAndActionHash(editMenu, "Delete", Qt::Key_Delete);
+    auto deleteAction =addActionToQMenuAndActionHash(editMenu, "Delete", QKeySequence::Delete);
+    connect(deleteAction, &QAction::triggered, [] {
+            QKeyEvent* keyEvent = new QKeyEvent(QEvent::KeyPress, Qt::Key_Delete, Qt::ControlModifier);
+            QCoreApplication::postEvent(QCoreApplication::instance(), keyEvent);
+    });
 
     editMenu->addSeparator();
 
@@ -201,21 +217,21 @@ Menu::Menu() {
 
     // View > First Person
     auto firstPersonAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::FirstPerson, Qt::Key_1,
+                                   viewMenu, MenuOption::FirstPerson, 0,
                                    true, qApp, SLOT(cameraMenuChanged())));
 
     firstPersonAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     // View > Third Person
     auto thirdPersonAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::ThirdPerson, Qt::Key_3,
+                                   viewMenu, MenuOption::ThirdPerson, 0,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
     thirdPersonAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     // View > Mirror
     auto viewMirrorAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::FullscreenMirror, Qt::Key_2,
+                                   viewMenu, MenuOption::FullscreenMirror, 0,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
     viewMirrorAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));

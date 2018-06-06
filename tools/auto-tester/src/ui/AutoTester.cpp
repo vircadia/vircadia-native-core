@@ -10,6 +10,11 @@
 //
 #include "AutoTester.h"
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <shellapi.h>
+#endif
+
 AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
     ui.setupUi(this);
     ui.checkBoxInteractiveMode->setChecked(true);
@@ -19,6 +24,11 @@ AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
 
     connect(ui.actionClose, &QAction::triggered, this, &AutoTester::on_closeButton_clicked);
     connect(ui.actionAbout, &QAction::triggered, this, &AutoTester::about);
+
+#ifndef Q_OS_WIN
+    ui.hideTaskbarButton->setVisible(false);
+    ui.showTaskbarButton->setVisible(false);
+#endif
 
     test = new Test();
 }
@@ -54,6 +64,30 @@ void AutoTester::on_createAllMDFilesButton_clicked() {
 
 void AutoTester::on_createTestsOutlineButton_clicked() {
     test->createTestsOutline();
+}
+
+// To toggle between show and hide
+//   if (uState & ABS_AUTOHIDE) on_showTaskbarButton_clicked();
+//   else on_hideTaskbarButton_clicked();
+//
+void AutoTester::on_hideTaskbarButton_clicked() {
+#ifdef Q_OS_WIN
+    APPBARDATA abd = { sizeof abd };
+    UINT uState = (UINT)SHAppBarMessage(ABM_GETSTATE, &abd);
+    LPARAM param = uState & ABS_ALWAYSONTOP;
+    abd.lParam = ABS_AUTOHIDE | param;
+    SHAppBarMessage(ABM_SETSTATE, &abd);
+#endif
+}
+
+void AutoTester::on_showTaskbarButton_clicked() {
+#ifdef Q_OS_WIN
+    APPBARDATA abd = { sizeof abd };
+    UINT uState = (UINT)SHAppBarMessage(ABM_GETSTATE, &abd);
+    LPARAM param = uState & ABS_ALWAYSONTOP;
+    abd.lParam = param;
+    SHAppBarMessage(ABM_SETSTATE, &abd);
+#endif
 }
 
 void AutoTester::on_closeButton_clicked() {
@@ -95,7 +129,7 @@ void AutoTester::saveImage(int index) {
     pixmap.loadFromData(downloaders[index]->downloadedData());
 
     QImage image = pixmap.toImage();
-    image = image.convertToFormat(QImage::Format_RGB32);
+    image = image.convertToFormat(QImage::Format_ARGB32);
 
     QString fullPathname = _directoryName + "/" + _filenames[index];
     if (!image.save(fullPathname, 0, 100)) {

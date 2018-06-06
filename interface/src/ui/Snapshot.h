@@ -50,7 +50,10 @@ class Snapshot : public QObject, public Dependency {
 public:
     Snapshot();
     QString saveSnapshot(QImage image, const QString& filename, const QString& pathname = QString());
-    void save360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const QString& filename);
+    void save360Snapshot(const glm::vec3& cameraPosition,
+                         const bool& cubemapOutputFormat,
+                         const bool& notify,
+                         const QString& filename);
     QTemporaryFile* saveTempSnapshot(QImage image);
     SnapshotMetaData* parseSnapshotData(QString snapshotPath);
 
@@ -89,6 +92,7 @@ private:
                                        const QString& userSelectedFilename = QString(),
                                        const QString& userSelectedPathname = QString());
     QString _snapshotFilename;
+    bool _notify360;
     bool _cubemapOutputFormat;
     QTimer _snapshotTimer;
     qint16 _snapshotIndex;

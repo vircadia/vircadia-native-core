@@ -35,7 +35,7 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
     _useDualQuaternionSkinning = true;
 
     // Avatars all cast shadow
-    _canCastShadow = true;
+    setCanCastShadow(true);
 
     assert(_owningAvatar);
 }

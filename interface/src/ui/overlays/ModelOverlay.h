@@ -33,6 +33,7 @@ public:
 
     virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const override;
 
+    render::ItemKey getKey() override;
     void clearSubRenderItemIDs();
     void setSubRenderItemIDs(const render::ItemIDs& ids);
 
@@ -63,6 +64,7 @@ public:
     void setVisible(bool visible) override;
     void setDrawInFront(bool drawInFront) override;
     void setDrawHUDLayer(bool drawHUDLayer) override;
+    void setGroupCulled(bool groupCulled);
 
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
@@ -121,6 +123,8 @@ private:
     bool _visibleDirty { true };
     bool _drawInFrontDirty { false };
     bool _drawInHUDDirty { false };
+    bool _isGroupCulled { false };
+    bool _groupCulledDirty { false };
 
     void processMaterials();
 
