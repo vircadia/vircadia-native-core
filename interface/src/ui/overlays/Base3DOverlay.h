@@ -68,11 +68,11 @@ public:
     virtual QVariant getProperty(const QString& property) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                        BoxFace& face, glm::vec3& surfaceNormal);
+                                     BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking = false);
 
     virtual bool findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
-                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo) {
-        return findRayIntersection(origin, direction, distance, face, surfaceNormal);
+                                              float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking = false) {
+        return findRayIntersection(origin, direction, distance, face, surfaceNormal, precisionPicking);
     }
 
     virtual SpatialParentTree* getParentTree() const override;

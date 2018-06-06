@@ -400,14 +400,13 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     });
 
     // update webOverlay
-    var RAYPICK_OFFSET = 0.0007; // Sufficient for raypick to reliably intersect tablet screen before tablet model.
-    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.0) * sensorScaleOffsetOverride + RAYPICK_OFFSET;
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.5) * sensorScaleOffsetOverride;
     var WEB_ENTITY_Y_OFFSET = 1 * tabletScaleFactor * sensorScaleOffsetOverride;
     var screenWidth = 0.9275 * tabletWidth;
     var screenHeight = 0.8983 * tabletHeight;
     var landscape = Tablet.getTablet("com.highfidelity.interface.tablet.system").landscape;
     Overlays.editOverlay(HMD.tabletScreenID, {
-        localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET},
         dimensions: {x: landscape ? screenHeight : screenWidth, y: landscape ? screenWidth : screenHeight, z: 0.1},
         dpi: tabletDpi
     });

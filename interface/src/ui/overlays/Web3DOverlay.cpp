@@ -622,7 +622,7 @@ void Web3DOverlay::setScriptURL(const QString& scriptURL) {
     }
 }
 
-bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
+bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
     glm::vec2 dimensions = getDimensions();
     glm::quat rotation = getWorldOrientation();
     glm::vec3 position = getWorldPosition();

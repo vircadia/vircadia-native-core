@@ -44,9 +44,9 @@ public:
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                        BoxFace& face, glm::vec3& surfaceNormal) override;
+                                     BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking = false) override;
     virtual bool findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
-        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo) override;
+                                     float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking = false) override;
 
     virtual ModelOverlay* createClone() const override;
 

@@ -41,6 +41,8 @@ var LOCAL_BEZEL_HIGHLIGHT = Script.resourcesPath() + "images/buttonBezel_highlig
 var LOCAL_NORMAL_BEZEL = Script.resourcesPath() + "images/buttonBezel.png";
 
 var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button-small-bezel.fbx";
+var HIGH_PRIORITY = 1;
+var LOW_PRIORITY = 0;
 var SUBMESH = 3;
 
 // returns object with two fields:
@@ -138,8 +140,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         Overlays.deleteOverlay(this.webOverlayID);
     }
 
-    var RAYPICK_OFFSET = 0.0007; // Sufficient for raypick to reliably intersect tablet screen before tablet model.
-    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.0) / sensorScaleFactor + RAYPICK_OFFSET;
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.5) / sensorScaleFactor;
     var WEB_ENTITY_Y_OFFSET = 1 * tabletScaleFactor;
     var screenWidth = 0.9275 * tabletWidth;
     var screenHeight = 0.8983 * tabletHeight;
@@ -147,7 +148,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         name: "WebTablet Web",
         url: url,
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
-        localRotation: Quat.multiply(Quat.angleAxis(-0.25, X_AXIS), Quat.angleAxis(180, Y_AXIS)),
+        localRotation: Quat.multiply(Quat.angleAxis(-0.5, X_AXIS), Quat.angleAxis(180, Y_AXIS)),
         dimensions: {x: screenWidth, y: screenHeight, z: 0.1},
         dpi: tabletDpi,
         color: { red: 255, green: 255, blue: 255 },
@@ -184,6 +185,9 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
                 albedoMap: HOME_BUTTON_TEXTURE
             }
         }),
+        userData: JSON.stringify({
+            "grabbableKey": {"grabbable": false}
+        }),
         parentMaterialName: 4,
         parentID: this.tabletEntityID
     });
@@ -191,12 +195,16 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
     this.homeButtonUnhighlightMaterial = Entities.addEntity({
         type: "Material",
         materialURL: "materialData",
-        priority: 1,
+        localPosition: { x: 0.0, y: 0.0, z: 0.0 },
+        priority: HIGH_PRIORITY,
         materialData: JSON.stringify({
             materials: {
                 albedoMap: LOCAL_NORMAL_BEZEL
             }
 
+        }),
+        userData: JSON.stringify({
+            "grabbableKey": {"grabbable": false}
         }),
         visible: false,
         parentMaterialName: SUBMESH,
@@ -206,7 +214,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
     this.homeButtonHighlightMaterial = Entities.addEntity({
         type: "Material",
         materialURL: "materialData",
-        priority: 1,
+        localPosition: { x: 0.0, y: 0.0, z: 0.0 },
+        priority: LOW_PRIORITY,
         visible: false,
         materialData: JSON.stringify({
             materials: {
@@ -214,8 +223,11 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
             }
 
         }),
+        userData: JSON.stringify({
+            "grabbableKey": {"grabbable": false}
+        }),
         parentMaterialName: SUBMESH,
-        parentID: null
+        parentID: this.tabletEntityID
     }, true);
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
@@ -467,22 +479,22 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
 
 WebTablet.prototype.onHoverEnterOverlay = function (overlayID, pointerEvent) {
     if (overlayID === this.homeButtonID) {
-        Entities.editEntity(this.homeButtonUnhighlightMaterial, {parentID: null});
-        Entities.editEntity(this.homeButtonHighlightMaterial, {parentID: this.tabletEntityID});
+        Entities.editEntity(this.homeButtonUnhighlightMaterial, {priority: LOW_PRIORITY});
+        Entities.editEntity(this.homeButtonHighlightMaterial, {priority: HIGH_PRIORITY});
     }
 };
 
 WebTablet.prototype.onHoverOverOverlay = function (overlayID, pointerEvent) {
     if (overlayID !== this.homeButtonID) {
-        Entities.editEntity(this.homeButtonUnhighlightMaterial, {parentID: this.tabletEntityID});
-        Entities.editEntity(this.homeButtonHighlightMaterial, {parentID: null});
+        Entities.editEntity(this.homeButtonUnhighlightMaterial, {priority: HIGH_PRIORITY});
+        Entities.editEntity(this.homeButtonHighlightMaterial, {priority: LOW_PRIORITY});
     }
 };
 
 WebTablet.prototype.onHoverLeaveOverlay = function (overlayID, pointerEvent) {
     if (overlayID === this.homeButtonID) {
-        Entities.editEntity(this.homeButtonUnhighlightMaterial, {parentID: this.tabletEntityID});
-        Entities.editEntity(this.homeButtonHighlightMaterial, {parentID: null});
+        Entities.editEntity(this.homeButtonUnhighlightMaterial, {priority: HIGH_PRIORITY});
+        Entities.editEntity(this.homeButtonHighlightMaterial, {priority: LOW_PRIORITY});
     }
 };
 
