@@ -37,7 +37,10 @@ var TABLET_NATURAL_DIMENSIONS = {x: 32.083, y: 48.553, z: 2.269};
 var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
 // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
 // var TABLET_MODEL_PATH = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
+var LOCAL_BEZEL_HIGHLIGHT = Script.resourcesPath() + "images/buttonBezel_highlight.png";
+var LOCAL_NORMAL_BEZEL = Script.resourcesPath() + "images/buttonBezel.png";
 var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button-small-bezel.fbx";
+var SUBMESH = 0;
 
 // returns object with two fields:
 //    * position - position in front of the user
@@ -172,38 +175,38 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         parentJointIndex: -1
     });
 
-    this.homeButtonHighlightID = Overlays.addOverlay("circle3d", {
-        name: "homeButtonHighlight",
-        localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: HOME_BUTTON_Z_OFFSET },
-        localRotation: { x: 0, y: 1, z: 0, w: 0 },
-        dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim },
-        color: { red: 255, green: 255, blue: 255 },
-        solid: true,
-        innerRadius: 0.9,
-        ignoreIntersection: true,
-        alpha: 1.0,
-        visible: visible,
-        drawInFront: false,
-        parentID: this.tabletEntityID,
-        parentJointIndex: -1
-    });
-
-
-    this.homeButtonMaterial = Entities.addEntity({
+    this.homeButtonUnhighlightMaterial = Entities.addEntity({
         type: "Material",
-        materialURL: "",
+        materialURL: "materialData",
         priority: 1,
-        parentID: this.homeButtonHighlightID
+        materialData: JSON.stringify({
+            materials: {
+                albedoMap: LOCAL_NORMAL_BEZEL
+            }
+
+        }),
+        visible: false,
+        parentMaterialName: SUBMESH,
+        parentID: this.tabletEntityID
     }, true);
 
-    this.homeButtonHighlight = Entities.addEntity({
+    this.homeButtonHighlightMaterial = Entities.addEntity({
         type: "Material",
-        materialURL: "",
-        priority: 1
+        materialURL: "materialData",
+        priority: 1,
+        visible: false,
+        materialData: JSON.stringify({
+            materials: {
+                albedo: LOCAL_BEZEL_HIGHLIGHT
+            }
+
+        }),
+        parentMaterialName: SUBMESH,
+        parentID: null
     }, true);
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
-        if (_this.homeButtonID == senderID) {
+        if (_this.homeButtonID === senderID) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             var onHomeScreen = tablet.onHomeScreen();
             var isMessageOpen;
@@ -355,7 +358,6 @@ WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
     Overlays.deleteOverlay(this.tabletEntityID);
     Overlays.deleteOverlay(this.homeButtonID);
-    Overlays.deleteOverlay(this.homeButtonHighlightID);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
     Controller.mousePressEvent.disconnect(this.myMousePressEvent);
@@ -449,21 +451,24 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
 
 WebTablet.prototype.onHoverEnterOverlay = function (overlayID, pointerEvent) {
     if (overlayID === this.homeButtonID) {
-        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 1.0 });
+        Entities.editEntity(this.homeButtonUnhighlightMaterial, {parentID: null});
+        Entities.editEntity(this.homeButtonHighlightMaterial, {parentID: this.tabletEntityID});
     }
-}
+};
 
 WebTablet.prototype.onHoverOverOverlay = function (overlayID, pointerEvent) {
     if (overlayID !== this.homeButtonID) {
-        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 0.0 });
+        Entities.editEntity(this.homeButtonUnhighlightMaterial, {parentID: this.tabletEntityID});
+        Entities.editEntity(this.homeButtonHighlightMaterial, {parentID: null});
     }
-}
+};
 
 WebTablet.prototype.onHoverLeaveOverlay = function (overlayID, pointerEvent) {
     if (overlayID === this.homeButtonID) {
-        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 0.0 });
+        Entities.editEntity(this.homeButtonUnhighlightMaterial, {parentID: this.tabletEntityID});
+        Entities.editEntity(this.homeButtonHighlightMaterial, {parentID: null});
     }
-}
+};
 
 // compute position, rotation & parentJointIndex of the tablet
 WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMouse, tabletProperties) {
@@ -603,8 +608,6 @@ WebTablet.prototype.handleHomeButtonHover = function(x, y) {
             homebuttonHovered = true;
         }
     }
-
-    Overlays.editOverlay(this.homeButtonHighlightID, { alpha: homebuttonHovered ? 1.0 : 0.0 });
 }
 
 WebTablet.prototype.mouseMoveEvent = function (event) {

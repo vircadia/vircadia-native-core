@@ -56,7 +56,6 @@ class QScriptEngine;
  * @property {Uuid} tabletID - The UUID of the tablet body model overlay.
  * @property {Uuid} tabletScreenID - The UUID of the tablet's screen overlay.
  * @property {Uuid} homeButtonID - The UUID of the tablet's "home" button overlay.
- * @property {Uuid} homeButtonHighlightID - The UUID of the tablet's "home" button highlight overlay.
  */
 class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Dependency {
     Q_OBJECT
@@ -67,7 +66,6 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_PROPERTY(bool tabletContextualMode READ getTabletContextualMode)
     Q_PROPERTY(QUuid tabletID READ getCurrentTabletFrameID WRITE setCurrentTabletFrameID)
     Q_PROPERTY(QUuid homeButtonID READ getCurrentHomeButtonID WRITE setCurrentHomeButtonID)
-    Q_PROPERTY(QUuid homeButtonHighlightID READ getCurrentHomeButtonHightlightID WRITE setCurrentHomeButtonHightlightID)
     Q_PROPERTY(QUuid tabletScreenID READ getCurrentTabletScreenID WRITE setCurrentTabletScreenID)
 
 public:
@@ -372,9 +370,6 @@ public:
     void setCurrentHomeButtonID(QUuid homeButtonID) { _homeButtonID = homeButtonID; }
     QUuid getCurrentHomeButtonID() const { return _homeButtonID; }
 
-    void setCurrentHomeButtonHightlightID(QUuid homeButtonHightlightID) { _homeButtonHightlightID = homeButtonHightlightID; }
-    QUuid getCurrentHomeButtonHightlightID() const { return _homeButtonHightlightID; }
-
     void setCurrentTabletScreenID(QUuid tabletID) { _tabletScreenID = tabletID; }
     QUuid getCurrentTabletScreenID() const { return _tabletScreenID; }
 
@@ -384,7 +379,6 @@ private:
     QUuid _tabletUIID; // this is the entityID of the tablet frame
     QUuid _tabletScreenID; // this is the overlayID which is part of (a child of) the tablet-ui.
     QUuid _homeButtonID;
-    QUuid _homeButtonHightlightID;
     QUuid _tabletEntityID;
 
     // Get the position of the HMD
