@@ -20,6 +20,7 @@
 #include <trackers/FaceTracker.h>
 #include <trackers/EyeTracker.h>
 #include <Rig.h>
+#include "Logging.h"
 
 #include "Avatar.h"
 
@@ -84,7 +85,7 @@ void Head::simulate(float deltaTime) {
     const float FULLY_OPEN = 0.0f;
     const float FULLY_CLOSED = 1.0f;
     if (getHasProceduralBlinkFaceMovement()) {
-
+        qCDebug(avatars_renderer) << "in the blink code";
         // Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
         const float TALKING_LOUDNESS = 100.0f;
@@ -134,6 +135,7 @@ void Head::simulate(float deltaTime) {
 
         // use data to update fake Faceshift blendshape coefficients
     if (getHasAudioEnabledFaceMovement()) {
+        qCDebug(avatars_renderer) << "in the audio face code";
         // Update audio attack data for facial animation (eyebrows and mouth)
         float audioAttackAveragingRate = (10.0f - deltaTime * NORMAL_HZ) / 10.0f; // --> 0.9 at 60 Hz
         _audioAttack = audioAttackAveragingRate * _audioAttack +
@@ -165,6 +167,7 @@ void Head::simulate(float deltaTime) {
         _transientBlendshapeCoefficients);
         
     if (getHasProceduralEyeFaceMovement()) {
+        qCDebug(avatars_renderer) << "in the eye face code";
         applyEyelidOffset(getOrientation());
     }
     

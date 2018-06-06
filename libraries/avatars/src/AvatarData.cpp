@@ -308,7 +308,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
 
     const size_t byteArraySize = AvatarDataPacket::MAX_CONSTANT_HEADER_SIZE +
-        (hasFaceTrackerInfo ? AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getNumSummedBlendshapeCoefficients()) : 0) +
+        (hasFaceTrackerInfo ? AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getBlendshapeCoefficients().size()) : 0) +
         (hasJointData ? AvatarDataPacket::maxJointDataSize(_jointData.size()) : 0) +
         (hasJointDefaultPoseFlags ? AvatarDataPacket::maxJointDefaultPoseFlagsSize(_jointData.size()) : 0);
 
