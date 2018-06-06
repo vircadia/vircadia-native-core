@@ -1,8 +1,7 @@
-name = 201806_jointFix_2
+name = mannequin
 type = body+head
 scale = 1
-filename = 201806_jointFix_2/201806_jointFix_2.fbx
-texdir = 201806_jointFix_2/textures
+filename = mannequin/mannequin.baked.fbx
 joint = jointNeck = Neck
 joint = jointLean = Spine
 joint = jointEyeLeft = LeftEye
