@@ -41,7 +41,7 @@ var LOCAL_BEZEL_HIGHLIGHT = Script.resourcesPath() + "images/buttonBezel_highlig
 var LOCAL_NORMAL_BEZEL = Script.resourcesPath() + "images/buttonBezel.png";
 
 var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button-small-bezel.fbx";
-var SUBMESH = 0;
+var SUBMESH = 3;
 
 // returns object with two fields:
 //    * position - position in front of the user
@@ -184,7 +184,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
                 albedoMap: HOME_BUTTON_TEXTURE
             }
         }),
-        parentMaterialName: 5,
+        parentMaterialName: 4,
         parentID: this.tabletEntityID
     });
 
