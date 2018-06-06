@@ -349,3 +349,23 @@ void Base3DOverlay::setVisible(bool visible) {
     Parent::setVisible(visible);
     notifyRenderVariableChange();
 }
+
+render::ItemKey Base3DOverlay::getKey() {
+    auto builder = render::ItemKey::Builder(Overlay::getKey());
+
+    if (getDrawInFront()) {
+        builder.withLayer(render::hifi::LAYER_3D_FRONT);
+    } else if (getDrawHUDLayer()) {
+        builder.withLayer(render::hifi::LAYER_3D_HUD);
+    } else {
+        builder.withoutLayer();
+    }
+
+    builder.withoutViewSpace();
+
+    if (isTransparent()) {
+        builder.withTransparent();
+    }
+
+    return builder.build();
+}
