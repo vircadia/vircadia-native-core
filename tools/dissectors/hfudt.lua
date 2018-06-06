@@ -118,6 +118,10 @@ local packet_types = {
   [54] = "AssetGetInfoReply"
 }
 
+local unsourced_packet_types = {
+  ["DomainList"] = true
+}
+
 function p_hfudt.dissector(buf, pinfo, tree)
 
    -- make sure this isn't a STUN packet - those don't follow HFUDT format
@@ -230,54 +234,63 @@ function p_hfudt.dissector(buf, pinfo, tree)
 
     -- if the message bit is set, handle the second word
     if message_bit == 1 then
-        payload_offset = 12
+      payload_offset = 12
 
-        local second_word = buf(4, 4):le_uint()
+      local second_word = buf(4, 4):le_uint()
 
-        -- read message position from upper 2 bits
-        local message_position = bit32.rshift(second_word, 30)
-        local position = subtree:add(f_message_position, message_position)
+      -- read message position from upper 2 bits
+      local message_position = bit32.rshift(second_word, 30)
+      local position = subtree:add(f_message_position, message_position)
 
-        if message_positions[message_position] ~= nil then
-          -- if we know this position then add the name
-          position:append_text(" (".. message_positions[message_position] .. ")")
-        end
+      if message_positions[message_position] ~= nil then
+        -- if we know this position then add the name
+        position:append_text(" (".. message_positions[message_position] .. ")")
+      end
 
-        -- read message number from lower 30 bits
-        subtree:add(f_message_number, bit32.band(second_word, 0x3FFFFFFF))
+      -- read message number from lower 30 bits
+      subtree:add(f_message_number, bit32.band(second_word, 0x3FFFFFFF))
 
-        -- read the message part number
-        subtree:add(f_message_part_number, buf(8, 4):le_uint())
+      -- read the message part number
+      subtree:add(f_message_part_number, buf(8, 4):le_uint())
     end
 
     -- read the type
     local packet_type = buf(payload_offset, 1):le_uint()
     local ptype = subtree:add_le(f_type, buf(payload_offset, 1))
-    if packet_types[packet_type] ~= nil then
-      subtree:add(f_type_text, packet_types[packet_type])
+    local packet_type_text = packet_types[packet_type]
+    if packet_type_text ~= nil then
+      subtree:add(f_type_text, packet_type_text)
       -- if we know this packet type then add the name
-      ptype:append_text(" (".. packet_types[packet_type] .. ")")
+      ptype:append_text(" (".. packet_type_text .. ")")
     end
-    
+
     -- read the version
     subtree:add_le(f_version, buf(payload_offset + 1, 1))
 
-    -- read node local ID
-    local sender_id = buf(payload_offset + 2, 2)
-    subtree:add_le(f_sender_id, sender_id)
+    local i = payload_offset + 2
 
-    local i = payload_offset + 4
+    if unsourced_packet_types[packet_type_text] == nil then
+      -- read node local ID
+      local sender_id = buf(payload_offset + 2, 2)
+      subtree:add_le(f_sender_id, sender_id)
+      i = i + 2
 
-    -- read HMAC MD5 hash
-    subtree:add(f_hmac_hash, buf(i, 16))
-    i = i + 16
+      -- read HMAC MD5 hash
+      subtree:add(f_hmac_hash, buf(i, 16))
+      i = i + 16
+    end
+
+    -- Domain packets
+    if packet_type_text == "DomainList" then
+      Dissector.get("hf-domain"):call(buf(i):tvb(), pinfo, tree)
+    end
 
     -- AvatarData or BulkAvatarDataPacket
-    if packet_types[packet_type] == "AvatarData" or packet_types[packet_type] == "BulkAvatarDataPacket" then
+    if packet_type_text == "AvatarData" or packet_type_text == "BulkAvatarData" then
       Dissector.get("hf-avatar"):call(buf(i):tvb(), pinfo, tree)
     end
 
-    if packet_types[packet_type] == "EntityEdit" then
+    if packet_type_text == "EntityEdit" then
       Dissector.get("hf-entity"):call(buf(i):tvb(), pinfo, tree)
     end
   end
