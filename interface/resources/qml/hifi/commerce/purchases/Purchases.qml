@@ -39,8 +39,16 @@ Rectangle {
     property string installedApps;
     property bool keyboardRaised: false;
     property int numUpdatesAvailable: 0;
+    property var itemCountDictionary: ({});
     // Style
     color: hifi.colors.white;
+    function getPurchases() {
+        root.activeView = "purchasesMain";
+        root.itemCountDictionary = {};
+        root.installedApps = Commerce.getInstalledApps();
+        purchasesModel.getFirstPage();
+        Commerce.getAvailableUpdates();
+    }
     Connections {
         target: Commerce;
 
@@ -63,10 +71,7 @@ Rectangle {
                 if ((Settings.getValue("isFirstUseOfPurchases", true) || root.isDebuggingFirstUseTutorial) && root.activeView !== "firstUseTutorial") {
                     root.activeView = "firstUseTutorial";
                 } else if (!Settings.getValue("isFirstUseOfPurchases", true) && root.activeView === "initialize") {
-                    root.activeView = "purchasesMain";
-                    root.installedApps = Commerce.getInstalledApps();
-                    purchasesModel.getFirstPage();
-                    Commerce.getAvailableUpdates();
+                    getPurchases();
                 }
             } else {
                 console.log("ERROR in Purchases.qml: Unknown wallet status: " + walletStatus);
@@ -104,8 +109,7 @@ Rectangle {
     }
 
     onIsShowingMyItemsChanged: {
-        purchasesModel.resetModel();
-
+        getPurchases();
     }
 
     Timer {
@@ -163,9 +167,7 @@ Rectangle {
         Connections {
             onSendSignalToParent: {
                 if (msg.method === 'sendAssetHome_back' || msg.method === 'closeSendAsset') {
-                    root.activeView = "purchasesMain";
-                    purchasesModel.getFirstPage();
-                    Commerce.getAvailableUpdates();
+                    getPurchases();
                 } else {
                     sendToScript(msg);
                 }
@@ -429,10 +431,7 @@ Rectangle {
                     case 'tutorial_skipClicked':
                     case 'tutorial_finished':
                         Settings.setValue("isFirstUseOfPurchases", false);
-                        root.activeView = "purchasesMain";
-                        root.installedApps = Commerce.getInstalledApps();
-                        purchasesModel.getFirstPage();
-                        Commerce.getAvailableUpdates();
+                        getPurchases();
                     break;
                 }
             }
@@ -508,7 +507,7 @@ Rectangle {
                         },
                         {
                             "displayName": "Content Set",
-                            "filterName": "contentSet"
+                            "filterName": "content_set"
                         },
                         {
                             "displayName": "Entity",
@@ -555,9 +554,9 @@ Rectangle {
         HifiModels.PSFListModel {
             id: purchasesModel;
             itemsPerPage: 6;
-
+            listModelName: 'purchases';
             getPage: function () {
-                console.log('HRS FIXME Purchases getPage', root.isShowingMyItems, filterBar.primaryFilter_filterName, purchasesModel.currentPageToRetrieve, purchasesModel.itemsPerPage);
+                console.debug('getPage', purchasesModel.listModelName, root.isShowingMyItems, filterBar.primaryFilter_filterName, purchasesModel.currentPageToRetrieve, purchasesModel.itemsPerPage);
                 Commerce.inventory(
                     root.isShowingMyItems ? "proofs" : "purchased",
                     filterBar.primaryFilter_filterName.toLowerCase(),
@@ -574,11 +573,14 @@ Rectangle {
                     item.cardBackVisible = false;
                     item.isInstalled = root.installedApps.indexOf(item.id) > -1;
                     item.wornEntityID = '';
+                    item.displayedItemCount = itemCountDictionary[item.id] = (itemCountDictionary[item.id] || 0) + 1;
                     // HRS FIXME updateable
                 });
-                // HRS FIXME purchaess_updateWearables
-                // HRS FIXME populateDisplayedItemCounts
-                // HRS FIXME sortByDate
+                sendToScript({ method: 'purchases_updateWearables' });
+                for (var i = 0; i < purchasesModel.count; i++) { // Update all the previous counts with possibly new values.
+                    purchasesModel.setProperty(i, "displayedItemCount", itemCountDictionary[purchasesModel.get(i).id])
+                }
+
                 return data.assets;
 
                 /*
@@ -604,15 +606,6 @@ Rectangle {
                             }
                         }
                     }
-            
-                    sendToScript({ method: 'purchases_updateWearables' });
-                    // FIXME: This ALSO *MUST* be serverside (what if we don't have
-                    // all instances of the item on the client yet?)
-                    //populateDisplayedItemCounts();
-
-                    // FIXME: Sorting by date should be done serverside (we should always get
-                    // the most recent purchases on the 1st page)
-                    //sortByDate();
                 }
                 */
             }
@@ -807,7 +800,7 @@ Rectangle {
 
             
             onAtYEndChanged: {
-                if (purchasesContentsList.atYEnd) {
+                if (purchasesContentsList.atYEnd && !purchasesContentsList.atYBeginning) {
                     console.log("User scrolled to the bottom of 'Purchases'.");
                     purchasesModel.getNextPage();
                 }
@@ -992,7 +985,7 @@ Rectangle {
     //
     // FUNCTION DEFINITIONS START
     //
-
+    /* fixme remove
     function processInventoryResult(inventory) {  // HRS FIXME remove
         for (var i = 0; i < inventory.length; i++) {
             if (inventory[i].status.length > 1) {
@@ -1002,31 +995,7 @@ Rectangle {
             inventory[i].categories = inventory[i].categories.join(';');
         }
         return inventory;
-    }
-
-    function populateDisplayedItemCounts() {
-        var itemCountDictionary = {};
-        var currentItemId;
-        for (var i = 0; i < purchasesModel.count; i++) {
-            currentItemId = purchasesModel.get(i).id;
-            if (itemCountDictionary[currentItemId] === undefined) {
-                itemCountDictionary[currentItemId] = 1;
-            } else {
-                itemCountDictionary[currentItemId]++;
-            }
-        }
-
-        for (var i = 0; i < purchasesModel.count; i++) {
-            purchasesModel.setProperty(i, "displayedItemCount", itemCountDictionary[purchasesModel.get(i).id]);
-        }
-    }
-
-    function sortByDate() {
-        purchasesModel.sortColumnName = "purchase_date";
-        purchasesModel.isSortingDescending = true;
-        purchasesModel.valuesAreNumerical = true;
-        purchasesModel.quickSort();
-    }
+    } */
     
     function updateCurrentlyWornWearables(wearables) {
         for (var i = 0; i < purchasesModel.count; i++) {
