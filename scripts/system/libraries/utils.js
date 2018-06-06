@@ -417,7 +417,6 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
     var HOME_BUTTON_X_OFFSET = 0.00079 * sensorScaleOffsetOverride * sensorScaleFactor;
     var HOME_BUTTON_Y_OFFSET = -1 * ((tabletHeight / 2) - (4.0 * tabletScaleFactor / 2)) * sensorScaleOffsetOverride;
-    var HOME_BUTTON_Z_OFFSET = (-WEB_ENTITY_Z_OFFSET + 0.00284 * sensorScaleOffsetOverride);
     Overlays.editOverlay(HMD.homeButtonID, {
         localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
         localRotation: { x: 0, y: 1, z: 0, w: 0 },

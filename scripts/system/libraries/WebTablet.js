@@ -34,11 +34,12 @@ var DELAY_FOR_30HZ = 33; // milliseconds
 // will need to be recaclulated if dimensions of fbx model change.
 var TABLET_NATURAL_DIMENSIONS = {x: 32.083, y: 48.553, z: 2.269};
 
-var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
+var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "images/button-close.png";
 // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
 // var TABLET_MODEL_PATH = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
 var LOCAL_BEZEL_HIGHLIGHT = Script.resourcesPath() + "images/buttonBezel_highlight.png";
 var LOCAL_NORMAL_BEZEL = Script.resourcesPath() + "images/buttonBezel.png";
+
 var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button-small-bezel.fbx";
 var SUBMESH = 0;
 
@@ -161,7 +162,6 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
     var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
     var HOME_BUTTON_X_OFFSET = 0.00079 * sensorScaleFactor;
     var HOME_BUTTON_Y_OFFSET = -1 * ((tabletHeight / 2) - (4.0 * tabletScaleFactor / 2));
-    var HOME_BUTTON_Z_OFFSET = -WEB_ENTITY_Z_OFFSET + 0.00284;
     this.homeButtonID = Overlays.addOverlay("circle3d", {
         name: "homeButton",
         localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
@@ -173,6 +173,19 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         drawInFront: false,
         parentID: this.tabletEntityID,
         parentJointIndex: -1
+    });
+
+    this.homeButtonMaterial = Entities.addEntity({
+        type: "Material",
+        materialURL: "materialData",
+        priority: 1,
+        materialData: JSON.stringify({
+            materials: {
+                albedoMap: HOME_BUTTON_TEXTURE
+            }
+        }),
+        parentMaterialName: 5,
+        parentID: this.tabletEntityID
     });
 
     this.homeButtonUnhighlightMaterial = Entities.addEntity({
@@ -197,7 +210,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         visible: false,
         materialData: JSON.stringify({
             materials: {
-                albedo: LOCAL_BEZEL_HIGHLIGHT
+                albedoMap: LOCAL_BEZEL_HIGHLIGHT
             }
 
         }),
@@ -358,6 +371,9 @@ WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
     Overlays.deleteOverlay(this.tabletEntityID);
     Overlays.deleteOverlay(this.homeButtonID);
+    Entities.deleteEntity(this.homeButtonMaterial);
+    Entities.deleteEntity(this.homeButtonUnhighlightMaterial);
+    Entities.deleteEntity(this.homeButtonHighlightMaterial);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
     Controller.mousePressEvent.disconnect(this.myMousePressEvent);

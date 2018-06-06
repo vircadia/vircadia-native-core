@@ -24,7 +24,7 @@
     var validCheckTime = Date.now();
     var debugTablet = false;
     var tabletScalePercentage = 70.0;
-    UIWebTablet = null;
+    var UIWebTablet = null;
     var MSECS_PER_SEC = 1000.0;
     var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
     var gTablet = null;
