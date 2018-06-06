@@ -239,7 +239,7 @@ Item {
 
                 // Only auto-refresh if the user hasn't scrolled
                 // and there is more data to grab
-                if (transactionHistory.atYBeginning && data.history.length && transactionHistoryModel.currentPageToRetrieve >= 0) {
+                if (transactionHistory.atYBeginning && data.history.length) {
                     refreshTimer.start();
                 }
                 return result;
