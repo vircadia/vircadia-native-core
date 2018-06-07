@@ -314,6 +314,7 @@ Wallet::Wallet() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto ledger = DependencyManager::get<Ledger>();
     auto& packetReceiver = nodeList->getPacketReceiver();
+    _passphrase = new QString("");
 
     packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnershipPacket");
     packetReceiver.registerListener(PacketType::ChallengeOwnershipRequest, this, "handleChallengeOwnershipPacket");
@@ -364,6 +365,10 @@ void Wallet::clear() {
 Wallet::~Wallet() {
     if (_securityImage) {
         delete _securityImage;
+    }
+
+    if (_passphrase) {
+        delete _passphrase;
     }
 }
 

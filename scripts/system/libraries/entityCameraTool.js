@@ -91,7 +91,7 @@ CameraManager = function() {
     }
 
     var CAPTURED_KEYS = [];
-    for (key in keyToActionMapping) {
+    for (var key in keyToActionMapping) {
         CAPTURED_KEYS.push(key);
     }
 
@@ -99,9 +99,9 @@ CameraManager = function() {
         var action = keyToActionMapping[event.text];
         if (action !== undefined) {
             if (event.isShifted) {
-                if (action == "orbitForward") {
+                if (action === "orbitForward") {
                     action = "orbitUp";
-                } else if (action == "orbitBackward") {
+                } else if (action === "orbitBackward") {
                     action = "orbitDown";
                 }
             }
@@ -133,7 +133,7 @@ CameraManager = function() {
     };
 
     that.enable = function() {
-        if (Camera.mode == "independent" || that.enabled || HMD.active) {
+        if (Camera.mode === "independent" || that.enabled || HMD.active) {
             return;
         }
 
@@ -235,7 +235,7 @@ CameraManager = function() {
     }
 
     that.setFocalPoint = function(pos) {
-        that.targetFocalPoint = pos
+        that.targetFocalPoint = pos;
         that.updateCamera();
     }
 
@@ -276,7 +276,7 @@ CameraManager = function() {
     }
 
     that.mouseMoveEvent = function(event) {
-        if (that.enabled && that.mode != MODE_INACTIVE) {
+        if (that.enabled && that.mode !== MODE_INACTIVE) {
             var x = Reticle.getPosition().x;
             var y = Reticle.getPosition().y;
             if (!hasDragged) {
@@ -284,11 +284,11 @@ CameraManager = function() {
                 that.lastMousePosition.y = y;
                 hasDragged = true;
             }
-            if (that.mode == MODE_ORBIT) {
+            if (that.mode === MODE_ORBIT) {
                 var diffX = x - that.lastMousePosition.x;
                 var diffY = y - that.lastMousePosition.y;
-                that.targetYaw -= MOUSE_SENSITIVITY * (diffX / 5.0)
-                that.targetPitch += MOUSE_SENSITIVITY * (diffY / 10.0)
+                that.targetYaw -= MOUSE_SENSITIVITY * (diffX / 5.0);
+                that.targetPitch += MOUSE_SENSITIVITY * (diffY / 10.0);
 
                 while (that.targetYaw > 180.0) that.targetYaw -= 360;
                 while (that.targetYaw < -180.0) that.targetYaw += 360;
@@ -297,7 +297,7 @@ CameraManager = function() {
                 if (that.targetPitch < -90) that.targetPitch = -90;
 
                 that.updateCamera();
-            } else if (that.mode == MODE_PAN) {
+            } else if (that.mode === MODE_PAN) {
                 var diffX = x - that.lastMousePosition.x;
                 var diffY = y - that.lastMousePosition.y;
 
@@ -316,19 +316,19 @@ CameraManager = function() {
             var newY = y;
             var updatePosition = false;
 
-            if (x <= Window.x) {
-                newX = Window.x + Window.innerWidth;
+            if (x <= 0) {
+                newX = Window.innerWidth;
                 updatePosition = true;
-            } else if (x >= (Window.x + Window.innerWidth)) {
-                newX = Window.x;
+            } else if (x >= Window.innerWidth) {
+                newX = 0;
                 updatePosition = true;
             }
 
-            if (y <= Window.y) {
-                newY = Window.y + Window.innerHeight;
+            if (y <= 0) {
+                newY = Window.innerHeight;
                 updatePosition = true;
-            } else if (y >= (Window.y + Window.innerHeight)) {
-                newY = Window.y;
+            } else if (y >= Window.innerHeight) {
+                newY = 0;
                 updatePosition = true;
             }
 
@@ -410,7 +410,7 @@ CameraManager = function() {
     }
 
     that.updateCamera = function() {
-        if (!that.enabled || Camera.mode != "independent") {
+        if (!that.enabled || Camera.mode !== "independent") {
             cameraTool.update();
             return;
         }
@@ -464,7 +464,7 @@ CameraManager = function() {
 
     // Ease the position and orbit of the camera
     that.update = function(dt) {
-        if (Camera.mode != "independent") {
+        if (Camera.mode !== "independent") {
             that.updateCamera();
             return;
         }

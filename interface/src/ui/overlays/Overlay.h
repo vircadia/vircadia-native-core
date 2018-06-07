@@ -40,6 +40,7 @@ public:
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
 
+    virtual render::ItemKey getKey();
     virtual AABox getBounds() const = 0;
     virtual bool supportsGetProperty() const { return true; }
 
