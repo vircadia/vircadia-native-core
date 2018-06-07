@@ -56,6 +56,8 @@ class QScriptEngine;
  * @property {Uuid} tabletID - The UUID of the tablet body model overlay.
  * @property {Uuid} tabletScreenID - The UUID of the tablet's screen overlay.
  * @property {Uuid} homeButtonID - The UUID of the tablet's "home" button overlay.
+ * @property {Uuid} homeButtonHighlightMaterialID - The UUID of the material entity used to highlight tablet button
+ * @property {Uuid} homeButtonUnhighlightMaterialID - The UUID of the material entity use to unhighlight the entity
  */
 class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Dependency {
     Q_OBJECT
@@ -67,6 +69,8 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_PROPERTY(QUuid tabletID READ getCurrentTabletFrameID WRITE setCurrentTabletFrameID)
     Q_PROPERTY(QUuid homeButtonID READ getCurrentHomeButtonID WRITE setCurrentHomeButtonID)
     Q_PROPERTY(QUuid tabletScreenID READ getCurrentTabletScreenID WRITE setCurrentTabletScreenID)
+    Q_PROPERTY(QUuid homeButtonHighlightMaterialID READ getCurrentHomeButtonHighlightMaterialID WRITE setCurrentHomeButtonHighlightMaterialID)
+    Q_PROPERTY(QUuid homeButtonUnhighlightMaterialID READ getCurrentHomeButtonUnhighlightMaterialID WRITE setCurrentHomeButtonUnhighlightMaterialID)
 
 public:
     
@@ -373,6 +377,12 @@ public:
     void setCurrentTabletScreenID(QUuid tabletID) { _tabletScreenID = tabletID; }
     QUuid getCurrentTabletScreenID() const { return _tabletScreenID; }
 
+    void setCurrentHomeButtonHighlightMaterialID(QUuid homeButtonHighlightMaterialID) { _homeButtonHighlightMaterialID = homeButtonHighlightMaterialID; }
+    QUuid getCurrentHomeButtonHighlightMaterialID() { return _homeButtonHighlightMaterialID; }
+
+    void setCurrentHomeButtonUnhighlightMaterialID(QUuid homeButtonUnhighlightMaterialID) { _homeButtonUnhighlightMaterialID = homeButtonUnhighlightMaterialID; }
+    QUuid getCurrentHomeButtonUnhighlightMaterialID() { return _homeButtonUnhighlightMaterialID; }
+
 private:
     bool _showTablet { false };
     bool _tabletContextualMode { false };
@@ -380,6 +390,8 @@ private:
     QUuid _tabletScreenID; // this is the overlayID which is part of (a child of) the tablet-ui.
     QUuid _homeButtonID;
     QUuid _tabletEntityID;
+    QUuid _homeButtonHighlightMaterialID;
+    QUuid _homeButtonUnhighlightMaterialID;
 
     // Get the position of the HMD
     glm::vec3 getPosition() const;

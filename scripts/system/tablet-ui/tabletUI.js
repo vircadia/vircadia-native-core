@@ -104,6 +104,8 @@
         HMD.tabletID = UIWebTablet.tabletEntityID;
         HMD.homeButtonID = UIWebTablet.homeButtonID;
         HMD.tabletScreenID = UIWebTablet.webOverlayID;
+        HMD.homeButtonHighlightMaterialID = UIWebTablet.homeButtonHighlightMaterial;
+        HMD.homeButtonUnhighlightMaterialID = UIWebTablet.homeButtonUnhighlightMaterial;
         HMD.displayModeChanged.connect(onHmdChanged);
         MyAvatar.sensorToWorldScaleChanged.connect(onSensorToWorldScaleChanged);
 
@@ -322,5 +324,7 @@
         HMD.tabletID = null;
         HMD.homeButtonID = null;
         HMD.tabletScreenID = null;
+        HMD.homeButtonHighlightMaterialID = null;
+        HMD.homeButtonUnhighlightMaterialID = null;
     });
 }()); // END LOCAL_SCOPE

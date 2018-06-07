@@ -176,22 +176,6 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         parentJointIndex: -1
     });
 
-    this.homeButtonMaterial = Entities.addEntity({
-        type: "Material",
-        materialURL: "materialData",
-        priority: 1,
-        materialData: JSON.stringify({
-            materials: {
-                albedoMap: HOME_BUTTON_TEXTURE
-            }
-        }),
-        userData: JSON.stringify({
-            "grabbableKey": {"grabbable": false}
-        }),
-        parentMaterialName: 4,
-        parentID: this.tabletEntityID
-    });
-
     this.homeButtonUnhighlightMaterial = Entities.addEntity({
         type: "Material",
         materialURL: "materialData",
@@ -386,7 +370,6 @@ WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
     Overlays.deleteOverlay(this.tabletEntityID);
     Overlays.deleteOverlay(this.homeButtonID);
-    Entities.deleteEntity(this.homeButtonMaterial);
     Entities.deleteEntity(this.homeButtonUnhighlightMaterial);
     Entities.deleteEntity(this.homeButtonHighlightMaterial);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
@@ -627,20 +610,6 @@ WebTablet.prototype.scheduleMouseMoveProcessor = function() {
     }
 };
 
-WebTablet.prototype.handleHomeButtonHover = function(x, y) {
-    var pickRay = Camera.computePickRay(x, y);
-    var entityPickResults;
-    var homebuttonHovered = false;
-    entityPickResults = Overlays.findRayIntersection(pickRay, true, [this.tabletEntityID]);
-    if (entityPickResults.intersects && (entityPickResults.entityID === this.tabletEntityID ||
-        entityPickResults.overlayID === this.tabletEntityID)) {
-        var overlayPickResults = Overlays.findRayIntersection(pickRay, true, [this.homeButtonID], []);
-        if (overlayPickResults.intersects && overlayPickResults.overlayID === this.homeButtonID) {
-            homebuttonHovered = true;
-        }
-    }
-}
-
 WebTablet.prototype.mouseMoveEvent = function (event) {
     if (this.dragging) {
         this.currentMouse = {
@@ -648,8 +617,6 @@ WebTablet.prototype.mouseMoveEvent = function (event) {
             y: event.y
         };
         this.scheduleMouseMoveProcessor();
-    } else {
-        this.handleHomeButtonHover(event.x, event.y);
     }
 };
 
@@ -676,8 +643,6 @@ WebTablet.prototype.mouseMoveProcessor = function () {
             });
         }
         this.scheduleMouseMoveProcessor();
-    } else {
-        this.handleHomeButtonHover(this.currentMouse.x, this.currentMouse.y);
     }
 };
 
