@@ -10,7 +10,7 @@
 //
 
 #include "PacketTests.h"
-#include "../QTestExtensions.h"
+#include <test-utils/QTestExtensions.h>
 
 #include <NLPacket.h>
 

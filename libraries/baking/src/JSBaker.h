@@ -12,6 +12,8 @@
 #ifndef hifi_JSBaker_h
 #define hifi_JSBaker_h
 
+#include <QUrl>
+
 #include "Baker.h"
 #include "JSBakingLoggingCategory.h"
 

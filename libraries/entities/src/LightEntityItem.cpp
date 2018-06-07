@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "LightEntityItem.h"
 
 #include <QDebug>
 
@@ -19,7 +20,6 @@
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "LightEntityItem.h"
 
 const bool LightEntityItem::DEFAULT_IS_SPOTLIGHT = false;
 const float LightEntityItem::DEFAULT_INTENSITY = 1.0f;
@@ -186,7 +186,6 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 }
 
 
-// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags LightEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_IS_SPOTLIGHT;

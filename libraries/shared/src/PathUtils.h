@@ -22,6 +22,10 @@
  * The Paths API provides absolute paths to the scripts and resources directories.
  *
  * @namespace Paths
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @deprecated The Paths API is deprecated. Use {@link Script.resolvePath} and {@link Script.resourcesPath} instead.
  * @readonly
  * @property {string} defaultScripts - The path to the scripts directory. <em>Read-only.</em>
@@ -33,6 +37,7 @@ class PathUtils : public QObject, public Dependency {
     Q_PROPERTY(QString resources READ resourcesPath CONSTANT)
     Q_PROPERTY(QUrl defaultScripts READ defaultScriptsLocation CONSTANT)
 public:
+    static const QString& getRccPath();
     static const QString& resourcesUrl();
     static QUrl resourcesUrl(const QString& relative);
     static const QString& resourcesPath();

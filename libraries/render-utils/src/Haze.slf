@@ -42,19 +42,19 @@ in vec2 varTexCoord0;
 out vec4 outFragColor;
 
 void main(void) {
-    if ((hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) != HAZE_MODE_IS_ACTIVE) {
+    if ((isHazeEnabled() == 0.0) || (hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) != HAZE_MODE_IS_ACTIVE) {
         discard;
     }
 
     vec4 fragColor = texture(colorMap, varTexCoord0);
-    vec4 eyeFragPos = unpackPositionFromZeye(varTexCoord0);
+    vec4 fragPositionES = unpackPositionFromZeye(varTexCoord0);
 
     mat4 viewInverse = getViewInverse();
-    vec4 worldFragPos = viewInverse * eyeFragPos;
-    vec4 worldEyePos = viewInverse[3];
+    vec4 fragPositionWS = viewInverse * fragPositionES;
+    vec4 eyePositionWS = viewInverse[3];
 
     Light light = getKeyLight();
-    vec3 lightDirection = getLightDirection(light);
+    vec3 lightDirectionWS = getLightDirection(light);
 
-    outFragColor = computeHazeColor(fragColor, eyeFragPos.xyz, worldFragPos.xyz, worldEyePos.y, lightDirection);
+    outFragColor = computeHazeColor(fragColor, fragPositionES.xyz, fragPositionWS.xyz, eyePositionWS.xyz, lightDirectionWS);
 }

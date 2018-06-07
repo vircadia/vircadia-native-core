@@ -241,51 +241,57 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
     _activityTracking.addedEntityCount++;
 
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto sessionID = nodeList->getSessionUUID();
+
     EntityItemProperties propertiesWithSimID = properties;
     if (clientOnly) {
-        auto nodeList = DependencyManager::get<NodeList>();
-        const QUuid myNodeID = nodeList->getSessionUUID();
+        const QUuid myNodeID = sessionID;
         propertiesWithSimID.setClientOnly(clientOnly);
         propertiesWithSimID.setOwningAvatarID(myNodeID);
     }
+
+    propertiesWithSimID.setLastEditedBy(sessionID);
 
     bool scalesWithParent = propertiesWithSimID.getScalesWithParent();
 
     propertiesWithSimID = convertPropertiesFromScriptSemantics(propertiesWithSimID, scalesWithParent);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
-    auto dimensions = propertiesWithSimID.getDimensions();
-    float volume = dimensions.x * dimensions.y * dimensions.z;
-    auto density = propertiesWithSimID.getDensity();
-    auto newVelocity = propertiesWithSimID.getVelocity().length();
-    float cost = calculateCost(density * volume, 0, newVelocity);
-    cost *= costMultiplier;
+    EntityItemID id;
+    // If we have a local entity tree set, then also update it.
+    bool success = addLocalEntityCopy(propertiesWithSimID, id);
 
-    if (cost > _currentAvatarEnergy) {
+    // queue the packet
+    if (success) {
+        queueEntityMessage(PacketType::EntityAdd, id, propertiesWithSimID);
+        return id;
+    } else {
         return QUuid();
     }
+}
 
-    EntityItemID id = EntityItemID(QUuid::createUuid());
-
-    // If we have a local entity tree set, then also update it.
+bool EntityScriptingInterface::addLocalEntityCopy(EntityItemProperties& properties, EntityItemID& id, bool isClone) {
     bool success = true;
+    id = EntityItemID(QUuid::createUuid());
+
     if (_entityTree) {
         _entityTree->withWriteLock([&] {
-            EntityItemPointer entity = _entityTree->addEntity(id, propertiesWithSimID);
+            EntityItemPointer entity = _entityTree->addEntity(id, properties, isClone);
             if (entity) {
-                if (propertiesWithSimID.queryAACubeRelatedPropertyChanged()) {
+                if (properties.queryAACubeRelatedPropertyChanged()) {
                     // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
                     bool success;
                     AACube queryAACube = entity->getQueryAACube(success);
                     if (success) {
-                        propertiesWithSimID.setQueryAACube(queryAACube);
+                        properties.setQueryAACube(queryAACube);
                     }
                 }
 
                 entity->setLastBroadcast(usecTimestampNow());
                 // since we're creating this object we will immediately volunteer to own its simulation
                 entity->flagForOwnershipBid(VOLUNTEER_SIMULATION_PRIORITY);
-                propertiesWithSimID.setLastEdited(entity->getLastEdited());
+                properties.setLastEdited(entity->getLastEdited());
             } else {
                 qCDebug(entities) << "script failed to add new Entity to local Octree";
                 success = false;
@@ -293,15 +299,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
         });
     }
 
-    // queue the packet
-    if (success) {
-        emit debitEnergySource(cost);
-        queueEntityMessage(PacketType::EntityAdd, id, propertiesWithSimID);
-
-        return id;
-    } else {
-        return QUuid();
-    }
+    return success;
 }
 
 QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& textures,
@@ -321,7 +319,34 @@ QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QStrin
     if (!textures.isEmpty()) {
         properties.setTextures(textures);
     }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto sessionID = nodeList->getSessionUUID();
+    properties.setLastEditedBy(sessionID);
+
     return addEntity(properties);
+}
+
+QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
+    EntityItemID newEntityID;
+    EntityItemProperties properties = getEntityProperties(entityIDToClone);
+    bool cloneAvatarEntity = properties.getCloneAvatarEntity();
+    properties.convertToCloneProperties(entityIDToClone);
+
+    if (cloneAvatarEntity) {
+        return addEntity(properties, true);
+    } else {
+        // setLastEdited timestamp to 0 to ensure this entity gets updated with the properties 
+        // from the server-created entity, don't change this unless you know what you are doing
+        properties.setLastEdited(0);
+        bool success = addLocalEntityCopy(properties, newEntityID, true);
+        if (success) {
+            getEntityPacketSender()->queueCloneEntityMessage(entityIDToClone, newEntityID);
+            return newEntityID;
+        } else {
+            return QUuid();
+        }
+    }
 }
 
 EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity) {
@@ -376,29 +401,15 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
     _activityTracking.editedEntityCount++;
 
-    EntityItemProperties properties = scriptSideProperties;
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto sessionID = nodeList->getSessionUUID();
 
-    auto dimensions = properties.getDimensions();
-    float volume = dimensions.x * dimensions.y * dimensions.z;
-    auto density = properties.getDensity();
-    auto newVelocity = properties.getVelocity().length();
-    float oldVelocity = { 0.0f };
+    EntityItemProperties properties = scriptSideProperties;
+    properties.setLastEditedBy(sessionID);
 
     EntityItemID entityID(id);
     if (!_entityTree) {
         queueEntityMessage(PacketType::EntityEdit, entityID, properties);
-
-        //if there is no local entity entity tree, no existing velocity, use 0.
-        float cost = calculateCost(density * volume, oldVelocity, newVelocity);
-        cost *= costMultiplier;
-
-        if (cost > _currentAvatarEnergy) {
-            return QUuid();
-        } else {
-            //debit the avatar energy and continue
-            emit debitEnergySource(cost);
-        }
-
         return id;
     }
     // If we have a local entity tree set, then also update it.
@@ -410,7 +421,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             return;
         }
 
-        auto nodeList = DependencyManager::get<NodeList>();
         if (entity->getClientOnly() && entity->getOwningAvatarID() != nodeList->getSessionUUID()) {
             // don't edit other avatar's avatarEntities
             return;
@@ -419,9 +429,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         if (scriptSideProperties.parentRelatedPropertyChanged()) {
             // All of parentID, parentJointIndex, position, rotation are needed to make sense of any of them.
             // If any of these changed, pull any missing properties from the entity.
-
-            //existing entity, retrieve old velocity for check down below
-            oldVelocity = entity->getWorldVelocity().length();
 
             if (!scriptSideProperties.parentIDChanged()) {
                 properties.setParentID(entity->getParentID());
@@ -442,23 +449,11 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         properties.setClientOnly(entity->getClientOnly());
         properties.setOwningAvatarID(entity->getOwningAvatarID());
         properties = convertPropertiesFromScriptSemantics(properties, properties.getScalesWithParent());
-
-        float cost = calculateCost(density * volume, oldVelocity, newVelocity);
-        cost *= costMultiplier;
-
-        if (cost > _currentAvatarEnergy) {
-            updatedEntity = false;
-        } else {
-            //debit the avatar energy and continue
-            updatedEntity = _entityTree->updateEntity(entityID, properties);
-            if (updatedEntity) {
-                emit debitEnergySource(cost);
-            }
-        }
+        updatedEntity = _entityTree->updateEntity(entityID, properties);
     });
 
     // FIXME: We need to figure out a better way to handle this. Allowing these edits to go through potentially
-    // breaks avatar energy and entities that are parented.
+    // breaks entities that are parented.
     //
     // To handle cases where a script needs to edit an entity with a _known_ entity id but doesn't exist
     // in the local entity tree, we need to allow those edits to go through to the server.
@@ -500,7 +495,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     // we make a bid for simulation ownership
                     properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
                     entity->flagForOwnershipBid(SCRIPT_POKE_SIMULATION_PRIORITY);
-                    entity->rememberHasSimulationOwnershipBid();
                 }
             }
             if (properties.queryAACubeRelatedPropertyChanged()) {
@@ -523,6 +517,27 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     }
                 }
             });
+        } else {
+            // Sometimes ESS don't have the entity they are trying to edit in their local tree.  In this case,
+            // convertPropertiesFromScriptSemantics doesn't get called and local* edits will get dropped.
+            // This is because, on the script side, "position" is in world frame, but in the network
+            // protocol and in the internal data-structures, "position" is "relative to parent".
+            // Compensate here.  The local* versions will get ignored during the edit-packet encoding.
+            if (properties.localPositionChanged()) {
+                properties.setPosition(properties.getLocalPosition());
+            }
+            if (properties.localRotationChanged()) {
+                properties.setRotation(properties.getLocalRotation());
+            }
+            if (properties.localVelocityChanged()) {
+                properties.setVelocity(properties.getLocalVelocity());
+            }
+            if (properties.localAngularVelocityChanged()) {
+                properties.setAngularVelocity(properties.getLocalAngularVelocity());
+            }
+            if (properties.localDimensionsChanged()) {
+                properties.setDimensions(properties.getLocalDimensions());
+            }
         }
     });
     if (!entityFound) {
@@ -575,21 +590,6 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                     myAvatar->insertDetachedEntityID(id);
                     shouldDelete = false;
                     return;
-                }
-
-                auto dimensions = entity->getScaledDimensions();
-                float volume = dimensions.x * dimensions.y * dimensions.z;
-                auto density = entity->getDensity();
-                auto velocity = entity->getWorldVelocity().length();
-                float cost = calculateCost(density * volume, velocity, 0);
-                cost *= costMultiplier;
-
-                if (cost > _currentAvatarEnergy) {
-                    shouldDelete = false;
-                    return;
-                } else {
-                    //debit the avatar energy and continue
-                    emit debitEnergySource(cost);
                 }
 
                 if (entity->getLocked()) {
@@ -788,7 +788,37 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesByType(const QString entity
 
         foreach(EntityItemPointer entity, entities) {
             if (entity->getType() == type) {
-                result << entity->getEntityItemID();
+                result << entity->getEntityItemID().toString();
+            }
+        }
+    }
+    return result;
+}
+
+QVector<QUuid> EntityScriptingInterface::findEntitiesByName(const QString entityName, const glm::vec3& center, float radius, bool caseSensitiveSearch) const {
+    
+    QVector<QUuid> result;
+    if (_entityTree) {
+        QVector<EntityItemPointer> entities;
+        _entityTree->withReadLock([&] {
+            _entityTree->findEntities(center, radius, entities);
+        });
+
+        if (caseSensitiveSearch) {
+            foreach(EntityItemPointer entity, entities) {
+                if (entity->getName() == entityName) {
+                    result << entity->getEntityItemID();
+                }
+            }
+
+        } else {
+            QString entityNameLowerCase = entityName.toLower();
+
+            foreach(EntityItemPointer entity, entities) {
+                QString entityItemLowerCase = entity->getName().toLower();
+                if (entityItemLowerCase == entityNameLowerCase) {
+                    result << entity->getEntityItemID();
+                }
             }
         }
     }
@@ -1658,15 +1688,21 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
     if (!_entityTree) {
         return result;
     }
-
-    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(parentID);
-    if (!entity) {
-        qCDebug(entities) << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
-        return result;
-    }
-
     _entityTree->withReadLock([&] {
-        entity->forEachChild([&](SpatiallyNestablePointer child) {
+        QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
+        if (!parentFinder) {
+            return;
+        }
+        bool success;
+        SpatiallyNestableWeakPointer parentWP = parentFinder->find(parentID, success);
+        if (!success) {
+            return;
+        }
+        SpatiallyNestablePointer parent = parentWP.lock();
+        if (!parent) {
+            return;
+        }
+        parent->forEachChild([&](SpatiallyNestablePointer child) {
             result.push_back(child->getID());
         });
     });
@@ -1810,23 +1846,6 @@ void EntityScriptingInterface::emitScriptEvent(const EntityItemID& entityID, con
             }
         });
     }
-}
-
-float EntityScriptingInterface::calculateCost(float mass, float oldVelocity, float newVelocity) {
-    return std::abs(mass * (newVelocity - oldVelocity));
-}
-
-void EntityScriptingInterface::setCurrentAvatarEnergy(float energy) {
-  //  qCDebug(entities) << "NEW AVATAR ENERGY IN ENTITY SCRIPTING INTERFACE: " << energy;
-    _currentAvatarEnergy = energy;
-}
-
-float EntityScriptingInterface::getCostMultiplier() {
-    return costMultiplier;
-}
-
-void EntityScriptingInterface::setCostMultiplier(float value) {
-    costMultiplier = value;
 }
 
 // TODO move this someplace that makes more sense...

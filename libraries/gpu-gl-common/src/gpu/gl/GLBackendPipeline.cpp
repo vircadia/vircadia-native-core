@@ -1,4 +1,4 @@
-﻿//
+//
 //  GLBackendPipeline.cpp
 //  libraries/gpu/src/gpu
 //
@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "GLBackend.h"
+#include <gpu/TextureTable.h>
+
 #include "GLShared.h"
 #include "GLPipeline.h"
 #include "GLShader.h"
@@ -247,8 +249,11 @@ void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
         return;
     }
 
-    TexturePointer resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
+    const auto& resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
+    bindResourceTexture(slot, resourceTexture);
+}
 
+void GLBackend::bindResourceTexture(uint32_t slot, const TexturePointer& resourceTexture) {
     if (!resourceTexture) {
         releaseResourceTexture(slot);
         return;
@@ -263,7 +268,7 @@ void GLBackend::do_setResourceFramebufferSwapChainTexture(const Batch& batch, si
         return;
     }
 
-    SwapChainPointer swapChain = batch._swapChains.get(batch._params[paramOffset + 0]._uint);
+    auto swapChain = std::static_pointer_cast<FramebufferSwapChain>(batch._swapChains.get(batch._params[paramOffset + 0]._uint));
 
     if (!swapChain) {
         releaseResourceTexture(slot);
@@ -271,9 +276,8 @@ void GLBackend::do_setResourceFramebufferSwapChainTexture(const Batch& batch, si
     }
     auto index = batch._params[paramOffset + 2]._uint;
     auto renderBufferSlot = batch._params[paramOffset + 3]._uint;
-    FramebufferPointer resourceFramebuffer = static_cast<const FramebufferSwapChain*>(swapChain.get())->get(index);
-    TexturePointer resourceTexture = resourceFramebuffer->getRenderBuffer(renderBufferSlot);
-
+    auto resourceFramebuffer = swapChain->get(index);
+    auto resourceTexture = resourceFramebuffer->getRenderBuffer(renderBufferSlot);
     setResourceTexture(slot, resourceTexture);
 }
 
@@ -306,6 +310,19 @@ void GLBackend::setResourceTexture(unsigned int slot, const TexturePointer& reso
     }
 }
 
+void GLBackend::do_setResourceTextureTable(const Batch& batch, size_t paramOffset) {
+    const auto& textureTablePointer = batch._textureTables.get(batch._params[paramOffset]._uint);
+    if (!textureTablePointer) {
+        return;
+    }
+
+    const auto& textureTable = *textureTablePointer;
+    const auto& textures = textureTable.getTextures();
+    for (GLuint slot = 0; slot < textures.size(); ++slot) {
+        bindResourceTexture(slot, textures[slot]);
+    }
+}
+
 int GLBackend::ResourceStageState::findEmptyTextureSlot() const {
     // start from the end of the slots, try to find an empty one that can be used
     for (auto i = MAX_NUM_RESOURCE_TEXTURES - 1; i > 0; i--) {
@@ -315,4 +332,3 @@ int GLBackend::ResourceStageState::findEmptyTextureSlot() const {
     }
     return -1;
 }
-

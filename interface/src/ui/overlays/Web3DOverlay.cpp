@@ -56,6 +56,8 @@
 #include "ui/Snapshot.h"
 #include "SoundCache.h"
 #include "raypick/PointerScriptingInterface.h"
+#include <display-plugins/CompositorHelper.h>
+#include "AboutUtil.h"
 
 static int MAX_WINDOW_SIZE = 4096;
 static const float METERS_TO_INCHES = 39.3701f;
@@ -65,14 +67,10 @@ const QString Web3DOverlay::TYPE = "web3d";
 const QString Web3DOverlay::QML = "Web3DOverlay.qml";
 
 static auto qmlSurfaceDeleter = [](OffscreenQmlSurface* surface) {
-    AbstractViewStateInterface::instance()->postLambdaEvent([surface] {
-        if (AbstractViewStateInterface::instance()->isAboutToQuit()) {
-            // WebEngineView may run other threads (wasapi), so they must be deleted for a clean shutdown
-            // if the application has already stopped its event loop, delete must be explicit
-            delete surface;
-        } else {
-            surface->deleteLater();
-        }
+    AbstractViewStateInterface::instance()->sendLambdaEvent([surface] {
+        // WebEngineView may run other threads (wasapi), so they must be deleted for a clean shutdown
+        // if the application has already stopped its event loop, delete must be explicit
+        delete surface;
     });
 };
 
@@ -260,6 +258,8 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("Pointers", DependencyManager::get<PointerScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Web3DOverlay", this);
         _webSurface->getSurfaceContext()->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("Reticle", qApp->getApplicationCompositor().getReticleInterface());
+        _webSurface->getSurfaceContext()->setContextProperty("HiFiAbout", AboutUtil::getInstance());
 
         // Override min fps for tablet UI, for silky smooth scrolling
         setMaxFPS(90);
@@ -334,16 +334,20 @@ void Web3DOverlay::render(RenderArgs* args) {
     renderTransform.setScale(1.0f);
     batch.setModelTransform(renderTransform);
 
+    // Turn off jitter for these entities
+    batch.pushProjectionJitter();
+
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (color.a < OPAQUE_ALPHA_THRESHOLD) {
         geometryCache->bindWebBrowserProgram(batch, true);
     } else {
         geometryCache->bindWebBrowserProgram(batch);
     }
-
     vec2 halfSize = vec2(size.x, size.y) / 2.0f;
     geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color, _geometryId);
+    batch.popProjectionJitter(); // Restore jitter
     batch.setResourceTexture(0, nullptr); // restore default white color after me
+
 }
 
 Transform Web3DOverlay::evalRenderTransform() {

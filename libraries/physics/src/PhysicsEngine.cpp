@@ -9,19 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <PhysicsCollisionGroups.h>
+#include "PhysicsEngine.h"
 
 #include <functional>
 
 #include <QFile>
 
 #include <PerfStat.h>
+#include <PhysicsCollisionGroups.h>
 #include <Profile.h>
 
 #include "CharacterController.h"
 #include "ObjectMotionState.h"
-#include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
+#include "PhysicsDebugDraw.h"
 #include "ThreadSafeDynamicsWorld.h"
 #include "PhysicsLogging.h"
 
@@ -49,6 +50,10 @@ void PhysicsEngine::init() {
         _broadphaseFilter = new btDbvtBroadphase();
         _constraintSolver = new btSequentialImpulseConstraintSolver;
         _dynamicsWorld = new ThreadSafeDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig);
+        _physicsDebugDraw.reset(new PhysicsDebugDraw());
+
+        // hook up debug draw renderer
+        _dynamicsWorld->setDebugDrawer(_physicsDebugDraw.get());
 
         _ghostPairCallback = new btGhostPairCallback();
         _dynamicsWorld->getPairCache()->setInternalGhostPairCallback(_ghostPairCallback);
@@ -66,8 +71,8 @@ void PhysicsEngine::init() {
     }
 }
 
-uint32_t PhysicsEngine::getNumSubsteps() {
-    return _numSubsteps;
+uint32_t PhysicsEngine::getNumSubsteps() const {
+    return _dynamicsWorld->getNumSubsteps();
 }
 
 // private
@@ -143,7 +148,7 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     body->setFlags(BT_DISABLE_WORLD_GRAVITY);
     motionState->updateBodyMaterialProperties();
 
-    int16_t group, mask;
+    int32_t group, mask;
     motionState->computeCollisionGroupAndMask(group, mask);
     _dynamicsWorld->addRigidBody(body, group, mask);
 
@@ -324,14 +329,14 @@ void PhysicsEngine::stepSimulation() {
                                                                         PHYSICS_ENGINE_FIXED_SUBSTEP, onSubStep);
     if (numSubsteps > 0) {
         BT_PROFILE("postSimulation");
-        _numSubsteps += (uint32_t)numSubsteps;
-        ObjectMotionState::setWorldSimulationStep(_numSubsteps);
-
         if (_myAvatarController) {
             _myAvatarController->postSimulation();
         }
-
         _hasOutgoingChanges = true;
+    }
+
+    if (_physicsDebugDraw->getDebugMode()) {
+        _dynamicsWorld->debugDrawWorld();
     }
 }
 
@@ -413,7 +418,7 @@ void PhysicsEngine::harvestPerformanceStats() {
             if (QString(itr->Get_Current_Name()) == "stepSimulation") {
                 itr->Enter_Child(childIndex);
                 StatsHarvester harvester;
-                harvester.recurse(itr, "step/");
+                harvester.recurse(itr, "physics/");
                 break;
             }
             itr->Next();
@@ -571,7 +576,7 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
             // modify the logic below.
             //
             // We only create events when at least one of the objects is (or should be) owned in the local simulation.
-            if (motionStateA && (motionStateA->shouldBeLocallyOwned())) {
+            if (motionStateA && (motionStateA->isLocallyOwnedOrShouldBe())) {
                 QUuid idA = motionStateA->getObjectID();
                 QUuid idB;
                 if (motionStateB) {
@@ -582,7 +587,7 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
                     (motionStateB ? motionStateB->getObjectLinearVelocityChange() : glm::vec3(0.0f));
                 glm::vec3 penetration = bulletToGLM(contact.distance * contact.normalWorldOnB);
                 _collisionEvents.push_back(Collision(type, idA, idB, position, penetration, velocityChange));
-            } else if (motionStateB && (motionStateB->shouldBeLocallyOwned())) {
+            } else if (motionStateB && (motionStateB->isLocallyOwnedOrShouldBe())) {
                 QUuid idB = motionStateB->getObjectID();
                 QUuid idA;
                 if (motionStateA) {
@@ -785,3 +790,49 @@ void PhysicsEngine::forEachDynamic(std::function<void(EntityDynamicPointer)> act
         }
     }
 }
+
+void PhysicsEngine::setShowBulletWireframe(bool value) {
+    int mode = _physicsDebugDraw->getDebugMode();
+    if (value) {
+        _physicsDebugDraw->setDebugMode(mode | btIDebugDraw::DBG_DrawWireframe);
+    } else {
+        _physicsDebugDraw->setDebugMode(mode & ~btIDebugDraw::DBG_DrawWireframe);
+    }
+}
+
+void PhysicsEngine::setShowBulletAABBs(bool value) {
+    int mode = _physicsDebugDraw->getDebugMode();
+    if (value) {
+        _physicsDebugDraw->setDebugMode(mode | btIDebugDraw::DBG_DrawAabb);
+    } else {
+        _physicsDebugDraw->setDebugMode(mode & ~btIDebugDraw::DBG_DrawAabb);
+    }
+}
+
+void PhysicsEngine::setShowBulletContactPoints(bool value) {
+    int mode = _physicsDebugDraw->getDebugMode();
+    if (value) {
+        _physicsDebugDraw->setDebugMode(mode | btIDebugDraw::DBG_DrawContactPoints);
+    } else {
+        _physicsDebugDraw->setDebugMode(mode & ~btIDebugDraw::DBG_DrawContactPoints);
+    }
+}
+
+void PhysicsEngine::setShowBulletConstraints(bool value) {
+    int mode = _physicsDebugDraw->getDebugMode();
+    if (value) {
+        _physicsDebugDraw->setDebugMode(mode | btIDebugDraw::DBG_DrawConstraints);
+    } else {
+        _physicsDebugDraw->setDebugMode(mode & ~btIDebugDraw::DBG_DrawConstraints);
+    }
+}
+
+void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
+    int mode = _physicsDebugDraw->getDebugMode();
+    if (value) {
+        _physicsDebugDraw->setDebugMode(mode | btIDebugDraw::DBG_DrawConstraintLimits);
+    } else {
+        _physicsDebugDraw->setDebugMode(mode & ~btIDebugDraw::DBG_DrawConstraintLimits);
+    }
+}
+

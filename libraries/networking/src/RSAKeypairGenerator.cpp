@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "RSAKeypairGenerator.h"
+
 #include <openssl/err.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
@@ -16,8 +18,6 @@
 #include <qdebug.h>
 
 #include "NetworkLogging.h"
-
-#include "RSAKeypairGenerator.h"
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
@@ -25,7 +25,10 @@
 RSAKeypairGenerator::RSAKeypairGenerator(QObject* parent) :
     QObject(parent)
 {
-    
+}
+
+void RSAKeypairGenerator::run() {
+    generateKeypair();
 }
 
 void RSAKeypairGenerator::generateKeypair() {
@@ -92,5 +95,5 @@ void RSAKeypairGenerator::generateKeypair() {
     OPENSSL_free(publicKeyDER);
     OPENSSL_free(privateKeyDER);
     
-    emit generatedKeypair();
+    emit generatedKeypair(_publicKey, _privateKey);
 }

@@ -275,7 +275,7 @@ function onMessage(message) {
     }
 }
 
-var POLAROID_PRINT_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/sound-print-photo.wav"));
+var POLAROID_PRINT_SOUND = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/sound-print-photo.wav");
 var POLAROID_MODEL_URL  = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
 
 function printToPolaroid(image_url) {
@@ -347,7 +347,7 @@ function fillImageDataFromPrevious() {
             story_id: previousStillSnapStoryID,
             blastButtonDisabled: previousStillSnapBlastingDisabled,
             hifiButtonDisabled: previousStillSnapHifiSharingDisabled,
-            errorPath: Script.resolvePath(Script.resourcesPath() + 'snapshot/img/no-image.jpg')
+            errorPath: Script.resourcesPath() + 'snapshot/img/no-image.jpg'
         });
     }
     if (previousAnimatedSnapPath !== "") {
@@ -356,7 +356,7 @@ function fillImageDataFromPrevious() {
             story_id: previousAnimatedSnapStoryID,
             blastButtonDisabled: previousAnimatedSnapBlastingDisabled,
             hifiButtonDisabled: previousAnimatedSnapHifiSharingDisabled,
-            errorPath: Script.resolvePath(Script.resourcesPath() + 'snapshot/img/no-image.jpg')
+            errorPath: Script.resourcesPath() + 'snapshot/img/no-image.jpg'
         });
     }
 }
@@ -411,8 +411,6 @@ function snapshotUploaded(isError, reply) {
         } else {
             print('Ignoring snapshotUploaded() callback for stale ' + (isGif ? 'GIF' : 'Still' ) + ' snapshot. Stale story ID:', storyID);
         }
-    } else {
-        print(reply);
     }
     isUploadingPrintableStill = false;
 }
@@ -452,7 +450,7 @@ function takeSnapshot() {
     maybeDeleteSnapshotStories();
 
     // update button states
-    resetOverlays = Menu.isOptionChecked("Overlays"); // For completeness. Certainly true if the button is visible to be clicked.
+    resetOverlays = Menu.isOptionChecked("Show Overlays"); // For completeness. Certainly true if the button is visible to be clicked.
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
     if (!HMD.active) {
@@ -472,10 +470,10 @@ function takeSnapshot() {
 
     // hide overlays if they are on
     if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", false);
+        Menu.setIsOptionChecked("Show Overlays", false);
     }
 
-    var snapActivateSound = SoundCache.getSound(Script.resolvePath("../../resources/sounds/snap.wav"));
+    var snapActivateSound = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/snap.wav");
 
     // take snapshot (with no notification)
     Script.setTimeout(function () {
@@ -529,7 +527,7 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     Reticle.allowMouseCapture = true;
     // show overlays if they were on
     if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", true);
+        Menu.setIsOptionChecked("Show Overlays", true);
     }
     Window.stillSnapshotTaken.disconnect(stillSnapshotTaken);
     if (!buttonConnected) {
@@ -585,7 +583,7 @@ function processingGifStarted(pathStillSnapshot) {
     Reticle.allowMouseCapture = true;
     // show overlays if they were on
     if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", true);
+        Menu.setIsOptionChecked("Show Overlays", true);
     }
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
 
@@ -598,7 +596,7 @@ function processingGifStarted(pathStillSnapshot) {
         snapshotOptions = {
             containsGif: true,
             processingGif: true,
-            loadingGifPath: Script.resolvePath(Script.resourcesPath() + 'icons/loadingDark.gif'),
+            loadingGifPath: Script.resourcesPath() + 'icons/loadingDark.gif',
             canShare: canShare,
             isLoggedIn: isLoggedIn
         };

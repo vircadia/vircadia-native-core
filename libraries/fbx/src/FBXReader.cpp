@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "FBXReader.h"
+
 #include <iostream>
 #include <QBuffer>
 #include <QDataStream>
@@ -31,7 +33,6 @@
 #include <gpu/Format.h>
 #include <LogHandler.h>
 
-#include "FBXReader.h"
 #include "ModelFormatLogging.h"
 
 // TOOL: Uncomment the following line to enable the filtering of all the unkwnon fields of a node so we can break point easily while loading a model with problems...
@@ -996,14 +997,12 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             QByteArray filename = subobject.properties.at(0).toByteArray();
                             QByteArray filepath = filename.replace('\\', '/');
                             filename = fileOnUrl(filepath, url);
-                            qDebug() << "Filename" << filepath << filename;
                             _textureFilepaths.insert(getID(object.properties), filepath);
                             _textureFilenames.insert(getID(object.properties), filename);
                         } else if (subobject.name == "TextureName" && subobject.properties.length() >= TEXTURE_NAME_MIN_SIZE) {
                             // trim the name from the timestamp
                             QString name = QString(subobject.properties.at(0).toByteArray());
                             name = name.left(name.indexOf('['));
-                            qDebug() << "Filename" << name;
                             _textureNames.insert(getID(object.properties), name);
                         } else if (subobject.name == "Texture_Alpha_Source" && subobject.properties.length() >= TEXTURE_ALPHA_SOURCE_MIN_SIZE) {
                             tex.assign<uint8_t>(tex.alphaSource, subobject.properties.at(0).value<int>());
@@ -1604,7 +1603,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
     // NOTE: shapeVertices are in joint-frame
     std::vector<ShapeVertices> shapeVertices;
-    shapeVertices.resize(geometry.joints.size());
+    shapeVertices.resize(std::max(1, geometry.joints.size()) );
 
     // find our special joints
     geometry.leftEyeJointIndex = modelIDs.indexOf(jointEyeLeftID);

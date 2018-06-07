@@ -14,23 +14,21 @@ using namespace gpu::gl41;
 
 // GLSL version
 std::string GL41Backend::getBackendShaderHeader() const {
-    return std::string("#version 410 core\n#define GPU_GL410 1");
+    static const std::string header(
+        R"SHADER(#version 410 core
+        #define GPU_GL410
+        #define BITFIELD int
+        )SHADER");
+    return header;
 }
 
-int GL41Backend::makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) {
+int GL41Backend::makeResourceBufferSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) {
     GLint ssboCount = 0;
-       GLint uniformsCount = 0;
-
-    glGetProgramiv(glprogram, GL_ACTIVE_UNIFORMS, &uniformsCount);
-
-    for (int i = 0; i < uniformsCount; i++) {
-        const GLint NAME_LENGTH = 256;
-        GLchar name[NAME_LENGTH];
-        GLint length = 0;
-        GLint size = 0;
-        GLenum type = 0;
-        glGetActiveUniform(glprogram, i, NAME_LENGTH, &length, &size, &type, name);
-        GLint location = glGetUniformLocation(glprogram, name);
+    const auto& glprogram = shaderProgram.glprogram;
+    for (const auto& uniform : shaderProgram.uniforms) {
+        const auto& name = uniform.name;
+        const auto& type = uniform.type;
+        const auto& location = uniform.location;
         const GLint INVALID_UNIFORM_LOCATION = -1;
 
         // Try to make sense of the gltype

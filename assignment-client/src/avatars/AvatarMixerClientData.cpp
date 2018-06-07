@@ -9,18 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AvatarMixerClientData.h"
+
 #include <udt/PacketHeaders.h>
 
 #include <DependencyManager.h>
 #include <NodeList.h>
 
-#include "AvatarMixerClientData.h"
-
 AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID) :
     NodeData(nodeID)
 {
-    _currentViewFrustum.invalidate();
-
     // in case somebody calls getSessionUUID on the AvatarData instance, make sure it has the right ID
     _avatar->setID(nodeID);
 }
@@ -33,7 +31,7 @@ uint64_t AvatarMixerClientData::getLastOtherAvatarEncodeTime(QUuid otherAvatar) 
     return 0;
 }
 
-void AvatarMixerClientData::setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, const uint64_t& time) {
+void AvatarMixerClientData::setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, uint64_t time) {
     std::unordered_map<QUuid, uint64_t>::iterator itr = _lastOtherAvatarEncodeTime.find(otherAvatar);
     if (itr != _lastOtherAvatarEncodeTime.end()) {
         itr->second = time;
@@ -129,11 +127,27 @@ void AvatarMixerClientData::removeFromRadiusIgnoringSet(SharedNodePointer self, 
 }
 
 void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
-    _currentViewFrustum.fromByteArray(message);
+    _currentViewFrustums.clear();
+
+    auto sourceBuffer = reinterpret_cast<const unsigned char*>(message.constData());
+    
+    uint8_t numFrustums = 0;
+    memcpy(&numFrustums, sourceBuffer, sizeof(numFrustums));
+    sourceBuffer += sizeof(numFrustums);
+
+    for (uint8_t i = 0; i < numFrustums; ++i) {
+        ConicalViewFrustum frustum;
+        sourceBuffer += frustum.deserialize(sourceBuffer);
+
+        _currentViewFrustums.push_back(frustum);
+    }
 }
 
 bool AvatarMixerClientData::otherAvatarInView(const AABox& otherAvatarBox) {
-    return _currentViewFrustum.boxIntersectsKeyhole(otherAvatarBox);
+    return std::any_of(std::begin(_currentViewFrustums), std::end(_currentViewFrustums),
+                       [&](const ConicalViewFrustum& viewFrustum) {
+        return viewFrustum.intersects(otherAvatarBox);
+    });
 }
 
 void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {

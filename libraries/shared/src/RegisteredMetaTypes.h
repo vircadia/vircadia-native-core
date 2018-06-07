@@ -44,6 +44,15 @@ void registerMetaTypes(QScriptEngine* engine);
 QScriptValue mat4toScriptValue(QScriptEngine* engine, const glm::mat4& mat4);
 void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4);
 
+/**jsdoc
+ * A 4-dimensional vector.
+ *
+ * @typedef {object} Vec4
+ * @property {number} x - X-coordinate of the vector.
+ * @property {number} y - Y-coordinate of the vector.
+ * @property {number} z - Z-coordinate of the vector.
+ * @property {number} w - W-coordinate of the vector.
+ */
 // Vec4
 QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4);
 void vec4FromScriptValue(const QScriptValue& object, glm::vec4& vec4);
@@ -59,6 +68,13 @@ QVariant vec3toVariant(const glm::vec3& vec3);
 glm::vec3 vec3FromVariant(const QVariant &object, bool& valid);
 glm::vec3 vec3FromVariant(const QVariant &object);
 
+/**jsdoc
+ * A 2-dimensional vector.
+ *
+ * @typedef {object} Vec2
+ * @property {number} x - X-coordinate of the vector.
+ * @property {number} y - Y-coordinate of the vector.
+ */
 // Vec2
 QScriptValue vec2toScriptValue(QScriptEngine* engine, const glm::vec2 &vec2);
 void vec2FromScriptValue(const QScriptValue &object, glm::vec2 &vec2);
@@ -345,6 +361,12 @@ using MeshPointer = std::shared_ptr<graphics::Mesh>;
 /**jsdoc
  * A handle for a mesh in an entity, such as returned by {@link Entities.getMeshes}.
  * @class MeshProxy
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
  * @deprecated Use the {@link Graphics} API instead.
  */
 class MeshProxy : public QObject {

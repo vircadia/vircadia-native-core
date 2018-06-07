@@ -31,21 +31,88 @@ protected:
     AudioScriptingInterface() {}
 
     // these methods are protected to stop C++ callers from calling, but invokable from script
+
+    /**jsdoc
+     * @function Audio.playSound
+     * @param {} sound
+     * @param {} [injectorOptions=null]
+     * @returns {object}
+     */
     Q_INVOKABLE ScriptAudioInjector* playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
+
+    /**jsdoc
+     * @function Audio.playSystemSound
+     * @param {} sound
+     * @param {} position
+     * @returns {object}
+     */
     // FIXME: there is no way to play a positionless sound
     Q_INVOKABLE ScriptAudioInjector* playSystemSound(SharedSoundPointer sound, const QVector3D& position);
 
+    /**jsdoc
+     * @function Audio.setStereoInput
+     * @param {boolean} stereo
+     * @returns {boolean} 
+     */
     Q_INVOKABLE bool setStereoInput(bool stereo);
+
+    /**jsdoc
+     * @function Audio.isStereoInput
+     * @returns {boolean} 
+     */
     Q_INVOKABLE bool isStereoInput();
 
 signals:
-    void mutedByMixer(); /// the client has been muted by the mixer
-    void environmentMuted(); /// the entire environment has been muted by the mixer
-    void receivedFirstPacket(); /// the client has received its first packet from the audio mixer
-    void disconnected(); /// the client has been disconnected from the audio mixer
-    void noiseGateOpened(); /// the noise gate has opened
-    void noiseGateClosed(); /// the noise gate has closed
-    void inputReceived(const QByteArray& inputSamples); /// a frame of mic input audio has been received and processed
+
+    /**jsdoc
+     * The client has been muted by the mixer.
+     * @function Audio.mutedByMixer
+     * @returns {Signal} 
+     */
+    void mutedByMixer();
+
+    /**jsdoc
+     * The entire environment has been muted by the mixer.
+     * @function Audio.environmentMuted
+     * @returns {Signal} 
+     */
+    void environmentMuted();
+
+    /**jsdoc
+     * The client has received its first packet from the audio mixer.
+     * @function Audio.receivedFirstPacket
+     * @returns {Signal} 
+     */
+    void receivedFirstPacket();
+
+    /**jsdoc
+     * The client has been disconnected from the audio mixer.
+     * @function Audio.disconnected
+     * @returns {Signal} 
+     */
+    void disconnected();
+
+    /**jsdoc
+     * The noise gate has opened.
+     * @function Audio.noiseGateOpened
+     * @returns {Signal} 
+     */
+    void noiseGateOpened();
+
+    /**jsdoc
+     * The noise gate has closed.
+     * @function Audio.noiseGateClosed
+     * @returns {Signal} 
+     */
+    void noiseGateClosed();
+
+    /**jsdoc
+     * A frame of mic input audio has been received and processed.
+     * @function Audio.inputReceived
+     * @param {} inputSamples
+     * @returns {Signal} 
+     */
+    void inputReceived(const QByteArray& inputSamples);
 
 private:
     AbstractAudioInterface* _localAudioInterface { nullptr };

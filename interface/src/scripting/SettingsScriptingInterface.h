@@ -15,6 +15,14 @@
 #include <QObject>
 #include <QString>
 
+/**jsdoc
+ * The Settings API provides a facility to store and retrieve values that persist between Interface runs.
+ * @namespace Settings
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ */
+
 class SettingsScriptingInterface : public QObject {
     Q_OBJECT
     SettingsScriptingInterface() { };
@@ -22,8 +30,37 @@ public:
     static SettingsScriptingInterface* getInstance();
 
 public slots:
+
+    /**jsdoc
+     * Retrieve the value from a named setting.
+     * @function Settings.getValue
+     * @param {string} key - The name of the setting.
+     * @param {string|number|boolean|object} [defaultValue=""] - The value to return if the setting doesn't exist.
+     * @returns {string|number|boolean|object} The value stored in the named setting if it exists, otherwise the 
+     *     <code>defaultValue</code>.
+     * @example <caption>Retrieve non-existent setting values.</caption>
+     * var value1 = Settings.getValue("Script Example/Nonexistent Key");
+     * print("Value: " + (typeof value1) + " " + JSON.stringify(value1));  // string ""
+     *
+     * var value2 = Settings.getValue("Script Example/Nonexistent Key", true);
+     * print("Value: " + (typeof value2) + " " + JSON.stringify(value2));  // boolean true
+     */
     QVariant getValue(const QString& setting);
     QVariant getValue(const QString& setting, const QVariant& defaultValue);
+
+    /**jsdoc
+     * Store a value in a named setting. If the setting already exists its value is overwritten, otherwise a new setting is 
+     * created. If the value is set to <code>null</code> or <code>undefined</code>, the setting is deleted.
+     * @function Settings.setValue
+     * @param {string} key - The name of the setting. Be sure to use a unique name if creating a new setting.
+     * @param {string|number|boolean|object|undefined} value - The value to store in the setting. If <code>null</code> or 
+     *     <code>undefined</code> is specified, the setting is deleted.
+     * @example <caption>Store and retrieve an object value.</caption>
+     * Settings.setValue("Script Example/My Key", { x: 0, y: 10, z: 0 });
+     *
+     * var value = Settings.getValue("Script Example/My Key");
+     * print("Value: " + (typeof value) + " " + JSON.stringify(value));  // object {"x":0,"y":10,"z":0}
+     */
     void setValue(const QString& setting, const QVariant& value);
 };
 

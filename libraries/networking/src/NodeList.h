@@ -94,6 +94,7 @@ public:
 
     virtual bool isDomainServer() const override { return false; }
     virtual QUuid getDomainUUID() const override { return _domainHandler.getUUID(); }
+    virtual Node::LocalID getDomainLocalID() const override { return _domainHandler.getLocalID(); }
     virtual HifiSockAddr getDomainSockAddr() const override { return _domainHandler.getSockAddr(); }
 
 public slots:
@@ -166,7 +167,7 @@ private:
     HifiSockAddr _assignmentServerSocket;
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;
-    bool _requestsDomainListData;
+    bool _requestsDomainListData { false };
 
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;

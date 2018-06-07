@@ -9,8 +9,8 @@
 //
 
 import Hifi 1.0
-import QtQuick 2.5
-import QtQuick.Controls 1.4
+import QtQuick 2.7
+import QtQuick.Controls 2.2
 import QtQuick.Controls.Styles 1.4
 import QtGraphicalEffects 1.0
 import "../../controls"
@@ -141,7 +141,10 @@ StackView {
             bottom: parent.bottom
         }
 
-        onHostChanged: updateLocationTextTimer.restart();
+        onHostChanged: {
+            updateLocationTextTimer.restart();
+            DialogsManager.hideAddressBar();
+        }
 
         Rectangle {
             id: navBar

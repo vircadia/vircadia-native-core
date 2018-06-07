@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "GLTFReader.h"
+
 #include <QtCore/QBuffer>
 #include <QtCore/QIODevice>
 #include <QtCore/QEventLoop>
@@ -28,7 +30,6 @@
 #include <NetworkAccessManager.h>
 #include <ResourceManager.h>
 
-#include "GLTFReader.h"
 #include "FBXReader.h"
 
 
@@ -1173,7 +1174,7 @@ bool GLTFReader::addArrayOfType(const QByteArray& bin, int byteOffset, int byteL
         break;
     }
     case GLTFAccessorComponentType::UNSIGNED_INT: {
-        readArray<quint8>(bin, byteOffset, byteLength, outarray, accessorType);
+        readArray<quint32>(bin, byteOffset, byteLength, outarray, accessorType);
         break;
     }
     case GLTFAccessorComponentType::UNSIGNED_SHORT: {

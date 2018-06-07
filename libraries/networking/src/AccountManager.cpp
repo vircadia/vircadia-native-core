@@ -22,6 +22,7 @@
 #include <QtCore/QStringList>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QUrlQuery>
+#include <QtCore/QThreadPool>
 #include <QtNetwork/QHttpMultiPart>
 #include <QtNetwork/QNetworkRequest>
 #include <qthread.h>
@@ -106,7 +107,11 @@ void AccountManager::logout() {
 }
 
 QString accountFileDir() {
+#if defined(Q_OS_ANDROID)
+    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/../files";
+#else
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+#endif
 }
 
 QString accountFilePath() {
@@ -449,6 +454,20 @@ void AccountManager::removeAccountFromFile() {
         << "from settings file.";
 }
 
+void AccountManager::setAccountInfo(const DataServerAccountInfo &newAccountInfo) {
+    _accountInfo = newAccountInfo;
+    _pendingPrivateKey.clear();
+    if (_isAgent && !_accountInfo.getAccessToken().token.isEmpty() && !_accountInfo.hasProfile()) {
+        // we are missing profile information, request it now
+        requestProfile();
+    }
+
+    // prepare to refresh our token if it is about to expire
+    if (needsToRefreshToken()) {
+        refreshAccessToken();
+    }
+}
+
 bool AccountManager::hasValidAccessToken() {
 
     if (_accountInfo.getAccessToken().token.isEmpty() || _accountInfo.getAccessToken().isExpired()) {
@@ -725,6 +744,9 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
         return;
     }
 
+    // Ensure openssl/Qt config is set up.
+    QSslConfiguration::defaultConfiguration();
+
     // make sure we don't already have an outbound keypair generation request
     if (!_isWaitingForKeypairResponse) {
         _isWaitingForKeypairResponse = true;
@@ -733,94 +755,75 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
         qCDebug(networking) << "Clearing current private key in DataServerAccountInfo";
         _accountInfo.setPrivateKey(QByteArray());
 
-        // setup a new QThread to generate the keypair on, in case it takes a while
-        QThread* generateThread = new QThread(this);
-        generateThread->setObjectName("Account Manager Generator Thread");
-
-        // setup a keypair generator
+        // Create a runnable keypair generated to create an RSA pair and exit.
         RSAKeypairGenerator* keypairGenerator = new RSAKeypairGenerator;
 
         if (!isUserKeypair) {
-            keypairGenerator->setDomainID(domainID);
             _accountInfo.setDomainID(domainID);
         }
 
-        // start keypair generation when the thread starts
-        connect(generateThread, &QThread::started, keypairGenerator, &RSAKeypairGenerator::generateKeypair);
-
         // handle success or failure of keypair generation
-        connect(keypairGenerator, &RSAKeypairGenerator::generatedKeypair, this, &AccountManager::processGeneratedKeypair);
-        connect(keypairGenerator, &RSAKeypairGenerator::errorGeneratingKeypair,
-                this, &AccountManager::handleKeypairGenerationError);
-
-        connect(keypairGenerator, &QObject::destroyed, generateThread, &QThread::quit);
-        connect(generateThread, &QThread::finished, generateThread, &QThread::deleteLater);
-
-        keypairGenerator->moveToThread(generateThread);
+        connect(keypairGenerator, &RSAKeypairGenerator::generatedKeypair, this,
+            &AccountManager::processGeneratedKeypair);
+        connect(keypairGenerator, &RSAKeypairGenerator::errorGeneratingKeypair, this,
+            &AccountManager::handleKeypairGenerationError);
 
         qCDebug(networking) << "Starting worker thread to generate 2048-bit RSA keypair.";
-        generateThread->start();
+        // Start on Qt's global thread pool.
+        QThreadPool::globalInstance()->start(keypairGenerator);
     }
 }
 
-void AccountManager::processGeneratedKeypair() {
+void AccountManager::processGeneratedKeypair(QByteArray publicKey, QByteArray privateKey) {
 
     qCDebug(networking) << "Generated 2048-bit RSA keypair. Uploading public key now.";
 
-    RSAKeypairGenerator* keypairGenerator = qobject_cast<RSAKeypairGenerator*>(sender());
+    // hold the private key to later set our metaverse API account info if upload succeeds
+    _pendingPrivateKey = privateKey;
 
-    if (keypairGenerator) {
-        // hold the private key to later set our metaverse API account info if upload succeeds
-        _pendingPrivateKey = keypairGenerator->getPrivateKey();
+    // upload the public key so data-web has an up-to-date key
+    const QString USER_PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
+    const QString DOMAIN_PUBLIC_KEY_UPDATE_PATH = "api/v1/domains/%1/public_key";
 
-        // upload the public key so data-web has an up-to-date key
-        const QString USER_PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
-        const QString DOMAIN_PUBLIC_KEY_UPDATE_PATH = "api/v1/domains/%1/public_key";
-
-        QString uploadPath;
-        const auto& domainID = keypairGenerator->getDomainID();
-        if (domainID.isNull()) {
-            uploadPath = USER_PUBLIC_KEY_UPDATE_PATH;
-        } else {
-            uploadPath = DOMAIN_PUBLIC_KEY_UPDATE_PATH.arg(uuidStringWithoutCurlyBraces(domainID));
-        }
-
-        // setup a multipart upload to send up the public key
-        QHttpMultiPart* requestMultiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
-
-        QHttpPart publicKeyPart;
-        publicKeyPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
-
-        publicKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
-                          QVariant("form-data; name=\"public_key\"; filename=\"public_key\""));
-        publicKeyPart.setBody(keypairGenerator->getPublicKey());
-        requestMultiPart->append(publicKeyPart);
-
-        if (!domainID.isNull()) {
-            const auto& key = getTemporaryDomainKey(domainID);
-            QHttpPart apiKeyPart;
-            publicKeyPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
-            apiKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
-                              QVariant("form-data; name=\"api_key\""));
-            apiKeyPart.setBody(key.toUtf8());
-            requestMultiPart->append(apiKeyPart);
-        }
-
-        // setup callback parameters so we know once the keypair upload has succeeded or failed
-        JSONCallbackParameters callbackParameters;
-        callbackParameters.jsonCallbackReceiver = this;
-        callbackParameters.jsonCallbackMethod = "publicKeyUploadSucceeded";
-        callbackParameters.errorCallbackReceiver = this;
-        callbackParameters.errorCallbackMethod = "publicKeyUploadFailed";
-
-        sendRequest(uploadPath, AccountManagerAuth::Optional, QNetworkAccessManager::PutOperation,
-                    callbackParameters, QByteArray(), requestMultiPart);
-
-        keypairGenerator->deleteLater();
+    QString uploadPath;
+    const auto& domainID = _accountInfo.getDomainID();
+    if (domainID.isNull()) {
+        uploadPath = USER_PUBLIC_KEY_UPDATE_PATH;
     } else {
-        qCWarning(networking) << "Expected processGeneratedKeypair to be called by a live RSAKeypairGenerator"
-            << "but the casted sender is NULL. Will not process generated keypair.";
+        uploadPath = DOMAIN_PUBLIC_KEY_UPDATE_PATH.arg(uuidStringWithoutCurlyBraces(domainID));
     }
+
+    // setup a multipart upload to send up the public key
+    QHttpMultiPart* requestMultiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+
+    QHttpPart publicKeyPart;
+    publicKeyPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+
+    publicKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
+                        QVariant("form-data; name=\"public_key\"; filename=\"public_key\""));
+    publicKeyPart.setBody(publicKey);
+    requestMultiPart->append(publicKeyPart);
+
+    // Currently broken? We don't have the temporary domain key.
+    if (!domainID.isNull()) {
+        const auto& key = getTemporaryDomainKey(domainID);
+        QHttpPart apiKeyPart;
+        publicKeyPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+        apiKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
+                            QVariant("form-data; name=\"api_key\""));
+        apiKeyPart.setBody(key.toUtf8());
+        requestMultiPart->append(apiKeyPart);
+    }
+
+    // setup callback parameters so we know once the keypair upload has succeeded or failed
+    JSONCallbackParameters callbackParameters;
+    callbackParameters.jsonCallbackReceiver = this;
+    callbackParameters.jsonCallbackMethod = "publicKeyUploadSucceeded";
+    callbackParameters.errorCallbackReceiver = this;
+    callbackParameters.errorCallbackMethod = "publicKeyUploadFailed";
+
+    sendRequest(uploadPath, AccountManagerAuth::Optional, QNetworkAccessManager::PutOperation,
+                callbackParameters, QByteArray(), requestMultiPart);
 }
 
 void AccountManager::publicKeyUploadSucceeded(QNetworkReply& reply) {
@@ -859,6 +862,4 @@ void AccountManager::handleKeypairGenerationError() {
 
     // reset our waiting state for keypair response
     _isWaitingForKeypairResponse = false;
-
-    sender()->deleteLater();
 }

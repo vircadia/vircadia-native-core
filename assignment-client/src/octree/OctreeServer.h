@@ -174,7 +174,7 @@ protected:
     void beginRunning(QByteArray replaceData);
     
     UniqueSendThread createSendThread(const SharedNodePointer& node);
-    virtual UniqueSendThread newSendThread(const SharedNodePointer& node);
+    virtual UniqueSendThread newSendThread(const SharedNodePointer& node) = 0;
 
     int _argc;
     const char** _argv;
@@ -183,7 +183,7 @@ protected:
 
     bool _isShuttingDown = false;
 
-    HTTPManager* _httpManager;
+    std::unique_ptr<HTTPManager> _httpManager;
     int _statusPort;
     QString _statusHost;
 

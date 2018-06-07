@@ -28,7 +28,7 @@
 #include <PortableHighResolutionClock.h>
 #include <SimpleMovingAverage.h>
 #include <UUIDHasher.h>
-#include <ViewFrustum.h>
+#include <shared/ConicalViewFrustum.h>
 
 const QString OUTBOUND_AVATAR_DATA_STATS_KEY = "outbound_av_data_kbps";
 const QString INBOUND_AVATAR_DATA_STATS_KEY = "inbound_av_data_kbps";
@@ -110,16 +110,12 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
-    ViewFrustum getViewFrustum() const { return _currentViewFrustum; }
+    const ConicalViewFrustums& getViewFrustums() const { return _currentViewFrustums; }
 
     uint64_t getLastOtherAvatarEncodeTime(QUuid otherAvatar) const;
-    void setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, const uint64_t& time);
+    void setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, uint64_t time);
 
-    QVector<JointData>& getLastOtherAvatarSentJoints(QUuid otherAvatar) {
-        auto& lastOtherAvatarSentJoints = _lastOtherAvatarSentJoints[otherAvatar];
-        lastOtherAvatarSentJoints.resize(_avatar->getJointCount());
-        return lastOtherAvatarSentJoints;
-    }
+    QVector<JointData>& getLastOtherAvatarSentJoints(QUuid otherAvatar) { return _lastOtherAvatarSentJoints[otherAvatar]; }
 
     void queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
     int processPackets(); // returns number of packets processed
@@ -154,7 +150,7 @@ private:
 
     SimpleMovingAverage _avgOtherAvatarDataRate;
     std::unordered_set<QUuid> _radiusIgnoredOthers;
-    ViewFrustum _currentViewFrustum;
+    ConicalViewFrustums _currentViewFrustums;
 
     int _recentOtherAvatarsInView { 0 };
     int _recentOtherAvatarsOutOfView { 0 };

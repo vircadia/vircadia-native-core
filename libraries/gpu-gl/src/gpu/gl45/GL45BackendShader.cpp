@@ -15,18 +15,20 @@ using namespace gpu::gl45;
 
 // GLSL version
 std::string GL45Backend::getBackendShaderHeader() const {
-    const char header[] = 
-R"GLSL(#version 450 core
-#define GPU_GL450
-)GLSL"
+    static const std::string header(
+        R"SHADER(#version 450 core
+        #define GPU_GL450
+        #define BITFIELD int
+        )SHADER"
 #ifdef GPU_SSBO_TRANSFORM_OBJECT
-        R"GLSL(#define GPU_SSBO_TRANSFORM_OBJECT 1)GLSL"
+        R"SHADER(#define GPU_SSBO_TRANSFORM_OBJECT)SHADER"
 #endif
-    ;
-    return std::string(header);
+    );
+    return header;
 }
 
-int GL45Backend::makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) {
+int GL45Backend::makeResourceBufferSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) {
+    const auto& glprogram = shaderProgram.glprogram;
     GLint buffersCount = 0;
     glGetProgramInterfaceiv(glprogram, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &buffersCount);
 
@@ -163,6 +165,11 @@ void GL45Backend::makeProgramBindings(ShaderObject& shaderObject) {
     if (loc >= 0) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
         shaderObject.transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
+    }
+
+    loc = glGetUniformBlockIndex(glprogram, "gpu_resourceTextureTable0");
+    if (loc >= 0) {
+        glUniformBlockBinding(glprogram, loc, RESOURCE_TABLE_TEXTURE_SLOT_OFFSET);
     }
 
     (void)CHECK_GL_ERROR();

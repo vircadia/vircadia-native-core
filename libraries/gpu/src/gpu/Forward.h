@@ -21,6 +21,7 @@ namespace gpu {
     using Lock = std::unique_lock<Mutex>;
 
     class Batch;
+    using BatchPointer = std::shared_ptr<Batch>;
     class Backend;
     using BackendPointer = std::shared_ptr<Backend>;
     class Context;
@@ -91,6 +92,8 @@ namespace gpu {
     using Textures = std::vector<TexturePointer>;
     class TextureView;
     using TextureViews = std::vector<TextureView>;
+    class TextureTable;
+    using TextureTablePointer = std::shared_ptr<TextureTable>;
 
     struct StereoState {
         bool isStereo() const {

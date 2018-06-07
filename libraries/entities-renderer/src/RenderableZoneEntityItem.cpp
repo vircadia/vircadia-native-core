@@ -251,7 +251,7 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
         updateAmbientLightFromEntity(entity);
     }
 
-    if (skyboxChanged) {
+    if (skyboxChanged || _proceduralUserData != entity->getUserData()) {
         updateKeyBackgroundFromEntity(entity);
     }
 
@@ -269,7 +269,7 @@ void ZoneEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointe
 
 
 ItemKey ZoneEntityRenderer::getKey() {
-    return ItemKey::Builder().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1).build();
+    return ItemKey::Builder().withTypeMeta().withTagBits(getTagMask()).build();
 }
 
 bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
@@ -292,6 +292,10 @@ bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
         return true;
     }
     if (entity->getWorldOrientation() != _lastRotation) {
+        return true;
+    }
+
+    if (entity->getUserData() != _proceduralUserData) {
         return true;
     }
 

@@ -19,8 +19,7 @@
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
 
-
-ProfileRangeBatch::ProfileRangeBatch(gpu::Batch& batch, const char *name) : _batch(batch) {
+ProfileRangeBatch::ProfileRangeBatch(gpu::Batch& batch, const char* name) : _batch(batch) {
     _batch.pushProfileRange(name);
 }
 
@@ -34,60 +33,25 @@ ProfileRangeBatch::~ProfileRangeBatch() {
 using namespace gpu;
 
 // FIXME make these backend / pipeline dependent.
-static const int MAX_NUM_UNIFORM_BUFFERS = 12;
+static const int MAX_NUM_UNIFORM_BUFFERS = 14;
 static const int MAX_NUM_RESOURCE_BUFFERS = 16;
 static const int MAX_NUM_RESOURCE_TEXTURES = 16;
 
-size_t Batch::_commandsMax { BATCH_PREALLOCATE_MIN };
-size_t Batch::_commandOffsetsMax { BATCH_PREALLOCATE_MIN };
-size_t Batch::_paramsMax { BATCH_PREALLOCATE_MIN };
-size_t Batch::_dataMax { BATCH_PREALLOCATE_MIN };
-size_t Batch::_objectsMax { BATCH_PREALLOCATE_MIN };
-size_t Batch::_drawCallInfosMax { BATCH_PREALLOCATE_MIN };
+size_t Batch::_commandsMax{ BATCH_PREALLOCATE_MIN };
+size_t Batch::_commandOffsetsMax{ BATCH_PREALLOCATE_MIN };
+size_t Batch::_paramsMax{ BATCH_PREALLOCATE_MIN };
+size_t Batch::_dataMax{ BATCH_PREALLOCATE_MIN };
+size_t Batch::_objectsMax{ BATCH_PREALLOCATE_MIN };
+size_t Batch::_drawCallInfosMax{ BATCH_PREALLOCATE_MIN };
 
 Batch::Batch(const char* name) {
-#ifdef DEBUG
-    if (name) {
-        _name = name;
-    }
-#endif
+    _name = name;
     _commands.reserve(_commandsMax);
     _commandOffsets.reserve(_commandOffsetsMax);
     _params.reserve(_paramsMax);
     _data.reserve(_dataMax);
     _objects.reserve(_objectsMax);
     _drawCallInfos.reserve(_drawCallInfosMax);
-}
-
-Batch::Batch(const Batch& batch_) {
-    Batch& batch = *const_cast<Batch*>(&batch_);
-#ifdef DEBUG
-    _name = batch_._name;
-#endif
-    _commands.swap(batch._commands);
-    _commandOffsets.swap(batch._commandOffsets);
-    _params.swap(batch._params);
-    _data.swap(batch._data);
-    _invalidModel = batch._invalidModel;
-    _currentModel = batch._currentModel;
-    _objects.swap(batch._objects);
-    _currentNamedCall = batch._currentNamedCall;
-
-    _buffers._items.swap(batch._buffers._items);
-    _textures._items.swap(batch._textures._items);
-    _streamFormats._items.swap(batch._streamFormats._items);
-    _transforms._items.swap(batch._transforms._items);
-    _pipelines._items.swap(batch._pipelines._items);
-    _framebuffers._items.swap(batch._framebuffers._items);
-    _swapChains._items.swap(batch._swapChains._items);
-    _drawCallInfos.swap(batch._drawCallInfos);
-    _queries._items.swap(batch._queries._items);
-    _lambdas._items.swap(batch._lambdas._items);
-    _profileRanges._items.swap(batch._profileRanges._items);
-    _names._items.swap(batch._names._items);
-    _namedData.swap(batch._namedData);
-    _enableStereo = batch._enableStereo;
-    _enableSkybox = batch._enableSkybox;
 }
 
 Batch::~Batch() {
@@ -97,6 +61,10 @@ Batch::~Batch() {
     _dataMax = std::max(_data.size(), _dataMax);
     _objectsMax = std::max(_objects.size(), _objectsMax);
     _drawCallInfosMax = std::max(_drawCallInfos.size(), _drawCallInfosMax);
+}
+
+void Batch::setName(const char* name) {
+    _name = name;
 }
 
 void Batch::clear() {
@@ -109,17 +77,30 @@ void Batch::clear() {
 
     _commands.clear();
     _commandOffsets.clear();
-    _params.clear();
     _data.clear();
-    _buffers.clear();
-    _textures.clear();
-    _streamFormats.clear();
-    _transforms.clear();
-    _pipelines.clear();
-    _framebuffers.clear();
-    _swapChains.clear();
-    _objects.clear();
     _drawCallInfos.clear();
+    _buffers.clear();
+    _framebuffers.clear();
+    _lambdas.clear();
+    _names.clear();
+    _namedData.clear();
+    _objects.clear();
+    _params.clear();
+    _pipelines.clear();
+    _profileRanges.clear();
+    _queries.clear();
+    _swapChains.clear();
+    _streamFormats.clear();
+    _textures.clear();
+    _textureTables.clear();
+    _transforms.clear();
+
+    _name = nullptr;
+    _invalidModel = true;
+    _currentModel = Transform();
+    _projectionJitter = glm::vec2(0.0f);
+    _enableStereo = true;
+    _enableSkybox = false;
 }
 
 size_t Batch::cacheData(size_t size, const void* data) {
@@ -174,7 +155,6 @@ void Batch::drawIndexedInstanced(uint32 numInstances, Primitive primitiveType, u
 
     captureDrawCallInfo();
 }
-
 
 void Batch::multiDrawIndirect(uint32 numCommands, Primitive primitiveType) {
     ADD_COMMAND(multiDrawIndirect);
@@ -242,7 +222,6 @@ void Batch::setIndirectBuffer(const BufferPointer& buffer, Offset offset, Offset
     _params.emplace_back(stride);
 }
 
-
 void Batch::setModelTransform(const Transform& model) {
     ADD_COMMAND(setModelTransform);
 
@@ -261,6 +240,22 @@ void Batch::setProjectionTransform(const Mat4& proj) {
     ADD_COMMAND(setProjectionTransform);
 
     _params.emplace_back(cacheData(sizeof(Mat4), &proj));
+}
+
+void Batch::setProjectionJitter(float jx, float jy) {
+    _projectionJitter.x = jx;
+    _projectionJitter.y = jy;
+    pushProjectionJitter(jx, jy);
+}
+
+void Batch::pushProjectionJitter(float jx, float jy) {
+    ADD_COMMAND(setProjectionJitter);
+    _params.emplace_back(jx);
+    _params.emplace_back(jy);
+}
+
+void Batch::popProjectionJitter() {
+    pushProjectionJitter(_projectionJitter.x, _projectionJitter.y);
 }
 
 void Batch::setViewportTransform(const Vec4i& viewport) {
@@ -337,6 +332,12 @@ void Batch::setResourceTexture(uint32 slot, const TextureView& view) {
     setResourceTexture(slot, view._texture);
 }
 
+void Batch::setResourceTextureTable(const TextureTablePointer& textureTable, uint32 slot) {
+    ADD_COMMAND(setResourceTextureTable);
+    _params.emplace_back(_textureTables.cache(textureTable));
+    _params.emplace_back(slot);
+}
+
 void Batch::setResourceFramebufferSwapChainTexture(uint32 slot, const FramebufferSwapChainPointer& framebuffer, unsigned int swapChainIndex, unsigned int renderBufferSlot) {
     ADD_COMMAND(setResourceFramebufferSwapChainTexture);
 
@@ -350,7 +351,6 @@ void Batch::setFramebuffer(const FramebufferPointer& framebuffer) {
     ADD_COMMAND(setFramebuffer);
 
     _params.emplace_back(_framebuffers.cache(framebuffer));
-
 }
 
 void Batch::setFramebufferSwapChain(const FramebufferSwapChainPointer& framebuffer, unsigned int swapChainIndex) {
@@ -463,7 +463,7 @@ void Batch::runLambda(std::function<void()> f) {
 void Batch::startNamedCall(const std::string& name) {
     ADD_COMMAND(startNamedCall);
     _params.emplace_back(_names.cache(name));
-    
+
     _currentNamedCall = name;
 }
 
@@ -532,7 +532,7 @@ void Batch::captureDrawCallInfoImpl() {
         TransformObject object;
         _currentModel.getMatrix(object._model);
 
-        // FIXME - we don't want to be using glm::inverse() here but it fixes the flickering issue we are 
+        // FIXME - we don't want to be using glm::inverse() here but it fixes the flickering issue we are
         // seeing with planky blocks in toybox. Our implementation of getInverseMatrix() is buggy in cases
         // of non-uniform scale. We need to fix that. In the mean time, glm::inverse() works.
         //_model.getInverseMatrix(_object._modelInverse);
@@ -558,9 +558,9 @@ void Batch::captureDrawCallInfo() {
 }
 
 void Batch::captureNamedDrawCallInfo(std::string name) {
-    std::swap(_currentNamedCall, name); // Set and save _currentNamedCall
+    std::swap(_currentNamedCall, name);  // Set and save _currentNamedCall
     captureDrawCallInfoImpl();
-    std::swap(_currentNamedCall, name); // Restore _currentNamedCall
+    std::swap(_currentNamedCall, name);  // Restore _currentNamedCall
 }
 
 // Debugging

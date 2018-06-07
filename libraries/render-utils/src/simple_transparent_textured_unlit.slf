@@ -17,11 +17,8 @@
 // the albedo texture
 uniform sampler2D originalTexture;
 
-// the interpolated normal
-in vec3 _normal;
 in vec4 _color;
 in vec2 _texCoord0;
-
 
 layout(location = 0) out vec4 _fragColor0;
 

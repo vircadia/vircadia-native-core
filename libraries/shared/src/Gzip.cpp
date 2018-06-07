@@ -9,8 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <zlib.h>
 #include "Gzip.h"
+
+#include <zlib.h>
 
 const int GZIP_WINDOWS_BIT = 31;
 const int GZIP_CHUNK_SIZE = 4096;
@@ -60,6 +61,7 @@ bool gunzip(QByteArray source, QByteArray &destination) {
             switch (status) {
                 case Z_NEED_DICT:
                     status = Z_DATA_ERROR;
+                    // FALLTHRU
                 case Z_DATA_ERROR:
                 case Z_MEM_ERROR:
                 case Z_STREAM_ERROR:

@@ -16,7 +16,7 @@
 #include <AnimationLogging.h>
 #include <NumericalConstants.h>
 
-#include "../QTestExtensions.h"
+#include <test-utils/QTestExtensions.h>
 
 QTEST_MAIN(AnimInverseKinematicsTests)
 

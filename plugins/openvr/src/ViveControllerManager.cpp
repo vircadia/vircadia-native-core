@@ -11,6 +11,7 @@
 
 #include "ViveControllerManager.h"
 #include <algorithm>
+#include <string>
 
 #include <PerfStat.h>
 #include <PathUtils.h>
@@ -339,6 +340,12 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     _validTrackedObjects.clear();
     _trackedControllers = 0;
 
+    if (_headsetName == "") {
+        _headsetName = getOpenVrDeviceName();
+        if (_headsetName == "HTC") {
+            _headsetName += " Vive";
+        }
+    }
     // While the keyboard is open, we defer strictly to the keyboard values
     if (isOpenVrKeyboardShown()) {
         _axisStateMap.clear();
@@ -1232,6 +1239,66 @@ void ViveControllerManager::InputDevice::setConfigFromString(const QString& valu
     }
 }
 
+/**jsdoc
+ * <p>The <code>Controller.Hardware.Vive</code> object has properties representing Vive. The property values are integer IDs,
+ * uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or 
+ * <code>Controller.Standard</code> items in a {@link RouteObject} mapping.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Property</th><th>Type</th><th>Data</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td colspan="4"><strong>Touch Pad (Sticks)</strong></td></tr>
+ *     <tr><td><code>LX</code></td><td>number</td><td>number</td><td>Left touch pad x-axis scale.</td></tr>
+ *     <tr><td><code>LY</code></td><td>number</td><td>number</td><td>Left touch pad y-axis scale.</td></tr>
+ *     <tr><td><code>RX</code></td><td>number</td><td>number</td><td>Right stick x-axis scale.</td></tr>
+ *     <tr><td><code>RY</code></td><td>number</td><td>number</td><td>Right stick y-axis scale.</td></tr>
+ *     <tr><td><code>LS</code></td><td>number</td><td>number</td><td>Left touch pad pressed.</td></tr>
+ *     <tr><td><code>LS_CENTER</code></td><td>number</td><td>number</td><td>Left touch pad center pressed.</td></tr>
+ *     <tr><td><code>LS_X</code></td><td>number</td><td>number</td><td>Left touch pad pressed x-coordinate.</td></tr>
+ *     <tr><td><code>LS_Y</code></td><td>number</td><td>number</td><td>Left touch pad pressed y-coordinate.</td></tr>
+ *     <tr><td><code>RS</code></td><td>number</td><td>number</td><td>Right touch pad pressed.</td></tr>
+ *     <tr><td><code>RS_CENTER</code></td><td>number</td><td>number</td><td>Right touch pad center pressed.</td></tr>
+ *     <tr><td><code>RS_X</code></td><td>number</td><td>number</td><td>Right touch pad pressed x-coordinate.</td></tr>
+ *     <tr><td><code>RS_Y</code></td><td>number</td><td>number</td><td>Right touch pad pressed y-coordinate.</td></tr>
+ *     <tr><td><code>LSTouch</code></td><td>number</td><td>number</td><td>Left touch pad is touched.</td></tr>
+ *     <tr><td><code>RSTouch</code></td><td>number</td><td>number</td><td>Right touch pad is touched.</td></tr>
+ *     <tr><td colspan="4"><strong>Triggers</strong></td></tr>
+ *     <tr><td><code>LT</code></td><td>number</td><td>number</td><td>Left trigger scale.</td></tr>
+ *     <tr><td><code>RT</code></td><td>number</td><td>number</td><td>Right trigger scale.</td></tr>
+ *     <tr><td><code>LTClick</code></td><td>number</td><td>number</td><td>Left trigger click.</td></tr>
+ *     <tr><td><code>RTClick</code></td><td>number</td><td>number</td><td>Right trigger click.</td></tr>
+ *     <tr><td><code>LeftGrip</code></td><td>number</td><td>number</td><td>Left grip scale.</td></tr>
+ *     <tr><td><code>RightGrip</code></td><td>number</td><td>number</td><td>Right grip scale.</td></tr>
+ *     <tr><td colspan="4"><strong>Avatar Skeleton</strong></td></tr>
+ *     <tr><td><code>Hips</code></td><td>number</td><td>{@link Pose}</td><td>Hips pose.</td></tr>
+ *     <tr><td><code>Spine2</code></td><td>number</td><td>{@link Pose}</td><td>Spine2 pose.</td></tr>
+ *     <tr><td><code>Head</code></td><td>number</td><td>{@link Pose}</td><td>Head pose.</td></tr>
+ *     <tr><td><code>LeftArm</code></td><td>number</td><td>{@link Pose}</td><td>Left arm pose.</td></tr>
+ *     <tr><td><code>RightArm</code></td><td>number</td><td>{@link Pose}</td><td>Right arm pose</td></tr>
+ *     <tr><td><code>LeftHand</code></td><td>number</td><td>{@link Pose}</td><td>Left hand pose.</td></tr>
+ *     <tr><td><code>RightHand</code></td><td>number</td><td>{@link Pose}</td><td>Right hand pose.</td></tr>
+ *     <tr><td colspan="4"><strong>Trackers</strong></td></tr>
+ *     <tr><td><code>TrackedObject00</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 0 pose.</td></tr>
+ *     <tr><td><code>TrackedObject01</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 1 pose.</td></tr>
+ *     <tr><td><code>TrackedObject02</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 2 pose.</td></tr>
+ *     <tr><td><code>TrackedObject03</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 3 pose.</td></tr>
+ *     <tr><td><code>TrackedObject04</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 4 pose.</td></tr>
+ *     <tr><td><code>TrackedObject05</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 5 pose.</td></tr>
+ *     <tr><td><code>TrackedObject06</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 6 pose.</td></tr>
+ *     <tr><td><code>TrackedObject07</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 7 pose.</td></tr>
+ *     <tr><td><code>TrackedObject08</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 8 pose.</td></tr>
+ *     <tr><td><code>TrackedObject09</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 9 pose.</td></tr>
+ *     <tr><td><code>TrackedObject10</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 10 pose.</td></tr>
+ *     <tr><td><code>TrackedObject11</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 11 pose.</td></tr>
+ *     <tr><td><code>TrackedObject12</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 12 pose.</td></tr>
+ *     <tr><td><code>TrackedObject13</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 13 pose.</td></tr>
+ *     <tr><td><code>TrackedObject14</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 14 pose.</td></tr>
+ *     <tr><td><code>TrackedObject15</code></td><td>number</td><td>{@link Pose}</td><td>Tracker 15 pose.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {object} Controller.Hardware-Vive
+ */
 controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableInputs() const {
     using namespace controller;
     QVector<Input::NamedPair> availableInputs{

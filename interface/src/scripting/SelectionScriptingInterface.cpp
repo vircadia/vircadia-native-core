@@ -56,6 +56,19 @@ bool GameplayObjects::removeFromGameplayObjects(const OverlayID& overlayID) {
 SelectionScriptingInterface::SelectionScriptingInterface() {
 }
 
+/**jsdoc
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"avatar"</code></td><td></td></tr>
+ *     <tr><td><code>"entity"</code></td><td></td></tr>
+ *     <tr><td><code>"overlay"</code></td><td></td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Selection.ItemType
+ */
 bool SelectionScriptingInterface::addToSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id) {
     if (itemType == "avatar") {
         return addToGameplayObjects(listName, (QUuid)id);
@@ -110,7 +123,7 @@ bool SelectionScriptingInterface::enableListHighlight(const QString& listName, c
     }
 
     if (!(*highlightStyle).isBoundToList()) {
-        setupHandler(listName);
+        enableListToScene(listName);
         (*highlightStyle).setBoundToList(true);
     }
 
@@ -134,6 +147,7 @@ bool SelectionScriptingInterface::disableListHighlight(const QString& listName) 
     auto highlightStyle = _highlightStyleMap.find(listName);
     if (highlightStyle != _highlightStyleMap.end()) {
         if ((*highlightStyle).isBoundToList()) {
+            disableListToScene(listName);
         }
 
         _highlightStyleMap.erase(highlightStyle);
@@ -170,6 +184,18 @@ render::HighlightStyle SelectionScriptingInterface::getHighlightStyle(const QStr
     } else {
         return (*highlightStyle).getStyle();
     }
+}
+
+bool SelectionScriptingInterface::enableListToScene(const QString& listName) {
+    setupHandler(listName);
+
+    return true;
+}
+
+bool SelectionScriptingInterface::disableListToScene(const QString& listName) {
+    removeHandler(listName);
+
+    return true;
 }
 
 template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const QString& listName, T idToAdd) {
@@ -242,6 +268,12 @@ void SelectionScriptingInterface::printList(const QString& listName) {
     }
 }
 
+/**jsdoc
+ * @typedef {object} Selection.SelectedItemsList
+ * @property {Uuid[]} avatars - The IDs of the avatars in the selection.
+ * @property {Uuid[]} entities - The IDs of the entities in the selection.
+ * @property {Uuid[]} overlays - The IDs of the overlays in the selection.
+ */
 QVariantMap SelectionScriptingInterface::getSelectedItemsList(const QString& listName) const {
     QReadLocker lock(&_selectionListsLock);
     QVariantMap list;
@@ -301,6 +333,15 @@ void SelectionScriptingInterface::setupHandler(const QString& selectionName) {
     }
 
     (*handler)->initialize(selectionName);
+}
+
+void SelectionScriptingInterface::removeHandler(const QString& selectionName) {
+    QWriteLocker lock(&_selectionHandlersLock);
+    auto handler = _handlerMap.find(selectionName);
+    if (handler != _handlerMap.end()) {
+        delete handler.value();
+        _handlerMap.erase(handler);
+    }
 }
 
 void SelectionScriptingInterface::onSelectedItemsListChanged(const QString& listName) {
@@ -439,6 +480,20 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     return true;
 }
 
+/**jsdoc
+ * @typedef {object} Selection.HighlightStyle
+ * @property {Color} outlineUnoccludedColor - Color of the specified highlight region.
+ * @property {Color} outlineOccludedColor - ""
+ * @property {Color} fillUnoccludedColor- ""
+ * @property {Color} fillOccludedColor- ""
+ * @property {number} outlineUnoccludedAlpha - Alpha value ranging from <code>0.0</code> (not visible) to <code>1.0</code> 
+ *     (fully opaque) for the specified highlight region.
+ * @property {number} outlineOccludedAlpha - ""
+ * @property {number} fillUnoccludedAlpha - ""
+ * @property {number} fillOccludedAlpha - ""
+ * @property {number} outlineWidth - Width of the outline, in pixels.
+ * @property {boolean} isOutlineSmooth - <code>true</code> to enable outline smooth fall-off.
+ */
 QVariantMap SelectionHighlightStyle::toVariantMap() const {
     QVariantMap properties;
 

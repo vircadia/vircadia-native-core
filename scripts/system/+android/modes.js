@@ -11,17 +11,24 @@
 //
 (function() { // BEGIN LOCAL_SCOPE
 
-var modesbar;
-var modesButtons;
-var currentSelectedBtn;
+var modeButton;
+var currentMode;
+var barQml;
 
 var SETTING_CURRENT_MODE_KEY = 'Android/Mode';
 var MODE_VR = "VR", MODE_RADAR = "RADAR", MODE_MY_VIEW = "MY VIEW";
 var DEFAULT_MODE = MODE_MY_VIEW;
-var logEnabled = true;
+var nextMode = {};
+nextMode[MODE_RADAR]=MODE_MY_VIEW;
+nextMode[MODE_MY_VIEW]=MODE_RADAR;
+var modeLabel = {};
+modeLabel[MODE_RADAR]="TOP VIEW";
+modeLabel[MODE_MY_VIEW]="MY VIEW";
 
+var logEnabled = false;
 var radar = Script.require('./radar.js');
 var uniqueColor = Script.require('./uniqueColor.js');
+var displayNames = Script.require('./displayNames.js');
 
 function printd(str) {
     if (logEnabled) {       
@@ -32,87 +39,41 @@ function printd(str) {
 function init() {
     radar.setUniqueColor(uniqueColor);
     radar.init();
-    setupModesBar();
+    
+    barQml = new QmlFragment({
+        qml: "hifi/modesbar.qml"
+    });
+    modeButton = barQml.addButton({
+        icon: "icons/myview-a.svg",
+        activeBgOpacity: 0.0,
+        hoverBgOpacity: 0.0,
+        activeHoverBgOpacity: 0.0,
+        text: "MODE",
+        height:240,
+        bottomMargin: 16,
+        textSize: 38,
+        fontFamily: "Raleway",
+        fontBold: true
+
+    });
+    
+    switchToMode(getCurrentModeSetting());
+    
+    modeButton.entered.connect(modeButtonPressed);
+    modeButton.clicked.connect(modeButtonClicked);
 }
 
 function shutdown() {
-
+    modeButton.entered.disconnect(modeButtonPressed);
+    modeButton.clicked.disconnect(modeButtonClicked);
 }
 
-function setupModesBar() {
+function modeButtonPressed() {
+   Controller.triggerHapticPulseOnDevice(Controller.findDevice("TouchscreenVirtualPad"), 0.1, 40.0, 0);
+}
 
-    var bar = new QmlFragment({
-        qml: "hifi/modesbar.qml"
-    });
-    var buttonRadarMode = bar.addButton({
-        icon: "icons/radar-i.svg",
-        activeIcon: "icons/radar-a.svg",
-        hoverIcon: "icons/radar-a.svg",
-        activeBgOpacity: 0.0,
-        hoverBgOpacity: 0.0,
-        activeHoverBgOpacity: 0.0,
-        text: "RADAR",
-        height:240,
-        bottomMargin: 6,
-        textSize: 45
-    });
-    var buttonMyViewMode = bar.addButton({
-        icon: "icons/myview-i.svg",
-        activeIcon: "icons/myview-a.svg",
-        hoverIcon: "icons/myview-a.svg",
-        activeBgOpacity: 0.0,
-        hoverBgOpacity: 0.0,
-        activeHoverBgOpacity: 0.0,
-        text: "MY VIEW",
-        height: 240,
-        bottomMargin: 6,
-        textSize: 45
-    });
-    
-    modesButtons = [buttonRadarMode, buttonMyViewMode];
-
-    var mode = getCurrentModeSetting();
-
-    var buttonsRevealed = false;
-    bar.sendToQml({type: "inactiveButtonsHidden"});
-
-    modesbar = {
-        restoreMyViewButton: function() {
-            switchModeButtons(buttonMyViewMode);
-            saveCurrentModeSetting(MODE_MY_VIEW);
-        },
-        sendToQml: function(o) { bar.sendToQml(o); },
-        qmlFragment: bar
-    };
-
-    buttonRadarMode.clicked.connect(function() {
-        //if (connections.isVisible()) return;
-        saveCurrentModeSetting(MODE_RADAR);
-        printd("Radar clicked");
-        onButtonClicked(buttonRadarMode, function() {
-            radar.startRadarMode();
-        });
-    });
-    buttonMyViewMode.clicked.connect(function() {
-        //if (connections.isVisible()) return;
-        saveCurrentModeSetting(MODE_MY_VIEW);
-        printd("My View clicked");
-        onButtonClicked(buttonMyViewMode, function() {
-            if (currentSelectedBtn == buttonRadarMode) {
-                radar.endRadarMode();
-            }
-        });
-    });
-
-    var savedButton;
-    if (mode == MODE_MY_VIEW) {
-        savedButton = buttonMyViewMode;
-    } else {
-        savedButton = buttonRadarMode;
-    }
-    printd("[MODE] previous mode " + mode);
-
-    savedButton.clicked();
+function modeButtonClicked() {
+    switchToMode(nextMode[currentMode]);
 }
 
 function saveCurrentModeSetting(mode) {
@@ -123,62 +84,31 @@ function getCurrentModeSetting(mode) {
     return Settings.getValue(SETTING_CURRENT_MODE_KEY, DEFAULT_MODE);
 }
 
-function showAllButtons() {
-    for (var i=0; i<modesButtons.length; i++) {
-        modesButtons[i].visible = true;
+function switchToMode(newMode) {
+    // before leaving radar mode
+    if (currentMode == MODE_RADAR) {
+        radar.endRadarMode();
     }
-    buttonsRevealed = true;
-    print("Modesbar: " + modesbar);
-    modesbar.sendToQml({type: "allButtonsShown"});
-}
+    currentMode = newMode;
+    modeButton.text = modeLabel[currentMode];
 
-function hideAllButtons() {
-    for (var i=0; i<modesButtons.length; i++) {
-        modesButtons[i].visible = false;
-    }
-}
+    saveCurrentModeSetting(currentMode);
 
-function hideOtherButtons(thisButton) {
-    printd("Hiding all but " + thisButton);
-    printd("modesButtons: " + modesButtons.length);
-    for (var i=0; i<modesButtons.length; i++) {
-        if (modesButtons[i] != thisButton) {
-            printd("----Hiding " + thisButton);
-            modesButtons[i].visible = false;
-        } else {
-            // be sure to keep it visible
-            modesButtons[i].visible = true;
-        }
-    }
-    buttonsRevealed = false;
-    print("Modesbar: " + modesbar);
-    modesbar.sendToQml({type: "inactiveButtonsHidden"});
-}
-
-function switchModeButtons(clickedButton, hideAllAfter) {
-    if (currentSelectedBtn) {
-        currentSelectedBtn.isActive = false;
-    }
-    currentSelectedBtn = clickedButton;
-    clickedButton.isActive = true;
-    if (hideAllAfter) {
-        hideAllButtons();
+    if (currentMode == MODE_RADAR) {
+        radar.startRadarMode();
+        displayNames.ending();
+    } else  if (currentMode == MODE_MY_VIEW) {
+        // nothing to do yet
+        displayNames.init();
     } else {
-        hideOtherButtons(clickedButton);
+        printd("Unknown view mode " + currentMode);
     }
+    
 }
 
-function onButtonClicked(clickedButton, whatToDo, hideAllAfter) {
-    if (currentSelectedBtn == clickedButton) {
-        if (buttonsRevealed) {
-            hideOtherButtons(clickedButton);
-        } else {
-            showAllButtons();
-        }
-    } else {
-        // mode change
-        whatToDo();
-        switchModeButtons(clickedButton, hideAllAfter);
+function sendToQml(o) {
+    if(barQml) {
+      barQml.sendToQml(o);  
     }
 }
 

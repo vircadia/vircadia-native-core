@@ -218,8 +218,8 @@ ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
 }
 
 ResourceCache::ResourceCache(QObject* parent) : QObject(parent) {
-    auto nodeList = DependencyManager::get<NodeList>();
-    if (nodeList) {
+    if (DependencyManager::isSet<NodeList>()) {
+        auto nodeList = DependencyManager::get<NodeList>();
         auto& domainHandler = nodeList->getDomainHandler();
         connect(&domainHandler, &DomainHandler::disconnectedFromDomain,
             this, &ResourceCache::clearATPAssets, Qt::DirectConnection);
@@ -581,6 +581,7 @@ void Resource::refresh() {
         ResourceCache::requestCompleted(_self);
     }
     
+    _activeUrl = _url;
     init();
     ensureLoading();
     emit onRefresh();
@@ -618,7 +619,6 @@ void Resource::init(bool resetLoaded) {
         _loaded = false;
     }
     _attempts = 0;
-    _activeUrl = _url;
     
     if (_url.isEmpty()) {
         _startedLoading = _loaded = true;
@@ -724,7 +724,7 @@ void Resource::handleReplyFinished() {
     auto result = _request->getResult();
     if (result == ResourceRequest::Success) {
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
-        qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
+        qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_activeUrl.toDisplayString(), extraInfo);
 
         auto relativePathURL = _request->getRelativePathUrl();
         if (!relativePathURL.isEmpty()) {
@@ -750,6 +750,7 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
             qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
             // Fall through to other cases
         }
+        // FALLTHRU
         case ResourceRequest::Result::ServerUnavailable: {
             _attempts++;
             _attemptsRemaining--;
@@ -768,6 +769,7 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
             }
             // fall through to final failure
         }
+        // FALLTHRU
         default: {
             _attemptsRemaining = 0;
             qCDebug(networking) << "Error loading " << _url << "attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;

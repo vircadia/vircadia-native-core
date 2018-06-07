@@ -26,6 +26,14 @@
 
 #include <trackers/FaceTracker.h>
 
+/**jsdoc 
+ * The FaceTracker API helps manage facial tracking hardware. 
+ * @namespace FaceTracker
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ */
+
 class DdeFaceTracker : public FaceTracker, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -57,7 +65,16 @@ public:
     void setEyeClosingThreshold(float eyeClosingThreshold);
 
 public slots:
+
+    /**jsdoc 
+     * @function FaceTracker.setEnabled
+     * @param {boolean} enabled
+     */
     void setEnabled(bool enabled) override;
+
+    /**jsdoc
+     * @function FaceTracker.calibrate
+     */
     void calibrate();
 
 private slots:

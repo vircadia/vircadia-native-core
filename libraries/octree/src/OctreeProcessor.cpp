@@ -8,16 +8,17 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include "OctreeProcessor.h"
+
+#include <stdint.h>
 
 #include <glm/glm.hpp>
-#include <stdint.h>
 
 #include <NumericalConstants.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
 
 #include "OctreeLogging.h"
-#include "OctreeProcessor.h"
 
 OctreeProcessor::OctreeProcessor() :
     _tree(NULL),
@@ -96,7 +97,7 @@ void OctreeProcessor::processDatagram(ReceivedMessage& message, SharedNodePointe
         quint64 totalUncompress = 0;
         quint64 totalReadBitsteam = 0;
 
-        const QUuid& sourceUUID = message.getSourceID();
+        const QUuid& sourceUUID = sourceNode->getUUID();
         
         int subsection = 1;
         
@@ -117,7 +118,7 @@ void OctreeProcessor::processDatagram(ReceivedMessage& message, SharedNodePointe
             if (sectionLength) {
                 // ask the VoxelTree to read the bitstream into the tree
                 ReadBitstreamToTreeParams args(WANT_EXISTS_BITS, NULL,
-                                                sourceUUID, sourceNode, false, message.getVersion());
+                                               sourceUUID, sourceNode);
                 quint64 startUncompress, startLock = usecTimestampNow();
                 quint64 startReadBitsteam, endReadBitsteam;
                 // FIXME STUTTER - there may be an opportunity to bump this lock outside of the

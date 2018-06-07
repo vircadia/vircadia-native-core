@@ -233,7 +233,6 @@ OctreeServer::OctreeServer(ReceivedMessage& message) :
     _argc(0),
     _argv(NULL),
     _parsedArgV(NULL),
-    _httpManager(NULL),
     _statusPort(0),
     _packetsPerClientPerInterval(10),
     _packetsTotalPerInterval(DEFAULT_PACKETS_PER_INTERVAL),
@@ -285,7 +284,7 @@ void OctreeServer::initHTTPManager(int port) {
     QString documentRoot = QString("%1/web").arg(PathUtils::getAppDataPath());
 
     // setup an httpManager with us as the request handler and the parent
-    _httpManager = new HTTPManager(QHostAddress::AnyIPv4, port, documentRoot, this, this);
+    _httpManager.reset(new HTTPManager(QHostAddress::AnyIPv4, port, documentRoot, this));
 }
 
 bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
@@ -874,10 +873,6 @@ void OctreeServer::parsePayload() {
 
         setArguments(argCount, _parsedArgV);
     }
-}
-
-OctreeServer::UniqueSendThread OctreeServer::newSendThread(const SharedNodePointer& node) {
-    return std::unique_ptr<OctreeSendThread>(new OctreeSendThread(this, node));
 }
 
 OctreeServer::UniqueSendThread OctreeServer::createSendThread(const SharedNodePointer& node) {

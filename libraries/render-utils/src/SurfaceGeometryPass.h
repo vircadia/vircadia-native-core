@@ -81,10 +81,10 @@ private:
 
     LinearDepthFramebufferPointer _linearDepthFramebuffer;
 
-    const gpu::PipelinePointer& getLinearDepthPipeline();
+    const gpu::PipelinePointer& getLinearDepthPipeline(const render::RenderContextPointer& renderContext);
     gpu::PipelinePointer _linearDepthPipeline;
 
-    const gpu::PipelinePointer& getDownsamplePipeline();
+    const gpu::PipelinePointer& getDownsamplePipeline(const render::RenderContextPointer& renderContext);
     gpu::PipelinePointer _downsamplePipeline;
 
     gpu::RangeTimerPointer _gpuTimer;
@@ -195,7 +195,7 @@ private:
 
     SurfaceGeometryFramebufferPointer _surfaceGeometryFramebuffer;
 
-    const gpu::PipelinePointer& getCurvaturePipeline();
+    const gpu::PipelinePointer& getCurvaturePipeline(const render::RenderContextPointer& renderContext);
 
     gpu::PipelinePointer _curvaturePipeline;
     

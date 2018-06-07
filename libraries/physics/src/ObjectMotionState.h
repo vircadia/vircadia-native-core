@@ -111,7 +111,7 @@ public:
     virtual PhysicsMotionType getMotionType() const { return _motionType; }
 
     void setMass(float mass);
-    float getMass() const;
+    virtual float getMass() const;
 
     void setBodyLinearVelocity(const glm::vec3& velocity) const;
     void setBodyAngularVelocity(const glm::vec3& velocity) const;
@@ -148,13 +148,13 @@ public:
 
     virtual const QUuid getObjectID() const = 0;
 
-    virtual quint8 getSimulationPriority() const { return 0; }
+    virtual uint8_t getSimulationPriority() const { return 0; }
     virtual QUuid getSimulatorID() const = 0;
-    virtual void bump(quint8 priority) {}
+    virtual void bump(uint8_t priority) {}
 
     virtual QString getName() const { return ""; }
 
-    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const = 0;
+    virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const = 0;
 
     bool isActive() const { return _body ? _body->isActive() : false; }
 
@@ -164,7 +164,7 @@ public:
     void clearInternalKinematicChanges() { _hasInternalKinematicChanges = false; }
 
     virtual bool isLocallyOwned() const { return false; }
-    virtual bool shouldBeLocallyOwned() const { return false; }
+    virtual bool isLocallyOwnedOrShouldBe() const { return false; } // aka shouldEmitCollisionEvents()
 
     friend class PhysicsEngine;
 
@@ -184,7 +184,7 @@ protected:
     btRigidBody* _body { nullptr };
     float _density { 1.0f };
 
-    uint32_t _lastKinematicStep;
+    mutable uint32_t _lastKinematicStep;
     bool _hasInternalKinematicChanges { false };
 };
 

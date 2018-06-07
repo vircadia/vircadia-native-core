@@ -41,7 +41,7 @@ protected:
 
 class DrawDeferred {
 public:
-    using Inputs = render::VaryingSet3 <render::ItemBounds, LightingModelPointer, LightClustersPointer>;
+    using Inputs = render::VaryingSet4<render::ItemBounds, LightingModelPointer, LightClustersPointer, glm::vec2>;
     using Config = DrawDeferredConfig;
     using JobModel = render::Job::ModelI<DrawDeferred, Inputs, Config>;
 
@@ -81,7 +81,7 @@ protected:
 
 class DrawStateSortDeferred {
 public:
-    using Inputs = render::VaryingSet2<render::ItemBounds, LightingModelPointer>;
+    using Inputs = render::VaryingSet3<render::ItemBounds, LightingModelPointer, glm::vec2>;
 
     using Config = DrawStateSortConfig;
     using JobModel = render::Job::ModelI<DrawStateSortDeferred, Inputs, Config>;

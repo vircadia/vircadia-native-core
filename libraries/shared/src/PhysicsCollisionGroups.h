@@ -34,13 +34,13 @@ enum CollisionFilterGroups {
  *
 */
 
-const int16_t BULLET_COLLISION_GROUP_STATIC = 1 << 0;
-const int16_t BULLET_COLLISION_GROUP_DYNAMIC = 1 << 1;
-const int16_t BULLET_COLLISION_GROUP_KINEMATIC = 1 << 2;
-const int16_t BULLET_COLLISION_GROUP_MY_AVATAR = 1 << 3;
-const int16_t BULLET_COLLISION_GROUP_OTHER_AVATAR = 1 << 4;
+const int32_t BULLET_COLLISION_GROUP_STATIC = 1 << 0;
+const int32_t BULLET_COLLISION_GROUP_DYNAMIC = 1 << 1;
+const int32_t BULLET_COLLISION_GROUP_KINEMATIC = 1 << 2;
+const int32_t BULLET_COLLISION_GROUP_MY_AVATAR = 1 << 3;
+const int32_t BULLET_COLLISION_GROUP_OTHER_AVATAR = 1 << 4;
 // ...
-const int16_t BULLET_COLLISION_GROUP_COLLISIONLESS = 1 << 14;
+const int32_t BULLET_COLLISION_GROUP_COLLISIONLESS = 1 << 31;
 
 
 /* Note: In order for objectA to collide with objectB at the filter stage
@@ -48,21 +48,21 @@ const int16_t BULLET_COLLISION_GROUP_COLLISIONLESS = 1 << 14;
  */
 
 // the default collision mask is: collides with everything except collisionless
-const int16_t BULLET_COLLISION_MASK_DEFAULT = ~ BULLET_COLLISION_GROUP_COLLISIONLESS;
+const int32_t BULLET_COLLISION_MASK_DEFAULT = ~ BULLET_COLLISION_GROUP_COLLISIONLESS;
 
 // STATIC does not collide with itself (as optimization of physics simulation)
-const int16_t BULLET_COLLISION_MASK_STATIC = ~ (BULLET_COLLISION_GROUP_COLLISIONLESS | BULLET_COLLISION_GROUP_KINEMATIC | BULLET_COLLISION_GROUP_STATIC);
+const int32_t BULLET_COLLISION_MASK_STATIC = ~ (BULLET_COLLISION_GROUP_COLLISIONLESS | BULLET_COLLISION_GROUP_KINEMATIC | BULLET_COLLISION_GROUP_STATIC);
 
-const int16_t BULLET_COLLISION_MASK_DYNAMIC = BULLET_COLLISION_MASK_DEFAULT;
-const int16_t BULLET_COLLISION_MASK_KINEMATIC = BULLET_COLLISION_MASK_STATIC;
+const int32_t BULLET_COLLISION_MASK_DYNAMIC = BULLET_COLLISION_MASK_DEFAULT;
+const int32_t BULLET_COLLISION_MASK_KINEMATIC = BULLET_COLLISION_MASK_STATIC;
 
 // MY_AVATAR does not collide with itself
-const int16_t BULLET_COLLISION_MASK_MY_AVATAR = ~(BULLET_COLLISION_GROUP_COLLISIONLESS | BULLET_COLLISION_GROUP_MY_AVATAR);
+const int32_t BULLET_COLLISION_MASK_MY_AVATAR = ~(BULLET_COLLISION_GROUP_COLLISIONLESS | BULLET_COLLISION_GROUP_MY_AVATAR);
 
-const int16_t BULLET_COLLISION_MASK_OTHER_AVATAR = BULLET_COLLISION_MASK_DEFAULT;
+const int32_t BULLET_COLLISION_MASK_OTHER_AVATAR = BULLET_COLLISION_MASK_DEFAULT;
 
 // COLLISIONLESS gets an empty mask.
-const int16_t BULLET_COLLISION_MASK_COLLISIONLESS = 0;
+const int32_t BULLET_COLLISION_MASK_COLLISIONLESS = 0;
 
 /**jsdoc
  * <p>An entity may collide with the following types of items:</p>
@@ -72,35 +72,35 @@ const int16_t BULLET_COLLISION_MASK_COLLISIONLESS = 0;
  *   </thead>
  *   <tbody>
  *     <tr><td><code>1</code></td><td>Static entities &mdash; non-dynamic entities with no velocity.</td></tr>
- *     <tr><td><code>2</code></td><td>Dynamic entities &mdash; entities that have their <code>dynamic</code> property set to 
+ *     <tr><td><code>2</code></td><td>Dynamic entities &mdash; entities that have their <code>dynamic</code> property set to
  *         <code>true</code>.</td></tr>
  *     <tr><td><code>4</code></td><td>Kinematic entities &mdash; non-dynamic entities with velocity.</td></tr>
  *     <tr><td><code>8</code></td><td>My avatar.</td></tr>
  *     <tr><td><code>16</code></td><td>Other avatars.</td></tr>
  *   </tbody>
  * </table>
- * <p>The values for the collision types that are enabled are added together to give the CollisionMask value. For example, a 
+ * <p>The values for the collision types that are enabled are added together to give the CollisionMask value. For example, a
  * value of <code>31</code> means that an entity will collide with all item types.</p>
  * @typedef {number} Entities.CollisionMask
  */
 
 // The USER collision groups are exposed to script and can be used to generate per-object collision masks.
 // They are not necessarily the same as the BULLET_COLLISION_GROUPS, but we start them off with matching numbers.
-const uint8_t USER_COLLISION_GROUP_STATIC = 1 << 0;
-const uint8_t USER_COLLISION_GROUP_DYNAMIC = 1 << 1;
-const uint8_t USER_COLLISION_GROUP_KINEMATIC = 1 << 2;
-const uint8_t USER_COLLISION_GROUP_MY_AVATAR = 1 << 3;
-const uint8_t USER_COLLISION_GROUP_OTHER_AVATAR = 1 << 4;
+const uint16_t USER_COLLISION_GROUP_STATIC = 1 << 0;
+const uint16_t USER_COLLISION_GROUP_DYNAMIC = 1 << 1;
+const uint16_t USER_COLLISION_GROUP_KINEMATIC = 1 << 2;
+const uint16_t USER_COLLISION_GROUP_MY_AVATAR = 1 << 3;
+const uint16_t USER_COLLISION_GROUP_OTHER_AVATAR = 1 << 4;
 
-const uint8_t ENTITY_COLLISION_MASK_DEFAULT =
+const uint16_t ENTITY_COLLISION_MASK_DEFAULT =
     USER_COLLISION_GROUP_STATIC |
     USER_COLLISION_GROUP_DYNAMIC |
     USER_COLLISION_GROUP_KINEMATIC |
     USER_COLLISION_GROUP_MY_AVATAR |
     USER_COLLISION_GROUP_OTHER_AVATAR;
 
-const uint8_t USER_COLLISION_MASK_AVATARS = USER_COLLISION_GROUP_MY_AVATAR | USER_COLLISION_GROUP_OTHER_AVATAR;
+const uint16_t USER_COLLISION_MASK_AVATARS = USER_COLLISION_GROUP_MY_AVATAR | USER_COLLISION_GROUP_OTHER_AVATAR;
 
-const int NUM_USER_COLLISION_GROUPS = 5;
+const int32_t NUM_USER_COLLISION_GROUPS = 5;
 
 #endif // hifi_PhysicsCollisionGroups_h

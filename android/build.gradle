@@ -66,19 +66,19 @@ ext {
 def baseFolder = new File(HIFI_ANDROID_PRECOMPILED)
 def appDir = new File(projectDir, 'app')
 def jniFolder = new File(appDir, 'src/main/jniLibs/arm64-v8a')
-def baseUrl = 'https://hifi-public.s3.amazonaws.com/austin/android/'
+def baseUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/android/'
 
 def qtFile='qt-5.9.3_linux_armv8-libcpp_openssl.tgz'
 def qtChecksum='04599670ccca84bd2b15f6915568eb2d'
-def qtVersionId='PeoqzN31n.YvLfs9JE2SgHgZ4.IaKAlt'
+def qtVersionId='8QbCma4ryEPgBYn_8kgYgB10IvNx9I1W'
 if (Os.isFamily(Os.FAMILY_MAC)) {
     qtFile = 'qt-5.9.3_osx_armv8-libcpp_openssl.tgz'
     qtChecksum='4b02de9d67d6bfb202355a808d2d9c59'
-    qtVersionId='HygCmtMLPYioyil0DfXckGVzhw2SXZA9'
+    qtVersionId='2gfgoYCggJGyXxKiazaPGsMs1Gn9j4og'
 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
     qtFile = 'qt-5.9.3_win_armv8-libcpp_openssl.tgz'
     qtChecksum='c3e25db64002d0f43cf565e0ef708911'
-    qtVersionId='HeVObSVLCBoc7yY7He1oBMvPIH0VkClT'
+    qtVersionId='xKIteC6HO0xrmcWeMmhQcmKyPEsnUrcZ'
 }
 
 def packages = [
@@ -88,62 +88,67 @@ def packages = [
         checksum: qtChecksum,
     ],
     bullet: [
-        file: 'bullet-2.83_armv8-libcpp.tgz',
-        versionId: 'ljb7v.1IjVRqyopUKVDbVnLA4z88J8Eo',
-        checksum: '2c558d604fce337f5eba3eb7ec1252fd',
+        file: 'bullet-2.88_armv8-libcpp.tgz',
+        versionId: 'S8YaoED0Cl8sSb8fSV7Q2G1lQJSNDxqg',
+        checksum: '81642779ccb110f8c7338e8739ac38a0',
     ],
     draco: [
         file: 'draco_armv8-libcpp.tgz',
-        versionId: 'cA3tVJSmkvb1naA3l6D_Jv2Noh.4yc4m',
+        versionId: '3.B.uBj31kWlgND3_R2xwQzT_TP6Dz_8',
         checksum: '617a80d213a5ec69fbfa21a1f2f738cd',
     ],
     glad: [
         file: 'glad_armv8-libcpp.zip',
-        versionId: 'Q9szthzeye8fFyAA.cY26Lgn2B8kezEE',
+        versionId: 'r5Zran.JSCtvrrB6Q4KaqfIoALPw3lYY',
         checksum: 'a8ee8584cf1ccd34766c7ddd9d5e5449',
     ],
     glm: [
-        file: 'glm-0.9.8.tgz',
-        versionId: 'BlkJNwaYV2Gfy5XwMeU7K0uzPDRKFMt2',
-        checksum: 'd2b42cee31d2bc17bab6ce69e6b3f30a',
+        file: 'glm-0.9.8.5-patched.tgz',
+        versionId: 'cskfMoJrFlAeqI3WPxemyO_Cxt7rT9EJ',
+        checksum: '067b5fe16b220b5b1a1039ba51b062ae',
     ],
     gvr: [
         file: 'gvrsdk_v1.101.0.tgz',
-        versionId: 'UTberAIFraEfF9IVjoV66u1DTPTopgeY',
+        versionId: 'nqBV_j81Uc31rC7bKIrlya_Hah4v3y5r',
         checksum: '57fd02baa069176ba18597a29b6b4fc7',
     ],
     nvtt: [
         file: 'nvtt_armv8-libcpp.zip',
-        versionId: 'vLqrqThvpq4gp75BHMAqO6HhfTXaa0An',
+        versionId: 'lmkBVR5t4UF1UUwMwEirnk9H_8Nt90IO',
         checksum: 'eb46d0b683e66987190ed124aabf8910',
         sharedLibFolder: 'lib',
         includeLibs: ['libnvtt.so', 'libnvmath.so', 'libnvimage.so', 'libnvcore.so'],
     ],
     openssl: [
         file: 'openssl-1.1.0g_armv8.tgz',
-        versionId: 'DmahmSGFS4ltpHyTdyQvv35WOeUOiib9',
+        versionId: 'AiiPjmgUZTgNj7YV1EEx2lL47aDvvvAW',
         checksum: 'cabb681fbccd79594f65fcc266e02f32',
     ],
     polyvox: [
         file: 'polyvox_armv8-libcpp.tgz',
-        versionId: 'LDJtzMTvdm4SAc2KYg8Cg6uwWk4Vq3e3',
-        checksum: '349ad5b72aaf2749ca95d847e60c5314',
+        versionId: 'A2kbKiNhpIenGq23bKRRzg7IMAI5BI92',
+        checksum: 'dba88b3a098747af4bb169e9eb9af57e',
         sharedLibFolder: 'lib',
         includeLibs: ['Release/libPolyVoxCore.so', 'libPolyVoxUtil.so'],
     ],
     tbb: [
         file: 'tbb-2018_U1_armv8_libcpp.tgz',
-        versionId: 'YZliDD8.Menh1IVXKEuLPeO3xAjJ1UdF',
+        versionId: 'mrRbWnv4O4evcM1quRH43RJqimlRtaKB',
         checksum: '20768f298f53b195e71b414b0ae240c4',
         sharedLibFolder: 'lib/release',
         includeLibs: ['libtbb.so', 'libtbbmalloc.so'],
     ],
     hifiAC: [
         file: 'libplugins_libhifiCodec.zip',
-        versionId: 'mzKhsRCgVmloqq5bvE.0IwYK1NjGQc_G',
+        versionId: 'i31pW.qNbvFOXRxbyiJUxg3sphaFNmZU',
         checksum: '9412a8e12c88a4096c1fc843bb9fe52d',
         sharedLibFolder: '',
         includeLibs: ['libplugins_libhifiCodec.so']
+    ],
+    etc2comp: [
+        file: 'etc2comp-patched-armv8-libcpp.tgz',
+        versionId: 'bHhGECRAQR1vkpshBcK6ByNc1BQIM8gU',
+        checksum: '14b02795d774457a33bbc60e00a786bc'
     ]
 ]
 
@@ -152,15 +157,15 @@ def scribeLocalFile='scribe' + EXEC_SUFFIX
 
 def scribeFile='scribe_linux_x86_64'
 def scribeChecksum='ca4b904f52f4f993c29175ba96798fa6'
-def scribeVersion='wgpf4dB2Ltzg4Lb2jJ4nPFsHoDkmK_OO'
+def scribeVersion='u_iTrJDaE95i2abTPXOpPZckGBIim53G'
 if (Os.isFamily(Os.FAMILY_MAC)) {
     scribeFile = 'scribe_osx_x86_64'
     scribeChecksum='72db9d32d4e1e50add755570ac5eb749'
-    scribeVersion='o_NbPrktzEYtBkQf3Tn7zc1nZWzM52w6'
+    scribeVersion='DAW0DmnjCRib4MD8x93bgc2Z2MpPojZC'
 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
     scribeFile = 'scribe_win32_x86_64.exe'
     scribeChecksum='678e43d290c90fda670c6fefe038a06d'
-    scribeVersion='GCCJxlmd2irvNOFWfZR0U1UCLHndHQrC'
+    scribeVersion='PuullrA_bPlO9kXZRt8rLe536X1UI.m7'
 }
 
 def options = [
@@ -361,6 +366,7 @@ task verifyOpenSSL(type: Verify) { def p = packages['openssl']; src new File(bas
 task verifyPolyvox(type: Verify) { def p = packages['polyvox']; src new File(baseFolder, p['file']); checksum p['checksum'] }
 task verifyTBB(type: Verify) { def p = packages['tbb']; src new File(baseFolder, p['file']); checksum p['checksum'] }
 task verifyHifiAC(type: Verify) { def p = packages['hifiAC']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+task verifyEtc2Comp(type: Verify) { def p = packages['etc2comp']; src new File(baseFolder, p['file']); checksum p['checksum'] }
 
 task verifyDependencyDownloads(dependsOn: downloadDependencies) { }
 verifyDependencyDownloads.dependsOn verifyQt
@@ -371,6 +377,7 @@ verifyDependencyDownloads.dependsOn verifyOpenSSL
 verifyDependencyDownloads.dependsOn verifyPolyvox
 verifyDependencyDownloads.dependsOn verifyTBB
 verifyDependencyDownloads.dependsOn verifyHifiAC
+verifyDependencyDownloads.dependsOn verifyEtc2Comp
 
 task extractDependencies(dependsOn: verifyDependencyDownloads) {
     doLast {

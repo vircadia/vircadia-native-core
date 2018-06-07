@@ -9,13 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "InterfaceParentFinder.h"
+
 #include <Application.h>
+#include <AvatarData.h>
+#include <avatar/AvatarManager.h>
 #include <EntityTree.h>
 #include <EntityTreeRenderer.h>
-#include <avatar/AvatarManager.h>
-#include <AvatarData.h>
-
-#include "InterfaceParentFinder.h"
 
 SpatiallyNestableWeakPointer InterfaceParentFinder::find(QUuid parentID, bool& success, SpatialParentTree* entityTree) const {
     SpatiallyNestableWeakPointer parent;

@@ -13,7 +13,6 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
@@ -48,6 +47,13 @@ Item {
 
         onWalletAuthenticatedStatusResult: {
             submitPassphraseInputButton.enabled = true;
+
+            // It's not possible to auth with a blank passphrase,
+            // so bail early if we get this signal without anything in the passphrase field
+            if (passphraseField.text === "") {
+                return;
+            }
+
             if (!isAuthenticated) {
                 errorText.text = "Authentication failed - please try again.";
                 passphraseField.error = true;
@@ -67,10 +73,6 @@ Item {
         anchors.fill: parent;
         propagateComposedEvents: false;
         hoverEnabled: true;
-    }
-    
-    Component.onDestruction: {
-        sendSignalToParent({method: 'maybeEnableHmdPreview'});
     }
 
     // This will cause a bug -- if you bring up passphrase selection in HUD mode while
@@ -148,7 +150,9 @@ Item {
                     lightboxPopup.bodyImageSource = titleBarSecurityImage.source;
                     lightboxPopup.bodyText = lightboxPopup.securityPicBodyText;
                     lightboxPopup.button1text = "CLOSE";
-                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button1method = function() {
+                        lightboxPopup.visible = false;
+                    }
                     lightboxPopup.visible = true;
                 }
             }
@@ -214,6 +218,10 @@ Item {
                     error = false;
                     focus = true;
                     forceActiveFocus();
+                } else {
+                    showPassphrase.checked = false;
+                    passphraseField.text = "";
+                    error = false;
                 }
             }
 

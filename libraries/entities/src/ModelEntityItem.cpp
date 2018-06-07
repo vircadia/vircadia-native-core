@@ -9,18 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModelEntityItem.h"
+
 #include <QtCore/QJsonDocument>
+
+#include <glm/gtx/transform.hpp>
 
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
-#include <glm/gtx/transform.hpp>
 
 #include "EntitiesLogging.h"
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "ResourceCache.h"
-#include "ModelEntityItem.h"
 
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_COMPOUND_SHAPE_URL = QString("");
@@ -82,12 +84,12 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslations, setJointTranslations);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(relayParentJoints, setRelayParentJoints);
 
-    bool somethingChangedInAnimations = _animationProperties.setProperties(properties);
-
-    if (somethingChangedInAnimations) {
-        _flags |= Simulation::DIRTY_UPDATEABLE;
-    }
-    somethingChanged = somethingChanged || somethingChangedInAnimations;
+    withWriteLock([&] {
+        AnimationPropertyGroup animationProperties = _animationProperties;
+        animationProperties.setProperties(properties);
+        bool somethingChangedInAnimations = applyNewAnimationProperties(animationProperties);
+        somethingChanged = somethingChanged || somethingChangedInAnimations;
+    });
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -118,23 +120,22 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
     READ_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
 
+    // grab a local copy of _animationProperties to avoid multiple locks
     int bytesFromAnimation;
-    withWriteLock([&] {
-        // Note: since we've associated our _animationProperties with our _animationLoop, the readEntitySubclassDataFromBuffer()
-        // will automatically read into the animation loop
-        bytesFromAnimation = _animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+    withReadLock([&] {
+        AnimationPropertyGroup animationProperties = _animationProperties;
+        bytesFromAnimation = animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData, animationPropertiesChanged);
+        if (animationPropertiesChanged) {
+            applyNewAnimationProperties(animationProperties);
+            somethingChanged = true;
+        }
     });
 
     bytesRead += bytesFromAnimation;
     dataAt += bytesFromAnimation;
 
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
-
-    if (animationPropertiesChanged) {
-        _flags |= Simulation::DIRTY_UPDATEABLE;
-        somethingChanged = true;
-    }
 
     READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, QVector<bool>, setJointRotationsSet);
     READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
@@ -144,7 +145,6 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     return bytesRead;
 }
 
-// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
@@ -195,98 +195,38 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
 // added update function back for property fix
 void ModelEntityItem::update(const quint64& now) {
+    assert(_lastAnimated > 0);
 
-    {
-        auto currentAnimationProperties = this->getAnimationProperties();
-
-        if (_previousAnimationProperties != currentAnimationProperties) {
-            withWriteLock([&] {
-                // if we hit start animation or change the first or last frame then restart the animation
-                if ((currentAnimationProperties.getFirstFrame() != _previousAnimationProperties.getFirstFrame()) || 
-                    (currentAnimationProperties.getLastFrame() != _previousAnimationProperties.getLastFrame()) || 
-                    (currentAnimationProperties.getRunning() && !_previousAnimationProperties.getRunning())) {
-
-                    // when we start interface and the property is are set then the current frame is initialized to -1
-                    if (_currentFrame < 0) {
-                        // don't reset _lastAnimated here because we need the timestamp from the ModelEntityItem constructor for when the properties were set
-                        _currentFrame = currentAnimationProperties.getCurrentFrame();
-                        setAnimationCurrentFrame(_currentFrame);
-                    } else {
-                        _lastAnimated =  usecTimestampNow();
-                        _currentFrame = currentAnimationProperties.getFirstFrame();
-                        setAnimationCurrentFrame(currentAnimationProperties.getFirstFrame());
-                    }
-                } else if (!currentAnimationProperties.getRunning() && _previousAnimationProperties.getRunning()) {
-                    _currentFrame = currentAnimationProperties.getFirstFrame();
-                    setAnimationCurrentFrame(_currentFrame);
-                } else if (currentAnimationProperties.getCurrentFrame() != _previousAnimationProperties.getCurrentFrame()) {
-                    // don't reset _lastAnimated here because the currentFrame was set with the previous setting of _lastAnimated
-                    _currentFrame = currentAnimationProperties.getCurrentFrame();
-                }
-                
-            });
-            _previousAnimationProperties = this->getAnimationProperties();
-
-        }
-        
-        if (isAnimatingSomething()) {
-            if (!(getAnimationFirstFrame() < 0) && !(getAnimationFirstFrame() > getAnimationLastFrame())) {
-                updateFrameCount();
-            }
-        }
-    }
-
-    EntityItem::update(now);
-}
-
-bool ModelEntityItem::needsToCallUpdate() const {
-
-     return true;
-}
-
-void ModelEntityItem::updateFrameCount() {
-
-    if (_currentFrame < 0.0f) {
-        return;
-    }
-
-    if (!_lastAnimated) {
-        _lastAnimated = usecTimestampNow();
-        return;
-    }
-
-    auto now = usecTimestampNow();
-
-    // update the interval since the last animation.
+    // increment timestamp before checking "hold"
     auto interval = now - _lastAnimated;
     _lastAnimated = now;
 
-    // if fps is negative then increment timestamp and return.
-    if (getAnimationFPS() < 0.0f) {
+    // grab a local copy of _animationProperties to avoid multiple locks
+    auto animationProperties = getAnimationProperties();
+
+    // bail on "hold"
+    if (animationProperties.getHold()) {
         return;
     }
 
-    int updatedFrameCount = getAnimationLastFrame() - getAnimationFirstFrame() + 1;
-
-    if (!getAnimationHold() && getAnimationIsPlaying()) {
-        float deltaTime = (float)interval / (float)USECS_PER_SECOND;
-        _currentFrame += (deltaTime * getAnimationFPS());
-        if (_currentFrame > getAnimationLastFrame() + 1) {
-            if (getAnimationLoop() && getAnimationFirstFrame() != getAnimationLastFrame()) {
-                _currentFrame = getAnimationFirstFrame() + (int)(_currentFrame - getAnimationFirstFrame()) % updatedFrameCount;
-            } else {
-                _currentFrame = getAnimationLastFrame();
-            }
-        } else if (_currentFrame < getAnimationFirstFrame()) {
-            if (getAnimationFirstFrame() < 0) {
-                _currentFrame = 0;
-            } else {
-                _currentFrame = getAnimationFirstFrame();
-            }
+    // increment animation frame
+    _currentFrame += (animationProperties.getFPS() * ((float)interval) / (float)USECS_PER_SECOND);
+    if (_currentFrame > animationProperties.getLastFrame() + 1.0f) {
+        if (animationProperties.getLoop()) {
+            _currentFrame = animationProperties.computeLoopedFrame(_currentFrame);
+        } else {
+            _currentFrame = animationProperties.getLastFrame();
         }
-        // qCDebug(entities)  << "in update frame " << _currentFrame;
-        setAnimationCurrentFrame(_currentFrame);
+    } else if (_currentFrame < animationProperties.getFirstFrame()) {
+        if (animationProperties.getFirstFrame() < 0.0f) {
+            _currentFrame = 0.0f;
+        } else {
+            _currentFrame = animationProperties.getFirstFrame();
+        }
     }
+    setAnimationCurrentFrame(_currentFrame);
+
+    EntityItem::update(now);
 }
 
 void ModelEntityItem::debugDump() const {
@@ -362,67 +302,61 @@ void ModelEntityItem::setAnimationURL(const QString& url) {
 }
 
 void ModelEntityItem::setAnimationSettings(const QString& value) {
-    // the animations setting is a JSON string that may contain various animation settings.
-    // if it includes fps, currentFrame, or running, those values will be parsed out and
-    // will over ride the regular animation settings
+    // NOTE: this method only called for old bitstream format
 
-    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
-    QJsonObject settingsAsJsonObject = settingsAsJson.object();
-    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-    if (settingsMap.contains("fps")) {
-        float fps = settingsMap["fps"].toFloat();
-        setAnimationFPS(fps);
-    }
+    withWriteLock([&] {
+        auto animationProperties = _animationProperties;
 
-    // old settings used frameIndex
-    if (settingsMap.contains("frameIndex")) {
-        float currentFrame = settingsMap["frameIndex"].toFloat();
-#ifdef WANT_DEBUG
-        if (!getAnimationURL().isEmpty()) {
-            qCDebug(entities) << "ModelEntityItem::setAnimationSettings() calling setAnimationFrameIndex()...";
-            qCDebug(entities) << "    model URL:" << getModelURL();
-            qCDebug(entities) << "    animation URL:" << getAnimationURL();
-            qCDebug(entities) << "    settings:" << value;
-            qCDebug(entities) << "    settingsMap[frameIndex]:" << settingsMap["frameIndex"];
-            qCDebug(entities"    currentFrame: %20.5f", currentFrame);
+        // the animations setting is a JSON string that may contain various animation settings.
+        // if it includes fps, currentFrame, or running, those values will be parsed out and
+        // will over ride the regular animation settings
+        QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
+        QJsonObject settingsAsJsonObject = settingsAsJson.object();
+        QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
+        if (settingsMap.contains("fps")) {
+            float fps = settingsMap["fps"].toFloat();
+            animationProperties.setFPS(fps);
         }
-#endif
 
-        setAnimationCurrentFrame(currentFrame);
-    }
-
-    if (settingsMap.contains("running")) {
-        bool running = settingsMap["running"].toBool();
-        if (running != getAnimationIsPlaying()) {
-            setAnimationIsPlaying(running);
+        // old settings used frameIndex
+        if (settingsMap.contains("frameIndex")) {
+            float currentFrame = settingsMap["frameIndex"].toFloat();
+            animationProperties.setCurrentFrame(currentFrame);
         }
-    }
 
-    if (settingsMap.contains("firstFrame")) {
-        float firstFrame = settingsMap["firstFrame"].toFloat();
-        setAnimationFirstFrame(firstFrame);
-    }
+        if (settingsMap.contains("running")) {
+            bool running = settingsMap["running"].toBool();
+            if (running != animationProperties.getRunning()) {
+                animationProperties.setRunning(running);
+            }
+        }
 
-    if (settingsMap.contains("lastFrame")) {
-        float lastFrame = settingsMap["lastFrame"].toFloat();
-        setAnimationLastFrame(lastFrame);
-    }
+        if (settingsMap.contains("firstFrame")) {
+            float firstFrame = settingsMap["firstFrame"].toFloat();
+            animationProperties.setFirstFrame(firstFrame);
+        }
 
-    if (settingsMap.contains("loop")) {
-        bool loop = settingsMap["loop"].toBool();
-        setAnimationLoop(loop);
-    }
+        if (settingsMap.contains("lastFrame")) {
+            float lastFrame = settingsMap["lastFrame"].toFloat();
+            animationProperties.setLastFrame(lastFrame);
+        }
 
-    if (settingsMap.contains("hold")) {
-        bool hold = settingsMap["hold"].toBool();
-        setAnimationHold(hold);
-    }
+        if (settingsMap.contains("loop")) {
+            bool loop = settingsMap["loop"].toBool();
+            animationProperties.setLoop(loop);
+        }
 
-    if (settingsMap.contains("allowTranslation")) {
-        bool allowTranslation = settingsMap["allowTranslation"].toBool();
-        setAnimationAllowTranslation(allowTranslation);
-    }
-    _flags |= Simulation::DIRTY_UPDATEABLE;
+        if (settingsMap.contains("hold")) {
+            bool hold = settingsMap["hold"].toBool();
+            animationProperties.setHold(hold);
+        }
+
+        if (settingsMap.contains("allowTranslation")) {
+            bool allowTranslation = settingsMap["allowTranslation"].toBool();
+            animationProperties.setAllowTranslation(allowTranslation);
+        }
+        applyNewAnimationProperties(animationProperties);
+    });
 }
 
 void ModelEntityItem::setAnimationIsPlaying(bool value) {
@@ -714,11 +648,45 @@ float ModelEntityItem::getAnimationFPS() const {
     });
 }
 
-
 bool ModelEntityItem::isAnimatingSomething() const {
     return resultWithReadLock<bool>([&] {
-        return !_animationProperties.getURL().isEmpty() &&
-            _animationProperties.getRunning() &&
-            (_animationProperties.getFPS() != 0.0f);
-        });
+        return _animationProperties.isValidAndRunning();
+    });
+}
+
+bool ModelEntityItem::applyNewAnimationProperties(AnimationPropertyGroup newProperties) {
+    // call applyNewAnimationProperties() whenever trying to update _animationProperties
+    // because there is some reset logic we need to do whenever the animation "config" properties change
+    // NOTE: this private method is always called inside withWriteLock()
+
+    // if we hit start animation or change the first or last frame then restart the animation
+    if ((newProperties.getFirstFrame() != _animationProperties.getFirstFrame()) ||
+        (newProperties.getLastFrame() != _animationProperties.getLastFrame()) ||
+        (newProperties.getRunning() && !_animationProperties.getRunning())) {
+
+        // when we start interface and the property is are set then the current frame is initialized to -1
+        if (_currentFrame < 0.0f) {
+            // don't reset _lastAnimated here because we need the timestamp from the ModelEntityItem constructor for when the properties were set
+            _currentFrame = newProperties.getCurrentFrame();
+            newProperties.setCurrentFrame(_currentFrame);
+        } else {
+            _lastAnimated =  usecTimestampNow();
+            _currentFrame = newProperties.getFirstFrame();
+            newProperties.setCurrentFrame(newProperties.getFirstFrame());
+        }
+    } else if (!newProperties.getRunning() && _animationProperties.getRunning()) {
+        _currentFrame = newProperties.getFirstFrame();
+        newProperties.setCurrentFrame(_currentFrame);
+    } else if (newProperties.getCurrentFrame() != _animationProperties.getCurrentFrame()) {
+        // don't reset _lastAnimated here because the currentFrame was set with the previous setting of _lastAnimated
+        _currentFrame = newProperties.getCurrentFrame();
+    }
+
+    // finally apply the changes
+    bool somethingChanged = newProperties != _animationProperties;
+    if (somethingChanged) {
+        _animationProperties = newProperties;
+        _flags |= Simulation::DIRTY_UPDATEABLE;
+    }
+    return somethingChanged;
 }

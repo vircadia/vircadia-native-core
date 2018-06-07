@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctreePersistThread.h"
+
 #include <chrono>
 #include <thread>
 
@@ -30,7 +32,6 @@
 #include <PathUtils.h>
 
 #include "OctreeLogging.h"
-#include "OctreePersistThread.h"
 #include "OctreeUtils.h"
 #include "OctreeDataUtils.h"
 
@@ -192,17 +193,12 @@ bool OctreePersistThread::process() {
             QString lockFileName = _filename + ".lock";
             std::ifstream lockFile(qPrintable(lockFileName), std::ios::in | std::ios::binary | std::ios::ate);
             if (lockFile.is_open()) {
-                qCDebug(octree) << "WARNING: Octree lock file detected at startup:" << lockFileName
-                    << "-- Attempting to restore from previous backup file.";
-
-                // This is where we should attempt to find the most recent backup and restore from
-                // that file as our persist file.
-                restoreFromMostRecentBackup();
+                qCDebug(octree) << "WARNING: Octree lock file detected at startup:" << lockFileName;
 
                 lockFile.close();
-                qCDebug(octree) << "Loading Octree... lock file closed:" << lockFileName;
+                qCDebug(octree) << "Removing lock file:" << lockFileName;
                 remove(qPrintable(lockFileName));
-                qCDebug(octree) << "Loading Octree... lock file removed:" << lockFileName;
+                qCDebug(octree) << "Lock file removed:" << lockFileName;
             }
 
             persistentFileRead = _tree->readFromFile(qPrintable(_filename.toLocal8Bit()));

@@ -48,7 +48,7 @@
 #include <gl/Context.h>
 #include <shared/ReadWriteLockable.h>
 
-#include "ImageProvider.h"
+#include "SecurityImageProvider.h"
 #include "types/FileTypeProfile.h"
 #include "types/HFWebEngineProfile.h"
 #include "types/SoundEffect.h"
@@ -102,7 +102,7 @@ class AudioHandler : public QObject, QRunnable {
 public:
     AudioHandler(OffscreenQmlSurface* surface, const QString& deviceName, QObject* parent = nullptr);
 
-    virtual ~AudioHandler() { qDebug() << "Audio Handler Destroyed"; }
+    virtual ~AudioHandler() { }
 
     void run() override;
 
@@ -115,6 +115,7 @@ private:
 class UrlHandler : public QObject {
     Q_OBJECT
 public:
+    UrlHandler(QObject* parent = nullptr) : QObject(parent) {}
     Q_INVOKABLE bool canHandleUrl(const QString& url) {
         static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
         return handler && handler->canAcceptURL(url);
@@ -223,6 +224,17 @@ void AudioHandler::run() {
     qDebug() << "QML Audio changed to " << _newTargetDevice;
 }
 
+OffscreenQmlSurface::~OffscreenQmlSurface() {
+    clearFocusItem();
+}
+
+void OffscreenQmlSurface::clearFocusItem() {
+    if (_currentFocusItem) {
+        disconnect(_currentFocusItem, &QObject::destroyed, this, &OffscreenQmlSurface::focusDestroyed);
+    }
+    _currentFocusItem = nullptr;
+}
+
 void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     Parent::initializeEngine(engine);
     new QQmlFileSelector(engine);
@@ -233,8 +245,8 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
         qmlRegisterType<SoundEffect>("Hifi", 1, 0, "SoundEffect");
     });
 
-    // register the pixmap image provider (used only for security image, for now)
-    engine->addImageProvider(ImageProvider::PROVIDER_NAME, new ImageProvider());
+    // Register the pixmap Security Image Provider
+    engine->addImageProvider(SecurityImageProvider::PROVIDER_NAME, new SecurityImageProvider());
 
     engine->setNetworkAccessManagerFactory(new QmlNetworkAccessManagerFactory);
     auto importList = engine->importPathList();
@@ -246,7 +258,7 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
 
     auto rootContext = engine->rootContext();
     rootContext->setContextProperty("GL", ::getGLContextData());
-    rootContext->setContextProperty("urlHandler", new UrlHandler());
+    rootContext->setContextProperty("urlHandler", new UrlHandler(rootContext));
     rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
     rootContext->setContextProperty("ApplicationInterface", qApp);
     auto javaScriptToInject = getEventBridgeJavascript();
@@ -256,6 +268,15 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
 #if !defined(Q_OS_ANDROID)
     rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
     rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
+    {
+        PROFILE_RANGE(startup, "FileTypeProfile");
+        rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
+    }
+    {
+        PROFILE_RANGE(startup, "HFWebEngineProfile");
+        rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
+        
+    }
 #endif
     rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
     rootContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
@@ -335,6 +356,7 @@ void OffscreenQmlSurface::onRootCreated() {
         tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", this);
         QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
         getSurfaceContext()->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
+        getSurfaceContext()->engine()->addImageProvider(SecurityImageProvider::PROVIDER_NAME, new SecurityImageProvider());
     }
     QMetaObject::invokeMethod(this, "forceQmlAudioOutputDeviceUpdate", Qt::QueuedConnection);
 }
@@ -535,27 +557,21 @@ bool OffscreenQmlSurface::handlePointerEvent(const PointerEvent& event, class QT
 }
 
 void OffscreenQmlSurface::focusDestroyed(QObject* obj) {
-    if (_currentFocusItem) {
-        disconnect(_currentFocusItem, &QObject::destroyed, this, &OffscreenQmlSurface::focusDestroyed);
-    }
-    _currentFocusItem = nullptr;
+    clearFocusItem();
 }
 
 void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
+    clearFocusItem();
+
     QQuickItem* item = static_cast<QQuickItem*>(object);
     if (!item) {
         setFocusText(false);
-        _currentFocusItem = nullptr;
         return;
     }
 
     QInputMethodQueryEvent query(Qt::ImEnabled);
     qApp->sendEvent(object, &query);
     setFocusText(query.value(Qt::ImEnabled).toBool());
-
-    if (_currentFocusItem) {
-        disconnect(_currentFocusItem, &QObject::destroyed, this, 0);
-    }
 
     // Raise and lower keyboard for QML text fields.
     // HTML text fields are handled in emitWebEvent() methods - testing READ_ONLY_PROPERTY prevents action for HTML files.

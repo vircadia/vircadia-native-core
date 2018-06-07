@@ -32,7 +32,6 @@ public:
     static const GLint RESOURCE_TRANSFER_EXTRA_TEX_UNIT { 33 };
     static const GLint RESOURCE_BUFFER_TEXBUF_TEX_UNIT { 34 };
     static const GLint RESOURCE_BUFFER_SLOT0_TEX_UNIT { 35 };
-    static bool supportedTextureFormat(const gpu::Element& format);
     explicit GLESBackend(bool syncCache) : Parent(syncCache) {}
     GLESBackend() : Parent() {}
     virtual ~GLESBackend() {
@@ -40,6 +39,8 @@ public:
         // which is pure virtual from GLBackend's dtor.
         resetStages();
     }
+
+    bool supportedTextureFormat(const gpu::Element& format) override;
     
     static const std::string GLES_VERSION;
     const std::string& getVersion() const override { return GLES_VERSION; }
@@ -104,9 +105,9 @@ public:
 
         void allocateStorage(uint16 allocatedMip);
         void syncSampler() const override;
-        void promote() override;
-        void demote() override;
-        void populateTransferQueue() override;
+        size_t promote() override;
+        size_t demote() override;
+        void populateTransferQueue(TransferJob::Queue& queue) override;
 
         Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
         Size copyMipsFromTexture();
@@ -163,7 +164,7 @@ protected:
     
     std::string getBackendShaderHeader() const override;
     void makeProgramBindings(ShaderObject& shaderObject) override;
-    int makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
+    int makeResourceBufferSlots(const ShaderObject& shaderObject, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
 
 };
 

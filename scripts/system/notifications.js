@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars:true, plusplus:true, forin:true*/
-/*global Script, Settings, Window, Controller, Overlays, SoundArray, LODManager, MyAvatar, Tablet, Camera, HMD, Menu, Quat, Vec3*/
+/*global Script, Settings, Window, Controller, Overlays, SoundArray, MyAvatar, Tablet, Camera, HMD, Menu, Quat, Vec3*/
 //
 //  notifications.js
 //  Version 0.801
@@ -79,26 +79,19 @@
     var frame = 0;
     var ctrlIsPressed = false;
     var ready = true;
-    var MENU_NAME = 'Tools > Notifications';
-    var PLAY_NOTIFICATION_SOUNDS_MENU_ITEM = "Play Notification Sounds";
     var NOTIFICATION_MENU_ITEM_POST = " Notifications";
-    var PLAY_NOTIFICATION_SOUNDS_SETTING = "play_notification_sounds";
-    var PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE = "play_notification_sounds_type_";
-    var lodTextID = false;
-    var NOTIFICATIONS_MESSAGE_CHANNEL = "Hifi-Notifications"
+    var NOTIFICATIONS_MESSAGE_CHANNEL = "Hifi-Notifications";
 
     var NotificationType = {
         UNKNOWN: 0,
         SNAPSHOT: 1,
-        LOD_WARNING: 2,
-        CONNECTION_REFUSED: 3,
-        EDIT_ERROR: 4,
-        TABLET: 5,
-        CONNECTION: 6,
-        WALLET: 7,
+        CONNECTION_REFUSED: 2,
+        EDIT_ERROR: 3,
+        TABLET: 4,
+        CONNECTION: 5,
+        WALLET: 6,
         properties: [
             { text: "Snapshot" },
-            { text: "Level of Detail" },
             { text: "Connection Refused" },
             { text: "Edit error" },
             { text: "Tablet" },
@@ -153,10 +146,6 @@
 
     //  This handles the final dismissal of a notification after fading
     function dismiss(firstNoteOut, firstButOut, firstOut) {
-        if (firstNoteOut === lodTextID) {
-            lodTextID = false;
-        }
-
         Overlays.deleteOverlay(firstNoteOut);
         Overlays.deleteOverlay(firstButOut);
         notifications.splice(firstOut, 1);
@@ -408,19 +397,11 @@
             alpha: backgroundAlpha
         };
 
-        if (Menu.isOptionChecked(PLAY_NOTIFICATION_SOUNDS_MENU_ITEM) &&
-            Menu.isOptionChecked(NotificationType.getMenuString(notificationType))) {
-            randomSounds.playRandom();
-        }
-
         return notify(noticeProperties, buttonProperties, height, imageProperties);
     }
 
     function deleteNotification(index) {
         var notificationTextID = notifications[index];
-        if (notificationTextID === lodTextID) {
-            lodTextID = false;
-        }
         Overlays.deleteOverlay(notificationTextID);
         Overlays.deleteOverlay(buttons[index]);
         notifications.splice(index, 1);
@@ -628,30 +609,6 @@
         }
     }
 
-    function setup() {
-        var type;
-        Menu.addMenu(MENU_NAME);
-        var checked = Settings.getValue(PLAY_NOTIFICATION_SOUNDS_SETTING);
-        checked = checked === '' ? true : checked;
-        Menu.addMenuItem({
-            menuName: MENU_NAME,
-            menuItemName: PLAY_NOTIFICATION_SOUNDS_MENU_ITEM,
-            isCheckable: true,
-            isChecked: Settings.getValue(PLAY_NOTIFICATION_SOUNDS_SETTING)
-        });
-        Menu.addSeparator(MENU_NAME, "Play sounds for:");
-        for (type in NotificationType.properties) {
-            checked = Settings.getValue(PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE + (parseInt(type, 10) + 1));
-            checked = checked === '' ? true : checked;
-            Menu.addMenuItem({
-                menuName: MENU_NAME,
-                menuItemName: NotificationType.properties[type].text + NOTIFICATION_MENU_ITEM_POST,
-                isCheckable: true,
-                isChecked: checked
-            });
-        }
-    }
-
     //  When our script shuts down, we should clean up all of our overlays
     function scriptEnding() {
         var notificationIndex;
@@ -659,43 +616,17 @@
             Overlays.deleteOverlay(notifications[notificationIndex]);
             Overlays.deleteOverlay(buttons[notificationIndex]);
         }
-        Menu.removeMenu(MENU_NAME);
         Messages.unsubscribe(NOTIFICATIONS_MESSAGE_CHANNEL);
     }
-
-    function menuItemEvent(menuItem) {
-        if (menuItem === PLAY_NOTIFICATION_SOUNDS_MENU_ITEM) {
-            Settings.setValue(PLAY_NOTIFICATION_SOUNDS_SETTING, Menu.isOptionChecked(PLAY_NOTIFICATION_SOUNDS_MENU_ITEM));
-            return;
-        }
-        var notificationType = NotificationType.getTypeFromMenuItem(menuItem);
-        if (notificationType !== notificationType.UNKNOWN) {
-            Settings.setValue(PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE + notificationType, Menu.isOptionChecked(menuItem));
-        }
-    }
-
-    LODManager.LODDecreased.connect(function () {
-        var warningText = "\n" +
-            "Due to the complexity of the content, the \n" +
-            "level of detail has been decreased. " +
-            "You can now see: \n" +
-            LODManager.getLODFeedbackText();
-
-        if (lodTextID === false) {
-            lodTextID = createNotification(warningText, NotificationType.LOD_WARNING);
-        } else {
-            Overlays.editOverlay(lodTextID, { text: warningText });
-        }
-    });
 
     Controller.keyPressEvent.connect(keyPressEvent);
     Controller.mousePressEvent.connect(mousePressEvent);
     Controller.keyReleaseEvent.connect(keyReleaseEvent);
     Script.update.connect(update);
     Script.scriptEnding.connect(scriptEnding);
-    Menu.menuItemEvent.connect(menuItemEvent);
     Window.domainConnectionRefused.connect(onDomainConnectionRefused);
     Window.stillSnapshotTaken.connect(onSnapshotTaken);
+    Window.snapshot360Taken.connect(onSnapshotTaken);
     Window.processingGifStarted.connect(processingGif);
     Window.connectionAdded.connect(connectionAdded);
     Window.connectionError.connect(connectionError);
@@ -707,7 +638,4 @@
 
     Messages.subscribe(NOTIFICATIONS_MESSAGE_CHANNEL);
     Messages.messageReceived.connect(onMessageReceived);
-
-    setup();
-
 }()); // END LOCAL_SCOPE

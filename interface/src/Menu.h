@@ -32,7 +32,7 @@ namespace MenuOption {
     const QString AnimDebugDrawAnimPose = "Debug Draw Animation";
     const QString AnimDebugDrawDefaultPose = "Debug Draw Default Pose";
     const QString AnimDebugDrawPosition= "Debug Draw Position";
-    const QString AskToResetSettings = "Ask To Reset Settings";
+    const QString AskToResetSettings = "Ask To Reset Settings on Start";
     const QString AssetMigration = "ATP Asset Migration";
     const QString AssetServer = "Asset Browser";
     const QString Attachments = "Attachments...";
@@ -59,7 +59,7 @@ namespace MenuOption {
     const QString Collisions = "Collisions";
     const QString Connexion = "Activate 3D Connexion Devices";
     const QString Console = "Console...";
-    const QString ControlWithSpeech = "Control With Speech";
+    const QString ControlWithSpeech = "Enable Speech Control API";
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
     const QString CoupleEyelids = "Couple Eyelids";
@@ -105,7 +105,8 @@ namespace MenuOption {
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
     const QString ExpandPaintGLTiming = "Expand /paintGL";
-    const QString ExpandPhysicsSimulationTiming = "Expand /physics";
+    const QString ExpandSimulationTiming = "Expand /simulation";
+    const QString ExpandPhysicsTiming = "Expand /physics";
     const QString ExpandUpdateTiming = "Expand /update";
     const QString FirstPerson = "First Person";
     const QString FirstPersonHMD = "Enter First Person Mode in HMD";
@@ -121,7 +122,7 @@ namespace MenuOption {
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
     const QString LodTools = "LOD Tools";
-    const QString Login = "Login / Sign Up";
+    const QString Login = "Login/Sign Up";
     const QString Log = "Log";
     const QString LogExtraTimings = "Log Extra Timing Details";
     const QString LowVelocityFilter = "Low Velocity Filter";
@@ -136,11 +137,17 @@ namespace MenuOption {
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
     const QString OpenVrThreadedSubmit = "OpenVR Threaded Submit"; 
     const QString OutputMenu = "Display";
-    const QString Overlays = "Overlays";
-    const QString PackageModel = "Package Model...";
+    const QString Overlays = "Show Overlays";
+    const QString PackageModel = "Package Model as .fst...";
     const QString Pair = "Pair";
     const QString PhysicsShowHulls = "Draw Collision Shapes";
     const QString PhysicsShowOwned = "Highlight Simulation Ownership";
+    const QString VerboseLogging = "Verbose Logging";
+    const QString PhysicsShowBulletWireframe = "Show Bullet Collision";
+    const QString PhysicsShowBulletAABBs = "Show Bullet Bounding Boxes";
+    const QString PhysicsShowBulletContactPoints = "Show Bullet Contact Points";
+    const QString PhysicsShowBulletConstraints = "Show Bullet Constraints";
+    const QString PhysicsShowBulletConstraintLimits = "Show Bullet Constraint Limits";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "General...";
     const QString Quit =  "Quit";
@@ -155,6 +162,10 @@ namespace MenuOption {
     const QString RenderMaxTexture512MB = "512 MB";
     const QString RenderMaxTexture1024MB = "1024 MB";
     const QString RenderMaxTexture2048MB = "2048 MB";
+    const QString RenderMaxTexture3072MB = "3072 MB";
+    const QString RenderMaxTexture4096MB = "4096 MB";
+    const QString RenderMaxTexture6144MB = "6144 MB";
+    const QString RenderMaxTexture8192MB = "8192 MB";
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";
@@ -182,11 +193,10 @@ namespace MenuOption {
     const QString ShowOtherLookAtVectors = "Show Other Eye Vectors";
     const QString EnableLookAtSnapping = "Enable LookAt Snapping";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
-    const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString SimulateEyeTracking = "Simulate";
     const QString SMIEyeTracking = "SMI Eye Tracking";
     const QString SparseTextureManagement = "Enable Sparse Texture Management";
-    const QString Stats = "Stats";
+    const QString Stats = "Show Statistics";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString ThirdPerson = "Third Person";
@@ -205,7 +215,11 @@ namespace MenuOption {
     const QString DesktopTabletToToolbar = "Desktop Tablet Becomes Toolbar";
     const QString HMDTabletToToolbar = "HMD Tablet Becomes Toolbar";
     const QString Shadows = "Shadows";
+    const QString AntiAliasing = "Temporal Antialiasing (FXAA if disabled)";
     const QString AmbientOcclusion = "Ambient Occlusion";
+    const QString NotificationSounds = "play_notification_sounds";
+    const QString NotificationSoundsSnapshot = "play_notification_sounds_snapshot";
+    const QString NotificationSoundsTablet = "play_notification_sounds_tablet";
 }
 
 #endif // hifi_Menu_h

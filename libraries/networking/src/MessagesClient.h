@@ -37,6 +37,11 @@
  * </ul>
  *
  * @namespace Messages
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
  */
 class MessagesClient : public QObject, public Dependency {
     Q_OBJECT

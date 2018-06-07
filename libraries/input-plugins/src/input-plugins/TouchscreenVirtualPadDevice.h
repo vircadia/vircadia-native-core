@@ -26,6 +26,7 @@ public:
 
     // Plugin functions
     virtual void init() override;
+    virtual void resize();
     virtual bool isSupported() const override;
     virtual const QString getName() const override { return NAME; }
 
@@ -41,6 +42,18 @@ public:
 
     static const char* NAME;
 
+    int _viewTouchUpdateCount;
+    enum TouchAxisChannel {
+        LX,
+        LY,
+        RX,
+        RY
+    };
+
+    enum TouchButtonChannel {
+        JUMP_BUTTON_PRESS
+    };
+
 protected:
 
     class InputDevice : public controller::InputDevice {
@@ -50,10 +63,15 @@ protected:
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
         virtual QString getDefaultMappingConfig() const override;
+
+        virtual bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
         virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         virtual void focusOutEvent() override;
 
         friend class TouchscreenVirtualPadDevice;
+
+        controller::Input makeInput(TouchAxisChannel axis) const;
+        controller::Input makeInput(TouchButtonChannel button) const;
     };
 
 public:
@@ -63,7 +81,8 @@ protected:
 
     enum TouchType {
         MOVE = 1,
-        VIEW
+        VIEW,
+        JUMP
     };
 
     float _lastPinchScale;
@@ -82,6 +101,9 @@ protected:
     glm::vec2 _viewCurrentTouchPoint;
     int _viewCurrentTouchId;
 
+    bool _jumpHasValidTouch;
+    int _jumpCurrentTouchId;
+
     std::map<int, TouchType> _unusedTouches;
 
     int _touchPointCount;
@@ -94,7 +116,8 @@ protected:
     float _fixedRadiusForCalc;
     int _extraBottomMargin {0};
 
-    float _viewStickRadiusInches {0.1333f}; // agreed default
+    glm::vec2 _jumpButtonPosition;
+    float _jumpButtonRadius;
 
     void moveTouchBegin(glm::vec2 touchPoint);
     void moveTouchUpdate(glm::vec2 touchPoint);
@@ -106,7 +129,12 @@ protected:
     void viewTouchEnd();
     bool viewTouchBeginIsValid(glm::vec2 touchPoint);
 
-    void setupFixedCenter(VirtualPad::Manager& virtualPadManager, bool force = false);
+    void jumpTouchBegin(glm::vec2 touchPoint);
+    void jumpTouchUpdate(glm::vec2 touchPoint);
+    void jumpTouchEnd();
+    bool jumpTouchBeginIsValid(glm::vec2 touchPoint);
+
+    void setupControlsPositions(VirtualPad::Manager& virtualPadManager, bool force = false);
 
     void processInputDeviceForMove(VirtualPad::Manager& virtualPadManager);
     glm::vec2 clippedPointInCircle(float radius, glm::vec2 origin, glm::vec2 touchPoint);

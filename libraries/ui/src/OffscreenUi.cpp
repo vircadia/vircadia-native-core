@@ -30,6 +30,15 @@
 
 #include <PointerManager.h>
 
+/**jsdoc
+ * @namespace OffscreenFlags
+ * 
+ * @hifi-interface
+ * @hifi-client-entity
+ * @property {boolean} navigationFocused
+ * @property {boolean} navigationFocusDisabled
+ */
+
 // Needs to match the constants in resources/qml/Global.js
 class OffscreenFlags : public QObject {
     Q_OBJECT
@@ -58,7 +67,17 @@ public:
     }
     
 signals:
+
+    /**jsdoc
+     * @function OffscreenFlags.navigationFocusedChanged
+     * @returns {Signal}
+     */
     void navigationFocusedChanged();
+
+    /**jsdoc
+     * @function OffscreenFlags.navigationFocusDisabledChanged
+     * @returns {Signal}
+     */
     void navigationFocusDisabledChanged();
 
 private:
@@ -152,6 +171,13 @@ void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(
     if (item) {
         QQmlProperty(item, OFFSCREEN_VISIBILITY_PROPERTY).write(true);
     }
+}
+
+void OffscreenUi::hideDesktopWindows() {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "hideDesktopWindows");
+    }
+    QMetaObject::invokeMethod(_desktop, "hideDesktopWindows");
 }
 
 void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {

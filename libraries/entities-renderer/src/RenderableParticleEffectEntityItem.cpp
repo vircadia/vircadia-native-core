@@ -23,8 +23,8 @@ using namespace render::entities;
 static uint8_t CUSTOM_PIPELINE_NUMBER = 0;
 static gpu::Stream::FormatPointer _vertexFormat;
 static std::weak_ptr<gpu::Pipeline> _texturedPipeline;
-// FIXME: This is interfering with the uniform buffers in DeferredLightingEffect.cpp, so use 11 to avoid collisions
-static int32_t PARTICLE_UNIFORM_SLOT { 11 };
+// FIXME: This is interfering with the uniform buffers in DeferredLightingEffect.cpp, so use 12 to avoid collisions
+static int32_t PARTICLE_UNIFORM_SLOT { 12 };
 
 static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, gpu::Batch& batch) {
     auto texturedPipeline = _texturedPipeline.lock();
@@ -147,9 +147,9 @@ void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEn
 
 ItemKey ParticleEffectEntityRenderer::getKey() {
     if (_visible) {
-        return ItemKey::Builder::transparentShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+        return ItemKey::Builder::transparentShape().withTagBits(getTagMask());
     } else {
-        return ItemKey::Builder().withInvisible().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1).build();
+        return ItemKey::Builder().withInvisible().withTagBits(getTagMask()).build();
     }
 }
 

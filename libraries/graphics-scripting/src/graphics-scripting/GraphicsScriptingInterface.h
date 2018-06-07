@@ -24,6 +24,9 @@
 /**jsdoc
  * The experimental Graphics API <em>(experimental)</em> lets you query and manage certain graphics-related structures (like underlying meshes and textures) from scripting.
  * @namespace Graphics
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 
 class GraphicsScriptingInterface : public QObject, public QScriptable, public Dependency {
@@ -39,14 +42,32 @@ public slots:
      *
      * @function Graphics.getModel
      * @param {UUID} entityID - The objectID of the model whose meshes are to be retrieved.
-     * @return {Graphics.Model} the resulting Model object
+     * @returns {Graphics.Model} the resulting Model object
      */
     scriptable::ScriptableModelPointer getModel(QUuid uuid);
 
+    /**jsdoc
+     * @function Graphics.updateModel
+     * @param {Uuid} id
+     * @param {Graphics.Model} model
+     * @returns {boolean}
+     */
     bool updateModel(QUuid uuid, const scriptable::ScriptableModelPointer& model);
 
+    /**jsdoc
+     * @function Graphics.canUpdateModel
+     * @param {Uuid} id
+     * @param {number} [meshIndex=-1]
+     * @param {number} [partNumber=-1]
+     * @returns {boolean}
+     */
     bool canUpdateModel(QUuid uuid, int meshIndex = -1, int partNumber = -1);
 
+    /**jsdoc
+     * @function Graphics.newModel
+     * @param {Graphics.Mesh[]} meshes
+     * @returns {Graphics.Model}
+     */
     scriptable::ScriptableModelPointer newModel(const scriptable::ScriptableMeshes& meshes);
 
     /**jsdoc
@@ -54,17 +75,8 @@ public slots:
      *
      * @function Graphics.newMesh
      * @param {Graphics.IFSData} ifsMeshData Index-Faced Set (IFS) arrays used to create the new mesh.
-     * @return {Graphics.Mesh} the resulting Mesh / Mesh Part object
+     * @returns {Graphics.Mesh} the resulting Mesh / Mesh Part object
      */
-    /**jsdoc
-    * @typedef {object} Graphics.IFSData
-    * @property {string} [name] - mesh name (useful for debugging / debug prints).
-    * @property {number[]} indices - vertex indices to use for the mesh faces.
-    * @property {Vec3[]} vertices - vertex positions (model space)
-    * @property {Vec3[]} [normals] - vertex normals (normalized)
-    * @property {Vec3[]} [colors] - vertex colors (normalized)
-    * @property {Vec2[]} [texCoords0] - vertex texture coordinates (normalized)
-    */
     scriptable::ScriptableMeshPointer newMesh(const QVariantMap& ifsMeshData);
 
 #ifdef SCRIPTABLE_MESH_TODO
@@ -74,6 +86,11 @@ public slots:
     bool updateMeshPart(scriptable::ScriptableMeshPointer mesh, scriptable::ScriptableMeshPartPointer part);
 #endif
 
+    /**jsdoc
+     * @function Graphics.exportModelToOBJ
+     * @param {Graphics.Model} model
+     * @returns {string}
+     */
     QString exportModelToOBJ(const scriptable::ScriptableModel& in);
 
 private:
