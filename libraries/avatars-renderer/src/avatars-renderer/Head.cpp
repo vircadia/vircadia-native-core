@@ -59,7 +59,6 @@ void Head::simulate(float deltaTime) {
         _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
     }
 
-    //if (!_isFaceTrackerConnected) {
     if (!_isEyeTrackerConnected) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 1.0f;
@@ -77,7 +76,7 @@ void Head::simulate(float deltaTime) {
     } else {
         _saccade = glm::vec3();
     }
-   
+
     const float BLINK_SPEED = 10.0f;
     const float BLINK_SPEED_VARIABILITY = 1.0f;
     const float BLINK_START_VARIABILITY = 0.25f;
