@@ -58,7 +58,6 @@ if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_I
         menuItemName: MENU_ITEM,
         isCheckable: true,
         isChecked: previousSetting,
-        grouping: "Advanced"
     });
 }
 

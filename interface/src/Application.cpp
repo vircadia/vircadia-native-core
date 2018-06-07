@@ -802,15 +802,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         qApp->setProperty(hifi::properties::APP_LOCAL_DATA_PATH, cacheDir);
     }
 
-    // FIXME fix the OSX installer to install the resources.rcc binary instead of resource files and remove
-    // this conditional exclusion
-#if !defined(Q_OS_OSX)
     {
-#if defined(Q_OS_ANDROID)
-        const QString resourcesBinaryFile = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources.rcc";
-#else
-        const QString resourcesBinaryFile = QCoreApplication::applicationDirPath() + "/resources.rcc";
-#endif
+        const QString resourcesBinaryFile = PathUtils::getRccPath();
         if (!QFile::exists(resourcesBinaryFile)) {
             throw std::runtime_error("Unable to find primary resources");
         }
@@ -818,7 +811,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
             throw std::runtime_error("Unable to load primary resources");
         }
     }
-#endif
 
     // Tell the plugin manager about our statically linked plugins
     auto pluginManager = PluginManager::getInstance();
@@ -3674,9 +3666,21 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_1:
-            case Qt::Key_2:
-            case Qt::Key_3:
+            case Qt::Key_1: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::FirstPerson);
+                break;
+            }
+            case Qt::Key_2: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::FullscreenMirror);
+                break;
+            }
+            case Qt::Key_3: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::ThirdPerson);
+                break;
+            }
             case Qt::Key_4:
             case Qt::Key_5:
             case Qt::Key_6:
@@ -4187,7 +4191,7 @@ bool Application::acceptSnapshot(const QString& urlString) {
 static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
 bool Application::shouldPaint() const {
-    if (_aboutToQuit) {
+    if (_aboutToQuit || _window->isMinimized()) {
         return false;
     }
 
@@ -4747,12 +4751,15 @@ void Application::loadSettings() {
     // DONT CHECK IN
     //DependencyManager::get<LODManager>()->setAutomaticLODAdjust(false);
 
-    Menu::getInstance()->loadSettings();
+    auto menu = Menu::getInstance();
+    menu->loadSettings();
+
+    // override the menu option show overlays to always be true on startup
+    menu->setIsOptionChecked(MenuOption::Overlays, true);
 
     // If there is a preferred plugin, we probably messed it up with the menu settings, so fix it.
     auto pluginManager = PluginManager::getInstance();
     auto plugins = pluginManager->getPreferredDisplayPlugins();
-    auto menu = Menu::getInstance();
     if (plugins.size() > 0) {
         for (auto plugin : plugins) {
             if (auto action = menu->getActionForOption(plugin->getName())) {
@@ -8041,7 +8048,6 @@ void Application::switchDisplayMode() {
             setActiveDisplayPlugin(DESKTOP_DISPLAY_PLUGIN_NAME);
             startHMDStandBySession();
         }
-        emit activeDisplayPluginChanged();
     }
     _previousHMDWornStatus = currentHMDWornStatus;
 }

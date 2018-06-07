@@ -104,7 +104,7 @@ public:
      * @property {number} type The intersection type.
      * @property {boolean} intersects If there was a valid intersection (type != INTERSECTED_NONE)
      * @property {Uuid} objectID The ID of the intersected object.  Uuid.NULL for the HUD or invalid intersections.
-     * @property {float} distance The distance to the intersection point from the origin of the ray.
+     * @property {number} distance The distance to the intersection point from the origin of the ray.
      * @property {Vec3} intersection The intersection point in world-space.
      * @property {Vec3} surfaceNormal The surface normal at the intersected point.  All NANs if type == INTERSECTED_HUD.
      * @property {Variant} extraInfo Additional intersection details when available for Model objects.
@@ -118,7 +118,7 @@ public:
      * @property {number} type The intersection type.
      * @property {boolean} intersects If there was a valid intersection (type != INTERSECTED_NONE)
      * @property {Uuid} objectID The ID of the intersected object.  Uuid.NULL for the HUD or invalid intersections.
-     * @property {float} distance The distance to the intersection point from the origin of the ray.
+     * @property {number} distance The distance to the intersection point from the origin of the ray.
      * @property {Vec3} intersection The intersection point in world-space.
      * @property {Vec3} surfaceNormal The surface normal at the intersected point.  All NANs if type == INTERSECTED_HUD.
      * @property {Variant} extraInfo Additional intersection details when available for Model objects.

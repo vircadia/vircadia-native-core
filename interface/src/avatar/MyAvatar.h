@@ -464,7 +464,7 @@ public:
     Q_INVOKABLE bool getClearOverlayWhenMoving() const { return _clearOverlayWhenMoving; }
     /**jsdoc
      * @function MyAvatar.setClearOverlayWhenMoving
-     * @returns {boolean} 
+     * @param {boolean} on
      */
     Q_INVOKABLE void setClearOverlayWhenMoving(bool on) { _clearOverlayWhenMoving = on; }
 

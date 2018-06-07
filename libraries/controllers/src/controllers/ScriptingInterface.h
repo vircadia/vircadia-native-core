@@ -207,43 +207,6 @@ namespace controller {
         Q_INVOKABLE Pose getPoseValue(const int& source) const;
 
         /**jsdoc
-         * Get the value of a button on a particular device.
-         * @function Controller.getButtonValue
-         * @param {StandardButtonChannel} source - The button to get the value of.
-         * @param {number} [device=0] - The ID of the hardware device to get the value from. The default value of 
-         *    <code>0</code> corresponds to <code>Standard</code>.
-         * @returns {number} The current value of the button if the parameters are valid, otherwise <code>0</code>.
-         * @deprecated This function no longer works.
-         */
-         // FIXME: This function causes a JavaScript crash: https://highfidelity.manuscript.com/f/cases/edit/14139
-        Q_INVOKABLE float getButtonValue(StandardButtonChannel source, uint16_t device = 0) const;
-
-        /**jsdoc
-         * Get the value of an axis control on a particular device.
-         * @function Controller.getAxisValue
-         * @variation 0
-         * @param {StandardAxisChannel} source - The axis to get the value of.
-         * @param {number} [device=0] - The ID of the hardware device to get the value from. The default value of 
-         *    <code>0</code> corresponds to <code>Standard</code>.
-         * @returns {number} The current value of the axis if the parameters are valid, otherwise <code>0</code>.
-         * @deprecated This function no longer works.
-         */
-        Q_INVOKABLE float getAxisValue(StandardAxisChannel source, uint16_t device = 0) const;
-
-        /**jsdoc
-         * Get the value of an pose control on a particular device.
-         * @function Controller.getPoseValue
-         * @variation 0
-         * @param {StandardPoseChannel} source - The pose to get the value of.
-         * @param {number} [device=0] - The ID of the hardware device to get the value from. The default value of 
-         *    <code>0</code> corresponds to <code>Standard</code>.
-         * @returns {Pose} The current value of the controller pose output if the parameters are valid, otherwise an invalid 
-         *     pose with <code>Pose.valid == false</code>.
-         * @deprecated This function no longer works.
-         */
-        Q_INVOKABLE Pose getPoseValue(StandardPoseChannel source, uint16_t device = 0) const;
-
-        /**jsdoc
          * Triggers a haptic pulse on connected and enabled devices that have the capability.
          * @function Controller.triggerHapticPulse
          * @param {number} strength - The strength of the haptic pulse, <code>0.0</code> &ndash; <code>1.0</code>.

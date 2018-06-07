@@ -115,7 +115,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         }),
         dimensions: { x: tabletWidth, y: tabletHeight, z: tabletDepth },
         parentID: MyAvatar.SELF_ID,
-        visible: visible
+        visible: visible,
+        isGroupCulled: true
     };
 
     // compute position, rotation & parentJointIndex of the tablet
