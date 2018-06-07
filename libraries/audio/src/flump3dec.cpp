@@ -5214,7 +5214,7 @@ II_buffer_sample (Bit_stream_struc * bs, guint sample[2][3][SBLIMIT],
  *   Use the formula s = s' * c + d
  *
  **************************************************************/
-static const gfloat c[17] = {
+static const gfloat c_table[17] = {
   1.33333333333f, 1.60000000000f, 1.14285714286f,
   1.77777777777f, 1.06666666666f, 1.03225806452f,
   1.01587301587f, 1.00787401575f, 1.00392156863f,
@@ -5223,7 +5223,7 @@ static const gfloat c[17] = {
   1.00003051851f, 1.00001525902f
 };
 
-static const gfloat d[17] = {
+static const gfloat d_table[17] = {
   0.500000000f, 0.500000000f, 0.250000000f, 0.500000000f,
   0.125000000f, 0.062500000f, 0.031250000f, 0.015625000f,
   0.007812500f, 0.003906250f, 0.001953125f, 0.0009765625f,
@@ -5251,8 +5251,8 @@ II_dequant_and_scale_sample (guint sample[2][3][SBLIMIT],
         gfloat scale_val, val;
         gfloat c_quant, d_quant;
 
-        c_quant = c[alloc[0][sb][allocation].quant];
-        d_quant = d[alloc[0][sb][allocation].quant];
+        c_quant = c_table[alloc[0][sb][allocation].quant];
+        d_quant = d_table[alloc[0][sb][allocation].quant];
         scale_val = multiple[scale_index[ch][scale_block][sb]];
 
         for (gr = 0; gr < 3; gr++) {
@@ -5418,53 +5418,6 @@ init_syn_filter (frame_params * fr_ps)
  *   Window the restored sample
  *
  ***************************************************************/
-
-static void
-buffer_CRC (Bit_stream_struc * bs, guint * old_crc)
-{
-  *old_crc = bs_getbits (bs, 16);
-}
-
-static void
-recover_CRC_error (short pcm_sample[2][SSLIMIT][SBLIMIT], int error_count,
-    frame_params * fr_ps, gint16 * outBuf, guint32 * psamples, guint32 bufSize)
-{
-  int num, i;
-  fr_header *hdr = &fr_ps->header;
-
-  num = 3;
-  if (hdr->layer == 1)
-    num = 1;
-
-  if (error_count == 1) {       /* replicate previous error_free frame */
-    /* flush out fifo */
-    out_fifo (pcm_sample, num, fr_ps, outBuf, psamples, bufSize);
-    /* go back to the beginning of the previous frame */
-#if 0
-    {
-      int samplesPerSlot = SBLIMIT * num * fr_ps->stereo;
-      offset = sizeof (short int) * samplesPerSlot * 32;
-      fseek (outFile, -offset, SEEK_CUR);
-      done = 0;
-      for (i = 0; i < SCALE_BLOCK; i++) {
-        fread (pcm_sample, 2, samplesPerSlot, outFile);
-        out_fifo (pcm_sample, num, fr_ps, done, outFile, psampFrames);
-      }
-    }
-#endif
-    g_assert ("FIXME - implement previous frame replication\n");
-
-  } else {
-    short *temp;
-
-    /* mute the frame */
-    temp = (short *) pcm_sample;
-    for (i = 0; i < 2 * 3 * SBLIMIT; i++)
-      *temp++ = 0;
-    for (i = 0; i < SCALE_BLOCK; i++)
-      out_fifo (pcm_sample, num, fr_ps, outBuf, psamples, bufSize);
-  }
-}
 
 #define INV_SQRT_2 (7.071067811865474617150084668537e-01f)
 
@@ -6546,7 +6499,6 @@ III_huffman_decode (gint is[SBLIMIT][SSLIMIT], III_side_info_t * si,
   return TRUE;
 }
 
-
 static const gint pretab[22] =
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 2, 0 };
 
@@ -6770,7 +6722,7 @@ III_stereo (gfloat xr[2][SBLIMIT][SSLIMIT], gfloat lr[2][SBLIMIT][SSLIMIT],
             lines = sfBandIndex[sfreq].s[sfb + 1] - sfBandIndex[sfreq].s[sfb];
             i = 3 * sfBandIndex[sfreq].s[sfb] + (j + 1) * lines - 1;
             while (lines > 0) {
-              if (xr[1][i / SSLIMIT][i % SSLIMIT] != 0.0) {
+              if (xr[1][i / SSLIMIT][i % SSLIMIT] != 0.0f) {
                 sfbcnt = sfb;
                 sfb = -10;
                 lines = -10;
@@ -6819,7 +6771,7 @@ III_stereo (gfloat xr[2][SBLIMIT][SSLIMIT], gfloat lr[2][SBLIMIT][SSLIMIT],
           ss = 17;
           sb = -1;
           while (i >= 0) {
-            if (xr[1][i][ss] != 0.0) {
+            if (xr[1][i][ss] != 0.0f) {
               sb = i * 18 + ss;
               i = -1;
             } else {
@@ -6861,7 +6813,7 @@ III_stereo (gfloat xr[2][SBLIMIT][SSLIMIT], gfloat lr[2][SBLIMIT][SSLIMIT],
             lines = sfBandIndex[sfreq].s[sfb + 1] - sfBandIndex[sfreq].s[sfb];
             i = 3 * sfBandIndex[sfreq].s[sfb] + (j + 1) * lines - 1;
             while (lines > 0) {
-              if (xr[1][i / SSLIMIT][i % SSLIMIT] != 0.0) {
+              if (xr[1][i / SSLIMIT][i % SSLIMIT] != 0.0f) {
                 sfbcnt = sfb;
                 sfb = -10;
                 lines = -10;
@@ -6907,7 +6859,7 @@ III_stereo (gfloat xr[2][SBLIMIT][SSLIMIT], gfloat lr[2][SBLIMIT][SSLIMIT],
       ss = 17;
       sb = 0;
       while (i >= 0) {
-        if (xr[1][i][ss] != 0.0) {
+        if (xr[1][i][ss] != 0.0f) {
           sb = i * 18 + ss;
           i = -1;
         } else {
@@ -6967,10 +6919,8 @@ III_stereo (gfloat xr[2][SBLIMIT][SSLIMIT], gfloat lr[2][SBLIMIT][SSLIMIT],
         i = (sb * 18) + ss;
         if (is_pos[i] == 7) {
           if (ms_stereo) {
-            lr[0][sb][ss] = (gfloat)
-                ((xr[0][sb][ss] + xr[1][sb][ss]) / (double) 1.41421356);
-            lr[1][sb][ss] = (gfloat)
-                ((xr[0][sb][ss] - xr[1][sb][ss]) / (double) 1.41421356);
+            lr[0][sb][ss] = (xr[0][sb][ss] + xr[1][sb][ss]) * 0.707106781188f;
+            lr[1][sb][ss] = (xr[0][sb][ss] - xr[1][sb][ss]) * 0.707106781188f;
           } else {
             lr[0][sb][ss] = xr[0][sb][ss];
             lr[1][sb][ss] = xr[1][sb][ss];
@@ -6993,32 +6943,22 @@ III_stereo (gfloat xr[2][SBLIMIT][SSLIMIT], gfloat lr[2][SBLIMIT][SSLIMIT],
 
 }
 
-static const gfloat Ci[8] =
-    { -0.6f, -0.535f, -0.33f, -0.185f, -0.095f, -0.041f, -0.0142f, -0.0037f };
+static const gfloat cs_table[8] = {
+  0.85749292571f, 0.88174199732f, 0.94962864910f, 0.98331459249f,
+  0.99551781607f, 0.99916055818f, 0.99989919524f, 0.99999315507f
+};
+
+static const gfloat ca_table[8] = {
+  -0.51449575543f, -0.47173196857f, -0.31337745420f, -0.18191319961f,
+  -0.09457419253f, -0.04096558289f, -0.01419856857f, -0.00369997467f
+};
 
 static void
 III_antialias (gfloat xr[SBLIMIT][SSLIMIT],
     gfloat hybridIn[SBLIMIT][SSLIMIT], gr_info_t * gr_info)
 {
-  /* Static shared computed constants */
-  static int init = 0;
-  static gfloat sca[8], scs[8];
   gfloat bu, bd;                /* upper and lower butterfly inputs */
   int ss, sb, sblim;
-  const gfloat *ca = sca;
-  const gfloat *cs = scs;
-
-  if (!init) {
-    int i;
-    gfloat sq;
-
-    for (i = 0; i < 8; i++) {
-      sq = (gfloat) sqrt (1.0 + Ci[i] * Ci[i]);
-      scs[i] = 1.0f / sq;
-      sca[i] = Ci[i] / sq;
-    }
-    init = 1;
-  }
 
   /* clear all inputs */
   for (sb = 0; sb < SBLIMIT; sb++)
@@ -7042,8 +6982,8 @@ III_antialias (gfloat xr[SBLIMIT][SSLIMIT],
     for (ss = 0; ss < 8; ss++) {
       bu = xr[sb][17 - ss];
       bd = xr[sb + 1][ss];
-      hybridIn[sb][17 - ss] = (bu * cs[ss]) - (bd * ca[ss]);
-      hybridIn[sb + 1][ss] = (bd * cs[ss]) + (bu * ca[ss]);
+      hybridIn[sb][17 - ss] = (bu * cs_table[ss]) - (bd * ca_table[ss]);
+      hybridIn[sb + 1][ss] = (bd * cs_table[ss]) + (bu * ca_table[ss]);
     }
 }
 
@@ -8023,7 +7963,7 @@ mp3tl_decode_frame (mp3tl * tl, guint8 * samples, guint bufsize)
 
   /* Retrieve the CRC from the stream */
   if (error_protection)
-    buffer_CRC (tl->bs, &tl->old_crc);
+    tl->old_crc = bs_getbits (tl->bs, 16);
 
   switch (hdr->layer) {
     case 1:{
@@ -8266,7 +8206,7 @@ mp3tl_skip_xing(mp3tl * tl, const fr_header * hdr)
 {
   const guint32 xing_id = 0x58696e67;     /* 'Xing' in hex */
   const guint32 info_id = 0x496e666f;     /* 'Info' in hex - found in LAME CBR files */
-  gint xing_offset;
+  guint32 xing_offset;
   guint32 read_id;
 
   if (hdr->version == MPEG_VERSION_1) {   /* MPEG-1 file */
