@@ -101,8 +101,6 @@ protected:
     glm::vec3 _lookAtPosition;
     quint64 _lookAtPositionChanged { 0 };
 
-    //std::atomic<bool> _hasProceduralBlinkFaceMovement{ true };
-    //std::atomic<bool> _hasProceduralEyeFaceMovement{ true };
     bool _hasAudioEnabledFaceMovement { true };
     bool _hasProceduralBlinkFaceMovement{ true };
     bool _hasProceduralEyeFaceMovement{ true };

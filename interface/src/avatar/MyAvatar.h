@@ -1466,7 +1466,6 @@ private:
     float _hmdRollControlDeadZone { ROLL_CONTROL_DEAD_ZONE_DEFAULT };
     float _hmdRollControlRate { ROLL_CONTROL_RATE_DEFAULT };
     std::atomic<bool> _hasScriptedBlendShapes { false };
-    bool _hasAudioEnabledFaceMovement { true };
 
     // working copy -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
     glm::mat4 _sensorToWorldMatrix { glm::mat4() };

@@ -521,8 +521,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         auto startSection = destinationBuffer;
         auto faceTrackerInfo = reinterpret_cast<AvatarDataPacket::FaceTrackerInfo*>(destinationBuffer);
         const auto& blendshapeCoefficients = _headData->getBlendshapeCoefficients();
-
-        //note: we don't use the blink and average loudness, we just use the numBlendShapes and 
+        // note: we don't use the blink and average loudness, we just use the numBlendShapes and
         // compute the procedural info on the client side.
         faceTrackerInfo->leftEyeBlink = _headData->_leftEyeBlink;
         faceTrackerInfo->rightEyeBlink = _headData->_rightEyeBlink;
@@ -1068,7 +1067,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             } else {
                 qCWarning(avatars) << "name " << getName() << "key state flag is false";
             }
-           
 
         }
         int numBytesRead = sourceBuffer - startSection;
@@ -1121,7 +1119,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     }
 
     if (hasFaceTrackerInfo) {
-        //qCWarning(avatars) << "parsing face tracker info ";
         auto startSection = sourceBuffer;
 
         PACKET_READ_CHECK(FaceTrackerInfo, sizeof(AvatarDataPacket::FaceTrackerInfo));
@@ -1129,12 +1126,10 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         int numCoefficients = faceTrackerInfo->numBlendshapeCoefficients;
         const int coefficientsSize = sizeof(float) * numCoefficients;
         sourceBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
-        
+
         PACKET_READ_CHECK(FaceTrackerCoefficients, coefficientsSize);
         _headData->_blendshapeCoefficients.resize(numCoefficients);  // make sure there's room for the copy!
-        _headData->_transientBlendshapeCoefficients.resize(numCoefficients);
-        
-        //only copy the blendshapes to headData not the procedural face info
+        //only copy the blendshapes to headData, not the procedural face info
         memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, coefficientsSize);
         sourceBuffer += coefficientsSize;
 

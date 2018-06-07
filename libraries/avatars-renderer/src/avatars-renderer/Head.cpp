@@ -45,13 +45,6 @@ void Head::reset() {
 void Head::simulate(float deltaTime) {
     const float NORMAL_HZ = 60.0f; // the update rate the constant values were tuned for
 
-    //qCDebug(avatars_renderer) << "name " << _owningAvatar->getName();
-    //if (_owningAvatar->isMyAvatar()) {
-    //    qCDebug(avatars_renderer) << "my avatar";
-    //} else {
-    //    qCDebug(avatars_renderer) << "not my avatar " << _owningAvatar->getAudioLoudness();
-    //}
-
     // grab the audio loudness from the owning avatar, if we have one
     float audioLoudness = _owningAvatar ? _owningAvatar->getAudioLoudness() : 0.0f;
 
@@ -84,9 +77,7 @@ void Head::simulate(float deltaTime) {
     } else {
         _saccade = glm::vec3();
     }
-
-    
-        
+   
     const float BLINK_SPEED = 10.0f;
     const float BLINK_SPEED_VARIABILITY = 1.0f;
     const float BLINK_START_VARIABILITY = 0.25f;
@@ -162,7 +153,7 @@ void Head::simulate(float deltaTime) {
         _mouth4 = 0.0f;
         _mouthTime = 0.0f;
     }
-        
+
     FaceTracker::updateFakeCoefficients(_leftEyeBlink,
         _rightEyeBlink,
         _browAudioLift,
@@ -171,11 +162,11 @@ void Head::simulate(float deltaTime) {
         _mouth3,
         _mouth4,
         _transientBlendshapeCoefficients);
-        
+
     if (getHasProceduralEyeFaceMovement()) {
         applyEyelidOffset(getOrientation());
     }
-    
+
     _leftEyePosition = _rightEyePosition = getPosition();
     if (_owningAvatar) {
         auto skeletonModel = static_cast<Avatar*>(_owningAvatar)->getSkeletonModel();

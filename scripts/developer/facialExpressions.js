@@ -1,7 +1,7 @@
 //
 // facialExpressions.js
 // A script to set different emotions using blend shapes
-// 
+//
 // Author: Elisa Lupin-Jimenez
 // Copyright High Fidelity 2018
 //
@@ -286,7 +286,7 @@
             }
         }
         for (var blendshape in emotion) {
-            MyAvatar.setBlendshape(blendshape, 
+            MyAvatar.setBlendshape(blendshape,
                 mixValue(lastEmotionUsed[blendshape], emotion[blendshape], changingEmotionPercentage));
         }
     });

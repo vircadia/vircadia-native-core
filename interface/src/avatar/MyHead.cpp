@@ -54,7 +54,7 @@ void MyHead::simulate(float deltaTime) {
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
             }
         }
-        
+
         auto eyeTracker = DependencyManager::get<EyeTracker>();
         _isEyeTrackerConnected = eyeTracker->isTracking();
         // if eye tracker is connected we should get the data here.
