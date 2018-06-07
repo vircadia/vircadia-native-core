@@ -419,6 +419,12 @@ void NodeList::sendDomainServerCheckIn() {
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
+        int outstandingCheckins = _domainHandler.getCheckInPacketsSinceLastReply();
+        int checkinCount = outstandingCheckins > 1 ? std::pow(2, outstandingCheckins - 1) : 1;
+        for (int i = 1; i < checkinCount; ++i) {
+            auto packetCopy = domainPacket->createCopy(*domainPacket);
+            sendPacket(std::move(packetCopy), _domainHandler.getSockAddr());
+        }
         sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
 
         // let the domain handler know we sent another check in or connect packet
