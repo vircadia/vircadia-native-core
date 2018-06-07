@@ -8053,7 +8053,6 @@ void Application::switchDisplayMode() {
             setActiveDisplayPlugin(DESKTOP_DISPLAY_PLUGIN_NAME);
             startHMDStandBySession();
         }
-        emit activeDisplayPluginChanged();
     }
     _previousHMDWornStatus = currentHMDWornStatus;
 }
