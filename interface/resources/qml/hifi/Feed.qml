@@ -61,11 +61,11 @@ Column {
         listModelName: actions;
         listView: scroll;
         searchFilter: filter.toUpperCase().split(/\s+/).filter(identity).join(' ');
-        searchItemTest: function (text, item) {
+        /* FIXME searchItemTest: function (text, item) {
             return searchFilter.split().every(function (word) {
                 return item.searchText.indexOf(word) >= 0;
             });
-        }; //HRS FIXME remove when endpoint works.
+        };*/ //HRS FIXME remove when endpoint works.
     }
 
     function resolveUrl(url) {

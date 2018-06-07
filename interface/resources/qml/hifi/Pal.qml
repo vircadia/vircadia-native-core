@@ -50,9 +50,18 @@ Rectangle {
         id: connectionsUserModel;
         http: http;
         endpoint: "/api/v1/users?filter=connections";
-        localSort: true;
+        //FIXME localSort: true;
         property var sortColumn: connectionsTable.getColumn(connectionsTable.sortIndicatorColumn);
-        sortProperty: sortColumn ? sortColumn.role : "userName";
+        sortProperty: switch (sortColumn && sortColumn.role) {
+            case 'placeName':
+                'location';
+                break;
+            case 'connection':
+                'is_friend';
+                break;
+            default:
+                'username';
+        }
         sortAscending: connectionsTable.sortIndicatorOrder === Qt.AscendingOrder;
         itemsPerPage: 9;
         listView: connectionsTable;

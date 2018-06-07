@@ -27,7 +27,7 @@ Item {
     property string endpoint;
     property string sortProperty;  // Currently only handles sorting on one column, which fits with current needs and tables.
     property bool sortAscending;
-    property string sortKey: !sortProperty ? '' : (sortProperty + "," + (sortAscending ? "asc" : "desc"));
+    property string sortKey: !sortProperty ? '' : (sortProperty + "," + (sortAscending ? "ASC" : "DESC"));
     property string searchFilter: "";
     property string tagsFilter;
 
@@ -144,10 +144,16 @@ Item {
         // If it is a path starting with slash, add the metaverseServer domain.
         var url = /^\//.test(endpoint) ? (Account.metaverseServerURL + endpoint) : endpoint;
         var parameters = [
-            // FIXME: handle sort, search, tag parameters
+            // FIXME: handle sort,  tag parameters
             'per_page=' + itemsPerPage,
             'page=' + currentPageToRetrieve
         ];
+        if (!searchItemTest && searchFilter) {
+            parameters.splice(parameters.length, 0, 'search=' + searchFilter);
+        }
+        if (!localSort && sortKey) {
+            parameters.splice(parameters.length, 0, 'sort=' + sortKey);
+        }
         var parametersSeparator = /\?/.test(url) ? '&' : '?';
         url = url + parametersSeparator + parameters.join('&');
         console.debug('getPage', listModelName, currentPageToRetrieve);
