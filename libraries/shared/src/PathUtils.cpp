@@ -32,15 +32,13 @@
 #include "shared/GlobalAppProperties.h"
 #include "SharedUtil.h"
 
+
 // Format: AppName-PID-Timestamp
 // Example: ...
 QString TEMP_DIR_FORMAT { "%1-%2-%3" };
 
 #if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
 static bool USE_SOURCE_TREE_RESOURCES() {
-#if defined(Q_OS_OSX)
-    return true;
-#else
     static bool result = false;
     static std::once_flag once;
     std::call_once(once, [&] {
@@ -48,9 +46,27 @@ static bool USE_SOURCE_TREE_RESOURCES() {
         result = QProcessEnvironment::systemEnvironment().contains(USE_SOURCE_TREE_RESOURCES_FLAG);
     });
     return result;
-#endif
 }
 #endif
+
+const QString& PathUtils::getRccPath() {
+    static QString rccLocation;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        static const QString rccName{ "/resources.rcc" };
+#if defined(Q_OS_OSX)
+        char buffer[8192];
+        uint32_t bufferSize = sizeof(buffer);
+        _NSGetExecutablePath(buffer, &bufferSize);
+        rccLocation = QDir::cleanPath(QFileInfo(buffer).dir().absoluteFilePath("../Resources")) + rccName;
+#elif defined(Q_OS_ANDROID)
+        rccLocation = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + rccName;
+#else
+        rccLocation = QCoreApplication::applicationDirPath() + rccName;
+#endif
+    });
+    return rccLocation;
+}
 
 #ifdef DEV_BUILD
 const QString& PathUtils::projectRootPath() {
@@ -65,23 +81,9 @@ const QString& PathUtils::projectRootPath() {
 #endif
 
 const QString& PathUtils::resourcesPath() {
-    static QString staticResourcePath;
+    static QString staticResourcePath{ ":/" };
     static std::once_flag once;
     std::call_once(once, [&]{
-
-#if defined(Q_OS_OSX)
-        // FIXME fix the OSX installer to install the resources.rcc instead of the
-        // individual resource files
-        // FIXME the first call to fetch the resources location seems to return
-        // nothing for QCoreApplication::applicationDirPath()
-        char buffer[8192];
-        uint32_t bufferSize = sizeof(buffer);
-        _NSGetExecutablePath(buffer, &bufferSize);
-        staticResourcePath = QDir::cleanPath(QFileInfo(buffer).dir().absoluteFilePath("../Resources")) + "/";
-#else
-        staticResourcePath = ":/";
-#endif
-
 #if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
         if (USE_SOURCE_TREE_RESOURCES()) {
             // For dev builds, optionally load content from the Git source tree
@@ -90,21 +92,13 @@ const QString& PathUtils::resourcesPath() {
 #endif
         qDebug() << "Resource path resolved to " << staticResourcePath;
     });
-
     return staticResourcePath;
 }
 
 const QString& PathUtils::resourcesUrl() {
-    static QString staticResourcePath;
+    static QString staticResourcePath{ "qrc:///" };
     static std::once_flag once;
     std::call_once(once, [&]{
-
-#if defined(Q_OS_OSX)
-        staticResourcePath = QUrl::fromLocalFile(resourcesPath()).toString();
-#else
-        staticResourcePath = "qrc:///";
-#endif
-
 #if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
         if (USE_SOURCE_TREE_RESOURCES()) {
             // For dev builds, optionally load content from the Git source tree
