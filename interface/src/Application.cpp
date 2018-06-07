@@ -4191,7 +4191,7 @@ bool Application::acceptSnapshot(const QString& urlString) {
 static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
 bool Application::shouldPaint() const {
-    if (_aboutToQuit) {
+    if (_aboutToQuit || _window->isMinimized()) {
         return false;
     }
 
