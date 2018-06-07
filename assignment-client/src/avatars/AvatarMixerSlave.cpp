@@ -272,7 +272,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                     otherNodeBox.setScaleStayCentered(minBubbleSize);
                 }
                 // Quadruple the scale of both bounding boxes
-                otherNodeBox.embiggen(2.4f);
+                otherNodeBox.embiggen(1.8f);
 
                 // Perform the collision check between the two bounding boxes
                 if (nodeBox.touches(otherNodeBox)) {
