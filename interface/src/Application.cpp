@@ -4751,12 +4751,15 @@ void Application::loadSettings() {
     // DONT CHECK IN
     //DependencyManager::get<LODManager>()->setAutomaticLODAdjust(false);
 
-    Menu::getInstance()->loadSettings();
+    auto menu = Menu::getInstance();
+    menu->loadSettings();
+
+    // override the menu option show overlays to always be true on startup
+    menu->setIsOptionChecked(MenuOption::Overlays, true);
 
     // If there is a preferred plugin, we probably messed it up with the menu settings, so fix it.
     auto pluginManager = PluginManager::getInstance();
     auto plugins = pluginManager->getPreferredDisplayPlugins();
-    auto menu = Menu::getInstance();
     if (plugins.size() > 0) {
         for (auto plugin : plugins) {
             if (auto action = menu->getActionForOption(plugin->getName())) {
