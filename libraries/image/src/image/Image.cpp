@@ -48,11 +48,6 @@ std::atomic<size_t> RECTIFIED_TEXTURE_COUNT{ 0 };
 
 static const auto HDR_FORMAT = gpu::Element::COLOR_R11G11B10;
 
-static std::atomic<bool> compressColorTextures { false };
-static std::atomic<bool> compressNormalTextures { false };
-static std::atomic<bool> compressGrayscaleTextures { false };
-static std::atomic<bool> compressCubeTextures { false };
-
 uint rectifyDimension(const uint& dimension) {
     if (dimension == 0) {
         return 0;
@@ -183,55 +178,6 @@ gpu::TexturePointer TextureUsage::createCubeTextureFromImage(QImage&& srcImage, 
 gpu::TexturePointer TextureUsage::createCubeTextureFromImageWithoutIrradiance(QImage&& srcImage, const std::string& srcImageName,
                                                                               bool compress, const std::atomic<bool>& abortProcessing) {
     return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, false, abortProcessing);
-}
-
-
-bool isColorTexturesCompressionEnabled() {
-#if CPU_MIPMAPS
-    return compressColorTextures.load();
-#else
-    return false;
-#endif
-}
-
-bool isNormalTexturesCompressionEnabled() {
-#if CPU_MIPMAPS
-    return compressNormalTextures.load();
-#else
-    return false;
-#endif
-}
-
-bool isGrayscaleTexturesCompressionEnabled() {
-#if CPU_MIPMAPS
-    return compressGrayscaleTextures.load();
-#else
-    return false;
-#endif
-}
-
-bool isCubeTexturesCompressionEnabled() {
-#if CPU_MIPMAPS
-    return compressCubeTextures.load();
-#else
-    return false;
-#endif
-}
-
-void setColorTexturesCompressionEnabled(bool enabled) {
-    compressColorTextures.store(enabled);
-}
-
-void setNormalTexturesCompressionEnabled(bool enabled) {
-    compressNormalTextures.store(enabled);
-}
-
-void setGrayscaleTexturesCompressionEnabled(bool enabled) {
-    compressGrayscaleTextures.store(enabled);
-}
-
-void setCubeTexturesCompressionEnabled(bool enabled) {
-    compressCubeTextures.store(enabled);
 }
 
 static float denormalize(float value, const float minValue) {
@@ -956,7 +902,6 @@ gpu::TexturePointer TextureUsage::process2DTextureNormalMapFromImage(QImage&& sr
     if ((image.width() > 0) && (image.height() > 0)) {
         gpu::Element formatMip;
         gpu::Element formatGPU;
-        if (isNormalTexturesCompressionEnabled()) {
         if (compress) {
             formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_XY;
         } else {
@@ -997,7 +942,6 @@ gpu::TexturePointer TextureUsage::process2DTextureGrayscaleFromImage(QImage&& sr
     if ((image.width() > 0) && (image.height() > 0)) {
         gpu::Element formatMip;
         gpu::Element formatGPU;
-        if (isGrayscaleTexturesCompressionEnabled()) {
         if (compress) {
             formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_RED;
         } else {
