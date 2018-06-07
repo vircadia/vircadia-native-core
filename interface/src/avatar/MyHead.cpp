@@ -57,6 +57,7 @@ void MyHead::simulate(float deltaTime) {
         
         auto eyeTracker = DependencyManager::get<EyeTracker>();
         _isEyeTrackerConnected = eyeTracker->isTracking();
+        // if eye tracker is connected we should get the data here.
     }
     Parent::simulate(deltaTime);
 }

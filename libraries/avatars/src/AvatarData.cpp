@@ -522,17 +522,14 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         auto faceTrackerInfo = reinterpret_cast<AvatarDataPacket::FaceTrackerInfo*>(destinationBuffer);
         const auto& blendshapeCoefficients = _headData->getBlendshapeCoefficients();
 
-        //for (int i = 0; i < blendshapeCoefficients.size(); i++) {
-        //    qCWarning(avatars) << "blend coeff " << i << " " << blendshapeCoefficients[i];
-        //}
-
+        //note: we don't use the blink and average loudness, we just use the numBlendShapes and 
+        // compute the procedural info on the client side.
         faceTrackerInfo->leftEyeBlink = _headData->_leftEyeBlink;
         faceTrackerInfo->rightEyeBlink = _headData->_rightEyeBlink;
         faceTrackerInfo->averageLoudness = _headData->_averageLoudness;
         faceTrackerInfo->browAudioLift = _headData->_browAudioLift;
         faceTrackerInfo->numBlendshapeCoefficients = blendshapeCoefficients.size();
         destinationBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
-        //qCWarning(avatars) << "face tracker info left eye blink " << faceTrackerInfo->leftEyeBlink;
 
         memcpy(destinationBuffer, blendshapeCoefficients.data(), blendshapeCoefficients.size() * sizeof(float));
         destinationBuffer += blendshapeCoefficients.size() * sizeof(float);
@@ -999,7 +996,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         // hand state, stored as a semi-nibble plus a bit in the bitItems
         // we store the hand state as well as other items in a shared bitset. The hand state is an octal, but is split
         // into two sections to maintain backward compatibility. The bits are ordered as such (0-7 left to right).
-        // AA 6/1/18 added three more flags here for procedural audio, blink, and eye saccade enabled
+        // AA 6/1/18 added three more flags bits 8,9, and 10 for procedural audio, blink, and eye saccade enabled
         //     +---+-----+-----+--+--+--+--+-----+
         //     |x,x|H0,H1|x,x,x|H2|Au|Bl|Ey|xxxxx|
         //     +---+-----+-----+--+--+--+--+-----+
@@ -1124,25 +1121,23 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     }
 
     if (hasFaceTrackerInfo) {
+        //qCWarning(avatars) << "parsing face tracker info ";
         auto startSection = sourceBuffer;
 
         PACKET_READ_CHECK(FaceTrackerInfo, sizeof(AvatarDataPacket::FaceTrackerInfo));
         auto faceTrackerInfo = reinterpret_cast<const AvatarDataPacket::FaceTrackerInfo*>(sourceBuffer);
-        sourceBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
-        //qCWarning(avatars) << "parse data  left eye blink " << faceTrackerInfo->leftEyeBlink;
-
-        //_headData->_leftEyeBlink = faceTrackerInfo->leftEyeBlink;
-        //_headData->_rightEyeBlink = faceTrackerInfo->rightEyeBlink;
-        //_headData->_averageLoudness = faceTrackerInfo->averageLoudness;
-        //_headData->_browAudioLift = faceTrackerInfo->browAudioLift;
-
         int numCoefficients = faceTrackerInfo->numBlendshapeCoefficients;
         const int coefficientsSize = sizeof(float) * numCoefficients;
+        sourceBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
+        
         PACKET_READ_CHECK(FaceTrackerCoefficients, coefficientsSize);
         _headData->_blendshapeCoefficients.resize(numCoefficients);  // make sure there's room for the copy!
         _headData->_transientBlendshapeCoefficients.resize(numCoefficients);
+        
+        //only copy the blendshapes to headData not the procedural face info
         memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, coefficientsSize);
         sourceBuffer += coefficientsSize;
+
         int numBytesRead = sourceBuffer - startSection;
         _faceTrackerRate.increment(numBytesRead);
         _faceTrackerUpdateRate.increment();

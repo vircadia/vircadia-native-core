@@ -79,14 +79,21 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 // Bitset of state flags - we store the key state, hand state, Faceshift, eye tracking, and existence of
 // referential data in this bit set. The hand state is an octal, but is split into two sections to maintain
 // backward compatibility. The bits are ordered as such (0-7 left to right).
-//     +-----+-----+-+-+-+--+
-//     |K0,K1|H0,H1|F|E|R|H2|
-//     +-----+-----+-+-+-+--+
+// AA 6/1/18 added three more flags bits 8,9, and 10 for procedural audio, blink, and eye saccade enabled
+//
+//     +-----+-----+-+-+-+--+--+--+--+-----+
+//     |K0,K1|H0,H1|F|E|R|H2|Au|Bl|Ey|xxxxx|
+//     +-----+-----+-+-+-+--+--+--+--+-----+
+//
 // Key state - K0,K1 is found in the 1st and 2nd bits
 // Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
 // Face tracker - F is found in the 5th bit
 // Eye tracker - E is found in the 6th bit
 // Referential Data - R is found in the 7th bit
+// Procedural audio to mouth movement is enabled 8th bit
+// Procedural Blink is enabled 9th bit
+// Procedural Eyelid is enabled 10th bit
+
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACE_TRACKER_CONNECTED = 4; // 5th bit
