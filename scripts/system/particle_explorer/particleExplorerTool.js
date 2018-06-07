@@ -52,6 +52,13 @@ ParticleExplorerTool = function() {
                 data.updatedSettings.emitOrientation = Quat.fromVec3Degrees(data.updatedSettings.emitOrientation);
             }
             Entities.editEntity(that.activeParticleEntity, data.updatedSettings);
+
+            for (var key in data.updatedSettings) {
+                if (that.activeParticleProperties.hasOwnProperty(key)) {
+                    that.activeParticleProperties[key] = data.updatedSettings[key];
+                }
+            }
+
         } else if (data.messageType === "page_loaded") {
             sendActiveParticleProperties();
         }
