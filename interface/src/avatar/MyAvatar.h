@@ -987,6 +987,8 @@ public:
 
     QVector<QString> getScriptUrls();
 
+    bool isReadyForPhysics() const;
+
 public slots:
 
     /**jsdoc
@@ -1568,6 +1570,8 @@ private:
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };
+
+    bool _haveReceivedHeightLimitsFromDomain = { false };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
