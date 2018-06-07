@@ -274,7 +274,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         this.equipedWithSecondary = false;
         this.handHasBeenRightsideUp = false;
         this.mouseEquip = false;
-		this.messageEquip = false;
+        this.messageEquip = false;
 
         this.parameters = makeDispatcherModuleParameters(
             300,
@@ -585,7 +585,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             this.messageGrabEntity = false;
             this.grabEntityProps = null;
             this.mouseEquip = false;
-			this.messageEquip = false;
+            this.messageEquip = false;
         };
 
         this.updateInputs = function (controllerData) {
@@ -763,7 +763,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                     var equipModule = (data.hand === "left") ? leftEquipEntity : rightEquipEntity;
                     var entityProperties = Entities.getEntityProperties(data.entityID, DISPATCHER_PROPERTIES);
                     entityProperties.id = data.entityID;
-					equipModule.messageEquip = true;
+                    equipModule.messageEquip = true;
                     equipModule.setMessageGrabData(entityProperties);
                 } catch (e) {
                     print("WARNING: equipEntity.js -- error parsing Hifi-Hand-Grab message: " + message);
@@ -815,12 +815,12 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 if (rightHandAvailable && (distanceToRightHand < distanceToLeftHand || !leftHandAvailable)) {
                     // clear any existing grab actions on the entity now (their later removal could affect bootstrapping flags)
                     clearGrabActions(entityID);
-					rightEquipEntity.mouseEquip = true;
+                    rightEquipEntity.mouseEquip = true;
                     rightEquipEntity.setMessageGrabData(entityProperties);
                 } else if (leftHandAvailable && (distanceToLeftHand < distanceToRightHand || !rightHandAvailable)) {
                     // clear any existing grab actions on the entity now (their later removal could affect bootstrapping flags)
                     clearGrabActions(entityID);
-					leftEquipEntity.mouseEquip = true;
+                    leftEquipEntity.mouseEquip = true;
                     leftEquipEntity.setMessageGrabData(entityProperties);
                 }
             }
