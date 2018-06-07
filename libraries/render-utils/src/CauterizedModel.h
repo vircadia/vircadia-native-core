@@ -32,8 +32,7 @@ public:
     bool updateGeometry() override;
 
     void createVisibleRenderItemSet() override;
-    void createCollisionRenderItemSet() override;
-
+    
     virtual void updateClusterMatrices() override;
     void updateRenderItems() override;
 

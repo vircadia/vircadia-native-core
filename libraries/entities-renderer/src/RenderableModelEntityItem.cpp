@@ -1416,19 +1416,18 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         setCollisionMeshKey(entity->getCollisionMeshKey());
         _needsCollisionGeometryUpdate = false;
         ShapeType type = entity->getShapeType();
-        if (DependencyManager::get<EntityTreeRenderer>()->shouldRenderDebugHulls() && type != SHAPE_TYPE_STATIC_MESH && type != SHAPE_TYPE_NONE) {
+        if (DependencyManager::get<EntityTreeRenderer>()->shouldRenderDebugHulls() && type != SHAPE_TYPE_NONE) {
             // NOTE: it is OK if _collisionMeshKey is nullptr
             graphics::MeshPointer mesh = collisionMeshCache.getMesh(_collisionMeshKey);
-            // NOTE: the model will render the collisionGeometry if it has one
-            _model->setCollisionMesh(mesh);
+            // TODO: Start displaying collision model
+
         } else {
             if (_collisionMeshKey) {
                 // release mesh
                 collisionMeshCache.releaseMesh(_collisionMeshKey);
             }
-            // clear model's collision geometry
-            graphics::MeshPointer mesh = nullptr;
-            _model->setCollisionMesh(mesh);
+            // TODO: Stop displaying collision model
+
         }
     }
 
