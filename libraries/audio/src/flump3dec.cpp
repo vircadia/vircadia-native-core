@@ -302,8 +302,6 @@ static inline void h_flushbits (huffdec_bitbuf * bb, guint N);
 static inline guint32 h_getbits (huffdec_bitbuf * bb, guint N);
 
 static void h_rewindNbits (huffdec_bitbuf * bb, guint N);
-static inline void h_byte_align (huffdec_bitbuf * bb);
-static inline guint h_bytes_avail (huffdec_bitbuf * bb);
 
 /* Return the current bit stream position (in bits) */
 #if ENABLE_OPT_BS
@@ -505,37 +503,6 @@ h_getbits (huffdec_bitbuf * bb, guint N)
   return (val);
 }
 #endif
-
-/* If not on a byte boundary, skip remaining bits in this byte */
-static inline void
-h_byte_align (huffdec_bitbuf * bb)
-{
-#if ENABLE_OPT_BS
-  if ((bb->buf_bit_idx % 8) != 0) {
-    bb->buf_bit_idx -= (bb->buf_bit_idx % 8);
-  }
-#else
-  /* If buf_bit_idx == 0 or == 8 then we're already byte aligned.
-   * Check by looking at the bottom bits of the byte */
-  if (bb->buf_byte_idx <= bb->avail && (bb->buf_bit_idx & 0x07) != 0) {
-    bb->buf_bit_idx = 8;
-    bb->buf_byte_idx++;
-  }
-#endif
-}
-
-static inline guint
-h_bytes_avail (huffdec_bitbuf * bb)
-{
-  if (bb->avail >= bb->buf_byte_idx) {
-    if (bb->buf_bit_idx != 8)
-      return bb->avail - bb->buf_byte_idx - 1;
-    else
-      return bb->avail - bb->buf_byte_idx;
-  }
-
-  return 0;
-}
 
 typedef struct mp3cimpl_info mp3cimpl_info;
 
@@ -5395,7 +5362,7 @@ out_fifo (short pcm_sample[2][SSLIMIT][SBLIMIT], int num,
 static void
 init_syn_filter (frame_params * fr_ps)
 {
-  register int i, k;
+  int i, k;
   gfloat (*filter)[32];
 
   filter = fr_ps->filter;
@@ -7355,13 +7322,6 @@ c_decode_mp3 (mp3tl * tl)
   /* And setup the huffman bitstream reader for this data */
   h_setbuf (bb, tl->c_impl.hb_buf, tl->c_impl.main_data_end);
 
-#if 0
-  g_print ("Mode %d mode_ext %d\n", hdr->mode, hdr->mode_ext);
-  g_print ("Frame: main_data %d bytes. need %d prev bytes. Avail %d (of %d)\n",
-      hdr->main_slots, III_side_info.main_data_begin, h_bytes_avail (bb),
-      III_side_info.main_data_begin + hdr->main_slots);
-#endif
-
   /* Clear the scale factors to avoid problems with badly coded files
    * that try to reuse scalefactors from the first granule when they didn't
    * supply them. */
@@ -7489,9 +7449,6 @@ c_decode_mp3 (mp3tl * tl)
     out_fifo (tl->pcm_sample, 18, &tl->fr_ps, tl->sample_buf,
         &tl->sample_w, SAMPLE_BUF_SIZE);
   }
-#if 0
-  g_print ("After: %d bytes left\n", h_bytes_avail (bb));
-#endif
 
   return MP3TL_ERR_OK;
 }
