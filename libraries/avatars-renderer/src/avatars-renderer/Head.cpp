@@ -45,12 +45,12 @@ void Head::reset() {
 void Head::simulate(float deltaTime) {
     const float NORMAL_HZ = 60.0f; // the update rate the constant values were tuned for
 
-    qCDebug(avatars_renderer) << "name " << _owningAvatar->getName();
-    if (_owningAvatar->isMyAvatar()) {
-        qCDebug(avatars_renderer) << "my avatar";
-    } else {
-        qCDebug(avatars_renderer) << "not my avatar " << _owningAvatar->getAudioLoudness();
-    }
+    //qCDebug(avatars_renderer) << "name " << _owningAvatar->getName();
+    //if (_owningAvatar->isMyAvatar()) {
+    //    qCDebug(avatars_renderer) << "my avatar";
+    //} else {
+    //    qCDebug(avatars_renderer) << "not my avatar " << _owningAvatar->getAudioLoudness();
+    //}
 
     // grab the audio loudness from the owning avatar, if we have one
     float audioLoudness = _owningAvatar ? _owningAvatar->getAudioLoudness() : 0.0f;
@@ -93,7 +93,7 @@ void Head::simulate(float deltaTime) {
     const float FULLY_OPEN = 0.0f;
     const float FULLY_CLOSED = 1.0f;
     if (getHasProceduralBlinkFaceMovement()) {
-        qCDebug(avatars_renderer) << "in the blink code "  << _owningAvatar->getName();
+        //qCDebug(avatars_renderer) << "in the blink code "  << _owningAvatar->getName();
         // Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
         const float TALKING_LOUDNESS = 100.0f;

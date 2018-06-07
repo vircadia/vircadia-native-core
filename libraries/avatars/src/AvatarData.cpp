@@ -532,7 +532,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         faceTrackerInfo->browAudioLift = _headData->_browAudioLift;
         faceTrackerInfo->numBlendshapeCoefficients = blendshapeCoefficients.size();
         destinationBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
-        qCWarning(avatars) << "face tracker info left eye blink " << faceTrackerInfo->leftEyeBlink;
+        //qCWarning(avatars) << "face tracker info left eye blink " << faceTrackerInfo->leftEyeBlink;
 
         memcpy(destinationBuffer, blendshapeCoefficients.data(), blendshapeCoefficients.size() * sizeof(float));
         destinationBuffer += blendshapeCoefficients.size() * sizeof(float);
@@ -1014,11 +1014,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         auto newHasProceduralEyeFaceMovement = oneAtBit16(bitItems, PROCEDURAL_EYE_FACE_MOVEMENT);
         auto newHasProceduralBlinkFaceMovement = oneAtBit16(bitItems, PROCEDURAL_BLINK_FACE_MOVEMENT);
 
-        if (newHasAudioEnabledFaceMovement) {
-            qCWarning(avatars) << "name " << getName() << "audio enabled flag is true";
-        } else {
-            qCWarning(avatars) << "name " << getName() << "audio enabled flag is false";
-        }
+        
         bool keyStateChanged = (_keyState != newKeyState);
         bool handStateChanged = (_handState != newHandState);
         bool faceStateChanged = (_headData->_isFaceTrackerConnected != newFaceTrackerConnected);
@@ -1040,6 +1036,43 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         if (somethingChanged) {
             _additionalFlagsChanged = usecTimestampNow();
+            if (newHasAudioEnabledFaceMovement) {
+                qCWarning(avatars) << "name " << getName() << "audio enabled flag is true";
+            } else {
+                qCWarning(avatars) << "name " << getName() << "audio enabled flag is false";
+            }
+            if (newHasProceduralEyeFaceMovement) {
+                qCWarning(avatars) << "name " << getName() << "eye face enabled flag is true";
+            } else {
+                qCWarning(avatars) << "name " << getName() << "eye face flag is false";
+            }
+            if (newHasProceduralBlinkFaceMovement) {
+                qCWarning(avatars) << "name " << getName() << "blink flag is true";
+            } else {
+                qCWarning(avatars) << "name " << getName() << "blink flag is false";
+            }
+            if (newFaceTrackerConnected) {
+                qCWarning(avatars) << "name " << getName() << "face tracker flag is true";
+            } else {
+                qCWarning(avatars) << "name " << getName() << "face tracker flag is false";
+            }
+            if (newEyeTrackerConnected) {
+                qCWarning(avatars) << "name " << getName() << "eye tracker flag is true";
+            } else {
+                qCWarning(avatars) << "name " << getName() << "eye tracker flag is false";
+            }
+            if (newHandState) {
+                qCWarning(avatars) << "name " << getName() << "hand state flag is true";
+            } else {
+                qCWarning(avatars) << "name " << getName() << "hand state flag is false";
+            }
+            if (newKeyState) {
+                qCWarning(avatars) << "name " << getName() << "key state flag is true";
+            } else {
+                qCWarning(avatars) << "name " << getName() << "key state flag is false";
+            }
+           
+
         }
         int numBytesRead = sourceBuffer - startSection;
         _additionalFlagsRate.increment(numBytesRead);
@@ -1096,12 +1129,12 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         PACKET_READ_CHECK(FaceTrackerInfo, sizeof(AvatarDataPacket::FaceTrackerInfo));
         auto faceTrackerInfo = reinterpret_cast<const AvatarDataPacket::FaceTrackerInfo*>(sourceBuffer);
         sourceBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
-        qCWarning(avatars) << "parse data  left eye blink " << faceTrackerInfo->leftEyeBlink;
+        //qCWarning(avatars) << "parse data  left eye blink " << faceTrackerInfo->leftEyeBlink;
 
-        _headData->_leftEyeBlink = faceTrackerInfo->leftEyeBlink;
-        _headData->_rightEyeBlink = faceTrackerInfo->rightEyeBlink;
-        _headData->_averageLoudness = faceTrackerInfo->averageLoudness;
-        _headData->_browAudioLift = faceTrackerInfo->browAudioLift;
+        //_headData->_leftEyeBlink = faceTrackerInfo->leftEyeBlink;
+        //_headData->_rightEyeBlink = faceTrackerInfo->rightEyeBlink;
+        //_headData->_averageLoudness = faceTrackerInfo->averageLoudness;
+        //_headData->_browAudioLift = faceTrackerInfo->browAudioLift;
 
         int numCoefficients = faceTrackerInfo->numBlendshapeCoefficients;
         const int coefficientsSize = sizeof(float) * numCoefficients;
