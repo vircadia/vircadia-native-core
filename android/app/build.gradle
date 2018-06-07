@@ -24,7 +24,8 @@ android {
                     '-DRELEASE_TYPE=' + RELEASE_TYPE,
                     '-DBUILD_BRANCH=' + BUILD_BRANCH,
                     '-DDISABLE_QML=OFF',
-                    '-DDISABLE_KTX_CACHE=OFF'
+                    '-DDISABLE_KTX_CACHE=OFF',
+                    '-DUSE_BREAKPAD=' + (project.hasProperty("BACKTRACE_URL") && project.hasProperty("BACKTRACE_TOKEN") ? 'ON' : 'OFF');
             }
         }
         signingConfigs {
@@ -43,6 +44,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField "String", "BACKTRACE_URL", "\"" + (project.hasProperty("BACKTRACE_URL") ? BACKTRACE_URL : '') + "\""
+            buildConfigField "String", "BACKTRACE_TOKEN", "\"" + (project.hasProperty("BACKTRACE_TOKEN") ? BACKTRACE_TOKEN : '') + "\""
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -50,6 +55,8 @@ android {
                     project.hasProperty("HIFI_ANDROID_KEYSTORE_PASSWORD") &&
                     project.hasProperty("HIFI_ANDROID_KEY_ALIAS") &&
                     project.hasProperty("HIFI_ANDROID_KEY_PASSWORD")? signingConfigs.release : null
+            buildConfigField "String", "BACKTRACE_URL", "\"" + (project.hasProperty("BACKTRACE_URL") ? BACKTRACE_URL : '') + "\""
+            buildConfigField "String", "BACKTRACE_TOKEN", "\"" + (project.hasProperty("BACKTRACE_TOKEN") ? BACKTRACE_TOKEN : '') + "\""
         }
     }
 

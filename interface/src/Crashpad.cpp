@@ -114,7 +114,7 @@ void setCrashAnnotation(std::string name, std::string value) {
     crashpadAnnotations->SetKeyValue(name, value);
 }
 
-#else
+#elif !defined(HAS_BREAKPAD)
 
 bool startCrashHandler() {
     qDebug() << "No crash handler available.";

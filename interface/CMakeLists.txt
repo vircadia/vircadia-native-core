@@ -232,6 +232,7 @@ target_openssl()
 target_bullet()
 target_opengl()
 add_crashpad()
+target_breakpad()
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
