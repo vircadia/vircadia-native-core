@@ -1119,7 +1119,7 @@ function startRadar() {
 
 function endRadar() {
     printd("-- endRadar");
-    Camera.mode = "first person";
+    Camera.mode = "third person";
     radar = false;
 
     Controller.setVPadEnabled(true);
