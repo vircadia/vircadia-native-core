@@ -295,6 +295,7 @@ function printToPolaroid(image_url) {
         "description": "Printed from Snaps",                               
         "modelURL": POLAROID_MODEL_URL,
 
+        "dimensions": { "x": 0.5667, "y": 0.0212, "z": 0.4176 },
         "position": model_pos,
         "rotation": model_rot,
 
