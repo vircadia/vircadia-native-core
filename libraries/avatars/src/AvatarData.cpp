@@ -1032,42 +1032,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         if (somethingChanged) {
             _additionalFlagsChanged = usecTimestampNow();
-            if (newHasAudioEnabledFaceMovement) {
-                qCWarning(avatars) << "name " << getName() << "audio enabled flag is true";
-            } else {
-                qCWarning(avatars) << "name " << getName() << "audio enabled flag is false";
-            }
-            if (newHasProceduralEyeFaceMovement) {
-                qCWarning(avatars) << "name " << getName() << "eye face enabled flag is true";
-            } else {
-                qCWarning(avatars) << "name " << getName() << "eye face flag is false";
-            }
-            if (newHasProceduralBlinkFaceMovement) {
-                qCWarning(avatars) << "name " << getName() << "blink flag is true";
-            } else {
-                qCWarning(avatars) << "name " << getName() << "blink flag is false";
-            }
-            if (newFaceTrackerConnected) {
-                qCWarning(avatars) << "name " << getName() << "face tracker flag is true";
-            } else {
-                qCWarning(avatars) << "name " << getName() << "face tracker flag is false";
-            }
-            if (newEyeTrackerConnected) {
-                qCWarning(avatars) << "name " << getName() << "eye tracker flag is true";
-            } else {
-                qCWarning(avatars) << "name " << getName() << "eye tracker flag is false";
-            }
-            if (newHandState) {
-                qCWarning(avatars) << "name " << getName() << "hand state flag is true";
-            } else {
-                qCWarning(avatars) << "name " << getName() << "hand state flag is false";
-            }
-            if (newKeyState) {
-                qCWarning(avatars) << "name " << getName() << "key state flag is true";
-            } else {
-                qCWarning(avatars) << "name " << getName() << "key state flag is false";
-            }
-
         }
         int numBytesRead = sourceBuffer - startSection;
         _additionalFlagsRate.increment(numBytesRead);
