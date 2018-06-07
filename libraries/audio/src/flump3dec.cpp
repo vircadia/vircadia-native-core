@@ -287,8 +287,8 @@ typedef struct
 } huffdec_bitbuf;
 
 /* Huffman Decoder bit buffer functions */
-void h_setbuf (huffdec_bitbuf * bb, guint8 * buf, guint size);
-void h_reset (huffdec_bitbuf * bb);
+static void h_setbuf (huffdec_bitbuf * bb, guint8 * buf, guint size);
+static void h_reset (huffdec_bitbuf * bb);
 
 #if ENABLE_OPT_BS
 static inline guint32 h_get1bit (huffdec_bitbuf * bb);
@@ -301,7 +301,7 @@ static inline void h_flushbits (huffdec_bitbuf * bb, guint N);
 /* read N bits from the bit stream */
 static inline guint32 h_getbits (huffdec_bitbuf * bb, guint N);
 
-void h_rewindNbits (huffdec_bitbuf * bb, guint N);
+static void h_rewindNbits (huffdec_bitbuf * bb, guint N);
 static inline void h_byte_align (huffdec_bitbuf * bb);
 static inline guint h_bytes_avail (huffdec_bitbuf * bb);
 
