@@ -102,8 +102,8 @@ protected:
     quint64 _lookAtPositionChanged { 0 };
 
     bool _hasAudioEnabledFaceMovement { true };
-    bool _hasProceduralBlinkFaceMovement{ true };
-    bool _hasProceduralEyeFaceMovement{ true };
+    bool _hasProceduralBlinkFaceMovement { true };
+    bool _hasProceduralEyeFaceMovement { true };
     bool _isFaceTrackerConnected { false };
     bool _isEyeTrackerConnected { false };
     float _leftEyeBlink { 0.0f };
