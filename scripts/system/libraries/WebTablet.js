@@ -140,7 +140,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         Overlays.deleteOverlay(this.webOverlayID);
     }
 
-    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.5) / sensorScaleFactor;
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.5) * sensorScaleFactor;
     var WEB_ENTITY_Y_OFFSET = 1 * tabletScaleFactor;
     var screenWidth = 0.9275 * tabletWidth;
     var screenHeight = 0.8983 * tabletHeight;
@@ -148,7 +148,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         name: "WebTablet Web",
         url: url,
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
-        localRotation: Quat.multiply(Quat.angleAxis(-0.5, X_AXIS), Quat.angleAxis(180, Y_AXIS)),
+        localRotation: Quat.angleAxis(180, Y_AXIS),
         dimensions: {x: screenWidth, y: screenHeight, z: 0.1},
         dpi: tabletDpi,
         color: { red: 255, green: 255, blue: 255 },
@@ -163,9 +163,10 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
     var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
     var HOME_BUTTON_X_OFFSET = 0.00079 * sensorScaleFactor;
     var HOME_BUTTON_Y_OFFSET = -1 * ((tabletHeight / 2) - (4.0 * tabletScaleFactor / 2));
+    var HOME_BUTTON_Z_OFFSET = (tabletDepth / 1.1) * sensorScaleFactor;
     this.homeButtonID = Overlays.addOverlay("circle3d", {
         name: "homeButton",
-        localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
         localRotation: { x: 0, y: 1, z: 0, w: 0},
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim },
         solid: true,
@@ -322,11 +323,8 @@ WebTablet.prototype.setLandscape = function(newLandscapeValue) {
     var tabletHeight = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
     var screenWidth = 0.9275 * tabletWidth;
     var screenHeight = 0.8983 * tabletHeight;
-    var webLandScapeRotation = Quat.multiply(Quat.angleAxis(0.2, X_AXIS), Quat.angleAxis(-0.5, Y_AXIS));
-    var webRegularRotation = Quat.angleAxis(0.5, X_AXIS);
-    var webRotationOffset = this.landscape ? webLandScapeRotation : webRegularRotation;
     Overlays.editOverlay(this.webOverlayID, {
-        rotation: Quat.multiply(cameraOrientation, webRotationOffset),
+        rotation: Quat.multiply(cameraOrientation, ROT_LANDSCAPE_WINDOW),
         dimensions: {x: this.landscape ? screenHeight : screenWidth, y: this.landscape ? screenWidth : screenHeight, z: 0.1}
     });
 };
