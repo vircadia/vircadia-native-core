@@ -149,6 +149,12 @@ def packages = [
         file: 'etc2comp-patched-armv8-libcpp.tgz',
         versionId: 'bHhGECRAQR1vkpshBcK6ByNc1BQIM8gU',
         checksum: '14b02795d774457a33bbc60e00a786bc'
+    ],
+    breakpad: [
+        file: 'breakpad.zip',
+        sharedLibFolder: 'breakpad/lib',
+        versionId: '8r5Dsw9pZqKKZquiM1zTWc7Rd8uOSQ1W',
+        checksum: 'f96b02a6733871e6df2af40d5480afc1'
     ]
 ]
 
@@ -367,6 +373,7 @@ task verifyPolyvox(type: Verify) { def p = packages['polyvox']; src new File(bas
 task verifyTBB(type: Verify) { def p = packages['tbb']; src new File(baseFolder, p['file']); checksum p['checksum'] }
 task verifyHifiAC(type: Verify) { def p = packages['hifiAC']; src new File(baseFolder, p['file']); checksum p['checksum'] }
 task verifyEtc2Comp(type: Verify) { def p = packages['etc2comp']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+task verifyBreakpad(type: Verify) { def p = packages['breakpad']; src new File(baseFolder, p['file']); checksum p['checksum'] }
 
 task verifyDependencyDownloads(dependsOn: downloadDependencies) { }
 verifyDependencyDownloads.dependsOn verifyQt
@@ -378,6 +385,7 @@ verifyDependencyDownloads.dependsOn verifyPolyvox
 verifyDependencyDownloads.dependsOn verifyTBB
 verifyDependencyDownloads.dependsOn verifyHifiAC
 verifyDependencyDownloads.dependsOn verifyEtc2Comp
+verifyDependencyDownloads.dependsOn verifyBreakpad
 
 task extractDependencies(dependsOn: verifyDependencyDownloads) {
     doLast {
