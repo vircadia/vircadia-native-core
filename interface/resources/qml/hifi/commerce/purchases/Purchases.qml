@@ -519,7 +519,7 @@ Rectangle {
                         },
                         {
                             "displayName": "Updatable",
-                            "filterName": "updatable"
+                            "filterName": "updated"
                         }
                     ]
                     filterBar.primaryFilterChoices.clear();
