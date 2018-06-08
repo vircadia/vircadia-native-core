@@ -22,9 +22,17 @@ Flickable {
     anchors.fill: parent
     contentHeight: 550
     flickableDirection: Flickable.VerticalFlick
+    property string pluginName: ""
+    property var page: null;
+
+    onPluginNameChanged: {
+        if (page !== null) {
+            page.pluginName = flick.pluginName;
+        }
+    }
 
     Component.onCompleted: {
-        config.createObject(flick.contentItem);
+        page = config.createObject(flick.contentItem);
     }
     Component {
         id: config
@@ -663,7 +671,7 @@ Flickable {
                     onClicked: {
                         if (calibrationButton.enabled) {
                             if (openVrConfiguration.state === buttonState.apply) {
-                                InputConfiguration.uncalibratePlugin(pluginName);
+                                InputConfiguration.uncalibratePlugin(openVrConfiguration.pluginName);
                                 updateCalibrationButton();
                             } else {
                                 calibrationTimer.interval = timeToCalibrate.realValue * 1000
@@ -701,7 +709,7 @@ Flickable {
                 repeat: false
                 interval: 20
                 onTriggered: {
-                    InputConfiguration.calibratePlugin(pluginName)
+                    InputConfiguration.calibratePlugin(openVrConfiguration.pluginName)
                 }
             }
 
@@ -719,7 +727,7 @@ Flickable {
             }
 
             Component.onDestruction: {
-                var settings = InputConfiguration.configurationSettings(pluginName);
+                var settings = InputConfiguration.configurationSettings(openVrConfiguration.pluginName);
                 var data = {
                     "num_pucks": settings["puckCount"]
                 }
@@ -836,7 +844,6 @@ Flickable {
 
 
             function logAction(action, status) {
-                console.log("calibrated from ui");
                 var data = {
                     "num_pucks": status["puckCount"],
                     "puck_configuration": status["configuration"],
@@ -907,7 +914,7 @@ Flickable {
             }
 
             function displayConfiguration() {
-                var settings = InputConfiguration.configurationSettings(pluginName);
+                var settings = InputConfiguration.configurationSettings(openVrConfiguration.pluginName);
                 var configurationType = settings["trackerConfiguration"];
                 displayTrackerConfiguration(configurationType);
 
@@ -1107,7 +1114,7 @@ Flickable {
 
             function sendConfigurationSettings() {
                 var settings = composeConfigurationSettings();
-                InputConfiguration.setConfigurationSettings(settings, pluginName);
+                InputConfiguration.setConfigurationSettings(settings, openVrConfiguration.pluginName);
                 updateCalibrationButton();
             }
         }

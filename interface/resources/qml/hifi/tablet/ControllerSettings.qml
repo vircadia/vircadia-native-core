@@ -224,7 +224,6 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: inputConfiguration.bottom
-                anchors.topMargin: 10
                 anchors.bottom: parent.bottom
                 Loader {
                     id: loader
@@ -236,7 +235,7 @@ Item {
                             if (box.currentText === "HTC Vive") {
                                 loader.item.pluginName = "OpenVR";
                             } else {
-                                loader.item.pluginName = box.currentText;
+                                loader.item.pluginName = box.textAt(box.currentIndex);
                             }
                         }
 
