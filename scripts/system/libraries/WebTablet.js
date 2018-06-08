@@ -322,7 +322,7 @@ WebTablet.prototype.setLandscape = function(newLandscapeValue) {
     var tabletHeight = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
     var screenWidth = 0.9275 * tabletWidth;
     var screenHeight = 0.8983 * tabletHeight;
-    var webLandScapeRotation = Quat.multiply(Quat.angleAxis(0.5, X_AXIS), Quat.angleAxis(-0.5, Y_AXIS));
+    var webLandScapeRotation = Quat.multiply(Quat.angleAxis(0.2, X_AXIS), Quat.angleAxis(-0.5, Y_AXIS));
     var webRegularRotation = Quat.angleAxis(0.5, X_AXIS);
     var webRotationOffset = this.landscape ? webLandScapeRotation : webRegularRotation;
     Overlays.editOverlay(this.webOverlayID, {
