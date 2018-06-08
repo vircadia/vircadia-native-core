@@ -152,9 +152,10 @@ def packages = [
     ],
     breakpad: [
         file: 'breakpad.zip',
-        sharedLibFolder: 'breakpad/lib',
         versionId: '8r5Dsw9pZqKKZquiM1zTWc7Rd8uOSQ1W',
-        checksum: 'f96b02a6733871e6df2af40d5480afc1'
+        checksum: 'f96b02a6733871e6df2af40d5480afc1',
+        sharedLibFolder: 'breakpad/lib',
+        includeLibs: ['libbreakpad_client.a']
     ]
 ]
 
