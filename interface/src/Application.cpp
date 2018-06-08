@@ -905,7 +905,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<DiscoverabilityManager>();
     DependencyManager::set<SceneScriptingInterface>();
     DependencyManager::set<OffscreenUi>();
-    DependencyManager::set<AutoUpdater>();
     DependencyManager::set<Midi>();
     DependencyManager::set<PathUtils>();
     DependencyManager::set<InterfaceDynamicFactory>();
@@ -1784,10 +1783,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // If launched from Steam, let it handle updates
     const QString HIFI_NO_UPDATER_COMMAND_LINE_KEY = "--no-updater";
     bool noUpdater = arguments().indexOf(HIFI_NO_UPDATER_COMMAND_LINE_KEY) != -1;
-    if (!noUpdater) {
+    bool buildCanUpdate = BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable
+        || BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Master;
+    if (!noUpdater && buildCanUpdate) {
         constexpr auto INSTALLER_TYPE_CLIENT_ONLY = "client_only";
 
-        auto applicationUpdater = DependencyManager::get<AutoUpdater>();
+        auto applicationUpdater = DependencyManager::set<AutoUpdater>();
 
         AutoUpdater::InstallerType type = installerType == INSTALLER_TYPE_CLIENT_ONLY
             ? AutoUpdater::InstallerType::CLIENT_ONLY : AutoUpdater::InstallerType::FULL;
