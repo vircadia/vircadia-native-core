@@ -134,10 +134,11 @@ void Ledger::balance(const QStringList& keys) {
     keysQuery("balance", "balanceSuccess", "balanceFailure");
 }
 
-void Ledger::inventory(const QString& editionFilter, const QString& typeFilter, const int& page, const int& perPage) {
+void Ledger::inventory(const QString& editionFilter, const QString& typeFilter, const QString& titleFilter, const int& page, const int& perPage) {
     QJsonObject params;
     params["edition_filter"] = editionFilter;
     params["type_filter"] = typeFilter;
+    params["title_filter"] = titleFilter;
     params["page"] = page;
     params["per_page"] = perPage;
     keysQuery("inventory", "inventorySuccess", "inventoryFailure", params);

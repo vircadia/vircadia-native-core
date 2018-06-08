@@ -560,6 +560,7 @@ Rectangle {
                 Commerce.inventory(
                     root.isShowingMyItems ? "proofs" : "purchased",
                     filterBar.primaryFilter_filterName.toLowerCase(),
+                    filterBar.text,
                     purchasesModel.currentPageToRetrieve,
                     purchasesModel.itemsPerPage
                 );
