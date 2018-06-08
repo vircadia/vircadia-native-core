@@ -227,10 +227,13 @@ QString QmlCommerce::getInstalledApps() {
             QString scriptURL = appFileJsonObject["scriptURL"].toString();
 
             // If the script .app.json is on the user's local disk but the associated script isn't running
-            // for some reason, start that script again.
+            // for some reason (i.e. the user stopped it from Running Scripts),
+            // delete the .app.json from the user's local disk.
             if (!runningScripts.contains(scriptURL)) {
-                if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptURL.trimmed())).isNull()) {
-                    qCDebug(commerce) << "Couldn't start script while checking installed apps.";
+                if (!appFile.remove()) {
+                    qCWarning(commerce)
+                        << "Couldn't delete local .app.json file (app's script isn't running). App filename is:"
+                        << appFileName;
                 }
             }
         } else {
