@@ -872,14 +872,6 @@ Rectangle {
                     checked: model && (model.connection === "friend");
                     boxSize: 24;
                     onClicked: {
-                        // HRS FIXME: NOTE FROM ZACH: With the line below uncommented, clicking any "FRIEND" checkbox
-                        // in the table will result in the 0th table index FRIEND checkbox to become CHECKED.
-                        // This is because there IS NO "model.userIndex" defined per entry in the connectionsUserModel.
-                        // You could do one of two things here:
-                        //     1. Programatically add a "userIndex" to each entry in the model as you fill it in (then this would work)
-                        //     2. Not care about the model being accurate until its next refresh (at which point the "connection"
-                        //     property value will be correct, since the server will give the model the correct value)
-                        //connectionsUserModel.setProperty(model.userIndex, styleData.role, (checked ? "friend" : "connection"));
                         pal.sendToScript({method: checked ? 'addFriend' : 'removeFriend', params: model.userName});
 
                         UserActivityLogger["palAction"](checked ? styleData.role : "un-" + styleData.role, model.sessionId);

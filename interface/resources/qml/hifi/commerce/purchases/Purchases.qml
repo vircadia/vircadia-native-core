@@ -39,12 +39,10 @@ Rectangle {
     property string installedApps;
     property bool keyboardRaised: false;
     property int numUpdatesAvailable: 0;
-    property var itemCountDictionary: ({});
     // Style
     color: hifi.colors.white;
     function getPurchases() {  // FIXME: use the new purchasesModel.getFirstPage
         root.activeView = "purchasesMain";
-        root.itemCountDictionary = {};
         root.installedApps = Commerce.getInstalledApps();
         purchasesModel.getFirstPage();
         Commerce.getAvailableUpdates();
@@ -574,13 +572,8 @@ Rectangle {
                     item.cardBackVisible = false;
                     item.isInstalled = root.installedApps.indexOf(item.id) > -1;
                     item.wornEntityID = '';
-                    item.displayedItemCount = itemCountDictionary[item.id] = (itemCountDictionary[item.id] || 0) + 1;
-                    // HRS FIXME updateable
                 });
                 sendToScript({ method: 'purchases_updateWearables' });
-                for (var i = 0; i < purchasesModel.count; i++) { // Update all the previous counts with possibly new values.
-                    purchasesModel.setProperty(i, "displayedItemCount", itemCountDictionary[purchasesModel.get(i).id])
-                }
 
                 return data.assets;
 
@@ -633,7 +626,7 @@ Rectangle {
                 itemEdition: model.edition_number;
                 numberSold: model.number_sold;
                 limitedRun: model.limited_run;
-                displayedItemCount: model.displayedItemCount || 0;
+                displayedItemCount: 999// For now (and maybe longer), we're going to display all the edition numbers.
                 cardBackVisible: model.cardBackVisible || false;
                 isInstalled: model.isInstalled || false;
                 wornEntityID: model.wornEntityID;
