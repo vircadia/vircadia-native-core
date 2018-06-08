@@ -35,6 +35,7 @@ public:
     // getters
     virtual bool is3D() const override { return true; }
 
+    virtual render::ItemKey getKey() override;
     virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const override { subItems.push_back(getRenderItemID()); return (uint32_t) subItems.size(); }
     virtual scriptable::ScriptableModelBase getScriptableModel() override { return scriptable::ScriptableModelBase(); }
 

@@ -1383,6 +1383,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(canCastShadow, setCanCastShadow);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(isVisibleInSecondaryCamera, setIsVisibleInSecondaryCamera);
 
     // Certifiable Properties
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemName, setItemName);
@@ -2752,6 +2753,28 @@ void EntityItem::setVisible(bool value) {
         if (_visible != value) {
             changed = true;
             _visible = value;
+        }
+    });
+
+    if (changed) {
+        emit requestRenderUpdate();
+    }
+}
+
+bool EntityItem::isVisibleInSecondaryCamera() const {
+    bool result;
+    withReadLock([&] {
+        result = _isVisibleInSecondaryCamera;
+    });
+    return result;
+}
+
+void EntityItem::setIsVisibleInSecondaryCamera(bool value) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_isVisibleInSecondaryCamera != value) {
+            changed = true;
+            _isVisibleInSecondaryCamera = value;
         }
     });
 

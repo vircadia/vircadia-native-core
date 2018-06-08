@@ -16,37 +16,32 @@
 class OculusBaseDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
 public:
-    ~OculusBaseDisplayPlugin();
     bool isSupported() const override;
+    bool hasAsyncReprojection() const override { return true; }
+    bool getSupportsAutoSwitch() override final { return true; }
 
     glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override;
     glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override;
-
-    bool hasAsyncReprojection() const override { return true; }
-
 
     // Stereo specific methods
     void resetSensors() override final;
     bool beginFrameRender(uint32_t frameIndex) override;
     float getTargetFrameRate() const override { return _hmdDesc.DisplayRefreshRate; }
-    bool getSupportsAutoSwitch() override final { return true; }
-    
-
+   
 protected:
     void customizeContext() override;
     void uncustomizeContext() override;
     bool internalActivate() override;
     void internalDeactivate() override;
-    bool activateStandBySession() override;
-    void deactivateSession() override;
     void updatePresentPose() override;
 
 protected:
-    ovrSession _session { nullptr };
+    ovrSession _session{ nullptr };
     ovrGraphicsLuid _luid;
-    ovrEyeRenderDesc _eyeRenderDescs[2];
-    ovrFovPort _eyeFovs[2];
+    std::array<ovrEyeRenderDesc, 2> _eyeRenderDescs;
+    std::array<ovrFovPort, 2> _eyeFovs;
     ovrHmdDesc _hmdDesc;
     ovrLayerEyeFov _sceneLayer;
     ovrViewScaleDesc _viewScaleDesc;
+    // ovrLayerEyeFovDepth _depthLayer;
 };
