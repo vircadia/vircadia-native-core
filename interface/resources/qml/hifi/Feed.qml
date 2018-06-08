@@ -41,7 +41,6 @@ Column {
     // FIXME onFilterChanged: filterChoicesByText();
     property var goFunction: null;
     property var http: null;
-    property var itemCountDictionary: ({});
 
     HifiConstants { id: hifi }
     Component.onCompleted: suggestions.getFirstPage();
@@ -56,16 +55,8 @@ Column {
         ];
         endpoint: '/api/v1/user_stories?' + options.join('&');
         itemsPerPage: 3;
-        getFirstPage: function (delayRefresh) {
-            root.itemCountDictionary = {};
-            suggestions.getFirstPageInternal(delayRefresh);
-        };
         processPage: function (data) {
-            var adding = data.user_stories.map(makeModelData);
-            for (var i = 0; i < suggestions.count; i++) { // Update all the previous counts with possibly new values.
-                suggestions.setProperty(i, "drillDownToPlace", itemCountDictionary[suggestions.get(i).place_name] > 0);
-            }
-            return adding;
+            return data.user_stories.map(makeModelData);
         };
         listModelName: actions;
         listView: scroll;
@@ -87,7 +78,6 @@ Column {
             tags = data.tags || [data.action, data.username],
             description = data.description || "",
             thumbnail_url = data.thumbnail_url || "";
-        itemCountDictionary[name] = (itemCountDictionary[name] || 0) + 1;
         return {
             place_name: name,
             username: data.username || "",
