@@ -84,7 +84,7 @@ const QStringList getSupportedFormats();
 
 gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& url,
                                  int maxNumPixels, TextureUsage::Type textureType,
-                                 bool compress = true, const std::atomic<bool>& abortProcessing = false);
+                                 bool compress = false, const std::atomic<bool>& abortProcessing = false);
 
 } // namespace image
 
