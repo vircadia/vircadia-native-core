@@ -42,7 +42,7 @@ Rectangle {
     property var itemCountDictionary: ({});
     // Style
     color: hifi.colors.white;
-    function getPurchases() {
+    function getPurchases() {  // FIXME: use the new purchasesModel.getFirstPage
         root.activeView = "purchasesMain";
         root.itemCountDictionary = {};
         root.installedApps = Commerce.getInstalledApps();

@@ -162,7 +162,8 @@ Item {
 
     // Start the show by retrieving data according to `getPage()`.
     // It can be custom-defined by this item's Parent.
-    property var getFirstPage: function (delayClear) {
+    property var getFirstPage: function (delayClear) { getFirstPageInternal(delayClear); }
+    function getFirstPageInternal(delayClear) {
         delayedClear = !!delayClear;
         resetModel();
         requestPending = true;

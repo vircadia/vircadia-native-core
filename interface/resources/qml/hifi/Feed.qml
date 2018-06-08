@@ -41,6 +41,7 @@ Column {
     // FIXME onFilterChanged: filterChoicesByText();
     property var goFunction: null;
     property var http: null;
+    property var itemCountDictionary: ({});
 
     HifiConstants { id: hifi }
     Component.onCompleted: suggestions.getFirstPage();
@@ -55,12 +56,20 @@ Column {
         ];
         endpoint: '/api/v1/user_stories?' + options.join('&');
         itemsPerPage: 3;
+        getFirstPage: function (delayRefresh) {
+            root.itemCountDictionary = {};
+            suggestions.getFirstPageInternal(delayRefresh);
+        };
         processPage: function (data) {
-            return data.user_stories.map(makeModelData);
+            var adding = data.user_stories.map(makeModelData);
+            for (var i = 0; i < suggestions.count; i++) { // Update all the previous counts with possibly new values.
+                suggestions.setProperty(i, "drillDownToPlace", itemCountDictionary[suggestions.get(i).place_name] > 0);
+            }
+            return adding;
         };
         listModelName: actions;
         listView: scroll;
-        searchFilter: filter.toUpperCase().split(/\s+/).filter(identity).join(' ');
+        searchFilter: filter; // FIXME .toUpperCase().split(/\s+/).filter(identity).join(' ');
         /* FIXME searchItemTest: function (text, item) {
             return searchFilter.split().every(function (word) {
                 return item.searchText.indexOf(word) >= 0;
@@ -78,11 +87,7 @@ Column {
             tags = data.tags || [data.action, data.username],
             description = data.description || "",
             thumbnail_url = data.thumbnail_url || "";
-        if (actions === 'concurrency,snapshot') {
-            // A temporary hack for simulating announcements. We won't use this in production, but if requested, we'll use this data like announcements.
-            data.details.connections = 4;
-            data.action = 'announcement';
-        }
+        itemCountDictionary[name] = (itemCountDictionary[name] || 0) + 1;
         return {
             place_name: name,
             username: data.username || "",
@@ -97,9 +102,9 @@ Column {
             tags: tags,
             description: description,
             online_users: data.details.connections || data.details.concurrency || 0,
-            drillDownToPlace: false,
+            drillDownToPlace: false
 
-            searchText: [name].concat(tags, description || []).join(' ').toUpperCase()
+            //searchText: [name].concat(tags, description || []).join(' ').toUpperCase() // FIXME remove
         };
     }
     function identity(x) {
