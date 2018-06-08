@@ -82,6 +82,7 @@ AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWe
     avatar->setSessionUUID(sessionUUID);
     avatar->setOwningAvatarMixer(mixerWeakPointer);
 
+    // addAvatar is only called from newOrExistingAvatar, which already locks _hashLock
     _avatarHash.insert(sessionUUID, avatar);
     emit avatarAddedEvent(sessionUUID);
 
