@@ -363,7 +363,7 @@
                                                 {
                                                     "id": "idle",
                                                     "interpTarget": 6,
-                                                    "interpDuration": 3,
+                                                    "interpDuration": 6,
                                                     "transitions": [
                                                         { "var": "isMovingForward", "state": "walkFwd" },
                                                         { "var": "isMovingBackward", "state": "walkBwd" },
