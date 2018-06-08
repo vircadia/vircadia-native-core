@@ -7532,7 +7532,7 @@ mp3tl_sync (mp3tl * tl)
   g_return_val_if_fail (tl != NULL, MP3TL_ERR_PARAM);
 
   if (tl->need_sync) {
-    guint64 sync_start;
+    guint64 sync_start ATTR_UNUSED;
 
     /* Find a sync word, with valid header */
     bs_reset (tl->bs);
@@ -7551,7 +7551,7 @@ mp3tl_sync (mp3tl * tl)
       guint64 frame_start;
       fr_header *hdr = &tl->fr_ps.header;
       gboolean valid = TRUE;
-      guint64 total_offset;
+      guint64 total_offset ATTR_UNUSED;
 
       sync = bs_seek_sync (tl->bs);
       offset = bs_read_pos (tl->bs) - bs_pos (tl->bs);
@@ -7731,7 +7731,7 @@ mp3tl_decode_header (mp3tl * tl, const fr_header ** ret_hdr)
 Mp3TlRetcode
 mp3tl_gather_frame (mp3tl * tl, guint64 * _offset, gint * _length)
 {
-  guint64 sync_start;
+  guint64 sync_start ATTR_UNUSED;
   gboolean sync;
   guint64 offset;
   guint64 frame_start;
