@@ -126,7 +126,6 @@ public class InterfaceActivity extends QtActivity {
         if (super.isLoading) {
             nativeEnterBackgroundCallEnqueued = true;
         } else {
-            Log.d("[ENTERBACKGROUND]","onPause calling nativeEnterBackground");
             nativeEnterBackground();
         }
         //gvrApi.pauseTracking();
@@ -265,7 +264,6 @@ public class InterfaceActivity extends QtActivity {
     public void onAppLoadedComplete() {
         super.isLoading = false;
         if (nativeEnterBackgroundCallEnqueued) {
-            Log.d("[ENTERBACKGROUND]","onAppLoadedComplete calling nativeEnterBackground");
             nativeEnterBackground();
         }
     }

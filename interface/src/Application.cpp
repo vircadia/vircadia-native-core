@@ -8248,12 +8248,10 @@ void Application::saveNextPhysicsStats(QString filename) {
 
 #if defined(Q_OS_ANDROID)
 void Application::enterBackground() {
-    qDebug() << "[ENTERBACKGROUND] Application::enterBackground()";
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
     if (getActiveDisplayPlugin()->isActive()) {
         getActiveDisplayPlugin()->deactivate();
-        qDebug() << "[ENTERBACKGROUND] Application::enterBackground() getActiveDisplayPlugin()->deactivated";
     }
 }
 
