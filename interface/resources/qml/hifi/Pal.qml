@@ -38,7 +38,6 @@ Rectangle {
     property var myData: ({profileUrl: "", displayName: "", userName: "", audioLevel: 0.0, avgAudioLevel: 0.0, admin: true, placeName: "", connection: "", isPresent: true}); // valid dummy until set
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
     property var nearbyUserModelData: []; // This simple list is essentially a mirror of the nearbyUserModel listModel without all the extra complexities.
-    property var connectionsUserModelData: []; // This simple list is essentially a mirror of the connectionsUserModel listModel without all the extra complexities.
     property bool iAmAdmin: false;
     property var activeTab: "nearbyTab";
     property bool currentlyEditingDisplayName: false
@@ -873,12 +872,17 @@ Rectangle {
                     checked: model && (model.connection === "friend");
                     boxSize: 24;
                     onClicked: {
-                        var newValue = model.connection !== "friend";
-                        connectionsUserModel.setProperty(model.userIndex, styleData.role, (newValue ? "friend" : "connection"));
-                        connectionsUserModelData[model.userIndex][styleData.role] = newValue; // Defensive programming
-                        pal.sendToScript({method: newValue ? 'addFriend' : 'removeFriend', params: model.userName});
+                        // HRS FIXME: NOTE FROM ZACH: With the line below uncommented, clicking any "FRIEND" checkbox
+                        // in the table will result in the 0th table index FRIEND checkbox to become CHECKED.
+                        // This is because there IS NO "model.userIndex" defined per entry in the connectionsUserModel.
+                        // You could do one of two things here:
+                        //     1. Programatically add a "userIndex" to each entry in the model as you fill it in (then this would work)
+                        //     2. Not care about the model being accurate until its next refresh (at which point the "connection"
+                        //     property value will be correct, since the server will give the model the correct value)
+                        //connectionsUserModel.setProperty(model.userIndex, styleData.role, (checked ? "friend" : "connection"));
+                        pal.sendToScript({method: checked ? 'addFriend' : 'removeFriend', params: model.userName});
 
-                        UserActivityLogger["palAction"](newValue ? styleData.role : "un-" + styleData.role, model.sessionId);
+                        UserActivityLogger["palAction"](checked ? styleData.role : "un-" + styleData.role, model.sessionId);
                     }
                 }
             }
