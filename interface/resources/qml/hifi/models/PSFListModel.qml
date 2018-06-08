@@ -38,22 +38,10 @@ Item {
     onSortKeyChanged:  if (initialized) { getFirstPage('delayClear'); }
     onSearchFilterChanged: {
         if (!initialized) { return; }
-        if (searchItemTest) {
-            var filteredCopy = applySearchItemTest(copyOfItems);
-            finalModel.clear();
-            finalModel.append(filteredCopy);
-            debugView('after searchFilterChanged');
-        } else { // TODO: fancy timer against fast typing.
-            getFirstPage('delayClear');
-        }
+        getFirstPage('delayClear');
     }
     onTagsFilterChanged: if (initialized) { getFirstPage('delayClear'); }
     property int itemsPerPage: 100;
-
-    // If the endpoint doesn't do search, tags, sort, these functions can be supplied to do it here.
-    property var searchItemTest: null;
-    property bool localSort: false;
-    property var copyOfItems: [];
 
     // State.
     property int currentPageToRetrieve: 0;  // 0 = before first page. -1 = we have them all. Otherwise 1-based page number.
@@ -65,7 +53,6 @@ Item {
         if (!delayedClear) { finalModel.clear(); }
         currentPageToRetrieve = 1;
         retrievedAtLeastOnePage = false;
-        copyOfItems = [];
     }
 
     // Processing one page.
@@ -98,20 +85,7 @@ Item {
         if (response.total_pages && (response.total_pages === currentPageToRetrieve)) {
             currentPageToRetrieve = -1;
         }
-        if (searchItemTest) {
-            if (searchFilter) {
-                processed = applySearchItemTest(processed);
-            }
-            copyOfItems = copyOfItems.concat(processed);
-        }
-        if (localSort) {
-            copyOfItems = copyOfItems.concat(processed);
-            if (sortProperty) {
-                sortCopy(sortProperty, sortAscending);
-                processed = copyOfItems;
-                delayedClear = true; // see next conditional
-            }
-        }
+
         if (delayedClear) {
             finalModel.clear();
             delayedClear = false;
@@ -119,15 +93,6 @@ Item {
         finalModel.append(processed); // FIXME keep index steady, and apply any post sort
         retrievedAtLeastOnePage = true;
         debugView('after handlePage');
-        if (searchItemTest && searchFilter && listView && listView.atYEnd && (currentPageToRetrieve >= 0)) {
-            getNextPage(); // too fancy??
-        }
-        if (listView) { console.debug('handlePage completed', listModelName, 'model:', model.count, 'view:', listView.count); }
-    }
-    function applySearchItemTest(items) {
-        return items.filter(function (item) {
-                return searchItemTest(searchFilter, item);
-        });
     }
     function debugView(label) {
         if (!listView) { return; }
@@ -147,12 +112,13 @@ Item {
             'per_page=' + itemsPerPage,
             'page=' + currentPageToRetrieve
         ];
-        if (!searchItemTest && searchFilter) {
+        if (searchFilter) {
             parameters.splice(parameters.length, 0, 'search=' + searchFilter);
         }
-        if (!localSort && sortKey) {
+        if (sortKey) {
             parameters.splice(parameters.length, 0, 'sort=' + sortKey);
         }
+
         var parametersSeparator = /\?/.test(url) ? '&' : '?';
         url = url + parametersSeparator + parameters.join('&');
         console.debug('getPage', listModelName, currentPageToRetrieve);
@@ -201,28 +167,5 @@ Item {
 
     ListModel {
         id: finalModel;
-    }
-
-    function sortCopy(sortProperty, isAscending) {
-        console.debug('client sort', listModelName, sortProperty, isAscending, copyOfItems.length, 'items');
-        var before = isAscending ? -1 : 1;
-        var after = -1 * before;
-
-        copyOfItems.sort(function (a, b) {
-            var aValue = a[sortProperty].toString().toLowerCase(), 
-                bValue = b[sortProperty].toString().toLowerCase();
-            if (!aValue && !bValue) {
-                return 0;
-            } else if (!aValue) {
-                return after;
-            } else if (!bValue) {
-                return before;
-            }
-            switch (true) {
-            case (aValue < bValue): return before;
-            case (aValue > bValue): return after;
-            default: return 0;
-            }
-        });
     }
 }
