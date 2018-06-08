@@ -16,7 +16,7 @@ import QtQuick 2.5
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
-import "../../models" as HifiModels
+import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 import "../wallet" as HifiWallet
 import "../common" as HifiCommerceCommon
 import "../inspectionCertificate" as HifiInspectionCertificate
@@ -600,7 +600,7 @@ Rectangle {
                 itemEdition: model.edition_number;
                 numberSold: model.number_sold;
                 limitedRun: model.limited_run;
-                displayedItemCount: 999// For now (and maybe longer), we're going to display all the edition numbers.
+                displayedItemCount: 999; // For now (and maybe longer), we're going to display all the edition numbers.
                 cardBackVisible: model.cardBackVisible || false;
                 isInstalled: model.isInstalled || false;
                 wornEntityID: model.wornEntityID;

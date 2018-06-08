@@ -18,7 +18,7 @@ import QtQuick.Controls 2.2
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
-import "../../models" as HifiModels
+import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
 Item {
     HifiConstants { id: hifi; }
@@ -229,6 +229,7 @@ Item {
                 }
 
                 // Either add to pending, or to result.
+                // Note that you only see a page of pending stuff until you scroll...
                 data.history.forEach(function (item) {
                     if (item.status === 'pending') {
                         pending.count++;

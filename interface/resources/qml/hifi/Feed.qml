@@ -16,7 +16,7 @@ import QtQuick 2.5
 import QtGraphicalEffects 1.0
 import "toolbars"
 import "../styles-uit"
-import "models" as HifiModels
+import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
 Column {
     id: root;
@@ -136,23 +136,4 @@ Column {
             unhoverThunk: function () { hovered = false }
         }
     }
-    /* WTF is this? 
-    NumberAnimation {
-        id: anim;
-        target: scroll;
-        property: "contentX";
-        duration: 250;
-    }
-    function scrollToIndex(index) {
-        anim.running = false;
-        var pos = scroll.contentX;
-        var destPos;
-        scroll.positionViewAtIndex(index, ListView.Contain);
-        destPos = scroll.contentX;
-        anim.from = pos;
-        anim.to = destPos;
-        scroll.currentIndex = index;
-        anim.running = true;
-    }
-    */
 }

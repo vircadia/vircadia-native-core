@@ -18,7 +18,7 @@ import Qt.labs.settings 1.0
 import "../styles-uit"
 import "../controls-uit" as HifiControlsUit
 import "../controls" as HifiControls
-import "models" as HifiModels
+import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
 // references HMD, Users, UserActivityLogger from root context
 
@@ -1238,7 +1238,10 @@ Rectangle {
                 reloadNearby.color = 2;
             }
             break;
-        case 'inspectionCertificate_resetCert': // HRS FIXME what's this about?
+        case 'inspectionCertificate_resetCert':
+            // marketplaces.js sends out a signal to QML with that method when the tablet screen changes and it's not changed to a commerce-related screen.
+            // We want it to only be handled by the InspectionCertificate.qml, but there's not an easy way of doing that.
+            // As a part of a "cleanup inspectionCertificate_resetCert" ticket, we'll have to figure out less logspammy way of doing what has to be done.
             break;
         case 'http.response':
             http.handleHttpResponse(message);

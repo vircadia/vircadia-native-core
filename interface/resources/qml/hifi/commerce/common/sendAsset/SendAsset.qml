@@ -19,7 +19,7 @@ import "../../../../styles-uit"
 import "../../../../controls-uit" as HifiControlsUit
 import "../../../../controls" as HifiControls
 import "../" as HifiCommerceCommon
-import "../../../models" as HifiModels
+import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
 Item {
     HifiConstants { id: hifi; }

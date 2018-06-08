@@ -55,7 +55,7 @@ Item {
         retrievedAtLeastOnePage = false;
     }
 
-    // Processing one page.
+    // Page processing.
 
     // Override to return one property of data, and/or to transform the elements. Must return an array of model elements.
     property var processPage: function (data) { return data; }
