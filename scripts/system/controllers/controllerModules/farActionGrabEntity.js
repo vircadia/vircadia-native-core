@@ -430,10 +430,11 @@ Script.include("/~/system/libraries/Xform.js");
             }
 
             if (this.actionID) {
-                // if we are doing a distance grab and the object gets close enough to the controller,
+                // if we are doing a distance grab and the object or tablet gets close enough to the controller,
                 // stop the far-grab so the near-grab or equip can take over.
                 for (var k = 0; k < nearGrabReadiness.length; k++) {
-                    if (nearGrabReadiness[k].active && nearGrabReadiness[k].targets[0] === this.grabbedThingID) {
+                    if (nearGrabReadiness[k].active && (nearGrabReadiness[k].targets[0] === this.grabbedThingID
+                        || HMD.tabletID && nearGrabReadiness[k].targets[0] === HMD.tabletID)) {
                         this.endFarGrabAction();
                         return makeRunningValues(false, [], []);
                     }
