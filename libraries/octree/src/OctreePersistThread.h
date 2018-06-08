@@ -54,7 +54,7 @@ signals:
     void loadCompleted();
 
 protected slots:
-    bool process();
+    void process();
     void handleOctreeDataFileReply(QSharedPointer<ReceivedMessage> message);
 
 protected:
@@ -71,11 +71,10 @@ private:
     OctreePointer _tree;
     QString _filename;
     std::chrono::milliseconds _persistInterval;
+    std::chrono::steady_clock::time_point _lastPersistCheck;
     bool _initialLoadComplete;
 
     quint64 _loadTimeUSecs;
-
-    quint64 _lastCheck;
 
     bool _debugTimestampNow;
     quint64 _lastTimeDebug;

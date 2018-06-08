@@ -1053,7 +1053,7 @@ void OctreeServer::readConfiguration() {
         int result { -1 };
         readOptionInt(QString("persistInterval"), settingsSectionObject, result);
         if (result != -1) {
-            _persistInterval = std::chrono::seconds(result);
+            _persistInterval = std::chrono::milliseconds(result);
         }
 
         qDebug() << "persistInterval=" << _persistInterval.count();

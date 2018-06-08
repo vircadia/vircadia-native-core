@@ -36,7 +36,8 @@
 #include "OctreeUtils.h"
 #include "OctreeDataUtils.h"
 
-const std::chrono::seconds OctreePersistThread::DEFAULT_PERSIST_INTERVAL { 30 };
+constexpr std::chrono::seconds OctreePersistThread::DEFAULT_PERSIST_INTERVAL { 30 };
+constexpr std::chrono::milliseconds TIME_BETWEEN_PROCESSING { 10 };
 
 constexpr int MAX_OCTREE_REPLACEMENT_BACKUP_FILES_COUNT { 20 };
 constexpr size_t MAX_OCTREE_REPLACEMENT_BACKUP_FILES_SIZE_BYTES { 50 * 1000 * 1000 };
@@ -48,7 +49,7 @@ OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& file
     _persistInterval(persistInterval),
     _initialLoadComplete(false),
     _loadTimeUSecs(0),
-    _lastCheck(0),
+    _lastPersistCheck(std::chrono::steady_clock::now()),
     _debugTimestampNow(debugTimestampNow),
     _lastTimeDebug(0),
     _persistAsFileType(persistAsFileType)
@@ -95,7 +96,7 @@ void OctreePersistThread::start() {
         packet->writePrimitive(false);
     }
 
-    qCDebug(octree) << "Sending request for octree data to DS";
+    qCDebug(octree) << "Sending OctreeDataFileRequest to DS";
     nodeList->sendPacket(std::move(packet), domainHandler.getSockAddr());
 }
 
@@ -111,9 +112,9 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
     if (includesNewData) {
         replacementData = message->readAll();
         replaceData(replacementData);
-        qDebug() << "Got reply to octree data file request, new data sent";
+        qDebug() << "Got OctreeDataFileReply, new data sent";
     } else {
-        qDebug() << "Got reply to octree data file request, current entity data is sufficient";
+        qDebug() << "Got OctreeDataFileReply, current entity data is sufficient";
         
         OctreeUtils::RawEntityData data;
         qCDebug(octree) << "Reading octree data from" << _filename;
@@ -178,16 +179,14 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
 
     _initialLoadComplete = true;
 
-    // Since we just loaded the persistent file, we can consider ourselves as having "just checked" for persistance.
-    _lastCheck = usecTimestampNow(); // we just loaded, no need to save again
+    // Since we just loaded the persistent file, we can consider ourselves as having just persist
+    _lastPersistCheck = std::chrono::steady_clock::now();
 
     if (replacementData.isNull()) {
         sendLatestEntityDataToDS();
     }
 
-    qDebug() << "Starting timer";
-    QTimer::singleShot(std::chrono::milliseconds(_persistInterval).count(), this, &OctreePersistThread::process);
-    QTimer::singleShot(std::chrono::milliseconds(1000).count(), this, &OctreePersistThread::process);
+    QTimer::singleShot(TIME_BETWEEN_PROCESSING.count(), this, &OctreePersistThread::process);
 
     emit loadCompleted();
 }
@@ -233,41 +232,21 @@ bool OctreePersistThread::backupCurrentFile() {
     return true;
 }
 
-bool OctreePersistThread::process() {
-    qDebug() << "Processing...";
+void OctreePersistThread::process() {
+    auto startedProcessingAt = std::chrono::steady_clock::now();
 
-    if (true) { //isStillRunning()) {
-        quint64 MSECS_TO_USECS = 1000;
-        quint64 USECS_TO_SLEEP = 10 * MSECS_TO_USECS; // every 10ms
-        std::this_thread::sleep_for(std::chrono::microseconds(USECS_TO_SLEEP));
+    _tree->update();
 
-        // do our updates then check to save...
-        _tree->update();
+    auto now = std::chrono::steady_clock::now();
+    auto timeSinceLastPersist = now - _lastPersistCheck;
 
-        quint64 now = usecTimestampNow();
-        quint64 sinceLastSave = now - _lastCheck;
-        quint64 intervalToCheck = std::chrono::microseconds(_persistInterval).count();
-
-        if (sinceLastSave > intervalToCheck) {
-            _lastCheck = now;
-            persist();
-        }
+    qDebug() << "Seconds since last persist: " << std::chrono::duration_cast<std::chrono::seconds>(timeSinceLastPersist).count();
+    if (timeSinceLastPersist > _persistInterval) {
+        _lastPersistCheck = now;
+        persist();
     }
-    
-    // if we were asked to debugTimestampNow do that now...
-    if (_debugTimestampNow) {
-        quint64 now = usecTimestampNow();
-        quint64 sinceLastDebug = now - _lastTimeDebug;
-        quint64 DEBUG_TIMESTAMP_INTERVAL = 600000000; // every 10 minutes
 
-        if (sinceLastDebug > DEBUG_TIMESTAMP_INTERVAL) {
-            _lastTimeDebug = usecTimestampNow(true); // ask for debug output
-        }
-        
-    }
-    //return isStillRunning();  // keep running till they terminate us
-    QTimer::singleShot(1000, this, &OctreePersistThread::process);
-    return true;
+    QTimer::singleShot(TIME_BETWEEN_PROCESSING.count(), this, &OctreePersistThread::process);
 }
 
 void OctreePersistThread::aboutToFinish() {
