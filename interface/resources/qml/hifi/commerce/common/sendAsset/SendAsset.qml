@@ -404,9 +404,6 @@ Item {
                 return data.users;
             };
             searchFilter: filterBar.text;
-           /* FIXME searchItemTest: function (text, item) {
-                return item.username.toLowerCase().indexOf(text.toLowerCase()) !== -1;
-            };*/ //HRS FIXME remove when endpoint works.
         }
 
         Rectangle {

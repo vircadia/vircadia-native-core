@@ -38,7 +38,6 @@ Column {
     // sendToScript doesn't get wired until after everything gets created. So we have to queue fillDestinations on nextTick.
     property string labelText: actions;
     property string filter: '';
-    // FIXME onFilterChanged: filterChoicesByText();
     property var goFunction: null;
     property var http: null;
 
@@ -51,7 +50,7 @@ Column {
             'include_actions=' + actions,
             'restriction=' + (Account.isLoggedIn() ? 'open,hifi' : 'open'),
             'require_online=true',
-            'protocol=' + Window.protocolSignature()
+            'protocol=' + encodeURIComponent(Window.protocolSignature())
         ];
         endpoint: '/api/v1/user_stories?' + options.join('&');
         itemsPerPage: 3;
@@ -60,12 +59,7 @@ Column {
         };
         listModelName: actions;
         listView: scroll;
-        searchFilter: filter; // FIXME .toUpperCase().split(/\s+/).filter(identity).join(' ');
-        /* FIXME searchItemTest: function (text, item) {
-            return searchFilter.split().every(function (word) {
-                return item.searchText.indexOf(word) >= 0;
-            });
-        };*/ //HRS FIXME remove when endpoint works.
+        searchFilter: filter;
     }
 
     function resolveUrl(url) {
@@ -93,127 +87,8 @@ Column {
             description: description,
             online_users: data.details.connections || data.details.concurrency || 0,
             drillDownToPlace: false
-
-            //searchText: [name].concat(tags, description || []).join(' ').toUpperCase() // FIXME remove
         };
     }
-    function identity(x) {
-        return x;
-    }
-    /* FIXME
-    property var allStories: [];
-    property var placeMap: ({}); // Used for making stacks.
-    property int requestId: 0;
-    function handleError(url, error, data, cb) { // cb(error) and answer truthy if needed, else falsey
-        if (!error && (data.status === 'success')) {
-            return;
-        }
-        if (!error) { // Create a message from the data
-            error = data.status + ': ' + data.error;
-        }
-        if (typeof(error) === 'string') { // Make a proper Error object
-            error = new Error(error);
-        }
-        error.message += ' in ' + url; // Include the url.
-        cb(error);
-        return true;
-    }
-    function getUserStoryPage(pageNumber, cb, cb1) { // cb(error) after all pages of domain data have been added to model
-        // If supplied, cb1 will be run after the first page IFF it is not the last, for responsiveness.
-        var options = [
-            'now=' + new Date().toISOString(),
-            'include_actions=' + actions,
-            'restriction=' + (Account.isLoggedIn() ? 'open,hifi' : 'open'),
-            'require_online=true',
-            'protocol=' + protocol,
-            'page=' + pageNumber
-        ];
-        var url = metaverseBase + 'user_stories?' + options.join('&');
-        var thisRequestId = ++requestId;
-        http.request(url, function (error, data) {
-            if (thisRequestId !== requestId) {
-                error = 'stale';
-            }
-            if (handleError(url, error, data, cb)) {
-                return; // abandon stale requests
-            }
-            allStories = allStories.concat(data.user_stories.map(makeModelData));
-            if ((data.current_page < data.total_pages) && (data.current_page <=  10)) { // just 10 pages = 100 stories for now
-                if ((pageNumber === 1) && cb1) {
-                    cb1();
-                }
-                return getUserStoryPage(pageNumber + 1, cb);
-            }
-            cb();
-        });
-    }
-    function fillDestinations() { // Public
-        console.debug('Feed::fillDestinations()');
-        //suggestions.getFirstPage();
-    }
-        function report(label, error) {
-            console.log(label, actions, error || 'ok', allStories.length, 'filtered to', suggestions.count);
-        }
-        var filter = makeFilteredStoryProcessor(), counter = 0;
-        allStories = [];
-        suggestions.clear();
-        placeMap = {};
-        getUserStoryPage(1, function (error) {
-            allStories.slice(counter).forEach(filter);
-            report('user stories update', error);
-            root.visible = !!suggestions.count;
-        }, function () { // If there's more than a page, put what we have in the model right away, keeping track of how many are processed.
-            allStories.forEach(function (story) {
-                counter++;
-                filter(story);
-                root.visible = !!suggestions.count;
-            });
-            report('user stories');
-        });
-    }
-    function makeFilteredStoryProcessor() { // answer a function(storyData) that adds it to suggestions if it matches
-        var words = filter.toUpperCase().split(/\s+/).filter(identity);
-        function suggestable(story) {
-            // We could filter out places we don't want to suggest, such as those where (story.place_name === AddressManager.placename) or (story.username === Account.username).
-            return true;
-        }
-        function matches(story) {
-            if (!words.length) {
-                return suggestable(story);
-            }
-            return words.every(function (word) {
-                return story.searchText.indexOf(word) >= 0;
-            });
-        }
-        function addToSuggestions(place) {
-            var collapse = ((actions === 'concurrency,snapshot') && (place.action !== 'concurrency')) || (place.action === 'announcement');
-            if (collapse) {
-                var existing = placeMap[place.place_name];
-                if (existing) {
-                    existing.drillDownToPlace = true;
-                    return;
-                }
-            }
-            suggestions.append(place);
-            if (collapse) {
-                placeMap[place.place_name] = suggestions.get(suggestions.count - 1);
-            } else if (place.action === 'concurrency') {
-                suggestions.get(suggestions.count - 1).drillDownToPlace = true; // Don't change raw place object (in allStories).
-            }
-        }
-        return function (story) {
-            if (matches(story)) {
-                addToSuggestions(story);
-            }
-        };
-    }
-    function filterChoicesByText() {
-        suggestions.clear();
-        placeMap = {};
-        allStories.forEach(makeFilteredStoryProcessor());
-        root.visible = !!suggestions.count;
-    }
-    */
 
     RalewayBold {
         id: label;

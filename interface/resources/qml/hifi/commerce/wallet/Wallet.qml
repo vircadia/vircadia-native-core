@@ -769,12 +769,10 @@ Rectangle {
                 // NOP
             break;
             case 'updateConnections':
-                console.log('Wallet.qml updateConnections');// HRS FIXME
                 sendMoney.updateConnections(message.connections);
             break;
             case 'selectRecipient':
             case 'updateSelectedRecipientUsername':
-                console.log('Wallet.qml updateSelectedRecipientUsername'); // HRS FIXME
                 sendMoney.fromScript(message);
             break;
             case 'http.response':

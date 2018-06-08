@@ -41,7 +41,7 @@ Rectangle {
     property int numUpdatesAvailable: 0;
     // Style
     color: hifi.colors.white;
-    function getPurchases() {  // FIXME: use the new purchasesModel.getFirstPage
+    function getPurchases() {
         root.activeView = "purchasesMain";
         root.installedApps = Commerce.getInstalledApps();
         purchasesModel.getFirstPage();
@@ -576,32 +576,6 @@ Rectangle {
                 sendToScript({ method: 'purchases_updateWearables' });
 
                 return data.assets;
-
-                /*
-                var processedInventory = processInventoryResult(data.assets);
-
-                if (purchasesModel.processResult(result.status, processedInventory)) {
-                    var currentId;
-                    for (var i = 0; i < purchasesModel.count; i++) {
-                        currentId = purchasesModel.get(i).id;
-                        purchasesModel.setProperty(i, 'cardBackVisible', false);
-                        purchasesModel.setProperty(i, 'isInstalled', ((root.installedApps).indexOf(currentId) > -1));
-                        purchasesModel.setProperty(i, 'wornEntityID', '');
-                    }
-
-                    // Client-side filter of "Updatable" items
-                    // FIXME - this MUST be serverside (what if we don't have the
-                    // page containing an updatable item on the client?)
-                    if (filterBar.primaryFilter_displayName === "Updatable") {
-                        for (var i = 0; i < purchasesModel.count; i++) {
-                            if (purchasesModel.get(i).upgrade_url === "") {
-                                purchasesModel.remove(i);
-                                i--;
-                            }
-                        }
-                    }
-                }
-                */
             }
         }
 
@@ -979,17 +953,6 @@ Rectangle {
     //
     // FUNCTION DEFINITIONS START
     //
-    /* fixme remove
-    function processInventoryResult(inventory) {  // HRS FIXME remove
-        for (var i = 0; i < inventory.length; i++) {
-            if (inventory[i].status.length > 1) {
-                console.log("WARNING: Inventory result index " + i + " has a status of length >1!")
-            }
-            inventory[i].status = inventory[i].status[0];
-            inventory[i].categories = inventory[i].categories.join(';');
-        }
-        return inventory;
-    } */
     
     function updateCurrentlyWornWearables(wearables) {
         for (var i = 0; i < purchasesModel.count; i++) {

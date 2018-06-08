@@ -63,7 +63,7 @@ Item {
     property bool delayedClear: false;
     function resetModel() {
         if (!delayedClear) { finalModel.clear(); }
-        currentPageToRetrieve = 1;  console.log('fixme resetModel set currentPageToRetrieve to 1', listModelName);
+        currentPageToRetrieve = 1;
         retrievedAtLeastOnePage = false;
         copyOfItems = [];
     }
@@ -144,7 +144,6 @@ Item {
         // If it is a path starting with slash, add the metaverseServer domain.
         var url = /^\//.test(endpoint) ? (Account.metaverseServerURL + endpoint) : endpoint;
         var parameters = [
-            // FIXME: handle sort,  tag parameters
             'per_page=' + itemsPerPage,
             'page=' + currentPageToRetrieve
         ];
@@ -162,8 +161,7 @@ Item {
 
     // Start the show by retrieving data according to `getPage()`.
     // It can be custom-defined by this item's Parent.
-    property var getFirstPage: function (delayClear) { getFirstPageInternal(delayClear); }
-    function getFirstPageInternal(delayClear) {
+    property var getFirstPage: function (delayClear) {
         delayedClear = !!delayClear;
         resetModel();
         requestPending = true;
@@ -180,7 +178,6 @@ Item {
     //    onAtYEndChanged: if (theList.atYEnd && !theList.atYBeginning) { thisPSFListModelId.getNextPage(); }
     //    ...}
     property var getNextPage: function () {
-        console.log('fixme getNextPage', listModelName, requestPending, currentPageToRetrieve);
         if (requestPending || currentPageToRetrieve < 0) {
             return;
         }

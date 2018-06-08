@@ -49,7 +49,6 @@ Rectangle {
         id: connectionsUserModel;
         http: http;
         endpoint: "/api/v1/users?filter=connections";
-        //FIXME localSort: true;
         property var sortColumn: connectionsTable.getColumn(connectionsTable.sortIndicatorColumn);
         sortProperty: switch (sortColumn && sortColumn.role) {
             case 'placeName':
