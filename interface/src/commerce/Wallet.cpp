@@ -614,7 +614,11 @@ void Wallet::updateImageProvider() {
     SecurityImageProvider* securityImageProvider;
 
     // inform offscreenUI security image provider
-    QQmlEngine* engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
+    if (!offscreenUI) {
+        return;
+    }
+    QQmlEngine* engine = offscreenUI->getSurfaceContext()->engine();
     securityImageProvider = reinterpret_cast<SecurityImageProvider*>(engine->imageProvider(SecurityImageProvider::PROVIDER_NAME));
     securityImageProvider->setSecurityImage(_securityImage);
 
