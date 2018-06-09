@@ -785,7 +785,7 @@ Rectangle {
                 resizable: false;
             }
 
-            model: connectionsUserModel.model;
+            model: connectionsUserModel;
             Connections {
                 target: connectionsTable.flickableItem;
                 onAtYEndChanged: {

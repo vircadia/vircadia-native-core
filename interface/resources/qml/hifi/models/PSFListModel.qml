@@ -17,7 +17,7 @@
 
 import QtQuick 2.7
 
-Item {
+ListModel {
     id: root;
     // Used when printing debug statements
     property string listModelName: endpoint;
@@ -50,7 +50,7 @@ Item {
     // Not normally set directly, but rather by giving a truthy argument to getFirstPage(true);
     property bool delayedClear: false;
     function resetModel() {
-        if (!delayedClear) { finalModel.clear(); }
+        if (!delayedClear) { root.clear(); }
         currentPageToRetrieve = 1;
         retrievedAtLeastOnePage = false;
     }
@@ -87,12 +87,12 @@ Item {
         }
 
         if (delayedClear) {
-            finalModel.clear();
+            root.clear();
             delayedClear = false;
         }
-        finalModel.append(processed); // FIXME keep index steady, and apply any post sort
+        root.append(processed); // FIXME keep index steady, and apply any post sort
         retrievedAtLeastOnePage = true;
-        debugView('after handlePage');
+        console.debug(listModelName, 'after handlePage count', root.count);
     }
     function debugView(label) {
         if (!listView) { return; }
@@ -151,21 +151,5 @@ Item {
         console.debug("getNextPage", listModelName, currentPageToRetrieve);
         requestPending = true;
         getPage();
-    }
-
-    // Redefining members and methods so that the parent of this Item
-    // can use PSFListModel as they would a regular ListModel
-    property alias model: finalModel;
-    property alias count: finalModel.count;
-    function clear() { finalModel.clear(); }
-    function get(index) { return finalModel.get(index); }
-    function remove(index) { return finalModel.remove(index); }
-    function setProperty(index, prop, value) { return finalModel.setProperty(index, prop, value); }
-    function move(from, to, n) { return finalModel.move(from, to, n); }
-    function insert(index, newElement) { finalModel.insert(index, newElement); }
-    function append(newElements) { finalModel.append(newElements); }
-
-    ListModel {
-        id: finalModel;
     }
 }

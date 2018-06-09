@@ -519,7 +519,7 @@ Item {
                     }
                     visible: !connectionsLoading.visible;
                     clip: true;
-                    model: connectionsModel.model;
+                    model: connectionsModel;
                     onAtYEndChanged: if (connectionsList.atYEnd && !connectionsList.atYBeginning) { connectionsModel.getNextPage(); }
                     snapMode: ListView.SnapToItem;
                     // Anchors

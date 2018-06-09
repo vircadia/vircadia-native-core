@@ -323,7 +323,7 @@ Item {
                 height: parent.height;
                 visible: transactionHistoryModel.count !== 0;
                 clip: true;
-                model: transactionHistoryModel.model;
+                model: transactionHistoryModel;
                 delegate: Item {
                     width: parent.width;
                     height: (model.transaction_type === "pendingCount" && model.count !== 0) ? 40 : ((model.status === "confirmed" || model.status === "invalidated") ? transactionText.height + 30 : 0);

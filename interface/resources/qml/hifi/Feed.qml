@@ -98,7 +98,7 @@ Column {
     }
     ListView {
         id: scroll;
-        model: suggestions.model;
+        model: suggestions;
         orientation: ListView.Horizontal;
         highlightFollowsCurrentItem: false
         highlightMoveDuration: -1;
