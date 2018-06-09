@@ -570,6 +570,8 @@ void EntityScriptServer::aboutToFinish() {
         entityScriptingInterface->setPacketSender(nullptr);
     }
 
+    DependencyManager::destroy<AssignmentParentFinder>();
+
     DependencyManager::get<ResourceManager>()->cleanup();
 
     // cleanup the AudioInjectorManager (and any still running injectors)
