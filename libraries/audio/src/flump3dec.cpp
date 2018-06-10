@@ -111,12 +111,10 @@
 // Now passes ISO/IEC 11172-4 "full accuracy" compliance testing.
 //
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-
 #include "flump3dec.h"
+
+#include <stdlib.h>
+#include <math.h>
 
 namespace flump3dec {
 
@@ -7887,7 +7885,7 @@ mp3tl_decode_frame (mp3tl * tl, guint8 * samples, guint bufsize)
   bs_reset (tl->bs);
 
   GST_LOG ("Starting decode of frame size %u bits, with %u bits in buffer",
-      hdr->frame_bits, bs_bits_avail (tl->bs));
+      hdr->frame_bits, (guint) bs_bits_avail (tl->bs));
 
   /* Got enough bits for the decode? (exclude the header) */
   if (bs_bits_avail (tl->bs) <
