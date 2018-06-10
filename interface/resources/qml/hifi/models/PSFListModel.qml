@@ -36,11 +36,9 @@ ListModel {
     Component.onCompleted: initialized = true;
     onEndpointChanged: if (initialized) { getFirstPage('delayClear'); }
     onSortKeyChanged:  if (initialized) { getFirstPage('delayClear'); }
-    onSearchFilterChanged: {
-        if (!initialized) { return; }
-        getFirstPage('delayClear');
-    }
+    onSearchFilterChanged: if (initialized) { getFirstPage('delayClear'); }
     onTagsFilterChanged: if (initialized) { getFirstPage('delayClear'); }
+
     property int itemsPerPage: 100;
 
     // State.
@@ -64,7 +62,7 @@ ListModel {
     // Check consistency and call processPage.
     function handlePage(error, response) {
         var processed;
-        console.debug('handlePage', listModelName, error, JSON.stringify(response));
+        console.debug('handlePage', listModelName, additionalFirstPageRequested, error, JSON.stringify(response));
         function fail(message) {
             console.warn("Warning page fail", listModelName, JSON.stringify(message));
             currentPageToRetrieve = -1;
@@ -92,7 +90,17 @@ ListModel {
         }
         root.append(processed); // FIXME keep index steady, and apply any post sort
         retrievedAtLeastOnePage = true;
-        console.debug(listModelName, 'after handlePage count', root.count);
+        // Suppose two properties change at once, and both of their change handlers request a new first page.
+        // (An example is when the a filter box gets cleared with text in it, so that the search and tags are both reset.)
+        // Or suppose someone just types new search text quicker than the server response.
+        // In these cases, we would have multiple requests in flight, and signal based responses aren't generally very good
+        // at matching up the right handler with the right message. Rather than require all the APIs to carefully handle such,
+        // and also to cut down on useless requests, we take care of that case here.
+        if (additionalFirstPageRequested) {
+            console.debug('deferred getFirstPage', listModelName);
+            additionalFirstPageRequested = false;
+            getFirstPage('delayedClear');
+        }
     }
     function debugView(label) {
         if (!listView) { return; }
@@ -128,13 +136,18 @@ ListModel {
     // Start the show by retrieving data according to `getPage()`.
     // It can be custom-defined by this item's Parent.
     property var getFirstPage: function (delayClear) {
+        if (requestPending) {
+            console.debug('deferring getFirstPage', listModelName);
+            additionalFirstPageRequested = true;
+            return;
+        }
         delayedClear = !!delayClear;
         resetModel();
         requestPending = true;
         console.debug("getFirstPage", listModelName, currentPageToRetrieve);
         getPage();
     }
-    
+    property bool additionalFirstPageRequested: false;
     property bool requestPending: false; // For de-bouncing getNextPage.
     // This function, will get the _next_ page of data according to `getPage()`.
     // It can be custom-defined by this item's Parent. Typical usage:

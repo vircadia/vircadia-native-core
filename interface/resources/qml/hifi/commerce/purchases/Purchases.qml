@@ -525,7 +525,7 @@ Rectangle {
                 }
 
                 onPrimaryFilter_displayNameChanged: {
-                    purchasesModel.tagsFilter = filterBar.primaryFilter_filterName.toLowerCase();
+                    purchasesModel.tagsFilter = filterBar.primaryFilter_filterName;
                     filterBar.previousPrimaryFilter = filterBar.primaryFilter_displayName;
                 }
 
@@ -557,7 +557,7 @@ Rectangle {
                 console.debug('getPage', purchasesModel.listModelName, root.isShowingMyItems, filterBar.primaryFilter_filterName, purchasesModel.currentPageToRetrieve, purchasesModel.itemsPerPage);
                 Commerce.inventory(
                     root.isShowingMyItems ? "proofs" : "purchased",
-                    filterBar.primaryFilter_filterName.toLowerCase(),
+                    filterBar.primaryFilter_filterName,
                     filterBar.text,
                     purchasesModel.currentPageToRetrieve,
                     purchasesModel.itemsPerPage
