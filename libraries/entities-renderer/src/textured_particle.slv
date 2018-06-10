@@ -37,8 +37,8 @@ layout(std140) uniform particleBuffer {
     ParticleUniforms particle;
 };
 
-in vec3 inPosition;
-in vec2 inColor; // This is actual Lifetime + Seed
+layout(location=0) in vec3 inPosition;
+layout(location=2) in vec2 inColor; // This is actual Lifetime + Seed
 
 out vec4 varColor;
 out vec2 varTexcoord;
