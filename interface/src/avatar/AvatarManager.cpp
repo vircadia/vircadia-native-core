@@ -468,13 +468,14 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
     _shouldRender = shouldRenderAvatars;
     const render::ScenePointer& scene = qApp->getMain3DScene();
     render::Transaction transaction;
+    auto avatarHashCopy = getHashCopy();
     if (_shouldRender) {
-        for (auto avatarData : _avatarHash) {
+        for (auto avatarData : avatarHashCopy) {
             auto avatar = std::static_pointer_cast<Avatar>(avatarData);
             avatar->addToScene(avatar, scene, transaction);
         }
     } else {
-        for (auto avatarData : _avatarHash) {
+        for (auto avatarData : avatarHashCopy) {
             auto avatar = std::static_pointer_cast<Avatar>(avatarData);
             avatar->removeFromScene(avatar, scene, transaction);
         }
@@ -514,7 +515,8 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
 
     glm::vec3 normDirection = glm::normalize(ray.direction);
 
-    for (auto avatarData : _avatarHash) {
+    auto avatarHashCopy = getHashCopy();
+    for (auto avatarData : avatarHashCopy) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarData);
         if ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatar->getID())) ||
             (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatar->getID()))) {
