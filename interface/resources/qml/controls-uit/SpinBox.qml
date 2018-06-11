@@ -31,8 +31,8 @@ SpinBox {
     property real maximumValue: 0.0
 
     property real realValue: 0.0
-    property real realFrom: 0.0
-    property real realTo: 100.0
+    property real realFrom: minimumValue
+    property real realTo: maximumValue
     property real realStepSize: 1.0
 
     signal editingFinished()
