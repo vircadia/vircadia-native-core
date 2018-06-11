@@ -89,9 +89,7 @@ void OverlayConductor::update(float dt) {
     }
 
     bool isAtRest = updateAvatarIsAtRest();
-    bool prevMoving = _currentMoving;
     bool isMoving = !isAtRest;
-    bool movingChanged = prevMoving != isMoving;
 
     bool shouldRecenter = false;
 
@@ -101,7 +99,7 @@ void OverlayConductor::update(float dt) {
             shouldRecenter = true;
         }
     } else {
-        if (myAvatar->getClearOverlayWhenMoving() && movingChanged && isMoving) {
+        if (myAvatar->getClearOverlayWhenMoving() && isMoving) {
             _flags |= SuppressedByMove;
         }
     }

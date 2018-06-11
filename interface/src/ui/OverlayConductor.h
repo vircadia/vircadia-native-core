@@ -34,8 +34,6 @@ private:
 
     uint8_t _flags { SuppressedByMove };
     bool _hmdMode { false };
-    
-    bool _currentMoving { false };
 
     // used by updateAvatarIsAtRest
     uint64_t _desiredAtRestTimer { 0 };
