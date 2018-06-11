@@ -2883,7 +2883,7 @@ float MyAvatar::getWalkSpeed() const {
 }
 
 bool MyAvatar::isReadyForPhysics() const {
-    return _haveReceivedHeightLimitsFromDomain;
+    return qApp->isServerlessMode() || _haveReceivedHeightLimitsFromDomain;
 }
 
 void MyAvatar::setSprintMode(bool sprint) {
