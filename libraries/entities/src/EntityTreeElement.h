@@ -161,7 +161,7 @@ public:
     virtual uint16_t size() const;
     bool hasEntities() const { return size() > 0; }
 
-    void setTree(EntityTreePointer tree) { _myTree.swap(std::weak_ptr<EntityTree>(tree)); }
+    void setTree(EntityTreePointer tree) { _myTree = std::weak_ptr<EntityTree>(tree); }
     EntityTreePointer getTree() const { return _myTree.lock(); }
 
     void addEntityItem(EntityItemPointer entity);
