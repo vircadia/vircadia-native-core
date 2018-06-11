@@ -133,12 +133,13 @@ void TextureBaker::processTexture() {
             handleError("Could not write original texture for " + _textureURL.toString());
             return;
         }
+        // IMPORTANT: _originalTexture is empty past this point
         _originalTexture.clear();
         _outputFiles.push_back(originalCopyFilePath);
         meta.original = _metaTexturePathPrefix +_textureURL.fileName();
     }
 
-    auto buffer = std::shared_ptr<QIODevice>((QIODevice*)new QFile(originalCopyFilePath));
+    auto buffer = std::static_pointer_cast<QIODevice>(std::make_shared<QFile>(originalCopyFilePath));
     if (!buffer->open(QIODevice::ReadOnly)) {
         handleError("Could not open original file at " + originalCopyFilePath);
         return;
@@ -146,7 +147,6 @@ void TextureBaker::processTexture() {
 
     // Compressed KTX
     {
-        // IMPORTANT: _originalTexture is empty past this point
         auto processedTexture = image::processImage(buffer, _textureURL.toString().toStdString(),
                                                     ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, true, _abortProcessing);
         if (!processedTexture) {
@@ -174,7 +174,7 @@ void TextureBaker::processTexture() {
         const char* data = reinterpret_cast<const char*>(memKTX->_storage->data());
         const size_t length = memKTX->_storage->size();
 
-        auto fileName = _baseFilename + BAKED_TEXTURE_BCN_SUFFIX;
+        auto fileName = _baseFilename + "_" + name + ".ktx";
         auto filePath = _outputDirectory.absoluteFilePath(fileName);
         QFile bakedTextureFile { filePath };
         if (!bakedTextureFile.open(QIODevice::WriteOnly) || bakedTextureFile.write(data, length) == -1) {

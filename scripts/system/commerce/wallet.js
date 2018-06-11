@@ -511,6 +511,9 @@
             case 'wallet_availableUpdatesReceived':
                 // NOP
                 break;
+            case 'http.request':
+                // Handled elsewhere, don't log.
+                break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));
         }

@@ -80,6 +80,7 @@ private:
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<TestingDialog> _testingDialog;
     QPointer<DomainConnectionDialog> _domainConnectionDialog;
+    bool _dialogCreatedWhileShown { false };
     bool _addressBarVisible { false };
 };
 
