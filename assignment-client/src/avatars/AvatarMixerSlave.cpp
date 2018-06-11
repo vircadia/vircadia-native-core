@@ -271,8 +271,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 if (glm::any(glm::lessThan(otherNodeBoxScale, minBubbleSize))) {
                     otherNodeBox.setScaleStayCentered(minBubbleSize);
                 }
-                // Quadruple the scale of both bounding boxes
-                otherNodeBox.embiggen(0.8f);
+                // Change the scale of both bounding boxes
+                // (This is an arbitrary number determined empirically)
+                otherNodeBox.embiggen(2.4f);
 
                 // Perform the collision check between the two bounding boxes
                 if (nodeBox.touches(otherNodeBox)) {
