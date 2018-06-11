@@ -457,7 +457,7 @@ protected:
     bool _needsFixupInScene { true }; // needs to be removed/re-added to scene
     bool _needsReload { true };
     bool _needsUpdateClusterMatrices { true };
-    mutable bool _needsUpdateTextures { true };
+    QVariantMap _pendingTextures { };
 
     friend class ModelMeshPartPayload;
     Rig _rig;
