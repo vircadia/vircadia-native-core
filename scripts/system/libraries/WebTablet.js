@@ -142,9 +142,9 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
     }
 
     var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.5) * sensorScaleFactor;
-    var WEB_ENTITY_Y_OFFSET = 1 * tabletScaleFactor;
-    var screenWidth = 0.9275 * tabletWidth;
-    var screenHeight = 0.8983 * tabletHeight;
+    var WEB_ENTITY_Y_OFFSET = 1.25 * tabletScaleFactor;
+    var screenWidth = 0.9367 * tabletWidth;
+    var screenHeight = 0.9000 * tabletHeight;
     this.webOverlayID = Overlays.addOverlay("web3d", {
         name: "WebTablet Web",
         url: url,
@@ -164,7 +164,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
     var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
     var HOME_BUTTON_X_OFFSET = 0.00079 * sensorScaleFactor;
     var HOME_BUTTON_Y_OFFSET = -1 * ((tabletHeight / 2) - (4.0 * tabletScaleFactor / 2));
-    var HOME_BUTTON_Z_OFFSET = (tabletDepth / 1.1) * sensorScaleFactor;
+    var HOME_BUTTON_Z_OFFSET = (tabletDepth / 1.9) * sensorScaleFactor;
     this.homeButtonID = Overlays.addOverlay("circle3d", {
         name: "homeButton",
         localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },

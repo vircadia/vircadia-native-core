@@ -401,9 +401,9 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
 
     // update webOverlay
     var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.5) * sensorScaleOffsetOverride;
-    var WEB_ENTITY_Y_OFFSET = 1 * tabletScaleFactor * sensorScaleOffsetOverride;
-    var screenWidth = 0.9275 * tabletWidth;
-    var screenHeight = 0.8983 * tabletHeight;
+    var WEB_ENTITY_Y_OFFSET = 1.25 * tabletScaleFactor * sensorScaleOffsetOverride;
+    var screenWidth = 0.9367 * tabletWidth;
+    var screenHeight = 0.9000 * tabletHeight;
     var landscape = Tablet.getTablet("com.highfidelity.interface.tablet.system").landscape;
     Overlays.editOverlay(HMD.tabletScreenID, {
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET},
@@ -416,7 +416,7 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
     var HOME_BUTTON_X_OFFSET = 0.00079 * sensorScaleOffsetOverride * sensorScaleFactor;
     var HOME_BUTTON_Y_OFFSET = -1 * ((tabletHeight / 2) - (4.0 * tabletScaleFactor / 2)) * sensorScaleOffsetOverride;
-    var HOME_BUTTON_Z_OFFSET = (tabletDepth / 1.1) * (sensorScaleFactor * sensorScaleOffsetOverride);
+    var HOME_BUTTON_Z_OFFSET = (tabletDepth / 1.9) * sensorScaleOffsetOverride;
     Overlays.editOverlay(HMD.homeButtonID, {
         localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
         localRotation: { x: 0, y: 1, z: 0, w: 0 },
