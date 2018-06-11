@@ -30,6 +30,8 @@ const QString BAKED_TEXTURE_KTX_EXT = ".ktx";
 const QString BAKED_TEXTURE_BCN_SUFFIX = "_bcn.ktx";
 const QString BAKED_META_TEXTURE_SUFFIX = ".texmeta.json";
 
+bool TextureBaker::_compressionEnabled = true;
+
 TextureBaker::TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType,
                            const QDir& outputDirectory, const QString& metaTexturePathPrefix,
                            const QString& baseFilename, const QByteArray& textureContent) :
@@ -146,7 +148,7 @@ void TextureBaker::processTexture() {
     }
 
     // Compressed KTX
-    {
+    if (_compressionEnabled) {
         auto processedTexture = image::processImage(buffer, _textureURL.toString().toStdString(),
                                                     ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, true, _abortProcessing);
         if (!processedTexture) {
@@ -186,7 +188,7 @@ void TextureBaker::processTexture() {
     }
 
     // Uncompressed KTX
-    {
+    if (_textureType == image::TextureUsage::Type::CUBE_TEXTURE) {
         buffer->reset();
         auto processedTexture = image::processImage(std::move(buffer), _textureURL.toString().toStdString(),
                                                     ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, false, _abortProcessing);
@@ -218,6 +220,8 @@ void TextureBaker::processTexture() {
         }
         _outputFiles.push_back(filePath);
         meta.uncompressed = _metaTexturePathPrefix + fileName;
+    } else {
+        buffer.reset();
     }
 
     {
