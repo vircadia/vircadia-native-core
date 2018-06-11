@@ -72,6 +72,8 @@ public:
 
     static const QString REPLACEMENT_FILE_EXTENSION;
 
+    bool isAssetServerEnabled();
+
 public slots:
     /// Called by NodeList to inform us a node has been added
     void nodeAdded(SharedNodePointer node);
