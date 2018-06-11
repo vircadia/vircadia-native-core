@@ -1052,6 +1052,7 @@ using namespace render;
 using namespace render::entities;
 
 ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
+    // TODO: Re-add menu item in Menu.ccp/Menu.h when collision model updates in doRenderUpdateSynchronousTyped(...) are re-implemented
     connect(DependencyManager::get<EntityTreeRenderer>().data(), &EntityTreeRenderer::setRenderDebugHulls, this, [&] {
         _needsCollisionGeometryUpdate = true;
         emit requestRenderUpdate();

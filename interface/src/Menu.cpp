@@ -725,7 +725,6 @@ Menu::Menu() {
         addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned,
             0, false, drawStatusConfig, SLOT(setShowNetwork(bool)));
     }
-    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls, 0, false, qApp->getEntities().data(), SIGNAL(setRenderDebugHulls()));
 
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletWireframe, 0, false, qApp, SLOT(setShowBulletWireframe(bool)));
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletAABBs, 0, false, qApp, SLOT(setShowBulletAABBs(bool)));
