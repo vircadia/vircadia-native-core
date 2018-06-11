@@ -23,7 +23,6 @@ public:
 
 private:
     bool headOutsideOverlay() const;
-    bool updateAvatarHasDriveInput();
     bool updateAvatarIsAtRest();
 
     enum SupressionFlags {
