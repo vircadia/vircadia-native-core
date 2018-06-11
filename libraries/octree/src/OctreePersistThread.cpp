@@ -47,9 +47,9 @@ OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& file
     _tree(tree),
     _filename(filename),
     _persistInterval(persistInterval),
+    _lastPersistCheck(std::chrono::steady_clock::now()),
     _initialLoadComplete(false),
     _loadTimeUSecs(0),
-    _lastPersistCheck(std::chrono::steady_clock::now()),
     _debugTimestampNow(debugTimestampNow),
     _lastTimeDebug(0),
     _persistAsFileType(persistAsFileType)
@@ -283,7 +283,6 @@ void OctreePersistThread::cleanupOldReplacementBackups() {
                     qDebug() << "Removed backup:" << absPath;
                 } else {
                     qWarning() << "Failed to remove backup:" << absPath;
-
                 }
             }
             count++;
