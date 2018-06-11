@@ -40,7 +40,7 @@ constexpr std::chrono::seconds OctreePersistThread::DEFAULT_PERSIST_INTERVAL { 3
 constexpr std::chrono::milliseconds TIME_BETWEEN_PROCESSING { 10 };
 
 constexpr int MAX_OCTREE_REPLACEMENT_BACKUP_FILES_COUNT { 20 };
-constexpr size_t MAX_OCTREE_REPLACEMENT_BACKUP_FILES_SIZE_BYTES { 50 * 1000 * 1000 };
+constexpr int64_t MAX_OCTREE_REPLACEMENT_BACKUP_FILES_SIZE_BYTES { 50 * 1000 * 1000 };
 
 OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& filename, std::chrono::milliseconds persistInterval,
                                          bool debugTimestampNow, QString persistAsFileType) :
@@ -269,22 +269,22 @@ void OctreePersistThread::cleanupOldReplacementBackups() {
     backupDir.setFilter(QDir::Filter::Files);
     qDebug() << "Scanning backups for cleanup:" << backupDir.absolutePath();
 
-    auto count = 0;
-    size_t totalSize = 0;
+    int count = 0;
+    int64_t totalSize = 0;
     for (auto fileInfo : backupDir.entryInfoList()) {
         auto absPath = fileInfo.absoluteFilePath();
-        qDebug() << "Found:" << absPath;
+        qDebug() << "  Found:" << absPath;
         if (filenameRegex.exactMatch(absPath)) {
-            totalSize += fileInfo.size();
             if (count >= MAX_OCTREE_REPLACEMENT_BACKUP_FILES_COUNT || totalSize > MAX_OCTREE_REPLACEMENT_BACKUP_FILES_SIZE_BYTES) {
-                qDebug() << "Removing:" << absPath;
+                qDebug() << "  Removing:" << absPath;
                 QFile backup(absPath);
                 if (backup.remove()) {
-                    qDebug() << "Removed backup:" << absPath;
+                    qDebug() << "  Removed backup:" << absPath;
                 } else {
-                    qWarning() << "Failed to remove backup:" << absPath;
+                    qWarning() << "  Failed to remove backup:" << absPath;
                 }
             }
+            totalSize += fileInfo.size();
             count++;
         }
     }
