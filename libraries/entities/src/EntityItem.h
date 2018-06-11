@@ -185,6 +185,7 @@ public:
     /// Dimensions in meters (0.0 - TREE_SCALE)
     glm::vec3 getScaledDimensions() const;
     virtual void setScaledDimensions(const glm::vec3& value);
+    virtual glm::vec3 getRaycastDimensions() const { return getScaledDimensions(); }
 
     inline const glm::vec3 getUnscaledDimensions() const { return _unscaledDimensions; }
     virtual void setUnscaledDimensions(const glm::vec3& value);
@@ -239,7 +240,7 @@ public:
     // position, size, and bounds related helpers
     virtual AACube getMaximumAACube(bool& success) const override;
     AACube getMinimumAACube(bool& success) const;
-    AABox getAABox(bool& success) const; /// axis aligned bounding box in world-frame (meters)
+    virtual AABox getAABox(bool& success) const; /// axis aligned bounding box in world-frame (meters)
 
     using SpatiallyNestable::getQueryAACube;
     virtual AACube getQueryAACube(bool& success) const override;
