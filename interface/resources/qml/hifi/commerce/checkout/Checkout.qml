@@ -42,7 +42,7 @@ Rectangle {
     property bool alreadyOwned: false;
     property int itemPrice: -1;
     property bool isCertified;
-    property string itemType;
+    property string itemType: "unknown";
     property var itemTypesArray: ["entity", "wearable", "contentSet", "app", "avatar", "unknown"];
     property var itemTypesText: ["entity", "wearable", "content set", "app", "avatar", "item"];
     property var buttonTextNormal: ["REZ", "WEAR", "REPLACE CONTENT SET", "INSTALL", "WEAR", "REZ"];
@@ -98,9 +98,6 @@ Rectangle {
             } else {
                 root.certificateId = result.data.certificate_id;
                 root.itemHref = result.data.download_url;
-                if (result.data.categories.indexOf("Wearables") > -1) {
-                    root.itemType = "wearable";
-                }
                 root.activeView = "checkoutSuccess";
                 UserActivityLogger.commercePurchaseSuccess(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned);
             }
@@ -170,9 +167,6 @@ Rectangle {
                 root.activeView = "checkoutFailure";
             } else {
                 root.itemHref = result.data.download_url;
-                if (result.data.categories.indexOf("Wearables") > -1) {
-                    root.itemType = "wearable";
-                }
                 root.activeView = "checkoutSuccess";
             }
         }
@@ -184,20 +178,6 @@ Rectangle {
         root.availableUpdatesReceived = false;
         Commerce.getAvailableUpdates(root.itemId);
         itemPreviewImage.source = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/" + itemId + "/thumbnail/hifi-mp-" + itemId + ".jpg";
-    }
-
-    onItemHrefChanged: {
-        if (root.itemHref.indexOf(".fst") > -1) {
-            root.itemType = "avatar";
-        } else if (root.itemHref.indexOf('.json.gz') > -1 || root.itemHref.indexOf('.content.zip') > -1) {
-            root.itemType = "contentSet";
-        } else if (root.itemHref.indexOf('.app.json') > -1) {
-            root.itemType = "app";
-        } else if (root.itemHref.indexOf('.json') > -1) {
-            root.itemType = "entity"; // "wearable" type handled later
-        } else {
-            root.itemType = "unknown";
-        }
     }
 
     onItemTypeChanged: {
@@ -1102,6 +1082,7 @@ Rectangle {
                 root.referrer = message.params.referrer;
                 root.itemAuthor = message.params.itemAuthor;
                 root.itemEdition = message.params.itemEdition || -1;
+                root.itemType = message.params.itemType || "unknown";
                 refreshBuyUI();
             break;
             default:
