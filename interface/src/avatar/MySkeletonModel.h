@@ -28,6 +28,8 @@ private:
 
     AnimPose _prevHips;  // sensor frame
     bool _prevHipsValid { false };
+    bool _prevIsFlying { false };
+    float _flyIdleTimer { 0.0f };
 
     std::map<int, int> _jointRotationFrameOffsetMap;
 };

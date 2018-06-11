@@ -38,6 +38,11 @@ ResourceManager::ResourceManager(bool atpSupportEnabled) : _atpSupportEnabled(at
     _thread.start();
 }
 
+ResourceManager::~ResourceManager() {
+    _thread.terminate();
+    _thread.wait();
+}
+
 void ResourceManager::setUrlPrefixOverride(const QString& prefix, const QString& replacement) {
     QMutexLocker locker(&_prefixMapLock);
     if (replacement.isEmpty()) {

@@ -250,7 +250,7 @@
         });
     }
 
-    function buyButtonClicked(id, name, author, price, href, referrer, edition) {
+    function buyButtonClicked(id, name, author, price, href, referrer, edition, type) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
             itemId: id,
@@ -259,7 +259,8 @@
             itemHref: href,
             referrer: referrer,
             itemAuthor: author,
-            itemEdition: edition
+            itemEdition: edition,
+            itemType: type.trim()
         }));
     }
 
@@ -328,7 +329,8 @@
                 $(this).closest('.grid-item').find('.item-cost').text(),
                 $(this).attr('data-href'),
                 "mainPage",
-                -1);
+                -1,
+                $(this).closest('.grid-item').find('.item-type').text());
         });
     }
 
@@ -419,6 +421,7 @@
                 }
 
                 var cost = $('.item-cost').text();
+                var type = $('.item-type').text();
                 var isUpdating = window.location.href.indexOf('edition=') > -1;
                 var urlParams = new URLSearchParams(window.location.search);
                 if (isUpdating) {
@@ -438,7 +441,8 @@
                             cost,
                             href,
                             "itemPage",
-                            urlParams.get('edition'));
+                            urlParams.get('edition'),
+                            type);
                         }
                     });
                 maybeAddPurchasesButton();

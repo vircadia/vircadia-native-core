@@ -18,6 +18,7 @@ import Qt.labs.settings 1.0
 import "../styles-uit"
 import "../controls-uit" as HifiControlsUit
 import "../controls" as HifiControls
+import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
 // references HMD, Users, UserActivityLogger from root context
 
@@ -37,13 +38,42 @@ Rectangle {
     property var myData: ({profileUrl: "", displayName: "", userName: "", audioLevel: 0.0, avgAudioLevel: 0.0, admin: true, placeName: "", connection: "", isPresent: true}); // valid dummy until set
     property var ignored: ({}); // Keep a local list of ignored avatars & their data. Necessary because HashMap is slow to respond after ignoring.
     property var nearbyUserModelData: []; // This simple list is essentially a mirror of the nearbyUserModel listModel without all the extra complexities.
-    property var connectionsUserModelData: []; // This simple list is essentially a mirror of the connectionsUserModel listModel without all the extra complexities.
     property bool iAmAdmin: false;
     property var activeTab: "nearbyTab";
     property bool currentlyEditingDisplayName: false
     property bool punctuationMode: false;
 
     HifiConstants { id: hifi; }
+    RootHttpRequest { id: http; }
+    HifiModels.PSFListModel {
+        id: connectionsUserModel;
+        http: http;
+        endpoint: "/api/v1/users?filter=connections";
+        property var sortColumn: connectionsTable.getColumn(connectionsTable.sortIndicatorColumn);
+        sortProperty: switch (sortColumn && sortColumn.role) {
+            case 'placeName':
+                'location';
+                break;
+            case 'connection':
+                'is_friend';
+                break;
+            default:
+                'username';
+        }
+        sortAscending: connectionsTable.sortIndicatorOrder === Qt.AscendingOrder;
+        itemsPerPage: 9;
+        listView: connectionsTable;
+        processPage: function (data) {
+            return data.users.map(function (user) {
+                return {
+                    userName: user.username,
+                    connection: user.connection,
+                    profileUrl: user.images.thumbnail,
+                    placeName: (user.location.root || user.location.domain || {}).name || ''
+                };
+            });
+        };
+    }
 
     // The letterbox used for popup messages
     LetterboxMessage {
@@ -105,16 +135,6 @@ Rectangle {
             }
         });
         return sessionIDs;
-    }
-    function getSelectedConnectionsUserNames() {
-        var userNames = [];
-        connectionsTable.selection.forEach(function (userIndex) {
-            var datum = connectionsUserModelData[userIndex];
-            if (datum) {
-                userNames.push(datum.userName);
-            }
-        });
-        return userNames;
     }
     function refreshNearbyWithFilter() {
         // We should just be able to set settings.filtered to inViewCheckbox.checked, but see #3249, so send to .js for saving.
@@ -232,9 +252,7 @@ Rectangle {
                     anchors.fill: parent;
                     onClicked: {
                         if (activeTab != "connectionsTab") {
-                            connectionsLoading.visible = false;
-                            connectionsLoading.visible = true;
-                            pal.sendToScript({method: 'refreshConnections'});
+                            connectionsUserModel.getFirstPage();
                         }
                         activeTab = "connectionsTab";
                         connectionsHelpText.color = hifi.colors.blueAccent;
@@ -258,11 +276,7 @@ Rectangle {
                             id: reloadConnections;
                             width: reloadConnections.height;
                             glyph: hifi.glyphs.reload;
-                            onClicked: {
-                                connectionsLoading.visible = false;
-                                connectionsLoading.visible = true;
-                                pal.sendToScript({method: 'refreshConnections'});
-                            }
+                            onClicked: connectionsUserModel.getFirstPage('delayRefresh');
                         }
                     }
                     // "CONNECTIONS" text
@@ -472,7 +486,7 @@ Rectangle {
                     visible: !isCheckBox && !isButton && !isAvgAudio;
                     uuid: model ? model.sessionId : "";
                     selected: styleData.selected;
-                    isReplicated: model.isReplicated;
+                    isReplicated: model && model.isReplicated;
                     isAdmin: model && model.admin;
                     isPresent: model && model.isPresent;
                     // Size
@@ -702,7 +716,7 @@ Rectangle {
             anchors.top: parent.top;
             anchors.topMargin: 185;
             anchors.horizontalCenter: parent.horizontalCenter;
-            visible: true;
+            visible: !connectionsUserModel.retrievedAtLeastOnePage;
             onVisibleChanged: {
                 if (visible) {
                     connectionsTimeoutTimer.start();
@@ -747,14 +761,6 @@ Rectangle {
             headerVisible: true;
             sortIndicatorColumn: settings.connectionsSortIndicatorColumn;
             sortIndicatorOrder: settings.connectionsSortIndicatorOrder;
-            onSortIndicatorColumnChanged: {
-                settings.connectionsSortIndicatorColumn = sortIndicatorColumn;
-                sortConnectionsModel();
-            }
-            onSortIndicatorOrderChanged: {
-                settings.connectionsSortIndicatorOrder = sortIndicatorOrder;
-                sortConnectionsModel();
-            }
 
             TableViewColumn {
                 id: connectionsUserNameHeader;
@@ -779,8 +785,14 @@ Rectangle {
                 resizable: false;
             }
 
-            model: ListModel {
-                id: connectionsUserModel;
+            model: connectionsUserModel;
+            Connections {
+                target: connectionsTable.flickableItem;
+                onAtYEndChanged: {
+                    if (connectionsTable.flickableItem.atYEnd && !connectionsTable.flickableItem.atYBeginning) {
+                        connectionsUserModel.getNextPage();
+                    }
+                }
             }
 
             // This Rectangle refers to each Row in the connectionsTable.
@@ -859,12 +871,9 @@ Rectangle {
                     checked: model && (model.connection === "friend");
                     boxSize: 24;
                     onClicked: {
-                        var newValue = model.connection !== "friend";
-                        connectionsUserModel.setProperty(model.userIndex, styleData.role, (newValue ? "friend" : "connection"));
-                        connectionsUserModelData[model.userIndex][styleData.role] = newValue; // Defensive programming
-                        pal.sendToScript({method: newValue ? 'addFriend' : 'removeFriend', params: model.userName});
+                        pal.sendToScript({method: checked ? 'addFriend' : 'removeFriend', params: model.userName});
 
-                        UserActivityLogger["palAction"](newValue ? styleData.role : "un-" + styleData.role, model.sessionId);
+                        UserActivityLogger["palAction"](checked ? styleData.role : "un-" + styleData.role, model.sessionId);
                     }
                 }
             }
@@ -1130,16 +1139,6 @@ Rectangle {
             sortModel();
             reloadNearby.color = 0;
             break;
-        case 'connections':
-            var data = message.params;
-            if (pal.debug) {
-                console.log('Got connection data: ', JSON.stringify(data));
-            }
-            connectionsUserModelData = data;
-            sortConnectionsModel();
-            connectionsLoading.visible = false;
-            connectionsRefreshProblemText.visible = false;
-            break;
         case 'select':
             var sessionIds = message.params[0];
             var selected = message.params[1];
@@ -1239,6 +1238,14 @@ Rectangle {
                 reloadNearby.color = 2;
             }
             break;
+        case 'inspectionCertificate_resetCert':
+            // marketplaces.js sends out a signal to QML with that method when the tablet screen changes and it's not changed to a commerce-related screen.
+            // We want it to only be handled by the InspectionCertificate.qml, but there's not an easy way of doing that.
+            // As a part of a "cleanup inspectionCertificate_resetCert" ticket, we'll have to figure out less logspammy way of doing what has to be done.
+            break;
+        case 'http.response':
+            http.handleHttpResponse(message);
+            break;
         default:
             console.log('Unrecognized message:', JSON.stringify(message));
         }
@@ -1285,45 +1292,6 @@ Rectangle {
         if (newSelectedIndexes.length > 0) {
             nearbyTable.selection.select(newSelectedIndexes);
             nearbyTable.positionViewAtRow(newSelectedIndexes[0], ListView.Beginning);
-        }
-    }
-    function sortConnectionsModel() {
-        var column = connectionsTable.getColumn(connectionsTable.sortIndicatorColumn);
-        var sortProperty = column ? column.role : "userName";
-        var before = (connectionsTable.sortIndicatorOrder === Qt.AscendingOrder) ? -1 : 1;
-        var after = -1 * before;
-        // get selection(s) before sorting
-        var selectedIDs = getSelectedConnectionsUserNames();
-        connectionsUserModelData.sort(function (a, b) {
-            var aValue = a[sortProperty].toString().toLowerCase(), bValue = b[sortProperty].toString().toLowerCase();
-            if (!aValue && !bValue) {
-                return 0;
-            } else if (!aValue) {
-                return after;
-            } else if (!bValue) {
-                return before;
-            }
-            switch (true) {
-            case (aValue < bValue): return before;
-            case (aValue > bValue): return after;
-            default: return 0;
-            }
-        });
-        connectionsTable.selection.clear();
-
-        connectionsUserModel.clear();
-        var userIndex = 0;
-        var newSelectedIndexes = [];
-        connectionsUserModelData.forEach(function (datum) {
-            datum.userIndex = userIndex++;
-            connectionsUserModel.append(datum);
-            if (selectedIDs.indexOf(datum.sessionId) != -1) {
-                 newSelectedIndexes.push(datum.userIndex);
-            }
-        });
-        if (newSelectedIndexes.length > 0) {
-            connectionsTable.selection.select(newSelectedIndexes);
-            connectionsTable.positionViewAtRow(newSelectedIndexes[0], ListView.Beginning);
         }
     }
     signal sendToScript(var message);

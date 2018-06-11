@@ -431,6 +431,19 @@ bool TabletProxy::isMessageDialogOpen() {
     return result.toBool();
 }
 
+void TabletProxy::closeDialog() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "closeDialog");
+        return;
+    }
+
+    if (!_qmlTabletRoot) {
+        return;
+    }
+
+    QMetaObject::invokeMethod(_qmlTabletRoot, "closeDialog");
+}
+
 void TabletProxy::emitWebEvent(const QVariant& msg) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "emitWebEvent", Q_ARG(QVariant, msg));

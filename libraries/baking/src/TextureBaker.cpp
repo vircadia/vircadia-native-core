@@ -157,18 +157,19 @@ void TextureBaker::processTexture() {
         return;
     }
 
-    const char* name = khronos::gl::texture::toString(memKTX->_header.getGLInternaFormat());
-    if (name == nullptr) {
-        handleError("Could not determine internal format for compressed KTX: " + _textureURL.toString());
-        return;
-    }
 
     // attempt to write the baked texture to the destination file path
-    {
+    if (memKTX->_header.isCompressed()) {
+        const char* name = khronos::gl::texture::toString(memKTX->_header.getGLInternaFormat());
+        if (name == nullptr) {
+            handleError("Could not determine internal format for compressed KTX: " + _textureURL.toString());
+            return;
+        }
+
         const char* data = reinterpret_cast<const char*>(memKTX->_storage->data());
         const size_t length = memKTX->_storage->size();
 
-        auto fileName = _baseFilename + BAKED_TEXTURE_BCN_SUFFIX;
+        auto fileName = _baseFilename + "_" + name + ".ktx";
         auto filePath = _outputDirectory.absoluteFilePath(fileName);
         QFile bakedTextureFile { filePath };
         if (!bakedTextureFile.open(QIODevice::WriteOnly) || bakedTextureFile.write(data, length) == -1) {
@@ -177,6 +178,18 @@ void TextureBaker::processTexture() {
         }
         _outputFiles.push_back(filePath);
         meta.availableTextureTypes[memKTX->_header.getGLInternaFormat()] = _metaTexturePathPrefix + fileName;
+    } else {
+        const char* data = reinterpret_cast<const char*>(memKTX->_storage->data());
+        const size_t length = memKTX->_storage->size();
+
+        auto fileName = _baseFilename + ".ktx";
+        auto filePath = _outputDirectory.absoluteFilePath(fileName);
+        QFile ktxTextureFile { filePath };
+        if (!ktxTextureFile.open(QIODevice::WriteOnly) || ktxTextureFile.write(data, length) == -1) {
+            handleError("Could not write ktx texture for " + _textureURL.toString());
+            return;
+        }
+        _outputFiles.push_back(filePath);
     }
 
 
