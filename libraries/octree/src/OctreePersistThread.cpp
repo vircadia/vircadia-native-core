@@ -233,14 +233,11 @@ bool OctreePersistThread::backupCurrentFile() {
 }
 
 void OctreePersistThread::process() {
-    auto startedProcessingAt = std::chrono::steady_clock::now();
-
     _tree->update();
 
     auto now = std::chrono::steady_clock::now();
     auto timeSinceLastPersist = now - _lastPersistCheck;
 
-    qDebug() << "Seconds since last persist: " << std::chrono::duration_cast<std::chrono::seconds>(timeSinceLastPersist).count();
     if (timeSinceLastPersist > _persistInterval) {
         _lastPersistCheck = now;
         persist();
