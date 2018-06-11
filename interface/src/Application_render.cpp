@@ -30,9 +30,6 @@ void Application::editRenderArgs(RenderArgsEditor editor) {
 
 void Application::paintGL() {
     // Some plugins process message events, allowing paintGL to be called reentrantly.
-    if (_aboutToQuit || _window->isMinimized()) {
-        return;
-    }
 
     _renderFrameCount++;
     _lastTimeRendered.start();

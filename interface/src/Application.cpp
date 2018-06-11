@@ -697,8 +697,8 @@ private:
 };
 
 /**jsdoc
- * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property 
- * values are integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or 
+ * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property
+ * values are integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or
  * <code>Controller.Standard</code> items in a {@link RouteObject} mapping (e.g., using the {@link RouteObject#when} method).
  * Each data value is either <code>1.0</code> for "true" or <code>0.0</code> for "false".</p>
  * <table>
@@ -780,7 +780,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
     bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
 
-    // Ignore any previous crashes if running from command line with a test script.  
+    // Ignore any previous crashes if running from command line with a test script.
     bool inTestMode { false };
     for (int i = 0; i < argc; ++i) {
         QString parameter(argv[i]);
@@ -802,15 +802,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         qApp->setProperty(hifi::properties::APP_LOCAL_DATA_PATH, cacheDir);
     }
 
-    // FIXME fix the OSX installer to install the resources.rcc binary instead of resource files and remove
-    // this conditional exclusion
-#if !defined(Q_OS_OSX)
     {
-#if defined(Q_OS_ANDROID)
-        const QString resourcesBinaryFile = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources.rcc";
-#else
-        const QString resourcesBinaryFile = QCoreApplication::applicationDirPath() + "/resources.rcc";
-#endif
+        const QString resourcesBinaryFile = PathUtils::getRccPath();
         if (!QFile::exists(resourcesBinaryFile)) {
             throw std::runtime_error("Unable to find primary resources");
         }
@@ -818,7 +811,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
             throw std::runtime_error("Unable to load primary resources");
         }
     }
-#endif
 
     // Tell the plugin manager about our statically linked plugins
     auto pluginManager = PluginManager::getInstance();
@@ -1116,7 +1108,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qCDebug(interfaceapp) << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
     qCDebug(interfaceapp) << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
     qCDebug(interfaceapp) << "[VERSION] VERSION:" << BuildInfo::VERSION;
-    qCDebug(interfaceapp) << "[VERSION] BUILD_BRANCH:" << BuildInfo::BUILD_BRANCH;
+    qCDebug(interfaceapp) << "[VERSION] BUILD_TYPE_STRING:" << BuildInfo::BUILD_TYPE_STRING;
     qCDebug(interfaceapp) << "[VERSION] BUILD_GLOBAL_SERVICES:" << BuildInfo::BUILD_GLOBAL_SERVICES;
 #if USE_STABLE_GLOBAL_SERVICES
     qCDebug(interfaceapp) << "[VERSION] We will use STABLE global services.";
@@ -1373,11 +1365,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     initializeGL();
     qCDebug(interfaceapp, "Initialized GL");
 
-    // Initialize the display plugin architecture 
+    // Initialize the display plugin architecture
     initializeDisplayPlugins();
     qCDebug(interfaceapp, "Initialized Display");
 
-    // Create the rendering engine.  This can be slow on some machines due to lots of 
+    // Create the rendering engine.  This can be slow on some machines due to lots of
     // GPU pipeline creation.
     initializeRenderEngine();
     qCDebug(interfaceapp, "Initialized Render Engine.");
@@ -1421,7 +1413,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // In practice we shouldn't run across installs that don't have a known installer type.
     // Client or Client+Server installs should always have the installer.ini next to their
     // respective interface.exe, and Steam installs will be detected as such. If a user were
-    // to delete the installer.ini, though, and as an example, we won't know the context of the 
+    // to delete the installer.ini, though, and as an example, we won't know the context of the
     // original install.
     constexpr auto INSTALLER_KEY_TYPE = "type";
     constexpr auto INSTALLER_KEY_CAMPAIGN = "campaign";
@@ -1469,6 +1461,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) },
             { "installer_campaign", installerCampaign },
             { "installer_type", installerType },
+            { "build_type", BuildInfo::BUILD_TYPE_STRING },
             { "previousSessionCrashed", _previousSessionCrashed },
             { "previousSessionRuntime", sessionRunTime.get() },
             { "cpu_architecture", QSysInfo::currentCpuArchitecture() },
@@ -2186,7 +2179,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     if (testProperty.isValid()) {
         auto scriptEngines = DependencyManager::get<ScriptEngines>();
         const auto testScript = property(hifi::properties::TEST).toUrl();
-       
+
         // Set last parameter to exit interface when the test script finishes, if so requested
         scriptEngines->loadScript(testScript, false, false, false, false, quitWhenFinished);
 
@@ -2403,7 +2396,7 @@ void Application::onAboutToQuit() {
         }
     }
 
-    // The active display plugin needs to be loaded before the menu system is active, 
+    // The active display plugin needs to be loaded before the menu system is active,
     // so its persisted explicitly here
     Setting::Handle<QString>{ ACTIVE_DISPLAY_PLUGIN_SETTING_NAME }.set(getActiveDisplayPlugin()->getName());
 
@@ -2638,7 +2631,7 @@ void Application::initializeGL() {
     // Create the GPU backend
 
     // Requires the window context, because that's what's used in the actual rendering
-    // and the GPU backend will make things like the VAO which cannot be shared across 
+    // and the GPU backend will make things like the VAO which cannot be shared across
     // contexts
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
@@ -2661,7 +2654,7 @@ void Application::initializeDisplayPlugins() {
     auto lastActiveDisplayPluginName = activeDisplayPluginSetting.get();
 
     auto defaultDisplayPlugin = displayPlugins.at(0);
-    // Once time initialization code 
+    // Once time initialization code
     DisplayPluginPointer targetDisplayPlugin;
     foreach(auto displayPlugin, displayPlugins) {
         displayPlugin->setContext(_gpuContext);
@@ -2674,7 +2667,7 @@ void Application::initializeDisplayPlugins() {
     }
 
     // The default display plugin needs to be activated first, otherwise the display plugin thread
-    // may be launched by an external plugin, which is bad 
+    // may be launched by an external plugin, which is bad
     setDisplayPlugin(defaultDisplayPlugin);
 
     // Now set the desired plugin if it's not the same as the default plugin
@@ -3674,9 +3667,21 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_1:
-            case Qt::Key_2:
-            case Qt::Key_3:
+            case Qt::Key_1: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::FirstPerson);
+                break;
+            }
+            case Qt::Key_2: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::FullscreenMirror);
+                break;
+            }
+            case Qt::Key_3: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::ThirdPerson);
+                break;
+            }
             case Qt::Key_4:
             case Qt::Key_5:
             case Qt::Key_6:
@@ -4187,7 +4192,7 @@ bool Application::acceptSnapshot(const QString& urlString) {
 static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
 bool Application::shouldPaint() const {
-    if (_aboutToQuit) {
+    if (_aboutToQuit || _window->isMinimized()) {
         return false;
     }
 
@@ -4747,12 +4752,15 @@ void Application::loadSettings() {
     // DONT CHECK IN
     //DependencyManager::get<LODManager>()->setAutomaticLODAdjust(false);
 
-    Menu::getInstance()->loadSettings();
+    auto menu = Menu::getInstance();
+    menu->loadSettings();
+
+    // override the menu option show overlays to always be true on startup
+    menu->setIsOptionChecked(MenuOption::Overlays, true);
 
     // If there is a preferred plugin, we probably messed it up with the menu settings, so fix it.
     auto pluginManager = PluginManager::getInstance();
     auto plugins = pluginManager->getPreferredDisplayPlugins();
-    auto menu = Menu::getInstance();
     if (plugins.size() > 0) {
         for (auto plugin : plugins) {
             if (auto action = menu->getActionForOption(plugin->getName())) {
@@ -5780,7 +5788,7 @@ void Application::update(float deltaTime) {
             viewIsDifferentEnough = true;
         }
 
-        
+
         // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
         static const std::chrono::seconds MIN_PERIOD_BETWEEN_QUERIES { 3 };
         auto now = SteadyClock::now();
@@ -6148,7 +6156,9 @@ void Application::updateWindowTitle() const {
     auto nodeList = DependencyManager::get<NodeList>();
     auto accountManager = DependencyManager::get<AccountManager>();
 
-    QString buildVersion = " (build " + applicationVersion() + ")";
+    QString buildVersion = " - "
+        + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
+        + " " + applicationVersion();
 
     QString loginStatus = accountManager->isLoggedIn() ? "" : " (NOT LOGGED IN)";
 
@@ -7709,7 +7719,7 @@ void Application::sendLambdaEvent(const std::function<void()>& f) {
     } else {
         LambdaEvent event(f);
         QCoreApplication::sendEvent(this, &event);
-    } 
+    }
 }
 
 void Application::initPlugins(const QStringList& arguments) {
@@ -7932,7 +7942,7 @@ void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
     }
 
     // FIXME don't have the application directly set the state of the UI,
-    // instead emit a signal that the display plugin is changing and let 
+    // instead emit a signal that the display plugin is changing and let
     // the desktop lock itself.  Reduces coupling between the UI and display
     // plugins
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -8041,7 +8051,6 @@ void Application::switchDisplayMode() {
             setActiveDisplayPlugin(DESKTOP_DISPLAY_PLUGIN_NAME);
             startHMDStandBySession();
         }
-        emit activeDisplayPluginChanged();
     }
     _previousHMDWornStatus = currentHMDWornStatus;
 }

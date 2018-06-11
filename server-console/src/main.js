@@ -76,10 +76,7 @@ function getBuildInfo() {
 const buildInfo = getBuildInfo();
 
 function getRootHifiDataDirectory() {
-    var organization = "High Fidelity";
-    if (buildInfo.releaseType != "PRODUCTION") {
-        organization += ' - ' + buildInfo.buildIdentifier;
-    }
+    var organization = buildInfo.organization;
     if (osType == 'Windows_NT') {
         return path.resolve(osHomeDir(), 'AppData/Roaming', organization);
     } else if (osType == 'Darwin') {

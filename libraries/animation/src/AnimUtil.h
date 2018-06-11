@@ -33,4 +33,9 @@ inline glm::quat safeLerp(const glm::quat& a, const glm::quat& b, float alpha) {
 
 AnimPose boneLookAt(const glm::vec3& target, const AnimPose& bone);
 
+// This will attempt to determine the proper body facing of a characters body
+// assumes headRot is z-forward and y-up.
+// and returns a bodyRot that is also z-forward and y-up
+glm::quat computeBodyFacingFromHead(const glm::quat& headRot, const glm::vec3& up);
+
 #endif

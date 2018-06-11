@@ -149,6 +149,7 @@ public:
         Builder& withTypeMeta() { _flags.set(TYPE_META); return (*this); }
         Builder& withTransparent() { _flags.set(TRANSLUCENT); return (*this); }
         Builder& withViewSpace() { _flags.set(VIEW_SPACE); return (*this); }
+        Builder& withoutViewSpace() { _flags.reset(VIEW_SPACE); return (*this); }
         Builder& withDynamic() { _flags.set(DYNAMIC); return (*this); }
         Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
         Builder& withInvisible() { _flags.set(INVISIBLE); return (*this); }

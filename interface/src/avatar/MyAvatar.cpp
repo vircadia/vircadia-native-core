@@ -52,6 +52,7 @@
 
 #include "MyHead.h"
 #include "MySkeletonModel.h"
+#include "AnimUtil.h"
 #include "Application.h"
 #include "AvatarManager.h"
 #include "AvatarActionHold.h"
@@ -422,12 +423,12 @@ void MyAvatar::update(float deltaTime) {
     }
 
 #ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
-    glm::vec3 p = transformPoint(getSensorToWorldMatrix(), getControllerPoseInAvatarFrame(controller::Pose::HEAD) *
-                                 glm::vec3(_headControllerFacingMovingAverage.x, 0.0f, _headControllerFacingMovingAverage.y));
-    DebugDraw::getInstance().addMarker("facing-avg", getOrientation(), p, glm::vec4(1.0f));
-    p = transformPoint(getSensorToWorldMatrix(), getHMDSensorPosition() +
-                       glm::vec3(_headControllerFacing.x, 0.0f, _headControllerFacing.y));
-    DebugDraw::getInstance().addMarker("facing", getOrientation(), p, glm::vec4(1.0f));
+    auto sensorHeadPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
+    glm::vec3 worldHeadPos = transformPoint(getSensorToWorldMatrix(), sensorHeadPose.getTranslation());
+    glm::vec3 worldFacingAverage = transformVectorFast(getSensorToWorldMatrix(), glm::vec3(_headControllerFacingMovingAverage.x, 0.0f, _headControllerFacingMovingAverage.y));
+    glm::vec3 worldFacing = transformVectorFast(getSensorToWorldMatrix(), glm::vec3(_headControllerFacing.x, 0.0f, _headControllerFacing.y));
+    DebugDraw::getInstance().drawRay(worldHeadPos, worldHeadPos + worldFacing, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+    DebugDraw::getInstance().drawRay(worldHeadPos, worldHeadPos + worldFacingAverage, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
 #endif
 
     if (_goToPending) {
@@ -654,8 +655,8 @@ void MyAvatar::simulate(float deltaTime) {
                     if (success) {
                         moveOperator.addEntityToMoveList(entity, newCube);
                     }
-                    // send an edit packet to update the entity-server about the queryAABox.  If it's an
-                    // avatar-entity, don't.
+                    // send an edit packet to update the entity-server about the queryAABox
+                    // unless it is client-only
                     if (packetSender && !entity->getClientOnly()) {
                         EntityItemProperties properties = entity->getProperties();
                         properties.setQueryAACubeDirty();
@@ -663,6 +664,17 @@ void MyAvatar::simulate(float deltaTime) {
 
                         packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree, entity->getID(), properties);
                         entity->setLastBroadcast(usecTimestampNow());
+
+                        entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+                            EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
+                            if (!entityDescendant->getClientOnly() && descendant->updateQueryAACube()) {
+                                EntityItemProperties descendantProperties;
+                                descendantProperties.setQueryAACube(descendant->getQueryAACube());
+                                descendantProperties.setLastEdited(now);
+                                packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree, entityDescendant->getID(), descendantProperties);
+                                entityDescendant->setLastBroadcast(now); // for debug/physics status icons
+                            }
+                        });
                     }
                 }
             });
@@ -701,7 +713,8 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     _hmdSensorOrientation = glmExtractRotation(hmdSensorMatrix);
     auto headPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
     if (headPose.isValid()) {
-        _headControllerFacing = getFacingDir2D(headPose.rotation);
+        glm::quat bodyOrientation = computeBodyFacingFromHead(headPose.rotation, Vectors::UNIT_Y);
+        _headControllerFacing = getFacingDir2D(bodyOrientation);
     } else {
         _headControllerFacing = glm::vec2(1.0f, 0.0f);
     }
@@ -1068,6 +1081,22 @@ float loadSetting(Settings& settings, const QString& name, float defaultValue) {
     return value;
 }
 
+void MyAvatar::setToggleHips(bool followHead) {
+    _follow.setToggleHipsFollowing(followHead);
+}
+
+void MyAvatar::FollowHelper::setToggleHipsFollowing(bool followHead) {
+    _toggleHipsFollowing = followHead;
+}
+
+bool MyAvatar::FollowHelper::getToggleHipsFollowing() const {
+    return _toggleHipsFollowing;
+}
+
+void MyAvatar::setEnableDebugDrawBaseOfSupport(bool isEnabled) {
+    _enableDebugDrawBaseOfSupport = isEnabled;
+}
+
 void MyAvatar::setEnableDebugDrawDefaultPose(bool isEnabled) {
     _enableDebugDrawDefaultPose = isEnabled;
 
@@ -1199,6 +1228,8 @@ void MyAvatar::loadData() {
     settings.endGroup();
 
     setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));
+    _follow.setToggleHipsFollowing (Menu::getInstance()->isOptionChecked(MenuOption::ToggleHipsFollowing));
+    setEnableDebugDrawBaseOfSupport(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawBaseOfSupport));
     setEnableDebugDrawDefaultPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawDefaultPose));
     setEnableDebugDrawAnimPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawAnimPose));
     setEnableDebugDrawPosition(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawPosition));
@@ -2808,6 +2839,7 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     auto headPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
     if (headPose.isValid()) {
         headPosition = headPose.translation;
+        // AJT: TODO: can remove this Y_180
         headOrientation = headPose.rotation * Quaternions::Y_180;
     }
     const glm::quat headOrientationYawOnly = cancelOutRollAndPitch(headOrientation);
@@ -2830,6 +2862,8 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     // eyeToNeck offset is relative full HMD orientation.
     // while neckToRoot offset is only relative to HMDs yaw.
     // Y_180 is necessary because rig is z forward and hmdOrientation is -z forward
+
+    // AJT: TODO: can remove this Y_180, if we remove the higher level one.
     glm::vec3 headToNeck = headOrientation * Quaternions::Y_180 * (localNeck - localHead);
     glm::vec3 neckToRoot = headOrientationYawOnly  * Quaternions::Y_180 * -localNeck;
 
@@ -2837,6 +2871,202 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     glm::vec3 bodyPos = headPosition + invSensorToWorldScale * (headToNeck + neckToRoot);
 
     return createMatFromQuatAndPos(headOrientationYawOnly, bodyPos);
+}
+
+// ease in function for dampening cg movement
+static float slope(float num) {
+    const float CURVE_CONSTANT = 1.0f;
+    float ret = 1.0f;
+    if (num > 0.0f) {
+        ret = 1.0f - (1.0f / (1.0f + CURVE_CONSTANT * num));
+    }
+    return ret;
+}
+
+// This function gives a soft clamp at the edge of the base of support
+// dampenCgMovement returns the damped cg value in Avatar space.
+// cgUnderHeadHandsAvatarSpace is also in Avatar space
+// baseOfSupportScale is based on the height of the user
+static glm::vec3 dampenCgMovement(glm::vec3 cgUnderHeadHandsAvatarSpace, float baseOfSupportScale) {
+    float distanceFromCenterZ = cgUnderHeadHandsAvatarSpace.z;
+    float distanceFromCenterX = cgUnderHeadHandsAvatarSpace.x;
+
+    // In the forward direction we need a different scale because forward is in
+    // the direction of the hip extensor joint, which means bending usually happens
+    // well before reaching the edge of the base of support.
+    const float clampFront = DEFAULT_AVATAR_SUPPORT_BASE_FRONT * DEFAULT_AVATAR_FORWARD_DAMPENING_FACTOR * baseOfSupportScale;
+    float clampBack = DEFAULT_AVATAR_SUPPORT_BASE_BACK * DEFAULT_AVATAR_LATERAL_DAMPENING_FACTOR * baseOfSupportScale;
+    float clampLeft = DEFAULT_AVATAR_SUPPORT_BASE_LEFT * DEFAULT_AVATAR_LATERAL_DAMPENING_FACTOR * baseOfSupportScale;
+    float clampRight = DEFAULT_AVATAR_SUPPORT_BASE_RIGHT * DEFAULT_AVATAR_LATERAL_DAMPENING_FACTOR * baseOfSupportScale;
+    glm::vec3 dampedCg(0.0f, 0.0f, 0.0f);
+
+    // find the damped z coord of the cg
+    if (cgUnderHeadHandsAvatarSpace.z < 0.0f) {
+        // forward displacement
+        dampedCg.z = slope(fabs(distanceFromCenterZ / clampFront)) * clampFront;
+    } else {
+        // backwards displacement
+        dampedCg.z = slope(fabs(distanceFromCenterZ / clampBack)) * clampBack;
+    }
+
+    // find the damped x coord of the cg
+    if (cgUnderHeadHandsAvatarSpace.x > 0.0f) {
+        // right of center
+        dampedCg.x = slope(fabs(distanceFromCenterX / clampRight)) * clampRight;
+    } else {
+        // left of center
+        dampedCg.x = slope(fabs(distanceFromCenterX / clampLeft)) * clampLeft;
+    }
+    return dampedCg;
+}
+
+// computeCounterBalance returns the center of gravity in Avatar space
+glm::vec3 MyAvatar::computeCounterBalance() const {
+    struct JointMass {
+        QString name;
+        float weight;
+        glm::vec3 position;
+        JointMass() {};
+        JointMass(QString n, float w, glm::vec3 p) {
+            name = n;
+            weight = w;
+            position = p;
+        }
+    };
+
+    // init the body part weights
+    JointMass cgHeadMass(QString("Head"), DEFAULT_AVATAR_HEAD_MASS, glm::vec3(0.0f, 0.0f, 0.0f));
+    JointMass cgLeftHandMass(QString("LeftHand"), DEFAULT_AVATAR_LEFTHAND_MASS, glm::vec3(0.0f, 0.0f, 0.0f));
+    JointMass cgRightHandMass(QString("RightHand"), DEFAULT_AVATAR_RIGHTHAND_MASS, glm::vec3(0.0f, 0.0f, 0.0f));
+    glm::vec3 tposeHead = DEFAULT_AVATAR_HEAD_POS;
+    glm::vec3 tposeHips = glm::vec3(0.0f, 0.0f, 0.0f);
+
+    if (_skeletonModel->getRig().indexOfJoint(cgHeadMass.name) != -1) {
+        cgHeadMass.position = getAbsoluteJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint(cgHeadMass.name));
+        tposeHead = getAbsoluteDefaultJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint(cgHeadMass.name));
+    }
+    if (_skeletonModel->getRig().indexOfJoint(cgLeftHandMass.name) != -1) {
+        cgLeftHandMass.position = getAbsoluteJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint(cgLeftHandMass.name));
+    } else {
+        cgLeftHandMass.position = DEFAULT_AVATAR_LEFTHAND_POS;
+    }
+    if (_skeletonModel->getRig().indexOfJoint(cgRightHandMass.name) != -1) {
+        cgRightHandMass.position = getAbsoluteJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint(cgRightHandMass.name));
+    } else {
+        cgRightHandMass.position = DEFAULT_AVATAR_RIGHTHAND_POS;
+    }
+    if (_skeletonModel->getRig().indexOfJoint("Hips") != -1) {
+        tposeHips = getAbsoluteDefaultJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint("Hips"));
+    }
+
+    // find the current center of gravity position based on head and hand moments
+    glm::vec3 sumOfMoments = (cgHeadMass.weight * cgHeadMass.position) + (cgLeftHandMass.weight * cgLeftHandMass.position) + (cgRightHandMass.weight * cgRightHandMass.position);
+    float totalMass = cgHeadMass.weight + cgLeftHandMass.weight + cgRightHandMass.weight;
+
+    glm::vec3 currentCg = (1.0f / totalMass) * sumOfMoments;
+    currentCg.y = 0.0f;
+    // dampening the center of gravity, in effect, limits the value to the perimeter of the base of support
+    float baseScale = 1.0f;
+    if (getUserEyeHeight() > 0.0f) {
+        baseScale = getUserEyeHeight() / DEFAULT_AVATAR_EYE_HEIGHT;
+    }
+    glm::vec3 desiredCg = dampenCgMovement(currentCg, baseScale);
+
+    // compute hips position to maintain desiredCg
+    glm::vec3 counterBalancedForHead = (totalMass + DEFAULT_AVATAR_HIPS_MASS) * desiredCg;
+    counterBalancedForHead -= sumOfMoments;
+    glm::vec3 counterBalancedCg = (1.0f / DEFAULT_AVATAR_HIPS_MASS) * counterBalancedForHead;
+
+    // find the height of the hips
+    glm::vec3 xzDiff((cgHeadMass.position.x - counterBalancedCg.x), 0.0f, (cgHeadMass.position.z - counterBalancedCg.z));
+    float headMinusHipXz = glm::length(xzDiff);
+    float headHipDefault = glm::length(tposeHead - tposeHips);
+    float hipHeight = 0.0f;
+    if (headHipDefault > headMinusHipXz) {
+        hipHeight = sqrtf((headHipDefault * headHipDefault) - (headMinusHipXz * headMinusHipXz));
+    }
+    counterBalancedCg.y = (cgHeadMass.position.y - hipHeight);
+
+    // this is to be sure that the feet don't lift off the floor.
+    // add 5 centimeters to allow for going up on the toes.
+    if (counterBalancedCg.y > (tposeHips.y + 0.05f)) {
+        // if the height is higher than default hips, clamp to default hips
+        counterBalancedCg.y = tposeHips.y + 0.05f;
+    }
+    return counterBalancedCg;
+}
+
+// this function matches the hips rotation to the new cghips-head axis
+// headOrientation, headPosition and hipsPosition are in avatar space
+// returns the matrix of the hips in Avatar space
+static glm::mat4 computeNewHipsMatrix(glm::quat headOrientation, glm::vec3 headPosition, glm::vec3 hipsPosition) {
+
+    glm::quat bodyOrientation = computeBodyFacingFromHead(headOrientation, Vectors::UNIT_Y);
+
+    const float MIX_RATIO = 0.3f;
+    glm::quat hipsRot = safeLerp(Quaternions::IDENTITY, bodyOrientation, MIX_RATIO);
+    glm::vec3 hipsFacing = hipsRot * Vectors::UNIT_Z;
+
+    glm::vec3 spineVec = headPosition - hipsPosition;
+    glm::vec3 u, v, w;
+    generateBasisVectors(glm::normalize(spineVec), hipsFacing, u, v, w);
+    return glm::mat4(glm::vec4(w, 0.0f),
+        glm::vec4(u, 0.0f),
+        glm::vec4(v, 0.0f),
+        glm::vec4(hipsPosition, 1.0f));
+}
+
+static void drawBaseOfSupport(float baseOfSupportScale, float footLocal, glm::mat4 avatarToWorld) {
+    // scale the base of support based on user height
+    float clampFront = DEFAULT_AVATAR_SUPPORT_BASE_FRONT * baseOfSupportScale;
+    float clampBack = DEFAULT_AVATAR_SUPPORT_BASE_BACK * baseOfSupportScale;
+    float clampLeft = DEFAULT_AVATAR_SUPPORT_BASE_LEFT * baseOfSupportScale;
+    float clampRight = DEFAULT_AVATAR_SUPPORT_BASE_RIGHT * baseOfSupportScale;
+    float floor = footLocal + 0.05f;
+
+    // transform the base of support corners to world space
+    glm::vec3 frontRight = transformPoint(avatarToWorld, { clampRight, floor, clampFront });
+    glm::vec3 frontLeft = transformPoint(avatarToWorld, { clampLeft, floor, clampFront });
+    glm::vec3 backRight = transformPoint(avatarToWorld, { clampRight, floor, clampBack });
+    glm::vec3 backLeft = transformPoint(avatarToWorld, { clampLeft, floor, clampBack });
+
+    // draw the borders
+    const glm::vec4 rayColor = { 1.0f, 0.0f, 0.0f, 1.0f };
+    DebugDraw::getInstance().drawRay(backLeft, frontLeft, rayColor);
+    DebugDraw::getInstance().drawRay(backLeft, backRight, rayColor);
+    DebugDraw::getInstance().drawRay(backRight, frontRight, rayColor);
+    DebugDraw::getInstance().drawRay(frontLeft, frontRight, rayColor);
+}
+
+// this function finds the hips position using a center of gravity model that
+// balances the head and hands with the hips over the base of support
+// returns the rotation (-z forward) and position of the Avatar in Sensor space
+glm::mat4 MyAvatar::deriveBodyUsingCgModel() const {
+    glm::mat4 sensorToWorldMat = getSensorToWorldMatrix();
+    glm::mat4 worldToSensorMat = glm::inverse(sensorToWorldMat);
+    auto headPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
+
+    glm::mat4 sensorHeadMat = createMatFromQuatAndPos(headPose.rotation * Quaternions::Y_180, headPose.translation);
+
+    // convert into avatar space
+    glm::mat4 avatarToWorldMat = getTransform().getMatrix();
+    glm::mat4 avatarHeadMat = glm::inverse(avatarToWorldMat) * sensorToWorldMat * sensorHeadMat;
+
+    if (_enableDebugDrawBaseOfSupport) {
+        float scaleBaseOfSupport = getUserEyeHeight() / DEFAULT_AVATAR_EYE_HEIGHT;
+        glm::vec3 rightFootPositionLocal = getAbsoluteJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint("RightFoot"));
+        drawBaseOfSupport(scaleBaseOfSupport, rightFootPositionLocal.y, avatarToWorldMat);
+    }
+
+    // get the new center of gravity
+    const glm::vec3 cgHipsPosition = computeCounterBalance();
+
+    // find the new hips rotation using the new head-hips axis as the up axis
+    glm::mat4 avatarHipsMat = computeNewHipsMatrix(glmExtractRotation(avatarHeadMat), extractTranslation(avatarHeadMat), cgHipsPosition);
+
+    // convert hips from avatar to sensor space
+    // The Y_180 is to convert from z forward to -z forward.
+    return worldToSensorMat * avatarToWorldMat * avatarHipsMat;
 }
 
 float MyAvatar::getUserHeight() const {
@@ -3003,9 +3233,7 @@ void MyAvatar::FollowHelper::decrementTimeRemaining(float dt) {
 bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
     const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f); // 30 degrees
     glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
-    
     return glm::dot(-myAvatar.getHeadControllerFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
-    
 }
 
 bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
@@ -3076,11 +3304,19 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
 
     AnimPose followWorldPose(currentWorldMatrix);
 
+    glm::quat currentHipsLocal = myAvatar.getAbsoluteJointRotationInObjectFrame(myAvatar.getJointIndex("Hips"));
+    const glm::quat hipsinWorldSpace = followWorldPose.rot() * (Quaternions::Y_180 * (currentHipsLocal));
+    const glm::vec3 avatarUpWorld = glm::normalize(followWorldPose.rot()*(Vectors::UP));
+    glm::quat resultingSwingInWorld;
+    glm::quat resultingTwistInWorld;
+    swingTwistDecomposition(hipsinWorldSpace, avatarUpWorld, resultingSwingInWorld, resultingTwistInWorld);
+
     // remove scale present from sensorToWorldMatrix
     followWorldPose.scale() = glm::vec3(1.0f);
 
     if (isActive(Rotation)) {
-        followWorldPose.rot() = glmExtractRotation(desiredWorldMatrix);
+            //use the hmd reading for the hips follow
+            followWorldPose.rot() = glmExtractRotation(desiredWorldMatrix);
     }
     if (isActive(Horizontal)) {
         glm::vec3 desiredTranslation = extractTranslation(desiredWorldMatrix);
@@ -3474,6 +3710,10 @@ void MyAvatar::updateHoldActions(const AnimPose& prePhysicsPose, const AnimPose&
             }
         });
     }
+}
+
+bool MyAvatar::isRecenteringHorizontally() const {
+    return _follow.isActive(FollowHelper::Horizontal);
 }
 
 const MyHead* MyAvatar::getMyHead() const {

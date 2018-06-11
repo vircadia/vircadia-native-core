@@ -32,32 +32,7 @@
 
 namespace render {
     template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay) {
-        auto builder = ItemKey::Builder().withTypeShape();
-        if (overlay->is3D()) {
-            auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
-            if (overlay3D->getDrawInFront()) {
-                builder.withLayer(render::hifi::LAYER_3D_FRONT);
-            } else if (overlay3D->getDrawHUDLayer()) {
-                builder.withLayer(render::hifi::LAYER_3D_HUD);
-            }
-
-            if (overlay->isTransparent()) {
-                builder.withTransparent();
-            }
-        } else {
-            builder.withViewSpace();
-            builder.withLayer(render::hifi::LAYER_2D);
-        }
-
-        if (!overlay->getVisible()) {
-            builder.withInvisible();
-        }
-
-        // always visible in primary view.  if isVisibleInSecondaryCamera, also draw in secondary view
-        render::hifi::Tag viewTagBits = overlay->getIsVisibleInSecondaryCamera() ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW;
-        builder.withTagBits(viewTagBits);
-
-        return builder.build();
+        return overlay->getKey();
     }
     template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay) {
         return overlay->getBounds();

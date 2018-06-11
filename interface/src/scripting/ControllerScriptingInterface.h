@@ -105,9 +105,6 @@ class ScriptEngine;
  *   <li>{@link Controller.getValue|getValue}</li>
  *   <li>{@link Controller.getAxisValue|getAxisValue}</li>
  *   <li>{@link Controller.getPoseValue|getgetPoseValue}</li>
- *   <li>{@link Controller.getButtonValue|getButtonValue} for a particular device</li>
- *   <li>{@link Controller.getAxisValue(0)|getAxisValue} for a particular device</li>
- *   <li>{@link Controller.getPoseValue(0)|getPoseValue} for a particular device</li>
  *   <li>{@link Controller.getActionValue|getActionValue}</li>
  * </ul>
  *

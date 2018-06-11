@@ -149,7 +149,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _gatekeeper(this),
     _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
-    _httpsManager(NULL),
     _allAssignments(),
     _unfulfilledAssignments(),
     _isUsingDTLS(false),
@@ -177,7 +176,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     qDebug() << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
     qDebug() << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
     qDebug() << "[VERSION] VERSION:" << BuildInfo::VERSION;
-    qDebug() << "[VERSION] BUILD_BRANCH:" << BuildInfo::BUILD_BRANCH;
+    qDebug() << "[VERSION] BUILD_TYPE_STRING:" << BuildInfo::BUILD_TYPE_STRING;
     qDebug() << "[VERSION] BUILD_GLOBAL_SERVICES:" << BuildInfo::BUILD_GLOBAL_SERVICES;
     qDebug() << "[VERSION] We will be using this name to find ICE servers:" << _iceServerAddr;
 
@@ -385,6 +384,8 @@ DomainServer::~DomainServer() {
         _contentManager->terminate();
     }
 
+    DependencyManager::destroy<AccountManager>();
+
     // cleanup the AssetClient thread
     DependencyManager::destroy<AssetClient>();
     _assetClientThread.quit();
@@ -439,7 +440,7 @@ bool DomainServer::optionallyReadX509KeyAndCertificate() {
         QSslCertificate sslCertificate(&certFile);
         QSslKey privateKey(&keyFile, QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey, keyPassphraseString.toUtf8());
 
-        _httpsManager = new HTTPSManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTPS_PORT, sslCertificate, privateKey, QString(), this, this);
+        _httpsManager.reset(new HTTPSManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTPS_PORT, sslCertificate, privateKey, QString(), this));
 
         qDebug() << "TCP server listening for HTTPS connections on" << DOMAIN_SERVER_HTTPS_PORT;
 
@@ -1121,7 +1122,7 @@ void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
 }
 
 void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr &senderSockAddr) {
-    const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID + 
+    const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID +
         NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID + 4;
 
     // setup the extended header for the domain list packets
@@ -2683,7 +2684,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
                     QString settingsPassword = settingsPasswordVariant.isValid() ? settingsPasswordVariant.toString() : "";
                     QString hexHeaderPassword = headerPassword.isEmpty() ?
                         "" : QCryptographicHash::hash(headerPassword.toUtf8(), QCryptographicHash::Sha256).toHex();
-                        
+
                     if (settingsUsername == headerUsername && hexHeaderPassword == settingsPassword) {
                         return true;
                     }

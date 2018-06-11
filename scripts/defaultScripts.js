@@ -32,7 +32,7 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/emote.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
-    "system/controllers/controllerScripts.js"
+    "system/controllers/controllerScripts.js",
     //"system/chat.js"
 ];
 
@@ -57,7 +57,6 @@ if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_I
         menuItemName: MENU_ITEM,
         isCheckable: true,
         isChecked: previousSetting,
-        grouping: "Advanced"
     });
 }
 

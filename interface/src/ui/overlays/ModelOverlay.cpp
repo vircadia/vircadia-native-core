@@ -115,6 +115,10 @@ void ModelOverlay::update(float deltatime) {
         _drawInHUDDirty = false;
         _model->setLayeredInHUD(getDrawHUDLayer(), scene);
     }
+    if (_groupCulledDirty) {
+        _groupCulledDirty = false;
+        _model->setGroupCulled(_isGroupCulled);
+    }
     scene->enqueueTransaction(transaction);
 
     if (!_texturesLoaded && _model->getGeometry() && _model->getGeometry()->areTexturesLoaded()) {
@@ -149,13 +153,24 @@ void ModelOverlay::setVisible(bool visible) {
 }
 
 void ModelOverlay::setDrawInFront(bool drawInFront) {
-    Base3DOverlay::setDrawInFront(drawInFront);
-    _drawInFrontDirty = true;
+    if (drawInFront != getDrawInFront()) {
+        Base3DOverlay::setDrawInFront(drawInFront);
+        _drawInFrontDirty = true;
+    }
 }
 
 void ModelOverlay::setDrawHUDLayer(bool drawHUDLayer) {
-    Base3DOverlay::setDrawHUDLayer(drawHUDLayer);
-    _drawInHUDDirty = true;
+    if (drawHUDLayer != getDrawHUDLayer()) {
+        Base3DOverlay::setDrawHUDLayer(drawHUDLayer);
+        _drawInHUDDirty = true;
+    }
+}
+
+void ModelOverlay::setGroupCulled(bool groupCulled) {
+    if (groupCulled != _isGroupCulled) {
+        _isGroupCulled = groupCulled;
+        _groupCulledDirty = true;
+    }
 }
 
 void ModelOverlay::setProperties(const QVariantMap& properties) {
@@ -208,6 +223,11 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         QVariantMap textureMap = texturesValue.toMap();
         QMetaObject::invokeMethod(_model.get(), "setTextures", Qt::AutoConnection,
                                   Q_ARG(const QVariantMap&, textureMap));
+    }
+
+    auto groupCulledValue = properties["isGroupCulled"];
+    if (groupCulledValue.isValid() && groupCulledValue.canConvert(QVariant::Bool)) {
+        setGroupCulled(groupCulledValue.toBool());
     }
 
     // jointNames is read-only.
@@ -347,6 +367,8 @@ vectorType ModelOverlay::mapJoints(mapFunction<itemType> function) const {
  *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
+ * @property {boolean} isGroupCulled=false - If <code>true</code>, the mesh parts of the model are LOD culled as a group.
+ *     If <code>false</code>, separate mesh parts will be LOD culled individually.
  * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
@@ -710,4 +732,12 @@ scriptable::ScriptableModelBase ModelOverlay::getScriptableModel() {
         result.appendMaterials(_materials);
     }
     return result;
+}
+
+render::ItemKey ModelOverlay::getKey() {
+    auto builder = render::ItemKey::Builder(Base3DOverlay::getKey());
+    if (_isGroupCulled) {
+        builder.withMetaCullGroup();
+    }
+    return builder.build();
 }

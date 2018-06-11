@@ -206,7 +206,7 @@ private:
 
     render::ItemKey _itemKey { render::ItemKey::Builder().withTypeMeta() };
 
-    bool _didLastVisualGeometryRequestSucceed { false };
+    bool _didLastVisualGeometryRequestSucceed { true };
 
     void processMaterials();
 };
