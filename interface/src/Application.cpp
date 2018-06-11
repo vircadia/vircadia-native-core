@@ -2607,10 +2607,55 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
-    _glWidget->makeCurrent();
-    glClearColor(0.2f, 0.2f, 0.2f, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
-    _glWidget->swapBuffers();
+    if (!_glWidget->makeCurrent()) {
+        qCWarning(interfaceapp, "Unable to make window context current");
+    }
+
+#if !defined(DISABLE_QML)
+    // Build a shared canvas / context for the Chromium processes
+    {
+        // Disable signed distance field font rendering on ATI/AMD GPUs, due to
+        // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
+        std::string vendor{ (const char*)glGetString(GL_VENDOR) };
+        if ((vendor.find("AMD") != std::string::npos) || (vendor.find("ATI") != std::string::npos)) {
+            qputenv("QTWEBENGINE_CHROMIUM_FLAGS", QByteArray("--disable-distance-field-text"));
+        }
+
+        // Chromium rendering uses some GL functions that prevent nSight from capturing
+        // frames, so we only create the shared context if nsight is NOT active.
+        if (!nsightActive()) {
+            _chromiumShareContext = new OffscreenGLCanvas();
+            _chromiumShareContext->setObjectName("ChromiumShareContext");
+            _chromiumShareContext->create(_glWidget->qglContext());
+            if (!_chromiumShareContext->makeCurrent()) {
+                qCWarning(interfaceapp, "Unable to make chromium shared context current");
+            }
+            qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+            _chromiumShareContext->doneCurrent();
+            // Restore the GL widget context
+            if (!_glWidget->makeCurrent()) {
+                qCWarning(interfaceapp, "Unable to make window context current");
+            }
+        } else {
+            qCWarning(interfaceapp) << "nSight detected, disabling chrome rendering";
+        }
+    }
+#endif
+
+    // Build a shared canvas / context for the QML rendering
+    {
+        _qmlShareContext = new OffscreenGLCanvas();
+        _qmlShareContext->setObjectName("QmlShareContext");
+        _qmlShareContext->create(_glWidget->qglContext());
+        if (!_qmlShareContext->makeCurrent()) {
+            qCWarning(interfaceapp, "Unable to make QML shared context current");
+        }
+        OffscreenQmlSurface::setSharedContext(_qmlShareContext->getContext());
+        _qmlShareContext->doneCurrent();
+        if (!_glWidget->makeCurrent()) {
+            qCWarning(interfaceapp, "Unable to make window context current");
+        }
+    }
 
     // Build an offscreen GL context for the main thread.
     _offscreenContext = new OffscreenGLCanvas();
@@ -2621,6 +2666,11 @@ void Application::initializeGL() {
     }
     _offscreenContext->doneCurrent();
     _offscreenContext->setThreadContext();
+
+    _glWidget->makeCurrent();
+    glClearColor(0.2f, 0.2f, 0.2f, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    _glWidget->swapBuffers();
 
     // Move the GL widget context to the render event handler thread
     _renderEventHandler = new RenderEventHandler(_glWidget->qglContext());
@@ -2744,40 +2794,6 @@ extern void setupPreferences();
 static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, int index, bool active = false);
 
 void Application::initializeUi() {
-    // Build a shared canvas / context for the Chromium processes
-#if !defined(DISABLE_QML)
-    // Chromium rendering uses some GL functions that prevent nSight from capturing
-    // frames, so we only create the shared context if nsight is NOT active.
-    if (!nsightActive()) {
-        _chromiumShareContext = new OffscreenGLCanvas();
-        _chromiumShareContext->setObjectName("ChromiumShareContext");
-        _chromiumShareContext->create(_offscreenContext->getContext());
-        if (!_chromiumShareContext->makeCurrent()) {
-            qCWarning(interfaceapp, "Unable to make chromium shared context current");
-        }
-        qt_gl_set_global_share_context(_chromiumShareContext->getContext());
-        _chromiumShareContext->doneCurrent();
-        // Restore the GL widget context
-        _offscreenContext->makeCurrent();
-    } else {
-        qCWarning(interfaceapp) << "nSIGHT detected, disabling chrome rendering";
-    }
-#endif
-
-    // Build a shared canvas / context for the QML rendering
-    _qmlShareContext = new OffscreenGLCanvas();
-    _qmlShareContext->setObjectName("QmlShareContext");
-    _qmlShareContext->create(_offscreenContext->getContext());
-    if (!_qmlShareContext->makeCurrent()) {
-        qCWarning(interfaceapp, "Unable to make QML shared context current");
-    }
-    OffscreenQmlSurface::setSharedContext(_qmlShareContext->getContext());
-    _qmlShareContext->doneCurrent();
-    // Restore the GL widget context
-    _offscreenContext->makeCurrent();
-    // Make sure all QML surfaces share the main thread GL context
-    OffscreenQmlSurface::setSharedContext(_offscreenContext->getContext());
-
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
     LoginDialog::registerType();
