@@ -1,0 +1,52 @@
+//
+//  ktx.bt
+//  tools/010-templates
+//
+//  Created by Ryan Huffman
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  KTX file template
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+struct Header {
+    char identifier[12];
+    uint32 endianness<format=hex>;
+    uint32 glType;
+    uint32 glTypeSize;
+    uint32 glFormat;
+    uint32 glInternalFormat;
+    uint32 glBaseInternalFormat;
+    uint32 pixelWidth;
+    uint32 pixelHeight;
+    uint32 pixelDepth;
+    uint32 numberOfArrayElements;
+    uint32 numberOfFaces;
+    uint32 numberOfMipmapLevels;
+    uint32 bytesOfKeyValueData;
+};
+
+struct KV {
+    uint32 byteSize;
+    local uint32 keyLength = ReadStringLength(FTell());
+    char key[keyLength];
+    char value[byteSize - keyLength] <format=hex>;
+    char padding[3 - ((byteSize + 3) % 4)];
+};
+
+string kvName(KV& kv) {
+    local string s;
+    SPrintf(s, "KeyValue (%s) ", kv.key);
+    return s;
+}
+
+struct File {
+    Header header;
+    local uint32 endOfKV = FTell() + header.bytesOfKeyValueData;
+    while (FTell() < endOfKV) {
+        KV keyValue <optimize=false, name=kvName>;
+    }
+    char imageData[FileSize() - FTell()];
+} file;

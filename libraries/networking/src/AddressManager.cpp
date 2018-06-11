@@ -157,7 +157,11 @@ void AddressManager::storeCurrentAddress() {
         // be loaded over http(s)
         // url.scheme() == URL_SCHEME_HTTP ||
         // url.scheme() == URL_SCHEME_HTTPS ||
-        currentAddressHandle.set(url);
+        if (isConnected()) {
+            currentAddressHandle.set(url);
+        } else {
+            qCWarning(networking) << "Ignoring attempt to save current address because not connected to domain:" << url;
+        }
     } else {
         qCWarning(networking) << "Ignoring attempt to save current address with an invalid url:" << url;
     }
