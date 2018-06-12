@@ -28,6 +28,7 @@ class ResourceManager: public QObject, public Dependency {
 
 public:
     ResourceManager(bool atpSupportEnabled = true);
+    ~ResourceManager();
 
     void setUrlPrefixOverride(const QString& prefix, const QString& replacement);
     QString normalizeURL(const QString& urlString);

@@ -40,7 +40,6 @@ var HOVER_TEXTURES = {
 var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
 var SELECTED_COLOR = {red: 0xF3, green: 0x91, blue: 0x29};
 var HOVER_COLOR = {red: 0xD0, green: 0xD0, blue: 0xD0}; // almost white for now
-var conserveResources = true;
 
 Script.include("/~/system/libraries/controllers.js");
 
@@ -431,7 +430,7 @@ function addAvatarNode(id) {
         alpha: 0.8,
         color: color(selected, false, 0.0),
         ignoreRayIntersection: false
-    }, selected, !conserveResources);
+    }, selected, true);
 }
 // Each open/refresh will capture a stable set of avatarsOfInterest, within the specified filter.
 var avatarsOfInterest = {};
@@ -496,7 +495,6 @@ function populateNearbyUserList(selectData, oldAudioData) {
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
     getConnectionData(false, location.domainID); // Even admins don't get relationship data in requestUsernameFromID (which is still needed for admin status, which comes from domain).
-    conserveResources = Object.keys(avatarsOfInterest).length > 20;
     sendToQml({ method: 'nearbyUsers', params: data });
     if (selectData) {
         selectData[2] = true;
@@ -719,7 +717,7 @@ function onTabletScreenChanged(type, url) {
         ContextOverlay.enabled = false;
         Users.requestsDomainListData = true;
 
-        audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
+        audioTimer = createAudioInterval(AUDIO_LEVEL_UPDATE_INTERVAL_MS);
 
         tablet.tabletShownChanged.connect(tabletVisibilityChanged);
         Script.update.connect(updateOverlays);
@@ -874,7 +872,6 @@ startup();
 var isWired = false;
 var audioTimer;
 var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
-var AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS = 300;
 function off() {
     if (isWired) {
         Script.update.disconnect(updateOverlays);
