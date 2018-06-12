@@ -387,7 +387,6 @@ function snapshotUploaded(isError, reply) {
             isGif = fileExtensionMatches(imageURL, "gif"),
             ignoreGifSnapshotData = false,
             ignoreStillSnapshotData = false;
-        console.log("ZRF " + JSON.stringify(replyJson));
         storyIDsToMaybeDelete.push(storyID);
         if (isGif) {
             if (mostRecentGifSnapshotFilename !== replyJson.user_story.details.original_image_file_name) {
