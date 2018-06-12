@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityMotionState.h"
+
 #include <glm/gtx/norm.hpp>
 
 #include <EntityItem.h>
@@ -19,7 +21,6 @@
 #include <Profile.h>
 
 #include "BulletUtil.h"
-#include "EntityMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
@@ -447,7 +448,12 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     // this case is prevented by setting _ownershipState to UNOWNABLE in EntityMotionState::ctor
     assert(!(_entity->getClientOnly() && _entity->getOwningAvatarID() != Physics::getSessionUUID()));
 
-    if (_entity->dynamicDataNeedsTransmit() || _entity->queryAACubeNeedsUpdate()) {
+    // shouldSendUpdate() sould NOT be triggering updates to maintain the queryAACube of dynamic entities.
+    // The server is supposed to predict the transform of such moving things.  The client performs a "double prediction"
+    // where it predicts what the the server is doing, and only sends updates whent the entity's true transform
+    // differs significantly.  That is what the remoteSimulationOutOfSync() logic is all about.
+    if (_entity->dynamicDataNeedsTransmit() ||
+            (!_entity->getDynamic() && _entity->queryAACubeNeedsUpdate())) {
         return true;
     }
 
@@ -725,7 +731,9 @@ void EntityMotionState::measureBodyAcceleration() {
         // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
         glm::vec3 velocity = getBodyLinearVelocityGTSigma();
 
-        _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
+        const float MIN_DAMPING_FACTOR = 0.01f;
+        float invDampingAttenuationFactor = 1.0f / glm::max(powf(1.0f - _body->getLinearDamping(), dt), MIN_DAMPING_FACTOR);
+        _measuredAcceleration = (velocity * invDampingAttenuationFactor - _lastVelocity) * invDt;
         _lastVelocity = velocity;
         if (numSubsteps > PHYSICS_ENGINE_MAX_NUM_SUBSTEPS) {
             // we fall in here when _lastMeasureStep is old: the body has just become active

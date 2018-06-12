@@ -39,9 +39,9 @@ namespace VirtualPad {
     const float Manager::BASE_MARGIN_PIXELS = 59.0f;
     const float Manager::STICK_RADIUS_PIXELS = 105.0f;
     const float Manager::JUMP_BTN_TRIMMED_RADIUS_PIXELS = 67.0f;
-    const float Manager::JUMP_BTN_FULL_PIXELS = 134.0f;
-    const float Manager::JUMP_BTN_BOTTOM_MARGIN_PIXELS = 67.0f;
-    const float Manager::JUMP_BTN_LEFT_MARGIN_PIXELS = 547.0f;
+    const float Manager::JUMP_BTN_FULL_PIXELS = 164.0f;
+    const float Manager::JUMP_BTN_BOTTOM_MARGIN_PIXELS = 80.0f;
+    const float Manager::JUMP_BTN_RIGHT_MARGIN_PIXELS = 13.0f;
 
     Manager::Manager() {
 
@@ -82,6 +82,10 @@ namespace VirtualPad {
 
     void Manager::setJumpButtonPosition(glm::vec2 point) {
         _jumpButtonPosition = point;
+    }
+
+    void Manager::requestHapticFeedback(int duration) {
+        emit hapticFeedbackRequested(duration);
     }
 
     Instance* Manager::getLeftVirtualPad() {

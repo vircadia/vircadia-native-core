@@ -277,8 +277,6 @@ namespace AvatarDataPacket {
 
 const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
 
-const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
-
 // See also static AvatarData::defaultFullAvatarModelUrl().
 const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
 
@@ -353,7 +351,7 @@ public:
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
-    // The following properties have JSDoc in MyAvatar.h.
+    // The following properties have JSDoc in MyAvatar.h and ScriptableAvatar.h
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getTargetScale WRITE setTargetScale)
     Q_PROPERTY(float density READ getDensity)
@@ -504,7 +502,7 @@ public:
     float getDomainLimitedScale() const;
 
     /**jsdoc
-     * returns the minimum scale allowed for this avatar in the current domain.
+     * Returns the minimum scale allowed for this avatar in the current domain.
      * This value can change as the user changes avatars or when changing domains.
      * @function MyAvatar.getDomainMinScale
      * @returns {number} minimum scale allowed for this avatar in the current domain.
@@ -512,14 +510,14 @@ public:
     Q_INVOKABLE float getDomainMinScale() const;
 
     /**jsdoc
-     * returns the maximum scale allowed for this avatar in the current domain.
+     * Returns the maximum scale allowed for this avatar in the current domain.
      * This value can change as the user changes avatars or when changing domains.
      * @function MyAvatar.getDomainMaxScale
      * @returns {number} maximum scale allowed for this avatar in the current domain.
      */
     Q_INVOKABLE float getDomainMaxScale() const;
 
-    // returns eye height of avatar in meters, ignoreing avatar scale.
+    // Returns eye height of avatar in meters, ignoring avatar scale.
     // if _targetScale is 1 then this will be identical to getEyeHeight;
     virtual float getUnscaledEyeHeight() const { return DEFAULT_AVATAR_EYE_HEIGHT; }
 
@@ -777,7 +775,7 @@ public:
      * Get the rotations of all joints in the current avatar. Each joint's rotation is relative to its parent joint.
      * @function MyAvatar.getJointRotations
      * @returns {Quat[]} The rotations of all joints relative to each's parent. The values are in the same order as the array 
-     * returned by {@link MyAvatar.getJointNames}.
+     * returned by {@link MyAvatar.getJointNames} or {@link Avatar.getJointNames}.
      * @example <caption>Report the rotations of all your avatar's joints.</caption>
      * print(JSON.stringify(MyAvatar.getJointRotations()));
      */
@@ -798,7 +796,7 @@ public:
      * the rotation of the elbow, the hand inverse kinematics position won't end up in the right place.</p>
      * @function MyAvatar.setJointRotations
      * @param {Quat[]} jointRotations - The rotations for all joints in the avatar. The values are in the same order as the 
-     * array returned by {@link MyAvatar.getJointNames}.
+     * array returned by {@link MyAvatar.getJointNames} or {@link Avatar.getJointNames}.
      * @example <caption>Set your avatar to its default T-pose then rotate its right arm.<br />
      * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/user/pages/06.api-reference/25.myavatar/armpose.png" />
      * </caption>
@@ -854,7 +852,7 @@ public:
 
     /**jsdoc
      * Get the joint index for a named joint. The joint index value is the position of the joint in the array returned by 
-     * {@link MyAvatar.getJointNames}.
+     * {@link MyAvatar.getJointNames} or {@link Avatar.getJointNames}.
      * @function MyAvatar.getJointIndex
      * @param {string} name - The name of the joint.
      * @returns {number} The index of the joint.
@@ -954,7 +952,7 @@ public:
     /**jsdoc
      * Get information about all models currently attached to your avatar.
      * @function MyAvatar.getAttachmentData
-     * @returns {MyAvatar.AttachmentData[]} Information about all models attached to your avatar.
+     * @returns {AttachmentData[]} Information about all models attached to your avatar.
      * @example <caption>Report the URLs of all current attachments.</caption>
      * var attachments = MyAvatar.getaAttachmentData();
      * for (var i = 0; i < attachments.length; i++) {
@@ -965,10 +963,10 @@ public:
 
     /**jsdoc
      * Set all models currently attached to your avatar. For example, if you retrieve attachment data using 
-     * {@link MyAvatar.getAttachmentData}, make changes to it, and then want to update your avatar's attachments per the 
+     * {@link MyAvatar.getAttachmentData} or {@link Avatar.getAttachmentData}, make changes to it, and then want to update your avatar's attachments per the 
      * changed data. You can also remove all attachments by using setting <code>attachmentData</code> to <code>null</code>.
      * @function MyAvatar.setAttachmentData
-     * @param {MyAvatar.AttachmentData[]} attachmentData - The attachment data defining the models to have attached to your avatar. Use 
+     * @param {AttachmentData[]} attachmentData - The attachment data defining the models to have attached to your avatar. Use 
      *     <code>null</code> to remove all attachments.
      * @example <caption>Remove a hat attachment if your avatar is wearing it.</caption>
      * var hatURL = "https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx";
@@ -991,7 +989,7 @@ public:
      * Nor can you use this function to attach an entity (such as a sphere or a box) to your avatar.</p>
      * @function MyAvatar.attach
      * @param {string} modelURL - The URL of the model to attach. Models can be .FBX or .OBJ format.
-     * @param {string} [jointName=""] - The name of the avatar joint (see {@link MyAvatar.getJointNames}) to attach the model 
+     * @param {string} [jointName=""] - The name of the avatar joint (see {@link MyAvatar.getJointNames} or {@link Avatar.getJointNames}) to attach the model 
      *     to.
      * @param {Vec3} [translation=Vec3.ZERO] - The offset to apply to the model relative to the joint position.
      * @param {Quat} [rotation=Quat.IDENTITY] - The rotation to apply to the model relative to the joint orientation.

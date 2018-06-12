@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "AddressManager.h"
-
 #include "LocationScriptingInterface.h"
+
+#include "AddressManager.h"
 
 LocationScriptingInterface* LocationScriptingInterface::getInstance() {
     static LocationScriptingInterface sharedInstance;

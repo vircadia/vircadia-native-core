@@ -9,10 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Application.h"
+#include "OctreeStatsProvider.h"
 
-#include "../octree/OctreePacketProcessor.h"
-#include "ui/OctreeStatsProvider.h"
+#include "Application.h"
+#include "octree/OctreePacketProcessor.h"
 
 OctreeStatsProvider::OctreeStatsProvider(QObject* parent, NodeToOctreeSceneStats* model) :
     QObject(parent),

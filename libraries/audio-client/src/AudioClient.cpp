@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioClient.h"
+
 #include <cstring>
 #include <math.h>
 #include <sys/stat.h>
@@ -49,8 +51,6 @@
 #include "AudioClientLogging.h"
 #include "AudioLogging.h"
 #include "AudioHelpers.h"
-
-#include "AudioClient.h"
 
 const int AudioClient::MIN_BUFFER_FRAMES = 1;
 

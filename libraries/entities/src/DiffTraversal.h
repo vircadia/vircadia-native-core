@@ -12,7 +12,7 @@
 #ifndef hifi_DiffTraversal_h
 #define hifi_DiffTraversal_h
 
-#include <ViewFrustum.h>
+#include <shared/ConicalViewFrustum.h>
 
 #include "EntityTreeElement.h"
 
@@ -24,16 +24,20 @@ public:
     class VisibleElement {
     public:
         EntityTreeElementPointer element;
-        ViewFrustum::intersection intersection { ViewFrustum::OUTSIDE };
     };
 
     // View is a struct with a ViewFrustum and LOD parameters
     class View {
     public:
-        ViewFrustum viewFrustum;
+        bool usesViewFrustums() const;
+        bool isVerySimilar(const View& view) const;
+
+        bool shouldTraverseElement(const EntityTreeElement& element) const;
+        float computePriority(const EntityItemPointer& entity) const;
+
+        ConicalViewFrustums viewFrustums;
         uint64_t startTime { 0 };
         float lodScaleFactor { 1.0f };
-        bool usesViewFrustum { true };
     };
 
     // Waypoint is an bookmark in a "path" of waypoints during a traversal.
@@ -57,15 +61,9 @@ public:
 
     DiffTraversal();
 
-    Type prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, 
-        bool usesViewFrustum);
+    Type prepareNewTraversal(const DiffTraversal::View& view, EntityTreeElementPointer root);
 
-    const ViewFrustum& getCurrentView() const { return _currentView.viewFrustum; }
-    const ViewFrustum& getCompletedView() const { return _completedView.viewFrustum; }
-
-    bool doesCurrentUseViewFrustum() const { return _currentView.usesViewFrustum; }
-    float getCurrentLODScaleFactor() const { return _currentView.lodScaleFactor; }
-    float getCompletedLODScaleFactor() const { return _completedView.lodScaleFactor; }
+    const View& getCurrentView() const { return _currentView; }
 
     uint64_t getStartOfCompletedTraversal() const { return _completedView.startTime; }
     bool finished() const { return _path.empty(); }

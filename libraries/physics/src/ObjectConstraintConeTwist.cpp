@@ -9,12 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ObjectConstraintConeTwist.h"
+
 #include <LogHandler.h>
 
 #include "QVariantGLM.h"
 
 #include "EntityTree.h"
-#include "ObjectConstraintConeTwist.h"
 #include "PhysicsLogging.h"
 
 const uint16_t CONE_TWIST_VERSION_WITH_UNUSED_PAREMETERS = 1;

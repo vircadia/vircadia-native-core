@@ -84,6 +84,14 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
             _textureBaseUrl = url.resolved(QUrl("."));
         }
 
+        auto scripts = FSTReader::getScripts(_url, _mapping);
+        if (scripts.size() > 0) {
+            _mapping.remove(SCRIPT_FIELD);
+            for (auto &scriptPath : scripts) {
+                _mapping.insertMulti(SCRIPT_FIELD, scriptPath);
+            }
+        }
+
         auto animGraphVariant = _mapping.value("animGraphUrl");
 
         if (animGraphVariant.isValid()) {
@@ -210,6 +218,14 @@ void GeometryReader::run() {
                 }
             } else {
                 throw QString("unsupported format");
+            }
+
+            // Add scripts to fbxgeometry
+            if (!_mapping.value(SCRIPT_FIELD).isNull()) {
+                QVariantList scripts = _mapping.values(SCRIPT_FIELD);
+                for (auto &script : scripts) {
+                    fbxGeometry->scripts.push_back(script.toString());
+                }
             }
 
             // Ensure the resource has not been deleted
@@ -521,10 +537,11 @@ QUrl NetworkMaterial::getTextureUrl(const QUrl& baseUrl, const FBXTexture& textu
         // Inlined file: cache under the fbx file to avoid namespace clashes
         // NOTE: We cannot resolve the path because filename may be an absolute path
         assert(texture.filename.size() > 0);
+        auto baseUrlStripped = baseUrl.toDisplayString(QUrl::RemoveFragment | QUrl::RemoveQuery | QUrl::RemoveUserInfo);
         if (texture.filename.at(0) == '/') {
-            return baseUrl.toString() + texture.filename;
+            return baseUrlStripped + texture.filename;
         } else {
-            return baseUrl.toString() + '/' + texture.filename;
+            return baseUrlStripped + '/' + texture.filename;
         }
     }
 }

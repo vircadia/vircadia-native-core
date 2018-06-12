@@ -15,7 +15,7 @@
 var audiobar;
 var audioButton;
 
-var logEnabled = true;
+var logEnabled = false;
 
 function printd(str) {
     if (logEnabled)
@@ -32,20 +32,24 @@ function init() {
         activeIcon: "icons/mic-mute-a.svg",
         text: "",
         bgOpacity: 0.0,
-        activeBgOpacity: 0.0,
-        bgColor: "#FFFFFF"
+        hoverBgOpacity: 0.0,
+        activeHoverBgOpacity: 0.0,
+        activeBgOpacity: 0.0
     });
 
     onMuteToggled();
 
     audioButton.clicked.connect(onMuteClicked);
+    audioButton.entered.connect(onMutePressed);
     Audio.mutedChanged.connect(onMuteToggled);
 }
 
 function onMuteClicked() {
-    printd("On Mute Clicked");
-    //Menu.setIsOptionChecked("Mute Microphone", !Menu.isOptionChecked("Mute Microphone"));
     Audio.muted = !Audio.muted;
+}
+
+function onMutePressed() {
+    Controller.triggerHapticPulseOnDevice(Controller.findDevice("TouchscreenVirtualPad"), 0.1, 40.0, 0);
 }
 
 function onMuteToggled() {
@@ -57,6 +61,7 @@ function onMuteToggled() {
 Script.scriptEnding.connect(function () {
     if(audioButton) {
         audioButton.clicked.disconnect(onMuteClicked);
+        audioButton.entered.disconnect(onMutePressed);
         Audio.mutedChanged.connect(onMuteToggled);
     }
 });

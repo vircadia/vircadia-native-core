@@ -9,8 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "SharedUtil.h"
 #include "SimpleMovingAverage.h"
+
+#include "SharedUtil.h"
 
 SimpleMovingAverage::SimpleMovingAverage(int numSamplesToAverage) :
     _numSamples(0),

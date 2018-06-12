@@ -178,7 +178,7 @@ public:
     void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
-    const gpu::PipelinePointer& getAntialiasingPipeline();
+    const gpu::PipelinePointer& getAntialiasingPipeline(const render::RenderContextPointer& renderContext);
     const gpu::PipelinePointer& getBlendPipeline();
     const gpu::PipelinePointer& getDebugBlendPipeline();
 

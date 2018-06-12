@@ -9,12 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "PacketSender.h"
+
 #include <algorithm>
 #include <math.h>
 #include <stdint.h>
 
 #include "NodeList.h"
-#include "PacketSender.h"
 #include "SharedUtil.h"
 
 const quint64 PacketSender::USECS_PER_SECOND = 1000 * 1000;

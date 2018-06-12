@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AvatarManager.h"
+
 #include <string>
 
 #include <QScriptEngine>
@@ -35,9 +37,9 @@
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
 #include <avatars-renderer/OtherAvatar.h>
+#include <shared/ConicalViewFrustum.h>
 
 #include "Application.h"
-#include "AvatarManager.h"
 #include "InterfaceLogging.h"
 #include "Menu.h"
 #include "MyAvatar.h"
@@ -155,9 +157,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         AvatarSharedPointer _avatar;
     };
 
-    ViewFrustum cameraView;
-    qApp->copyDisplayViewFrustum(cameraView);
-    PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(cameraView,
+
+    const auto& views = qApp->getConicalViews();
+    PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(views,
             AvatarData::_avatarSortCoefficientSize,
             AvatarData::_avatarSortCoefficientCenter,
             AvatarData::_avatarSortCoefficientAge);

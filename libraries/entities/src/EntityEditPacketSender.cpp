@@ -9,16 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityEditPacketSender.h"
+
 #include <assert.h>
+
 #include <QJsonDocument>
+
+#include <AddressManager.h>
 #include <PerfStat.h>
 #include <OctalCode.h>
 #include <udt/PacketHeaders.h>
-#include "EntityEditPacketSender.h"
+
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
-#include <AddressManager.h>
 
 EntityEditPacketSender::EntityEditPacketSender() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();

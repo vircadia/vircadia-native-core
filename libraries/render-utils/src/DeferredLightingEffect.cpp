@@ -738,20 +738,19 @@ void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs
     }
 
     auto previousBatch = args->_batch;
-    gpu::Batch batch;
-    args->_batch = &batch;
-     _gpuTimer->begin(batch);
+    gpu::doInBatch(nullptr, args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+         _gpuTimer->begin(batch);
 
-    setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, haze, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
+        setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, haze, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
     
-    lightsJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lightClusters);
+        lightsJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lightClusters);
 
-    cleanupJob.run(renderContext);
+        cleanupJob.run(renderContext);
 
-    _gpuTimer->end(batch);
-     args->_context->appendFrameBatch(batch);
+        _gpuTimer->end(batch);
+    });
      args->_batch = previousBatch;
-
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
     config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());

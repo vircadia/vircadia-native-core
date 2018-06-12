@@ -15,6 +15,7 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QHash>
 #include <QtCore/QUuid>
+#include <QtCore/QJsonObject>
 
 #include <HifiSockAddr.h>
 #include <NLPacket.h>
@@ -66,8 +67,11 @@ public:
     const QString& getPlaceName() { return _placeName; }
     void setPlaceName(const QString& placeName) { _placeName = placeName; }
 
-    bool wasAssigned() const { return _wasAssigned; };
+    bool wasAssigned() const { return _wasAssigned; }
     void setWasAssigned(bool wasAssigned) { _wasAssigned = wasAssigned; }
+
+    bool hasCheckedIn() const { return _hasCheckedIn; }
+    void setHasCheckedIn(bool hasCheckedIn) { _hasCheckedIn = hasCheckedIn; }
     
 private:
     QJsonObject overrideValuesIfNeeded(const QJsonObject& newStats);
@@ -93,6 +97,8 @@ private:
     QString _placeName;
 
     bool _wasAssigned { false };
+
+    bool _hasCheckedIn { false };
 };
 
 #endif // hifi_DomainServerNodeData_h

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Octree.h"
+
 #include <cstring>
 #include <cstdio>
 #include <cmath>
@@ -43,7 +45,6 @@
 #include <PathUtils.h>
 #include <ViewFrustum.h>
 
-#include "Octree.h"
 #include "OctreeConstants.h"
 #include "OctreeLogging.h"
 #include "OctreeQueryNode.h"
@@ -795,9 +796,10 @@ QString getMarketplaceID(const QString& urlString) {
 }
 
 bool Octree::readFromURL(const QString& urlString) {
-    QString marketplaceID = getMarketplaceID(urlString);
+    QString trimmedUrl = urlString.trimmed();
+    QString marketplaceID = getMarketplaceID(trimmedUrl);
     auto request =
-        std::unique_ptr<ResourceRequest>(DependencyManager::get<ResourceManager>()->createResourceRequest(this, urlString));
+        std::unique_ptr<ResourceRequest>(DependencyManager::get<ResourceManager>()->createResourceRequest(this, trimmedUrl));
 
     if (!request) {
         return false;

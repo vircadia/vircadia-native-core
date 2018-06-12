@@ -12,8 +12,12 @@
 #ifndef hifi_DiscoverabilityManager_h
 #define hifi_DiscoverabilityManager_h
 
+#include <QJsonObject>
+
 #include <DependencyManager.h>
 #include <SettingHandle.h>
+
+class QNetworkReply;
 
 namespace Discoverability {
     enum Mode {

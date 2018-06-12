@@ -9,18 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioDevices.h"
+
 #include <map>
 #include <algorithm>
 
 #include <shared/QtHelpers.h>
 #include <plugins/DisplayPlugin.h>
 
-#include "AudioDevices.h"
-
 #include "Application.h"
 #include "AudioClient.h"
 #include "Audio.h"
-
 #include "UserActivityLogger.h"
 
 using namespace scripting;
@@ -108,11 +107,9 @@ AudioDeviceList::~AudioDeviceList() {
     // store the selected device
     foreach(std::shared_ptr<AudioDevice> adevice, _devices) {
         if (adevice->selectedDesktop) {
-            qDebug() << "Saving Desktop for" << _mode << "name" << adevice->info.deviceName();
             settingDesktop.set(adevice->info.deviceName());
         }
         if (adevice->selectedHMD) {
-            qDebug() << "Saving HMD for" << _mode << "name" << adevice->info.deviceName();
             settingHMD.set(adevice->info.deviceName());
         }
     }
@@ -311,7 +308,6 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
             }
         }
 
-        qDebug() << "adding audio device:" << device.display << device.selectedDesktop << device.selectedHMD << _mode;
         newDevices.push_back(newDevice(device));
     }
 

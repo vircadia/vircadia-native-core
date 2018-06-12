@@ -1,14 +1,48 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="android:style/Theme.NoTitleBar.Fullscreen">
+    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
         <!-- Customize your theme here. -->
-        <!--item name="android:windowFullscreen">true</item-->
-        <!--item name="android:windowNoTitle">true</item-->
-        <!--item name="android:windowActionBar">false</item-->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+    <style name="Theme.AppCompat.Translucent.NoActionBar" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation</item>
+        <item name="android:windowActionBar">false</item>
+    </style>
+    <style name="AppTheme.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
 
-        <!--item name="android:windowContentOverlay">@null</item-->
-        <!--item name="android:background">@color/white_opaque</item-->
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+
+    <!-- Customizing GoTo ActionBar -->
+    <style name="HomeActionBarTitleStyle"
+        parent="@android:style/TextAppearance.Material.Widget.ActionBar.Title">
+        <item name="android:textSize">18dp</item>
+        <item name="android:paddingLeft">0dp</item>
+        <item name="android:fontFamily">@font/raleway_bold</item>
+        <item name="android:layout_marginLeft">0dp</item>
+    </style>
+
+    <style name="TabText">
+        <item name="android:fontFamily">@font/raleway_medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/tabs</item>
+        <item name="android:height">30dp</item>
+        <item name="android:layout_margin">0dp</item>
+        <item name="android:padding">0dp</item>
+    </style>
+
+    <style name="SearchText">
+        <item name="android:fontFamily">@font/raleway_light_italic</item>
+        <item name="android:textSize">19sp</item>
     </style>
 
     <!-- Overriding text size so it's not so big in portrait -->
@@ -21,5 +55,11 @@
         <item name="android:textSize">@dimen/text_size_subtitle_material_toolbar</item>
     </style>
 
+    <style name="HifiEditText" parent="@android:style/Widget.Material.EditText">
+        <item name="android:padding">@dimen/edit_text_padding</item>
+        <item name="android:textColor">@color/editText</item>
+        <item name="android:textColorHint">@color/editTextHint</item>
+        <item name="android:background">@color/white_opaque</item>
+    </style>
 
 </resources>

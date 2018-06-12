@@ -29,7 +29,25 @@
 
 /**jsdoc 
  * The AvatarManager API has properties and methods which manage Avatars within the same domain.
+ *
+ * <p><strong>Note:</strong> This API is also provided to Interface and client entity scripts as the synonym, 
+ * <code>AvatarList</code>. For assignment client scripts, see the separate {@link AvatarList} API.
+ *
  * @namespace AvatarManager
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
+ * @borrows AvatarList.getAvatarIdentifiers as getAvatarIdentifiers
+ * @borrows AvatarList.getAvatarsInRange as getAvatarsInRange
+ * @borrows AvatarList.avatarAddedEvent as avatarAddedEvent
+ * @borrows AvatarList.avatarRemovedEvent as avatarRemovedEvent
+ * @borrows AvatarList.avatarSessionChangedEvent as avatarSessionChangedEvent
+ * @borrows AvatarList.isAvatarInRange as isAvatarInRange
+ * @borrows AvatarList.sessionUUIDChanged as sessionUUIDChanged
+ * @borrows AvatarList.processAvatarDataPacket as processAvatarDataPacket
+ * @borrows AvatarList.processAvatarIdentityPacket as processAvatarIdentityPacket
+ * @borrows AvatarList.processKillAvatar as processKillAvatar
  */
 
 class AvatarManager : public AvatarHashMap {

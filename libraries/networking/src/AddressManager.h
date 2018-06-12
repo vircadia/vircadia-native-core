@@ -32,12 +32,20 @@ const QString GET_PLACE = "/api/v1/places/%1";
 /**jsdoc
  * The location API provides facilities related to your current location in the metaverse.
  *
+ * <h5>Getter/Setter</h5>
+ * <p>You can get and set your current metaverse address by directly reading a string value from and writing a string value to 
+ * the <code>location</code> object. This is an alternative to using the <code>location.href</code> property or this object's
+ * functions.</p>
+ *
  * @namespace location
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-assignment-client
+ *
  * @property {Uuid} domainID - A UUID uniquely identifying the domain you're visiting. Is {@link Uuid|Uuid.NULL} if you're not
  *     connected to the domain or are in a serverless domain.
  *     <em>Read-only.</em>
- * @property {Uuid} domainId - Synonym for <code>domainId</code>. <em>Read-only.</em> <strong>Deprecated:</strong> This property
- *     is deprecated and will soon be removed.
  * @property {string} hostname - The name of the domain for your current metaverse address (e.g., <code>"AvatarIsland"</code>,
  *     <code>localhost</code>, or an IP address). Is blank if you're in a serverless domain.
  *     <em>Read-only.</em>
@@ -68,7 +76,6 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(QString pathname READ currentPath)
     Q_PROPERTY(QString placename READ getPlaceName)
     Q_PROPERTY(QString domainID READ getDomainID)
-    Q_PROPERTY(QString domainId READ getDomainID)
 public:
     using PositionGetter = std::function<glm::vec3()>;
     using OrientationGetter = std::function<glm::quat()>;

@@ -15,9 +15,10 @@
  * Copied and modified from btDiscreteDynamicsWorld.cpp by AndrewMeadows on 2014.11.12.
  * */
 
+#include "ThreadSafeDynamicsWorld.h"
+
 #include <LinearMath/btQuickprof.h>
 
-#include "ThreadSafeDynamicsWorld.h"
 #include "Profile.h"
 
 ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(

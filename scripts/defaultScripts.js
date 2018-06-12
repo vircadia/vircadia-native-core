@@ -19,14 +19,13 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/menu.js",
     "system/bubble.js",
     "system/snapshot.js",
-    "system/help.js",
     "system/pal.js", // "system/mod.js", // older UX, if you prefer
     "system/makeUserConnection.js",
     "system/tablet-goto.js",
     "system/marketplaces/marketplaces.js",
+    "system/notifications.js",
     "system/commerce/wallet.js",
     "system/edit.js",
-    "system/notifications.js",
     "system/dialTone.js",
     "system/firstPersonHMD.js",
     "system/tablet-ui/tabletUI.js",
@@ -58,7 +57,6 @@ if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_I
         menuItemName: MENU_ITEM,
         isCheckable: true,
         isChecked: previousSetting,
-        grouping: "Advanced"
     });
 }
 
