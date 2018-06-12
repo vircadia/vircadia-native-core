@@ -252,6 +252,17 @@ Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeLogin(JNIEnv *en
                               Q_ARG(const QString&, username), Q_ARG(const QString&, password));
 }
 
+JNIEXPORT jboolean JNICALL
+Java_io_highfidelity_hifiinterface_fragment_FriendsFragment_nativeIsLoggedIn(JNIEnv *env, jobject instance) {
+    return AndroidHelper::instance().getAccountManager()->isLoggedIn();
+}
+
+JNIEXPORT jstring JNICALL
+Java_io_highfidelity_hifiinterface_fragment_FriendsFragment_nativeGetAccessToken(JNIEnv *env, jobject instance) {
+    auto accountManager = AndroidHelper::instance().getAccountManager();
+    return env->NewStringUTF(accountManager->getAccountInfo().getAccessToken().token.toLatin1().data());
+}
+
 JNIEXPORT void JNICALL
 Java_io_highfidelity_hifiinterface_SplashActivity_registerLoadCompleteListener(JNIEnv *env,
                                                                                jobject instance) {

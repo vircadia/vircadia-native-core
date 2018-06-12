@@ -29,6 +29,7 @@ import android.widget.TextView;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
+import io.highfidelity.hifiinterface.fragment.FriendsFragment;
 import io.highfidelity.hifiinterface.fragment.HomeFragment;
 import io.highfidelity.hifiinterface.fragment.LoginFragment;
 import io.highfidelity.hifiinterface.fragment.PolicyFragment;
@@ -114,6 +115,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             case "Privacy Policy":
                 loadPrivacyPolicyFragment();
                 break;
+            case "Friends":
+                loadFriendsFragment();
+                break;
             default:
                 Log.e(TAG, "Unknown fragment " + fragment);
         }
@@ -135,6 +139,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Fragment fragment = PolicyFragment.newInstance();
 
         loadFragment(fragment, getString(R.string.privacyPolicy), true);
+    }
+
+    private void loadFriendsFragment() {
+        Fragment fragment = FriendsFragment.newInstance();
+
+        loadFragment(fragment, getString(R.string.friends), true);
     }
 
     private void loadFragment(Fragment fragment, String title, boolean addToBackStack) {
@@ -201,6 +211,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         switch(item.getItemId()) {
             case R.id.action_home:
                 loadHomeFragment();
+                return true;
+            case R.id.action_friends:
+                loadFriendsFragment();
                 return true;
         }
         return false;
