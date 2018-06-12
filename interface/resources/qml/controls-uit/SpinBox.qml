@@ -81,6 +81,7 @@ SpinBox {
     }
 
     valueFromText: function(text, locale) {
+        spinBox.value = 0; // Force valueChanged signal to be emitted so that validator fires.
         return Number.fromLocaleString(locale, text)*factor;
     }
 
