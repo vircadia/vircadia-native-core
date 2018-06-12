@@ -86,7 +86,9 @@ Column {
             tags: tags,
             description: description,
             online_users: data.details.connections || data.details.concurrency || 0,
-            drillDownToPlace: false
+            // Server currently doesn't give isStacked (undefined). Could give bool.
+            drillDownToPlace: (data.isStacked === undefined) ? (data.action !== 'concurrency') : data.isStacked,
+            isStacked: !!data.isStacked
         };
     }
 
@@ -124,6 +126,7 @@ Column {
             onlineUsers: model.online_users;
             storyId: model.metaverseId;
             drillDownToPlace: model.drillDownToPlace;
+            isStacked: model.isStacked;
 
             textPadding: root.textPadding;
             smallMargin: root.smallMargin;
