@@ -1074,15 +1074,11 @@ int Model::getLastFreeJointIndex(int jointIndex) const {
 
 void Model::setTextures(const QVariantMap& textures) {
     if (isLoaded()) {
-        _needsUpdateTextures = true;
+        _pendingTextures.clear();
         _needsFixupInScene = true;
         _renderGeometry->setTextures(textures);
     } else {
-        // FIXME(Huffman): Disconnect previously connected lambdas so we don't set textures multiple
-        // after the geometry has finished loading.
-        connect(&_renderWatcher, &GeometryResourceWatcher::finished, this, [this, textures]() {
-            _renderGeometry->setTextures(textures);
-        });
+        _pendingTextures = textures;
     }
 }
 
@@ -1106,7 +1102,8 @@ void Model::setURL(const QUrl& url) {
     }
 
     _needsReload = true;
-    _needsUpdateTextures = true;
+    // One might be tempted to _pendingTextures.clear(), thinking that a new URL means an old texture doesn't apply.
+    // But sometimes, particularly when first setting the values, the texture might be set first. So let's not clear here.
     _visualGeometryRequestFailed = false;
     _needsFixupInScene = true;
     invalidCalculatedMeshBoxes();
@@ -1123,6 +1120,8 @@ void Model::setURL(const QUrl& url) {
 void Model::loadURLFinished(bool success) {
     if (!success) {
         _visualGeometryRequestFailed = true;
+    } else if (!_pendingTextures.empty()) {
+        setTextures(_pendingTextures);
     }
     emit setURLFinished(success);
 }

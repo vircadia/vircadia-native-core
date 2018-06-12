@@ -131,6 +131,9 @@ void ModelOverlay::update(float deltatime) {
 
     if (!_texturesLoaded && _model->getGeometry() && _model->getGeometry()->areTexturesLoaded()) {
         _texturesLoaded = true;
+        if (!_modelTextures.isEmpty()) {
+            _model->setTextures(_modelTextures);
+        }
         _model->updateRenderItems();
     }
 }
@@ -229,8 +232,7 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
     if (texturesValue.isValid() && texturesValue.canConvert(QVariant::Map)) {
         _texturesLoaded = false;
         QVariantMap textureMap = texturesValue.toMap();
-        QMetaObject::invokeMethod(_model.get(), "setTextures", Qt::AutoConnection,
-                                  Q_ARG(const QVariantMap&, textureMap));
+        _modelTextures = textureMap;
     }
 
     auto groupCulledValue = properties["isGroupCulled"];
