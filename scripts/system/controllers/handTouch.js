@@ -250,7 +250,7 @@
     
     // Debugging info
     var showSphere = false;
-    var showLines = true;
+    var showLines = false;
     
     // This get setup on creation
     var linesCreated = false;
