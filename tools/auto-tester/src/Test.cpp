@@ -63,7 +63,6 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
 
     // Loop over both lists and compare each pair of images
     // Quit loop if user has aborted due to a failed test.
-    const double THRESHOLD { 0.9995 };
     bool success{ true };
     bool keepOn{ true };
     for (int i = 0; keepOn && i < expectedImagesFullFilenames.length(); ++i) {
@@ -71,17 +70,19 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
         QImage resultImage(resultImagesFullFilenames[i]);
         QImage expectedImage(expectedImagesFullFilenames[i]);
 
+        double similarityIndex;  // in [-1.0 .. 1.0], where 1.0 means images are identical
+                                 
+        // similarityIndex is set to -100.0 to indicate images are not the same size
         if (isInteractiveMode && (resultImage.width() != expectedImage.width() || resultImage.height() != expectedImage.height())) {
             QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Images are not the same size");
-            exit(-1);
-        }
-
-        double similarityIndex;  // in [-1.0 .. 1.0], where 1.0 means images are identical
-        try {
-            similarityIndex = imageComparer.compareImages(resultImage, expectedImage);
-        } catch (...) {
-            QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Image not in expected format");
-            exit(-1);
+            similarityIndex = -100.0;
+        } else {
+            try {
+                similarityIndex = imageComparer.compareImages(resultImage, expectedImage);
+            } catch (...) {
+                QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Image not in expected format");
+                exit(-1);
+            }
         }
 
         if (similarityIndex < THRESHOLD) {
@@ -177,19 +178,24 @@ void Test::appendTestResultsToFile(const QString& testResultsFolderPath, TestFai
 }
 
 void Test::startTestsEvaluation(const QString& testFolder) {
-    // Get list of JPEG images in folder, sorted by name
-    QString previousSelection = snapshotDirectory;
-    QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
-    if (!parent.isNull() && parent.right(1) != "/") {
-        parent += "/";
-    }
-    snapshotDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", parent,
-                                                          QFileDialog::ShowDirsOnly);
+    if (testFolder.isNull()) {
+        // Get list of JPEG images in folder, sorted by name
+        QString previousSelection = snapshotDirectory;
+        QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
+        if (!parent.isNull() && parent.right(1) != "/") {
+            parent += "/";
+        }
+        snapshotDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", parent,
+            QFileDialog::ShowDirsOnly);
 
-    // If user cancelled then restore previous selection and return
-    if (snapshotDirectory == "") {
-        snapshotDirectory = previousSelection;
-        return;
+        // If user cancelled then restore previous selection and return
+        if (snapshotDirectory == "") {
+            snapshotDirectory = previousSelection;
+            return;
+        }
+    } else {
+        snapshotDirectory = testFolder;
+        exitWhenComplete = true;
     }
 
     // Quit if test results folder could not be created
@@ -259,6 +265,10 @@ void Test::finishTestsEvaluation(bool isRunningFromCommandline, bool interactive
     }
 
     zipAndDeleteTestResultsFolder();
+
+    if (exitWhenComplete) {
+        exit(0);
+    }
 }
 
 bool Test::isAValidDirectory(const QString& pathname) {
@@ -299,10 +309,7 @@ QString Test::extractPathFromTestsDown(const QString& fullPath) {
 
 void Test::includeTest(QTextStream& textStream, const QString& testPathname) {
     QString partialPath = extractPathFromTestsDown(testPathname);
-    textStream << "Script.include(\""
-               << "https://github.com/" << GIT_HUB_USER << "/hifi_tests/blob/" << GIT_HUB_BRANCH
-               << partialPath + "?raw=true\");"
-               << endl;
+    textStream << "Script.include(repositoryPath + \"" << partialPath + "?raw=true\");" << endl;
 }
 
 // Creates a single script in a user-selected folder.
@@ -401,8 +408,11 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
     textStream << "repository = \"" + GIT_HUB_REPOSITORY + "/\";" << endl;
     textStream << "branch = \"" + GIT_HUB_BRANCH + "/\";" << endl << endl;
 
-    textStream << "var autoTester = Script.require(\"https://github.com/" + GIT_HUB_USER + "/hifi_tests/blob/" 
-        + GIT_HUB_BRANCH + "/tests/utils/autoTester.js?raw=true\");" << endl << endl;
+    // Wait 10 seconds before starting
+    textStream << "Test.wait(10000);" << endl << endl;
+
+    textStream << "var repositoryPath = \"https://github.com/\" + user + repository + \"blob/\" + branch;" << endl;
+    textStream << "var autoTester = Script.require(repositoryPath + \"tests/utils/autoTester.js?raw=true\");" << endl << endl;
 
     textStream << "autoTester.enableRecursive();" << endl;
     textStream << "autoTester.enableAuto();" << endl << endl;
@@ -560,9 +570,7 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
     const QString ws("\\h*");    //white-space character
     const QString functionPerformName(ws + "autoTester" + ws + "\\." + ws + "perform");
     const QString quotedString("\\\".+\\\"");
-    const QString ownPath("Script" + ws + "\\." + ws + "resolvePath" + ws + "\\(" + ws + "\\\"\\.\\\"" + ws + "\\)");
-    const QString functionParameter("function" + ws + "\\(testType" + ws + "\\)");
-    QString regexTestTitle(ws + functionPerformName + "\\(" + quotedString + "\\," + ws + ownPath + "\\," + ws + functionParameter + ws + "{" + ".*");
+    QString regexTestTitle(ws + functionPerformName + "\\(" + quotedString);
     QRegularExpression lineContainingTitle = QRegularExpression(regexTestTitle);
 
 

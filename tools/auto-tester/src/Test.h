@@ -76,6 +76,8 @@ private:
     const QString TEST_RESULTS_FOLDER { "TestResults" };
     const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
 
+    const double THRESHOLD{ 0.999 };
+
     QDir imageDirectory;
 
     MismatchWindow mismatchWindow;
@@ -115,6 +117,8 @@ private:
     //    var pathSeparator = ".";
     const QString ADVANCE_KEY{ "n" };
     const QString PATH_SEPARATOR{ "." };
+
+    bool exitWhenComplete{ false };
 };
 
 #endif // hifi_test_h
