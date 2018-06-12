@@ -58,7 +58,7 @@ util.inherits(UpdateChecker, events.EventEmitter);
 UpdateChecker.prototype = extend(UpdateChecker.prototype, {
     checkForUpdates: function() {
         log.debug("Checking for updates");
-        request(BUILDS_URL, (error, response, body) => {
+        request(this.buildsURL, (error, response, body) => {
             if (error) {
                 log.debug("Error", error);
                 return;
