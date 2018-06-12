@@ -35,6 +35,7 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
         QString thumbnailUrl = dataObject.value("thumbnail_url").toString();
         QString imageUrl = dataObject.value("image_url").toString();
         QString snapshotID = dataObject.value("id").toString();
+        QString originalImageFileName = dataObject.value("original_image_file_name").toString();
         auto addressManager = DependencyManager::get<AddressManager>();
         QString placeName = _inWorldLocation.authority(); // We currently only upload shareable places, in which case this is just host.
         QString currentPath = _inWorldLocation.path();
@@ -48,6 +49,7 @@ void SnapshotUploader::uploadSuccess(QNetworkReply& reply) {
             detailsObject.insert("shareable_url", dataObject.value("shareable_url").toString());
         }
         detailsObject.insert("snapshot_id", snapshotID);
+        detailsObject.insert("original_image_file_name", originalImageFileName);
         QString pickledDetails = QJsonDocument(detailsObject).toJson();
         userStoryObject.insert("details", pickledDetails);
         userStoryObject.insert("thumbnail_url", thumbnailUrl);
