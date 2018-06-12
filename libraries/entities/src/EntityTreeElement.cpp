@@ -33,7 +33,7 @@ EntityTreeElement::~EntityTreeElement() {
 
 OctreeElementPointer EntityTreeElement::createNewElement(unsigned char* octalCode) {
     auto newChild = EntityTreeElementPointer(new EntityTreeElement(octalCode));
-    newChild->setTree(getTree());
+    newChild->setTree(_myTree);
     return newChild;
 }
 
@@ -44,7 +44,7 @@ void EntityTreeElement::init(unsigned char* octalCode) {
 
 OctreeElementPointer EntityTreeElement::addChildAtIndex(int index) {
     OctreeElementPointer newElement = OctreeElement::addChildAtIndex(index);
-    std::static_pointer_cast<EntityTreeElement>(newElement)->setTree(getTree());
+    std::static_pointer_cast<EntityTreeElement>(newElement)->setTree(_myTree);
     return newElement;
 }
 
@@ -475,7 +475,7 @@ bool EntityTreeElement::removeEntityItem(EntityItemPointer entity, bool deletion
 
 int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
             ReadBitstreamToTreeParams& args) {
-    return getTree()->readEntityDataFromBuffer(data, bytesLeftToRead, args);
+    return _myTree->readEntityDataFromBuffer(data, bytesLeftToRead, args);
 }
 
 void EntityTreeElement::addEntityItem(EntityItemPointer entity) {

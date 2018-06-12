@@ -161,8 +161,8 @@ public:
     virtual uint16_t size() const;
     bool hasEntities() const { return size() > 0; }
 
-    void setTree(EntityTreePointer tree) { _myTree = std::weak_ptr<EntityTree>(tree); }
-    EntityTreePointer getTree() const { return _myTree.lock(); }
+    void setTree(EntityTreePointer tree) { _myTree = tree; }
+    EntityTreePointer getTree() const { return _myTree; }
 
     void addEntityItem(EntityItemPointer entity);
 
@@ -234,7 +234,7 @@ public:
 
 protected:
     virtual void init(unsigned char * octalCode) override;
-    std::weak_ptr<EntityTree> _myTree;
+    EntityTreePointer _myTree;
     EntityItems _entityItems;
 };
 
