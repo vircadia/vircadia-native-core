@@ -18,7 +18,7 @@
 #define DEFAULT_ALLOWED_TEXTURE_MEMORY_MB ((size_t)1024)
 #define MAX_RESOURCE_TEXTURES_PER_FRAME 2
 #define NO_BUFFER_WORK_SLEEP_TIME_MS 2
-#define THREADED_TEXTURE_BUFFERING 1
+//#define THREADED_TEXTURE_BUFFERING 1
 
 static const size_t DEFAULT_ALLOWED_TEXTURE_MEMORY = MB_TO_BYTES(DEFAULT_ALLOWED_TEXTURE_MEMORY_MB);
 
@@ -375,6 +375,7 @@ void GLTextureTransferEngineDefault::populateActiveBufferQueue() {
 }
 
 bool GLTextureTransferEngineDefault::processActiveBufferQueue() {
+    PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     ActiveTransferQueue activeBufferQueue;
     {
         Lock lock(_bufferMutex);
