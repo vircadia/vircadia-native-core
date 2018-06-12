@@ -100,24 +100,32 @@ void ModelOverlay::update(float deltatime) {
         processMaterials();
         emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(getID(), NestableType::Overlay, _model);
     }
+    bool metaDirty = false;
     if (_visibleDirty) {
         _visibleDirty = false;
         // don't show overlays in mirrors or spectator-cam unless _isVisibleInSecondaryCamera is true
         uint8_t modelRenderTagMask = (_isVisibleInSecondaryCamera ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW);
         _model->setTagMask(modelRenderTagMask, scene);
         _model->setVisibleInScene(getVisible(), scene);
+        metaDirty = true;
     }
     if (_drawInFrontDirty) {
         _drawInFrontDirty = false;
         _model->setLayeredInFront(getDrawInFront(), scene);
+        metaDirty = true;
     }
     if (_drawInHUDDirty) {
         _drawInHUDDirty = false;
         _model->setLayeredInHUD(getDrawHUDLayer(), scene);
+        metaDirty = true;
     }
     if (_groupCulledDirty) {
         _groupCulledDirty = false;
-        _model->setGroupCulled(_isGroupCulled);
+        _model->setGroupCulled(_isGroupCulled, scene);
+        metaDirty = true;
+    }
+    if (metaDirty) {
+        transaction.updateItem<Overlay>(getRenderItemID(), [](Overlay& data) {});
     }
     scene->enqueueTransaction(transaction);
 

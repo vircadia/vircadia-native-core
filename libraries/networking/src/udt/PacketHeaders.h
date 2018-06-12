@@ -283,6 +283,7 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     UpdatedMannequinDefaultAvatar,
     AvatarJointDefaultPoseFlags,
     FBXReaderNodeReparenting,
+    FixMannequinDefaultAvatarFeet,
     ProceduralFaceMovementFlagsAndBlendshapes
 };
 
