@@ -37,8 +37,8 @@ var shareAfterLogin = false;
 var snapshotToShareAfterLogin = [];
 var METAVERSE_BASE = Account.metaverseServerURL;
 var isLoggedIn;
-var numGifSnapshotUploadsPending = 0;
-var numStillSnapshotUploadsPending = 0;
+var mostRecentGifSnapshotFilename = "";
+var mostRecentStillSnapshotFilename = "";
 
 // It's totally unnecessary to return to C++ to perform many of these requests, such as DELETEing an old story,
 // POSTING a new one, PUTTING a new audience, or GETTING story data. It's far more efficient to do all of that within JS
@@ -62,6 +62,10 @@ function removeFromStoryIDsToMaybeDelete(story_id) {
 
 function fileExtensionMatches(filePath, extension) {
     return filePath.split('.').pop().toLowerCase() === extension;
+}
+
+function getFilenameFromPath(str) {
+    return str.split('\\').pop().split('/').pop();
 }
 
 function onMessage(message) {
@@ -147,9 +151,9 @@ function onMessage(message) {
                         print('Sharing snapshot with audience "for_url":', message.data);
                         Window.shareSnapshot(message.data, Settings.getValue("previousSnapshotHref"));                      
                         if (isGif) {
-                            numGifSnapshotUploadsPending++;
+                            mostRecentGifSnapshotFilename = getFilenameFromPath(message.data);
                         } else {
-                            numStillSnapshotUploadsPending++;
+                            mostRecentStillSnapshotFilename = getFilenameFromPath(message.data);
                         }
                     } else {
                         shareAfterLogin = true;
@@ -383,15 +387,14 @@ function snapshotUploaded(isError, reply) {
             isGif = fileExtensionMatches(imageURL, "gif"),
             ignoreGifSnapshotData = false,
             ignoreStillSnapshotData = false;
+        console.log("ZRF " + JSON.stringify(replyJson));
         storyIDsToMaybeDelete.push(storyID);
         if (isGif) {
-            numGifSnapshotUploadsPending--;
-            if (numGifSnapshotUploadsPending !== 0) {
+            if (mostRecentGifSnapshotFilename !== replyJson.user_story.details.original_image_file_name) {
                 ignoreGifSnapshotData = true;
             }
         } else {
-            numStillSnapshotUploadsPending--;
-            if (numStillSnapshotUploadsPending !== 0) {
+            if (mostRecentStillSnapshotFilename !== replyJson.user_story.details.original_image_file_name) {
                 ignoreStillSnapshotData = true;
             }
         }
@@ -686,9 +689,9 @@ function onUsernameChanged() {
                         Window.shareSnapshot(element.path, element.href);
                         var isGif = fileExtensionMatches(element.path, "gif");
                         if (isGif) {
-                            numGifSnapshotUploadsPending++;
+                            mostRecentGifSnapshotFilename = getFilenameFromPath(element.path);
                         } else {
-                            numStillSnapshotUploadsPending++;
+                            mostRecentStillSnapshotFilename = getFilenameFromPath(element.path);
                         }
                     });
                 }
