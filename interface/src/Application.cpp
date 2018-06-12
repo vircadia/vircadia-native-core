@@ -5446,7 +5446,7 @@ void Application::update(float deltaTime) {
             // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
             // We keep physics disabled until we've received a full scene and everything near the avatar in that
             // scene is ready to compute its collision shape.
-            if (nearbyEntitiesAreReadyForPhysics()) {
+            if (nearbyEntitiesAreReadyForPhysics() && getMyAvatar()->isReadyForPhysics()) {
                 _physicsEnabled = true;
                 getMyAvatar()->updateMotionBehaviorFromMenu();
             }

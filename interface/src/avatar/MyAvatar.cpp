@@ -2430,10 +2430,15 @@ void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettings
     if (_domainMinimumHeight > _domainMaximumHeight) {
         std::swap(_domainMinimumHeight, _domainMaximumHeight);
     }
+
     // Set avatar current scale
     Settings settings;
     settings.beginGroup("Avatar");
     _targetScale = loadSetting(settings, "scale", 1.0f);
+
+    // clamp the desired _targetScale by the domain limits NOW, don't try to gracefully animate.  Because
+    // this might cause our avatar to become embedded in the terrain.
+    _targetScale = getDomainLimitedScale();
 
     qCDebug(interfaceapp) << "This domain requires a minimum avatar scale of " << _domainMinimumHeight
                           << " and a maximum avatar scale of " << _domainMaximumHeight;
@@ -2443,6 +2448,8 @@ void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettings
     setModelScale(_targetScale);
     rebuildCollisionShape();
     settings.endGroup();
+
+    _haveReceivedHeightLimitsFromDomain = true;
 }
 
 void MyAvatar::leaveDomain() {
@@ -2460,6 +2467,7 @@ void MyAvatar::saveAvatarScale() {
 void MyAvatar::clearScaleRestriction() {
     _domainMinimumHeight = MIN_AVATAR_HEIGHT;
     _domainMaximumHeight = MAX_AVATAR_HEIGHT;
+    _haveReceivedHeightLimitsFromDomain = false;
 }
 
 void MyAvatar::goToLocation(const QVariant& propertiesVar) {
@@ -2577,8 +2585,12 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
 
 // If position is not reliably safe from being stuck by physics, answer true and place a candidate better position in betterPositionOut.
 bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& betterPositionOut) {
+
     // We begin with utilities and tests. The Algorithm in four parts is below.
-    auto halfHeight = _characterController.getCapsuleHalfHeight() + _characterController.getCapsuleRadius();
+    // NOTE: we use estimated avatar height here instead of the bullet capsule halfHeight, because
+    // the domain avatar height limiting might not have taken effect yet on the actual bullet shape.
+    auto halfHeight = 0.5f * getHeight();
+
     if (halfHeight == 0) {
         return false; // zero height avatar
     }
@@ -2587,14 +2599,13 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         return false; // no entity tree
     }
     // More utilities.
-    const auto offset = getWorldOrientation() *_characterController.getCapsuleLocalOffset();
-    const auto capsuleCenter = positionIn + offset;
+    const auto capsuleCenter = positionIn;
     const auto up = _worldUpDirection, down = -up;
     glm::vec3 upperIntersection, upperNormal, lowerIntersection, lowerNormal;
     EntityItemID upperId, lowerId;
     QVector<EntityItemID> include{}, ignore{};
     auto mustMove = [&] {  // Place bottom of capsule at the upperIntersection, and check again based on the capsule center.
-        betterPositionOut = upperIntersection + (up * halfHeight) - offset;
+        betterPositionOut = upperIntersection + (up * halfHeight);
         return true;
     };
     auto findIntersection = [&](const glm::vec3& startPointIn, const glm::vec3& directionIn, glm::vec3& intersectionOut, EntityItemID& entityIdOut, glm::vec3& normalOut) {
@@ -2614,7 +2625,7 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         EntityItemID entityID = entityTree->findRayIntersection(startPointIn, directionIn, include, ignore, visibleOnly, collidableOnly, precisionPicking,
             element, distance, face, normalOut, extraInfo, lockType, accurateResult);
         if (entityID.isNull()) {
-             return false;
+            return false;
         }
         intersectionOut = startPointIn + (directionIn * distance);
         entityIdOut = entityID;
@@ -2640,7 +2651,7 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
     // I.e., we are in a clearing between two objects.
     if (isDown(upperNormal) && isUp(lowerNormal)) {
         auto spaceBetween = glm::distance(upperIntersection, lowerIntersection);
-        const float halfHeightFactor = 2.5f; // Until case 5003 is fixed (and maybe after?), we need a fudge factor. Also account for content modelers not being precise.
+        const float halfHeightFactor = 2.25f; // Until case 5003 is fixed (and maybe after?), we need a fudge factor. Also account for content modelers not being precise.
         if (spaceBetween > (halfHeightFactor * halfHeight)) {
             // There is room for us to fit in that clearing. If there wasn't, physics would oscilate us between the objects above and below.
             // We're now going to iterate upwards through successive upperIntersections, testing to see if we're contained within the top surface of some entity.
@@ -3088,6 +3099,10 @@ float MyAvatar::getUserEyeHeight() const {
 
 float MyAvatar::getWalkSpeed() const {
     return _walkSpeed.get() * _walkSpeedScalar;
+}
+
+bool MyAvatar::isReadyForPhysics() const {
+    return qApp->isServerlessMode() || _haveReceivedHeightLimitsFromDomain;
 }
 
 void MyAvatar::setSprintMode(bool sprint) {
