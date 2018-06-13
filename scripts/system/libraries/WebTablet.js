@@ -43,7 +43,7 @@ var LOCAL_NORMAL_BEZEL = Script.resourcesPath() + "images/buttonBezel.png";
 var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button-small-bezel.fbx";
 var HIGH_PRIORITY = 1;
 var LOW_PRIORITY = 0;
-var SUBMESH = 3;
+var SUBMESH = 2;
 
 // returns object with two fields:
 //    * position - position in front of the user
@@ -205,7 +205,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         visible: false,
         materialData: JSON.stringify({
             materials: {
-                albedoMap: LOCAL_BEZEL_HIGHLIGHT
+                emissiveMap: LOCAL_BEZEL_HIGHLIGHT
             }
 
         }),
