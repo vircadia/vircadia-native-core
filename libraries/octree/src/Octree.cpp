@@ -978,9 +978,14 @@ bool Octree::writeToJSONFile(const char* fileName, const OctreeElementPointer& e
     if (persistFile.open(QIODevice::WriteOnly)) {
         if (persistFile.write(jsonDataForFile) != -1) {
             success = persistFile.commit();
+            if (!success) {
+                qCritical() << "Failed to commit to JSON save file:" << persistFile.errorString();
+            }
+        } else {
+            qCritical("Failed to write to JSON file.");
         }
     } else {
-        qCritical("Could not write to JSON description of entities.");
+        qCritical("Failed to open JSON file for writing.");
     }
 
     return success;
