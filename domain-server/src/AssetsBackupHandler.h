@@ -30,7 +30,7 @@ class AssetsBackupHandler : public QObject, public BackupHandlerInterface {
     Q_OBJECT
 
 public:
-    AssetsBackupHandler(const QString& backupDirectory);
+    AssetsBackupHandler(const QString& backupDirectory, bool assetServerEnabled);
 
     std::pair<bool, float> isAvailable(const QString& backupName) override;
     std::pair<bool, float> getRecoveryStatus() override;
@@ -65,6 +65,7 @@ private:
     void updateMappings();
 
     QString _assetsDirectory;
+    bool _assetServerEnabled { false };
 
     QTimer _mappingsRefreshTimer;
     p_high_resolution_clock::time_point _lastMappingsRefresh;
