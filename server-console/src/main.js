@@ -60,7 +60,14 @@ function getBuildInfo() {
         }
     }
 
-    const DEFAULT_BUILD_INFO = { releaseType: "", buildIdentifier: "dev",  appUserModelId: "com.highfidelity.sandbox-dev"};
+    const DEFAULT_BUILD_INFO = {
+        releaseType: "",
+        buildIdentifier: "dev",
+        buildNumber: "0",
+        stableBuild: "0",
+        organization: "High Fidelity - dev",
+        appUserModelId: "com.highfidelity.sandbox-dev"
+    };
     var buildInfo = DEFAULT_BUILD_INFO;
 
     if (buildInfoPath) {
