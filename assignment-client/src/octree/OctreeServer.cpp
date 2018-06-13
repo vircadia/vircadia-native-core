@@ -1207,12 +1207,8 @@ void OctreeServer::beginRunning() {
 
     beforeRun(); // after payload has been processed
 
-    connect(nodeList.data(), SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
-    connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
-
-#ifndef WIN32
-    setvbuf(stdout, nullptr, _IOLBF, 0);
-#endif
+    connect(nodeList.data(), &NodeList::nodeAdded, &OctreeServer::nodeAdded);
+    connect(nodeList.data(), &NodeList::nodeKilled, &OctreeServer::nodeKilled);
 
     nodeList->linkedDataCreateCallback = [this](Node* node) {
         auto queryNodeData = createOctreeQueryNode();
