@@ -96,7 +96,7 @@ macro(SET_PACKAGING_PARAMETERS)
     endif ()
 
     execute_process(
-      COMMAND git log -1 --format=${_GIT_LOG_FORMAT}
+      COMMAND git log -1 --abbrev=7 --format=${_GIT_LOG_FORMAT}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
       OUTPUT_VARIABLE _GIT_LOG_OUTPUT
       ERROR_VARIABLE _GIT_LOG_ERROR

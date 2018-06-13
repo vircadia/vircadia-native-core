@@ -167,11 +167,6 @@ private:
     using RequestQueue = QVector<QPair<QSharedPointer<ReceivedMessage>, SharedNodePointer>>;
     RequestQueue _queuedRequests;
 
-    bool _wasColorTextureCompressionEnabled { false };
-    bool _wasGrayscaleTextureCompressionEnabled { false  };
-    bool _wasNormalTextureCompressionEnabled { false };
-    bool _wasCubeTextureCompressionEnabled { false };
-
     uint64_t _filesizeLimit;
 };
 

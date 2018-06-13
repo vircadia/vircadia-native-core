@@ -26,9 +26,8 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
 
+#include <ApplicationVersion.h>
 #include <DependencyManager.h>
-
-const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
 
 class AutoUpdater : public QObject, public Dependency {
     Q_OBJECT
@@ -43,10 +42,12 @@ public:
     };
     
     void checkForUpdate();
-    const QMap<int, QMap<QString, QString>>& getBuildData() { return _builds; }
-    void performAutoUpdate(int version);
+    const QMap<ApplicationVersion, QMap<QString, QString>>& getBuildData() { return _builds; }
+    void openLatestUpdateURL();
     void setInstallerType(InstallerType type) { _installerType = type;  }
     void setInstallerCampaign(QString campaign) { _installerCampaign = campaign;  }
+
+    const ApplicationVersion& getCurrentVersion() const { return _currentVersion; }
 
 signals:
     void latestVersionDataParsed();
@@ -54,14 +55,16 @@ signals:
     void newVersionIsDownloaded();
 
 private:
-    QMap<int, QMap<QString, QString>> _builds;
+    QMap<ApplicationVersion, QMap<QString, QString>> _builds;
     QString _operatingSystem;
     InstallerType _installerType { InstallerType::FULL };
     QString _installerCampaign { "" };
+
+    ApplicationVersion _currentVersion;
     
     void getLatestVersionData();
-    void downloadUpdateVersion(int version);
-    void appendBuildData(int versionNumber,
+    void downloadUpdateVersion(const QString& version);
+    void appendBuildData(const QString& versionNumber,
                          const QString& downloadURL,
                          const QString& releaseTime,
                          const QString& releaseNotes,

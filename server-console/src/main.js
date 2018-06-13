@@ -777,34 +777,27 @@ function onContentLoaded() {
     // maybeShowSplash();
 
     if (buildInfo.releaseType == 'PRODUCTION' && !argv.noUpdater) {
-        var currentVersion = null;
-        try {
-            currentVersion = parseInt(buildInfo.buildIdentifier);
-        } catch (e) {
-        }
 
-        if (currentVersion !== null) {
-            const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
-            var hasShownUpdateNotification = false;
-            const updateChecker = new updater.UpdateChecker(currentVersion, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
-            updateChecker.on('update-available', function(latestVersion, url) {
-                if (!hasShownUpdateNotification) {
-                    notifier.notify({
-                        icon: notificationIcon,
-                        title: 'An update is available!',
-                        message: 'High Fidelity version ' + latestVersion + ' is available',
-                        wait: true,
-                        appID: buildInfo.appUserModelId,
-                        url: url
-                    });
-                    hasShownUpdateNotification = true;
-                }
-            });
-            notifier.on('click', function(notifierObject, options) {
-                log.debug("Got click", options.url);
-                shell.openExternal(options.url);
-            });
-        }
+        const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
+        var hasShownUpdateNotification = false;
+        const updateChecker = new updater.UpdateChecker(buildInfo, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
+        updateChecker.on('update-available', function(latestVersion, url) {
+            if (!hasShownUpdateNotification) {
+                notifier.notify({
+                    icon: notificationIcon,
+                    title: 'An update is available!',
+                    message: 'High Fidelity version ' + latestVersion + ' is available',
+                    wait: true,
+                    appID: buildInfo.appUserModelId,
+                    url: url
+                });
+                hasShownUpdateNotification = true;
+            }
+        });
+        notifier.on('click', function(notifierObject, options) {
+            log.debug("Got click", options.url);
+            shell.openExternal(options.url);
+        });
     }
 
     deleteOldFiles(logPath, DELETE_LOG_FILES_OLDER_THAN_X_SECONDS, LOG_FILE_REGEX);
