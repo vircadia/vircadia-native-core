@@ -21,19 +21,31 @@ UpdateDialog::UpdateDialog(QQuickItem* parent) :
     OffscreenQmlDialog(parent)
 {
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
-    int currentVersion = QCoreApplication::applicationVersion().toInt();
-    int latestVersion = applicationUpdater.data()->getBuildData().lastKey();
-    _updateAvailableDetails = "v" + QString::number(latestVersion) + " released on "
-        + QString(applicationUpdater.data()->getBuildData()[latestVersion]["releaseTime"]).replace("  ", " ");
+    if (applicationUpdater) {
 
-    _releaseNotes = "";
-    for (int i = latestVersion; i > currentVersion; i--) {
-        if (applicationUpdater.data()->getBuildData().contains(i)) {
-            QString releaseNotes = applicationUpdater.data()->getBuildData()[i]["releaseNotes"];
-            releaseNotes.remove("<br />");
-            releaseNotes.remove(QRegExp("^\n+"));
-            _releaseNotes += "\n" + QString().sprintf("%d", i) + "\n" + releaseNotes + "\n";
+        auto buildData = applicationUpdater.data()->getBuildData();
+        ApplicationVersion latestVersion = buildData.lastKey();
+        _updateAvailableDetails = "v" + latestVersion.versionString + " released on "
+            + QString(buildData[latestVersion]["releaseTime"]).replace("  ", " ");
+
+        _releaseNotes = "";
+
+        auto it = buildData.end();
+        while (it != buildData.begin()) {
+            --it;
+
+            if (applicationUpdater->getCurrentVersion() < it.key()) {
+                // grab the release notes for this later version
+                QString releaseNotes = it.value()["releaseNotes"];
+                releaseNotes.remove("<br />");
+                releaseNotes.remove(QRegExp("^\n+"));
+                _releaseNotes += "\n" + it.key().versionString + "\n" + releaseNotes + "\n";
+            } else {
+                break;
+            }
         }
+
+
     }
 }
 
@@ -47,5 +59,5 @@ const QString& UpdateDialog::releaseNotes() const {
 
 void UpdateDialog::triggerUpgrade() {
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
-    applicationUpdater.data()->performAutoUpdate(applicationUpdater.data()->getBuildData().lastKey());
+    applicationUpdater.data()->openLatestUpdateURL();
 }

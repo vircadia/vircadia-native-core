@@ -163,9 +163,11 @@ void printVoxelCode(unsigned char* voxelCode);
 int numberOfOnes(unsigned char byte);
 bool oneAtBit(unsigned char byte, int bitIndex);
 void setAtBit(unsigned char& byte, int bitIndex);
+bool oneAtBit16(unsigned short word, int bitIndex);
+void setAtBit16(unsigned short& word, int bitIndex);
 void clearAtBit(unsigned char& byte, int bitIndex);
-int  getSemiNibbleAt(unsigned char byte, int bitIndex);
-void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value);
+int  getSemiNibbleAt(unsigned short word, int bitIndex);
+void setSemiNibbleAt(unsigned short& word, int bitIndex, int value);
 
 int getNthBit(unsigned char byte, int ordinal); /// determines the bit placement 0-7 of the ordinal set bit
 

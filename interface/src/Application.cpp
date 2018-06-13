@@ -905,7 +905,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<DiscoverabilityManager>();
     DependencyManager::set<SceneScriptingInterface>();
     DependencyManager::set<OffscreenUi>();
-    DependencyManager::set<AutoUpdater>();
     DependencyManager::set<Midi>();
     DependencyManager::set<PathUtils>();
     DependencyManager::set<InterfaceDynamicFactory>();
@@ -1439,17 +1438,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // add firstRun flag from settings to launch event
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
-    // once the settings have been loaded, check if we need to flip the default for UserActivityLogger
-    auto& userActivityLogger = UserActivityLogger::getInstance();
-    if (!userActivityLogger.isDisabledSettingSet()) {
-        // the user activity logger is opt-out for Interface
-        // but it's defaulted to disabled for other targets
-        // so we need to enable it here if it has never been disabled by the user
-        userActivityLogger.disable(false);
-    }
-
     QString machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
 
+    auto& userActivityLogger = UserActivityLogger::getInstance();
     if (userActivityLogger.isEnabled()) {
         // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
         // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
@@ -1784,10 +1775,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // If launched from Steam, let it handle updates
     const QString HIFI_NO_UPDATER_COMMAND_LINE_KEY = "--no-updater";
     bool noUpdater = arguments().indexOf(HIFI_NO_UPDATER_COMMAND_LINE_KEY) != -1;
-    if (!noUpdater) {
+    bool buildCanUpdate = BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable
+        || BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Master;
+    if (!noUpdater && buildCanUpdate) {
         constexpr auto INSTALLER_TYPE_CLIENT_ONLY = "client_only";
 
-        auto applicationUpdater = DependencyManager::get<AutoUpdater>();
+        auto applicationUpdater = DependencyManager::set<AutoUpdater>();
 
         AutoUpdater::InstallerType type = installerType == INSTALLER_TYPE_CLIENT_ONLY
             ? AutoUpdater::InstallerType::CLIENT_ONLY : AutoUpdater::InstallerType::FULL;
