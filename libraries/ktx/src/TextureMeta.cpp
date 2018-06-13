@@ -33,6 +33,9 @@ bool TextureMeta::deserialize(const QByteArray& data, TextureMeta* meta) {
     if (root.contains("original")) {
         meta->original = root["original"].toString();
     }
+    if (root.contains("uncompressed")) {
+        meta->uncompressed = root["uncompressed"].toString();
+    }
     if (root.contains("compressed")) {
         auto compressed = root["compressed"].toObject();
         for (auto it = compressed.constBegin(); it != compressed.constEnd(); it++) {
@@ -57,6 +60,7 @@ QByteArray TextureMeta::serialize() {
         compressed[name] = kv.second.toString();
     }
     root["original"] = original.toString();
+    root["uncompressed"] = uncompressed.toString();
     root["compressed"] = compressed;
     doc.setObject(root);
 
