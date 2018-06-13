@@ -3985,7 +3985,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
     // hence, we should defocus all of the offscreen UI windows, in order to allow
     // keyboard shortcuts not to be swallowed by them.  In particular, WebEngineViews
     // will consume all keyboard events.
-    offscreenUi->unfocusWindows();
+    //offscreenUi->unfocusWindows();
 
     auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
     QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition);
