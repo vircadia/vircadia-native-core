@@ -905,6 +905,8 @@ Function HandlePostInstallOptions
     ${If} $DesktopServerState == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
       !insertmacro WriteInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ YES
+      ; Set appUserModelId
+      ApplicationID::Set "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "@APP_USER_MODEL_ID@"
     ${Else}
       !insertmacro WriteInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ NO
     ${EndIf}
