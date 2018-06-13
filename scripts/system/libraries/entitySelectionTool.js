@@ -667,9 +667,6 @@ SelectionDisplay = (function() {
                     activeHand = (activeHand === Controller.Standard.RightHand) ?
                         Controller.Standard.LeftHand : Controller.Standard.RightHand;
                 }
-                if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(Reticle.position)) {
-                    return;
-                }
                 that.mousePressEvent({});
             } else if (that.triggered && (value < that.TRIGGER_OFF_VALUE)) {
                 that.triggered = false;
