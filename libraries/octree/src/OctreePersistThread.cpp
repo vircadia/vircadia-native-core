@@ -62,19 +62,6 @@ OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& file
 void OctreePersistThread::start() {
     cleanupOldReplacementBackups();
 
-    QFile tempFile { getTempFilename() };
-    if (tempFile.exists()) {
-        qWarning(octree) << "Found temporary octree file at" << tempFile.fileName();
-        qDebug(octree) << "Attempting to recover from temporary octree file";
-        QFile::remove(_filename);
-        if (tempFile.rename(_filename)) {
-            qDebug(octree) << "Successfully recovered from temporary octree file";
-        } else {
-            qWarning(octree) << "Failed to recover from temporary octree file";
-            tempFile.remove();
-        }
-    }
-
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::OctreeDataFileReply, this, "handleOctreeDataFileReply");
 
@@ -182,7 +169,7 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
 
     _initialLoadComplete = true;
 
-    // Since we just loaded the persistent file, we can consider ourselves as having just persist
+    // Since we just loaded the persistent file, we can consider ourselves as having just persisted
     _lastPersistCheck = std::chrono::steady_clock::now();
 
     if (replacementData.isNull()) {
@@ -305,20 +292,12 @@ void OctreePersistThread::persist() {
 
         _tree->incrementPersistDataVersion();
 
-        QString tempFilename = getTempFilename();
-        qCDebug(octree) << "Saving temporary Octree file to:" << tempFilename;
-        if (_tree->writeToFile(tempFilename.toLocal8Bit().constData(), nullptr, _persistAsFileType)) {
-            QFile tempFile { tempFilename };
+        qCDebug(octree) << "Saving Octree data to:" << _filename;
+        if (_tree->writeToFile(_filename.toLocal8Bit().constData(), nullptr, _persistAsFileType)) {
             _tree->clearDirtyBit(); // tree is clean after saving
-            QFile::remove(_filename);
-            if (tempFile.rename(_filename)) {
-                qCDebug(octree) << "DONE moving temporary Octree file to" << _filename;
-            } else {
-                qCWarning(octree) << "Failed to move temporary Octree file to " << _filename;
-                tempFile.remove();
-            }
+            qCDebug(octree) << "DONE persisting Octree data to" << _filename;
         } else {
-            qCWarning(octree) << "Failed to open temp Octree file at" << tempFilename;
+            qCWarning(octree) << "Failed to persist Octree data to" << _filename;
         }
 
         sendLatestEntityDataToDS();

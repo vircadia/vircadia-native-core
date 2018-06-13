@@ -65,8 +65,6 @@ protected:
     void replaceData(QByteArray data);
     void sendLatestEntityDataToDS();
 
-    QString getTempFilename() const { return _filename + ".temp"; }
-
 private:
     OctreePointer _tree;
     QString _filename;

@@ -30,6 +30,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QFileInfo>
+#include <QSaveFile>
 #include <QString>
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
@@ -972,10 +973,12 @@ bool Octree::writeToJSONFile(const char* fileName, const OctreeElementPointer& e
         return false;
     }
 
-    QFile persistFile(fileName);
+    QSaveFile persistFile(fileName);
     bool success = false;
     if (persistFile.open(QIODevice::WriteOnly)) {
-        success = persistFile.write(jsonDataForFile) != -1;
+        if (persistFile.write(jsonDataForFile) != -1) {
+            success = persistFile.commit();
+        }
     } else {
         qCritical("Could not write to JSON description of entities.");
     }

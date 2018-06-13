@@ -1207,8 +1207,8 @@ void OctreeServer::beginRunning() {
 
     beforeRun(); // after payload has been processed
 
-    connect(nodeList.data(), &NodeList::nodeAdded, &OctreeServer::nodeAdded);
-    connect(nodeList.data(), &NodeList::nodeKilled, &OctreeServer::nodeKilled);
+    connect(nodeList.data(), &NodeList::nodeAdded, this, &OctreeServer::nodeAdded);
+    connect(nodeList.data(), &NodeList::nodeKilled, this, &OctreeServer::nodeKilled);
 
     nodeList->linkedDataCreateCallback = [this](Node* node) {
         auto queryNodeData = createOctreeQueryNode();
