@@ -835,6 +835,7 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
             } else {
                 formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_SRGB;
             }
+            formatMip = formatGPU;
         } else {
 #ifdef USE_GLES
             // GLES does not support GL_BGRA
