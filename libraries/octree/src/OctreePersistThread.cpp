@@ -109,9 +109,12 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
     bool includesNewData;
     message->readPrimitive(&includesNewData);
     QByteArray replacementData;
+    OctreeUtils::RawOctreeData data;
+    bool hasValidOctreeData { false };
     if (includesNewData) {
         replacementData = message->readAll();
         replaceData(replacementData);
+        hasValidOctreeData = data.readOctreeDataInfoFromFile(_filename);
         qDebug() << "Got OctreeDataFileReply, new data sent";
     } else {
         qDebug() << "Got OctreeDataFileReply, current entity data is sufficient";
@@ -119,6 +122,7 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
         OctreeUtils::RawEntityData data;
         qCDebug(octree) << "Reading octree data from" << _filename;
         if (data.readOctreeDataInfoFromFile(_filename)) {
+            hasValidOctreeData = true;
             if (data.id.isNull()) {
                 qCDebug(octree) << "Current octree data has a null id, updating";
                 data.resetIdAndVersion();
@@ -138,8 +142,7 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
     quint64 loadStarted = usecTimestampNow();
     qCDebug(octree) << "loading Octrees from file: " << _filename << "...";
 
-    OctreeUtils::RawOctreeData data;
-    if (data.readOctreeDataInfoFromFile(_filename)) {
+    if (hasValidOctreeData) {
         qDebug() << "Setting entity version info to: " << data.id << data.version;
         _tree->setOctreeVersionInfo(data.id, data.version);
     }
