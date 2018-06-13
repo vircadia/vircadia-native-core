@@ -33,6 +33,7 @@
 #include <TriangleSet.h>
 #include <DualQuaternion.h>
 
+#include "RenderHifi.h"
 #include "GeometryCache.h"
 #include "TextureCache.h"
 #include "Rig.h"
@@ -87,13 +88,27 @@ public:
     const QUrl& getURL() const { return _url; }
 
     // new Scene/Engine rendering support
-    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
+    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene = nullptr);
+    bool isVisible() const;
 
-    bool canCastShadow() const { return _canCastShadow; }
-    void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
+    render::hifi::Tag getTagMask() const;
+    void setTagMask(uint8_t mask, const render::ScenePointer& scene = nullptr);
 
-    void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
-    void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);
+    bool isGroupCulled() const;
+    void setGroupCulled(bool isGroupCulled, const render::ScenePointer& scene = nullptr);
+
+    bool canCastShadow() const;
+    void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene = nullptr);
+
+    void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene = nullptr);
+    void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene = nullptr);
+
+    bool isLayeredInFront() const;
+    bool isLayeredInHUD() const;
+
+    // Access the current RenderItemKey Global Flags used by the model and applied to the render items  representing the parts of the model.
+    const render::ItemKey getRenderItemKeyGlobalFlags() const;
+
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }
@@ -108,13 +123,7 @@ public:
     void removeFromScene(const render::ScenePointer& scene, render::Transaction& transaction);
     bool isRenderable() const;
 
-    bool isVisible() const { return _isVisible; }
-    uint8_t getViewTagBits() const { return _viewTagBits; }
-
-    bool isLayeredInFront() const { return _isLayeredInFront; }
-    bool isLayeredInHUD() const { return _isLayeredInHUD; }
-
-    bool isGroupCulled() const { return _isGroupCulled; }
+    void updateRenderItemsKey(const render::ScenePointer& scene);
 
     virtual void updateRenderItems();
     void setRenderItemsNeedUpdate();
@@ -404,10 +413,6 @@ protected:
     QVector<float> _blendshapeCoefficients;
 
     QUrl _url;
-    bool _isVisible;
-    uint8_t _viewTagBits{ render::ItemKey::TAG_BITS_ALL };
-
-    bool _canCastShadow;
 
     gpu::Buffers _blendedVertexBuffers;
 
@@ -452,7 +457,7 @@ protected:
     bool _needsFixupInScene { true }; // needs to be removed/re-added to scene
     bool _needsReload { true };
     bool _needsUpdateClusterMatrices { true };
-    mutable bool _needsUpdateTextures { true };
+    QVariantMap _pendingTextures { };
 
     friend class ModelMeshPartPayload;
     Rig _rig;
@@ -471,10 +476,16 @@ protected:
     int _renderInfoDrawCalls { 0 };
     int _renderInfoHasTransparent { false };
 
-    bool _isLayeredInFront { false };
-    bool _isLayeredInHUD { false };
-
-    bool _isGroupCulled{ false };
+    // This Render ItemKey Global Flags capture the Model wide global set of flags that should be communicated to all the render items representing the Model.
+    // The flags concerned are:
+    //  - isVisible: if true the Model is visible globally in the scene, regardless of the other flags in the item keys (tags or layer or shadow caster).
+    //  - TagBits: the view mask defined through the TagBits telling in which view the Model is rendered if visible.
+    //  - Layer: In which Layer this Model lives.
+    //  - CastShadow: if true and visible and rendered in the view, the Model cast shadows if in a Light volume casting shadows.
+    //  - CullGroup: if true, the render items representing the parts of the Model are culled by a single Meta render item that knows about them, they are not culled individually.
+    //               For this to work, a Meta RI must exists and knows about the RIs of this Model.
+    //  
+    render::ItemKey _renderItemKeyGlobalFlags;
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 

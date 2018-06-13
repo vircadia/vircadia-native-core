@@ -71,8 +71,8 @@ void PhysicsEngine::init() {
     }
 }
 
-uint32_t PhysicsEngine::getNumSubsteps() {
-    return _numSubsteps;
+uint32_t PhysicsEngine::getNumSubsteps() const {
+    return _dynamicsWorld->getNumSubsteps();
 }
 
 // private
@@ -105,6 +105,10 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
         }
         case MOTION_TYPE_DYNAMIC: {
             mass = motionState->getMass();
+            if (mass != mass || mass < 1.0f) {
+                qCDebug(physics) << "mass is too low, setting to 1.0 Kg --" << mass;
+                mass = 1.0f;
+            }
             btCollisionShape* shape = const_cast<btCollisionShape*>(motionState->getShape());
             assert(shape);
             shape->calculateLocalInertia(mass, inertia);
@@ -148,7 +152,7 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     body->setFlags(BT_DISABLE_WORLD_GRAVITY);
     motionState->updateBodyMaterialProperties();
 
-    int16_t group, mask;
+    int32_t group, mask;
     motionState->computeCollisionGroupAndMask(group, mask);
     _dynamicsWorld->addRigidBody(body, group, mask);
 
@@ -329,13 +333,9 @@ void PhysicsEngine::stepSimulation() {
                                                                         PHYSICS_ENGINE_FIXED_SUBSTEP, onSubStep);
     if (numSubsteps > 0) {
         BT_PROFILE("postSimulation");
-        _numSubsteps += (uint32_t)numSubsteps;
-        ObjectMotionState::setWorldSimulationStep(_numSubsteps);
-
         if (_myAvatarController) {
             _myAvatarController->postSimulation();
         }
-
         _hasOutgoingChanges = true;
     }
 

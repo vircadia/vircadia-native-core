@@ -195,7 +195,7 @@ class DebugLightClustersConfig : public render::Job::Config {
     Q_PROPERTY(bool doDrawClusterFromDepth MEMBER doDrawClusterFromDepth NOTIFY dirty)
     Q_PROPERTY(bool doDrawContent MEMBER doDrawContent NOTIFY dirty)
 public:
-    DebugLightClustersConfig() : render::Job::Config(true){}
+    DebugLightClustersConfig() : render::Job::Config(false){}
 
 
     bool doDrawGrid{ false };

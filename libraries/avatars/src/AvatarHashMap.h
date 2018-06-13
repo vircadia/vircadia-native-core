@@ -46,7 +46,7 @@ class AvatarHashMap : public QObject, public Dependency {
 public:
     AvatarHash getHashCopy() { QReadLocker lock(&_hashLock); return _avatarHash; }
     const AvatarHash getHashCopy() const { QReadLocker lock(&_hashLock); return _avatarHash; }
-    int size() { return _avatarHash.size(); }
+    int size() { QReadLocker lock(&_hashLock); return _avatarHash.size(); }
 
     // Currently, your own avatar will be included as the null avatar id.
     
@@ -152,8 +152,6 @@ protected:
     virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason);
 
     AvatarHash _avatarHash;
-    // "Case-based safety": Most access to the _avatarHash is on the same thread. Write access is protected by a write-lock.
-    // If you read from a different thread, you must read-lock the _hashLock. (Scripted write access is not supported).
     mutable QReadWriteLock _hashLock;
 
 private:

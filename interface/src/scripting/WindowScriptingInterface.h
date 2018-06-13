@@ -318,7 +318,6 @@ public slots:
      * {@link Window.stillSnapshotTaken|stillSnapshotTaken} is emitted; when a still image plus moving images are captured, 
      * {@link Window.processingGifStarted|processingGifStarted} and {@link Window.processingGifCompleted|processingGifCompleted}
      * are emitted. The path to store the snapshots and the length of the animated GIF to capture are specified in Settings >
-     * NOTE:  to provide a non-default value - all previous parameters must be provided.
      * General > Snapshots.
      * @function Window.takeSnapshot
      * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
@@ -328,7 +327,7 @@ public slots:
      * @param {number} [aspectRatio=0] - The width/height ratio of the snapshot required. If the value is <code>0</code> the
      *     full resolution is used (window dimensions in desktop mode; HMD display dimensions in HMD mode), otherwise one of the
      *     dimensions is adjusted in order to match the aspect ratio.
-     * @param {string} [filename=""] - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
+     * @param {string} [filename=""] - If this parameter is not given, the image will be saved as "hifi-snap-by-&lt;user name&gt-YYYY-MM-DD_HH-MM-SS".
      *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
      *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
      *
@@ -360,29 +359,29 @@ public slots:
 
     /**jsdoc
      * Takes a still snapshot of the current view from the secondary camera that can be set up through the {@link Render} API.
-     * NOTE:  to provide a non-default value - all previous parameters must be provided.
      * @function Window.takeSecondaryCameraSnapshot
-     * @param {string} [filename=""] - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
+     * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
+     *     signal.
+     * @param {string} [filename=""] - If this parameter is not given, the image will be saved as "hifi-snap-by-&lt;user name&gt;-YYYY-MM-DD_HH-MM-SS".
      *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
      *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
-     *
-     * var filename = QString();
      */
-    void takeSecondaryCameraSnapshot(const QString& filename = QString());
+    void takeSecondaryCameraSnapshot(const bool& notify = true, const QString& filename = QString());
 
     /**jsdoc
-    * Takes a 360 snapshot given a position of the secondary camera (which does not need to have been previously set up).
-    * @function Window.takeSecondaryCameraSnapshot
-    * @param {vec3} [cameraPosition] - The (x, y, z) position of the camera for the 360 snapshot
-    * @param {boolean} [cubemapOutputFormat=false] - If <code>true</code> then the snapshot is saved as a cube map image, 
-    *     otherwise is saved as an equirectangular image.
-    * @param {string} [filename=""] - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
-    *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
-    *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
-    *
-    * var filename = QString();
-    */
-    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat = false, const QString& filename = QString());
+     * Takes a 360&deg; snapshot at a given position for the secondary camera. The secondary camera does not need to have been 
+     *     set up.
+     * @function Window.takeSecondaryCamera360Snapshot
+     * @param {Vec3} cameraPosition - The position of the camera for the snapshot.
+     * @param {boolean} [cubemapOutputFormat=false] - If <code>true</code> then the snapshot is saved as a cube map image, 
+     *     otherwise is saved as an equirectangular image.
+     * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
+     *     signal.
+     * @param {string} [filename=""] - If this parameter is not supplied, the image will be saved as "hifi-snap-by-&lt;user name&gt;-YYYY-MM-DD_HH-MM-SS".
+     *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
+     *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
+     */
+    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat = false, const bool& notify = true, const QString& filename = QString());
 
     /**jsdoc
      * Emit a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that
@@ -470,7 +469,7 @@ public slots:
      *     </tr>
      *   </tbody>
      * </table>
-     * @typedef Window.DisplayTexture
+     * @typedef {string} Window.DisplayTexture
      */
     bool setDisplayTexture(const QString& name);
 
@@ -523,16 +522,21 @@ public slots:
     int openMessageBox(QString title, QString text, int buttons, int defaultButton);
 
     /**jsdoc
-     * Open the given resource in the Interface window or in a web browser depending on the url scheme
+     * Open a URL in the Interface window or other application, depending on the URL's scheme. If the URL starts with 
+     * <code>hifi://</code> then that URL is navigated to in Interface, otherwise the URL is opened in the application the OS 
+     * associates with the URL's scheme (e.g., a Web browser for <code>http://</code>).
      * @function Window.openUrl
-     * @param {string} url - The resource to open
+     * @param {string} url - The URL to open.
      */
     void openUrl(const QUrl& url);
 
     /**jsdoc
-     * (Android only) Open the requested Activity and optionally back to the scene when the activity is done
+     * Open an Android activity and optionally return back to the scene when the activity is completed. <em>Android only.</em>
      * @function Window.openAndroidActivity
-     * @param {string} activityName - The name of the activity to open. One of "Home", "Login" or "Privacy Policy"
+     * @param {string} activityName - The name of the activity to open: one of <code>"Home"</code>, <code>"Login"</code>, or 
+     *     <code>"Privacy Policy"</code>.
+     * @param {boolean} backToScene - If <code>true</code>, the user is automatically returned back to the scene when the 
+     *     activity is completed.
      */
     void openAndroidActivity(const QString& activityName, const bool backToScene);
 
@@ -607,7 +611,8 @@ signals:
     void stillSnapshotTaken(const QString& pathStillSnapshot, bool notify);
 
     /**jsdoc
-    * Triggered when a still equirectangular snapshot has been taken by calling {@link Window.takeSecondaryCamera360Snapshot|takeSecondaryCamera360Snapshot}
+    * Triggered when a still 360&deg; snapshot has been taken by calling 
+    *     {@link Window.takeSecondaryCamera360Snapshot|takeSecondaryCamera360Snapshot}.
     * @function Window.snapshot360Taken
     * @param {string} pathStillSnapshot - The path and name of the snapshot image file.
     * @param {boolean} notify - The value of the <code>notify</code> parameter that {@link Window.takeSecondaryCamera360Snapshot|takeSecondaryCamera360Snapshot}

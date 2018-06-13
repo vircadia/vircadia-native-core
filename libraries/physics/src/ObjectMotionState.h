@@ -111,7 +111,7 @@ public:
     virtual PhysicsMotionType getMotionType() const { return _motionType; }
 
     void setMass(float mass);
-    virtual float getMass() const;
+    float getMass() const;
 
     void setBodyLinearVelocity(const glm::vec3& velocity) const;
     void setBodyAngularVelocity(const glm::vec3& velocity) const;
@@ -154,7 +154,7 @@ public:
 
     virtual QString getName() const { return ""; }
 
-    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const = 0;
+    virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const = 0;
 
     bool isActive() const { return _body ? _body->isActive() : false; }
 
@@ -184,7 +184,7 @@ protected:
     btRigidBody* _body { nullptr };
     float _density { 1.0f };
 
-    uint32_t _lastKinematicStep;
+    mutable uint32_t _lastKinematicStep;
     bool _hasInternalKinematicChanges { false };
 };
 

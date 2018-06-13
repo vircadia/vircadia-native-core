@@ -1174,7 +1174,7 @@ bool GLTFReader::addArrayOfType(const QByteArray& bin, int byteOffset, int byteL
         break;
     }
     case GLTFAccessorComponentType::UNSIGNED_INT: {
-        readArray<quint8>(bin, byteOffset, byteLength, outarray, accessorType);
+        readArray<quint32>(bin, byteOffset, byteLength, outarray, accessorType);
         break;
     }
     case GLTFAccessorComponentType::UNSIGNED_SHORT: {

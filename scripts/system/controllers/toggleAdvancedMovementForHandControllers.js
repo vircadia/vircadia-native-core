@@ -28,7 +28,7 @@
     var isDisabled = false;
 
     var previousFlyingState = MyAvatar.getFlyingEnabled();
-    var previousDrivingState = MyAvatar.useAdvancedMovementControls;
+    var previousDrivingState = false;
 
     function rotate180() {
         var newOrientation = Quat.multiply(MyAvatar.orientation, Quat.angleAxis(180, {
@@ -100,7 +100,7 @@
             Controller.enableMapping(DRIVING_MAPPING_NAME);
         }
 
-        if (MyAvatar.getFyingEnabled()) {
+        if (MyAvatar.getFlyingEnabled()) {
             Controller.disableMapping(FLYING_MAPPING_NAME);
         } else {
             Controller.enableMapping(FLYING_MAPPING_NAME);

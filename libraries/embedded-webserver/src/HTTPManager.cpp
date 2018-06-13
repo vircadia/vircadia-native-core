@@ -24,8 +24,7 @@
 const int SOCKET_ERROR_EXIT_CODE = 2;
 const int SOCKET_CHECK_INTERVAL_IN_MS = 30000;
 
-HTTPManager::HTTPManager(const QHostAddress& listenAddress, quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler, QObject* parent) :
-    QTcpServer(parent),
+HTTPManager::HTTPManager(const QHostAddress& listenAddress, quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler) :
     _listenAddress(listenAddress),
     _documentRoot(documentRoot),
     _requestHandler(requestHandler),

@@ -309,6 +309,12 @@ public:
     Q_INVOKABLE bool isMessageDialogOpen();
 
     /**jsdoc
+    * Close any open dialogs.
+    * @function TabletProxy#closeDialog
+    */
+    Q_INVOKABLE void closeDialog();
+
+    /**jsdoc
      * Creates a new button, adds it to this and returns it.
      * @function TabletProxy#addButton
      * @param {object} properties - Button properties.
@@ -493,7 +499,7 @@ protected:
     int _stableOrder;
 
     /**jsdoc
-     * @typedef TabletButtonProxy.ButtonProperties
+     * @typedef {object} TabletButtonProxy.ButtonProperties
      * @property {string} icon - URL to button icon. (50 x 50)
      * @property {string} hoverIcon - URL to button icon, displayed during mouse hover. (50 x 50)
      * @property {string} activeHoverIcon - URL to button icon used when button is active, and during mouse hover. (50 x 50)

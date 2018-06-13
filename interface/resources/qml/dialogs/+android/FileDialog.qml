@@ -57,7 +57,7 @@ ModalWindow {
     property int iconSize: 40
 
     property bool selectDirectory: false;
-    property bool showHidden: false;
+    property bool showHidden: true;
     // FIXME implement
     property bool multiSelect: false;
     property bool saveDialog: false;
@@ -324,11 +324,14 @@ ModalWindow {
             showDirsFirst: true
             showDotAndDotDot: false
             showFiles: !root.selectDirectory
+            showHidden: root.showHidden
             Component.onCompleted: {
                 showFiles = !root.selectDirectory
+                showHidden = root.showHidden
             }
 
             onFolderChanged: {
+                d.clearSelection();
                 fileTableModel.update();  // Update once the data from the folder change is available.
             }
 
@@ -448,7 +451,7 @@ ModalWindow {
                     rows = 0,
                     i;
 
-                var newFilesModel = filesModelBuilder.createObject(root);
+                filesModel = filesModelBuilder.createObject(root);
 
                 comparisonFunction = sortOrder === Qt.AscendingOrder
                     ? function(a, b) { return a < b; }
@@ -470,7 +473,7 @@ ModalWindow {
                     while (lower < upper) {
                         middle = Math.floor((lower + upper) / 2);
                         var lessThan;
-                        if (comparisonFunction(sortValue, newFilesModel.get(middle)[sortField])) {
+                        if (comparisonFunction(sortValue, filesModel.get(middle)[sortField])) {
                             lessThan = true;
                             upper = middle;
                         } else {
@@ -479,7 +482,7 @@ ModalWindow {
                         }
                     }
 
-                    newFilesModel.insert(lower, {
+                    filesModel.insert(lower, {
                        fileName: fileName,
                        fileModified: (fileIsDir ? new Date(0) : model.getItem(i, "fileModified")),
                        fileSize: model.getItem(i, "fileSize"),
@@ -490,9 +493,6 @@ ModalWindow {
 
                     rows++;
                 }
-                filesModel = newFilesModel;
-
-                d.clearSelection();
             }
         }
 

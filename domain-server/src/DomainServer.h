@@ -72,6 +72,8 @@ public:
 
     static const QString REPLACEMENT_FILE_EXTENSION;
 
+    bool isAssetServerEnabled();
+
 public slots:
     /// Called by NodeList to inform us a node has been added
     void nodeAdded(SharedNodePointer node);
@@ -165,6 +167,7 @@ private:
     unsigned int countConnectedUsers();
 
     void handleKillNode(SharedNodePointer nodeToKill);
+    void broadcastNodeDisconnect(const SharedNodePointer& disconnnectedNode);
 
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr);
 
@@ -219,7 +222,7 @@ private:
     DomainGatekeeper _gatekeeper;
 
     HTTPManager _httpManager;
-    HTTPSManager* _httpsManager;
+    std::unique_ptr<HTTPSManager> _httpsManager;
 
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;
     QQueue<SharedAssignmentPointer> _unfulfilledAssignments;

@@ -64,7 +64,11 @@ public class HomeFragment extends Fragment {
         mDomainsView.setLayoutManager(gridLayoutMgr);
         mDomainAdapter = new DomainAdapter(getContext(), HifiUtils.getInstance().protocolVersionSignature(), nativeGetLastLocation());
         mDomainAdapter.setClickListener((view, position, domain) -> {
-            new Handler(getActivity().getMainLooper()).postDelayed(() -> mListener.onSelectedDomain(domain.url), 400); // a delay so the ripple effect can be seen
+            new Handler(getActivity().getMainLooper()).postDelayed(() -> {
+                if (mListener != null) {
+                    mListener.onSelectedDomain(domain.url);
+                }
+            }, 400); // a delay so the ripple effect can be seen
         });
         mDomainAdapter.setListener(new DomainAdapter.AdapterListener() {
             @Override
@@ -116,7 +120,9 @@ public class HomeFragment extends Fragment {
                 if (!urlString.trim().isEmpty()) {
                     urlString = HifiUtils.getInstance().sanitizeHifiUrl(urlString);
                 }
-                mListener.onSelectedDomain(urlString);
+                if (mListener != null) {
+                    mListener.onSelectedDomain(urlString);
+                }
                 return true;
             }
             return false;

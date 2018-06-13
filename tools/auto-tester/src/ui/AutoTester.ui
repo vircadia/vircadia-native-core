@@ -27,7 +27,7 @@
      <string>Close</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="createTestButton">
+   <widget class="QPushButton" name="createTestsButton">
     <property name="geometry">
      <rect>
       <x>20</x>
@@ -37,7 +37,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Create Test</string>
+     <string>Create Tests</string>
     </property>
    </widget>
    <widget class="QPushButton" name="evaluateTestsButton">
@@ -145,6 +145,32 @@
     </property>
     <property name="text">
      <string>Create Tests Outline</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="showTaskbarButton">
+    <property name="geometry">
+     <rect>
+      <x>490</x>
+      <y>280</y>
+      <width>91</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Show Taskbar</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="hideTaskbarButton">
+    <property name="geometry">
+     <rect>
+      <x>490</x>
+      <y>230</y>
+      <width>91</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Hide Taskbar</string>
     </property>
    </widget>
   </widget>

@@ -250,7 +250,10 @@ glm::vec3 transformVectorFull(const glm::mat4& m, const glm::vec3& v);
 void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& secondaryAxis,
                           glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut);
 
+// assumes z-forward and y-up
 glm::vec2 getFacingDir2D(const glm::quat& rot);
+
+// assumes z-forward and y-up
 glm::vec2 getFacingDir2D(const glm::mat4& m);
 
 inline bool isNaN(const glm::vec3& value) { return isNaN(value.x) || isNaN(value.y) || isNaN(value.z); }

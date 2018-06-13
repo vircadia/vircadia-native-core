@@ -237,6 +237,14 @@ QString ScriptEngine::getContext() const {
     return "unknown";
 }
 
+bool ScriptEngine::isDebugMode() const { 
+#if defined(DEBUG)
+    return true;
+#else
+    return false;
+#endif
+}
+
 ScriptEngine::~ScriptEngine() {
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     if (scriptEngines) {
@@ -411,7 +419,7 @@ void ScriptEngine::waitTillDoneRunning() {
                 // Wait for the scripting thread to stop running, as
                 // flooding it with aborts/exceptions will persist it longer
                 static const auto MAX_SCRIPT_QUITTING_TIME = 0.5 * MSECS_PER_SECOND;
-                if (workerThread->wait(MAX_SCRIPT_QUITTING_TIME)) {
+                if (!workerThread->wait(MAX_SCRIPT_QUITTING_TIME)) {
                     workerThread->terminate();
                 }
             }
@@ -558,6 +566,16 @@ static void scriptableResourceFromScriptValue(const QScriptValue& value, Scripta
     resource = static_cast<ScriptableResourceRawPtr>(value.toQObject());
 }
 
+/**jsdoc
+ * @namespace Resource
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
+ * @property {Resource.State} State
+ */
 static QScriptValue createScriptableResourcePrototype(ScriptEnginePointer engine) {
     auto prototype = engine->newObject();
 

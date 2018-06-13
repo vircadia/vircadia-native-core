@@ -79,20 +79,30 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 // Bitset of state flags - we store the key state, hand state, Faceshift, eye tracking, and existence of
 // referential data in this bit set. The hand state is an octal, but is split into two sections to maintain
 // backward compatibility. The bits are ordered as such (0-7 left to right).
-//     +-----+-----+-+-+-+--+
-//     |K0,K1|H0,H1|F|E|R|H2|
-//     +-----+-----+-+-+-+--+
+// AA 6/1/18 added three more flags bits 8,9, and 10 for procedural audio, blink, and eye saccade enabled
+//
+//     +-----+-----+-+-+-+--+--+--+--+-----+
+//     |K0,K1|H0,H1|F|E|R|H2|Au|Bl|Ey|xxxxx|
+//     +-----+-----+-+-+-+--+--+--+--+-----+
+//
 // Key state - K0,K1 is found in the 1st and 2nd bits
 // Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
 // Face tracker - F is found in the 5th bit
 // Eye tracker - E is found in the 6th bit
 // Referential Data - R is found in the 7th bit
+// Procedural audio to mouth movement is enabled 8th bit
+// Procedural Blink is enabled 9th bit
+// Procedural Eyelid is enabled 10th bit
+
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACE_TRACKER_CONNECTED = 4; // 5th bit
 const int IS_EYE_TRACKER_CONNECTED = 5; // 6th bit (was CHAT_CIRCLING)
 const int HAS_REFERENTIAL = 6; // 7th bit
 const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
+const int AUDIO_ENABLED_FACE_MOVEMENT = 8; // 9th bit
+const int PROCEDURAL_EYE_FACE_MOVEMENT = 9; // 10th bit
+const int PROCEDURAL_BLINK_FACE_MOVEMENT = 10; // 11th bit
 
 
 const char HAND_STATE_NULL = 0;
@@ -200,9 +210,9 @@ namespace AvatarDataPacket {
     static_assert(sizeof(SensorToWorldMatrix) == SENSOR_TO_WORLD_SIZE, "AvatarDataPacket::SensorToWorldMatrix size doesn't match.");
 
     PACKED_BEGIN struct AdditionalFlags {
-        uint8_t flags;                    // additional flags: hand state, key state, eye tracking
+        uint16_t flags;                    // additional flags: hand state, key state, eye tracking
     } PACKED_END;
-    const size_t ADDITIONAL_FLAGS_SIZE = 1;
+    const size_t ADDITIONAL_FLAGS_SIZE = 2;
     static_assert(sizeof(AdditionalFlags) == ADDITIONAL_FLAGS_SIZE, "AvatarDataPacket::AdditionalFlags size doesn't match.");
 
     // only present if HAS_REFERENTIAL flag is set in AvatarInfo.flags
@@ -501,6 +511,11 @@ public:
 
     float getDomainLimitedScale() const;
 
+    virtual bool getHasScriptedBlendshapes() const { return false; }
+    virtual bool getHasProceduralBlinkFaceMovement() const { return true; }
+    virtual bool getHasProceduralEyeFaceMovement() const { return true; }
+    virtual bool getHasAudioEnabledFaceMovement() const { return false; }
+
     /**jsdoc
      * Returns the minimum scale allowed for this avatar in the current domain.
      * This value can change as the user changes avatars or when changing domains.
@@ -578,8 +593,7 @@ public:
      * @param {Quat} rotation - The rotation of the joint relative to its parent.
      * @param {Vec3} translation - The translation of the joint relative to its parent.
      * @example <caption>Set your avatar to it's default T-pose for a while.<br />
-     * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/user/pages/06.api-reference/25.myavatar/t-pose.png" />
-     * </caption>
+     * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/images/t-pose.png" /></caption>
      * // Set all joint translations and rotations to defaults.
      * var i, length, rotation, translation;
      * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
@@ -680,8 +694,7 @@ public:
      * @param {string} name - The name of the joint.
      * @param {Quat} rotation - The rotation of the joint relative to its parent.
      * @example <caption>Set your avatar to its default T-pose then rotate its right arm.<br />
-     * <img alt="Avatar in T-pose with arm rotated" 
-     * src="https://docs.highfidelity.com/user/pages/06.api-reference/25.myavatar/armpose.png" /></caption>
+     * <img alt="Avatar in T-pose with arm rotated" src="https://docs.highfidelity.com/images/armpose.png" /></caption>
      * // Set all joint translations and rotations to defaults.
      * var i, length, rotation, translation;
      * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
@@ -713,8 +726,7 @@ public:
      * @param {Vec3} translation - The translation of the joint relative to its parent.
      * @example <caption>Stretch your avatar's neck. Depending on the avatar you are using, you will either see a gap between 
      * the head and body or you will see the neck stretched.<br />
-     * <img alt="Avatar with neck stretched" 
-     * src="https://docs.highfidelity.com/user/pages/06.api-reference/25.myavatar/stretched-neck.png" /></caption>
+     * <img alt="Avatar with neck stretched" src="https://docs.highfidelity.com/images/stretched-neck.png" /></caption>
      * // Stretch your avatar's neck.
      * MyAvatar.setJointTranslation("Neck", { x: 0, y: 25, z: 0 });
      * 
@@ -798,8 +810,7 @@ public:
      * @param {Quat[]} jointRotations - The rotations for all joints in the avatar. The values are in the same order as the 
      * array returned by {@link MyAvatar.getJointNames} or {@link Avatar.getJointNames}.
      * @example <caption>Set your avatar to its default T-pose then rotate its right arm.<br />
-     * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/user/pages/06.api-reference/25.myavatar/armpose.png" />
-     * </caption>
+     * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/images/armpose.png" /></caption>
      * // Set all joint translations and rotations to defaults.
      * var i, length, rotation, translation;
      * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {

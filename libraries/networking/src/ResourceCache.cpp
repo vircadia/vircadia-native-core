@@ -218,8 +218,8 @@ ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
 }
 
 ResourceCache::ResourceCache(QObject* parent) : QObject(parent) {
-    auto nodeList = DependencyManager::get<NodeList>();
-    if (nodeList) {
+    if (DependencyManager::isSet<NodeList>()) {
+        auto nodeList = DependencyManager::get<NodeList>();
         auto& domainHandler = nodeList->getDomainHandler();
         connect(&domainHandler, &DomainHandler::disconnectedFromDomain,
             this, &ResourceCache::clearATPAssets, Qt::DirectConnection);
@@ -636,7 +636,10 @@ void Resource::attemptRequest() {
             << "- retrying asset load - attempt" << _attempts << " of " << MAX_ATTEMPTS;
     }
 
-    ResourceCache::attemptRequest(_self);
+    auto self = _self.lock();
+    if (self) {
+        ResourceCache::attemptRequest(self);
+    }
 }
 
 void Resource::finishedLoading(bool success) {

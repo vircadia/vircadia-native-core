@@ -14,6 +14,7 @@
 #include <shared/FileUtils.h>
 #include <shared/QtHelpers.h>
 #include <DependencyManager.h>
+#include <MainWindow.h>
 #include <OffscreenUi.h>
 #include <StatTracker.h>
 #include <Trace.h>
@@ -185,4 +186,8 @@ void TestScriptingInterface::saveObject(QVariant variant, const QString& filenam
     file.open(QFile::WriteOnly);
     file.write(jsonData);
     file.close();
+}
+
+void TestScriptingInterface::showMaximized() {
+    qApp->getWindow()->showMaximized();
 }

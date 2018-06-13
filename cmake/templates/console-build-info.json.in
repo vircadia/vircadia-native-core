@@ -1,5 +1,6 @@
 {
     "releaseType": "@RELEASE_TYPE@",
     "buildIdentifier": "@BUILD_VERSION@",
+    "organization": "@BUILD_ORGANIZATION@",
     "appUserModelId": "@APP_USER_MODEL_ID@"
 }

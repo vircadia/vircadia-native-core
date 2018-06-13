@@ -46,7 +46,7 @@ bool operator!=(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b
 
 /**jsdoc
  * The AnimationProperties are used to configure an animation.
- * @typedef Entities.AnimationProperties
+ * @typedef {object} Entities.AnimationProperties
  * @property {string} url="" - The URL of the FBX file that has the animation.
  * @property {number} fps=30 - The speed in frames/s that the animation is played at.
  * @property {number} firstFrame=0 - The first frame to play in the animation.

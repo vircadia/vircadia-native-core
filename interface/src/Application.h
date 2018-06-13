@@ -281,8 +281,11 @@ public:
     float getGameLoopRate() const { return _gameLoopCounter.rate(); }
 
     void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
-    void takeSecondaryCameraSnapshot(const QString& filename = QString());
-    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const QString& filename = QString());
+    void takeSecondaryCameraSnapshot(const bool& notify, const QString& filename = QString());
+    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition,
+                                        const bool& cubemapOutputFormat,
+                                        const bool& notify,
+                                        const QString& filename = QString());
 
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
@@ -416,6 +419,8 @@ public slots:
     void loadServerlessDomain(QUrl domainURL);
 
     void updateVerboseLogging();
+
+    void changeViewAsNeeded(float boomLength);
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
@@ -649,7 +654,7 @@ private:
     quint64 _lastFaceTrackerUpdate;
 
     render::ScenePointer _main3DScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
-    render::EnginePointer _renderEngine{ new render::Engine() };
+    render::EnginePointer _renderEngine{ new render::RenderEngine() };
     gpu::ContextPointer _gpuContext; // initialized during window creation
 
     mutable QMutex _renderArgsMutex{ QMutex::Recursive };
