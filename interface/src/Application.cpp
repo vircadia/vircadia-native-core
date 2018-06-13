@@ -1439,17 +1439,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // add firstRun flag from settings to launch event
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
-    // once the settings have been loaded, check if we need to flip the default for UserActivityLogger
-    auto& userActivityLogger = UserActivityLogger::getInstance();
-    if (!userActivityLogger.isDisabledSettingSet()) {
-        // the user activity logger is opt-out for Interface
-        // but it's defaulted to disabled for other targets
-        // so we need to enable it here if it has never been disabled by the user
-        userActivityLogger.disable(false);
-    }
-
     QString machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
 
+    auto& userActivityLogger = UserActivityLogger::getInstance();
     if (userActivityLogger.isEnabled()) {
         // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
         // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
