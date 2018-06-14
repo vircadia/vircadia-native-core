@@ -69,7 +69,7 @@ Item {
             id: stack
             initialItem: inputConfiguration
             property alias messageVisible: imageMessageBox.visible
-            property alias selectedPlugin: box.currentText
+            property alias selectedPlugin: box.textAt(box.currentIndex)
             Rectangle {
                 id: inputConfiguration
                 anchors {
@@ -229,10 +229,10 @@ Item {
                     id: loader
                     asynchronous: false
                     anchors.fill: parent
-                    source: InputConfiguration.configurationLayout(box.currentText);
+                    source: InputConfiguration.configurationLayout(box.textAt(box.currentIndex));
                     onLoaded: {
                         if (loader.item.hasOwnProperty("pluginName")) {
-                            if (box.currentText === "HTC Vive") {
+                            if (box.textAt(box.currentIndex) === "HTC Vive") {
                                 loader.item.pluginName = "OpenVR";
                             } else {
                                 loader.item.pluginName = box.textAt(box.currentIndex);
