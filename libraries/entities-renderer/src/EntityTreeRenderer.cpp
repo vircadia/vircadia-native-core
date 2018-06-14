@@ -382,7 +382,6 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             uint64_t expiry = updateStart + timeBudget;
 
             // process the sorted renderables
-            std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr;
             size_t numSorted = sortedRenderables.size();
             while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
                 const auto renderable = sortedRenderables.top().getRenderer();

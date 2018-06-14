@@ -171,7 +171,7 @@ protected:
 private:
     void animate(const TypedEntityPointer& entity);
     void mapJoints(const TypedEntityPointer& entity, const QStringList& modelJointNames);
-    bool jointsMapped() const { return _jointMappingURL == _renderAnimationProperties.getURL() && _jointMappingCompleted; }
+    bool jointsMapped() const { return _jointMappingCompleted; }
 
     // Transparency is handled in ModelMeshPartPayload
     virtual bool isTransparent() const override { return false; }
@@ -180,33 +180,27 @@ private:
     ModelPointer _model;
     GeometryResource::Pointer _compoundShapeResource;
     QString _lastTextures;
-    QVariantMap _currentTextures;
     bool _texturesLoaded { false };
-    AnimationPropertyGroup _renderAnimationProperties;
     int _lastKnownCurrentFrame { -1 };
 #ifdef MODEL_ENTITY_USE_FADE_EFFECT
     bool _hasTransitioned{ false };
 #endif
 
-    bool _needsJointSimulation { false };
     bool _needsCollisionGeometryUpdate { false };
     const void* _collisionMeshKey { nullptr };
 
     // used on client side
     bool _jointMappingCompleted{ false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
-    QString _jointMappingURL;
     AnimationPointer _animation;
-    QString _lastModelURL;
     QUrl _parsedModelURL;
-    bool _marketplaceEntity { false };
-    bool _shouldHighlight { false };
     bool _animating { false };
     uint64_t _lastAnimated { 0 };
 
     render::ItemKey _itemKey { render::ItemKey::Builder().withTypeMeta() };
 
     bool _didLastVisualGeometryRequestSucceed { true };
+    bool _prevModelLoaded { false };
 
     void processMaterials();
 };
