@@ -41,6 +41,8 @@ public:
 
     virtual void setWasAborted(bool wasAborted) override;
 
+    static void setCompressionEnabled(bool enabled) { _compressionEnabled = enabled; }
+
 public slots:
     virtual void bake() override;
     virtual void abort() override; 
@@ -65,6 +67,8 @@ private:
     QString _metaTexturePathPrefix;
 
     std::atomic<bool> _abortProcessing { false };
+
+    static bool _compressionEnabled;
 };
 
 #endif // hifi_TextureBaker_h

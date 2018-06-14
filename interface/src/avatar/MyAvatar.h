@@ -86,6 +86,10 @@ class MyAvatar : public Avatar {
      * @property {number} audioListenerModeCamera=1 - The audio listening position is at the camera. <em>Read-only.</em>
      * @property {number} audioListenerModeCustom=2 - The audio listening position is at a the position specified by set by the 
      *     <code>customListenPosition</code> and <code>customListenOrientation</code> property values. <em>Read-only.</em>
+     * @property {boolean} hasScriptedBlendshapes=false - Blendshapes will be transmitted over the network if set to true.
+     * @property {boolean} hasProceduralBlinkFaceMovement=true - procedural blinking will be turned on if set to true.
+     * @property {boolean} hasProceduralEyeFaceMovement=true - procedural eye movement will be turned on if set to true.
+     * @property {boolean} hasAudioEnabledFaceMovement=true - If set to true, voice audio will move the mouth Blendshapes while MyAvatar.hasScriptedBlendshapes is enabled.
      * @property {Vec3} customListenPosition=Vec3.ZERO - The listening position used when the <code>audioListenerMode</code>
      *     property value is <code>audioListenerModeCustom</code>.
      * @property {Quat} customListenOrientation=Quat.IDENTITY - The listening orientation used when the 
@@ -187,6 +191,10 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(AudioListenerMode audioListenerModeHead READ getAudioListenerModeHead)
     Q_PROPERTY(AudioListenerMode audioListenerModeCamera READ getAudioListenerModeCamera)
     Q_PROPERTY(AudioListenerMode audioListenerModeCustom READ getAudioListenerModeCustom)
+    Q_PROPERTY(bool hasScriptedBlendshapes READ getHasScriptedBlendshapes WRITE setHasScriptedBlendshapes)
+    Q_PROPERTY(bool hasProceduralBlinkFaceMovement READ getHasProceduralBlinkFaceMovement WRITE setHasProceduralBlinkFaceMovement)
+    Q_PROPERTY(bool hasProceduralEyeFaceMovement READ getHasProceduralEyeFaceMovement WRITE setHasProceduralEyeFaceMovement)
+    Q_PROPERTY(bool hasAudioEnabledFaceMovement READ getHasAudioEnabledFaceMovement WRITE setHasAudioEnabledFaceMovement)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
     Q_PROPERTY(glm::vec3 leftHandPosition READ getLeftHandPosition)
@@ -1380,6 +1388,14 @@ private:
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
     bool getShouldRenderLocally() const { return _shouldRender; }
+    void setHasScriptedBlendshapes(bool hasScriptedBlendshapes);
+    bool getHasScriptedBlendshapes() const override { return _hasScriptedBlendShapes; }
+    void setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement);
+    bool getHasProceduralBlinkFaceMovement() const override { return _headData->getHasProceduralBlinkFaceMovement(); }
+    void setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement);
+    bool getHasProceduralEyeFaceMovement() const override { return _headData->getHasProceduralEyeFaceMovement(); }
+    void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
+    bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
     bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
@@ -1488,6 +1504,7 @@ private:
     bool _hmdRollControlEnabled { true };
     float _hmdRollControlDeadZone { ROLL_CONTROL_DEAD_ZONE_DEFAULT };
     float _hmdRollControlRate { ROLL_CONTROL_RATE_DEFAULT };
+    std::atomic<bool> _hasScriptedBlendShapes { false };
 
     // working copy -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
     glm::mat4 _sensorToWorldMatrix { glm::mat4() };

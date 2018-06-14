@@ -44,6 +44,19 @@ size_t std::hash<EntityItemID>::operator()(const EntityItemID& id) const { retur
 std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction;
 std::function<bool()> EntityTreeRenderer::_renderDebugHullsOperator = [] { return false; };
 
+QString resolveScriptURL(const QString& scriptUrl) {
+    auto normalizedScriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
+    QUrl url { normalizedScriptUrl };
+    if (url.isLocalFile()) {
+        // Outside of the ScriptEngine, /~/ resolves to the /resources directory.
+        // Inside of the ScriptEngine, /~/ resolves to the /scripts directory.
+        // Here we expand local paths in case they are /~/ paths, so they aren't
+        // incorrectly recognized as being located in /scripts when utilized in ScriptEngine.
+        return PathUtils::expandToLocalDataAbsolutePath(url).toString();
+    }
+    return normalizedScriptUrl;
+}
+
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
                                             AbstractScriptingServicesInterface* scriptingServices) :
     _wantScripts(wantScripts),
@@ -221,7 +234,7 @@ void EntityTreeRenderer::reloadEntityScripts() {
         const auto& renderer = entry.second;
         const auto& entity = renderer->getEntity();
         if (!entity->getScript().isEmpty()) {
-            _entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), entity->getScript(), true);
+            _entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), resolveScriptURL(entity->getScript()), true);
         }
     }
 }
@@ -914,8 +927,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
             entity->scriptHasUnloaded();
         }
         if (shouldLoad) {
-            scriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
-            _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
+            _entitiesScriptEngine->loadEntityScript(entityID, resolveScriptURL(scriptUrl), reload);
             entity->scriptHasPreloaded();
         }
     }

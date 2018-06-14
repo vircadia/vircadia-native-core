@@ -79,20 +79,30 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 // Bitset of state flags - we store the key state, hand state, Faceshift, eye tracking, and existence of
 // referential data in this bit set. The hand state is an octal, but is split into two sections to maintain
 // backward compatibility. The bits are ordered as such (0-7 left to right).
-//     +-----+-----+-+-+-+--+
-//     |K0,K1|H0,H1|F|E|R|H2|
-//     +-----+-----+-+-+-+--+
+// AA 6/1/18 added three more flags bits 8,9, and 10 for procedural audio, blink, and eye saccade enabled
+//
+//     +-----+-----+-+-+-+--+--+--+--+-----+
+//     |K0,K1|H0,H1|F|E|R|H2|Au|Bl|Ey|xxxxx|
+//     +-----+-----+-+-+-+--+--+--+--+-----+
+//
 // Key state - K0,K1 is found in the 1st and 2nd bits
 // Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
 // Face tracker - F is found in the 5th bit
 // Eye tracker - E is found in the 6th bit
 // Referential Data - R is found in the 7th bit
+// Procedural audio to mouth movement is enabled 8th bit
+// Procedural Blink is enabled 9th bit
+// Procedural Eyelid is enabled 10th bit
+
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
 const int IS_FACE_TRACKER_CONNECTED = 4; // 5th bit
 const int IS_EYE_TRACKER_CONNECTED = 5; // 6th bit (was CHAT_CIRCLING)
 const int HAS_REFERENTIAL = 6; // 7th bit
 const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
+const int AUDIO_ENABLED_FACE_MOVEMENT = 8; // 9th bit
+const int PROCEDURAL_EYE_FACE_MOVEMENT = 9; // 10th bit
+const int PROCEDURAL_BLINK_FACE_MOVEMENT = 10; // 11th bit
 
 
 const char HAND_STATE_NULL = 0;
@@ -200,9 +210,9 @@ namespace AvatarDataPacket {
     static_assert(sizeof(SensorToWorldMatrix) == SENSOR_TO_WORLD_SIZE, "AvatarDataPacket::SensorToWorldMatrix size doesn't match.");
 
     PACKED_BEGIN struct AdditionalFlags {
-        uint8_t flags;                    // additional flags: hand state, key state, eye tracking
+        uint16_t flags;                    // additional flags: hand state, key state, eye tracking
     } PACKED_END;
-    const size_t ADDITIONAL_FLAGS_SIZE = 1;
+    const size_t ADDITIONAL_FLAGS_SIZE = 2;
     static_assert(sizeof(AdditionalFlags) == ADDITIONAL_FLAGS_SIZE, "AvatarDataPacket::AdditionalFlags size doesn't match.");
 
     // only present if HAS_REFERENTIAL flag is set in AvatarInfo.flags
@@ -500,6 +510,11 @@ public:
     virtual void setTargetScale(float targetScale);
 
     float getDomainLimitedScale() const;
+
+    virtual bool getHasScriptedBlendshapes() const { return false; }
+    virtual bool getHasProceduralBlinkFaceMovement() const { return true; }
+    virtual bool getHasProceduralEyeFaceMovement() const { return true; }
+    virtual bool getHasAudioEnabledFaceMovement() const { return false; }
 
     /**jsdoc
      * Returns the minimum scale allowed for this avatar in the current domain.
