@@ -205,7 +205,7 @@ Rectangle {
             // Spectator Camera Preview
             Hifi.ResourceImageItem {
                 id: spectatorCameraPreview;
-                visible: masterSwitch.checked;
+                visible: masterSwitch.checked && !root.processing360Snapshot;
                 url: showCameraView.checked || !HMD.active ? "resource://spectatorCameraFrame" : "resource://hmdPreviewFrame";
                 ready: masterSwitch.checked;
                 mirrorVertically: true;

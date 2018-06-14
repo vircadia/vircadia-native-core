@@ -69,6 +69,24 @@ public:
     }
     bool lookAtPositionChangedSince(quint64 time) { return _lookAtPositionChanged >= time; }
 
+    bool getHasProceduralEyeFaceMovement() const { return _hasProceduralEyeFaceMovement; }
+
+    void setHasProceduralEyeFaceMovement(const bool hasProceduralEyeFaceMovement) {
+        _hasProceduralEyeFaceMovement = hasProceduralEyeFaceMovement;
+    }
+
+    bool getHasProceduralBlinkFaceMovement() const { return _hasProceduralBlinkFaceMovement; }
+
+    void setHasProceduralBlinkFaceMovement(const bool hasProceduralBlinkFaceMovement) {
+        _hasProceduralBlinkFaceMovement = hasProceduralBlinkFaceMovement;
+    }
+
+    bool getHasAudioEnabledFaceMovement() const { return _hasAudioEnabledFaceMovement; }
+
+    void setHasAudioEnabledFaceMovement(const bool hasAudioEnabledFaceMovement) {
+        _hasAudioEnabledFaceMovement = hasAudioEnabledFaceMovement;
+    }
+
     friend class AvatarData;
 
     QJsonObject toJson() const;
@@ -83,6 +101,9 @@ protected:
     glm::vec3 _lookAtPosition;
     quint64 _lookAtPositionChanged { 0 };
 
+    bool _hasAudioEnabledFaceMovement { true };
+    bool _hasProceduralBlinkFaceMovement { true };
+    bool _hasProceduralEyeFaceMovement { true };
     bool _isFaceTrackerConnected { false };
     bool _isEyeTrackerConnected { false };
     float _leftEyeBlink { 0.0f };
