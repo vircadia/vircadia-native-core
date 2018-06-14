@@ -25,7 +25,7 @@ Rectangle {
     HifiStylesUit.HifiConstants { id: hifi; }
 
     id: root;
-	property bool uiReady: false;
+    property bool uiReady: false;
     property bool processingStillSnapshot: false;
     property bool processing360Snapshot: false;
     // Style
@@ -93,9 +93,9 @@ Rectangle {
             }
 
             onClicked: {
-				if (!checked) {
-					flashCheckBox.checked = false;
-				}
+                if (!checked) {
+                    flashCheckBox.checked = false;
+                }
                 sendToScript({method: (checked ? 'spectatorCameraOn' : 'spectatorCameraOff')});
                 sendToScript({method: 'updateCameravFoV', vFoV: fieldOfViewSlider.value});
             }
@@ -326,24 +326,24 @@ Rectangle {
                     }
                 }
             }
-			
+            
             HifiStylesUit.HiFiGlyphs {
                 id: flashGlyph;
-				visible: flashCheckBox.visible;
+                visible: flashCheckBox.visible;
                 text: hifi.glyphs.lightning;
                 size: 26;
                 color: hifi.colors.white;
-				anchors.verticalCenter: flashCheckBox.verticalCenter;
+                anchors.verticalCenter: flashCheckBox.verticalCenter;
                 anchors.right: flashCheckBox.left;
                 anchors.rightMargin: -2;
             }
-			HifiControlsUit.CheckBox {
+            HifiControlsUit.CheckBox {
                 id: flashCheckBox;
-				visible: masterSwitch.checked;
+                visible: masterSwitch.checked;
                 color: hifi.colors.white;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.right: takeSnapshotButton.left;
-				anchors.rightMargin: -8;
+                anchors.rightMargin: -8;
                 anchors.verticalCenter: takeSnapshotButton.verticalCenter;
                 boxSize: 22;
                 onClicked: {
@@ -626,7 +626,7 @@ Rectangle {
             flashCheckBox.checked = message.flashCheckboxChecked;
             showCameraView.checked = message.monitorShowsCamView;
             showHmdPreview.checked = !message.monitorShowsCamView;
-			root.uiReady = true;
+            root.uiReady = true;
         break;
         case 'updateMonitorShowsSwitch':
             showCameraView.checked = message.params;
