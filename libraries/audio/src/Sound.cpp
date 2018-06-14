@@ -101,7 +101,7 @@ void SoundProcessor::run() {
 
         int sampleRate = interpretAsWav(rawAudioByteArray, outputAudioByteArray);
         if (sampleRate == 0) {
-            qCDebug(audio) << "Unsupported WAV file type";
+            qCWarning(audio) << "Unsupported WAV file type";
             emit onError(300, "Failed to load sound file, reason: unsupported WAV file type");
             return;
         }
@@ -114,7 +114,7 @@ void SoundProcessor::run() {
 
         int sampleRate = interpretAsMP3(rawAudioByteArray, outputAudioByteArray);
         if (sampleRate == 0) {
-            qCDebug(audio) << "Unsupported MP3 file type";
+            qCWarning(audio) << "Unsupported MP3 file type";
             emit onError(300, "Failed to load sound file, reason: unsupported MP3 file type");
             return;
         }
@@ -133,7 +133,7 @@ void SoundProcessor::run() {
         downSample(rawAudioByteArray, 48000);
 
     } else {
-        qCDebug(audio) << "Unknown sound file type";
+        qCWarning(audio) << "Unknown sound file type";
         emit onError(300, "Failed to load sound file, reason: unknown sound file type");
         return;
     }
@@ -223,7 +223,7 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     // Read the "RIFF" chunk
     RIFFHeader riff;
     if (waveStream.readRawData((char*)&riff, sizeof(RIFFHeader)) != sizeof(RIFFHeader)) {
-        qCDebug(audio) << "Not a valid WAVE file.";
+        qCWarning(audio) << "Not a valid WAVE file.";
         return 0;
     }
 
@@ -231,11 +231,11 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     if (strncmp(riff.descriptor.id, "RIFF", 4) == 0) {
         waveStream.setByteOrder(QDataStream::LittleEndian);
     } else {
-        qCDebug(audio) << "Currently not supporting big-endian audio files.";
+        qCWarning(audio) << "Currently not supporting big-endian audio files.";
         return 0;
     }
     if (strncmp(riff.type, "WAVE", 4) != 0) {
-        qCDebug(audio) << "Not a valid WAVE file.";
+        qCWarning(audio) << "Not a valid WAVE file.";
         return 0;
     }
 
@@ -243,7 +243,7 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     chunk fmt;
     while (true) {
         if (waveStream.readRawData((char*)&fmt, sizeof(chunk)) != sizeof(chunk)) {
-            qCDebug(audio) << "Not a valid WAVE file.";
+            qCWarning(audio) << "Not a valid WAVE file.";
             return 0;
         }
         if (strncmp(fmt.id, "fmt ", 4) == 0) {
@@ -255,14 +255,14 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     // Read the "fmt " chunk
     WAVEFormat wave;
     if (waveStream.readRawData((char*)&wave, sizeof(WAVEFormat)) != sizeof(WAVEFormat)) {
-        qCDebug(audio) << "Not a valid WAVE file.";
+        qCWarning(audio) << "Not a valid WAVE file.";
         return 0;
     }
 
     // Parse the "fmt " chunk
     if (qFromLittleEndian<quint16>(wave.audioFormat) != WAVEFORMAT_PCM &&
         qFromLittleEndian<quint16>(wave.audioFormat) != WAVEFORMAT_EXTENSIBLE) {
-        qCDebug(audio) << "Currently not supporting non PCM audio files.";
+        qCWarning(audio) << "Currently not supporting non PCM audio files.";
         return 0;
     }
     if (qFromLittleEndian<quint16>(wave.numChannels) == 2) {
@@ -270,11 +270,11 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     } else if (qFromLittleEndian<quint16>(wave.numChannels) == 4) {
         _isAmbisonic = true;
     } else if (qFromLittleEndian<quint16>(wave.numChannels) != 1) {
-        qCDebug(audio) << "Currently not supporting audio files with other than 1/2/4 channels.";
+        qCWarning(audio) << "Currently not supporting audio files with other than 1/2/4 channels.";
         return 0;
     }
     if (qFromLittleEndian<quint16>(wave.bitsPerSample) != 16) {
-        qCDebug(audio) << "Currently not supporting non 16bit audio files.";
+        qCWarning(audio) << "Currently not supporting non 16bit audio files.";
         return 0;
     }
 
@@ -285,7 +285,7 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     chunk data;
     while (true) {
         if (waveStream.readRawData((char*)&data, sizeof(chunk)) != sizeof(chunk)) {
-            qCDebug(audio) << "Not a valid WAVE file.";
+            qCWarning(audio) << "Not a valid WAVE file.";
             return 0;
         }
         if (strncmp(data.id, "data", 4) == 0) {
@@ -298,7 +298,7 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     quint32 outputAudioByteArraySize = qFromLittleEndian<quint32>(data.size);
     outputAudioByteArray.resize(outputAudioByteArraySize);
     if (waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize) != (int)outputAudioByteArraySize) {
-        qCDebug(audio) << "Error reading WAV file";
+        qCWarning(audio) << "Error reading WAV file";
         return 0;
     }
 
@@ -387,7 +387,7 @@ int SoundProcessor::interpretAsMP3(const QByteArray& inputAudioByteArray, QByteA
 
     int outputAudioByteArraySize = outputAudioByteArray.size();
     if (outputAudioByteArraySize == 0) {
-        qCDebug(audio) << "Error decoding MP3 file";
+        qCWarning(audio) << "Error decoding MP3 file";
         return 0;
     }
 
