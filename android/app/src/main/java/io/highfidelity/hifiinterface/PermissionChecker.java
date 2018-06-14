@@ -1,71 +1,54 @@
 package io.highfidelity.hifiinterface;
 
 import android.Manifest;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.app.Activity;
-
-import android.content.DialogInterface;
-import android.app.AlertDialog;
 import android.util.Log;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
-import java.net.URL;
-import java.net.URLEncoder;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import javax.net.ssl.HttpsURLConnection;
 
 public class PermissionChecker extends Activity {
     private static final int REQUEST_PERMISSIONS = 20;
 
     private static final boolean CHOOSE_AVATAR_ON_STARTUP = false;
     private static final String TAG = "Interface";
-    private static final String ANNOTATIONS_JSON = "annotations.json";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Intent myIntent = new Intent(this, BreakpadUploaderService.class);
+        startService(myIntent);
         if (CHOOSE_AVATAR_ON_STARTUP) {
             showMenu();
         }
 
-        Thread networkThread = new Thread(new Runnable() {
-            public void run() {
-                UploadCrashReports();
-                runOnUiThread(() -> requestAppPermissions(new
-                                String[]{
-                                Manifest.permission.READ_EXTERNAL_STORAGE,
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                                Manifest.permission.RECORD_AUDIO,
-                                Manifest.permission.CAMERA}
-                        ,2,REQUEST_PERMISSIONS));
+        File obbDir = getObbDir();
+        if (!obbDir.exists()) {
+            if (obbDir.mkdirs()) {
+                Log.d(TAG, "Obb dir created");
             }
-        });
-        networkThread.start();
+        }
+
+        requestAppPermissions(new
+                        String[]{
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.RECORD_AUDIO,
+                        Manifest.permission.CAMERA}
+                ,2,REQUEST_PERMISSIONS);
 
     }
 
@@ -151,90 +134,5 @@ public class PermissionChecker extends Activity {
             System.out.println("User has deliberately denied Permissions. Launching anyways");
             launchActivityWithPermissions();
         }
-    }
-
-    public void UploadCrashReports()
-    {
-        try
-        {
-            String parameters = getAnnotationsAsUrlEncodedParameters();
-            URL url = new URL(BuildConfig.BACKTRACE_URL+ "/post?format=minidump&token=" + BuildConfig.BACKTRACE_TOKEN + (parameters.isEmpty() ? "" : ("&" + parameters)));
-            // Check if a crash .dmp exists
-            File[] matchingFiles = getFilesByExtension(getObbDir(), "dmp");
-            for (File file : matchingFiles)
-            {
-                int size = (int) file.length();
-                byte[] bytes = new byte[size];
-                BufferedInputStream buf = new BufferedInputStream(new FileInputStream(file));
-                buf.read(bytes, 0, bytes.length);
-                buf.close();
-                HttpsURLConnection urlConnection = (HttpsURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("POST");
-                urlConnection.setDoOutput(true);
-                urlConnection.setChunkedStreamingMode(0);
-
-                OutputStream ostream = urlConnection.getOutputStream();
-
-                OutputStream out = new BufferedOutputStream(ostream);
-                out.write(bytes, 0, size);
-
-                InputStream in = new BufferedInputStream(urlConnection.getInputStream());
-                in.read();
-                if (urlConnection.getResponseCode() == 200) {
-                    file.delete();
-                }
-                urlConnection.disconnect();
-            }
-        }
-        catch (Exception e)
-        {
-            Log.e(TAG, "Error uploading breakpad dumps", e);
-        }
-    }
-
-    private File[] getFilesByExtension(File dir, final String extension)
-    {
-        return dir.listFiles(pathName -> getExtension(pathName.getName()).equals(extension));
-    }
-
-    private String getExtension(String fileName)
-    {
-        String extension = "";
-
-        int i = fileName.lastIndexOf('.');
-        int p = Math.max(fileName.lastIndexOf('/'), fileName.lastIndexOf('\\'));
-
-        if (i > p)
-        {
-            extension = fileName.substring(i+1);
-        }
-
-        return extension;
-    }
-
-
-    public String getAnnotationsAsUrlEncodedParameters() {
-        String parameters = "";
-        File annotationsFile = new File(getObbDir(), ANNOTATIONS_JSON);
-        if (annotationsFile.exists()) {
-            JsonParser parser = new JsonParser();
-            try {
-                JsonObject json = (JsonObject) parser.parse(new FileReader(annotationsFile));
-                for (String k: json.keySet()) {
-                    if (!json.get(k).getAsString().isEmpty()) {
-                        String key = k.contains("/") ? k.substring(k.indexOf("/") + 1) : k;
-                        if (!parameters.isEmpty()) {
-                            parameters += "&";
-                        }
-                        parameters += URLEncoder.encode(key, "UTF-8") + "=" + URLEncoder.encode(json.get(k).getAsString(), "UTF-8");
-                    }
-                }
-            } catch (FileNotFoundException e) {
-                Log.e(TAG, "Error reading annotations file", e);
-            } catch (UnsupportedEncodingException e) {
-                Log.e(TAG, "Error reading annotations file", e);
-            }
-        }
-        return parameters;
     }
 }

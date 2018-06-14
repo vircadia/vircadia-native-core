@@ -14,7 +14,6 @@
 #if defined(HAS_BREAKPAD)
 #include <QDebug>
 
-#include <common/linux/google_crashdump_uploader.h>
 #include <client/linux/handler/exception_handler.h>
 #include <client/linux/handler/minidump_descriptor.h>
 #include <QtCore/QFileInfo>
