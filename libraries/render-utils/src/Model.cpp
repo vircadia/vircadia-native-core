@@ -808,7 +808,7 @@ bool Model::addToScene(const render::ScenePointer& scene,
     if (!_addedToScene && isLoaded()) {
         updateClusterMatrices();
         if (_modelMeshRenderItems.empty()) {
-            createVisibleRenderItemSet();
+            createRenderItemSet();
         }
     }
 
@@ -1458,7 +1458,7 @@ const render::ItemIDs& Model::fetchRenderItemIDs() const {
     return _modelMeshRenderItemIDs;
 }
 
-void Model::createVisibleRenderItemSet() {
+void Model::createRenderItemSet() {
     assert(isLoaded());
     const auto& meshes = _renderGeometry->getMeshes();
 

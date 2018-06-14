@@ -31,7 +31,7 @@ public:
     void deleteGeometry() override;
     bool updateGeometry() override;
 
-    void createVisibleRenderItemSet() override;
+    void createRenderItemSet() override;
     
     virtual void updateClusterMatrices() override;
     void updateRenderItems() override;

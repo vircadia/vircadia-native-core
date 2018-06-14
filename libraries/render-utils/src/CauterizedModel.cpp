@@ -47,7 +47,7 @@ bool CauterizedModel::updateGeometry() {
     return needsFullUpdate;
 }
 
-void CauterizedModel::createVisibleRenderItemSet() {
+void CauterizedModel::createRenderItemSet() {
     if (_isCauterized) {
         assert(isLoaded());
         const auto& meshes = _renderGeometry->getMeshes();
@@ -94,7 +94,7 @@ void CauterizedModel::createVisibleRenderItemSet() {
             }
         }
     } else {
-        Model::createVisibleRenderItemSet();
+        Model::createRenderItemSet();
     }
 }
 

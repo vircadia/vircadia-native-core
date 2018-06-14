@@ -426,7 +426,7 @@ protected:
     QVector<TriangleSet> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
 
 
-    virtual void createVisibleRenderItemSet();
+    virtual void createRenderItemSet();
 
     bool _isWireframe;
     bool _useDualQuaternionSkinning { false };
